@@ -1,0 +1,37 @@
+@startuml
+title An elevator
+left to right direction
+[*] --> Idle
+state Idle {
+  [*] --> DoorsOpen
+  DoorsOpen --> DoorsClosed : timeout
+  DoorsClosed --> DoorsOpen : call [here]
+}
+state Moving {
+  [*] --> Accelerating
+  Accelerating --> Cruising : full speed
+  Cruising --> Braking : floor near
+  Braking --> Levelling : slow
+  --
+  [*] --> Watching
+  Watching --> Watching : floor passed / update display
+}
+state Check <<choice>>
+Idle --> Check : call [elsewhere]
+Check --> Moving : [doors closed]
+Check --> Closing : [doors open]
+Closing --> Moving : closed
+Closing --> Idle : obstacle
+Moving --> Arrived : levelled
+Arrived --> Idle : doors open
+Moving --> Emergency : alarm
+Idle --> Emergency : alarm
+state Emergency {
+  [*] --> Stopped
+  Stopped --> Rescue : help called
+  Rescue --> [*] : freed
+}
+Emergency --> Maintenance : technician
+Maintenance --> Idle : released
+Maintenance --> [*] : out of service
+@enduml

@@ -1,0 +1,15 @@
+---
+title: A pedestrian crossing
+---
+stateDiagram-v2
+  [*] --> CarsGo
+  CarsGo --> CarsSlow : button
+  CarsSlow --> CarsStop : after 3 s
+  state CarsStop {
+    [*] --> Walk
+    Walk --> Hurry : after 10 s
+    Hurry --> [*] : after 5 s
+  }
+  CarsStop --> CarsGo : crossing clear
+  CarsGo --> Blinking : night
+  Blinking --> CarsGo : morning

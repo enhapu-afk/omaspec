@@ -1,0 +1,33 @@
+== flowchart.mmd: Mermaid / Activity (Flowchart)
+== lint
+== outline
+   9 subgraph | Continuous integration
+  11   node | Push
+  11   decision | Tests green?
+  12   node | Package
+  13   node | Fix
+  16 node | Release
+  17 node | Announce
+  18 node | Mirror
+== fmt
+---
+title: Build pipeline
+config:
+  theme: dark
+  flowchart:
+    curve: linear
+---
+flowchart TD
+subgraph CI["Continuous integration"]
+  direction LR
+  A[Push] --> B{Tests green?}
+  B -->|yes| C([Package])
+  B -->|no| D[[Fix]]
+  D --> A
+end
+C-->E((Release))
+E --> F>Announce]
+F --> G{{Mirror}}
+style A fill:#f9f
+classDef done fill:#9f9
+class E done

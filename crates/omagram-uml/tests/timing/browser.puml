@@ -1,0 +1,25 @@
+@startuml
+title Browser
+header draft
+footer end
+caption a request
+robust "Web Browser" as WB
+concise "User" as U
+rectangle "Cache" as C
+WB has Idle, Processing, Waiting
+U is Ready
+C is Empty
+@0
+WB is Idle
+U is Clicking
+C is Miss
+@100
+WB is Processing
+U -> WB : URL
+@200
+WB is Waiting
+C is Hit
+WB@100 <-> @200 : {100 ms}
+highlight 0 to 200 #Gold : request
+note top of U : clicks
+@enduml

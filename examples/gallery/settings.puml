@@ -1,0 +1,13 @@
+@startjson
+title Editor settings
+{
+  "theme": "follow Omarchy",
+  "font": { "family": "monospace", "size": 14 },
+  "render": {
+    "pause": "400 ms",
+    "engines": ["Omagram PlantUML", "mmdr"]
+  },
+  "lint": true,
+  "telemetry": null
+}
+@endjson

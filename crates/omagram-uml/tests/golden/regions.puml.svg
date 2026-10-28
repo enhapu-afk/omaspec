@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="295" height="823" viewBox="0 0 295 823">
+<g transform="translate(10,10)">
+<g>
+<ellipse cx="137.37" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="80.3" width="274.74" height="405.42" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<line x1="0" y1="108.59" x2="274.74" y2="108.59" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="0" y1="295.15" x2="274.74" y2="295.15" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
+<ellipse cx="137.37" cy="127.59" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="81.37" y="170.59" width="112" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="81.76" y="248.86" width="111.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="137.37" cy="320.15" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="79.81" y="363.15" width="115.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="80.2" y="441.42" width="114.35" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="26.99" y="531.68" width="220.77" height="212.86" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<line x1="26.99" y1="559.98" x2="247.76" y2="559.98" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="131.54" y1="559.98" x2="131.54" y2="744.54" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
+<ellipse cx="78.26" cy="618.11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="38.99" y="661.11" width="78.55" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="190.65" cy="578.98" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="145.54" y="621.98" width="90.22" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="155.64" y="700.24" width="70.01" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="137.37" cy="789.54" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="137.37" cy="789.54" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="137.37,48.3 137.37,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="137.37,485.71 137.37,521.68" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="137.37,744.54 137.37,766.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="137.37,138.59 137.37,160.59" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="129.37,202.89 129.37,238.86" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="145.37,248.86 145.37,212.89" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="137.37,331.15 137.37,353.15" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="129.37,395.45 129.37,431.42" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="145.37,441.42 145.37,405.45" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="78.26,629.11 78.26,651.11" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="190.65,589.98 190.65,611.98" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="190.65,654.27 190.65,690.24" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="116.37" y="105.29" font-size="14" fill="#000000" font-weight="bold" textLength="42.01" lengthAdjust="spacing">Active</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="95.37" y="191.58" font-size="14" fill="#000000" font-weight="bold" textLength="84" lengthAdjust="spacing">NumLockOff</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="95.76" y="269.85" font-size="14" fill="#000000" font-weight="bold" textLength="83.23" lengthAdjust="spacing">NumLockOn</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="14.68" y="231.02" font-size="12" fill="#000000" textLength="108.7" lengthAdjust="spacing">EvNumLockPressed</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="151.37" y="231.02" font-size="12" fill="#000000" textLength="108.7" lengthAdjust="spacing">EvNumLockPressed</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="93.81" y="384.14" font-size="14" fill="#000000" font-weight="bold" textLength="87.12" lengthAdjust="spacing">CapsLockOff</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="94.2" y="462.41" font-size="14" fill="#000000" font-weight="bold" textLength="86.35" lengthAdjust="spacing">CapsLockOn</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="12" y="423.58" font-size="12" fill="#000000" textLength="111.37" lengthAdjust="spacing">EvCapsLockPressed</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="151.37" y="423.58" font-size="12" fill="#000000" textLength="111.37" lengthAdjust="spacing">EvCapsLockPressed</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="112.47" y="556.67" font-size="14" fill="#000000" font-weight="bold" textLength="49.8" lengthAdjust="spacing">Paused</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="52.99" y="682.1" font-size="14" fill="#000000" font-weight="bold" textLength="50.55" lengthAdjust="spacing">Waiting</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="159.54" y="642.97" font-size="14" fill="#000000" font-weight="bold" textLength="62.22" lengthAdjust="spacing">Buffering</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="169.64" y="721.23" font-size="14" fill="#000000" font-weight="bold" textLength="42.01" lengthAdjust="spacing">Ready</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="196.65" y="682.41" font-size="12" fill="#000000" textLength="15.34" lengthAdjust="spacing">full</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="143.37" y="513.85" font-size="12" fill="#000000" textLength="32.69" lengthAdjust="spacing">pause</tspan>
+</text>
+<polygon points="133.37,70.3 137.37,80.3 141.37,70.3 137.37,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="133.37,521.68 137.37,531.68 141.37,521.68 137.37,525.68" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="133.37,766.54 137.37,776.54 141.37,766.54 137.37,770.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="133.37,160.59 137.37,170.59 141.37,160.59 137.37,164.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="125.37,238.86 129.37,248.86 133.37,238.86 129.37,242.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="149.37,212.89 145.37,202.89 141.37,212.89 145.37,208.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="133.37,353.15 137.37,363.15 141.37,353.15 137.37,357.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="125.37,431.42 129.37,441.42 133.37,431.42 129.37,435.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="149.37,405.45 145.37,395.45 141.37,405.45 145.37,401.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="74.26,651.11 78.26,661.11 82.26,651.11 78.26,655.11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="186.65,611.98 190.65,621.98 194.65,611.98 190.65,615.98" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="186.65,690.24 190.65,700.24 194.65,690.24 190.65,694.24" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="85.24" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="104.26" lengthAdjust="spacing">Keyboard locks</tspan>
+</text>
+</g>
+</g>
+</svg>

@@ -1,0 +1,43 @@
+== messy-format.puml: PlantUML / Sequence (Sequence diagram)
+== lint
+== outline
+  14 participant | Curly { brace }
+  16 participant | Plain
+  18 alt | first
+  20 else | second
+== fmt
+@startuml
+!$dark = true
+skinparam monochrome true
+skinparam sequence {
+  ArrowColor #888888
+  LifeLineBorderColor #444444
+}
+<style>
+note {
+  BackgroundColor #ffffcc
+}
+</style>
+!if ($dark)
+  participant "Curly { brace }" as C
+!else
+  participant Plain as C
+!endif
+alt first
+  C -> C : "}" is text
+else second
+  C -> C : still text
+
+end
+legend right
+  Two lines
+  of legend
+endlegend
+title
+  A multi-line
+  title
+  end title
+  /' A block
+  comment '/
+  C -> C : done
+@enduml

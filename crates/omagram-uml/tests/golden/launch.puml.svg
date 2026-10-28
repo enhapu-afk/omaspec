@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="526" height="302" viewBox="0 0 526 302">
+<g transform="translate(10,10)">
+<g>
+<line x1="31.01" y1="80.26" x2="31.01" y2="100.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="31.01" y1="166.22" x2="41.01" y2="166.22" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="31.01" y1="215.18" x2="41.01" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="31.01" y1="134.23" x2="31.01" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="193.72" y1="80.26" x2="193.72" y2="100.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="193.72" y1="166.22" x2="203.72" y2="166.22" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="193.72" y1="215.18" x2="203.72" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="193.72" y1="134.23" x2="193.72" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="355.08" y1="80.26" x2="355.08" y2="100.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="355.08" y1="166.22" x2="365.08" y2="166.22" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="355.08" y1="215.18" x2="365.08" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="393.76" y1="264.15" x2="403.76" y2="264.15" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="393.76" y1="232.17" x2="393.76" y2="264.15" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="355.08" y1="134.23" x2="355.08" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="31.01" y1="80.26" x2="355.08" y2="80.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="193.05" y1="60.26" x2="193.05" y2="80.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+</g>
+<g>
+<rect x="0" y="100.26" width="62.02" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="10" y="121.4" font-size="12" fill="#000000" textLength="42.02" lengthAdjust="spacing">Content</tspan>
+</text>
+<rect x="41.01" y="149.23" width="104.04" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="51.01" y="170.37" font-size="12" fill="#000000" textLength="84.04" lengthAdjust="spacing">Write the pages</tspan>
+</text>
+<rect x="41.01" y="198.2" width="72.69" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="51.01" y="219.34" font-size="12" fill="#000000" textLength="52.69" lengthAdjust="spacing">Proofread</tspan>
+</text>
+<rect x="165.05" y="100.26" width="57.34" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="175.05" y="121.4" font-size="12" fill="#000000" textLength="37.34" lengthAdjust="spacing">Design</tspan>
+</text>
+<rect x="203.72" y="149.23" width="98.02" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="213.72" y="170.37" font-size="12" fill="#000000" textLength="78.02" lengthAdjust="spacing">Pick the colors</tspan>
+</text>
+<rect x="203.72" y="198.2" width="99.36" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="213.72" y="219.34" font-size="12" fill="#000000" textLength="79.36" lengthAdjust="spacing">Draw the icons</tspan>
+</text>
+<rect x="323.08" y="100.26" width="64.02" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="333.08" y="121.4" font-size="12" fill="#000000" textLength="44.02" lengthAdjust="spacing">Release</tspan>
+</text>
+<rect x="365.08" y="149.23" width="103.38" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="375.08" y="170.37" font-size="12" fill="#000000" textLength="83.38" lengthAdjust="spacing">Buy the domain</tspan>
+</text>
+<rect x="365.08" y="198.2" width="57.34" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="375.08" y="219.34" font-size="12" fill="#000000" textLength="37.34" lengthAdjust="spacing">Deploy</tspan>
+</text>
+<rect x="403.76" y="247.17" width="101.36" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="413.76" y="268.3" font-size="12" fill="#000000" textLength="81.36" lengthAdjust="spacing">Check the links</tspan>
+</text>
+<rect x="142.03" y="26.3" width="102.03" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="152.03" y="47.43" font-size="12" fill="#000000" textLength="82.03" lengthAdjust="spacing">Website launch</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="177.1" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="150.92" lengthAdjust="spacing">Launching the website</tspan>
+</text>
+</g>
+</g>
+</svg>

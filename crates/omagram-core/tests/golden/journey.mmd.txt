@@ -1,0 +1,14 @@
+== journey.mmd: Mermaid / Other (User journey)
+== lint
+== outline
+   2 title | First boot
+   3 section | Install
+   6 section | Use
+== fmt
+journey
+title First boot
+section Install
+  Partition disk: 3: User
+  Pick theme: 5: User
+section Use
+  Open terminal: 5: User

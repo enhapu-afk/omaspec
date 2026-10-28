@@ -1,0 +1,13 @@
+@startuml
+title Heater
+[*] --> Off
+Off --> On : power
+state On {
+  [*] --> Low
+  Low --> High : up
+  High --> Low : down
+  Off --> [H] : resume
+}
+On --> Off : pause
+Off --> On[H*] : resume all
+@enduml

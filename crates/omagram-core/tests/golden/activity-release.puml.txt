@@ -1,0 +1,62 @@
+== activity-release.puml: PlantUML / Activity (Activity diagram)
+== lint
+  35 Warning: Lane "developer" differs from "Developer" only in case or spaces. PlantUML draws two lanes.
+== outline
+   2 title | Release pipeline
+   3 lane | Developer
+   6 lane | CI
+   8 fork | 
+  10 fork again | 
+  13 if | all green?
+  15 elseif | flaky?
+  17 else | no
+  21 partition | Publish
+  22   while | mirrors left?
+  26 repeat | 
+  29 switch | channel
+  30 case | stable
+  32 case | beta
+== fmt
+@startuml
+title Release pipeline
+|Developer|
+start
+:Push tag;
+|CI|
+:Build packages;
+fork
+  :Run unit tests;
+fork again
+  :Run integration tests;
+end fork
+if (all green?) then (yes)
+  :Sign artifacts;
+elseif (flaky?) then (retry)
+  :Re-run failed jobs;
+else (no)
+  :Notify developer;
+  stop
+endif
+partition Publish {
+  while (mirrors left?) is (yes)
+    :Upload to mirror;
+  endwhile (no)
+}
+repeat
+  :Poll AUR;
+repeat while (not visible yet?)
+switch (channel)
+case (stable)
+  :Announce;
+case (beta)
+  :Post in testing thread;
+endswitch
+|developer|
+:Close milestone;
+|Developer|
+note right
+  Done for this
+  release
+end note
+stop
+@enduml

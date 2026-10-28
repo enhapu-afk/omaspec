@@ -1,0 +1,35 @@
+@startuml
+title A bookshop
+class Customer {
+  + name : String
+  + email : String
+}
+class Order {
+  + placed : Date
+  + total() : Money
+}
+interface Payable {
+  + pay(card : Card)
+}
+enum Status {
+  Open
+  Paid
+  Shipped
+}
+class Line {
+  + quantity : int
+}
+class Book {
+  + title : String
+  + price : Money
+}
+class Author {
+  + name : String
+}
+Customer "1" --> "*" Order : places
+Payable <|.. Order
+Order --> Status
+Order *-- "1..*" Line
+Line --> Book
+Book "*" -- "1..*" Author : written by
+@enduml

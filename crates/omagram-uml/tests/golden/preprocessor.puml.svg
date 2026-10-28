@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="308" height="455" viewBox="0 0 308 455">
+<g transform="translate(10,10)">
+<g>
+<line x1="32.67" y1="83.59" x2="32.67" y2="376.78" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="143.81" y1="83.59" x2="143.81" y2="376.78" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="270.83" y1="83.59" x2="270.83" y2="376.78" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g>
+<rect x="138.81" y="150.86" width="10" height="29.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+<rect x="138.81" y="276.38" width="10" height="29.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+<rect x="138.81" y="334.65" width="10" height="29.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<rect x="0" y="53.3" width="65.34" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="7" y="73.29" font-size="14" fill="#000000" textLength="51.34" lengthAdjust="spacing">Browser</tspan>
+</text>
+<rect x="126.69" y="53.3" width="34.23" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="133.69" y="73.29" font-size="14" fill="#000000" textLength="20.23" lengthAdjust="spacing">Api</tspan>
+</text>
+<path d="M255.83,31.3 L255.83,59.3 A15,5 0 0 0 285.83,59.3 L285.83,31.3" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<ellipse cx="270.83" cy="31.3" rx="15" ry="5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="254.1" y="80.29" font-size="14" fill="#000000" textLength="33.46" lengthAdjust="spacing">Store</tspan>
+</text>
+<line x1="32.67" y1="150.86" x2="138.81" y2="150.86" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="128.81,146.86 138.81,150.86 128.81,154.86 132.81,150.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="39.67" y="145.79" font-size="13" fill="#000000" textLength="70.8" lengthAdjust="spacing">GET /orders</tspan>
+</text>
+<line x1="138.81" y1="179.99" x2="32.67" y2="179.99" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="42.67,175.99 32.67,179.99 42.67,183.99 38.67,179.99" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="46.67" y="174.92" font-size="13" fill="#000000" textLength="21.68" lengthAdjust="spacing">200</tspan>
+</text>
+<line x1="143.81" y1="209.12" x2="270.83" y2="209.12" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="260.83,205.12 270.83,209.12 260.83,213.12 264.83,209.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="150.81" y="204.05" font-size="13" fill="#000000" textLength="91.03" lengthAdjust="spacing">SELECT orders</tspan>
+</text>
+<line x1="32.67" y1="276.38" x2="138.81" y2="276.38" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="128.81,272.38 138.81,276.38 128.81,280.38 132.81,276.38" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="39.67" y="271.32" font-size="13" fill="#000000" textLength="75.14" lengthAdjust="spacing">GET /order/1</tspan>
+</text>
+<line x1="138.81" y1="305.52" x2="32.67" y2="305.52" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="42.67,301.52 32.67,305.52 42.67,309.52 38.67,305.52" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="46.67" y="300.45" font-size="13" fill="#000000" textLength="21.68" lengthAdjust="spacing">200</tspan>
+</text>
+<line x1="32.67" y1="334.65" x2="138.81" y2="334.65" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="128.81,330.65 138.81,334.65 128.81,338.65 132.81,334.65" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="39.67" y="329.58" font-size="13" fill="#000000" textLength="75.14" lengthAdjust="spacing">GET /order/2</tspan>
+</text>
+<line x1="138.81" y1="363.78" x2="32.67" y2="363.78" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="42.67,359.78 32.67,363.78 42.67,367.78 38.67,363.78" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="46.67" y="358.71" font-size="13" fill="#000000" textLength="21.68" lengthAdjust="spacing">200</tspan>
+</text>
+<rect x="0" y="376.78" width="65.34" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="7" y="396.77" font-size="14" fill="#000000" textLength="51.34" lengthAdjust="spacing">Browser</tspan>
+</text>
+<rect x="126.69" y="376.78" width="34.23" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="133.69" y="396.77" font-size="14" fill="#000000" textLength="20.23" lengthAdjust="spacing">Api</tspan>
+</text>
+<path d="M255.83,401.08 L255.83,429.08 A15,5 0 0 0 285.83,429.08 L285.83,401.08" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<ellipse cx="270.83" cy="401.08" rx="15" ry="5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="254.1" y="389.77" font-size="14" fill="#000000" textLength="33.46" lengthAdjust="spacing">Store</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="79.6" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="128.37" lengthAdjust="spacing">Orders for Browser</tspan>
+</text>
+<rect x="0" y="105.66" width="287.57" height="3" fill="#EEEEEE" stroke="#000000" stroke-width="1"/>
+<rect x="122.25" y="96.59" width="43.06" height="21.13" rx="2.5" ry="2.5" fill="#EEEEEE" stroke="#000000" stroke-width="2"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="128.25" y="111.66" font-size="13" fill="#000000" font-weight="bold" textLength="31.06" lengthAdjust="spacing">Load</tspan>
+</text>
+<rect x="0" y="231.19" width="287.57" height="3" fill="#EEEEEE" stroke="#000000" stroke-width="1"/>
+<rect x="121.17" y="222.12" width="45.23" height="21.13" rx="2.5" ry="2.5" fill="#EEEEEE" stroke="#000000" stroke-width="2"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="127.17" y="237.18" font-size="13" fill="#000000" font-weight="bold" textLength="33.23" lengthAdjust="spacing">Retry</tspan>
+</text>
+</g>
+</g>
+</svg>

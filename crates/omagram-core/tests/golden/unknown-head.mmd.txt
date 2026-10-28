@@ -1,0 +1,7 @@
+== unknown-head.mmd: Mermaid / Other (sequenceDiagramm)
+== lint
+   1 Warning: Unknown diagram head — expected flowchart / sequenceDiagram / …
+== outline
+== fmt
+sequenceDiagramm
+A->>B: typo in the head

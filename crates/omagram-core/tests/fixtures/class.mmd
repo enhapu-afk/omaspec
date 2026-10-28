@@ -1,0 +1,11 @@
+classDiagram
+    namespace Shell {
+        class Bar
+        class Menu
+    }
+    class Theme {
+        +String name
+        +apply()
+    }
+    Theme <|-- TokyoNight
+    Bar --> Theme

@@ -1,0 +1,15 @@
+== er.mmd: Mermaid / Structure (ER diagram)
+== lint
+== outline
+   3 entity | PACKAGE
+   7 entity | FILE
+== fmt
+erDiagram
+PACKAGE ||--o{ FILE : contains
+  PACKAGE {
+    string name
+    string version
+  }
+  FILE {
+    string path
+  }

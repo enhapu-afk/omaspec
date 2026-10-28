@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="288" height="440" viewBox="0 0 288 440">
+<g transform="translate(71.36,10)">
+<g>
+<polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,64 10,84" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,171.94 10,191.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="49.82,203.94 151.04,203.94 151.04,144.95" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="151.04,110.98 151.04,52 22,52" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,117.97 10,137.97" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,215.94 10,239.74" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,263.74 10,283.74" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,317.71 10,353.28" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="42.78,365.28 112.46,365.28 112.46,332.48" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="112.46,284.54 112.46,251.74 22,251.74" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,377.28 10,397.28" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<polygon points="6,30 10,40 14,30 10,34" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,74 10,84 14,74 10,78" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,181.94 10,191.94 14,181.94 10,185.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="155.04,154.95 151.04,144.95 147.04,154.95 151.04,150.95" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="32,48 22,52 32,56 28,52" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,127.97 10,137.97 14,127.97 10,131.97" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,229.74 10,239.74 14,229.74 10,233.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,273.74 10,283.74 14,273.74 10,277.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,343.28 10,353.28 14,343.28 10,347.28" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="116.46,342.48 112.46,332.48 108.46,342.48 112.46,338.48" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="32,247.74 22,251.74 32,255.74 28,251.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,387.28 10,397.28 14,387.28 10,391.28" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+<polygon points="-2,52 10,40 22,52 10,64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<polygon points="-29.82,203.94 -17.82,191.94 37.82,191.94 49.82,203.94 37.82,215.94 -17.82,215.94" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-17.82" y="207.74" font-size="11" fill="#000000" textLength="55.64" lengthAdjust="spacing">more data?</tspan>
+</text>
+<rect x="96.36" y="110.98" width="109.35" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="106.36" y="132.12" font-size="12" fill="#000000" textLength="89.35" lengthAdjust="spacing">This is backward</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="51.82" y="200.34" font-size="11" fill="#000000" textLength="17.12" lengthAdjust="spacing">yes</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="14" y="227.14" font-size="11" fill="#000000" textLength="12.23" lengthAdjust="spacing">no</tspan>
+</text>
+<rect x="-37.69" y="84" width="95.38" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-27.69" y="105.14" font-size="12" fill="#000000" textLength="75.38" lengthAdjust="spacing">Read the data</tspan>
+</text>
+<rect x="-61.36" y="137.97" width="142.72" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-51.36" y="159.1" font-size="12" fill="#000000" textLength="122.72" lengthAdjust="spacing">Generate the diagrams</tspan>
+</text>
+<polygon points="-2,251.74 10,239.74 22,251.74 10,263.74" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<polygon points="-22.78,365.28 -10.78,353.28 30.78,353.28 42.78,365.28 30.78,377.28 -10.78,377.28" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-10.78" y="369.09" font-size="11" fill="#000000" textLength="41.57" lengthAdjust="spacing">answer?</tspan>
+</text>
+<rect x="65.78" y="284.54" width="93.36" height="47.94" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="75.78" y="305.68" font-size="12" fill="#000000" textLength="73.36" lengthAdjust="spacing">Wait a minute</tspan>
+<tspan x="75.78" y="319.65" font-size="12" fill="#000000" textLength="69.37" lengthAdjust="spacing">and try again</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="118.46" y="344.69" font-size="11" fill="#000000" textLength="36.07" lengthAdjust="spacing">timeout</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="118.46" y="263.95" font-size="11" fill="#000000" textLength="22" lengthAdjust="spacing">retry</tspan>
+</text>
+<rect x="-10" y="283.74" width="40" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="304.88" font-size="12" fill="#000000" textLength="20" lengthAdjust="spacing">Ask</tspan>
+</text>
+<ellipse cx="10" cy="408.28" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="10" cy="408.28" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+</g>
+</svg>

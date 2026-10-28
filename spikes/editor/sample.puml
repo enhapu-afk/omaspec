@@ -1,0 +1,31 @@
+' Spike sample: an unclosed alt and a typo'd participant on purpose.
+@startuml theme-switch
+title Switching the Omarchy theme
+
+actor User
+participant "Omarchy menu" as Menu
+participant Hyprland #e68e0d
+database "~/.local/state/omarchy" as State
+
+/' Everything below reacts to
+   the new colors.toml '/
+User -> Menu : Super+Ctrl+Shift+Space
+Menu -> State : omarchy-theme-set tokyo-night
+activate State
+State --> Hyprland : reload colors
+note right of Hyprland
+  Borders, bar and
+  terminals follow.
+end note
+
+alt Omagram is running
+  State -> Omagram : colors.toml changed
+  Omagram -> Omagram : restyle editor
+else not running
+  User -> hyprland : nothing to do
+deactivate State
+
+== Done ==
+...
+User <-- Menu : theme applied
+@enduml

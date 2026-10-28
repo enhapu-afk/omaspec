@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- File types Omagram opens, so file managers offer it for them. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="text/x-plantuml">
+    <comment>PlantUML diagram</comment>
+    <sub-class-of type="text/plain"/>
+    <glob pattern="*.puml"/>
+    <glob pattern="*.plantuml"/>
+    <glob pattern="*.pu"/>
+    <glob pattern="*.iuml"/>
+    <glob pattern="*.wsd"/>
+  </mime-type>
+  <mime-type type="text/vnd.mermaid">
+    <comment>Mermaid diagram</comment>
+    <sub-class-of type="text/plain"/>
+    <glob pattern="*.mmd"/>
+    <glob pattern="*.mermaid"/>
+  </mime-type>
+</mime-info>

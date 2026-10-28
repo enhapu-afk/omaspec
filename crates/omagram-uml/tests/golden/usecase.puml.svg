@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="295" height="271" viewBox="0 0 295 271">
+<g transform="translate(10,10)">
+<g>
+<ellipse cx="38.61" cy="8" rx="7" ry="7" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="38.61" y1="15" x2="38.61" y2="31" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="27.61" y1="21" x2="49.61" y2="21" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="38.61" y1="31" x2="28.61" y2="45" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="38.61" y1="31" x2="48.61" y2="45" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="151.23" cy="34.15" rx="42" ry="20" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<path d="M0,112.3 L0,139.43 L77.23,139.43 L77.23,121.34 L68.18,112.3 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M68.18,112.3 L68.18,121.34 L77.23,121.34" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<ellipse cx="38.61" cy="191.43" rx="7" ry="7" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="38.61" y1="198.43" x2="38.61" y2="214.43" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="27.61" y1="204.43" x2="49.61" y2="204.43" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="38.61" y1="214.43" x2="28.61" y2="228.43" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="38.61" y1="214.43" x2="48.61" y2="228.43" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="151.23" cy="217.58" rx="42" ry="20" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<polyline points="65.61,217.58 99.23,217.58" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="65.61,34.15 99.23,34.15" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M203.23,197.58 L203.23,224.71 L274.85,224.71 L274.85,206.62 L265.81,197.58 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M265.81,197.58 L265.81,206.62 L274.85,206.62" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="19.94" y="63.99" font-size="14" fill="#000000" textLength="37.35" lengthAdjust="spacing">Guest</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="128.66" y="38.99" font-size="14" fill="#000000" textLength="45.14" lengthAdjust="spacing">Refund</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="6" y="130.36" font-size="13" fill="#000000" textLength="59.23" lengthAdjust="spacing">remember</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="22.28" y="247.42" font-size="14" fill="#000000" textLength="32.66" lengthAdjust="spacing">Clerk</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="134.11" y="222.42" font-size="14" fill="#000000" textLength="34.24" lengthAdjust="spacing">Login</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="209.23" y="215.64" font-size="13" fill="#000000" textLength="55.63" lengthAdjust="spacing">password</tspan>
+</text>
+<polygon points="99.23,221.58 109.23,217.58 99.23,213.58 103.73,217.58" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="99.23,38.15 109.23,34.15 99.23,30.15 103.73,34.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+</g>
+</svg>

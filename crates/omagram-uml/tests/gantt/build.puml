@@ -1,0 +1,20 @@
+@startgantt
+title Build
+header draft
+footer done
+caption a release
+printscale daily
+Project starts 2020-07-01
+[Prototype design] as [D] requires 15 days
+[Prototype design] is colored in Fuchsia
+[Documentation] starts at [D]'s start and requires 10 days
+[Documentation] is colored in LightBlue
+[Tests] starts at [D]'s end and lasts 5 days
+[Tests] is 40% complete
+-- Release --
+[Package] requires 3 days
+[Package] starts at [Tests]'s end
+[Publish] requires 2 days
+[Package] -> [Publish]
+[Milestone] happens at [Publish]'s end
+@endgantt

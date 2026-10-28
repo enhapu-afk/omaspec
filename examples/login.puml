@@ -1,0 +1,21 @@
+@startuml
+title Logging in
+actor User
+participant "Web app" as Web
+participant Auth
+database Sessions
+
+User -> Web : open the login page
+Web --> User : form
+User -> Web : name and password
+Web -> Auth : check(name, password)
+alt password ok
+  Auth -> Sessions : create session
+  Sessions --> Auth : session id
+  Auth --> Web : ok
+  Web --> User : welcome page
+else wrong password
+  Auth --> Web : refused
+  Web --> User : try again
+end
+@enduml

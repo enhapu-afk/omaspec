@@ -1,0 +1,11 @@
+@startuml
+left to right direction
+actor User
+actor :Admin: as A
+rectangle Desktop {
+  User -- (Change theme)
+  User -- (Take screenshot)
+  A -- (Install package)
+}
+(Change theme) .> (Reload bar) : include
+@enduml

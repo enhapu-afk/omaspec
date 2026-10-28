@@ -1,0 +1,40 @@
+@startuml
+' A <style> for an activity diagram: what is set for `activity` reaches
+' the diamonds too, as in PlantUML, until `diamond` sets its own.
+<style>
+activityDiagram {
+  activity {
+    BackGroundColor #E8F1FB
+    LineColor #2F6DB5
+    RoundCorner 8
+  }
+  diamond {
+    BackGroundColor #FFF4E0
+  }
+  arrow {
+    LineColor #2F6DB5
+    FontColor #555555
+  }
+  swimlane {
+    LineColor #BBBBBB
+    FontStyle bold
+    FontSize 15
+  }
+  note {
+    BackGroundColor #F5F5F5
+  }
+}
+</style>
+|Shop|
+start
+:Take order;
+if (In stock?) then (yes)
+  :Pack;
+  note right: same day
+else (no)
+  :Reorder;
+endif
+|Courier|
+:Ship;
+stop
+@enduml

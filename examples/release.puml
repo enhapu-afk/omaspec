@@ -1,0 +1,24 @@
+@startuml
+title Releasing a version
+|Developer|
+start
+:Merge the last change;
+:Tag the version;
+|CI|
+:Build and test;
+if (all green?) then (yes)
+  :Publish packages;
+  fork
+    :Upload to the registry;
+  fork again
+    :Build the website;
+  end fork
+else (no)
+  |Developer|
+  :Fix and tag again;
+  stop
+endif
+|Developer|
+:Write the release notes;
+stop
+@enduml

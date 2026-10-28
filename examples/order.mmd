@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant C as Customer
+  participant S as Shop
+  participant P as Payment
+  C->>S: put items in the cart
+  C->>S: check out
+  Note over C,S: the cart is kept until it is paid
+  S->>P: charge the card
+  alt paid
+    P-->>S: receipt
+    S-->>C: order confirmed
+  else declined
+    P-->>S: declined
+    S-->>C: choose another payment
+  end

@@ -1,0 +1,9 @@
+@startuml
+left to right direction
+:Clerk: --> (Login)
+actor Guest
+usecase (Refund)
+Guest --> (Refund)
+note right of Login : password
+note "remember" as Hint
+@enduml

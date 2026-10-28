@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="661" height="331" viewBox="0 0 661 331">
+<g transform="translate(10,10)">
+<g>
+<rect x="160.69" y="42.94" width="417.39" height="197.97" fill="#FFD700"/>
+</g>
+<g>
+<polyline points="160.69,56.94 369.39,56.94 369.39,76.94 578.09,76.94 578.09,96.94 640.69,96.94" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="160.69" y1="252.9" x2="640.69" y2="252.9" fill="none" stroke="#888888" stroke-width="1"/>
+<line x1="160.69" y1="252.9" x2="160.69" y2="256.9" fill="none" stroke="#888888" stroke-width="1"/>
+<line x1="369.39" y1="252.9" x2="369.39" y2="256.9" fill="none" stroke="#888888" stroke-width="1"/>
+<line x1="578.09" y1="252.9" x2="578.09" y2="256.9" fill="none" stroke="#888888" stroke-width="1"/>
+</g>
+<g>
+<rect x="98.01" y="168.92" width="42.68" height="19.97" rx="3" ry="3" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="160.69" y="164.9" width="480" height="28" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="133.94" width="41.33" height="19.97" rx="2" ry="2" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="98.01" y="212.92" width="42.01" height="19.97" rx="3" ry="3" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="160.69" y="208.9" width="417.39" height="28" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="578.09" y="208.9" width="62.61" height="28" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="349.38" y="56.07" font-size="12" fill="#000000" textLength="40.02" lengthAdjust="spacing">request</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="81.78" font-size="14" fill="#000000" textLength="84.01" lengthAdjust="spacing">Web Browser</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="255.37" y="56.07" font-size="12" fill="#000000" textLength="19.34" lengthAdjust="spacing">Idle</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="444.06" y="76.07" font-size="12" fill="#000000" textLength="59.35" lengthAdjust="spacing">Processing</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="589.39" y="96.07" font-size="12" fill="#000000" textLength="40.01" lengthAdjust="spacing">Waiting</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="183.75" font-size="14" fill="#000000" textLength="29.55" lengthAdjust="spacing">User</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="102.01" y="183.06" font-size="12" fill="#000000" textLength="34.68" lengthAdjust="spacing">Ready</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="379.69" y="184.04" font-size="12" fill="#000000" textLength="42" lengthAdjust="spacing">Clicking</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="6" y="148.07" font-size="12" fill="#000000" textLength="29.33" lengthAdjust="spacing">clicks</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="227.75" font-size="14" fill="#000000" textLength="40.46" lengthAdjust="spacing">Cache</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="102.01" y="227.06" font-size="12" fill="#000000" textLength="34.01" lengthAdjust="spacing">Empty</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="357.06" y="228.04" font-size="12" fill="#000000" textLength="24.66" lengthAdjust="spacing">Miss</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="602.06" y="228.04" font-size="12" fill="#000000" textLength="14.66" lengthAdjust="spacing">Hit</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="157.91" y="267.18" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">0</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="361.05" y="267.18" font-size="10" fill="#888888" textLength="16.68" lengthAdjust="spacing">100</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="569.75" y="267.18" font-size="10" fill="#888888" textLength="16.68" lengthAdjust="spacing">200</tspan>
+</text>
+<line x1="377.39" y1="110.94" x2="570.09" y2="110.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="578.09,110.94 570.09,114.44 570.09,107.44" fill="#181818" stroke="#181818" stroke-width="1"/>
+<line x1="570.09" y1="110.94" x2="377.39" y2="110.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="369.39,110.94 377.39,107.44 377.39,114.44" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="450.06" y="107.1" font-size="12" fill="#000000" textLength="47.36" lengthAdjust="spacing">{100 ms}</tspan>
+</text>
+<line x1="369.39" y1="170.9" x2="369.39" y2="84.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="369.39,76.94 372.89,84.94 365.89,84.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="357.39" y="124.09" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">URL</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="292.34" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="56.01" lengthAdjust="spacing">Browser</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="620.68" y="9.28" font-size="10" fill="#888888" textLength="20.01" lengthAdjust="spacing">draft</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="291.16" y="290.54" font-size="14" fill="#000000" textLength="58.37" lengthAdjust="spacing">a request</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="312.01" y="308.12" font-size="10" fill="#888888" textLength="16.68" lengthAdjust="spacing">end</tspan>
+</text>
+</g>
+</g>
+</svg>

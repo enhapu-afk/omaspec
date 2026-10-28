@@ -1,0 +1,46 @@
+@startuml
+title Checking out
+autonumber
+actor Customer
+box "Shop"
+participant "Web shop" as Shop
+participant Cart
+end box
+participant Payment
+database Stock
+queue Mail
+
+Customer -> Shop ++ : check out
+Shop -> Cart ++ : total
+Cart -> Stock : reserve items
+alt all in stock
+  Stock --> Cart : reserved
+else some missing
+  Stock --> Cart : partly
+  Cart --> Shop : ask to split
+  Shop --> Customer : ship the rest later?
+  Customer -> Shop : yes
+end
+return 64.90 EUR
+== Payment ==
+Shop -> Payment ++ : charge 64.90 EUR
+loop up to three times
+  Payment -> Payment : authorize
+  break declined
+    Payment --> Shop : declined
+    Shop --> Customer : try another card
+  end
+end
+Payment --> Shop -- : paid
+...
+par
+  Shop -> Stock : commit
+else
+  Shop -> Mail : receipt
+end
+opt gift
+  Shop -> Mail : gift note
+end
+note over Shop, Stock : the order is final now
+Shop --> Customer -- : order 4711 confirmed
+@enduml

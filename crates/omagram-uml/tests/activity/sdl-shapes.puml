@@ -1,0 +1,20 @@
+@startuml
+skinparam conditionStyle InsideDiamond
+skinparam ConditionEndStyle hline
+start
+:wait for a call; <<acceptEvent>>
+:dial(number)|
+if (busy?) then (yes)
+  :tone<
+  :retry; <<#palegreen>>
+else (no)
+  :connect>
+  :store/
+endif
+:read\
+:speaking}
+:hang up]
+:log; <<object>>
+:bye; <<sendSignal>>
+stop
+@enduml

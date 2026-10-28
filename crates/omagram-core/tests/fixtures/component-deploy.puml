@@ -1,0 +1,10 @@
+@startuml
+node "Laptop" {
+  [Editor] --> [Renderer]
+  [Renderer] ..> () "Clipboard"
+}
+cloud "AUR" as aur
+database "Package cache" as cache
+[Editor] --> aur : updates
+aur --> cache
+@enduml

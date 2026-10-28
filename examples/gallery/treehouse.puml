@@ -1,0 +1,17 @@
+@startgantt
+title Building a treehouse
+printscale daily
+Project starts 2026-05-04
+[Draw the plans] as [P] requires 3 days
+[Buy the wood] as [W] requires 2 days
+[W] starts at [P]'s end
+[Build the floor] as [F] requires 4 days
+[F] starts at [W]'s end
+[Walls and roof] as [R] requires 5 days
+[R] starts at [F]'s end
+[Paint it] requires 2 days
+[Paint it] starts at [R]'s end
+[Rope ladder] requires 2 days
+[Rope ladder] starts at [F]'s end
+[Party] happens at [Paint it]'s end
+@endgantt

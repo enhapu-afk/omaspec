@@ -1,0 +1,28 @@
+== state.mmd: Mermaid / State (State diagram)
+== lint
+   7 Info: State Lockd appears only here. Did you mean Locked?
+== outline
+   2 state | Locked
+   3 state | Unlocked
+   5 state | Sleeping
+   7 state | Lockd
+   8 state | Suspend
+   9   state | Saving
+  10   state | Off
+  12 state | Screen saver
+  13 state | Saver
+== fmt
+stateDiagram-v2
+[*] --> Locked
+Locked --> Unlocked : password
+Unlocked --> Locked : timeout
+Unlocked --> Sleeping : lid closed
+Sleeping --> Unlocked : lid opened
+Sleeping --> Lockd : idle
+state Suspend {
+  [*] --> Saving
+  Saving --> Off
+}
+state "Screen saver" as Saver
+Unlocked --> Saver
+Saver --> Locked

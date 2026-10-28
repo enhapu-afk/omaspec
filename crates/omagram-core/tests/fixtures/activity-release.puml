@@ -1,0 +1,43 @@
+@startuml
+title Release pipeline
+|Developer|
+start
+:Push tag;
+|CI|
+:Build packages;
+fork
+  :Run unit tests;
+fork again
+  :Run integration tests;
+end fork
+if (all green?) then (yes)
+  :Sign artifacts;
+elseif (flaky?) then (retry)
+  :Re-run failed jobs;
+else (no)
+  :Notify developer;
+  stop
+endif
+partition Publish {
+  while (mirrors left?) is (yes)
+    :Upload to mirror;
+  endwhile (no)
+}
+repeat
+  :Poll AUR;
+repeat while (not visible yet?)
+switch (channel)
+case (stable)
+  :Announce;
+case (beta)
+  :Post in testing thread;
+endswitch
+|developer|
+:Close milestone;
+|Developer|
+note right
+  Done for this
+  release
+end note
+stop
+@enduml

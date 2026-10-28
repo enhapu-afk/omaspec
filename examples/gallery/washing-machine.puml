@@ -1,0 +1,30 @@
+@startuml
+title A washing machine
+concise "Program" as P
+concise "Water" as W
+binary "Door lock" as L
+analog "Drum speed" between 0 and 1400 as D
+@0
+P is Idle
+W is Empty
+L is low
+D is 0
+@5
+P is Wash
+W is Filling
+L is high
+@15
+W is Full
+D is 50
+@40
+P is Rinse
+D is 400
+@55
+P is Spin
+W is Empty
+D is 1400
+@70
+P is Idle
+D is 0
+L is low
+@enduml

@@ -1,0 +1,24 @@
+@startuml
+|Customer|
+start
+partition Ordering {
+  :Choose the items;
+  :Pay;
+  -> paid;
+}
+|Shop|
+partition #E8F0FE "Packing and shipping" {
+  :Pack the parcel;
+  if (abroad?) then (yes)
+    partition Customs {
+      :Fill in the form;
+    }
+  else (no)
+  endif
+  :Hand it over;
+}
+group Empty
+end group
+:Send the invoice;
+stop
+@enduml

@@ -1,0 +1,18 @@
+== usecase.puml: PlantUML / Structure (Use case diagram)
+== lint
+== outline
+   3 actor | User
+   4 actor | Admin
+   5 rectangle | Desktop
+== fmt
+@startuml
+left to right direction
+actor User
+actor :Admin: as A
+rectangle Desktop {
+  User -- (Change theme)
+  User -- (Take screenshot)
+  A -- (Install package)
+}
+(Change theme) .> (Reload bar) : include
+@enduml

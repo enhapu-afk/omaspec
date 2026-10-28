@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant W as Waybar
+    actor A as Admin
+    participant L as Logger
+    U->>W: click clock
+    W->>Hyprlnd: dispatch workspace
+    loop every second
+        W-->>U: redraw
+    end
+    alt battery low
+        W->>U: warn
+    else charging
+        W->>U: show icon
+    end
+    Note over U,W: all local
+    activate W
+    deactivate W

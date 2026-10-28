@@ -1,0 +1,46 @@
+flowchart TB
+    Browser([Browser])
+    subgraph Cloud["Web platform"]
+        subgraph Edge["Edge"]
+            CDN["CDN cache for static assets"]
+            WAF["Web application firewall"]
+        end
+        subgraph App["Application tier"]
+            subgraph Api["API layer"]
+                Gateway["API gateway with rate limits"]
+                Auth["Auth service: tokens and sessions"]
+            end
+            subgraph Domain["Domain services"]
+                Orders["Order service"]
+                Billing["Billing service"]
+                Search["Search service"]
+            end
+            subgraph Workers["Background workers"]
+                Mailer["Mail sender"]
+                Reports["Report builder"]
+            end
+        end
+        subgraph Data["Data tier"]
+            Db[("Primary database")]
+            Replica[("Read replica")]
+            Queue[["Message queue"]]
+            Index["Search index"]
+        end
+    end
+    Browser --> CDN
+    CDN --> WAF
+    WAF --> Gateway
+    Gateway --> Auth
+    Gateway -->|orders| Orders
+    Gateway -->|queries| Search
+    Orders --> Billing
+    Orders --> Db
+    Billing --> Db
+    Auth --> Db
+    Search --> Index
+    Orders -.-> Queue
+    Queue --> Mailer
+    Queue --> Reports
+    Reports --> Replica
+    Db ==> Replica
+    Mailer -.->|receipt| Browser

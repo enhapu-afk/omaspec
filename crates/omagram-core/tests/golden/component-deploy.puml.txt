@@ -1,0 +1,17 @@
+== component-deploy.puml: PlantUML / Structure (Component and deployment diagram)
+== lint
+== outline
+   2 node | Laptop
+   6 cloud | AUR
+   7 database | Package cache
+== fmt
+@startuml
+node "Laptop" {
+  [Editor] --> [Renderer]
+  [Renderer] ..> () "Clipboard"
+}
+cloud "AUR" as aur
+database "Package cache" as cache
+[Editor] --> aur : updates
+aur --> cache
+@enduml

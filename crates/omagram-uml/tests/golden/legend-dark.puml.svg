@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="260" viewBox="0 0 168 260">
+<rect x="0" y="0" width="168" height="260" fill="#1E1E2E"/>
+<g transform="translate(20,10)">
+<g>
+<ellipse cx="31.11" cy="39.3" rx="11" ry="11" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
+<rect x="5.05" y="82.3" width="52.12" height="32.3" rx="8" ry="8" fill="#313244" stroke="#89B4FA" stroke-width="1"/>
+<rect x="0" y="160.56" width="62.23" height="32.3" rx="8" ry="8" fill="#313244" stroke="#89B4FA" stroke-width="1"/>
+<polyline points="31.11,50.3 31.11,72.3" fill="none" stroke="#89B4FA" stroke-width="1"/>
+<polyline points="23.11,114.59 23.11,150.56" fill="none" stroke="#89B4FA" stroke-width="1"/>
+<polyline points="39.11,160.56 39.11,124.59" fill="none" stroke="#89B4FA" stroke-width="1"/>
+<rect x="-10" y="0" width="91.8" height="202.86" fill="none" stroke="#CDD6F4" stroke-width="1"/>
+<polygon points="-10,0 64.81,0 64.81,14.3 58.81,20.3 -10,20.3" fill="none" stroke="#CDD6F4" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="19.05" y="103.29" font-size="14" fill="#CDD6F4" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="14" y="181.55" font-size="14" fill="#CDD6F4" font-weight="bold" textLength="34.23" lengthAdjust="spacing">Busy</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="1.11" y="142.73" font-size="12" fill="#CDD6F4" textLength="16.01" lengthAdjust="spacing">job</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="45.11" y="142.73" font-size="12" fill="#CDD6F4" textLength="26.69" lengthAdjust="spacing">done</tspan>
+</text>
+<polygon points="27.11,72.3 31.11,82.3 35.11,72.3 31.11,76.3" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
+<polygon points="19.11,150.56 23.11,160.56 27.11,150.56 23.11,154.56" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
+<polygon points="43.11,124.59 39.11,114.59 35.11,124.59 39.11,120.59" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-4" y="14.99" font-size="14" fill="#CDD6F4" textLength="56.81" lengthAdjust="spacing">state Job</tspan>
+</text>
+<rect x="-10" y="212.86" width="147.5" height="26.3" rx="7.5" ry="7.5" fill="#333446" stroke="#878CA5" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-2" y="230.85" font-size="14" fill="#CDD6F4" font-style="italic" textLength="131.5" lengthAdjust="spacing">Idle until a job comes</tspan>
+</text>
+</g>
+</g>
+</svg>

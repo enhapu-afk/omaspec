@@ -1,0 +1,24 @@
+stateDiagram-v2
+  [*] --> Off
+  Off --> On : power
+  state On {
+    [*] --> Stopped
+    Stopped --> Playing : play
+    Playing --> Paused : pause
+    Paused --> Playing : play
+    Playing --> Stopped : stop
+    Paused --> Stopped : stop
+    state Playing {
+      [*] --> Buffering
+      Buffering --> Streaming : buffer full
+      Streaming --> Buffering : network slow
+    }
+    --
+    [*] --> Speaker
+    Speaker --> Headphones : plugged in
+    Headphones --> Speaker : unplugged
+  }
+  On --> Off : power
+  On --> Updating : update ready
+  Updating --> On : done
+  Updating --> Off : failed

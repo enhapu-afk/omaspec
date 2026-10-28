@@ -1,0 +1,29 @@
+---
+title: A delivery pipeline
+---
+flowchart LR
+  Push([Push to main]) --> Lint
+  subgraph Check["Check"]
+    Lint[Lint and format] --> Unit[Unit tests]
+    Lint --> Audit[Audit dependencies]
+  end
+  subgraph Build["Build"]
+    Linux[Linux binary]
+    Arm[ARM binary]
+    Docs[Documentation]
+  end
+  Unit --> Linux
+  Unit --> Arm
+  Audit --> Linux
+  Unit --> Docs
+  subgraph Ship["Ship"]
+    Sign[Sign the release] --> Stage[(Staging)]
+    Stage --> Smoke{Smoke tests pass?}
+    Smoke -->|yes| Prod[(Production)]
+    Smoke -->|no| Rollback[Roll back]
+  end
+  Linux --> Sign
+  Arm --> Sign
+  Docs --> Site[Publish the site]
+  Rollback -.-> Push
+  Prod --> Notify([Tell the team])

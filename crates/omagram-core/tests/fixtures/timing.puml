@@ -1,0 +1,12 @@
+@startuml
+robust "Network" as NET
+concise "Battery" as BAT
+clock "Tick" as TICK with period 10
+@0
+NET is Idle
+BAT is Full
+@10 as :charged
+NET is Busy
+@20
+BAT is Low
+@enduml

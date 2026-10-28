@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="762" height="262" viewBox="0 0 762 262">
+<g transform="translate(10,10)">
+<g>
+<path d="M497.65,82.59 L507.65,82.59 C522.65,82.59 522.65,54.44 537.65,54.44 L547.65,54.44" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M497.65,82.59 L507.65,82.59 C522.65,82.59 522.65,110.74 537.65,110.74 L547.65,110.74" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M391.08,138.89 L401.08,138.89 C416.08,138.89 416.08,82.59 431.08,82.59 L441.08,82.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M520.98,195.18 L530.98,195.18 C545.98,195.18 545.98,167.04 560.98,167.04 L570.98,167.04" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M520.98,195.18 L530.98,195.18 C545.98,195.18 545.98,223.33 560.98,223.33 L570.98,223.33" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M391.08,138.89 L401.08,138.89 C416.08,138.89 416.08,195.18 431.08,195.18 L441.08,195.18" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M391.08,138.89 L401.08,138.89 C416.08,138.89 416.08,232.48 431.08,232.48 L441.08,232.48" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M190.61,110.74 L180.61,110.74 C165.61,110.74 165.61,82.59 150.61,82.59 L140.61,82.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M190.61,110.74 L180.61,110.74 C165.61,110.74 165.61,138.89 150.61,138.89 L140.61,138.89" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M292.5,138.89 L282.5,138.89 C267.5,138.89 267.5,110.74 252.5,110.74 L242.5,110.74" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M157.14,195.18 L147.14,195.18 C132.14,195.18 132.14,195.18 117.14,195.18 L107.14,195.18" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M292.5,138.89 L282.5,138.89 C267.5,138.89 267.5,195.18 252.5,195.18 L242.5,195.18" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<rect x="292.5" y="120.74" width="98.58" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="302.5" y="143.73" font-size="14" fill="#000000" textLength="78.58" lengthAdjust="spacing">Next release</tspan>
+</text>
+<rect x="441.08" y="64.44" width="56.57" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="451.08" y="87.44" font-size="14" fill="#000000" textLength="36.57" lengthAdjust="spacing">Editor</tspan>
+</text>
+<rect x="547.65" y="36.3" width="74.47" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="557.65" y="59.29" font-size="14" fill="#000000" textLength="54.47" lengthAdjust="spacing">Snippets</tspan>
+</text>
+<rect x="547.65" y="92.59" width="110.26" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="557.65" y="115.58" font-size="14" fill="#000000" textLength="90.26" lengthAdjust="spacing">Find in all tabs</tspan>
+</text>
+<rect x="441.08" y="177.04" width="79.89" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="451.08" y="200.03" font-size="14" fill="#000000" textLength="59.89" lengthAdjust="spacing">Diagrams</tspan>
+</text>
+<rect x="570.98" y="148.89" width="170.16" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="580.98" y="171.88" font-size="14" fill="#000000" textLength="150.16" lengthAdjust="spacing">Mind maps without Java</tspan>
+</text>
+<rect x="570.98" y="205.18" width="133.6" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="580.98" y="228.18" font-size="14" fill="#000000" textLength="113.6" lengthAdjust="spacing">WBS without Java</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="444.08" y="237.32" font-size="14" fill="#000000" textLength="73.14" lengthAdjust="spacing">Maybe later</tspan>
+</text>
+<rect x="190.61" y="92.59" width="51.89" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="200.61" y="115.58" font-size="14" fill="#000000" textLength="31.89" lengthAdjust="spacing">Docs</tspan>
+</text>
+<rect x="5.43" y="64.44" width="135.18" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="15.43" y="87.44" font-size="14" fill="#000000" textLength="115.18" lengthAdjust="spacing">A tour of the editor</tspan>
+</text>
+<rect x="0" y="120.74" width="140.61" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="10" y="143.73" font-size="14" fill="#000000" textLength="120.61" lengthAdjust="spacing">Keyboard shortcuts</tspan>
+</text>
+<rect x="157.14" y="177.04" width="85.37" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="167.14" y="200.03" font-size="14" fill="#000000" textLength="65.37" lengthAdjust="spacing">Packaging</tspan>
+</text>
+<rect x="41.23" y="177.04" width="65.91" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="51.23" y="200.03" font-size="14" fill="#000000" textLength="45.91" lengthAdjust="spacing">Flatpak</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="286.54" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="168.07" lengthAdjust="spacing">Ideas for the next release</tspan>
+</text>
+</g>
+</g>
+</svg>

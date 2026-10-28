@@ -1,0 +1,5 @@
+erDiagram
+  RECIPE ||--o{ STEP : has
+  RECIPE ||--|{ INGREDIENT : needs
+  INGREDIENT }o--|| PANTRY_ITEM : from
+  COOK ||--o{ RECIPE : writes

@@ -1,0 +1,61 @@
+[package]
+name = "omagram-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+description = "Coverage-guided fuzzing of Omagram's input handling (cargo-fuzz, nightly)"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Not part of the main workspace: it needs nightly and libFuzzer.
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+omagram-core = { path = "../crates/omagram-core" }
+omagram-model = { path = "../crates/omagram-model" }
+omagram-render = { path = "../crates/omagram-render" }
+omagram-uml = { path = "../crates/omagram-uml" }
+
+[[bin]]
+name = "text"
+path = "fuzz_targets/text.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "image_source"
+path = "fuzz_targets/image_source.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "sanitize"
+path = "fuzz_targets/sanitize.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "mermaid"
+path = "fuzz_targets/mermaid.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "plantuml"
+path = "fuzz_targets/plantuml.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "model"
+path = "fuzz_targets/model.rs"
+test = false
+doc = false
+bench = false

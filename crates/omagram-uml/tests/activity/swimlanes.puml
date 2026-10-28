@@ -1,0 +1,27 @@
+@startuml
+|#e8f0fe|Customer|
+start
+:Place the order;
+|Shop|
+:Check the payment;
+if (paid?) then (yes)
+  fork
+    |Warehouse|
+    :Pick the items;
+  fork again
+    |Shop|
+    :Send the invoice;
+  end fork
+else (no)
+  |Customer|
+  :Pay again;
+  detach
+endif
+|Warehouse|
+while (parcels left?) is (yes)
+  :Ship a parcel;
+endwhile
+|Customer|
+:Receive the parcel;
+stop
+@enduml

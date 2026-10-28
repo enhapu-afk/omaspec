@@ -1,0 +1,6 @@
+@startjson
+{
+   "theme": "tokyo-night",
+      "font":   { "family": "JetBrainsMono", "size": 11 }
+}
+@endjson

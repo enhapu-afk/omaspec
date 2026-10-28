@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="305" height="340" viewBox="0 0 305 340">
+<g transform="translate(10,10)">
+<g>
+<ellipse cx="130.61" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="88.61" y="80.3" width="84" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="188.56" width="77.8" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="110.74" y="286.82" width="77.8" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="250.82" cy="204.71" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="250.82" cy="204.71" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="130.61,48.3 130.61,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M100.61,112.59 L100.61,119.19 C100.61,133.22 89.23,144.59 75.2,144.59 L75.2,144.59 C61.17,144.59 49.8,155.97 49.8,170 L49.8,178.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M49.8,220.86 L49.8,220.86 C49.8,233.01 59.65,242.86 71.8,242.86 L88.77,242.86 C107.53,242.86 122.74,258.06 122.74,276.82 L122.74,276.82" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M138.74,286.82 L138.74,269.33 C138.74,249.18 122.41,232.86 102.27,232.86 L67.8,232.86 C66.69,232.86 65.8,231.96 65.8,230.86 L65.8,230.86" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M65.8,188.56 L65.8,180 C65.8,165.97 77.17,154.59 91.2,154.59 L91.2,154.59 C105.23,154.59 116.61,143.22 116.61,129.19 L116.61,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M176.54,286.82 L176.54,261.5 C176.54,256.72 180.41,252.86 185.18,252.86 L185.18,252.86 C189.95,252.86 193.82,248.99 193.82,244.22 L193.82,159.2 C193.82,145.61 182.8,134.59 169.21,134.59 L156.61,134.59 C149.98,134.59 144.61,129.22 144.61,122.59 L144.61,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M77.8,197.71 L86.8,197.71 C90.66,197.71 93.8,200.84 93.8,204.71 L93.8,205.71 C93.8,209.02 91.11,211.71 87.8,211.71 L87.8,211.71" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M160.61,112.59 L160.61,112.59 C160.61,119.22 165.98,124.59 172.61,124.59 L205.71,124.59 C230.62,124.59 250.82,144.79 250.82,169.7 L250.82,181.71" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="102.61" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="56" lengthAdjust="spacing">Stopped</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="14" y="209.55" font-size="14" fill="#000000" font-weight="bold" textLength="49.8" lengthAdjust="spacing">Playing</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="124.74" y="307.82" font-size="14" fill="#000000" font-weight="bold" textLength="49.8" lengthAdjust="spacing">Paused</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="21.79" y="160.73" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">play</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="84.05" y="258.99" font-size="12" fill="#000000" textLength="32.69" lengthAdjust="spacing">pause</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="144.74" y="248.99" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">play</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="71.8" y="170.73" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="182.54" y="268.99" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="97.8" y="208.86" font-size="12" fill="#000000" textLength="52.02" lengthAdjust="spacing">next track</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="256.82" y="140.73" font-size="12" fill="#000000" textLength="28.01" lengthAdjust="spacing">close</tspan>
+</text>
+<polygon points="126.61,70.3 130.61,80.3 134.61,70.3 130.61,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="45.8,178.56 49.8,188.56 53.8,178.56 49.8,182.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="118.74,276.82 122.74,286.82 126.74,276.82 122.74,280.82" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="69.8,230.86 65.8,220.86 61.8,230.86 65.8,226.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="120.61,122.59 116.61,112.59 112.61,122.59 116.61,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="148.61,122.59 144.61,112.59 140.61,122.59 144.61,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="87.8,207.71 77.8,211.71 87.8,215.71 83.8,211.71" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="246.82,181.71 250.82,191.71 254.82,181.71 250.82,185.71" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="92.61" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="99.6" lengthAdjust="spacing">A media player</tspan>
+</text>
+</g>
+</g>
+</svg>

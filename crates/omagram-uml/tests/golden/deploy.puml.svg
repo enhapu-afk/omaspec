@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1035" height="378" viewBox="0 0 1035 378">
+<g transform="translate(10,10)">
+<g>
+<polygon points="0,36.3 10,26.3 114.8,26.3 104.8,36.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<polygon points="104.8,36.3 114.8,26.3 114.8,181.18 104.8,191.18" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="36.3" width="104.8" height="154.89" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<path d="M25.4,72.59 L25.4,100.89 L79.4,100.89 L79.4,82.02 L69.97,72.59 Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<path d="M69.97,72.59 L69.97,82.02 L79.4,82.02" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<ellipse cx="52.4" cy="170.18" rx="40.4" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="12" y="141.89" width="80.8" height="28.3" fill="#FEFECE"/>
+<line x1="12" y1="141.89" x2="12" y2="170.18" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="92.8" y1="141.89" x2="92.8" y2="170.18" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="52.4" cy="141.89" rx="40.4" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<path d="M34.6,263.55 C23.2,263.55 19.4,254.75 31.56,251.23 C28.52,242.43 43.72,238.03 54.36,244.19 C61.2,238.03 78.68,238.91 83.24,247.71 C95.4,249.47 93.88,261.35 80.2,263.55 C84.76,273.23 66.52,280.27 54.36,272.35 C45.24,280.27 25.48,274.99 33.08,265.31Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="27.45" y="337.45" width="59.89" height="20" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="27.45" y="313.15" width="55.89" height="25.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="158.8" y="94.59" width="59.8" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<path d="M262.6,94.59 L262.6,122.89 L339.5,122.89 L339.5,104.02 L330.07,94.59 Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<path d="M330.07,94.59 L330.07,104.02 L339.5,104.02" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="383.5" y="89.59" width="61.34" height="38.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<line x1="383.5" y1="116.89" x2="444.84" y2="116.89" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="498.84" y="89.59" width="68.34" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="493.84" y="94.59" width="68.34" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="488.84" y="99.59" width="68.34" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<polygon points="627.9,86.74 670.46,86.74 687.18,108.74 670.46,130.74 627.9,130.74 611.18,108.74" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="731.18" y="96.59" width="69.11" height="32.3" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="765.73" cy="96.59" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="879.29" cy="122.89" rx="35" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="844.29" y="94.59" width="70" height="28.3" fill="#FEFECE"/>
+<line x1="844.29" y1="94.59" x2="844.29" y2="122.89" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="914.29" y1="94.59" x2="914.29" y2="122.89" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="879.29" cy="94.59" rx="35" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="958.29" y="94.59" width="55.89" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<polyline points="57.4,191.18 57.4,227.15" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="57.4,281.15 57.4,303.15" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="52.4,100.89 52.4,122.89" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="31.78" y="55.29" font-size="14" fill="#000000" textLength="41.23" lengthAdjust="spacing">Server</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="44.62" y="91.58" font-size="14" fill="#000000" textLength="15.55" lengthAdjust="spacing">jar</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="24" y="160.88" font-size="14" fill="#000000" textLength="56.8" lengthAdjust="spacing">Sessions</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="42.24" y="264" font-size="14" fill="#000000" textLength="30.32" lengthAdjust="spacing">CDN</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="39.45" y="330.14" font-size="14" fill="#000000" textLength="31.89" lengthAdjust="spacing">Docs</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="170.8" y="113.58" font-size="14" fill="#000000" textLength="35.8" lengthAdjust="spacing">Panel</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="274.6" y="113.58" font-size="14" fill="#000000" textLength="52.91" lengthAdjust="spacing">Readme</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="395.5" y="108.58" font-size="14" fill="#000000" textLength="37.34" lengthAdjust="spacing">Ticket</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="500.84" y="118.58" font-size="14" fill="#000000" textLength="44.34" lengthAdjust="spacing">Cluster</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="636.34" y="113.58" font-size="14" fill="#000000" textLength="25.68" lengthAdjust="spacing">Hub</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="743.18" y="119.58" font-size="14" fill="#000000" textLength="45.11" lengthAdjust="spacing">Worker</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="865.68" y="113.58" font-size="14" fill="#000000" textLength="27.22" lengthAdjust="spacing">Disk</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="970.29" y="113.58" font-size="14" fill="#000000" textLength="31.89" lengthAdjust="spacing">Rack</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="63.4" y="219.32" font-size="12" fill="#000000" textLength="28.01" lengthAdjust="spacing">ships</tspan>
+</text>
+<polygon points="53.4,227.15 57.4,237.15 61.4,227.15 57.4,231.65" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="53.4,303.15 57.4,313.15 61.4,303.15 57.4,307.65" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="48.4,122.89 52.4,132.89 56.4,122.89 52.4,127.39" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="478.7" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="56.78" lengthAdjust="spacing">Platform</tspan>
+</text>
+</g>
+</g>
+</svg>

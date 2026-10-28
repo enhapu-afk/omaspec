@@ -1,0 +1,57 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "spikes/*"]
+default-members = ["crates/*"]
+# Third-party code with our changes; built as dependencies, not linted or
+# formatted as ours (see vendor/README.md).
+exclude = ["vendor", "fuzz"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.89"
+license = "MIT"
+authors = ["Nils Hoffmann"]
+
+[workspace.dependencies]
+omagram-core = { path = "crates/omagram-core" }
+omagram-uml = { path = "crates/omagram-uml" }
+omagram-model = { path = "crates/omagram-model" }
+omagram-render = { path = "crates/omagram-render" }
+omagram-theme = { path = "crates/omagram-theme" }
+
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+# Without linux-theme-detection, which asks the desktop over D-Bus for light
+# or dark: Omagram reads the Omarchy theme and needs no D-Bus stack.
+iced = { version = "0.14", default-features = false, features = [
+    "wgpu",
+    "tiny-skia",
+    "crisp",
+    "web-colors",
+    "thread-pool",
+    "x11",
+    "wayland",
+] }
+mermaid-rs-renderer = { version = "0.3", default-features = false }
+resvg = "0.47"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+todo = "warn"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[patch.crates-io]
+scrive-core = { path = "vendor/scrive-core" }
+scrive-iced = { path = "vendor/scrive-iced" }
+smithay-clipboard = { path = "vendor/smithay-clipboard" }
+winit = { path = "vendor/winit" }

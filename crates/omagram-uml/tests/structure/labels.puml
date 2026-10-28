@@ -1,0 +1,10 @@
+@startuml
+' Three labeled lines into one class: each label stays by its own line.
+class Order
+class Customer
+class Invoice
+class Shipment
+Customer --> Order : places
+Invoice --> Order : bills
+Shipment --> Order : delivers
+@enduml

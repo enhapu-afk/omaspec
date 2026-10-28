@@ -1,0 +1,21 @@
+@startuml
+package "Window manager" {
+  interface Layout {
+    +arrange(windows)
+  }
+  abstract class Window {
+    -id : int
+    +focus()
+  }
+  enum Mode {
+    TILED
+    FLOATING
+  }
+  class Dwindle
+  class Master
+}
+Layout <|.. Dwindle
+Layout <|.. Master
+Window "1" *-- "many" Mode : uses
+note right of Window : one per client
+@enduml

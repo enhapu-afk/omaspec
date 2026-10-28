@@ -1,0 +1,32 @@
+== sequence.mmd: Mermaid / Sequence (Sequence diagram)
+== lint
+   5 Info: A is declared but never sends or receives a message.
+   6 Info: L is declared but never sends or receives a message.
+== outline
+   3 participant | User
+   4 participant | Waybar
+   5 actor | Admin
+   6 participant | Logger
+   9 loop | every second
+  12 alt | battery low
+  14 else | charging
+== fmt
+sequenceDiagram
+autonumber
+participant U as User
+participant W as Waybar
+actor A as Admin
+participant L as Logger
+U->>W: click clock
+W->>Hyprlnd: dispatch workspace
+loop every second
+  W-->>U: redraw
+end
+alt battery low
+  W->>U: warn
+else charging
+  W->>U: show icon
+end
+Note over U,W: all local
+activate W
+deactivate W

@@ -1,0 +1,36 @@
+@startuml
+title Handling an incident
+|Monitoring|
+start
+:Alert fires;
+|On call|
+:Acknowledge;
+if (customers affected?) then (yes)
+  :Open an incident;
+elseif (data at risk?) then (yes)
+  :Call the security team;
+else (no)
+  :Fix it in working hours;
+  stop
+endif
+fork
+  :Find the cause;
+fork again
+  |Support|
+  :Post a status update;
+end fork
+|On call|
+repeat
+  :Try a fix;
+  :Watch the graphs;
+repeat while (still broken?) is (yes) not (no)
+|Support|
+:Tell the customers;
+|On call|
+:Write the review;
+note right
+  blameless,
+  within two days
+end note
+stop
+@enduml

@@ -1,0 +1,9 @@
+@startuml
+left to right direction
+title Sideways
+[*] --> Idle
+Idle --> Busy : go
+Busy --> Idle : done
+Busy --> Done : finish
+note right of Busy : still right
+@enduml

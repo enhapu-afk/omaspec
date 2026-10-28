@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="713" height="628" viewBox="0 0 713 628">
+<g transform="translate(10,10)">
+<g>
+<path d="M518.65,115.53 L528.65,115.53 C543.65,115.53 543.65,87.38 558.65,87.38 L568.65,87.38" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M518.65,115.53 L528.65,115.53 C543.65,115.53 543.65,143.68 558.65,143.68 L568.65,143.68" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M409.75,261.71 L419.75,261.71 C434.75,261.71 434.75,115.53 449.75,115.53 L459.75,115.53" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M528.76,228.12 L538.76,228.12 C553.76,228.12 553.76,199.97 568.76,199.97 L578.76,199.97" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M528.76,228.12 L538.76,228.12 C553.76,228.12 553.76,256.27 568.76,256.27 L578.76,256.27" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M409.75,261.71 L419.75,261.71 C434.75,261.71 434.75,228.12 449.75,228.12 L459.75,228.12" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M507.1,293.56 L517.1,293.56 C532.1,293.56 532.1,293.56 547.1,293.56 L557.1,293.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M409.75,261.71 L419.75,261.71 C434.75,261.71 434.75,293.56 449.75,293.56 L459.75,293.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M409.75,261.71 L419.75,261.71 C434.75,261.71 434.75,355.3 449.75,355.3 L459.75,355.3" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M409.75,261.71 L419.75,261.71 C434.75,261.71 434.75,436.04 449.75,436.04 L459.75,436.04" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M205.37,233.56 L195.37,233.56 C180.37,233.56 180.37,205.42 165.37,205.42 L155.37,205.42" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M113.58,261.71 L103.58,261.71 C88.58,261.71 88.58,261.71 73.58,261.71 L63.58,261.71" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M205.37,233.56 L195.37,233.56 C180.37,233.56 180.37,261.71 165.37,261.71 L155.37,261.71" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M328.29,261.71 L318.29,261.71 C303.29,261.71 303.29,233.56 288.29,233.56 L278.29,233.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M328.29,261.71 L318.29,261.71 C303.29,261.71 303.29,318.01 288.29,318.01 L278.29,318.01" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M160.27,492.34 L150.27,492.34 C135.27,492.34 135.27,492.34 120.27,492.34 L110.27,492.34" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M283.98,520.49 L273.98,520.49 C258.98,520.49 258.98,492.34 243.98,492.34 L233.98,492.34" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M283.98,520.49 L273.98,520.49 C258.98,520.49 258.98,548.64 243.98,548.64 L233.98,548.64" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<rect x="328.29" y="243.56" width="81.46" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="338.29" y="266.56" font-size="14" fill="#000000" textLength="61.46" lengthAdjust="spacing">Mind map</tspan>
+</text>
+<rect x="459.75" y="97.38" width="58.91" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="469.75" y="120.37" font-size="14" fill="#000000" textLength="38.91" lengthAdjust="spacing">Boxes</tspan>
+</text>
+<rect x="568.65" y="69.23" width="123.47" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="578.65" y="92.22" font-size="14" fill="#000000" textLength="14.78" lengthAdjust="spacing">in </tspan>
+<tspan font-size="14" fill="#000000" font-weight="bold" textLength="29.55" lengthAdjust="spacing">bold</tspan>
+<tspan font-size="14" fill="#000000" textLength="31.14" lengthAdjust="spacing"> and </tspan>
+<tspan font-size="14" fill="#000000" font-style="italic" textLength="28" lengthAdjust="spacing">italic</tspan>
+</text>
+<rect x="568.65" y="125.53" width="114.15" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="578.65" y="148.52" font-size="14" fill="#000000" textLength="28.78" lengthAdjust="spacing">with </tspan>
+<tspan font-size="14" fill="#FF0000" textLength="42.01" lengthAdjust="spacing">a color</tspan>
+<tspan font-size="14" fill="#000000" textLength="23.35" lengthAdjust="spacing"> tag</tspan>
+</text>
+<rect x="459.75" y="209.97" width="69.01" height="36.3" rx="12.5" ry="12.5" fill="#FFA500" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="469.75" y="232.96" font-size="14" fill="#000000" textLength="49.01" lengthAdjust="spacing">Colored</tspan>
+</text>
+<rect x="578.76" y="181.82" width="55.8" height="36.3" rx="12.5" ry="12.5" fill="#90EE90" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="588.76" y="204.82" font-size="14" fill="#000000" textLength="35.8" lengthAdjust="spacing">green</tspan>
+</text>
+<rect x="578.76" y="238.12" width="86.14" height="36.3" rx="12.5" ry="12.5" fill="#FFAA00" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="588.76" y="261.11" font-size="14" fill="#000000" textLength="66.14" lengthAdjust="spacing">by number</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="462.75" y="298.41" font-size="14" fill="#000000" textLength="44.35" lengthAdjust="spacing">No box</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="560.1" y="298.41" font-size="14" fill="#000000" textLength="60.7" lengthAdjust="spacing">also none</tspan>
+</text>
+<rect x="459.75" y="312.71" width="83.81" height="85.18" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="469.75" y="335.7" font-size="14" fill="#000000" textLength="47.46" lengthAdjust="spacing">Several</tspan>
+<tspan x="469.75" y="352" font-size="14" fill="#000000" textLength="28.78" lengthAdjust="spacing">lines</tspan>
+<tspan x="469.75" y="384.59" font-size="14" fill="#000000" textLength="63.81" lengthAdjust="spacing">with a gap</tspan>
+</text>
+<rect x="459.75" y="417.9" width="112.6" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="469.75" y="440.89" font-size="14" fill="#000000" textLength="92.6" lengthAdjust="spacing">Plus goes right</tspan>
+</text>
+<rect x="205.37" y="215.42" width="72.92" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="215.37" y="238.41" font-size="14" fill="#000000" textLength="52.92" lengthAdjust="spacing">Left side</tspan>
+</text>
+<rect x="112.01" y="187.27" width="43.35" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="122.01" y="210.26" font-size="14" fill="#000000" textLength="23.35" lengthAdjust="spacing">one</tspan>
+</text>
+<rect x="113.58" y="243.56" width="41.78" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="123.58" y="266.56" font-size="14" fill="#000000" textLength="21.78" lengthAdjust="spacing">two</tspan>
+</text>
+<rect x="0" y="243.56" width="63.58" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="10" y="266.56" font-size="14" fill="#000000" textLength="43.58" lengthAdjust="spacing">deeper</tspan>
+</text>
+<rect x="164.14" y="299.86" width="114.15" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="174.14" y="322.85" font-size="14" fill="#000000" textLength="94.15" lengthAdjust="spacing">Minus goes left</tspan>
+</text>
+<rect x="283.98" y="502.34" width="106.38" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="293.98" y="525.33" font-size="14" fill="#000000" textLength="86.38" lengthAdjust="spacing">A second root</tspan>
+</text>
+<rect x="160.27" y="474.19" width="73.7" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="170.27" y="497.18" font-size="14" fill="#000000" textLength="53.7" lengthAdjust="spacing">indented</tspan>
+</text>
+<rect x="0" y="474.19" width="110.27" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="10" y="497.18" font-size="14" fill="#000000" textLength="90.27" lengthAdjust="spacing">one level each</tspan>
+</text>
+<rect x="127.61" y="530.49" width="106.37" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="137.61" y="553.48" font-size="14" fill="#000000" textLength="86.37" lengthAdjust="spacing">below the first</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="309.89" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="72.35" lengthAdjust="spacing">Everything</tspan>
+<tspan x="293.16" y="45.93" font-size="14" fill="#000000" font-weight="bold" font-style="italic" textLength="77.8" lengthAdjust="spacing">a mind map</tspan>
+<tspan font-size="14" fill="#000000" font-weight="bold" textLength="28.01" lengthAdjust="spacing"> has</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="672.12" y="9.28" font-size="10" fill="#888888" textLength="20.01" lengthAdjust="spacing">draft</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="275.65" y="587.78" font-size="14" fill="#000000" textLength="140.83" lengthAdjust="spacing">Figure 2: all constructs</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="330.77" y="605.36" font-size="10" fill="#888888" textLength="30.58" lengthAdjust="spacing">page 1</tspan>
+</text>
+</g>
+</g>
+</svg>

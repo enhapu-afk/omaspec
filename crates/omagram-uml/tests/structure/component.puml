@@ -1,0 +1,10 @@
+@startuml
+package shop {
+  [Web] as Front
+  [Api]
+  database Sessions
+}
+component Billing <<service>>
+[Api] --> Billing : charge
+Front --> Sessions
+@enduml

@@ -1,0 +1,17 @@
+== unclosed.mmd: Mermaid / Sequence (Sequence diagram)
+== lint
+   4 Warning: Unclosed loop
+== outline
+   2 participant | A
+   3 participant | B
+   4 loop | forever
+   6   rect | 
+== fmt
+sequenceDiagram
+participant A
+participant B
+loop forever
+  A->>B: ping
+  rect rgb(200, 220, 255)
+    B->>A: pong
+  end

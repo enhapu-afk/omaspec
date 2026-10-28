@@ -1,0 +1,25 @@
+@startuml
+title Pizza night
+actor Guest
+participant App
+participant Kitchen
+participant Courier
+
+Guest -> App : order a pizza
+App -> Kitchen : new order
+activate Kitchen
+Kitchen --> App : 25 minutes
+App --> Guest : on its way soon
+loop until it is done
+  Kitchen -> Kitchen : bake
+end
+Kitchen -> Courier : pick up
+deactivate Kitchen
+alt at the door
+  Courier -> Guest : hand over
+  Guest --> Courier : tip
+else nobody home
+  Courier -> App : not delivered
+  App --> Guest : call us
+end
+@enduml

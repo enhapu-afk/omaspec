@@ -1,0 +1,16 @@
+== wbs.puml: PlantUML / Other (WBS)
+== lint
+== outline
+   2  | Release 1.0
+   3    | Editor
+   4      | Highlighting
+   5    | Preview
+   6      | Zoom
+== fmt
+@startwbs
+* Release 1.0
+** Editor
+*** Highlighting
+** Preview
+*** Zoom
+@endwbs

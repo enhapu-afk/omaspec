@@ -1,0 +1,41 @@
+@startuml
+' Variables, an old !define, a function, procedures, !if and !while.
+!$client = "Browser"
+!$retries = 2
+!define SERVER Api
+!$verbose ?= %true()
+
+!function $path($resource, $id = "")
+  !if $id == ""
+    !return "/" + %lower($resource)
+  !endif
+  !return "/" + %lower($resource) + "/" + $id
+!endfunction
+
+!procedure $call($from, $to, $resource, $id = "")
+  $from -> $to ++ : GET $path($resource, $id)
+  $to --> $from -- : 200
+!endprocedure
+
+!unquoted procedure $section($title)
+  == $title ==
+!endprocedure
+
+title Orders for $client
+participant "$client" as C
+participant SERVER as S
+database Store as D
+
+$section(Load)
+$call("C", "S", "Orders")
+!if $verbose
+  S -> D : %upper("select") orders
+!endif
+
+$section(Retry)
+!$try = 1
+!while $try <= $retries
+  $call("C", "S", "Order", $try)
+  !$try = $try + 1
+!endwhile
+@enduml

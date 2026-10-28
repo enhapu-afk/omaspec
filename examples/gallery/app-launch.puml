@@ -1,0 +1,34 @@
+@startgantt
+title Launching an app
+printscale daily
+Project starts 2026-01-05
+-- Design --
+[Research] as [R] requires 10 days
+[Sketches] as [S] requires 5 days
+[S] starts at [R]'s end
+[Prototype] as [P] requires 10 days
+[P] starts at [S]'s end
+[Design review] happens at [P]'s end
+-- Build --
+[Backend] as [B] requires 25 days
+[B] starts at [S]'s end
+[App] as [A] requires 30 days
+[A] starts at [P]'s end
+[Payments] requires 10 days
+[Payments] starts at [B]'s end
+-- Launch --
+[Beta] as [Beta] requires 15 days
+[Beta] starts at [A]'s end
+[Beta] is 40% complete
+[Store listing] requires 5 days
+[Store listing] starts at [Beta]'s start
+[Launch day] happens at [Beta]'s end
+[Research] is colored in LightSteelBlue
+[Sketches] is colored in LightSteelBlue
+[Prototype] is colored in LightSteelBlue
+[Backend] is colored in PaleGreen
+[App] is colored in PaleGreen
+[Payments] is colored in PaleGreen
+[Beta] is colored in Khaki
+[Store listing] is colored in Khaki
+@endgantt

@@ -1,0 +1,18 @@
+sequenceDiagram
+  title A pull request
+  actor Dev as Developer
+  participant Forge
+  participant CI
+  actor Rev as Reviewer
+  Dev->>Forge: open the pull request
+  Forge->>CI: run the checks
+  CI-->>Forge: all green
+  Forge->>Rev: ask for a review
+  loop until approved
+    Rev->>Forge: comment
+    Forge->>Dev: changes requested
+    Dev->>Forge: push a fix
+  end
+  Rev->>Forge: approve
+  Note over Dev,Rev: one more look at the diff
+  Dev->>Forge: merge

@@ -1,0 +1,35 @@
+@startuml
+skinparam backgroundColor #121212
+skinparam defaultFontColor #bebebe
+skinparam ArrowColor #e68e0d
+skinparam ArrowFontColor #bebebe
+skinparam shadowing false
+skinparam ParticipantBackgroundColor #1e1e1e
+skinparam ParticipantBorderColor #e68e0d
+skinparam ActorBackgroundColor #1e1e1e
+skinparam ActorBorderColor #e68e0d
+skinparam ActivityBackgroundColor #1e1e1e
+skinparam SequenceLifeLineBorderColor #555555
+skinparam SequenceGroupBorderColor #555555
+skinparam NoteBackgroundColor #2a2a2a
+skinparam NoteBorderColor #555555
+title Logging in
+actor User
+participant "Web app" as Web
+participant Auth
+database Sessions
+
+User -> Web : open the login page
+Web --> User : form
+User -> Web : name and password
+Web -> Auth : check(name, password)
+alt password ok
+  Auth -> Sessions : create session
+  Sessions --> Auth : session id
+  Auth --> Web : ok
+  Web --> User : welcome page
+else wrong password
+  Auth --> Web : refused
+  Web --> User : try again
+end
+@enduml

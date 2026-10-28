@@ -1,0 +1,12 @@
+@startuml
+object order {
+  id = 12
+  == items ==
+  book : Dune
+}
+object payment {
+  {method} paid()
+}
+order --> payment : pays
+order --> order : again
+@enduml

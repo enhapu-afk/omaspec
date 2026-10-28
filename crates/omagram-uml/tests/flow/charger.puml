@@ -1,0 +1,25 @@
+@startflow
+title Charge control
+
+in voltage
+out current
+
+block Charger "Charger" {
+  in voltage
+  out current
+  block Limit "Limit" {
+    in voltage
+    out limited
+  }
+  block Measure {
+    in limited
+    out current
+  }
+  voltage -> Limit.voltage
+  Limit.limited -> Measure.limited : limited
+  Measure.current -> current
+}
+
+voltage -> Charger.voltage
+Charger.current -> current
+@endflow

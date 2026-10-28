@@ -1,0 +1,234 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="481" height="1216" viewBox="0 0 481 1216">
+<g transform="translate(106.39,10)">
+<g>
+<polyline points="10,62.94 10,82.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,116.9 10,153.71" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,201.64 10,221.64" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="43.7,233.64 121.74,233.64" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,245.64 10,266.45" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="198.32,233.64 307.73,233.64 307.73,266.45" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="160.03,245.64 160.03,266.45" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,300.42 10,364.42 73.02,364.42" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="160.03,300.42 160.03,364.42 97.02,364.42" fill="none" stroke="#FF0000" stroke-width="1" stroke-dasharray="7,7"/>
+<polyline points="307.73,300.42 307.73,320.42" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,376.42 85.02,396.42" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,420.42 85.02,441.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,475.19 85.02,485.19 25.34,485.19 25.34,408.42 42.76,408.42" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="127.27,408.42 162.5,408.42 162.5,500.19 85.02,500.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,500.19 85.02,520.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,544.19 85.02,567.34" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,601.3 85.02,624.45" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="35.41,636.45 -64.24,636.45 -64.24,532.19 73.02,532.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,648.45 85.02,672.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-44.36,678.26 -44.36,698.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="82.02,678.26 82.02,698.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="211.4,678.26 211.4,698.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-44.36,732.22 -44.36,772.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="82.02,732.22 82.02,772.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="211.4,732.22 211.4,752.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,778.22 85.02,798.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="47.35,798.22 47.35,818.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="122.69,798.22 122.69,818.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="47.35,852.19 47.35,872.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="122.69,852.19 122.69,872.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,872.19 85.02,892.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="60.02,898.19 60.02,918.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="110.02,898.19 110.02,918.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="60.02,952.16 60.02,976.16 73.02,976.16" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="110.02,952.16 110.02,976.16 97.02,976.16" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,988.16 85.02,1008.16" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="61.02,1020.16 37.9,1020.16 37.9,1042.16" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="37.9,1076.13 37.9,1100.13 73.02,1100.13" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="109.02,1020.16 119.02,1020.16 119.02,1100.13 97.02,1100.13" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="85.02,1112.13 85.02,1132.13" fill="none" stroke="#181818" stroke-width="2"/>
+<line x1="47.35" y1="798.22" x2="122.69" y2="798.22" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="47.35" y1="872.19" x2="122.69" y2="872.19" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<polygon points="6,72.94 10,82.94 14,72.94 10,76.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,143.71 10,153.71 14,143.71 10,147.71" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,211.64 10,221.64 14,211.64 10,215.64" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="111.74,237.64 121.74,233.64 111.74,229.64 115.74,233.64" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,256.45 10,266.45 14,256.45 10,260.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="303.73,256.45 307.73,266.45 311.73,256.45 307.73,260.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="156.03,256.45 160.03,266.45 164.03,256.45 160.03,260.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="63.02,368.42 73.02,364.42 63.02,360.42 67.02,364.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="107.02,360.42 97.02,364.42 107.02,368.42 103.02,364.42" fill="#FF0000" stroke="#FF0000" stroke-width="1"/>
+<polygon points="303.73,310.42 307.73,320.42 311.73,310.42 307.73,314.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,386.42 85.02,396.42 89.02,386.42 85.02,390.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,431.22 85.02,441.22 89.02,431.22 85.02,435.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="32.76,412.42 42.76,408.42 32.76,404.42 36.76,408.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,510.19 85.02,520.19 89.02,510.19 85.02,514.19" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,557.34 85.02,567.34 89.02,557.34 85.02,561.34" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,614.45 85.02,624.45 89.02,614.45 85.02,618.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="63.02,536.19 73.02,532.19 63.02,528.19 67.02,532.19" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,662.26 85.02,672.26 89.02,662.26 85.02,666.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-48.36,688.26 -44.36,698.26 -40.36,688.26 -44.36,692.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="78.02,688.26 82.02,698.26 86.02,688.26 82.02,692.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="207.4,688.26 211.4,698.26 215.4,688.26 211.4,692.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-48.36,762.22 -44.36,772.22 -40.36,762.22 -44.36,766.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="78.02,762.22 82.02,772.22 86.02,762.22 82.02,766.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="207.4,742.22 211.4,752.22 215.4,742.22 211.4,746.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,788.22 85.02,798.22 89.02,788.22 85.02,792.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="43.35,808.22 47.35,818.22 51.35,808.22 47.35,812.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="118.69,808.22 122.69,818.22 126.69,808.22 122.69,812.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,882.19 85.02,892.19 89.02,882.19 85.02,886.19" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="56.02,908.19 60.02,918.19 64.02,908.19 60.02,912.19" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="106.02,908.19 110.02,918.19 114.02,908.19 110.02,912.19" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="63.02,980.16 73.02,976.16 63.02,972.16 67.02,976.16" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="107.02,972.16 97.02,976.16 107.02,980.16 103.02,976.16" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,998.16 85.02,1008.16 89.02,998.16 85.02,1002.16" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="33.9,1032.16 37.9,1042.16 41.9,1032.16 37.9,1036.16" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="63.02,1104.13 73.02,1100.13 63.02,1096.13 67.02,1100.13" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="107.02,1096.13 97.02,1100.13 107.02,1104.13 103.02,1100.13" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="81.02,1122.13 85.02,1132.13 89.02,1122.13 85.02,1126.13" fill="#181818" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="10" cy="52.94" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+<path d="M82.35,87.35 L82.35,112.49 L183.83,112.49 L183.83,97.35 L173.83,87.35 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M173.83,87.35 L173.83,97.35 L183.83,97.35" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="88.35" y="104.42" font-size="13" fill="#000000" textLength="79.48" lengthAdjust="spacing">from the shop</tspan>
+</text>
+<rect x="-47.35" y="82.94" width="114.7" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-37.35" y="104.07" font-size="12" fill="#000000" textLength="94.7" lengthAdjust="spacing">Receive the order</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="16" y="139.11" font-size="11" fill="#000000" textLength="40.96" lengthAdjust="spacing">checked</tspan>
+</text>
+<rect x="-42.68" y="153.71" width="105.37" height="47.94" rx="12.5" ry="12.5" fill="#ADD8E6" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-32.68" y="174.84" font-size="12" fill="#000000" textLength="85.37" lengthAdjust="spacing">Check the stock</tspan>
+<tspan x="-32.68" y="188.81" font-size="12" fill="#000000" textLength="69.37" lengthAdjust="spacing">and the price</tspan>
+</text>
+<polygon points="-23.7,233.64 -11.7,221.64 31.7,221.64 43.7,233.64 31.7,245.64 -11.7,245.64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-11.7" y="237.45" font-size="11" fill="#000000" textLength="43.41" lengthAdjust="spacing">in stock?</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="14" y="256.85" font-size="11" fill="#000000" textLength="17.12" lengthAdjust="spacing">yes</tspan>
+</text>
+<polygon points="121.74,233.64 133.74,221.64 186.32,221.64 198.32,233.64 186.32,245.64 133.74,245.64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="133.74" y="237.45" font-size="11" fill="#000000" textLength="52.58" lengthAdjust="spacing">can order?</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="164.03" y="256.85" font-size="11" fill="#000000" textLength="17.12" lengthAdjust="spacing">yes</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="202.32" y="230.05" font-size="11" fill="#000000" textLength="12.23" lengthAdjust="spacing">no</tspan>
+</text>
+<polygon points="73.02,364.42 85.02,352.42 97.02,364.42 85.02,376.42" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="166.03" y="312.62" font-size="11" fill="#000000" textLength="22" lengthAdjust="spacing">slow</tspan>
+</text>
+<rect x="-48.35" y="266.45" width="116.7" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-38.35" y="287.58" font-size="12" fill="#000000" textLength="96.7" lengthAdjust="spacing">Reserve the items</tspan>
+</text>
+<rect x="88.35" y="266.45" width="143.37" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="98.35" y="287.58" font-size="12" fill="#000000" textLength="123.37" lengthAdjust="spacing">Order from the supplier</tspan>
+</text>
+<rect x="251.72" y="266.45" width="112.03" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="261.72" y="287.58" font-size="12" fill="#000000" textLength="92.03" lengthAdjust="spacing">Tell the customer</tspan>
+</text>
+<ellipse cx="307.73" cy="330.42" rx="10" ry="10" fill="none" stroke="#222222" stroke-width="1.5"/>
+<line x1="301.53" y1="324.22" x2="313.93" y2="336.62" fill="none" stroke="#222222" stroke-width="1.5"/>
+<line x1="301.53" y1="336.62" x2="313.93" y2="324.22" fill="none" stroke="#222222" stroke-width="1.5"/>
+<polygon points="42.76,408.42 54.76,396.42 115.27,396.42 127.27,408.42 115.27,420.42 54.76,420.42" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="54.76" y="412.22" font-size="11" fill="#000000" textLength="60.51" lengthAdjust="spacing">more items?</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="89.02" y="431.62" font-size="11" fill="#000000" textLength="17.12" lengthAdjust="spacing">yes</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="129.27" y="404.82" font-size="11" fill="#000000" textLength="12.23" lengthAdjust="spacing">no</tspan>
+</text>
+<rect x="40.34" y="441.22" width="89.36" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="50.34" y="462.36" font-size="12" fill="#000000" textLength="69.36" lengthAdjust="spacing">Pack an item</tspan>
+</text>
+<polygon points="73.02,532.19 85.02,520.19 97.02,532.19 85.02,544.19" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<polygon points="35.41,636.45 47.41,624.45 122.62,624.45 134.62,636.45 122.62,648.45 47.41,648.45" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="47.41" y="640.26" font-size="11" fill="#000000" textLength="75.21" lengthAdjust="spacing">label readable?</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="21.18" y="632.86" font-size="11" fill="#000000" textLength="12.23" lengthAdjust="spacing">no</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="89.02" y="659.66" font-size="11" fill="#000000" textLength="17.12" lengthAdjust="spacing">yes</tspan>
+</text>
+<path d="M-49.24,564.19 L-49.24,604.45 L23.33,604.45 L23.33,574.19 L13.33,564.19 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M13.33,564.19 L13.33,574.19 L23.33,574.19" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-43.24" y="581.25" font-size="13" fill="#000000" textLength="50.57" lengthAdjust="spacing">two lines</tspan>
+<tspan x="-43.24" y="596.38" font-size="13" fill="#000000" textLength="39.75" lengthAdjust="spacing">of note</tspan>
+</text>
+<rect x="38.33" y="567.34" width="93.37" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="48.33" y="588.47" font-size="12" fill="#000000" textLength="73.37" lengthAdjust="spacing">Print the label</tspan>
+</text>
+<rect x="-96.39" y="672.26" width="362.81" height="6" rx="2" ry="2" fill="#555555"/>
+<rect x="-96.39" y="772.22" width="232.76" height="6" rx="2" ry="2" fill="#555555"/>
+<rect x="-96.39" y="698.26" width="104.05" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-86.39" y="719.39" font-size="12" fill="#000000" textLength="84.05" lengthAdjust="spacing">Send the parcel</tspan>
+</text>
+<rect x="27.66" y="698.26" width="108.72" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="37.66" y="719.39" font-size="12" fill="#000000" textLength="88.72" lengthAdjust="spacing">Send the invoice</tspan>
+</text>
+<rect x="156.38" y="698.26" width="110.05" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="166.38" y="719.39" font-size="12" fill="#000000" textLength="90.05" lengthAdjust="spacing">Update the stock</tspan>
+</text>
+<rect x="17.34" y="818.22" width="60.01" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="27.34" y="839.36" font-size="12" fill="#000000" textLength="40.01" lengthAdjust="spacing">Archive</tspan>
+</text>
+<rect x="97.35" y="818.22" width="50.67" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="107.35" y="839.36" font-size="12" fill="#000000" textLength="30.67" lengthAdjust="spacing">Notify</tspan>
+</text>
+<rect x="46.02" y="892.19" width="78" height="6" rx="2" ry="2" fill="#555555"/>
+<polygon points="73.02,976.16 85.02,964.16 97.02,976.16 85.02,988.16" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="46.02" y="918.19" width="28" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="56.02" y="939.33" font-size="12" fill="#000000" textLength="8" lengthAdjust="spacing">A</tspan>
+</text>
+<rect x="96.02" y="918.19" width="28" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="106.02" y="939.33" font-size="12" fill="#000000" textLength="8" lengthAdjust="spacing">B</tspan>
+</text>
+<polygon points="61.02,1020.16 73.02,1008.16 97.02,1008.16 109.02,1020.16 97.02,1032.16 73.02,1032.16" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="74.62" y="1023.97" font-size="11" fill="#000000" textLength="20.79" lengthAdjust="spacing">gift?</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="41.9" y="1016.56" font-size="11" fill="#000000" textLength="17.12" lengthAdjust="spacing">yes</tspan>
+</text>
+<polygon points="73.02,1100.13 85.02,1088.13 97.02,1100.13 85.02,1112.13" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="8.9" y="1042.16" width="58" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="18.9" y="1063.3" font-size="12" fill="#000000" textLength="38" lengthAdjust="spacing">Wrap it</tspan>
+</text>
+<ellipse cx="85.02" cy="1143.13" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="85.02" cy="1143.13" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="98.27" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="70.81" lengthAdjust="spacing">Every step</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="343.74" y="9.28" font-size="10" fill="#888888" textLength="20.01" lengthAdjust="spacing">draft</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="73.77" y="1175.12" font-size="14" fill="#000000" textLength="119.83" lengthAdjust="spacing">An order on its way</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="118.39" y="1192.7" font-size="10" fill="#888888" textLength="30.58" lengthAdjust="spacing">page 1</tspan>
+</text>
+</g>
+</g>
+</svg>

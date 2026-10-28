@@ -1,0 +1,13 @@
+@startmindmap
+top to bottom direction
+* Release
+** Build
+*** Compile
+*** Test
+** Ship
+*** Tag
+*** Upload
+left side
+** Plan
+*** Scope
+@endmindmap

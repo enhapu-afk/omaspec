@@ -1,0 +1,19 @@
+@startuml
+title Export
+start
+:Open the command menu and choose an export;
+:The bottom line asks where to write the file;
+if (what should the file hold?) then (picture and source)
+  :SVG or PNG keeps the source inside;
+  :Drop that file on the window to open the source again;
+elseif (a photo) then (JPEG)
+  :JPEG is the picture only;
+elseif (a document) then (PDF)
+  :PDF carries the picture, the source and the SVG;
+elseif (a page) then (Markdown)
+  :Markdown is the diagram as a page;
+else (a bundle)
+  :ZIP holds the SVG, the source and the PDF;
+endif
+stop
+@enduml

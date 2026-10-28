@@ -1,0 +1,19 @@
+[package]
+name = "spike-editor"
+description = "Spike: scrive code editor in iced with PlantUML highlighting, Omarchy colors and lint diagnostics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+iced.workspace = true
+iced_test = "0.14"
+scrive-core = "0.3"
+scrive-iced = "0.3"
+omagram-theme.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,19 @@
+== class.mmd: Mermaid / Structure (Class diagram)
+== lint
+== outline
+   2 namespace | Shell
+   3   class | Bar
+   4   class | Menu
+   6 class | Theme
+== fmt
+classDiagram
+namespace Shell {
+  class Bar
+  class Menu
+}
+class Theme {
+  +String name
+  +apply()
+}
+Theme <|-- TokyoNight
+Bar --> Theme

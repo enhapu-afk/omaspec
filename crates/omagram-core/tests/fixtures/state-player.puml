@@ -1,0 +1,18 @@
+@startuml
+title Media player
+[*] --> Stopped
+state "Playing track" as Playing
+state Paused : waits for input
+Stopped --> Playing : play
+Playing --> Paused : pause
+Paused --> Playing : resume
+Playing --> Stopped : stop
+Paused --> Stoped : stop
+state Buffering {
+  [*] --> Waiting
+  Waiting --> Filled : chunk
+}
+Playing --> Buffering : underrun
+Buffering --> Playing
+Stopped --> [*]
+@enduml

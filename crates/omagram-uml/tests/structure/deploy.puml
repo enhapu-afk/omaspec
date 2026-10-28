@@ -1,0 +1,20 @@
+@startuml
+title Platform
+node Server {
+  artifact jar
+  database Sessions
+}
+cloud CDN
+folder Docs
+frame Panel
+file Readme
+card Ticket
+stack Cluster
+hexagon Hub
+agent Worker
+storage Disk
+rectangle Rack
+Server --> CDN : ships
+jar --> Sessions
+CDN --> Docs
+@enduml

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1368" height="371" viewBox="0 0 1368 371">
+<g transform="translate(10,10)">
+<g>
+<line x1="48.02" y1="80.26" x2="48.02" y2="100.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="175.41" y1="80.26" x2="175.41" y2="100.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="175.41" y1="166.22" x2="185.41" y2="166.22" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="175.41" y1="215.18" x2="185.41" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="175.41" y1="134.23" x2="175.41" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="614.85" y1="80.26" x2="614.85" y2="100.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="604.85" y1="166.22" x2="614.85" y2="166.22" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="604.85" y1="215.18" x2="614.85" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="614.85" y1="166.22" x2="748.23" y2="166.22" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="844.93" y1="215.18" x2="854.93" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="854.93" y1="215.18" x2="864.93" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="854.93" y1="183.2" x2="854.93" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="614.85" y1="134.23" x2="614.85" y2="215.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="1183.04" y1="80.26" x2="1183.04" y2="100.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="1183.04" y1="166.22" x2="1193.04" y2="166.22" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="1183.04" y1="206.18" x2="1193.04" y2="206.18" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="1183.04" y1="229.17" x2="1203.04" y2="229.17" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="1203.04" y1="246.15" x2="1213.04" y2="246.15" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="1203.04" y1="229.17" x2="1203.04" y2="246.15" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="1183.04" y1="302.1" x2="1193.04" y2="302.1" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="1183.04" y1="134.23" x2="1183.04" y2="302.1" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="48.02" y1="80.26" x2="1183.04" y2="80.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="615.53" y1="60.26" x2="615.53" y2="80.26" fill="none" stroke="#181818" stroke-width="1.5"/>
+</g>
+<g>
+<rect x="0" y="100.26" width="96.04" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="10" y="121.4" font-size="12" fill="#000000" textLength="76.04" lengthAdjust="spacing">Left of the row</tspan>
+</text>
+<rect x="116.04" y="100.26" width="118.72" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="126.04" y="121.4" font-size="12" fill="#000000" textLength="98.72" lengthAdjust="spacing">Launch the project</tspan>
+</text>
+<rect x="185.41" y="149.23" width="193.4" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="195.41" y="170.37" font-size="12" fill="#000000" textLength="173.4" lengthAdjust="spacing">Complete Stakeholder Research</tspan>
+</text>
+<rect x="185.41" y="198.2" width="160.72" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="195.41" y="219.34" font-size="12" fill="#000000" textLength="140.72" lengthAdjust="spacing">Initial Implementation Plan</tspan>
+</text>
+<rect x="568.17" y="100.26" width="93.37" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="578.17" y="121.4" font-size="12" fill="#000000" textLength="73.37" lengthAdjust="spacing">Design phase</tspan>
+</text>
+<rect x="398.81" y="149.23" width="206.05" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="408.81" y="170.37" font-size="12" fill="#000000" textLength="186.05" lengthAdjust="spacing">Measure AsIs performance metrics</tspan>
+</text>
+<rect x="482.16" y="198.2" width="122.7" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="492.16" y="219.34" font-size="12" fill="#000000" textLength="102.7" lengthAdjust="spacing">Identify Quick Wins</tspan>
+</text>
+<rect x="748.23" y="149.23" width="213.4" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="758.23" y="170.37" font-size="12" fill="#000000" textLength="193.4" lengthAdjust="spacing">Model of AsIs Processes Completed</tspan>
+</text>
+<rect x="624.85" y="198.2" width="220.08" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="634.85" y="219.34" font-size="12" fill="#000000" textLength="200.08" lengthAdjust="spacing">Model of AsIs Processes Completed1</tspan>
+</text>
+<rect x="864.93" y="198.2" width="220.08" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="874.93" y="219.34" font-size="12" fill="#000000" textLength="200.08" lengthAdjust="spacing">Model of AsIs Processes Completed2</tspan>
+</text>
+<rect x="1105.01" y="100.26" width="156.07" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="1115.01" y="121.4" font-size="12" fill="#000000" textLength="136.07" lengthAdjust="spacing">Complete innovate phase</tspan>
+</text>
+<rect x="1193.04" y="149.23" width="59.35" height="33.97" fill="#87CEEB" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="1203.04" y="170.37" font-size="12" fill="#000000" textLength="39.35" lengthAdjust="spacing">colored</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="1193.04" y="210.34" font-size="12" fill="#000000" textLength="70.7" lengthAdjust="spacing">without a box</tspan>
+</text>
+<rect x="1213.04" y="229.17" width="134.06" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="1223.04" y="250.3" font-size="12" fill="#000000" textLength="114.06" lengthAdjust="spacing">below an empty node</tspan>
+</text>
+<rect x="1193.04" y="278.14" width="58.68" height="47.94" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="1203.04" y="299.27" font-size="12" fill="#000000" textLength="38.68" lengthAdjust="spacing">several</tspan>
+<tspan x="1203.04" y="313.24" font-size="12" fill="#000000" textLength="24.67" lengthAdjust="spacing">lines</tspan>
+</text>
+<rect x="515.17" y="26.3" width="200.72" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="525.17" y="47.43" font-size="12" fill="#000000" textLength="180.72" lengthAdjust="spacing">Business Process Modelling WBS</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="578.63" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="189.84" lengthAdjust="spacing">Business process modelling</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="622.2" y="347.06" font-size="14" fill="#000000" textLength="102.7" lengthAdjust="spacing">Figure 3: a WBS</tspan>
+</text>
+</g>
+</g>
+</svg>

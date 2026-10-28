@@ -1,0 +1,30 @@
+#!/bin/bash
+# Stands in for `plantuml -pipe` and tries to get out. The diagram says
+# what to try in a comment, `' try FILE PORT SECRET`: write FILE, open a
+# TCP connection to 127.0.0.1:PORT, write in $TMPDIR, read SECRET (a file
+# outside the folders it may read), see $OMAGRAM_TEST_SECRET, and read it
+# from the environment of the process that started it. The SVG says what
+# worked, how many files it may open, and where $TMPDIR was.
+delim=""
+while (( $# )); do
+  case "$1" in
+    -pipedelimitor) delim="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+while IFS= read -r line; do
+  if [[ $line == "' try "* ]]; then
+    words=($line)
+    tryfile=${words[2]} tryport=${words[3]} secret=${words[4]}
+  fi
+  [[ $line == @end* ]] || continue
+  { echo escaped > "$tryfile"; } 2>/dev/null && write=written || write=refused
+  (exec 3<>"/dev/tcp/127.0.0.1/$tryport") 2>/dev/null && tcp=connected || tcp=refused
+  { echo scratch > "${TMPDIR:-/tmp}/omagram-try"; } 2>/dev/null && tmp=written || tmp=refused
+  { read -r _ < "$secret"; } 2>/dev/null && read=read || read=refused
+  [[ -n $OMAGRAM_TEST_SECRET ]] && env=inherited || env=clean
+  grep -qa OMAGRAM_TEST_SECRET "/proc/$PPID/environ" 2>/dev/null && proc=read || proc=refused
+  printf '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><text>write:%s tcp:%s tmp:%s read:%s env:%s proc:%s files:%s dir:%s</text></svg>' \
+    "$write" "$tcp" "$tmp" "$read" "$env" "$proc" "$(ulimit -Sn)" "$TMPDIR"
+  printf '%s\n' "$delim"
+done

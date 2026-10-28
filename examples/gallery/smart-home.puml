@@ -1,0 +1,22 @@
+@startuml
+title A smart home
+node "Living room" {
+  rectangle Thermostat
+  rectangle Lamp
+}
+node "Hallway" {
+  rectangle "Door sensor" as Door
+  rectangle Doorbell
+}
+node Hub {
+  rectangle Rules
+  database History
+}
+actor Resident
+Thermostat --> Rules : temperature
+Door --> Rules : opened
+Doorbell --> Rules : rang
+Rules --> Lamp : switch
+Rules --> History : log
+Resident --> Rules : phone app
+@enduml

@@ -1,0 +1,35 @@
+@startuml
+start
+if (empty both?) then
+endif
+if (a rather long condition that is wide?) then (yes)
+  -> into then;
+  :then;
+  if (nested?) then (y)
+    :inner;
+    stop
+  else (n)
+  endif
+  -> out of then;
+else (no)
+  stop
+endif
+while (empty body?)
+endwhile (done)
+repeat
+repeat while
+:left note;
+note left
+  first
+  second
+end note
+fork
+  :one;
+  stop
+fork again
+  :two;
+  end
+end fork
+:after all ended;
+stop
+@enduml

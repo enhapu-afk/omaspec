@@ -1,0 +1,44 @@
+@startuml
+' A dark <style>: `root` reaches every element, a block's own properties
+' come before those of the blocks inside it, and a variable holds the
+' accent.
+<style>
+--accent: #E68E0D;
+document {
+  BackGroundColor #1E1E1E
+}
+root {
+  FontColor #EEEEEE
+  LineColor #888888
+}
+sequenceDiagram {
+  participant, actor, database {
+    BackGroundColor #2A2A2A
+    LineColor var(--accent)
+  }
+  arrow {
+    LineColor var(--accent)
+    FontColor #CCCCCC
+  }
+  note {
+    BackGroundColor #3A3A2A
+    FontStyle italic
+  }
+  groupHeader { BackGroundColor #333333 }
+}
+title { FontSize 18 }
+</style>
+title Login
+actor User
+participant App
+database DB
+User -> App : sign in
+App -> DB : look up
+DB --> App : user
+alt found
+  App --> User : welcome
+  note right : session starts
+else missing
+  App --> User : retry
+end
+@enduml

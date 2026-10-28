@@ -1,0 +1,21 @@
+---
+title: Build pipeline
+config:
+  theme: dark
+  flowchart:
+    curve: linear
+---
+flowchart TD
+    subgraph CI["Continuous integration"]
+    direction LR
+    A[Push] --> B{Tests green?}
+    B -->|yes| C([Package])
+    B -->|no| D[[Fix]]
+    D --> A
+    end
+    C-->E((Release))
+    E --> F>Announce]
+    F --> G{{Mirror}}
+    style A fill:#f9f
+    classDef done fill:#9f9
+    class E done

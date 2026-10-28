@@ -1,0 +1,26 @@
+== mindmap.puml: PlantUML / Other (Mind map)
+== lint
+== outline
+   2 title | Desktop
+   3  | Omarchy
+   4    | Hyprland
+   5      | Keybindings
+   6      | Window rules
+   7    | Apps
+   8      | Terminal
+   9      | Editor
+  10    | Themes
+  11      | Tokyo Night
+== fmt
+@startmindmap
+title Desktop
+* Omarchy
+** Hyprland
+*** Keybindings
+*** Window rules
+** Apps
+*** Terminal
+***[#orange] Editor
+-- Themes
+--- Tokyo Night
+@endmindmap

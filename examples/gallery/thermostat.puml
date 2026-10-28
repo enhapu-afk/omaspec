@@ -1,0 +1,30 @@
+@startflow
+title A room thermostat
+left to right direction
+
+in setpoint
+in sensor
+out valve
+out display
+
+block Filter "Filter" {
+  in sensor
+  out room
+}
+block Compare "Compare" {
+  in setpoint
+  in room
+  out error
+}
+block Control "PI control" {
+  in error
+  out opening
+}
+
+sensor -> Filter.sensor
+setpoint -> Compare.setpoint
+Filter.room -> Compare.room
+Filter.room -> display
+Compare.error -> Control.error
+Control.opening -> valve
+@endflow

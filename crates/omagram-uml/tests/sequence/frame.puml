@@ -1,0 +1,19 @@
+@startuml
+' Everything around a diagram: header, title, a main frame, a legend,
+' caption, footer and the scale of the picture.
+scale 1.25
+header draft
+title Login
+mainframe sd **Login**
+participant Browser as B
+participant Api as A
+B -> A : POST /login
+== Check ==
+A --> B : 200
+legend right
+  **Colors**
+  <color:#3367d6>blue</color>: our services
+endlegend
+caption figure 1
+footer page 1
+@enduml

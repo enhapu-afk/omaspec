@@ -1,0 +1,8 @@
+@startuml
+footer Page %page% of %lastpage%
+participant Gate << (G,#FFB347) controller >>
+participant Store << (S) >>
+actor Visitor << guest >>
+Visitor -> Gate : enter
+Gate -> Store : count
+@enduml

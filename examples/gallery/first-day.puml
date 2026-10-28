@@ -1,0 +1,24 @@
+@startuml
+title A new colleague's first day
+|Office|
+start
+:Hand over the badge;
+|IT|
+:Set up the laptop;
+fork
+  :Create the accounts;
+fork again
+  :Install the tools;
+end fork
+|Team|
+:Welcome breakfast;
+if (pairing partner free?) then (yes)
+  :Pair on a small fix;
+else (no)
+  :Read the handbook;
+endif
+:First commit;
+|Office|
+:Ask how it went;
+stop
+@enduml

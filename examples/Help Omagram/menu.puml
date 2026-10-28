@@ -1,0 +1,57 @@
+@startuml
+title The command menu
+start
+partition Find {
+  :Browse the examples with Ctrl+Shift+E,
+  drawn as tiles; Enter opens a copy;
+  :Find a file with Ctrl+P;
+  :Open a file, folder or image with Ctrl+O;
+  :Find in all tabs;
+  :Replace in all tabs;
+}
+partition File {
+  :Save with Ctrl+S;
+  :Save as;
+  :Revert to the saved file;
+}
+partition Diagram {
+  :Render now with Ctrl+Enter;
+  :Format the diagram;
+  :Write it in the other language,
+  PlantUML or Mermaid, in a new tab;
+  :Put a skin into the source;
+  :Follow the Omarchy theme;
+}
+partition Fold {
+  :Collapse the block at the caret;
+  :Expand that block;
+  :Collapse or expand every block;
+}
+partition Compare {
+  :Compare with a tab or a git commit;
+  :Switch between changed lines and the diagram;
+  :Show what changed in the behavior:
+  states, transitions, messages, findings;
+  :Stop comparing;
+}
+partition Export {
+  :Copy the diagram as PNG or SVG;
+  :Export SVG, PNG, JPEG, PDF, Markdown or ZIP;
+}
+partition Tabs {
+  :New tab, close tab, switch tabs;
+}
+partition View {
+  :Show or hide the project tree;
+  :Move between the areas;
+  :Detach the diagram, or bring it back;
+  :Zoom, fit, or quit;
+  :Open this Help Omagram folder;
+  :Leave it: the line under its heading;
+  note right
+    Ctrl+Shift+P opens the same
+    commands as a list. Type to filter.
+  end note
+}
+stop
+@enduml

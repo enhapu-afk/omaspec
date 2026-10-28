@@ -1,0 +1,65 @@
+@startuml
+header draft
+title Everything\n<i>at once</i>
+footer page 1
+caption Figure 1: all constructs
+autonumber
+actor User
+box "Front end" #LightBlue
+participant "Web App" as Web <<spa>>
+boundary Gate
+end box
+control Ctrl
+entity Ent
+database DB
+collections Coll
+queue Q
+
+[-> User : wake up
+User -> Web ++ : open
+Web -> Web : render **bold** and //italic//
+note right : beside the\nself message
+Web -> Gate ++ #gold : call
+Gate -> Ctrl : forward
+activate Ctrl
+Ctrl -> Ctrl ++ : nested
+Ctrl --> Gate -- : done
+deactivate Ctrl
+return ok
+== Phase 2 ==
+Web ->> Ent : async
+Web -\ DB : half
+Web ->x Coll : lost
+Web ->o Q : circle
+Web o->o Q : circles
+Q x-> Web : cross first
+Web <-> Q : both
+Web -[#red]> DB : red
+Web -[bold]> DB : bold
+note left of User : left note
+note over Gate, Ctrl #aqua
+  spanning
+  note
+end note
+hnote over DB : hex
+rnote across : across everyone
+|||
+ref over Web, DB : refresh token
+create participant Late
+Web -> Late : new
+Late -> Late : self
+destroy Late
+...
+... 5 minutes later ...
+loop 3 times
+  Web -> DB : retry
+  opt cached
+    DB --> Web : hit
+  end
+end
+group audit [log]
+  Web ->] : out
+  ?-> Web : short in
+end
+Web ->? : short out
+@enduml

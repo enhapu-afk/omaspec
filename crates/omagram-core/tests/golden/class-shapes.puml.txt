@@ -1,0 +1,31 @@
+== class-shapes.puml: PlantUML / Structure (Class diagram)
+== lint
+== outline
+   2 package | Window manager
+   3   interface | Layout
+   6   abstract class | Window
+  10   enum | Mode
+  14   class | Dwindle
+  15   class | Master
+== fmt
+@startuml
+package "Window manager" {
+  interface Layout {
+    +arrange(windows)
+  }
+  abstract class Window {
+    -id : int
+    +focus()
+  }
+  enum Mode {
+    TILED
+    FLOATING
+  }
+  class Dwindle
+  class Master
+}
+Layout <|.. Dwindle
+Layout <|.. Master
+Window "1" *-- "many" Mode : uses
+note right of Window : one per client
+@enduml

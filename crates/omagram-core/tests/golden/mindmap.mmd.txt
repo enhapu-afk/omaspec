@@ -1,0 +1,22 @@
+== mindmap.mmd: Mermaid / Other (Mind map)
+== lint
+== outline
+   2  | Omarchy
+   3    | Hyprland
+   4      | Keybindings
+   5      | Window rules
+   6    | Apps
+   7      | Terminal
+   9        | Ghostty
+  10      | Editor
+== fmt
+mindmap
+  root((Omarchy))
+    Hyprland
+      Keybindings
+      Window rules
+    Apps
+      Terminal
+      ::icon(fa fa-terminal)
+        Ghostty
+      [Editor]

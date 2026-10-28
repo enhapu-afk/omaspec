@@ -1,0 +1,17 @@
+classDiagram
+  class Library {
+    +String name
+    +add(Book book)
+    +find(String title) Book
+  }
+  class Book {
+    +String title
+    +String author
+    +int year
+  }
+  class Member {
+    +String name
+    +borrow(Book book)
+  }
+  Library "1" o-- "*" Book : holds
+  Member "1" --> "*" Book : borrows

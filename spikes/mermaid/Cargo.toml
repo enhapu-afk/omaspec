@@ -1,0 +1,16 @@
+[package]
+name = "spike-mermaid"
+description = "Spike: render Mermaid files with mmdr, time them and rasterize them for a visual check"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+mermaid-rs-renderer.workspace = true
+resvg.workspace = true
+
+[lints]
+workspace = true

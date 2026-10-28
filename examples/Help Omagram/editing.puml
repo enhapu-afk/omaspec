@@ -1,0 +1,24 @@
+@startuml
+title Editing a diagram
+start
+:Type PlantUML or Mermaid;
+:The language is detected from the text and the file name;
+:Findings are underlined while you type;
+:A state diagram is checked as a state machine,
+and a sequence diagram against the state machines
+of its folder;
+:F5 plays it: 1–9 take a step, Space the next,
+← back, Esc stops;
+:Play a recorded trace (in the command menu) plays
+a log of the machine (JSON Lines, *.jsonl) line by line;
+if (a block hides the lines you want?) then (fold it)
+  :Ctrl+Shift+[ folds the block at the caret;
+  :Ctrl+Shift+] unfolds it;
+else (leave it open)
+  :Keep the source in view;
+endif
+:Ctrl+Shift+I formats the diagram;
+:A click on an error in the status bar jumps to its line;
+:Ctrl+click on a label in the diagram jumps there too;
+stop
+@enduml

@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="556" height="286" viewBox="0 0 556 286">
+<g transform="translate(10,10)">
+<g>
+<line x1="113.55" y1="70.94" x2="113.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="129.55" y1="70.94" x2="129.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="145.55" y1="70.94" x2="145.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="161.55" y1="70.94" x2="161.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="177.55" y1="70.94" x2="177.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="193.55" y1="70.94" x2="193.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="209.55" y1="70.94" x2="209.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="225.55" y1="70.94" x2="225.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="241.55" y1="70.94" x2="241.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="257.55" y1="70.94" x2="257.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="273.55" y1="70.94" x2="273.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="289.55" y1="70.94" x2="289.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="305.55" y1="70.94" x2="305.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="321.55" y1="70.94" x2="321.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="337.55" y1="70.94" x2="337.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="353.55" y1="70.94" x2="353.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="369.55" y1="70.94" x2="369.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="385.55" y1="70.94" x2="385.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="401.55" y1="70.94" x2="401.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="417.55" y1="70.94" x2="417.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="433.55" y1="70.94" x2="433.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="449.55" y1="70.94" x2="449.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="465.55" y1="70.94" x2="465.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="481.55" y1="70.94" x2="481.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="497.55" y1="70.94" x2="497.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="513.55" y1="70.94" x2="513.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="529.55" y1="70.94" x2="529.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="113.55" y1="70.94" x2="529.55" y2="70.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<rect x="0" y="136.94" width="529.55" height="22" fill="#EEEEEE"/>
+</g>
+<g>
+<rect x="113.55" y="74.94" width="240" height="14" fill="#FF00FF" stroke="#181818" stroke-width="1"/>
+<rect x="113.55" y="96.94" width="160" height="14" fill="#ADD8E6" stroke="#181818" stroke-width="1"/>
+<rect x="353.55" y="118.94" width="80" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+<rect x="354.55" y="119.94" width="30" height="12" fill="#5C788C"/>
+<rect x="433.55" y="162.94" width="48" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+<rect x="481.55" y="184.94" width="32" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+<polygon points="513.55,205.94 521.55,213.94 513.55,221.94 505.55,213.94" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+<polygon points="481.55,191.94 478.05,183.94 485.05,183.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="113.55" y="52.22" font-size="10" fill="#888888" textLength="51.14" lengthAdjust="spacing">2020-07-01</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="110.77" y="66.22" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">1</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="126.77" y="66.22" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">2</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="142.77" y="66.22" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">3</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="158.77" y="66.22" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">4</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="174.77" y="66.22" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">5</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="190.77" y="66.22" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">6</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="206.77" y="66.22" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">7</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="222.77" y="66.22" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">8</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="238.77" y="66.22" font-size="10" fill="#888888" textLength="5.56" lengthAdjust="spacing">9</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="251.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">10</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="267.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">11</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="283.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">12</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="299.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">13</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="315.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">14</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="331.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">15</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="347.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">16</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="363.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">17</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="379.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">18</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="395.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">19</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="411.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">20</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="427.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">21</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="443.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">22</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="459.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">23</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="475.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">24</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="491.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">25</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="507.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">26</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="523.99" y="66.22" font-size="10" fill="#888888" textLength="11.12" lengthAdjust="spacing">27</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="86.43" font-size="13" fill="#000000" textLength="97.55" lengthAdjust="spacing">Prototype design</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="108.43" font-size="13" fill="#000000" textLength="87.42" lengthAdjust="spacing">Documentation</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="130.43" font-size="13" fill="#000000" textLength="31.78" lengthAdjust="spacing">Tests</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="152.43" font-size="13" fill="#000000" font-weight="bold" textLength="49.14" lengthAdjust="spacing">Release</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="174.43" font-size="13" fill="#000000" textLength="50.58" lengthAdjust="spacing">Package</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="196.43" font-size="13" fill="#000000" textLength="42.63" lengthAdjust="spacing">Publish</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="218.43" font-size="13" fill="#000000" textLength="55.63" lengthAdjust="spacing">Milestone</tspan>
+</text>
+<line x1="481.55" y1="177.94" x2="481.55" y2="183.94" fill="none" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="250.06" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="35" lengthAdjust="spacing">Build</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="515.1" y="9.28" font-size="10" fill="#888888" textLength="20.01" lengthAdjust="spacing">draft</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="238.76" y="245.93" font-size="14" fill="#000000" textLength="57.58" lengthAdjust="spacing">a release</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="256.44" y="263.51" font-size="10" fill="#888888" textLength="22.24" lengthAdjust="spacing">done</tspan>
+</text>
+</g>
+</g>
+</svg>

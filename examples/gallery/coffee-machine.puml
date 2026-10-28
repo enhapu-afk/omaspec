@@ -1,0 +1,23 @@
+@startuml
+title A coffee machine
+left to right direction
+[*] --> Off
+Off --> Ready : power on
+state Ready {
+  [*] --> Idle
+  Idle --> Choosing : touch
+  Choosing --> Idle : timeout
+}
+state Brewing {
+  [*] --> Grinding
+  Grinding --> Heating : ground
+  Heating --> Pouring : hot
+  Pouring --> [*]
+}
+Ready --> Brewing : start [beans and water]
+Ready --> Refill : start [tank empty]
+Refill --> Ready : tank filled
+Brewing --> Ready : cup full
+Brewing --> Ready : cancel
+Ready --> Off : power off
+@enduml

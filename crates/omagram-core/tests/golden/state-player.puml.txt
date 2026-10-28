@@ -1,0 +1,31 @@
+== state-player.puml: PlantUML / State (State diagram)
+== lint
+  10 Info: State Stoped appears only here. Did you mean Stopped?
+== outline
+   2 title | Media player
+   3 state | Stopped
+   4 state | Playing track
+   5 state | Paused
+  10 state | Stoped
+  11 state | Buffering
+  12   state | Waiting
+  13   state | Filled
+== fmt
+@startuml
+title Media player
+[*] --> Stopped
+state "Playing track" as Playing
+state Paused : waits for input
+Stopped --> Playing : play
+Playing --> Paused : pause
+Paused --> Playing : resume
+Playing --> Stopped : stop
+Paused --> Stoped : stop
+state Buffering {
+  [*] --> Waiting
+  Waiting --> Filled : chunk
+}
+Playing --> Buffering : underrun
+Buffering --> Playing
+Stopped --> [*]
+@enduml

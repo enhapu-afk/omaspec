@@ -1,0 +1,18 @@
+== missing-end.puml: PlantUML / Sequence (Sequence diagram)
+== lint
+   1 Error: @startuml without matching @enduml
+   5 Warning: Unclosed opt
+   7 Warning: Unclosed note
+== outline
+   2 participant | A
+   3 participant | B
+   5 opt | maybe
+== fmt
+@startuml
+participant A
+participant B
+A -> B : hello
+opt maybe
+  B -> A : answer
+  note left of A
+    never closed

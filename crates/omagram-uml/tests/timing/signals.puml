@@ -1,0 +1,24 @@
+@startuml
+title Signals
+header draft
+footer end
+caption a sample
+scale 2 as 20 pixels
+clock "Tick" as clk with period 2
+binary "Enable" as EN
+analog "Level" between 0 and 5 as L
+concise "Data" as db
+@0
+EN is low
+L is 0
+db is "0x00"
+@5
+EN is high : ready
+L is 3
+db is "0xA0"
+EN@5 -> db@8 : sample
+@10
+EN is low
+L is 5
+db is "0xFF"
+@enduml

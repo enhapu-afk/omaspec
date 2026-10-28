@@ -1,0 +1,27 @@
+@startuml
+title States
+state "Playing track" as Playing #AliceBlue
+Playing : the track
+state Pick <<choice>>
+state H <<history>>
+state "H*" as Deep <<deepHistory>>
+state Bar <<fork>>
+state Meet <<join>>
+state Buffering {
+  [*] --> Waiting
+  Waiting --> Filled : chunk
+}
+[*] --> Pick
+Pick --> Playing : ok
+Pick --> H : back
+Playing --> Bar : split
+Bar --> Buffering
+Bar --> Deep
+Buffering --> Meet
+Deep --> Meet
+Meet --> Playing : again
+Playing --> Playing : loop
+note right of Playing : here
+note bottom of Pick : which
+Playing -[dashed,#Green]-> H : mark
+@enduml

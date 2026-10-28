@@ -1,0 +1,30 @@
+@startmindmap
+header draft
+title Everything\n<i>a mind map</i> has
+footer page 1
+caption Figure 2: all constructs
+* Mind map
+** Boxes
+*** in **bold** and //italic//
+*** with <color:red>a color</color> tag
+**[#Orange] Colored
+***[#lightgreen] green
+***[#FFAA00] by number
+**_ No box
+***_ also none
+**:Several
+lines
+
+with a gap;
+left side
+** Left side
+*** one
+*** two
+**** deeper
+-- Minus goes left
+++ Plus goes right
+* A second root
+  * indented
+    * one level each
+  * below the first
+@endmindmap

@@ -1,0 +1,33 @@
+@startuml
+skinparam classBackgroundColor #AliceBlue
+skinparam classBorderColor #Green
+skinparam shadowing false
+skinparam minClassWidth 80
+title Shop
+caption the catalog
+package catalog {
+  abstract class Product {
+    - id : int
+    {static} + count : int
+    --
+    {abstract} + name() : String
+    == queries ==
+    {method} + find()
+  }
+  interface Sellable
+  enum Status {
+    Open
+    Closed
+  }
+  annotation Tag
+  struct Point
+  class Book #pink
+  Product <|-- Book
+  Sellable <|.. Book
+  note right of Product : stocked
+}
+class Shelf
+Shelf *-- "1" Product : holds
+Shelf o-- "many" Book
+Book --> Shelf : sits
+@enduml

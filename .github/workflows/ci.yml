@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: System libraries for iced (Wayland, X11, fonts)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-dev libwayland-dev libfontconfig1-dev libvulkan-dev
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets
+      - run: cargo test --workspace
+
+  # Omagram's reading of state and sequence diagrams against the Java
+  # PlantUML's (docs/adr/0004), on Arch as Omarchy installs PlantUML.
+  oracle:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    env:
+      OMAGRAM_REQUIRE_PLANTUML: "1"
+    steps:
+      - name: Rust, PlantUML, Java, Graphviz and a font
+        run: pacman -Syu --noconfirm rust plantuml jre-openjdk graphviz ttf-liberation
+      - uses: actions/checkout@v4
+      - run: plantuml -version
+      - run: cargo test --locked -p omagram-model --test oracle
+
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2

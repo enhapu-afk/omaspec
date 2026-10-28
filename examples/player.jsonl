@@ -1,0 +1,6 @@
+{"time":"20:14:02","object":"player","event":"play","state":"Playing","track":"Intro"}
+{"time":"20:17:45","object":"player","event":"next track","track":"Blue"}
+{"time":"20:19:10","object":"player","event":"pause","state":"Paused"}
+{"time":"20:24:31","object":"player","event":"play","state":"Playing"}
+{"time":"20:29:58","object":"player","event":"stop","state":"Stopped"}
+{"time":"20:30:03","object":"player","event":"close"}

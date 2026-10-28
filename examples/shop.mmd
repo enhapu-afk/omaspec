@@ -1,0 +1,7 @@
+flowchart TD
+  Browse[Browse the shop] --> Cart[Add to cart]
+  Cart --> Pay{Pay now?}
+  Pay -->|yes| Checkout[Check out]
+  Pay -->|later| Saved[Save the cart]
+  Saved --> Browse
+  Checkout --> Done([Order placed])

@@ -1,0 +1,61 @@
+# Maintainer: Nils Hoffmann
+#
+# Builds Omagram from git. Set `url` to the public repository before
+# submitting to the AUR; for a local test, see README.md next to this file.
+
+pkgname=omagram-git
+_pkgname=omagram
+pkgver=0.0.1
+pkgrel=1
+pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy"
+arch=('x86_64' 'aarch64')
+url="https://github.com/OWNER/omagram"
+license=('MIT')
+depends=('gcc-libs' 'glibc' 'fontconfig' 'libxkbcommon' 'wayland' 'vulkan-icd-loader')
+makedepends=('cargo' 'git')
+optdepends=(
+  'plantuml: optional, Java; draws the few PlantUML types the native engine does not (JSON, YAML, Salt, ...)'
+  'wl-clipboard: copy diagrams to the clipboard'
+  'git: compare a diagram with a git commit'
+  'libnotify: notifications outside Omarchy'
+)
+provides=("$_pkgname")
+conflicts=("$_pkgname")
+source=("$_pkgname::git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$_pkgname"
+  printf "0.0.1.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+}
+
+prepare() {
+  cd "$_pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$_pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release -p omagram-app
+}
+
+check() {
+  cd "$_pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo test --frozen -p omagram-theme -p omagram-core
+}
+
+package() {
+  cd "$_pkgname"
+  install -Dm755 target/release/omagram "$pkgdir/usr/bin/omagram"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+  install -Dm644 packaging/omagram.desktop "$pkgdir/usr/share/applications/omagram.desktop"
+  install -Dm644 packaging/omagram.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/omagram.svg"
+  install -Dm644 packaging/omagram-mime.xml "$pkgdir/usr/share/mime/packages/omagram.xml"
+  # Templates for Omarchy users to copy (see README).
+  install -Dm644 -t "$pkgdir/usr/share/omagram/omarchy" packaging/omarchy/*
+}

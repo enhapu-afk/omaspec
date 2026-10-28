@@ -1,0 +1,8 @@
+== pie.mmd: Mermaid / Other (Pie chart)
+== lint
+== outline
+== fmt
+pie title Disk usage
+    "Packages" : 42
+       "Home" : 50
+    "Cache" : 8

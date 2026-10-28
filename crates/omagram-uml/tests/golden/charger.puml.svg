@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="613" height="153" viewBox="0 0 613 153">
+<g transform="translate(10,10)">
+<g>
+<polyline points="53.91,107.69 77.91,107.69" fill="none" stroke="#000000" stroke-width="1"/>
+<polyline points="508.43,107.69 532.43,107.69" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+<g>
+<rect x="85.91" y="26.3" width="422.52" height="106.4" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="149.82" y="69.56" width="115.47" height="55.13" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="331.96" y="69.56" width="114.01" height="55.13" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+</g>
+<g>
+<polyline points="85.91,107.69 141.82,107.69" fill="none" stroke="#000000" stroke-width="1"/>
+<polyline points="265.29,107.69 323.96,107.69" fill="none" stroke="#000000" stroke-width="1"/>
+<polyline points="445.97,107.69 500.43,107.69" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="112.19" font-size="13" fill="#000000" textLength="41.91" lengthAdjust="spacing">voltage</tspan>
+</text>
+<ellipse cx="53.91" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="272.25" y="46.36" font-size="13" fill="#000000" font-weight="bold" textLength="49.84" lengthAdjust="spacing">Charger</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="192.03" y="89.62" font-size="13" fill="#000000" font-weight="bold" textLength="31.06" lengthAdjust="spacing">Limit</tspan>
+</text>
+<ellipse cx="149.82" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="157.82" y="112.19" font-size="13" fill="#000000" textLength="41.91" lengthAdjust="spacing">voltage</tspan>
+</text>
+<ellipse cx="265.29" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="219.74" y="112.19" font-size="13" fill="#000000" textLength="37.56" lengthAdjust="spacing">limited</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="362.6" y="89.62" font-size="13" fill="#000000" font-weight="bold" textLength="52.74" lengthAdjust="spacing">Measure</tspan>
+</text>
+<ellipse cx="331.96" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="339.96" y="112.19" font-size="13" fill="#000000" textLength="37.56" lengthAdjust="spacing">limited</tspan>
+</text>
+<ellipse cx="445.97" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="397.52" y="112.19" font-size="13" fill="#000000" textLength="40.46" lengthAdjust="spacing">current</tspan>
+</text>
+<polygon points="141.82,111.19 149.82,107.69 141.82,104.19" fill="#000000"/>
+<polygon points="323.96,111.19 331.96,107.69 323.96,104.19" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="277.29" y="96.86" font-size="12" fill="#000000" textLength="34.67" lengthAdjust="spacing">limited</tspan>
+</text>
+<polygon points="500.43,111.19 508.43,107.69 500.43,104.19" fill="#000000"/>
+<ellipse cx="85.91" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="93.91" y="96.62" font-size="13" fill="#000000" textLength="41.91" lengthAdjust="spacing">voltage</tspan>
+</text>
+<ellipse cx="508.43" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="459.97" y="96.62" font-size="13" fill="#000000" textLength="40.46" lengthAdjust="spacing">current</tspan>
+</text>
+<ellipse cx="540.43" cy="107.69" rx="2.5" ry="2.5" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="552.43" y="112.19" font-size="13" fill="#000000" textLength="40.46" lengthAdjust="spacing">current</tspan>
+</text>
+<polygon points="77.91,111.19 85.91,107.69 77.91,104.19" fill="#000000"/>
+<polygon points="532.43,111.19 540.43,107.69 532.43,104.19" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="246.66" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="99.57" lengthAdjust="spacing">Charge control</tspan>
+</text>
+</g>
+</g>
+</svg>

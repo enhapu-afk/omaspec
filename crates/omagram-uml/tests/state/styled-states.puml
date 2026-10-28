@@ -1,0 +1,33 @@
+@startuml
+' A <style> for a state diagram, its legend and its main frame.
+<style>
+stateDiagram {
+  state {
+    BackGroundColor #EEF6EE
+    LineColor #3C8D3C
+    FontStyle bold
+  }
+  arrow {
+    LineColor #3C8D3C
+    LineThickness 1.5
+  }
+}
+legend {
+  BackGroundColor #FFFFFF
+  LineColor #3C8D3C
+  RoundCorner 0
+}
+mainframe {
+  LineColor #3C8D3C
+  FontStyle bold
+}
+</style>
+mainframe state Order
+[*] --> New
+New --> Paid : pay
+Paid --> Shipped : ship
+Shipped --> [*]
+legend right
+  Happy path only
+endlegend
+@enduml

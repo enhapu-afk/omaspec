@@ -1,0 +1,55 @@
+@startuml
+title A library system
+package Catalog {
+  abstract class Item {
+    + title : String
+    + year : int
+    {abstract} + loanDays() : int
+  }
+  class Book {
+    + isbn : String
+    + loanDays() : int
+  }
+  class Film {
+    + minutes : int
+    + loanDays() : int
+  }
+  Item <|-- Book
+  Item <|-- Film
+}
+package Lending {
+  class Copy {
+    + barcode : String
+    + shelf : String
+  }
+  class Loan {
+    + start : Date
+    + due : Date
+    + renew()
+  }
+  class Reservation {
+    + placed : Date
+  }
+  interface Notifier {
+    + remind(member : Member)
+  }
+  Loan "*" --> "1" Copy
+  Loan ..> Notifier : due soon
+}
+package Members {
+  class Member {
+    + name : String
+    + card : String
+  }
+  enum Level {
+    Child
+    Adult
+    Senior
+  }
+  Member --> Level
+}
+Copy "1..*" --* "1" Item : of
+Member "1" --> "*" Loan : borrows
+Member "1" --> "*" Reservation : places
+Reservation "*" --> "1" Item : for
+@enduml

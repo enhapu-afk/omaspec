@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="138" height="396" viewBox="0 0 138 396">
+<g transform="translate(20,10)">
+<g>
+<ellipse cx="41.61" cy="39.3" rx="11" ry="11" fill="#3C8D3C" stroke="#3C8D3C" stroke-width="1"/>
+<rect x="13.22" y="82.3" width="56.78" height="32.3" rx="8" ry="8" fill="#EEF6EE" stroke="#3C8D3C" stroke-width="1"/>
+<rect x="12.83" y="160.56" width="57.57" height="32.3" rx="8" ry="8" fill="#EEF6EE" stroke="#3C8D3C" stroke-width="1"/>
+<rect x="0" y="238.82" width="83.23" height="32.3" rx="8" ry="8" fill="#EEF6EE" stroke="#3C8D3C" stroke-width="1"/>
+<ellipse cx="41.61" cy="316.12" rx="13" ry="13" fill="none" stroke="#3C8D3C" stroke-width="1.5"/>
+<ellipse cx="41.61" cy="316.12" rx="5.46" ry="5.46" fill="#3C8D3C" stroke="#3C8D3C" stroke-width="1"/>
+<polyline points="41.61,50.3 41.61,72.3" fill="none" stroke="#3C8D3C" stroke-width="1.5"/>
+<polyline points="41.61,114.59 41.61,150.56" fill="none" stroke="#3C8D3C" stroke-width="1.5"/>
+<polyline points="41.61,192.86 41.61,228.82" fill="none" stroke="#3C8D3C" stroke-width="1.5"/>
+<polyline points="41.61,271.12 41.61,293.12" fill="none" stroke="#3C8D3C" stroke-width="1.5"/>
+<rect x="-10" y="0" width="103.23" height="339.12" fill="none" stroke="#3C8D3C" stroke-width="1"/>
+<polygon points="-10,0 82.69,0 82.69,14.3 76.69,20.3 -10,20.3" fill="none" stroke="#3C8D3C" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="27.22" y="103.29" font-size="14" fill="#000000" font-weight="bold" textLength="28.78" lengthAdjust="spacing">New</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="26.83" y="181.55" font-size="14" fill="#000000" font-weight="bold" textLength="29.57" lengthAdjust="spacing">Paid</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="14" y="259.82" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Shipped</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="47.61" y="142.73" font-size="12" fill="#000000" textLength="19.34" lengthAdjust="spacing">pay</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="47.61" y="220.99" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">ship</tspan>
+</text>
+<polygon points="37.61,72.3 41.61,82.3 45.61,72.3 41.61,76.3" fill="#3C8D3C" stroke="#3C8D3C" stroke-width="1.5"/>
+<polygon points="37.61,150.56 41.61,160.56 45.61,150.56 41.61,154.56" fill="#3C8D3C" stroke="#3C8D3C" stroke-width="1.5"/>
+<polygon points="37.61,228.82 41.61,238.82 45.61,228.82 41.61,232.82" fill="#3C8D3C" stroke="#3C8D3C" stroke-width="1.5"/>
+<polygon points="37.61,293.12 41.61,303.12 45.61,293.12 41.61,297.12" fill="#3C8D3C" stroke="#3C8D3C" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-4" y="14.99" font-size="14" fill="#000000" font-weight="bold" textLength="74.69" lengthAdjust="spacing">state Order</tspan>
+</text>
+<rect x="-10" y="349.12" width="117.16" height="26.3" fill="#FFFFFF" stroke="#3C8D3C" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-2" y="367.11" font-size="14" fill="#000000" textLength="101.16" lengthAdjust="spacing">Happy path only</tspan>
+</text>
+</g>
+</g>
+</svg>

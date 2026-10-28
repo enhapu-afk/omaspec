@@ -1,0 +1,54 @@
+@startuml
+title Every step
+header draft
+footer page 1
+caption An order on its way
+start
+:Receive the order;
+note right: from the shop
+-> checked;
+#LightBlue:Check the stock
+and the price;
+if (in stock?) then (yes)
+  :Reserve the items;
+elseif (can order?) then (yes)
+  :Order from the supplier;
+  -[#red,dashed]-> slow;
+else (no)
+  :Tell the customer;
+  end
+endif
+while (more items?) is (yes)
+  :Pack an item;
+endwhile (no)
+repeat
+  :Print the label;
+  note left
+    two lines
+    of note
+  end note
+repeat while (label readable?) is (no) not (yes)
+fork
+  :Send the parcel;
+fork again
+  :Send the invoice;
+fork again
+  :Update the stock;
+  detach
+end fork
+split
+  :Archive;
+split again
+  :Notify;
+end split
+fork
+  :A;
+fork again
+  :B;
+end merge
+if (gift?) then (yes)
+  :Wrap it;
+endif
+-[bold]->
+stop
+@enduml

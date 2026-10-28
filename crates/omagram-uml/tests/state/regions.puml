@@ -1,0 +1,21 @@
+@startuml
+title Keyboard locks
+[*] --> Active
+state Active {
+  [*] -> NumLockOff
+  NumLockOff --> NumLockOn : EvNumLockPressed
+  NumLockOn --> NumLockOff : EvNumLockPressed
+  --
+  [*] -> CapsLockOff
+  CapsLockOff --> CapsLockOn : EvCapsLockPressed
+  CapsLockOn --> CapsLockOff : EvCapsLockPressed
+}
+state Paused {
+  [*] --> Waiting
+  ||
+  [*] --> Buffering
+  Buffering --> Ready : full
+}
+Active --> Paused : pause
+Paused --> [*]
+@enduml

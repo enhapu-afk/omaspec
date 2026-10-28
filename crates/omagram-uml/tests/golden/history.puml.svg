@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="270" height="432" viewBox="0 0 270 432">
+<g transform="translate(10,10)">
+<g>
+<ellipse cx="151.94" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="127.84" y="80.3" width="48.22" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="188.56" width="222.59" height="223.15" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<line x1="0" y1="216.86" x2="222.59" y2="216.86" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="99.3" cy="241" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="72.72" y="289.15" width="56" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="71.17" y="367.42" width="59.11" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="28.15" cy="241" rx="16.15" ry="16.15" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="170.44" cy="241" rx="16.15" ry="16.15" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<polyline points="151.94,48.3 151.94,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M155.98,112.59 L155.98,113.29 C155.98,125.05 165.52,134.59 177.29,134.59 L177.29,134.59 C189.05,134.59 198.59,144.13 198.59,155.9 L198.59,178.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M210.59,188.56 L210.59,147.86 C210.59,135.01 200.17,124.59 187.32,124.59 L166.05,124.59 C164.95,124.59 164.05,123.7 164.05,122.59 L164.05,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M139.84,112.59 L139.84,112.59 C139.84,135.79 121.03,154.59 97.84,154.59 L76.15,154.59 C49.64,154.59 28.15,176.08 28.15,202.59 L28.15,214.86" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M147.91,112.59 L147.91,133.32 C147.91,139.55 152.95,144.59 159.18,144.59 L159.18,144.59 C165.4,144.59 170.44,149.64 170.44,155.86 L170.44,214.86" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="99.3,252 99.3,279.15" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="92.72,321.45 92.72,357.42" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="108.72,367.42 108.72,331.45" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="141.84" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="20.22" lengthAdjust="spacing">Off</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="101.57" y="213.55" font-size="14" fill="#000000" font-weight="bold" textLength="19.45" lengthAdjust="spacing">On</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="86.72" y="310.14" font-size="14" fill="#000000" font-weight="bold" textLength="28" lengthAdjust="spacing">Low</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="85.17" y="388.41" font-size="14" fill="#000000" font-weight="bold" textLength="31.11" lengthAdjust="spacing">High</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="23.09" y="245.85" font-size="14" fill="#000000" font-weight="bold" textLength="10.11" lengthAdjust="spacing">H</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="162.67" y="245.85" font-size="14" fill="#000000" font-weight="bold" textLength="15.55" lengthAdjust="spacing">H*</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="73.38" y="349.58" font-size="12" fill="#000000" textLength="13.34" lengthAdjust="spacing">up</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="114.72" y="349.58" font-size="12" fill="#000000" textLength="28.68" lengthAdjust="spacing">down</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="178.38" y="148.73" font-size="12" fill="#000000" textLength="32.68" lengthAdjust="spacing">power</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="216.59" y="140.73" font-size="12" fill="#000000" textLength="32.69" lengthAdjust="spacing">pause</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="34.15" y="170.73" font-size="12" fill="#000000" textLength="40.01" lengthAdjust="spacing">resume</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="112.1" y="167.85" font-size="12" fill="#000000" textLength="55.34" lengthAdjust="spacing">resume all</tspan>
+</text>
+<polygon points="147.94,70.3 151.94,80.3 155.94,70.3 151.94,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="194.59,178.56 198.59,188.56 202.59,178.56 198.59,182.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="168.05,122.59 164.05,112.59 160.05,122.59 164.05,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="24.15,214.86 28.15,224.86 32.15,214.86 28.15,218.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="166.44,214.86 170.44,224.86 174.44,214.86 170.44,218.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="95.3,279.15 99.3,289.15 103.3,279.15 99.3,283.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="88.72,357.42 92.72,367.42 96.72,357.42 92.72,361.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="112.72,331.45 108.72,321.45 104.72,331.45 108.72,327.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="102.86" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="43.57" lengthAdjust="spacing">Heater</tspan>
+</text>
+</g>
+</g>
+</svg>

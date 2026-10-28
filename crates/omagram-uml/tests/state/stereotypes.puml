@@ -1,0 +1,25 @@
+@startuml
+' States of a stereotype of the writer's own: PlantUML does not show it,
+' its skinparams color the state, and the states inside keep their look.
+skinparam state {
+  BackgroundColor<<phase>> LightBlue
+  BorderColor<<phase>> DarkBlue
+  BackgroundColor<<error>> LightPink
+  BorderColor<<error>> Red
+  FontSize 12
+}
+skinparam stateFontColor<<Done>> DarkGreen
+state "Getting ready" as Ready <<phase>> {
+  [*] --> Checking
+  Checking --> Loaded : ok
+}
+state Failed <<error>>
+Failed : retries later
+state Finished <<done>>
+[*] --> Ready
+Ready --> Running : start
+Ready --> Failed : broken
+Running --> Finished : done
+Failed --> Ready : retry
+Finished --> [*]
+@enduml

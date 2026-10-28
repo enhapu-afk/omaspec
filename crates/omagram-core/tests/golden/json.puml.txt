@@ -1,0 +1,10 @@
+== json.puml: PlantUML / Other (JSON)
+== lint
+== outline
+== fmt
+@startjson
+{
+   "theme": "tokyo-night",
+      "font":   { "family": "JetBrainsMono", "size": 11 }
+}
+@endjson

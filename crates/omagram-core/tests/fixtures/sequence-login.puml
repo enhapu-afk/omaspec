@@ -1,0 +1,41 @@
+' Login flow with a typo, a duplicate and an unused participant on purpose.
+@startuml login
+title Logging in to the web app
+autonumber
+
+actor User
+participant "Web App" as Web
+participant Auth
+participant Auth
+database Sessions
+queue Metrics
+participant Logger
+
+box "Backend" #LightBlue
+  participant Cache
+end box
+
+== Sign in ==
+User -> Web : open /login
+activate Web
+Web -> Auht : POST /token
+alt valid password
+    Auth --> Web : token
+    Web -> Sessions : store(token)
+    note right of Sessions : expires in 1 h
+else locked account
+    Auth --> Web : 423
+  loop 3 times
+    Web -> Auth : retry
+  end
+end
+...5 minutes later...
+Web -> Cache : warm(user)
+hnote over Web
+  idle
+endhnote
+ref over Web, Auth : token refresh
+group audit
+  Web ->> Metrics : login.ok
+deactivate Web
+@enduml

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="219" height="502" viewBox="0 0 219 502">
+<g transform="translate(10,10)">
+<g>
+<rect x="26.44" y="54" width="106.01" height="205.87" rx="8" ry="8" fill="#ADD8E6" stroke="#00008B" stroke-width="1"/>
+<line x1="26.44" y1="79.97" x2="132.46" y2="79.97" fill="none" stroke="#00008B" stroke-width="1"/>
+<ellipse cx="79.45" cy="98.97" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="38.44" y="141.97" width="82.01" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="44.11" y="217.9" width="70.67" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="305.84" width="78.01" height="41.61" rx="8" ry="8" fill="#FFB6C1" stroke="#FF0000" stroke-width="1"/>
+<rect x="91.33" y="393.42" width="77.34" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="79.45" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="122.01" y="311.66" width="76.66" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="130.01" cy="468.38" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="130.01" cy="468.38" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="79.45,22 79.45,44" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M120.46,259.87 L120.46,265.1 C120.46,268.84 123.49,271.87 127.23,271.87 L127.23,271.87 C130.98,271.87 134.01,274.91 134.01,278.65 L134.01,301.66" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="50.01,259.87 50.01,295.84" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="145.17,341.63 145.17,383.42" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="66.01,305.84 66.01,269.87" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="130.01,423.38 130.01,445.38" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="79.45,109.97 79.45,131.97" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="79.45,171.94 79.45,207.9" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="40.77" y="77.14" font-size="12" fill="#000000" font-weight="bold" textLength="77.35" lengthAdjust="spacing">Getting ready</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="52.44" y="161.1" font-size="12" fill="#000000" font-weight="bold" textLength="54.01" lengthAdjust="spacing">Checking</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="58.11" y="237.04" font-size="12" fill="#000000" font-weight="bold" textLength="42.67" lengthAdjust="spacing">Loaded</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="85.45" y="200.07" font-size="12" fill="#000000" textLength="12.67" lengthAdjust="spacing">ok</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="21.66" y="324.98" font-size="12" fill="#000000" font-weight="bold" textLength="34.68" lengthAdjust="spacing">Failed</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="14" y="337.09" font-size="10" fill="#000000" textLength="50.01" lengthAdjust="spacing">retries later</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="105.33" y="412.55" font-size="12" fill="#006400" font-weight="bold" textLength="49.34" lengthAdjust="spacing">Finished</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="136.01" y="330.8" font-size="12" fill="#000000" font-weight="bold" textLength="48.66" lengthAdjust="spacing">Running</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="140.01" y="288.01" font-size="12" fill="#000000" textLength="23.34" lengthAdjust="spacing">start</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="7.33" y="288.01" font-size="12" fill="#000000" textLength="36.68" lengthAdjust="spacing">broken</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="151.17" y="375.58" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="72.01" y="288.01" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">retry</tspan>
+</text>
+<polygon points="75.45,44 79.45,54 83.45,44 79.45,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="130.01,301.66 134.01,311.66 138.01,301.66 134.01,305.66" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="46.01,295.84 50.01,305.84 54.01,295.84 50.01,299.84" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="141.17,383.42 145.17,393.42 149.17,383.42 145.17,387.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="70.01,269.87 66.01,259.87 62.01,269.87 66.01,265.87" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="126.01,445.38 130.01,455.38 134.01,445.38 130.01,449.38" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="75.45,131.97 79.45,141.97 83.45,131.97 79.45,135.97" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="75.45,207.9 79.45,217.9 83.45,207.9 79.45,211.9" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+</g>
+</svg>

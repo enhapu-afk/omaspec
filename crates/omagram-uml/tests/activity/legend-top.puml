@@ -1,0 +1,15 @@
+@startuml
+' A legend above the main frame, wider than the diagram.
+mainframe activity Order
+start
+:Take order;
+if (paid?) then (yes)
+  :Ship;
+else (no)
+  :Remind;
+endif
+stop
+legend top left
+  Shipping only after payment, never before
+endlegend
+@enduml

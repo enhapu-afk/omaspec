@@ -1,0 +1,10 @@
+flowchart TD
+  Start([Ready to deploy]) --> Friday{Is it Friday?}
+  Friday -->|yes| Late{After 3 pm?}
+  Friday -->|no| Tests{Tests green?}
+  Late -->|yes| Weekend([Enjoy the weekend])
+  Late -->|no| Buddy[Ask someone to watch]
+  Buddy --> Tests
+  Tests -->|no| Fix[Fix the tests]
+  Fix --> Tests
+  Tests -->|yes| Deploy([Deploy])

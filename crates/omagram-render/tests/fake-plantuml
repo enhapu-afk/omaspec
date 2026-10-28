@@ -1,0 +1,38 @@
+#!/bin/bash
+# Stands in for `plantuml -pipe` in tests: one SVG per diagram, then the
+# delimiter, as PlantUML writes them: the SVG ends without a line break, an
+# error gives the line counted from 0 at `@start…`. Diagrams containing
+# CRASH, HANG or SYNTAXERROR misbehave.
+delim=""
+while (( $# )); do
+  case "$1" in
+    -pipedelimitor) delim="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+# Refuse to run unsandboxed, like a test that checks the profile.
+[[ $PLANTUML_SECURITY_PROFILE == SANDBOX ]] || exit 3
+n=0
+block=""
+row=0
+error=""
+while IFS= read -r line; do
+  block+="$line"$'\n'
+  [[ -z $error && $line == *SYNTAXERROR* ]] && error=$row
+  row=$((row + 1))
+  [[ $line == @end* ]] || continue
+  n=$((n + 1))
+  case "$block" in
+    *CRASH*) exit 1 ;;
+    *HANG*) exec sleep 30 ;;
+  esac
+  if [[ -n $error ]]; then
+    printf 'ERROR\n%d\nSyntax Error?\n' "$error"
+  else
+    printf '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><text>diagram %d</text></svg>' "$n"
+  fi
+  printf '%s\n' "$delim"
+  block=""
+  row=0
+  error=""
+done

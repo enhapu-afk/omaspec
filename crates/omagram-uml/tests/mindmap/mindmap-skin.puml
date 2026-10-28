@@ -1,0 +1,16 @@
+@startmindmap
+skinparam backgroundColor #121212
+skinparam defaultFontColor #bebebe
+skinparam ArrowColor #e68e0d
+skinparam ArrowStyle dashed
+skinparam NodeBackgroundColor #1e1e1e
+skinparam NodeBorderColor #e68e0d
+skinparam roundCorner 8
+skinparam defaultTextAlignment center
+skinparam ParticipantBackgroundColor #ff0000
+* Skinned
+** a centered\nlabel
+** b
+left side
+** c
+@endmindmap

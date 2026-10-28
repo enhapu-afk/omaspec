@@ -1,0 +1,12 @@
+@startuml
+[*] --> Off
+Off --> On : power
+state On {
+  [*] --> Idle
+  Idle --> Playing : play
+  Playing --> Idle : stop
+}
+Playing --> Error : fault
+Error --> Off : reset
+Off --> Idle : wake
+@enduml

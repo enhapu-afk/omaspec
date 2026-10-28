@@ -1,0 +1,65 @@
+== sequence-login.puml: PlantUML / Sequence (Sequence diagram)
+== lint
+   9 Warning: Auth is declared twice (first on line 8).
+  12 Info: Logger is declared but never sends or receives a message.
+  21 Warning: Auht is not declared. Did you mean Auth? PlantUML and Mermaid would draw a new participant.
+  38 Warning: Unclosed group
+== outline
+   3 title | Logging in to the web app
+   6 actor | User
+   7 participant | Web App
+   8 participant | Auth
+   9 participant | Auth
+  10 database | Sessions
+  11 queue | Metrics
+  12 participant | Logger
+  14 box | Backend
+  15   participant | Cache
+  18 == | Sign in
+  22 alt | valid password
+  26 else | locked account
+  28   loop | 3 times
+  37 ref | token refresh
+  38 group | audit
+== fmt
+' Login flow with a typo, a duplicate and an unused participant on purpose.
+@startuml login
+title Logging in to the web app
+autonumber
+
+actor User
+participant "Web App" as Web
+participant Auth
+participant Auth
+database Sessions
+queue Metrics
+participant Logger
+
+box "Backend" #LightBlue
+  participant Cache
+end box
+
+== Sign in ==
+User -> Web : open /login
+activate Web
+Web -> Auht : POST /token
+alt valid password
+  Auth --> Web : token
+  Web -> Sessions : store(token)
+  note right of Sessions : expires in 1 h
+else locked account
+  Auth --> Web : 423
+  loop 3 times
+    Web -> Auth : retry
+  end
+end
+...5 minutes later...
+Web -> Cache : warm(user)
+hnote over Web
+  idle
+endhnote
+ref over Web, Auth : token refresh
+group audit
+  Web ->> Metrics : login.ok
+  deactivate Web
+@enduml

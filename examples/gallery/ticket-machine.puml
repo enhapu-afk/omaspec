@@ -1,0 +1,16 @@
+@startuml
+title A ticket machine
+left to right direction
+actor Traveller
+rectangle "Ticket machine" {
+  usecase "Buy a ticket" as Buy
+  usecase "Top up a card" as TopUp
+  usecase "Pay" as Pay
+}
+actor Bank
+Traveller --> Buy
+Traveller --> TopUp
+Buy ..> Pay : <<include>>
+TopUp ..> Pay : <<include>>
+Pay --> Bank
+@enduml

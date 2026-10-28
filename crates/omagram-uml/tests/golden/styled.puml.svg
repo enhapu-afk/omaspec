@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="254" height="410" viewBox="0 0 254 410">
+<rect x="0" y="0" width="254" height="410" fill="#1E1E1E"/>
+<g transform="translate(10,10)">
+<g>
+<line x1="14.78" y1="100.25" x2="14.78" y2="319.84" fill="none" stroke="#888888" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="102.06" y1="100.25" x2="102.06" y2="319.84" fill="none" stroke="#888888" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="218.53" y1="100.25" x2="218.53" y2="319.84" fill="none" stroke="#888888" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g>
+<rect x="4.78" y="197.64" width="213.75" height="112.2" fill="none" stroke="#888888" stroke-width="1.5"/>
+<line x1="4.78" y1="258.91" x2="218.53" y2="258.91" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="2,2"/>
+</g>
+<g>
+<ellipse cx="14.78" cy="39.45" rx="8" ry="8" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
+<path d="M14.78,47.45 L14.78,66.45 M1.78,53.45 L27.78,53.45 M14.78,66.45 L1.78,80.45 M14.78,66.45 L27.78,80.45" fill="none" stroke="#E68E0D" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="96.94" font-size="14" fill="#EEEEEE" textLength="29.55" lengthAdjust="spacing">User</tspan>
+</text>
+<rect x="82.61" y="69.95" width="38.91" height="30.3" rx="2.5" ry="2.5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="89.61" y="89.94" font-size="14" fill="#EEEEEE" textLength="24.91" lengthAdjust="spacing">App</tspan>
+</text>
+<path d="M203.53,47.95 L203.53,75.95 A15,5 0 0 0 233.53,75.95 L233.53,47.95" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
+<ellipse cx="218.53" cy="47.95" rx="15" ry="5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="208.81" y="96.94" font-size="14" fill="#EEEEEE" textLength="19.45" lengthAdjust="spacing">DB</tspan>
+</text>
+<line x1="14.78" y1="129.38" x2="102.06" y2="129.38" fill="none" stroke="#E68E0D" stroke-width="1"/>
+<polygon points="92.06,125.38 102.06,129.38 92.06,133.38 96.06,129.38" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="21.78" y="124.31" font-size="13" fill="#CCCCCC" textLength="37.57" lengthAdjust="spacing">sign in</tspan>
+</text>
+<line x1="102.06" y1="158.51" x2="218.53" y2="158.51" fill="none" stroke="#E68E0D" stroke-width="1"/>
+<polygon points="208.53,154.51 218.53,158.51 208.53,162.51 212.53,158.51" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="109.06" y="153.44" font-size="13" fill="#CCCCCC" textLength="41.91" lengthAdjust="spacing">look up</tspan>
+</text>
+<line x1="218.53" y1="187.64" x2="102.06" y2="187.64" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="112.06,183.64 102.06,187.64 112.06,191.64 108.06,187.64" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="116.06" y="182.58" font-size="13" fill="#CCCCCC" textLength="25.28" lengthAdjust="spacing">user</tspan>
+</text>
+<line x1="102.06" y1="242.91" x2="14.78" y2="242.91" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="24.78,238.91 14.78,242.91 24.78,246.91 20.78,242.91" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="28.78" y="237.84" font-size="13" fill="#CCCCCC" textLength="51.28" lengthAdjust="spacing">welcome</tspan>
+</text>
+<path d="M107.06,223.78 L107.06,248.91 L208.53,248.91 L208.53,233.78 L198.53,223.78 Z" fill="#3A3A2A" stroke="#888888" stroke-width="0.5"/>
+<path d="M198.53,223.78 L198.53,233.78 L208.53,233.78" fill="#3A3A2A" stroke="#888888" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="113.06" y="240.84" font-size="13" fill="#EEEEEE" font-style="italic" textLength="79.47" lengthAdjust="spacing">session starts</tspan>
+</text>
+<line x1="102.06" y1="299.84" x2="14.78" y2="299.84" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="24.78,295.84 14.78,299.84 24.78,303.84 20.78,299.84" fill="#E68E0D" stroke="#E68E0D" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="28.78" y="294.78" font-size="13" fill="#CCCCCC" textLength="26" lengthAdjust="spacing">retry</tspan>
+</text>
+<polygon points="4.78,197.64 37.95,197.64 37.95,210.78 31.95,216.78 4.78,216.78" fill="#333333" stroke="#888888" stroke-width="1.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="10.78" y="211.71" font-size="13" fill="#EEEEEE" font-weight="bold" textLength="15.17" lengthAdjust="spacing">alt</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="42.95" y="211.02" font-size="11" fill="#EEEEEE" font-weight="bold" textLength="37.87" lengthAdjust="spacing">[found]</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="9.78" y="270.12" font-size="11" fill="#EEEEEE" font-weight="bold" textLength="48.9" lengthAdjust="spacing">[missing]</tspan>
+</text>
+<ellipse cx="14.78" cy="347.64" rx="8" ry="8" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
+<path d="M14.78,355.64 L14.78,374.64 M1.78,361.64 L27.78,361.64 M14.78,374.64 L1.78,388.64 M14.78,374.64 L27.78,388.64" fill="none" stroke="#E68E0D" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="332.84" font-size="14" fill="#EEEEEE" textLength="29.55" lengthAdjust="spacing">User</tspan>
+</text>
+<rect x="82.61" y="319.84" width="38.91" height="30.3" rx="2.5" ry="2.5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="89.61" y="339.84" font-size="14" fill="#EEEEEE" textLength="24.91" lengthAdjust="spacing">App</tspan>
+</text>
+<path d="M203.53,344.14 L203.53,372.14 A15,5 0 0 0 233.53,372.14 L233.53,344.14" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
+<ellipse cx="218.53" cy="344.14" rx="15" ry="5" fill="#2A2A2A" stroke="#E68E0D" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="208.81" y="332.84" font-size="14" fill="#EEEEEE" textLength="19.45" lengthAdjust="spacing">DB</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="92.27" y="16.7" font-size="18" fill="#EEEEEE" font-weight="bold" textLength="49" lengthAdjust="spacing">Login</tspan>
+</text>
+</g>
+</g>
+</svg>

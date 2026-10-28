@@ -1,0 +1,33 @@
+@startuml
+[*] --> Standby
+Standby --> Booting : power on
+state Booting {
+  [*] --> SelfTest
+  SelfTest --> LoadConfig : passed
+  SelfTest --> Fault : failed
+  LoadConfig --> [*]
+}
+Booting --> Operational
+state Operational {
+  [*] --> Idle
+  Idle --> Measuring : start
+  Measuring --> Idle : stop
+  state Measuring {
+    [*] --> Sampling
+    Sampling --> Filtering : sample ready
+    Filtering --> Sampling : next
+    --
+    [*] --> Logging
+    Logging --> Flushing : buffer full
+    Flushing --> Logging : flushed
+  }
+  Idle --> Calibrating : calibrate
+  Calibrating --> Idle : done
+  note right of Calibrating : takes about 30 s
+}
+Operational --> Standby : power off
+Filtering --> Fault : sensor lost
+Calibrating --> Fault : out of range
+Fault --> Standby : reset
+Fault --> [*]
+@enduml

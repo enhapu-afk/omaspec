@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="335" viewBox="0 0 296 335">
+<g transform="translate(80.57,10)">
+<g>
+<polyline points="10,84.59 10,104.59" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,138.56 10,158.56" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-15.45,170.56 -38.57,170.56 -38.57,192.56" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="35.45,170.56 53.68,170.56 53.68,192.56" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-38.57,226.53 -38.57,250.53 -2,250.53" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="53.68,226.53 53.68,250.53 22,250.53" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,262.53 10,282.53" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="-70.57" y="36.3" width="164.93" height="278.23" fill="none" stroke="#000000" stroke-width="1"/>
+<polygon points="-70.57,36.3 29.89,36.3 29.89,50.59 23.89,56.59 -70.57,56.59" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+<g>
+<polygon points="6,94.59 10,104.59 14,94.59 10,98.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,148.56 10,158.56 14,148.56 10,152.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-42.57,182.56 -38.57,192.56 -34.57,182.56 -38.57,186.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="49.68,182.56 53.68,192.56 57.68,182.56 53.68,186.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-12,254.53 -2,250.53 -12,246.53 -8,250.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="32,246.53 22,250.53 32,254.53 28,250.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,272.53 10,282.53 14,272.53 10,276.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="10" cy="74.59" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+<rect x="-29.01" y="104.59" width="78.02" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-19.01" y="125.73" font-size="12" fill="#000000" textLength="58.02" lengthAdjust="spacing">Take order</tspan>
+</text>
+<polygon points="-15.45,170.56 -3.45,158.56 23.45,158.56 35.45,170.56 23.45,182.56 -3.45,182.56" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-3.45" y="174.37" font-size="11" fill="#000000" textLength="26.91" lengthAdjust="spacing">paid?</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-34.57" y="166.96" font-size="11" fill="#000000" textLength="17.12" lengthAdjust="spacing">yes</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="37.45" y="166.96" font-size="11" fill="#000000" textLength="12.23" lengthAdjust="spacing">no</tspan>
+</text>
+<polygon points="-2,250.53 10,238.53 22,250.53 10,262.53" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="-60.57" y="192.56" width="44.01" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-50.57" y="213.7" font-size="12" fill="#000000" textLength="24.01" lengthAdjust="spacing">Ship</tspan>
+</text>
+<rect x="23.01" y="192.56" width="61.34" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="33.01" y="213.7" font-size="12" fill="#000000" textLength="41.34" lengthAdjust="spacing">Remind</tspan>
+</text>
+<ellipse cx="10" cy="293.53" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="10" cy="293.53" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-64.57" y="51.29" font-size="14" fill="#000000" textLength="82.46" lengthAdjust="spacing">activity Order</tspan>
+</text>
+<rect x="-70.57" y="0" width="275.91" height="26.3" rx="7.5" ry="7.5" fill="#DDDDDD" stroke="#000000" stroke-width="1"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-62.57" y="17.99" font-size="14" fill="#000000" textLength="259.91" lengthAdjust="spacing">Shipping only after payment, never before</tspan>
+</text>
+</g>
+</g>
+</svg>

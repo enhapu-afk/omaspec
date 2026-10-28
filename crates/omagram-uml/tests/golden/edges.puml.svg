@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="336" height="784" viewBox="0 0 336 784">
+<g transform="translate(188.21,10)">
+<g>
+<polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-32.27,52 -42.27,52 -42.27,76 -2,76" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="52.27,52 62.27,52 62.27,76 22,76" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,88 10,108" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-88.51,120 -111.63,120 -111.63,158.8" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="108.51,120 126.75,120 126.75,158.8" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-111.63,192.77 -111.63,212.77" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-143.2,224.77 -154.7,224.77 -154.7,246.77" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-80.06,224.77 -67.95,224.77" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-154.7,280.74 -154.7,300.74" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-67.95,224.77 -67.95,334.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-67.95,358.54 -67.95,378.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-67.95,378.54 -67.95,388.54 -126.43,388.54 -126.43,346.54 -111.43,346.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-24.46,346.54 23.01,346.54 23.01,403.54 -67.95,403.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-67.95,403.54 -67.95,423.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-67.95,447.54 -67.95,467.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-79.95,479.54 -102.95,479.54 -102.95,435.54 -79.95,435.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-67.95,491.54 -67.95,511.54" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-67.95,545.51 -67.95,565.51" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-97.28,571.51 -97.28,591.51" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-37.94,571.51 -37.94,591.51" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-97.28,625.48 -97.28,645.48" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="-37.94,625.48 -37.94,645.48" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="10,721.45 10,741.45" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<polygon points="6,30 10,40 14,30 10,34" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-12,80 -2,76 -12,72 -8,76" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="32,72 22,76 32,80 28,76" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,98 10,108 14,98 10,102" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-115.63,148.8 -111.63,158.8 -107.63,148.8 -111.63,152.8" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="122.75,148.8 126.75,158.8 130.75,148.8 126.75,152.8" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-115.63,202.77 -111.63,212.77 -107.63,202.77 -111.63,206.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-158.7,236.77 -154.7,246.77 -150.7,236.77 -154.7,240.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-158.7,290.74 -154.7,300.74 -150.7,290.74 -154.7,294.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-71.95,324.54 -67.95,334.54 -63.95,324.54 -67.95,328.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-121.43,350.54 -111.43,346.54 -121.43,342.54 -117.43,346.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-71.95,413.54 -67.95,423.54 -63.95,413.54 -67.95,417.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-71.95,457.54 -67.95,467.54 -63.95,457.54 -67.95,461.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-89.95,439.54 -79.95,435.54 -89.95,431.54 -85.95,435.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-71.95,501.54 -67.95,511.54 -63.95,501.54 -67.95,505.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-71.95,555.51 -67.95,565.51 -63.95,555.51 -67.95,559.51" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-101.28,581.51 -97.28,591.51 -93.28,581.51 -97.28,585.51" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-41.94,581.51 -37.94,591.51 -33.94,581.51 -37.94,585.51" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-101.28,635.48 -97.28,645.48 -93.28,635.48 -97.28,639.48" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="-41.94,635.48 -37.94,645.48 -33.94,635.48 -37.94,639.48" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="6,731.45 10,741.45 14,731.45 10,735.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+<polygon points="-32.27,52 -20.27,40 40.27,40 52.27,52 40.27,64 -20.27,64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-20.27" y="55.81" font-size="11" fill="#000000" textLength="60.53" lengthAdjust="spacing">empty both?</tspan>
+</text>
+<polygon points="-2,76 10,64 22,76 10,88" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<polygon points="-88.51,120 -76.51,108 96.51,108 108.51,120 96.51,132 -76.51,132" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-76.51" y="123.81" font-size="11" fill="#000000" textLength="173.03" lengthAdjust="spacing">a rather long condition that is wide?</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-107.63" y="116.4" font-size="11" fill="#000000" textLength="17.12" lengthAdjust="spacing">yes</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="110.51" y="116.4" font-size="11" fill="#000000" textLength="12.23" lengthAdjust="spacing">no</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-105.63" y="154.21" font-size="11" fill="#000000" textLength="42.2" lengthAdjust="spacing">into then</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-61.95" y="236.98" font-size="11" fill="#000000" textLength="51.99" lengthAdjust="spacing">out of then</tspan>
+</text>
+<rect x="-133.31" y="158.8" width="43.35" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-123.31" y="179.94" font-size="12" fill="#000000" textLength="23.35" lengthAdjust="spacing">then</tspan>
+</text>
+<polygon points="-143.2,224.77 -131.2,212.77 -92.06,212.77 -80.06,224.77 -92.06,236.77 -131.2,236.77" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-131.2" y="228.58" font-size="11" fill="#000000" textLength="39.14" lengthAdjust="spacing">nested?</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-150.7" y="221.18" font-size="11" fill="#000000" textLength="5.5" lengthAdjust="spacing">y</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-78.06" y="221.18" font-size="11" fill="#000000" textLength="6.12" lengthAdjust="spacing">n</tspan>
+</text>
+<rect x="-178.04" y="246.77" width="46.68" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-168.04" y="267.91" font-size="12" fill="#000000" textLength="26.68" lengthAdjust="spacing">inner</tspan>
+</text>
+<ellipse cx="-154.7" cy="311.74" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="-154.7" cy="311.74" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+<ellipse cx="126.75" cy="169.8" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="126.75" cy="169.8" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+<polygon points="-111.43,346.54 -99.43,334.54 -36.46,334.54 -24.46,346.54 -36.46,358.54 -99.43,358.54" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-99.43" y="350.35" font-size="11" fill="#000000" textLength="62.97" lengthAdjust="spacing">empty body?</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-22.46" y="342.95" font-size="11" fill="#000000" textLength="24.46" lengthAdjust="spacing">done</tspan>
+</text>
+<polygon points="-79.95,435.54 -67.95,423.54 -55.95,435.54 -67.95,447.54" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<polygon points="-79.95,479.54 -67.95,467.54 -55.95,479.54 -67.95,491.54" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<path d="M-178.21,508.4 L-178.21,548.66 L-114.29,548.66 L-114.29,518.4 L-124.29,508.4 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M-124.29,508.4 L-124.29,518.4 L-114.29,518.4" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-172.21" y="525.46" font-size="13" fill="#000000" textLength="20.94" lengthAdjust="spacing">first</tspan>
+<tspan x="-172.21" y="540.59" font-size="13" fill="#000000" textLength="41.91" lengthAdjust="spacing">second</tspan>
+</text>
+<rect x="-99.29" y="511.54" width="62.7" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-89.29" y="532.68" font-size="12" fill="#000000" textLength="42.7" lengthAdjust="spacing">left note</tspan>
+</text>
+<rect x="-117.29" y="565.51" width="98.69" height="6" rx="2" ry="2" fill="#555555"/>
+<rect x="-117.29" y="591.51" width="40.02" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-107.29" y="612.65" font-size="12" fill="#000000" textLength="20.02" lengthAdjust="spacing">one</tspan>
+</text>
+<ellipse cx="-97.28" cy="656.48" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="-97.28" cy="656.48" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+<rect x="-57.27" y="591.51" width="38.67" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-47.27" y="612.65" font-size="12" fill="#000000" textLength="18.67" lengthAdjust="spacing">two</tspan>
+</text>
+<ellipse cx="-37.94" cy="655.48" rx="10" ry="10" fill="none" stroke="#222222" stroke-width="1.5"/>
+<line x1="-44.14" y1="649.28" x2="-31.74" y2="661.68" fill="none" stroke="#222222" stroke-width="1.5"/>
+<line x1="-44.14" y1="661.68" x2="-31.74" y2="649.28" fill="none" stroke="#222222" stroke-width="1.5"/>
+<rect x="-38.02" y="687.48" width="96.04" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="-28.02" y="708.62" font-size="12" fill="#000000" textLength="76.04" lengthAdjust="spacing">after all ended</tspan>
+</text>
+<ellipse cx="10" cy="752.45" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="10" cy="752.45" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+</g>
+</svg>

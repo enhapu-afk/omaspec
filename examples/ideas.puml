@@ -1,0 +1,17 @@
+@startmindmap
+title Ideas for the next release
+* Next release
+** Editor
+*** Snippets
+*** Find in all tabs
+** Diagrams
+*** Mind maps without Java
+*** WBS without Java
+**_ Maybe later
+left side
+** Docs
+*** A tour of the editor
+*** Keyboard shortcuts
+** Packaging
+*** Flatpak
+@endmindmap

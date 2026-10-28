@@ -1,0 +1,13 @@
+@startuml
+start
+repeat
+  :Read the data;
+  :Generate the diagrams;
+backward :This is backward;
+repeat while (more data?) is (yes) not (no)
+repeat
+  :Ask;
+(timeout) backward :Wait a minute\nand try again; (retry)
+repeat while (answer?)
+stop
+@enduml

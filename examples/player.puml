@@ -1,0 +1,11 @@
+@startuml
+title A media player
+[*] --> Stopped
+Stopped --> Playing : play
+Playing --> Paused : pause
+Paused --> Playing : play
+Playing --> Stopped : stop
+Paused --> Stopped : stop
+Playing --> Playing : next track
+Stopped --> [*] : close
+@enduml

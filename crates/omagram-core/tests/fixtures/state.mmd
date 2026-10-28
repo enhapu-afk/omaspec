@@ -1,0 +1,14 @@
+stateDiagram-v2
+    [*] --> Locked
+    Locked --> Unlocked : password
+    Unlocked --> Locked : timeout
+    Unlocked --> Sleeping : lid closed
+    Sleeping --> Unlocked : lid opened
+    Sleeping --> Lockd : idle
+    state Suspend {
+        [*] --> Saving
+        Saving --> Off
+    }
+    state "Screen saver" as Saver
+    Unlocked --> Saver
+    Saver --> Locked

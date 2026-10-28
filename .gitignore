@@ -1,0 +1,13 @@
+/target/
+# Spike output
+/spikes/*/out/
+
+# Built only when testing a vendored crate on its own.
+vendor/*/target/
+vendor/*/Cargo.lock
+
+# cargo-fuzz output.
+/fuzz/target/
+/fuzz/corpus/
+/fuzz/artifacts/
+/fuzz/Cargo.lock

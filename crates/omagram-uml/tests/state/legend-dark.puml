@@ -1,0 +1,17 @@
+@startuml
+' On a dark background the legend and the main frame take the text's
+' color; the legend's own skinparams still win.
+skinparam backgroundColor #1e1e2e
+skinparam defaultFontColor #cdd6f4
+skinparam StateBackgroundColor #313244
+skinparam StateBorderColor #89b4fa
+skinparam ArrowColor #89b4fa
+skinparam LegendFontStyle italic
+mainframe state Job
+[*] --> Idle
+Idle --> Busy : job
+Busy --> Idle : done
+legend left
+  Idle until a job comes
+endlegend
+@enduml
