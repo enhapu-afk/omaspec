@@ -889,3 +889,18 @@ Target for 1.0 ([0006](docs/adr/0006-goals-and-scope.md)): sequence, activity, s
 flowcharts drawn by Omaspec in both languages. A touchpad pinch zooms at the
 pointer (two fingers still pan) and a touchscreen pinch zooms at the fingers.
 Lint and outline move onto the syntax tree as each type lands.
+
+## Next
+
+What comes after 0.4, announced in the README.
+
+- [ ] Lines by hand: drag a line in the diagram, or a bend in it, to route it
+      yourself; the diagram keeps the route and draws it the same way next time.
+- [ ] Diagrams that link: a state links to the diagram that describes it. A
+      click zooms into the state, and inside is its activity diagram; zooming
+      out goes back. A specification reads from the whole system down to a
+      single step.
+- [ ] Even cleaner lines: fewer crossings and detours, lines that keep clear of
+      frames and labels, closer to what Graphviz draws; the open points of
+      [0012](docs/adr/0012-lines-like-graphviz.md) and
+      [0013](docs/adr/0013-containers-like-graphviz.md) among them.

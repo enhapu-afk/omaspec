@@ -132,6 +132,19 @@ The [getting started guide](docs/guide/README.md) walks you through a state mach
 scenario and a recorded trace in ten minutes. The [reference](docs/guide/reference.md)
 has every key and command.
 
+## What's next
+
+- **Lines by hand.** Drag a line in the diagram, or a bend in it, to route it yourself;
+  the diagram keeps your route.
+- **Diagrams that link.** Click a state and the view zooms into it: inside is the
+  activity diagram that says what the state does. A specification you can read from the
+  whole system down to a single step.
+- **Even cleaner lines.** Fewer crossings and detours, lines that keep clear of frames and
+  labels, closer to what Graphviz draws.
+
+More in the [roadmap](ROADMAP.md#next). Ideas and wishes are welcome as
+[issues](https://github.com/enhapu-afk/omaspec/issues).
+
 ## Status
 
 Omaspec is young: well tested (unit and golden tests, a comparison with the Java
