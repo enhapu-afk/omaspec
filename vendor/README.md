@@ -30,6 +30,9 @@ files keep their CRLF line endings.
 - `scrive-iced`: Ctrl+F and Ctrl+H open the find bar only without Shift
   or Alt. Iced reports keys without Shift, so Ctrl+Shift+F (search over
   all tabs) opened the bar too, and Ctrl+Alt+F did the same.
+- `scrive-iced`: the hover card wraps to the editor's width, at most 60
+  characters as before. It was as wide as its longest line, so a narrow
+  editor cut off a finding's message at the right edge.
 - `scrive-core`: diagram blocks that are not brackets (`alt`/`end`,
   partitions, subgraphs) can fold. `Document` keeps those regions beside
   the bracket folds (`set_fold_regions`, `collapse_all`, `expand_all`).

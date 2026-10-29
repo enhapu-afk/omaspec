@@ -2712,7 +2712,11 @@ impl<Message> Editor<'_, Message> {
         let pad_y = popup::POPUP_PAD;
         let md_lines: Vec<Vec<(String, MdStyle)>> = info.markdown.lines().map(parse_md_runs).collect();
         let vis_len = |runs: &[(String, MdStyle)]| runs.iter().map(|(t, _)| t.chars().count()).sum::<usize>();
-        let cells = md_lines.iter().map(|r| vis_len(r)).max().unwrap_or(0).clamp(popup::POPUP_MIN_CH, popup::POPUP_MAX_CH);
+        // Omaspec change to scrive 0.3.0: the card wraps to the room the editor
+        // has, so a narrow pane does not cut off its right edge.
+        let room = ((bounds.width - 2.0 * pad_x - HOVER_SB_W) / advance).floor().max(1.0) as usize;
+        let cells = md_lines.iter().map(|r| vis_len(r)).max().unwrap_or(0).clamp(popup::POPUP_MIN_CH, popup::POPUP_MAX_CH)
+            .min(room);
         let lines: Vec<Vec<(String, MdStyle)>> = md_lines.iter().flat_map(|r| wrap_runs(r, cells)).collect();
         let total = lines.len().max(1);
         let visible = total.min(HOVER_MAX_VISIBLE);
@@ -4482,6 +4486,28 @@ mod tests {
         let info = HoverInfo { markdown: "hi".into(), range: head..head + 4 };
         let l = ed.hover_layout(&info, &geo);
         assert_eq!(l.rect.y, top - l.rect.height, "hover sits above the DISPLAY row");
+    }
+
+    #[test]
+    fn a_hover_card_wraps_to_a_narrow_editor() {
+        // Omaspec addition to scrive 0.3.0: a card wider than the editor was
+        // cut off at its right edge; it wraps to the room instead.
+        use scrive_core::HoverInfo;
+        let doc = Document::new("x\n").unwrap();
+        let ed = Editor::new(&doc, |_: Action| ());
+        let text = "warning: Nothing leaves Jammed. If the machine ends there, add Jammed --> [*].";
+        let info = HoverInfo { markdown: text.into(), range: 0..1 };
+        let words = |l: &HoverLayout| -> Vec<String> {
+            l.lines.iter().flatten().flat_map(|(t, _)| t.split_whitespace().map(str::to_owned)).collect()
+        };
+        let narrow = Geo::new(Rectangle { x: 0.0, y: 0.0, width: 300.0, height: 600.0 }, 50.0, 10.0, 10.0, 0.0, ScrollAnchor::TOP);
+        let l = ed.hover_layout(&info, &narrow);
+        assert!(l.rect.x + l.rect.width <= 300.0, "{:?}", l.rect);
+        assert_eq!(words(&l), text.split_whitespace().collect::<Vec<_>>());
+        // With room, the card is as wide as before: 60 characters.
+        let l = ed.hover_layout(&info, &test_geo());
+        assert_eq!(l.rect.width, 60.0 * 10.0 + 16.0);
+        assert_eq!(words(&l), text.split_whitespace().collect::<Vec<_>>());
     }
 
     #[test]

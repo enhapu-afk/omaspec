@@ -2057,7 +2057,7 @@ fn snapshot_story() {
         "{:?}",
         app.doc().findings
     );
-    // The source wide enough for the finding's card.
+    // The source wide enough for the finding's card in two lines.
     split_at(&mut app, 0.66);
     show_themed(&mut app, Language::PlantUml);
     hover_finding(&mut app, "Open --> Jammed", "Jammed");
