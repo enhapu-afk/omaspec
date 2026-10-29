@@ -137,7 +137,7 @@ fn the_machine_is_the_one_drawn() {
         let Some(machine) = Machine::read(&code, Language::Mermaid) else {
             continue;
         };
-        let Ok(Ok((_, map))) = catch_unwind(|| crate::mermaid::render_mapped(&code)) else {
+        let Ok(Ok((_, _, map))) = catch_unwind(|| crate::mermaid::render_mapped(&code)) else {
             continue;
         };
         if map.states.is_empty() {

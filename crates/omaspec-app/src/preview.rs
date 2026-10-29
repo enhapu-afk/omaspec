@@ -393,7 +393,7 @@ mod tests {
         assert!(p.paper.overview_shown() && p.paper.detail().0.is_none());
         assert_eq!(
             p.paper.diagram.as_ref().unwrap().drawn.engine,
-            Engine::Mermaid
+            Engine::NativeMermaid
         );
     }
 

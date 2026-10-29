@@ -285,7 +285,7 @@ fn the_own_reading_draws_what_mmdr_parsed() {
 #[test]
 fn the_map_knows_the_lines() {
     let source = "```mermaid\nstateDiagram-v2\n[*] --> Idle\nIdle --> Busy : job\nstate Busy {\n[*] --> Work\nWork --> [*]\n[*] --> Rest\n}\n```\n";
-    let (_, map) = crate::mermaid::render_mapped(source).unwrap();
+    let (_, _, map) = crate::mermaid::render_mapped(source).unwrap();
     let mut states: Vec<(&str, usize)> = map
         .states
         .iter()

@@ -57,10 +57,16 @@ pub fn render(source: &str) -> Result<String, RenderError> {
     draw(source).map(|drawn| drawn.svg)
 }
 
-/// The SVG for a Mermaid source and where its messages are in it, on the
-/// lines of the source as given.
-pub fn render_mapped(source: &str) -> Result<(String, Map), RenderError> {
-    draw(source).map(|drawn| (drawn.svg, drawn.map))
+/// The SVG for a Mermaid source, the engine that drew it, and where its
+/// messages are in it, on the lines of the source as given.
+pub fn render_mapped(source: &str) -> Result<(String, Engine, Map), RenderError> {
+    draw(source).map(|drawn| {
+        let engine = match drawn.declined {
+            None => Engine::NativeMermaid,
+            Some(_) => Engine::Mermaid,
+        };
+        (drawn.svg, engine, drawn.map)
+    })
 }
 
 /// Blocks nested deeper than this are refused: no diagram needs them, and

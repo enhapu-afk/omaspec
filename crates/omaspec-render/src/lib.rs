@@ -30,7 +30,10 @@ pub use service::{Generation, Outcome, RenderService};
 /// The engine that drew (or failed to draw) a diagram.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Engine {
+    /// mmdr: it reads every Mermaid diagram and draws what Omaspec declines.
     Mermaid,
+    /// Omaspec's own drawers for Mermaid.
+    NativeMermaid,
     NativePlantUml,
     JavaPlantUml,
 }
@@ -39,6 +42,7 @@ impl Engine {
     pub fn name(self) -> &'static str {
         match self {
             Engine::Mermaid => "mmdr",
+            Engine::NativeMermaid => "Omaspec Mermaid",
             Engine::NativePlantUml => "Omaspec PlantUML",
             Engine::JavaPlantUml => "Java PlantUML",
         }
@@ -190,10 +194,7 @@ impl Renderer {
     ) -> Result<Rendered, RenderError> {
         let start = Instant::now();
         let (svg, engine, map) = match language {
-            Language::Mermaid => {
-                let (svg, map) = mermaid::render_mapped(source)?;
-                (svg, Engine::Mermaid, map)
-            }
+            Language::Mermaid => mermaid::render_mapped(source)?,
             Language::PlantUml => self.plantuml(source, place)?,
         };
         let svg = sanitize::sanitize(&svg).map_err(|e| RenderError::Engine {

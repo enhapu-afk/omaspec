@@ -457,7 +457,7 @@ fn render_reports_diagram_errors_and_protects_the_source() {
     );
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(json[0]["ok"], true);
-    assert_eq!(json[0]["engine"], "mmdr");
+    assert_eq!(json[0]["engine"], "Omaspec Mermaid");
     assert_eq!(json[0]["output"], dir.join("good.svg").to_str().unwrap());
     assert!(dir.join("good.svg").is_file());
 
