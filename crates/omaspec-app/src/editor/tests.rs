@@ -2807,7 +2807,8 @@ fn snapshot_fractional_scale() {
     let red = stale.red(left).saturating_sub(stale.green(left));
     assert!(red > 0x50, "the edge inside the paper: {red:#x}");
 
-    // Dragged far over the source text, the picture stops at its pane.
+    // Dragged over the source text, the picture stops at its pane. Its left
+    // edge goes to 500, 100 past the pane's, however wide the paper is.
     let below_text = |shot: &Shot| -> Vec<u8> {
         (px(300.0)..px(470.0))
             .flat_map(|y| (px(340.0)..px(580.0)).map(move |x| (x, y)))
@@ -2815,7 +2816,7 @@ fn snapshot_fractional_scale() {
             .collect()
     };
     let before = below_text(&stale);
-    let _ = app.doc_mut().paper.pan(-450.0, 0.0);
+    let _ = app.doc_mut().paper.pan(500.0 - left.0 as f32 / scale, 0.0);
     let dragged = screen.shoot(&app);
     dragged.save(&dir.join("scale-1.5-dragged.png"));
     assert!(
