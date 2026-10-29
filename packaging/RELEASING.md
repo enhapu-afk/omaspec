@@ -9,6 +9,8 @@
 3. **Push.** `git push origin main vX.Y.Z`. The release workflow
    (`.github/workflows/release.yml`) tests, builds on Arch and attaches
    `omagram-X.Y.Z-x86_64-linux.tar.gz` with its checksum to the GitHub release.
+   If the workflow fails, fix it on `main` and build the tag again with it:
+   `gh workflow run release.yml -f tag=vX.Y.Z`. The tag stays where it is.
 4. **AUR.** For each of `packaging/aur/omagram`, `omagram-bin` (and once
    `omagram-git`): set `pkgver`, then
    ```bash
