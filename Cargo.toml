@@ -12,6 +12,7 @@ edition = "2024"
 rust-version = "1.89"
 license = "MIT"
 authors = ["Nils Hoffmann"]
+repository = "https://github.com/enhapu-afk/omagram"
 
 [workspace.dependencies]
 omagram-core = { path = "crates/omagram-core" }

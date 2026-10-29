@@ -10,7 +10,7 @@
    (`.github/workflows/release.yml`) tests, builds on Arch and attaches
    `omagram-X.Y.Z-x86_64-linux.tar.gz` with its checksum to the GitHub release.
 4. **AUR.** For each of `packaging/aur/omagram`, `omagram-bin` (and once
-   `omagram-git`): set `url` to the public repository and `pkgver`, then
+   `omagram-git`): set `pkgver`, then
    ```bash
    updpkgsums                          # real checksums instead of SKIP
    makepkg -si                         # builds and installs: try it

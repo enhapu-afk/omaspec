@@ -1,7 +1,7 @@
 # Maintainer: Nils Hoffmann
 #
 # Installs the Omagram binary built by the release workflow
-# (.github/workflows/release.yml). Before submitting: set `url`, `pkgver`
+# (.github/workflows/release.yml). Before submitting: set `pkgver`
 # and the checksum (`updpkgsums`); see packaging/RELEASING.md.
 
 pkgname=omagram-bin
@@ -10,7 +10,7 @@ pkgver=0.4.0
 pkgrel=1
 pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy (prebuilt)"
 arch=('x86_64')
-url="https://github.com/OWNER/omagram"
+url="https://github.com/enhapu-afk/omagram"
 license=('MIT')
 depends=('gcc-libs' 'glibc' 'fontconfig' 'libxkbcommon' 'wayland' 'vulkan-icd-loader')
 optdepends=(

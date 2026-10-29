@@ -116,7 +116,7 @@ lowers the limit to 4,096.
 Found on the way: mmdr refuses messages to undeclared participants, which Mermaid itself
 creates on the fly. Omagram's lint warns about those names anyway.
 
-## Phase 3: preview window, v0.1 (built; waiting for the side-by-side check and a public repo)
+## Phase 3: preview window, v0.1 (built; waiting for the side-by-side check and the AUR)
 
 - [x] `omagram preview FILE`: preview-only window that follows the file, for Neovim users.
       Watches the directory, so saves that write a new file and rename it count too;
@@ -126,8 +126,8 @@ creates on the fly. Omagram's lint warns about those names anyway.
       visible part at full resolution with a margin, so long diagrams stay sharp at any zoom
 - [x] Errors shown in place, never a crash: status bar and frame color; the last good picture stays
 - [x] Live theme switch: watch `~/.local/state/omarchy/current/`
-- [ ] AUR package: `packaging/aur/omagram-git` builds the newest commit; needs the
-      public repository URL before it can be submitted (releases: Phase 7)
+- [ ] AUR package: `packaging/aur/omagram-git` builds the newest commit of
+      github.com/enhapu-afk/omagram; not submitted yet (releases: Phase 7)
 
 Done when Neovim and the preview sit side by side and the preview follows every save.
 
@@ -290,7 +290,7 @@ Found on the way: mmdr draws the title of a sequence `alt` block behind the seco
 box, puts a note that follows a block inside its frame, and loops one of two edges between
 the same nodes around the target. The examples avoid all three.
 
-## Phase 7: hardening, v1.0 (hardening built; the release waits for the public repository)
+## Phase 7: hardening, v1.0 (hardening built; the release waits for a signing key)
 
 - [x] Fuzzing: cargo-fuzz targets in `fuzz/` for the text functions (lint, outline, format,
       skins, diff), image metadata, the SVG sanitizer, Mermaid, the native PlantUML engine
@@ -331,7 +331,7 @@ the same nodes around the target. The examples avoid all three.
 - [ ] AUR `omagram` and `omagram-bin`, signed tags, announcement: PKGBUILDs in
       `packaging/aur`, a release workflow that builds on Arch, the steps in
       [packaging/RELEASING.md](packaging/RELEASING.md) and a draft in
-      `docs/announcement.md` are ready; waiting for the public repository and a signing key
+      `docs/announcement.md` are ready; waiting for a signing key
 
 Found on the way: the robustness tests found three bugs. Lint counted a lone CR as a line
 break where the editor does not (now only CRLF is turned into LF); a self-closing `<svg/>`

@@ -8,7 +8,7 @@ diagram on the right, in your Omarchy theme and font. It is pure Rust, one binar
 draws with its own engines: no Java, no browser, no network, and it sends nothing
 anywhere.
 
-![Omagram](https://raw.githubusercontent.com/OWNER/omagram/main/docs/images/editor.png)
+![Omagram](https://raw.githubusercontent.com/enhapu-afk/omagram/main/docs/images/editor.png)
 
 ## What PlantUML and Mermaid cannot do
 
@@ -61,4 +61,4 @@ diagrams it draws wrong, are very welcome.
 
 Install: `yay -S omagram-git` (the newest commit); `omagram` and `omagram-bin`
 follow with the first signed release. Source, issues and the roadmap:
-https://github.com/OWNER/omagram
+https://github.com/enhapu-afk/omagram
