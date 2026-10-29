@@ -1,0 +1,4 @@
+{"time":"22:10:04","object":"Door","event":"lock","state":"Locked"}
+{"time":"06:58:40","object":"Door","event":"unlock","state":"Closed"}
+{"time":"07:02:11","object":"Door","event":"open","state":"Open"}
+{"time":"07:05:30","object":"Door","event":"close","state":"Closed"}

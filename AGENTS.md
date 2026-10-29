@@ -21,6 +21,7 @@ cargo run -p omagram-app -- [FILE...]      # editor window
 cargo run -p omagram-app -- preview FILE   # preview window that follows the file
 OMAGRAM_SNAPSHOT_DIR=/tmp cargo test -p omagram-app snapshot   # headless screenshots of the editor, the preview and the gallery
 OMAGRAM_SNAPSHOT_DIR=/tmp cargo test --release -p omagram-app snapshot_   # README pictures, every bundled theme
+docs/images/update.sh                      # the README's and the guide's pictures into docs/images (ImageMagick, ffmpeg)
 cargo bench -p omagram-render              # render and export timings
 cargo run --release -p spike-editor          # editor spike window
 cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them

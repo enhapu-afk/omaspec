@@ -1876,9 +1876,9 @@ fn theme_named(name: &str, palette: omagram_theme::Palette) -> Omarchy {
     }
 }
 
-/// Writes the README's pictures when OMAGRAM_SNAPSHOT_DIR is set,
+/// Writes the README's comparison when OMAGRAM_SNAPSHOT_DIR is set,
 /// with the examples in Tokyo Night (the built-in palette):
-/// `readme-editor` and `readme-compare`. Take them with `--release`, or
+/// `readme-compare`. Take it with `--release`, or
 /// the status bar shows debug render times.
 #[test]
 fn snapshot_readme() {
@@ -1888,7 +1888,6 @@ fn snapshot_readme() {
     let dir = PathBuf::from(dir);
     let theme = theme_named("tokyo-night", omagram_theme::Palette::fallback());
     let (mut app, root) = examples_app(theme, "readme");
-    shoot(&mut app, &dir, "readme-editor");
 
     // The shop flow against an older version, as changed lines.
     let _ = app.update(Message::Select(2));
@@ -1922,6 +1921,216 @@ fn snapshot_readme() {
     app.notice = None;
     shoot(&mut app, &dir, "readme-compare");
     let _ = std::fs::remove_dir_all(root);
+}
+
+/// The door of the getting started guide (docs/guide), its scenario and
+/// a night of it.
+const DOOR: &str = include_str!("../../../../examples/door/door.puml");
+const LEAVE: &str = include_str!("../../../../examples/door/leave.puml");
+const NIGHT: &str = include_str!("../../../../examples/door/night.jsonl");
+
+/// `text` without the lines that hold `drop`.
+fn without(text: &str, drop: &str) -> String {
+    text.lines()
+        .filter(|l| !l.contains(drop))
+        .map(|l| format!("{l}\n"))
+        .collect()
+}
+
+/// Draws the active tab with *Diagram theme: follow Omarchy* on, as a
+/// render would: the theme's skin over the source, the answer moved back
+/// onto the file.
+fn show_themed(app: &mut App, language: Language) {
+    let key = app.doc().key;
+    let text = app.doc().text();
+    let (shown, pending) = app.diagram_source(&text, language);
+    // The diagram's share of the window `shoot` takes.
+    let share = match app.panes.layout() {
+        iced::widget::pane_grid::Node::Split { ratio, .. } => 1.0 - ratio,
+        iced::widget::pane_grid::Node::Pane(_) => 0.5,
+    };
+    let _ = app.update(Message::Paper(
+        key,
+        paper::Message::Viewport(Size::new(1200.0 * share, 560.0)),
+    ));
+    let id = app.doc_mut().paper.pretend_next();
+    if let Some(pending) = pending {
+        app.pending.insert((key, id), pending);
+    }
+    let mut reply = answer(key, id, Ok(drawn(&shown, language)));
+    reply.language = language;
+    reply.source = shown;
+    app.untangle(&mut reply);
+    let _ = app.doc_mut().paper.rendered(reply);
+    app.doc_mut().paper.finish_rasters();
+}
+
+/// The active tab's text replaced with `text`, linted and drawn in the
+/// theme's colors.
+fn retype(app: &mut App, text: &str, language: Language) {
+    select_all_and_paste(app, text);
+    let key = app.doc().key;
+    due(app, Alarm::Lint(key));
+    show_themed(app, language);
+}
+
+/// Moves the line between the source and the diagram to `ratio` of the
+/// window, as dragging it would.
+fn split_at(app: &mut App, ratio: f32) {
+    if let iced::widget::pane_grid::Node::Split { id, .. } = app.panes.layout() {
+        let split = *id;
+        let _ = app.update(Message::Resized(iced::widget::pane_grid::ResizeEvent {
+            split,
+            ratio,
+        }));
+    }
+}
+
+/// The hover card of the finding on the line that holds `line`, as when
+/// the pointer rests on `word` there.
+fn hover_finding(app: &mut App, line: &str, word: &str) {
+    let text = app.doc().text();
+    let at = text.find(line).unwrap() + line.find(word).unwrap();
+    let at = u32::try_from(at).unwrap();
+    act(app, Action::PlaceCaret(at));
+    act(app, Action::HoverQuery(at));
+}
+
+/// Writes the pictures of the README and of the getting started guide
+/// when OMAGRAM_SNAPSHOT_DIR is set, in Tokyo Night with the diagrams in
+/// the theme's colors: `readme-hero`; the guide's door as it grows
+/// (`guide-machine`, `guide-finding`, `guide-play`); its scenario with a
+/// mistake (`readme-specs`); a night that goes wrong (`readme-trace`);
+/// and the coffee machine at play, frame by frame (`play-NNN`). Take
+/// them with `--release`, or the status bar shows debug render times.
+#[test]
+fn snapshot_story() {
+    let Some(dir) = std::env::var_os("OMAGRAM_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("story").join("specs");
+    std::fs::create_dir_all(&work).unwrap();
+    let coffee = crate::gallery::EXAMPLES
+        .iter()
+        .find(|e| e.file == "coffee-machine.puml")
+        .unwrap();
+    for (file, text) in [
+        ("coffee-machine.puml", coffee.text),
+        ("door.puml", DOOR),
+        ("leave.puml", LEAVE),
+        ("night.jsonl", NIGHT),
+    ] {
+        std::fs::write(work.join(file), text).unwrap();
+    }
+    let theme = theme_named("tokyo-night", omagram_theme::Palette::fallback());
+    let start = Start {
+        files: ["coffee-machine.puml", "door.puml", "leave.puml"]
+            .iter()
+            .map(|f| work.join(f))
+            .collect(),
+        folder: Some(work.clone()),
+        forced: None,
+    };
+    let mut app = App::themed(start, None, theme).0;
+    let main = app.main;
+    let _ = app.update(Message::ScaleFactor(main, 2.0));
+    let _ = app.update(Message::Scanned(work.clone(), folder::scan(&work)));
+    press(&mut app, Command::FollowTheme);
+    let _ = app.update(Message::Select(0));
+    let key = app.doc().key;
+    due(&mut app, Alarm::Lint(key));
+    show_themed(&mut app, Language::PlantUml);
+    app.notice = None;
+    shoot(&mut app, &dir, "readme-hero");
+
+    // The guide: the door with three states, then a state nothing leaves.
+    let _ = app.update(Message::Select(1));
+    retype(&mut app, &without(DOOR, "Jammed"), Language::PlantUml);
+    shoot(&mut app, &dir, "guide-machine");
+    retype(&mut app, &without(DOOR, "repaired"), Language::PlantUml);
+    assert!(
+        app.doc()
+            .findings
+            .iter()
+            .any(|f| f.message.contains("Nothing leaves Jammed")),
+        "{:?}",
+        app.doc().findings
+    );
+    // The source wide enough for the finding's card.
+    split_at(&mut app, 0.66);
+    show_themed(&mut app, Language::PlantUml);
+    hover_finding(&mut app, "Open --> Jammed", "Jammed");
+    shoot(&mut app, &dir, "guide-finding");
+    split_at(&mut app, 0.5);
+    retype(&mut app, DOOR, Language::PlantUml);
+    press(&mut app, Command::Play);
+    assert!(app.doc().paper.playing(), "{:?}", app.notice);
+    app.doc_mut().paper.freeze_play(Duration::from_secs(3));
+    shoot(&mut app, &dir, "guide-play");
+    press(&mut app, Command::StopPlay);
+
+    // The scenario locks the door while it is open.
+    let _ = app.update(Message::Select(2));
+    retype(&mut app, &without(LEAVE, ": close"), Language::PlantUml);
+    let root = app.project_of(app.doc()).unwrap();
+    let _ = app.update(Message::Specs(root.clone(), Arc::new(specs::read(&root))));
+    assert!(
+        app.doc()
+            .findings
+            .iter()
+            .any(|f| f.message.contains("Door does not take lock here")),
+        "{:?}",
+        app.doc().findings
+    );
+    split_at(&mut app, 0.66);
+    show_themed(&mut app, Language::PlantUml);
+    hover_finding(&mut app, "Car -> Door : lock", "lock");
+    app.notice = None;
+    shoot(&mut app, &dir, "readme-specs");
+    split_at(&mut app, 0.5);
+    retype(&mut app, LEAVE, Language::PlantUml);
+    let _ = app.update(Message::Specs(root.clone(), Arc::new(specs::read(&root))));
+
+    // A night in which the door is locked while it stands open.
+    let _ = app.update(Message::Select(1));
+    show_themed(&mut app, Language::PlantUml);
+    let wrong =
+        without(NIGHT, "\"close\"") + r#"{"time":"07:09:52","object":"Door","event":"lock"}"#;
+    std::fs::write(work.join("night.jsonl"), wrong).unwrap();
+    let key = app.doc().key;
+    let spec = app.doc().paper.spec("door.puml").unwrap();
+    let _ = app.update(Message::Traces(key, specs::traces(&work, &spec)));
+    assert!(app.doc().paper.playing(), "{:?}", app.notice);
+    for _ in 0..4 {
+        press(&mut app, Command::PlayAsk(paper::Ask::Next));
+    }
+    app.doc_mut().paper.freeze_play(Duration::from_secs(10));
+    app.notice = None;
+    shoot(&mut app, &dir, "readme-trace");
+    press(&mut app, Command::StopPlay);
+
+    // The coffee machine at play: on, a coffee, and back to ready.
+    let _ = app.update(Message::Select(0));
+    show_themed(&mut app, Language::PlantUml);
+    press(&mut app, Command::Play);
+    assert!(app.doc().paper.playing(), "{:?}", app.notice);
+    let mut frame = 0;
+    let mut film = |app: &mut App, ms: u64| {
+        app.doc_mut().paper.freeze_play(Duration::from_millis(ms));
+        shoot(app, &dir, &format!("play-{frame:03}"));
+        frame += 1;
+    };
+    film(&mut app, 3000);
+    for take in [0, 1, 0, 0, 0] {
+        press(&mut app, Command::PlayAsk(paper::Ask::Take(take)));
+        for ms in (0..=720).step_by(60) {
+            film(&mut app, ms);
+        }
+        std::thread::sleep(Duration::from_millis(900));
+        film(&mut app, 3000);
+    }
+    let _ = std::fs::remove_dir_all(work.parent().unwrap());
 }
 
 /// Writes `theme-<name>.png` for every bundled Omarchy theme when

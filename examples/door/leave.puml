@@ -1,0 +1,10 @@
+@startuml
+title Leaving the car
+actor Driver
+participant Car
+participant Door
+Driver -> Car : park
+Driver -> Door : open
+Driver -> Door : close
+Car -> Door : lock
+@enduml
