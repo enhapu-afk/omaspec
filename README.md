@@ -92,13 +92,16 @@ diagram with the theme if you like. Every bundled theme is checked for legible c
 
 ## Install
 
-On Omarchy (or any Arch Linux), from the AUR:
+On Omarchy (or any Arch Linux), build the package from this repository:
 
 ```bash
-yay -S omaspec-bin   # the release, prebuilt
-yay -S omaspec       # the release, built from source
-yay -S omaspec-git   # the newest commit
+git clone https://github.com/enhapu-afk/omaspec
+cd omaspec/packaging/aur/omaspec-bin   # the release, prebuilt
+makepkg -si                            # or in ../omaspec: the release, built from source
 ```
+
+The packages go to the AUR (`omaspec`, `omaspec-bin`, `omaspec-git`) as soon as it takes
+new accounts again; then `yay -S omaspec-bin` will do.
 
 The packages also install the desktop entry, the icon and the file types, so file
 managers open `.puml` and `.mmd` files with Omaspec, and the Omarchy templates (a

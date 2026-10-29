@@ -19,10 +19,11 @@ key and command is in the [reference](reference.md).
 
 ## 1. Install
 
-On Omarchy (or any Arch Linux):
+On Omarchy (or any Arch Linux), build the prebuilt release's package:
 
 ```bash
-yay -S omaspec-bin
+git clone https://github.com/enhapu-afk/omaspec
+cd omaspec/packaging/aur/omaspec-bin && makepkg -si
 ```
 
 Other ways are in the [README](../../README.md#install). Check that it runs:
