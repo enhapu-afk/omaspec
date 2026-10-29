@@ -290,7 +290,7 @@ Found on the way: mmdr draws the title of a sequence `alt` block behind the seco
 box, puts a note that follows a block inside its frame, and loops one of two edges between
 the same nodes around the target. The examples avoid all three.
 
-## Phase 7: hardening, v1.0 (hardening built; the release waits for a signing key)
+## Phase 7: hardening, v1.0 (hardening built; ready for the first release)
 
 - [x] Fuzzing: cargo-fuzz targets in `fuzz/` for the text functions (lint, outline, format,
       skins, diff), image metadata, the SVG sanitizer, Mermaid, the native PlantUML engine
@@ -331,7 +331,7 @@ the same nodes around the target. The examples avoid all three.
 - [ ] AUR `omagram` and `omagram-bin`, signed tags, announcement: PKGBUILDs in
       `packaging/aur`, a release workflow that builds on Arch, the steps in
       [packaging/RELEASING.md](packaging/RELEASING.md) and a draft in
-      `docs/announcement.md` are ready; waiting for a signing key
+      `docs/announcement.md` are ready, and so is the SSH key that signs the tags
 
 Found on the way: the robustness tests found three bugs. Lint counted a lone CR as a line
 break where the editor does not (now only CRLF is turned into LF); a self-closing `<svg/>`
