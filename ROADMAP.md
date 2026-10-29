@@ -290,7 +290,7 @@ Found on the way: mmdr draws the title of a sequence `alt` block behind the seco
 box, puts a note that follows a block inside its frame, and loops one of two edges between
 the same nodes around the target. The examples avoid all three.
 
-## Phase 7: hardening, v1.0 (hardening built; first release: 0.4.0, 2026-10-29)
+## Phase 7: hardening, v1.0 (hardening built; released on 2026-10-29 as Omagram 0.4.0, then renamed: Omaspec 0.4.1)
 
 - [x] Fuzzing: cargo-fuzz targets in `fuzz/` for the text functions (lint, outline, format,
       skins, diff), image metadata, the SVG sanitizer, Mermaid, the native PlantUML engine
