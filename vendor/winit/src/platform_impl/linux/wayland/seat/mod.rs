@@ -21,7 +21,7 @@ use crate::keyboard::ModifiersState;
 use crate::platform_impl::wayland::state::WinitState;
 
 mod dnd;
-// Omagram: the clipboard offer, for `platform::wayland::selection_offer`.
+// Omaspec: the clipboard offer, for `platform::wayland::selection_offer`.
 pub(crate) use dnd::selection_offer;
 mod keyboard;
 mod pointer;
@@ -55,13 +55,13 @@ pub struct WinitSeatState {
     /// The relative pointer bound on the seat.
     relative_pointer: Option<ZwpRelativePointerV1>,
 
-    /// Omagram: touchpad pinch (`zwp_pointer_gesture_pinch_v1`).
+    /// Omaspec: touchpad pinch (`zwp_pointer_gesture_pinch_v1`).
     pub(crate) pinch: Option<Pinch>,
 
     /// The keyboard bound on the seat.
     keyboard_state: Option<KeyboardState>,
 
-    /// Omagram: `wl_data_device`, so a dropped file reaches the window.
+    /// Omaspec: `wl_data_device`, so a dropped file reaches the window.
     data_device: Option<DataDevice>,
 
     /// The current modifiers state on the seat.
@@ -76,7 +76,7 @@ impl WinitSeatState {
         Default::default()
     }
 
-    /// Omagram: one data device for this seat. A second call is ignored.
+    /// Omaspec: one data device for this seat. A second call is ignored.
     pub(crate) fn attach_data_device(&mut self, device: DataDevice) {
         if self.data_device.is_none() {
             self.data_device = Some(device);
@@ -140,7 +140,7 @@ impl SeatHandler for WinitState {
                         sctk::globals::GlobalData,
                     )
                 });
-                // Omagram: a touchpad pinch on this pointer.
+                // Omaspec: a touchpad pinch on this pointer.
                 seat_state.pinch = self
                     .pointer_gestures
                     .as_ref()
@@ -233,7 +233,7 @@ impl SeatHandler for WinitState {
         seat: WlSeat,
     ) {
         self.seats.insert(seat.id(), WinitSeatState::new());
-        // Omagram: file drag-and-drop on a seat that appears later.
+        // Omaspec: file drag-and-drop on a seat that appears later.
         let device = self
             .data_device_manager
             .as_ref()

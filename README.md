@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="packaging/omagram.svg" width="96" alt="">
+  <img src="packaging/omaspec.svg" width="96" alt="">
 </p>
 
-<h1 align="center">Omagram</h1>
+<h1 align="center">Omaspec</h1>
 
 <p align="center">
   <b>PlantUML and Mermaid, drawn as you type and understood as behavior.</b><br>
@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/enhapu-afk/omagram/actions/workflows/ci.yml"><img src="https://github.com/enhapu-afk/omagram/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/enhapu-afk/omagram/releases/latest"><img src="https://img.shields.io/github/v/release/enhapu-afk/omagram" alt="Release"></a>
+  <a href="https://github.com/enhapu-afk/omaspec/actions/workflows/ci.yml"><img src="https://github.com/enhapu-afk/omaspec/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/enhapu-afk/omaspec/releases/latest"><img src="https://img.shields.io/github/v/release/enhapu-afk/omaspec" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
 </p>
 
@@ -28,11 +28,11 @@ The source in the middle, the live diagram on the right, in the colors of your O
 theme and the font `omarchy font set` picked. One binary with its own engines: no Java,
 no browser, no network, and it sends nothing anywhere.
 
-## Why Omagram
+## Why Omaspec
 
 ### It draws as you type
 
-Omagram draws with its own engines, in a few milliseconds: PlantUML sequence, activity,
+Omaspec draws with its own engines, in a few milliseconds: PlantUML sequence, activity,
 state, class, component, use case, deployment, object, timing and Gantt diagrams, mind
 maps, WBS, JSON and formulas, and Mermaid flowcharts, state and sequence diagrams. The
 other Mermaid types are drawn by mmdr, a Rust library, in the same process. Lint findings
@@ -42,7 +42,7 @@ source.
 ### It reads your diagram as behavior
 
 A state diagram is the state machine it specifies, and a sequence diagram is a scenario,
-in PlantUML and Mermaid alike. Omagram checks them while you type: a state no path
+in PlantUML and Mermaid alike. Omaspec checks them while you type: a state no path
 reaches, a state nothing leaves, one event leading two ways with no guard to choose. A
 scenario is checked against the state machines of its folder: every message must be an
 event its receiver can take, in the order the scenario sends them.
@@ -59,7 +59,7 @@ message.
 
 ### Hold a recorded trace against it
 
-`omagram trace run.jsonl` plays what a running system logged through its state machines
+`omaspec trace run.jsonl` plays what a running system logged through its state machines
 and says where it deviated, with the time. The editor plays the trace in the diagram,
 line by line, and the bar turns red where the system did what the specification does
 not allow.
@@ -68,7 +68,7 @@ not allow.
 
 ### It looks like your Omarchy
 
-Omagram follows `omarchy theme` and `omarchy font set` while it runs, and colors the
+Omaspec follows `omarchy theme` and `omarchy font set` while it runs, and colors the
 diagram with the theme if you like. Every bundled theme is checked for legible colors.
 
 ![Tokyo Night, Catppuccin Latte, Gruvbox and Rosé Pine](docs/images/themes.png)
@@ -76,16 +76,16 @@ diagram with the theme if you like. Every bundled theme is checked for legible c
 ### And more
 
 - **Compare** a diagram with another tab or any git commit, as pictures side by side or
-  as changed lines. `omagram diff` says what changed in the *behavior*: states,
+  as changed lines. `omaspec diff` says what changed in the *behavior*: states,
   transitions and messages, not layout.
 - **Convert** a state machine or scenario between PlantUML and Mermaid, only when the
   result means the same.
 - **Images that remember.** Exported PNGs and SVGs carry their source; drop one on the
   window and it opens as a diagram again.
-- **Next to Neovim.** `omagram preview flow.puml` is a window that renders again on every
+- **Next to Neovim.** `omaspec preview flow.puml` is a window that renders again on every
   save.
 - **For scripts and AI agents.** Every check is on the command line, with JSON output and
-  exit codes, and `omagram mcp` is an MCP server with the same tools.
+  exit codes, and `omaspec mcp` is an MCP server with the same tools.
 - **24 examples** to start from, as tiles drawn on the spot (Ctrl+Shift+E).
 
 ![The gallery of examples](docs/images/gallery.png)
@@ -95,29 +95,29 @@ diagram with the theme if you like. Every bundled theme is checked for legible c
 On Omarchy (or any Arch Linux), from the AUR:
 
 ```bash
-yay -S omagram-bin   # the release, prebuilt
-yay -S omagram       # the release, built from source
-yay -S omagram-git   # the newest commit
+yay -S omaspec-bin   # the release, prebuilt
+yay -S omaspec       # the release, built from source
+yay -S omaspec-git   # the newest commit
 ```
 
 The packages also install the desktop entry, the icon and the file types, so file
-managers open `.puml` and `.mmd` files with Omagram, and the Omarchy templates (a
-Hyprland binding, a menu entry, themed colors) under `/usr/share/omagram/omarchy`.
+managers open `.puml` and `.mmd` files with Omaspec, and the Omarchy templates (a
+Hyprland binding, a menu entry, themed colors) under `/usr/share/omaspec/omarchy`.
 
-Elsewhere, take the binary from the [latest release](https://github.com/enhapu-afk/omagram/releases/latest),
+Elsewhere, take the binary from the [latest release](https://github.com/enhapu-afk/omaspec/releases/latest),
 or build it with Rust 1.89 or newer:
 
 ```bash
-cargo build --release -p omagram-app   # the binary is target/release/omagram
+cargo build --release -p omaspec-app   # the binary is target/release/omaspec
 ```
 
-Optional: `plantuml` for the few PlantUML types Omagram does not draw itself yet (YAML,
+Optional: `plantuml` for the few PlantUML types Omaspec does not draw itself yet (YAML,
 Salt and more), `wl-clipboard` to copy diagrams, `git` to compare with commits.
 
 ## Quick start
 
 ```bash
-omagram ~/diagrams          # the editor, with that folder in the sidebar
+omaspec ~/diagrams          # the editor, with that folder in the sidebar
 ```
 
 1. **Ctrl+Shift+E** opens the examples. Pick *A coffee machine* and press **F5**: it
@@ -131,7 +131,7 @@ has every key and command.
 
 ## Status
 
-Omagram is young: well tested (unit and golden tests, a comparison with the Java
+Omaspec is young: well tested (unit and golden tests, a comparison with the Java
 PlantUML, fuzzing), but little used outside its tests so far, so you will find rough
 edges. Issues, and diagrams it draws wrong, are very welcome. The
 [roadmap](ROADMAP.md) has the plan, [docs/adr](docs/adr) the decisions.

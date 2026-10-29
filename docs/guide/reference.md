@@ -1,6 +1,6 @@
 # Reference
 
-Everything Omagram does, to look up. New here? Start with the
+Everything Omaspec does, to look up. New here? Start with the
 [getting started guide](README.md).
 
 - [Editor](#editor): [keys](#keys), [project and tabs](#project-and-tabs),
@@ -12,14 +12,14 @@ Everything Omagram does, to look up. New here? Start with the
 - [Command line](#command-line)
 - [AI agents](#ai-agents)
 - [Omarchy](#omarchy)
-- [What Omagram draws](#what-omagram-draws)
+- [What Omaspec draws](#what-omaspec-draws)
 
 ## Editor
 
 ```bash
-omagram                      # the last session, or an empty PlantUML diagram
-omagram flow.puml seq.mmd    # adds a tab per file; a new name is created on the first save
-omagram ~/diagrams           # with that folder in the sidebar
+omaspec                      # the last session, or an empty PlantUML diagram
+omaspec flow.puml seq.mmd    # adds a tab per file; a new name is created on the first save
+omaspec ~/diagrams           # with that folder in the sidebar
 ```
 
 ### Keys
@@ -46,7 +46,7 @@ omagram ~/diagrams           # with that folder in the sidebar
 | Ctrl+F, Ctrl+H, Ctrl+/, Ctrl+D | in the text: find, replace, comment, next occurrence |
 | Super+F | fullscreen (Omarchy's chord for every window) |
 
-The status bar shows the Omagram mark and `Ctrl+Shift+P`; a click opens the command
+The status bar shows the Omaspec mark and `Ctrl+Shift+P`; a click opens the command
 list. Export asks for a path in that line (Enter writes it, a second Enter replaces a
 file that is already there).
 
@@ -64,8 +64,8 @@ so does Ctrl+click on a label, box or diamond in the diagram. Lines changed sinc
 save are marked beside the line numbers. The language is detected from the text and the
 file name unless `--lang` (or the palette) sets it.
 
-The palette also opens the *Help Omagram* folder: diagrams of the menu, editing, the
-window and export. The line under its heading, or *Leave Help Omagram* in the palette,
+The palette also opens the *Help Omaspec* folder: diagrams of the menu, editing, the
+window and export. The line under its heading, or *Leave Help Omaspec* in the palette,
 brings the project folder back and closes the help pages.
 
 ### Compare
@@ -80,7 +80,7 @@ the difference to B.
 
 ### A second monitor
 
-Ctrl+Shift+N moves the diagram into a window of its own (class `omagram-preview`): the
+Ctrl+Shift+N moves the diagram into a window of its own (class `omaspec-preview`): the
 editor takes the room, the diagram window follows the active tab, has the preview's keys
 (`+`/`-`, `0`, `f`), and Ctrl+click there jumps in the editor. Escape or closing it
 brings the diagram back.
@@ -98,19 +98,19 @@ colors, font) are honored too.
 
 ### Examples
 
-Ctrl+Shift+E (or *Examples* on an empty page) lays the examples that come with Omagram
+Ctrl+Shift+E (or *Examples* on an empty page) lays the examples that come with Omaspec
 out as tiles: a coffee machine's states, a pizza night's scenario, a first day at work in
 swimlanes, a washing machine's timing, a bookshop's classes, a garden year as a mind map,
 a treehouse as a Gantt chart and more, 24 in PlantUML and Mermaid. Seven are complex (an
 elevator, a checkout, an incident in three lanes, a delivery pipeline, a library system
 and more) and have a *complex* filter of their own.
 
-Each tile is drawn on the spot by Omagram's engines, in the colors the diagram pane would
+Each tile is drawn on the spot by Omaspec's engines, in the colors the diagram pane would
 show; the *Omarchy colors* switch redraws them all in the theme's. Typing filters (by
 title, kind, language, or `complex`), Tab steps through behavior, structure, plans and
 data, the arrows move between tiles. Enter (or a click) opens a copy in a new tab,
 unsaved, under a free name in the project folder; F5 (or the *plays* badge) opens it and
-plays it. `omagram example` lists them on the command line, and `omagram example NAME`
+plays it. `omaspec example` lists them on the command line, and `omaspec example NAME`
 prints one.
 
 ![The gallery of examples in the theme's colors](../images/gallery.png)
@@ -120,11 +120,11 @@ prints one.
 Exported PNGs and SVGs carry the diagram source. Dropped on the window or opened with
 Ctrl+O, such an image opens as a new, unsaved tab under a name nothing has yet
 (`flow-2.mmd` next to `flow.mmd`), so saving never overwrites the original.
-`omagram extract diagram.png` prints the source.
+`omaspec extract diagram.png` prints the source.
 
 ### Session
 
-The window keeps its session in `~/.local/state/omagram/` (readable by you only): open
+The window keeps its session in `~/.local/state/omaspec/` (readable by you only): open
 tabs with their unsaved text, the folder, the caret. Closing the window loses nothing; the
 next start brings it all back. Closing a tab with unsaved changes asks once in the status
 bar. A second window works without a session. A file changed on disk is reloaded when its
@@ -133,7 +133,7 @@ tab has no unsaved changes.
 ## Preview next to your editor
 
 ```bash
-omagram preview flow.puml   # a window that renders again on every save
+omaspec preview flow.puml   # a window that renders again on every save
 ```
 
 Edit in Neovim (or anything else) and keep the preview tiled next to it. Errors show in
@@ -153,7 +153,7 @@ what is drawn there.
 
 ## Specifications
 
-Omagram reads a state diagram, in PlantUML or in Mermaid, as the state machine it
+Omaspec reads a state diagram, in PlantUML or in Mermaid, as the state machine it
 specifies, and a sequence diagram as a scenario
 ([ADR 0007](../adr/0007-behavior-specifications.md)).
 
@@ -175,7 +175,7 @@ with several ways out) waits for you to pick one, and a history goes back to whe
 state was left. A scenario unfolds message by message (Space), a light running along each
 arrow. Each step lights its line in the source; ← goes back, Home starts again, Esc stops.
 
-**Traces.** `omagram trace run.jsonl` reads what a running system did, one JSON object per
+**Traces.** `omaspec trace run.jsonl` reads what a running system did, one JSON object per
 line (`{"object":"Door","event":"open","state":"Opening"}`, with `time` and other fields
 as the log has them), and plays it through the state machines of its folder: an event the
 object cannot take where it is by then, or a state it cannot be in, is an error with the
@@ -185,29 +185,29 @@ the diagram, line by line with Space: the bar shows the time and the event, the 
 light up, and where the trace deviates the bar turns red and says why.
 [examples/player.jsonl](../../examples/player.jsonl) is an evening of the media player.
 
-**What changed, and in the other language.** `omagram diff` compares two versions, or a
+**What changed, and in the other language.** `omaspec diff` compares two versions, or a
 file with its last commit, by states, transitions and messages, not by lines; layout and
-colors do not count. `omagram convert` writes a machine or scenario in the other language,
+colors do not count. `omaspec convert` writes a machine or scenario in the other language,
 and only when the result means the same ([ADR 0009](../adr/0009-diff-and-convert.md)).
 
 ## Command line
 
 ```bash
-omagram lint diagrams/*.puml        # syntax, likely typos, specification checks; exit 1 on errors
-omagram lint --project specs a.puml # sequences checked against the state machines in specs/
-omagram lint --strict --json a.mmd  # warnings fail too; JSON for scripts
-omagram trace run.jsonl             # a recorded trace against the state machines next to it; --project, --json
-omagram fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI
-omagram outline flow.puml           # structure: participants, groups, lanes, states, …
-omagram inspect flow.puml           # language, kind, findings, outline, and whether Omagram draws it
-omagram diff door.puml              # what changed in the behavior since the last commit; --rev, or two files
-omagram convert door.puml -o door.mmd  # the same machine or scenario in Mermaid (or PlantUML), or why not
-omagram render flow.mmd             # flow.svg next to it, with the source inside
-omagram render flow.mmd --json      # where the image went, or the error and its line, as JSON
-omagram render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
-omagram extract diagram.png         # the source stored in an exported PNG or SVG
-omagram example                     # the examples of the gallery; `example NAME` prints one, --json
-omagram theme                       # the palette Omagram reads from your Omarchy theme
+omaspec lint diagrams/*.puml        # syntax, likely typos, specification checks; exit 1 on errors
+omaspec lint --project specs a.puml # sequences checked against the state machines in specs/
+omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
+omaspec trace run.jsonl             # a recorded trace against the state machines next to it; --project, --json
+omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI
+omaspec outline flow.puml           # structure: participants, groups, lanes, states, …
+omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it
+omaspec diff door.puml              # what changed in the behavior since the last commit; --rev, or two files
+omaspec convert door.puml -o door.mmd  # the same machine or scenario in Mermaid (or PlantUML), or why not
+omaspec render flow.mmd             # flow.svg next to it, with the source inside
+omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
+omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
+omaspec extract diagram.png         # the source stored in an exported PNG or SVG
+omaspec example                     # the examples of the gallery; `example NAME` prints one, --json
+omaspec theme                       # the palette Omaspec reads from your Omarchy theme
 ```
 
 `lint`, `fmt --check` and `trace` exit with 1 when they find something, so they work in
@@ -215,7 +215,7 @@ CI and in git hooks.
 
 ## AI agents
 
-`omagram mcp` is a Model Context Protocol server over standard input and output
+`omaspec mcp` is a Model Context Protocol server over standard input and output
 ([ADR 0008](../adr/0008-mcp-server.md)): an agent lints a diagram, holds a trace against
 the state machines of its project, formats it, and renders it, getting a PNG back to look
 at. The tools are the command line's (`lint`, which also takes a folder, `trace`,
@@ -223,38 +223,38 @@ at. The tools are the command line's (`lint`, which also takes a folder, `trace`
 one-based lines. Nothing goes over the network.
 
 ```bash
-claude mcp add omagram -- omagram mcp   # Claude Code
+claude mcp add omaspec -- omaspec mcp   # Claude Code
 ```
 
 Other clients take the same command in their server list, for example
-`{"mcpServers": {"omagram": {"command": "omagram", "args": ["mcp"]}}}`. Relative paths
+`{"mcpServers": {"omaspec": {"command": "omaspec", "args": ["mcp"]}}}`. Relative paths
 are read from the folder the client starts the server in.
 
 ## Omarchy
 
-Omagram follows theme switches and `omarchy font set` while it runs. Every bundled theme
+Omaspec follows theme switches and `omarchy font set` while it runs. Every bundled theme
 is checked for legible colors; faint ones (a yellow on white) are deepened just enough to
 read.
 
 ![Tokyo Night, Catppuccin Latte, Gruvbox and Rosé Pine](../images/themes.png)
 
 Templates in [packaging/omarchy](../../packaging/omarchy) (installed to
-`/usr/share/omagram/omarchy` by the AUR package):
+`/usr/share/omaspec/omarchy` by the AUR package):
 
 - `hyprland.lua`: SUPER+SHIFT+U opens the editor. SUPER+F stays Omarchy's fullscreen for
   the whole window. Window rules for the diagram windows are commented there.
 - `omarchy-menu.jsonc`: a "Diagram editor" entry for the Omarchy menu.
-- `omagram.toml.tpl`: copy it to `~/.config/omarchy/themed/` to set Omagram's syntax and
+- `omaspec.toml.tpl`: copy it to `~/.config/omarchy/themed/` to set Omaspec's syntax and
   mark colors per theme with Omarchy's placeholders (`{{ accent }}`, `{{ blue }}`,
-  `{{ mix background foreground 40% }}`). `omagram theme` shows what it took.
+  `{{ mix background foreground 40% }}`). `omaspec theme` shows what it took.
 
 Copies to the clipboard and exports send an Omarchy notification. Window classes for
-Hyprland rules: `omagram` (editor), `omagram-preview` (preview window and the editor's
+Hyprland rules: `omaspec` (editor), `omaspec-preview` (preview window and the editor's
 diagram window).
 
-## What Omagram draws
+## What Omaspec draws
 
-Mermaid renders natively, and so do most PlantUML diagrams, with Omagram's own engines:
+Mermaid renders natively, and so do most PlantUML diagrams, with Omaspec's own engines:
 sequence, activity, state, class, component, use case, deployment, object, timing and
 Gantt diagrams, mind maps, WBS, JSON and formulas (`@startlatex`, `@startmath`), and
 Mermaid flowcharts, state and sequence diagrams. The other Mermaid types are drawn by
@@ -262,5 +262,5 @@ Mermaid flowcharts, state and sequence diagrams. The other Mermaid types are dra
 process. The other PlantUML types (YAML, network diagrams, Salt and more) render through
 the optional `plantuml` package, confined with Landlock. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
-angles. Omagram also has a diagram of its own, signal flow (`@startflow`,
+angles. Omaspec also has a diagram of its own, signal flow (`@startflow`,
 [ADR 0010](../adr/0010-signal-flow.md)). The [roadmap](../../ROADMAP.md) has the details.

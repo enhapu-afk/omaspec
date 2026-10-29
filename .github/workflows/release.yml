@@ -1,7 +1,7 @@
 name: Release
 
 # A signed tag vX.Y.Z (see packaging/RELEASING.md) builds the binary on Arch,
-# as Omarchy runs it, and attaches it to a GitHub release for omagram-bin.
+# as Omarchy runs it, and attaches it to a GitHub release for omaspec-bin.
 # Run by hand with a tag, it builds that tag again with this workflow.
 
 on:
@@ -31,17 +31,17 @@ jobs:
         with:
           ref: ${{ env.TAG }}
       - name: Test
-        run: cargo test --locked -p omagram-core -p omagram-theme -p omagram-render
+        run: cargo test --locked -p omaspec-core -p omaspec-theme -p omaspec-render
       - name: Build
-        run: cargo build --locked --release -p omagram-app
+        run: cargo build --locked --release -p omaspec-app
       - name: Package
         run: |
           version="${TAG#v}"
-          dir="omagram-$version-x86_64-linux"
+          dir="omaspec-$version-x86_64-linux"
           mkdir -p "$dir"
-          install -m755 target/release/omagram "$dir/"
-          cp LICENSE README.md packaging/omagram.desktop packaging/omagram.svg \
-            packaging/omagram-mime.xml "$dir/"
+          install -m755 target/release/omaspec "$dir/"
+          cp LICENSE README.md packaging/omaspec.desktop packaging/omaspec.svg \
+            packaging/omaspec-mime.xml "$dir/"
           cp -r packaging/omarchy "$dir/omarchy"
           tar czf "$dir.tar.gz" "$dir"
           sha256sum "$dir.tar.gz" > "$dir.tar.gz.sha256"
@@ -49,5 +49,5 @@ jobs:
         with:
           tag_name: ${{ env.TAG }}
           files: |
-            omagram-*.tar.gz
-            omagram-*.tar.gz.sha256
+            omaspec-*.tar.gz
+            omaspec-*.tar.gz.sha256

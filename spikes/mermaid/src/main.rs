@@ -1,4 +1,4 @@
-//! Spike: can mmdr render the Mermaid diagram types Omagram wants to offer,
+//! Spike: can mmdr render the Mermaid diagram types Omaspec wants to offer,
 //! how fast, and how well?
 //!
 //! Usage: `spike-mermaid [--out DIR] FILE_OR_DIR...`

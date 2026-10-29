@@ -1,11 +1,11 @@
-# 0010: Signal flow is Omagram's own diagram
+# 0010: Signal flow is Omaspec's own diagram
 
 Status: accepted, 2026-10-24. An exception to the "no new language" rule
 in [0007](0007-behavior-specifications.md), for this kind only.
 
 ## Decision
 
-`@startflow` is a diagram kind of Omagram's own. PlantUML has no
+`@startflow` is a diagram kind of Omaspec's own. PlantUML has no
 signal-flow form, so there is nothing to stay syntax-compatible with and
 the Java PlantUML is not the fallback. A line the native engine declines
 is reported as that line, and is not sent to Java.

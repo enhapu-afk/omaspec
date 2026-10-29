@@ -18,9 +18,9 @@ note right of Hyprland
   terminals follow.
 end note
 
-alt Omagram is running
-  State -> Omagram : colors.toml changed
-  Omagram -> Omagram : restyle editor
+alt Omaspec is running
+  State -> Omaspec : colors.toml changed
+  Omaspec -> Omaspec : restyle editor
 else not running
   User -> hyprland : nothing to do
 deactivate State

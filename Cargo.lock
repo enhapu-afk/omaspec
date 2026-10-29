@@ -2516,7 +2516,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "omagram-app"
+name = "omaspec-app"
 version = "0.4.0"
 dependencies = [
  "anyhow",
@@ -2527,11 +2527,11 @@ dependencies = [
  "iced_test",
  "landlock",
  "notify",
- "omagram-core",
- "omagram-model",
- "omagram-render",
- "omagram-theme",
- "omagram-uml",
+ "omaspec-core",
+ "omaspec-model",
+ "omaspec-render",
+ "omaspec-theme",
+ "omaspec-uml",
  "regex",
  "rustix 1.1.5",
  "scrive-core",
@@ -2541,28 +2541,28 @@ dependencies = [
 ]
 
 [[package]]
-name = "omagram-core"
+name = "omaspec-core"
 version = "0.4.0"
 dependencies = [
  "miniz_oxide 0.9.1",
- "omagram-uml",
+ "omaspec-uml",
  "regex",
  "roxmltree 0.21.1",
  "serde",
 ]
 
 [[package]]
-name = "omagram-model"
+name = "omaspec-model"
 version = "0.4.0"
 dependencies = [
- "omagram-core",
- "omagram-uml",
+ "omaspec-core",
+ "omaspec-uml",
  "roxmltree 0.21.1",
  "serde_json",
 ]
 
 [[package]]
-name = "omagram-render"
+name = "omaspec-render"
 version = "0.4.0"
 dependencies = [
  "criterion",
@@ -2570,9 +2570,9 @@ dependencies = [
  "krilla",
  "krilla-svg",
  "mermaid-rs-renderer",
- "omagram-core",
- "omagram-model",
- "omagram-uml",
+ "omaspec-core",
+ "omaspec-model",
+ "omaspec-uml",
  "resvg",
  "roxmltree 0.21.1",
  "serde_json",
@@ -2580,14 +2580,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "omagram-theme"
+name = "omaspec-theme"
 version = "0.4.0"
 dependencies = [
  "thiserror 2.0.21",
 ]
 
 [[package]]
-name = "omagram-uml"
+name = "omaspec-uml"
 version = "0.4.0"
 
 [[package]]
@@ -3446,7 +3446,7 @@ dependencies = [
  "anyhow",
  "iced",
  "iced_test",
- "omagram-theme",
+ "omaspec-theme",
  "scrive-core",
  "scrive-iced",
 ]

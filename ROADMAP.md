@@ -1,4 +1,4 @@
-# Omagram roadmap
+# Omaspec roadmap
 
 A native PlantUML and Mermaid editor for Omarchy, in Rust. Independent, secure
 and fast; friendly to AI agents; for keyboard, mouse and touchpad; in the colors
@@ -14,36 +14,36 @@ grows.
 
 ```
 crates/
-  omagram-core/    language detection, lint, outline, formatting, diff, source in images
-  omagram-uml/     native PlantUML engine: preprocessor, parser with spans, layout, SVG
-  omagram-model/   one behavior model for PlantUML and Mermaid, and the specification checks
-  omagram-render/  router (omagram-uml → Java PlantUML if installed → error), Mermaid (mmdr parses,
-                     omagram-uml reads sequence and state diagrams again; sequence on the
+  omaspec-core/    language detection, lint, outline, formatting, diff, source in images
+  omaspec-uml/     native PlantUML engine: preprocessor, parser with spans, layout, SVG
+  omaspec-model/   one behavior model for PlantUML and Mermaid, and the specification checks
+  omaspec-render/  router (omaspec-uml → Java PlantUML if installed → error), Mermaid (mmdr parses,
+                     omaspec-uml reads sequence and state diagrams again; sequence on the
                      sequence engine, state and flowchart on the graph engine, the rest drawn by
                      mmdr), export
-  omagram-theme/   Omarchy palette and font, syntax colors
-  omagram-app/     iced GUI and CLI, binary `omagram`
+  omaspec-theme/   Omarchy palette and font, syntax colors
+  omaspec-app/     iced GUI and CLI, binary `omaspec`
 spikes/              throwaway experiments behind the ADRs
 ```
 
-One binary: `omagram` opens the editor; `preview`, `render`, `lint`, `fmt`,
+One binary: `omaspec` opens the editor; `preview`, `render`, `lint`, `fmt`,
 `extract` and `theme` are subcommands.
 
 ## Phase 0: foundation and spikes
 
 - [x] Workspace, MIT license, `AGENTS.md`, CI (fmt, clippy, test, cargo-deny)
 - [x] `unsafe_code = "forbid"` for the whole workspace
-- [x] `omagram-theme`: Omarchy palette with the same fallback cascade as `omarchy-theme-color`; `omagram theme`
+- [x] `omaspec-theme`: Omarchy palette with the same fallback cascade as `omarchy-theme-color`; `omaspec theme`
 - [x] Spike editor widget → [0002](docs/adr/0002-editor-widget-scrive.md): scrive
 - [x] Spike Mermaid rendering → [0003](docs/adr/0003-mermaid-mmdr.md): mmdr
-- [x] PlantUML grammar for highlighting (`crates/omagram-app/assets/syntax`)
+- [x] PlantUML grammar for highlighting (`crates/omaspec-app/assets/syntax`)
 - [x] Java PlantUML worker (`plantuml -pipe`): built in phase 2, measured there with a real JVM
 
-## Phase 1: `omagram-core` (done)
+## Phase 1: `omaspec-core` (done)
 
 - [x] Language detection (PlantUML start markers, Mermaid headers, file name hint), fence stripping, paste detection
 - [x] Diagram kind (sequence, activity, state, timing, structure, other) with a readable name; the
-      native engine decides a PlantUML type (`omagram_uml::uml_type`), so lint, outline and the
+      native engine decides a PlantUML type (`omaspec_uml::uml_type`), so lint, outline and the
       state checks never read a diagram as another type than the picture shows
 - [x] Lint: missing `@end`, unclosed blocks and notes, unknown Mermaid header,
       names close to a declared participant (swapped letters count as one edit), duplicate or unused participants,
@@ -53,9 +53,9 @@ One binary: `omagram` opens the editor; `preview`, `render`, `lint`, `fmt`,
 - [x] Line diff ignoring blank lines and indentation (Myers, at most 600 edits)
 - [x] Diagram source in PNG (`iTXt`, compatible with PlantUML's own `plantuml` chunk) and SVG (`<metadata>`,
       plus PlantUML's `<?plantuml-src?>`), read and write, with size and decompression limits
-- [x] CLI: `omagram lint` (exit codes for CI and pre-commit), `fmt` (`--check`, atomic `--write`),
+- [x] CLI: `omaspec lint` (exit codes for CI and pre-commit), `fmt` (`--check`, atomic `--write`),
       `outline`, `inspect` (JSON for editor integrations), `extract`
-- [x] Golden tests (`crates/omagram-core/tests/golden`), CLI tests
+- [x] Golden tests (`crates/omaspec-core/tests/golden`), CLI tests
 
 Checked on 53 real diagrams: language, kind, lint, outline and formatting. Choices made on
 the way:
@@ -71,7 +71,7 @@ Speed (release build, 20,000 lines, including process start): lint 48 ms, outlin
 
 ## Phase 2: rendering (done)
 
-- [x] `Renderer` routes: Mermaid → mmdr; PlantUML → `omagram-uml` (sequence diagrams since
+- [x] `Renderer` routes: Mermaid → mmdr; PlantUML → `omaspec-uml` (sequence diagrams since
       N1, mind maps and WBS since N2, activity diagrams since N3, state diagrams since N4,
       class, component, use case, deployment and object diagrams since N5, timing
       diagrams and Gantt charts since N6, JSON and formulas since; salt, ditaa, YAML,
@@ -96,9 +96,9 @@ Speed (release build, 20,000 lines, including process start): lint 48 ms, outlin
       copy of the source) and a ZIP of the SVG, the source and that PDF. SVG and PNG carry the
       source, so dropping one opens it. Exports never read local files an SVG points to
       (usvg's default resolver would).
-- [x] `omagram render` (`-o`, `-f`, `--scale`, `--no-source`, `--copy` via `wl-copy`,
-      `--json` for the report, `$OMAGRAM_PLANTUML`); criterion benchmarks
-      (`cargo bench -p omagram-render`)
+- [x] `omaspec render` (`-o`, `-f`, `--scale`, `--no-source`, `--copy` via `wl-copy`,
+      `--json` for the report, `$OMASPEC_PLANTUML`); criterion benchmarks
+      (`cargo bench -p omaspec-render`)
 
 Speed (release build, sanitizing included): Mermaid sequence 1.5 ms, class 2.1 ms, state 0.2 ms
 (8 ms with nested states, regions and five transitions between containers; mmdr took 20),
@@ -114,11 +114,11 @@ could not list its descriptors and closed all 524,288 one by one, so the sandbox
 lowers the limit to 4,096.
 
 Found on the way: mmdr refuses messages to undeclared participants, which Mermaid itself
-creates on the fly. Omagram's lint warns about those names anyway.
+creates on the fly. Omaspec's lint warns about those names anyway.
 
 ## Phase 3: preview window, v0.1 (built; waiting for the side-by-side check and the AUR)
 
-- [x] `omagram preview FILE`: preview-only window that follows the file, for Neovim users.
+- [x] `omaspec preview FILE`: preview-only window that follows the file, for Neovim users.
       Watches the directory, so saves that write a new file and rename it count too;
       reading the file or the theme raises no event (no render loop)
 - [x] Zoom, pan, fit, 100 %; re-rasterize on zoom so nothing blurs. Two layers: an overview
@@ -126,8 +126,8 @@ creates on the fly. Omagram's lint warns about those names anyway.
       visible part at full resolution with a margin, so long diagrams stay sharp at any zoom
 - [x] Errors shown in place, never a crash: status bar and frame color; the last good picture stays
 - [x] Live theme switch: watch `~/.local/state/omarchy/current/`
-- [ ] AUR package: `packaging/aur/omagram-git` builds the newest commit of
-      github.com/enhapu-afk/omagram; not submitted yet (releases: Phase 7)
+- [ ] AUR package: `packaging/aur/omaspec-git` builds the newest commit of
+      github.com/enhapu-afk/omaspec; not submitted yet (releases: Phase 7)
 
 Done when Neovim and the preview sit side by side and the preview follows every save.
 
@@ -138,7 +138,7 @@ flash empty after every save and zoom step.
 Found on the way: mmdr routes state transitions badly (through other states,
 in zigzags). Reported upstream as
 [mmdr#162](https://github.com/1jehuang/mermaid-rs-renderer/issues/162); state
-diagrams and flowcharts are now laid out by Omagram itself (track M).
+diagrams and flowcharts are now laid out by Omaspec itself (track M).
 
 ## Phase 4: editor, v0.2 (built; waiting for the check in a real window)
 
@@ -150,9 +150,9 @@ diagrams and flowcharts are now laid out by Omagram itself (track M).
       editor and the diagram. Ctrl+Shift+N detaches the diagram; Super+F fullscreens the
       whole window, Omarchy's own chord. Blocks in the source fold with Ctrl+Shift+[
       and unfold with Ctrl+Shift+]. Ctrl+Shift+P opens the commands as a list. Help
-      Omagram is a folder of diagrams that describe the editor, including that menu.
+      Omaspec is a folder of diagrams that describe the editor, including that menu.
       Ctrl+O opens a file or folder by path; session restore (tabs, unsaved text, folder,
-      caret) in `$XDG_STATE_HOME/omagram`, held by one window at a time
+      caret) in `$XDG_STATE_HOME/omaspec`, held by one window at a time
 - [x] Atomic save (write, then rename) keeping the file's line endings; save as with an
       overwrite check; unsaved changes need a second close; clean tabs follow changes on disk
 - [x] "Changed since save" gutter markers: a bar in the accent color and a light tint for
@@ -160,7 +160,7 @@ diagrams and flowcharts are now laid out by Omagram itself (track M).
       `vendor/`, see [0002](docs/adr/0002-editor-widget-scrive.md))
 - [x] Lint as diagnostics while typing; language detected again as the text changes
 - [x] Jump to a line (from a render error, or Ctrl+click in the diagram): the line is
-      centered and lit for a moment. Diagram blocks fold in the editor. `omagram outline`
+      centered and lit for a moment. Diagram blocks fold in the editor. `omaspec outline`
       still prints the structure
 - [x] Debounced auto-render (0.4 s), Ctrl+Enter to render now
 
@@ -169,7 +169,7 @@ diagrams and flowcharts are now laid out by Omagram itself (track M).
 - [x] Ctrl+click in the diagram jumps to the source line: the label there (or of the box
       around the click), the n-th label of a text to the n-th line with it; whole words
       before parts, comments never match. Every written label of the Mermaid fixtures is
-      found (`omagram-render/tests/pick_coverage.rs`); computed text (axis dates,
+      found (`omaspec-render/tests/pick_coverage.rs`); computed text (axis dates,
       percentages) is not in the source. The preview window names the line
 - [x] Find and replace: in the tab with Ctrl+F/Ctrl+H (scrive), across all tabs with
       Ctrl+Shift+F (hits with file and line, Enter shows one) and Ctrl+Shift+H (replace all,
@@ -178,12 +178,12 @@ diagrams and flowcharts are now laid out by Omagram itself (track M).
       commit (`HEAD` and the last 30 that changed it; `git` runs locally): both diagrams,
       zoom and pan synced (toggle), or B as changed source lines with context, a click
       jumps; the gutter marks the difference to B meanwhile
-- [x] The diagram in a window of its own (Ctrl+Shift+N, class `omagram-preview`): the
+- [x] The diagram in a window of its own (Ctrl+Shift+N, class `omaspec-preview`): the
       editor takes the room, the window follows the active tab (Compare A|B too), has the
       preview's keys, Ctrl+click there jumps in the editor and brings it to the front
 - [x] Skin packs (plain, spec, presentation, omarchy) as visible source with a
       marker, the next pack replacing it; one undo step. PlantUML: `skinparam` lines;
-      Mermaid: `%%{init}%%`, which Omagram applies itself (mmdr does only in its CLI,
+      Mermaid: `%%{init}%%`, which Omaspec applies itself (mmdr does only in its CLI,
       see [0003](docs/adr/0003-mermaid-mmdr.md)). A diagram theme follows the active
       Omarchy colors at render time and leaves the file unchanged. The drawn pack was
       removed: the native engine declines `handwritten`.
@@ -199,13 +199,13 @@ diagrams and flowcharts are now laid out by Omagram itself (track M).
 - [x] `.desktop` file, icon and MIME types for `.puml`/`.mmd` (installed by the PKGBUILD);
       Omarchy menu entry and Hyprland Lua snippet (SUPER+SHIFT+U, window rules) in
       `packaging/omarchy`; Omarchy notifications for copies and exports
-- [x] Optional override template `omagram.toml.tpl` for `~/.config/omarchy/themed/`:
-      `[palette]`, `[syntax]`, `[marks]`, read from `current/theme/omagram.toml`
+- [x] Optional override template `omaspec.toml.tpl` for `~/.config/omarchy/themed/`:
+      `[palette]`, `[syntax]`, `[marks]`, read from `current/theme/omaspec.toml`
 - [x] Screenshot test over all bundled Omarchy themes, and a contrast check: every token
       color and the dimmed text reach 3:1 on the background (faint ones are moved
       towards the foreground until they do)
 - [x] General examples (`examples/`, linted and rendered in CI), README with screenshots
-      (`cargo test --release -p omagram-app snapshot_` with OMAGRAM_SNAPSHOT_DIR)
+      (`cargo test --release -p omaspec-app snapshot_` with OMASPEC_SNAPSHOT_DIR)
 - [x] Calmer looks: the diagram lies on paper with rounded corners, a soft shadow on a
       light theme and a faint glow on a dark one, where a shadow would not show; paper,
       picture and shadow lie on whole screen pixels, so no edge of one shows past another
@@ -240,7 +240,7 @@ diagrams and flowcharts are now laid out by Omagram itself (track M).
       `alt`, `loop`/`break`, `par` and `opt`, an incident in three lanes, a delivery
       pipeline in subgraphs, a library in packages, an app launch) carry a badge and a
       filter of their own. Each
-      tile is drawn on the spot by Omagram's engines (never Java), fitted on its own paper
+      tile is drawn on the spot by Omaspec's engines (never Java), fitted on its own paper
       at the window's scale, in the colors the diagram pane would show; a switch there
       follows the Omarchy theme and draws them again, the new picture fading in over the
       old. The panel settles as a veil comes, the tiles rise in a wave along the diagonals,
@@ -249,7 +249,7 @@ diagrams and flowcharts are now laid out by Omagram itself (track M).
       the groups, the arrows through the tiles, the grid scrolls to the chosen one. Enter or
       a click opens a copy, unsaved, under a free name in the project folder (an empty tab
       gives way); F5, Shift+Enter or the *plays* badge of a state machine or scenario opens
-      it and plays it once it is drawn. `omagram example` lists them, `example NAME`
+      it and plays it once it is drawn. `omaspec example` lists them, `example NAME`
       prints one (`--json`). A test draws each in the Omarchy colors and checks that it lies
       on the theme's background (the JSON diagram did not). The 24 take about 30 ms of
       engine time together (release build), the pipeline 8 ms and the library 5 ms of it
@@ -261,7 +261,7 @@ diagrams and flowcharts are now laid out by Omagram itself (track M).
       `polyline`) and Mermaid's `"curve": "linear"` or a step keep right angles; activity,
       sequence, timing and signal-flow diagrams keep them anyway
 - [x] Lines laid out by Graphviz's rules ([0012](docs/adr/0012-lines-like-graphviz.md)),
-      found by drawing the gallery with Java PlantUML beside Omagram: a back edge runs
+      found by drawing the gallery with Java PlantUML beside Omaspec: a back edge runs
       through the ranks beside the way there instead of around the diagram, lines spread
       along a side in the order of their other ends, a line between two boxes that overlap
       runs straight, labels of a pair go outside, a container's band is open above except
@@ -300,12 +300,12 @@ the same nodes around the target. The examples avoid all three.
       million without a finding; the other four stopped on inputs that took over 10 s
       in the instrumented build (see the open point below). Seeded robustness tests in
       `cargo test` run the same inputs on every build: 1000 mutated diagrams and images
-      through `omagram-core`, 400 booby-trapped SVGs through the sanitizer (its output
+      through `omaspec-core`, 400 booby-trapped SVGs through the sanitizer (its output
       must hold no scripts, handlers or outside links), 150 broken diagrams through mmdr
-- [x] Java PlantUML confined with Landlock through `omagram __sandbox`: it reads only the
+- [x] Java PlantUML confined with Landlock through `omaspec __sandbox`: it reads only the
       system's folders, its own `/proc` entry, its command's folder, its JDK and the fonts,
       writes only in its own scratch folder, no TCP, no abstract sockets or signals outside;
-      it starts without Omagram's environment but for where programs, Java and fonts are.
+      it starts without Omaspec's environment but for where programs, Java and fonts are.
       A CLI test with a fake PlantUML checks that it can neither write, connect, read
       outside nor see a token
 - [x] No network access and no telemetry ([0005](docs/adr/0005-offline-no-telemetry.md)):
@@ -321,14 +321,14 @@ the same nodes around the target. The examples avoid all three.
       lay right under it, and the places beside it were near other lines' ends, which the
       router leaves out while a free one is there. It found no way, the engine declined
       and mmdr drew the diagram in 0.7 s. The router now tries the places near other ends
-      too when the free ones lead nowhere: drawn by Omagram in 10–20 ms
+      too when the free ones lead nowhere: drawn by Omaspec in 10–20 ms
 - [x] The fuzzing again, 30 minutes each (2026-10-22): `plantuml` 580,000 inputs,
       `model` 287,000, `sanitize` 254,000, `image_source` 10 million, no finding. `text`
       stopped on one `!while` that never ends: one run to the preprocessor's limit takes
       0.2 s, but 4.6 s in the instrumented build, over 10 s with six fuzzers at once.
       `mermaid` stopped on a broken flowchart whose subgraph holds one of its own name;
       the engine declines that, and mmdr takes 0.45 s for the whole diagram
-- [ ] AUR `omagram` and `omagram-bin`, signed tags, announcement: PKGBUILDs in
+- [ ] AUR `omaspec` and `omaspec-bin`, signed tags, announcement: PKGBUILDs in
       `packaging/aur`, a release workflow that builds on Arch, the steps in
       [packaging/RELEASING.md](packaging/RELEASING.md) and a draft in
       `docs/announcement.md` are ready, and so is the SSH key that signs the tags
@@ -337,7 +337,7 @@ Found on the way: the robustness tests found three bugs. Lint counted a lone CR 
 break where the editor does not (now only CRLF is turned into LF); a self-closing `<svg/>`
 got no embedded source; formatting changed a line twice when a BOM followed the indent.
 
-## Track V: behavior specifications, understood (`omagram-model`)
+## Track V: behavior specifications, understood (`omaspec-model`)
 
 What PlantUML and Mermaid cannot do: check a specification, run it, hold it against
 what a system did. See [0007](docs/adr/0007-behavior-specifications.md).
@@ -358,7 +358,7 @@ what a system did. See [0007](docs/adr/0007-behavior-specifications.md).
       reader does not fully understand is not checked. In `lint`, `inspect` and the
       editor with the lint's findings, worded like them. A 61-state machine: 0.5 ms;
       2,000 states: 26 ms. 30,000 mutated diagrams in a test run. Mermaid state
-      diagrams have a reader of Omagram's own (`omagram_uml::state::mermaid`) that
+      diagrams have a reader of Omaspec's own (`omaspec_uml::state::mermaid`) that
       keeps the line of every state, transition and note; the drawer draws from it and
       the checks go by it, so the machine is the one on the picture, and the map knows
       the lines, as for PlantUML. A line Mermaid may read otherwise (a state named again
@@ -384,10 +384,10 @@ what a system did. See [0007](docs/adr/0007-behavior-specifications.md).
       each open diagram's project folder in the background (the sidebar's folder, else
       the file's own) when the folder opens, a file opens or changes, and the window gets
       the focus; `lint` and `inspect` take `--project DIR`. Mermaid sequences are read by
-      the reader the sequence engine draws them with, now in `omagram-uml`. 20,000
+      the reader the sequence engine draws them with, now in `omaspec-uml`. 20,000
       mutated scenarios in a test run
 - [x] V3 a specification played in the diagram, F5 in the editor and `p` in the preview
-      window. A state machine starts (`omagram_model::Run`): it is in its innermost
+      window. A state machine starts (`omaspec_model::Run`): it is in its innermost
       states, one per running region, and waits at a choice or a join; a transition
       leaves every state up to the one holding both ends and enters its target, a
       composite state starts its regions (with no start to begin at, it is entered as a
@@ -403,11 +403,11 @@ what a system did. See [0007](docs/adr/0007-behavior-specifications.md).
       regions and the ways of a fork go at once. A scenario unfolds message by message
       under a soft edge, a light running along each arrow. Each step lights its source
       line; back, again and stop. The engines draw a map beside the SVG
-      (`omagram_uml::map`): states, routes and messages in the picture's units, for
+      (`omaspec_uml::map`): states, routes and messages in the picture's units, for
       PlantUML and Mermaid state diagrams and sequences. What is drawn is a function of
       the time, so tests freeze the clock for pictures. 20,000 mutated machines, played
       at random, in a test run
-- [x] V4 a recorded trace held against the specification. `omagram trace` reads JSON
+- [x] V4 a recorded trace held against the specification. `omaspec trace` reads JSON
       Lines, one event per line: `object` and `event`, optionally `state` (where the
       object is afterwards), `time`, and `machine` when the object is called otherwise, so
       many objects share one machine; other fields are left alone. An object goes by the
@@ -429,7 +429,7 @@ what a system did. See [0007](docs/adr/0007-behavior-specifications.md).
       object can be, and turns red with the finding where the trace deviates. Where the
       machine could go several ways, every state it may be in is lit.
       `examples/player.jsonl` holds against `examples/player.puml`
-- [x] V5 an MCP server, `omagram mcp` ([0008](docs/adr/0008-mcp-server.md)): JSON-RPC
+- [x] V5 an MCP server, `omaspec mcp` ([0008](docs/adr/0008-mcp-server.md)): JSON-RPC
       over standard input and output, one message per line, written on `serde_json`
       without an MCP library or an async runtime. The tools are the command line's:
       `lint` (a file, a folder checked against its own state machines, or the code),
@@ -447,7 +447,7 @@ what a system did. See [0007](docs/adr/0007-behavior-specifications.md).
       other events, guard or action, paired from the closest match to the loosest so a
       changed one is one change; participants, messages and blocks of a scenario, aligned
       as lines are; then what the checks find now or no longer. Layout, colors and notes
-      do not count. `omagram diff OLD NEW`, or one file against its last commit
+      do not count. `omaspec diff OLD NEW`, or one file against its last commit
       (`--rev`), exit 1 on a change; the MCP tool `diff`; in the editor, Compare shows B as
       the changes in behavior, a click going to the line in A
 - [x] V7 a state machine or a scenario written in the other language, through the
@@ -455,14 +455,14 @@ what a system did. See [0007](docs/adr/0007-behavior-specifications.md).
       means the same. Behavior the other language cannot say refuses with its line
       (history in Mermaid; `ref`, `group`, messages from the edge in a Mermaid sequence);
       looks are left out and told. Names Mermaid does not take become plain ids that
-      still show the name. `omagram convert`, the MCP tool `convert`, and the editor's
+      still show the name. `omaspec convert`, the MCP tool `convert`, and the editor's
       *Write it in the other language*. 10,000 mutated diagrams converted there and back
       in a test run, each with the same behavior
 
 Found on the way: mmdr read Mermaid state diagrams otherwise than Mermaid in places, and
 the drawing went by mmdr. It dropped a state written on its own line and a long name in
 quotes that holds a `{`, read `A --> B:::hot` as a transition labelled `::hot`, and a note
-whose text holds an arrow as a transition. Omagram's reading takes them as Mermaid does.
+whose text holds an arrow as a transition. Omaspec's reading takes them as Mermaid does.
 
 Found on the way: the lint's hint for a state name seen once next to a frequent one
 compared every name with every other, and the state parser walked the whole diagram to
@@ -470,7 +470,7 @@ find each name. A 3,700-line state diagram took 450 ms on every change, lint and
 together; now 68 ms. The hint compares only names of a near length whose letters are
 near enough, with the same result; the parser keeps an index of names.
 
-## Track N: native PlantUML (`omagram-uml`)
+## Track N: native PlantUML (`omaspec-uml`)
 
 Runs alongside the phases from v0.1 on. See [0004](docs/adr/0004-native-plantuml.md).
 Since [0007](docs/adr/0007-behavior-specifications.md), new work here serves the behavior
@@ -494,7 +494,7 @@ types only; the others stay as they are.
       Declines, naming the line: `newpage`, `autoactivate`, teoz and
       parallel messages, `handwritten`, `shadowing true`,
       `maxMessageSize`, gradients, images, links, Creole lists, headings and rules.
-      Golden SVGs (`crates/omagram-uml/tests/golden`), 1000 mutated diagrams per test run
+      Golden SVGs (`crates/omaspec-uml/tests/golden`), 1000 mutated diagrams per test run
       (none may panic, all must pass the sanitizer unchanged), Ctrl+click finds the line of
       every label. Login example 0.26 ms, a diagram with every construct 0.95 ms.
       Held against the Java PlantUML: see the oracle below
@@ -550,7 +550,7 @@ types only; the others stay as they are.
       direction` stays inside the box; a note's "right" stays on the right, in room
       the layout keeps for it). Names belong to the whole diagram, as in PlantUML:
       a transition may join states in different nested states (ranked where both
-      meet, routed around everything afterwards, `omagram-uml::graph::across`;
+      meet, routed around everything afterwards, `omaspec-uml::graph::across`;
       since 2026-10-28 laid out with the states around them,
       [0013](docs/adr/0013-containers-like-graphviz.md)),
       and `state X {` opens `X` where it lives. Concurrent regions, `--` one under
@@ -567,7 +567,7 @@ types only; the others stay as they are.
 - [x] N5 class, component, use case, deployment, object: drawn without Java, on the
       same graph as state diagrams. Each package, node or frame is its own layout,
       nested, and a line between two elements in different boxes is routed around
-      what they hold (`omagram-uml::graph::across`). Names belong to the whole
+      what they hold (`omaspec-uml::graph::across`). Names belong to the whole
       diagram. `left to right direction` stays inside the box. Drawn: classes,
       interfaces, enums, abstract classes, annotations, protocols, structs,
       exceptions, records, dataclasses and metaclasses, with members, visibility,
@@ -739,9 +739,9 @@ another line takes the best place along its own line, in state, structure and Me
 diagrams alike.
 
 - [x] The Java PlantUML as the oracle ([0004](docs/adr/0004-native-plantuml.md)),
-      `crates/omagram-model/tests/oracle.rs`: every PlantUML state and sequence
-      diagram of the tests and examples Omagram reads, and 300 of them changed at
-      random (`OMAGRAM_ORACLE_ROUNDS`), go through one `plantuml -pipe`. PlantUML must
+      `crates/omaspec-model/tests/oracle.rs`: every PlantUML state and sequence
+      diagram of the tests and examples Omaspec reads, and 300 of them changed at
+      random (`OMASPEC_ORACLE_ROUNDS`), go through one `plantuml -pipe`. PlantUML must
       read each as the same type; a machine is held against its SCXML export (states,
       where they sit, kinds, transitions and labels), a scenario against its XMI
       (participants in order, messages with their ends, labels and group parts,
@@ -778,7 +778,7 @@ diagrams alike.
       own, or a property with nothing before `}` or `;`, declines the same way.
       A color PlantUML does not know, `red*`, `Back++GroundColor` and a `{` inside
       quotes are still read, because PlantUML draws them. In 400 changed diagrams
-      PlantUML finds no error in a diagram Omagram still reads
+      PlantUML finds no error in a diagram Omaspec still reads
 - [x] Stereotypes of the writer's own on states (`state A <<sub>>`), as PlantUML draws
       them: not shown, and colored by `skinparam state { BackgroundColor<<sub>> … }` or
       `stateBackgroundColor<<sub>>` (background, border and its thickness, font color and
@@ -787,7 +787,7 @@ diagrams alike.
       decline, and so do skinparams for stereotypes of anything but states. A state only a
       transition made moves to the state where it is declared or described next, as
       PlantUML 1.2026.8 does: its own composite example now draws `Configuring` beside
-      `NotShooting`, where Omagram drew it inside; across a concurrent region this
+      `NotShooting`, where Omaspec drew it inside; across a concurrent region this
       declines. `note over` in a state diagram declines saying PlantUML refuses it too
 - [x] `!theme plain`, and Creole tables (`|= a |= b |`) in legends and notes. The
       theme is the part the behavior diagrams draw: background, font and line colors,
@@ -816,7 +816,7 @@ from `B`, so those machines are not compared.
 
 ## Signal flow (`@startflow`)
 
-Omagram's own diagram, not PlantUML's. See
+Omaspec's own diagram, not PlantUML's. See
 [0010](docs/adr/0010-signal-flow.md). Software as blocks that receive and
 send named signals, placed left to right on the graph engine. The wires are
 drawn to the ports; the graph only ranks the blocks. A line it declines is
@@ -840,12 +840,12 @@ that line, and is not sent to the Java PlantUML.
       block, stays inside the frame and below the block's name. Not in this
       slice: buses, a Simulink import, checks, and running the diagram.
 
-## Track M: Mermaid on Omagram's engines
+## Track M: Mermaid on Omaspec's engines
 
-mmdr still parses every Mermaid diagram; for these types `omagram-render`
+mmdr still parses every Mermaid diagram; for these types `omaspec-render`
 lays out and draws with the engines of track N (`src/mermaid/layered/`), and
 mmdr only draws what they decline. Sequence and state diagrams are read again
-by readers of Omagram's own in `omagram-uml`, which keep every line. As in
+by readers of Omaspec's own in `omaspec-uml`, which keep every line. As in
 track N, new work serves the behavior types only.
 
 - [x] M1 state, on the N4 graph engine: nested states, concurrent regions (each
@@ -886,6 +886,6 @@ track N, new work serves the behavior types only.
       does not parse, and links, which are not drawn
 
 Target for 1.0 ([0006](docs/adr/0006-goals-and-scope.md)): sequence, activity, state and
-flowcharts drawn by Omagram in both languages. A touchpad pinch zooms at the
+flowcharts drawn by Omaspec in both languages. A touchpad pinch zooms at the
 pointer (two fingers still pan) and a touchscreen pinch zooms at the fingers.
 Lint and outline move onto the syntax tree as each type lands.

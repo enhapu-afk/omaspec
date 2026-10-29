@@ -1,0 +1,22 @@
+[package]
+name = "omaspec-model"
+description = "What an Omaspec diagram means: one behavior model for PlantUML and Mermaid, and the checks on it"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json = "1"
+omaspec-core.workspace = true
+omaspec-uml.workspace = true
+
+[dev-dependencies]
+# The oracle test reads PlantUML's SCXML and XMI exports.
+roxmltree = "0.21"
+
+[lints]
+workspace = true

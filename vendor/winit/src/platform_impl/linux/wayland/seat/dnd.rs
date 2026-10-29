@@ -1,4 +1,4 @@
-//! Omagram addition to winit 0.30.13: file drag-and-drop on Wayland.
+//! Omaspec addition to winit 0.30.13: file drag-and-drop on Wayland.
 //!
 //! `wl_data_device` delivers a drop of `text/uri-list`. Each `file://` path
 //! becomes `WindowEvent::DroppedFile`, which is how an SVG or PNG opens its
@@ -171,7 +171,7 @@ impl DataOfferHandler for WinitState {
 }
 
 impl DataSourceHandler for WinitState {
-    // Omagram only receives drops. It never offers a data source.
+    // Omaspec only receives drops. It never offers a data source.
     fn accept_mime(
         &mut self,
         _: &Connection,

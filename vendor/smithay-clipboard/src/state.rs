@@ -154,7 +154,7 @@ impl State {
         }
 
         let (read_pipe, mime_type) = match ty {
-            // Omagram addition to smithay-clipboard 0.7.3: Hyprland sends
+            // Omaspec addition to smithay-clipboard 0.7.3: Hyprland sends
             // the selection only to a client's first data device, which is
             // winit's. Without an offer of its own, read the one winit keeps.
             SelectionTarget::Clipboard
@@ -604,7 +604,7 @@ fn set_non_blocking(raw_fd: RawFd) -> std::io::Result<()> {
     Ok(())
 }
 
-/// Omagram addition to smithay-clipboard 0.7.3: the selection winit's data
+/// Omaspec addition to smithay-clipboard 0.7.3: the selection winit's data
 /// device received, as a pipe to read and the MIME type asked for.
 fn winit_selection() -> Result<(ReadPipe, MimeType)> {
     let (offer, mime_types) = winit::platform::wayland::selection_offer()

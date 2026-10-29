@@ -616,7 +616,7 @@ impl Focusable for State {
 /// changed since the last save; the host computes them. An empty `rows`
 /// (`n..n`) marks lines removed before row `n` with a short tick.
 ///
-/// Omagram addition to scrive 0.3.0.
+/// Omaspec addition to scrive 0.3.0.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LineMarker {
     /// The buffer rows marked.
@@ -634,7 +634,7 @@ const MARKER_W: f32 = 3.0;
 #[allow(missing_debug_implementations)]
 pub struct Editor<'a, Message> {
     id: Option<widget::Id>,
-    /// Gutter marks for runs of rows (Omagram addition).
+    /// Gutter marks for runs of rows (Omaspec addition).
     markers: &'a [LineMarker],
     doc: &'a Document,
     on_action: Box<dyn Fn(Action) -> Message + 'a>,
@@ -693,7 +693,7 @@ impl<'a, Message> Editor<'a, Message> {
 
     /// Supply gutter marks for runs of rows (see [`LineMarker`]).
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     #[must_use]
     pub fn line_markers(mut self, markers: &'a [LineMarker]) -> Self {
         self.markers = markers;
@@ -1392,7 +1392,7 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Editor<'_, Messag
             window.contains(&p.row.index()).then(|| (geo.cell_x(p.x.cells()), geo.row_y(p.row)))
         };
 
-        // Line markers (Omagram addition): a bar in the gutter's left pad
+        // Line markers (Omaspec addition): a bar in the gutter's left pad
         // and an optional wash under the text, only for rows in the window,
         // cut to the widget (a row half out of view would spill over).
         if !self.markers.is_empty() {

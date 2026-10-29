@@ -8,7 +8,7 @@ diagrams lay out a container that a line runs into from outside; follows
 
 After [0012](0012-lines-like-graphviz.md), Java PlantUML still drew the
 gallery's diagrams with containers better: the smart home, the library,
-the ticket machine. Omagram laid each container out on its own, placed it
+the ticket machine. Omaspec laid each container out on its own, placed it
 as one box, and routed a line between two containers afterwards, around
 everything (`graph::across`). The boxes could not move for such a line, so
 it came in from a side, through the frame, or around the diagram.

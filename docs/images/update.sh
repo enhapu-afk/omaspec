@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Takes the pictures of the README and the guide again: headless screenshots
-# from the snapshot tests (crates/omagram-app/src/editor/tests.rs), four
+# from the snapshot tests (crates/omaspec-app/src/editor/tests.rs), four
 # bundled Omarchy themes as one picture, and the coffee machine at play as a
 # GIF. Needs ImageMagick and ffmpeg; the themes need Omarchy's bundled themes.
 set -euo pipefail
@@ -9,7 +9,7 @@ out=docs/images
 shots=$(mktemp -d)
 trap 'rm -rf "$shots"' EXIT
 
-OMAGRAM_SNAPSHOT_DIR="$shots" cargo test --release -p omagram-app --bin omagram -- \
+OMASPEC_SNAPSHOT_DIR="$shots" cargo test --release -p omaspec-app --bin omaspec -- \
   snapshot_story snapshot_readme snapshot_themes snapshot_gallery >/dev/null
 
 shot() { magick "$shots/$1-wgpu.png" -strip "$out/$2.png"; }
@@ -45,8 +45,8 @@ ffmpeg -loglevel error -y -f concat -safe 0 -i "$list" \
 bold=$(fc-match -f '%{file}' 'monospace:bold')
 regular=$(fc-match -f '%{file}' 'monospace')
 magick -respect-parentheses -size 1280x640 xc:'#1a1b26' \
-  \( -background none -density 384 packaging/omagram.svg -resize 112x112 \) -geometry +72+72 -composite \
-  -font "$bold" -pointsize 64 -fill '#c0caf5' -annotate +72+270 'Omagram' \
+  \( -background none -density 384 packaging/omaspec.svg -resize 112x112 \) -geometry +72+72 -composite \
+  -font "$bold" -pointsize 64 -fill '#c0caf5' -annotate +72+270 'Omaspec' \
   -font "$regular" -pointsize 26 -fill '#a9b1d6' \
   -annotate +72+336 $'PlantUML and Mermaid,\ndrawn as you type,\nunderstood as behavior.' \
   -pointsize 22 -fill '#565f89' -annotate +72+566 'A diagram editor for Omarchy' \

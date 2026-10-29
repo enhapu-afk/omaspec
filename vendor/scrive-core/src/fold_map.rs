@@ -106,7 +106,7 @@ impl FoldSet {
 
     /// Bump the generation without changing the set.
     ///
-    /// Omagram addition to scrive 0.3.0: diagram fold regions live beside
+    /// Omaspec addition to scrive 0.3.0: diagram fold regions live beside
     /// the bracket folds, and replacing them has to rebuild the cached map.
     pub fn touch(&mut self) {
         self.bump();
@@ -538,7 +538,7 @@ impl FoldMap {
     /// region `(header byte, last byte)` instead of a bracket. `extra` is
     /// sorted by the header byte.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     #[must_use]
     pub fn with_regions(
         folds: &FoldSet,

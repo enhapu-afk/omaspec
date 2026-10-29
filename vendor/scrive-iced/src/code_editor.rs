@@ -201,7 +201,7 @@ pub struct CodeEditor {
     /// A pending async hover request (same pattern), recorded when the pointer
     /// rested over a word and no synchronous hover provider is set.
     pending_hover_request: Option<HoverRequest>,
-    /// Gutter marks the host supplied (Omagram addition).
+    /// Gutter marks the host supplied (Omaspec addition).
     markers: Vec<LineMarker>,
     /// The off-thread parallel highlight sweep — `Some` for a large document
     /// (`PARALLEL_MIN_BYTES`), `None` for small ones (the synchronous path). Owned
@@ -494,7 +494,7 @@ impl CodeEditor {
     /// centered, unfolding what hides it: "go to line" for an outline or an
     /// error list. Closes the completion popup and the hover.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn jump_to(&mut self, range: Range<u32>) {
         self.doc.jump_to(range);
         self.completion.escape();
@@ -504,14 +504,14 @@ impl CodeEditor {
     /// Replace the gutter marks (see [`LineMarker`]). They do not move with
     /// edits; the host sets them again after each one.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn set_line_markers(&mut self, markers: Vec<LineMarker>) {
         self.markers = markers;
     }
 
     /// The gutter marks set last.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     #[must_use]
     pub fn line_markers(&self) -> &[LineMarker] {
         &self.markers
@@ -527,28 +527,28 @@ impl CodeEditor {
 
     /// Diagram blocks the gutter can fold, as `(header byte, last byte)`.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn set_fold_regions(&mut self, regions: Vec<(u32, u32)>) {
         self.doc.set_fold_regions(regions);
     }
 
     /// Fold (`unfold == false`) or unfold the block at the caret.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn collapse_at_caret(&mut self, unfold: bool) {
         self.doc.fold_at_carets(unfold);
     }
 
     /// Collapse every bracket pair and every diagram region.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn collapse_all(&mut self) {
         self.doc.collapse_all();
     }
 
     /// Unfold every block.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn expand_all(&mut self) {
         self.doc.expand_all();
     }
@@ -1732,7 +1732,7 @@ fn find_chord(
 ) -> Option<Event> {
     use iced::keyboard::{key::Named, Key};
     let ctrl = modifiers.command() || modifiers.control();
-    // Omagram change to scrive 0.3.0: iced reports the key without Shift,
+    // Omaspec change to scrive 0.3.0: iced reports the key without Shift,
     // so Ctrl+Shift+F would open the bar too; it is the app's own chord.
     // Ctrl+Alt+F fullscreens an area, including while Super is still held.
     let ctrl = ctrl && !modifiers.shift() && !modifiers.alt();

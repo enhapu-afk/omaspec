@@ -1,0 +1,54 @@
+# Maintainer: Nils Hoffmann
+#
+# Builds an Omaspec release from its source archive. Before submitting: set
+# `pkgver` to the release and the checksum
+# with `updpkgsums`; see packaging/RELEASING.md.
+
+pkgname=omaspec
+pkgver=0.4.0
+pkgrel=1
+pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy"
+arch=('x86_64' 'aarch64')
+url="https://github.com/enhapu-afk/omaspec"
+license=('MIT')
+depends=('gcc-libs' 'glibc' 'fontconfig' 'libxkbcommon' 'wayland' 'vulkan-icd-loader')
+makedepends=('cargo')
+optdepends=(
+  'plantuml: optional, Java; draws the few PlantUML types the native engine does not (YAML, Salt, ...)'
+  'wl-clipboard: copy diagrams to the clipboard'
+  'git: compare a diagram with a git commit'
+  'libnotify: notifications outside Omarchy'
+)
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release -p omaspec-app
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo test --frozen -p omaspec-theme -p omaspec-core
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  install -Dm755 target/release/omaspec "$pkgdir/usr/bin/omaspec"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+  install -Dm644 packaging/omaspec.desktop "$pkgdir/usr/share/applications/omaspec.desktop"
+  install -Dm644 packaging/omaspec.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/omaspec.svg"
+  install -Dm644 packaging/omaspec-mime.xml "$pkgdir/usr/share/mime/packages/omaspec.xml"
+  # Templates for Omarchy users to copy (see README).
+  install -Dm644 -t "$pkgdir/usr/share/omaspec/omarchy" packaging/omarchy/*
+}

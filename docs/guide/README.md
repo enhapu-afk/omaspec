@@ -4,13 +4,13 @@ Ten minutes from an empty folder to a state machine that is checked, played and 
 against what a real system did. You write a door: it opens, closes, locks and sometimes
 jams. The finished files are in [examples/door](../../examples/door).
 
-Omagram reads PlantUML and Mermaid alike; this guide uses PlantUML. Every key here is
+Omaspec reads PlantUML and Mermaid alike; this guide uses PlantUML. Every key here is
 also in the command list (**Ctrl+Shift+P**), so you never need to remember one. Every
 key and command is in the [reference](reference.md).
 
 1. [Install](#1-install)
 2. [Draw a state machine](#2-draw-a-state-machine)
-3. [Let Omagram check it](#3-let-omagram-check-it)
+3. [Let Omaspec check it](#3-let-omaspec-check-it)
 4. [Play it](#4-play-it)
 5. [Write a scenario against it](#5-write-a-scenario-against-it)
 6. [Hold a recorded trace against it](#6-hold-a-recorded-trace-against-it)
@@ -22,13 +22,13 @@ key and command is in the [reference](reference.md).
 On Omarchy (or any Arch Linux):
 
 ```bash
-yay -S omagram-bin
+yay -S omaspec-bin
 ```
 
 Other ways are in the [README](../../README.md#install). Check that it runs:
 
 ```bash
-omagram theme   # the palette Omagram reads from your Omarchy theme
+omaspec theme   # the palette Omaspec reads from your Omarchy theme
 ```
 
 ## 2. Draw a state machine
@@ -36,7 +36,7 @@ omagram theme   # the palette Omagram reads from your Omarchy theme
 Make a folder and open the editor on it:
 
 ```bash
-mkdir -p ~/specs && omagram ~/specs
+mkdir -p ~/specs && omaspec ~/specs
 ```
 
 The folder is in the sidebar on the left. Press **Ctrl+N** for a new tab, type the door,
@@ -61,9 +61,9 @@ state or a label in the diagram jumps to its line.
 The diagram here is in the colors of the Omarchy theme. To get that, run *Diagram theme:
 follow Omarchy* from the command list; your file stays as it is.
 
-## 3. Let Omagram check it
+## 3. Let Omaspec check it
 
-Omagram reads a state diagram as the state machine it specifies and checks it while you
+Omaspec reads a state diagram as the state machine it specifies and checks it while you
 type. Add a door that jams:
 
 ```plantuml
@@ -81,14 +81,14 @@ A jammed door that stays jammed forever is not what you meant, so give it a way 
 Jammed --> Open : repaired
 ```
 
-The finding is gone. Omagram also finds a state no path from the start reaches, one event
+The finding is gone. Omaspec also finds a state no path from the start reaches, one event
 leading from one state to two others with no guard to choose (`open [unlocked]` is an
 event with a guard), and a composite state entered with no start inside.
 
 The same checks run on the command line, for scripts and CI:
 
 ```console
-$ omagram lint door.puml
+$ omaspec lint door.puml
 door.puml:8: warning: Nothing leaves Jammed. If the machine ends there, add Jammed --> [*].
 ```
 
@@ -111,7 +111,7 @@ Bigger machines play the same way: try *A coffee machine* from the examples
 
 ## 5. Write a scenario against it
 
-A sequence diagram is a scenario. Omagram checks it against the state machines in its
+A sequence diagram is a scenario. Omaspec checks it against the state machines in its
 folder: a participant named like a machine (here `Door`, from `title Door` or from the
 file name `door.puml`) must take every message it receives as an event, in this order.
 
@@ -134,7 +134,7 @@ The car locks the door while it is still open:
 ![The scenario checked against the door: Door does not take lock here](../images/specs.png)
 
 ```console
-$ omagram lint leave.puml
+$ omaspec lint leave.puml
 leave.puml:8: warning: Door does not take lock here: by now it is in Open, and it has no transition for lock (door.puml).
 ```
 
@@ -160,10 +160,10 @@ and, if the log knows it, the state it ended up in and the time. Save this as
 {"time":"07:09:52","object":"Door","event":"lock"}
 ```
 
-`omagram trace` plays it through the state machines of its folder:
+`omaspec trace` plays it through the state machines of its folder:
 
 ```console
-$ omagram trace night.jsonl
+$ omaspec trace night.jsonl
 night.jsonl:4: error: At 07:09:52, Door does not take lock here: by now it is in Open, and it has no transition for lock (door.puml). Its later events are checked again from a line that gives its state.
 ```
 
@@ -184,18 +184,18 @@ the status bar asks for the path. **Ctrl+Shift+C** copies the diagram as a PNG. 
 command line, the extension picks the format:
 
 ```console
-$ omagram render door.puml -o door.png
-door.puml → door.png (Omagram PlantUML, 2.9 ms)
+$ omaspec render door.puml -o door.png
+door.puml → door.png (Omaspec PlantUML, 2.9 ms)
 ```
 
-The image carries its source. Drop it on the Omagram window (or open it with **Ctrl+O**)
-and it opens as a diagram again; `omagram extract door.png` prints the source.
+The image carries its source. Drop it on the Omaspec window (or open it with **Ctrl+O**)
+and it opens as a diagram again; `omaspec extract door.png` prints the source.
 
-**In Mermaid.** `omagram convert` writes the same machine in the other language, and
+**In Mermaid.** `omaspec convert` writes the same machine in the other language, and
 refuses when the result would not mean the same:
 
 ```console
-$ omagram convert door.puml -o door.mmd
+$ omaspec convert door.puml -o door.mmd
 door.puml → door.mmd
 ```
 
@@ -203,7 +203,7 @@ door.puml → door.mmd
 instead, and ask what changed in the *behavior*, not in the lines:
 
 ```console
-$ omagram diff door.puml
+$ omaspec diff door.puml
 door.puml:9: changed: On repaired, Jammed now goes to Closed instead of Open.
 ```
 
@@ -214,9 +214,9 @@ another tab or a recent commit, side by side.
 
 - **The examples.** **Ctrl+Shift+E** shows 24 of them as tiles, from a pizza night to an
   elevator; **F5** on a tile plays it.
-- **Next to Neovim.** `omagram preview door.puml` opens a window that draws the file again
+- **Next to Neovim.** `omaspec preview door.puml` opens a window that draws the file again
   on every save. Tile it next to your editor.
-- **AI agents.** `claude mcp add omagram -- omagram mcp` gives Claude Code (or any MCP
+- **AI agents.** `claude mcp add omaspec -- omaspec mcp` gives Claude Code (or any MCP
   client) the same checks: lint, trace, diff, convert, render.
 - **Everything else** is in the [reference](reference.md): keys, the command line, skin
   packs, the Omarchy integration.

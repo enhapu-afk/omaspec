@@ -23,7 +23,7 @@ use crate::window::{Window, WindowAttributes};
 
 pub use crate::window::Theme;
 
-/// Omagram addition to winit 0.30.13: the clipboard offer the compositor
+/// Omaspec addition to winit 0.30.13: the clipboard offer the compositor
 /// last sent to this client, with its MIME types; `None` when the clipboard
 /// is empty or no offer came yet.
 ///

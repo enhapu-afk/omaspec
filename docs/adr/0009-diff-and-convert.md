@@ -4,10 +4,10 @@ Status: accepted, 2026-10-21. Follows [0007](0007-behavior-specifications.md).
 
 ## Decision
 
-Two features stand on the behavior model of `omagram-model`, which reads
+Two features stand on the behavior model of `omaspec-model`, which reads
 PlantUML and Mermaid alike:
 
-- **A semantic diff** (`omagram_model::diff`) tells what changed in the
+- **A semantic diff** (`omaspec_model::diff`) tells what changed in the
   behavior between two versions of a diagram, also between the languages.
   For a state machine: states new, removed, moved into another state or
   region, of another kind; transitions new, removed, with another target,
@@ -17,7 +17,7 @@ PlantUML and Mermaid alike:
   a change that leaves a state unreachable says so. Layout is not
   behavior: moved or re-indented lines, colors, notes and shown labels
   change nothing.
-- **A conversion** (`omagram_model::convert`) writes a state machine or a
+- **A conversion** (`omaspec_model::convert`) writes a state machine or a
   sequence diagram in the other language, from the parse the checks use.
   The result is read back and compared with the original by the diff; if
   the two would not mean the same, nothing is written. Behavior the other
@@ -27,7 +27,7 @@ PlantUML and Mermaid alike:
   skin parameters, notes above or below a state, the direction of a nested
   state, the shapes of participants, dividers and delays.
 
-Both are in `omagram diff` and `omagram convert`, in the MCP server
+Both are in `omaspec diff` and `omaspec convert`, in the MCP server
 ([0008](0008-mcp-server.md)), and in the editor: Compare shows B as the
 changes in behavior, and a command writes the tab in the other language in
 a new tab.
@@ -51,7 +51,7 @@ a new tab.
   still shows the name, and a notice says so.
 - `@startuml Name` becomes the Mermaid title when there is none, so
   sequence diagrams still find the machine by its name.
-- `omagram diff FILE` compares with the version in the last commit
+- `omaspec diff FILE` compares with the version in the last commit
   (`--rev` for another); a revision that looks like an option is refused
   before git sees it. The exit code is 0 for the same behavior, 1 for a
   change, as `diff` does.

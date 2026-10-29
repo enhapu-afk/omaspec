@@ -3,7 +3,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use omagram_render::{export, sanitize::sanitize};
+use omaspec_render::{export, sanitize::sanitize};
 
 fuzz_target!(|svg: &str| {
     let Ok(clean) = sanitize(svg) else { return };

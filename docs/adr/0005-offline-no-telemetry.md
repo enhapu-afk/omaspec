@@ -4,11 +4,11 @@ Status: accepted, 2026-10-16
 
 ## Decision
 
-Omagram never uses the network and reports nothing about its use: no update
+Omaspec never uses the network and reports nothing about its use: no update
 checks, no crash reports, no usage counts, no fonts or engines fetched at run
 time. Diagrams stay on the machine.
 
-## What Omagram talks to
+## What Omaspec talks to
 
 All of it local:
 
@@ -18,11 +18,11 @@ All of it local:
 - Programs it starts: `fc-match` (the font), `wl-copy` (the clipboard),
   `omarchy-notification-send` or `notify-send` (notifications), `git log`
   and `git show` (Compare), and the Java `plantuml` if installed.
-- Files: the diagrams, its session in `$XDG_STATE_HOME/omagram`, the
+- Files: the diagrams, its session in `$XDG_STATE_HOME/omaspec`, the
   Omarchy theme in `$XDG_STATE_HOME/omarchy/current`.
 
 The D-Bus theme detection of iced (`linux-theme-detection`) is switched off:
-Omagram reads the Omarchy theme and needs no D-Bus client.
+Omaspec reads the Omarchy theme and needs no D-Bus client.
 
 ## How it is held
 
@@ -31,7 +31,7 @@ Omagram reads the Omarchy theme and needs no D-Bus client.
   runs in CI, so no dependency can bring one in unnoticed.
 - The Java PlantUML is the one engine that could reach out (`!include` of
   URLs, Java's own networking). It runs with PlantUML's
-  `PLANTUML_SECURITY_PROFILE=SANDBOX` and, through `omagram __sandbox`,
+  `PLANTUML_SECURITY_PROFILE=SANDBOX` and, through `omaspec __sandbox`,
   confined with Landlock: it reads only the system's folders (`/usr`,
   `/etc`, `/opt`, `/sys`), its own `/proc` entry, the folder of the
   `plantuml` command, the JDK of `JAVA_HOME` and of `PATH` and the user's
@@ -39,10 +39,10 @@ Omagram reads the Omarchy theme and needs no D-Bus client.
   only in a scratch folder of its own; no TCP, no abstract Unix sockets
   and no signals outside (Linux 6.7 and newer for TCP, 6.12 for the last
   two; older kernels get what they support). It starts with a small part
-  of Omagram's environment (where programs, Java and fonts are, the
+  of Omaspec's environment (where programs, Java and fonts are, the
   language), so no token reaches it, confined or not. A CLI test checks
   that it can neither write outside, connect, read outside nor see the
-  environment. `OMAGRAM_SANDBOX=off` turns the confinement off for
+  environment. `OMASPEC_SANDBOX=off` turns the confinement off for
   debugging. Confined, it may hold at most 4,096 files open: a process
   Java starts (Graphviz) cannot list its own descriptors there, so Java
   closes every one up to the limit, which with Omarchy's 524,288 cost
@@ -59,7 +59,7 @@ Omagram reads the Omarchy theme and needs no D-Bus client.
 
 - UDP is outside Landlock's network rules; PlantUML's SANDBOX profile is
   the fence there.
-- The programs Omagram starts besides PlantUML run unconfined; they are
+- The programs Omaspec starts besides PlantUML run unconfined; they are
   the user's own system tools. `git` runs with the settings that would
   start other programs switched off (signature checks, a file system
   monitor, a pager, external diffs and text conversions), since a
@@ -67,4 +67,4 @@ Omagram reads the Omarchy theme and needs no D-Bus client.
 - A PlantUML or a Java installed somewhere else in the home folder (a
   `java` that is a version manager's shim, a `plantuml` script that starts
   a jar from another folder) cannot be read inside the confinement;
-  `JAVA_HOME` or `OMAGRAM_SANDBOX=off` helps there.
+  `JAVA_HOME` or `OMASPEC_SANDBOX=off` helps there.

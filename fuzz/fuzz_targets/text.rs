@@ -3,7 +3,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use omagram_core::{Language, classify, detect, format, lint, locate, outline};
+use omaspec_core::{Language, classify, detect, format, lint, locate, outline};
 
 fuzz_target!(|code: &str| {
     let lines = code.split('\n').count();

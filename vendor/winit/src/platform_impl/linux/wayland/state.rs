@@ -99,13 +99,13 @@ pub struct WinitState {
     /// Relative pointer.
     pub relative_pointer: Option<RelativePointerState>,
 
-    /// Omagram: touchpad pinch and the other pointer gestures.
+    /// Omaspec: touchpad pinch and the other pointer gestures.
     pub pointer_gestures: Option<PointerGesturesState>,
 
-    /// Omagram: `wl_data_device_manager`, for file drag-and-drop.
+    /// Omaspec: `wl_data_device_manager`, for file drag-and-drop.
     pub data_device_manager: Option<DataDeviceManagerState>,
 
-    /// Omagram: the window an accepted file drag is over.
+    /// Omaspec: the window an accepted file drag is over.
     pub dnd_window: Option<WindowId>,
 
     /// Pointer constraints to handle pointer locking and confining.
@@ -153,7 +153,7 @@ impl WinitState {
         let monitors = output_state.outputs().map(MonitorHandle::new).collect();
 
         let seat_state = SeatState::new(globals, queue_handle);
-        // Omagram: file drag-and-drop. Missing on a compositor without the
+        // Omaspec: file drag-and-drop. Missing on a compositor without the
         // manager; the window then never sees a dropped file.
         let data_device_manager = match DataDeviceManagerState::bind(globals, queue_handle) {
             Ok(manager) => Some(manager),

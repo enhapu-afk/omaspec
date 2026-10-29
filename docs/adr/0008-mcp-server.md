@@ -4,21 +4,21 @@ Status: accepted, 2026-10-21
 
 ## Decision
 
-`omagram mcp` is a Model Context Protocol server. An agent's client
+`omaspec mcp` is a Model Context Protocol server. An agent's client
 starts it as a program and speaks JSON-RPC 2.0 with it over standard input
 and output, one message per line. It offers what the command line does, as
 tools an agent calls while it writes a specification:
 
 | Tool      | Does                                                                 | Like             |
 | --------- | -------------------------------------------------------------------- | ---------------- |
-| `lint`    | the lint's findings and the specification checks, for a diagram or every diagram in a folder | `omagram lint --json` |
-| `trace`   | a recorded trace (JSON Lines) held against the state machines of its project | `omagram trace --json` |
-| `inspect` | language, kind, findings, outline, and whether Omagram draws it    | `omagram inspect` |
-| `outline` | the structure of a diagram                                           | `omagram outline --json` |
-| `diff`    | what changed in the behavior between two versions, or against a git revision | `omagram diff --json` |
-| `convert` | the diagram in the other language, or why not ([0009](0009-diff-and-convert.md)) | `omagram convert --json` |
-| `format`  | the diagram re-indented; with `write`, the file rewritten            | `omagram fmt`  |
-| `render`  | the picture: a PNG the agent sees, SVG text, or a file of any export format | `omagram render` |
+| `lint`    | the lint's findings and the specification checks, for a diagram or every diagram in a folder | `omaspec lint --json` |
+| `trace`   | a recorded trace (JSON Lines) held against the state machines of its project | `omaspec trace --json` |
+| `inspect` | language, kind, findings, outline, and whether Omaspec draws it    | `omaspec inspect` |
+| `outline` | the structure of a diagram                                           | `omaspec outline --json` |
+| `diff`    | what changed in the behavior between two versions, or against a git revision | `omaspec diff --json` |
+| `convert` | the diagram in the other language, or why not ([0009](0009-diff-and-convert.md)) | `omaspec convert --json` |
+| `format`  | the diagram re-indented; with `write`, the file rewritten            | `omaspec fmt`  |
+| `render`  | the picture: a PNG the agent sees, SVG text, or a file of any export format | `omaspec render` |
 
 A diagram is given as `path` (a file) or as `code` (its text). A path
 also names the project, as on the command line: the state machines a

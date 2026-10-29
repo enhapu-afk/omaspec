@@ -5,7 +5,7 @@ title Editor settings
   "font": { "family": "monospace", "size": 14 },
   "render": {
     "pause": "400 ms",
-    "engines": ["Omagram PlantUML", "mmdr"]
+    "engines": ["Omaspec PlantUML", "mmdr"]
   },
   "lint": true,
   "telemetry": null

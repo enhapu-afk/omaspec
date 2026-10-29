@@ -1,6 +1,6 @@
 # 0014: The name Omagram, and its mark
 
-Status: accepted, 2026-10-28.
+Status: accepted, 2026-10-28; the name superseded by [0015](0015-name-omaspec.md) on 2026-10-29, the mark kept.
 
 ## Decision
 

@@ -5,17 +5,17 @@ Status: accepted, 2026-10-20. Replaces the scope of
 
 ## Decision
 
-Omagram is a tool for people who write specifications. Its core is
+Omaspec is a tool for people who write specifications. Its core is
 behavior: state machines, sequence diagrams, activity diagrams and
-flowcharts, in PlantUML and in Mermaid. For these, Omagram does not only
+flowcharts, in PlantUML and in Mermaid. For these, Omaspec does not only
 draw the diagram, it understands it: it checks a specification, and later
 lets it run and holds it against what a system did.
 
 - **No new language.** PlantUML and Mermaid stay what people write. Many
   tools show them, much is written in them, and language models write
-  them fluently. Underneath, `omagram-model` reads both into one
+  them fluently. Underneath, `omaspec-model` reads both into one
   behavior model: what a diagram means, not how it looks.
-- **No race for coverage.** Omagram no longer aims to draw every type.
+- **No race for coverage.** Omaspec no longer aims to draw every type.
   Class, component, use case, deployment, object, timing and Gantt
   diagrams, mind maps and WBS stay as they are, drawn natively or through
   the fallback, and get no new work. In the behavior types, gaps close
@@ -58,9 +58,9 @@ browser or a network, which a specification from a company may not leave.
   (a state with no way out) is a warning with the fix that makes it
   explicit.
 - Findings of the model come with the lint findings, in the editor and in
-  `omagram lint` (`file:line`, `--json`, exit codes), so agents use them
+  `omaspec lint` (`file:line`, `--json`, exit codes), so agents use them
   the same way.
-- `omagram-model` does no I/O and has no GUI dependency, like
-  `omagram-core` and `omagram-uml`.
+- `omaspec-model` does no I/O and has no GUI dependency, like
+  `omaspec-core` and `omaspec-uml`.
 - The roadmap's track V holds this work; tracks N and M keep only what the
   behavior types need.

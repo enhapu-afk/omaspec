@@ -12,7 +12,7 @@ keep clear of boxes and labels; only the drawing changes. Every corner
 turns in a curve that starts at most 48 units before it, and no further
 than half of either run (the first and the last run whole). A short jog
 becomes an S, a detour around the diagram an arc. The ends keep their
-direction, so arrowheads sit on the line. Code: `omagram_uml::curve`.
+direction, so arrowheads sit on the line. Code: `omaspec_uml::curve`.
 
 Right angles stay where they belong to the type, and where the file asks:
 

@@ -1,4 +1,4 @@
-// Omagram in the Omarchy menu (SUPER+ALT+SPACE). Add the line below to the
+// Omaspec in the Omarchy menu (SUPER+ALT+SPACE). Add the line below to the
 // object in ~/.config/omarchy/extensions/omarchy-menu.jsonc.
 
-"omagram": {"icon": "󰈸", "label": "Diagram editor", "action": "uwsm-app -- omagram", "description": "PlantUML and Mermaid"},
+"omaspec": {"icon": "󰈸", "label": "Diagram editor", "action": "uwsm-app -- omaspec", "description": "PlantUML and Mermaid"},

@@ -25,7 +25,7 @@ with grammar, theme, first highlight and lint takes 37–47 ms for 500 to
 50,000 lines; the highlight cache is windowed to the viewport, so the cost
 barely grows with the file. Headless snapshots in matte-black, tokyo-night
 and catppuccin-latte looked right; the window starts under Hyprland with the
-class `omagram`.
+class `omaspec`.
 
 ## Risks
 
@@ -43,7 +43,7 @@ downloads. Mitigation:
 Building the editor window on scrive 0.3.0 as published:
 
 - `CodeEditor` owns its `Document` and hands out only `&Document`, so
-  `mark_saved`/`is_dirty` are out of reach; Omagram compares the text with
+  `mark_saved`/`is_dirty` are out of reach; Omaspec compares the text with
   the saved text instead (cheap at diagram sizes).
 - There is no way to move the caret and scroll it into view from the app:
   `PlaceCaret` does not scroll, and the scroll-to-caret request is private to
@@ -57,6 +57,6 @@ Building the editor window on scrive 0.3.0 as published:
   (`editor/keys.rs`) takes window shortcuts before the editor sees them.
 
 The reveal call and line markers (for "changed since save") are small
-additions to scrive. Decision (2026-10-16): Omagram builds scrive 0.3.0 from
+additions to scrive. Decision (2026-10-16): Omaspec builds scrive 0.3.0 from
 a copy in `vendor/` with these additions (see `vendor/README.md`), instead of
 waiting for an upstream release. The additions may be offered upstream later.

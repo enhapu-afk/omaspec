@@ -9,8 +9,8 @@ cargo install cargo-fuzz
 cargo +nightly fuzz run text           # lint, outline, formatting, …
 cargo +nightly fuzz run image_source   # source from PNG and SVG bytes
 cargo +nightly fuzz run sanitize       # the SVG sanitizer
-cargo +nightly fuzz run mermaid        # mmdr and Omagram's repairs
-cargo +nightly fuzz run plantuml       # Omagram's own PlantUML engine
+cargo +nightly fuzz run mermaid        # mmdr and Omaspec's repairs
+cargo +nightly fuzz run plantuml       # Omaspec's own PlantUML engine
 cargo +nightly fuzz run model          # checks, plays, conversion and diff of the behavior model
 ```
 
@@ -26,7 +26,7 @@ leaves to it; with several fuzzers at once, 10 s stops those two on these known
 slow inputs before they find anything new.
 
 Seed `text` with the fixtures for a faster start:
-`cargo +nightly fuzz run text crates/omagram-core/tests/fixtures`.
+`cargo +nightly fuzz run text crates/omaspec-core/tests/fixtures`.
 
 Every `cargo test` also runs a quicker, seeded version of the same checks on stable
-(`tests/robust.rs` in omagram-core and omagram-render).
+(`tests/robust.rs` in omaspec-core and omaspec-render).

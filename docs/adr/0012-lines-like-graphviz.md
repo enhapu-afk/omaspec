@@ -8,11 +8,11 @@ and Mermaid graph diagrams lay lines; how corners turn stays as in
 
 The gallery's graph examples (coffee machine, elevator, media player,
 crossing, bookshop, library, smart home, ticket machine) were drawn by
-Omagram and by Java PlantUML, which lays them out with Graphviz `dot`, and
+Omaspec and by Java PlantUML, which lays them out with Graphviz `dot`, and
 compared side by side. Java's lines read better: they run short and direct,
-where Omagram sent every way back around the whole diagram and joined
+where Omaspec sent every way back around the whole diagram and joined
 several lines at one point of a box. Where the two differed, Graphviz
-followed a handful of rules Omagram did not.
+followed a handful of rules Omaspec did not.
 
 ## Decision
 

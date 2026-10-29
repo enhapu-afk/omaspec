@@ -4,7 +4,7 @@ Status: accepted, 2026-10-15
 
 ## Decision
 
-Omagram gets its own PlantUML engine in Rust, `omagram-uml`, built one
+Omaspec gets its own PlantUML engine in Rust, `omaspec-uml`, built one
 diagram type at a time. The Java PlantUML (`plantuml` package, needs a JRE)
 stays an optional fallback for users and the reference in CI.
 
@@ -37,7 +37,7 @@ A native engine also gives:
   SCXML export, a scenario against its XMI (participants and their order,
   messages, groups). Its SVG says which type PlantUML took a diagram for.
   The other types have no export to compare with and are not held.
-- **No font files.** `omagram-uml` does no I/O, so it measures text with
+- **No font files.** `omaspec-uml` does no I/O, so it measures text with
   built-in advance widths of the Liberation fonts, which share Arial's and
   Times' metrics (and are `sans-serif` and `serif` on Omarchy). Every run of
   text carries its measured `textLength`, so the layout holds with another

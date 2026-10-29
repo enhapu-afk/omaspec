@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Omaspec
+GenericName=Diagram Editor
+Comment=PlantUML and Mermaid editor with a live diagram
+Exec=omaspec %F
+Icon=omaspec
+Terminal=false
+StartupWMClass=omaspec
+Categories=Development;
+Keywords=plantuml;mermaid;uml;diagram;sequence;flowchart;
+MimeType=text/x-plantuml;text/vnd.mermaid;

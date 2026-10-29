@@ -17,7 +17,7 @@ pub use window::Window;
 mod event_loop;
 mod output;
 mod seat;
-// Omagram: the clipboard offer, for `platform::wayland::selection_offer`.
+// Omaspec: the clipboard offer, for `platform::wayland::selection_offer`.
 pub(crate) use seat::selection_offer;
 mod state;
 mod types;

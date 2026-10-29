@@ -4,7 +4,7 @@ Status: accepted, 2026-10-15
 
 ## Decision
 
-Omagram's interface is built with [iced](https://iced.rs) 0.14.
+Omaspec's interface is built with [iced](https://iced.rs) 0.14.
 
 ## Why
 

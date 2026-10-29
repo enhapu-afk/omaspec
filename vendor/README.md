@@ -1,6 +1,6 @@
 # Vendored crates
 
-Third-party code Omagram builds from here instead of crates.io, through
+Third-party code Omaspec builds from here instead of crates.io, through
 `[patch.crates-io]` in the workspace `Cargo.toml`. The workspace excludes this
 folder: it is not formatted or linted as ours, so the difference to the
 original stays small.
@@ -15,7 +15,7 @@ the repository at the release commit `0d8132c`). The codicon font in
 there).
 
 Copied from the crates.io packages unchanged, then changed as below. Every
-addition says "Omagram addition to scrive 0.3.0" in its doc comment. The
+addition says "Omaspec addition to scrive 0.3.0" in its doc comment. The
 files keep their CRLF line endings.
 
 - `scrive-core`: `Document::jump_to(range)` selects a range and asks the view
@@ -58,7 +58,7 @@ The windowing crate iced 0.14 uses, by the winit contributors, Apache-2.0
 (`LICENSE`). Copied from the crates.io package. Examples and the crate's own tests
 are left out, except `src/platform_impl/linux/x11/tests/xsettings.dat`,
 which that backend includes while it is being tested. Changed as below.
-The Wayland pinch is marked "Omagram" in the touched files.
+The Wayland pinch is marked "Omaspec" in the touched files.
 
 - `src/platform_impl/linux/wayland/seat/pointer/pinch.rs`: binds
   `zwp_pointer_gestures_v1` and, for each pointer, `zwp_pointer_gesture_pinch_v1`.
@@ -93,7 +93,7 @@ diff -u ~/.cargo/registry/src/*/winit-0.30.13/src/platform/wayland.rs \
 
 A new winit release is taken by copying it here again and applying the
 pinch file, `seat/dnd.rs`, and those edits. The wheel base `1.2` has to
-stay the one in `crates/omagram-app/src/paper/canvas.rs`.
+stay the one in `crates/omaspec-app/src/paper/canvas.rs`.
 
 ## smithay-clipboard 0.7.3
 

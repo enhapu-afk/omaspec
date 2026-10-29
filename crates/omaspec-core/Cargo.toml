@@ -1,0 +1,20 @@
+[package]
+name = "omaspec-core"
+description = "Text logic for Omaspec: language detection, lint, outline, formatting, diff, source in images"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+miniz_oxide = "0.9"
+regex = "1"
+roxmltree = "0.21"
+serde.workspace = true
+omaspec-uml.workspace = true
+
+[lints]
+workspace = true

@@ -13,7 +13,7 @@ iced.workspace = true
 iced_test = "0.14"
 scrive-core = "0.3"
 scrive-iced = "0.3"
-omagram-theme.workspace = true
+omaspec-theme.workspace = true
 
 [lints]
 workspace = true

@@ -26,19 +26,19 @@ jobs:
       - run: cargo clippy --workspace --all-targets
       - run: cargo test --workspace
 
-  # Omagram's reading of state and sequence diagrams against the Java
+  # Omaspec's reading of state and sequence diagrams against the Java
   # PlantUML's (docs/adr/0004), on Arch as Omarchy installs PlantUML.
   oracle:
     runs-on: ubuntu-latest
     container: archlinux:base-devel
     env:
-      OMAGRAM_REQUIRE_PLANTUML: "1"
+      OMASPEC_REQUIRE_PLANTUML: "1"
     steps:
       - name: Rust, PlantUML, Java, Graphviz and a font
         run: pacman -Syu --noconfirm rust plantuml jre-openjdk graphviz ttf-liberation
       - uses: actions/checkout@v4
       - run: plantuml -version
-      - run: cargo test --locked -p omagram-model --test oracle
+      - run: cargo test --locked -p omaspec-model --test oracle
 
   deny:
     runs-on: ubuntu-latest

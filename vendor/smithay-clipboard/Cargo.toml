@@ -55,7 +55,7 @@ features = ["calloop"]
 default-features = false
 package = "smithay-client-toolkit"
 
-# Omagram addition: the selection offer winit's data device received.
+# Omaspec addition: the selection offer winit's data device received.
 [dependencies.winit]
 version = "0.30.13"
 features = ["wayland"]

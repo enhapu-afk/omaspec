@@ -73,7 +73,7 @@ pub struct Document {
     /// subgraphs): `(header byte, last byte)`, sorted by the header.
     /// A fold whose opener is one of these survives reconcile.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     regions: Vec<(u32, u32)>,
     /// Find view-state: the active query, the active match's decoration id, and
     /// the coverage/cap bookkeeping. The match set itself lives ONLY in
@@ -1542,7 +1542,7 @@ impl Document {
 
     /// The tighter of a bracket fold and a diagram region around `caret`.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     fn closer_fold(&self, caret: u32, want_folded: bool, bracket: Option<u32>) -> Option<u32> {
         let region = self
             .regions
@@ -1580,7 +1580,7 @@ impl Document {
     /// Replace the diagram regions the gutter and the fold chords can collapse.
     /// Sorted by header byte. Folds whose opener is no longer a region drop.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn set_fold_regions(&mut self, mut regions: Vec<(u32, u32)>) {
         regions.retain(|&(open, close)| {
             close > open
@@ -1598,7 +1598,7 @@ impl Document {
 
     /// Collapse every bracket pair and every diagram region.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn collapse_all(&mut self) {
         let mut opens: Vec<u32> = self.collapsible_pairs().into_iter().map(|(open, ..)| open).collect();
         opens.extend(self.regions.iter().map(|&(open, _)| open));
@@ -1614,7 +1614,7 @@ impl Document {
 
     /// Unfold every block.
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn expand_all(&mut self) {
         if self.folds.is_empty() {
             return;
@@ -2283,7 +2283,7 @@ impl Document {
     /// error list. Offsets past the end clamp to it; a jump is an undo-group
     /// boundary, like [`next_diagnostic`](Self::next_diagnostic).
     ///
-    /// Omagram addition to scrive 0.3.0.
+    /// Omaspec addition to scrive 0.3.0.
     pub fn jump_to(&mut self, range: Range<u32>) {
         let start = self.buffer.clip_offset(range.start, Bias::Left);
         let end = self.buffer.clip_offset(range.end.max(range.start), Bias::Left);
@@ -2321,7 +2321,7 @@ impl Document {
             // Peel the innermost collapsed pair containing the offset, then
             // re-check — an outer unfold can expose a collapsed inner fold.
             // A diagram region hides its last row up to and including its
-            // close byte (Omagram addition to scrive 0.3.0).
+            // close byte (Omaspec addition to scrive 0.3.0).
             let target = self
                 .folds
                 .iter()
@@ -2350,7 +2350,7 @@ impl Document {
 
 /// The close byte of the diagram region opened at `open`.
 ///
-/// Omagram addition to scrive 0.3.0.
+/// Omaspec addition to scrive 0.3.0.
 fn region_close(regions: &[(u32, u32)], open: u32) -> Option<u32> {
     regions
         .binary_search_by_key(&open, |&(start, _)| start)
@@ -2360,7 +2360,7 @@ fn region_close(regions: &[(u32, u32)], open: u32) -> Option<u32> {
 
 /// Whether `open` still begins a foldable bracket pair or a diagram region.
 ///
-/// Omagram addition to scrive 0.3.0.
+/// Omaspec addition to scrive 0.3.0.
 fn opener_live(brackets: &Brackets, buffer: &Buffer, regions: &[(u32, u32)], open: u32) -> bool {
     brackets
         .foldable_partner(open)
@@ -2372,7 +2372,7 @@ fn opener_live(brackets: &Brackets, buffer: &Buffer, regions: &[(u32, u32)], ope
 
 /// Shift diagram regions through a committed edit and drop any that collapsed.
 ///
-/// Omagram addition to scrive 0.3.0.
+/// Omaspec addition to scrive 0.3.0.
 fn shift_regions(regions: &mut Vec<(u32, u32)>, patch: &crate::patch::Patch) {
     if regions.is_empty() || patch.is_empty() {
         return;
@@ -2388,7 +2388,7 @@ fn shift_regions(regions: &mut Vec<(u32, u32)>, patch: &crate::patch::Patch) {
 
 /// Add multi-line diagram regions to `ranges`. `rows` limits the header row.
 ///
-/// Omagram addition to scrive 0.3.0.
+/// Omaspec addition to scrive 0.3.0.
 fn push_region_ranges(
     ranges: &mut Vec<(BufferRow, BufferRow)>,
     regions: &[(u32, u32)],
@@ -2509,7 +2509,7 @@ fn expand_folds_touched(
 
 /// Open a diagram region when an edit lands on a row it hides.
 ///
-/// Omagram addition to scrive 0.3.0.
+/// Omaspec addition to scrive 0.3.0.
 fn reveal_edited_regions(folds: &mut FoldSet, regions: &[(u32, u32)], buffer: &Buffer, pts: &[u32]) {
     let mut extra = Vec::new();
     for &(open, close) in regions {
@@ -2547,7 +2547,7 @@ struct Views<'a> {
     autoclose: &'a mut DecorationStore,
     folds: &'a mut FoldSet,
     find: &'a mut FindState,
-    /// Diagram fold regions. Omagram addition to scrive 0.3.0.
+    /// Diagram fold regions. Omaspec addition to scrive 0.3.0.
     regions: &'a mut Vec<(u32, u32)>,
 }
 

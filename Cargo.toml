@@ -12,21 +12,21 @@ edition = "2024"
 rust-version = "1.89"
 license = "MIT"
 authors = ["Nils Hoffmann"]
-repository = "https://github.com/enhapu-afk/omagram"
+repository = "https://github.com/enhapu-afk/omaspec"
 # Built from git and the AUR, not from crates.io (scrive is vendored).
 publish = false
 
 [workspace.dependencies]
-omagram-core = { path = "crates/omagram-core" }
-omagram-uml = { path = "crates/omagram-uml" }
-omagram-model = { path = "crates/omagram-model" }
-omagram-render = { path = "crates/omagram-render" }
-omagram-theme = { path = "crates/omagram-theme" }
+omaspec-core = { path = "crates/omaspec-core" }
+omaspec-uml = { path = "crates/omaspec-uml" }
+omaspec-model = { path = "crates/omaspec-model" }
+omaspec-render = { path = "crates/omaspec-render" }
+omaspec-theme = { path = "crates/omaspec-theme" }
 
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 # Without linux-theme-detection, which asks the desktop over D-Bus for light
-# or dark: Omagram reads the Omarchy theme and needs no D-Bus stack.
+# or dark: Omaspec reads the Omarchy theme and needs no D-Bus stack.
 iced = { version = "0.14", default-features = false, features = [
     "wgpu",
     "tiny-skia",

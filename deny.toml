@@ -7,7 +7,7 @@ all-features = false
 [advisories]
 version = 2
 yanked = "deny"
-# Only the crates Omagram depends on itself: one deeper down (in iced, usvg,
+# Only the crates Omaspec depends on itself: one deeper down (in iced, usvg,
 # syntect) is for that crate to replace. Vulnerabilities are denied at any depth.
 unmaintained = "workspace"
 
@@ -35,7 +35,7 @@ allow = [
 multiple-versions = "warn"
 wildcards = "deny"
 allow-wildcard-paths = true
-# Omagram works offline and reports nothing (docs/adr/0005): no HTTP, TLS
+# Omaspec works offline and reports nothing (docs/adr/0005): no HTTP, TLS
 # or telemetry client may come in, not even through another crate.
 deny = [
     { name = "reqwest" },

@@ -1,4 +1,4 @@
-//! Omagram addition to winit 0.30.13: Wayland touchpad pinch.
+//! Omaspec addition to winit 0.30.13: Wayland touchpad pinch.
 //!
 //! `zwp_pointer_gestures_v1` reports an absolute scale since the gesture
 //! began (1 at the start). The canvas zooms on a mouse-wheel line delta

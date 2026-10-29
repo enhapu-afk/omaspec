@@ -1,4 +1,4 @@
-//! Spike: is scrive (an iced 0.14 code editor) good enough for Omagram?
+//! Spike: is scrive (an iced 0.14 code editor) good enough for Omaspec?
 //!
 //! Checks PlantUML highlighting from a `.sublime-syntax`, syntax and chrome
 //! colors from the active Omarchy theme, lint findings as diagnostics, and the
@@ -16,12 +16,12 @@ use std::time::Instant;
 use anyhow::{Context, Result};
 use iced::widget::{column, container, row, text};
 use iced::{Color, Element, Font, Length, Size, Subscription, Task, Theme};
-use omagram_theme::{Palette, Rgb, Theme as OmarchyTheme, tokens};
+use omaspec_theme::{Palette, Rgb, Theme as OmarchyTheme, tokens};
 use scrive_core::{Diagnostic, Severity, SyntaxDef, TokenTheme};
 use scrive_iced::{CodeEditor, Event};
 
 const GRAMMAR: &str =
-    include_str!("../../../crates/omagram-app/assets/syntax/plantuml.sublime-syntax");
+    include_str!("../../../crates/omaspec-app/assets/syntax/plantuml.sublime-syntax");
 const SAMPLE: &str = include_str!("../sample.puml");
 
 fn main() -> Result<()> {
@@ -113,7 +113,7 @@ impl Spike {
         let label = |s: String, c: Rgb| text(s).font(self.font).size(13).color(color(c));
 
         let top = row![
-            label("󰈸 Omagram".into(), p.accent),
+            label("󰈸 Omaspec".into(), p.accent),
             label(format!("  {}", self.file), p.foreground),
             label("  PlantUML".into(), p.dark_foreground),
         ];
@@ -170,12 +170,12 @@ fn window(file: Option<&String>) -> Result<()> {
         Spike::update,
         Spike::view,
     )
-    .title("Omagram editor spike")
+    .title("Omaspec editor spike")
     .theme(|s: &Spike| s.theme.clone())
     .subscription(Spike::subscription)
     .window(iced::window::Settings {
         platform_specific: iced::window::settings::PlatformSpecific {
-            application_id: "omagram".into(),
+            application_id: "omaspec".into(),
             ..Default::default()
         },
         ..Default::default()
@@ -286,7 +286,7 @@ fn iced_theme(p: &Palette) -> Theme {
 }
 
 /// A few line-based checks, enough to see diagnostics in the editor. The real
-/// lint comes in phase 1 (`omagram-core`).
+/// lint comes in phase 1 (`omaspec-core`).
 fn lint(source: &str) -> Vec<Diagnostic> {
     let mut findings = Vec::new();
     let mut open: Vec<(String, Range<u32>)> = Vec::new();
