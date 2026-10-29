@@ -2517,7 +2517,7 @@ dependencies = [
 
 [[package]]
 name = "omagram-app"
-version = "0.0.1"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2542,7 +2542,7 @@ dependencies = [
 
 [[package]]
 name = "omagram-core"
-version = "0.0.1"
+version = "0.4.0"
 dependencies = [
  "miniz_oxide 0.9.1",
  "omagram-uml",
@@ -2553,7 +2553,7 @@ dependencies = [
 
 [[package]]
 name = "omagram-model"
-version = "0.0.1"
+version = "0.4.0"
 dependencies = [
  "omagram-core",
  "omagram-uml",
@@ -2563,7 +2563,7 @@ dependencies = [
 
 [[package]]
 name = "omagram-render"
-version = "0.0.1"
+version = "0.4.0"
 dependencies = [
  "criterion",
  "jpeg-encoder",
@@ -2581,14 +2581,14 @@ dependencies = [
 
 [[package]]
 name = "omagram-theme"
-version = "0.0.1"
+version = "0.4.0"
 dependencies = [
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "omagram-uml"
-version = "0.0.1"
+version = "0.4.0"
 
 [[package]]
 name = "once_cell"
@@ -3441,7 +3441,7 @@ dependencies = [
 
 [[package]]
 name = "spike-editor"
-version = "0.0.1"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "iced",
@@ -3453,7 +3453,7 @@ dependencies = [
 
 [[package]]
 name = "spike-mermaid"
-version = "0.0.1"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "mermaid-rs-renderer",

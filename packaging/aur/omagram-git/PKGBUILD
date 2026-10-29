@@ -5,7 +5,7 @@
 
 pkgname=omagram-git
 _pkgname=omagram
-pkgver=0.0.1
+pkgver=0.4.0
 pkgrel=1
 pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy"
 arch=('x86_64' 'aarch64')
@@ -26,7 +26,7 @@ sha256sums=('SKIP')
 
 pkgver() {
   cd "$_pkgname"
-  printf "0.0.1.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+  git describe --long --tags --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
 
 prepare() {
