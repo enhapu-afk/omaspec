@@ -17,6 +17,55 @@ use serde::Serialize;
 use crate::files::{Input, copy_to_clipboard, read_input, read_inputs, write_atomic};
 use crate::specs::Projects;
 
+/// Standard output for the commands. When its reader stops early
+/// (`omaspec example | head`), a write fails with [`ReaderGone`], which
+/// `main` takes for the end of the command, not for an error.
+fn stdout() -> Stdout {
+    Stdout(io::stdout().lock())
+}
+
+struct Stdout(io::StdoutLock<'static>);
+
+impl Write for Stdout {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.write(buf).map_err(gone)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.0.flush().map_err(gone)
+    }
+}
+
+/// The reader of standard output went away. Only standard output says so:
+/// a broken pipe to `wl-copy` or to PlantUML stays an error.
+#[derive(Debug)]
+struct ReaderGone;
+
+impl std::fmt::Display for ReaderGone {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("the reader of standard output went away")
+    }
+}
+
+impl std::error::Error for ReaderGone {}
+
+fn gone(err: io::Error) -> io::Error {
+    if err.kind() == io::ErrorKind::BrokenPipe {
+        io::Error::new(err.kind(), ReaderGone)
+    } else {
+        err
+    }
+}
+
+/// Whether `err` is only that the reader of standard output went away.
+pub(crate) fn reader_gone(err: &anyhow::Error) -> bool {
+    err.chain().any(|e| {
+        e.downcast_ref::<io::Error>()
+            .and_then(io::Error::get_ref)
+            .is_some_and(|inner| inner.is::<ReaderGone>())
+    })
+}
+
 pub(crate) fn language(input: &Input, forced: Option<Language>) -> Language {
     forced.unwrap_or_else(|| {
         let hint = input.file_name().and_then(Language::from_file_name);
@@ -85,7 +134,7 @@ fn report(all: &[(String, Vec<Finding>)], json: bool, strict: bool) -> Result<Ex
         .iter()
         .flat_map(|(_, findings)| findings)
         .any(|f| f.severity == Severity::Error || (strict && f.severity == Severity::Warning));
-    let mut out = io::stdout().lock();
+    let mut out = stdout();
     if json {
         let reported: Vec<Reported> = all
             .iter()
@@ -205,7 +254,7 @@ pub fn diff(
     )
     .map_err(|reason| anyhow::anyhow!(reason))?;
     let new_name = new.name();
-    let mut out = io::stdout().lock();
+    let mut out = stdout();
     if json {
         serde_json::to_writer_pretty(&mut out, &reported_changes(&old_name, &new_name, &changes))?;
         writeln!(out)?;
@@ -267,7 +316,7 @@ pub fn convert(
         }
         write_atomic(path, converted.code.as_bytes())?;
     }
-    let mut out = io::stdout().lock();
+    let mut out = stdout();
     if json {
         let report = match &result {
             Ok(converted) => serde_json::json!({
@@ -332,7 +381,7 @@ pub fn fmt(
         "formatting several files needs --write or --check"
     );
     let mut unformatted = false;
-    let mut out = io::stdout().lock();
+    let mut out = stdout();
     for input in &inputs {
         let formatted = format::format(&input.text, language(input, forced));
         let changed = formatted != input.text;
@@ -360,7 +409,7 @@ pub fn fmt(
 pub fn outline(file: Option<PathBuf>, forced: Option<Language>, json: bool) -> Result<ExitCode> {
     let input = read_input(file.as_deref().filter(|f| f.as_os_str() != "-"))?;
     let entries = outline::outline(&input.text, language(&input, forced));
-    let mut out = io::stdout().lock();
+    let mut out = stdout();
     if json {
         serde_json::to_writer_pretty(&mut out, &one_based(&entries))?;
         writeln!(out)?;
@@ -470,7 +519,7 @@ pub fn inspect(
         .to_vec();
     let findings = omaspec_model::findings_with(&input.text, lang, &specs);
     let inspection = inspection(&input.name(), &input.text, lang, &findings);
-    let mut out = io::stdout().lock();
+    let mut out = stdout();
     serde_json::to_writer_pretty(&mut out, &inspection)?;
     writeln!(out)?;
     Ok(ExitCode::SUCCESS)
@@ -649,11 +698,11 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                     eprintln!("{} → {} ({took})", input.name(), dest.display());
                 }
             }
-            None => io::stdout().lock().write_all(&bytes)?,
+            None => stdout().write_all(&bytes)?,
         }
     }
     if args.json {
-        let mut out = io::stdout().lock();
+        let mut out = stdout();
         serde_json::to_writer_pretty(&mut out, &reports)?;
         writeln!(out)?;
     }
@@ -717,7 +766,7 @@ pub fn extract(image: &Path, output: Option<&Path>, force: bool) -> Result<ExitC
                 eprintln!("source of {name} written to {}", path.display());
             }
         }
-        None => io::stdout().lock().write_all(source.code.as_bytes())?,
+        None => stdout().write_all(source.code.as_bytes())?,
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -735,7 +784,7 @@ pub fn example(name: Option<&str>, json: bool) -> Result<ExitCode> {
             "about": e.about,
         })
     };
-    let mut out = io::stdout().lock();
+    let mut out = stdout();
     let Some(name) = name else {
         if json {
             let all: Vec<_> = EXAMPLES.iter().map(described).collect();
@@ -787,7 +836,7 @@ pub fn theme(file: Option<PathBuf>) -> Result<ExitCode> {
             (title, theme.palette)
         }
     };
-    let mut out = io::stdout().lock();
+    let mut out = stdout();
     writeln!(out, "{title}, {:?}", palette.mode)?;
     for (name, color) in palette_rows(&palette) {
         writeln!(out, "{} {color}  {name}", swatch(color))?;

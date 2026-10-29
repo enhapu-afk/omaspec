@@ -2,7 +2,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
 
 use omaspec_core::{Language, embed};
 
@@ -889,4 +889,27 @@ fn diff_and_convert_go_by_the_behavior() {
     let out = omaspec(&["convert", old_s, "-o", old_s]);
     assert_eq!(out.status.code(), Some(2));
     let _ = fs::remove_dir_all(&dir);
+}
+
+/// A reader that stops early (`| head`) ends the command quietly: no
+/// message, and success. A broken pipe to anything else stays an error.
+#[test]
+fn a_reader_that_stops_early_is_no_error() {
+    let elevator =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/gallery/elevator.puml");
+    let mut child = Command::new(env!("CARGO_BIN_EXE_omaspec"))
+        .args(["render", elevator.to_str().unwrap(), "-f", "png", "-o", "-"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("omaspec runs");
+    // The PNG is more than a pipe holds, and nothing reads it.
+    drop(child.stdout.take());
+    let out = child.wait_with_output().unwrap();
+    assert!(out.status.success(), "{:?}", out.status);
+    assert!(
+        out.stderr.is_empty(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 }

@@ -375,6 +375,8 @@ fn main() -> ExitCode {
     };
     match result {
         Ok(code) => code,
+        // `| head` read what it wanted; the rest is not missed.
+        Err(err) if commands::reader_gone(&err) => ExitCode::SUCCESS,
         Err(err) => {
             eprintln!("omaspec: {err:#}");
             ExitCode::from(2)
