@@ -19,4 +19,6 @@
    makepkg --printsrcinfo > .SRCINFO
    ```
    and push `PKGBUILD` and `.SRCINFO` to `ssh://aur@aur.archlinux.org/<pkgname>.git`.
+   The AUR shows each commit's address to everyone: in a fresh clone, set
+   `git config user.email` to the public one before the first commit.
 5. **Announce.** `docs/announcement.md` is a draft; adjust it to the release.

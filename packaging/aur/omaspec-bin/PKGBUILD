@@ -22,7 +22,7 @@ optdepends=(
 provides=("$_pkgname")
 conflicts=("$_pkgname")
 source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-x86_64-linux.tar.gz")
-sha256sums_x86_64=('SKIP')
+sha256sums_x86_64=('55f426c9f4569d85190ba0f8e119e21432a8f33d672332ef2f2035585c763597')
 
 package() {
   cd "$_pkgname-$pkgver-x86_64-linux"

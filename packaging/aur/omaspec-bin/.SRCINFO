@@ -1,0 +1,23 @@
+pkgbase = omaspec-bin
+	pkgdesc = Native PlantUML and Mermaid editor and live preview for Omarchy (prebuilt)
+	pkgver = 0.4.1
+	pkgrel = 1
+	url = https://github.com/enhapu-afk/omaspec
+	arch = x86_64
+	license = MIT
+	depends = gcc-libs
+	depends = glibc
+	depends = fontconfig
+	depends = libxkbcommon
+	depends = wayland
+	depends = vulkan-icd-loader
+	optdepends = plantuml: optional, Java; draws the few PlantUML types the native engine does not (YAML, Salt, ...)
+	optdepends = wl-clipboard: copy diagrams to the clipboard
+	optdepends = git: compare a diagram with a git commit
+	optdepends = libnotify: notifications outside Omarchy
+	provides = omaspec
+	conflicts = omaspec
+	source_x86_64 = https://github.com/enhapu-afk/omaspec/releases/download/v0.4.1/omaspec-0.4.1-x86_64-linux.tar.gz
+	sha256sums_x86_64 = 55f426c9f4569d85190ba0f8e119e21432a8f33d672332ef2f2035585c763597
+
+pkgname = omaspec-bin
