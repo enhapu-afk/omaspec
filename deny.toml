@@ -7,6 +7,9 @@ all-features = false
 [advisories]
 version = 2
 yanked = "deny"
+# Only the crates Omagram depends on itself: one deeper down (in iced, usvg,
+# syntect) is for that crate to replace. Vulnerabilities are denied at any depth.
+unmaintained = "workspace"
 
 [licenses]
 version = 2

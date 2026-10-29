@@ -13,6 +13,8 @@ rust-version = "1.89"
 license = "MIT"
 authors = ["Nils Hoffmann"]
 repository = "https://github.com/enhapu-afk/omagram"
+# Built from git and the AUR, not from crates.io (scrive is vendored).
+publish = false
 
 [workspace.dependencies]
 omagram-core = { path = "crates/omagram-core" }
