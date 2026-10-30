@@ -554,9 +554,16 @@ impl Paper {
         }
     }
 
-    /// The source line the play's last step came from, once.
-    pub fn take_jump(&mut self) -> Option<usize> {
-        self.play.as_mut()?.take_jump()
+    /// The source line of the play's step whose light set off last by
+    /// `now`, once.
+    pub fn take_jump(&mut self, now: Instant) -> Option<usize> {
+        let now = self.clock.unwrap_or(now);
+        self.play.as_mut()?.take_jump(now)
+    }
+
+    /// Whether a step's line waits for its light to set off.
+    pub fn line_waiting(&self) -> bool {
+        self.play.as_ref().is_some_and(Play::line_waiting)
     }
 
     /// Fades from the pictures before to the new diagram's overview. A
@@ -1281,6 +1288,16 @@ pub mod testing {
         /// Draws the play `after` from now on, whenever it is drawn.
         pub fn freeze_play(&mut self, after: Duration) {
             self.clock = Some(Instant::now() + after);
+        }
+
+        /// Draws the play at `at`, whenever it is drawn.
+        pub fn freeze_play_at(&mut self, at: Instant) {
+            self.clock = Some(at);
+        }
+
+        /// When the lights of the play's steps so far have all arrived.
+        pub fn play_arrived(&self) -> Option<Instant> {
+            self.play.as_ref()?.arrived()
         }
 
         /// Pretends one more request went out; its number.

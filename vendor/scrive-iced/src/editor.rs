@@ -1523,7 +1523,9 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Editor<'_, Messag
         // Word-under-caret occurrence wash — highlight every occurrence of the
         // word under the caret, under the find washes and only while find is idle.
         // A per-frame pure query, like the FoldMap (no tracked state to go stale).
-        if self.doc.find_query().is_none() {
+        // Omaspec addition to scrive 0.3.0: only while the editor is focused, so a
+        // caret placed from elsewhere (a play lighting its line) washes nothing.
+        if self.doc.find_query().is_none() && state.is_focused() {
             // The visible window bounds the scan, so it stays O(viewport).
             for span in self.doc.caret_word_occurrences(vis_start..vis_end) {
                 self.draw_selection(renderer, &geo, span.start, span.end, OCCURRENCE_MATCH);

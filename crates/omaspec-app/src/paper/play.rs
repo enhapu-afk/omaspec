@@ -150,11 +150,29 @@ impl Play {
         }
     }
 
-    /// The source line the last step came from, once: the editor lights it.
-    pub fn take_jump(&mut self) -> Option<usize> {
+    /// The source line of the step whose light set off last by `now`,
+    /// once: the editor lights it.
+    pub fn take_jump(&mut self, now: Instant) -> Option<usize> {
         match self {
-            Play::Machine(play) => play.jump.take(),
+            Play::Machine(play) => play.take_line(now),
             Play::Scenario(play) => play.jump.take(),
+        }
+    }
+
+    /// When the lights of a machine's steps so far have all arrived.
+    #[cfg(test)]
+    pub fn arrived(&self) -> Option<Instant> {
+        match self {
+            Play::Machine(play) => Some(play.free_at),
+            Play::Scenario(_) => None,
+        }
+    }
+
+    /// Whether a step's line is still to be lit, when its light sets off.
+    pub fn line_waiting(&self) -> bool {
+        match self {
+            Play::Machine(play) => !play.lines.is_empty(),
+            Play::Scenario(_) => false,
         }
     }
 
@@ -315,7 +333,9 @@ pub struct MachinePlay {
     /// When the steps scheduled so far are done; the next starts then.
     free_at: Instant,
     begun: Instant,
-    jump: Option<usize>,
+    /// The source line of each step scheduled, from when its light sets
+    /// off; the editor lights each in turn.
+    lines: Vec<(Instant, usize)>,
 }
 
 enum Driver {
@@ -373,7 +393,7 @@ impl MachinePlay {
             shown: Vec::new(),
             free_at: now + VEIL_FADE / 2,
             begun: now,
-            jump: None,
+            lines: Vec::new(),
         }
     }
 
@@ -427,9 +447,6 @@ impl MachinePlay {
                     return;
                 };
                 trace.played += 1;
-                if let Some(last) = step.taken.last() {
-                    self.jump = Some(self.machine.transitions[last.transition].line);
-                }
                 self.schedule(&step.taken, now);
                 self.aim(&step.at, now);
             }
@@ -460,7 +477,6 @@ impl MachinePlay {
         let steps = writer.run.take(&self.machine, transition);
         writer.hover = None;
         writer.steps += 1;
-        self.jump = Some(self.machine.transitions[transition].line);
         self.schedule(&steps, now);
     }
 
@@ -477,6 +493,7 @@ impl MachinePlay {
     /// lights fade from where they actually are.
     fn show(&mut self, lit: &[usize], now: Instant) {
         self.shown.clear();
+        self.lines.clear();
         for events in &mut self.lights {
             events.retain(|(t, _)| *t <= now);
         }
@@ -539,6 +556,8 @@ impl MachinePlay {
                     took,
                     entered: step.entered.clone(),
                 });
+                self.lines
+                    .push((at, self.machine.transitions[step.transition].line));
             }
             began += longest + STEP_GAP;
         }
@@ -553,6 +572,15 @@ impl MachinePlay {
 
     fn settled(&self) -> Instant {
         self.free_at + LIGHT_FADE.max(LINGER).max(RIPPLE) + VEIL_FADE
+    }
+
+    /// The line of the last step whose light has set off by `now`; the
+    /// lines before it are passed over.
+    fn take_line(&mut self, now: Instant) -> Option<usize> {
+        let due = self.lines.iter().rposition(|&(at, _)| at <= now)?;
+        let (_, line) = self.lines[due];
+        self.lines.drain(..=due);
+        Some(line)
     }
 
     fn offer(&self) -> Offer {
@@ -1250,6 +1278,31 @@ mod tests {
     }
 
     #[test]
+    fn the_lit_line_follows_the_light_through_a_step_that_follows_by_itself() {
+        let source = "@startuml\n[*] --> Brewing\nstate Brewing {\n  [*] --> Heating\n  Heating --> Pouring : hot\n  Pouring --> [*]\n}\n@enduml\n";
+        let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+        let t0 = Instant::now();
+        let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+        // Long after the start has arrived, the writer picks hot.
+        let t1 = t0 + Duration::from_secs(10);
+        let _ = play.take_jump(t1);
+        play.ask(Ask::Take(0), t1);
+        let Play::Machine(machine) = &play else {
+            panic!("no machine");
+        };
+        let lines: Vec<_> = machine.lines.clone();
+        assert_eq!(
+            lines.iter().map(|&(_, line)| line).collect::<Vec<_>>(),
+            [4, 5],
+            "hot, then Pouring --> [*] by itself"
+        );
+        assert!(lines[0].0 < lines[1].0);
+        assert_eq!(play.take_jump(lines[0].0), Some(4));
+        assert_eq!(play.take_jump(lines[1].0 - Duration::from_millis(1)), None);
+        assert_eq!(play.take_jump(lines[1].0), Some(5));
+    }
+
+    #[test]
     fn a_machine_plays_steps_one_after_another() {
         let source = "@startuml\n[*] --> Closed\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
         let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
@@ -1261,7 +1314,11 @@ mod tests {
         assert_eq!(options, [("lock".to_owned(), "Locked".to_owned())]);
         assert_eq!(at, "Closed");
         play.ask(Ask::Take(0), t0);
-        assert_eq!(play.take_jump(), Some(2));
+        // Each line lights when its step's light sets off: first the start.
+        assert_eq!(play.take_jump(t0), None);
+        assert_eq!(play.take_jump(t0 + VEIL_FADE), Some(1));
+        assert_eq!(play.take_jump(t0 + Duration::from_secs(10)), Some(2));
+        assert_eq!(play.take_jump(t0 + Duration::from_secs(10)), None);
         assert!(play.animating(t0 + Duration::from_millis(300)));
         assert!(!play.animating(t0 + Duration::from_secs(10)));
         let Offer::Machine {
@@ -1353,7 +1410,11 @@ mod tests {
         };
         assert_eq!(bar(&play), (0, None, String::new(), "Closed".into(), None));
         play.ask(Ask::Next, t0);
-        assert_eq!(play.take_jump(), Some(4), "the lock line of the diagram");
+        assert_eq!(
+            play.take_jump(t0 + Duration::from_secs(10)),
+            Some(4),
+            "the lock line of the diagram"
+        );
         assert_eq!(
             bar(&play),
             (1, Some(1), "lock".into(), "Locked".into(), None)
@@ -1408,7 +1469,7 @@ mod tests {
         play.ask(Ask::Next, t0);
         play.ask(Ask::Next, t0);
         assert_eq!(play.offer(), Offer::Scenario { at: 2, of: 2 });
-        assert_eq!(play.take_jump(), Some(2));
+        assert_eq!(play.take_jump(t0), Some(2));
         play.ask(Ask::Restart, t0);
         assert_eq!(play.offer(), Offer::Scenario { at: 0, of: 2 });
         let flow = Play::new(

@@ -27,13 +27,14 @@ shot guide-play guide/play
 magick montage "$shots"/theme-{tokyo-night,catppuccin-latte,gruvbox,rose-pine}-wgpu.png \
   -tile 2x2 -geometry 800x427+6+6 -background '#16161e' -depth 8 -strip "$out/themes.png"
 
-# The play: a light travels for 13 frames of 60 ms, then the machine rests.
+# The play: a light travels in frames of 60 ms; where a step has arrived
+# (a `-hold` frame), the machine rests.
 list="$shots/play.txt"
 : >"$list"
-frames=("$shots"/play-[0-9][0-9][0-9]-wgpu.png)
-for i in "${!frames[@]}"; do
-  if ((i % 14 == 0)); then hold=1.6; else hold=0.06; fi
-  printf "file '%s'\nduration %s\n" "${frames[$i]}" "$hold" >>"$list"
+frames=("$shots"/play-[0-9][0-9][0-9]*-wgpu.png)
+for frame in "${frames[@]}"; do
+  case $frame in *-hold-wgpu.png) hold=1.6 ;; *) hold=0.06 ;; esac
+  printf "file '%s'\nduration %s\n" "$frame" "$hold" >>"$list"
 done
 printf "file '%s'\n" "${frames[-1]}" >>"$list"
 ffmpeg -loglevel error -y -f concat -safe 0 -i "$list" \

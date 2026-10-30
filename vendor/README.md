@@ -41,6 +41,10 @@ files keep their CRLF line endings.
   `FoldMap::with_regions` resolves it, also for jumps (which open a
   collapsed region that hides their target), carets added above or below,
   and column selection. `scrive-iced` exposes the same on `CodeEditor`.
+- `scrive-iced`: the word under the caret is washed at its other places
+  only while the editor is focused. A play puts the caret on the line it
+  lights while the diagram holds the keys, and the wash marked the state
+  the machine had just left.
 
 To see the changes:
 

@@ -2,6 +2,7 @@
 //! recorded trace from the project folder.
 
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use iced::Task;
 
@@ -26,10 +27,13 @@ impl App {
             Ok(()) => {
                 self.set_focus(Pane::Diagram);
                 self.notice = Some("playing: 1–9 a step, Space next, ← back, Esc stops".into());
+                self.apply_keyboard_focus()
             }
-            Err(why) => self.notice = Some(why),
+            Err(why) => {
+                self.notice = Some(why);
+                Task::none()
+            }
         }
-        Task::none()
     }
 
     /// Looks for recorded traces of the state machine on screen in its
@@ -108,19 +112,22 @@ impl App {
             Ok(()) => {
                 self.set_focus(Pane::Diagram);
                 self.notice = Some("playing a trace: Space next line, ← back, Esc stops".into());
+                self.apply_keyboard_focus()
             }
-            Err(why) => self.notice = Some(why),
+            Err(why) => {
+                self.notice = Some(why);
+                Task::none()
+            }
         }
-        Task::none()
     }
 
-    /// Lights the source line of the step the play just took, without
-    /// taking the keyboard off the diagram.
+    /// Lights the source line of the step whose light set off last,
+    /// without taking the keyboard off the diagram.
     pub(super) fn light_played_line(&mut self, key: u64) {
         let Some(doc) = self.find(key) else {
             return;
         };
-        if let Some(line) = doc.paper.take_jump() {
+        if let Some(line) = doc.paper.take_jump(Instant::now()) {
             doc.jump_to_line(line);
             self.after(Alarm::Flash(key), FLASH);
         }

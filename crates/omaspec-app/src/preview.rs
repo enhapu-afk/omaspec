@@ -471,7 +471,8 @@ mod tests {
         let _ = p.update(press("p"));
         assert!(p.paper.playing(), "{:?}", p.notice);
         let _ = p.update(press("1"));
-        assert_eq!(p.paper.take_jump(), Some(2));
+        let later = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        assert_eq!(p.paper.take_jump(later), Some(2));
         let _ = p.update(press("p"));
         assert!(!p.paper.playing());
     }

@@ -84,11 +84,17 @@ fn a_play_takes_digits_only_while_the_diagram_has_the_keys() {
     show(&mut app, lamp, Language::PlantUml);
     let _ = app.update(Message::Command(Command::Play));
     assert_eq!(app.mode(app.main), Mode::Playing);
+    // Once the start's light sets off, its line lights up in the source.
+    app.doc_mut().paper.freeze_play(Duration::from_secs(2));
+    let _ = app.update(Message::Frame);
+    assert_eq!(app.doc().editor.cursor().row, 1);
     app.set_focus(Pane::Source);
     assert_eq!(app.mode(app.main), Mode::Editing);
     app.set_focus(Pane::Diagram);
     let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Take(0))));
-    // The step's line lights up in the source.
+    // The step's line lights up when its light sets off.
+    app.doc_mut().paper.freeze_play(Duration::from_secs(10));
+    let _ = app.update(Message::Frame);
     assert_eq!(app.doc().editor.cursor().row, 2);
     let _ = app.update(Message::Command(Command::Play));
     assert!(!app.doc().paper.playing());
@@ -123,7 +129,9 @@ fn a_recorded_trace_is_found_beside_its_machine_and_played() {
     let _ = app.update(Message::PickerSubmit);
     assert!(app.doc().paper.playing(), "{:?}", app.notice);
     let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Next)));
-    // The step's line lights up in the source.
+    // The step's line lights up in the source when its light sets off.
+    app.doc_mut().paper.freeze_play(Duration::from_secs(10));
+    let _ = app.update(Message::Frame);
     assert_eq!(app.doc().editor.cursor().row, 2);
     let _ = app.update(Message::Command(Command::StopPlay));
 
@@ -2110,25 +2118,34 @@ fn snapshot_story() {
     shoot(&mut app, &dir, "readme-trace");
     press(&mut app, Command::StopPlay);
 
-    // The coffee machine at play: on, a coffee, and back to ready.
+    // The coffee machine at play: on, a coffee, back to ready, and off, so
+    // the picture loops. Each frame is drawn at its moment after the step,
+    // however long the frames before took to draw; `-hold` marks a rest.
     let _ = app.update(Message::Select(0));
     show_themed(&mut app, Language::PlantUml);
+    let key = app.doc().key;
+    let begun = Instant::now();
     press(&mut app, Command::Play);
     assert!(app.doc().paper.playing(), "{:?}", app.notice);
     let mut frame = 0;
-    let mut film = |app: &mut App, ms: u64| {
-        app.doc_mut().paper.freeze_play(Duration::from_millis(ms));
-        shoot(app, &dir, &format!("play-{frame:03}"));
+    let mut film = |app: &mut App, at: Instant, rest: bool| {
+        app.doc_mut().paper.freeze_play_at(at);
+        app.light_played_line(key);
+        let hold = if rest { "-hold" } else { "" };
+        shoot(app, &dir, &format!("play-{frame:03}{hold}"));
         frame += 1;
     };
-    film(&mut app, 3000);
-    for take in [0, 1, 0, 0, 0] {
+    film(&mut app, begun + Duration::from_secs(3), true);
+    for take in [0, 1, 0, 0, 0, 3] {
+        let asked = Instant::now();
         press(&mut app, Command::PlayAsk(paper::Ask::Take(take)));
-        for ms in (0..=720).step_by(60) {
-            film(&mut app, ms);
+        let arrived = app.doc().paper.play_arrived().unwrap();
+        let mut at = asked;
+        while at < arrived + Duration::from_millis(600) {
+            film(&mut app, at, false);
+            at += Duration::from_millis(60);
         }
-        std::thread::sleep(Duration::from_millis(900));
-        film(&mut app, 3000);
+        film(&mut app, arrived + Duration::from_secs(3), true);
     }
     let _ = std::fs::remove_dir_all(work.parent().unwrap());
 }
@@ -2539,6 +2556,12 @@ fn shoot_at(app: &mut App, dir: &Path, name: &str, size: Size) {
         ..Default::default()
     };
     let mut ui = iced_test::simulator::Simulator::with_size(settings, size, app.main_view());
+    // With the keys elsewhere the caret gives way, as `apply_keyboard_focus`
+    // has it: a click in the empty end of the tab bar takes the editor's focus.
+    if app.focus != Pane::Source {
+        ui.point_at(iced::Point::new(size.width - 8.0, 18.0));
+        let _ = ui.simulate(iced_test::simulator::click());
+    }
     ui::snapshot(&mut ui, &app.theme, dir, name);
 }
 

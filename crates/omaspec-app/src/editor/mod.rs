@@ -1107,6 +1107,23 @@ impl App {
                 for doc in &mut self.docs {
                     doc.fade_flash(now);
                 }
+                // A play's line lights when the light of its step sets off,
+                // but the caret stays where the writer is typing.
+                let waiting: Vec<u64> = self
+                    .docs
+                    .iter()
+                    .filter(|doc| doc.paper.line_waiting())
+                    .map(|doc| doc.key)
+                    .collect();
+                for key in waiting {
+                    if self.focus == Pane::Source {
+                        if let Some(doc) = self.find(key) {
+                            let _ = doc.paper.take_jump(now);
+                        }
+                    } else {
+                        self.light_played_line(key);
+                    }
+                }
                 Task::none()
             }
             Message::HoverTab(index, true) => {
@@ -1943,6 +1960,7 @@ impl App {
             || self.gallery_moving(now)
             || self.docs.iter().any(Doc::flash_fading)
             || self.docs.iter().any(|doc| doc.paper.breath_moving(now))
+            || self.docs.iter().any(|doc| doc.paper.line_waiting())
     }
 
     /// Lights, on the sheet, the label the caret is in.
