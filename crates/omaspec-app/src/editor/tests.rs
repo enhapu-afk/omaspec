@@ -1977,6 +1977,53 @@ fn snapshot_readme() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+/// Writes `readme-drone` when OMASPEC_SNAPSHOT_DIR is set: the delivery
+/// drone of examples/drone, a large machine, zoomed in where its flight
+/// and its delivery meet. Take it with `--release`, or the status bar
+/// shows debug render times.
+#[test]
+fn snapshot_drone() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("drone");
+    let file = work.join("delivery-drone.puml");
+    std::fs::write(&file, DRONE).unwrap();
+    let start = Start {
+        files: vec![file],
+        folder: None,
+        forced: None,
+    };
+    let theme = theme_named("tokyo-night", omaspec_theme::Palette::fallback());
+    let mut app = App::themed(start, None, theme).0;
+    let main = app.main;
+    let _ = app.update(Message::ScaleFactor(main, 2.0));
+    press(&mut app, Command::FollowTheme);
+    if app.sidebar_open() {
+        press(&mut app, Command::ToggleSidebar);
+    }
+    split_at(&mut app, 0.4);
+    let key = app.doc().key;
+    due(&mut app, Alarm::Lint(key));
+    assert_eq!(app.doc().counts(), (0, 0));
+    show_themed(&mut app, Language::PlantUml);
+    let _ = app.update(Message::Paper(
+        key,
+        paper::Message::ZoomAt(2.6, iced::Point::new(422.0, 250.0)),
+    ));
+    app.doc_mut().paper.finish_rasters();
+    // The source at the two regions of the flight, as the diagram.
+    let regions = DRONE.lines().position(|l| l.trim() == "--").unwrap();
+    app.doc_mut().jump_to_line(regions);
+    app.doc_mut().unflash();
+    app.notice = None;
+    shoot(&mut app, &dir, "readme-drone");
+    let _ = std::fs::remove_dir_all(work);
+}
+
+const DRONE: &str = include_str!("../../../../examples/drone/delivery-drone.puml");
+
 /// The door of the getting started guide (docs/guide), its scenario and
 /// a night of it.
 const DOOR: &str = include_str!("../../../../examples/door/door.puml");

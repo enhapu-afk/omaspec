@@ -14,7 +14,7 @@ shots=$(mktemp -d)
 trap 'rm -rf "$shots"' EXIT
 
 OMASPEC_SNAPSHOT_DIR="$shots" cargo test --release -p omaspec-app --bin omaspec -- \
-  snapshot_story snapshot_readme snapshot_themes snapshot_gallery >/dev/null
+  snapshot_story snapshot_readme snapshot_drone snapshot_themes snapshot_gallery >/dev/null
 
 shot() { magick "$shots/$1-wgpu.png" -strip "$out/$2.png"; }
 mkdir -p "$out/guide"
@@ -22,6 +22,7 @@ shot readme-hero hero
 shot readme-specs specs
 shot readme-trace trace
 shot readme-compare compare
+shot readme-drone drone
 shot gallery-omarchy gallery
 shot guide-machine guide/machine
 shot guide-finding guide/finding

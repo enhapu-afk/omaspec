@@ -1,0 +1,149 @@
+@startuml
+title A delivery drone
+left to right direction
+
+[*] --> Docked
+
+state Docked {
+  [*] --> Charging
+  Charging : do / charge()
+  Charging --> Ready : battery full
+  Ready : entry / report_ready()
+  Ready --> Charging : battery < 95 %
+}
+
+state Preflight {
+  [*] --> SelfTest
+  SelfTest : entry / run_checks()
+  SelfTest --> CheckWeather : checks passed
+  SelfTest --> SensorFault : sensor fault / log_fault()
+  CheckWeather : do / fetch_forecast()
+  CheckWeather --> PlanRoute : wind < 12 m/s
+  CheckWeather --> WeatherHold : wind >= 12 m/s
+  WeatherHold : do / wait(10 min)
+  WeatherHold --> CheckWeather : hold over
+  PlanRoute : do / plan_route()
+  PlanRoute --> Armed : route cleared
+  PlanRoute --> NoRoute : airspace closed
+  Armed : entry / arm_motors()
+  Armed --> [*] : motors armed
+  state "Sensor fault" as SensorFault <<error>>
+  state "No route" as NoRoute <<error>>
+}
+
+state Flight {
+  [*] --> Navigation
+  state Navigation {
+    [*] --> Takeoff
+    Takeoff : do / climb_to(5 m)
+    Takeoff --> Climb : at 5 m
+    Climb --> Cruise : at 60 m
+    state Cruise {
+      [*] --> FollowRoute
+      FollowRoute : do / track_waypoints()
+      FollowRoute --> Avoid : obstacle ahead / brake()
+      Avoid --> FollowRoute : path clear
+      Avoid --> Reroute : path blocked
+      Reroute : do / replan()
+      Reroute --> FollowRoute : new route
+      FollowRoute --> HoldPattern : no clearance
+      HoldPattern --> FollowRoute : cleared
+    }
+    Cruise --> Approach : 200 m to drop point
+    state Approach {
+      [*] --> Descend
+      Descend : do / descend_to(15 m)
+      Descend --> Scan : at 15 m
+      Scan : do / scan_drop_zone()
+      Scan --> Descend : wrong spot / correct_position()
+    }
+    Approach --> Cruise : drop zone blocked / pick_alternative()
+  }
+  --
+  [*] --> Monitoring
+  state Monitoring {
+    [*] --> Nominal
+    Nominal --> LowBattery : battery < 30 %
+    LowBattery --> Critical : battery < 15 %
+    Nominal --> LinkLost : no signal 3 s
+    LinkLost --> Nominal : signal back
+    LinkLost --> Critical : no signal 60 s
+    Critical : entry / request_landing()
+    Critical --> [*]
+    state "Low battery" as LowBattery <<warning>>
+    state "Link lost" as LinkLost <<warning>>
+    state Critical <<error>>
+  }
+}
+
+state Delivery {
+  [*] --> Hover
+  Hover : do / hold_position()
+  Hover --> Lower : spot clear
+  Hover --> Hover : person below / wait()
+  Lower : do / unwind_tether()
+  Lower --> Release : parcel on ground
+  Lower --> DropAborted : tether snag / cut_tether()
+  Release : entry / open_hook()
+  Release --> Confirm : hook open
+  Confirm : do / take_photo()
+  Confirm --> [*] : photo taken / notify_customer()
+  state "Drop aborted" as DropAborted <<error>>
+}
+
+state battery <<choice>>
+
+state Return {
+  [*] --> FlyHome
+  FlyHome : do / track_waypoints()
+  FlyHome --> Landing : over the dock
+  Landing : do / descend_to(0 m)
+  Landing --> [*] : touchdown / disarm_motors()
+}
+
+state Emergency {
+  [*] --> FindSite
+  FindSite : do / search_landing_site()
+  FindSite --> EmergencyLanding : site found
+  FindSite --> Parachute : nothing below
+  EmergencyLanding --> [*] : touchdown / send_position()
+  Parachute : entry / deploy_parachute()
+  Parachute --> [*] : on the ground / send_position()
+}
+
+state Maintenance {
+  [*] --> Diagnose
+  Diagnose --> Repair : part broken
+  Diagnose --> Calibrate : sensors drift
+  Repair --> Calibrate : part replaced
+  Calibrate --> [*] : all within tolerance
+}
+
+Docked --> Preflight : order assigned [battery >= 95 %]
+Preflight --> Flight : ready for takeoff
+Preflight --> Docked : order cancelled / release_order()
+SensorFault --> Maintenance : technician called
+NoRoute --> Docked : order returned / release_order()
+Scan --> Delivery : zone clear
+Flight --> Return : order cancelled / release_order()
+Flight --> Emergency : landing needed
+Delivery --> battery : done
+battery --> Flight : [next order and battery >= 40 %]
+battery --> Return : [else]
+DropAborted --> Return : parcel kept / report_failure()
+Return --> Docked : on the pad
+Emergency --> Maintenance : recovered
+Maintenance --> Docked : released
+
+note right of Flight
+  Navigation and monitoring run side by side:
+  a critical battery or a lost link ends the
+  delivery wherever the drone is.
+end note
+
+note left of Delivery
+  The customer sees the photo
+  before the drone leaves.
+end note
+
+@enduml

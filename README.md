@@ -39,6 +39,12 @@ other Mermaid types are drawn by mmdr, a Rust library, in the same process. Lint
 are underlined while you type, and a Ctrl+click in the diagram jumps to its line in the
 source.
 
+Large diagrams too: the delivery drone in [`examples/drone`](examples/drone) has 45
+states up to four levels deep, two regions running side by side and 72 transitions, and
+Omaspec draws it in about 30 ms.
+
+![A large state machine zoomed in: the flight of a delivery drone with two regions side by side, and its delivery](docs/images/drone.png)
+
 ### It reads your diagram as behavior
 
 A state diagram is the state machine it specifies, and a sequence diagram is a scenario,
