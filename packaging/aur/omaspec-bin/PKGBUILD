@@ -6,7 +6,7 @@
 
 pkgname=omaspec-bin
 _pkgname=omaspec
-pkgver=0.4.3
+pkgver=0.4.4
 pkgrel=1
 pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy (prebuilt)"
 arch=('x86_64')
@@ -23,7 +23,7 @@ provides=("$_pkgname")
 conflicts=("$_pkgname")
 options=('!debug')
 source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-x86_64-linux.tar.gz")
-sha256sums_x86_64=('0729b42128bbda1499dc685dc155d8d007334f106274422c6af4554b86f3bff2')
+sha256sums_x86_64=('c8407f9a6561b549f2d0ca1841b51dc9b921a9fc1332f6e1fe8d34da9269b743')
 
 package() {
   cd "$_pkgname-$pkgver-x86_64-linux"
