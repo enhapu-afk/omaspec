@@ -55,6 +55,12 @@ install the optional `plantuml` package (Java), Omaspec hands just those to it,
 confined with Landlock. Omaspec reads state and sequence diagrams as PlantUML 1.2026.8
 does; a test holds the two readings against each other.
 
+Large diagrams too: a delivery drone with 45 states up to four levels deep, two regions
+side by side and 72 transitions, drawn in about 30 ms
+([its source](https://github.com/enhapu-afk/omaspec/blob/main/examples/drone/delivery-drone.puml)).
+
+![A large state machine: the flight of a delivery drone with two regions side by side, and its delivery](https://raw.githubusercontent.com/enhapu-afk/omaspec/main/docs/images/drone.png)
+
 ## Install
 
 Omaspec is not in the AUR yet, because the AUR takes no new accounts at the moment.
