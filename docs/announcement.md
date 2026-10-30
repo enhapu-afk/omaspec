@@ -1,12 +1,12 @@
-<!-- Draft for the release announcement (Omarchy community, r/omarchy, AUR
-comments). Adjust version, links and screenshots before posting. -->
+<!-- The release announcement for r/omarchy and the Omarchy community. Before
+posting: the version in the title, and the install section once the AUR takes
+new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec X.Y: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.4.1: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
-Omaspec is a native diagram editor for Omarchy: the source on the left, the live
-diagram on the right, in your Omarchy theme and font. It is pure Rust, one binary that
-draws with its own engines: no Java, no browser, no network, and it sends nothing
-anywhere.
+Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
+your Omarchy theme and font. It is pure Rust, one binary that draws with its own
+engines: no Java, no browser, no network, and it sends nothing anywhere.
 
 ![Omaspec](https://raw.githubusercontent.com/enhapu-afk/omaspec/main/docs/images/hero.png)
 
@@ -21,6 +21,7 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   in the order the scenario sends them.
 - **Play it.** F5 runs the diagram on screen: the states the machine is in light up, you
   pick what happens next, a light runs along each transition or message.
+  [See it play](https://raw.githubusercontent.com/enhapu-afk/omaspec/main/docs/images/play.gif).
 - **Hold a recorded trace against it.** `omaspec trace run.jsonl` plays what a running
   system logged through its state machines and says where it deviated, with the time.
   The editor plays the trace in the diagram, line by line.
@@ -37,10 +38,11 @@ diagram as a scenario, in PlantUML and Mermaid alike:
 - Lint findings while you type; outline; Ctrl+click in the diagram jumps to the line.
 - Compare a diagram with another tab or with any git commit, as pictures or changed lines.
 - The diagram in its own window for a second monitor; a preview window for Neovim users.
-- Follows `omarchy theme` and `omarchy font set` live; Hyprland snippet, menu entry and
-  a themed template included.
+- Follows `omarchy theme` and `omarchy font set` live; a Hyprland binding, a menu entry
+  and themed colors included.
 - Exports SVG, PNG and PDF with the source inside, so an image opens as a diagram again.
-- Keyboard, mouse and touchpad alike.
+- 24 examples to start from (Ctrl+Shift+E), and every command in a palette
+  (Ctrl+Shift+P).
 
 ## Drawing
 
@@ -53,12 +55,37 @@ install the optional `plantuml` package (Java), Omaspec hands just those to it,
 confined with Landlock. Omaspec reads state and sequence diagrams as PlantUML 1.2026.8
 does; a test holds the two readings against each other.
 
+## Install
+
+Omaspec is not in the AUR yet, because the AUR takes no new accounts at the moment.
+Until it does, build the package from the repository:
+
+```bash
+git clone https://github.com/enhapu-afk/omaspec
+cd omaspec/packaging/aur/omaspec-bin
+makepkg -si
+```
+
+This installs the release binary with the desktop entry, the icon and the file types,
+so file managers open `.puml` and `.mmd` files with Omaspec. On other distributions, take
+the binary from the [release](https://github.com/enhapu-afk/omaspec/releases/latest).
+
+The [getting started guide](https://github.com/enhapu-afk/omaspec/blob/main/docs/guide/README.md)
+walks you through a state machine, a scenario and a recorded trace in ten minutes.
+
+## What's next
+
+- **Lines by hand.** Drag a line in the diagram, or a bend in it, to route it yourself;
+  the diagram keeps your route.
+- **Diagrams that link.** Click a state and the view zooms into it: inside is the
+  activity diagram that says what the state does. A specification you can read from the
+  whole system down to a single step.
+- **Even cleaner lines.** Fewer crossings and detours, lines that keep clear of frames and
+  labels, closer to what Graphviz draws.
+
 ## Status
 
-Pre-alpha: well tested (unit and golden tests, the comparison with PlantUML, fuzzing),
-but little used outside its tests so far, so you will find rough edges. Issues, and
-diagrams it draws wrong, are very welcome.
-
-Install: `yay -S omaspec-git` (the newest commit); `omaspec` and `omaspec-bin`
-follow with the first signed release. Source, issues and the roadmap:
-https://github.com/enhapu-afk/omaspec
+Omaspec is young: well tested (unit and golden tests, a comparison with the Java
+PlantUML, fuzzing), but little used outside its tests so far, so you will find rough
+edges. Issues, diagrams it draws wrong, and wishes are very welcome:
+https://github.com/enhapu-afk/omaspec/issues
