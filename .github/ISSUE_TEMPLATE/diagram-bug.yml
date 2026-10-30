@@ -1,0 +1,74 @@
+name: Diagram drawn wrong
+description: Omaspec draws a PlantUML or Mermaid diagram differently from what you expect.
+title: "[diagram] "
+labels: ["diagram-bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! The smaller the source, the faster it gets fixed. Remove lines until the
+        fault goes away, then put the last one back. Please keep private data out: issues are public.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Diagram type
+      options:
+        - PlantUML – sequence
+        - PlantUML – activity
+        - PlantUML – state
+        - PlantUML – class
+        - PlantUML – component
+        - PlantUML – use case
+        - PlantUML – deployment
+        - PlantUML – object
+        - PlantUML – timing
+        - PlantUML – Gantt
+        - PlantUML – mind map / WBS
+        - PlantUML – JSON / formula
+        - PlantUML – other
+        - Mermaid – flowchart
+        - Mermaid – state
+        - Mermaid – sequence
+        - Mermaid – other (drawn by mmdr)
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Minimal diagram source
+      description: The smallest source that still shows the problem.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: What Omaspec draws. Drag an image in here.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What should it look like? A sentence, or a picture from the Java PlantUML or mermaid.live.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Omaspec version
+      description: Output of `omaspec --version`
+      placeholder: omaspec 0.4.2
+    validations:
+      required: true
+  - type: input
+    id: omarchy
+    attributes:
+      label: Omarchy version
+      description: Or your distribution, if not Omarchy.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Theme, editor vs. `omaspec render`, export format, Java PlantUML installed or not.

@@ -149,7 +149,8 @@ More in the [roadmap](ROADMAP.md#next). Ideas and wishes are welcome as
 
 Omaspec is young: well tested (unit and golden tests, a comparison with the Java
 PlantUML, fuzzing), but little used outside its tests so far, so you will find rough
-edges. Issues, and diagrams it draws wrong, are very welcome. The
+edges. Issues, and diagrams it draws wrong, are very welcome;
+[CONTRIBUTING.md](CONTRIBUTING.md) says how to report them and how to build and test. The
 [roadmap](ROADMAP.md) has the plan, [docs/adr](docs/adr) the decisions.
 
 ## License
