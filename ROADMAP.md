@@ -279,12 +279,17 @@ diagrams and flowcharts are now laid out by Omaspec itself (track M).
       the pointer staying put; the sharp pixels for the end are asked for at the start. A
       touchpad zoom, a pan or a pinch stays direct and stops a glide where it is
 
-Found on the way, making the gallery: the native engine draws the component icon over a
-short name (`[Lamp]`); use case lines between two actors detour around the frame; in an
-activity, a `stop` in one branch of an `if` can land on the bar of a `fork` in another;
-nested signal-flow blocks with several inputs overlap their port names; lint reads
-`Alt.height -> height` in a signal flow as an unclosed `alt`; a Mermaid `title:` in front
-matter is not drawn for state diagrams and flowcharts. The examples avoid all of them.
+Found on the way, making the gallery: lint reads `Alt.height -> height` in a signal flow
+as an unclosed `alt` ([#1](https://github.com/enhapu-afk/omaspec/issues/1)); the native
+engine draws the component icon against the end of a name, over it when the name is short
+(`[Lamp]`, [#2](https://github.com/enhapu-afk/omaspec/issues/2)); a Mermaid `title:` in
+front matter is not drawn for state diagrams and flowcharts
+([#3](https://github.com/enhapu-afk/omaspec/issues/3)). The examples avoid all three.
+Three more did not show again in 0.4.2 (2026-10-30, several tries each): use case lines
+detouring around the frame, a `stop` in one branch of an `if` landing on the bar of a
+`fork` in another, nested signal-flow blocks overlapping their port names. Use case lines
+from several actors still cross in tight curves; that belongs to the cleaner lines under
+[Next](#next).
 
 Found on the way: mmdr draws the title of a sequence `alt` block behind the second actor
 box, puts a note that follows a block inside its frame, and loops one of two edges between
