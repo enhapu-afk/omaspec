@@ -259,7 +259,11 @@ fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
         {
             continue;
         }
-        if let Some(c) = re!(r"(?i)^(alt|opt|loop|par|critical|group|box)\b").captures(&t) {
+        // `Critical --> Landed` or `Loop : entry / x` names a state or a
+        // participant: an arrow or a description follows, not a label.
+        if let Some(c) = re!(r"(?i)^(alt|opt|loop|par|critical|group|box)\b").captures(&t)
+            && !re!(r"^\s*[-<.:]").is_match(&t[c[0].len()..])
+        {
             // `alt#Gold` is an `alt`; `group Name {` closes with `}`.
             let mut kind = c[1].to_lowercase();
             if t.ends_with('{') {
@@ -752,6 +756,19 @@ mod tests {
         );
         assert!(found.contains(&(1, Severity::Warning, "Unclosed alt".into())));
         assert!(found.contains(&(2, Severity::Warning, "Unclosed note".into())));
+    }
+
+    #[test]
+    fn a_name_like_a_group_opens_none() {
+        // A state or participant may be called Critical or Loop; an arrow
+        // or a description after it makes it no group.
+        for code in [
+            "@startuml\n[*] --> Critical\nCritical --> [*] : landed\nCritical : entry / land()\n@enduml",
+            "@startuml\nLoop -> Bob : hi\nBob <- Group : back\nPar ..> Alt\n@enduml",
+        ] {
+            let found = messages(code, Language::PlantUml);
+            assert!(found.is_empty(), "{code:?}: {found:?}");
+        }
     }
 
     #[test]
