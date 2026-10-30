@@ -1,6 +1,6 @@
 pkgbase = omaspec-bin
 	pkgdesc = Native PlantUML and Mermaid editor and live preview for Omarchy (prebuilt)
-	pkgver = 0.4.2
+	pkgver = 0.4.3
 	pkgrel = 1
 	url = https://github.com/enhapu-afk/omaspec
 	arch = x86_64
@@ -17,7 +17,7 @@ pkgbase = omaspec-bin
 	optdepends = libnotify: notifications outside Omarchy
 	provides = omaspec
 	conflicts = omaspec
-	source_x86_64 = https://github.com/enhapu-afk/omaspec/releases/download/v0.4.2/omaspec-0.4.2-x86_64-linux.tar.gz
-	sha256sums_x86_64 = b755f65192cb78e938ab84b5a5c281d51ca66e5d3ba8cfc30e15f046e3dc960c
+	source_x86_64 = https://github.com/enhapu-afk/omaspec/releases/download/v0.4.3/omaspec-0.4.3-x86_64-linux.tar.gz
+	sha256sums_x86_64 = 0729b42128bbda1499dc685dc155d8d007334f106274422c6af4554b86f3bff2
 
 pkgname = omaspec-bin
