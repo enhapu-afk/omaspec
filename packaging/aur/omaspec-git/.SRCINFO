@@ -1,6 +1,6 @@
 pkgbase = omaspec-git
 	pkgdesc = Native PlantUML and Mermaid editor and live preview for Omarchy
-	pkgver = 0.4.1
+	pkgver = 0.4.2
 	pkgrel = 1
 	url = https://github.com/enhapu-afk/omaspec
 	arch = x86_64

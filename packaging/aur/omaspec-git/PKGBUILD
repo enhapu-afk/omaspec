@@ -5,7 +5,7 @@
 
 pkgname=omaspec-git
 _pkgname=omaspec
-pkgver=0.4.1
+pkgver=0.4.2
 pkgrel=1
 pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy"
 arch=('x86_64' 'aarch64')
