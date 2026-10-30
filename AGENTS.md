@@ -21,7 +21,7 @@ cargo run -p omaspec-app -- [FILE...]      # editor window
 cargo run -p omaspec-app -- preview FILE   # preview window that follows the file
 OMASPEC_SNAPSHOT_DIR=/tmp cargo test -p omaspec-app snapshot   # headless screenshots of the editor, the preview and the gallery
 OMASPEC_SNAPSHOT_DIR=/tmp cargo test --release -p omaspec-app snapshot_   # README pictures, every bundled theme
-docs/images/update.sh                      # the README's and the guide's pictures into docs/images (ImageMagick, ffmpeg)
+docs/images/update.sh                      # the README's and the guide's pictures into docs/images (ImageMagick)
 cargo bench -p omaspec-render              # render and export timings
 cargo run --release -p spike-editor          # editor spike window
 cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them

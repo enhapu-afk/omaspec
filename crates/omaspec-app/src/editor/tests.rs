@@ -2054,9 +2054,9 @@ fn hover_finding(app: &mut App, line: &str, word: &str) {
 /// when OMASPEC_SNAPSHOT_DIR is set, in Tokyo Night with the diagrams in
 /// the theme's colors: `readme-hero`; the guide's door as it grows
 /// (`guide-machine`, `guide-finding`, `guide-play`); its scenario with a
-/// mistake (`readme-specs`); a night that goes wrong (`readme-trace`);
-/// and the coffee machine at play, frame by frame (`play-NNN`). Take
-/// them with `--release`, or the status bar shows debug render times.
+/// mistake (`readme-specs`); a night that goes wrong (`readme-trace`).
+/// Take them with `--release`, or the status bar shows debug render
+/// times.
 #[test]
 fn snapshot_story() {
     let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
@@ -2172,37 +2172,6 @@ fn snapshot_story() {
     shoot(&mut app, &dir, "readme-trace");
     press(&mut app, Command::StopPlay);
 
-    // The coffee machine at play: on, a coffee, back to ready, and off, so
-    // the picture loops. The film runs on a clock of its own, however long
-    // the frames take to draw: each step is taken at the moment of the rest
-    // before it, each frame drawn at its moment after. `-hold` marks a rest.
-    let _ = app.update(Message::Select(0));
-    show_themed(&mut app, Language::PlantUml);
-    let key = app.doc().key;
-    let begun = Instant::now();
-    press(&mut app, Command::Play);
-    assert!(app.doc().paper.playing(), "{:?}", app.notice);
-    let mut frame = 0;
-    let mut film = |app: &mut App, at: Instant, rest: bool| {
-        app.doc_mut().paper.freeze_play_at(at);
-        app.light_played_line(key);
-        let hold = if rest { "-hold" } else { "" };
-        shoot(app, &dir, &format!("play-{frame:03}{hold}"));
-        frame += 1;
-    };
-    let mut rest = begun + Duration::from_secs(3);
-    film(&mut app, rest, true);
-    for take in [0, 1, 0, 0, 0, 3] {
-        press(&mut app, Command::PlayAsk(paper::Ask::Take(take)));
-        let arrived = app.doc().paper.play_arrived().unwrap();
-        let mut at = rest;
-        while at < arrived + Duration::from_millis(600) {
-            film(&mut app, at, false);
-            at += Duration::from_millis(60);
-        }
-        rest = arrived + Duration::from_secs(3);
-        film(&mut app, rest, true);
-    }
     let _ = std::fs::remove_dir_all(work.parent().unwrap());
 }
 

@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Takes the pictures of the README and the guide again: headless screenshots
-# from the snapshot tests (crates/omaspec-app/src/editor/tests.rs), four
-# bundled Omarchy themes as one picture, and the coffee machine at play as a
-# GIF. Needs ImageMagick and ffmpeg; the themes need Omarchy's bundled themes.
+# from the snapshot tests (crates/omaspec-app/src/editor/tests.rs) and four
+# bundled Omarchy themes as one picture. Needs ImageMagick; the themes need
+# Omarchy's bundled themes.
+#
+# play.gif is a screen recording of Omaspec, not taken here. Cut a recording
+# to the play and turn it into the GIF with:
+#   ffmpeg -i recording.mp4 -vf "fps=20,scale=1200:-2:flags=lanczos,hqdn3d=0:0:4:4,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" docs/images/play.gif
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 out=docs/images
@@ -26,20 +30,6 @@ shot guide-play guide/play
 # Two dark themes and two light ones.
 magick montage "$shots"/theme-{tokyo-night,catppuccin-latte,gruvbox,rose-pine}-wgpu.png \
   -tile 2x2 -geometry 800x427+6+6 -background '#16161e' -depth 8 -strip "$out/themes.png"
-
-# The play: a light travels in frames of 60 ms; where a step has arrived
-# (a `-hold` frame), the machine rests.
-list="$shots/play.txt"
-: >"$list"
-frames=("$shots"/play-[0-9][0-9][0-9]*-wgpu.png)
-for frame in "${frames[@]}"; do
-  case $frame in *-hold-wgpu.png) hold=1.6 ;; *) hold=0.06 ;; esac
-  printf "file '%s'\nduration %s\n" "$frame" "$hold" >>"$list"
-done
-printf "file '%s'\n" "${frames[-1]}" >>"$list"
-ffmpeg -loglevel error -y -f concat -safe 0 -i "$list" \
-  -vf "scale=1200:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
-  "$out/play.gif"
 
 # What GitHub shows for a shared link (Settings, Social preview; uploaded by
 # hand): the mark, the name and the hero's diagram.
