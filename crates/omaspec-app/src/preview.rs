@@ -29,6 +29,8 @@ const FILE_SETTLE: Duration = Duration::from_millis(50);
 const THEME_SETTLE: Duration = Duration::from_millis(200);
 const KEY_PAN: f32 = 80.0;
 const KEY_ZOOM: f32 = 1.25;
+/// The status bar's note while a play runs.
+const PLAY_KEYS: &str = "playing: 1–9 a step, Space next, Backspace back, Esc stops";
 
 pub fn run(path: PathBuf, forced: Option<Language>) -> iced::Result {
     iced::application(
@@ -227,12 +229,7 @@ impl Preview {
                 if playing {
                     paper.update(paper::Message::StopPlay)
                 } else {
-                    self.notice = Some(match paper.start_play() {
-                        Ok(()) => {
-                            "playing: 1–9 a step, Space next, Backspace back, Esc stops".into()
-                        }
-                        Err(why) => why,
-                    });
+                    self.notice = paper.start_play().err();
                     Task::none()
                 }
             }
@@ -284,6 +281,13 @@ impl Preview {
         .into()
     }
 
+    /// The notice, else the keys of the play that runs; gone once it stops.
+    fn note(&self) -> Option<&str> {
+        self.notice
+            .as_deref()
+            .or(self.paper.playing().then_some(PLAY_KEYS))
+    }
+
     /// One line: file and language, the state (or an error, cut to fit),
     /// the zoom.
     fn status_bar(&self) -> Element<'_, Message> {
@@ -296,7 +300,7 @@ impl Preview {
                 .wrapping(text::Wrapping::None)
         };
         let (state, color) = self.paper.state(p);
-        let middle = match (&self.notice, &self.paper.status) {
+        let middle = match (self.note(), &self.paper.status) {
             (Some(notice), _) => row![
                 label(state, color),
                 label(format!("  {notice}"), p.light_foreground)
@@ -470,11 +474,14 @@ mod tests {
         p.paper.finish_rasters();
         let _ = p.update(press("p"));
         assert!(p.paper.playing(), "{:?}", p.notice);
+        assert_eq!(p.note(), Some(PLAY_KEYS));
         let _ = p.update(press("1"));
         let later = std::time::Instant::now() + std::time::Duration::from_secs(10);
         assert_eq!(p.paper.take_jump(later), Some(2));
         let _ = p.update(press("p"));
         assert!(!p.paper.playing());
+        // The keys go with the play.
+        assert_eq!(p.note(), None);
     }
 
     #[test]

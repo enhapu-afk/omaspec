@@ -176,6 +176,11 @@ impl Play {
         }
     }
 
+    /// Whether it plays a recorded trace.
+    pub fn tracing(&self) -> bool {
+        matches!(self, Play::Machine(play) if matches!(play.driver, Driver::Trace(_)))
+    }
+
     /// Whether something still moves at `now`.
     pub fn animating(&self, now: Instant) -> bool {
         match self {

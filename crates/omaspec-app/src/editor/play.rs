@@ -11,6 +11,16 @@ use super::{App, FLASH, Message, PICKER, Pane};
 use crate::worker::{Alarm, blocking};
 use crate::{paper, specs};
 
+/// The keys of the play that runs, a recorded trace or not, for the status
+/// bar.
+pub(super) fn keys(tracing: bool) -> &'static str {
+    if tracing {
+        "playing a trace: Space next line, ← back, Esc stops"
+    } else {
+        "playing: 1–9 a step, Space next, ← back, Esc stops"
+    }
+}
+
 impl App {
     /// Plays the active diagram, its state machine or its scenario, with
     /// the keyboard on the diagram; or stops the play.
@@ -26,7 +36,8 @@ impl App {
         match self.doc_mut().paper.start_play() {
             Ok(()) => {
                 self.set_focus(Pane::Diagram);
-                self.notice = Some("playing: 1–9 a step, Space next, ← back, Esc stops".into());
+                // The status bar shows the play's keys while it runs.
+                self.notice = None;
                 self.apply_keyboard_focus()
             }
             Err(why) => {
@@ -111,7 +122,7 @@ impl App {
         {
             Ok(()) => {
                 self.set_focus(Pane::Diagram);
-                self.notice = Some("playing a trace: Space next line, ← back, Esc stops".into());
+                self.notice = None;
                 self.apply_keyboard_focus()
             }
             Err(why) => {

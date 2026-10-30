@@ -84,6 +84,7 @@ fn a_play_takes_digits_only_while_the_diagram_has_the_keys() {
     show(&mut app, lamp, Language::PlantUml);
     let _ = app.update(Message::Command(Command::Play));
     assert_eq!(app.mode(app.main), Mode::Playing);
+    assert!(app.note().unwrap().starts_with("playing: 1–9"));
     // Once the start's light sets off, its line lights up in the source.
     app.doc_mut().paper.freeze_play(Duration::from_secs(2));
     let _ = app.update(Message::Frame);
@@ -98,6 +99,8 @@ fn a_play_takes_digits_only_while_the_diagram_has_the_keys() {
     assert_eq!(app.doc().editor.cursor().row, 2);
     let _ = app.update(Message::Command(Command::Play));
     assert!(!app.doc().paper.playing());
+    // The keys go with the play.
+    assert_eq!(app.note(), None);
 }
 
 #[test]
@@ -128,12 +131,14 @@ fn a_recorded_trace_is_found_beside_its_machine_and_played() {
     assert_eq!(app.picker.as_ref().unwrap().kind, Kind::Traces);
     let _ = app.update(Message::PickerSubmit);
     assert!(app.doc().paper.playing(), "{:?}", app.notice);
+    assert!(app.note().unwrap().starts_with("playing a trace"));
     let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Next)));
     // The step's line lights up in the source when its light sets off.
     app.doc_mut().paper.freeze_play(Duration::from_secs(10));
     let _ = app.update(Message::Frame);
     assert_eq!(app.doc().editor.cursor().row, 2);
     let _ = app.update(Message::Command(Command::StopPlay));
+    assert_eq!(app.note(), None);
 
     // One object: it plays at once. None: the writer is told.
     let _ = app.update(Message::Traces(key, found[1..].to_vec()));

@@ -812,6 +812,15 @@ impl App {
         ui::bar(bar.into(), p)
     }
 
+    /// What the status bar tells in place of the diagram's state: the
+    /// notice, else the keys of the play that runs; gone once it stops.
+    pub(super) fn note(&self) -> Option<&str> {
+        let paper = &self.doc().paper;
+        self.notice
+            .as_deref()
+            .or_else(|| paper.playing().then(|| super::play::keys(paper.tracing())))
+    }
+
     /// One line of pills, in the shape of the play bar: the language and
     /// kind of the diagram, the cursor, the findings with their count as a
     /// badge; then the diagram's state (or a notice), the zoom, the theme
@@ -848,8 +857,8 @@ impl App {
                 plural(e, "error"),
             ),
         };
-        let middle = match &self.notice {
-            Some(notice) => self.small(notice.clone(), p.light_foreground),
+        let middle = match self.note() {
+            Some(note) => self.small(note, p.light_foreground),
             None => self.small(doc.paper.summary(), quiet),
         };
         let edge = ui::alpha(p.accent, 0.45);

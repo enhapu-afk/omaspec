@@ -420,6 +420,11 @@ impl Paper {
         self.play.is_some() && self.leaving.is_none()
     }
 
+    /// Whether the play that runs is a recorded trace.
+    pub fn tracing(&self) -> bool {
+        self.playing() && self.play.as_ref().is_some_and(Play::tracing)
+    }
+
     /// Lights the place on the sheet that the label at `row`/`col` draws,
     /// or lets the light go out. `row` is a zero-based line and `col` a
     /// byte on that line. Nothing lights while a play runs.
