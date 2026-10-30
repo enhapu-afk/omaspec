@@ -17,6 +17,7 @@ pkgbase = omaspec-bin
 	optdepends = libnotify: notifications outside Omarchy
 	provides = omaspec
 	conflicts = omaspec
+	options = !debug
 	source_x86_64 = https://github.com/enhapu-afk/omaspec/releases/download/v0.4.3/omaspec-0.4.3-x86_64-linux.tar.gz
 	sha256sums_x86_64 = 0729b42128bbda1499dc685dc155d8d007334f106274422c6af4554b86f3bff2
 

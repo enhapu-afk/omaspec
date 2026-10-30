@@ -21,6 +21,7 @@ optdepends=(
 )
 provides=("$_pkgname")
 conflicts=("$_pkgname")
+options=('!debug')
 source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-x86_64-linux.tar.gz")
 sha256sums_x86_64=('0729b42128bbda1499dc685dc155d8d007334f106274422c6af4554b86f3bff2')
 
