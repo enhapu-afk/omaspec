@@ -346,8 +346,11 @@ impl Paper {
             Message::Fit => self.fit(),
             Message::Pick(_) => Task::none(),
             Message::Play(ask) => {
+                // On the clock the play is drawn at, so that a picture of
+                // one moment takes its steps at that moment too.
+                let now = self.clock.unwrap_or_else(Instant::now);
                 if let Some(play) = self.play.as_mut().filter(|_| self.leaving.is_none()) {
-                    play.ask(ask, Instant::now());
+                    play.ask(ask, now);
                 }
                 Task::none()
             }
@@ -560,15 +563,18 @@ impl Paper {
     }
 
     /// The source line of the play's step whose light set off last by
-    /// `now`, once.
+    /// `now`, once; none once the play stops.
     pub fn take_jump(&mut self, now: Instant) -> Option<usize> {
+        if !self.playing() {
+            return None;
+        }
         let now = self.clock.unwrap_or(now);
         self.play.as_mut()?.take_jump(now)
     }
 
     /// Whether a step's line waits for its light to set off.
     pub fn line_waiting(&self) -> bool {
-        self.play.as_ref().is_some_and(Play::line_waiting)
+        self.playing() && self.play.as_ref().is_some_and(Play::line_waiting)
     }
 
     /// Fades from the pictures before to the new diagram's overview. A

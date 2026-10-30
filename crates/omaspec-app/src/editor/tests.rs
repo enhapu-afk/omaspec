@@ -78,7 +78,7 @@ fn a_play_takes_digits_only_while_the_diagram_has_the_keys() {
     // The play holds the keys while the diagram has the focus.
     let work = temp_dir("play-keys");
     let file = work.join("lamp.puml");
-    let lamp = "@startuml\n[*] --> Off\nOff --> On : switch\nOn --> Off : switch\n@enduml\n";
+    let lamp = "@startuml\n[*] --> Off\nOff --> On : switch\nstate On {\n  [*] --> Dim\n}\nOn --> Off : switch\n@enduml\n";
     std::fs::write(&file, lamp).unwrap();
     let mut app = open(std::slice::from_ref(&file));
     show(&mut app, lamp, Language::PlantUml);
@@ -92,15 +92,56 @@ fn a_play_takes_digits_only_while_the_diagram_has_the_keys() {
     app.set_focus(Pane::Source);
     assert_eq!(app.mode(app.main), Mode::Editing);
     app.set_focus(Pane::Diagram);
+    // A step lights its line as its light sets off; the step into Dim that
+    // follows by itself lights its own once the light has reached On.
     let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Take(0))));
-    // The step's line lights up when its light sets off.
-    app.doc_mut().paper.freeze_play(Duration::from_secs(10));
+    assert_eq!(app.doc().editor.cursor().row, 2);
     let _ = app.update(Message::Frame);
     assert_eq!(app.doc().editor.cursor().row, 2);
-    let _ = app.update(Message::Command(Command::Play));
+    let arrived = app.doc().paper.play_arrived().unwrap();
+    app.doc_mut().paper.freeze_play_at(arrived);
+    let _ = app.update(Message::Frame);
+    assert_eq!(app.doc().editor.cursor().row, 4);
+    // A step asked before the light arrives waits its turn; once the play
+    // stops, its lines are let go.
+    let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Take(0))));
+    assert_eq!(app.doc().editor.cursor().row, 6);
+    let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Take(0))));
+    assert_eq!(app.doc().editor.cursor().row, 6);
+    let _ = app.update(Message::Command(Command::StopPlay));
+    app.doc_mut().paper.freeze_play(Duration::from_secs(60));
+    let _ = app.update(Message::Frame);
+    assert_eq!(app.doc().editor.cursor().row, 6);
     assert!(!app.doc().paper.playing());
     // The keys go with the play.
     assert_eq!(app.note(), None);
+}
+
+#[test]
+fn a_played_line_moves_no_caret_out_of_sight() {
+    let work = temp_dir("play-tabs");
+    let lamp = "@startuml\n[*] --> Off\nOff --> On : switch\nstate On {\n  [*] --> Dim\n}\nOn --> Off : switch\n@enduml\n";
+    let (a, b) = (work.join("a.puml"), work.join("b.puml"));
+    std::fs::write(&a, lamp).unwrap();
+    std::fs::write(&b, lamp).unwrap();
+    let mut app = open(&[a, b]);
+    let _ = app.update(Message::Select(0));
+    show(&mut app, lamp, Language::PlantUml);
+    let key = app.doc().key;
+    let _ = app.update(Message::Command(Command::Play));
+    app.doc_mut().paper.freeze_play(Duration::from_secs(2));
+    let _ = app.update(Message::Frame);
+    let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Take(0))));
+    assert_eq!(app.doc().editor.cursor().row, 2);
+    let arrived = app.doc().paper.play_arrived().unwrap();
+    app.doc_mut().paper.freeze_play_at(arrived);
+    // The step into Dim comes due while the other tab is in front.
+    let _ = app.update(Message::Select(1));
+    assert_ne!(app.doc().key, key);
+    let _ = app.update(Message::Frame);
+    let doc = app.docs.iter().find(|d| d.key == key).unwrap();
+    assert_eq!(doc.editor.cursor().row, 2);
+    assert!(!doc.paper.line_waiting());
 }
 
 #[test]
@@ -2115,17 +2156,26 @@ fn snapshot_story() {
     let spec = app.doc().paper.spec("door.puml").unwrap();
     let _ = app.update(Message::Traces(key, specs::traces(&work, &spec)));
     assert!(app.doc().paper.playing(), "{:?}", app.notice);
+    // The night's four lines asked at one moment, drawn once all have
+    // arrived; the last that took a step, open, is lit.
+    let asked = Instant::now() + Duration::from_secs(3);
+    app.doc_mut().paper.freeze_play_at(asked);
     for _ in 0..4 {
         press(&mut app, Command::PlayAsk(paper::Ask::Next));
     }
-    app.doc_mut().paper.freeze_play(Duration::from_secs(10));
+    app.doc_mut()
+        .paper
+        .freeze_play_at(asked + Duration::from_secs(10));
+    let _ = app.update(Message::Frame);
+    assert_eq!(app.doc().editor.cursor().row, 3);
     app.notice = None;
     shoot(&mut app, &dir, "readme-trace");
     press(&mut app, Command::StopPlay);
 
     // The coffee machine at play: on, a coffee, back to ready, and off, so
-    // the picture loops. Each frame is drawn at its moment after the step,
-    // however long the frames before took to draw; `-hold` marks a rest.
+    // the picture loops. The film runs on a clock of its own, however long
+    // the frames take to draw: each step is taken at the moment of the rest
+    // before it, each frame drawn at its moment after. `-hold` marks a rest.
     let _ = app.update(Message::Select(0));
     show_themed(&mut app, Language::PlantUml);
     let key = app.doc().key;
@@ -2140,17 +2190,18 @@ fn snapshot_story() {
         shoot(app, &dir, &format!("play-{frame:03}{hold}"));
         frame += 1;
     };
-    film(&mut app, begun + Duration::from_secs(3), true);
+    let mut rest = begun + Duration::from_secs(3);
+    film(&mut app, rest, true);
     for take in [0, 1, 0, 0, 0, 3] {
-        let asked = Instant::now();
         press(&mut app, Command::PlayAsk(paper::Ask::Take(take)));
         let arrived = app.doc().paper.play_arrived().unwrap();
-        let mut at = asked;
+        let mut at = rest;
         while at < arrived + Duration::from_millis(600) {
             film(&mut app, at, false);
             at += Duration::from_millis(60);
         }
-        film(&mut app, arrived + Duration::from_secs(3), true);
+        rest = arrived + Duration::from_secs(3);
+        film(&mut app, rest, true);
     }
     let _ = std::fs::remove_dir_all(work.parent().unwrap());
 }

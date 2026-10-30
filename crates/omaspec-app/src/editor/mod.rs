@@ -1107,8 +1107,7 @@ impl App {
                 for doc in &mut self.docs {
                     doc.fade_flash(now);
                 }
-                // A play's line lights when the light of its step sets off,
-                // but the caret stays where the writer is typing.
+                // A play's line lights when the light of its step sets off.
                 let waiting: Vec<u64> = self
                     .docs
                     .iter()
@@ -1116,13 +1115,7 @@ impl App {
                     .map(|doc| doc.key)
                     .collect();
                 for key in waiting {
-                    if self.focus == Pane::Source {
-                        if let Some(doc) = self.find(key) {
-                            let _ = doc.paper.take_jump(now);
-                        }
-                    } else {
-                        self.light_played_line(key);
-                    }
+                    self.light_played_line(key);
                 }
                 Task::none()
             }

@@ -330,9 +330,11 @@ impl App {
                     }
                 }
             }
+            // A play takes the keys to the diagram; the editor must not
+            // take them back.
             Some(Choice::Trace { path, object }) => {
                 let played = self.play_trace(&path, &object);
-                Task::batch([self.focus_editor(), played])
+                Task::batch([self.apply_keyboard_focus(), played])
             }
             Some(Choice::Show { doc, range }) => {
                 let Some(index) = self.docs.iter().position(|d| d.key == doc) else {
@@ -351,7 +353,7 @@ impl App {
                 if sets_area {
                     ran
                 } else {
-                    Task::batch([self.focus_editor(), ran])
+                    Task::batch([self.apply_keyboard_focus(), ran])
                 }
             }
             None => self.focus_editor(),

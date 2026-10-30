@@ -133,12 +133,17 @@ impl App {
     }
 
     /// Lights the source line of the step whose light set off last,
-    /// without taking the keyboard off the diagram.
+    /// without taking the keyboard off the diagram. The caret stays where
+    /// the writer is typing, and in a tab out of sight: the line is let go.
     pub(super) fn light_played_line(&mut self, key: u64) {
+        let typing = self.focus == Pane::Source && self.detached.is_none();
+        let shown = key == self.doc().key && !typing;
         let Some(doc) = self.find(key) else {
             return;
         };
-        if let Some(line) = doc.paper.take_jump(Instant::now()) {
+        if let Some(line) = doc.paper.take_jump(Instant::now())
+            && shown
+        {
             doc.jump_to_line(line);
             self.after(Alarm::Flash(key), FLASH);
         }

@@ -573,6 +573,8 @@ impl MachinePlay {
         let old = now.checked_sub(Duration::from_secs(5)).unwrap_or(now);
         self.shown
             .retain(|t| t.start + t.took + LINGER + RIPPLE > old);
+        // Nor waits a line nobody took: the preview lights none.
+        self.lines.retain(|&(at, _)| at > old);
     }
 
     fn settled(&self) -> Instant {
@@ -1305,6 +1307,23 @@ mod tests {
         assert_eq!(play.take_jump(lines[0].0), Some(4));
         assert_eq!(play.take_jump(lines[1].0 - Duration::from_millis(1)), None);
         assert_eq!(play.take_jump(lines[1].0), Some(5));
+    }
+
+    #[test]
+    fn lines_nobody_takes_do_not_pile_up() {
+        // The preview lights no line; a long play keeps only the recent.
+        let source = "@startuml\n[*] --> Off\nOff --> On : switch\nOn --> Off : switch\n@enduml\n";
+        let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+        let t0 = Instant::now();
+        let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+        for n in 1..=50 {
+            play.ask(Ask::Take(0), t0 + Duration::from_secs(10 * n));
+        }
+        assert!(play.line_waiting());
+        let Play::Machine(machine) = &play else {
+            panic!("no machine");
+        };
+        assert_eq!(machine.lines.len(), 1);
     }
 
     #[test]
