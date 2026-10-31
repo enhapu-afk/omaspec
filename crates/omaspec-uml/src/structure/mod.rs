@@ -13,7 +13,7 @@ mod parse;
 mod skin;
 
 pub use crate::common::{Frame, Skinparam, Text};
-pub use draw::draw;
+pub use draw::{draw, draw_mapped};
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use parse::{is_structure, parse};
 

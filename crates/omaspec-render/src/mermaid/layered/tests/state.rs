@@ -9,7 +9,7 @@ fn try_draw(
     theme: &mermaid_rs_renderer::Theme,
     source: &str,
 ) -> Option<String> {
-    super::super::try_draw(graph, theme, source, None, 0.0).map(|(svg, _)| svg)
+    super::super::try_draw(graph, theme, source, None, &[], 0.0).map(|(svg, _)| svg)
 }
 use super::{block_has, collect, encloses, find, laid, read, segment_cuts};
 
@@ -242,7 +242,7 @@ fn a_transition_into_its_own_nested_state_falls_back() {
     let source = "stateDiagram-v2\nstate On {\n[*] --> Idle\n}\nOn --> Idle\n";
     assert!(try_draw(&parse_mermaid_strict(source).unwrap().graph, &theme, source).is_none());
     let (graph, lines) = read(source);
-    assert!(super::super::try_draw(&graph, &theme, source, Some(&lines), 0.0).is_none());
+    assert!(super::super::try_draw(&graph, &theme, source, Some(&lines), &[], 0.0).is_none());
     // mmdr lays out Omaspec's reading, so the picture still shows the
     // machine that is checked.
     assert!(crate::mermaid::render(source).unwrap().contains("Idle"));
@@ -254,7 +254,7 @@ fn render_uses_this_drawing() {
     let source = "stateDiagram-v2\n[*] --> Idle\nIdle --> Busy : job\n";
     let (graph, lines) = read(source);
     let theme = RenderOptions::default().theme;
-    let native = super::super::try_draw(&graph, &theme, source, Some(&lines), 0.0).unwrap();
+    let native = super::super::try_draw(&graph, &theme, source, Some(&lines), &[], 0.0).unwrap();
     assert_eq!(crate::mermaid::render(source).unwrap(), native.0);
 }
 
@@ -277,7 +277,7 @@ fn the_own_reading_draws_what_mmdr_parsed() {
         let parsed = parse_mermaid_strict(&folded).unwrap();
         let before = try_draw(&parsed.graph, &theme, source).unwrap();
         let (graph, lines) = read(source);
-        let after = super::super::try_draw(&graph, &theme, source, Some(&lines), 0.0).unwrap();
+        let after = super::super::try_draw(&graph, &theme, source, Some(&lines), &[], 0.0).unwrap();
         assert_eq!(before, after.0, "{source}");
     }
 }

@@ -33,6 +33,7 @@
 //! on [`route`].
 
 pub mod across;
+pub mod by_hand;
 mod nest;
 pub mod route;
 

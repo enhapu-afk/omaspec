@@ -23,7 +23,7 @@ use crate::text::{self, Block, Family, Font};
 mod nest;
 mod open;
 
-use nest::{fill_regions, layout_regions, link_crossings, separators};
+use nest::{arrows, fill_regions, lay_by_hand, layout_regions, link_crossings, separators, wires};
 use open::layout_open;
 
 /// Space around the drawing.
@@ -76,6 +76,8 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     )?;
     let mut scene = layout_container(&diagram.root, &skin, family)?;
     link_crossings(&diagram.root, &mut scene, &skin, family)?;
+    let arrows = arrows(&diagram.root);
+    let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
     scene.offset(0.0, annotations.top());
     paint(&mut canvas, &skin, &scene);
     annotations.draw(&mut canvas);
@@ -87,6 +89,8 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         (skin.round, skin.curve),
         &mut map,
     );
+    map.wires = wires(&arrows, &scene, &diagram.frame.by_hand, skin.curve);
+    map.misses = misses;
     let map = map.placed(canvas.fit(MARGIN));
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
@@ -1112,6 +1116,94 @@ mod tests {
         )
         .unwrap_err();
         assert!(err.reason.contains("linetype"), "{}", err.reason);
+    }
+
+    /// Whether the run of `points` passes within half a unit of `p`.
+    fn passes(points: &[(f32, f32)], p: (f32, f32)) -> bool {
+        points.windows(2).any(|w| {
+            let ((ax, ay), (bx, by)) = (w[0], w[1]);
+            let (dx, dy) = (bx - ax, by - ay);
+            let t = (((p.0 - ax) * dx + (p.1 - ay) * dy) / (dx * dx + dy * dy).max(1e-6))
+                .clamp(0.0, 1.0);
+            (ax + t * dx - p.0).hypot(ay + t * dy - p.1) < 0.5
+        })
+    }
+
+    const BY_HAND: &str = "@startuml\nskinparam linetype ortho\n[*] --> Idle\nIdle --> Running : start\nRunning --> Idle : stop\nRunning --> Idle : fail\nstate Busy {\n  [*] --> Work\n  Work --> [H]\n}\nIdle --> Busy\n\n' lines by hand (Omaspec)\n' Running -> Idle via 0.5 -140\n' Running -> Idle #2 via 0 0\n' Nowhere -> Idle via 0.5 10\n' Idle -> Busy via 0.5 -100\n' Work -> Busy[H] via 0.5 5000\n@enduml\n";
+
+    #[test]
+    fn a_transition_by_hand_runs_through_its_bends() {
+        let (_, map) = crate::render_mapped(BY_HAND, None).unwrap();
+        let keys: Vec<String> = map.wires.iter().map(|w| w.key.to_string()).collect();
+        for key in [
+            "[*] -> Idle",
+            "Idle -> Running",
+            "Running -> Idle",
+            "Running -> Idle #2",
+            "Idle -> Busy",
+            "[*] -> Work",
+            "Work -> Busy[H]",
+        ] {
+            assert!(keys.iter().any(|k| k == key), "{key} not in {keys:?}");
+        }
+        let wire = |key: &str| map.wires.iter().find(|w| w.key.to_string() == key).unwrap();
+        let stop = wire("Running -> Idle");
+        assert_eq!((stop.line, stop.entry), (Some(4), Some(13)));
+        let bend = stop.bends(map.fit)[0];
+        assert!(passes(&stop.points, bend), "{bend:?} {:?}", stop.points);
+        // Its bend lies left of the way up from Running to Idle.
+        assert!(bend.0 < stop.from.0.min(stop.to.0) - 100.0, "{bend:?}");
+        // A bend inside Running's own box, a line that is not there.
+        assert_eq!(
+            map.misses,
+            [
+                (
+                    14,
+                    "A bend of Running -> Idle #2 lies in a box and is left out".to_owned()
+                ),
+                (
+                    15,
+                    "No line runs as Nowhere -> Idle; its bends are left out".to_owned()
+                ),
+                (
+                    17,
+                    "A bend of Work -> Busy[H] lies far off the diagram and is left out".to_owned()
+                ),
+            ]
+        );
+        // Without the block, the same lines run their own ways.
+        let plain = BY_HAND.split("\n\n'").next().unwrap().to_owned() + "\n@enduml\n";
+        let (_, before) = crate::render_mapped(&plain, None).unwrap();
+        assert!(before.misses.is_empty() && before.wires.iter().all(|w| w.entry.is_none()));
+        let stop_before = before.wires.iter().find(|w| w.key == stop.key).unwrap();
+        assert_ne!(stop_before.points, stop.points);
+        // The others stay as the layout drew them, where the picture grew
+        // for the bend.
+        let start = |m: &crate::map::Map| {
+            let w = m
+                .wires
+                .iter()
+                .find(|w| w.key.to_string() == "[*] -> Idle")
+                .unwrap();
+            let to = w.to;
+            w.points
+                .iter()
+                .map(|p| ((p.0 - to.0).round(), (p.1 - to.1).round()))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(start(&before), start(&map));
+    }
+
+    #[test]
+    fn a_bend_moved_back_where_it_was_drawn_finds_it_again() {
+        let (_, map) = crate::render_mapped(BY_HAND, None).unwrap();
+        for wire in map.wires.iter().filter(|w| w.entry.is_some()) {
+            for (via, at) in wire.vias.iter().zip(wire.bends(map.fit)) {
+                let back = wire.via_at(at, map.fit);
+                assert!((back.along - via.along).abs() < 1e-3, "{back:?} {via:?}");
+                assert!((back.aside - via.aside).abs() < 1e-2, "{back:?} {via:?}");
+            }
+        }
     }
 
     #[test]

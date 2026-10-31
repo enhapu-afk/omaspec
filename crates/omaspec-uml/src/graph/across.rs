@@ -37,6 +37,9 @@ pub struct Link {
     pub to: Vec<usize>,
     /// The label's width and height; zero for none.
     pub label: (f32, f32),
+    /// Points the line passes through in turn: its bends by hand. One in
+    /// a box the line may not cross is left out.
+    pub vias: Vec<Point>,
 }
 
 /// What is drawn already, which new lines and labels keep clear of.
@@ -52,6 +55,8 @@ pub struct Drawn {
 pub struct Linked {
     pub points: Vec<Point>,
     pub label_at: Point,
+    /// How many of the link's vias lay in a box and were left out.
+    pub left_out: usize,
 }
 
 /// Where the paths of two ends meet: how deep the container that holds
@@ -121,7 +126,13 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
             rect: place.rect,
             flat: place.flat,
         };
-        let Some(points) = route::route(end(from), end(to), &around) else {
+        let vias: Vec<Point> = link
+            .vias
+            .iter()
+            .copied()
+            .filter(|&v| !around.obstacles.iter().any(|&r| inside(r, v)))
+            .collect();
+        let Some(points) = route::route_via(end(from), end(to), &vias, &around) else {
             continue;
         };
         let (w, h) = link.label;
@@ -150,12 +161,17 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
         lines.extend(segments(&points));
         used.extend(points.first().copied());
         used.extend(points.last().copied());
-        out[index] = Some(Linked { points, label_at });
+        out[index] = Some(Linked {
+            points,
+            label_at,
+            left_out: link.vias.len() - vias.len(),
+        });
     }
     out
 }
 
-fn find<'a>(level: &'a [Placement], path: &[usize]) -> Option<&'a Placement> {
+/// The box at the end of `path`, from the top level down.
+pub fn find<'a>(level: &'a [Placement], path: &[usize]) -> Option<&'a Placement> {
     let (&first, rest) = path.split_first()?;
     let place = level.get(first)?;
     if rest.is_empty() {
@@ -213,6 +229,11 @@ fn leaves(level: &[Placement], solids: &mut Vec<Rect>, frames: &mut Vec<Rect>) {
 
 fn segments(points: &[Point]) -> impl Iterator<Item = (Point, Point)> + '_ {
     points.windows(2).map(|w| (w[0], w[1]))
+}
+
+/// Whether `p` lies inside `rect`, not on its border.
+fn inside(rect: Rect, (x, y): Point) -> bool {
+    x > rect.x && x < rect.x + rect.w && y > rect.y && y < rect.y + rect.h
 }
 
 fn center(rect: Rect) -> Point {
@@ -301,6 +322,7 @@ mod tests {
             from: vec![0],
             to: vec![1, 1],
             label: (30.0, 12.0),
+            vias: Vec::new(),
         }];
         let routed = link(&top, &links, &Drawn::default());
         let linked = routed[0].as_ref().expect("routed");
@@ -343,6 +365,7 @@ mod tests {
             from: vec![2],
             to: vec![3],
             label: (0.0, 0.0),
+            vias: Vec::new(),
         }];
         let routed = link(&top, &links, &Drawn::default());
         let points = &routed[0].as_ref().unwrap().points;
@@ -356,6 +379,7 @@ mod tests {
             from: vec![0],
             to: vec![1, 7],
             label: (0.0, 0.0),
+            vias: Vec::new(),
         }];
         assert_eq!(link(&top, &links, &Drawn::default()), vec![None]);
     }

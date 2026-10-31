@@ -9,7 +9,7 @@ fn try_draw(
     theme: &mermaid_rs_renderer::Theme,
     source: &str,
 ) -> Option<String> {
-    super::super::try_draw(graph, theme, source, None, 0.0).map(|(svg, _)| svg)
+    super::super::try_draw(graph, theme, source, None, &[], 0.0).map(|(svg, _)| svg)
 }
 use super::{block_has, collect, encloses, find, laid, segment_cuts};
 

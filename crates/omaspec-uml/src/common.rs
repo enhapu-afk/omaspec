@@ -136,6 +136,9 @@ pub struct Frame {
     /// The elements a `<style>` block reaches in this diagram type;
     /// without them it declines.
     pub styled: Option<&'static [Element]>,
+    /// The lines the writer drew by hand, each with the line of its entry
+    /// ([`crate::hand`]); only the graph types read them.
+    pub by_hand: Vec<(usize, crate::hand::Line)>,
 }
 
 /// `legend … endlegend`: below the diagram unless `top`, aligned in its

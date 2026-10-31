@@ -107,15 +107,69 @@ pub fn read(code: &str) -> Option<Block> {
 
 /// The lines by hand in `code`: each entry that reads, the first for a key.
 pub fn lines(code: &str) -> Vec<Line> {
-    let mut out: Vec<Line> = Vec::new();
+    numbered(code).into_iter().map(|(_, line)| line).collect()
+}
+
+/// [`lines`], each with the zero-based line of its entry.
+pub fn numbered(code: &str) -> Vec<(usize, Line)> {
+    let mut out: Vec<(usize, Line)> = Vec::new();
     for entry in read(code).map(|b| b.entries).unwrap_or_default() {
         if let Ok(line) = entry.read
-            && !out.iter().any(|l| l.key == line.key)
+            && !out.iter().any(|(_, l)| l.key == line.key)
         {
-            out.push(line);
+            out.push((entry.line, line));
         }
     }
     out
+}
+
+/// The key of each line of a diagram, given the names of its ends and its
+/// line in the source: lines between the same two count up in the order
+/// of the source.
+pub fn keys(ends: &[(String, String, usize)]) -> Vec<Key> {
+    let mut order: Vec<usize> = (0..ends.len()).collect();
+    order.sort_by_key(|&i| (ends[i].2, i));
+    let mut keys = vec![None; ends.len()];
+    let mut counts: std::collections::HashMap<(&str, &str), usize> = Default::default();
+    for i in order {
+        let (from, to, _) = &ends[i];
+        let nth = counts.entry((from, to)).or_default();
+        *nth += 1;
+        keys[i] = Some(Key {
+            from: from.clone(),
+            to: to.clone(),
+            nth: *nth,
+        });
+    }
+    keys.into_iter().flatten().collect()
+}
+
+/// What the writer reads about an entry whose line is not there.
+pub fn no_line(key: &Key) -> String {
+    format!("No line runs as {key}; its bends are left out")
+}
+
+/// What the writer reads about bends that lie in a box.
+pub fn left_out(key: &Key, count: usize) -> String {
+    if count == 1 {
+        format!("A bend of {key} lies in a box and is left out")
+    } else {
+        format!("{count} bends of {key} lie in boxes and are left out")
+    }
+}
+
+/// What the writer reads about bends far off the drawing.
+pub fn far_out(key: &Key, count: usize) -> String {
+    if count == 1 {
+        format!("A bend of {key} lies far off the diagram and is left out")
+    } else {
+        format!("{count} bends of {key} lie far off the diagram and are left out")
+    }
+}
+
+/// What the writer reads about a line no way leads for through its bends.
+pub fn no_way(key: &Key) -> String {
+    format!("No way leads through the bends of {key}; it is drawn without them")
 }
 
 impl Via {
@@ -416,6 +470,23 @@ mod tests {
         // The first entry for a line counts.
         assert_eq!(lines(mermaid)[0].vias[0].along, 0.5);
         assert!(read("@startuml\n' lines by hand\n@enduml\n").is_none());
+    }
+
+    #[test]
+    fn lines_between_the_same_two_count_in_source_order() {
+        let ends = |list: &[(&str, &str, usize)]| -> Vec<(String, String, usize)> {
+            list.iter()
+                .map(|&(a, b, l)| (a.to_owned(), b.to_owned(), l))
+                .collect()
+        };
+        let keys = keys(&ends(&[
+            ("A", "B", 9),
+            ("B", "A", 3),
+            ("A", "B", 4),
+            ("A", "B", 12),
+        ]));
+        let shown: Vec<String> = keys.iter().map(ToString::to_string).collect();
+        assert_eq!(shown, ["A -> B #2", "B -> A", "A -> B", "A -> B #3"]);
     }
 
     #[test]

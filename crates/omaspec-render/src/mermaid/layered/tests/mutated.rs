@@ -93,12 +93,12 @@ fn broken_diagrams_never_panic_the_drawer() {
             continue;
         };
         let started = Instant::now();
-        if try_draw(&parsed.graph, &theme, &code, None, 0.0).is_some() {
+        if try_draw(&parsed.graph, &theme, &code, None, &[], 0.0).is_some() {
             drawn += 1;
         }
         if let Some(chart) = omaspec_uml::state::mermaid::read(&code) {
             let (graph, lines) = crate::mermaid::state::graph(&chart);
-            if try_draw(&graph, &theme, &code, Some(&lines), 0.0).is_some() {
+            if try_draw(&graph, &theme, &code, Some(&lines), &[], 0.0).is_some() {
                 drawn += 1;
             }
         }

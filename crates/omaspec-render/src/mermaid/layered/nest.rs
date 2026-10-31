@@ -291,6 +291,7 @@ pub(super) fn link_crossings(
             from: from.clone(),
             to: to.clone(),
             label: (label.width, label.height),
+            vias: Vec::new(),
         });
         found.push((from[..depth].to_vec(), index, label, stroke));
     }
@@ -564,7 +565,7 @@ fn label_on(points: &[(f32, f32)], label: &Block) -> (f32, f32) {
     )
 }
 
-fn placed_at<'a>(scene: &'a Scene, path: &[usize]) -> Option<&'a Placed> {
+pub(super) fn placed_at<'a>(scene: &'a Scene, path: &[usize]) -> Option<&'a Placed> {
     let (&last, above) = path.split_last()?;
     let mut scene = scene;
     for &index in above {
@@ -580,7 +581,7 @@ fn scene_at<'a>(scene: &'a mut Scene, path: &[usize]) -> Option<&'a mut Scene> {
     }
 }
 
-fn placements(nodes: &[Placed]) -> Vec<Placement> {
+pub(super) fn placements(nodes: &[Placed]) -> Vec<Placement> {
     nodes
         .iter()
         .map(|node| {
@@ -617,8 +618,11 @@ fn placements(nodes: &[Placed]) -> Vec<Placement> {
 }
 
 /// The lines, labels, notes and region separators already drawn.
-fn drawn_in(scene: &Scene, drawn: &mut Drawn) {
+pub(super) fn drawn_in(scene: &Scene, drawn: &mut Drawn) {
     for edge in &scene.edges {
+        if edge.points.len() < 2 {
+            continue;
+        }
         drawn.lines.push(edge.points.clone());
         if !edge.label.is_empty() {
             drawn.labels.push(Rect {

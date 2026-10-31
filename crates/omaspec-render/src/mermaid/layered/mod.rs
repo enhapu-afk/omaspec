@@ -15,8 +15,10 @@
 use std::collections::{HashMap, HashSet};
 
 use mermaid_rs_renderer::{DiagramKind, Direction as Flow, Edge, EdgeDecoration, Graph, Theme};
-use omaspec_uml::graph::across::meeting;
+use omaspec_uml::graph::across::{Drawn, meeting};
+use omaspec_uml::graph::by_hand::{self, Arrow, Laid, LineMut};
 use omaspec_uml::graph::{self, Rect};
+use omaspec_uml::hand::{self, Key};
 use omaspec_uml::map::{Map, Route, Shape as MapShape, Spot as MapSpot};
 use omaspec_uml::{Block, Canvas, Color, Family, Font, Paint, Stroke};
 
@@ -66,15 +68,17 @@ pub struct Lines {
     pub transitions: Vec<usize>,
 }
 
-/// The SVG and, for a state diagram Omaspec read (`lines`), where its
-/// states and transitions are; `None` when this drawer leaves the diagram
-/// to mmdr. `source` is what mmdr parsed, for what its graph does not keep.
-/// The lines' corners curve by up to `curve`.
+/// The SVG and its map: for a state diagram Omaspec read (`lines`), where
+/// its states and transitions are, and for every diagram its lines, which
+/// `hands` may have drawn by hand (docs/adr/0016). `None` when this drawer
+/// leaves the diagram to mmdr. `source` is what mmdr parsed, for what its
+/// graph does not keep. The lines' corners curve by up to `curve`.
 pub fn try_draw(
     graph: &Graph,
     theme: &Theme,
     source: &str,
     lines: Option<&Lines>,
+    hands: &[(usize, hand::Line)],
     curve: f32,
 ) -> Option<(String, Map)> {
     let own;
@@ -94,9 +98,29 @@ pub fn try_draw(
     let mut scene = layout_spot(&tree, Spot::Root, &palette, family)?;
     nest::link_crossings(&tree, &mut scene, &palette, family)?;
     nest::link_inward(&tree, &mut scene, &palette, family)?;
+    let arrows = arrows(&tree, lines);
+    let misses = if hands.is_empty() {
+        Vec::new()
+    } else {
+        let top = nest::placements(&scene.nodes);
+        let mut laying = Laying {
+            tree: &tree,
+            scene: &mut scene,
+        };
+        by_hand::lay(&top, &arrows, &mut laying, hands)
+    };
     let mut canvas = Canvas::new(&theme.font_family, false);
     paint::paint(&mut canvas, &palette, &scene, curve);
     let mut map = Map::default();
+    let top = nest::placements(&scene.nodes);
+    let laying = Laying {
+        tree: &tree,
+        scene: &mut scene,
+    };
+    map.wires = by_hand::wires(&top, &arrows, &laying, hands, |points| {
+        omaspec_uml::curve::flatten(points, curve)
+    });
+    map.misses = misses;
     if let Some(lines) = lines.filter(|_| !tree.flowchart) {
         let mut routes = Vec::new();
         chart(
@@ -116,6 +140,112 @@ pub fn try_draw(
     }
     let map = map.placed(canvas.fit(MARGIN));
     Some((canvas.finish(MARGIN, Some(palette.background)), map))
+}
+
+/// Every line drawn, with what the block of lines by hand calls it: a
+/// state diagram's starts and ends are `[*]`, anything else goes by its
+/// id. Lines between the same two count in the order of the source; a
+/// flowchart's are in that order already. A line that only ranks
+/// (`~~~`) or runs from a subgraph into it is left alone.
+fn arrows(tree: &Tree, lines: Option<&Lines>) -> Vec<(Arrow, Key)> {
+    let names: HashMap<&Vec<usize>, &String> =
+        tree.paths.iter().map(|(id, path)| (path, id)).collect();
+    let mut found = Vec::new();
+    for (index, edge) in tree.graph.edges.iter().enumerate() {
+        let meet = &tree.meets[index];
+        if meet.hidden || meet.inward {
+            continue;
+        }
+        let (Some(from), Some(to)) = (tree.paths.get(&edge.from), tree.paths.get(&edge.to)) else {
+            continue;
+        };
+        let line = lines.and_then(|l| l.transitions.get(index).copied());
+        found.push(Arrow {
+            path: Vec::new(),
+            slot: index,
+            from: from.clone(),
+            to: to.clone(),
+            order: line.unwrap_or(index),
+            line,
+        });
+    }
+    by_hand::keyed(found, |path| {
+        let id = names.get(&path.to_vec()).map_or("", |id| id.as_str());
+        let marker = id.starts_with("__start_") || id.starts_with("__end_");
+        if !tree.flowchart && marker {
+            "[*]".to_owned()
+        } else {
+            id.to_owned()
+        }
+    })
+}
+
+/// The lines laid out, each found by the edge of mmdr's graph it draws.
+struct Laying<'a, 'b> {
+    tree: &'a Tree<'b>,
+    scene: &'a mut Scene,
+}
+
+fn edge_in(scene: &Scene, edge: usize) -> Option<&PlacedEdge> {
+    scene
+        .edges
+        .iter()
+        .find(|e| e.edge == edge)
+        .or_else(|| scene.nodes.iter().find_map(|n| edge_in(&n.children, edge)))
+}
+
+fn edge_in_mut(scene: &mut Scene, edge: usize) -> Option<&mut PlacedEdge> {
+    if let Some(at) = scene.edges.iter().position(|e| e.edge == edge) {
+        return scene.edges.get_mut(at);
+    }
+    scene
+        .nodes
+        .iter_mut()
+        .find_map(|n| edge_in_mut(&mut n.children, edge))
+}
+
+impl Laid for Laying<'_, '_> {
+    fn points(&self, _path: &[usize], slot: usize) -> Option<&[(f32, f32)]> {
+        edge_in(self.scene, slot).map(|e| e.points.as_slice())
+    }
+
+    fn line_mut(&mut self, _path: &[usize], slot: usize) -> Option<LineMut<'_>> {
+        let edge = edge_in_mut(self.scene, slot)?;
+        Some(LineMut {
+            label: (edge.label.width, edge.label.height),
+            points: &mut edge.points,
+            label_at: &mut edge.label_at,
+        })
+    }
+
+    fn drawn(&self) -> Drawn {
+        let mut drawn = Drawn::default();
+        nest::drawn_in(self.scene, &mut drawn);
+        drawn
+    }
+
+    /// Cut to the outline of a round or slanted box, as every line is.
+    fn relaid(&mut self, _path: &[usize], slot: usize) {
+        let Some(edge) = self.tree.graph.edges.get(slot) else {
+            return;
+        };
+        let mut cuts = Vec::new();
+        for (id, at_start) in [(&edge.from, true), (&edge.to, false)] {
+            let end = self
+                .tree
+                .paths
+                .get(id)
+                .and_then(|path| nest::placed_at(self.scene, path));
+            if let Some(outline) = end.and_then(|end| end.kind.outline(end.rect)) {
+                cuts.push((outline, at_start));
+            }
+        }
+        if let Some(placed) = edge_in_mut(self.scene, slot) {
+            for (outline, at_start) in cuts {
+                shape::clip(&mut placed.points, &outline, at_start);
+            }
+        }
+    }
 }
 
 /// Puts the states of a state diagram, laid out as `scene` at `spot`, on

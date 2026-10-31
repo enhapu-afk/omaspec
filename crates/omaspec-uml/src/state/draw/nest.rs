@@ -2,11 +2,15 @@
 
 use super::super::{Container, Crossing, Kind, Split};
 use super::{
-    COMP_PAD, Placed, PlacedEdge, Scene, Skin, arrow_stroke, edge_label, layout_container,
+    COMP_PAD, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label,
+    layout_container,
 };
 use crate::Declined;
 use crate::graph::Rect;
 use crate::graph::across::{self, Drawn, Link, Placement};
+use crate::graph::by_hand::{self, Arrow, Laid, LineMut};
+use crate::hand::{self, Key};
+use crate::map::Wire;
 use crate::svg::Stroke;
 use crate::text::{Block, Family};
 
@@ -180,6 +184,7 @@ pub(super) fn link_crossings(
             from: [path.as_slice(), &crossing.from].concat(),
             to: [path.as_slice(), &crossing.to].concat(),
             label: (label.width, label.height),
+            vias: Vec::new(),
         });
         labels.push(label);
     }
@@ -221,6 +226,125 @@ fn gather<'a>(
         path.push(index);
         gather(&node.children, path, out);
         path.pop();
+    }
+}
+
+/// Every transition of the diagram, with what the block of lines by hand
+/// calls it ([`by_hand`]).
+pub(super) fn arrows(root: &Container) -> Vec<(Arrow, Key)> {
+    let mut found = Vec::new();
+    collect(root, &mut Vec::new(), &mut found);
+    by_hand::keyed(found, |path| name(root, path))
+}
+
+fn collect(container: &Container, path: &mut Vec<usize>, out: &mut Vec<Arrow>) {
+    let within = |end: &[usize]| [path.as_slice(), end].concat();
+    for (slot, edge) in container.edges.iter().enumerate() {
+        out.push(Arrow {
+            path: path.clone(),
+            slot,
+            from: within(&[edge.from]),
+            to: within(&[edge.to]),
+            order: edge.line,
+            line: Some(edge.line),
+        });
+    }
+    for (index, crossing) in container.crossings.iter().enumerate() {
+        out.push(Arrow {
+            path: path.clone(),
+            slot: container.edges.len() + index,
+            from: within(&crossing.from),
+            to: within(&crossing.to),
+            order: crossing.arrow.line,
+            line: Some(crossing.arrow.line),
+        });
+    }
+    for (index, node) in container.nodes.iter().enumerate() {
+        path.push(index);
+        collect(&node.children, path, out);
+        path.pop();
+    }
+}
+
+/// The name a line by hand gives the state at `path`: its key, `[*]` for a
+/// start or an end, `Owner[H]` and `Owner[H*]` for history.
+fn name(root: &Container, path: &[usize]) -> String {
+    let mut container = root;
+    let mut owner = "";
+    for (depth, &index) in path.iter().enumerate() {
+        let Some(node) = container.nodes.get(index) else {
+            break;
+        };
+        if depth + 1 == path.len() {
+            return match node.kind {
+                Kind::Start | Kind::End => "[*]".to_owned(),
+                Kind::History => format!("{owner}[H]"),
+                Kind::DeepHistory => format!("{owner}[H*]"),
+                _ => node.key.clone(),
+            };
+        }
+        if node.kind != Kind::Region {
+            owner = &node.key;
+        }
+        container = &node.children;
+    }
+    String::new()
+}
+
+/// Lays the transitions the writer drew by hand again, through their
+/// bends; returns the entries that did not hold.
+pub(super) fn lay_by_hand(
+    arrows: &[(Arrow, Key)],
+    scene: &mut Scene,
+    hands: &[(usize, hand::Line)],
+) -> Vec<(usize, String)> {
+    if hands.is_empty() {
+        return Vec::new();
+    }
+    let top = placements(&scene.nodes);
+    by_hand::lay(&top, arrows, scene, hands)
+}
+
+/// Every transition drawn, as a [`Wire`] for the map. `curve` is how far
+/// the lines curve.
+pub(super) fn wires(
+    arrows: &[(Arrow, Key)],
+    scene: &Scene,
+    hands: &[(usize, hand::Line)],
+    curve: f32,
+) -> Vec<Wire> {
+    let top = placements(&scene.nodes);
+    by_hand::wires(&top, arrows, scene, hands, |points| {
+        drawn_route(points, curve)
+    })
+}
+
+impl Laid for Scene {
+    fn points(&self, path: &[usize], slot: usize) -> Option<&[(f32, f32)]> {
+        let mut here = self;
+        for &index in path {
+            here = &here.nodes.get(index)?.children;
+        }
+        here.edges.get(slot).map(|edge| edge.points.as_slice())
+    }
+
+    fn line_mut(&mut self, path: &[usize], slot: usize) -> Option<LineMut<'_>> {
+        let mut here = self;
+        for &index in path {
+            here = &mut here.nodes.get_mut(index)?.children;
+        }
+        let edge = here.edges.get_mut(slot)?;
+        Some(LineMut {
+            label: (edge.label.width, edge.label.height),
+            points: &mut edge.points,
+            label_at: &mut edge.label_at,
+        })
+    }
+
+    fn drawn(&self) -> Drawn {
+        let mut drawn = Drawn::default();
+        drawn_in(self, &mut drawn);
+        drawn
     }
 }
 

@@ -65,15 +65,38 @@ pub struct Surroundings {
 /// A route at right angles from `from` to `to`, around everything in the
 /// way, as cheap as its length, bends and crossings make it.
 pub fn route(from: End, to: End, around: &Surroundings) -> Option<Vec<Point>> {
-    let scene = Scene::of(around);
+    route_via(from, to, &[], around)
+}
+
+/// A route as [`route`] lays it, through `vias` in their order: it may turn
+/// at one, but never doubles back there. `None` when a via lies in a box,
+/// or no way leads through them all.
+pub fn route_via(from: End, to: End, vias: &[Point], around: &Surroundings) -> Option<Vec<Point>> {
+    let mut scene = Scene::of(around);
+    // A bend the writer put above or left of the drawing is reached too.
+    for &(x, y) in vias {
+        scene.origin.0 = scene.origin.0.min(x - 2.0 * CLEARANCE);
+        scene.origin.1 = scene.origin.1.min(y - 2.0 * CLEARANCE);
+    }
     let from = Side::of(from);
     let to = Side::of(to);
-    let starts = ports(from, to, &scene);
-    let goals = ports(to, from, &scene);
+    let dot = |p: Point| Bounds::around(p, (0.0, 0.0));
+    // Each end looks toward the bend next to it.
+    let toward = |via: Option<&Point>, other: Side| {
+        via.map_or(other, |&p| Side {
+            rect: dot(p),
+            flat: false,
+        })
+    };
+    let starts = ports(from, toward(vias.first(), to), &scene);
+    let goals = ports(to, toward(vias.last(), from), &scene);
     if starts.is_empty() || goals.is_empty() {
         return None;
     }
-    let near = from.rect.union(to.rect).grow(4.0 * CLEARANCE);
+    let near = vias
+        .iter()
+        .fold(from.rect.union(to.rect), |r, &p| r.union(dot(p)))
+        .grow(4.0 * CLEARANCE);
     let all = scene
         .obstacles
         .iter()
@@ -95,7 +118,7 @@ pub fn route(from: End, to: End, around: &Surroundings) -> Option<Vec<Point>> {
                 top: window.top.max(scene.origin.1),
                 ..window
             };
-            search(window, starts, goals, &scene)
+            search(window, starts, goals, vias, &scene)
         })
     })
 }
@@ -842,7 +865,13 @@ struct Grid<'a> {
 }
 
 impl<'a> Grid<'a> {
-    fn new(window: Bounds, starts: &[Port], goals: &[Port], scene: &'a Scene) -> Self {
+    fn new(
+        window: Bounds,
+        starts: &[Port],
+        goals: &[Port],
+        vias: &[Point],
+        scene: &'a Scene,
+    ) -> Self {
         let mut xs = vec![window.left, window.right];
         let mut ys = vec![window.top, window.bottom];
         for r in &scene.obstacles {
@@ -859,6 +888,10 @@ impl<'a> Grid<'a> {
         for port in starts.iter().chain(goals) {
             xs.push(port.at.0);
             ys.push(port.at.1);
+        }
+        for &(x, y) in vias {
+            xs.push(x);
+            ys.push(y);
         }
         let xs = channels(xs, window.left, window.right);
         let ys = channels(ys, window.top, window.bottom);
@@ -948,8 +981,15 @@ impl<'a> Grid<'a> {
 }
 
 /// The cheapest route inside `window` from one of `starts` to one of
-/// `goals`, on a grid of channels; A* over (grid point, heading).
-fn search(window: Bounds, starts: &[Port], goals: &[Port], scene: &Scene) -> Option<Vec<Point>> {
+/// `goals` through `vias`, on a grid of channels; A* over (vias passed,
+/// grid point, heading).
+fn search(
+    window: Bounds,
+    starts: &[Port],
+    goals: &[Port],
+    vias: &[Point],
+    scene: &Scene,
+) -> Option<Vec<Point>> {
     // Only what is near the window can matter.
     let near = window.grow(CLEARANCE);
     let touches = |r: &Bounds| {
@@ -974,15 +1014,31 @@ fn search(window: Bounds, starts: &[Port], goals: &[Port], scene: &Scene) -> Opt
         used: Vec::new(),
         origin: scene.origin,
     };
-    let mut grid = Grid::new(window, starts, goals, &local);
-    let left = |p: Point| {
+    let mut grid = Grid::new(window, starts, goals, vias, &local);
+    let manhattan = |a: Point, b: Point| (a.0 - b.0).abs() + (a.1 - b.1).abs();
+    let to_goal = |p: Point| {
         goals
             .iter()
-            .map(|g| (g.at.0 - p.0).abs() + (g.at.1 - p.1).abs())
+            .map(|g| manhattan(g.at, p))
             .fold(f32::INFINITY, f32::min)
     };
+    // From each via on, at least: to the next ones in turn, then a goal.
+    let mut rest = vec![0.0; vias.len()];
+    for s in (0..vias.len()).rev() {
+        rest[s] = match vias.get(s + 1) {
+            Some(&next) => manhattan(vias[s], next) + rest[s + 1],
+            None => to_goal(vias[s]),
+        };
+    }
+    let left = |p: Point, stage: usize| match vias.get(stage) {
+        Some(&via) => manhattan(p, via) + rest[stage],
+        None => to_goal(p),
+    };
+    let via_at: Vec<usize> = vias.iter().map(|&v| grid.find(v)).collect::<Option<_>>()?;
+    let points = grid.len();
+    let state_of = |stage: usize, k: usize, dir: Dir| (stage * points + k) * 4 + dir.index();
 
-    let goal = grid.len() * 4;
+    let goal = (vias.len() + 1) * points * 4;
     let mut cost = vec![f32::INFINITY; goal + 1];
     let mut came: Vec<Option<usize>> = vec![None; goal + 1];
     let mut heap = BinaryHeap::new();
@@ -993,11 +1049,11 @@ fn search(window: Bounds, starts: &[Port], goals: &[Port], scene: &Scene) -> Opt
             continue;
         };
         on_border[k] = true;
-        let state = k * 4 + port.side.index();
+        let state = state_of(0, k, port.side);
         if port.cost < cost[state] {
             cost[state] = port.cost;
             heap.push(Entry {
-                estimate: port.cost + left(port.at),
+                estimate: port.cost + left(port.at, 0),
                 cost: port.cost,
                 state,
             });
@@ -1018,8 +1074,27 @@ fn search(window: Bounds, starts: &[Port], goals: &[Port], scene: &Scene) -> Opt
         if state == goal {
             break;
         }
-        let (k, heading) = (state / 4, Dir::ALL[state % 4]);
-        for &(_, port) in arrivals.iter().filter(|&&(at, _)| at == k) {
+        let (stage, k, heading) = (state / 4 / points, state / 4 % points, Dir::ALL[state % 4]);
+        // On its via, a route goes on as one that has passed it.
+        if via_at.get(stage) == Some(&k) {
+            let next = state_of(stage + 1, k, heading);
+            if c < cost[next] {
+                cost[next] = c;
+                came[next] = Some(state);
+                heap.push(Entry {
+                    estimate: c + left(grid.point(k), stage + 1),
+                    cost: c,
+                    state: next,
+                });
+            }
+            continue;
+        }
+        let arriving = if stage == vias.len() {
+            &arrivals[..]
+        } else {
+            &[]
+        };
+        for &(_, port) in arriving.iter().filter(|&&(at, _)| at == k) {
             let total = c + port.cost;
             if heading == port.side.reverse() && total < cost[goal] {
                 cost[goal] = total;
@@ -1038,13 +1113,13 @@ fn search(window: Bounds, starts: &[Port], goals: &[Port], scene: &Scene) -> Opt
             let Some((l, step)) = grid.step(k, dir) else {
                 continue;
             };
-            let next = l * 4 + dir.index();
+            let next = state_of(stage, l, dir);
             let total = c + step + if dir == heading { 0.0 } else { BEND };
             if total < cost[next] {
                 cost[next] = total;
                 came[next] = Some(state);
                 heap.push(Entry {
-                    estimate: total + left(grid.point(l)),
+                    estimate: total + left(grid.point(l), stage),
                     cost: total,
                     state: next,
                 });
@@ -1055,7 +1130,7 @@ fn search(window: Bounds, starts: &[Port], goals: &[Port], scene: &Scene) -> Opt
     let mut state = came[goal]?;
     let mut path = Vec::new();
     loop {
-        path.push(grid.point(state / 4));
+        path.push(grid.point(state / 4 % points));
         match came[state] {
             Some(previous) => state = previous,
             None => break,
@@ -1171,6 +1246,80 @@ mod tests {
             let straight = pair[0].0 == pair[1].0 || pair[0].1 == pair[1].1;
             assert!(straight, "{points:?}");
         }
+    }
+
+    /// Whether `points` passes through `p`, at a corner or on a run.
+    fn passes(points: &[Point], p: Point) -> bool {
+        points.windows(2).any(|w| {
+            let (a, b) = (w[0], w[1]);
+            let on_x = (a.0 - p.0).abs() < 0.01 && (a.0 - b.0).abs() < 0.01;
+            let on_y = (a.1 - p.1).abs() < 0.01 && (a.1 - b.1).abs() < 0.01;
+            (on_x && p.1 >= a.1.min(b.1) - 0.01 && p.1 <= a.1.max(b.1) + 0.01)
+                || (on_y && p.0 >= a.0.min(b.0) - 0.01 && p.0 <= a.0.max(b.0) + 0.01)
+        })
+    }
+
+    #[test]
+    fn a_route_goes_through_its_vias_in_turn() {
+        let from = rect(0.0, 0.0, 40.0, 20.0);
+        let to = rect(0.0, 100.0, 40.0, 20.0);
+        let around = Surroundings {
+            obstacles: vec![from, to],
+            origin: (-200.0, -200.0),
+            ..Surroundings::default()
+        };
+        let end = |rect| End { rect, flat: true };
+        // Straight down without; out to the right and back with a via.
+        let straight = route(end(from), end(to), &around).unwrap();
+        assert_eq!(straight.len(), 2, "{straight:?}");
+        let via = (120.0, 60.0);
+        let points = route_via(end(from), end(to), &[via], &around).unwrap();
+        assert!(passes(&points, via), "{points:?}");
+        // Two vias: past the left one first, then the right one.
+        let (left, right) = ((-80.0, 40.0), (100.0, 80.0));
+        let points = route_via(end(from), end(to), &[left, right], &around).unwrap();
+        let at = |p: Point| {
+            points
+                .windows(2)
+                .position(|w| passes(w, p))
+                .unwrap_or_else(|| panic!("{p:?} not on {points:?}"))
+        };
+        assert!(at(left) <= at(right), "{points:?}");
+        for pair in points.windows(2) {
+            assert!(
+                pair[0].0 == pair[1].0 || pair[0].1 == pair[1].1,
+                "{points:?}"
+            );
+            assert!(!cuts(from, pair[0], pair[1]) && !cuts(to, pair[0], pair[1]));
+        }
+        // It never runs back over itself.
+        for w in points.windows(3) {
+            let (a, b, c) = (w[0], w[1], w[2]);
+            let back = (b.0 - a.0) * (c.0 - b.0) + (b.1 - a.1) * (c.1 - b.1) < 0.0;
+            assert!(!back, "{points:?}");
+        }
+    }
+
+    #[test]
+    fn a_via_in_a_box_leads_nowhere() {
+        let from = rect(0.0, 0.0, 40.0, 20.0);
+        let wall = rect(80.0, 40.0, 60.0, 40.0);
+        let to = rect(0.0, 100.0, 40.0, 20.0);
+        let around = Surroundings {
+            obstacles: vec![from, wall, to],
+            origin: (-200.0, -200.0),
+            ..Surroundings::default()
+        };
+        let end = |rect| End { rect, flat: true };
+        assert!(route_via(end(from), end(to), &[(110.0, 60.0)], &around).is_none());
+        // Above the drawing's origin, a via is still reached.
+        let tight = Surroundings {
+            origin: (-10.0, -10.0),
+            ..around
+        };
+        let via = (20.0, -60.0);
+        let points = route_via(end(from), end(to), &[via], &tight).unwrap();
+        assert!(passes(&points, via), "{points:?}");
     }
 
     #[test]

@@ -13,7 +13,10 @@ use crate::Declined;
 use crate::annotations::Annotations;
 use crate::color::{self, Color, Paint};
 use crate::graph::across::{self, Drawn, Placement};
+use crate::graph::by_hand::{self, Arrow, Laid, LineMut};
 use crate::graph::{self, Rect};
+use crate::hand::Key;
+use crate::map::Map;
 use crate::svg::{Align, Canvas, Layer, Stroke, n};
 use crate::text::{self, Block, Family, Font, Style};
 
@@ -45,6 +48,12 @@ const LOOP_REACH: f32 = 16.0;
 const LOOP_STEP: f32 = 12.0;
 
 pub fn draw(diagram: &super::Diagram) -> Result<String, Declined> {
+    draw_mapped(diagram).map(|(svg, _)| svg)
+}
+
+/// The SVG, and where its lines are in it: each as a wire the writer may
+/// draw by hand.
+pub fn draw_mapped(diagram: &super::Diagram) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     let family = canvas.family();
@@ -60,10 +69,98 @@ pub fn draw(diagram: &super::Diagram) -> Result<String, Declined> {
     )?;
     let mut scene = layout_group(&diagram.root, &skin, family)?;
     link_crossings(&diagram.root, &mut scene, &skin, family)?;
+    let arrows = arrows(&diagram.root);
+    let hands = &diagram.frame.by_hand;
+    let misses = if hands.is_empty() {
+        Vec::new()
+    } else {
+        by_hand::lay(&placements(&scene.nodes), &arrows, &mut scene, hands)
+    };
     scene.offset(0.0, annotations.top());
     paint(&mut canvas, &skin, &scene);
     annotations.draw(&mut canvas);
-    Ok(canvas.finish(MARGIN, skin.background))
+    let top = placements(&scene.nodes);
+    let map = Map {
+        wires: by_hand::wires(&top, &arrows, &scene, hands, |points| {
+            crate::curve::flatten(points, skin.curve)
+        }),
+        misses,
+        ..Map::default()
+    };
+    let map = map.placed(canvas.fit(MARGIN));
+    Ok((canvas.finish(MARGIN, skin.background), map))
+}
+
+/// Every line of the diagram, with what the block of lines by hand calls
+/// it: the names lines use for its ends.
+fn arrows(root: &Group) -> Vec<(Arrow, Key)> {
+    fn collect(group: &Group, path: &mut Vec<usize>, out: &mut Vec<Arrow>) {
+        let within = |end: &[usize]| [path.as_slice(), end].concat();
+        for (slot, edge) in group.edges.iter().enumerate() {
+            out.push(Arrow {
+                path: path.clone(),
+                slot,
+                from: within(&[edge.from]),
+                to: within(&[edge.to]),
+                order: edge.line,
+                line: Some(edge.line),
+            });
+        }
+        for (index, crossing) in group.crossings.iter().enumerate() {
+            out.push(Arrow {
+                path: path.clone(),
+                slot: group.edges.len() + index,
+                from: within(&crossing.from),
+                to: within(&crossing.to),
+                order: crossing.arrow.line,
+                line: Some(crossing.arrow.line),
+            });
+        }
+        for (index, node) in group.nodes.iter().enumerate() {
+            path.push(index);
+            collect(&node.children, path, out);
+            path.pop();
+        }
+    }
+    let mut found = Vec::new();
+    collect(root, &mut Vec::new(), &mut found);
+    by_hand::keyed(found, |path| {
+        let mut group = root;
+        let mut key = String::new();
+        for &index in path {
+            let Some(node) = group.nodes.get(index) else {
+                break;
+            };
+            key.clone_from(&node.key);
+            group = &node.children;
+        }
+        key
+    })
+}
+
+impl Laid for Scene {
+    fn points(&self, path: &[usize], slot: usize) -> Option<&[(f32, f32)]> {
+        let mut here = self;
+        for &index in path {
+            here = &here.nodes.get(index)?.children;
+        }
+        here.edges.get(slot).map(|edge| edge.points.as_slice())
+    }
+
+    fn line_mut(&mut self, path: &[usize], slot: usize) -> Option<LineMut<'_>> {
+        let edge = scene_at(self, path)?.edges.get_mut(slot)?;
+        Some(LineMut {
+            label: (edge.label.width, edge.label.height),
+            points: &mut edge.points,
+            label_at: &mut edge.label_at,
+        })
+    }
+
+    fn drawn(&self) -> Drawn {
+        let mut drawn = Drawn::default();
+        drawn_in(self, &mut drawn);
+        drawn
+    }
 }
 
 /// One group after layout. `width` and `height` are the graph, which is
@@ -740,6 +837,7 @@ fn link_crossings(
             from: [path.as_slice(), crossing.from.as_slice()].concat(),
             to: [path.as_slice(), crossing.to.as_slice()].concat(),
             label: (blocks.label.width, blocks.label.height),
+            vias: Vec::new(),
         });
         labels.push(blocks);
     }
@@ -862,9 +960,10 @@ fn is_flat(shape: Shape) -> bool {
 
 fn drawn_in(scene: &Scene, drawn: &mut Drawn) {
     for edge in &scene.edges {
-        if edge.points.len() >= 2 {
-            drawn.lines.push(edge.points.clone());
+        if edge.points.len() < 2 {
+            continue;
         }
+        drawn.lines.push(edge.points.clone());
         if !edge.label.is_empty() {
             drawn.labels.push(Rect {
                 x: edge.label_at.0,

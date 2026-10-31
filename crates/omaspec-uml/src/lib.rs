@@ -104,7 +104,17 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
         None => raw,
     };
     Ok(match kind {
-        source::Kind::Uml => uml(&lines)?,
+        source::Kind::Uml => match uml(&lines)? {
+            Diagram::State(mut d) => {
+                d.frame.by_hand = hand::numbered(source);
+                Diagram::State(d)
+            }
+            Diagram::Structure(mut d) => {
+                d.frame.by_hand = hand::numbered(source);
+                Diagram::Structure(d)
+            }
+            other => other,
+        },
         source::Kind::MindMap => Diagram::MindMap(tree::parse_mindmap(&lines)?),
         source::Kind::Wbs => Diagram::Wbs(tree::parse_wbs(&lines)?),
         source::Kind::Gantt => Diagram::Gantt(gantt::parse(&lines)?),
@@ -237,7 +247,7 @@ pub fn render_mapped(
         Diagram::Activity(d) => unmapped(activity::draw(&d)),
         Diagram::MindMap(d) => unmapped(tree::draw_mindmap(&d)),
         Diagram::Wbs(d) => unmapped(tree::draw_wbs(&d)),
-        Diagram::Structure(d) => unmapped(structure::draw(&d)),
+        Diagram::Structure(d) => structure::draw_mapped(&d),
         Diagram::Timing(d) => unmapped(timing::draw(&d)),
         Diagram::Gantt(d) => unmapped(gantt::draw(&d)),
         Diagram::Flow(d) => unmapped(flow::draw(&d)),

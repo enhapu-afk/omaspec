@@ -96,6 +96,8 @@ fn draw(source: &str) -> Result<Drawn, RenderError> {
         });
     }
 
+    // Lines by hand (docs/adr/0016), on the lines of the fenced text.
+    let hands = omaspec_uml::hand::numbered(fenced);
     let joined = one_line_init(fenced);
     // A note over several lines (`note right of X` … `end note`) is not a
     // construct mmdr reads. Joined onto one line, the same note is drawn.
@@ -203,7 +205,7 @@ fn draw(source: &str) -> Result<Drawn, RenderError> {
             // Mermaid curves a state diagram's lines always.
             let curve = omaspec_uml::curve::RADIUS;
             if let Some((svg, map)) =
-                layered::try_draw(&graph, &options.theme, body, Some(&lines), curve)
+                layered::try_draw(&graph, &options.theme, body, Some(&lines), &hands, curve)
             {
                 return Ok(Drawn {
                     svg,
@@ -221,11 +223,11 @@ fn draw(source: &str) -> Result<Drawn, RenderError> {
         }
         let curve = flowchart_curve(parsed.init_config.as_ref());
         if let Some((svg, map)) =
-            layered::try_draw(&parsed.graph, &options.theme, body, None, curve)
+            layered::try_draw(&parsed.graph, &options.theme, body, None, &hands, curve)
         {
             return Ok(Drawn {
                 svg,
-                map,
+                map: map.shifted(offset),
                 declined: None,
             });
         }

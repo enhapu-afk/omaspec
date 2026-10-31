@@ -9,17 +9,18 @@
 
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::map::Map;
-use omaspec_uml::structure::{Skinparam, draw, from_mermaid, mermaid_refusal};
+use omaspec_uml::structure::{Skinparam, draw_mapped, from_mermaid, mermaid_refusal};
 
-/// The SVG, or `None` when this drawer leaves the diagram to mmdr.
-/// The map stays empty: a class box is not a message to jump to.
+/// The SVG and its map of lines, or `None` when this drawer leaves the
+/// diagram to mmdr. Lines by hand (docs/adr/0016) are drawn here.
 pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
     if graph.kind != DiagramKind::Class {
         return None;
     }
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
-    draw(&diagram).ok().map(|svg| (svg, Map::default()))
+    diagram.frame.by_hand = omaspec_uml::hand::numbered(source);
+    draw_mapped(&diagram).ok()
 }
 
 /// The first construct the engine refuses by name, with its line and why.
@@ -103,7 +104,8 @@ mod tests {
         let (svg, map) = try_draw(&graph, &theme, "classDiagram\nclass Animal\n").unwrap();
         assert!(svg.contains("Animal"), "{svg}");
         assert!(svg.contains("#ECECFF"), "{svg}");
-        assert_eq!(map, Map::default());
+        // One class, no line: nothing on the map to light or draw by hand.
+        assert!(map.states.is_empty() && map.wires.is_empty() && map.misses.is_empty());
     }
 
     #[test]

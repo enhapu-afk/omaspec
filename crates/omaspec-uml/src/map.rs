@@ -1,14 +1,60 @@
 //! Where the parts of a drawn diagram are, in the units of the finished
 //! picture: the boxes of states, the routes of transitions, the arrows of
-//! messages. A viewer lights them up while a specification runs.
+//! messages. A viewer lights them up while a specification runs. It also
+//! names every line a writer can draw by hand ([`Wire`]), and says which
+//! entries of the block of lines by hand did not hold.
 
 use crate::graph::Rect;
+use crate::hand::{Key, Via};
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Map {
     pub states: Vec<Spot>,
     pub transitions: Vec<Route>,
     pub messages: Vec<Step>,
+    pub wires: Vec<Wire>,
+    /// Entries of the block of lines by hand that did not hold: the
+    /// zero-based line of each, and why.
+    pub misses: Vec<(usize, String)>,
+    /// How the drawing's units became the picture's.
+    pub fit: Fit,
+}
+
+/// A line of a graph diagram, which the writer may draw by hand
+/// ([`crate::hand`]).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Wire {
+    /// What the block of lines by hand calls it.
+    pub key: Key,
+    /// Zero-based line of what draws it, where the drawer knows it.
+    pub line: Option<usize>,
+    /// As drawn, from the box it leaves to the tip of its head.
+    pub points: Vec<(f32, f32)>,
+    /// The middles of the boxes it leaves and enters, which its bends lie
+    /// relative to.
+    pub from: (f32, f32),
+    pub to: (f32, f32),
+    /// Its bends as its entry writes them, and the entry's zero-based
+    /// line; none when the layout drew it.
+    pub vias: Vec<Via>,
+    pub entry: Option<usize>,
+}
+
+impl Wire {
+    /// Where its bends lie in the picture, which `fit` made of the drawing.
+    pub fn bends(&self, fit: Fit) -> Vec<(f32, f32)> {
+        let (from, to) = (fit.back(self.from), fit.back(self.to));
+        self.vias
+            .iter()
+            .map(|v| fit.point(v.at(from, to)))
+            .collect()
+    }
+
+    /// The bend that lies at `point` of the picture, which `fit` made of
+    /// the drawing.
+    pub fn via_at(&self, point: (f32, f32), fit: Fit) -> Via {
+        Via::of(fit.back(point), fit.back(self.from), fit.back(self.to))
+    }
 }
 
 /// A state's box, or the mark of a pseudo state.
@@ -66,9 +112,25 @@ pub struct Fit {
     pub sy: f32,
 }
 
+impl Default for Fit {
+    fn default() -> Self {
+        Self {
+            dx: 0.0,
+            dy: 0.0,
+            sx: 1.0,
+            sy: 1.0,
+        }
+    }
+}
+
 impl Fit {
     pub fn point(self, (x, y): (f32, f32)) -> (f32, f32) {
         ((x + self.dx) * self.sx, (y + self.dy) * self.sy)
+    }
+
+    /// The drawing's point that [`Fit::point`] put at `(x, y)`.
+    pub fn back(self, (x, y): (f32, f32)) -> (f32, f32) {
+        (x / self.sx - self.dx, y / self.sy - self.dy)
     }
 
     fn rect(self, r: Rect) -> Rect {
@@ -101,6 +163,14 @@ impl Map {
             step.top = fit.point((0.0, step.top)).1;
             step.bottom = fit.point((0.0, step.bottom)).1;
         }
+        for wire in &mut self.wires {
+            for point in &mut wire.points {
+                *point = fit.point(*point);
+            }
+            wire.from = fit.point(wire.from);
+            wire.to = fit.point(wire.to);
+        }
+        self.fit = fit;
         self
     }
 
@@ -115,6 +185,13 @@ impl Map {
         }
         for step in &mut self.messages {
             step.line += lines;
+        }
+        for wire in &mut self.wires {
+            wire.line = wire.line.map(|l| l + lines);
+            wire.entry = wire.entry.map(|e| e + lines);
+        }
+        for (line, _) in &mut self.misses {
+            *line += lines;
         }
         self
     }

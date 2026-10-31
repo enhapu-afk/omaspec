@@ -53,9 +53,11 @@ and neither PlantUML nor Mermaid has a way to write one down.
    box. Its label is placed again along it. Curves
    ([0011](0011-curved-lines.md)) and `linetype ortho` hold as before.
 5. **A bend that no longer fits is left out, and said.** A bend that lies in
-   a box after an edit is skipped; a line the router finds no way for
-   through its bends is drawn as if it had none. Lint names both, and an
-   entry whose line is gone.
+   a box after an edit, or more than 1000 units off the diagram, is
+   skipped; a line the router finds no way for through its bends is drawn
+   as the layout drew it. The drawing names each of these, and an entry
+   whose line is gone, by the entry's line (the map's `misses`). Lint
+   checks only how an entry is written: it does not lay the diagram out.
 6. **The writer drags with Alt.** In the diagram pane of the editor and in
    the editor's diagram window, Alt shows the line under the pointer in the
    accent color with its bends as handles; Alt and a drag on the line puts a
@@ -87,7 +89,12 @@ accident in a dense diagram.
 ## Consequences
 
 - `omaspec_uml::hand` reads and writes the block; `omaspec_core::hand` turns
-  a drag into an edit of the source; lint checks entries.
+  a drag into an edit of the source; lint checks how entries are written.
+- The router searches over (bends passed, grid point, heading)
+  (`graph::route::route_via`), so a line passes its bends in turn and never
+  doubles back at one. `graph::by_hand` lays the lines again for all three
+  drawers: state diagrams, structure diagrams (and Mermaid class diagrams),
+  and Mermaid's state diagrams and flowcharts.
 - The diagram map names every line of the graph types by its key, with its
   drawn points and its bends, so the pane can find the line under the
   pointer. A play follows a line by hand, as it follows the drawn curve.

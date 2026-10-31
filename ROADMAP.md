@@ -903,9 +903,12 @@ What comes after 0.4, announced in the README.
       yourself; the diagram keeps the route and draws it the same way next time
       ([0016](docs/adr/0016-lines-by-hand.md)). Built: the block of comments
       that holds the bends (`omaspec_uml::hand`), its edits and lint
-      (`omaspec_core::hand`); every gallery example draws the same with one.
-      Next: the engines lay lines through the bends, the map names every line,
-      Alt and a drag in the diagram pane.
+      (`omaspec_core::hand`); the drawers of state, structure and Mermaid
+      state, class and flowchart diagrams lay a line through its bends, around
+      everything else; the map names every line and the entries that did not
+      hold. Every gallery example draws the same with an entry for no line,
+      and lays one of its own lines through a bend. Next: Alt and a drag in
+      the diagram pane, and the entries that did not hold among the findings.
 - [ ] Diagrams that link: a state links to the diagram that describes it. A
       click zooms into the state, and inside is its activity diagram; zooming
       out goes back. A specification reads from the whole system down to a
