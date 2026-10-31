@@ -4,8 +4,10 @@
 //! and its bends show as handles. Alt and a drag on the line puts a bend
 //! where it was grabbed; on a handle it moves that bend. A bend dragged
 //! back onto the straight way between its neighbors goes, and so does one
-//! Alt and a double click take. Escape stops a drag. On release the pane
-//! keeps the line's new bends for the window
+//! Alt and a double click take. Escape stops a drag. While it goes on, the
+//! window draws the diagram with the bends in the background
+//! ([`super::Paper::take_preview`]) and the pane shows the line as that
+//! lays it. On release the pane keeps the line's new bends for the window
 //! ([`super::Paper::take_by_hand`]), which writes them into the source.
 
 use iced::widget::canvas::{self, Action, Event, Frame, Geometry, Path, Stroke};
@@ -56,6 +58,9 @@ pub struct Hand {
     /// Its new bends are on their way to the source; the line is shown as
     /// dragged until the new picture comes.
     pub sent: bool,
+    /// The line as the drawing lays it through the bends of a drag, from
+    /// the latest preview, in the picture's units.
+    pub routed: Option<Vec<(f32, f32)>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -171,6 +176,7 @@ impl Hand {
             Gesture::Cancel => {
                 let h = hand.as_mut()?;
                 h.drag = None;
+                h.routed = None;
                 h.vias = map.wires.get(h.wire)?.vias.clone();
                 None
             }
@@ -206,13 +212,32 @@ impl Hand {
         }
         let key = &old.wires.get(self.wire)?.key;
         let wire = new.wires.iter().position(|w| w.key == *key)?;
-        Some(Hand { wire, ..self })
+        // The preview's places were the old picture's.
+        Some(Hand {
+            wire,
+            routed: None,
+            ..self
+        })
+    }
+
+    /// The line a drag would write if let go now: what a preview draws.
+    pub fn dragged(&self, map: &Map) -> Option<Line> {
+        let drag = self.drag.filter(|d| d.moved)?;
+        let mut vias = self.vias.clone();
+        if drag.straight && drag.bend < vias.len() {
+            vias.remove(drag.bend);
+        }
+        Some(Line {
+            key: map.wires.get(self.wire)?.key.clone(),
+            vias,
+        })
     }
 
     /// The bends just sent changed nothing in the source: the line is lit
     /// as it is drawn.
     pub fn unchanged(&mut self, map: &Map) {
         self.sent = false;
+        self.routed = None;
         if let Some(wire) = map.wires.get(self.wire) {
             self.vias = wire.vias.clone();
         }
@@ -240,6 +265,7 @@ fn hover(map: &Map, p: (f32, f32), reach: f32, now: Option<&Hand>) -> Option<Han
                 hover: Some(bend),
                 drag: None,
                 sent: false,
+                routed: None,
             });
         }
     }
@@ -255,6 +281,7 @@ fn hover(map: &Map, p: (f32, f32), reach: f32, now: Option<&Hand>) -> Option<Han
         hover: None,
         drag: None,
         sent: false,
+        routed: None,
     })
 }
 
@@ -386,12 +413,17 @@ impl canvas::Program<Message> for HandLayer<'_> {
             ..self.accent
         };
         if dragged {
-            // The drawn line faint, the way through the bends in front.
+            // The drawn line faint, in front the way the drawing lays it
+            // through the bends; until a preview has come, straight
+            // through them.
             frame.stroke(
                 &line(&wire.points),
                 Stroke::default().with_color(glow).with_width(3.0),
             );
-            let way = way(wire, &self.hand.vias, self.map.fit);
+            let way = match &self.hand.routed {
+                Some(routed) => routed.clone(),
+                None => way(wire, &self.hand.vias, self.map.fit),
+            };
             frame.stroke(
                 &line(&way),
                 Stroke::default().with_color(self.accent).with_width(2.0),

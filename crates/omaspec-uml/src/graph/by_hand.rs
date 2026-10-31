@@ -108,21 +108,21 @@ pub fn lay(
             from: arrow.from.clone(),
             to: arrow.to.clone(),
             label: laid.label,
-            vias,
+            vias: vias.clone(),
         });
         // Out of what the others keep clear of; back if it finds no way.
-        which.push((index, *entry, std::mem::take(laid.points)));
+        which.push((index, *entry, std::mem::take(laid.points), vias));
     }
     let drawn = laid.drawn();
     let routed = across::link(top, &links, &drawn);
-    for ((index, entry, before), linked) in which.into_iter().zip(routed) {
+    for ((index, entry, before, vias), linked) in which.into_iter().zip(routed) {
         let (arrow, key) = &arrows[index];
         let Some(line) = laid.line_mut(&arrow.path, arrow.slot) else {
             continue;
         };
         match linked {
             Some(linked) => {
-                *line.points = linked.points;
+                *line.points = tight(linked.points, &vias);
                 *line.label_at = linked.label_at;
                 laid.relaid(&arrow.path, arrow.slot);
                 if linked.left_out > 0 {
@@ -137,6 +137,45 @@ pub fn lay(
     }
     misses.sort_by_key(|&(line, _)| line);
     misses
+}
+
+/// How far a line by hand runs straight on each side of a bend it turns
+/// at, at most. A curve rounds a corner by at most half the runs beside it
+/// ([`crate::curve`]), so the line turns close by the bend, not far past it.
+const TIGHT: f32 = 16.0;
+
+/// `points` with a short straight run on each side of every corner that
+/// lies on one of `vias`.
+fn tight(points: Vec<Point>, vias: &[Point]) -> Vec<Point> {
+    let on_via = |p: Point| {
+        vias.iter()
+            .any(|v| (v.0 - p.0).abs() < 0.01 && (v.1 - p.1).abs() < 0.01)
+    };
+    let toward = |p: Point, q: Point, d: f32| {
+        let length = (q.0 - p.0).hypot(q.1 - p.1);
+        (
+            p.0 + (q.0 - p.0) * d / length,
+            p.1 + (q.1 - p.1) * d / length,
+        )
+    };
+    let mut out = Vec::with_capacity(points.len() + 2 * vias.len());
+    for (i, &p) in points.iter().enumerate() {
+        let inner = i > 0 && i + 1 < points.len();
+        if !inner || !on_via(p) {
+            out.push(p);
+            continue;
+        }
+        let (a, b) = (points[i - 1], points[i + 1]);
+        let room = TIGHT
+            .min((p.0 - a.0).hypot(p.1 - a.1) / 2.0)
+            .min((b.0 - p.0).hypot(b.1 - p.1) / 2.0);
+        if room < 1.0 {
+            out.push(p);
+            continue;
+        }
+        out.extend([toward(p, a, room), p, toward(p, b, room)]);
+    }
+    out
 }
 
 /// Every line drawn, as a [`Wire`] for the map; `drawn` turns a line's
@@ -169,4 +208,49 @@ pub fn wires(
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_corner_on_a_bend_gets_short_runs_beside_it() {
+        let points = vec![(0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (200.0, 100.0)];
+        assert_eq!(
+            tight(points.clone(), &[(100.0, 100.0)]),
+            [
+                (0.0, 0.0),
+                (100.0, 0.0),
+                (100.0, 84.0),
+                (100.0, 100.0),
+                (116.0, 100.0),
+                (200.0, 100.0)
+            ]
+        );
+        // Not on a bend, or an end: as it was.
+        assert_eq!(tight(points.clone(), &[(50.0, 0.0), (0.0, 0.0)]), points);
+        // A short run beside it: half of it.
+        let short = vec![(0.0, 0.0), (10.0, 0.0), (10.0, 50.0)];
+        assert_eq!(
+            tight(short, &[(10.0, 0.0)]),
+            [
+                (0.0, 0.0),
+                (5.0, 0.0),
+                (10.0, 0.0),
+                (10.0, 5.0),
+                (10.0, 50.0)
+            ]
+        );
+        // The curve through the corner on the bend passes close by it.
+        let drawn = crate::curve::flatten(
+            &tight(points.clone(), &[(100.0, 100.0)]),
+            crate::curve::RADIUS,
+        );
+        let nearest = drawn
+            .iter()
+            .map(|p| (p.0 - 100.0).hypot(p.1 - 100.0))
+            .fold(f32::INFINITY, f32::min);
+        assert!(nearest < 4.0, "{nearest}");
+    }
 }

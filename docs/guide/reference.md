@@ -100,7 +100,8 @@ colors, font) are honored too.
 
 The layout lays every line, and you can lay one yourself: hold **Alt** over the diagram,
 and the line under the pointer lights with its bends as dots. Alt and a drag on the line
-puts a bend where you grabbed it; on a dot it moves that bend. Drag a bend back onto the
+puts a bend where you grabbed it; on a dot it moves that bend. While you drag, the line
+shows the way it will be drawn: it turns at the bend and goes around the boxes. Drag a bend back onto the
 straight way between its neighbors, or Alt and double click it, and it goes. Escape stops
 a drag, and Ctrl+Z takes one back. The palette's *Lines by hand* commands reset the line
 at the caret, or every line.

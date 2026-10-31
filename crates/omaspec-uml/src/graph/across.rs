@@ -104,7 +104,9 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
         .copied()
         .collect();
     let mut labels = drawn.labels.clone();
+    // Labels keep off the boxes, the notes and the labels already placed.
     let mut solids = drawn.notes.clone();
+    solids.extend(drawn.labels.iter().copied());
     let mut frames = Vec::new();
     leaves(top, &mut solids, &mut frames);
 

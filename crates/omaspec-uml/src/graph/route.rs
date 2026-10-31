@@ -22,6 +22,9 @@ const CORNER: f32 = 10.0;
 const BEND: f32 = 30.0;
 /// Cost of crossing another line.
 const CROSSING: f32 = 60.0;
+/// Cost of running straight on through a bend the writer placed: they
+/// put it where the line is to turn.
+const THROUGH: f32 = 3.0 * BEND;
 /// Cost per unit of running under a label.
 const UNDER_LABEL: f32 = 3.0;
 /// Cost per unit of running on top of another line.
@@ -1114,7 +1117,11 @@ fn search(
                 continue;
             };
             let next = state_of(stage, l, dir);
-            let total = c + step + if dir == heading { 0.0 } else { BEND };
+            let through = stage > 0 && via_at[stage - 1] == k && dir == heading;
+            let total = c
+                + step
+                + if dir == heading { 0.0 } else { BEND }
+                + if through { THROUGH } else { 0.0 };
             if total < cost[next] {
                 cost[next] = total;
                 came[next] = Some(state);
@@ -1257,6 +1264,30 @@ mod tests {
             (on_x && p.1 >= a.1.min(b.1) - 0.01 && p.1 <= a.1.max(b.1) + 0.01)
                 || (on_y && p.0 >= a.0.min(b.0) - 0.01 && p.0 <= a.0.max(b.0) + 0.01)
         })
+    }
+
+    #[test]
+    fn a_route_turns_at_its_via() {
+        let from = rect(0.0, 0.0, 40.0, 40.0);
+        let to = rect(300.0, 200.0, 40.0, 40.0);
+        let around = Surroundings {
+            obstacles: vec![from, to],
+            origin: (-200.0, -200.0),
+            ..Surroundings::default()
+        };
+        let end = |rect| End { rect, flat: true };
+        // In line with where the line leaves: it could run on past it and
+        // turn later, but it turns there.
+        for via in [(100.0, 20.0), (320.0, 100.0), (150.0, 120.0)] {
+            let points = route_via(end(from), end(to), &[via], &around).unwrap();
+            let inner = &points[1..points.len() - 1];
+            assert!(
+                inner
+                    .iter()
+                    .any(|p| (p.0 - via.0).abs() < 0.01 && (p.1 - via.1).abs() < 0.01),
+                "{via:?}: {points:?}"
+            );
+        }
     }
 
     #[test]

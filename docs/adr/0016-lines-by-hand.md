@@ -52,8 +52,13 @@ and neither PlantUML nor Mermaid has a way to write one down.
    in the coordinates of the finished picture, one run from its start to
    the first bend, to the next, to its end, each by the router that runs
    lines between containers (`graph::route`), so it still goes around every
-   box. Its label is placed again along it. Curves
-   ([0011](0011-curved-lines.md)) and `linetype ortho` hold as before.
+   box. A bend is where the writer wants the line to turn: running straight
+   on through one costs the router as much as three corners, so it turns
+   there when it can. Its label is placed again along it, clear of the
+   labels already there. Curves ([0011](0011-curved-lines.md)) and
+   `linetype ortho` hold as before, but a corner on a bend is rounded by
+   at most 8 units, so the line passes through the bend, not 14 units
+   beside it.
 5. **A bend that no longer fits is left out, and said.** A bend that lies in
    a box after an edit, or more than 1000 units off the diagram, is
    skipped; a line the router finds no way for through its bends is drawn
@@ -63,9 +68,12 @@ and neither PlantUML nor Mermaid has a way to write one down.
 6. **The writer drags with Alt.** In the diagram pane of the editor and in
    the editor's diagram window, Alt shows the line under the pointer in the
    accent color with its bends as handles; Alt and a drag on the line puts a
-   bend there, on a handle moves it. Alt and a double click on a handle, or
-   dragging it back onto the straight way, takes it out. Escape stops a
-   drag. Each drag is one undo step. A drag without Alt pans, as before;
+   bend there, on a handle moves it. While the drag goes on, the diagram is
+   drawn in the background with the bends as they are, on a render slot of
+   its own, and the pane shows the line as it will be laid; until the
+   first answer, straight runs through the bends. Alt and a double click on
+   a handle, or dragging it back onto the straight way, takes it out.
+   Escape stops a drag. Each drag is one undo step. A drag without Alt pans, as before;
    Hyprland moves windows with Super, so Alt is free. Commands reset the
    line at the caret and every line.
 7. **The preview window only shows them.** `omaspec preview FILE` follows a
@@ -102,6 +110,6 @@ accident in a dense diagram.
   pointer. A play follows a line by hand, as it follows the drawn curve.
 - `convert` carries the block over, since the keys are names; `diff` and
   the behavior model ignore it; `fmt` keeps it at the end.
-- Not now: moving where a line meets its box, moving a label by hand, the
-  routed line while dragging rather than after, signal-flow diagrams, and
-  boxes by hand.
+- Not now: moving where a line meets its box, moving a label by hand,
+  dragging a straight run of a line sideways (as draw.io does) rather than
+  a point, signal-flow diagrams, and boxes by hand.
