@@ -91,7 +91,7 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
     let mut order: Vec<usize> = (0..links.len()).filter(|&i| ends[i].is_some()).collect();
     order.sort_by(|&a, &b| reach(a).total_cmp(&reach(b)));
 
-    let Some(extent) = top.iter().map(|place| place.rect).reduce(union) else {
+    let Some(extent) = extent(top) else {
         return out;
     };
     let origin = (extent.x - STRAY.0, extent.y - STRAY.1);
@@ -242,8 +242,13 @@ fn inside(rect: Rect, (x, y): Point) -> bool {
     x > rect.x && x < rect.x + rect.w && y > rect.y && y < rect.y + rect.h
 }
 
-fn center(rect: Rect) -> Point {
+pub(super) fn center(rect: Rect) -> Point {
     (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0)
+}
+
+/// What the boxes at the top take up together; `None` for none.
+pub(super) fn extent(top: &[Placement]) -> Option<Rect> {
+    top.iter().map(|place| place.rect).reduce(union)
 }
 
 fn union(a: Rect, b: Rect) -> Rect {

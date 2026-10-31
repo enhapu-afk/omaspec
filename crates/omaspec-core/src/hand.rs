@@ -18,6 +18,7 @@ use crate::text::line_ranges;
 /// not read stay as they are written.
 pub fn edit(code: &str, language: Language, line: &Line) -> Option<(Range<usize>, String)> {
     let rows = line_ranges(code);
+    let nl = newline(code);
     let Some(block) = hand::read(code) else {
         return (!line.vias.is_empty()).then(|| insert(code, language, &rows, line));
     };
@@ -43,9 +44,9 @@ pub fn edit(code: &str, language: Language, line: &Line) -> Option<(Range<usize>
     if kept.is_empty() {
         return Some(removal(code, &rows, block.first, block.last));
     }
-    let mut text = format!("{mark}\n{}", kept.join("\n"));
+    let mut text = format!("{mark}{nl}{}", kept.join(nl));
     if code[range.clone()].ends_with('\n') {
-        text.push('\n');
+        text.push_str(nl);
     }
     (code[range.clone()] != text).then_some((range, text))
 }
@@ -63,7 +64,7 @@ fn insert(
     rows: &[Range<usize>],
     line: &Line,
 ) -> (Range<usize>, String) {
-    let text = |i: usize| code[rows[i].clone()].trim();
+    let text = |i: usize| code[rows[i].clone()].trim_start_matches('\u{feff}').trim();
     let (at, comment) = match language {
         Language::PlantUml => {
             let start = (0..rows.len()).find(|&i| text(i).starts_with("@start"));
@@ -72,24 +73,34 @@ fn insert(
             (end.map_or(code.len(), |i| rows[i].start), "'")
         }
         Language::Mermaid => {
-            let fenced = !rows.is_empty() && text(0).starts_with("```");
-            let close = fenced
-                .then(|| (1..rows.len()).rev().find(|&i| text(i).starts_with("```")))
-                .flatten();
+            // As `lang::strip_mermaid_fence` finds it: blank lines may
+            // come before the fence.
+            let open = (0..rows.len()).find(|&i| !text(i).is_empty());
+            let close = open.filter(|&i| text(i).starts_with("```")).and_then(|o| {
+                (o + 1..rows.len())
+                    .rev()
+                    .find(|&i| text(i).starts_with("```"))
+            });
             (close.map_or(code.len(), |i| rows[i].start), "%%")
         }
     };
+    let nl = newline(code);
     let before = rows.iter().position(|r| r.end == at && at > 0);
     let mut out = String::new();
     if at > 0 && !code[..at].ends_with('\n') {
-        out.push('\n');
+        out.push_str(nl);
     }
     let blank_before = before.is_some_and(|i| text(i).is_empty() || text(i).starts_with("@start"));
     if at > 0 && !blank_before {
-        out.push('\n');
+        out.push_str(nl);
     }
-    out.push_str(&format!("{comment} {MARK}\n{comment} {line}\n"));
+    out.push_str(&format!("{comment} {MARK}{nl}{comment} {line}{nl}"));
     (at..at, out)
+}
+
+/// The line break the file uses.
+fn newline(code: &str) -> &'static str {
+    if code.contains("\r\n") { "\r\n" } else { "\n" }
 }
 
 /// Takes out the rows `first` to `last`, with the blank row before them.
@@ -179,6 +190,54 @@ mod tests {
             apply(fenced, edit(fenced, Language::Mermaid, &one)),
             "```mermaid\nflowchart LR\n  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B #2 via 0.5 10\n```\n"
         );
+    }
+
+    #[test]
+    fn a_fence_after_blank_lines_or_a_bom_still_holds_the_block() {
+        let one = line("A", "B", 1, &[(0.5, 10.0)]);
+        for code in [
+            "\n```mermaid\nflowchart LR\n  A --> B\n```\n",
+            "\u{feff}```mermaid\nflowchart LR\n  A --> B\n```\n",
+        ] {
+            let done = apply(code, edit(code, Language::Mermaid, &one));
+            assert!(
+                done.ends_with(
+                    "  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B via 0.5 10\n```\n"
+                ),
+                "{done:?}"
+            );
+            assert_eq!(
+                crate::lang::strip_mermaid_fence(&done),
+                "flowchart LR\n  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B via 0.5 10"
+            );
+        }
+        let bom = "\u{feff}@startuml\nA --> B\n@enduml\n";
+        assert_eq!(
+            apply(bom, edit(bom, Language::PlantUml, &one)),
+            "\u{feff}@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B via 0.5 10\n@enduml\n"
+        );
+    }
+
+    #[test]
+    fn a_file_with_crlf_keeps_its_line_breaks() {
+        let code = "@startuml\r\nA --> B\r\nB --> A\r\n@enduml\r\n";
+        let one = apply(
+            code,
+            edit(code, Language::PlantUml, &line("A", "B", 1, &[(0.5, 1.0)])),
+        );
+        assert_eq!(
+            one,
+            "@startuml\r\nA --> B\r\nB --> A\r\n\r\n' lines by hand (Omaspec)\r\n' A -> B via 0.5 1\r\n@enduml\r\n"
+        );
+        let two = apply(
+            &one,
+            edit(&one, Language::PlantUml, &line("B", "A", 1, &[(0.2, 2.0)])),
+        );
+        assert_eq!(
+            two,
+            "@startuml\r\nA --> B\r\nB --> A\r\n\r\n' lines by hand (Omaspec)\r\n' A -> B via 0.5 1\r\n' B -> A via 0.2 2\r\n@enduml\r\n"
+        );
+        assert!(!two.replace("\r\n", "").contains('\n'));
     }
 
     #[test]

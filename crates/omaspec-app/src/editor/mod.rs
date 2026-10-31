@@ -1349,20 +1349,25 @@ impl App {
                     }
                 } else if self.find(key).is_some() {
                     let drawn = answer.result.is_ok();
-                    // What the drawing says about the lines by hand.
-                    let said: Option<Vec<omaspec_core::lint::Finding>> =
-                        answer.result.as_ref().ok().map(|d| {
-                            d.map
-                                .misses
-                                .iter()
-                                .map(|(line, why)| omaspec_core::lint::Finding {
-                                    line: *line,
-                                    severity: omaspec_core::lint::Severity::Warning,
-                                    message: why.clone(),
-                                })
-                                .collect()
-                        });
-                    if let (Some(said), Some(doc)) = (said, self.find(key)) {
+                    // What the drawing says about the lines by hand; one
+                    // that failed says nothing, and an answer older than
+                    // the picture on screen is dropped.
+                    let said: Vec<omaspec_core::lint::Finding> = match &answer.result {
+                        Ok(d) => d
+                            .map
+                            .misses
+                            .iter()
+                            .map(|(line, why)| omaspec_core::lint::Finding {
+                                line: *line,
+                                severity: omaspec_core::lint::Severity::Warning,
+                                message: why.clone(),
+                            })
+                            .collect(),
+                        Err(_) => Vec::new(),
+                    };
+                    if let Some(doc) = self.find(key)
+                        && answer.ticket.id > doc.paper.shown()
+                    {
                         doc.set_drawn_findings(said);
                     }
                     let task = self
@@ -1961,6 +1966,7 @@ impl App {
         };
         let language = doc.current_language();
         let Some(edit) = omaspec_core::hand::edit(&doc.text(), language, line) else {
+            doc.paper.by_hand_unchanged();
             return Task::none();
         };
         doc.replace(vec![edit]);

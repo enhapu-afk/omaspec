@@ -140,6 +140,9 @@ pub struct Paper {
     hand: Option<hand::Hand>,
     /// A line drawn by hand, with the bends to write into the source.
     by_hand_done: Option<omaspec_uml::hand::Line>,
+    /// The latest request when the hand's bends were sent: a picture asked
+    /// for after it has them.
+    hand_sent_at: u64,
 }
 
 impl Default for Paper {
@@ -166,6 +169,7 @@ impl Default for Paper {
             by_hand: false,
             hand: None,
             by_hand_done: None,
+            hand_sent_at: 0,
         }
     }
 }
@@ -246,6 +250,11 @@ impl Paper {
         self.status = Status::Rendering;
     }
 
+    /// The id of the answer on screen; older ones are dropped.
+    pub fn shown(&self) -> u64 {
+        self.shown
+    }
+
     /// The id of the latest [`Self::request`].
     pub fn requested(&self) -> u64 {
         self.requested
@@ -262,8 +271,14 @@ impl Paper {
         let latest = id == self.requested;
         match answer.result {
             Ok(drawn) => {
-                // The lines are drawn anew; the pointer finds them again.
-                self.hand = None;
+                // The lines are drawn anew: the pointer finds them again,
+                // but a drag goes on, and bends on their way wait for the
+                // picture that has them.
+                let theirs = id > self.hand_sent_at;
+                self.hand = match (self.hand.take(), &self.diagram) {
+                    (Some(hand), Some(old)) => hand.redrawn(&old.drawn.map, &drawn.map, theirs),
+                    _ => None,
+                };
                 // A changed diagram ends its play; the same one drawn again
                 // (in a new theme or font) keeps it, in the new places.
                 if let Some(play) = &mut self.play {
@@ -302,6 +317,10 @@ impl Paper {
                 self.rasterize(Duration::ZERO)
             }
             Err(err) => {
+                // The bends sent did not draw; the old picture stays.
+                if id > self.hand_sent_at && self.hand.as_ref().is_some_and(|h| h.sent) {
+                    self.hand = None;
+                }
                 if latest {
                     self.status = Status::Failed(err);
                 }
@@ -402,6 +421,7 @@ impl Paper {
                     hand::reach(view.zoom),
                 ) {
                     self.by_hand_done = Some(line);
+                    self.hand_sent_at = self.requested;
                 }
                 Task::none()
             }
@@ -412,6 +432,14 @@ impl Paper {
     /// source; once.
     pub fn take_by_hand(&mut self) -> Option<omaspec_uml::hand::Line> {
         self.by_hand_done.take()
+    }
+
+    /// The bends just taken changed nothing in the source: no picture
+    /// will come for them.
+    pub fn by_hand_unchanged(&mut self) {
+        if let (Some(hand), Some(diagram)) = (&mut self.hand, &self.diagram) {
+            hand.unchanged(&diagram.drawn.map);
+        }
     }
 
     /// The line drawn at `at`, a point of the pane, if one runs there.

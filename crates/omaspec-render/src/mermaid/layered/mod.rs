@@ -99,10 +99,11 @@ pub fn try_draw(
     nest::link_crossings(&tree, &mut scene, &palette, family)?;
     nest::link_inward(&tree, &mut scene, &palette, family)?;
     let arrows = arrows(&tree, lines);
+    // Lines by hand move no box: one look at where they are does for both.
+    let top = nest::placements(&scene.nodes);
     let misses = if hands.is_empty() {
         Vec::new()
     } else {
-        let top = nest::placements(&scene.nodes);
         let mut laying = Laying {
             tree: &tree,
             scene: &mut scene,
@@ -112,7 +113,6 @@ pub fn try_draw(
     let mut canvas = Canvas::new(&theme.font_family, false);
     paint::paint(&mut canvas, &palette, &scene, curve);
     let mut map = Map::default();
-    let top = nest::placements(&scene.nodes);
     let laying = Laying {
         tree: &tree,
         scene: &mut scene,

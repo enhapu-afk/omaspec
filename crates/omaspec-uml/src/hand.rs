@@ -21,6 +21,10 @@ pub const MARK: &str = "lines by hand (Omaspec)";
 /// No bend lies further out than this, in units or shares of the way.
 const FAR: f32 = 100_000.0;
 
+/// The most bends a line takes. The router lays the runs between them, so
+/// a few do; each one more makes its search larger.
+pub const MOST: usize = 8;
+
 /// Which line: the names its ends go by (an alias where there is one), and
 /// which of the lines between the same two it is, counted from 1 in the
 /// order of the source.
@@ -375,6 +379,9 @@ fn parse(text: &str) -> Result<Line, String> {
         let along = value(it.next())?;
         let aside = value(it.next())?;
         vias.push(Via { along, aside });
+        if vias.len() > MOST {
+            return Err(format!("a line takes at most {MOST} bends"));
+        }
         match it.next() {
             None => break,
             Some(t) if t.is(",") => {}
@@ -449,6 +456,10 @@ mod tests {
             ("\"Idle -> Running via 0.5 -60", "closing quote"),
             ("\"\" -> Running via 0.5 -60", "empty"),
             ("Idle -> Running via", "two numbers"),
+            (
+                "Idle -> Running via 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0",
+                "at most 8",
+            ),
         ] {
             let err = parse(text).expect_err(text);
             assert!(err.contains(says), "{text}: {err}");

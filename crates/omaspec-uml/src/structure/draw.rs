@@ -48,12 +48,17 @@ const LOOP_REACH: f32 = 16.0;
 const LOOP_STEP: f32 = 12.0;
 
 pub fn draw(diagram: &super::Diagram) -> Result<String, Declined> {
-    draw_mapped(diagram).map(|(svg, _)| svg)
+    drawn(diagram, false).map(|(svg, _)| svg)
 }
 
 /// The SVG, and where its lines are in it: each as a wire the writer may
 /// draw by hand.
 pub fn draw_mapped(diagram: &super::Diagram) -> Result<(String, Map), Declined> {
+    drawn(diagram, true)
+}
+
+/// The SVG, and its map when `mapped` asks for one; an empty map else.
+fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     let family = canvas.family();
@@ -69,8 +74,12 @@ pub fn draw_mapped(diagram: &super::Diagram) -> Result<(String, Map), Declined> 
     )?;
     let mut scene = layout_group(&diagram.root, &skin, family)?;
     link_crossings(&diagram.root, &mut scene, &skin, family)?;
-    let arrows = arrows(&diagram.root);
     let hands = &diagram.frame.by_hand;
+    let arrows = if mapped || !hands.is_empty() {
+        arrows(&diagram.root)
+    } else {
+        Vec::new()
+    };
     let misses = if hands.is_empty() {
         Vec::new()
     } else {
@@ -79,15 +88,19 @@ pub fn draw_mapped(diagram: &super::Diagram) -> Result<(String, Map), Declined> 
     scene.offset(0.0, annotations.top());
     paint(&mut canvas, &skin, &scene);
     annotations.draw(&mut canvas);
-    let top = placements(&scene.nodes);
-    let map = Map {
-        wires: by_hand::wires(&top, &arrows, &scene, hands, |points| {
-            crate::curve::flatten(points, skin.curve)
-        }),
-        misses,
-        ..Map::default()
+    let map = if mapped {
+        let top = placements(&scene.nodes);
+        Map {
+            wires: by_hand::wires(&top, &arrows, &scene, hands, |points| {
+                crate::curve::flatten(points, skin.curve)
+            }),
+            misses,
+            ..Map::default()
+        }
+        .placed(canvas.fit(MARGIN))
+    } else {
+        Map::default()
     };
-    let map = map.placed(canvas.fit(MARGIN));
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 

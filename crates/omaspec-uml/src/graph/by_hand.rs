@@ -6,8 +6,7 @@
 //! A drawer names its lines ([`Arrow`], [`keyed`]) and lets them be read
 //! and changed ([`Laid`]); the rest is the same for all of them.
 
-use super::Rect;
-use super::across::{self, Drawn, Link, Placement};
+use super::across::{self, Drawn, Link, Placement, center};
 use super::route::Point;
 use crate::hand::{self, Key};
 use crate::map::Wire;
@@ -74,7 +73,7 @@ pub fn lay(
     let mut misses = Vec::new();
     let mut links = Vec::new();
     let mut which = Vec::new();
-    let Some(extent) = top.iter().map(|place| place.rect).reduce(union) else {
+    let Some(extent) = across::extent(top) else {
         return misses;
     };
     let near = |(x, y): Point| {
@@ -99,7 +98,7 @@ pub fn lay(
         if laid.points.len() < 2 {
             continue;
         }
-        let (a, b) = (center(from), center(to));
+        let (a, b) = (center(from.rect), center(to.rect));
         let (vias, far): (Vec<Point>, Vec<Point>) =
             line.vias.iter().map(|v| v.at(a, b)).partition(|&p| near(p));
         if !far.is_empty() {
@@ -163,26 +162,11 @@ pub fn wires(
                 key: key.clone(),
                 line: arrow.line,
                 points: drawn(points),
-                from: center(from),
-                to: center(to),
+                from: center(from.rect),
+                to: center(to.rect),
                 vias: hand.map(|(_, line)| line.vias.clone()).unwrap_or_default(),
                 entry: hand.map(|&(entry, _)| entry),
             })
         })
         .collect()
-}
-
-fn union(a: Rect, b: Rect) -> Rect {
-    let (x, y) = (a.x.min(b.x), a.y.min(b.y));
-    Rect {
-        x,
-        y,
-        w: (a.x + a.w).max(b.x + b.w) - x,
-        h: (a.y + a.h).max(b.y + b.h) - y,
-    }
-}
-
-fn center(place: &Placement) -> Point {
-    let r = place.rect;
-    (r.x + r.w / 2.0, r.y + r.h / 2.0)
 }

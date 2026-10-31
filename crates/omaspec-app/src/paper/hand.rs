@@ -10,7 +10,7 @@
 
 use iced::widget::canvas::{self, Action, Event, Frame, Geometry, Path, Stroke};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
-use omaspec_uml::hand::{Line, Via};
+use omaspec_uml::hand::{Line, MOST, Via};
 use omaspec_uml::map::{Fit, Map, Wire};
 
 use super::Message;
@@ -99,11 +99,20 @@ impl Hand {
                 None
             }
             Gesture::Press(at) => {
+                // The bends just written are not on the map yet: a drag now
+                // would start from the ones before them.
+                if hand.as_ref().is_some_and(|h| h.sent) {
+                    return None;
+                }
                 let p = to_diagram(at);
                 let current = hover(map, p, reach, hand.as_ref())?;
                 let wire = &map.wires[current.wire];
                 let (bend, new) = match current.hover {
                     Some(bend) => (bend, false),
+                    None if current.vias.len() >= MOST => {
+                        *hand = Some(current);
+                        return None;
+                    }
                     None => (place_of(wire, &current.vias, p, map.fit), true),
                 };
                 *hand = Some(Hand {
@@ -149,9 +158,13 @@ impl Hand {
                 if drag.straight {
                     h.vias.remove(drag.bend);
                 }
+                let wire = map.wires.get(h.wire)?;
+                if h.vias == wire.vias {
+                    return None;
+                }
                 h.sent = true;
                 Some(Line {
-                    key: map.wires.get(h.wire)?.key.clone(),
+                    key: wire.key.clone(),
                     vias: h.vias.clone(),
                 })
             }
@@ -162,6 +175,9 @@ impl Hand {
                 None
             }
             Gesture::Double(at) => {
+                if hand.as_ref().is_some_and(|h| h.sent) {
+                    return None;
+                }
                 let current = hover(map, to_diagram(at), reach, hand.as_ref())?;
                 let bend = current.hover?;
                 let mut vias = current.vias.clone();
@@ -175,6 +191,30 @@ impl Hand {
                 });
                 Some(Line { key, vias })
             }
+        }
+    }
+}
+
+impl Hand {
+    /// The hand once a new picture with `new` came in place of `old`: a
+    /// drag goes on, on the same line, and so does a line whose bends wait
+    /// for a later picture; `theirs` says this one has them. Otherwise the
+    /// pointer finds the line again.
+    pub fn redrawn(self, old: &Map, new: &Map, theirs: bool) -> Option<Hand> {
+        if self.drag.is_none() && (!self.sent || theirs) {
+            return None;
+        }
+        let key = &old.wires.get(self.wire)?.key;
+        let wire = new.wires.iter().position(|w| w.key == *key)?;
+        Some(Hand { wire, ..self })
+    }
+
+    /// The bends just sent changed nothing in the source: the line is lit
+    /// as it is drawn.
+    pub fn unchanged(&mut self, map: &Map) {
+        self.sent = false;
+        if let Some(wire) = map.wires.get(self.wire) {
+            self.vias = wire.vias.clone();
         }
     }
 }
@@ -515,5 +555,92 @@ mod tests {
         assert_eq!(line.vias.len(), 2);
         assert!((line.vias[0].along - 0.3).abs() < 1e-4, "{:?}", line.vias);
         assert!((line.vias[1].along - 0.8).abs() < 1e-4, "{:?}", line.vias);
+    }
+
+    #[test]
+    fn a_drag_that_changes_nothing_writes_nothing_and_lets_go() {
+        let map = map();
+        let mut hand = None;
+        // A new bend dragged back onto the straight way: the line is as it was.
+        go(&mut hand, &map, Gesture::Press(Point::new(0.0, 50.0)));
+        go(&mut hand, &map, Gesture::Move(Point::new(-10.0, 50.0)));
+        go(&mut hand, &map, Gesture::Move(Point::new(1.0, 50.0)));
+        assert!(go(&mut hand, &map, Gesture::Release).is_none());
+        let h = hand.as_ref().unwrap();
+        assert!(!h.sent && h.drag.is_none());
+        // Alt let go, the line is no longer lit.
+        go(&mut hand, &map, Gesture::Hover(None));
+        assert!(hand.is_none());
+        // Bends the source already had, as rounding gives them: the window
+        // writes nothing, and the line is lit as drawn again.
+        let mut hand = None;
+        go(&mut hand, &map, Gesture::Press(Point::new(0.0, 50.0)));
+        go(&mut hand, &map, Gesture::Move(Point::new(-30.0, 50.0)));
+        go(&mut hand, &map, Gesture::Release).unwrap();
+        hand.as_mut().unwrap().unchanged(&map);
+        let h = hand.as_ref().unwrap();
+        assert!(!h.sent && h.vias.is_empty());
+    }
+
+    #[test]
+    fn bends_on_their_way_hold_the_line_until_their_picture_comes() {
+        let map = map();
+        let mut hand = None;
+        go(&mut hand, &map, Gesture::Press(Point::new(0.0, 50.0)));
+        go(&mut hand, &map, Gesture::Move(Point::new(-30.0, 50.0)));
+        go(&mut hand, &map, Gesture::Release).unwrap();
+        // A second drag before the new picture would start from the old
+        // bends and write over the first: it waits.
+        assert!(go(&mut hand, &map, Gesture::Press(Point::new(0.0, 20.0))).is_none());
+        assert!(hand.as_ref().unwrap().drag.is_none());
+        go(&mut hand, &map, Gesture::Move(Point::new(-30.0, 20.0)));
+        assert!(go(&mut hand, &map, Gesture::Release).is_none());
+        assert!(go(&mut hand, &map, Gesture::Double(Point::new(-30.0, 50.0))).is_none());
+        // A picture asked for before them keeps the line, on its new place
+        // in the map; theirs lets it go.
+        let mut moved = map.clone();
+        let mut other = moved.wires[0].clone();
+        other.key.from = "C".into();
+        moved.wires.insert(0, other);
+        let kept = hand.clone().unwrap().redrawn(&map, &moved, false).unwrap();
+        assert!(kept.sent && kept.wire == 1);
+        assert!(hand.unwrap().redrawn(&map, &moved, true).is_none());
+    }
+
+    #[test]
+    fn a_drag_goes_on_while_a_new_picture_comes() {
+        let map = map();
+        let mut hand = None;
+        go(&mut hand, &map, Gesture::Press(Point::new(0.0, 50.0)));
+        go(&mut hand, &map, Gesture::Move(Point::new(-30.0, 50.0)));
+        let mut moved = map.clone();
+        let mut other = moved.wires[0].clone();
+        other.key.from = "C".into();
+        moved.wires.insert(0, other);
+        let mut hand = hand.unwrap().redrawn(&map, &moved, true);
+        assert_eq!(hand.as_ref().map(|h| h.wire), Some(1));
+        go(&mut hand, &map, Gesture::Move(Point::new(-40.0, 50.0)));
+        let line = go(&mut hand, &moved, Gesture::Release).unwrap();
+        assert_eq!(line.key.to_string(), "A -> B");
+        // A line only lit is found again by the pointer.
+        let mut lit = None;
+        go(&mut lit, &map, Gesture::Hover(Some(Point::new(1.0, 50.0))));
+        assert!(lit.unwrap().redrawn(&map, &moved, true).is_none());
+    }
+
+    #[test]
+    fn a_line_with_the_most_bends_takes_no_new_one() {
+        let mut map = map();
+        map.wires[0].vias = (0..MOST)
+            .map(|i| Via {
+                along: (i as f32 + 1.0) / (MOST as f32 + 2.0),
+                aside: 0.0,
+            })
+            .collect();
+        let mut hand = None;
+        go(&mut hand, &map, Gesture::Press(Point::new(0.0, 95.0)));
+        assert!(hand.as_ref().is_some_and(|h| h.drag.is_none()));
+        go(&mut hand, &map, Gesture::Move(Point::new(-30.0, 95.0)));
+        assert!(go(&mut hand, &map, Gesture::Release).is_none());
     }
 }

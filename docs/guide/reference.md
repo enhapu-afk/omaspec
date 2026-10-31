@@ -117,8 +117,9 @@ the file, its copies and its images, and PlantUML and Mermaid read past them:
 A line is named by its two ends, `#2` for the second line between the same two. `via 0.5
 -60` lies half way from the middle of the box the line leaves to the middle of the one it
 enters, then 60 units to the left as it travels (to the right when positive), so a bend
-moves with its boxes when the diagram changes. A bend that lands in a box, or a line that
-is gone, is left out and shows among the findings. Lines by hand work in state, class,
+moves with its boxes when the diagram changes. A line takes up to eight bends; the layout
+lays the runs between them. A bend that lands in a box, or a line that is gone, is left
+out and shows among the findings. Lines by hand work in state, class,
 component, use case, deployment and object diagrams and in Mermaid flowcharts; the preview
 window shows them but leaves the dragging to the editor. Why it works this way:
 [ADR 0016](../adr/0016-lines-by-hand.md).

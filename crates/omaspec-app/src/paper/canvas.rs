@@ -159,6 +159,8 @@ pub struct State {
     hand_drag: bool,
     /// The pointer with Alt was last told to the pane.
     hand_told: bool,
+    /// The last press with Alt; a plain click does not make it double.
+    hand_click: Option<Instant>,
 }
 
 impl canvas::Program<Message> for DiagramCanvas<'_> {
@@ -221,6 +223,7 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
                     return Some(Action::publish(Message::Pick(at)).and_capture());
                 }
                 let now = Instant::now();
+                state.hand_click = None;
                 if state
                     .last_click
                     .is_some_and(|t| now.duration_since(t) < DOUBLE_CLICK)
@@ -671,13 +674,14 @@ impl DiagramCanvas<'_> {
                 let at = cursor.position_in(bounds)?;
                 let now = Instant::now();
                 let double = state
-                    .last_click
+                    .hand_click
                     .is_some_and(|t| now.duration_since(t) < DOUBLE_CLICK);
+                state.last_click = None;
                 if double {
-                    state.last_click = None;
+                    state.hand_click = None;
                     return Some(tell(Gesture::Double(at)).and_capture());
                 }
-                state.last_click = Some(now);
+                state.hand_click = Some(now);
                 state.hand_drag = true;
                 Some(tell(Gesture::Press(at)).and_capture())
             }

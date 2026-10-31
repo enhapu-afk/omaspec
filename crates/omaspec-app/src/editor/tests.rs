@@ -1406,6 +1406,26 @@ fn a_bend_that_does_not_hold_is_among_the_findings() {
     // Lint again keeps what the drawing said.
     due(&mut app, Alarm::Lint(key));
     assert_eq!(app.doc().findings.len(), 1);
+    // An answer older than the picture on screen says nothing.
+    let stale = answer(key, id - 1, Ok(drawn(MACHINE, Language::PlantUml)));
+    let _ = app.update(Message::Worker(worker::Event::Rendered(Box::new(stale))));
+    assert_eq!(app.doc().findings.len(), 1);
+    // A drawing that failed says nothing either: the old warning goes.
+    let mut renderer = omaspec_render::Renderer::new(&omaspec_render::Config {
+        java_fallback: false,
+        ..Default::default()
+    });
+    let Err(err) = renderer.render("", Language::PlantUml) else {
+        panic!("an empty page draws");
+    };
+    let id = app.doc_mut().paper.pretend_next();
+    let failed = answer(key, id, Err(err));
+    let _ = app.update(Message::Worker(worker::Event::Rendered(Box::new(failed))));
+    let found = &app.doc().findings;
+    assert!(
+        !found.iter().any(|f| f.message.contains("Nowhere")),
+        "{found:?}"
+    );
 }
 
 #[test]

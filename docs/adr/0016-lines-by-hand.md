@@ -44,7 +44,9 @@ and neither PlantUML nor Mermaid has a way to write one down.
    travels, negative to the left. When the diagram grows, both ends move and
    the bend moves with them; when they move apart, the bend stays at the same
    share of the way. A line from a box to itself counts both numbers in
-   units from the middle of the box, to the right and down.
+   units from the middle of the box, to the right and down. A line takes at
+   most eight bends: the router lays the runs between them, and each bend
+   more makes its search larger.
 4. **Only the line changes.** The layout runs as before: ranks, order and
    boxes do not move for a line by hand. Then each such line is laid again
    in the coordinates of the finished picture, one run from its start to
