@@ -1,7 +1,7 @@
 //! Text logic shared by the Omaspec editor and CLI: language detection,
 //! diagram kinds, lint, outline, formatting, line diffs, diagram source
-//! embedded in images, finding the source line of a drawn label, and skin
-//! packs.
+//! embedded in images, finding the source line of a drawn label, skin
+//! packs, and lines by hand.
 //!
 //! No I/O and no GUI: everything here works on strings and bytes. Regexes
 //! come from the `regex` crate, which runs in linear time, so no input can
@@ -12,6 +12,7 @@ mod text;
 pub mod diff;
 pub mod embed;
 pub mod format;
+pub mod hand;
 pub mod kind;
 pub mod lang;
 pub mod lint;

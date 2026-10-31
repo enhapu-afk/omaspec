@@ -296,6 +296,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn lines_by_hand_stay_at_the_end() {
+        let code = "@startuml\nstate A {\nA1 --> A2\n}\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B via 0.5 -60\n@enduml\n";
+        let want = "@startuml\nstate A {\n  A1 --> A2\n}\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B via 0.5 -60\n@enduml\n";
+        let formatted = format(code, Language::PlantUml);
+        assert_eq!(formatted, want);
+        assert_eq!(omaspec_uml::hand::lines(&formatted).len(), 1);
+        let flow = "flowchart LR\nA --> B\n\n%% lines by hand (Omaspec)\n%% A -> B via 0.5 -60\n";
+        let formatted = format(flow, Language::Mermaid);
+        assert_eq!(omaspec_uml::hand::lines(&formatted).len(), 1, "{formatted}");
+    }
+
+    #[test]
     fn indents_plantuml_blocks() {
         let code = "@startuml\nalt ok\nA -> B\nelse\n    loop\nB -> A\nend\nend\nnote left\ntext\nend note\n@enduml\n";
         let want = "@startuml\nalt ok\n  A -> B\nelse\n  loop\n    B -> A\n  end\nend\nnote left\n  text\nend note\n@enduml\n";

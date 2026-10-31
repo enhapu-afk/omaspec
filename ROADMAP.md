@@ -900,7 +900,12 @@ Lint and outline move onto the syntax tree as each type lands.
 What comes after 0.4, announced in the README.
 
 - [ ] Lines by hand: drag a line in the diagram, or a bend in it, to route it
-      yourself; the diagram keeps the route and draws it the same way next time.
+      yourself; the diagram keeps the route and draws it the same way next time
+      ([0016](docs/adr/0016-lines-by-hand.md)). Built: the block of comments
+      that holds the bends (`omaspec_uml::hand`), its edits and lint
+      (`omaspec_core::hand`); every gallery example draws the same with one.
+      Next: the engines lay lines through the bends, the map names every line,
+      Alt and a drag in the diagram pane.
 - [ ] Diagrams that link: a state links to the diagram that describes it. A
       click zooms into the state, and inside is its activity diagram; zooming
       out goes back. A specification reads from the whole system down to a

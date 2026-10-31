@@ -5,7 +5,8 @@
 //! header. Hints: a message to a name close to a declared participant (both
 //! engines would silently draw a new one), duplicate and unused participants,
 //! swimlanes that differ only in case or spaces, a state name seen once next
-//! to a frequent one.
+//! to a frequent one, an entry of the lines by hand that does not read or
+//! comes twice.
 
 use std::collections::{HashMap, HashSet};
 
@@ -56,6 +57,7 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
         Language::Mermaid => mermaid_syntax(&lines),
         Language::PlantUml => plantuml_syntax(&lines),
     };
+    lines_by_hand(&code, &mut findings);
     let kind = classify(&code, lang).kind;
     match lang {
         Language::Mermaid => {
@@ -98,6 +100,41 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     }
     findings.sort_by_key(|f| f.line);
     findings
+}
+
+/// Entries of the block of lines by hand that do not read, and a second
+/// entry for the same line: the drawing leaves both out.
+fn lines_by_hand(code: &str, findings: &mut Vec<Finding>) {
+    let Some(block) = omaspec_uml::hand::read(code) else {
+        return;
+    };
+    let mut seen = HashSet::new();
+    for entry in &block.entries {
+        match &entry.read {
+            Err(why) => findings.push(Finding::new(
+                entry.line,
+                Severity::Warning,
+                format!("{}. This line by hand is left out", capitalized(why)),
+            )),
+            Ok(line) if !seen.insert(line.key.clone()) => findings.push(Finding::new(
+                entry.line,
+                Severity::Warning,
+                format!(
+                    "{} has its bends above already; these are left out",
+                    line.key
+                ),
+            )),
+            Ok(_) => {}
+        }
+    }
+}
+
+fn capitalized(text: &str) -> String {
+    let mut chars = text.chars();
+    chars
+        .next()
+        .map(|c| c.to_uppercase().chain(chars).collect())
+        .unwrap_or_default()
 }
 
 /// A line without string contents and without a `'` comment, trimmed.
@@ -722,6 +759,30 @@ mod tests {
             .into_iter()
             .map(|f| (f.line, f.severity, f.message))
             .collect()
+    }
+
+    #[test]
+    fn lines_by_hand_that_do_not_read_or_come_twice() {
+        let code = "@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B via 0.5 -60\n' A -> B via 0.2 1\n' B -> A via 0.5\n@enduml\n";
+        assert_eq!(
+            messages(code, Language::PlantUml),
+            [
+                (
+                    5,
+                    Severity::Warning,
+                    "A -> B has its bends above already; these are left out".into()
+                ),
+                (
+                    6,
+                    Severity::Warning,
+                    "A bend is two numbers, along the way and aside. This line by hand is left out"
+                        .into()
+                ),
+            ]
+        );
+        let flow =
+            "flowchart LR\n  A --> B\n  %% lines by hand (Omaspec)\n  %% A -> B via 0.5 -60\n";
+        assert!(messages(flow, Language::Mermaid).is_empty());
     }
 
     /// From PlantUML's own examples: blocks that are closed after all.

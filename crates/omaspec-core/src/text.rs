@@ -1,6 +1,7 @@
 //! Line handling shared by the modules.
 
 use std::borrow::Cow;
+use std::ops::Range;
 
 /// A lazily compiled, process-wide regex: `re!(r"...")`.
 macro_rules! re {
@@ -120,6 +121,17 @@ pub(crate) fn brace_balance(line: &str) -> isize {
         '}' => n - 1,
         _ => n,
     })
+}
+
+/// Each line's byte range, with its newline.
+pub(crate) fn line_ranges(code: &str) -> Vec<Range<usize>> {
+    let mut out = Vec::new();
+    let mut start = 0;
+    for line in code.split_inclusive('\n') {
+        out.push(start..start + line.len());
+        start += line.len();
+    }
+    out
 }
 
 #[cfg(test)]

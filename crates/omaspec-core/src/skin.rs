@@ -7,6 +7,7 @@
 use std::ops::Range;
 
 use crate::lang::Language;
+use crate::text::line_ranges;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pack {
@@ -97,17 +98,6 @@ pub fn current(code: &str) -> Option<Pack> {
         let name = name.split_whitespace().next()?;
         Pack::ALL.into_iter().find(|p| p.name() == name)
     })
-}
-
-/// Each line's byte range, with its newline.
-fn line_ranges(code: &str) -> Vec<Range<usize>> {
-    let mut out = Vec::new();
-    let mut start = 0;
-    for line in code.split_inclusive('\n') {
-        out.push(start..start + line.len());
-        start += line.len();
-    }
-    out
 }
 
 fn plantuml_block(code: &str, lines: &[Range<usize>]) -> Option<Range<usize>> {

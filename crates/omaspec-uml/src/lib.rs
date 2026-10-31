@@ -24,6 +24,7 @@ pub mod flow;
 pub mod formula;
 pub mod gantt;
 pub mod graph;
+pub mod hand;
 pub mod journey;
 pub mod json;
 pub mod map;
