@@ -20,13 +20,13 @@ pub fn edit(code: &str, language: Language, line: &Line) -> Option<(Range<usize>
     let rows = line_ranges(code);
     let nl = newline(code);
     let Some(block) = hand::read(code) else {
-        return (!line.vias.is_empty()).then(|| insert(code, language, &rows, line));
+        return (!line.corners.is_empty()).then(|| insert(code, language, &rows, line));
     };
     let row = |i: usize| code[rows[i].clone()].trim_end_matches(['\n', '\r']);
     let mark = row(block.first);
     let indent = &mark[..mark.len() - mark.trim_start().len()];
     let mut kept: Vec<String> = Vec::new();
-    let mut put = line.vias.is_empty();
+    let mut put = line.corners.is_empty();
     for entry in &block.entries {
         if entry.read.as_ref().is_ok_and(|l| l.key == line.key) {
             if !put {
@@ -112,21 +112,18 @@ fn removal(code: &str, rows: &[Range<usize>], first: usize, last: usize) -> (Ran
 
 #[cfg(test)]
 mod tests {
-    use omaspec_uml::hand::{Key, Via};
+    use omaspec_uml::hand::{Corner, Key};
 
     use super::*;
 
-    fn line(from: &str, to: &str, nth: usize, vias: &[(f32, f32)]) -> Line {
+    fn line(from: &str, to: &str, nth: usize, corners: &[(f32, f32)]) -> Line {
         Line {
             key: Key {
                 from: from.into(),
                 to: to.into(),
                 nth,
             },
-            vias: vias
-                .iter()
-                .map(|&(along, aside)| Via { along, aside })
-                .collect(),
+            corners: corners.iter().map(|&(x, y)| Corner { x, y }).collect(),
         }
     }
 
@@ -146,7 +143,7 @@ mod tests {
         assert_eq!(
             code,
             "@startuml\nIdle --> Running : start\nRunning --> Idle : stop\n\n\
-             ' lines by hand (Omaspec)\n' Idle -> Running via 0.5 -60\n@enduml\n"
+             ' lines by hand (Omaspec)\n' Idle -> Running at 0.5 -60\n@enduml\n"
         );
         assert_eq!(hand::lines(&code), std::slice::from_ref(&one));
 
@@ -154,14 +151,14 @@ mod tests {
         let two = line("Running", "Idle", 1, &[(0.3, 40.0), (0.7, 40.0)]);
         let code = apply(&code, edit(&code, Language::PlantUml, &two));
         assert!(code.ends_with(
-            "' Idle -> Running via 0.5 -60\n' Running -> Idle via 0.3 40, 0.7 40\n@enduml\n"
+            "' Idle -> Running at 0.5 -60\n' Running -> Idle at 0.3 40, 0.7 40\n@enduml\n"
         ));
         assert!(edit(&code, Language::PlantUml, &one).is_none());
 
         // A moved bend replaces the entry in place.
         let moved = line("Idle", "Running", 1, &[(0.4, -20.0)]);
         let code = apply(&code, edit(&code, Language::PlantUml, &moved));
-        assert!(code.contains("' Idle -> Running via 0.4 -20\n' Running -> Idle via"));
+        assert!(code.contains("' Idle -> Running at 0.4 -20\n' Running -> Idle at"));
 
         // Without bends a line leaves; the last one takes the block along.
         let code = apply(
@@ -183,12 +180,12 @@ mod tests {
         let flow = "flowchart LR\n  A --> B\n  A --> B";
         assert_eq!(
             apply(flow, edit(flow, Language::Mermaid, &one)),
-            "flowchart LR\n  A --> B\n  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B #2 via 0.5 10\n"
+            "flowchart LR\n  A --> B\n  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B #2 at 0.5 10\n"
         );
         let fenced = "```mermaid\nflowchart LR\n  A --> B\n```\n";
         assert_eq!(
             apply(fenced, edit(fenced, Language::Mermaid, &one)),
-            "```mermaid\nflowchart LR\n  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B #2 via 0.5 10\n```\n"
+            "```mermaid\nflowchart LR\n  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B #2 at 0.5 10\n```\n"
         );
     }
 
@@ -202,19 +199,19 @@ mod tests {
             let done = apply(code, edit(code, Language::Mermaid, &one));
             assert!(
                 done.ends_with(
-                    "  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B via 0.5 10\n```\n"
+                    "  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B at 0.5 10\n```\n"
                 ),
                 "{done:?}"
             );
             assert_eq!(
                 crate::lang::strip_mermaid_fence(&done),
-                "flowchart LR\n  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B via 0.5 10"
+                "flowchart LR\n  A --> B\n\n%% lines by hand (Omaspec)\n%% A -> B at 0.5 10"
             );
         }
         let bom = "\u{feff}@startuml\nA --> B\n@enduml\n";
         assert_eq!(
             apply(bom, edit(bom, Language::PlantUml, &one)),
-            "\u{feff}@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B via 0.5 10\n@enduml\n"
+            "\u{feff}@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B at 0.5 10\n@enduml\n"
         );
     }
 
@@ -227,7 +224,7 @@ mod tests {
         );
         assert_eq!(
             one,
-            "@startuml\r\nA --> B\r\nB --> A\r\n\r\n' lines by hand (Omaspec)\r\n' A -> B via 0.5 1\r\n@enduml\r\n"
+            "@startuml\r\nA --> B\r\nB --> A\r\n\r\n' lines by hand (Omaspec)\r\n' A -> B at 0.5 1\r\n@enduml\r\n"
         );
         let two = apply(
             &one,
@@ -235,22 +232,22 @@ mod tests {
         );
         assert_eq!(
             two,
-            "@startuml\r\nA --> B\r\nB --> A\r\n\r\n' lines by hand (Omaspec)\r\n' A -> B via 0.5 1\r\n' B -> A via 0.2 2\r\n@enduml\r\n"
+            "@startuml\r\nA --> B\r\nB --> A\r\n\r\n' lines by hand (Omaspec)\r\n' A -> B at 0.5 1\r\n' B -> A at 0.2 2\r\n@enduml\r\n"
         );
         assert!(!two.replace("\r\n", "").contains('\n'));
     }
 
     #[test]
     fn the_block_keeps_its_indent_and_what_does_not_read() {
-        let code = "flowchart LR\n  A --> B\n\n  %% lines by hand (Omaspec)\n  %% A -> B via oops\n  %% B -> A via 0.5 1\n";
+        let code = "flowchart LR\n  A --> B\n\n  %% lines by hand (Omaspec)\n  %% A -> B at oops\n  %% B -> A at 0.5 1\n";
         let one = line("B", "A", 1, &[(0.25, 3.0)]);
         assert_eq!(
             apply(code, edit(code, Language::Mermaid, &one)),
-            "flowchart LR\n  A --> B\n\n  %% lines by hand (Omaspec)\n  %% A -> B via oops\n  %% B -> A via 0.25 3\n"
+            "flowchart LR\n  A --> B\n\n  %% lines by hand (Omaspec)\n  %% A -> B at oops\n  %% B -> A at 0.25 3\n"
         );
         let other = line("C", "A", 1, &[(0.5, 0.0)]);
         assert!(
-            apply(code, edit(code, Language::Mermaid, &other)).ends_with("  %% C -> A via 0.5 0\n")
+            apply(code, edit(code, Language::Mermaid, &other)).ends_with("  %% C -> A at 0.5 0\n")
         );
         assert_eq!(apply(code, clear(code)), "flowchart LR\n  A --> B\n");
         assert!(clear(STATES).is_none());
@@ -258,11 +255,11 @@ mod tests {
 
     #[test]
     fn a_second_entry_for_a_line_goes_with_the_first() {
-        let code = "@startuml\nA --> B\n' lines by hand (Omaspec)\n' A -> B via 0.5 1\n' A -> B via 0.2 2\n@enduml\n";
+        let code = "@startuml\nA --> B\n' lines by hand (Omaspec)\n' A -> B at 0.5 1\n' A -> B at 0.2 2\n@enduml\n";
         let one = line("A", "B", 1, &[(0.9, 9.0)]);
         assert_eq!(
             apply(code, edit(code, Language::PlantUml, &one)),
-            "@startuml\nA --> B\n' lines by hand (Omaspec)\n' A -> B via 0.9 9\n@enduml\n"
+            "@startuml\nA --> B\n' lines by hand (Omaspec)\n' A -> B at 0.9 9\n@enduml\n"
         );
     }
 }

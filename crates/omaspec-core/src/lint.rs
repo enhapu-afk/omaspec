@@ -120,7 +120,7 @@ fn lines_by_hand(code: &str, findings: &mut Vec<Finding>) {
                 entry.line,
                 Severity::Warning,
                 format!(
-                    "{} has its bends above already; these are left out",
+                    "{} has its shape above already; this one is left out",
                     line.key
                 ),
             )),
@@ -763,25 +763,25 @@ mod tests {
 
     #[test]
     fn lines_by_hand_that_do_not_read_or_come_twice() {
-        let code = "@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B via 0.5 -60\n' A -> B via 0.2 1\n' B -> A via 0.5\n@enduml\n";
+        let code = "@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B at 0.5 -60\n' A -> B at 0.2 1\n' B -> A at 0.5\n@enduml\n";
         assert_eq!(
             messages(code, Language::PlantUml),
             [
                 (
                     5,
                     Severity::Warning,
-                    "A -> B has its bends above already; these are left out".into()
+                    "A -> B has its shape above already; this one is left out".into()
                 ),
                 (
                     6,
                     Severity::Warning,
-                    "A bend is two numbers, along the way and aside. This line by hand is left out"
+                    "A corner is two numbers, across and down. This line by hand is left out"
                         .into()
                 ),
             ]
         );
         let flow =
-            "flowchart LR\n  A --> B\n  %% lines by hand (Omaspec)\n  %% A -> B via 0.5 -60\n";
+            "flowchart LR\n  A --> B\n  %% lines by hand (Omaspec)\n  %% A -> B at 0.5 -60\n";
         assert!(messages(flow, Language::Mermaid).is_empty());
     }
 

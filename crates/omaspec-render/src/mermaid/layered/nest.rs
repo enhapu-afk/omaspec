@@ -291,7 +291,7 @@ pub(super) fn link_crossings(
             from: from.clone(),
             to: to.clone(),
             label: (label.width, label.height),
-            vias: Vec::new(),
+            shape: None,
         });
         found.push((from[..depth].to_vec(), index, label, stroke));
     }

@@ -1,12 +1,13 @@
 //! Lines by hand ([0016](../../../../docs/adr/0016-lines-by-hand.md)) for
 //! every drawer of graph diagrams: once everything is placed, each line
-//! the writer gave bends is laid again through them, around everything
-//! else ([`across::link`]), and each line becomes a [`Wire`] of the map.
+//! the writer shaped is drawn as they shaped it ([`hand::shape`]), its
+//! label placed along it ([`across::link`]), and each line becomes a
+//! [`Wire`] of the map.
 //!
 //! A drawer names its lines ([`Arrow`], [`keyed`]) and lets them be read
 //! and changed ([`Laid`]); the rest is the same for all of them.
 
-use super::across::{self, Drawn, Link, Placement, center};
+use super::across::{self, Drawn, Link, Placement};
 use super::route::Point;
 use crate::hand::{self, Key};
 use crate::map::Wire;
@@ -62,8 +63,8 @@ pub fn keyed(arrows: Vec<Arrow>, name: impl Fn(&[usize]) -> String) -> Vec<(Arro
 /// slip, and would shrink the diagram to a dot.
 const REACH: f32 = 1000.0;
 
-/// Lays each line of `hands` again through its bends; `top` is the placed
-/// boxes. Returns the entries that did not hold, by line: with why.
+/// Draws each line of `hands` in its shape; `top` is the placed boxes.
+/// Returns the entries that did not hold, by line: with why.
 pub fn lay(
     top: &[Placement],
     arrows: &[(Arrow, Key)],
@@ -98,50 +99,71 @@ pub fn lay(
         if laid.points.len() < 2 {
             continue;
         }
-        let (a, b) = (center(from.rect), center(to.rect));
-        let (vias, far): (Vec<Point>, Vec<Point>) =
-            line.vias.iter().map(|v| v.at(a, b)).partition(|&p| near(p));
+        let span = hand::span(from.rect, to.rect);
+        let (corners, far): (Vec<Point>, Vec<Point>) = line
+            .corners
+            .iter()
+            .map(|c| c.at(span))
+            .partition(|&p| near(p));
         if !far.is_empty() {
             misses.push((*entry, hand::far_out(&line.key, far.len())));
         }
+        let (corners, inside): (Vec<Point>, Vec<Point>) = corners
+            .into_iter()
+            .partition(|&p| !hand::inside(from.rect, p) && !hand::inside(to.rect, p));
+        if !inside.is_empty() {
+            misses.push((*entry, hand::left_out(&line.key, inside.len())));
+        }
+        if corners.is_empty() {
+            continue;
+        }
+        let shape = hand::shape(end(from), end(to), &corners);
         links.push(Link {
             from: arrow.from.clone(),
             to: arrow.to.clone(),
             label: laid.label,
-            vias: vias.clone(),
+            shape: Some(shape),
         });
-        // Out of what the others keep clear of; back if it finds no way.
-        which.push((index, *entry, std::mem::take(laid.points), vias));
+        // Out of what the others keep clear of; back if it has no ends.
+        which.push((index, *entry, std::mem::take(laid.points)));
     }
     let drawn = laid.drawn();
-    let routed = across::link(top, &links, &drawn);
-    for ((index, entry, before, vias), linked) in which.into_iter().zip(routed) {
+    let shaped = across::link(top, &links, &drawn);
+    for ((index, entry, before), linked) in which.into_iter().zip(shaped) {
         let (arrow, key) = &arrows[index];
         let Some(line) = laid.line_mut(&arrow.path, arrow.slot) else {
             continue;
         };
-        match linked {
-            Some(linked) => {
-                *line.points = tight(linked.points, &vias);
-                *line.label_at = linked.label_at;
-                laid.relaid(&arrow.path, arrow.slot);
-                if linked.left_out > 0 {
-                    misses.push((entry, hand::left_out(key, linked.left_out)));
-                }
-            }
-            None => {
-                *line.points = before;
-                misses.push((entry, hand::no_way(key)));
-            }
+        let Some(linked) = linked else {
+            *line.points = before;
+            continue;
+        };
+        let corners = match linked.points.len() {
+            0..=2 => Vec::new(),
+            n => linked.points[1..n - 1].to_vec(),
+        };
+        *line.points = tight(linked.points, &corners);
+        *line.label_at = linked.label_at;
+        laid.relaid(&arrow.path, arrow.slot);
+        if linked.through {
+            misses.push((entry, hand::through(key)));
         }
     }
     misses.sort_by_key(|&(line, _)| line);
     misses
 }
 
-/// How far a line by hand runs straight on each side of a bend it turns
-/// at, at most. A curve rounds a corner by at most half the runs beside it
-/// ([`crate::curve`]), so the line turns close by the bend, not far past it.
+fn end(place: &Placement) -> hand::End {
+    hand::End {
+        rect: place.rect,
+        flat: place.flat,
+    }
+}
+
+/// How far a line by hand runs straight on each side of a corner, at
+/// most. A curve rounds a corner by at most half the runs beside it
+/// ([`crate::curve`]), so the line turns close by the corner the writer
+/// placed, not far inside it.
 const TIGHT: f32 = 16.0;
 
 /// `points` with a short straight run on each side of every corner that
@@ -201,9 +223,10 @@ pub fn wires(
                 key: key.clone(),
                 line: arrow.line,
                 points: drawn(points),
-                from: center(from.rect),
-                to: center(to.rect),
-                vias: hand.map(|(_, line)| line.vias.clone()).unwrap_or_default(),
+                // Without the short runs beside its corners.
+                path: hand::straighten(points.to_vec()),
+                from: end(from),
+                to: end(to),
                 entry: hand.map(|&(entry, _)| entry),
             })
         })

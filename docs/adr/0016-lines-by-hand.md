@@ -1,6 +1,8 @@
 # 0016: Lines by hand live in the source
 
-Status: accepted, 2026-10-31. Takes up "Lines by hand" from the roadmap's
+Status: accepted, 2026-10-31; revised the same day, after a check in a real
+window: the line keeps the shape the writer gives it (see
+[Earlier](#earlier)). Takes up "Lines by hand" from the roadmap's
 [Next](../../ROADMAP.md#next).
 
 ## Context
@@ -13,8 +15,8 @@ and neither PlantUML nor Mermaid has a way to write one down.
 
 ## Decision
 
-1. **The bends are visible source.** A block of comments at the end of the
-   diagram holds them, as a skin pack holds a look
+1. **The shape is visible source.** A block of comments at the end of the
+   diagram holds it, as a skin pack holds a look
    ([`skin.rs`](../../crates/omaspec-core/src/skin.rs)): it travels with the
    file, its copies, git and the images that carry their source. Java
    PlantUML, Mermaid and mmdr read only comments in it, so the file stays
@@ -25,8 +27,8 @@ and neither PlantUML nor Mermaid has a way to write one down.
    Running --> Idle : stop
 
    ' lines by hand (Omaspec)
-   ' Idle -> Running via 0.5 -60
-   ' Running -> Idle via 0.3 40, 0.7 40
+   ' Idle -> Running at 0.5 -0.4
+   ' Running -> Idle at 1.2 0.3, 1.2 0.8
    @enduml
    ```
 
@@ -38,44 +40,45 @@ and neither PlantUML nor Mermaid has a way to write one down.
    later lines between the same two, in the order of the source. A name with
    a space or a quote is written in double quotes. A source line number
    would change with every line written above it.
-3. **A bend is placed relative to the two ends.** `via 0.5 -60` is half way
-   from the middle of the box the line leaves to the middle of the box it
-   enters, then 60 units to the side: positive to the right as the line
-   travels, negative to the left. When the diagram grows, both ends move and
-   the bend moves with them; when they move apart, the bend stays at the same
-   share of the way. A line from a box to itself counts both numbers in
-   units from the middle of the box, to the right and down. A line takes at
-   most eight bends: the router lays the runs between them, and each bend
-   more makes its search larger.
-4. **Only the line changes.** The layout runs as before: ranks, order and
-   boxes do not move for a line by hand. Then each such line is laid again
-   in the coordinates of the finished picture, one run from its start to
-   the first bend, to the next, to its end, each by the router that runs
-   lines between containers (`graph::route`), so it still goes around every
-   box. A bend is where the writer wants the line to turn: running straight
-   on through one costs the router as much as three corners, so it turns
-   there when it can. Its label is placed again along it, clear of the
-   labels already there. Curves ([0011](0011-curved-lines.md)) and
-   `linetype ortho` hold as before, but a corner on a bend is rounded by
-   at most 8 units, so the line passes through the bend, not 14 units
-   beside it.
-5. **A bend that no longer fits is left out, and said.** A bend that lies in
-   a box after an edit, or more than 1000 units off the diagram, is
-   skipped; a line the router finds no way for through its bends is drawn
-   as the layout drew it. The drawing names each of these, and an entry
-   whose line is gone, by the entry's line (the map's `misses`). Lint
+3. **An entry holds the line's corners.** Each pair after `at` is a corner,
+   as a share of the span the line's two boxes take together, across and
+   down on their own: `0.5 -0.4` is half way across that span and 40 % of
+   its height above it. When the diagram changes, the shape stretches with
+   its boxes, and corners in line stay in line, so runs stay straight. A
+   line takes at most 32 corners; shares are written to a thousandth.
+4. **The line is drawn as written; no router lays it.** The layout runs as
+   before: ranks, order and boxes do not move for a line by hand. Then each
+   such line is drawn through its corners in straight runs across and down
+   (`hand::shape`): it leaves its first box straight toward the first
+   corner where the box's side reaches, or from the nearest side with a
+   corner beside the box where it does not, and enters its last box the
+   same way. Two corners out of line get a corner between them. Its label
+   is placed along it, clear of the boxes and the labels already there.
+   Curves ([0011](0011-curved-lines.md)) and `linetype ortho` hold as
+   before, but a corner of a line by hand is rounded by at most 8 units, so
+   the line turns where the writer put the corner.
+5. **What does not fit is said.** A corner inside one of the line's own
+   boxes, or more than 1000 units off the diagram, is left out; a line by
+   hand that runs through another box is drawn so, and said. The drawing
+   names each of these, and an entry whose line is gone, by the entry's line
+   (the map's `misses`); the editor lists them among the findings. Lint
    checks only how an entry is written: it does not lay the diagram out.
 6. **The writer drags with Alt.** In the diagram pane of the editor and in
    the editor's diagram window, Alt shows the line under the pointer in the
-   accent color with its bends as handles; Alt and a drag on the line puts a
-   bend there, on a handle moves it. While the drag goes on, the diagram is
-   drawn in the background with the bends as they are, on a render slot of
-   its own, and the pane shows the line as it will be laid; until the
-   first answer, straight runs through the bends. Alt and a double click on
-   a handle, or dragging it back onto the straight way, takes it out.
-   Escape stops a drag. Each drag is one undo step. A drag without Alt pans, as before;
-   Hyprland moves windows with Super, so Alt is free. Commands reset the
-   line at the caret and every line.
+   accent color with its corners as handles. Alt and a drag on a straight
+   run moves the run sideways, and the corners at its ends with it; the
+   pointer shows which way. Alt and a drag on a handle moves that corner,
+   and the runs on either side of it with it. A run that meets a box at both
+   ends gets a corner of its own when dragged, so the line slides along the
+   sides of its boxes while they reach and steps around them where they do
+   not. While the drag goes on, the pane draws the line as it will be drawn
+   (`Wire::shaped`, the same `hand::shape` the drawers use), so what the
+   writer lets go is what stays. On release only the corners the shape
+   needs are written (`Wire::simplest`). Alt and a double click gives the
+   line back to the layout. Escape stops a drag. Each drag is one undo
+   step. A drag without Alt pans, as before; Hyprland moves windows with
+   Super, so Alt is free. Commands reset the line at the caret and every
+   line.
 7. **The preview window only shows them.** `omaspec preview FILE` follows a
    file that another editor writes, so it draws lines by hand but does not
    write the file.
@@ -89,27 +92,45 @@ and neither PlantUML nor Mermaid has a way to write one down.
 ## Why
 
 Visible source over a side file: a side file is lost on a copy, a rename or
-an export, and a reviewer does not see it in a diff. Relative bends over
-absolute ones: absolute coordinates break with any edit that moves a box,
-which is most edits. A bend relative to the nearest box would follow the
-box it goes around, but jumps when another box becomes the nearest. Alt over
-a plain drag: a plain drag on the paper pans, and a line is easy to hit by
-accident in a dense diagram.
+an export, and a reviewer does not see it in a diff. Corners relative to the
+two boxes over absolute ones: absolute coordinates break with any edit that
+moves a box, which is most edits; a share of the span the two boxes take
+follows them both, and a share for each way keeps a straight run straight.
+The shape as drawn over points a router passes: see [Earlier](#earlier).
+Moving runs and corners over placing points: it is how drawing tools let a
+writer shape a line at right angles (draw.io, yEd, Visio), and every drag
+changes only what the pointer holds. Alt over a plain drag: a plain drag on
+the paper pans, and a line is easy to hit by accident in a dense diagram.
+
+## Earlier
+
+The first version kept bends instead of corners: points
+relative to the way between the middles of the two boxes, which the router
+(`graph::route::route_via`, a search over the bends passed) laid the line
+through, around every box. Checked in a real window, the result felt like
+chance: the router chose on its own where the line left and entered its
+boxes and where it turned between the bends, and a bend moved by 5 units
+could make it choose otherwise. Moving one bend sideways in steps of 5
+units on the gallery's coffee machine flipped the line's ends six times
+over 240 units, some back and forth. Making the line turn at its bends and
+showing the routed line while dragging helped, but did not end it. The
+router still serves the lines the layout lays, through `route_via` with no
+bends.
 
 ## Consequences
 
-- `omaspec_uml::hand` reads and writes the block; `omaspec_core::hand` turns
-  a drag into an edit of the source; lint checks how entries are written.
-- The router searches over (bends passed, grid point, heading)
-  (`graph::route::route_via`), so a line passes its bends in turn and never
-  doubles back at one. `graph::by_hand` lays the lines again for all three
-  drawers: state diagrams, structure diagrams (and Mermaid class diagrams),
-  and Mermaid's state diagrams and flowcharts.
+- `omaspec_uml::hand` reads and writes the block and shapes a line from
+  its corners; `omaspec_core::hand` turns a drag into an edit of the
+  source; lint checks how entries are written.
+- `graph::by_hand` draws the lines by hand for all three drawers: state
+  diagrams, structure diagrams (and Mermaid class diagrams), and Mermaid's
+  state diagrams and flowcharts. `across::link` takes a shape and only
+  labels it.
 - The diagram map names every line of the graph types by its key, with its
-  drawn points and its bends, so the pane can find the line under the
-  pointer. A play follows a line by hand, as it follows the drawn curve.
+  drawn points, its runs as laid and its two boxes, so the pane can find
+  the line under the pointer and shape it as the drawers will. A play
+  follows a line by hand, as it follows the drawn curve.
 - `convert` carries the block over, since the keys are names; `diff` and
   the behavior model ignore it; `fmt` keeps it at the end.
-- Not now: moving where a line meets its box, moving a label by hand,
-  dragging a straight run of a line sideways (as draw.io does) rather than
-  a point, signal-flow diagrams, and boxes by hand.
+- Not now: moving a label by hand, snapping a run to another line or to the
+  middle of a box, signal-flow diagrams, and boxes by hand.

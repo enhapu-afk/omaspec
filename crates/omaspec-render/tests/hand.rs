@@ -1,14 +1,15 @@
 //! A block of lines by hand (docs/adr/0016) is comments to every engine:
 //! entries for lines that are not there change no picture and no lint,
-//! and are named as not holding. An entry for a line lays it through its
-//! bend, in every drawer of graph diagrams.
+//! and are named as not holding. An entry for a line draws it in its
+//! shape, the one the pane shows while dragging, in every drawer of graph
+//! diagrams.
 
 use std::path::{Path, PathBuf};
 
 use omaspec_core::hand;
 use omaspec_core::{Language, lint};
 use omaspec_render::{Config, Renderer};
-use omaspec_uml::hand::{Key, Line, Via};
+use omaspec_uml::hand::{Corner, Key, Line};
 
 #[test]
 fn entries_for_no_line_change_no_gallery_picture() {
@@ -22,10 +23,7 @@ fn entries_for_no_line_change_no_gallery_picture() {
             to: "Nobody".into(),
             nth: 2,
         },
-        vias: vec![Via {
-            along: 0.5,
-            aside: -60.0,
-        }],
+        corners: vec![Corner { x: 0.5, y: -0.4 }],
     };
     let gallery = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/gallery");
     let mut seen = 0;
@@ -39,7 +37,7 @@ fn entries_for_no_line_change_no_gallery_picture() {
         let code = std::fs::read_to_string(&path).unwrap();
         let (range, text) = hand::edit(&code, language, &nowhere).unwrap();
         let with = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
-        assert!(with.contains("Nowhere -> Nobody #2 via 0.5 -60"), "{with}");
+        assert!(with.contains("Nowhere -> Nobody #2 at 0.5 -0.4"), "{with}");
 
         let name = path.display();
         let bare = renderer.render(&code, language).unwrap();
@@ -89,22 +87,8 @@ fn gallery() -> Vec<(PathBuf, Language)> {
     out
 }
 
-/// The distance from `p` to the nearest run of `points`.
-fn off(points: &[(f32, f32)], p: (f32, f32)) -> f32 {
-    points
-        .windows(2)
-        .map(|w| {
-            let ((ax, ay), (bx, by)) = (w[0], w[1]);
-            let (dx, dy) = (bx - ax, by - ay);
-            let t = (((p.0 - ax) * dx + (p.1 - ay) * dy) / (dx * dx + dy * dy).max(1e-6))
-                .clamp(0.0, 1.0);
-            (ax + t * dx - p.0).hypot(ay + t * dy - p.1)
-        })
-        .fold(f32::INFINITY, f32::min)
-}
-
 #[test]
-fn a_line_by_hand_runs_by_its_bend_in_every_graph_drawer() {
+fn a_line_by_hand_is_drawn_as_the_pane_shows_it_in_every_graph_drawer() {
     let mut renderer = Renderer::new(&Config {
         java_fallback: false,
         ..Config::default()
@@ -117,14 +101,21 @@ fn a_line_by_hand_runs_by_its_bend_in_every_graph_drawer() {
         let Some(wire) = bare.map.wires.first() else {
             continue;
         };
-        // Well off to the side of the way between its ends.
-        let line = Line {
-            key: wire.key.clone(),
-            vias: vec![Via {
-                along: 0.5,
-                aside: 120.0,
-            }],
+        // Around the outside of its two boxes: left of them when they lie
+        // above each other, above them when they lie side by side.
+        let (a, b) = (wire.from.rect, wire.to.rect);
+        let (ca, cb) = (
+            (a.x + a.w / 2.0, a.y + a.h / 2.0),
+            (b.x + b.w / 2.0, b.y + b.h / 2.0),
+        );
+        let corners = if (ca.1 - cb.1).abs() >= (ca.0 - cb.0).abs() {
+            let x = a.x.min(b.x) - 60.0;
+            [(x, ca.1), (x, cb.1)]
+        } else {
+            let y = a.y.min(b.y) - 60.0;
+            [(ca.0, y), (cb.0, y)]
         };
+        let line = wire.entry_for(&corners);
         let (range, text) = hand::edit(&code, language, &line).unwrap();
         let with = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
         let drawn = renderer.render(&with, language).unwrap();
@@ -136,20 +127,26 @@ fn a_line_by_hand_runs_by_its_bend_in_every_graph_drawer() {
             .find(|w| w.key == wire.key)
             .unwrap_or_else(|| panic!("{name}: {} is gone", wire.key));
         assert!(laid.entry.is_some(), "{name}");
-        if drawn.map.misses.is_empty() {
-            let bend = laid.bends(drawn.map.fit)[0];
-            // The corner at the bend curves, inside its corridor.
-            let off = off(&laid.points, bend);
-            assert!(off < 21.0, "{name}: {} is {off} off its bend", wire.key);
-            assert_ne!(drawn.svg, bare.svg, "{name}");
-            kinds.insert(format!("{language:?} {}", name.split('.').next().unwrap()));
-        } else {
-            // Named as not holding, and drawn as before.
+        assert_ne!(drawn.svg, bare.svg, "{name}");
+        // Its corners where the pane put them, in the drawing's units.
+        let back = |fit: omaspec_uml::map::Fit, points: &[(f32, f32)]| -> Vec<(f32, f32)> {
+            points.iter().map(|&p| fit.back(p)).collect()
+        };
+        let shown = wire.shaped(&corners, bare.map.fit);
+        let expected = back(bare.map.fit, &shown[1..shown.len() - 1]);
+        let got = back(drawn.map.fit, laid.corners());
+        assert_eq!(got.len(), expected.len(), "{name}: {got:?} {expected:?}");
+        for (g, e) in got.iter().zip(&expected) {
             assert!(
-                drawn.map.misses[0].1.contains(&wire.key.to_string()),
-                "{name}"
+                (g.0 - e.0).abs() < 0.5 && (g.1 - e.1).abs() < 0.5,
+                "{name}: {got:?} {expected:?}"
             );
         }
+        // Anything it runs through is said.
+        for (_, why) in &drawn.map.misses {
+            assert!(why.contains(&wire.key.to_string()), "{name}: {why}");
+        }
+        kinds.insert(format!("{language:?} {}", name.split('.').next().unwrap()));
     }
     assert!(kinds.len() >= 8, "only {kinds:?}");
 }

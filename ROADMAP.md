@@ -899,21 +899,23 @@ Lint and outline move onto the syntax tree as each type lands.
 
 What comes after 0.4, announced in the README.
 
-- [x] Lines by hand: drag a line in the diagram, or a bend in it, to route it
-      yourself; the diagram keeps the route and draws it the same way next time
-      ([0016](docs/adr/0016-lines-by-hand.md)). Built: the block of comments
-      that holds the bends (`omaspec_uml::hand`), its edits and lint
-      (`omaspec_core::hand`); the drawers of state, structure and Mermaid
-      state, class and flowchart diagrams lay a line through its bends, around
-      everything else; the map names every line and the entries that did not
-      hold. Every gallery example draws the same with an entry for no line,
-      and lays one of its own lines through a bend. In the editor's diagram,
-      Alt lights the line under the pointer with its bends as handles; Alt and
-      a drag puts a bend in or moves one, one undo step each; the palette
-      resets the line at the caret or every line; entries that did not hold
-      are among the findings; Ctrl+click on a line jumps to it. Checked in a
-      real window under Hyprland: Alt and a drag bend a line and write its
-      entry.
+- [x] Lines by hand: drag a part of a line in the diagram to shape it
+      yourself; the diagram keeps the shape and draws it the same way next
+      time ([0016](docs/adr/0016-lines-by-hand.md)). Built: the block of
+      comments that holds each line's corners (`omaspec_uml::hand`), its edits
+      and lint (`omaspec_core::hand`); the drawers of state, structure and
+      Mermaid state, class and flowchart diagrams draw a line as shaped, with
+      no router, and say when it runs through a box; the map names every line
+      with its runs and boxes. Every gallery example draws the same with an
+      entry for no line, and draws one of its own lines exactly as the pane
+      predicts. In the editor's diagram, Alt lights the line under the
+      pointer with its corners as handles; Alt and a drag moves a run sideways
+      or a corner, shown as it will be drawn, one undo step each; Alt and a
+      double click gives the line back; the palette resets the line at the
+      caret or every line; entries that did not hold are among the findings;
+      Ctrl+click on a line jumps to it. A first version routed the line
+      through bends the writer placed; checked in a real window, the router
+      chose too much on its own, so the line now keeps its shape.
 - [ ] Diagrams that link: a state links to the diagram that describes it. A
       click zooms into the state, and inside is its activity diagram; zooming
       out goes back. A specification reads from the whole system down to a

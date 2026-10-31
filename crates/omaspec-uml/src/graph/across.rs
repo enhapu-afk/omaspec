@@ -7,7 +7,8 @@
 //! that hold them as if they were joined ([`meeting`] finds them). Once
 //! everything is placed, [`link`] routes the line at right angles around
 //! the boxes, into and out of the nested states it joins, and finds a
-//! place for its label.
+//! place for its label. A line whose shape the writer gave is not routed;
+//! it only gets its label.
 
 use super::Rect;
 use super::route::{self, End, LabelRoom, Point, Surroundings};
@@ -37,9 +38,9 @@ pub struct Link {
     pub to: Vec<usize>,
     /// The label's width and height; zero for none.
     pub label: (f32, f32),
-    /// Points the line passes through in turn: its bends by hand. One in
-    /// a box the line may not cross is left out.
-    pub vias: Vec<Point>,
+    /// The line as the writer shaped it ([`crate::hand::shape`]): not
+    /// routed, only labeled.
+    pub shape: Option<Vec<Point>>,
 }
 
 /// What is drawn already, which new lines and labels keep clear of.
@@ -55,8 +56,8 @@ pub struct Drawn {
 pub struct Linked {
     pub points: Vec<Point>,
     pub label_at: Point,
-    /// How many of the link's vias lay in a box and were left out.
-    pub left_out: usize,
+    /// A line shaped by hand runs through a box it may not cross.
+    pub through: bool,
 }
 
 /// Where the paths of two ends meet: how deep the container that holds
@@ -128,21 +129,22 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
             rect: place.rect,
             flat: place.flat,
         };
-        let vias: Vec<Point> = link
-            .vias
-            .iter()
-            .copied()
-            .filter(|&v| !around.obstacles.iter().any(|&r| inside(r, v)))
-            .collect();
-        let Some(points) = route::route_via(end(from), end(to), &vias, &around) else {
-            continue;
+        let points = match &link.shape {
+            Some(shape) => shape.clone(),
+            None => match route::route(end(from), end(to), &around) {
+                Some(points) => points,
+                None => continue,
+            },
         };
+        let through = link.shape.is_some()
+            && segments(&points)
+                .any(|(a, b)| around.obstacles.iter().any(|&rect| route::cuts(rect, a, b)));
         let (w, h) = link.label;
         let label_at = if w > 0.0 && h > 0.0 {
-            // A line through bends by hand can double back past its label:
-            // its own runs count as well.
+            // A line shaped by hand can double back past its label: its
+            // own runs count as well.
             let mut near = lines.clone();
-            if !link.vias.is_empty() {
+            if link.shape.is_some() {
                 near.extend(segments(&points));
             }
             let room = LabelRoom {
@@ -172,7 +174,7 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
         out[index] = Some(Linked {
             points,
             label_at,
-            left_out: link.vias.len() - vias.len(),
+            through,
         });
     }
     out
@@ -239,11 +241,6 @@ fn segments(points: &[Point]) -> impl Iterator<Item = (Point, Point)> + '_ {
     points.windows(2).map(|w| (w[0], w[1]))
 }
 
-/// Whether `p` lies inside `rect`, not on its border.
-fn inside(rect: Rect, (x, y): Point) -> bool {
-    x > rect.x && x < rect.x + rect.w && y > rect.y && y < rect.y + rect.h
-}
-
 pub(super) fn center(rect: Rect) -> Point {
     (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0)
 }
@@ -302,6 +299,38 @@ mod tests {
     }
 
     #[test]
+    fn a_shaped_line_is_kept_as_it_is_and_said_to_run_through_a_box() {
+        let top = [
+            leaf(rect(0.0, 0.0, 60.0, 30.0)),
+            leaf(rect(120.0, 0.0, 60.0, 30.0)),
+            leaf(rect(240.0, 0.0, 60.0, 30.0)),
+        ];
+        let shape = |points: Vec<Point>| Link {
+            from: vec![0],
+            to: vec![2],
+            label: (30.0, 12.0),
+            shape: Some(points),
+        };
+        let straight = vec![(60.0, 15.0), (240.0, 15.0)];
+        let around = vec![
+            (60.0, 15.0),
+            (90.0, 15.0),
+            (90.0, 60.0),
+            (210.0, 60.0),
+            (210.0, 15.0),
+            (240.0, 15.0),
+        ];
+        let linked = link(
+            &top,
+            &[shape(straight.clone()), shape(around.clone())],
+            &Drawn::default(),
+        );
+        let (through, beside) = (linked[0].as_ref().unwrap(), linked[1].as_ref().unwrap());
+        assert_eq!((through.points.clone(), through.through), (straight, true));
+        assert_eq!((beside.points.clone(), beside.through), (around, false));
+    }
+
+    #[test]
     fn paths_meet_in_the_container_that_holds_both() {
         assert_eq!(meeting(&[0, 2], &[1]), Some((0, 0, 1)));
         assert_eq!(meeting(&[0, 2], &[0, 3]), Some((1, 2, 3)));
@@ -335,7 +364,7 @@ mod tests {
             from: vec![0],
             to: vec![1, 1],
             label: (30.0, 12.0),
-            vias: Vec::new(),
+            shape: None,
         }];
         let routed = link(&top, &links, &Drawn::default());
         let linked = routed[0].as_ref().expect("routed");
@@ -378,7 +407,7 @@ mod tests {
             from: vec![2],
             to: vec![3],
             label: (0.0, 0.0),
-            vias: Vec::new(),
+            shape: None,
         }];
         let routed = link(&top, &links, &Drawn::default());
         let points = &routed[0].as_ref().unwrap().points;
@@ -392,7 +421,7 @@ mod tests {
             from: vec![0],
             to: vec![1, 7],
             label: (0.0, 0.0),
-            vias: Vec::new(),
+            shape: None,
         }];
         assert_eq!(link(&top, &links, &Drawn::default()), vec![None]);
     }

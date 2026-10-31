@@ -98,32 +98,35 @@ colors, font) are honored too.
 
 ### Lines by hand
 
-The layout lays every line, and you can lay one yourself: hold **Alt** over the diagram,
-and the line under the pointer lights with its bends as dots. Alt and a drag on the line
-puts a bend where you grabbed it; on a dot it moves that bend. While you drag, the line
-shows the way it will be drawn: it turns at the bend and goes around the boxes. Drag a bend back onto the
-straight way between its neighbors, or Alt and double click it, and it goes. Escape stops
-a drag, and Ctrl+Z takes one back. The palette's *Lines by hand* commands reset the line
-at the caret, or every line.
+The layout lays every line, and you can shape one yourself: hold **Alt** over the
+diagram, and the line under the pointer lights with its corners as dots. Alt and a drag
+on a straight run moves that run sideways, the runs beside it stretching to follow; the
+pointer shows which way it goes. Alt and a drag on a dot moves that corner, and the runs
+on either side with it. While you drag, the line shows exactly how it will be drawn; no
+router lays it again, so what you let go is what stays. A straight line dragged sideways
+slides along the sides of its boxes while it can, and steps around them when it cannot.
+Alt and a double click gives the line back to the layout. Escape stops a drag, and Ctrl+Z
+takes one back. The palette's *Lines by hand* commands reset the line at the caret, or
+every line.
 
-The bends go into the source as comments at the end of the diagram, so they travel with
-the file, its copies and its images, and PlantUML and Mermaid read past them:
+The shape goes into the source as comments at the end of the diagram, so it travels with
+the file, its copies and its images, and PlantUML and Mermaid read past it:
 
 ```plantuml
 ' lines by hand (Omaspec)
-' Idle -> Running via 0.5 -60
-' Running -> Idle #2 via 0.3 40, 0.7 40
+' Idle -> Running at 0.5 -0.4
+' Running -> Idle #2 at 1.2 0.3, 1.2 0.8
 ```
 
-A line is named by its two ends, `#2` for the second line between the same two. `via 0.5
--60` lies half way from the middle of the box the line leaves to the middle of the one it
-enters, then 60 units to the left as it travels (to the right when positive), so a bend
-moves with its boxes when the diagram changes. A line takes up to eight bends; the layout
-lays the runs between them. A bend that lands in a box, or a line that is gone, is left
-out and shows among the findings. Lines by hand work in state, class,
-component, use case, deployment and object diagrams and in Mermaid flowcharts; the preview
-window shows them but leaves the dragging to the editor. Why it works this way:
-[ADR 0016](../adr/0016-lines-by-hand.md).
+A line is named by its two ends, `#2` for the second line between the same two. Each
+pair after `at` is a corner, as a share of the space the two boxes take together: across
+(0 at its left, 1 at its right) and down (0 at its top, 1 at its bottom), so the shape
+grows and shrinks with its boxes when the diagram changes, and its runs stay straight. A
+line takes up to 32 corners. A corner inside one of its boxes, or a line that is gone, is
+left out and shows among the findings, and so does a line that runs through a box. Lines
+by hand work in state, class, component, use case, deployment and object diagrams and in
+Mermaid flowcharts; the preview window shows them but leaves the dragging to the editor.
+Why it works this way: [ADR 0016](../adr/0016-lines-by-hand.md).
 
 ### Examples
 

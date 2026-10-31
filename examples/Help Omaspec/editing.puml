@@ -20,7 +20,7 @@ endif
 :Ctrl+Shift+I formats the diagram;
 :A click on an error in the status bar jumps to its line;
 :Ctrl+click on a label or a line in the diagram jumps there too;
-:Alt and a drag on a line in the diagram bends it your way,
-and a double click with Alt on a bend takes it out;
+:Alt and a drag on a line in the diagram moves that part of it,
+and a double click with Alt gives it back to the layout;
 stop
 @enduml

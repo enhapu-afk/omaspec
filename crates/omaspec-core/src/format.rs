@@ -297,12 +297,12 @@ mod tests {
 
     #[test]
     fn lines_by_hand_stay_at_the_end() {
-        let code = "@startuml\nstate A {\nA1 --> A2\n}\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B via 0.5 -60\n@enduml\n";
-        let want = "@startuml\nstate A {\n  A1 --> A2\n}\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B via 0.5 -60\n@enduml\n";
+        let code = "@startuml\nstate A {\nA1 --> A2\n}\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B at 0.5 -60\n@enduml\n";
+        let want = "@startuml\nstate A {\n  A1 --> A2\n}\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B at 0.5 -60\n@enduml\n";
         let formatted = format(code, Language::PlantUml);
         assert_eq!(formatted, want);
         assert_eq!(omaspec_uml::hand::lines(&formatted).len(), 1);
-        let flow = "flowchart LR\nA --> B\n\n%% lines by hand (Omaspec)\n%% A -> B via 0.5 -60\n";
+        let flow = "flowchart LR\nA --> B\n\n%% lines by hand (Omaspec)\n%% A -> B at 0.5 -60\n";
         let formatted = format(flow, Language::Mermaid);
         assert_eq!(omaspec_uml::hand::lines(&formatted).len(), 1, "{formatted}");
     }

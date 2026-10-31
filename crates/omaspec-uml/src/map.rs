@@ -1,11 +1,11 @@
 //! Where the parts of a drawn diagram are, in the units of the finished
 //! picture: the boxes of states, the routes of transitions, the arrows of
 //! messages. A viewer lights them up while a specification runs. It also
-//! names every line a writer can draw by hand ([`Wire`]), and says which
+//! names every line a writer can shape by hand ([`Wire`]), and says which
 //! entries of the block of lines by hand did not hold.
 
 use crate::graph::Rect;
-use crate::hand::{Key, Via};
+use crate::hand::{self, Corner, End, Key};
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Map {
@@ -20,7 +20,7 @@ pub struct Map {
     pub fit: Fit,
 }
 
-/// A line of a graph diagram, which the writer may draw by hand
+/// A line of a graph diagram, which the writer may shape by hand
 /// ([`crate::hand`]).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Wire {
@@ -30,30 +30,74 @@ pub struct Wire {
     pub line: Option<usize>,
     /// As drawn, from the box it leaves to the tip of its head.
     pub points: Vec<(f32, f32)>,
-    /// The middles of the boxes it leaves and enters, which its bends lie
-    /// relative to.
-    pub from: (f32, f32),
-    pub to: (f32, f32),
-    /// Its bends as its entry writes them, and the entry's zero-based
-    /// line; none when the layout drew it.
-    pub vias: Vec<Via>,
+    /// Its straight runs as laid, before their corners were rounded: from
+    /// the box it leaves to the one it enters, a point at each corner.
+    pub path: Vec<(f32, f32)>,
+    /// The boxes it leaves and enters.
+    pub from: End,
+    pub to: End,
+    /// The zero-based line of the entry that shapes it; none when the
+    /// layout laid it.
     pub entry: Option<usize>,
 }
 
 impl Wire {
-    /// Where its bends lie in the picture, which `fit` made of the drawing.
-    pub fn bends(&self, fit: Fit) -> Vec<(f32, f32)> {
-        let (from, to) = (fit.back(self.from), fit.back(self.to));
-        self.vias
-            .iter()
-            .map(|v| fit.point(v.at(from, to)))
+    /// Its corners: where its runs meet.
+    pub fn corners(&self) -> &[(f32, f32)] {
+        match self.path.len() {
+            0..=2 => &[],
+            n => &self.path[1..n - 1],
+        }
+    }
+
+    /// The line through `corners`, points of the picture that `fit` made
+    /// of the drawing, as it will be drawn ([`hand::shape`]): what a drag
+    /// shows.
+    pub fn shaped(&self, corners: &[(f32, f32)], fit: Fit) -> Vec<(f32, f32)> {
+        let back = |end: End| End {
+            rect: fit.back_rect(end.rect),
+            ..end
+        };
+        let corners: Vec<(f32, f32)> = corners.iter().map(|&p| fit.back(p)).collect();
+        hand::shape(back(self.from), back(self.to), &corners)
+            .into_iter()
+            .map(|p| fit.point(p))
             .collect()
     }
 
-    /// The bend that lies at `point` of the picture, which `fit` made of
-    /// the drawing.
-    pub fn via_at(&self, point: (f32, f32), fit: Fit) -> Via {
-        Via::of(fit.back(point), fit.back(self.from), fit.back(self.to))
+    /// The fewest of `corners` that shape the same line: one that only
+    /// lies on a straight run between two others goes, unless the line
+    /// needs it to keep where it runs.
+    pub fn simplest(&self, corners: &[(f32, f32)], fit: Fit) -> Vec<(f32, f32)> {
+        let close = |a: &[(f32, f32)], b: &[(f32, f32)]| {
+            a.len() == b.len()
+                && a.iter()
+                    .zip(b)
+                    .all(|(p, q)| (p.0 - q.0).abs() < 0.01 && (p.1 - q.1).abs() < 0.01)
+        };
+        let full = self.shaped(corners, fit);
+        let mut kept = corners.to_vec();
+        let mut i = 0;
+        while i < kept.len() {
+            let mut fewer = kept.clone();
+            fewer.remove(i);
+            if !fewer.is_empty() && close(&self.shaped(&fewer, fit), &full) {
+                kept = fewer;
+            } else {
+                i += 1;
+            }
+        }
+        kept
+    }
+
+    /// The entry for `corners`, points of the picture: each as its share
+    /// of the span of the two boxes, which `fit` leaves as it is.
+    pub fn entry_for(&self, corners: &[(f32, f32)]) -> hand::Line {
+        let span = hand::span(self.from.rect, self.to.rect);
+        hand::Line {
+            key: self.key.clone(),
+            corners: corners.iter().map(|&p| Corner::of(p, span)).collect(),
+        }
     }
 }
 
@@ -142,6 +186,17 @@ impl Fit {
             h: r.h * self.sy,
         }
     }
+
+    /// The drawing's rect that [`Fit::rect`] put at `r`.
+    pub fn back_rect(self, r: Rect) -> Rect {
+        let (x, y) = self.back((r.x, r.y));
+        Rect {
+            x,
+            y,
+            w: r.w / self.sx,
+            h: r.h / self.sy,
+        }
+    }
 }
 
 impl Map {
@@ -164,11 +219,11 @@ impl Map {
             step.bottom = fit.point((0.0, step.bottom)).1;
         }
         for wire in &mut self.wires {
-            for point in &mut wire.points {
+            for point in wire.points.iter_mut().chain(&mut wire.path) {
                 *point = fit.point(*point);
             }
-            wire.from = fit.point(wire.from);
-            wire.to = fit.point(wire.to);
+            wire.from.rect = fit.rect(wire.from.rect);
+            wire.to.rect = fit.rect(wire.to.rect);
         }
         self.fit = fit;
         self

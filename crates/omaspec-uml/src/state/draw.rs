@@ -1118,23 +1118,20 @@ mod tests {
         assert!(err.reason.contains("linetype"), "{}", err.reason);
     }
 
-    /// Whether the run of `points` passes within half a unit of `p`.
-    fn passes(points: &[(f32, f32)], p: (f32, f32)) -> bool {
-        points.windows(2).any(|w| {
-            let ((ax, ay), (bx, by)) = (w[0], w[1]);
-            let (dx, dy) = (bx - ax, by - ay);
-            let t = (((p.0 - ax) * dx + (p.1 - ay) * dy) / (dx * dx + dy * dy).max(1e-6))
-                .clamp(0.0, 1.0);
-            (ax + t * dx - p.0).hypot(ay + t * dy - p.1) < 0.5
-        })
+    const BY_HAND: &str = "@startuml\nskinparam linetype ortho\n[*] --> Idle\nIdle --> Running : start\nRunning --> Idle : stop\nRunning --> Idle : fail\nstate Busy {\n  [*] --> Work\n  Work --> [H]\n}\nIdle --> Busy\n@enduml\n";
+
+    fn wire(map: &crate::map::Map, key: &str) -> crate::map::Wire {
+        map.wires
+            .iter()
+            .find(|w| w.key.to_string() == key)
+            .unwrap_or_else(|| panic!("no line {key}"))
+            .clone()
     }
 
-    const BY_HAND: &str = "@startuml\nskinparam linetype ortho\n[*] --> Idle\nIdle --> Running : start\nRunning --> Idle : stop\nRunning --> Idle : fail\nstate Busy {\n  [*] --> Work\n  Work --> [H]\n}\nIdle --> Busy\n\n' lines by hand (Omaspec)\n' Running -> Idle via 0.5 -140\n' Running -> Idle #2 via 0 0\n' Nowhere -> Idle via 0.5 10\n' Idle -> Busy via 0.5 -100\n' Work -> Busy[H] via 0.5 5000\n@enduml\n";
-
     #[test]
-    fn a_transition_by_hand_runs_through_its_bends() {
-        let (_, map) = crate::render_mapped(BY_HAND, None).unwrap();
-        let keys: Vec<String> = map.wires.iter().map(|w| w.key.to_string()).collect();
+    fn a_line_by_hand_is_drawn_as_it_was_shaped() {
+        let (_, plain) = crate::render_mapped(BY_HAND, None).unwrap();
+        let keys: Vec<String> = plain.wires.iter().map(|w| w.key.to_string()).collect();
         for key in [
             "[*] -> Idle",
             "Idle -> Running",
@@ -1146,64 +1143,84 @@ mod tests {
         ] {
             assert!(keys.iter().any(|k| k == key), "{key} not in {keys:?}");
         }
-        let wire = |key: &str| map.wires.iter().find(|w| w.key.to_string() == key).unwrap();
-        let stop = wire("Running -> Idle");
-        assert_eq!((stop.line, stop.entry), (Some(4), Some(13)));
-        let bend = stop.bends(map.fit)[0];
-        assert!(passes(&stop.points, bend), "{bend:?} {:?}", stop.points);
-        // Its bend lies left of the way up from Running to Idle.
-        assert!(bend.0 < stop.from.0.min(stop.to.0) - 100.0, "{bend:?}");
-        // A bend inside Running's own box, a line that is not there.
+        assert!(plain.misses.is_empty() && plain.wires.iter().all(|w| w.entry.is_none()));
+        // Out to the left of both boxes, down, and back in.
+        let stop = wire(&plain, "Running -> Idle");
+        let (a, b) = (stop.from.rect, stop.to.rect);
+        let x = a.x.min(b.x) - 80.0;
+        let corners = [(x, a.y + a.h / 2.0), (x, b.y + b.h / 2.0)];
+        let shaped = stop.entry_for(&corners);
+        // A corner in its own box, a line that is not there, a corner far
+        // off.
+        let fail = wire(&plain, "Running -> Idle #2");
+        let inside = fail.entry_for(&[(fail.from.rect.x + 5.0, fail.from.rect.y + 5.0)]);
+        let busy = wire(&plain, "Idle -> Busy");
+        let far = crate::hand::Line {
+            key: busy.key.clone(),
+            corners: vec![crate::hand::Corner { x: 0.5, y: 900.0 }],
+        };
+        let source = format!(
+            "{}\n' lines by hand (Omaspec)\n' {shaped}\n' {inside}\n' Nowhere -> Idle at 0.5 0.5\n' {far}\n@enduml\n",
+            BY_HAND.trim_end_matches("@enduml\n")
+        );
+        let (_, map) = crate::render_mapped(&source, None).unwrap();
+        let drawn = wire(&map, "Running -> Idle");
+        assert_eq!((drawn.line, drawn.entry), (Some(4), Some(13)));
+        // Exactly as the shape the pane shows while dragging, in the
+        // drawing's units; the picture grew to the left for it.
+        let expected: Vec<(f32, f32)> = stop
+            .shaped(&corners, plain.fit)
+            .into_iter()
+            .map(|p| plain.fit.back(p))
+            .collect();
+        let got: Vec<(f32, f32)> = drawn.path.iter().map(|&p| map.fit.back(p)).collect();
+        assert_eq!(got.len(), 4, "{got:?}");
+        for (g, e) in got.iter().zip(&expected) {
+            assert!(
+                (g.0 - e.0).abs() < 0.5 && (g.1 - e.1).abs() < 0.5,
+                "{got:?} {expected:?}"
+            );
+        }
+        // The drawn line turns close by each corner.
+        for corner in corners {
+            let c = map.fit.point(plain.fit.back(corner));
+            let near = drawn
+                .points
+                .iter()
+                .map(|p| (p.0 - c.0).hypot(p.1 - c.1))
+                .fold(f32::INFINITY, f32::min);
+            assert!(near < 4.0, "{near} from {c:?}");
+        }
         assert_eq!(
             map.misses,
             [
                 (
                     14,
-                    "A bend of Running -> Idle #2 lies in a box and is left out".to_owned()
+                    "A corner of Running -> Idle #2 lies in a box at its end and is left out"
+                        .to_owned()
                 ),
                 (
                     15,
-                    "No line runs as Nowhere -> Idle; its bends are left out".to_owned()
+                    "No line runs as Nowhere -> Idle; its shape by hand is left out".to_owned()
                 ),
                 (
-                    17,
-                    "A bend of Work -> Busy[H] lies far off the diagram and is left out".to_owned()
+                    16,
+                    "A corner of Idle -> Busy lies far off the diagram and is left out".to_owned()
                 ),
             ]
         );
-        // Without the block, the same lines run their own ways.
-        let plain = BY_HAND.split("\n\n'").next().unwrap().to_owned() + "\n@enduml\n";
-        let (_, before) = crate::render_mapped(&plain, None).unwrap();
-        assert!(before.misses.is_empty() && before.wires.iter().all(|w| w.entry.is_none()));
-        let stop_before = before.wires.iter().find(|w| w.key == stop.key).unwrap();
-        assert_ne!(stop_before.points, stop.points);
-        // The others stay as the layout drew them, where the picture grew
-        // for the bend.
-        let start = |m: &crate::map::Map| {
-            let w = m
-                .wires
+        // The others stay as the layout drew them.
+        let start = |m: &crate::map::Map| -> Vec<(i32, i32)> {
+            wire(m, "[*] -> Idle")
+                .path
                 .iter()
-                .find(|w| w.key.to_string() == "[*] -> Idle")
-                .unwrap();
-            let to = w.to;
-            w.points
-                .iter()
-                .map(|p| ((p.0 - to.0).round(), (p.1 - to.1).round()))
-                .collect::<Vec<_>>()
+                .map(|&p| {
+                    let (x, y) = m.fit.back(p);
+                    (x.round() as i32, y.round() as i32)
+                })
+                .collect()
         };
-        assert_eq!(start(&before), start(&map));
-    }
-
-    #[test]
-    fn a_bend_moved_back_where_it_was_drawn_finds_it_again() {
-        let (_, map) = crate::render_mapped(BY_HAND, None).unwrap();
-        for wire in map.wires.iter().filter(|w| w.entry.is_some()) {
-            for (via, at) in wire.vias.iter().zip(wire.bends(map.fit)) {
-                let back = wire.via_at(at, map.fit);
-                assert!((back.along - via.along).abs() < 1e-3, "{back:?} {via:?}");
-                assert!((back.aside - via.aside).abs() < 1e-2, "{back:?} {via:?}");
-            }
-        }
+        assert_eq!(start(&plain), start(&map));
     }
 
     #[test]

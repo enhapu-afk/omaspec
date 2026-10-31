@@ -83,9 +83,6 @@ const FILE_SETTLE: Duration = Duration::from_millis(100);
 /// A theme switch replaces several files.
 const THEME_SETTLE: Duration = Duration::from_millis(200);
 const KEY_ZOOM: f32 = 1.25;
-/// Marks a render request as the preview of a line drawn by hand: it goes
-/// on a slot of its own beside the document's.
-const PREVIEW: u64 = 1 << 62;
 const PROMPT: &str = "prompt";
 const PICKER: &str = "picker";
 const REPLACE: &str = "replace";
@@ -1050,19 +1047,15 @@ impl App {
                 let step = matches!(message, paper::Message::Play(_));
                 let relight = key != compare::KEY && matches!(message, paper::Message::PlayGone);
                 let moves = paper::Paper::moves_view(&message);
-                let (task, by_hand, preview) = match self.find(key) {
+                let (task, by_hand) = match self.find(key) {
                     Some(doc) => (
                         doc.paper
                             .update(message)
                             .map(move |m| Message::Paper(key, m)),
                         doc.paper.take_by_hand(),
-                        doc.paper.take_preview(),
                     ),
-                    None => (Task::none(), None, None),
+                    None => (Task::none(), None),
                 };
-                if let Some((id, line)) = preview {
-                    self.preview_by_hand(key, id, &line);
-                }
                 if let Some(line) = by_hand {
                     return Task::batch([task, self.draw_by_hand(key, &line)]);
                 }
@@ -1342,12 +1335,6 @@ impl App {
             worker::Event::Connected(worker) => {
                 self.worker = Some(worker);
                 return self.render(self.doc().key, false);
-            }
-            worker::Event::Rendered(answer) if answer.ticket.doc & PREVIEW != 0 => {
-                let key = answer.ticket.doc & !PREVIEW;
-                if let Some(doc) = self.find(key) {
-                    doc.paper.previewed(*answer);
-                }
             }
             worker::Event::Rendered(answer) => {
                 let mut answer = *answer;
@@ -1984,38 +1971,12 @@ impl App {
         };
         doc.replace(vec![edit]);
         self.edited(key);
-        self.notice = Some(if line.vias.is_empty() {
+        self.notice = Some(if line.corners.is_empty() {
             format!("{} runs its own way again (Ctrl+Z undoes it)", line.key)
         } else {
             format!("{} drawn by hand (Ctrl+Z undoes it)", line.key)
         });
         self.render(key, false)
-    }
-
-    /// Draws document `key` in the background as if `line` were written,
-    /// for the pane to show the dragged line as it will be laid. Previews
-    /// go on a slot of their own, so they never hold up the picture.
-    fn preview_by_hand(&mut self, key: u64, id: u64, line: &omaspec_uml::hand::Line) {
-        let Some(worker) = self.worker.clone() else {
-            return;
-        };
-        let place = self.place_of(key);
-        let Some(doc) = self.find(key) else {
-            return;
-        };
-        let (text, language) = (doc.text(), doc.language);
-        let text = match omaspec_core::hand::edit(&text, doc.current_language(), line) {
-            Some((range, new)) => format!("{}{new}{}", &text[..range.start], &text[range.end..]),
-            None => text.to_string(),
-        };
-        // The lines may be read back wrong under the Omarchy colors; only
-        // the points of the line matter here.
-        let (source, _) = self.diagram_source(&text, language);
-        let ticket = worker::Ticket {
-            doc: key | PREVIEW,
-            id,
-        };
-        worker.render(ticket, source, language, place);
     }
 
     /// The line at the caret back to the way the layout gives it.
@@ -2031,7 +1992,7 @@ impl App {
                 let doc = self.doc().key;
                 let line = omaspec_uml::hand::Line {
                     key,
-                    vias: Vec::new(),
+                    corners: Vec::new(),
                 };
                 self.draw_by_hand(doc, &line)
             }

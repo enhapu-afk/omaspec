@@ -850,7 +850,7 @@ fn link_crossings(
             from: [path.as_slice(), crossing.from.as_slice()].concat(),
             to: [path.as_slice(), crossing.to.as_slice()].concat(),
             label: (blocks.label.width, blocks.label.height),
-            vias: Vec::new(),
+            shape: None,
         });
         labels.push(blocks);
     }

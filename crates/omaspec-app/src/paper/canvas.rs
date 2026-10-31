@@ -51,8 +51,8 @@ pub struct DiagramCanvas<'a> {
     pub scale: f32,
     /// Whether Alt draws lines by hand here.
     pub by_hand: bool,
-    /// A line is lit under the pointer.
-    pub lit: bool,
+    /// The pointer over a line lit to draw by hand.
+    pub hand_cursor: Option<mouse::Interaction>,
 }
 
 /// A play over the diagram, in a layer of its own: iced draws pictures
@@ -310,14 +310,12 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> mouse::Interaction {
-        if state.drag.is_some() || state.hand_drag {
+        if state.hand_drag {
+            self.hand_cursor.unwrap_or(mouse::Interaction::Grabbing)
+        } else if state.drag.is_some() {
             mouse::Interaction::Grabbing
         } else if cursor.is_over(bounds) && self.by_hand && state.modifiers.alt() {
-            if self.lit {
-                mouse::Interaction::Grab
-            } else {
-                mouse::Interaction::default()
-            }
+            self.hand_cursor.unwrap_or_default()
         } else if cursor.is_over(bounds) && self.overview.is_some() && state.modifiers.control() {
             mouse::Interaction::Pointer
         } else if cursor.is_over(bounds) && self.overview.is_some() {

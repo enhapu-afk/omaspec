@@ -143,13 +143,6 @@ pub struct Paper {
     /// The latest request when the hand's bends were sent: a picture asked
     /// for after it has them.
     hand_sent_at: u64,
-    /// The line a drag would write now, for the window to preview
-    /// ([`Paper::take_preview`]); the last one asked, so each is asked
-    /// once; and the numbers of the last preview asked and shown.
-    preview_ask: Option<omaspec_uml::hand::Line>,
-    preview_asked: Option<omaspec_uml::hand::Line>,
-    preview_next: u64,
-    preview_shown: u64,
 }
 
 impl Default for Paper {
@@ -177,10 +170,6 @@ impl Default for Paper {
             hand: None,
             by_hand_done: None,
             hand_sent_at: 0,
-            preview_ask: None,
-            preview_asked: None,
-            preview_next: 0,
-            preview_shown: 0,
         }
     }
 }
@@ -434,16 +423,6 @@ impl Paper {
                     self.by_hand_done = Some(line);
                     self.hand_sent_at = self.requested;
                 }
-                // Each new way through the bends is drawn in the background
-                // while the drag goes on.
-                match self.hand.as_ref().and_then(|h| h.dragged(&map)) {
-                    Some(line) if self.preview_asked.as_ref() != Some(&line) => {
-                        self.preview_ask = Some(line.clone());
-                        self.preview_asked = Some(line);
-                    }
-                    Some(_) => {}
-                    None => self.preview_asked = None,
-                }
                 Task::none()
             }
         }
@@ -455,49 +434,7 @@ impl Paper {
         self.by_hand_done.take()
     }
 
-    /// The line to draw in the background while a drag goes on, with the
-    /// number its answer carries; once.
-    pub fn take_preview(&mut self) -> Option<(u64, omaspec_uml::hand::Line)> {
-        let line = self.preview_ask.take()?;
-        self.preview_next += 1;
-        Some((self.preview_next, line))
-    }
-
-    /// Takes a preview's answer: the dragged line as the drawing lays it,
-    /// moved into the picture on screen. Older answers, failed ones and
-    /// ones for another line are dropped.
-    pub fn previewed(&mut self, answer: Answer) {
-        if answer.ticket.id <= self.preview_shown {
-            return;
-        }
-        self.preview_shown = answer.ticket.id;
-        let (Some(hand), Some(diagram), Ok(drawn)) =
-            (&mut self.hand, &self.diagram, &answer.result)
-        else {
-            return;
-        };
-        if hand.drag.is_none() && !hand.sent {
-            return;
-        }
-        let map = &diagram.drawn.map;
-        let Some(wire) = map.wires.get(hand.wire) else {
-            return;
-        };
-        let Some(routed) = drawn.map.wires.iter().find(|w| w.key == wire.key) else {
-            return;
-        };
-        // Boxes stay where they are; only the picture's margins may move.
-        let (there, here) = (drawn.map.fit, map.fit);
-        hand.routed = Some(
-            routed
-                .points
-                .iter()
-                .map(|&p| here.point(there.back(p)))
-                .collect(),
-        );
-    }
-
-    /// The bends just taken changed nothing in the source: no picture
+    /// The corners just taken changed nothing in the source: no picture
     /// will come for them.
     pub fn by_hand_unchanged(&mut self) {
         if let (Some(hand), Some(diagram)) = (&mut self.hand, &self.diagram) {
@@ -990,7 +927,7 @@ impl Paper {
             font,
             scale: self.scale_factor,
             by_hand: self.drawable(),
-            lit: self.hand.is_some(),
+            hand_cursor: self.hand.as_ref().map(hand::Hand::cursor),
         })
         .width(Length::Fill)
         .height(Length::Fill)
@@ -1449,9 +1386,6 @@ pub mod testing {
 
     use super::*;
 
-    /// Places in the picture, in its units.
-    pub type Points = Vec<(f32, f32)>;
-
     pub fn drawn(source: &str, language: Language) -> Drawn {
         let mut renderer = Renderer::new(&Config {
             java_fallback: false,
@@ -1601,21 +1535,24 @@ pub mod testing {
             (at, Vector::new(-(b.1 - a.1) / len, (b.0 - a.0) / len))
         }
 
-        /// The line the drag would write if let go now.
-        pub fn dragged_line(&self) -> Option<omaspec_uml::hand::Line> {
-            self.hand
-                .as_ref()?
-                .dragged(&self.diagram.as_ref()?.drawn.map)
-        }
-
-        /// The dragged line as the latest preview lays it, and where its
-        /// bends are; both in the picture's units.
-        pub fn hand_preview(&self) -> Option<(Points, Points)> {
+        /// The line the hand shapes now, in the drawing's units.
+        pub fn hand_shape(&self) -> Option<Vec<(f32, f32)>> {
             let hand = self.hand.as_ref()?;
             let map = &self.diagram.as_ref()?.drawn.map;
-            let mut wire = map.wires.get(hand.wire)?.clone();
-            wire.vias = hand.vias.clone();
-            Some((hand.routed.clone()?, wire.bends(map.fit)))
+            let wire = map.wires.get(hand.wire)?;
+            Some(
+                wire.shaped(&hand.corners, map.fit)
+                    .into_iter()
+                    .map(|p| map.fit.back(p))
+                    .collect(),
+            )
+        }
+
+        /// The runs of line `key` as laid, in the drawing's units.
+        pub fn path_of_line(&self, key: &str) -> Vec<(f32, f32)> {
+            let map = &self.diagram.as_ref().unwrap().drawn.map;
+            let wire = map.wires.iter().find(|w| w.key.to_string() == key).unwrap();
+            wire.path.iter().map(|&p| map.fit.back(p)).collect()
         }
 
         /// A raster of what the detail asks for now.

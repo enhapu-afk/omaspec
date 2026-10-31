@@ -184,7 +184,7 @@ pub(super) fn link_crossings(
             from: [path.as_slice(), &crossing.from].concat(),
             to: [path.as_slice(), &crossing.to].concat(),
             label: (label.width, label.height),
-            vias: Vec::new(),
+            shape: None,
         });
         labels.push(label);
     }
