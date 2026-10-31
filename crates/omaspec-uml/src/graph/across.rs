@@ -137,10 +137,16 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
         };
         let (w, h) = link.label;
         let label_at = if w > 0.0 && h > 0.0 {
+            // A line through bends by hand can double back past its label:
+            // its own runs count as well.
+            let mut near = lines.clone();
+            if !link.vias.is_empty() {
+                near.extend(segments(&points));
+            }
             let room = LabelRoom {
                 solids: &solids,
                 frames: &frames,
-                lines: &lines,
+                lines: &near,
                 origin,
                 on_line: false,
             };

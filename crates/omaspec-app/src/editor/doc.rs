@@ -123,7 +123,11 @@ pub struct Doc {
     /// The language set by hand; otherwise it is detected while typing.
     pub forced: Option<Language>,
     pub language: Language,
+    /// Lint's findings and the drawing's.
     pub findings: Vec<Finding>,
+    /// What the last drawing said: entries of the lines by hand that did
+    /// not hold.
+    drawn_findings: Vec<Finding>,
     /// The kind of diagram, as of the last lint; `None` before it.
     pub kind: Option<DiagramKind>,
     /// The state machines of its project, which a sequence diagram is
@@ -226,10 +230,11 @@ impl Doc {
             forced,
             language,
             findings: Vec::new(),
+            drawn_findings: Vec::new(),
             kind: None,
             specs: Arc::default(),
             outline: Vec::new(),
-            paper: Paper::default(),
+            paper: Paper::editable(),
             rendered: None,
             marks: look.marks,
             baseline: None,
@@ -466,6 +471,8 @@ impl Doc {
             self.set_language(language);
         }
         self.findings = omaspec_model::findings_with(&text, self.language, &self.specs);
+        self.findings.extend(self.drawn_findings.iter().cloned());
+        self.findings.sort_by_key(|f| f.line);
         self.kind = Some(omaspec_core::classify(&text, self.language));
         let _ = self
             .editor
@@ -586,6 +593,23 @@ impl Doc {
         self.flash_fade = None;
         self.show_marks();
         let _ = self.editor.take_dirty();
+    }
+
+    /// Puts what the last drawing said among the findings: entries of the
+    /// lines by hand that did not hold, each on its line.
+    pub fn set_drawn_findings(&mut self, found: Vec<Finding>) {
+        if found == self.drawn_findings {
+            return;
+        }
+        let old = std::mem::replace(&mut self.drawn_findings, found);
+        self.findings.retain(|f| !old.contains(f));
+        self.findings.extend(self.drawn_findings.iter().cloned());
+        self.findings.sort_by_key(|f| f.line);
+        let text = self.text();
+        let revision = self.editor.document().revision();
+        let _ = self
+            .editor
+            .set_diagnostics(revision, syntax::diagnostics(&text, &self.findings));
     }
 
     /// Error and warning counts.

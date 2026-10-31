@@ -19,6 +19,8 @@ else (leave it open)
 endif
 :Ctrl+Shift+I formats the diagram;
 :A click on an error in the status bar jumps to its line;
-:Ctrl+click on a label in the diagram jumps there too;
+:Ctrl+click on a label or a line in the diagram jumps there too;
+:Alt and a drag on a line in the diagram bends it your way,
+and a double click with Alt on a bend takes it out;
 stop
 @enduml

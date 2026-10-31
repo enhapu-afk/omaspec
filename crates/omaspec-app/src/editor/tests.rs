@@ -1320,6 +1320,111 @@ fn the_diagram_gets_its_own_window_and_comes_back() {
     assert!(app.detached.is_none());
 }
 
+const MACHINE: &str =
+    "@startuml\n[*] --> Idle\nIdle --> Running : start\nRunning --> Idle : stop\n@enduml\n";
+
+fn hand(app: &mut App, gesture: paper::Gesture) {
+    let key = app.doc().key;
+    let _ = app.update(Message::Paper(key, paper::Message::Hand(gesture)));
+}
+
+#[test]
+fn a_line_dragged_with_alt_writes_its_bend_as_one_step() {
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, MACHINE);
+    show(&mut app, MACHINE, Language::PlantUml);
+    let (at, across) = app.doc().paper.screen_of_line("Running -> Idle");
+    let to = at + across * 50.0;
+    hand(&mut app, paper::Gesture::Hover(Some(at)));
+    hand(&mut app, paper::Gesture::Press(at));
+    hand(&mut app, paper::Gesture::Move(to));
+    hand(&mut app, paper::Gesture::Release);
+    let text = app.doc().text();
+    let entry = text
+        .lines()
+        .find(|l| l.starts_with("' Running -> Idle via"))
+        .unwrap_or_else(|| panic!("{text}"));
+    assert!(text.contains("\n\n' lines by hand (Omaspec)\n"), "{text}");
+    assert!(text.ends_with("@enduml\n"), "{text}");
+    assert!(app.notice.as_ref().unwrap().contains("drawn by hand"));
+    // Half way along, 50 pixels aside at this zoom.
+    let lines = omaspec_uml::hand::lines(&text);
+    assert!(lines[0].vias[0].aside.abs() > 10.0, "{entry}");
+    // One step back takes it out again.
+    act(&mut app, Action::Undo);
+    assert_eq!(app.doc().text(), MACHINE);
+}
+
+#[test]
+fn a_line_drawn_by_hand_resets_from_the_palette() {
+    let mut app = open(&[]);
+    let text = format!(
+        "{}\n' lines by hand (Omaspec)\n' Running -> Idle via 0.5 -60\n' Idle -> Running via 0.5 60\n@enduml\n",
+        MACHINE.trim_end_matches("@enduml\n")
+    );
+    select_all_and_paste(&mut app, &text);
+    show(&mut app, &text, Language::PlantUml);
+    // The caret on the stop line.
+    app.doc_mut().place_caret(3, 0);
+    press(&mut app, Command::ResetLine);
+    let now = app.doc().text();
+    assert!(
+        !now.contains("Running -> Idle via") && now.contains("Idle -> Running via"),
+        "{now}"
+    );
+    show(&mut app, &now, Language::PlantUml);
+    press(&mut app, Command::ResetLines);
+    assert_eq!(app.doc().text(), MACHINE);
+    press(&mut app, Command::ResetLines);
+    assert!(
+        app.notice
+            .as_ref()
+            .unwrap()
+            .contains("no line is drawn by hand")
+    );
+}
+
+#[test]
+fn a_bend_that_does_not_hold_is_among_the_findings() {
+    let mut app = open(&[]);
+    let text = format!(
+        "{}\n' lines by hand (Omaspec)\n' Nowhere -> Idle via 0.5 -60\n@enduml\n",
+        MACHINE.trim_end_matches("@enduml\n")
+    );
+    select_all_and_paste(&mut app, &text);
+    let key = app.doc().key;
+    due(&mut app, Alarm::Lint(key));
+    assert!(app.doc().findings.is_empty(), "{:?}", app.doc().findings);
+    let id = app.doc_mut().paper.pretend_next();
+    let mut reply = answer(key, id, Ok(drawn(&text, Language::PlantUml)));
+    reply.source = text.as_str().into();
+    let _ = app.update(Message::Worker(worker::Event::Rendered(Box::new(reply))));
+    let found = &app.doc().findings;
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].line, 6);
+    assert!(found[0].message.contains("Nowhere -> Idle"));
+    // Lint again keeps what the drawing said.
+    due(&mut app, Alarm::Lint(key));
+    assert_eq!(app.doc().findings.len(), 1);
+}
+
+#[test]
+fn the_preview_window_draws_no_line_by_hand() {
+    let mut paper = paper::Paper::default();
+    let _ = paper.update(paper::Message::Viewport(Size::new(600.0, 560.0)));
+    let id = paper.pretend_next();
+    let _ = paper.rendered(answer(1, id, Ok(drawn(MACHINE, Language::PlantUml))));
+    let (at, across) = paper.screen_of_line("Running -> Idle");
+    for gesture in [
+        paper::Gesture::Press(at),
+        paper::Gesture::Move(at + across * 50.0),
+        paper::Gesture::Release,
+    ] {
+        let _ = paper.update(paper::Message::Hand(gesture));
+    }
+    assert!(paper.take_by_hand().is_none());
+}
+
 #[test]
 fn skin_packs_go_in_and_out_as_one_step() {
     let mut app = open(&[]);
@@ -1593,6 +1698,31 @@ fn a_sequence_is_checked_against_the_state_machines_of_its_folder() {
         found[0].1.contains("Door does not take lock here"),
         "{found:?}"
     );
+}
+
+/// Writes headless screenshots of a line drawn by hand when
+/// OMASPEC_SNAPSHOT_DIR is set: lit with Alt, its bend as a handle, and a
+/// new bend dragged out of another line.
+#[test]
+fn snapshot_by_hand() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("by-hand");
+    let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Opening : open [unlocked]\nClosed --> Locked : lock\nLocked --> Closed : unlock\nOpening --> Open : end position\nOpen --> Closing : close\nClosing --> Closed : end position\nClosing --> Opening : obstacle\n\n' lines by hand (Omaspec)\n' Closing -> Closed via 0.5 -150\n@enduml\n";
+    let file = work.join("door.puml");
+    std::fs::write(&file, door).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, door, Language::PlantUml);
+    let (at, _) = app.doc().paper.screen_of_line("Closing -> Closed");
+    hand(&mut app, paper::Gesture::Hover(Some(at)));
+    shoot(&mut app, &dir, "hand-lit");
+    let (at, across) = app.doc().paper.screen_of_line("Closed -> Locked");
+    hand(&mut app, paper::Gesture::Hover(Some(at)));
+    hand(&mut app, paper::Gesture::Press(at));
+    hand(&mut app, paper::Gesture::Move(at + across * 70.0));
+    shoot(&mut app, &dir, "hand-drag");
 }
 
 /// Writes headless screenshots of a play when OMASPEC_SNAPSHOT_DIR

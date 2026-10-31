@@ -370,6 +370,10 @@ pub enum Command {
     Detach,
     /// Puts a skin pack into the source, or takes it out.
     Skin(Option<Pack>),
+    /// Takes the bends of the line at the caret out of the source.
+    ResetLine,
+    /// Takes every line by hand out of the source.
+    ResetLines,
     /// Colors the diagram with the active Omarchy theme, without writing
     /// that into the file. Again uses the colors the file already has.
     FollowTheme,
@@ -443,6 +447,12 @@ const PALETTE: &[(&str, &str, Command)] = &[
         Command::Skin(Some(Pack::Omarchy)),
     ),
     ("Skin: remove", "", Command::Skin(None)),
+    (
+        "Lines by hand: reset the line at the caret",
+        "",
+        Command::ResetLine,
+    ),
+    ("Lines by hand: reset every line", "", Command::ResetLines),
     ("Diagram theme: follow Omarchy", "", Command::FollowTheme),
     ("Collapse the block", "Ctrl+Shift+[", Command::Collapse),
     ("Expand the block", "Ctrl+Shift+]", Command::Expand),
@@ -1037,13 +1047,18 @@ impl App {
                 let step = matches!(message, paper::Message::Play(_));
                 let relight = key != compare::KEY && matches!(message, paper::Message::PlayGone);
                 let moves = paper::Paper::moves_view(&message);
-                let task = match self.find(key) {
-                    Some(doc) => doc
-                        .paper
-                        .update(message)
-                        .map(move |m| Message::Paper(key, m)),
-                    None => Task::none(),
+                let (task, by_hand) = match self.find(key) {
+                    Some(doc) => (
+                        doc.paper
+                            .update(message)
+                            .map(move |m| Message::Paper(key, m)),
+                        doc.paper.take_by_hand(),
+                    ),
+                    None => (Task::none(), None),
                 };
+                if let Some(line) = by_hand {
+                    return Task::batch([task, self.draw_by_hand(key, &line)]);
+                }
                 let follow = match &mut self.compare {
                     Some(c) if moves && c.sync && c.a == key => {
                         let view = self
@@ -1334,6 +1349,22 @@ impl App {
                     }
                 } else if self.find(key).is_some() {
                     let drawn = answer.result.is_ok();
+                    // What the drawing says about the lines by hand.
+                    let said: Option<Vec<omaspec_core::lint::Finding>> =
+                        answer.result.as_ref().ok().map(|d| {
+                            d.map
+                                .misses
+                                .iter()
+                                .map(|(line, why)| omaspec_core::lint::Finding {
+                                    line: *line,
+                                    severity: omaspec_core::lint::Severity::Warning,
+                                    message: why.clone(),
+                                })
+                                .collect()
+                        });
+                    if let (Some(said), Some(doc)) = (said, self.find(key)) {
+                        doc.set_drawn_findings(said);
+                    }
                     let task = self
                         .find(key)
                         .expect("the document")
@@ -1662,6 +1693,8 @@ impl App {
             }
             Command::Focus(direction) => self.move_focus(direction),
             Command::Skin(pack) => self.skin(pack),
+            Command::ResetLine => self.reset_line(),
+            Command::ResetLines => self.reset_lines(),
             Command::StartFrom(language) => {
                 if !self.doc().text().trim().is_empty() {
                     return Task::none();
@@ -1801,6 +1834,11 @@ impl App {
         if key != self.doc().key {
             return Task::none();
         }
+        // Right on a line: the line that draws it.
+        if let Some(line) = self.doc().paper.wire_at(at).and_then(|w| w.line) {
+            self.notice = None;
+            return self.jump_to(line);
+        }
         let Some((label, source)) = self.doc().paper.label_at(at) else {
             self.notice = Some("no label there to find in the source".into());
             return Task::none();
@@ -1912,6 +1950,67 @@ impl App {
             Some(p) => format!("skin: {} (Ctrl+Z undoes it)", p.name()),
             None => "skin removed".into(),
         });
+        self.render(key, false)
+    }
+
+    /// Writes the bends of a line drawn by hand in the diagram into the
+    /// source, as one undo step (docs/adr/0016).
+    fn draw_by_hand(&mut self, key: u64, line: &omaspec_uml::hand::Line) -> Task<Message> {
+        let Some(doc) = self.find(key) else {
+            return Task::none();
+        };
+        let language = doc.current_language();
+        let Some(edit) = omaspec_core::hand::edit(&doc.text(), language, line) else {
+            return Task::none();
+        };
+        doc.replace(vec![edit]);
+        self.edited(key);
+        self.notice = Some(if line.vias.is_empty() {
+            format!("{} runs its own way again (Ctrl+Z undoes it)", line.key)
+        } else {
+            format!("{} drawn by hand (Ctrl+Z undoes it)", line.key)
+        });
+        self.render(key, false)
+    }
+
+    /// The line at the caret back to the way the layout gives it.
+    fn reset_line(&mut self) -> Task<Message> {
+        let row = self.doc().editor.cursor().row as usize;
+        let found = self
+            .doc()
+            .paper
+            .wire_on(row)
+            .map(|w| (w.key.clone(), w.entry));
+        match found {
+            Some((key, Some(_))) => {
+                let doc = self.doc().key;
+                let line = omaspec_uml::hand::Line {
+                    key,
+                    vias: Vec::new(),
+                };
+                self.draw_by_hand(doc, &line)
+            }
+            Some((key, None)) => {
+                self.notice = Some(format!("{key} runs its own way already"));
+                Task::none()
+            }
+            None => {
+                self.notice = Some("no line of the diagram at the caret".into());
+                Task::none()
+            }
+        }
+    }
+
+    /// Every line back to the way the layout gives it.
+    fn reset_lines(&mut self) -> Task<Message> {
+        let key = self.doc().key;
+        let Some(edit) = omaspec_core::hand::clear(&self.doc().text()) else {
+            self.notice = Some("no line is drawn by hand".into());
+            return Task::none();
+        };
+        self.doc_mut().replace(vec![edit]);
+        self.edited(key);
+        self.notice = Some("every line runs its own way again (Ctrl+Z undoes it)".into());
         self.render(key, false)
     }
 
@@ -2035,7 +2134,14 @@ fn remap_map(map: &Map, shift: LineShift) -> Map {
         .iter_mut()
         .map(|spot| &mut spot.line)
         .chain(map.transitions.iter_mut().map(|route| &mut route.line))
-        .chain(map.messages.iter_mut().map(|step| &mut step.line));
+        .chain(map.messages.iter_mut().map(|step| &mut step.line))
+        .chain(map.misses.iter_mut().map(|(line, _)| line))
+        .chain(
+            map.wires
+                .iter_mut()
+                .flat_map(|wire| [wire.line.as_mut(), wire.entry.as_mut()])
+                .flatten(),
+        );
     for line in lines {
         if let Some(file) = shift.file_line(*line) {
             *line = file;

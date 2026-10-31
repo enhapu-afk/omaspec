@@ -5,9 +5,11 @@
 //! The last good picture stays while a newer source fails to render. A
 //! new picture fades in over the one before. A state machine or a scenario
 //! can be played in it ([`play`]). The name under the caret lights on the
-//! sheet, in the theme accent, and glides there the way a zoom does.
+//! sheet, in the theme accent, and glides there the way a zoom does. With
+//! Alt, a line can be drawn by hand ([`hand`]).
 
 mod canvas;
+mod hand;
 mod play;
 mod raster;
 mod view;
@@ -32,6 +34,7 @@ use omaspec_theme::{Palette, Rgb};
 
 use crate::ui;
 use crate::worker::{Answer, Drawn, Ticket, Worker, blocking};
+pub use hand::Gesture;
 pub use play::{Ask, Offer, Play};
 use raster::{Layer, Plan, Raster};
 pub use view::{Glide, View};
@@ -71,6 +74,9 @@ pub enum Message {
     StopPlay,
     /// The play has faded away.
     PlayGone,
+    /// What the pointer does with Alt: a line drawn by hand. Its new bends
+    /// wait for the window in [`Paper::take_by_hand`].
+    Hand(Gesture),
 }
 
 /// The pictures of the diagram before, fading out under the new one.
@@ -127,6 +133,13 @@ pub struct Paper {
     /// The last caret lookup. A highlight sweep that does not move the
     /// caret must not search the sheet again.
     aim: Option<AimMemo>,
+    /// Whether lines can be drawn by hand here: in the editor, not in the
+    /// preview window, which follows a file another editor writes.
+    pub by_hand: bool,
+    /// The line drawn by hand, or lit with Alt.
+    hand: Option<hand::Hand>,
+    /// A line drawn by hand, with the bends to write into the source.
+    by_hand_done: Option<omaspec_uml::hand::Line>,
 }
 
 impl Default for Paper {
@@ -150,6 +163,9 @@ impl Default for Paper {
             clock: None,
             breath: None,
             aim: None,
+            by_hand: false,
+            hand: None,
+            by_hand_done: None,
         }
     }
 }
@@ -246,6 +262,8 @@ impl Paper {
         let latest = id == self.requested;
         match answer.result {
             Ok(drawn) => {
+                // The lines are drawn anew; the pointer finds them again.
+                self.hand = None;
                 // A changed diagram ends its play; the same one drawn again
                 // (in a new theme or font) keeps it, in the new places.
                 if let Some(play) = &mut self.play {
@@ -365,7 +383,74 @@ impl Paper {
                 self.leaving = None;
                 Task::none()
             }
+            Message::Hand(gesture) => {
+                let Some(diagram) = self.diagram.as_ref().filter(|_| self.drawable()) else {
+                    self.hand = None;
+                    return Task::none();
+                };
+                let map = Arc::clone(&diagram.drawn.map);
+                let (view, viewport) = (self.view, self.viewport);
+                let to_diagram = |at: Point| {
+                    let p = view.to_diagram(at, viewport);
+                    (p.x, p.y)
+                };
+                if let Some(line) = hand::Hand::gesture(
+                    &mut self.hand,
+                    gesture,
+                    &map,
+                    to_diagram,
+                    hand::reach(view.zoom),
+                ) {
+                    self.by_hand_done = Some(line);
+                }
+                Task::none()
+            }
         }
+    }
+
+    /// The line just drawn by hand, with the bends to write into the
+    /// source; once.
+    pub fn take_by_hand(&mut self) -> Option<omaspec_uml::hand::Line> {
+        self.by_hand_done.take()
+    }
+
+    /// The line drawn at `at`, a point of the pane, if one runs there.
+    pub fn wire_at(&self, at: Point) -> Option<&omaspec_uml::map::Wire> {
+        let map = &self.diagram.as_ref()?.drawn.map;
+        let p = self.view.to_diagram(at, self.viewport);
+        let index = hand::wire_at(map, (p.x, p.y), hand::reach(self.view.zoom))?;
+        map.wires.get(index)
+    }
+
+    /// The line that `row` of the source draws, or whose bends it writes.
+    pub fn wire_on(&self, row: usize) -> Option<&omaspec_uml::map::Wire> {
+        let map = &self.diagram.as_ref()?.drawn.map;
+        map.wires
+            .iter()
+            .find(|w| w.line == Some(row) || w.entry == Some(row))
+    }
+
+    /// A pane where lines can be drawn by hand: the editor's.
+    pub fn editable() -> Self {
+        Self {
+            by_hand: true,
+            ..Self::default()
+        }
+    }
+
+    /// Whether a line can be drawn by hand now: here, with a picture of
+    /// lines, and no play over it.
+    fn drawable(&self) -> bool {
+        self.by_hand
+            && self.play.is_none()
+            && matches!(
+                self.status,
+                Status::InSync | Status::Rendering | Status::Waiting
+            )
+            && self
+                .diagram
+                .as_ref()
+                .is_some_and(|d| !d.drawn.map.wires.is_empty())
     }
 
     /// Plays the diagram on screen: its state machine, or its scenario.
@@ -813,10 +898,28 @@ impl Paper {
             text: ui::color(p.dark_foreground),
             font,
             scale: self.scale_factor,
+            by_hand: self.drawable(),
+            lit: self.hand.is_some(),
         })
         .width(Length::Fill)
         .height(Length::Fill)
         .into();
+        let hand = match (&self.hand, &self.diagram) {
+            (Some(hand), Some(diagram)) if self.overview.shown.is_some() => Some(
+                Canvas::new(hand::HandLayer {
+                    hand,
+                    map: &diagram.drawn.map,
+                    view: self.view,
+                    glide: self.glide,
+                    accent: ui::color(p.accent),
+                    paper: ui::color(p.background),
+                })
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into(),
+            ),
+            _ => None,
+        };
         // Its own layer: in the picture's layer the raster would cover it.
         let light = self.breath.map(|breath| {
             Canvas::new(canvas::BreathLight {
@@ -849,7 +952,8 @@ impl Paper {
         let (Some(play), Some(diagram), Some(overview)) =
             (&self.play, &self.diagram, self.overview.shown.as_ref())
         else {
-            return Stack::with_children([Some(canvas), light, edge].into_iter().flatten()).into();
+            return Stack::with_children([Some(canvas), light, hand, edge].into_iter().flatten())
+                .into();
         };
         let layer = |over: bool| -> Element<'_, Message> {
             Canvas::new(canvas::PlayCanvas {
@@ -1373,6 +1477,34 @@ pub mod testing {
                 .view
                 .on_screen(iced::Rectangle::new(middle, Size::ZERO), pane);
             on_screen.position()
+        }
+
+        /// Where the line `key` draws runs, half way along its longest run,
+        /// in the pane; and the way down the pane, across that run.
+        pub fn screen_of_line(&self, key: &str) -> (Point, Vector) {
+            let map = &self.diagram.as_ref().unwrap().drawn.map;
+            let wire = map
+                .wires
+                .iter()
+                .find(|w| w.key.to_string() == key)
+                .unwrap_or_else(|| panic!("no line {key}"));
+            let (a, b) = wire
+                .points
+                .windows(2)
+                .map(|w| (w[0], w[1]))
+                .max_by(|x, y| {
+                    let len = |(a, b): ((f32, f32), (f32, f32))| (b.0 - a.0).hypot(b.1 - a.1);
+                    len(*x).total_cmp(&len(*y))
+                })
+                .unwrap();
+            let middle = Point::new((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0);
+            let pane = iced::Rectangle::with_size(self.viewport);
+            let at = self
+                .view
+                .on_screen(iced::Rectangle::new(middle, Size::ZERO), pane)
+                .position();
+            let len = (b.0 - a.0).hypot(b.1 - a.1).max(1e-3);
+            (at, Vector::new(-(b.1 - a.1) / len, (b.0 - a.0) / len))
         }
 
         /// A raster of what the detail asks for now.

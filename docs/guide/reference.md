@@ -60,7 +60,7 @@ moves between them, and an accent border shows which one has the keys.
 
 Lint findings are underlined while you type (F8 jumps to the next); the diagram is drawn
 again after a short pause. A click on a render error in the status bar jumps to its line;
-so does Ctrl+click on a label, box or diamond in the diagram. Lines changed since the last
+so does Ctrl+click on a label, box, diamond or line in the diagram. Lines changed since the last
 save are marked beside the line numbers. The language is detected from the text and the
 file name unless `--lang` (or the palette) sets it.
 
@@ -95,6 +95,33 @@ it. The Omarchy pack writes the active theme's colors in.
 **Diagram theme: follow Omarchy** colors the picture with the active theme without
 changing the file, and follows a theme switch. Mermaid's own `%%{init}%%` lines (theme,
 colors, font) are honored too.
+
+### Lines by hand
+
+The layout lays every line, and you can lay one yourself: hold **Alt** over the diagram,
+and the line under the pointer lights with its bends as dots. Alt and a drag on the line
+puts a bend where you grabbed it; on a dot it moves that bend. Drag a bend back onto the
+straight way between its neighbors, or Alt and double click it, and it goes. Escape stops
+a drag, and Ctrl+Z takes one back. The palette's *Lines by hand* commands reset the line
+at the caret, or every line.
+
+The bends go into the source as comments at the end of the diagram, so they travel with
+the file, its copies and its images, and PlantUML and Mermaid read past them:
+
+```plantuml
+' lines by hand (Omaspec)
+' Idle -> Running via 0.5 -60
+' Running -> Idle #2 via 0.3 40, 0.7 40
+```
+
+A line is named by its two ends, `#2` for the second line between the same two. `via 0.5
+-60` lies half way from the middle of the box the line leaves to the middle of the one it
+enters, then 60 units to the left as it travels (to the right when positive), so a bend
+moves with its boxes when the diagram changes. A bend that lands in a box, or a line that
+is gone, is left out and shows among the findings. Lines by hand work in state, class,
+component, use case, deployment and object diagrams and in Mermaid flowcharts; the preview
+window shows them but leaves the dragging to the editor. Why it works this way:
+[ADR 0016](../adr/0016-lines-by-hand.md).
 
 ### Examples
 
@@ -149,7 +176,8 @@ the status bar while the last good picture stays.
 
 The mouse wheel zooms at the pointer, two-finger scroll and dragging pan, Ctrl +
 two-finger scroll zooms, a double click fits, and Ctrl+click names the source line of
-what is drawn there.
+what is drawn there. Lines by hand are drawn here as the file has them; dragging them is
+the editor's.
 
 ## Specifications
 

@@ -5,7 +5,9 @@
 //! scale change. Two-finger scroll: pan; with Ctrl: zoom. Drag, and one
 //! finger on a touchscreen: pan. Two fingers: pinch, zooming at their
 //! midpoint. Double click: fit. Ctrl+click: what is drawn there (the window
-//! jumps to its source).
+//! jumps to its source). With Alt, a line is drawn by hand ([`super::hand`]):
+//! the pointer, a drag and a double click go to it, and Escape stops a
+//! drag.
 
 use std::time::{Duration, Instant};
 
@@ -17,6 +19,7 @@ use iced::widget::image;
 use iced::window;
 use iced::{Color, Font, Point, Rectangle, Renderer, Size, Theme, Vector, alignment, border};
 
+use super::hand::Gesture;
 use super::play::{self, Look, Play, Viewer};
 use super::raster::Raster;
 use super::view::{Glide, View};
@@ -46,6 +49,10 @@ pub struct DiagramCanvas<'a> {
     pub font: Font,
     /// The window's scale.
     pub scale: f32,
+    /// Whether Alt draws lines by hand here.
+    pub by_hand: bool,
+    /// A line is lit under the pointer.
+    pub lit: bool,
 }
 
 /// A play over the diagram, in a layer of its own: iced draws pictures
@@ -148,6 +155,10 @@ pub struct State {
     fingers: Vec<(u64, Point)>,
     /// Midpoint and span of the current two-finger pinch.
     pinch: Option<(Point, f32)>,
+    /// A line is being drawn by hand: the pointer goes to it, not to a pan.
+    hand_drag: bool,
+    /// The pointer with Alt was last told to the pane.
+    hand_told: bool,
 }
 
 impl canvas::Program<Message> for DiagramCanvas<'_> {
@@ -183,6 +194,9 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
             } else {
                 Action::publish(Message::Faded)
             });
+        }
+        if let Some(action) = self.by_hand(state, event, bounds, cursor) {
+            return Some(action);
         }
         match event {
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
@@ -293,8 +307,14 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> mouse::Interaction {
-        if state.drag.is_some() {
+        if state.drag.is_some() || state.hand_drag {
             mouse::Interaction::Grabbing
+        } else if cursor.is_over(bounds) && self.by_hand && state.modifiers.alt() {
+            if self.lit {
+                mouse::Interaction::Grab
+            } else {
+                mouse::Interaction::default()
+            }
         } else if cursor.is_over(bounds) && self.overview.is_some() && state.modifiers.control() {
             mouse::Interaction::Pointer
         } else if cursor.is_over(bounds) && self.overview.is_some() {
@@ -615,6 +635,90 @@ fn halo_rect(paper: Rectangle, step: u8, drop: f32, scale: f32) -> Option<Rectan
         paper.position() + Vector::new(-grow, drop - grow),
         paper.size() + Size::new(grow * 2.0, grow * 2.0),
     ))
+}
+
+impl DiagramCanvas<'_> {
+    /// The pointer with Alt, a drag that began with it, and Escape during
+    /// one: to the line drawn by hand. `None` leaves the event to the pan
+    /// and the zoom.
+    fn by_hand(
+        &self,
+        state: &mut State,
+        event: &Event,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> Option<Action<Message>> {
+        let tell = |gesture| Action::publish(Message::Hand(gesture));
+        match event {
+            Event::Mouse(mouse::Event::CursorMoved { .. }) if state.hand_drag => {
+                let at = cursor.position_from(bounds.position())?;
+                Some(tell(Gesture::Move(at)).and_capture())
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(Button::Left)) if state.hand_drag => {
+                state.hand_drag = false;
+                Some(tell(Gesture::Release).and_capture())
+            }
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key: keyboard::Key::Named(keyboard::key::Named::Escape),
+                ..
+            }) if state.hand_drag => {
+                state.hand_drag = false;
+                Some(tell(Gesture::Cancel).and_capture())
+            }
+            Event::Mouse(mouse::Event::ButtonPressed(Button::Left))
+                if self.by_hand && state.modifiers.alt() && !state.modifiers.control() =>
+            {
+                let at = cursor.position_in(bounds)?;
+                let now = Instant::now();
+                let double = state
+                    .last_click
+                    .is_some_and(|t| now.duration_since(t) < DOUBLE_CLICK);
+                if double {
+                    state.last_click = None;
+                    return Some(tell(Gesture::Double(at)).and_capture());
+                }
+                state.last_click = Some(now);
+                state.hand_drag = true;
+                Some(tell(Gesture::Press(at)).and_capture())
+            }
+            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+                state.modifiers = *modifiers;
+                self.hover(state, bounds, cursor)
+                    .map(|a| a.and_capture())
+                    .or(Some(Action::request_redraw()))
+            }
+            // Without a pan going on, the pointer has nothing else to do.
+            Event::Mouse(mouse::Event::CursorMoved { .. } | mouse::Event::CursorLeft)
+                if state.drag.is_none() =>
+            {
+                self.hover(state, bounds, cursor)
+            }
+            _ => None,
+        }
+    }
+
+    /// Tells the pane where the pointer is while Alt is held, and once that
+    /// it is not; `None` when there is nothing new to tell.
+    fn hover(
+        &self,
+        state: &mut State,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> Option<Action<Message>> {
+        let at = cursor
+            .position_in(bounds)
+            .filter(|_| self.by_hand && state.modifiers.alt());
+        match at {
+            Some(at) => {
+                state.hand_told = true;
+                Some(Action::publish(Message::Hand(Gesture::Hover(Some(at)))))
+            }
+            None if std::mem::take(&mut state.hand_told) => {
+                Some(Action::publish(Message::Hand(Gesture::Hover(None))))
+            }
+            None => None,
+        }
+    }
 }
 
 fn touch(state: &mut State, event: &touch::Event, bounds: Rectangle) -> Option<Action<Message>> {

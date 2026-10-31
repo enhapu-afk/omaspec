@@ -907,8 +907,12 @@ What comes after 0.4, announced in the README.
       state, class and flowchart diagrams lay a line through its bends, around
       everything else; the map names every line and the entries that did not
       hold. Every gallery example draws the same with an entry for no line,
-      and lays one of its own lines through a bend. Next: Alt and a drag in
-      the diagram pane, and the entries that did not hold among the findings.
+      and lays one of its own lines through a bend. In the editor's diagram,
+      Alt lights the line under the pointer with its bends as handles; Alt and
+      a drag puts a bend in or moves one, one undo step each; the palette
+      resets the line at the caret or every line; entries that did not hold
+      are among the findings; Ctrl+click on a line jumps to it. Waiting for the
+      check in a real window.
 - [ ] Diagrams that link: a state links to the diagram that describes it. A
       click zooms into the state, and inside is its activity diagram; zooming
       out goes back. A specification reads from the whole system down to a
