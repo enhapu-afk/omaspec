@@ -21,7 +21,7 @@
 use std::collections::HashMap;
 
 use omaspec_core::Language;
-use omaspec_core::lang::strip_mermaid_fence;
+use omaspec_core::lang::mermaid_body;
 use omaspec_core::lint::{Finding, Severity};
 use omaspec_uml::Diagram;
 use omaspec_uml::sequence::{self, End, GroupKind, Item, Mark, Message};
@@ -120,10 +120,7 @@ pub(crate) fn read_sequence(code: &str, lang: Language) -> Option<(sequence::Dia
             _ => None,
         },
         Language::Mermaid => {
-            let body = strip_mermaid_fence(code);
-            let offset = code
-                .get(..(body.as_ptr() as usize).saturating_sub(code.as_ptr() as usize))
-                .map_or(0, |before| before.matches('\n').count());
+            let (body, offset) = mermaid_body(code);
             sequence::from_mermaid(body).map(|d| (d, offset))
         }
     }

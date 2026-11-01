@@ -346,25 +346,13 @@ impl Tools {
             .and_then(|path| place_in(path, project));
         // A map shows the diagrams of its project in tiles (docs/adr/0018),
         // read no further than its includes are.
-        let drawn = match place
-            .as_ref()
-            .filter(|_| omaspec_render::is_map(&input.text, lang))
-        {
-            Some(place) => {
-                let atlas = crate::specs::read_project(&place.root).1;
-                let own = input
-                    .path
-                    .as_deref()
-                    .and_then(|p| std::path::absolute(p).ok())
-                    .and_then(|p| {
-                        p.strip_prefix(&place.root)
-                            .ok()
-                            .map(crate::specs::file_name)
-                    });
-                renderer.render_linked(&input.text, lang, Some(place), own.as_deref(), &atlas)
-            }
-            None => renderer.render_at(&input.text, lang, place.as_ref()),
-        };
+        let drawn = crate::specs::Maps::default().render(
+            renderer,
+            &input.text,
+            lang,
+            input.path.as_deref(),
+            place.as_ref(),
+        );
         let rendered = match drawn {
             Ok(rendered) => rendered,
             Err(err) => {

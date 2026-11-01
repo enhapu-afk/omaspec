@@ -1,6 +1,5 @@
 //! The CLI subcommands.
 
-use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -606,34 +605,20 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     let mut failed = false;
     let mut reports = Vec::new();
     // A map shows its project's diagrams in tiles (docs/adr/0018).
-    let mut atlases: HashMap<PathBuf, omaspec_render::Atlas> = HashMap::new();
+    let mut maps = crate::specs::Maps::default();
     for input in &inputs {
         let lang = language(input, args.lang);
         let place = input
             .path
             .as_deref()
             .and_then(|path| omaspec_render::Place::of(path, None));
-        let map = place
-            .as_ref()
-            .filter(|_| omaspec_render::is_map(&input.text, lang));
-        let drawn = match map {
-            Some(place) => {
-                let atlas = atlases
-                    .entry(place.root.clone())
-                    .or_insert_with(|| crate::specs::read_project(&place.root).1);
-                let own = input
-                    .path
-                    .as_deref()
-                    .and_then(|p| std::path::absolute(p).ok())
-                    .and_then(|p| {
-                        p.strip_prefix(&place.root)
-                            .ok()
-                            .map(crate::specs::file_name)
-                    });
-                renderer.render_linked(&input.text, lang, Some(place), own.as_deref(), atlas)
-            }
-            None => renderer.render_at(&input.text, lang, place.as_ref()),
-        };
+        let drawn = maps.render(
+            &mut renderer,
+            &input.text,
+            lang,
+            input.path.as_deref(),
+            place.as_ref(),
+        );
         let rendered = match drawn {
             Ok(r) => r,
             Err(err) => {

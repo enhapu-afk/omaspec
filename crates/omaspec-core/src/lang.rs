@@ -147,10 +147,19 @@ fn scan(sig40: &[&str], sig80: &[&str]) -> Option<Language> {
 
 /// The inside of a ```` ```mermaid ```` fence, or the code unchanged.
 pub fn strip_mermaid_fence(code: &str) -> &str {
+    mermaid_body(code).0
+}
+
+/// [`strip_mermaid_fence`], and how many lines of `code` come before what
+/// is left: a line of the body is that many lines further down in `code`.
+pub fn mermaid_body(code: &str) -> (&str, usize) {
     let text = strip_bom(code);
     match re!(r"(?is)^\s*```(?:mermaid|mmd)[^\n]*\n(.*?)\n?```\s*$").captures(text) {
-        Some(c) => c.get(1).map_or("", |m| m.as_str()),
-        None => text,
+        Some(c) => match c.get(1) {
+            Some(body) => (body.as_str(), text[..body.start()].matches('\n').count()),
+            None => ("", 0),
+        },
+        None => (text, 0),
     }
 }
 
@@ -231,6 +240,9 @@ mod tests {
             "pie\n  \"a\": 1"
         );
         assert_eq!(strip_mermaid_fence("pie"), "pie");
+        // The lines before the body: the fence, and blank ones before it.
+        assert_eq!(mermaid_body("pie"), ("pie", 0));
+        assert_eq!(mermaid_body("\u{feff}\n\n```mermaid\npie\n```"), ("pie", 3));
         assert_eq!(
             unwrap_paste("\n```plantuml\n@startuml\n@enduml\n```\n"),
             "@startuml\n@enduml"

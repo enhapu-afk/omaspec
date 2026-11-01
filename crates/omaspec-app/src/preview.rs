@@ -213,18 +213,12 @@ impl Preview {
                 let place = Place::of(&self.path, None);
                 // A map shows its project's diagrams in tiles
                 // (docs/adr/0018); they are read again with the map.
-                let linked = place
-                    .as_ref()
-                    .filter(|_| omaspec_render::is_map(&source, language))
-                    .map(|place| {
-                        let atlas = crate::specs::read_project(&place.root).1;
-                        let own = std::path::absolute(&self.path).ok().and_then(|p| {
-                            p.strip_prefix(&place.root)
-                                .ok()
-                                .map(crate::specs::file_name)
-                        });
-                        (std::sync::Arc::new(atlas), own)
-                    });
+                let linked = crate::specs::Maps::default().of(
+                    &source,
+                    language,
+                    Some(&self.path),
+                    place.as_ref(),
+                );
                 self.paper
                     .request_linked(worker, 0, source.into(), language, place, linked);
             }

@@ -8,7 +8,7 @@
 
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
-use omaspec_uml::gantt::{Diagram, Marks, Row, Skinparam, draw, from_mermaid, mermaid_refusal};
+use omaspec_uml::gantt::{Diagram, Marks, Row, Skinparam, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
@@ -21,16 +21,6 @@ pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, M
     diagram.frame.skinparams = skin_of(theme)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
-}
-
-/// The first construct the engine refuses by name, with its line and why.
-pub(super) fn named_decline(source: &str) -> Option<(usize, String)> {
-    mermaid_refusal(source).map(|(line, what)| {
-        (
-            line,
-            format!("{what} is not drawn by Omaspec; mmdr draws it"),
-        )
-    })
 }
 
 fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
@@ -193,9 +183,12 @@ Ship :milestone, m, 2026-01-06, 0d
         .unwrap()
         .0;
         assert!(weekends.contains("Work"), "{weekends}");
-        assert!(named_decline("gantt\nexcludes weekends\n").is_none());
+        assert!(
+            crate::mermaid::refused(DiagramKind::Gantt, "gantt\nexcludes weekends\n").is_none()
+        );
         assert_eq!(
-            named_decline("gantt\nexcludes holidays\n").map(|(_, reason)| reason),
+            crate::mermaid::refused(DiagramKind::Gantt, "gantt\nexcludes holidays\n")
+                .map(|(_, reason)| reason),
             Some("an excluded day is not drawn by Omaspec; mmdr draws it".into())
         );
         let mut bad = Theme::mermaid_default();

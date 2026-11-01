@@ -10,7 +10,7 @@
 
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
-use omaspec_uml::block::{self, Look, draw, from_mermaid, mermaid_refusal};
+use omaspec_uml::block::{self, Look, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
@@ -22,16 +22,6 @@ pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, M
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
-}
-
-/// The first construct the engine refuses by name, with its line and why.
-pub(super) fn named_decline(source: &str) -> Option<(usize, String)> {
-    mermaid_refusal(source).map(|(line, what)| {
-        (
-            line,
-            format!("{what} is not drawn by Omaspec; mmdr draws it"),
-        )
-    })
 }
 
 /// The stock theme keeps the lilac tile. Any other theme uses the accent
@@ -127,7 +117,8 @@ block-beta
         assert!(try_draw(&graph, &theme, SAMPLE).is_none());
         graph.kind = DiagramKind::Block;
         assert_eq!(
-            named_decline("block-beta\nclassDef a fill:#fff\n").map(|(_, reason)| reason),
+            crate::mermaid::refused(DiagramKind::Block, "block-beta\nclassDef a fill:#fff\n")
+                .map(|(_, reason)| reason),
             Some("a class is not drawn by Omaspec; mmdr draws it".into())
         );
         assert!(try_draw(&graph, &theme, "block-beta\nclassDef a fill:#fff\n").is_none());

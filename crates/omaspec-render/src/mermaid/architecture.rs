@@ -9,7 +9,7 @@
 
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
-use omaspec_uml::architecture::{self, Look, draw, from_mermaid, mermaid_refusal};
+use omaspec_uml::architecture::{self, Look, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
@@ -21,16 +21,6 @@ pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, M
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
-}
-
-/// The first construct the engine refuses by name, with its line and why.
-pub(super) fn named_decline(source: &str) -> Option<(usize, String)> {
-    mermaid_refusal(source).map(|(line, what)| {
-        (
-            line,
-            format!("{what} is not drawn by Omaspec; mmdr draws it"),
-        )
-    })
 }
 
 /// The stock theme keeps the architecture blue. Any other theme uses the
@@ -127,8 +117,11 @@ architecture-beta
         assert!(try_draw(&graph, &theme, SAMPLE).is_none());
         graph.kind = DiagramKind::Architecture;
         assert_eq!(
-            named_decline("architecture-beta\n  service db(logos:aws-aurora)[DB]\n")
-                .map(|(_, reason)| reason),
+            crate::mermaid::refused(
+                DiagramKind::Architecture,
+                "architecture-beta\n  service db(logos:aws-aurora)[DB]\n"
+            )
+            .map(|(_, reason)| reason),
             Some("an icon is not drawn by Omaspec; mmdr draws it".into())
         );
         assert!(

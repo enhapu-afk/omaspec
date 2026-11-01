@@ -12,9 +12,7 @@
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
 use omaspec_uml::map::Map;
-use omaspec_uml::tree::{
-    Idea, MindMap, Skinparam, Tiles, draw_mindmap_tiled, from_mermaid, mermaid_refusal,
-};
+use omaspec_uml::tree::{Idea, MindMap, Skinparam, Tiles, draw_mindmap_tiled, from_mermaid};
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr. The
 /// map holds the boxes `tiles` picks as tiles, nothing else: a mind-map
@@ -32,16 +30,6 @@ pub fn try_draw(
     diagram.frame.skinparams = skin_of(theme)?;
     paint(&mut diagram, theme)?;
     draw_mindmap_tiled(&diagram, tiles).ok()
-}
-
-/// The first construct the engine refuses by name, with its line and why.
-pub(super) fn named_decline(source: &str) -> Option<(usize, String)> {
-    mermaid_refusal(source).map(|(line, what)| {
-        (
-            line,
-            format!("{what} is not drawn by Omaspec; mmdr draws it"),
-        )
-    })
 }
 
 fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
@@ -243,7 +231,8 @@ mod tests {
             "{burst}"
         );
         assert_eq!(
-            named_decline("mindmap\n  (-no-)\n").map(|(_, reason)| reason),
+            crate::mermaid::refused(DiagramKind::Mindmap, "mindmap\n  (-no-)\n")
+                .map(|(_, reason)| reason),
             Some("a cloud is not drawn by Omaspec; mmdr draws it".into())
         );
         let mut bad = Theme::mermaid_default();

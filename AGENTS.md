@@ -43,6 +43,15 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
   to the original small and listed in `vendor/README.md`.
 - Docs, code and commit messages in English. Commits: `feat:`, `fix:`,
   `docs:`, `chore:` with a lowercase summary.
+- A new diagram type is read, measured and painted in modules of their own
+  (as `omaspec-uml/src/activity/`); no new file grows past about 1,000 lines.
+- A Mermaid kind with a drawer of its own is one entry in `NATIVE`
+  (`omaspec-render/src/mermaid.rs`): no other list of kinds, no `try_draw`
+  chain, no `named_decline` of its own.
+- Until state diagrams and flowcharts share one scene (`ROADMAP.md`, after
+  the code review), a fix to their layout (curves, notes, regions, open
+  clusters) goes into both drawers: `omaspec-uml/src/state/draw*` and
+  `omaspec-render/src/mermaid/layered/`.
 
 ## Omarchy facts the code relies on
 

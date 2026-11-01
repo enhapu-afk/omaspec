@@ -9,7 +9,7 @@
 
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::map::Map;
-use omaspec_uml::sequence::{Skinparam, draw_mapped, from_mermaid, mermaid_refusal};
+use omaspec_uml::sequence::{Skinparam, draw_mapped, from_mermaid};
 
 /// The SVG and where its messages are, or `None` when this drawer leaves
 /// the diagram to mmdr.
@@ -20,16 +20,6 @@ pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, M
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
     draw_mapped(&diagram).ok()
-}
-
-/// The first construct the engine refuses by name, with its line and why.
-pub(super) fn named_decline(source: &str) -> Option<(usize, String)> {
-    mermaid_refusal(source).map(|(line, what)| {
-        (
-            line,
-            format!("{what} is not drawn by Omaspec; mmdr draws it"),
-        )
-    })
 }
 
 fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {

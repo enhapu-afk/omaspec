@@ -950,3 +950,36 @@ What comes after 0.4, announced in the README.
       frames and labels, closer to what Graphviz draws; the open points of
       [0012](docs/adr/0012-lines-like-graphviz.md) and
       [0013](docs/adr/0013-containers-like-graphviz.md) among them.
+
+### After the code review (2026-11-01)
+
+An outside review found the drawing doubled in one place and the Mermaid
+dispatch spread over two lists. The rules it set for the next change are in
+`AGENTS.md`.
+
+- [x] The map with its tiles is drawn in one place (`specs::Maps`) for
+      `omaspec render`, the MCP server and the preview window. The Mermaid
+      kinds with a drawer of their own are one table (`NATIVE` in
+      `omaspec-render/src/mermaid.rs`), which both draws and says why a
+      diagram went to mmdr; the eleven `named_decline` copies are gone, and
+      `lang::mermaid_body` returns the fence's lines instead of the callers
+      counting them through pointers. Every Mermaid file in the repository
+      draws the same bytes as before.
+- [ ] One scene for state diagrams and flowcharts.
+      `omaspec-uml/src/state/draw*` and `omaspec-render/src/mermaid/layered/`
+      lay out the same picture twice (`Scene`, `Placed`, the constants,
+      regions, open clusters, notes). First golden SVGs for the Mermaid
+      side, which has none; then the shared parts move next to
+      `omaspec_uml::graph` step by step, each step with the same bytes;
+      Mermaid states are read into `state::Diagram` as sequence and class
+      diagrams are, and `mermaid/state.rs` (the chart turned back into
+      mmdr's graph) goes. Flowcharts keep mmdr's graph as their input.
+- [ ] mmdr's reading only as the fallback: where Omaspec reads the text
+      itself, mmdr's parse should not decide whether it draws. Needs the
+      `%%{init}%%` and the theme read without it.
+- [ ] The keys beside their modes: the gallery's, the play's and the
+      prompt's keys in their modules, `shortcut` only puts them together;
+      then `App` handed out along the same lines.
+- [ ] Large files cut along the phases they already have, when they are
+      next touched: `formula.rs` (parse, symbols, layout, paint); `c4.rs`,
+      `block.rs`, `er.rs`, `architecture.rs` (read, measure, paint).

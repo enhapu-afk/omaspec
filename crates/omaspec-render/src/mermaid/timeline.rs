@@ -9,7 +9,7 @@
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
 use omaspec_uml::map::Map;
-use omaspec_uml::timeline::{Diagram, Look, draw, from_mermaid, mermaid_refusal};
+use omaspec_uml::timeline::{Diagram, Look, draw, from_mermaid};
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
 /// The map stays empty: a period is not a message to jump to.
@@ -20,16 +20,6 @@ pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, M
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
-}
-
-/// The first construct the engine refuses by name, with its line and why.
-pub(super) fn named_decline(source: &str) -> Option<(usize, String)> {
-    mermaid_refusal(source).map(|(line, what)| {
-        (
-            line,
-            format!("{what} is not drawn by Omaspec; mmdr draws it"),
-        )
-    })
 }
 
 /// Type, ink, page and the section colors come from the theme. A color
@@ -122,7 +112,10 @@ mod tests {
             .unwrap()
             .0;
         assert!(down.contains("LinkedIn"), "{down}");
-        assert!(named_decline("timeline TD\n2002 : LinkedIn\n").is_none());
+        assert!(
+            crate::mermaid::refused(DiagramKind::Timeline, "timeline TD\n2002 : LinkedIn\n")
+                .is_none()
+        );
         let mut bad = Theme::mermaid_default();
         bad.background = "nope".into();
         assert!(try_draw(&graph, &bad, "timeline\n2002 : LinkedIn\n").is_none());

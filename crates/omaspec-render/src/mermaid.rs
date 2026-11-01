@@ -20,9 +20,11 @@ use std::borrow::Cow;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use mermaid_rs_renderer::{
-    DiagramKind, ParseError, RenderOptions, Theme, compute_layout, parse_mermaid_strict, render_svg,
+    DiagramKind, Graph, ParseError, RenderOptions, Theme, compute_layout, parse_mermaid_strict,
+    render_svg,
 };
-use omaspec_core::lang::strip_mermaid_fence;
+use omaspec_core::lang::mermaid_body;
+use omaspec_uml::tree::Tiles;
 
 use crate::{Engine, Map, RenderError};
 
@@ -78,10 +80,7 @@ const MAX_NESTING: usize = 100;
 /// A Mermaid mind map with the boxes `tiles` picks drawn as tiles, its
 /// engine and where the tiles are; the other diagrams as [`render_mapped`]
 /// draws them.
-pub fn render_tiled(
-    source: &str,
-    tiles: &omaspec_uml::tree::Tiles,
-) -> Result<(String, Engine, Map), RenderError> {
+pub fn render_tiled(source: &str, tiles: &Tiles) -> Result<(String, Engine, Map), RenderError> {
     draw_with(source, Some(tiles)).map(|drawn| {
         let engine = match drawn.declined {
             None => Engine::NativeMermaid,
@@ -95,12 +94,9 @@ fn draw(source: &str) -> Result<Drawn, RenderError> {
     draw_with(source, None)
 }
 
-fn draw_with(source: &str, tiles: Option<&omaspec_uml::tree::Tiles>) -> Result<Drawn, RenderError> {
-    let fenced = strip_mermaid_fence(source);
-    // `fenced` is a slice of `source`; lines before it belong to the fence.
-    let offset = source
-        .get(..(fenced.as_ptr() as usize).saturating_sub(source.as_ptr() as usize))
-        .map_or(0, |before| before.matches('\n').count());
+fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> {
+    // Lines before the body belong to the fence.
+    let (fenced, offset) = mermaid_body(source);
     if let Some(line) = too_deep(fenced) {
         return Err(RenderError::Diagram {
             engine: Engine::Mermaid,
@@ -132,83 +128,13 @@ fn draw_with(source: &str, tiles: Option<&omaspec_uml::tree::Tiles>) -> Result<D
         if let Some(init) = &parsed.init_config {
             apply_init(&mut options, init);
         }
-        // Sequence diagrams, class diagrams, mind maps, Gantt charts, pie
-        // charts, user journeys, timelines, ER diagrams, C4 diagrams,
-        // architecture diagrams and block diagrams use their engines.
-        // State diagrams and flowcharts lay out on the shared graph.
-        // Anything a drawer does not accept keeps mmdr's layout, and a
-        // state diagram the repair.
-        if let Some((svg, map)) = sequence::try_draw(&parsed.graph, &options.theme, body) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = class::try_draw(&parsed.graph, &options.theme, body) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = mindmap::try_draw(&parsed.graph, &options.theme, body, tiles) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = gantt::try_draw(&parsed.graph, &options.theme, body) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = pie::try_draw(&parsed.graph, &options.theme, body) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = journey::try_draw(&parsed.graph, &options.theme, body) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = timeline::try_draw(&parsed.graph, &options.theme, body) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = er::try_draw(&parsed.graph, &options.theme, body) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = c4::try_draw(&parsed.graph, &options.theme, body) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = architecture::try_draw(&parsed.graph, &options.theme, body) {
-            return Ok(Drawn {
-                svg,
-                map: map.shifted(offset),
-                declined: None,
-            });
-        }
-        if let Some((svg, map)) = block::try_draw(&parsed.graph, &options.theme, body) {
+        // The kinds in `NATIVE` use their engines; state diagrams and
+        // flowcharts lay out on the shared graph. Anything a drawer does
+        // not accept keeps mmdr's layout, and a state diagram the repair.
+        let native = NATIVE.iter().find(|n| n.kind == parsed.graph.kind);
+        if let Some(native) = native
+            && let Some((svg, map)) = (native.draw)(&parsed.graph, &options.theme, body, tiles)
+        {
             return Ok(Drawn {
                 svg,
                 map: map.shifted(offset),
@@ -273,173 +199,134 @@ fn draw_with(source: &str, tiles: Option<&omaspec_uml::tree::Tiles>) -> Result<D
     }
 }
 
+/// A drawer's function: the SVG and where its parts are, or `None` to leave
+/// the diagram to mmdr.
+type Draw = fn(&Graph, &Theme, &str, Option<&Tiles>) -> Option<(String, Map)>;
+
+/// A kind of Mermaid diagram with a drawer of Omaspec's own, which reads
+/// the text itself: mmdr's reading picks the kind and the theme.
+struct Native {
+    kind: DiagramKind,
+    /// What the diagram is called when mmdr draws it instead.
+    noun: &'static str,
+    /// Draws it, or leaves it to mmdr; the tiles are for a mind map that
+    /// is a project's map.
+    draw: Draw,
+    /// The first construct it refuses by name: the line, and what it is.
+    refusal: fn(&str) -> Option<(usize, &'static str)>,
+}
+
+/// Every kind with a drawer of its own. A new kind is a line here.
+const NATIVE: &[Native] = &[
+    Native {
+        kind: DiagramKind::Sequence,
+        noun: "sequence diagram",
+        draw: |graph, theme, body, _| sequence::try_draw(graph, theme, body),
+        refusal: omaspec_uml::sequence::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Class,
+        noun: "class diagram",
+        draw: |graph, theme, body, _| class::try_draw(graph, theme, body),
+        refusal: omaspec_uml::structure::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Mindmap,
+        noun: "mind map",
+        draw: mindmap::try_draw,
+        refusal: omaspec_uml::tree::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Gantt,
+        noun: "Gantt chart",
+        draw: |graph, theme, body, _| gantt::try_draw(graph, theme, body),
+        refusal: omaspec_uml::gantt::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Pie,
+        noun: "pie chart",
+        draw: |graph, theme, body, _| pie::try_draw(graph, theme, body),
+        refusal: omaspec_uml::pie::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Journey,
+        noun: "user journey",
+        draw: |graph, theme, body, _| journey::try_draw(graph, theme, body),
+        refusal: omaspec_uml::journey::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Timeline,
+        noun: "timeline",
+        draw: |graph, theme, body, _| timeline::try_draw(graph, theme, body),
+        refusal: omaspec_uml::timeline::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Er,
+        noun: "ER diagram",
+        draw: |graph, theme, body, _| er::try_draw(graph, theme, body),
+        refusal: omaspec_uml::er::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::C4,
+        noun: "C4 diagram",
+        draw: |graph, theme, body, _| c4::try_draw(graph, theme, body),
+        refusal: omaspec_uml::c4::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Architecture,
+        noun: "architecture diagram",
+        draw: |graph, theme, body, _| architecture::try_draw(graph, theme, body),
+        refusal: omaspec_uml::architecture::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Block,
+        noun: "block diagram",
+        draw: |graph, theme, body, _| block::try_draw(graph, theme, body),
+        refusal: omaspec_uml::block::mermaid_refusal,
+    },
+];
+
+/// The construct a drawer of `kind` refuses by name in `body`: its line,
+/// and why mmdr draws the diagram instead.
+fn refused(kind: DiagramKind, body: &str) -> Option<(usize, String)> {
+    let native = NATIVE.iter().find(|n| n.kind == kind)?;
+    (native.refusal)(body).map(|(line, what)| {
+        (
+            line,
+            format!("{what} is not drawn by Omaspec; mmdr draws it"),
+        )
+    })
+}
+
 /// Why the native drawers left this diagram to mmdr.
 fn declined_by(kind: DiagramKind, body: &str, source: &str, offset: usize) -> MermaidDeclined {
-    match kind {
-        DiagramKind::Sequence => {
-            if let Some((line, reason)) = sequence::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this sequence diagram; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::Class => {
-            if let Some((line, reason)) = class::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this class diagram; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::Mindmap => {
-            if let Some((line, reason)) = mindmap::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this mind map; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::Gantt => {
-            if let Some((line, reason)) = gantt::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this Gantt chart; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::Pie => {
-            if let Some((line, reason)) = pie::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this pie chart; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::Journey => {
-            if let Some((line, reason)) = journey::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this user journey; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::Timeline => {
-            if let Some((line, reason)) = timeline::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this timeline; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::Er => {
-            if let Some((line, reason)) = er::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this ER diagram; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::C4 => {
-            if let Some((line, reason)) = c4::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this C4 diagram; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::Architecture => {
-            if let Some((line, reason)) = architecture::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this architecture diagram; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::Block => {
-            if let Some((line, reason)) = block::named_decline(body) {
-                MermaidDeclined {
-                    line: Some(line + offset),
-                    reason,
-                }
-            } else {
-                MermaidDeclined {
-                    line: None,
-                    reason: "Omaspec does not draw this block diagram; mmdr does".into(),
-                }
-            }
-        }
-        DiagramKind::State => MermaidDeclined {
-            line: None,
-            reason: "Omaspec does not draw this state diagram; mmdr does".into(),
-        },
-        DiagramKind::Flowchart => MermaidDeclined {
-            line: None,
-            reason: "Omaspec does not draw this flowchart; mmdr does".into(),
-        },
-        _ => {
-            let found = omaspec_core::classify(source, omaspec_core::Language::Mermaid);
-            let reason = if found.name.is_empty() {
-                "This diagram is not drawn by Omaspec; mmdr draws it".into()
-            } else {
-                format!(
-                    "{name}s are not drawn by Omaspec; mmdr draws them",
-                    name = found.name
-                )
-            };
-            MermaidDeclined { line: None, reason }
-        }
+    if let Some((line, reason)) = refused(kind, body) {
+        return MermaidDeclined {
+            line: Some(line + offset),
+            reason,
+        };
     }
+    let noun = match kind {
+        DiagramKind::State => Some("state diagram"),
+        DiagramKind::Flowchart => Some("flowchart"),
+        _ => NATIVE.iter().find(|n| n.kind == kind).map(|n| n.noun),
+    };
+    if let Some(noun) = noun {
+        return MermaidDeclined {
+            line: None,
+            reason: format!("Omaspec does not draw this {noun}; mmdr does"),
+        };
+    }
+    let found = omaspec_core::classify(source, omaspec_core::Language::Mermaid);
+    let reason = if found.name.is_empty() {
+        "This diagram is not drawn by Omaspec; mmdr draws it".into()
+    } else {
+        format!(
+            "{name}s are not drawn by Omaspec; mmdr draws them",
+            name = found.name
+        )
+    };
+    MermaidDeclined { line: None, reason }
 }
 
 /// The first line where blocks nest deeper than [`MAX_NESTING`]: `{` … `}`

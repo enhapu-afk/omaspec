@@ -45,8 +45,7 @@ impl App {
         let own = found
             .path
             .as_deref()
-            .and_then(|p| p.strip_prefix(&root).ok())
-            .map(crate::specs::file_name);
+            .and_then(|p| crate::specs::path_in(&root, p));
         let atlas = self.themed_atlas(&root)?;
         Some((atlas, own))
     }
@@ -292,8 +291,8 @@ impl App {
     fn trail_name(&self, doc: &Doc) -> String {
         let main = self.project_of(doc).and_then(|root| {
             let atlas = self.atlases.get(&root)?;
-            let own = doc.path.as_deref()?.strip_prefix(&root).ok()?;
-            (atlas.main.as_deref() == Some(crate::specs::file_name(own).as_str()))
+            let own = crate::specs::path_in(&root, doc.path.as_deref()?)?;
+            (atlas.main.as_deref() == Some(own.as_str()))
                 .then(|| crate::project::read(&root)?.ok()?.name)
                 .flatten()
         });

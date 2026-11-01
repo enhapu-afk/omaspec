@@ -9,7 +9,7 @@
 
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
-use omaspec_uml::journey::{Diagram, Look, draw, from_mermaid, mermaid_refusal};
+use omaspec_uml::journey::{Diagram, Look, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
@@ -21,16 +21,6 @@ pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, M
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
-}
-
-/// The first construct the engine refuses by name, with its line and why.
-pub(super) fn named_decline(source: &str) -> Option<(usize, String)> {
-    mermaid_refusal(source).map(|(line, what)| {
-        (
-            line,
-            format!("{what} is not drawn by Omaspec; mmdr draws it"),
-        )
-    })
 }
 
 /// Type, ink, page and the two color cycles come from the theme. A color
@@ -136,11 +126,12 @@ mod tests {
         graph.kind = DiagramKind::Journey;
         let zero = try_draw(&graph, &theme, "journey\nNap: 0: Me\n").unwrap().0;
         assert!(zero.contains("Nap"), "{zero}");
-        assert!(named_decline("journey\nNap: 0: Me\n").is_none());
+        assert!(crate::mermaid::refused(DiagramKind::Journey, "journey\nNap: 0: Me\n").is_none());
         let six = try_draw(&graph, &theme, "journey\nNap: 6: Me\n").unwrap().0;
         assert!(six.contains("Nap"), "{six}");
         assert_eq!(
-            named_decline("journey\nNap: nope: Me\n").map(|(_, reason)| reason),
+            crate::mermaid::refused(DiagramKind::Journey, "journey\nNap: nope: Me\n")
+                .map(|(_, reason)| reason),
             Some("a score is not drawn by Omaspec; mmdr draws it".into())
         );
         let mut bad = Theme::mermaid_default();

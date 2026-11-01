@@ -9,7 +9,7 @@
 
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::map::Map;
-use omaspec_uml::structure::{Skinparam, draw_mapped, from_mermaid, mermaid_refusal};
+use omaspec_uml::structure::{Skinparam, draw_mapped, from_mermaid};
 
 /// The SVG and its map of lines, or `None` when this drawer leaves the
 /// diagram to mmdr. Lines by hand (docs/adr/0016) are drawn here.
@@ -21,16 +21,6 @@ pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, M
     diagram.frame.skinparams = skin_of(theme)?;
     diagram.frame.by_hand = omaspec_uml::hand::numbered(source);
     draw_mapped(&diagram).ok()
-}
-
-/// The first construct the engine refuses by name, with its line and why.
-pub(super) fn named_decline(source: &str) -> Option<(usize, String)> {
-    mermaid_refusal(source).map(|(line, what)| {
-        (
-            line,
-            format!("{what} is not drawn by Omaspec; mmdr draws it"),
-        )
-    })
 }
 
 fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
@@ -116,7 +106,8 @@ mod tests {
         graph.kind = DiagramKind::Class;
         assert!(try_draw(&graph, &theme, "classDiagram\nbar ()-- foo\n").is_none());
         assert_eq!(
-            named_decline("classDiagram\nbar ()-- foo\n").map(|(_, reason)| reason),
+            crate::mermaid::refused(DiagramKind::Class, "classDiagram\nbar ()-- foo\n")
+                .map(|(_, reason)| reason),
             Some("a lollipop is not drawn by Omaspec; mmdr draws it".into())
         );
         let wide = try_draw(

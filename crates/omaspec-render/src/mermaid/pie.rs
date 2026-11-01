@@ -11,7 +11,7 @@
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
 use omaspec_uml::map::Map;
-use omaspec_uml::pie::{Diagram, Look, draw, from_mermaid, mermaid_refusal};
+use omaspec_uml::pie::{Diagram, Look, draw, from_mermaid};
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
 /// The map stays empty: a slice is not a message to jump to.
@@ -22,16 +22,6 @@ pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, M
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
-}
-
-/// The first construct the engine refuses by name, with its line and why.
-pub(super) fn named_decline(source: &str) -> Option<(usize, String)> {
-    mermaid_refusal(source).map(|(line, what)| {
-        (
-            line,
-            format!("{what} is not drawn by Omaspec; mmdr draws it"),
-        )
-    })
 }
 
 /// Slice fills take `pie1` onward, mixed toward the background by
@@ -288,7 +278,7 @@ mod tests {
             negative.contains("a [-1]") && negative.contains("b [2]"),
             "{negative}"
         );
-        assert!(named_decline("pie\n\"a\" : -1\n").is_none());
+        assert!(crate::mermaid::refused(DiagramKind::Pie, "pie\n\"a\" : -1\n").is_none());
         let mut bad = Theme::mermaid_default();
         bad.pie_colors[0] = "nope".into();
         assert!(try_draw(&graph, &bad, "pie\n\"a\" : 1\n").is_none());
