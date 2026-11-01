@@ -1,0 +1,12 @@
+flowchart TB
+    Start --> In
+    subgraph Outer [The outer one]
+        In --> Work
+        subgraph Inner
+            Work --> Check
+            Check --> Work
+        end
+        Check --> Out
+    end
+    Out --> Stop
+    Start --> Check

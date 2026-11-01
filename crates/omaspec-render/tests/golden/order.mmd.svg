@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="416" height="372" viewBox="0 0 416 372">
+<rect x="0" y="0" width="416" height="372" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<line x1="37.34" y1="30.3" x2="37.34" y2="351.26" fill="none" stroke="#64748B" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="227.42" y1="30.3" x2="227.42" y2="351.26" fill="none" stroke="#64748B" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="360.69" y1="30.3" x2="360.69" y2="351.26" fill="none" stroke="#64748B" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g>
+<rect x="27.34" y="167.48" width="343.36" height="173.78" fill="none" stroke="#CBD5E1" stroke-width="1.5"/>
+<line x1="27.34" y1="255.37" x2="370.69" y2="255.37" fill="none" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="2,2"/>
+</g>
+<g>
+<rect x="0" y="0" width="74.68" height="30.3" rx="2.5" ry="2.5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="0.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="7" y="19.99" font-size="14" fill="#0F172A" textLength="60.68" lengthAdjust="spacing">Customer</tspan>
+</text>
+<rect x="204.08" y="0" width="46.69" height="30.3" rx="2.5" ry="2.5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="0.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="211.08" y="19.99" font-size="14" fill="#0F172A" textLength="32.69" lengthAdjust="spacing">Shop</tspan>
+</text>
+<rect x="326.07" y="0" width="69.24" height="30.3" rx="2.5" ry="2.5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="0.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="333.07" y="19.99" font-size="14" fill="#0F172A" textLength="55.24" lengthAdjust="spacing">Payment</tspan>
+</text>
+<line x1="37.34" y1="60.59" x2="227.42" y2="60.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<polygon points="217.42,56.59 227.42,60.59 217.42,64.59 221.42,60.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="71.3" y="55.29" font-size="14" fill="#0F172A" textLength="122.16" lengthAdjust="spacing">put items in the cart</tspan>
+</text>
+<line x1="37.34" y1="90.89" x2="227.42" y2="90.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<polygon points="217.42,86.89 227.42,90.89 217.42,94.89 221.42,90.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="102.42" y="85.58" font-size="14" fill="#0F172A" textLength="59.92" lengthAdjust="spacing">check out</tspan>
+</text>
+<rect x="22.34" y="100.89" width="220.08" height="26.3" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="28.34" y="118.88" font-size="14" fill="#0F172A" textLength="175.85" lengthAdjust="spacing">the cart is kept until it is paid</tspan>
+</text>
+<line x1="227.42" y1="157.48" x2="360.69" y2="157.48" fill="none" stroke="#64748B" stroke-width="1"/>
+<polygon points="350.69,153.48 360.69,157.48 350.69,161.48 354.69,157.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="245.42" y="152.18" font-size="14" fill="#0F172A" textLength="97.27" lengthAdjust="spacing">charge the card</tspan>
+</text>
+<line x1="360.69" y1="215.07" x2="227.42" y2="215.07" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="237.42,211.07 227.42,215.07 237.42,219.07 233.42,215.07" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="273.05" y="209.77" font-size="14" fill="#0F172A" textLength="42.01" lengthAdjust="spacing">receipt</tspan>
+</text>
+<line x1="227.42" y1="245.37" x2="37.34" y2="245.37" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="47.34,241.37 37.34,245.37 47.34,249.37 43.34,245.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="83.37" y="240.06" font-size="14" fill="#0F172A" textLength="98.03" lengthAdjust="spacing">order confirmed</tspan>
+</text>
+<line x1="360.69" y1="300.96" x2="227.42" y2="300.96" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="237.42,296.96 227.42,300.96 237.42,304.96 233.42,300.96" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="267.99" y="295.66" font-size="14" fill="#0F172A" textLength="52.14" lengthAdjust="spacing">declined</tspan>
+</text>
+<line x1="227.42" y1="331.26" x2="37.34" y2="331.26" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="47.34,327.26 37.34,331.26 47.34,335.26 43.34,331.26" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="55.34" y="325.95" font-size="14" fill="#0F172A" textLength="154.08" lengthAdjust="spacing">choose another payment</tspan>
+</text>
+<polygon points="27.34,167.48 61.68,167.48 61.68,181.78 55.68,187.78 27.34,187.78" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="33.34" y="182.47" font-size="14" fill="#0F172A" font-weight="bold" textLength="16.34" lengthAdjust="spacing">alt</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="66.68" y="182.47" font-size="14" fill="#0F172A" font-weight="bold" textLength="38.11" lengthAdjust="spacing">[paid]</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="32.34" y="269.36" font-size="14" fill="#0F172A" font-weight="bold" textLength="66.12" lengthAdjust="spacing">[declined]</tspan>
+</text>
+</g>
+</g>
+</svg>

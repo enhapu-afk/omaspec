@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="422" height="238" viewBox="0 0 422 238">
+<rect x="0" y="0" width="422" height="238" fill="#FFFFFF"/>
+<g transform="translate(28.29,10)">
+<g>
+<path d="M 88,129.1 L 88,41.1 A 88,88 0 0,1 164.21,173.1 Z" fill="#F9FBFC" stroke="#334155" stroke-width="1.6"/>
+<path d="M 88,129.1 L 164.21,173.1 A 88,88 0 0,1 11.79,173.1 Z" fill="#E6EBF2" stroke="#334155" stroke-width="1.6"/>
+<path d="M 88,129.1 L 11.79,173.1 A 88,88 0 0,1 11.79,85.1 Z" fill="#A8A8A8" stroke="#334155" stroke-width="1.6"/>
+<path d="M 88,129.1 L 11.79,85.1 A 88,88 0 0,1 44,52.89 Z" fill="#DAE6F0" stroke="#334155" stroke-width="1.6"/>
+<path d="M 88,129.1 L 44,52.89 A 88,88 0 0,1 65.22,44.1 Z" fill="#91A7C6" stroke="#334155" stroke-width="1.6"/>
+<path d="M 88,129.1 L 65.22,44.1 A 88,88 0 0,1 88,41.1 Z" fill="#D4D4D4" stroke="#334155" stroke-width="1.6"/>
+<ellipse cx="88" cy="129.1" rx="88" ry="88" fill="none" stroke="#CBD5E1" stroke-width="1.6"/>
+<rect x="222.29" y="43.99" width="14" height="14" rx="2" ry="2" fill="#F9FBFC"/>
+<rect x="222.29" y="69.78" width="14" height="14" rx="2" ry="2" fill="#E6EBF2"/>
+<rect x="222.29" y="95.57" width="14" height="14" rx="2" ry="2" fill="#A8A8A8"/>
+<rect x="222.29" y="121.36" width="14" height="14" rx="2" ry="2" fill="#DAE6F0"/>
+<rect x="222.29" y="147.15" width="14" height="14" rx="2" ry="2" fill="#91A7C6"/>
+<rect x="222.29" y="172.93" width="14" height="14" rx="2" ry="2" fill="#D4D4D4"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="-18.29" y="23.2" font-size="25" fill="#0F172A" font-weight="bold" textLength="212.58" lengthAdjust="spacing">Where a day goes</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="244.29" y="56.88" font-size="17" fill="#0F172A" textLength="43.47" lengthAdjust="spacing">Sleep</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="244.29" y="82.66" font-size="17" fill="#0F172A" textLength="39.66" lengthAdjust="spacing">Work</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="244.29" y="108.45" font-size="17" fill="#0F172A" textLength="138.87" lengthAdjust="spacing">Family and friends</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="244.29" y="134.24" font-size="17" fill="#0F172A" textLength="38.74" lengthAdjust="spacing">Food</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="244.29" y="160.03" font-size="17" fill="#0F172A" textLength="63.31" lengthAdjust="spacing">Reading</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="244.29" y="185.82" font-size="17" fill="#0F172A" textLength="46.27" lengthAdjust="spacing">Walks</tspan>
+</text>
+</g>
+</g>
+</svg>

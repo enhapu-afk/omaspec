@@ -1,0 +1,10 @@
+stateDiagram-v2
+    [*] --> Waiting
+    Waiting --> Paid : pay
+    Paid --> Shipped : ship
+    note right of Waiting : the customer has a day
+    note left of Paid
+        checked against
+        the bank
+    end note
+    Shipped --> [*]

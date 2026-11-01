@@ -1,0 +1,18 @@
+stateDiagram-v2
+    [*] --> Shop
+    state Shop {
+        [*] --> Browsing
+        Browsing --> Cart : add
+        state Cart {
+            [*] --> Filling
+            Filling --> Checkout : buy
+            state Checkout {
+                [*] --> Address
+                Address --> Payment : next
+                Payment --> Address : back
+            }
+        }
+        Cart --> Browsing : continue
+    }
+    Payment --> Done : paid
+    Done --> [*]

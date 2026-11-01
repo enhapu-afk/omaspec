@@ -1,0 +1,9 @@
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Running : start
+    Running --> Idle : stop
+    Running --> Done : finish
+
+%% lines by hand (Omaspec)
+%% Idle -> Running at 0.5 -0.4
+%% Running -> Idle at 1.2 0.3, 1.2 0.8

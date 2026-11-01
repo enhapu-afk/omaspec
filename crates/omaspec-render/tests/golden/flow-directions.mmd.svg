@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="257" height="272" viewBox="0 0 257 272">
+<rect x="0" y="0" width="257" height="272" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<rect x="86.05" y="214.89" width="78.69" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="80.23" y="146.59" width="90.34" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="0" y="78.3" width="110.6" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="154.6" y="78.3" width="81.8" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="94.61" y="0" width="61.57" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<polyline points="125.4,214.89 125.4,192.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="92.23,146.59 92.23,124.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M158.57,146.59 L158.57,138.61 C158.57,136.39 160.36,134.59 162.58,134.59 L162.58,134.59 C164.8,134.59 166.6,132.79 166.6,130.58 L166.6,124.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M98.6,78.3 L98.6,70.3 C98.6,68.09 100.39,66.3 102.6,66.3 L102.6,66.3 C104.82,66.3 106.61,64.5 106.61,62.29 L106.61,46.3" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M166.6,78.3 L166.6,67.5 C166.6,61.31 161.58,56.3 155.39,56.3 L154.18,56.3 C148.66,56.3 144.18,51.82 144.18,46.3 L144.18,46.3" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="102.05" y="237.88" font-size="14" fill="#0F172A" textLength="46.69" lengthAdjust="spacing">Ground</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="96.23" y="169.58" font-size="14" fill="#0F172A" textLength="58.34" lengthAdjust="spacing">First floor</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="16" y="101.29" font-size="14" fill="#0F172A" textLength="78.6" lengthAdjust="spacing">Second floor</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="170.6" y="101.29" font-size="14" fill="#0F172A" textLength="49.8" lengthAdjust="spacing">Balcony</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="110.61" y="22.99" font-size="14" fill="#0F172A" textLength="29.57" lengthAdjust="spacing">Roof</tspan>
+</text>
+<polygon points="129.4,192.89 125.4,182.89 121.4,192.89 125.4,188.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="96.23,124.59 92.23,114.59 88.23,124.59 92.23,120.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="170.6,124.59 166.6,114.59 162.6,124.59 166.6,120.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="110.61,46.3 106.61,36.3 102.61,46.3 106.61,42.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="148.18,46.3 144.18,36.3 140.18,46.3 144.18,42.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+</g>
+</svg>

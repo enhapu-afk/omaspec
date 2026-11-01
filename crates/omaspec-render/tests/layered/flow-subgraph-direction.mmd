@@ -1,0 +1,11 @@
+flowchart LR
+    subgraph Build
+        direction TB
+        Fetch --> Compile --> Test
+    end
+    subgraph Ship
+        direction TB
+        Package --> Publish
+    end
+    Test --> Package
+    Build --> Ship

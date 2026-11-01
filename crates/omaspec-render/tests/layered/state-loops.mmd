@@ -1,0 +1,8 @@
+stateDiagram-v2
+    [*] --> Listening
+    Listening --> Listening : noise
+    Listening --> Listening : echo
+    Listening --> Talking : word
+    Talking --> Listening : pause
+    Talking --> Listening : silence
+    Talking --> Talking : breath

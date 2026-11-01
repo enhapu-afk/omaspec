@@ -1,0 +1,16 @@
+stateDiagram-v2
+    state check <<choice>>
+    state split <<fork>>
+    state merge <<join>>
+    [*] --> Asked
+    Asked --> check
+    check --> Approved : if ok
+    check --> Rejected : if not
+    Approved --> split
+    split --> Packing
+    split --> Billing
+    Packing --> merge
+    Billing --> merge
+    merge --> Done
+    Rejected --> [*]
+    Done --> [*]

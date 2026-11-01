@@ -1,0 +1,13 @@
+stateDiagram-v2
+    direction LR
+    [*] --> Draft
+    Draft --> Review : submit
+    state Review {
+        direction TB
+        [*] --> Reading
+        Reading --> Commenting : remark
+        Commenting --> Reading : next
+    }
+    Review --> Draft : changes
+    Review --> Merged : approve
+    Merged --> [*]

@@ -1,0 +1,6 @@
+flowchart RL
+    A[Source] --> B{Valid?}
+    B -->|yes| C[Store]
+    B -->|no| D[Reject]
+    C --> E[Report]
+    D --> E

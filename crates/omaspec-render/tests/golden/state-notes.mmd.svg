@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="387" height="326" viewBox="0 0 387 326">
+<rect x="0" y="0" width="387" height="326" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<ellipse cx="155.95" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+<rect x="116.67" y="54" width="78.55" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="127.16" y="134.59" width="57.57" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="114.33" y="215.18" width="83.23" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<ellipse cx="155.95" cy="292.48" rx="13" ry="13" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<ellipse cx="155.95" cy="292.48" rx="5.46" ry="5.46" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+<polyline points="155.95,22 155.95,44" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="155.95,86.3 155.95,124.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="155.95,166.89 155.95,205.18" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="155.95,247.48 155.95,269.48" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g>
+<polygon points="205.23,54 205.23,82.3 366.74,82.3 366.74,64 356.74,54" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+<polygon points="356.74,54 356.74,64 366.74,64" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+<polygon points="0,134.59 0,179.18 117.16,179.18 117.16,144.59 107.16,134.59" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+<polygon points="107.16,134.59 107.16,144.59 117.16,144.59" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="130.67" y="74.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="50.55" lengthAdjust="spacing">Waiting</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="141.16" y="155.58" font-size="14" fill="#0F172A" font-weight="bold" textLength="29.57" lengthAdjust="spacing">Paid</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="128.33" y="236.18" font-size="14" fill="#0F172A" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Shipped</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="161.95" y="116.29" font-size="14" fill="#0F172A" textLength="22.57" lengthAdjust="spacing">pay</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="161.95" y="196.88" font-size="14" fill="#0F172A" textLength="25.68" lengthAdjust="spacing">ship</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="211.23" y="72.99" font-size="14" fill="#0F172A" textLength="145.52" lengthAdjust="spacing">the customer has a day</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="6" y="153.58" font-size="14" fill="#0F172A" textLength="101.16" lengthAdjust="spacing">checked against</tspan>
+<tspan x="6" y="169.88" font-size="14" fill="#0F172A" textLength="53.7" lengthAdjust="spacing">the bank</tspan>
+</text>
+<polygon points="151.95,44 155.95,54 159.95,44 155.95,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="151.95,124.59 155.95,134.59 159.95,124.59 155.95,128.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="151.95,205.18 155.95,215.18 159.95,205.18 155.95,209.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="151.95,269.48 155.95,279.48 159.95,269.48 155.95,273.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+</g>
+</svg>

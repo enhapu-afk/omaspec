@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="122" height="268" viewBox="0 0 122 268">
+<rect x="0" y="0" width="122" height="268" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<ellipse cx="42.38" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+<rect x="16.32" y="54" width="52.12" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="0" y="134.59" width="84.77" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="10.88" y="215.18" width="63" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<polyline points="42.38,22 42.38,44" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="42.38,54 42.38,124.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M84.77,144.59 L93.25,144.59 L97.49,144.59 C99.83,144.59 101.72,142.69 101.72,140.35 L101.72,136.12 L101.72,92.3 L101.72,84.3 C101.72,79.88 98.14,76.3 93.72,76.3 L85.72,76.3 L78.45,76.3" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="42.38,166.89 42.38,205.18" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="30.32" y="74.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="14" y="155.58" font-size="14" fill="#0F172A" font-weight="bold" textLength="56.77" lengthAdjust="spacing">Running</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="24.88" y="236.18" font-size="14" fill="#0F172A" font-weight="bold" textLength="35" lengthAdjust="spacing">Done</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="12.15" y="104.9" font-size="14" fill="#0F172A" textLength="27.23" lengthAdjust="spacing">start</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="72.26" y="107.7" font-size="14" fill="#0F172A" textLength="26.46" lengthAdjust="spacing">stop</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="48.38" y="196.88" font-size="14" fill="#0F172A" textLength="32.68" lengthAdjust="spacing">finish</tspan>
+</text>
+<polygon points="38.38,44 42.38,54 46.38,44 42.38,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="38.38,124.59 42.38,134.59 46.38,124.59 42.38,128.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="78.45,72.3 68.45,76.3 78.45,80.3 74.45,76.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="38.38,205.18 42.38,215.18 46.38,205.18 42.38,209.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+</g>
+</svg>

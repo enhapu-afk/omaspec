@@ -1,0 +1,12 @@
+stateDiagram-v2
+    classDef hot fill:#f96,stroke:#333,stroke-width:2px
+    classDef cold fill:#9cf,color:#003
+    [*] --> Cold
+    Cold --> Warm : heat
+    Warm --> Hot : heat
+    Hot --> Warm : cool
+    Warm --> Cold : cool
+    class Hot hot
+    Cold:::cold
+    Hot : glowing
+    Hot : do not touch

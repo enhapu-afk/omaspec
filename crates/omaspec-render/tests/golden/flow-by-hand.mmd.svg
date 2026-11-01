@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="348" height="140" viewBox="0 0 348 140">
+<rect x="0" y="0" width="348" height="140" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<rect x="0" y="27.74" width="56.12" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<polygon points="149.58,0 195.46,45.89 149.58,91.77 103.69,45.89" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="249.24" y="27.74" width="77.91" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<polyline points="56.12,37.89 101.69,37.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="195.46,45.89 239.24,45.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M149.58,91.77 L149.58,105.54 L149.58,112.42 C149.58,116.22 146.49,119.3 142.69,119.3 L135.81,119.3 L62.12,119.3 L54.12,119.3 C49.7,119.3 46.12,115.72 46.12,111.3 L46.12,103.3 L46.12,74.03" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="16" y="50.73" font-size="14" fill="#0F172A" textLength="24.12" lengthAdjust="spacing">Edit</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="125.84" y="50.73" font-size="14" fill="#0F172A" textLength="47.47" lengthAdjust="spacing">Saved?</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="265.24" y="50.73" font-size="14" fill="#0F172A" textLength="45.91" lengthAdjust="spacing">Render</tspan>
+</text>
+<rect x="210.46" y="23.59" width="25.78" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="212.46" y="38.58" font-size="14" fill="#0F172A" textLength="21.78" lengthAdjust="spacing">yes</tspan>
+</text>
+<rect x="75.13" y="98" width="19.57" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="77.13" y="113" font-size="14" fill="#0F172A" textLength="15.57" lengthAdjust="spacing">no</tspan>
+</text>
+<polygon points="101.69,41.89 111.69,37.89 101.69,33.89 105.69,37.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="239.24,49.89 249.24,45.89 239.24,41.89 243.24,45.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="50.12,74.03 46.12,64.03 42.12,74.03 46.12,70.03" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+</g>
+</svg>

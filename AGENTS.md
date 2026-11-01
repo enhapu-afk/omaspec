@@ -17,6 +17,7 @@ cargo run -p omaspec-app -- convert FILE   # the machine or scenario in the othe
 cargo run -p omaspec-app -- example [NAME] # the gallery's examples (examples/gallery); prints one
 UPDATE_GOLDEN=1 cargo test -p omaspec-core --test golden   # after an intended behavior change; review the diff
 UPDATE_GOLDEN=1 cargo test -p omaspec-uml --test golden    # the same for the native PlantUML SVGs
+UPDATE_GOLDEN=1 cargo test -p omaspec-render --test golden # the same for the Mermaid diagrams Omaspec draws
 cargo run -p omaspec-app -- render FILE    # SVG/PNG/PDF; --json for the report; OMASPEC_PLANTUML=path|none for the Java fallback
 cargo run -p omaspec-app -- [FILE...]      # editor window
 cargo run -p omaspec-app -- preview FILE   # preview window that follows the file

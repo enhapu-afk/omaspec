@@ -965,11 +965,20 @@ dispatch spread over two lists. The rules it set for the next change are in
       `lang::mermaid_body` returns the fence's lines instead of the callers
       counting them through pointers. Every Mermaid file in the repository
       draws the same bytes as before.
+- [x] Golden SVGs for the Mermaid side: `omaspec-render/tests/layered`
+      holds state diagrams and flowcharts with every construct the layered
+      drawer lays out (nesting, regions, notes, choice, fork and join,
+      directions, styles, loops, shapes, edge kinds, subgraphs, lines by
+      hand), and with the repository's Mermaid examples Omaspec draws they
+      are pinned in `omaspec-render/tests/golden` (32 pictures). A diagram
+      of the corpus that falls back to mmdr fails the test.
 - [ ] One scene for state diagrams and flowcharts.
       `omaspec-uml/src/state/draw*` and `omaspec-render/src/mermaid/layered/`
       lay out the same picture twice (`Scene`, `Placed`, the constants,
-      regions, open clusters, notes). First golden SVGs for the Mermaid
-      side, which has none; then the shared parts move next to
+      regions, open clusters, notes). Measured: about 100 lines are still
+      the same in both; the rest (regions, notes, open clusters, crossings
+      into frames) has grown apart, so joining them changes pictures on one
+      side. With the goldens in place, the shared parts move next to
       `omaspec_uml::graph` step by step, each step with the same bytes;
       Mermaid states are read into `state::Diagram` as sequence and class
       diagrams are, and `mermaid/state.rs` (the chart turned back into

@@ -1,0 +1,9 @@
+stateDiagram-v2
+    [*] --> Closed
+    Closed --> Opening : open
+    state Moving {
+        Opening --> Open : end position
+        Closing --> Closed2 : end position
+    }
+    Open --> Closing : close
+    Closed2 --> Closed

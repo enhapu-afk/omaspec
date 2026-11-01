@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="798" height="243" viewBox="0 0 798 243">
+<rect x="0" y="0" width="798" height="243" fill="#FFFFFF"/>
+<g transform="translate(12,12)">
+<g>
+<line x1="282.26" y1="81.09" x2="388.39" y2="81.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="388.39" y1="81.09" x2="388.39" y2="18.15" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="388.39" y1="18.15" x2="392.39" y2="18.15" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="282.26" y1="137.09" x2="388.39" y2="137.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="388.39" y1="137.09" x2="388.39" y2="196.31" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="388.39" y1="196.31" x2="396.39" y2="196.31" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="534.73" y1="196.31" x2="632.87" y2="196.31" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="632.87" y1="196.31" x2="632.87" y2="109.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="632.87" y1="109.09" x2="644.87" y2="109.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="72" y1="109.09" x2="182.14" y2="109.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+</g>
+<g>
+<rect x="320.04" y="70.94" width="30.57" height="20.3" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="312.26" y="126.94" width="46.14" height="20.3" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="565.8" y="186.16" width="36" height="20.3" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="104.79" y="98.94" width="44.55" height="20.3" rx="3" ry="3" fill="#FFFFFF"/>
+</g>
+<g>
+<ellipse cx="394.39" cy="18.15" rx="3.5" ry="3.5" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="399.39" y1="18.15" x2="410.39" y2="18.15" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="399.39" y1="18.15" x2="410.39" y2="11.15" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="399.39" y1="18.15" x2="410.39" y2="25.15" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="274.26" y1="75.09" x2="274.26" y2="87.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="279.26" y1="75.09" x2="279.26" y2="87.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="324.04" y="85.93" font-size="14" fill="#0F172A" textLength="22.57" lengthAdjust="spacing">has</tspan>
+</text>
+<line x1="396.39" y1="196.31" x2="410.39" y2="196.31" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="396.39" y1="196.31" x2="410.39" y2="189.31" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="396.39" y1="196.31" x2="410.39" y2="203.31" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="274.26" y1="131.09" x2="274.26" y2="143.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="279.26" y1="131.09" x2="279.26" y2="143.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="316.26" y="141.94" font-size="14" fill="#0F172A" textLength="38.14" lengthAdjust="spacing">needs</tspan>
+</text>
+<line x1="652.87" y1="115.09" x2="652.87" y2="103.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="647.87" y1="115.09" x2="647.87" y2="103.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<ellipse cx="532.73" cy="196.31" rx="3.5" ry="3.5" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="527.73" y1="196.31" x2="516.73" y2="196.31" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="527.73" y1="196.31" x2="516.73" y2="203.31" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="527.73" y1="196.31" x2="516.73" y2="189.31" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="569.8" y="201.15" font-size="14" fill="#0F172A" textLength="28" lengthAdjust="spacing">from</tspan>
+</text>
+<ellipse cx="184.14" cy="109.09" rx="3.5" ry="3.5" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="189.14" y1="109.09" x2="200.14" y2="109.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="189.14" y1="109.09" x2="200.14" y2="102.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="189.14" y1="109.09" x2="200.14" y2="116.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="64" y1="103.09" x2="64" y2="115.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<line x1="69" y1="103.09" x2="69" y2="115.09" fill="none" stroke="#64748B" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="108.79" y="113.93" font-size="14" fill="#0F172A" textLength="36.55" lengthAdjust="spacing">writes</tspan>
+</text>
+<rect x="200.14" y="65.34" width="72.12" height="87.5" rx="6" ry="6" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="210.14" y="88.33" font-size="14" fill="#0F172A" font-weight="bold" textLength="52.12" lengthAdjust="spacing">RECIPE</tspan>
+</text>
+<rect x="410.39" y="0" width="56.57" height="36.3" rx="6" ry="6" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="420.39" y="22.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="36.57" lengthAdjust="spacing">STEP</tspan>
+</text>
+<rect x="410.39" y="174.43" width="106.34" height="43.75" rx="6" ry="6" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="420.39" y="197.42" font-size="14" fill="#0F172A" font-weight="bold" textLength="86.34" lengthAdjust="spacing">INGREDIENT</tspan>
+</text>
+<rect x="654.87" y="90.94" width="118.78" height="36.3" rx="6" ry="6" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="664.87" y="113.93" font-size="14" fill="#0F172A" font-weight="bold" textLength="98.78" lengthAdjust="spacing">PANTRY_ITEM</tspan>
+</text>
+<rect x="0" y="90.94" width="62" height="36.3" rx="6" ry="6" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="10" y="113.93" font-size="14" fill="#0F172A" font-weight="bold" textLength="42" lengthAdjust="spacing">COOK</tspan>
+</text>
+</g>
+</g>
+</svg>

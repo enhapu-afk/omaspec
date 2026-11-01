@@ -1,0 +1,8 @@
+flowchart LR
+    classDef warm fill:#ffd8a8,stroke:#e8590c,stroke-width:2px
+    classDef cool fill:#d0ebff,stroke:#1c7ed6
+    A[Order]:::warm --> B[Pack]
+    B --> C[Ship]:::cool
+    C --> D[Deliver]
+    style D fill:#d3f9d8,stroke:#2f9e44,stroke-width:3px
+    linkStyle 0 stroke:#e8590c,stroke-width:2px

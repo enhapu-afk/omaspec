@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="464" height="137" viewBox="0 0 464 137">
+<rect x="0" y="0" width="464" height="137" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<rect x="366.68" y="40.15" width="76.35" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<polygon points="293.08,16.7 334.68,58.3 293.08,99.9 251.47,58.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="119.12" y="0" width="65.46" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="116.01" y="80.3" width="71.68" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="0" y="40.15" width="74.01" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<polyline points="366.68,58.3 344.68,58.3" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M251.47,58.3 L245.01,58.3 C236.43,58.3 229.47,51.34 229.47,42.76 L229.47,42.76 C229.47,34.18 222.52,27.22 213.94,27.22 L194.58,27.22" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M251.47,58.3 L251.47,58.3 C244.85,58.3 239.47,63.67 239.47,70.3 L239.47,73.83 C239.47,82.41 232.52,89.37 223.94,89.37 L197.69,89.37" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M119.12,27.22 L115.01,27.22 C108.94,27.22 104.01,32.15 104.01,38.22 L104.01,38.22 C104.01,44.3 99.09,49.22 93.01,49.22 L84.01,49.22" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M116.01,89.37 L105.01,89.37 C98.94,89.37 94.01,84.45 94.01,78.37 L94.01,77.37 C94.01,71.85 89.54,67.37 84.01,67.37 L84.01,67.37" fill="none" stroke="#64748B" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="382.68" y="63.14" font-size="14" fill="#0F172A" textLength="44.35" lengthAdjust="spacing">Source</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="273.62" y="63.14" font-size="14" fill="#0F172A" textLength="38.91" lengthAdjust="spacing">Valid?</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="135.12" y="22.99" font-size="14" fill="#0F172A" textLength="33.46" lengthAdjust="spacing">Store</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="132.01" y="103.29" font-size="14" fill="#0F172A" textLength="39.68" lengthAdjust="spacing">Reject</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="16" y="63.14" font-size="14" fill="#0F172A" textLength="42.01" lengthAdjust="spacing">Report</tspan>
+</text>
+<rect x="200.69" y="4.93" width="25.78" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="202.69" y="19.92" font-size="14" fill="#0F172A" textLength="21.78" lengthAdjust="spacing">yes</tspan>
+</text>
+<rect x="216.91" y="67.07" width="19.57" height="20.3" rx="2" ry="2" fill="#FFFFFF"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="218.91" y="82.07" font-size="14" fill="#0F172A" textLength="15.57" lengthAdjust="spacing">no</tspan>
+</text>
+<polygon points="344.68,54.3 334.68,58.3 344.68,62.3 340.68,58.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="194.58,23.22 184.58,27.22 194.58,31.22 190.58,27.22" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="197.69,85.37 187.69,89.37 197.69,93.37 193.69,89.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="84.01,45.22 74.01,49.22 84.01,53.22 80.01,49.22" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="84.01,63.37 74.01,67.37 84.01,71.37 80.01,67.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+</g>
+</svg>
