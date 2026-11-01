@@ -1,7 +1,9 @@
 # 0017: A project is a folder with a project file
 
 Status: accepted, 2026-11-01. Comes before "Diagrams that link" in the
-roadmap's [Next](../../ROADMAP.md#next), which needs it.
+roadmap's [Next](../../ROADMAP.md#next), which needs it. Decision 5 is
+replaced by [0018](0018-diagrams-that-link.md): the first diagram is now
+a map of the project, beside the first state machine.
 
 ## Context
 
@@ -87,7 +89,7 @@ and the two would drift; names already tie a scenario to its machines.
   ends there, for state machines and for `!include`.
 - A sidebar folder inside a project shows that folder; checks, plays and
   includes use the whole project.
-- Not now: `main` is written and checked but not used beyond the first
-  tab; linking will open it as the top. No project templates beyond the
-  first diagram, no settings in the file, no `new_project` tool for the MCP
-  server.
+- Not now: no project templates beyond the first diagram, no settings in
+  the file, no `new_project` tool for the MCP server. (`main` was used only
+  for the first tab; [0018](0018-diagrams-that-link.md) makes it the map
+  that also shows the diagrams on no box.)

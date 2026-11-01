@@ -8,12 +8,13 @@
 //! Requests of other slots wait their turn.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::Arc;
 use std::sync::mpsc::{self, Sender};
 use std::thread;
 
 use omaspec_core::Language;
 
-use crate::{Config, Engine, Place, RenderError, Rendered, Renderer};
+use crate::{Atlas, Config, Engine, Place, RenderError, Rendered, Renderer};
 
 /// Counts requests; a higher generation is newer.
 pub type Generation = u64;
@@ -24,6 +25,8 @@ struct Job {
     source: String,
     language: Language,
     place: Option<Place>,
+    /// The project the diagram links into, and its own path there.
+    linked: Option<(Arc<Atlas>, Option<String>)>,
 }
 
 /// The result of one request.
@@ -89,6 +92,20 @@ impl RenderService {
         language: Language,
         place: Option<Place>,
     ) -> Generation {
+        self.submit_linked(slot, source, language, place, None)
+    }
+
+    /// The same for a diagram of a project that links to the diagrams in
+    /// `linked`'s atlas, from its own path there
+    /// ([`Renderer::render_linked`]).
+    pub fn submit_linked(
+        &mut self,
+        slot: u64,
+        source: String,
+        language: Language,
+        place: Option<Place>,
+        linked: Option<(Arc<Atlas>, Option<String>)>,
+    ) -> Generation {
         let generation = self.next;
         self.next += 1;
         // The thread only stops when `self` is dropped, so sending succeeds.
@@ -98,6 +115,7 @@ impl RenderService {
             source,
             language,
             place,
+            linked,
         });
         generation
     }
@@ -111,8 +129,15 @@ fn render_guarded(
     config: &Config,
     job: &Job,
 ) -> Result<Rendered, RenderError> {
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        renderer.render_at(&job.source, job.language, job.place.as_ref())
+    let result = catch_unwind(AssertUnwindSafe(|| match &job.linked {
+        Some((atlas, own)) => renderer.render_linked(
+            &job.source,
+            job.language,
+            job.place.as_ref(),
+            own.as_deref(),
+            atlas,
+        ),
+        None => renderer.render_at(&job.source, job.language, job.place.as_ref()),
     }));
     result.unwrap_or_else(|_| {
         *renderer = Renderer::new(config);

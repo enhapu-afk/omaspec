@@ -1,6 +1,8 @@
 //! Starting a project (`docs/adr/0017-projects.md`): `omaspec new` and the
-//! editor's *New project* make a folder with `omaspec-project.toml` and a
-//! first diagram, and on request a git repository.
+//! editor's *New project* make a folder with `omaspec-project.toml`, a map
+//! of the project and a first state machine on it
+//! (`docs/adr/0018-diagrams-that-link.md`), and on request a git
+//! repository.
 
 use std::fs::OpenOptions;
 use std::io::{ErrorKind, Write};
@@ -20,10 +22,13 @@ pub struct Created {
     /// The project's folder, absolute.
     pub root: PathBuf,
     pub name: String,
-    /// The first diagram, relative to `root`.
+    /// The map, the main diagram, relative to `root`.
     pub main: String,
     /// Whether `main` was written now; a file of that name stays as it was.
     pub wrote_main: bool,
+    /// The first state machine, which the map's root shows.
+    pub machine: String,
+    pub wrote_machine: bool,
     pub git: Git,
 }
 
@@ -42,10 +47,15 @@ impl Created {
     /// One line for the editor's status bar.
     pub fn summary(&self) -> String {
         let mut parts = vec![format!("new project {}: {FILE}", self.name)];
-        if self.wrote_main {
-            parts.push(self.main.clone());
-        } else {
-            parts.push(format!("{} as it was", self.main));
+        for (file, wrote) in [
+            (&self.main, self.wrote_main),
+            (&self.machine, self.wrote_machine),
+        ] {
+            if wrote {
+                parts.push(file.clone());
+            } else {
+                parts.push(format!("{file} as it was"));
+            }
         }
         match &self.git {
             Git::No => {}
@@ -58,10 +68,11 @@ impl Created {
 }
 
 /// Makes `dir` a project: creates the folder if it is not there, writes
-/// the first diagram in `language` unless a file of its name is there,
-/// then `omaspec-project.toml`, and with `git` runs `git init` unless the
-/// folder is inside a repository already. A folder that is a project
-/// already, the home folder and the file system's root are refused.
+/// the first state machine and the map in `language` (each unless a file
+/// of its name is there), then `omaspec-project.toml`, and with `git` runs
+/// `git init` unless the folder is inside a repository already. A folder
+/// that is a project already, the home folder and the file system's root
+/// are refused.
 pub fn create(dir: &Path, language: Language, git: bool) -> Result<Created> {
     let root =
         std::path::absolute(dir).with_context(|| format!("no folder `{}`", dir.display()))?;
@@ -85,8 +96,10 @@ pub fn create(dir: &Path, language: Language, git: bool) -> Result<Created> {
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| "project".into());
+    let machine = project::machine_file(language, &name);
+    let wrote_machine = write_new(&root.join(&machine), &project::starter(language, &name))?;
     let main = project::main_file(language);
-    let wrote_main = write_new(&root.join(&main), &project::starter(language, &name))?;
+    let wrote_main = write_new(&root.join(&main), &project::map_starter(language, &name))?;
     let file = Project {
         name: Some(name.clone()),
         main: Some(main.clone()),
@@ -100,6 +113,8 @@ pub fn create(dir: &Path, language: Language, git: bool) -> Result<Created> {
         name,
         main,
         wrote_main,
+        machine,
+        wrote_machine,
         git,
     })
 }
@@ -182,12 +197,18 @@ mod tests {
         let file = read(&shop).unwrap().unwrap();
         assert_eq!(file.name.as_deref(), Some("shop"));
         assert_eq!(file.main.as_deref(), Some("system.mmd"));
-        let main = std::fs::read_to_string(shop.join("system.mmd")).unwrap();
-        assert!(main.contains("title: shop"), "{main}");
+        let map = std::fs::read_to_string(shop.join("system.mmd")).unwrap();
+        assert!(
+            map.starts_with("%% ") && map.contains("mindmap\n  root((shop))\n"),
+            "{map}"
+        );
+        assert_eq!(made.machine, "shop.mmd");
+        let machine = std::fs::read_to_string(shop.join("shop.mmd")).unwrap();
+        assert!(machine.contains("title: shop"), "{machine}");
         assert_eq!(omaspec_render::project_root(&shop), Some(made.root.clone()));
         assert!(
             made.summary()
-                .starts_with("new project shop: omaspec-project.toml, system.mmd")
+                .starts_with("new project shop: omaspec-project.toml, system.mmd, shop.mmd")
         );
 
         // Twice is refused, and nothing is overwritten.
@@ -208,6 +229,7 @@ mod tests {
             "@startuml\nA -> B\n@enduml\n"
         );
         assert!(made.summary().contains("system.puml as it was"));
+        assert!(made.wrote_machine);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

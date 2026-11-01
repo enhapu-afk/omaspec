@@ -1715,7 +1715,12 @@ fn a_sequence_is_checked_against_the_state_machines_of_its_folder() {
     let root = app.project_of(app.doc()).unwrap();
     assert_eq!(root, std::path::absolute(&work).unwrap());
     // What the read in the background brings.
-    let _ = app.update(Message::Specs(root.clone(), Arc::new(specs::read(&root))));
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
     let found: Vec<(usize, &str)> = app
         .doc()
         .findings
@@ -2335,7 +2340,12 @@ fn snapshot_story() {
     let _ = app.update(Message::Select(2));
     retype(&mut app, &without(LEAVE, ": close"), Language::PlantUml);
     let root = app.project_of(app.doc()).unwrap();
-    let _ = app.update(Message::Specs(root.clone(), Arc::new(specs::read(&root))));
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
     assert!(
         app.doc()
             .findings
@@ -2351,7 +2361,12 @@ fn snapshot_story() {
     shoot(&mut app, &dir, "readme-specs");
     split_at(&mut app, 0.5);
     retype(&mut app, LEAVE, Language::PlantUml);
-    let _ = app.update(Message::Specs(root.clone(), Arc::new(specs::read(&root))));
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
 
     // A night in which the door is locked while it stands open.
     let _ = app.update(Message::Select(1));
@@ -3395,4 +3410,217 @@ fn what_is_typed_after_the_command_list_goes_to_the_prompt_only() {
             "{command}"
         );
     }
+}
+
+/// Draws the active tab's diagram linked into its project, as a render
+/// with the project's diagrams would.
+fn show_linked(app: &mut App) {
+    let key = app.doc().key;
+    let _ = app.update(Message::Paper(
+        key,
+        paper::Message::Viewport(Size::new(900.0, 700.0)),
+    ));
+    let (atlas, own) = app.linked_of(key).expect("a project");
+    let text = app.doc().text();
+    let language = app.doc().language;
+    let mut renderer = omaspec_render::Renderer::new(&omaspec_render::Config {
+        java_fallback: false,
+        ..Default::default()
+    });
+    let out = renderer
+        .render_linked(&text, language, None, own.as_deref(), &atlas)
+        .unwrap();
+    let drawn = crate::worker::Drawn {
+        tree: Arc::new(omaspec_render::export::parse(&out.svg).unwrap()),
+        svg: out.svg.into(),
+        engine: out.engine,
+        elapsed: out.elapsed,
+        map: Arc::new(out.map),
+        links: Arc::new(out.links),
+    };
+    let paper = &mut app.doc_mut().paper;
+    let id = paper.pretend_next();
+    let mut reply = answer(key, id, Ok(drawn));
+    reply.language = language;
+    reply.source = text.into();
+    let _ = paper.rendered(reply);
+    paper.finish_rasters();
+}
+
+/// Where the link called `name` is on screen in the active tab.
+fn link_on_screen(app: &App, name: &str) -> iced::Point {
+    let paper = &app.doc().paper;
+    let link = paper
+        .links()
+        .iter()
+        .find(|l| l.name == name)
+        .unwrap_or_else(|| panic!("no link {name}: {:?}", paper.links()));
+    paper
+        .view
+        .on_screen(
+            paper::link_rect(link),
+            iced::Rectangle::with_size(paper.viewport()),
+        )
+        .center()
+}
+
+#[test]
+fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
+    let root = temp_dir("links");
+    let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
+    write(
+        "omaspec-project.toml",
+        "name = \"shop\"\nmain = \"system.puml\"\n",
+    );
+    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    write(
+        "shop.puml",
+        "@startuml\ntitle Shop\n[*] --> Open\n@enduml\n",
+    );
+    write(
+        "orders.puml",
+        "@startuml\ntitle Orders\n[*] --> New\nNew --> Checkout : pay\n@enduml\n",
+    );
+    write(
+        "checkout.puml",
+        "@startuml\ntitle Checkout\nstart\n:Pay;\nstop\n@enduml\n",
+    );
+    write(
+        "refund.puml",
+        "@startuml\ntitle Refund\n[*] --> Asked\n@enduml\n",
+    );
+    let root = std::fs::canonicalize(&root).unwrap();
+    let mut app = open(&[root.join("system.puml")]);
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
+
+    // The map: Orders and the root on it, Checkout and Refund on no box.
+    show_linked(&mut app);
+    let tiles: Vec<(&str, bool)> = app
+        .doc()
+        .paper
+        .links()
+        .iter()
+        .map(|l| (l.name.as_str(), l.tile))
+        .collect();
+    assert_eq!(
+        tiles,
+        [
+            ("Orders", true),
+            ("Shop", true),
+            ("Checkout", true),
+            ("Refund", true)
+        ]
+    );
+    // Ctrl+click on a tile finds its box in the source.
+    let orders = link_on_screen(&app, "Orders");
+    assert_eq!(app.doc().paper.tile_line_at(orders), Some(2));
+
+    // A click zooms into Orders; once there, Orders opens.
+    let map = app.doc().key;
+    let before = app.doc().paper.view;
+    let _ = app.update(Message::Paper(map, paper::Message::Follow(orders)));
+    assert!(app.following.is_some());
+    assert!(app.doc().paper.view.zoom > before.zoom);
+    due(&mut app, Alarm::Follow);
+    assert_eq!(app.doc().path, Some(root.join("orders.puml")));
+    let names = |app: &App| -> Vec<String> { app.trail.iter().map(|s| s.name.clone()).collect() };
+    // The map is the project's main diagram: the trail calls it by the
+    // project's name.
+    assert_eq!(names(&app), ["shop", "Orders"]);
+    assert!(app.trail_view().is_some());
+    // The map keeps the view it had, for a click on its tab.
+    assert_eq!(app.docs[0].paper.view, before);
+
+    // In Orders, the state Checkout leads on.
+    show_linked(&mut app);
+    let links: Vec<(&str, bool)> = app
+        .doc()
+        .paper
+        .links()
+        .iter()
+        .map(|l| (l.name.as_str(), l.tile))
+        .collect();
+    assert_eq!(links, [("Checkout", false)]);
+    let orders_key = app.doc().key;
+    let checkout = link_on_screen(&app, "Checkout");
+    let _ = app.update(Message::Paper(orders_key, paper::Message::Follow(checkout)));
+    due(&mut app, Alarm::Follow);
+    assert_eq!(app.doc().path, Some(root.join("checkout.puml")));
+    assert_eq!(names(&app), ["shop", "Orders", "Checkout"]);
+
+    // Alt+Left zooms back out to Orders; the trail back to the map.
+    assert_eq!(
+        shortcut(&Key::Named(Named::ArrowLeft), Modifiers::ALT, Mode::Editing),
+        Some(Command::Back)
+    );
+    press(&mut app, Command::Back);
+    assert_eq!(app.doc().path, Some(root.join("orders.puml")));
+    assert_eq!(names(&app), ["shop", "Orders"]);
+    let _ = app.update(Message::BackTo(0));
+    assert_eq!(app.doc().path, Some(root.join("system.puml")));
+    assert!(app.trail_view().is_none());
+    // Back on the map, it zooms out of Orders to where it was.
+    assert_eq!(app.doc().paper.view, before);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// Writes headless screenshots of a project's map and of a diagram
+/// followed into from it when OMASPEC_SNAPSHOT_DIR is set.
+#[test]
+fn snapshot_links() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let root = temp_dir("snapshot-links");
+    let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
+    write(
+        "omaspec-project.toml",
+        "name = \"shop\"\nmain = \"system.puml\"\n",
+    );
+    write(
+        "system.puml",
+        "@startwbs\n* Shop\n** Orders\n*** Checkout\n** Payment\n** Ideas\n@endwbs\n",
+    );
+    write(
+        "shop.puml",
+        "@startuml\ntitle Shop\n[*] --> Open\nOpen --> Closed : night\nClosed --> Open : morning\n@enduml\n",
+    );
+    write(
+        "orders.puml",
+        "@startuml\ntitle Orders\n[*] --> New\nNew --> Checkout : pay\nCheckout --> Shipped : paid\nShipped --> [*]\n@enduml\n",
+    );
+    write(
+        "checkout.puml",
+        "@startuml\ntitle Checkout\nstart\n:Enter the address;\n:Pay;\nstop\n@enduml\n",
+    );
+    write(
+        "payment.puml",
+        "@startuml\ntitle Payment\n[*] --> Waiting\nWaiting --> Checkout : start\nCheckout --> Done : ok\n@enduml\n",
+    );
+    write(
+        "refund.puml",
+        "@startuml\ntitle Refund\n[*] --> Asked\nAsked --> Paid : pay\n@enduml\n",
+    );
+    let root = std::fs::canonicalize(&root).unwrap();
+    let mut app = open(&[root.join("system.puml")]);
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
+    show_linked(&mut app);
+    shoot(&mut app, &dir, "links-map");
+    let map = app.doc().key;
+    let orders = link_on_screen(&app, "Orders");
+    let _ = app.update(Message::Paper(map, paper::Message::Follow(orders)));
+    due(&mut app, Alarm::Follow);
+    show_linked(&mut app);
+    shoot(&mut app, &dir, "links-orders");
 }

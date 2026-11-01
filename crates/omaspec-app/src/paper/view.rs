@@ -14,6 +14,10 @@ const FIT_MARGIN: f32 = 24.0;
 const MIN_PINCH_SPAN: f32 = 1.0;
 /// How long a stepped zoom glides.
 pub const GLIDE: Duration = Duration::from_millis(160);
+/// How long a zoom into a linked diagram, or out of it, glides.
+pub const DIVE: Duration = Duration::from_millis(320);
+/// A link zoomed into fills this share of the viewport.
+const DIVE_FILL: f32 = 0.9;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct View {
@@ -48,6 +52,19 @@ impl View {
             zoom,
             center: Point::new(diagram.width / 2.0, diagram.height / 2.0),
             fit: true,
+        }
+    }
+
+    /// `area` of the diagram (in diagram units) filling most of the
+    /// viewport: where a zoom into a link ends, and one out of it starts.
+    pub fn showing(area: Rectangle, viewport: Size) -> Self {
+        let zoom = (viewport.width * DIVE_FILL / area.width.max(1.0))
+            .min(viewport.height * DIVE_FILL / area.height.max(1.0))
+            .clamp(MIN_ZOOM, MAX_ZOOM);
+        Self {
+            zoom,
+            center: area.center(),
+            fit: false,
         }
     }
 
@@ -142,6 +159,7 @@ pub struct Glide {
     /// The anchor, from the viewport's center.
     anchor: Vector,
     start: Instant,
+    duration: Duration,
 }
 
 impl Glide {
@@ -153,16 +171,23 @@ impl Glide {
             to,
             anchor: anchor - Point::new(viewport.width / 2.0, viewport.height / 2.0),
             start,
+            duration: GLIDE,
         }
     }
 
+    /// The same glide, taking `duration`.
+    pub fn taking(self, duration: Duration) -> Self {
+        Self { duration, ..self }
+    }
+
     pub fn done(&self, now: Instant) -> bool {
-        now.saturating_duration_since(self.start) >= GLIDE
+        now.saturating_duration_since(self.start) >= self.duration
     }
 
     /// The view shown at `now`.
     pub fn at(&self, now: Instant) -> View {
-        let t = now.saturating_duration_since(self.start).as_secs_f32() / GLIDE.as_secs_f32();
+        let t = now.saturating_duration_since(self.start).as_secs_f32()
+            / self.duration.as_secs_f32().max(f32::EPSILON);
         if t >= 1.0 {
             return self.to;
         }

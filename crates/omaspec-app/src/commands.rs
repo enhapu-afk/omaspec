@@ -1,5 +1,6 @@
 //! The CLI subcommands.
 
+use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -604,13 +605,36 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     let mut renderer = Renderer::new(&render_config());
     let mut failed = false;
     let mut reports = Vec::new();
+    // A map shows its project's diagrams in tiles (docs/adr/0018).
+    let mut atlases: HashMap<PathBuf, omaspec_render::Atlas> = HashMap::new();
     for input in &inputs {
         let lang = language(input, args.lang);
         let place = input
             .path
             .as_deref()
             .and_then(|path| omaspec_render::Place::of(path, None));
-        let rendered = match renderer.render_at(&input.text, lang, place.as_ref()) {
+        let map = place
+            .as_ref()
+            .filter(|_| omaspec_render::is_map(&input.text, lang));
+        let drawn = match map {
+            Some(place) => {
+                let atlas = atlases
+                    .entry(place.root.clone())
+                    .or_insert_with(|| crate::specs::read_project(&place.root).1);
+                let own = input
+                    .path
+                    .as_deref()
+                    .and_then(|p| std::path::absolute(p).ok())
+                    .and_then(|p| {
+                        p.strip_prefix(&place.root)
+                            .ok()
+                            .map(crate::specs::file_name)
+                    });
+                renderer.render_linked(&input.text, lang, Some(place), own.as_deref(), atlas)
+            }
+            None => renderer.render_at(&input.text, lang, place.as_ref()),
+        };
+        let rendered = match drawn {
             Ok(r) => r,
             Err(err) => {
                 failed = true;
@@ -783,6 +807,8 @@ pub fn new_project(dir: &Path, language: Language, git: bool, json: bool) -> Res
             "file": omaspec_core::project::FILE,
             "main": made.main,
             "wrote_main": made.wrote_main,
+            "machine": made.machine,
+            "wrote_machine": made.wrote_machine,
         });
         value["git"] = match &made.git {
             Git::No => serde_json::json!(null),
@@ -792,11 +818,16 @@ pub fn new_project(dir: &Path, language: Language, git: bool, json: bool) -> Res
         };
         writeln!(out, "{}", serde_json::to_string_pretty(&value)?)?;
     } else {
-        let main = dir.join(&made.main);
-        if made.wrote_main {
-            writeln!(out, "created {}", main.display())?;
-        } else {
-            writeln!(out, "kept {}, the main diagram", main.display())?;
+        for (file, wrote, what) in [
+            (&made.machine, made.wrote_machine, "the first state machine"),
+            (&made.main, made.wrote_main, "the map"),
+        ] {
+            let path = dir.join(file);
+            if wrote {
+                writeln!(out, "created {}, {what}", path.display())?;
+            } else {
+                writeln!(out, "kept {}", path.display())?;
+            }
         }
         let file = dir.join(omaspec_core::project::FILE);
         writeln!(out, "created {}", file.display())?;

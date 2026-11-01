@@ -75,7 +75,27 @@ pub fn render_mapped(source: &str) -> Result<(String, Engine, Map), RenderError>
 /// program.
 const MAX_NESTING: usize = 100;
 
+/// A Mermaid mind map with the boxes `tiles` picks drawn as tiles, its
+/// engine and where the tiles are; the other diagrams as [`render_mapped`]
+/// draws them.
+pub fn render_tiled(
+    source: &str,
+    tiles: &omaspec_uml::tree::Tiles,
+) -> Result<(String, Engine, Map), RenderError> {
+    draw_with(source, Some(tiles)).map(|drawn| {
+        let engine = match drawn.declined {
+            None => Engine::NativeMermaid,
+            Some(_) => Engine::Mermaid,
+        };
+        (drawn.svg, engine, drawn.map)
+    })
+}
+
 fn draw(source: &str) -> Result<Drawn, RenderError> {
+    draw_with(source, None)
+}
+
+fn draw_with(source: &str, tiles: Option<&omaspec_uml::tree::Tiles>) -> Result<Drawn, RenderError> {
     let fenced = strip_mermaid_fence(source);
     // `fenced` is a slice of `source`; lines before it belong to the fence.
     let offset = source
@@ -132,7 +152,7 @@ fn draw(source: &str) -> Result<Drawn, RenderError> {
                 declined: None,
             });
         }
-        if let Some((svg, map)) = mindmap::try_draw(&parsed.graph, &options.theme, body) {
+        if let Some((svg, map)) = mindmap::try_draw(&parsed.graph, &options.theme, body, tiles) {
             return Ok(Drawn {
                 svg,
                 map: map.shifted(offset),

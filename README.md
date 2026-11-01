@@ -84,6 +84,9 @@ diagram with the theme if you like. Every bundled theme is checked for legible c
 - **Projects.** `omaspec new shop`, or *New project* in the editor, makes a folder with a
   first diagram and `omaspec-project.toml`. Every diagram below it is checked against
   the whole project, however it was opened.
+- **Diagrams that link.** A state links to the diagram of its name: click it and the
+  view zooms in, Alt+Left zooms back out. A mind map or WBS in a project is its map,
+  each box that names a diagram a tile with that diagram's picture.
 - **Compare** a diagram with another tab or any git commit, as pictures side by side or
   as changed lines. `omaspec diff` says what changed in the *behavior*: states,
   transitions and messages, not layout.
@@ -130,7 +133,7 @@ Salt and more), `wl-clipboard` to copy diagrams, `git` to compare with commits.
 
 ```bash
 omaspec ~/diagrams          # the editor, with that folder in the sidebar
-omaspec new ~/specs/shop    # or start a project: a folder with a first diagram
+omaspec new ~/specs/shop    # or start a project: a map and a first diagram
 ```
 
 1. **Ctrl+Shift+E** opens the examples. Pick *A coffee machine* and press **F5**: it
@@ -144,11 +147,6 @@ has every key and command.
 
 ## What's next
 
-- **Lines by hand.** Drag a line in the diagram, or a bend in it, to route it yourself;
-  the diagram keeps your route.
-- **Diagrams that link.** Click a state and the view zooms into it: inside is the
-  activity diagram that says what the state does. A specification you can read from the
-  whole system down to a single step.
 - **Even cleaner lines.** Fewer crossings and detours, lines that keep clear of frames and
   labels, closer to what Graphviz draws.
 

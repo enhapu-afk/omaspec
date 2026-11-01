@@ -6,6 +6,7 @@
 //! [`sanitize`] before anyone sees it. [`RenderService`] runs a renderer on
 //! its own thread and drops requests that a newer one has overtaken.
 
+mod atlas;
 pub mod export;
 mod include;
 mod java;
@@ -22,6 +23,7 @@ use omaspec_core::Language;
 use omaspec_core::kind;
 pub use omaspec_uml::map::Map;
 
+pub use atlas::{Atlas, Entry, LOOSE_HEADING, Link, PICTURE, is_map};
 pub use include::{Place, project_root};
 pub use java::JavaPlantUml;
 pub use mermaid::{MermaidDeclined, coverage as mermaid_coverage};
@@ -58,6 +60,9 @@ pub struct Rendered {
     /// Where the states, transitions and messages are in the picture, as
     /// far as Omaspec drew them; empty for the fallbacks.
     pub map: Map,
+    /// The tiles and states that name other diagrams of the project
+    /// ([`Renderer::render_linked`]).
+    pub links: Vec<Link>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -163,6 +168,8 @@ impl Default for Config {
 /// PlantUML process running between diagrams.
 pub struct Renderer {
     java: Option<JavaPlantUml>,
+    /// The pictures of a project's map, kept between drawings.
+    pictures: atlas::Pictures,
 }
 
 impl Renderer {
@@ -171,7 +178,10 @@ impl Renderer {
             .java_fallback
             .then(|| JavaPlantUml::find(config))
             .flatten();
-        Self { java }
+        Self {
+            java,
+            pictures: atlas::Pictures::default(),
+        }
     }
 
     /// Whether PlantUML diagrams the native engine declines can still be drawn.
@@ -206,7 +216,33 @@ impl Renderer {
             engine,
             elapsed: start.elapsed(),
             map,
+            links: Vec::new(),
         })
+    }
+
+    /// Renders a diagram of a project, the one in `own`, that links to the
+    /// project's diagrams in `atlas`
+    /// (`docs/adr/0018-diagrams-that-link.md`): a mind map or a WBS with
+    /// its boxes that name diagrams as tiles that show them, a state
+    /// machine with the states that do. Either says where they are in
+    /// [`Rendered::links`].
+    pub fn render_linked(
+        &mut self,
+        source: &str,
+        language: Language,
+        place: Option<&Place>,
+        own: Option<&str>,
+        atlas: &Atlas,
+    ) -> Result<Rendered, RenderError> {
+        if atlas::is_map(source, language) {
+            let mut draw = atlas::drawer(source, language, place);
+            if let Ok(rendered) = atlas::render(own, atlas, &mut self.pictures, &mut draw) {
+                return Ok(rendered);
+            }
+        }
+        let mut rendered = self.render_at(source, language, place)?;
+        rendered.links = atlas::state_links(&rendered.map, atlas, own);
+        Ok(rendered)
     }
 
     fn plantuml(

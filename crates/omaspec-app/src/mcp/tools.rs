@@ -223,7 +223,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "render",
             "title": "Render a diagram",
-            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip); SVG and PNG files carry the diagram's source. A diagram with an error comes back as an error with its line.",
+            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip); SVG and PNG files carry the diagram's source. A mind map or WBS in a project is its map: each box that names a diagram of the project shows that diagram in a tile. A diagram with an error comes back as an error with its line.",
             "inputSchema": schema(&[
                 ("path", path),
                 ("code", code),
@@ -344,7 +344,28 @@ impl Tools {
             .path
             .as_deref()
             .and_then(|path| place_in(path, project));
-        let rendered = match renderer.render_at(&input.text, lang, place.as_ref()) {
+        // A map shows the diagrams of its project in tiles (docs/adr/0018),
+        // read no further than its includes are.
+        let drawn = match place
+            .as_ref()
+            .filter(|_| omaspec_render::is_map(&input.text, lang))
+        {
+            Some(place) => {
+                let atlas = crate::specs::read_project(&place.root).1;
+                let own = input
+                    .path
+                    .as_deref()
+                    .and_then(|p| std::path::absolute(p).ok())
+                    .and_then(|p| {
+                        p.strip_prefix(&place.root)
+                            .ok()
+                            .map(crate::specs::file_name)
+                    });
+                renderer.render_linked(&input.text, lang, Some(place), own.as_deref(), &atlas)
+            }
+            None => renderer.render_at(&input.text, lang, place.as_ref()),
+        };
+        let rendered = match drawn {
             Ok(rendered) => rendered,
             Err(err) => {
                 let (line, engine, message) = failure(&err);

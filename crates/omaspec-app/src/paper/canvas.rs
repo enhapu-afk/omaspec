@@ -5,9 +5,10 @@
 //! scale change. Two-finger scroll: pan; with Ctrl: zoom. Drag, and one
 //! finger on a touchscreen: pan. Two fingers: pinch, zooming at their
 //! midpoint. Double click: fit. Ctrl+click: what is drawn there (the window
-//! jumps to its source). With Alt, a line is drawn by hand ([`super::hand`]):
-//! the pointer, a drag and a double click go to it, and Escape stops a
-//! drag.
+//! jumps to its source). A click on a link (a tile of a map, a state with a
+//! diagram of its own) follows it. With Alt, a line is drawn by hand
+//! ([`super::hand`]): the pointer, a drag and a double click go to it, and
+//! Escape stops a drag.
 
 use std::time::{Duration, Instant};
 
@@ -19,13 +20,17 @@ use iced::widget::image;
 use iced::window;
 use iced::{Color, Font, Point, Rectangle, Renderer, Size, Theme, Vector, alignment, border};
 
+use omaspec_render::Link;
+
 use super::hand::Gesture;
 use super::play::{self, Look, Play, Viewer};
 use super::raster::Raster;
 use super::view::{Glide, View};
-use super::{Fade, Message};
+use super::{Fade, Message, link_rect, link_under};
 
 const DOUBLE_CLICK: Duration = Duration::from_millis(350);
+/// A press that moves less than this far is a click, not a drag.
+const CLICK_SLOP: f32 = 4.0;
 /// The paper's rounded corners, in screen pixels.
 const RADIUS: f32 = 8.0;
 /// Layers of the soft shadow, and how far the outermost one reaches.
@@ -53,6 +58,15 @@ pub struct DiagramCanvas<'a> {
     pub by_hand: bool,
     /// The pointer over a line lit to draw by hand.
     pub hand_cursor: Option<mouse::Interaction>,
+    /// The tiles and states a click follows; none while a play runs.
+    pub links: &'a [Link],
+}
+
+impl DiagramCanvas<'_> {
+    /// The link at `at`, a point of the pane.
+    fn link_at(&self, at: Point, viewport: Size) -> Option<&Link> {
+        link_under(self.links, self.view.to_diagram(at, viewport))
+    }
 }
 
 /// A play over the diagram, in a layer of its own: iced draws pictures
@@ -161,6 +175,9 @@ pub struct State {
     hand_told: bool,
     /// The last press with Alt; a plain click does not make it double.
     hand_click: Option<Instant>,
+    /// Where the last plain press was, and whether the pointer has left
+    /// it since: a click that stays follows a link.
+    press: Option<(Point, bool)>,
 }
 
 impl canvas::Program<Message> for DiagramCanvas<'_> {
@@ -234,17 +251,27 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
                 }
                 state.last_click = Some(now);
                 state.drag = Some(at);
+                state.press = Some((at, false));
                 Some(Action::request_redraw().and_capture())
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 let from = state.drag?;
                 let to = cursor.position_from(bounds.position())?;
                 state.drag = Some(to);
+                if let Some((at, moved)) = &mut state.press {
+                    *moved |= at.distance(to) > CLICK_SLOP;
+                }
                 Some(Action::publish(Message::Pan(to - from)).and_capture())
             }
             Event::Mouse(mouse::Event::ButtonReleased(Button::Left)) => {
                 state.drag.take()?;
-                Some(Action::request_redraw())
+                match state.press.take() {
+                    Some((at, false)) if self.link_at(at, bounds.size()).is_some() => {
+                        state.last_click = None;
+                        Some(Action::publish(Message::Follow(at)))
+                    }
+                    _ => Some(Action::request_redraw()),
+                }
             }
             Event::Touch(event) => touch(state, event, bounds),
             _ => None,
@@ -316,7 +343,14 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
             mouse::Interaction::Grabbing
         } else if cursor.is_over(bounds) && self.by_hand && state.modifiers.alt() {
             self.hand_cursor.unwrap_or_default()
-        } else if cursor.is_over(bounds) && self.overview.is_some() && state.modifiers.control() {
+        } else if cursor.is_over(bounds)
+            && self.overview.is_some()
+            && (state.modifiers.control()
+                || cursor
+                    .position_in(bounds)
+                    .is_some_and(|at| self.link_at(at, bounds.size()).is_some()))
+        {
+            // Ctrl+click jumps to the source; a click on a link follows it.
             mouse::Interaction::Pointer
         } else if cursor.is_over(bounds) && self.overview.is_some() {
             mouse::Interaction::Grab
@@ -329,6 +363,120 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
 /// The caret's name, lit in a layer of its own. In one layer iced draws
 /// pictures over shapes, so this light would sit under the diagram if it
 /// were drawn with the picture.
+/// The links of the diagram, in a layer of their own: a small mark in
+/// the corner of each state that opens a diagram of its own, and a light
+/// around the link under the pointer.
+pub struct LinkMarks<'a> {
+    pub links: &'a [Link],
+    pub view: View,
+    pub glide: Option<Glide>,
+    pub color: Color,
+    pub scale: f32,
+}
+
+#[derive(Default)]
+pub struct LinkState {
+    /// The link the pointer was last over.
+    over: Option<usize>,
+}
+
+impl LinkMarks<'_> {
+    fn under(&self, cursor: Cursor, bounds: Rectangle) -> Option<usize> {
+        let at = cursor.position_in(bounds)?;
+        let p = self.view.to_diagram(at, bounds.size());
+        let found = link_under(self.links, p)?;
+        self.links.iter().position(|l| std::ptr::eq(l, found))
+    }
+}
+
+impl canvas::Program<Message> for LinkMarks<'_> {
+    type State = LinkState;
+
+    fn update(
+        &self,
+        state: &mut LinkState,
+        event: &Event,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> Option<Action<Message>> {
+        match event {
+            Event::Window(window::Event::RedrawRequested(now)) => self
+                .glide
+                .filter(|g| !g.done(*now))
+                .map(|_| Action::request_redraw()),
+            Event::Mouse(mouse::Event::CursorMoved { .. } | mouse::Event::CursorLeft) => {
+                let over = self.under(cursor, bounds);
+                (over != state.over).then(|| {
+                    state.over = over;
+                    Action::request_redraw()
+                })
+            }
+            _ => None,
+        }
+    }
+
+    fn draw(
+        &self,
+        state: &LinkState,
+        renderer: &Renderer,
+        _theme: &Theme,
+        bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Vec<Geometry> {
+        let mut frame = Frame::new(renderer, bounds.size());
+        let now = iced::time::Instant::now();
+        let view = self.glide.map_or(self.view, |glide| glide.at(now));
+        let grid = Grid::of(bounds, self.scale);
+        let local = Rectangle::with_size(bounds.size());
+        for (index, link) in self.links.iter().enumerate() {
+            let on_screen = grid.snap(view.on_screen(link_rect(link), local));
+            if on_screen.width <= 1.0 || on_screen.height <= 1.0 {
+                continue;
+            }
+            if state.over == Some(index) {
+                let radius = RADIUS.min(on_screen.width.min(on_screen.height) * 0.5);
+                let path = rounded(on_screen, radius);
+                frame.fill(
+                    &path,
+                    Color {
+                        a: 0.08,
+                        ..self.color
+                    },
+                );
+                frame.stroke(
+                    &path,
+                    Stroke::default().with_color(self.color).with_width(2.0),
+                );
+            }
+            if !link.tile {
+                // Two small squares, one behind the other, on the box's
+                // top right corner, clear of its words: a diagram inside.
+                let size = (on_screen.height * 0.22).clamp(5.0, 9.0);
+                let at = Point::new(
+                    on_screen.x + on_screen.width - size * 0.5,
+                    on_screen.y - size * 0.5,
+                );
+                let back =
+                    Path::rectangle(Point::new(at.x - 2.5, at.y + 2.5), Size::new(size, size));
+                let front = Path::rectangle(at, Size::new(size, size));
+                let stroke = Stroke::default().with_color(self.color).with_width(1.2);
+                frame.stroke(&back, stroke);
+                frame.fill(&front, self.color);
+            }
+        }
+        vec![frame.into_geometry()]
+    }
+
+    fn mouse_interaction(
+        &self,
+        _state: &LinkState,
+        _bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> mouse::Interaction {
+        mouse::Interaction::default()
+    }
+}
+
 pub struct BreathLight {
     pub view: View,
     pub glide: Option<Glide>,

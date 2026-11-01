@@ -10,12 +10,18 @@
 //! grows (right, or down when vertical), and the thickness across it.
 
 use super::skin::{Skin, TreeKind};
-use super::{Annotations, Idea, Label, MARGIN, Map, MindMap, Node};
+use super::{Annotations, Idea, Label, MARGIN, Map, MindMap, Node, Tiles, draw_extras};
 use crate::Declined;
+use crate::map::{self, Tile};
 use crate::svg::{Canvas, Layer, n};
 use crate::text::Family;
 
 pub fn draw(d: &MindMap) -> Result<String, Declined> {
+    draw_tiled(d, None).map(|(svg, _)| svg)
+}
+
+/// Draws `d` with the boxes `tiles` picks as tiles, and says where they are.
+pub fn draw_tiled(d: &MindMap, tiles: Option<&Tiles>) -> Result<(String, map::Map), Declined> {
     let skin = Skin::from_params(&d.frame.skinparams, TreeKind::MindMap)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     let family = canvas.family();
@@ -32,18 +38,29 @@ pub fn draw(d: &MindMap) -> Result<String, Declined> {
     let geometry = Geometry {
         skin: &skin,
         vertical: d.vertical,
+        tiles,
     };
     let mut top = annotations.top();
+    let mut placed = Vec::new();
     for map in &d.maps {
-        top += geometry.draw_map(&mut canvas, map, family, top)?;
+        top += geometry.draw_map(&mut canvas, map, family, top, &mut placed)?;
+    }
+    if let Some(tiles) = tiles {
+        draw_extras(&mut canvas, &skin, family, tiles, &mut placed)?;
     }
     annotations.draw(&mut canvas);
-    Ok(canvas.finish(MARGIN, skin.background))
+    let map = map::Map {
+        tiles: placed,
+        ..map::Map::default()
+    }
+    .placed(canvas.fit(MARGIN));
+    Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
 struct Geometry<'a> {
     skin: &'a Skin,
     vertical: bool,
+    tiles: Option<&'a Tiles<'a>>,
 }
 
 /// An idea with the ideas below it, measured and packed.
@@ -89,7 +106,7 @@ impl Geometry<'_> {
     ) -> Result<Finger, Declined> {
         let (label, elongation, thickness) = match node {
             Some(node) => {
-                let label = Label::new(node, self.skin, family)?;
+                let label = Label::new(node, self.skin, family)?.tiled(node, self.tiles);
                 let (e, t) = self.phalanx(&label, right);
                 (Some(label), e, t)
             }
@@ -149,6 +166,7 @@ impl Geometry<'_> {
         map: &Map,
         family: Family,
         top: f32,
+        placed: &mut Vec<Tile>,
     ) -> Result<f32, Declined> {
         let (x1, x2) = self.gaps();
         // The root's box belongs to the right side; the left side draws
@@ -178,9 +196,17 @@ impl Geometry<'_> {
         } else {
             (before, top + half)
         };
+        // The left side hangs below the root as well, which the right
+        // side draws.
+        let root = right
+            .as_ref()
+            .and_then(|f| f.label.as_ref())
+            .and_then(Label::tile_key)
+            .map(str::to_owned);
         for (finger, dir) in [(&right, 1.0), (&left, -1.0)] {
             if let Some(finger) = finger {
-                self.draw_finger(canvas, finger, origin, dir);
+                let parent = if dir < 0.0 { root.as_deref() } else { None };
+                self.draw_finger(canvas, finger, origin, dir, parent, placed);
             }
         }
         Ok(if self.vertical {
@@ -200,8 +226,16 @@ impl Geometry<'_> {
     }
 
     /// Draws `finger` with its box starting at `start` on its center line,
-    /// growing in `dir` (1 or -1).
-    fn draw_finger(&self, canvas: &mut Canvas, finger: &Finger, start: (f32, f32), dir: f32) {
+    /// growing in `dir` (1 or -1), below the tile `parent`.
+    fn draw_finger(
+        &self,
+        canvas: &mut Canvas,
+        finger: &Finger,
+        start: (f32, f32),
+        dir: f32,
+        parent: Option<&str>,
+        placed: &mut Vec<Tile>,
+    ) {
         let skin = self.skin;
         if let Some(label) = &finger.label {
             // The box without its margins, which lie across the map.
@@ -213,13 +247,15 @@ impl Geometry<'_> {
             let e0 = if dir > 0.0 { 0.0 } else { -finger.elongation };
             let corner = self.at(start, e0, margin - finger.thickness / 2.0);
             let before = if dir > 0.0 { 3.0 } else { 0.0 };
-            label.draw(canvas, skin, corner, before);
+            let drawn = label.draw(canvas, skin, corner, before);
+            placed.extend(label.placed(drawn, parent));
         }
+        let parent = finger.label.as_ref().and_then(Label::tile_key).or(parent);
         let (x1, x2) = self.gaps();
         let p1 = self.at(start, dir * finger.elongation, 0.0);
         for (child, &offset) in finger.children.iter().zip(&finger.offsets) {
             let p2 = self.at(start, dir * (finger.elongation + x1 + x2), offset);
-            self.draw_finger(canvas, child, p2, dir);
+            self.draw_finger(canvas, child, p2, dir, parent, placed);
             self.link(canvas, p1, p2, dir);
         }
     }

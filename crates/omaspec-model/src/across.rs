@@ -45,15 +45,8 @@ impl Spec {
     /// if `code` is no state diagram the readers understand.
     pub fn read(code: &str, lang: Language, file: &str) -> Option<Spec> {
         let machine = Machine::read(code, lang)?;
-        let mut names = Vec::new();
-        names.extend(diagram_name(code, lang));
-        names.extend(title(code, lang));
-        let stem = file.rsplit('/').next().unwrap_or(file);
-        let stem = stem.split('.').next().unwrap_or(stem);
-        names.push(stem.to_owned());
-        names.retain(|n| !key(n).is_empty());
         Some(Spec {
-            names,
+            names: omaspec_core::project::names(code, lang, file),
             file: file.to_owned(),
             machine,
         })
@@ -62,50 +55,18 @@ impl Spec {
 
 /// `@startuml Name`.
 pub(crate) fn diagram_name(code: &str, lang: Language) -> Option<String> {
-    if lang != Language::PlantUml {
-        return None;
-    }
-    let line = code
-        .lines()
-        .map(str::trim)
-        .find(|l| l.starts_with("@startuml"))?;
-    let name = line["@startuml".len()..].trim();
-    (!name.is_empty() && !name.starts_with('(')).then(|| name.trim_matches('"').to_owned())
+    omaspec_core::project::start_name(code, lang)
 }
 
 /// `title Name` in PlantUML, `title: Name` in a Mermaid front matter.
 pub(crate) fn title(code: &str, lang: Language) -> Option<String> {
-    let mut front = false;
-    for line in code.lines().map(str::trim) {
-        match lang {
-            Language::PlantUml => {
-                let lower = line.to_ascii_lowercase();
-                if let Some(rest) = lower.strip_prefix("title ") {
-                    return Some(line[line.len() - rest.len()..].trim().to_owned());
-                }
-            }
-            Language::Mermaid => {
-                if line == "---" {
-                    if front {
-                        return None;
-                    }
-                    front = true;
-                } else if front && let Some(rest) = line.strip_prefix("title:") {
-                    return Some(rest.trim().trim_matches('"').to_owned());
-                }
-            }
-        }
-    }
-    None
+    omaspec_core::project::title(code, lang)
 }
 
 /// How names and events compare: letters and digits only, in lower case,
 /// so that `Door control`, `door_control` and `DoorControl` are one name.
 pub(crate) fn key(text: &str) -> String {
-    text.chars()
-        .filter(|c| c.is_alphanumeric())
-        .flat_map(char::to_lowercase)
-        .collect()
+    omaspec_core::project::key(text)
 }
 
 /// The event a message label or a trigger names: what comes before its

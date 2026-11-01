@@ -29,15 +29,15 @@ use omaspec_core::locate;
 use omaspec_model::Spec;
 use omaspec_render::Place;
 use omaspec_render::export::{self, Format};
-use omaspec_render::{RenderError, pick};
+use omaspec_render::{Link, RenderError, pick};
 use omaspec_theme::{Palette, Rgb};
 
 use crate::ui;
-use crate::worker::{Answer, Drawn, Ticket, Worker, blocking};
+use crate::worker::{Answer, Drawn, Linked, Ticket, Worker, blocking};
 pub use hand::Gesture;
 pub use play::{Ask, Offer, Play};
 use raster::{Layer, Plan, Raster};
-pub use view::{Glide, View};
+pub use view::{DIVE, Glide, View};
 
 /// Wait this long after the last zoom or pan step before rasterizing sharp
 /// again.
@@ -66,6 +66,9 @@ pub enum Message {
     /// Ctrl+click at this point of the pane; the window asks
     /// [`Paper::label_at`] what is there.
     Pick(Point),
+    /// A click on a link at this point of the pane; the window asks
+    /// [`Paper::link_at`] where it leads.
+    Follow(Point),
     /// A new picture has faded in; the one before can go.
     Faded,
     /// The writer's step in the play.
@@ -214,6 +217,26 @@ impl Breath {
     }
 }
 
+/// The smallest of `links` around `p` (diagram units): a state inside a
+/// tile's picture is not a link of the map.
+fn link_under(links: &[Link], p: Point) -> Option<&Link> {
+    links
+        .iter()
+        .filter(|l| link_rect(l).contains(p))
+        .min_by(|a, b| {
+            let area = |l: &Link| l.rect.w * l.rect.h;
+            area(a).total_cmp(&area(b))
+        })
+}
+
+/// Where a link is, in diagram units.
+pub fn link_rect(link: &Link) -> Rectangle {
+    Rectangle::new(
+        Point::new(link.rect.x, link.rect.y),
+        Size::new(link.rect.w, link.rect.h),
+    )
+}
+
 fn mix_rect(from: Rectangle, to: Rectangle, t: f32) -> Rectangle {
     let mix = |a: f32, b: f32| a + (b - a) * t;
     Rectangle {
@@ -241,12 +264,26 @@ impl Paper {
         language: Language,
         place: Option<Place>,
     ) {
+        self.request_linked(worker, doc, source, language, place, None);
+    }
+
+    /// [`Self::request`] for a diagram that links to the diagrams of its
+    /// project (`docs/adr/0018-diagrams-that-link.md`).
+    pub fn request_linked(
+        &mut self,
+        worker: &Worker,
+        doc: u64,
+        source: Arc<str>,
+        language: Language,
+        place: Option<Place>,
+        linked: Option<Linked>,
+    ) {
         self.requested += 1;
         let ticket = Ticket {
             doc,
             id: self.requested,
         };
-        worker.render(ticket, source, language, place);
+        worker.render(ticket, source, language, place, linked);
         self.status = Status::Rendering;
     }
 
@@ -381,7 +418,7 @@ impl Paper {
                 self.rasterize(RASTER_DELAY)
             }
             Message::Fit => self.fit(),
-            Message::Pick(_) => Task::none(),
+            Message::Pick(_) | Message::Follow(_) => Task::none(),
             Message::Play(ask) => {
                 // On the clock the play is drawn at, so that a picture of
                 // one moment takes its steps at that moment too.
@@ -721,6 +758,79 @@ impl Paper {
         Some((label, Arc::clone(&diagram.source)))
     }
 
+    /// The tiles and states of the picture that open other diagrams.
+    pub fn links(&self) -> &[Link] {
+        self.diagram.as_ref().map_or(&[], |d| &d.drawn.links)
+    }
+
+    /// The link at `at`, a point of the pane: the smallest one there.
+    pub fn link_at(&self, at: Point) -> Option<&Link> {
+        let p = self.view.to_diagram(at, self.viewport);
+        link_under(self.followable(), p)
+    }
+
+    /// The line of the map's box whose tile is at `at`, a point of the
+    /// pane.
+    pub fn tile_line_at(&self, at: Point) -> Option<usize> {
+        let map = &self.diagram.as_ref()?.drawn.map;
+        let p = self.view.to_diagram(at, self.viewport);
+        map.tiles
+            .iter()
+            .find(|t| {
+                let r = t.frame;
+                p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h
+            })
+            .and_then(|t| t.line)
+    }
+
+    /// The links a click follows: none while a play runs.
+    fn followable(&self) -> &[Link] {
+        if self.play.is_some() {
+            &[]
+        } else {
+            self.links()
+        }
+    }
+
+    /// Glides into `area` of the diagram (in diagram units), on the way
+    /// into the diagram it links to.
+    pub fn zoom_into(&mut self, area: Rectangle) -> Task<Message> {
+        if self.viewport == Size::ZERO {
+            return Task::none();
+        }
+        let to = View::showing(area, self.viewport);
+        let at = self
+            .view
+            .on_screen(area, Rectangle::with_size(self.viewport))
+            .center();
+        self.dive(to, at)
+    }
+
+    /// Starts in `area` of the diagram and glides out to `to`: back from
+    /// the diagram it links to. A fitted `to` fits the diagram.
+    pub fn zoom_out_of(&mut self, area: Rectangle, to: View) -> Task<Message> {
+        if self.viewport == Size::ZERO || self.diagram.is_none() {
+            return Task::none();
+        }
+        let to = if to.fit {
+            View::fitted(self.diagram_size(), self.viewport)
+        } else {
+            to
+        };
+        self.settle();
+        self.view = View::showing(area, self.viewport);
+        let at = Point::new(self.viewport.width / 2.0, self.viewport.height / 2.0);
+        self.dive(to, at)
+    }
+
+    fn dive(&mut self, to: View, at: Point) -> Task<Message> {
+        let now = Instant::now();
+        let from = self.glide.map_or(self.view, |g| g.at(now));
+        self.view = to;
+        self.glide = Some(Glide::new(from, to, at, self.viewport, now).taking(view::DIVE));
+        self.rasterize(RASTER_DELAY)
+    }
+
     pub fn set_scale_factor(&mut self, factor: f32) -> Task<Message> {
         self.scale_factor = factor;
         self.rasterize(Duration::ZERO)
@@ -928,10 +1038,23 @@ impl Paper {
             scale: self.scale_factor,
             by_hand: self.drawable(),
             hand_cursor: self.hand.as_ref().map(hand::Hand::cursor),
+            links: self.followable(),
         })
         .width(Length::Fill)
         .height(Length::Fill)
         .into();
+        let marks = (!self.followable().is_empty() && self.overview.shown.is_some()).then(|| {
+            Canvas::new(canvas::LinkMarks {
+                links: self.followable(),
+                view: self.view,
+                glide: self.glide,
+                color: ui::color(p.accent),
+                scale: self.scale_factor,
+            })
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+        });
         let hand = match (&self.hand, &self.diagram) {
             (Some(hand), Some(diagram)) if self.overview.shown.is_some() => Some(
                 Canvas::new(hand::HandLayer {
@@ -980,8 +1103,12 @@ impl Paper {
         let (Some(play), Some(diagram), Some(overview)) =
             (&self.play, &self.diagram, self.overview.shown.as_ref())
         else {
-            return Stack::with_children([Some(canvas), light, hand, edge].into_iter().flatten())
-                .into();
+            return Stack::with_children(
+                [Some(canvas), marks, light, hand, edge]
+                    .into_iter()
+                    .flatten(),
+            )
+            .into();
         };
         let layer = |over: bool| -> Element<'_, Message> {
             Canvas::new(canvas::PlayCanvas {
@@ -1398,6 +1525,7 @@ pub mod testing {
             engine: out.engine,
             elapsed: out.elapsed,
             map: Arc::new(out.map),
+            links: Arc::new(out.links),
         }
     }
 
@@ -1410,6 +1538,7 @@ pub mod testing {
             engine: Engine::Mermaid,
             elapsed: Duration::ZERO,
             map: Arc::default(),
+            links: Arc::default(),
         }
     }
 

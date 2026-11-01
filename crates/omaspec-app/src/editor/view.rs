@@ -217,6 +217,12 @@ impl App {
             Some(trouble) => stack![a, self.trouble_note(trouble, paper.playing())].into(),
             None => a,
         };
+        // A stack with the trail or without, so the trail coming and going
+        // keeps the diagram's widgets.
+        let a: Element<'_, Message> = match self.trail_view() {
+            Some(trail) => stack![a, trail].into(),
+            None => stack![a].into(),
+        };
         let Some(c) = self.compare.as_ref().filter(|c| c.a == key) else {
             return a;
         };
@@ -356,7 +362,7 @@ impl App {
             .into()
     }
 
-    fn label(&self, s: impl Into<String>, color: Rgb) -> text::Text<'_> {
+    pub(super) fn label(&self, s: impl Into<String>, color: Rgb) -> text::Text<'_> {
         text(s.into())
             .font(self.font)
             .size(13)

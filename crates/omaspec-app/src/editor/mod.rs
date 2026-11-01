@@ -35,6 +35,7 @@ pub(crate) mod folder;
 mod gallery;
 mod help;
 mod keys;
+mod links;
 mod panes;
 mod picker;
 mod play;
@@ -270,8 +271,10 @@ pub enum Message {
     ToggleDir(PathBuf),
     /// The diagrams found in a folder, for the file picker.
     Scanned(PathBuf, Vec<PathBuf>),
-    /// The state machines found in a project folder.
-    Specs(PathBuf, Arc<Vec<Spec>>),
+    /// The state machines and all diagrams found in a project folder.
+    Specs(PathBuf, Arc<Vec<Spec>>, Arc<omaspec_render::Atlas>),
+    /// A click on the trail over the diagram: back to that step.
+    BackTo(usize),
     PromptInput(String),
     PromptSubmit,
     PickerInput(String),
@@ -390,6 +393,8 @@ pub enum Command {
     OpenHelp,
     /// Back to the folder before Help Omaspec.
     LeaveHelp,
+    /// Back out of a diagram a link was followed into.
+    Back,
     Quit,
     Cancel,
     Up,
@@ -416,6 +421,7 @@ const PALETTE: &[(&str, &str, Command)] = &[
     ("New project", "", Command::NewProject),
     ("Browse the examples", "Ctrl+Shift+E", Command::Gallery),
     ("Open Help Omaspec", "", Command::OpenHelp),
+    ("Back out of the linked diagram", "Alt+Left", Command::Back),
     ("Find in all tabs", "Ctrl+Shift+F", Command::FindAll),
     ("Replace in all tabs", "Ctrl+Shift+H", Command::ReplaceAll),
     ("Save", "Ctrl+S", Command::Save),
@@ -600,6 +606,9 @@ fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
         Key::Named(Named::ArrowDown) if plain && (mode == Mode::Picker || gallery) => {
             Some(Command::Down)
         }
+        Key::Named(Named::ArrowLeft) if alt && !mods.shift() && mode == Mode::Editing => {
+            Some(Command::Back)
+        }
         Key::Named(Named::ArrowLeft) if ctrl_alt => {
             Some(Command::Focus(pane_grid::Direction::Left))
         }
@@ -742,6 +751,14 @@ struct App {
     /// The state machines of each project folder an open diagram is in,
     /// which sequence diagrams are checked against.
     specs: HashMap<PathBuf, Arc<Vec<Spec>>>,
+    /// All diagrams of each such project folder, which maps show and
+    /// states link to; and the same in the diagram's colors.
+    atlases: HashMap<PathBuf, Arc<omaspec_render::Atlas>>,
+    themed_atlases: HashMap<PathBuf, Arc<omaspec_render::Atlas>>,
+    /// A link being followed, while the zoom into it runs.
+    following: Option<links::Following>,
+    /// The diagrams followed into, from the first.
+    trail: Vec<links::Step>,
     /// Set while the sidebar shows Help Omaspec.
     help: Option<Help>,
     /// The name `omaspec-project.toml` gives the sidebar's folder, when it
@@ -851,6 +868,10 @@ impl App {
             open_dirs: HashSet::new(),
             tree: HashMap::new(),
             specs: HashMap::new(),
+            atlases: HashMap::new(),
+            themed_atlases: HashMap::new(),
+            following: None,
+            trail: Vec::new(),
             help: None,
             project_name: None,
             theme: ui::iced_theme(&theme_name, &palette),
@@ -1053,6 +1074,7 @@ impl App {
             Message::Worker(event) => self.worker_event(event),
             Message::Paper(compare::KEY, message) => self.compare_paper(message),
             Message::Paper(key, paper::Message::Pick(at)) => self.pick_in_diagram(key, at),
+            Message::Paper(key, paper::Message::Follow(at)) => self.follow_link(key, at),
             Message::Paper(key, message) => {
                 if let paper::Message::Viewport(size) = message {
                     self.paper_size = size;
@@ -1217,10 +1239,14 @@ impl App {
                 }
                 Task::none()
             }
-            Message::Specs(root, specs) => {
-                self.found_specs(root, specs);
-                Task::none()
+            Message::Specs(root, specs, atlas) => {
+                self.found_specs(root.clone(), specs);
+                if root.as_os_str().is_empty() {
+                    return Task::none();
+                }
+                self.found_atlas(root, atlas)
             }
+            Message::BackTo(index) => self.back_to(index),
             Message::PromptInput(input) => {
                 if let Some(prompt) = &mut self.prompt {
                     prompt.input = input;
@@ -1420,6 +1446,7 @@ impl App {
                 }
             }
             worker::Event::Due(Alarm::Session) => self.write_session(),
+            worker::Event::Due(Alarm::Follow) => return self.followed(),
             worker::Event::FileChanged(path) => {
                 if !self.changed.contains(&path) {
                     self.changed.push(path);
@@ -1478,6 +1505,11 @@ impl App {
         };
         let (source, pending) = self.diagram_source(text, language);
         let place = self.place_of(doc);
+        let linked = if doc == compare::KEY {
+            None
+        } else {
+            self.linked_of(doc)
+        };
         let id = {
             let paper = if doc == compare::KEY {
                 let Some(compare) = &mut self.compare else {
@@ -1490,7 +1522,7 @@ impl App {
                 };
                 &mut found.paper
             };
-            paper.request(&worker, doc, source, language, place);
+            paper.request_linked(&worker, doc, source, language, place, linked);
             paper.requested()
         };
         if let Some(pending) = pending {
@@ -1566,6 +1598,7 @@ impl App {
     /// Draws the shown diagram again, and the one beside it. The other
     /// tabs draw again when they are shown.
     fn rerender_all(&mut self) {
+        self.forget_themed_atlases();
         let active = self.doc().key;
         for doc in &mut self.docs {
             if doc.key != active {
@@ -1747,6 +1780,7 @@ impl App {
             }
             Command::OpenHelp => self.open_help(),
             Command::LeaveHelp => self.leave_help(),
+            Command::Back => self.back(),
             Command::Detach => match self.detached {
                 Some(_) => self.attach(),
                 None => self.detach(),
@@ -1855,6 +1889,11 @@ impl App {
     fn pick_in_diagram(&mut self, key: u64, at: iced::Point) -> Task<Message> {
         if key != self.doc().key {
             return Task::none();
+        }
+        // On a tile of a map: its box, not the words in its picture.
+        if let Some(line) = self.doc().paper.tile_line_at(at) {
+            self.notice = None;
+            return self.jump_to(line);
         }
         // Right on a line: the line that draws it.
         if let Some(line) = self.doc().paper.wire_at(at).and_then(|w| w.line) {

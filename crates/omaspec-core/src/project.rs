@@ -6,6 +6,10 @@
 //! The file is a small part of TOML: comments, and `name` and `main` as
 //! strings. Anything else is an error that names its line, so a typo does
 //! not go unnoticed.
+//!
+//! The diagrams of a project find each other by name ([`names`], [`key`]):
+//! a participant its state machine, a state or a box of a map the diagram
+//! it links to (`docs/adr/0018-diagrams-that-link.md`).
 
 use std::path::{Component, Path};
 
@@ -102,13 +106,66 @@ impl Project {
     }
 }
 
-/// The file name of a new project's first diagram.
+/// The file name of a new project's map, its main diagram.
 pub fn main_file(language: Language) -> String {
     format!("system.{}", language.extension())
 }
 
-/// A new project's first diagram: the whole system as a small state
-/// machine, titled with the project's name, which the writer replaces.
+/// The file name of a new project's first state machine: the project's
+/// name, unless that is the map's.
+pub fn machine_file(language: Language, name: &str) -> String {
+    let stem: String = name
+        .trim()
+        .chars()
+        .map(|c| {
+            if c == '/' || c == '\\' || c.is_control() {
+                '-'
+            } else {
+                c
+            }
+        })
+        .collect();
+    let file = format!("{stem}.{}", language.extension());
+    if stem.is_empty() || stem.starts_with('.') || file.eq_ignore_ascii_case(&main_file(language)) {
+        format!("machine.{}", language.extension())
+    } else {
+        file
+    }
+}
+
+/// A new project's map: a WBS (a mind map in Mermaid) whose root names
+/// the project, so its tile shows the first state machine. The writer
+/// adds a box for each part, and each box that names a diagram shows it.
+pub fn map_starter(language: Language, name: &str) -> String {
+    match language {
+        Language::PlantUml => format!(
+            "@startwbs\n' A box that names a diagram of the project shows it; a click opens it.\n* {}\n@endwbs\n",
+            name.trim()
+        ),
+        Language::Mermaid => {
+            // Brackets and parentheses would give the box a shape.
+            let plain: String = name
+                .trim()
+                .chars()
+                .map(|c| {
+                    if "()[]{}".contains(c) || c.is_control() {
+                        ' '
+                    } else {
+                        c
+                    }
+                })
+                .collect();
+            let plain = plain.split_whitespace().collect::<Vec<_>>().join(" ");
+            format!(
+                "%% A box that names a diagram of the project shows it; a click opens it.\nmindmap\n  root(({}))\n",
+                if plain.is_empty() { "system" } else { &plain }
+            )
+        }
+    }
+}
+
+/// A new project's first state machine, titled with the project's name,
+/// which the writer replaces.
 pub fn starter(language: Language, name: &str) -> String {
     match language {
         Language::PlantUml => format!(
@@ -120,6 +177,71 @@ pub fn starter(language: Language, name: &str) -> String {
             yaml_scalar(name.trim())
         ),
     }
+}
+
+/// The names a diagram goes by, as written: the name after `@start…`
+/// (PlantUML), its title (`title` in PlantUML, `title:` in a Mermaid
+/// front matter) and the file name without its extension. Names without
+/// a letter or a digit are left out.
+pub fn names(code: &str, language: Language, file: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    names.extend(start_name(code, language));
+    names.extend(title(code, language));
+    let stem = file.rsplit(['/', '\\']).next().unwrap_or(file);
+    let stem = stem.split('.').next().unwrap_or(stem);
+    names.push(stem.to_owned());
+    names.retain(|n| !key(n).is_empty());
+    names
+}
+
+/// How names compare: letters and digits only, in lower case, so that
+/// `Door control`, `door_control` and `DoorControl` are one name.
+pub fn key(text: &str) -> String {
+    text.chars()
+        .filter(|c| c.is_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// `@startuml Name`, `@startwbs Name`, …: the name a PlantUML diagram
+/// gives itself.
+pub fn start_name(code: &str, language: Language) -> Option<String> {
+    if language != Language::PlantUml {
+        return None;
+    }
+    let line = code
+        .lines()
+        .map(|l| l.trim_start_matches('\u{feff}').trim())
+        .find(|l| l.starts_with("@start"))?;
+    let rest = line["@start".len()..].trim_start_matches(|c: char| c.is_ascii_alphanumeric());
+    let name = rest.trim();
+    (!name.is_empty() && !name.starts_with('(')).then(|| name.trim_matches('"').to_owned())
+}
+
+/// `title Name` in PlantUML, `title: Name` in a Mermaid front matter.
+pub fn title(code: &str, language: Language) -> Option<String> {
+    let mut front = false;
+    for line in code.lines().map(str::trim) {
+        match language {
+            Language::PlantUml => {
+                let lower = line.to_ascii_lowercase();
+                if let Some(rest) = lower.strip_prefix("title ") {
+                    return Some(line[line.len() - rest.len()..].trim().to_owned());
+                }
+            }
+            Language::Mermaid => {
+                if line == "---" {
+                    if front {
+                        return None;
+                    }
+                    front = true;
+                } else if front && let Some(rest) = line.strip_prefix("title:") {
+                    return Some(rest.trim().trim_matches('"').to_owned());
+                }
+            }
+        }
+    }
+    None
 }
 
 /// A relative path that stays inside the folder it starts in.
@@ -281,10 +403,59 @@ mod tests {
     #[test]
     fn the_starter_is_formatted_and_clean() {
         for language in [Language::PlantUml, Language::Mermaid] {
-            let text = starter(language, "Shop");
-            assert_eq!(crate::format::format(&text, language), text, "{text}");
-            assert!(crate::lint::lint(&text, language).is_empty(), "{text}");
+            for text in [starter(language, "Shop"), map_starter(language, "Shop")] {
+                assert_eq!(crate::format::format(&text, language), text, "{text}");
+                assert!(crate::lint::lint(&text, language).is_empty(), "{text}");
+                assert_eq!(crate::lang::detect(&text, None), language, "{text}");
+            }
         }
+    }
+
+    #[test]
+    fn the_maps_root_names_the_first_machine() {
+        for language in [Language::PlantUml, Language::Mermaid] {
+            for name in ["Shop", "my shop (2)", "system"] {
+                let machine = machine_file(language, name);
+                assert_ne!(machine, main_file(language), "{name}");
+                let titled = names(&starter(language, name), language, &machine);
+                let map = map_starter(language, name);
+                let root = map
+                    .lines()
+                    .filter(|l| !l.starts_with(['\'', '%', '@']))
+                    .nth(if language == Language::Mermaid { 1 } else { 0 });
+                let root = root.unwrap().trim().trim_start_matches("* ");
+                let root = root.trim_start_matches("root((").trim_end_matches("))");
+                assert!(
+                    titled.iter().any(|n| key(n) == key(root)),
+                    "{name}: {titled:?} {root}"
+                );
+            }
+        }
+        assert_eq!(machine_file(Language::PlantUml, "Shop"), "Shop.puml");
+        assert_eq!(machine_file(Language::Mermaid, "System"), "machine.mmd");
+        assert_eq!(machine_file(Language::PlantUml, "a/b"), "a-b.puml");
+    }
+
+    #[test]
+    fn a_diagram_goes_by_its_start_name_title_and_file() {
+        let puml = "@startuml Door control\ntitle The door\n[*] --> A\n@enduml";
+        assert_eq!(
+            names(puml, Language::PlantUml, "parts/door.puml"),
+            ["Door control", "The door", "door"]
+        );
+        let wbs = "@startwbs Map\n* shop\n@endwbs";
+        assert_eq!(
+            names(wbs, Language::PlantUml, "system.puml"),
+            ["Map", "system"]
+        );
+        let mmd = "---\ntitle: \"Checkout\"\n---\nflowchart LR\nA --> B";
+        assert_eq!(
+            names(mmd, Language::Mermaid, "flow.mmd"),
+            ["Checkout", "flow"]
+        );
+        assert_eq!(key("Door control"), key("door_control"));
+        assert_eq!(key("Café"), "café");
+        assert!(names("@startuml\n@enduml", Language::PlantUml, "---.puml").is_empty());
     }
 
     #[test]

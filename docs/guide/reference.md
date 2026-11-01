@@ -4,7 +4,7 @@ Everything Omaspec does, to look up. New here? Start with the
 [getting started guide](README.md).
 
 - [Editor](#editor): [keys](#keys), [project and tabs](#project-and-tabs),
-  [compare](#compare), [a second monitor](#a-second-monitor), [skin packs](#skin-packs),
+  [diagrams that link](#diagrams-that-link), [compare](#compare), [a second monitor](#a-second-monitor), [skin packs](#skin-packs),
   [examples](#examples), [images with their source](#images-with-their-source),
   [session](#session)
 - [Preview next to your editor](#preview-next-to-your-editor)
@@ -43,6 +43,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+B, Ctrl+Q | project tree on/off, quit |
 | Ctrl+Alt+arrows | move between the project, the editor and the diagram |
 | Alt+=, Alt+-, Alt+0, Alt+F | zoom the diagram, 100 %, fit |
+| click, Alt+Left | into a linked state or a tile of a map, and back out |
 | Ctrl+F, Ctrl+H, Ctrl+/, Ctrl+D | in the text: find, replace, comment, next occurrence |
 | Super+F | fullscreen (Omarchy's chord for every window) |
 
@@ -68,14 +69,43 @@ A folder with `omaspec-project.toml` is a project: a diagram anywhere below it i
 checked against the state machines of the whole project, its `!include`s may reach into
 all of it, and it is the same project whether the diagram came from the sidebar, from
 Ctrl+O or from the command line. *New project* in the palette asks for PlantUML or
-Mermaid, with git or without, then for the folder; it writes the project file and a
-first diagram, `system.puml` or `system.mmd`, shows the folder and opens the diagram. A
-folder that is there keeps its files. The file names the project, which heads the
-sidebar, and its main diagram:
+Mermaid, with git or without, then for the folder; it writes the project file, the map
+`system.puml` (a WBS; `system.mmd`, a mind map, in Mermaid) and a first state machine
+named after the project, shows the folder and opens the map. A folder that is there
+keeps its files. The file names the project, which heads the sidebar, and its main
+diagram:
 
 ```toml
 name = "shop"
 main = "system.puml"
+```
+
+### Diagrams that link
+
+The diagrams of a project link by name ([ADR 0018](../adr/0018-diagrams-that-link.md)): a
+state named `Checkout` links to the diagram called Checkout (by the name after
+`@start…`, its title or its file name, letters and digits only, case aside), and carries
+a mark of two small squares. A click on it glides into the state and opens that diagram;
+a trail over the diagram names the way, `shop › Orders › Checkout`. A click on one of its
+names, or Alt+Left, zooms back out. A drag still pans and Ctrl+click still jumps to the
+source.
+
+A mind map or a WBS in a project is a map: each box that names a diagram is a tile with
+that diagram's picture, drawn by Omaspec's engines in the map's colors, sharp at any
+zoom. A box that names none stays a box. A dashed arrow joins two tiles where one diagram
+links to the other and the map's tree does not; the project's main diagram also shows
+the diagrams no box names, under *Not on the map*. A click on a tile opens its diagram,
+Ctrl+click finds its box in the source. Tiles show the files as saved. `omaspec render`
+and exports draw the tiles too; the preview window follows a click, and Backspace goes
+back.
+
+```plantuml
+@startwbs
+* shop
+** Orders
+*** Checkout
+** Payment
+@endwbs
 ```
 
 The palette also opens the *Help Omaspec* folder: diagrams of the menu, editing, the
@@ -192,6 +222,7 @@ the status bar while the last good picture stays.
 | `c`, `C` | copy as PNG, copy as SVG |
 | `p` | play the diagram |
 | `r`, `q` | render again, quit |
+| click, Backspace | into a linked state or a tile of a map, and back |
 
 The mouse wheel zooms at the pointer, two-finger scroll and dragging pan, Ctrl +
 two-finger scroll zooms, a double click fits, and Ctrl+click names the source line of
@@ -240,7 +271,7 @@ and only when the result means the same ([ADR 0009](../adr/0009-diff-and-convert
 ## Command line
 
 ```bash
-omaspec new ~/specs/shop            # a project: omaspec-project.toml and system.puml; --lang mermaid, --git
+omaspec new ~/specs/shop            # a project: omaspec-project.toml, the map system.puml, shop.puml; --lang mermaid, --git
 omaspec lint diagrams/*.puml        # syntax, likely typos, specification checks; exit 1 on errors
 omaspec lint --project specs a.puml # sequences checked against the state machines in specs/, not the project
 omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts

@@ -74,6 +74,9 @@ struct Preview {
 
     paper: Paper,
     notice: Option<String>,
+    /// The files shown before a click on a link brought this one, to go
+    /// back to with Backspace.
+    back: Vec<PathBuf>,
 }
 
 impl Preview {
@@ -95,6 +98,7 @@ impl Preview {
             font: ui::mono_font(),
             paper: Paper::default(),
             notice: None,
+            back: Vec::new(),
         };
         let scale = window::latest()
             .and_then(window::scale_factor)
@@ -143,6 +147,7 @@ impl Preview {
                 });
                 Task::none()
             }
+            Message::Paper(paper::Message::Follow(at)) => self.follow(at),
             Message::Paper(message) => self.paper.update(message).map(Message::Paper),
             Message::ScaleFactor(factor) => self.paper.set_scale_factor(factor).map(Message::Paper),
             Message::Key(event) => self.key(event),
@@ -206,18 +211,82 @@ impl Preview {
                 let hint = Language::from_file_name(&self.name);
                 let language = self.forced.unwrap_or_else(|| detect(&source, hint));
                 let place = Place::of(&self.path, None);
+                // A map shows its project's diagrams in tiles
+                // (docs/adr/0018); they are read again with the map.
+                let linked = place
+                    .as_ref()
+                    .filter(|_| omaspec_render::is_map(&source, language))
+                    .map(|place| {
+                        let atlas = crate::specs::read_project(&place.root).1;
+                        let own = std::path::absolute(&self.path).ok().and_then(|p| {
+                            p.strip_prefix(&place.root)
+                                .ok()
+                                .map(crate::specs::file_name)
+                        });
+                        (std::sync::Arc::new(atlas), own)
+                    });
                 self.paper
-                    .request(worker, 0, source.into(), language, place);
+                    .request_linked(worker, 0, source.into(), language, place, linked);
             }
             // Mid-save the file can be briefly missing; the next event retries.
             Err(err) => self.paper.status = Status::Unreadable(err.to_string()),
         }
     }
 
+    /// A click on a tile of a map or a state with a diagram of its own:
+    /// the window follows that diagram from now on.
+    fn follow(&mut self, at: iced::Point) -> Task<Message> {
+        let Some(link) = self.paper.link_at(at).cloned() else {
+            return Task::none();
+        };
+        let Some(root) = Place::of(&self.path, None).map(|p| p.root) else {
+            return Task::none();
+        };
+        match link.files.as_slice() {
+            [file] => {
+                let to = root.join(file);
+                let from = std::mem::replace(&mut self.path, to);
+                self.back.push(from);
+                self.show_path();
+                Task::none()
+            }
+            files => {
+                self.notice = Some(format!(
+                    "{} names {} diagrams: {}",
+                    link.name,
+                    files.len(),
+                    files.join(", ")
+                ));
+                Task::none()
+            }
+        }
+    }
+
+    /// Shows the file at `self.path`, fitted, as if the window had opened
+    /// on it.
+    fn show_path(&mut self) {
+        self.name = self.path.file_name().map_or_else(
+            || self.path.display().to_string(),
+            |n| n.to_string_lossy().into_owned(),
+        );
+        self.notice = None;
+        self.paper.view = paper::View::default();
+        self.request_render();
+    }
+
     fn key(&mut self, event: keyboard::Event) -> Task<Message> {
         let keyboard::Event::KeyPressed { key, modifiers, .. } = event else {
             return Task::none();
         };
+        let back = matches!(key.as_ref(), Key::Named(Named::ArrowLeft)) && modifiers.alt()
+            || matches!(key.as_ref(), Key::Named(Named::Backspace)) && !self.paper.playing();
+        if back && !modifiers.control() {
+            if let Some(path) = self.back.pop() {
+                self.path = path;
+                self.show_path();
+            }
+            return Task::none();
+        }
         if modifiers.control() || modifiers.alt() || modifiers.logo() {
             return Task::none();
         }

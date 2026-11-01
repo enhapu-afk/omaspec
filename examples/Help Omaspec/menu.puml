@@ -8,6 +8,8 @@ partition Find {
   :Open a file, folder or image with Ctrl+O;
   :Start a new project: PlantUML or Mermaid,
   git if you like, then its folder;
+  :Click a tile of the map, or a linked state,
+  to zoom into its diagram; Alt+Left back;
   :Find in all tabs;
   :Replace in all tabs;
 }

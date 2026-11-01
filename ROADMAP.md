@@ -933,10 +933,19 @@ What comes after 0.4, announced in the README.
       also *Open*, *Save as*, an export) let the source editor take what was
       typed as well. The list coming and going rebuilt the widgets under it,
       and a new editor starts with the keys; the window now keeps them.
-- [ ] Diagrams that link: a state links to the diagram that describes it. A
-      click zooms into the state, and inside is its activity diagram; zooming
-      out goes back. A specification reads from the whole system down to a
-      single step.
+- [x] Diagrams that link: a state links to the diagram of its name, and a
+      mind map or a WBS in a project is its map
+      ([0018](docs/adr/0018-diagrams-that-link.md)). Each box of a map that
+      names a diagram is a tile with that diagram's picture (vectors from
+      Omaspec's engines, nested and sanitized); dashed arrows show where one
+      diagram links to another beyond the tree, and the main diagram also
+      shows the diagrams on no box. A click on a tile or on a linked state
+      (marked with two small squares) glides into it and opens its diagram;
+      a trail over the diagram (`shop › Orders › Checkout`) and Alt+Left
+      zoom back out. `omaspec render`, the preview window (which follows a
+      click as well) and the MCP server draw maps with their tiles. A new
+      project starts with its map, a WBS (a mind map in Mermaid) whose root
+      shows the first state machine.
 - [ ] Even cleaner lines: fewer crossings and detours, lines that keep clear of
       frames and labels, closer to what Graphviz draws; the open points of
       [0012](docs/adr/0012-lines-like-graphviz.md) and

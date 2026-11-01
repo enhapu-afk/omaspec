@@ -923,7 +923,7 @@ fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
     assert_eq!(
         stdout(&out),
         format!(
-            "created {0}/system.puml\ncreated {0}/omaspec-project.toml\n",
+            "created {0}/shop.puml, the first state machine\ncreated {0}/system.puml, the map\ncreated {0}/omaspec-project.toml\n",
             shop.display()
         )
     );
@@ -947,7 +947,8 @@ fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
         (Some("lager"), Some("system.mmd"))
     );
     assert_eq!(json["git"], serde_json::Value::Null);
-    for main in [shop.join("system.puml"), dir.join("lager/system.mmd")] {
+    assert_eq!(json["machine"], "lager.mmd");
+    for main in [shop.join("shop.puml"), dir.join("lager/lager.mmd")] {
         let main = main.to_str().unwrap();
         assert_eq!(
             omaspec(&["lint", "--strict", main]).status.code(),
@@ -963,6 +964,41 @@ fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
         let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
         assert_eq!(json["native"], "understood", "{main}");
     }
+    for map in [shop.join("system.puml"), dir.join("lager/system.mmd")] {
+        let map = map.to_str().unwrap();
+        for check in [&["lint", "--strict", map][..], &["fmt", "--check", map]] {
+            assert_eq!(omaspec(check).status.code(), Some(0), "{check:?}");
+        }
+    }
+
+    // The map shows its project's diagrams: the first machine at its
+    // root, and a new diagram once a box names it.
+    let svg = dir.join("map.svg");
+    let render = |svg: &Path| {
+        let out = omaspec(&[
+            "render",
+            shop.join("system.puml").to_str().unwrap(),
+            "-o",
+            svg.to_str().unwrap(),
+        ]);
+        assert_eq!(out.status.code(), Some(0), "{out:?}");
+        fs::read_to_string(svg).unwrap()
+    };
+    assert_eq!(render(&svg).matches("<svg").count(), 2);
+    fs::write(
+        shop.join("orders.puml"),
+        "@startuml\ntitle Orders\n[*] --> Open\nOpen --> Shop : buy\n@enduml\n",
+    )
+    .unwrap();
+    let map = fs::read_to_string(shop.join("system.puml")).unwrap();
+    fs::write(
+        shop.join("system.puml"),
+        map.replace("* shop\n", "* shop\n** Orders\n"),
+    )
+    .unwrap();
+    let drawn = render(&svg);
+    assert_eq!(drawn.matches("<svg").count(), 3, "{drawn}");
+    assert!(!drawn.contains("Not on the map"));
 
     // A scenario deep in the project is held against the machine at its
     // root, as a scenario beside it would be.
@@ -977,7 +1013,7 @@ fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
     assert_eq!(out.status.code(), Some(1), "{}", stdout(&out));
     assert!(
         stdout(&out).contains("late.puml:4: warning: Shop does not take start here")
-            && stdout(&out).contains("(system.puml)"),
+            && stdout(&out).contains("(shop.puml)"),
         "{}",
         stdout(&out)
     );

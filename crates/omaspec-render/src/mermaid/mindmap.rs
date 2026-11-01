@@ -12,18 +12,26 @@
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
 use omaspec_uml::map::Map;
-use omaspec_uml::tree::{Idea, MindMap, Skinparam, draw_mindmap, from_mermaid, mermaid_refusal};
+use omaspec_uml::tree::{
+    Idea, MindMap, Skinparam, Tiles, draw_mindmap_tiled, from_mermaid, mermaid_refusal,
+};
 
-/// The SVG, or `None` when this drawer leaves the diagram to mmdr.
-/// The map stays empty: a mind-map box is not a message to jump to.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
+/// The SVG, or `None` when this drawer leaves the diagram to mmdr. The
+/// map holds the boxes `tiles` picks as tiles, nothing else: a mind-map
+/// box is not a message to jump to.
+pub fn try_draw(
+    graph: &Graph,
+    theme: &Theme,
+    source: &str,
+    tiles: Option<&Tiles>,
+) -> Option<(String, Map)> {
     if graph.kind != DiagramKind::Mindmap {
         return None;
     }
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
     paint(&mut diagram, theme)?;
-    draw_mindmap(&diagram).ok().map(|svg| (svg, Map::default()))
+    draw_mindmap_tiled(&diagram, tiles).ok()
 }
 
 /// The first construct the engine refuses by name, with its line and why.
@@ -202,22 +210,34 @@ mod tests {
         let theme = Theme::mermaid_default();
         let mut graph = Graph::new();
         graph.kind = DiagramKind::Mindmap;
-        let (svg, map) = try_draw(&graph, &theme, "mindmap\n  ((Root))\n    Branch\n").unwrap();
+        let (svg, map) =
+            try_draw(&graph, &theme, "mindmap\n  ((Root))\n    Branch\n", None).unwrap();
         assert!(svg.contains("Root") && svg.contains("Branch"), "{svg}");
         assert!(svg.contains("#ECECFF") && svg.contains("#FFFFDE"), "{svg}");
         assert!(svg.contains("<ellipse"), "{svg}");
-        assert_eq!(map, Map::default());
+        // Nothing to jump to, and no tiles without a project.
+        assert_eq!(
+            Map {
+                fit: Map::default().fit,
+                ..map
+            },
+            Map::default()
+        );
     }
 
     #[test]
     fn draws_a_cloud_and_leaves_the_other_cloud() {
         let theme = Theme::mermaid_default();
         let mut graph = Graph::new();
-        assert!(try_draw(&graph, &theme, "mindmap\n  Root\n").is_none());
+        assert!(try_draw(&graph, &theme, "mindmap\n  Root\n", None).is_none());
         graph.kind = DiagramKind::Mindmap;
-        let svg = try_draw(&graph, &theme, "mindmap\n  )cloud(\n").unwrap().0;
+        let svg = try_draw(&graph, &theme, "mindmap\n  )cloud(\n", None)
+            .unwrap()
+            .0;
         assert!(svg.contains("cloud") && svg.contains("<path"), "{svg}");
-        let burst = try_draw(&graph, &theme, "mindmap\n  ))bang((\n").unwrap().0;
+        let burst = try_draw(&graph, &theme, "mindmap\n  ))bang((\n", None)
+            .unwrap()
+            .0;
         assert!(
             burst.contains("bang") && burst.contains("<polygon"),
             "{burst}"
@@ -228,7 +248,7 @@ mod tests {
         );
         let mut bad = Theme::mermaid_default();
         bad.primary_color = "nope".into();
-        assert!(try_draw(&graph, &bad, "mindmap\n  Root\n").is_none());
+        assert!(try_draw(&graph, &bad, "mindmap\n  Root\n", None).is_none());
     }
 
     #[test]
@@ -248,6 +268,7 @@ mod tests {
             &graph,
             &theme,
             "mindmap\n  ((Root))\n    One\n    Two\n    Three\n",
+            None,
         )
         .unwrap()
         .0;
@@ -285,7 +306,9 @@ mod tests {
         pale.primary_text_color = "#f4f4f4".into();
         pale.primary_border_color = "#111111".into();
         pale.line_color = "#111111".into();
-        let washed = try_draw(&graph, &pale, "mindmap\n  ((Root))\n").unwrap().0;
+        let washed = try_draw(&graph, &pale, "mindmap\n  ((Root))\n", None)
+            .unwrap()
+            .0;
         assert!(
             washed.contains("#F4F4F4") && washed.contains("#000000"),
             "{washed}"

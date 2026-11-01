@@ -13,6 +13,8 @@ pub struct Map {
     pub transitions: Vec<Route>,
     pub messages: Vec<Step>,
     pub wires: Vec<Wire>,
+    /// The boxes of a map drawn as tiles that show other diagrams.
+    pub tiles: Vec<Tile>,
     /// Entries of the block of lines by hand that did not hold: the
     /// zero-based line of each, and why.
     pub misses: Vec<(usize, String)>,
@@ -127,6 +129,24 @@ pub enum Shape {
     History,
 }
 
+/// A box of a mind map or a WBS drawn as a tile, which shows a diagram of
+/// the project (`docs/adr/0018-diagrams-that-link.md`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Tile {
+    /// The key of the name it shows ([`crate::tree::Tiles::pick`]).
+    pub key: String,
+    /// What the box says.
+    pub name: String,
+    /// Zero-based line of its box; `None` for a diagram that is on no box.
+    pub line: Option<usize>,
+    /// The key of the nearest tile above it in the tree.
+    pub parent: Option<String>,
+    /// The whole tile.
+    pub frame: Rect,
+    /// The room in it for the picture.
+    pub picture: Rect,
+}
+
 /// The line a transition takes, from its source to the tip of its head.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Route {
@@ -225,6 +245,10 @@ impl Map {
             wire.from.rect = fit.rect(wire.from.rect);
             wire.to.rect = fit.rect(wire.to.rect);
         }
+        for tile in &mut self.tiles {
+            tile.frame = fit.rect(tile.frame);
+            tile.picture = fit.rect(tile.picture);
+        }
         self.fit = fit;
         self
     }
@@ -247,6 +271,9 @@ impl Map {
         }
         for (line, _) in &mut self.misses {
             *line += lines;
+        }
+        for tile in &mut self.tiles {
+            tile.line = tile.line.map(|l| l + lines);
         }
         self
     }

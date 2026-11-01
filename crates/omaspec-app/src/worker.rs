@@ -21,7 +21,7 @@ use notify::event::{AccessKind, AccessMode, ModifyKind};
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use omaspec_core::Language;
 use omaspec_render::export::{self, usvg};
-use omaspec_render::{Engine, Generation, Map, Place, RenderError, RenderService};
+use omaspec_render::{Atlas, Engine, Generation, Link, Map, Place, RenderError, RenderService};
 
 /// A diagram the render thread drew and parsed for display.
 #[derive(Clone)]
@@ -32,6 +32,8 @@ pub struct Drawn {
     pub elapsed: Duration,
     /// Where its states, transitions and messages are, for a run.
     pub map: Arc<Map>,
+    /// Its tiles and states that open other diagrams of the project.
+    pub links: Arc<Vec<Link>>,
 }
 
 impl fmt::Debug for Drawn {
@@ -71,6 +73,8 @@ pub enum Alarm {
     /// Time to write the session.
     Session,
     Font,
+    /// The zoom into a link has arrived.
+    Follow,
 }
 
 #[derive(Debug, Clone)]
@@ -95,19 +99,22 @@ pub struct Worker {
 
 impl Worker {
     /// Asks for `source` to be drawn; `place` is where the diagram's file
-    /// is, so its `!include`s can be read.
+    /// is, so its `!include`s can be read. With `linked`, the diagram links
+    /// to the project's diagrams in the atlas, from its own path there.
     pub fn render(
         &self,
         ticket: Ticket,
         source: Arc<str>,
         language: Language,
         place: Option<Place>,
+        linked: Option<Linked>,
     ) {
         let _ = self.input.unbounded_send(Input::Render {
             ticket,
             source,
             language,
             place,
+            linked,
         });
     }
 
@@ -118,6 +125,9 @@ impl Worker {
     }
 }
 
+/// The project a diagram links into, and the diagram's path there.
+pub type Linked = (Arc<Atlas>, Option<String>);
+
 #[derive(Debug)]
 enum Input {
     Render {
@@ -125,6 +135,7 @@ enum Input {
         source: Arc<str>,
         language: Language,
         place: Option<Place>,
+        linked: Option<Linked>,
     },
     Done(Generation, Result<Drawn, RenderError>),
     Forward(Event),
@@ -170,6 +181,7 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     engine: rendered.engine,
                     elapsed: rendered.elapsed,
                     map: Arc::new(rendered.map),
+                    links: Arc::new(rendered.links),
                 })
             });
             let _ = done.unbounded_send(Input::Done(outcome.generation, result));
@@ -193,9 +205,15 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     source,
                     language,
                     place,
+                    linked,
                 } => {
-                    let generation =
-                        service.submit_at(ticket.doc, source.to_string(), language, place);
+                    let generation = service.submit_linked(
+                        ticket.doc,
+                        source.to_string(),
+                        language,
+                        place,
+                        linked,
+                    );
                     requests.insert(generation, (ticket, source, language));
                     continue;
                 }
@@ -453,11 +471,13 @@ mod tests {
             "flowchart LR\n  A --> B\n".into(),
             Language::Mermaid,
             None,
+            None,
         );
         worker.render(
             ticket(2),
             "flowchart LR\n  A --> C\n".into(),
             Language::Mermaid,
+            None,
             None,
         );
         // The first request may be skipped for the second; the second always comes.

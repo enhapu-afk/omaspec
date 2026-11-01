@@ -1,13 +1,15 @@
 //! The state machines of a project folder, which sequence diagrams are
-//! checked against (`omaspec_model::Spec`). The folder is scanned as the
-//! file picker scans it; a file larger than 1 MB is not read, as for
-//! `!include`.
+//! checked against (`omaspec_model::Spec`), and all its diagrams, which
+//! maps show and states link to (`omaspec_render::Atlas`). The folder is
+//! scanned as the file picker scans it; a file larger than 1 MB is not
+//! read, as for `!include`.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use omaspec_core::{Language, detect};
 use omaspec_model::Spec;
+use omaspec_render::{Atlas, Entry, Place};
 
 use crate::editor::folder::{scan, scan_for};
 
@@ -19,22 +21,49 @@ const MAX_TRACE: u64 = 16 << 20;
 
 /// The state machines in the project folder `root`, by their paths in it.
 pub fn read(root: &Path) -> Vec<Spec> {
-    scan(root)
-        .iter()
-        .filter_map(|relative| spec(root, relative))
-        .collect()
+    read_project(root).0
 }
 
-fn spec(root: &Path, relative: &Path) -> Option<Spec> {
-    let path = root.join(relative);
-    let meta = std::fs::metadata(&path).ok()?;
-    if !meta.is_file() || meta.len() > MAX_FILE {
-        return None;
+/// The state machines in the project folder `root`, and all its diagrams
+/// with the main one its project file names; each file read once.
+pub fn read_project(root: &Path) -> (Vec<Spec>, Atlas) {
+    let mut specs = Vec::new();
+    let mut atlas = Atlas {
+        main: crate::project::read(root)
+            .and_then(Result::ok)
+            .and_then(|p| p.main)
+            .map(|m| m.replace('\\', "/").trim_start_matches("./").to_owned()),
+        ..Atlas::default()
+    };
+    for relative in scan(root) {
+        let path = root.join(&relative);
+        let small = std::fs::metadata(&path).is_ok_and(|m| m.is_file() && m.len() <= MAX_FILE);
+        let Some(text) = small.then(|| std::fs::read_to_string(&path).ok()).flatten() else {
+            continue;
+        };
+        let name = file_name(&relative);
+        let language = detect(&text, Language::from_file_name(&name));
+        specs.extend(Spec::read(&text, language, &name));
+        atlas.diagrams.push(Entry {
+            names: omaspec_core::project::names(&text, language, &name),
+            place: Place::of(&path, Some(root)),
+            file: name,
+            source: text,
+            language,
+        });
     }
-    let text = std::fs::read_to_string(&path).ok()?;
-    let name = relative.to_string_lossy();
-    let lang = detect(&text, Language::from_file_name(&name));
-    Spec::read(&text, lang, &name)
+    atlas.diagrams.sort_by(|a, b| a.file.cmp(&b.file));
+    (specs, atlas)
+}
+
+/// A path in the project as maps and messages show it: `/` between
+/// folders.
+pub fn file_name(relative: &Path) -> String {
+    relative
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 /// The recorded traces in the project folder `root` (JSON Lines, `.jsonl`)

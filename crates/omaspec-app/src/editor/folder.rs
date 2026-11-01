@@ -282,12 +282,14 @@ impl App {
         Task::batch(roots.into_iter().map(|root| {
             Task::perform(
                 blocking(move || {
-                    let specs = specs::read(&root);
-                    (root, specs)
+                    let (specs, atlas) = specs::read_project(&root);
+                    (root, specs, atlas)
                 }),
                 |found| match found {
-                    Some((root, specs)) => Message::Specs(root, Arc::new(specs)),
-                    None => Message::Specs(PathBuf::new(), Arc::default()),
+                    Some((root, specs, atlas)) => {
+                        Message::Specs(root, Arc::new(specs), Arc::new(atlas))
+                    }
+                    None => Message::Specs(PathBuf::new(), Arc::default(), Arc::default()),
                 },
             )
         }))
