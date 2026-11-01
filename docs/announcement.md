@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.4.4: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.5.0: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -17,7 +17,7 @@ diagram as a scenario, in PlantUML and Mermaid alike:
 
 - **Checks while you type.** A state no path reaches, a state nothing leaves, one event
   leading two ways with no guard to choose. A sequence diagram is checked against the
-  state machines of its folder: every message must be an event its receiver can take,
+  state machines of its project: every message must be an event its receiver can take,
   in the order the scenario sends them.
 - **Play it.** F5 runs the diagram on screen: the states the machine is in light up, you
   pick what happens next, a light runs along each transition or message.
@@ -32,6 +32,22 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   scenario into Mermaid and back, and only when the result means the same.
 - **For AI agents.** `omaspec mcp` is an MCP server with the command line's tools:
   lint, trace, diff, convert, format, render and more.
+
+## New in 0.5
+
+- **Projects.** `omaspec new shop`, or *New project* in the editor, makes a folder with
+  `omaspec-project.toml`, a map of the project and a first state machine; git if you
+  like. Every diagram below the file is checked against the whole project, however it
+  was opened.
+- **Diagrams that link.** A state links to the diagram of its name: click it and the
+  view zooms in, Alt+Left zooms back out, and a trail over the diagram shows the way.
+  A specification reads from the whole system down to a single step.
+- **The project's map.** A mind map or WBS in a project shows each diagram it names as
+  a tile with that diagram's picture, dashed arrows where diagrams link to each other,
+  and below it the diagrams not on the map yet. A click on a tile opens the diagram.
+- **Lines by hand.** With Alt, drag a line of a state, class, component or flowchart
+  diagram to shape it yourself; the shape is kept in the file as a comment every other tool
+  ignores, and stretches with the diagram when it changes.
 
 ## The editor
 
@@ -49,7 +65,8 @@ diagram as a scenario, in PlantUML and Mermaid alike:
 Omaspec draws most diagrams with its own engines, in a few milliseconds: PlantUML
 sequence, activity, state, class, component, use case, deployment, object, timing and
 Gantt diagrams, mind maps, WBS, JSON and formulas, and Mermaid flowcharts, state and
-sequence diagrams. The other Mermaid types are drawn by mmdr, a Rust library, in the same
+sequence diagrams (state diagrams of both languages by the same engine). The other
+Mermaid types are drawn by mmdr, a Rust library, in the same
 process. A few PlantUML types (YAML, Salt and more) it does not draw yet and says so; if you
 install the optional `plantuml` package (Java), Omaspec hands just those to it,
 confined with Landlock. Omaspec reads state and sequence diagrams as PlantUML 1.2026.8
