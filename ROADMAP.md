@@ -916,6 +916,23 @@ What comes after 0.4, announced in the README.
       Ctrl+click on a line jumps to it. A first version routed the line
       through bends the writer placed; checked in a real window, the router
       chose too much on its own, so the line now keeps its shape.
+- [x] Projects: a folder with `omaspec-project.toml` is a project, found from
+      any diagram below it, so the editor, the preview, every command and
+      the MCP server judge a diagram against the same state machines and
+      `!include`s however it was opened
+      ([0017](docs/adr/0017-projects.md)). The file holds the project's
+      `name`, which heads the sidebar, and its `main` diagram; anything else
+      is an error with its line. *New project* in the command list asks for
+      PlantUML or Mermaid and git, then the folder; `omaspec new DIR`
+      (`--lang`, `--git`, `--json`) does the same. A folder that is there
+      keeps its files; the first diagram is the whole system as a small
+      state machine, clean for lint and `fmt`. git starts only on request
+      and not inside another repository. The MCP server's project ends at
+      the folder it runs in. Found on the way, checked in a real window: a
+      question asked from the command list (the new project's folder, but
+      also *Open*, *Save as*, an export) let the source editor take what was
+      typed as well. The list coming and going rebuilt the widgets under it,
+      and a new editor starts with the keys; the window now keeps them.
 - [ ] Diagrams that link: a state links to the diagram that describes it. A
       click zooms into the state, and inside is its activity diagram; zooming
       out goes back. A specification reads from the whole system down to a

@@ -97,7 +97,7 @@ pub fn definitions() -> Vec<Value> {
     });
     let project = json!({
         "type": "string",
-        "description": "The folder whose state machines are checked against; by default the file's own folder. Without it, `code` is checked on its own.",
+        "description": "The folder whose state machines are checked against; by default the project the file is in (the nearest folder above it with `omaspec-project.toml`), else its own folder. Without either, `code` is checked on its own.",
     });
     let reading = json!({ "readOnlyHint": true, "openWorldHint": false });
     vec![
@@ -230,7 +230,7 @@ pub fn definitions() -> Vec<Value> {
                 ("lang", lang),
                 ("project", json!({
                     "type": "string",
-                    "description": "The folder `!include` may read from; by default the file's own folder.",
+                    "description": "The folder `!include` may read from; by default the project the file is in, else its own folder.",
                 })),
                 ("output", json!({
                     "type": "string",
@@ -325,7 +325,7 @@ impl Tools {
     fn render(renderer: &mut Renderer, args: &Args) -> Result<Answer> {
         let input = diagram(args)?;
         let lang = language(&input, args.lang()?);
-        let project = args.path("project")?;
+        let project = args.project_of(input.path.as_deref())?;
         let output = args.path("output")?;
         let format = match args.text("format")? {
             Some(name) => Some(Format::from_extension(name).with_context(|| {
@@ -343,7 +343,7 @@ impl Tools {
         let place = input
             .path
             .as_deref()
-            .and_then(|path| Place::of(path, project.as_deref()));
+            .and_then(|path| place_in(path, project));
         let rendered = match renderer.render_at(&input.text, lang, place.as_ref()) {
             Ok(rendered) => rendered,
             Err(err) => {
@@ -450,6 +450,26 @@ impl Args<'_> {
         }
     }
 
+    /// The project folder a call works in: `project` when it gives one,
+    /// else `found` (the project a diagram or folder is in), but never more
+    /// than the folder the server runs in, which it reads nothing outside.
+    fn project_or(&self, found: Option<PathBuf>) -> Result<Option<PathBuf>> {
+        if let Some(project) = self.path("project")? {
+            return Ok(Some(project));
+        }
+        let Some(found) = found else {
+            return Ok(None);
+        };
+        let base = server_folder(self.root)?;
+        let real = found.canonicalize().unwrap_or_else(|_| found.clone());
+        Ok(Some(if real.starts_with(&base) { found } else { base }))
+    }
+
+    /// The project folder of the diagram at `path`, as [`Self::project_or`].
+    fn project_of(&self, path: Option<&Path>) -> Result<Option<PathBuf>> {
+        self.project_or(crate::specs::root_of(path, None))
+    }
+
     fn flag(&self, key: &str) -> Result<Option<bool>> {
         match self.map.get(key) {
             None | Some(Value::Null) => Ok(None),
@@ -483,12 +503,7 @@ impl Args<'_> {
 /// exist yet (an output), whose folder must still be inside `root`. The
 /// path comes back as written, joined to `root`.
 fn confine(root: &Path, path: &Path) -> Result<PathBuf> {
-    let base = if root.as_os_str().is_empty() {
-        std::env::current_dir().context("no current folder")?
-    } else {
-        root.to_path_buf()
-    };
-    let base = base.canonicalize().unwrap_or(base);
+    let base = server_folder(root)?;
     let joined = base.join(path);
     let name = joined
         .file_name()
@@ -513,6 +528,32 @@ fn confine(root: &Path, path: &Path) -> Result<PathBuf> {
         bail!("`{}` is hidden or in a hidden folder", path.display());
     }
     Ok(root.join(path))
+}
+
+/// The folder the server runs in, `root` or else the current one, with
+/// its links followed.
+fn server_folder(root: &Path) -> Result<PathBuf> {
+    let base = if root.as_os_str().is_empty() {
+        std::env::current_dir().context("no current folder")?
+    } else {
+        root.to_path_buf()
+    };
+    Ok(base.canonicalize().unwrap_or(base))
+}
+
+/// Where the diagram at `path` lives, with `project` as its project folder
+/// when the diagram is inside it, else the diagram's own folder.
+fn place_in(path: &Path, project: Option<PathBuf>) -> Option<Place> {
+    let place = Place::of(path, None)?;
+    let Some(project) = project.and_then(|p| std::path::absolute(p).ok()) else {
+        return Some(place);
+    };
+    let root = if place.dir.starts_with(&project) {
+        project
+    } else {
+        place.dir.clone()
+    };
+    Some(Place { root, ..place })
 }
 
 /// The diagram a call names, by `path` or by `code`.
@@ -560,15 +601,17 @@ fn findings(all: &[(String, Vec<Finding>)]) -> Result<Value> {
 
 fn lint(args: &Args) -> Result<Answer> {
     let lang = args.lang()?;
-    let mut project = args.path("project")?;
+    let mut folder = None;
     let inputs = match args.path("path")? {
         Some(dir) if dir.is_dir() => {
             ensure!(
                 args.text("code")?.is_none(),
                 "give `path` or `code`, not both"
             );
-            // A folder is its diagrams' project.
-            project.get_or_insert_with(|| dir.clone());
+            // A folder is its diagrams' project, or in the project they
+            // are in.
+            let root = omaspec_render::project_root(&dir).unwrap_or_else(|| dir.clone());
+            folder = args.project_or(Some(root))?;
             let mut files = scan(&dir);
             files.sort();
             files
@@ -581,6 +624,10 @@ fn lint(args: &Args) -> Result<Answer> {
     let mut projects = Projects::default();
     let mut all = Vec::new();
     for input in &inputs {
+        let project = match &folder {
+            Some(folder) => Some(folder.clone()),
+            None => args.project_of(input.path.as_deref())?,
+        };
         let specs = projects.of(input.path.as_deref(), project.as_deref());
         let found = omaspec_model::findings_with(&input.text, language(input, lang), specs);
         all.push((name(input), found));
@@ -592,7 +639,7 @@ fn lint(args: &Args) -> Result<Answer> {
 
 fn trace(args: &Args) -> Result<Answer> {
     let input = diagram(args)?;
-    let project = args.path("project")?;
+    let project = args.project_of(input.path.as_deref())?;
     let mut projects = Projects::default();
     let specs = projects.of(input.path.as_deref(), project.as_deref());
     let found = omaspec_model::check_trace(&input.text, specs);
@@ -604,7 +651,7 @@ fn trace(args: &Args) -> Result<Answer> {
 fn inspect(args: &Args) -> Result<Answer> {
     let input = diagram(args)?;
     let lang = language(&input, args.lang()?);
-    let project = args.path("project")?;
+    let project = args.project_of(input.path.as_deref())?;
     let specs = Projects::default()
         .of(input.path.as_deref(), project.as_deref())
         .to_vec();
@@ -625,8 +672,8 @@ fn outline(args: &Args) -> Result<Answer> {
 
 fn diff(args: &Args) -> Result<Answer> {
     let lang = args.lang()?;
-    let project = args.path("project")?;
     let new = diagram(args)?;
+    let project = args.project_of(new.path.as_deref())?;
     let (old, old_name) = match (
         args.path("old_path")?,
         args.text("old_code")?,
@@ -763,6 +810,53 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    #[test]
+    fn a_project_reaches_no_further_than_the_servers_folder() {
+        let dir = scratch("project");
+        let orders = dir.join("orders");
+        std::fs::create_dir_all(&orders).unwrap();
+        std::fs::write(dir.join("omaspec-project.toml"), "name = \"Shop\"\n").unwrap();
+        std::fs::write(
+            dir.join("door.puml"),
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        )
+        .unwrap();
+        std::fs::write(dir.join("secret.puml"), "participant Secret\n").unwrap();
+        std::fs::write(
+            orders.join("late.puml"),
+            "@startuml\nUser -> Door : open\nUser -> Door : open\n@enduml\n",
+        )
+        .unwrap();
+        std::fs::write(
+            orders.join("with.puml"),
+            "@startuml\n!include ../secret.puml\nUser -> Secret : hi\n@enduml\n",
+        )
+        .unwrap();
+        let lint = |root: &Path, path: &str| {
+            call_in(root.to_path_buf(), "lint", json!({ "path": path }))["structuredContent"]
+                .to_string()
+        };
+        // The folder `!include` may read in.
+        let include_root = |root: &Path, path: &str| {
+            let map = Map::new();
+            let args = Args { map: &map, root };
+            let file = root.join(path);
+            let project = args.project_of(Some(&file)).unwrap();
+            place_in(&file, project).unwrap().root
+        };
+        // Started in the project's root, the server holds the scenario
+        // against the door there, also for a whole folder, and the include
+        // reads.
+        assert!(lint(&dir, "orders/late.puml").contains("does not take open"));
+        assert!(lint(&dir, "orders").contains("does not take open"));
+        assert_eq!(include_root(&dir, "orders/with.puml"), dir);
+        // Started in `orders`, it reads nothing above it: no door, no secret.
+        assert!(!lint(&orders, "late.puml").contains("does not take open"));
+        assert!(!lint(&orders, ".").contains("does not take open"));
+        assert_eq!(include_root(&orders, "with.puml"), orders);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

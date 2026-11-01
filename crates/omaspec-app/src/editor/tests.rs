@@ -3154,3 +3154,245 @@ fn convert_opens_the_other_language_in_a_new_tab() {
     let notice = app.notice.clone().unwrap();
     assert_eq!(notice, "not written in Mermaid: line 3: Mermaid has no ref");
 }
+
+#[test]
+fn a_new_project_is_made_shown_and_its_first_diagram_opened() {
+    let dir = temp_dir("new-project");
+    let shop = dir.join("shop");
+    let mut app = open(&[]);
+    press(&mut app, Command::NewProject);
+    assert_eq!(app.picker.as_ref().unwrap().kind, Kind::NewProject);
+    // PlantUML, PlantUML with git, Mermaid, Mermaid with git.
+    let _ = app.update(Message::PickerClick(2));
+    assert_eq!(app.mode(app.main), Mode::Prompt);
+    assert_eq!(
+        app.prompt.as_ref().unwrap().asking,
+        Asking::NewProject {
+            language: Language::Mermaid,
+            git: false
+        }
+    );
+    let _ = app.update(Message::PromptInput(shop.display().to_string()));
+    let _ = app.update(Message::PromptSubmit);
+    assert!(app.prompt.is_none(), "{:?}", app.notice);
+    let root = std::fs::canonicalize(&shop).unwrap();
+    assert_eq!(app.folder.as_deref(), Some(root.as_path()));
+    assert_eq!(app.project_name.as_deref(), Some("shop"));
+    // The untouched new tab gave way to the first diagram.
+    assert_eq!(app.docs.len(), 1);
+    assert_eq!(app.doc().path, Some(root.join("system.mmd")));
+    assert_eq!(app.doc().language, Language::Mermaid);
+    let notice = app.notice.clone().unwrap();
+    assert!(
+        notice.starts_with("new project shop: omaspec-project.toml, system.mmd"),
+        "{notice}"
+    );
+
+    // The next one is suggested beside it; the same folder again is refused
+    // and the prompt stays open.
+    press(&mut app, Command::NewProject);
+    let _ = app.update(Message::PickerSubmit);
+    let prompt = app.prompt.as_ref().unwrap();
+    assert_eq!(
+        prompt.input,
+        format!("{}/", root.parent().unwrap().display())
+    );
+    let _ = app.update(Message::PromptInput(shop.display().to_string()));
+    let _ = app.update(Message::PromptSubmit);
+    assert!(app.prompt.is_some());
+    assert!(app.notice.as_deref().unwrap().contains("a project already"));
+    press(&mut app, Command::Cancel);
+
+    // The sidebar is headed by the project's name; a folder inside the
+    // project belongs to it; a file that does not hold is told.
+    let file = root.join(omaspec_core::project::FILE);
+    std::fs::write(&file, "name = \"Laden\"\n").unwrap();
+    let _ = app.update(Message::Focused);
+    assert_eq!(app.project_name.as_deref(), Some("Laden"));
+    std::fs::create_dir_all(root.join("orders")).unwrap();
+    let _ = app.set_folder(Some(root.join("orders")));
+    assert_eq!(app.project_name, None);
+    assert_eq!(app.folder_project(), Some(root.clone()));
+    std::fs::write(&file, "name = Laden\n").unwrap();
+    let _ = app.set_folder(Some(root.clone()));
+    assert_eq!(app.project_name, None);
+    let notice = app.notice.clone().unwrap();
+    assert!(notice.starts_with("omaspec-project.toml:1: "), "{notice}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Collects the ids of the widgets that hold the keyboard focus.
+struct AllFocused(Vec<String>);
+
+impl iced::advanced::widget::Operation for AllFocused {
+    fn focusable(
+        &mut self,
+        id: Option<&iced::advanced::widget::Id>,
+        _bounds: iced::Rectangle,
+        state: &mut dyn iced::advanced::widget::operation::Focusable,
+    ) {
+        if state.is_focused() {
+            self.0.push(format!("{id:?}"));
+        }
+    }
+    fn traverse(
+        &mut self,
+        operate: &mut dyn FnMut(&mut dyn iced::advanced::widget::Operation<()>),
+    ) {
+        operate(self);
+    }
+}
+
+/// The editor window as iced runs it: the widget tree kept between
+/// updates, each update's widget operations (focus) run on the tree built
+/// after it, keys going to whichever widget has the focus.
+struct Live {
+    cache: iced_runtime::user_interface::Cache,
+    renderer: iced::Renderer,
+}
+
+impl Live {
+    fn new(app: &mut App, start: Task<Message>) -> Live {
+        use iced::advanced::renderer::Headless;
+        let renderer = iced_test::futures::futures::executor::block_on(iced::Renderer::new(
+            app.font,
+            iced::Pixels(16.0),
+            None,
+        ))
+        .expect("a headless renderer");
+        let mut live = Live {
+            cache: iced_runtime::user_interface::Cache::default(),
+            renderer,
+        };
+        live.run(app, vec![start], Vec::new());
+        live
+    }
+
+    /// Delivers `events` to the window, then every message they and the
+    /// tasks bring, as iced does.
+    fn send(&mut self, app: &mut App, events: Vec<iced::Event>) {
+        let mut messages = Vec::new();
+        let mut ui = self.build(app);
+        let _ = ui.update(
+            &events,
+            iced::mouse::Cursor::Unavailable,
+            &mut self.renderer,
+            &mut iced::advanced::clipboard::Null,
+            &mut messages,
+        );
+        self.cache = ui.into_cache();
+        self.run(app, Vec::new(), messages);
+    }
+
+    fn command(&mut self, app: &mut App, command: Command) {
+        self.run(app, Vec::new(), vec![Message::Command(command)]);
+    }
+
+    fn run(&mut self, app: &mut App, mut tasks: Vec<Task<Message>>, mut messages: Vec<Message>) {
+        use iced::futures::StreamExt;
+        loop {
+            tasks.extend(messages.drain(..).map(|m| app.update(m)));
+            if tasks.is_empty() {
+                return;
+            }
+            let mut operations = Vec::new();
+            let waker = iced::futures::task::noop_waker_ref();
+            let mut context = std::task::Context::from_waker(waker);
+            for task in tasks.drain(..) {
+                let Some(mut stream) = iced_runtime::task::into_stream(task) else {
+                    continue;
+                };
+                while let std::task::Poll::Ready(Some(action)) =
+                    stream.poll_next_unpin(&mut context)
+                {
+                    match action {
+                        iced_runtime::Action::Widget(op) => operations.push(op),
+                        iced_runtime::Action::Output(m) => messages.push(m),
+                        _ => {}
+                    }
+                }
+            }
+            let mut ui = self.build(app);
+            for mut op in operations {
+                loop {
+                    ui.operate(&self.renderer, op.as_mut());
+                    match op.finish() {
+                        iced::advanced::widget::operation::Outcome::Chain(next) => op = next,
+                        _ => break,
+                    }
+                }
+            }
+            self.cache = ui.into_cache();
+        }
+    }
+
+    /// The ids of every widget that holds the keyboard focus.
+    fn focused(&mut self, app: &App) -> Vec<String> {
+        let mut all = AllFocused(Vec::new());
+        let mut ui = self.build(app);
+        ui.operate(&self.renderer, &mut all);
+        self.cache = ui.into_cache();
+        all.0
+    }
+
+    fn build<'a>(
+        &mut self,
+        app: &'a App,
+    ) -> iced_runtime::UserInterface<'a, Message, iced::Theme, iced::Renderer> {
+        iced_runtime::UserInterface::build(
+            app.main_view(),
+            Size::new(1200.0, 800.0),
+            std::mem::take(&mut self.cache),
+            &mut self.renderer,
+        )
+    }
+}
+
+/// A question asked from the command list gets the keys alone. The
+/// picker coming and going once rebuilt the widgets under it, and the new
+/// source editor took the keys as well.
+#[test]
+fn what_is_typed_after_the_command_list_goes_to_the_prompt_only() {
+    let enter = || iced_test::simulator::tap_key(Named::Enter, None).collect::<Vec<_>>();
+    let typed = |text: &str| iced_test::simulator::typewrite(text).collect::<Vec<_>>();
+    for (command, lists) in [("new project", 2), ("open a file", 1)] {
+        let mut app = open(&[]);
+        let start = app.focus_editor();
+        let mut live = Live::new(&mut app, start);
+        live.send(&mut app, typed("a"));
+        let text = app.doc().text();
+        assert!(
+            text.contains('a'),
+            "the editor has the keys at first: {text:?}"
+        );
+
+        live.command(&mut app, Command::Palette);
+        assert_eq!(live.focused(&app), ["Some(Id(Custom(\"picker\")))"]);
+        live.send(&mut app, typed(command));
+        for _ in 0..lists {
+            live.send(&mut app, enter());
+        }
+        assert!(app.prompt.is_some(), "{command}");
+        assert_eq!(
+            live.focused(&app),
+            ["Some(Id(Custom(\"prompt\")))"],
+            "{command}"
+        );
+        let before = app.prompt.as_ref().unwrap().input.clone();
+        live.send(&mut app, typed("shop"));
+        assert_eq!(app.prompt.as_ref().unwrap().input, format!("{before}shop"));
+        assert_eq!(
+            app.doc().text(),
+            text,
+            "{command}: the editor took the keys too"
+        );
+
+        // Escape gives the keys back to the editor.
+        live.command(&mut app, Command::Cancel);
+        assert_eq!(
+            live.focused(&app),
+            ["Some(Id(Custom(\"editor-1\")))"],
+            "{command}"
+        );
+    }
+}

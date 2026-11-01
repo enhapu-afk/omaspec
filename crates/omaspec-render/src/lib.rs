@@ -22,7 +22,7 @@ use omaspec_core::Language;
 use omaspec_core::kind;
 pub use omaspec_uml::map::Map;
 
-pub use include::Place;
+pub use include::{Place, project_root};
 pub use java::JavaPlantUml;
 pub use mermaid::{MermaidDeclined, coverage as mermaid_coverage};
 pub use service::{Generation, Outcome, RenderService};

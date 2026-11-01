@@ -64,6 +64,20 @@ so does Ctrl+click on a label, box, diamond or line in the diagram. Lines change
 save are marked beside the line numbers. The language is detected from the text and the
 file name unless `--lang` (or the palette) sets it.
 
+A folder with `omaspec-project.toml` is a project: a diagram anywhere below it is
+checked against the state machines of the whole project, its `!include`s may reach into
+all of it, and it is the same project whether the diagram came from the sidebar, from
+Ctrl+O or from the command line. *New project* in the palette asks for PlantUML or
+Mermaid, with git or without, then for the folder; it writes the project file and a
+first diagram, `system.puml` or `system.mmd`, shows the folder and opens the diagram. A
+folder that is there keeps its files. The file names the project, which heads the
+sidebar, and its main diagram:
+
+```toml
+name = "shop"
+main = "system.puml"
+```
+
 The palette also opens the *Help Omaspec* folder: diagrams of the menu, editing, the
 window and export. The line under its heading, or *Leave Help Omaspec* in the palette,
 brings the project folder back and closes the help pages.
@@ -196,7 +210,7 @@ composite state entered with no start inside. Transition labels are read as UML 
 them, `event [guard] / action`.
 
 **Scenarios against machines.** A sequence diagram is checked against the state machines
-of its folder: a participant named like a state diagram (`door.puml`, or `title Door`)
+of its project: a participant named like a state diagram (`door.puml`, or `title Door`)
 must take every message it receives as an event, in the order the scenario sends them,
 through `alt`, `opt` and `loop`.
 
@@ -210,7 +224,7 @@ arrow. Each step lights its line in the source; ← goes back, Home starts again
 
 **Traces.** `omaspec trace run.jsonl` reads what a running system did, one JSON object per
 line (`{"object":"Door","event":"open","state":"Opening"}`, with `time` and other fields
-as the log has them), and plays it through the state machines of its folder: an event the
+as the log has them), and plays it through the state machines of its project: an event the
 object cannot take where it is by then, or a state it cannot be in, is an error with the
 time and the states it could be in. Many objects can share one machine
 (`"machine":"Door"`). In the editor, *Play a recorded trace* (command menu) plays it in
@@ -226,10 +240,11 @@ and only when the result means the same ([ADR 0009](../adr/0009-diff-and-convert
 ## Command line
 
 ```bash
+omaspec new ~/specs/shop            # a project: omaspec-project.toml and system.puml; --lang mermaid, --git
 omaspec lint diagrams/*.puml        # syntax, likely typos, specification checks; exit 1 on errors
-omaspec lint --project specs a.puml # sequences checked against the state machines in specs/
+omaspec lint --project specs a.puml # sequences checked against the state machines in specs/, not the project
 omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
-omaspec trace run.jsonl             # a recorded trace against the state machines next to it; --project, --json
+omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI
 omaspec outline flow.puml           # structure: participants, groups, lanes, states, …
 omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it

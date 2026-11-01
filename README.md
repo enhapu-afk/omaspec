@@ -50,7 +50,7 @@ Omaspec draws it in about 30 ms.
 A state diagram is the state machine it specifies, and a sequence diagram is a scenario,
 in PlantUML and Mermaid alike. Omaspec checks them while you type: a state no path
 reaches, a state nothing leaves, one event leading two ways with no guard to choose. A
-scenario is checked against the state machines of its folder: every message must be an
+scenario is checked against the state machines of its project: every message must be an
 event its receiver can take, in the order the scenario sends them.
 
 ![A scenario checked against the door's state machine: the door is open and cannot be locked](docs/images/specs.png)
@@ -81,6 +81,9 @@ diagram with the theme if you like. Every bundled theme is checked for legible c
 
 ### And more
 
+- **Projects.** `omaspec new shop`, or *New project* in the editor, makes a folder with a
+  first diagram and `omaspec-project.toml`. Every diagram below it is checked against
+  the whole project, however it was opened.
 - **Compare** a diagram with another tab or any git commit, as pictures side by side or
   as changed lines. `omaspec diff` says what changed in the *behavior*: states,
   transitions and messages, not layout.
@@ -127,6 +130,7 @@ Salt and more), `wl-clipboard` to copy diagrams, `git` to compare with commits.
 
 ```bash
 omaspec ~/diagrams          # the editor, with that folder in the sidebar
+omaspec new ~/specs/shop    # or start a project: a folder with a first diagram
 ```
 
 1. **Ctrl+Shift+E** opens the examples. Pick *A coffee machine* and press **F5**: it

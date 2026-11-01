@@ -57,13 +57,13 @@ pub fn traces(root: &Path, spec: &Spec) -> Vec<(String, PathBuf, String)> {
 }
 
 /// The project folder of a diagram file: `project` if one is given, else
-/// the file's own folder.
+/// the project the file is in (`omaspec-project.toml` above it), else the
+/// file's own folder.
 pub fn root_of(file: Option<&Path>, project: Option<&Path>) -> Option<PathBuf> {
     if let Some(project) = project {
         return std::path::absolute(project).ok();
     }
-    let file = std::path::absolute(file?).ok()?;
-    file.parent().map(Path::to_path_buf)
+    omaspec_render::Place::of(file?, None).map(|place| place.root)
 }
 
 /// The state machines of every project folder one command needs, each

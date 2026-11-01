@@ -209,6 +209,9 @@ impl App {
         }
         self.folder = folder;
         self.fill_tree();
+        if let Some(Err(err)) = self.folder.as_deref().and_then(crate::project::read) {
+            self.notice = Some(err);
+        }
         Task::batch([self.rescan(), self.load_specs()])
     }
 
@@ -217,8 +220,13 @@ impl App {
         let Some(root) = self.folder.clone() else {
             self.tree.clear();
             self.open_dirs.clear();
+            self.project_name = None;
             return;
         };
+        // Without a name the heading stays the folder's.
+        self.project_name = crate::project::read(&root)
+            .and_then(Result::ok)
+            .and_then(|project| project.name);
         self.open_dirs.retain(|rel| root.join(rel).is_dir());
         let mut tree = HashMap::new();
         tree.insert(PathBuf::new(), list(&root));
@@ -244,13 +252,20 @@ impl App {
 
     /// Looks for diagrams in the folder, in the background.
     /// The project folder of an open document: as for `!include`, the
-    /// sidebar's folder when the file is in it, else the file's own folder.
-    /// An unsaved document belongs to the sidebar's folder.
+    /// project it is in, else the sidebar's folder when the file is in it,
+    /// else the file's own folder. An unsaved document belongs to the
+    /// sidebar's project.
     pub(super) fn project_of(&self, doc: &Doc) -> Option<PathBuf> {
         match &doc.path {
             Some(path) => omaspec_render::Place::of(path, self.folder.as_deref()).map(|p| p.root),
-            None => self.folder.clone(),
+            None => self.folder_project(),
         }
+    }
+
+    /// The project the sidebar's folder is in, else the folder itself.
+    pub(super) fn folder_project(&self) -> Option<PathBuf> {
+        let folder = self.folder.as_ref()?;
+        Some(omaspec_render::project_root(folder).unwrap_or_else(|| folder.clone()))
     }
 
     /// Reads the state machines of every project folder an open document
@@ -261,7 +276,7 @@ impl App {
             .iter()
             .filter_map(|d| self.project_of(d))
             .collect();
-        roots.extend(self.folder.clone());
+        roots.extend(self.folder_project());
         roots.sort();
         roots.dedup();
         Task::batch(roots.into_iter().map(|root| {

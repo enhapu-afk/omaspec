@@ -1,4 +1,5 @@
-//! The files `!include` reads: local ones inside the project folder.
+//! The files `!include` reads: local ones inside the project folder; and
+//! where that folder is.
 //!
 //! A diagram from elsewhere must not pull private files into a picture that
 //! is shared later. So an included file has to lie inside the project
@@ -24,18 +25,40 @@ pub struct Place {
 }
 
 impl Place {
-    /// The place of the diagram file `path` in the project folder `root`
-    /// (the editor's folder). Without one, or for a file outside it, the
-    /// file's own folder is the project folder.
-    pub fn of(path: &Path, root: Option<&Path>) -> Option<Place> {
+    /// The place of the diagram file `path`. Its project folder is the
+    /// project it is in (see [`project_root`]); else `folder` (the
+    /// editor's folder) when the file is inside it; else the file's own
+    /// folder.
+    pub fn of(path: &Path, folder: Option<&Path>) -> Option<Place> {
         let path = std::path::absolute(path).ok()?;
         let dir = path.parent()?.to_path_buf();
-        let root = root
-            .and_then(|root| std::path::absolute(root).ok())
-            .filter(|root| dir.starts_with(root))
+        let root = project_root(&dir)
+            .or_else(|| {
+                folder
+                    .and_then(|folder| std::path::absolute(folder).ok())
+                    .filter(|folder| dir.starts_with(folder))
+            })
             .unwrap_or_else(|| dir.clone());
         Some(Place { dir, root })
     }
+}
+
+/// The root of the project the folder `dir` is in: the nearest folder,
+/// `dir` itself or one above it, that holds `omaspec-project.toml`. The
+/// home folder and the file system's root do not count, so a project file
+/// left there by mistake does not open every diagram's `!include` to all
+/// of it.
+pub fn project_root(dir: &Path) -> Option<PathBuf> {
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    root_below(dir, home.as_deref())
+}
+
+fn root_below(dir: &Path, home: Option<&Path>) -> Option<PathBuf> {
+    let dir = std::path::absolute(dir).ok()?;
+    dir.ancestors()
+        .take_while(|folder| folder.parent().is_some() && Some(*folder) != home)
+        .find(|folder| folder.join(omaspec_core::project::FILE).is_file())
+        .map(Path::to_path_buf)
 }
 
 /// Reads `!include`s for a diagram at a [`Place`].
@@ -162,6 +185,39 @@ mod tests {
         // A file outside the editor's folder is its own project.
         let alone = Place::of(&root.join("outside.puml"), Some(&project)).unwrap();
         assert_eq!(alone.root, root);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_project_file_marks_the_root_above_the_editors_folder() {
+        let root = temp("marker");
+        let shop = root.join("shop");
+        fs::create_dir_all(shop.join("orders/returns")).unwrap();
+        fs::write(shop.join(omaspec_core::project::FILE), "name = \"Shop\"\n").unwrap();
+        let file = shop.join("orders/returns/refund.puml");
+        // From any folder below it, and over the editor's folder.
+        assert_eq!(
+            project_root(&shop.join("orders/returns")),
+            Some(shop.clone())
+        );
+        assert_eq!(project_root(&shop), Some(shop.clone()));
+        let place = Place::of(&file, Some(&shop.join("orders"))).unwrap();
+        assert_eq!(place.root, shop);
+        assert_eq!(place.dir, shop.join("orders/returns"));
+        assert_eq!(Place::of(&file, None).unwrap().root, shop);
+        // The nearest one wins.
+        fs::write(shop.join("orders/omaspec-project.toml"), "").unwrap();
+        assert_eq!(Place::of(&file, None).unwrap().root, shop.join("orders"));
+        // A folder named like it is no project file.
+        fs::create_dir_all(root.join("other/omaspec-project.toml")).unwrap();
+        assert_eq!(project_root(&root.join("other")), None);
+        // Not the home folder, nor anything above it.
+        assert_eq!(
+            root_below(&shop.join("orders"), Some(&shop)),
+            Some(shop.join("orders"))
+        );
+        assert_eq!(root_below(&shop, Some(&shop)), None);
+        assert_eq!(root_below(&shop.join("x"), Some(&shop)), None);
         let _ = fs::remove_dir_all(&root);
     }
 }

@@ -217,6 +217,16 @@ impl App {
                 }
             },
             Asking::Open => format!("{}/", folder.display()),
+            // Beside the project the sidebar is in, not inside it.
+            Asking::NewProject { .. } => {
+                let base = self
+                    .folder
+                    .as_deref()
+                    .and_then(omaspec_render::project_root)
+                    .and_then(|root| root.parent().map(Path::to_path_buf))
+                    .unwrap_or(folder);
+                format!("{}/", base.display())
+            }
             Asking::Export(format) => suggested_export(doc, &folder, format),
         };
         let key = doc.key;
@@ -330,6 +340,71 @@ impl App {
             .map(Message::Exported);
         self.prompt = None;
         task
+    }
+
+    /// Asks how a new project starts: in PlantUML or Mermaid, with git or
+    /// without. The prompt for its folder comes next.
+    pub(super) fn ask_project_kind(&mut self) -> Task<Message> {
+        use super::picker::{Choice, Item, Kind, Picker};
+        use omaspec_core::Language;
+        let items = [
+            (Language::PlantUml, false),
+            (Language::PlantUml, true),
+            (Language::Mermaid, false),
+            (Language::Mermaid, true),
+        ]
+        .into_iter()
+        .map(|(language, git)| {
+            let main = omaspec_core::project::main_file(language);
+            Item {
+                label: match git {
+                    false => language.name().to_owned(),
+                    true => format!("{}, with git", language.name()),
+                },
+                hint: match git {
+                    false => main,
+                    true => format!("{main} · git init"),
+                },
+                choice: Choice::NewProject { language, git },
+            }
+        })
+        .collect();
+        self.place_picker(Picker::new(Kind::NewProject, "start a project in", items));
+        iced::widget::operation::focus(super::PICKER)
+    }
+
+    /// Makes the folder in the prompt a project, shows it in the sidebar
+    /// and opens its first diagram. What went wrong keeps the prompt open.
+    pub(super) fn new_project_submitted(
+        &mut self,
+        language: omaspec_core::Language,
+        git: bool,
+    ) -> Task<Message> {
+        let Some(path) = self.prompt.as_ref().and_then(|p| expand(p.input.trim())) else {
+            self.notice = Some("name a folder for the project".into());
+            return Task::none();
+        };
+        let made = match crate::project::create(&path, language, git) {
+            Ok(made) => made,
+            Err(err) => {
+                self.notice = Some(format!("{err:#}"));
+                return Task::none();
+            }
+        };
+        self.prompt = None;
+        let mut notice = made.summary();
+        // Its state machines are read with the folder's.
+        let scan = self.set_folder(Some(made.root.clone()));
+        let shown = match self.open_doc(&made.root.join(&made.main)) {
+            Ok(index) => self.select(index),
+            Err(err) => {
+                notice = format!("{notice}; {} did not open: {err:#}", made.main);
+                Task::none()
+            }
+        };
+        self.notice = Some(notice);
+        self.keep_session();
+        Task::batch([scan, shown])
     }
 
     /// Opens what the prompt names: a folder becomes the folder, a file

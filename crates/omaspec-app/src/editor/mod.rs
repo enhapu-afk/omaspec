@@ -322,6 +322,8 @@ pub enum Command {
     SaveAs,
     Revert,
     Open,
+    /// Asks how, then where, and makes a project there.
+    NewProject,
     Pick,
     FindAll,
     ReplaceAll,
@@ -411,6 +413,7 @@ pub enum Command {
 const PALETTE: &[(&str, &str, Command)] = &[
     ("Find a file", "Ctrl+P", Command::Pick),
     ("Open a file, folder or image", "Ctrl+O", Command::Open),
+    ("New project", "", Command::NewProject),
     ("Browse the examples", "Ctrl+Shift+E", Command::Gallery),
     ("Open Help Omaspec", "", Command::OpenHelp),
     ("Find in all tabs", "Ctrl+Shift+F", Command::FindAll),
@@ -669,6 +672,7 @@ fn blocks_while_asking(command: Command) -> bool {
             | Command::Save
             | Command::SaveAs
             | Command::Open
+            | Command::NewProject
             | Command::Quit
     )
 }
@@ -686,6 +690,11 @@ enum Pane {
 enum Asking {
     SaveAs,
     Open,
+    /// The folder of a new project, its first diagram in this language.
+    NewProject {
+        language: Language,
+        git: bool,
+    },
     /// Where to write this export. Enter writes it; an existing file asks
     /// once more.
     Export(Format),
@@ -735,6 +744,9 @@ struct App {
     specs: HashMap<PathBuf, Arc<Vec<Spec>>>,
     /// Set while the sidebar shows Help Omaspec.
     help: Option<Help>,
+    /// The name `omaspec-project.toml` gives the sidebar's folder, when it
+    /// is a project's root.
+    project_name: Option<String>,
 
     theme_name: String,
     palette: Palette,
@@ -840,6 +852,7 @@ impl App {
             tree: HashMap::new(),
             specs: HashMap::new(),
             help: None,
+            project_name: None,
             theme: ui::iced_theme(&theme_name, &palette),
             theme_name,
             palette,
@@ -1218,6 +1231,9 @@ impl App {
             Message::PromptSubmit => match self.prompt.as_ref().map(|p| p.asking) {
                 Some(Asking::SaveAs) => self.save_as_submitted(),
                 Some(Asking::Open) => self.open_submitted(),
+                Some(Asking::NewProject { language, git }) => {
+                    self.new_project_submitted(language, git)
+                }
                 Some(Asking::Export(_)) => self.export_submitted(),
                 None => Task::none(),
             },
@@ -1605,6 +1621,7 @@ impl App {
             Command::SaveAs => self.ask(Asking::SaveAs),
             Command::Revert => self.revert(),
             Command::Open => self.ask(Asking::Open),
+            Command::NewProject => self.ask_project_kind(),
             Command::Pick => {
                 self.picked = true;
                 self.open_picker()

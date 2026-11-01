@@ -34,6 +34,16 @@ fn prompt_text(asking: Asking) -> (&'static str, &'static str, &'static str) {
             "file or folder to open",
             "Enter opens · Ctrl+P finds a file · Esc cancels",
         ),
+        Asking::NewProject { language, git } => (
+            match (language, git) {
+                (Language::PlantUml, false) => "New PlantUML project",
+                (Language::PlantUml, true) => "New PlantUML project with git",
+                (Language::Mermaid, false) => "New Mermaid project",
+                (Language::Mermaid, true) => "New Mermaid project with git",
+            },
+            "folder for the project",
+            "Enter makes it · a folder that is there keeps its files · Esc cancels",
+        ),
         Asking::Export(format) => match format {
             Format::Svg => ("Export SVG", "where to write the SVG", EXPORT_HINT),
             Format::Png => ("Export PNG", "where to write the PNG", EXPORT_HINT),
@@ -157,9 +167,10 @@ impl App {
         let mode = self.mode(self.main);
         let window_id = self.main;
         let window = self.with_picker(Some(window_id), column![self.tabs(), grid, bottom].into());
+        // A stack either way, as for the picker.
         let window = match self.gallery {
-            Some(_) => stack![window, self.gallery_view()].into(),
-            None => window,
+            Some(_) => stack![window, self.gallery_view()],
+            None => stack![window],
         };
         keys::Guard::new(window, move |key, mods| {
             shortcut(key, mods, mode).map(|command| Message::Keyed(window_id, command))
@@ -173,10 +184,14 @@ impl App {
         window: Option<iced::window::Id>,
         base: Element<'a, Message>,
     ) -> Element<'a, Message> {
+        // Always a stack, so the picker coming and going keeps the widgets
+        // under it. Built anew, the pane grid builds its panes once more on
+        // the next frame, and a new source editor takes the keyboard: what
+        // is typed into the prompt that follows would go there too.
         if self.picker.is_some() && window.is_some() && self.picker_on == window {
             stack![base, self.picker_view()].into()
         } else {
-            base
+            stack![base].into()
         }
     }
 
@@ -552,9 +567,10 @@ impl App {
             })
             .into()
         };
-        let title = match self.help {
-            Some(_) => "Omaspec help",
-            None => name.as_str(),
+        let title = match (&self.help, &self.project_name) {
+            (Some(_), _) => "Omaspec help",
+            (None, Some(project)) => project.as_str(),
+            (None, None) => name.as_str(),
         };
         let mut parts = vec![self.heading(title)];
         // In Help Omaspec the line under the heading leads back; in a
@@ -1323,6 +1339,7 @@ impl App {
             (Kind::Commands, n) => format!("{n} {}", plural(n, "command")),
             (Kind::Versions, n) => format!("{n} {}", plural(n, "version")),
             (Kind::Traces, n) => format!("{n} {}", plural(n, "trace")),
+            (Kind::NewProject, _) => "Enter, then name its folder".to_owned(),
             (Kind::Search, n) if n >= super::search::MAX_HITS => format!("the first {n} hits"),
             (Kind::Search, n) => format!("{n} {}", plural(n, "hit")),
         };

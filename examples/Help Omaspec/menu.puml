@@ -6,6 +6,8 @@ partition Find {
   drawn as tiles; Enter opens a copy;
   :Find a file with Ctrl+P;
   :Open a file, folder or image with Ctrl+O;
+  :Start a new project: PlantUML or Mermaid,
+  git if you like, then its folder;
   :Find in all tabs;
   :Replace in all tabs;
 }

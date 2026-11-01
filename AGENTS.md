@@ -8,8 +8,9 @@ cargo test --workspace
 cargo clippy --workspace --all-targets
 cargo fmt --all
 cargo run -p omaspec-app -- theme          # palette of the active Omarchy theme
+cargo run -p omaspec-app -- new DIR        # a project: omaspec-project.toml and a first diagram (docs/adr/0017)
 cargo run -p omaspec-app -- lint FILE      # --project DIR for the state machines; also fmt, outline, inspect, extract
-cargo run -p omaspec-app -- trace FILE     # a JSON Lines trace against the state machines of its folder
+cargo run -p omaspec-app -- trace FILE     # a JSON Lines trace against the state machines of its project
 cargo run -p omaspec-app -- mcp            # MCP server over standard input and output (docs/adr/0008)
 cargo run -p omaspec-app -- diff FILE      # what changed in the behavior since the last commit; or OLD NEW
 cargo run -p omaspec-app -- convert FILE   # the machine or scenario in the other language (docs/adr/0009)

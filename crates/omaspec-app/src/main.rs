@@ -7,6 +7,7 @@ mod logo;
 mod mcp;
 mod paper;
 mod preview;
+mod project;
 mod sandbox;
 mod specs;
 mod ui;
@@ -37,6 +38,30 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Start a project: a folder with `omaspec-project.toml` and a first
+    /// diagram.
+    ///
+    /// The file marks the project's root. A diagram anywhere below it is
+    /// checked against the state machines of the whole project, and its
+    /// `!include`s reach into all of it. The file names the project and its
+    /// main diagram, `system.puml` or `system.mmd`: the whole system as a
+    /// small state machine to start from. A folder that is there keeps its
+    /// files; one that is a project already is refused. With --git, a git
+    /// repository starts in it, unless it is inside one. Exits with 1 when
+    /// git could not start one.
+    New {
+        /// The project's folder; created if it is not there.
+        dir: PathBuf,
+        /// The language of the first diagram.
+        #[arg(long, value_enum, default_value = "plantuml")]
+        lang: LangChoice,
+        /// Start a git repository in the folder too.
+        #[arg(long)]
+        git: bool,
+        /// Print what was made as JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Check diagrams for syntax problems, likely typos and contradictions
     /// in a specification.
     ///
@@ -56,7 +81,8 @@ enum Command {
         #[arg(long)]
         strict: bool,
         /// The folder whose state machines sequence diagrams are checked
-        /// against; by default each file's own folder.
+        /// against; by default each file's project (the nearest folder
+        /// above it with `omaspec-project.toml`), else its own folder.
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
     },
@@ -78,7 +104,7 @@ enum Command {
         #[arg(long)]
         strict: bool,
         /// The folder whose state machines the traces are held against; by
-        /// default each trace's own folder.
+        /// default each trace's project, else its own folder.
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
     },
@@ -102,7 +128,7 @@ enum Command {
         #[arg(long)]
         json: bool,
         /// The folder whose state machines sequence diagrams are checked
-        /// against; by default the new file's own folder.
+        /// against; by default the new file's project, else its own folder.
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
         #[command(flatten)]
@@ -155,7 +181,7 @@ enum Command {
         #[command(flatten)]
         lang: LangArg,
         /// The folder whose state machines a sequence diagram is checked
-        /// against; by default the file's own folder.
+        /// against; by default the file's project, else its own folder.
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
     },
@@ -290,18 +316,30 @@ enum LangChoice {
     Mermaid,
 }
 
-impl LangArg {
-    fn get(self) -> Option<Language> {
-        self.lang.map(|l| match l {
+impl From<LangChoice> for Language {
+    fn from(choice: LangChoice) -> Self {
+        match choice {
             LangChoice::Plantuml => Language::PlantUml,
             LangChoice::Mermaid => Language::Mermaid,
-        })
+        }
+    }
+}
+
+impl LangArg {
+    fn get(self) -> Option<Language> {
+        self.lang.map(Language::from)
     }
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let result = match cli.command {
+        Some(Command::New {
+            dir,
+            lang,
+            git,
+            json,
+        }) => commands::new_project(&dir, lang.into(), git, json),
         Some(Command::Lint {
             files,
             lang,

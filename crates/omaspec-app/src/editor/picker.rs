@@ -35,6 +35,11 @@ pub enum Choice {
         path: PathBuf,
         object: String,
     },
+    /// Ask where the new project goes.
+    NewProject {
+        language: omaspec_core::Language,
+        git: bool,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,6 +50,8 @@ pub enum Kind {
     Versions,
     /// Recorded traces to play.
     Traces,
+    /// How a new project starts.
+    NewProject,
     /// The owner lists the items for each query; no fuzzy filter.
     Search,
 }
@@ -136,8 +143,9 @@ impl Picker {
     fn refilter(&mut self) {
         self.selected = 0;
         // Commands keep their order (the recent ones first) until a letter
-        // is typed.
-        let untyped = self.kind == Kind::Commands && self.query.trim().is_empty();
+        // is typed, and so do the ways to start a project.
+        let untyped =
+            matches!(self.kind, Kind::Commands | Kind::NewProject) && self.query.trim().is_empty();
         if self.kind == Kind::Search || untyped {
             self.matches = (0..self.items.len()).collect();
             return;
@@ -336,6 +344,9 @@ impl App {
                 let played = self.play_trace(&path, &object);
                 Task::batch([self.apply_keyboard_focus(), played])
             }
+            Some(Choice::NewProject { language, git }) => {
+                self.ask(super::Asking::NewProject { language, git })
+            }
             Some(Choice::Show { doc, range }) => {
                 let Some(index) = self.docs.iter().position(|d| d.key == doc) else {
                     return self.focus_editor();
@@ -384,9 +395,11 @@ mod tests {
     fn chosen(p: &Picker) -> Option<&Path> {
         match p.chosen()? {
             Choice::Open(path) => Some(path),
-            Choice::Run(_) | Choice::Show { .. } | Choice::Compare(_) | Choice::Trace { .. } => {
-                None
-            }
+            Choice::Run(_)
+            | Choice::Show { .. }
+            | Choice::Compare(_)
+            | Choice::Trace { .. }
+            | Choice::NewProject { .. } => None,
         }
     }
 

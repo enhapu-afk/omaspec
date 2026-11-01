@@ -771,6 +771,53 @@ pub fn extract(image: &Path, output: Option<&Path>, force: bool) -> Result<ExitC
     Ok(ExitCode::SUCCESS)
 }
 
+/// `omaspec new`: makes `dir` a project and says what it made.
+pub fn new_project(dir: &Path, language: Language, git: bool, json: bool) -> Result<ExitCode> {
+    use crate::project::{Git, create};
+    let made = create(dir, language, git)?;
+    let mut out = stdout();
+    if json {
+        let mut value = serde_json::json!({
+            "root": made.root,
+            "name": made.name,
+            "file": omaspec_core::project::FILE,
+            "main": made.main,
+            "wrote_main": made.wrote_main,
+        });
+        value["git"] = match &made.git {
+            Git::No => serde_json::json!(null),
+            Git::Initialized => serde_json::json!({ "initialized": true }),
+            Git::Inside(repo) => serde_json::json!({ "initialized": false, "inside": repo }),
+            Git::Failed(why) => serde_json::json!({ "initialized": false, "error": why }),
+        };
+        writeln!(out, "{}", serde_json::to_string_pretty(&value)?)?;
+    } else {
+        let main = dir.join(&made.main);
+        if made.wrote_main {
+            writeln!(out, "created {}", main.display())?;
+        } else {
+            writeln!(out, "kept {}, the main diagram", main.display())?;
+        }
+        let file = dir.join(omaspec_core::project::FILE);
+        writeln!(out, "created {}", file.display())?;
+        match &made.git {
+            Git::No | Git::Failed(_) => {}
+            Git::Initialized => writeln!(out, "started a git repository in {}", dir.display())?,
+            Git::Inside(repo) => writeln!(
+                out,
+                "no git repository started: {} is in {} already",
+                dir.display(),
+                repo.display()
+            )?,
+        }
+    }
+    if let Git::Failed(why) = &made.git {
+        eprintln!("omaspec: the project is there, but no git repository: {why}");
+        return Ok(ExitCode::FAILURE);
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 /// The examples, or the source of the one named `name`.
 pub fn example(name: Option<&str>, json: bool) -> Result<ExitCode> {
     use crate::gallery::{EXAMPLES, Example, find};

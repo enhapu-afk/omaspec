@@ -913,3 +913,85 @@ fn a_reader_that_stops_early_is_no_error() {
         String::from_utf8_lossy(&out.stderr)
     );
 }
+
+#[test]
+fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
+    let dir = scratch("new");
+    let shop = dir.join("shop");
+    let out = omaspec(&["new", shop.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    assert_eq!(
+        stdout(&out),
+        format!(
+            "created {0}/system.puml\ncreated {0}/omaspec-project.toml\n",
+            shop.display()
+        )
+    );
+    let toml = fs::read_to_string(shop.join("omaspec-project.toml")).unwrap();
+    assert!(
+        toml.contains("name = \"shop\"\nmain = \"system.puml\"\n"),
+        "{toml}"
+    );
+
+    // The first diagram is clean in both languages and drawn by Omaspec.
+    let out = omaspec(&[
+        "new",
+        "--lang",
+        "mermaid",
+        "--json",
+        dir.join("lager").to_str().unwrap(),
+    ]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(
+        (json["name"].as_str(), json["main"].as_str()),
+        (Some("lager"), Some("system.mmd"))
+    );
+    assert_eq!(json["git"], serde_json::Value::Null);
+    for main in [shop.join("system.puml"), dir.join("lager/system.mmd")] {
+        let main = main.to_str().unwrap();
+        assert_eq!(
+            omaspec(&["lint", "--strict", main]).status.code(),
+            Some(0),
+            "{main}"
+        );
+        assert_eq!(
+            omaspec(&["fmt", "--check", main]).status.code(),
+            Some(0),
+            "{main}"
+        );
+        let out = omaspec(&["inspect", main]);
+        let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        assert_eq!(json["native"], "understood", "{main}");
+    }
+
+    // A scenario deep in the project is held against the machine at its
+    // root, as a scenario beside it would be.
+    fs::create_dir_all(shop.join("scenarios/night")).unwrap();
+    let scenario = shop.join("scenarios/night/late.puml");
+    fs::write(
+        &scenario,
+        "@startuml\nparticipant Shop\nUser -> Shop : start\nUser -> Shop : start\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&["lint", "--strict", scenario.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1), "{}", stdout(&out));
+    assert!(
+        stdout(&out).contains("late.puml:4: warning: Shop does not take start here")
+            && stdout(&out).contains("(system.puml)"),
+        "{}",
+        stdout(&out)
+    );
+    // Without the project file the scenario's own folder is all there is.
+    let toml = shop.join("omaspec-project.toml");
+    let kept = fs::read(&toml).unwrap();
+    fs::remove_file(&toml).unwrap();
+    let out = omaspec(&["lint", "--strict", scenario.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0), "{}", stdout(&out));
+    fs::write(&toml, kept).unwrap();
+
+    // Twice is refused.
+    let out = omaspec(&["new", shop.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("is a project already"));
+    let _ = fs::remove_dir_all(&dir);
+}
