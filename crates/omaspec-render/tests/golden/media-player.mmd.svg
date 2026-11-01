@@ -20,8 +20,8 @@
 <rect x="310.02" y="457.22" width="112.01" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <rect x="366.18" y="681.55" width="88.66" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <polyline points="319.61,22 319.61,44" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M307.5,86.3 L307.5,117.32 C307.5,117.86 307.06,118.3 306.52,118.3 L306.52,118.3 C305.99,118.3 305.55,118.73 305.55,119.27 L305.55,144.59" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M321.55,154.59 L321.55,109.27 C321.55,108.73 321.12,108.3 320.58,108.3 L320.58,108.3 C320.04,108.3 319.61,107.86 319.61,107.32 L319.61,96.3" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="307.5,86.3 307.5,144.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="321.55,154.59 321.55,96.3" fill="none" stroke="#64748B" stroke-width="1"/>
 <polyline points="378.18,633.26 378.18,671.55" fill="none" stroke="#64748B" stroke-width="1"/>
 <polyline points="394.18,681.55 394.18,643.26" fill="none" stroke="#64748B" stroke-width="1"/>
 <path d="M442.84,681.55 L442.84,674.54 C442.84,658.37 455.95,645.26 472.12,645.26 L472.12,645.26 C488.3,645.26 501.41,632.14 501.41,615.97 L501.41,146.3 C501.41,119.79 479.92,98.3 453.41,98.3 L333.71,98.3 C332.61,98.3 331.71,97.4 331.71,96.3 L331.71,96.3" fill="none" stroke="#64748B" stroke-width="1"/>
@@ -112,8 +112,8 @@
 <tspan x="448.84" y="663.25" font-size="14" fill="#0F172A" textLength="33.46" lengthAdjust="spacing">failed</tspan>
 </text>
 <polygon points="315.61,44 319.61,54 323.61,44 319.61,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="301.55,144.59 305.55,154.59 309.55,144.59 305.55,148.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="323.61,96.3 319.61,86.3 315.61,96.3 319.61,92.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="303.5,144.59 307.5,154.59 311.5,144.59 307.5,148.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="325.55,96.3 321.55,86.3 317.55,96.3 321.55,92.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="374.18,671.55 378.18,681.55 382.18,671.55 378.18,675.55" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="398.18,643.26 394.18,633.26 390.18,643.26 394.18,639.26" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="335.71,96.3 331.71,86.3 327.71,96.3 331.71,92.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>

@@ -36,6 +36,7 @@ pub mod across;
 pub mod by_hand;
 mod nest;
 pub mod route;
+mod straight;
 
 /// A box the layout places, with empty room kept on either side across
 /// the flow: `before` it (left when the flow runs down) for a note there,
@@ -406,6 +407,34 @@ pub fn framed(
             },
         })
         .collect();
+    // No small steps (`straight`): each line between the boxes it joins.
+    let end_of = |at: usize| -> Option<straight::End> {
+        if at < n {
+            Some(straight::End {
+                rect: rects[at],
+                flat: nodes[at].flat,
+            })
+        } else {
+            frame_rects
+                .get(at - n)
+                .map(|&rect| straight::End { rect, flat: true })
+        }
+    };
+    let ends: Vec<_> = edges
+        .iter()
+        .map(|edge| {
+            if edge.from == edge.to || edge.hidden {
+                (None, None)
+            } else {
+                (end_of(edge.from), end_of(edge.to))
+            }
+        })
+        .collect();
+    let mut lines: Vec<Vec<(f32, f32)>> = routes.iter().map(|r| r.points.clone()).collect();
+    straight::unjog(&mut lines, &ends, &rects);
+    for (route, line) in routes.iter_mut().zip(lines) {
+        route.points = line;
+    }
     normalize(rects, routes, frame_rects, &kept)
 }
 

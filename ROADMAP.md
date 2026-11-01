@@ -953,6 +953,21 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
       frames and labels, closer to what Graphviz draws; the open points of
       [0012](docs/adr/0012-lines-like-graphviz.md) and
       [0013](docs/adr/0013-containers-like-graphviz.md) among them.
+  - [x] Measured: `omaspec-render/tests/lines` counts, over every state,
+        structure and flowchart diagram of the repository, where lines
+        cross, run through a box, step aside by a few units (jogs) or come
+        so near they look tangled, with their bends and length, and fails
+        when crossings, lines through boxes or jogs grow
+        (`tests/lines.txt`). At the start: 474 lines, 7 crossings, none
+        through a box, 39 jogs, 479 bends.
+  - [x] No small steps: where a line left one box and entered the next a
+        few units further across, or a run through the ranks sat a unit
+        off the one before, it stepped aside by that much. `graph::straight`
+        moves the run before or after such a jog (under 8.5 units) onto
+        the other's line, an end sliding along a flat side, where that
+        keeps off every other box and other line. Jogs 39 → 1, bends
+        479 → 403; 2 PlantUML and 8 Mermaid goldens changed, looked at
+        side by side.
 
 ### After the code review (2026-11-01)
 
