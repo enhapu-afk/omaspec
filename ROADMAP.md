@@ -899,7 +899,8 @@ Lint and outline move onto the syntax tree as each type lands.
 
 ## Next
 
-What comes after 0.4, announced in the README.
+What comes after 0.4, announced in the README. Lines by hand, projects and
+diagrams that link were released as 0.5.0 on 2026-11-01.
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it
       yourself; the diagram keeps the shape and draws it the same way next
