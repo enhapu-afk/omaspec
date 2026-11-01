@@ -7,6 +7,7 @@
 //! (an `@{ }` that is not a participant's type or alias, an unknown line,
 //! a color it cannot read) leaves the diagram to mmdr.
 
+use super::{font_name, plain_number};
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::map::Map;
 use omaspec_uml::sequence::{Skinparam, draw_mapped, from_mermaid};
@@ -80,29 +81,6 @@ fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
         }
     }
     Some(params)
-}
-
-/// Mermaid's font list as the SVG writes it: every family, so one that is
-/// installed is drawn (mmdr's first, Inter, rarely is, and a missing font
-/// falls back to a serif one).
-fn font_name(family: &str) -> Option<String> {
-    let names: Vec<&str> = family
-        .split(',')
-        .map(|name| name.trim().trim_matches(['"', '\'']).trim())
-        .filter(|name| !name.is_empty())
-        .collect();
-    if names.is_empty() || names.iter().any(|name| name.contains(['<', '>', '"', '&'])) {
-        return None;
-    }
-    Some(names.join(", "))
-}
-
-fn plain_number(value: f32) -> String {
-    if value.is_finite() && value.fract() == 0.0 {
-        format!("{}", value as i32)
-    } else {
-        format!("{value}")
-    }
 }
 
 #[cfg(test)]

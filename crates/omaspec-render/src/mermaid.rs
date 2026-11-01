@@ -128,12 +128,19 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
         if let Some(init) = &parsed.init_config {
             apply_init(&mut options, init);
         }
-        // The kinds in `NATIVE` use their engines; state diagrams and
-        // flowcharts lay out on the shared graph. Anything a drawer does
-        // not accept keeps mmdr's layout, and a state diagram the repair.
+        // The kinds in `NATIVE` use their engines, state diagrams the one
+        // PlantUML's are drawn with; flowcharts lay out on the shared
+        // graph. Anything a drawer does not accept keeps mmdr's layout.
         let native = NATIVE.iter().find(|n| n.kind == parsed.graph.kind);
+        let input = Input {
+            graph: &parsed.graph,
+            theme: &options.theme,
+            body,
+            fenced,
+            tiles,
+        };
         if let Some(native) = native
-            && let Some((svg, map)) = (native.draw)(&parsed.graph, &options.theme, body, tiles)
+            && let Some((svg, map)) = (native.draw)(&input)
         {
             return Ok(Drawn {
                 svg,
@@ -141,35 +148,11 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
                 declined: None,
             });
         }
-        // A state diagram Omaspec reads is drawn from that reading, the
-        // one its checks and its play go by, even where mmdr lays it out.
-        let chart = (parsed.graph.kind == DiagramKind::State)
-            .then(|| omaspec_uml::state::mermaid::read(fenced))
-            .flatten();
-        if let Some(chart) = chart {
-            let (graph, lines) = state::graph(&chart);
-            // Mermaid curves a state diagram's lines always.
-            let curve = omaspec_uml::curve::RADIUS;
-            if let Some((svg, map)) =
-                layered::try_draw(&graph, &options.theme, body, Some(&lines), &hands, curve)
-            {
-                return Ok(Drawn {
-                    svg,
-                    map: map.shifted(offset),
-                    declined: None,
-                });
-            }
-            let mut layout = compute_layout(&graph, &options.theme, &options.layout);
-            repair::repair(&mut layout);
-            return Ok(Drawn {
-                svg: render_svg(&layout, &options.theme, &options.layout),
-                map: Map::default(),
-                declined: Some(declined_by(graph.kind, body, source, offset)),
-            });
-        }
         let curve = flowchart_curve(parsed.init_config.as_ref());
-        if let Some((svg, map)) =
-            layered::try_draw(&parsed.graph, &options.theme, body, None, &hands, curve)
+        let flowchart = parsed.graph.kind == DiagramKind::Flowchart;
+        if let Some((svg, map)) = flowchart
+            .then(|| layered::try_draw(&parsed.graph, &options.theme, body, &hands, curve))
+            .flatten()
         {
             return Ok(Drawn {
                 svg,
@@ -199,9 +182,20 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
     }
 }
 
+/// What a drawer gets: mmdr's graph (which picked the kind), the theme,
+/// the text mmdr parsed, the same text on its own lines inside the fence,
+/// and the tiles for a mind map that is a project's map.
+struct Input<'a> {
+    graph: &'a Graph,
+    theme: &'a Theme,
+    body: &'a str,
+    fenced: &'a str,
+    tiles: Option<&'a Tiles<'a>>,
+}
+
 /// A drawer's function: the SVG and where its parts are, or `None` to leave
 /// the diagram to mmdr.
-type Draw = fn(&Graph, &Theme, &str, Option<&Tiles>) -> Option<(String, Map)>;
+type Draw = fn(&Input) -> Option<(String, Map)>;
 
 /// A kind of Mermaid diagram with a drawer of Omaspec's own, which reads
 /// the text itself: mmdr's reading picks the kind and the theme.
@@ -209,8 +203,7 @@ struct Native {
     kind: DiagramKind,
     /// What the diagram is called when mmdr draws it instead.
     noun: &'static str,
-    /// Draws it, or leaves it to mmdr; the tiles are for a mind map that
-    /// is a project's map.
+    /// Draws it, or leaves it to mmdr.
     draw: Draw,
     /// The first construct it refuses by name: the line, and what it is.
     refusal: fn(&str) -> Option<(usize, &'static str)>,
@@ -221,67 +214,73 @@ const NATIVE: &[Native] = &[
     Native {
         kind: DiagramKind::Sequence,
         noun: "sequence diagram",
-        draw: |graph, theme, body, _| sequence::try_draw(graph, theme, body),
+        draw: |i| sequence::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::sequence::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Class,
         noun: "class diagram",
-        draw: |graph, theme, body, _| class::try_draw(graph, theme, body),
+        draw: |i| class::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::structure::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::State,
+        noun: "state diagram",
+        draw: |i| state::try_draw(i.theme, i.fenced),
+        refusal: |_| None,
     },
     Native {
         kind: DiagramKind::Mindmap,
         noun: "mind map",
-        draw: mindmap::try_draw,
+        draw: |i| mindmap::try_draw(i.graph, i.theme, i.body, i.tiles),
         refusal: omaspec_uml::tree::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Gantt,
         noun: "Gantt chart",
-        draw: |graph, theme, body, _| gantt::try_draw(graph, theme, body),
+        draw: |i| gantt::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::gantt::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Pie,
         noun: "pie chart",
-        draw: |graph, theme, body, _| pie::try_draw(graph, theme, body),
+        draw: |i| pie::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::pie::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Journey,
         noun: "user journey",
-        draw: |graph, theme, body, _| journey::try_draw(graph, theme, body),
+        draw: |i| journey::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::journey::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Timeline,
         noun: "timeline",
-        draw: |graph, theme, body, _| timeline::try_draw(graph, theme, body),
+        draw: |i| timeline::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::timeline::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Er,
         noun: "ER diagram",
-        draw: |graph, theme, body, _| er::try_draw(graph, theme, body),
+        draw: |i| er::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::er::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::C4,
         noun: "C4 diagram",
-        draw: |graph, theme, body, _| c4::try_draw(graph, theme, body),
+        draw: |i| c4::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::c4::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Architecture,
         noun: "architecture diagram",
-        draw: |graph, theme, body, _| architecture::try_draw(graph, theme, body),
+        draw: |i| architecture::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::architecture::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Block,
         noun: "block diagram",
-        draw: |graph, theme, body, _| block::try_draw(graph, theme, body),
+        draw: |i| block::try_draw(i.graph, i.theme, i.body),
         refusal: omaspec_uml::block::mermaid_refusal,
     },
 ];
@@ -307,7 +306,6 @@ fn declined_by(kind: DiagramKind, body: &str, source: &str, offset: usize) -> Me
         };
     }
     let noun = match kind {
-        DiagramKind::State => Some("state diagram"),
         DiagramKind::Flowchart => Some("flowchart"),
         _ => NATIVE.iter().find(|n| n.kind == kind).map(|n| n.noun),
     };
@@ -327,6 +325,30 @@ fn declined_by(kind: DiagramKind, body: &str, source: &str, offset: usize) -> Me
         )
     };
     MermaidDeclined { line: None, reason }
+}
+
+/// Mermaid's font list as the SVG writes it: every family, so one that is
+/// installed is drawn. Quotes are stripped; the engines refuse a font name
+/// that still contains one.
+fn font_name(family: &str) -> Option<String> {
+    let names: Vec<&str> = family
+        .split(',')
+        .map(|name| name.trim().trim_matches(['"', '\'']).trim())
+        .filter(|name| !name.is_empty())
+        .collect();
+    if names.is_empty() || names.iter().any(|name| name.contains(['<', '>', '"', '&'])) {
+        return None;
+    }
+    Some(names.join(", "))
+}
+
+/// A number as a skinparam takes it: no `.0` on a whole one.
+fn plain_number(value: f32) -> String {
+    if value.is_finite() && value.fract() == 0.0 {
+        format!("{}", value as i32)
+    } else {
+        format!("{value}")
+    }
 }
 
 /// The first line where blocks nest deeper than [`MAX_NESTING`]: `{` … `}`

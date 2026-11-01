@@ -14,21 +14,14 @@ pub(super) struct Palette {
     pub background: Color,
     pub cluster_fill: Paint,
     pub cluster_border: Color,
-    pub note_fill: Paint,
-    pub note_border: Color,
-    /// Whether an edge label covers the lines under it, in the color of
-    /// what it sits on, so another line does not cut its text.
-    pub mask_labels: bool,
 }
 
-pub(super) fn palette(theme: &Theme, flowchart: bool) -> Option<Palette> {
+pub(super) fn palette(theme: &Theme) -> Option<Palette> {
     let fill = must_color(&theme.primary_color)?;
     let text = must_color(&theme.primary_text_color)?;
     let border = must_color(&theme.primary_border_color)?;
     let line = must_color(&theme.line_color)?;
     let background = must_color(&theme.background)?;
-    let note_fill = must_color(&theme.sequence_note_fill)?;
-    let note_border = must_color(&theme.sequence_note_border)?;
     // A cluster color mmdr stores as `rgba(...)` cannot be read. The frame
     // then uses the state colors; the diagram is still drawn.
     Some(Palette {
@@ -40,9 +33,6 @@ pub(super) fn palette(theme: &Theme, flowchart: bool) -> Option<Palette> {
         background,
         cluster_fill: Some(must_color(&theme.cluster_background).unwrap_or(fill)),
         cluster_border: must_color(&theme.cluster_border).unwrap_or(border),
-        note_fill: Some(note_fill),
-        note_border,
-        mask_labels: flowchart,
     })
 }
 
@@ -73,8 +63,6 @@ pub(super) struct Look {
     pub fill: Paint,
     pub border: Stroke,
     pub text: Color,
-    /// The color of a mark with no outline: a start dot, a bar.
-    pub mark: Color,
 }
 
 pub(super) fn look_for(style: &NodeStyle, fill: Paint, border: Color, text: Color) -> Option<Look> {
@@ -111,12 +99,7 @@ pub(super) fn look_for(style: &NodeStyle, fill: Paint, border: Color, text: Colo
     };
     let mut border = Stroke::new(border_color, width);
     border.dash = dash;
-    Some(Look {
-        fill,
-        border,
-        text,
-        mark: own.unwrap_or(border_color),
-    })
+    Some(Look { fill, border, text })
 }
 
 fn dash_of(value: &str) -> Option<Option<(f32, f32)>> {
@@ -134,12 +117,11 @@ fn dash_of(value: &str) -> Option<Option<(f32, f32)>> {
     }
 }
 
-/// The style of a node or subgraph: `classDef default` (in a flowchart,
-/// where Mermaid gives it to every node), its classes, then its own
-/// `style` lines.
-pub(super) fn styled_node(graph: &Graph, id: &str, flowchart: bool) -> NodeStyle {
+/// The style of a node or subgraph: `classDef default` (Mermaid gives it to
+/// every node), its classes, then its own `style` lines.
+pub(super) fn styled_node(graph: &Graph, id: &str) -> NodeStyle {
     let mut style = NodeStyle::default();
-    if flowchart && let Some(def) = graph.class_defs.get("default") {
+    if let Some(def) = graph.class_defs.get("default") {
         overlay_node(&mut style, def);
     }
     apply_classes(&mut style, graph, graph.node_classes.get(id));

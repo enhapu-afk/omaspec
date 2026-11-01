@@ -9,6 +9,7 @@
 //! color as the paper. A shape this drawer still refuses, or a color it
 //! cannot read, leaves the diagram to mmdr.
 
+use super::{font_name, plain_number};
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
 use omaspec_uml::map::Map;
@@ -167,26 +168,6 @@ fn tint(idea: &mut Idea, color: &str, ink: Option<String>) {
 
 fn solid(value: &str) -> Option<Color> {
     omaspec_uml::parse_color(value).ok().flatten()
-}
-
-fn font_name(family: &str) -> Option<String> {
-    let names: Vec<&str> = family
-        .split(',')
-        .map(|name| name.trim().trim_matches(['"', '\'']).trim())
-        .filter(|name| !name.is_empty())
-        .collect();
-    if names.is_empty() || names.iter().any(|name| name.contains(['<', '>', '"', '&'])) {
-        return None;
-    }
-    Some(names.join(", "))
-}
-
-fn plain_number(value: f32) -> String {
-    if value.is_finite() && value.fract() == 0.0 {
-        format!("{}", value as i32)
-    } else {
-        format!("{value}")
-    }
 }
 
 #[cfg(test)]

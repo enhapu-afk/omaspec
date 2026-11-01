@@ -8,6 +8,7 @@
 //! a label uses the theme text when that still reads. A construct it
 //! refuses, or a theme color it cannot read, leaves the diagram to mmdr.
 
+use super::font_name;
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
 use omaspec_uml::c4::{self, Look, draw, from_mermaid};
@@ -69,18 +70,6 @@ fn same(left: &str, right: &str) -> bool {
 
 fn solid(value: &str) -> Option<Color> {
     omaspec_uml::parse_color(value).ok().flatten()
-}
-
-fn font_name(family: &str) -> Option<String> {
-    let names: Vec<&str> = family
-        .split(',')
-        .map(|name| name.trim().trim_matches(['"', '\'']).trim())
-        .filter(|name| !name.is_empty())
-        .collect();
-    if names.is_empty() || names.iter().any(|name| name.contains(['<', '>', '"', '&'])) {
-        return None;
-    }
-    Some(names.join(", "))
 }
 
 #[cfg(test)]

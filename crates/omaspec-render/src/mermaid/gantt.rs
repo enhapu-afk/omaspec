@@ -6,6 +6,7 @@
 //! bar picks up the accent, so a surface-colored bar does not vanish.
 //! A construct the day scale cannot place leaves the diagram to mmdr.
 
+use super::{font_name, plain_number};
 use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
 use omaspec_uml::Color;
 use omaspec_uml::gantt::{Diagram, Marks, Row, Skinparam, draw, from_mermaid};
@@ -98,26 +99,6 @@ fn status_color(base: Color, marks: Marks) -> Color {
 
 fn solid(value: &str) -> Option<Color> {
     omaspec_uml::parse_color(value).ok().flatten()
-}
-
-fn font_name(family: &str) -> Option<String> {
-    let names: Vec<&str> = family
-        .split(',')
-        .map(|name| name.trim().trim_matches(['"', '\'']).trim())
-        .filter(|name| !name.is_empty())
-        .collect();
-    if names.is_empty() || names.iter().any(|name| name.contains(['<', '>', '"', '&'])) {
-        return None;
-    }
-    Some(names.join(", "))
-}
-
-fn plain_number(value: f32) -> String {
-    if value.is_finite() && value.fract() == 0.0 {
-        format!("{}", value as i32)
-    } else {
-        format!("{value}")
-    }
 }
 
 #[cfg(test)]

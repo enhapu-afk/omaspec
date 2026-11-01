@@ -49,9 +49,10 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
 - A Mermaid kind with a drawer of its own is one entry in `NATIVE`
   (`omaspec-render/src/mermaid.rs`): no other list of kinds, no `try_draw`
   chain, no `named_decline` of its own.
-- Until state diagrams and flowcharts share one scene (`ROADMAP.md`, after
-  the code review), a fix to their layout (curves, notes, regions, open
-  clusters) goes into both drawers: `omaspec-uml/src/state/draw*` and
+- State diagrams of both languages are drawn by `omaspec-uml/src/state/`
+  (Mermaid's lowered by `state::from_mermaid`). Until flowcharts share that
+  scene (`ROADMAP.md`, after the code review), a fix to open clusters or to
+  lines between containers goes into both `omaspec-uml/src/state/draw*` and
   `omaspec-render/src/mermaid/layered/`.
 
 ## Omarchy facts the code relies on

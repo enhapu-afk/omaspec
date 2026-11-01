@@ -122,3 +122,13 @@ none failed.
   second actor box, and a note that follows a block inside the block's frame.
 - Two edges between the same two flowchart nodes: one is routed in a loop
   around the target.
+
+## After the code review (2026-11-01)
+
+- Mermaid state diagrams no longer have a layout of their own. Omaspec's
+  reader lowers them into PlantUML's state tree (`state::from_mermaid`),
+  and the drawer of PlantUML's state diagrams draws both languages, in the
+  Mermaid theme's colors, as the sequence and class engines already did.
+  `omaspec-render/src/mermaid/layered/` lays out flowcharts only. What
+  changed in the pictures and why is in the roadmap ("After the code
+  review").

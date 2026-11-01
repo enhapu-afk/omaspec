@@ -18,9 +18,9 @@ crates/
   omaspec-uml/     native PlantUML engine: preprocessor, parser with spans, layout, SVG
   omaspec-model/   one behavior model for PlantUML and Mermaid, and the specification checks
   omaspec-render/  router (omaspec-uml → Java PlantUML if installed → error), Mermaid (mmdr parses,
-                     omaspec-uml reads sequence and state diagrams again; sequence on the
-                     sequence engine, state and flowchart on the graph engine, the rest drawn by
-                     mmdr), export
+                     omaspec-uml reads sequence, class, state and other diagrams again and draws
+                     them on its engines, flowcharts on the graph engine; mmdr draws what they
+                     decline), export
   omaspec-theme/   Omarchy palette and font, syntax colors
   omaspec-app/     iced GUI and CLI, binary `omaspec`
 spikes/              throwaway experiments behind the ADRs
@@ -848,8 +848,10 @@ that line, and is not sent to the Java PlantUML.
 ## Track M: Mermaid on Omaspec's engines
 
 mmdr still parses every Mermaid diagram; for these types `omaspec-render`
-lays out and draws with the engines of track N (`src/mermaid/layered/`), and
-mmdr only draws what they decline. Sequence and state diagrams are read again
+lays out and draws with the engines of track N, and mmdr only draws what they
+decline. State diagrams are lowered into PlantUML's state tree and drawn by its
+drawer (since the code review of 2026-11-01); flowcharts are laid out on the
+same graph in `src/mermaid/layered/`. Sequence and state diagrams are read again
 by readers of Omaspec's own in `omaspec-uml`, which keep every line. As in
 track N, new work serves the behavior types only.
 
@@ -972,17 +974,30 @@ dispatch spread over two lists. The rules it set for the next change are in
       hand), and with the repository's Mermaid examples Omaspec draws they
       are pinned in `omaspec-render/tests/golden` (32 pictures). A diagram
       of the corpus that falls back to mmdr fails the test.
-- [ ] One scene for state diagrams and flowcharts.
-      `omaspec-uml/src/state/draw*` and `omaspec-render/src/mermaid/layered/`
-      lay out the same picture twice (`Scene`, `Placed`, the constants,
-      regions, open clusters, notes). Measured: about 100 lines are still
-      the same in both; the rest (regions, notes, open clusters, crossings
-      into frames) has grown apart, so joining them changes pictures on one
-      side. With the goldens in place, the shared parts move next to
-      `omaspec_uml::graph` step by step, each step with the same bytes;
-      Mermaid states are read into `state::Diagram` as sequence and class
-      diagrams are, and `mermaid/state.rs` (the chart turned back into
-      mmdr's graph) goes. Flowcharts keep mmdr's graph as their input.
+- [x] One drawer for state diagrams: `omaspec-uml/src/state/draw*` and
+      `omaspec-render/src/mermaid/layered/` laid out the same picture twice,
+      and measured, only about 100 lines were still the same; regions,
+      notes, open clusters and crossings into frames had grown apart. Now
+      `state::from_mermaid` lowers Mermaid's reading into PlantUML's state
+      tree (containers, regions side by side as Mermaid draws them,
+      crossings, notes, `classDef` and `style` as colors and a stereotype
+      of the state's own, front-matter titles, words with `<br>`, `<b>`,
+      `<i>` and entity codes), and the state drawer draws both languages in
+      the Mermaid theme's colors. It mirrors a layout for `BT` and `RL`.
+      `mermaid/state.rs` (the chart turned back into mmdr's graph) is a
+      small adapter, the layered drawer draws flowcharts only, and its
+      regions, notes and state shapes are gone: 1,600 lines out, 700 in.
+      The 14 state pictures among the goldens changed and were looked at
+      one by one; every flowchart drew the same bytes. A state diagram the
+      reader does not read, which the layered drawer used to lay out from
+      mmdr's graph, is now mmdr's, as the reader always said; the title of
+      a state diagram is drawn now ([#3](https://github.com/enhapu-afk/omaspec/issues/3)
+      for flowcharts still open).
+- [ ] Flowcharts on the same scene: their subgraphs opened by lines from
+      outside (`layered/open.rs`) and their lines into frames
+      (`layered/nest.rs`) mirror the state drawer's `draw/open.rs` and
+      `draw/nest.rs`. Moving them next to `omaspec_uml::graph`, with
+      flowcharts lowered into it from mmdr's graph, leaves one scene.
 - [ ] mmdr's reading only as the fallback: where Omaspec reads the text
       itself, mmdr's parse should not decide whether it draws. Needs the
       `%%{init}%%` and the theme read without it.

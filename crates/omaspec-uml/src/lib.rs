@@ -42,9 +42,8 @@ pub mod timeline;
 pub mod timing;
 pub mod tree;
 
-// The Mermaid drawer in omaspec-render lays out state diagrams and
-// flowcharts on the same graph and draws with the same canvas. The modules
-// stay private.
+// The Mermaid drawer in omaspec-render lays out flowcharts on the same
+// graph and draws with the same canvas. The modules stay private.
 pub use color::{Color, Paint, parse as parse_color};
 pub use svg::{Align, Canvas, Layer, Stroke};
 pub use text::{

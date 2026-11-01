@@ -1,6 +1,7 @@
-//! Broken flowcharts and state diagrams straight into the drawer. The
-//! renderer catches panics, mmdr's and this drawer's alike, so one here
-//! would only show as "mmdr crashed"; without that net a panic fails.
+//! Broken flowcharts straight into the drawer, and broken state diagrams
+//! into the state engine. The renderer catches panics, mmdr's and the
+//! drawers' alike, so one here would only show as "mmdr crashed"; without
+//! that net a panic fails.
 
 use std::panic::catch_unwind;
 use std::time::{Duration, Instant};
@@ -93,14 +94,11 @@ fn broken_diagrams_never_panic_the_drawer() {
             continue;
         };
         let started = Instant::now();
-        if try_draw(&parsed.graph, &theme, &code, None, &[], 0.0).is_some() {
+        if try_draw(&parsed.graph, &theme, &code, &[], 0.0).is_some() {
             drawn += 1;
         }
-        if let Some(chart) = omaspec_uml::state::mermaid::read(&code) {
-            let (graph, lines) = crate::mermaid::state::graph(&chart);
-            if try_draw(&graph, &theme, &code, Some(&lines), &[], 0.0).is_some() {
-                drawn += 1;
-            }
+        if crate::mermaid::state::try_draw(&theme, &code).is_some() {
+            drawn += 1;
         }
         assert!(
             started.elapsed() < Duration::from_secs(2),

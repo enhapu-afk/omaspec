@@ -120,6 +120,12 @@ pub(super) fn layout_open(
         graph_direction(container.direction),
     );
     let mut scene = flat.assemble(container, &mut Vec::new(), &laid, skin)?;
+    if container.mirrored {
+        match container.direction {
+            Direction::Down => flip_y(&mut scene, laid.height),
+            Direction::Right => flip_x(&mut scene, laid.width),
+        }
+    }
 
     // Labels move off states, names and each other, over the whole layout.
     let mut boxes = Vec::new();
@@ -139,6 +145,45 @@ pub(super) fn layout_open(
     scene.height = room.h;
     scene.offset(-room.x, -room.y);
     Ok(scene)
+}
+
+/// Mirrors the layout top to bottom, through the nested states it opened;
+/// one laid out on its own moves as a whole.
+fn flip_y(scene: &mut Scene, height: f32) {
+    for node in &mut scene.nodes {
+        let old = node.rect.y;
+        node.rect.y = height - (node.rect.y + node.rect.h);
+        if node.opened {
+            flip_y(&mut node.children, height);
+        } else {
+            node.children.offset(0.0, node.rect.y - old);
+        }
+    }
+    for edge in &mut scene.edges {
+        for point in &mut edge.points {
+            point.1 = height - point.1;
+        }
+        edge.label_at.1 = height - (edge.label_at.1 + edge.label.height);
+    }
+}
+
+/// The same, left to right.
+fn flip_x(scene: &mut Scene, width: f32) {
+    for node in &mut scene.nodes {
+        let old = node.rect.x;
+        node.rect.x = width - (node.rect.x + node.rect.w);
+        if node.opened {
+            flip_x(&mut node.children, width);
+        } else {
+            node.children.offset(node.rect.x - old, 0.0);
+        }
+    }
+    for edge in &mut scene.edges {
+        for point in &mut edge.points {
+            point.0 = width - point.0;
+        }
+        edge.label_at.0 = width - (edge.label_at.0 + edge.label.width);
+    }
 }
 
 /// The boxes labels keep off, and every edge of this layout: through the
@@ -211,18 +256,28 @@ impl Flat {
                     .map(|block| block.width)
                     .fold(item.title.width, f32::max);
                 let name = header_w + 8.0;
+                // The room for the name comes first along the flow, so a
+                // mirrored flow takes it from the other end, and lines
+                // from above no longer pass beside it.
+                let upward = container.mirrored && container.direction == Direction::Down;
+                let (top, bottom) = (COMP_PAD + item.header_h + COMP_GAP, COMP_PAD);
+                let (top, bottom) = if upward { (bottom, top) } else { (top, bottom) };
                 self.frames.push(graph::Frame {
                     parent: frame,
-                    top: COMP_PAD + item.header_h + COMP_GAP,
-                    bottom: COMP_PAD,
+                    top,
+                    bottom,
                     left: COMP_PAD,
                     right: COMP_PAD,
                     min_width: header_w + COMP_PAD * 2.0,
-                    name: graph::Name {
-                        share: 0.5,
-                        offset: -name / 2.0,
-                        width: name,
-                        height: COMP_PAD + item.header_h,
+                    name: if upward {
+                        graph::Name::default()
+                    } else {
+                        graph::Name {
+                            share: 0.5,
+                            offset: -name / 2.0,
+                            width: name,
+                            height: COMP_PAD + item.header_h,
+                        }
                     },
                 });
                 self.framed.push(Some(item));

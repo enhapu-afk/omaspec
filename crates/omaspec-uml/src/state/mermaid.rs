@@ -1,7 +1,7 @@
 //! Mermaid state diagrams, read so that every state, transition and note
-//! keeps its line. The Mermaid drawer in `omaspec-render` draws from this
-//! reading and `omaspec-model` checks and plays it, so what is checked is
-//! what is drawn. A line this reader does not know, or one Mermaid may read
+//! keeps its line. The state drawer draws this reading
+//! ([`super::from_mermaid`]) and `omaspec-model` checks and plays it, so
+//! what is checked is what is drawn. A line this reader does not know, or one Mermaid may read
 //! otherwise, leaves the diagram unread: mmdr draws it, and it is not
 //! checked.
 //!

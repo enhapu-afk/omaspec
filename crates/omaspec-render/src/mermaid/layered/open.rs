@@ -16,7 +16,7 @@ use omaspec_uml::{Block, Family, Font, Stroke};
 use super::{
     COMP_GAP, COMP_PAD, Cap, Flip, Kind, LOOP_REACH, LOOP_STEP, Measured, Member, Palette, Placed,
     PlacedEdge, Scene, Spot, Tree, axes, caps, clip_ends, edge_look, measure_edge, measure_member,
-    nest, place, shape,
+    nest, shape,
 };
 
 /// The path of the container at `spot` from the top.
@@ -76,18 +76,11 @@ fn opened(tree: &Tree, spot: Spot, base: &[usize]) -> HashSet<Vec<usize>> {
 fn openable(tree: &Tree, group: usize, around: Spot, slot: usize) -> bool {
     let inner = Spot::In(group);
     let members = tree.members(inner);
-    let regions = members
-        .iter()
-        .any(|member| matches!(member, Member::Group(index) if tree.is_region(*index)));
     let looped = tree
         .meets
         .iter()
         .any(|meet| meet.spot == around && !meet.inward && meet.from == slot && meet.to == slot);
-    !tree.is_region(group)
-        && !members.is_empty()
-        && !regions
-        && !looped
-        && tree.flow(inner) == tree.flow(around)
+    !members.is_empty() && !looped && tree.flow(inner) == tree.flow(around)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -222,7 +215,6 @@ pub(super) fn layout_open(
     }
     scene.offset(-room.x, -room.y);
     (scene.width, scene.height) = (room.w, room.h);
-    place_all_notes(tree, spot, &mut scene, palette, family)?;
     Some(scene)
 }
 
@@ -292,24 +284,6 @@ fn collect<'a>(scene: &'a mut Scene, boxes: &mut Vec<Rect>, out: &mut Vec<&'a mu
     }
 }
 
-/// Notes go beside their states once the labels are placed.
-fn place_all_notes(
-    tree: &Tree,
-    spot: Spot,
-    scene: &mut Scene,
-    palette: &Palette,
-    family: Family,
-) -> Option<()> {
-    let members = tree.members(spot);
-    scene.notes = place::place_notes(tree, spot, &members, scene, palette, family)?;
-    for (member, node) in members.iter().zip(scene.nodes.iter_mut()) {
-        if let (Member::Group(group), true) = (member, node.opened) {
-            place_all_notes(tree, Spot::In(*group), &mut node.children, palette, family)?;
-        }
-    }
-    Some(())
-}
-
 fn placed_at<'a>(scene: &'a Scene, path: &[usize]) -> Option<&'a Placed> {
     let (&last, above) = path.split_last()?;
     let mut scene = scene;
@@ -344,7 +318,6 @@ impl Flat {
             family,
             ..
         } = *cx;
-        let (axis, _) = axes(tree.flow(spot));
         for (index, member) in tree.members(spot).iter().enumerate() {
             path.push(index);
             match member {
@@ -357,7 +330,7 @@ impl Flat {
                     self.gather(cx, Spot::In(*group), path, Some(at))?;
                 }
                 _ => {
-                    let item = measure_member(tree, member, axis, palette, family)?;
+                    let item = measure_member(tree, member, palette, family)?;
                     self.ends.insert(path.clone(), End::Node(self.nodes.len()));
                     self.nodes.push(graph::Node {
                         width: item.width,
@@ -407,7 +380,7 @@ impl Flat {
                 continue;
             }
             let (stroke, color) = edge_look(tree.graph, index, palette)?;
-            let label = measure_edge(tree, &edge.label, Font::new(palette.size, color), family);
+            let label = measure_edge(&edge.label, Font::new(palette.size, color), family);
             let (from, to, drawn) = if meet.crossing {
                 let ends = |id: &String| -> Option<(Option<usize>, bool, Vec<usize>)> {
                     let full = tree.paths.get(id)?;
@@ -466,19 +439,7 @@ impl Flat {
                 hidden: !drawn,
             });
         }
-        // A note beside a state, when the states run down, sits in room
-        // kept beside it, past its self-loop.
         let members = tree.members(spot);
-        if axis == graph::Direction::Down {
-            let room = place::note_room(tree, spot, &members, palette, family)?;
-            for (index, (left, right)) in room.into_iter().enumerate() {
-                if let Some(End::Node(at)) = self.ends.get(&child(path, index)).copied() {
-                    let node = &mut self.nodes[at];
-                    node.before = left;
-                    node.loop_extra += right;
-                }
-            }
-        }
         self.levels.insert(path.clone(), arrows);
         for (index, member) in members.iter().enumerate() {
             path.push(index);
@@ -545,11 +506,6 @@ impl Flat {
                         let ox = rect.x + (rect.w - item.children.width) / 2.0;
                         let oy = rect.y + COMP_PAD + item.header_h + item.gap;
                         item.children.offset(ox, oy);
-                        nest::fill_regions(
-                            &mut item.children,
-                            rect,
-                            rect.y + COMP_PAD + item.header_h,
-                        );
                     }
                     Placed::of(item, rect)
                 }
@@ -587,7 +543,6 @@ impl Flat {
         Some(Scene {
             nodes,
             edges,
-            notes: Vec::new(),
             width: 0.0,
             height: 0.0,
         })

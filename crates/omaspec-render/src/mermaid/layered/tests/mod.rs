@@ -1,35 +1,21 @@
-use mermaid_rs_renderer::{DiagramKind, Graph, RenderOptions, parse_mermaid_strict};
+use mermaid_rs_renderer::{RenderOptions, parse_mermaid_strict};
 
-use super::{
-    Block, Family, Kind, Lines, Placed, Rect, Scene, Spot, layout_spot, nest, palette, prepare,
-};
+use super::{Block, Family, Placed, Rect, Scene, Spot, layout_spot, nest, palette, prepare};
 
 mod flowchart;
 mod mutated;
 mod recover;
-mod state;
 
-/// The graph a state diagram is drawn from: Omaspec's reading of it, in
-/// the form of mmdr's.
-pub(super) fn read(source: &str) -> (Graph, Lines) {
-    let chart = omaspec_uml::state::mermaid::read(source).unwrap();
-    crate::mermaid::state::graph(&chart)
-}
-
-/// The diagram laid out and its transitions between containers routed,
-/// as [`super::try_draw`] does before painting: a state diagram from
-/// Omaspec's reading, anything else from mmdr's parse.
+/// The flowchart laid out and its lines between subgraphs routed, as
+/// [`super::try_draw`] does before painting.
 pub(super) fn laid(source: &str) -> Scene {
     let parsed = parse_mermaid_strict(source).unwrap();
-    let graph = match parsed.graph.kind {
-        DiagramKind::State if omaspec_uml::state::mermaid::read(source).is_some() => read(source).0,
-        _ => nest::own_markers(&parsed.graph).unwrap_or(parsed.graph),
-    };
+    let graph = parsed.graph;
     let mut repaired = None;
     let (graph, fix) = super::flowchart::apply(&graph, source, &mut repaired).unwrap();
     let theme = RenderOptions::default().theme;
     let tree = prepare(graph, source, &fix).unwrap();
-    let palette = palette(&theme, tree.flowchart).unwrap();
+    let palette = palette(&theme).unwrap();
     let family = Family::of(&theme.font_family);
     let mut scene = layout_spot(&tree, Spot::Root, &palette, family).unwrap();
     nest::link_crossings(&tree, &mut scene, &palette, family).unwrap();
@@ -90,12 +76,10 @@ pub(super) fn segment_cuts(a: (f32, f32), b: (f32, f32), rect: Rect) -> bool {
     }
 }
 
-/// Every box but the regions.
+/// Every box.
 pub(super) fn collect(scene: &Scene, out: &mut Vec<Rect>) {
     for node in &scene.nodes {
-        if node.kind != Kind::Region {
-            out.push(node.rect);
-        }
+        out.push(node.rect);
         collect(&node.children, out);
     }
 }

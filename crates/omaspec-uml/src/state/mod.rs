@@ -6,16 +6,19 @@
 //! keeps it as a [`Crossing`]; the nested states it runs into are laid out
 //! with that container, and it runs through their ranks like any other.
 //!
-//! Mermaid state diagrams have a reader of their own ([`mermaid`]); the
-//! Mermaid drawer in `omaspec-render` lays them out on the same graph.
+//! Mermaid state diagrams have a reader of their own ([`mermaid`]), and
+//! [`from_mermaid`] lowers what it reads into this tree, so this drawer
+//! draws them too.
 
 mod draw;
+mod lower;
 pub mod mermaid;
 mod parse;
 mod skin;
 
 pub use crate::common::{Frame, Skinparam, Text};
 pub use draw::{draw, draw_mapped};
+pub use lower::from_mermaid;
 pub use parse::{is_state, parse};
 
 /// A parsed state diagram. The root is the diagram itself: it has no box.
@@ -36,6 +39,9 @@ pub struct Container {
     pub crossings: Vec<Crossing>,
     pub notes: Vec<Note>,
     pub direction: Direction,
+    /// Laid out against its direction: up for `Down`, leftwards for
+    /// `Right` (Mermaid's `BT` and `RL`).
+    pub mirrored: bool,
     /// Set when the state is split into concurrent regions: then every
     /// node here is a [`Kind::Region`].
     pub split: Option<Split>,
@@ -49,6 +55,7 @@ impl Default for Container {
             crossings: Vec::new(),
             notes: Vec::new(),
             direction: Direction::Down,
+            mirrored: false,
             split: None,
         }
     }

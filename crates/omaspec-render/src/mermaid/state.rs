@@ -1,233 +1,179 @@
-//! Mermaid state diagrams as Omaspec reads them
-//! ([`omaspec_uml::state::mermaid`]), put in the form of mmdr's graph
-//! that the drawer lays out, with the line of every state and transition.
-//! The picture then shows the machine the checks and the play go by.
-//!
-//! The graph follows mmdr's habits, so that the drawer sees what it knows:
-//! a nested state is a subgraph listing every state inside it, a
-//! concurrent region a frameless subgraph (`__region_N__`), and a start or
-//! an end inside a state with several transitions a bar. Each start and
-//! end has its own id, so there is nothing to split per region.
+//! Mermaid state diagrams on the engine PlantUML's are drawn with: Omaspec
+//! reads them into the same tree (`omaspec_uml::state::from_mermaid`) and
+//! draws them in the colors of the Mermaid theme. What it reads is what
+//! its checks and its play go by; a diagram it does not read is left to
+//! mmdr, and not checked.
 
-use std::collections::HashMap;
+use mermaid_rs_renderer::Theme;
+use omaspec_uml::map::Map;
+use omaspec_uml::state::{Skinparam, draw_mapped, from_mermaid};
 
-use mermaid_rs_renderer::ir::{NodeStyle, StateNote, StateNotePosition, Subgraph};
-use mermaid_rs_renderer::{DiagramKind, Direction, Edge, EdgeStyle, Graph, NodeShape};
-use omaspec_uml::state::mermaid::{Chart, Direction as Way, Kind, Side};
+use super::{font_name, plain_number};
 
-use super::layered::Lines;
+/// The SVG and its map, or `None` when mmdr draws the diagram. `fenced`
+/// is the text inside a Markdown fence, on its own lines.
+pub fn try_draw(theme: &Theme, fenced: &str) -> Option<(String, Map)> {
+    let mut diagram = from_mermaid(fenced)?;
+    // The theme first; the states' own colors over it.
+    let mut params = skin_of(theme)?;
+    params.append(&mut diagram.frame.skinparams);
+    diagram.frame.skinparams = params;
+    diagram.frame.by_hand = omaspec_uml::hand::numbered(fenced);
+    draw_mapped(&diagram).ok()
+}
 
-/// The graph the drawer lays out for `chart`, and where its states and
-/// transitions are written.
-pub(super) fn graph(chart: &Chart) -> (Graph, Lines) {
-    let mut graph = Graph::new();
-    graph.kind = DiagramKind::State;
-    graph.direction = match chart.direction {
-        None | Some(Way::Down) => Direction::TopDown,
-        Some(Way::Up) => Direction::BottomTop,
-        Some(Way::Right) => Direction::LeftRight,
-        Some(Way::Left) => Direction::RightLeft,
+fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
+    let mut params = Vec::new();
+    let mut add = |key: &str, value: &str| {
+        params.push(Skinparam {
+            key: key.to_owned(),
+            value: value.to_owned(),
+            line: 0,
+            declared: None,
+        });
     };
-    let ids: Vec<String> = chart
-        .states
-        .iter()
-        .enumerate()
-        .map(|(i, s)| match s.kind {
-            Kind::Start => format!("__start_{i}__"),
-            Kind::End => format!("__end_{i}__"),
-            _ => s.id.clone(),
-        })
-        .collect();
-    let mut ways = vec![0usize; chart.states.len()];
-    for t in &chart.transitions {
-        if chart.states[t.from].kind == Kind::Start {
-            ways[t.from] += 1;
-        }
-        if chart.states[t.to].kind == Kind::End {
-            ways[t.to] += 1;
+    if let Some(name) = font_name(&theme.font_family) {
+        add("defaultFontName", &name);
+    }
+    add("defaultFontSize", &plain_number(theme.font_size));
+    add("defaultFontColor", &theme.primary_text_color);
+    add("backgroundColor", &theme.background);
+    add("arrowColor", &theme.line_color);
+    add("arrowFontColor", &theme.primary_text_color);
+    add("stateBackgroundColor", &theme.primary_color);
+    add("stateBorderColor", &theme.primary_border_color);
+    add("noteBackgroundColor", &theme.sequence_note_fill);
+    add("noteBorderColor", &theme.sequence_note_border);
+    // A color the engine cannot read would decline the drawing. Check
+    // first, so a bad theme falls back instead of drawing the wrong look.
+    for param in &params {
+        if param.key.to_ascii_lowercase().contains("color") {
+            omaspec_uml::parse_color(&param.value).ok()?;
         }
     }
-    let mut lines = Lines::default();
-    for (i, s) in chart.states.iter().enumerate() {
-        let (shape, label) = match s.kind {
-            // mmdr's rule: inside a state, a start with several transitions
-            // out, or an end with several in, is a bar.
-            Kind::Start | Kind::End if s.parent.is_some() && ways[i] > 1 => {
-                (NodeShape::ForkJoin, String::new())
-            }
-            Kind::Start => (NodeShape::Circle, String::new()),
-            Kind::End => (NodeShape::DoubleCircle, String::new()),
-            Kind::Fork | Kind::Join => (NodeShape::ForkJoin, String::new()),
-            Kind::Choice => (NodeShape::Diamond, title(s)),
-            Kind::State => (NodeShape::RoundRect, title(s)),
+    Some(params)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn draws_a_machine_in_the_theme_colors_with_its_lines() {
+        let theme = Theme::mermaid_default();
+        let source = "stateDiagram-v2\n[*] --> Idle\nIdle --> Busy : job\nBusy --> [*]\n";
+        let (svg, map) = try_draw(&theme, source).unwrap();
+        assert!(svg.contains("Idle") && svg.contains("job"), "{svg}");
+        assert!(svg.contains("#ECECFF"), "{svg}");
+        let states: Vec<(&str, usize)> = map
+            .states
+            .iter()
+            .map(|s| (s.name.as_str(), s.line))
+            .collect();
+        assert_eq!(states, [("", 1), ("Idle", 1), ("Busy", 2), ("", 3)]);
+        let lines: Vec<usize> = map.transitions.iter().map(|t| t.line).collect();
+        assert_eq!(lines, [1, 2, 3]);
+        assert!(try_draw(&theme, "stateDiagram\nA --> B\nwhatever this is\n").is_none());
+    }
+
+    /// Where a state is in the picture.
+    fn spot(source: &str, name: &str) -> omaspec_uml::graph::Rect {
+        let (_, _, map) = crate::mermaid::render_mapped(source).unwrap();
+        map.states
+            .iter()
+            .find(|s| s.name == name)
+            .unwrap_or_else(|| panic!("no {name}"))
+            .rect
+    }
+
+    #[test]
+    fn bottom_to_top_and_right_to_left_turn_the_layout_round() {
+        let up = "stateDiagram-v2\ndirection BT\n[*] --> A\nA --> B\n";
+        let (a, b) = (spot(up, "A"), spot(up, "B"));
+        assert!(b.y + b.h <= a.y + 0.5, "{a:?} {b:?}");
+        let left = "stateDiagram-v2\ndirection RL\n[*] --> A\nA --> B\n";
+        let (a, b) = (spot(left, "A"), spot(left, "B"));
+        assert!(b.x + b.w <= a.x + 0.5, "{a:?} {b:?}");
+        // A nested state turns round with the rest, its name still on top.
+        let nested =
+            "stateDiagram-v2\ndirection BT\n[*] --> On\nstate On {\n[*] --> A\nA --> B\n}\n";
+        let (on, a, b) = (spot(nested, "On"), spot(nested, "A"), spot(nested, "B"));
+        assert!(b.y + b.h <= a.y + 0.5);
+        assert!(on.y < b.y && a.y + a.h < on.y + on.h, "{on:?} {a:?} {b:?}");
+    }
+
+    #[test]
+    fn concurrent_regions_sit_side_by_side() {
+        let source = "stateDiagram-v2\n[*] --> Active\nstate Active {\n[*] --> One\nOne --> Done\n--\n[*] --> Two\n}\n";
+        let (one, two) = (spot(source, "One"), spot(source, "Two"));
+        assert!(two.x >= one.x + one.w, "{one:?} {two:?}");
+        let (_, _, map) = crate::mermaid::render_mapped(source).unwrap();
+        let starts = map
+            .states
+            .iter()
+            .filter(|s| s.shape == omaspec_uml::map::Shape::Start)
+            .count();
+        assert_eq!(starts, 3, "the diagram's and each region's own");
+    }
+
+    #[test]
+    fn nested_states_hold_their_children() {
+        let source = include_str!("../../../omaspec-core/tests/fixtures/state.mmd");
+        let (_, _, map) = crate::mermaid::render_mapped(source).unwrap();
+        let parent = |name: &str| {
+            map.states
+                .iter()
+                .find(|s| s.name == name)
+                .and_then(|s| s.parent.clone())
         };
-        graph.ensure_node(&ids[i], Some(label), Some(shape));
-        lines.states.insert(ids[i].clone(), s.line);
+        assert_eq!(parent("Saving").as_deref(), Some("Suspend"));
+        assert_eq!(parent("Lockd"), None);
+        let (outer, inner) = (spot(source, "Suspend"), spot(source, "Saving"));
+        assert!(inner.x >= outer.x && inner.x + inner.w <= outer.x + outer.w);
     }
-    for t in &chart.transitions {
-        graph.edges.push(Edge {
-            from: ids[t.from].clone(),
-            to: ids[t.to].clone(),
-            label: (!t.label.is_empty()).then(|| t.label.clone()),
-            start_label: None,
-            end_label: None,
-            directed: true,
-            arrow_start: false,
-            arrow_end: true,
-            arrow_start_kind: None,
-            arrow_end_kind: None,
-            start_decoration: None,
-            end_decoration: None,
-            style: EdgeStyle::Solid,
-        });
-        lines.transitions.push(t.line);
-    }
-    nest(chart, &ids, &mut graph);
-    for note in &chart.notes {
-        graph.state_notes.push(StateNote {
-            position: match note.side {
-                Side::Left => StateNotePosition::LeftOf,
-                Side::Right => StateNotePosition::RightOf,
-            },
-            target: ids[note.target].clone(),
-            label: note.text.clone(),
-        });
-    }
-    for (name, style) in &chart.class_defs {
-        graph.class_defs.insert(name.clone(), node_style(style));
-    }
-    for (id, name) in &chart.classes {
-        graph
-            .node_classes
-            .entry(id.clone())
-            .or_default()
-            .push(name.clone());
-    }
-    for (id, style) in &chart.styles {
-        graph.node_styles.insert(id.clone(), node_style(style));
-    }
-    (graph, lines)
-}
 
-/// A state's label as mmdr writes it: its name, then each description
-/// under a rule.
-fn title(s: &omaspec_uml::state::mermaid::State) -> String {
-    let mut label = s.label.clone().unwrap_or_else(|| s.id.clone());
-    if !s.descriptions.is_empty() {
-        label.push_str("\n---");
-        for description in &s.descriptions {
-            label.push('\n');
-            label.push_str(description);
+    #[test]
+    fn colors_are_drawn_and_what_omaspec_cannot_read_falls_back() {
+        let colored = "stateDiagram-v2\n[*] --> Idle\nstyle Idle fill:#ff00aa\nIdle : quiet\n";
+        let svg = crate::mermaid::render(colored).unwrap();
+        assert!(svg.to_ascii_lowercase().contains("#ff00aa"), "{svg}");
+        assert!(svg.contains("quiet"));
+        assert!(crate::mermaid::coverage(colored).unwrap().is_none());
+        for refused in [
+            "stateDiagram-v2\n[*] --> Idle\nstyle Idle fill:rgb(1,2,3)\n",
+            // A transition into the state's own nested state.
+            "stateDiagram-v2\nstate On {\n[*] --> Idle\n}\nOn --> Idle\n",
+        ] {
+            let declined = crate::mermaid::coverage(refused).unwrap().unwrap();
+            assert!(declined.reason.contains("state diagram"), "{refused}");
+            assert!(crate::mermaid::render(refused).is_ok());
         }
     }
-    label
-}
 
-/// The subgraphs of the nested states and their regions, in the order mmdr
-/// makes them: a state when it opens, its regions when it closes.
-fn nest(chart: &Chart, ids: &[String], graph: &mut Graph) {
-    let n = chart.states.len();
-    // Every state inside each composite, and inside each of its regions.
-    let mut inside: Vec<Vec<String>> = vec![Vec::new(); n];
-    let mut regions: HashMap<(usize, usize), Vec<String>> = HashMap::new();
-    for (i, s) in chart.states.iter().enumerate() {
-        if s.composite {
-            continue;
-        }
-        let (mut at, mut region) = (s.parent, s.region);
-        while let Some(up) = at {
-            inside[up].push(ids[i].clone());
-            regions
-                .entry((up, region))
-                .or_default()
-                .push(ids[i].clone());
-            (at, region) = (chart.states[up].parent, chart.states[up].region);
-        }
-    }
-    let mut made = 0;
-    let tops: Vec<usize> = (0..n)
-        .filter(|&i| chart.states[i].composite && chart.states[i].parent.is_none())
-        .collect();
-    for top in tops {
-        open(chart, ids, graph, top, &mut inside, &mut regions, &mut made);
-    }
-}
-
-fn open(
-    chart: &Chart,
-    ids: &[String],
-    graph: &mut Graph,
-    state: usize,
-    inside: &mut [Vec<String>],
-    regions: &mut HashMap<(usize, usize), Vec<String>>,
-    made: &mut usize,
-) {
-    let s = &chart.states[state];
-    graph.subgraphs.push(Subgraph {
-        id: Some(ids[state].clone()),
-        label: s.label.clone().unwrap_or_else(|| s.id.clone()),
-        nodes: std::mem::take(&mut inside[state]),
-        direction: None,
-        icon: None,
-    });
-    for child in 0..chart.states.len() {
-        if chart.states[child].composite && chart.states[child].parent == Some(state) {
-            open(chart, ids, graph, child, inside, regions, made);
-        }
-    }
-    let mut own: Vec<(usize, Vec<String>)> = regions
-        .iter()
-        .filter(|((up, _), _)| *up == state)
-        .map(|((_, region), nodes)| (*region, nodes.clone()))
-        .collect();
-    if own.len() < 2 {
-        return;
-    }
-    own.sort_by_key(|(region, _)| *region);
-    for (_, nodes) in own {
-        let id = format!("__region_{made}__");
-        *made += 1;
-        graph.subgraphs.push(Subgraph {
-            id: Some(id.clone()),
-            label: String::new(),
-            nodes,
-            direction: None,
-            icon: None,
-        });
-        graph.subgraph_styles.insert(
-            id,
-            NodeStyle {
-                fill: Some("none".into()),
-                stroke: Some("none".into()),
-                text_color: None,
-                stroke_width: Some(0.0),
-                stroke_dasharray: None,
-                line_color: None,
-            },
+    #[test]
+    fn the_map_knows_the_lines_inside_a_fence() {
+        let source = "```mermaid\nstateDiagram-v2\n[*] --> Idle\nIdle --> Busy : job\nstate Busy {\n[*] --> Work\nWork --> [*]\n[*] --> Rest\n}\n```\n";
+        let (_, _, map) = crate::mermaid::render_mapped(source).unwrap();
+        let mut states: Vec<(&str, usize)> = map
+            .states
+            .iter()
+            .map(|s| (s.name.as_str(), s.line))
+            .collect();
+        states.sort();
+        assert_eq!(
+            states,
+            [
+                ("", 2),
+                ("", 5),
+                ("", 6),
+                ("Busy", 3),
+                ("Idle", 2),
+                ("Rest", 7),
+                ("Work", 5)
+            ]
         );
+        let mut lines: Vec<usize> = map.transitions.iter().map(|t| t.line).collect();
+        lines.sort();
+        assert_eq!(lines, [2, 3, 5, 6, 7]);
     }
-}
-
-/// `fill:#f00,stroke:#333,stroke-width:2px,color:#fff,stroke-dasharray:5 5`,
-/// read as mmdr reads it.
-fn node_style(text: &str) -> NodeStyle {
-    let mut style = NodeStyle::default();
-    for part in text.split(',') {
-        let Some((key, value)) = part.split_once(':') else {
-            continue;
-        };
-        let (key, value) = (key.trim(), value.trim());
-        if value.is_empty() {
-            continue;
-        }
-        match key {
-            "fill" => style.fill = Some(value.to_owned()),
-            "stroke" => style.stroke = Some(value.to_owned()),
-            "stroke-width" => style.stroke_width = value.trim_end_matches("px").parse().ok(),
-            "stroke-dasharray" => style.stroke_dasharray = Some(value.to_owned()),
-            "color" => style.text_color = Some(value.to_owned()),
-            _ => {}
-        }
-    }
-    style
 }

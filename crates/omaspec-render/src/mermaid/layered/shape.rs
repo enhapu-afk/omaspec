@@ -8,21 +8,12 @@
 use mermaid_rs_renderer::NodeShape;
 use omaspec_uml::graph::Rect;
 
-/// A box of a state diagram or a flowchart.
+/// A box of a flowchart.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Kind {
-    /// A state: a rounded box with a bold title and its description.
-    State,
-    /// A state choice: a diamond.
-    Choice,
-    Bar,
-    Start,
-    End,
-    /// One concurrent region of a state: no box and no name.
-    Region,
-    /// A flowchart subgraph: a frame with its title on top.
+    /// A subgraph: a frame with its title on top.
     Cluster,
-    /// A flowchart node.
+    /// A node.
     Node(Shape),
 }
 
@@ -62,38 +53,23 @@ pub(super) enum Shape {
 }
 
 impl Kind {
-    /// The kind of a state diagram's node, if this draws it.
-    pub(super) fn of_state(shape: NodeShape) -> Option<Kind> {
-        Some(match shape {
-            NodeShape::RoundRect => Kind::State,
-            NodeShape::Circle => Kind::Start,
-            NodeShape::DoubleCircle => Kind::End,
-            NodeShape::Diamond => Kind::Choice,
-            NodeShape::ForkJoin => Kind::Bar,
-            _ => return None,
-        })
-    }
-
     /// Whether a line may meet the box anywhere along a side, not only in
     /// the middle.
     pub(super) fn flat(self) -> bool {
         match self {
-            Kind::State | Kind::Bar | Kind::Region | Kind::Cluster => true,
+            Kind::Cluster => true,
             Kind::Node(shape) => {
                 matches!(
                     shape,
                     Shape::Rect | Shape::Rounded | Shape::Subroutine | Shape::Label
                 )
             }
-            Kind::Choice | Kind::Start | Kind::End => false,
         }
     }
 
     /// The outline lines end on, when it lies inside the box `rect`.
     pub(super) fn outline(self, rect: Rect) -> Option<Vec<(f32, f32)>> {
         match self {
-            Kind::Choice => Some(Shape::Diamond.outline(rect)),
-            Kind::Start | Kind::End => Some(Shape::Circle.outline(rect)),
             Kind::Node(shape) if !self.flat() => Some(shape.outline(rect)),
             _ => None,
         }
