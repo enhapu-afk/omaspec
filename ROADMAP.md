@@ -968,6 +968,15 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         keeps off every other box and other line. Jogs 39 → 1, bends
         479 → 403; 2 PlantUML and 8 Mermaid goldens changed, looked at
         side by side.
+  - [x] Fewer crossings, as Graphviz orders ranks (`graph::order`): the
+        crossings between neighboring ranks are counted after every sweep,
+        two neighbors in the same frames swap where that crosses less, and
+        an earlier order that crossed less wins over the last; a tie keeps
+        the last. On 300 random graphs 3479 crossings became 3058; the
+        repository's diagrams were ordered as well as their frames allow
+        already and did not change. Their 7 crossings left come from lines
+        into containers laid out on their own (routed after placement) and
+        from the order of frames.
 
 ### After the code review (2026-11-01)
 

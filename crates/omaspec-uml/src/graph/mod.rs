@@ -35,6 +35,7 @@
 pub mod across;
 pub mod by_hand;
 mod nest;
+mod order;
 pub mod route;
 mod straight;
 
@@ -695,7 +696,9 @@ fn link(slots: &mut [Slot], from: usize, to: usize) {
 }
 
 /// A few down and up passes. A node with no neighbor keeps its place.
+/// The order that crosses least stays ([`order`]).
 fn sweep(rows: &mut [Vec<usize>], slots: &[Slot]) {
+    let mut best = (order::crossings(rows, slots), rows.to_vec());
     for _ in 0..4 {
         for rank in 1..rows.len() {
             let pos = positions(rows, slots.len());
@@ -705,7 +708,14 @@ fn sweep(rows: &mut [Vec<usize>], slots: &[Slot]) {
             let pos = positions(rows, slots.len());
             sort_row(&mut rows[rank], slots, &pos, false);
         }
+        order::transpose(rows, slots, |_, _| true);
+        let now = order::crossings(rows, slots);
+        if now < best.0 {
+            best = (now, rows.to_vec());
+        }
     }
+    order::keep_best(rows, slots, best);
+    order::transpose(rows, slots, |_, _| true);
 }
 
 /// The same with frames: each rank keeps the slots of a frame together,
@@ -716,6 +726,7 @@ fn sweep_framed(rows: &mut [Vec<usize>], slots: &[Slot], frames: &[Vec<usize>], 
     for row in rows.iter_mut() {
         nest::sort_row(row, slots, &pos, nest::By::Place, frames, &keys);
     }
+    let mut best = (order::crossings(rows, slots), rows.to_vec());
     for _ in 0..4 {
         let pos = nest::positions(rows, slots);
         let keys = nest::keys(rows, &pos, frames, count);
@@ -729,6 +740,11 @@ fn sweep_framed(rows: &mut [Vec<usize>], slots: &[Slot], frames: &[Vec<usize>], 
             let pos = nest::positions(rows, slots);
             nest::sort_row(&mut rows[rank], slots, &pos, nest::By::Succs, frames, &keys);
         }
+        order::transpose(rows, slots, |a, b| frames[a] == frames[b]);
+        let now = order::crossings(rows, slots);
+        if now < best.0 {
+            best = (now, rows.to_vec());
+        }
     }
     // Last, by the ranks on both sides, so a line passing through lies
     // between where it comes from and where it goes.
@@ -738,6 +754,10 @@ fn sweep_framed(rows: &mut [Vec<usize>], slots: &[Slot], frames: &[Vec<usize>], 
         let pos = nest::positions(rows, slots);
         nest::sort_row(&mut rows[rank], slots, &pos, nest::By::Both, frames, &keys);
     }
+    // The order that crosses least stays, and two neighbors in the same
+    // frames swap where that crosses less ([`order`]).
+    order::keep_best(rows, slots, best);
+    order::transpose(rows, slots, |a, b| frames[a] == frames[b]);
 }
 
 fn positions(rows: &[Vec<usize>], n: usize) -> Vec<f32> {

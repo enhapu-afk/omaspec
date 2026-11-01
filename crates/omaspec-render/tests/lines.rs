@@ -354,3 +354,43 @@ fn jogs() {
         }
     }
 }
+
+/// Lists every crossing, by the two lines and where:
+/// `cargo test -p omaspec-render --test lines crossings -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn crossings() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    for file in corpus(root) {
+        let code = fs::read_to_string(&file).unwrap();
+        let language = Language::from_file_name(&file.to_string_lossy()).unwrap();
+        let Ok(drawn) = renderer.render(&code, language) else {
+            continue;
+        };
+        let wires = &drawn.map.wires;
+        for i in 0..wires.len() {
+            for j in i + 1..wires.len() {
+                for a in wires[i].path.windows(2) {
+                    for b in wires[j].path.windows(2) {
+                        if cross(a[0], a[1], b[0], b[1]) {
+                            println!(
+                                "{}: {} -> {} × {} -> {} near ({:.0}, {:.0})",
+                                name(root, &file),
+                                wires[i].key.from,
+                                wires[i].key.to,
+                                wires[j].key.from,
+                                wires[j].key.to,
+                                a[0].0,
+                                a[0].1
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
