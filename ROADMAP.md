@@ -1007,6 +1007,27 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         Left: `state-deep.mmd`, whose `Shop` is 3 units too narrow for
         `continue` beside its line, and the lines too close for their
         labels; both need the layout to leave room for labels.
+  - [ ] Room for labels, as Graphviz makes it: the 8 words left in the way
+        (`tests/lines.txt`) all lie where lines run closer than their labels
+        are wide. Five belong to lines side by side: the pair keeps its labels
+        outside (0012, rule 4), but outside lies a third line 43 to 73 units
+        off for a label 67 to 81 wide (`wind >= 12 m/s`, which then takes the
+        place of `hold over`, and `no signal 3 s` in the drone), or three and
+        four lines leave a narrow box (`pause` in `state-loops.mmd`, `power`
+        in `history.puml`). Two lie between a pair and a third line
+        (`no clearance`, the second `power` in `state-nested.mmd`), one beside
+        a container too narrow (`continue`). Where the flow runs down,
+        `graph::ports` makes no room for a label between two lines, though
+        0012 (rule 2) says it does. Tried and left (2026-11-02): room for
+        labels between the ports. Squeezing every step to fit took the words
+        8 → 5 but pressed pairs to 5 units apart (near lines 13 → 18); taking
+        only spare room took them 8 → 7 for 6 more bends, lines once straight
+        bending to reach boxes that had not moved. The ports are the wrong
+        place: the room has to come from where the boxes stand. Next: a label
+        as a node of its width in a rank of its own between two ranks, as
+        `dot` does, so placement leaves room and a pair bends around its
+        labels. A change to ranking, order and placement that moves most
+        goldens with labels; its own ADR first.
 
 ### After the code review (2026-11-01)
 
