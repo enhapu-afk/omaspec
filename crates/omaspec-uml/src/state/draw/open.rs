@@ -128,15 +128,21 @@ pub(super) fn layout_open(
     }
 
     // Labels move off states, names and each other, over the whole layout.
-    let mut boxes = Vec::new();
+    let (mut boxes, mut frames) = (Vec::new(), Vec::new());
     let mut edges = Vec::new();
-    collect(&mut scene, &mut boxes, &mut edges);
+    collect(&mut scene, &mut boxes, &mut frames, &mut edges);
     let lines: Vec<Vec<(f32, f32)>> = edges.iter().map(|edge| edge.points.clone()).collect();
     let mut labels: Vec<_> = edges
         .iter()
         .map(|edge| (edge.label_at, (edge.label.width, edge.label.height)))
         .collect();
-    let room = graph::route::place_labels(&lines, &mut labels, &boxes, (laid.width, laid.height));
+    let room = graph::route::place_labels(
+        &lines,
+        &mut labels,
+        &boxes,
+        &frames,
+        (laid.width, laid.height),
+    );
     for (edge, (at, _)) in edges.into_iter().zip(labels) {
         edge.label_at = at;
     }
@@ -186,13 +192,21 @@ fn flip_x(scene: &mut Scene, width: f32) {
     }
 }
 
-/// The boxes labels keep off, and every edge of this layout: through the
-/// nested states it opened, not into those laid out on their own.
-fn collect<'a>(scene: &'a mut Scene, boxes: &mut Vec<Rect>, out: &mut Vec<&'a mut PlacedEdge>) {
+/// The boxes labels keep off, the borders of the nested states this layout
+/// opened, which they keep inside or outside of, and every edge of it:
+/// through the nested states it opened, not into those laid out on their
+/// own.
+fn collect<'a>(
+    scene: &'a mut Scene,
+    boxes: &mut Vec<Rect>,
+    frames: &mut Vec<Rect>,
+    out: &mut Vec<&'a mut PlacedEdge>,
+) {
     let Scene { nodes, edges, .. } = scene;
     out.extend(edges.iter_mut());
     for node in nodes.iter_mut() {
         if node.opened {
+            frames.push(node.rect);
             let w = name_width(node);
             boxes.push(Rect {
                 x: node.rect.x + (node.rect.w - w) / 2.0,
@@ -200,7 +214,7 @@ fn collect<'a>(scene: &'a mut Scene, boxes: &mut Vec<Rect>, out: &mut Vec<&'a mu
                 w,
                 h: COMP_PAD + node.header_h,
             });
-            collect(&mut node.children, boxes, out);
+            collect(&mut node.children, boxes, frames, out);
         } else {
             boxes.push(node.rect);
         }

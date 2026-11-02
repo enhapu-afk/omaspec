@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="176" height="451" viewBox="0 0 176 451">
-<rect x="0" y="0" width="176" height="451" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="169" height="451" viewBox="0 0 169 451">
+<rect x="0" y="0" width="169" height="451" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
 <ellipse cx="105.29" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
@@ -51,7 +51,7 @@
 <tspan x="110.83" y="116.29" font-size="14" fill="#0F172A" textLength="38.12" lengthAdjust="spacing">power</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="124.23" y="287.18" font-size="14" fill="#0F172A" textLength="31.12" lengthAdjust="spacing">reset</tspan>
+<tspan x="84.11" y="255.81" font-size="14" fill="#0F172A" textLength="31.12" lengthAdjust="spacing">reset</tspan>
 </text>
 <polygon points="101.29,44 105.29,54 109.29,44 105.29,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="89.19,124.59 93.19,134.59 97.19,124.59 93.19,128.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>

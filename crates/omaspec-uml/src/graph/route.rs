@@ -171,15 +171,14 @@ pub fn label_spot(
     let &first = points.first()?;
     let solids: Vec<Bounds> = room.solids.iter().map(|r| Bounds::of(*r)).collect();
     let frames: Vec<Bounds> = room.frames.iter().map(|r| Bounds::of(*r)).collect();
-    let covered = |rect: Bounds| -> f32 {
-        // A little air around boxes and labels.
-        let solid: f32 = solids.iter().map(|s| s.grow(2.0).overlap(rect)).sum();
-        let border: f32 = frames
+    // A little air around boxes and labels.
+    let covered = |rect: Bounds| -> f32 { solids.iter().map(|s| s.grow(2.0).overlap(rect)).sum() };
+    // A frame's border is a line: across it, a label is struck through.
+    let bordered = |rect: Bounds| {
+        frames
             .iter()
-            .filter(|g| !g.encloses(rect))
-            .map(|g| g.overlap(rect))
-            .sum();
-        solid + border
+            .filter(|g| !g.encloses(rect) && g.overlap(rect) > 0.0)
+            .count() as f32
     };
     // Only lines near this one can meet its label.
     let dot = |p: Point| Bounds::around(p, (0.0, 0.0));
@@ -204,7 +203,7 @@ pub fn label_spot(
         // the other.
         let crossed = lines.iter().filter(|&&(a, b)| rect.cut(a, b)).count() as f32
             * if beside { 5.0 } else { 1.0 };
-        let struck = segments(own).filter(|&(a, b)| rect.cut(a, b)).count() as f32;
+        let struck = segments(own).filter(|&(a, b)| rect.cut(a, b)).count() as f32 + bordered(rect);
         // Clear of the arrowhead and the start; inside the picture if that
         // is as good, since the picture grows to make room.
         let ends = along < 4.0 || along > total - 16.0;
@@ -229,9 +228,9 @@ pub fn label_spot(
         .map(|(at, ..)| at)
 }
 
-/// Labels a layout put on another label, on a box or across a line, their
-/// own too, take the best place along their own line instead; the others
-/// stay.
+/// Labels a layout put on another label, on a box, across a line, their
+/// own too, or across the border of a container it opened (`frames`) take
+/// the best place along their own line instead; the others stay.
 /// `labels` holds the label of each of `lines`: its top left and its
 /// size, zero for none. Returns the room a scene of `size` takes with its
 /// labels: a label moved left of or above it starts that room before
@@ -240,6 +239,7 @@ pub fn place_labels(
     lines: &[Vec<Point>],
     labels: &mut [(Point, (f32, f32))],
     boxes: &[Rect],
+    frames: &[Rect],
     (width, height): (f32, f32),
 ) -> Rect {
     let mut placed: Vec<Rect> = Vec::new();
@@ -265,12 +265,16 @@ pub fn place_labels(
                 .iter()
                 .copied()
                 .chain(segments(&lines[index]))
-                .any(|(a, b)| cuts(rect, a, b));
+                .any(|(a, b)| cuts(rect, a, b))
+            || frames.iter().any(|&frame| {
+                let (frame, rect) = (Bounds::of(frame), Bounds::of(rect));
+                !frame.encloses(rect) && frame.overlap(rect) > 0.0
+            });
         if clash {
             let solids: Vec<Rect> = boxes.iter().chain(&placed).copied().collect();
             let room = LabelRoom {
                 solids: &solids,
-                frames: &[],
+                frames,
                 lines: &others,
                 origin: (0.0, 0.0),
                 on_line: false,

@@ -995,6 +995,18 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         into containers laid out on their own, which do not know the
         multiplicities yet, and notes and boxes no line ends at, which the
         count does not see.
+  - [x] Labels inside a container or outside it, not across its border:
+        `place_labels` knew the name bands of the containers a layout
+        opens but not their borders, so a label of a line leaving one
+        could sit across its edge. It knows them now, and in `label_spot`
+        a border through a label costs what a line through it costs
+        instead of growing with the area across it, which had sent a
+        label 3 units over a border onto another line. 10 → 8; 1 PlantUML
+        and 2 Mermaid goldens changed, looked at side by side (in
+        `state-open.mmd` a label off a border the count does not see).
+        Left: `state-deep.mmd`, whose `Shop` is 3 units too narrow for
+        `continue` beside its line, and the lines too close for their
+        labels; both need the layout to leave room for labels.
 
 ### After the code review (2026-11-01)
 

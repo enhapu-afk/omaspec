@@ -111,16 +111,22 @@ pub(super) fn layout_group(group: &Group, skin: &Skin, family: Family) -> Result
     let mut scene = flat.assemble(group, &mut Vec::new(), &laid, skin)?;
     // Labels move off boxes, names, multiplicities and each other, over the
     // whole layout.
-    let mut boxes = Vec::new();
+    let (mut boxes, mut frames) = (Vec::new(), Vec::new());
     let mut edges = Vec::new();
-    collect(&mut scene, &mut boxes, &mut edges);
+    collect(&mut scene, &mut boxes, &mut frames, &mut edges);
     boxes.extend(edges.iter().flat_map(|edge| card_rects(edge)));
     let lines: Vec<Vec<(f32, f32)>> = edges.iter().map(|edge| edge.points.clone()).collect();
     let mut labels: Vec<_> = edges
         .iter()
         .map(|edge| (edge.label_at, (edge.label.width, edge.label.height)))
         .collect();
-    let room = graph::route::place_labels(&lines, &mut labels, &boxes, (laid.width, laid.height));
+    let room = graph::route::place_labels(
+        &lines,
+        &mut labels,
+        &boxes,
+        &frames,
+        (laid.width, laid.height),
+    );
     for (edge, (at, _)) in edges.into_iter().zip(labels) {
         edge.label_at = at;
     }
@@ -131,15 +137,22 @@ pub(super) fn layout_group(group: &Group, skin: &Skin, family: Family) -> Result
     Ok(scene)
 }
 
-/// The boxes labels keep off, and every edge of this layout: through the
-/// containers it opened, not into those laid out on their own.
-fn collect<'a>(scene: &'a mut Scene, boxes: &mut Vec<Rect>, out: &mut Vec<&'a mut PlacedEdge>) {
+/// The boxes labels keep off, the borders of the containers this layout
+/// opened, which they keep inside or outside of, and every edge of it:
+/// through the containers it opened, not into those laid out on their own.
+fn collect<'a>(
+    scene: &'a mut Scene,
+    boxes: &mut Vec<Rect>,
+    frames: &mut Vec<Rect>,
+    out: &mut Vec<&'a mut PlacedEdge>,
+) {
     let Scene { nodes, edges, .. } = scene;
     out.extend(edges.iter_mut());
     for node in nodes.iter_mut() {
         if node.opened {
+            frames.push(node.rect);
             boxes.push(name_band(node));
-            collect(&mut node.children, boxes, out);
+            collect(&mut node.children, boxes, frames, out);
         } else {
             boxes.push(node.rect);
         }
