@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="171" height="187" viewBox="0 0 171 187">
-<rect x="0" y="0" width="171" height="187" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="179" height="187" viewBox="0 0 179 187">
+<rect x="0" y="0" width="179" height="187" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
 <ellipse cx="52.34" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
@@ -21,10 +21,10 @@
 <tspan x="27.83" y="155.58" font-size="14" fill="#0F172A" font-weight="bold" textLength="49.01" lengthAdjust="spacing">Talking</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="117.45" y="74.99" font-size="14" fill="#0F172A" textLength="33.46" lengthAdjust="spacing">noise</tspan>
+<tspan x="96.72" y="56.84" font-size="14" fill="#0F172A" textLength="33.46" lengthAdjust="spacing">noise</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="102.28" y="56.84" font-size="14" fill="#0F172A" textLength="30.35" lengthAdjust="spacing">echo</tspan>
+<tspan x="128.45" y="78.49" font-size="14" fill="#0F172A" textLength="30.35" lengthAdjust="spacing">echo</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0" y="116.29" font-size="14" fill="#0F172A" textLength="30.34" lengthAdjust="spacing">word</tspan>

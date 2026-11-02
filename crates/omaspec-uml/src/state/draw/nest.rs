@@ -341,6 +341,27 @@ impl Laid for Scene {
         })
     }
 
+    fn labels(&self, path: &[usize], slot: usize) -> Vec<Rect> {
+        let mut here = self;
+        for &index in path {
+            let Some(node) = here.nodes.get(index) else {
+                return Vec::new();
+            };
+            here = &node.children;
+        }
+        here.edges
+            .get(slot)
+            .filter(|edge| edge.label.width > 0.0 && edge.label.height > 0.0)
+            .map(|edge| Rect {
+                x: edge.label_at.0,
+                y: edge.label_at.1,
+                w: edge.label.width,
+                h: edge.label.height,
+            })
+            .into_iter()
+            .collect()
+    }
+
     fn drawn(&self) -> Drawn {
         let mut drawn = Drawn::default();
         drawn_in(self, &mut drawn);

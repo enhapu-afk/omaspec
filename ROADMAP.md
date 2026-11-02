@@ -977,6 +977,24 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         already and did not change. Their 7 crossings left come from lines
         into containers laid out on their own (routed after placement) and
         from the order of frames.
+  - [x] Words beside their lines: each line carries where its label and,
+        in a class diagram, its multiplicities are (`Wire::labels`), and
+        `tests/lines` fails as well when more of them are cut by a line,
+        their own included, or lie on other words or on a box a line ends
+        at (a frame around one of their line's ends may hold them). At the
+        start 22. A label no longer stays on its own line (`place_labels`,
+        `label_spot`), where it was put beside its line another line
+        through it counts as beside as well, and one that has to move
+        stays near where it was, on its side of the line; a multiplicity
+        beside an upright line keeps its width off it, and labels keep
+        off multiplicities. 22 → 10, the rest cut by other lines or
+        crowded (`history.puml`: lines 12 units apart leave no room); 2
+        PlantUML and 4 Mermaid goldens changed, looked at side by side.
+        Open:
+        multiplicities on a frame's border (`class.puml`), labels of lines
+        into containers laid out on their own, which do not know the
+        multiplicities yet, and notes and boxes no line ends at, which the
+        count does not see.
 
 ### After the code review (2026-11-01)
 

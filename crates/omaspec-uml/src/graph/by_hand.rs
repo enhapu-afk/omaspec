@@ -7,6 +7,7 @@
 //! A drawer names its lines ([`Arrow`], [`keyed`]) and lets them be read
 //! and changed ([`Laid`]); the rest is the same for all of them.
 
+use super::Rect;
 use super::across::{self, Drawn, Link, Placement};
 use super::route::Point;
 use crate::hand::{self, Key};
@@ -41,6 +42,11 @@ pub trait Laid {
     fn points(&self, path: &[usize], slot: usize) -> Option<&[Point]>;
     /// The same line, to lay again.
     fn line_mut(&mut self, path: &[usize], slot: usize) -> Option<LineMut<'_>>;
+    /// Where the line's words are: its label, the multiplicities at its
+    /// ends.
+    fn labels(&self, _path: &[usize], _slot: usize) -> Vec<Rect> {
+        Vec::new()
+    }
     /// Everything drawn: lines, labels, notes. A line with fewer than two
     /// points is not drawn.
     fn drawn(&self) -> Drawn;
@@ -228,6 +234,7 @@ pub fn wires(
                 from: end(from),
                 to: end(to),
                 entry: hand.map(|&(entry, _)| entry),
+                labels: laid.labels(&arrow.path, arrow.slot),
             })
         })
         .collect()

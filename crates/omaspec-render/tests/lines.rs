@@ -3,13 +3,15 @@
 //! the repository Omaspec draws: where lines cross each other, where a
 //! line runs through a box that is not its end, where a line steps aside
 //! by a few units only (a jog), where two lines come so near they look
-//! tangled, how often lines bend and how long they are.
+//! tangled, where a line runs through words (a label, a multiplicity) or
+//! words cover other words or a box, how often lines bend and how long
+//! they are.
 //!
 //! `tests/lines.txt` holds the counts. The test fails when crossings,
-//! lines through boxes or jogs grow for a diagram; near lines, bends and
-//! length may change. After an intended change, write the new counts with
-//! `UPDATE_LINES=1 cargo test -p omaspec-render --test lines` and review
-//! the diff. `OMASPEC_LINES=1` prints the table.
+//! lines through boxes, jogs or words in the way grow for a diagram; near
+//! lines, bends and length may change. After an intended change, write
+//! the new counts with `UPDATE_LINES=1 cargo test -p omaspec-render --test
+//! lines` and review the diff. `OMASPEC_LINES=1` prints the table.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -28,6 +30,7 @@ struct Count {
     through: usize,
     jogs: usize,
     near: usize,
+    labels: usize,
     bends: usize,
     length: f32,
 }
@@ -101,6 +104,10 @@ fn inside(p: Point, rect: Rect, slack: f32) -> bool {
         && p.1 <= rect.y + rect.h + slack
 }
 
+fn overlap(a: Rect, b: Rect) -> bool {
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+}
+
 fn contains(outer: Rect, inner: Rect) -> bool {
     inner.x >= outer.x - 0.5
         && inner.y >= outer.y - 0.5
@@ -166,6 +173,47 @@ fn measure(wires: &[Wire]) -> Count {
             }
         }
     }
+    // Words a line runs through, its own too: no drawer measured here sets
+    // them on a background. Or words on other words or on a box the lines
+    // join, but for one around an end of their line (a nested state, a
+    // package) that holds them whole.
+    let mut ends: Vec<Rect> = Vec::new();
+    for wire in wires {
+        for rect in [wire.from.rect, wire.to.rect] {
+            if !ends.contains(&rect) {
+                ends.push(rect);
+            }
+        }
+    }
+    let words: Vec<(&Wire, Rect)> = wires
+        .iter()
+        .flat_map(|wire| wire.labels.iter().map(move |&rect| (wire, rect)))
+        .collect();
+    for (k, &(wire, label)) in words.iter().enumerate() {
+        let shrunk = Rect {
+            x: label.x + 1.0,
+            y: label.y + 1.0,
+            w: (label.w - 2.0).max(0.0),
+            h: (label.h - 2.0).max(0.0),
+        };
+        let cut = wires
+            .iter()
+            .any(|other| other.path.windows(2).any(|s| through(s[0], s[1], shrunk)));
+        let around = |r: Rect| {
+            contains(r, label)
+                && [wire.from.rect, wire.to.rect]
+                    .iter()
+                    .any(|&end| end != r && contains(r, end))
+        };
+        let covers = words[k + 1..]
+            .iter()
+            .map(|&(_, other)| other)
+            .chain(ends.iter().copied().filter(|&r| !around(r)))
+            .any(|other| overlap(shrunk, other));
+        if cut || covers {
+            count.labels += 1;
+        }
+    }
     // The boxes the lines join; a box around one of a line's ends (a
     // nested state, a package) is one it may run through.
     let mut boxes: Vec<Rect> = Vec::new();
@@ -222,44 +270,47 @@ fn name(root: &Path, file: &Path) -> String {
 }
 
 fn table(counts: &BTreeMap<String, Count>) -> String {
-    let mut out = String::from("# file lines crossings through jogs near bends length\n");
+    let mut out = String::from("# file lines crossings through jogs near labels bends length\n");
     let mut total = Count::default();
     for (file, c) in counts {
         let _ = writeln!(
             out,
-            "{file} {} {} {} {} {} {} {:.0}",
-            c.lines, c.crossings, c.through, c.jogs, c.near, c.bends, c.length
+            "{file} {} {} {} {} {} {} {} {:.0}",
+            c.lines, c.crossings, c.through, c.jogs, c.near, c.labels, c.bends, c.length
         );
         total.lines += c.lines;
         total.crossings += c.crossings;
         total.through += c.through;
         total.jogs += c.jogs;
         total.near += c.near;
+        total.labels += c.labels;
         total.bends += c.bends;
         total.length += c.length;
     }
     let _ = writeln!(
         out,
-        "total {} {} {} {} {} {} {:.0}",
+        "total {} {} {} {} {} {} {} {:.0}",
         total.lines,
         total.crossings,
         total.through,
         total.jogs,
         total.near,
+        total.labels,
         total.bends,
         total.length
     );
     out
 }
 
-/// Each diagram's crossings, lines through boxes and jogs.
-fn read_table(text: &str) -> BTreeMap<String, [usize; 3]> {
+/// Each diagram's crossings, lines through boxes, jogs and words in the
+/// way.
+fn read_table(text: &str) -> BTreeMap<String, [usize; 4]> {
     text.lines()
         .filter(|l| !l.starts_with('#') && !l.trim().is_empty())
         .filter_map(|l| {
             let parts: Vec<&str> = l.split_whitespace().collect();
             let at = |i: usize| parts.get(i)?.parse().ok();
-            Some((parts.first()?.to_string(), [at(2)?, at(3)?, at(4)?]))
+            Some((parts.first()?.to_string(), [at(2)?, at(3)?, at(4)?, at(6)?]))
         })
         .collect()
 }
@@ -305,7 +356,7 @@ fn lines_get_no_worse() {
             && now.iter().zip(was).any(|(n, w)| n > w)
         {
             worse.push(format!(
-                "{file}: crossings, through boxes, jogs {was:?} → {now:?}"
+                "{file}: crossings, through boxes, jogs, words {was:?} → {now:?}"
             ));
         }
     }
@@ -392,5 +443,38 @@ fn crossings() {
                 }
             }
         }
+    }
+}
+
+/// Prints the lines of one diagram, with their words:
+/// `SHOW=examples/door/door.puml cargo test -p omaspec-render --test lines show -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn show() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let file = std::env::var("SHOW").unwrap();
+    let code = fs::read_to_string(root.join("../..").join(&file)).unwrap();
+    let language = Language::from_file_name(&file).unwrap();
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    let drawn = renderer.render(&code, language).unwrap();
+    for w in &drawn.map.wires {
+        let pts: Vec<String> = w
+            .path
+            .iter()
+            .map(|p| format!("({:.0},{:.0})", p.0, p.1))
+            .collect();
+        println!(
+            "{} -> {} words {:?}: {}",
+            w.key.from,
+            w.key.to,
+            w.labels
+                .iter()
+                .map(|r| (r.x as i32, r.y as i32, r.w as i32, r.h as i32))
+                .collect::<Vec<_>>(),
+            pts.join(" ")
+        );
     }
 }

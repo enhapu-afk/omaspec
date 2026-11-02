@@ -193,6 +193,9 @@ pub fn label_spot(
         .copied()
         .filter(|&(a, b)| reach.cut(a, b))
         .collect();
+    // Unless it is drawn on a background, a label on its own line is struck
+    // through, at a corner or where a line shaped by hand doubles back.
+    let own: &[Point] = if room.on_line { &[] } else { points };
     let total: f32 = segments(points).map(|(a, b)| distance(a, b)).sum();
     let score = |(at, along, beside): (Point, f32, bool)| {
         let rect = Bounds::around(at, size);
@@ -201,18 +204,24 @@ pub fn label_spot(
         // the other.
         let crossed = lines.iter().filter(|&&(a, b)| rect.cut(a, b)).count() as f32
             * if beside { 5.0 } else { 1.0 };
+        let struck = segments(own).filter(|&(a, b)| rect.cut(a, b)).count() as f32;
         // Clear of the arrowhead and the start; inside the picture if that
         // is as good, since the picture grows to make room.
         let ends = along < 4.0 || along > total - 16.0;
         let outside = rect.left < room.origin.0 || rect.top < room.origin.1;
+        // Near where it is, if that is as good: a label that has to move
+        // stays on its side of the line.
+        let moved = keep.map_or(0.0, |k| (at.0 - k.0).hypot(at.1 - k.1));
         covered * 20.0
-            + crossed * CROSSING
+            + (crossed + struck) * CROSSING
             + if ends { 2.0 * CROSSING } else { 0.0 }
             + if outside { CROSSING / 2.0 } else { 0.0 }
             + (along - total / 2.0).abs() * 0.5
             + if beside { 15.0 } else { 0.0 }
+            + moved * 0.1
     };
-    let current = keep.map(|at| (at, total / 2.0, false));
+    // Where a label may not sit on its line, it is beside it now as well.
+    let current = keep.map(|at| (at, total / 2.0, !room.on_line));
     spots(points, size)
         .filter(|&(_, _, beside)| beside || room.on_line)
         .chain(current)
@@ -220,8 +229,9 @@ pub fn label_spot(
         .map(|(at, ..)| at)
 }
 
-/// Labels a layout put on another label, on a box or across another line
-/// take the best place along their own line instead; the others stay.
+/// Labels a layout put on another label, on a box or across a line, their
+/// own too, take the best place along their own line instead; the others
+/// stay.
 /// `labels` holds the label of each of `lines`: its top left and its
 /// size, zero for none. Returns the room a scene of `size` takes with its
 /// labels: a label moved left of or above it starts that room before
@@ -251,7 +261,11 @@ pub fn place_labels(
             .iter()
             .chain(boxes)
             .any(|&other| near.overlap(Bounds::of(other)) > 0.0)
-            || others.iter().any(|&(a, b)| cuts(rect, a, b));
+            || others
+                .iter()
+                .copied()
+                .chain(segments(&lines[index]))
+                .any(|(a, b)| cuts(rect, a, b));
         if clash {
             let solids: Vec<Rect> = boxes.iter().chain(&placed).copied().collect();
             let room = LabelRoom {

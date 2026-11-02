@@ -1,54 +1,54 @@
-# file lines crossings through jogs near bends length
-crates/omaspec-render/tests/layered/flow-by-hand.mmd 3 0 0 0 0 2 296
-crates/omaspec-render/tests/layered/flow-cycles.mmd 7 0 0 0 0 10 823
-crates/omaspec-render/tests/layered/flow-directions.mmd 5 0 0 0 0 6 218
-crates/omaspec-render/tests/layered/flow-edges.mmd 11 0 0 0 0 14 1498
-crates/omaspec-render/tests/layered/flow-rl.mmd 5 0 0 0 0 8 356
-crates/omaspec-render/tests/layered/flow-shapes.mmd 12 0 0 0 0 0 384
-crates/omaspec-render/tests/layered/flow-styles.mmd 3 0 0 0 0 0 96
-crates/omaspec-render/tests/layered/flow-subgraph-direction.mmd 5 0 0 0 0 3 282
-crates/omaspec-render/tests/layered/flow-subgraphs.mmd 7 0 0 0 0 8 823
-crates/omaspec-render/tests/layered/state-basic.mmd 6 0 0 0 0 2 310
-crates/omaspec-render/tests/layered/state-by-hand.mmd 4 0 0 0 0 2 279
-crates/omaspec-render/tests/layered/state-deep.mmd 11 0 0 0 0 0 506
-crates/omaspec-render/tests/layered/state-direction.mmd 8 0 0 0 0 0 337
-crates/omaspec-render/tests/layered/state-loops.mmd 7 0 0 0 2 6 339
-crates/omaspec-render/tests/layered/state-nested.mmd 8 0 0 0 0 2 624
-crates/omaspec-render/tests/layered/state-notes.mmd 4 0 0 0 0 0 161
-crates/omaspec-render/tests/layered/state-open.mmd 6 0 0 0 0 8 910
-crates/omaspec-render/tests/layered/state-pseudo.mmd 12 0 0 0 1 14 925
-crates/omaspec-render/tests/layered/state-regions.mmd 8 0 0 0 0 0 337
-crates/omaspec-render/tests/layered/state-styled.mmd 5 0 0 0 0 0 225
-crates/omaspec-uml/tests/state/crossings.puml 8 0 0 0 0 12 967
-crates/omaspec-uml/tests/state/history.puml 8 0 0 0 0 8 761
-crates/omaspec-uml/tests/state/legend-dark.puml 3 0 0 0 0 0 124
-crates/omaspec-uml/tests/state/nested.puml 23 0 0 1 0 31 3852
-crates/omaspec-uml/tests/state/regions.puml 12 0 0 0 0 0 468
-crates/omaspec-uml/tests/state/sideways.puml 4 0 0 0 0 0 209
-crates/omaspec-uml/tests/state/states.puml 13 0 0 0 1 18 1854
-crates/omaspec-uml/tests/state/stereotypes.puml 8 0 0 0 0 2 351
-crates/omaspec-uml/tests/state/styled-states.puml 4 0 0 0 0 0 156
-crates/omaspec-uml/tests/structure/class.puml 5 0 0 0 0 8 718
-crates/omaspec-uml/tests/structure/component.puml 2 0 0 0 0 2 174
-crates/omaspec-uml/tests/structure/deploy.puml 3 0 0 0 0 0 110
-crates/omaspec-uml/tests/structure/labels.puml 3 0 0 0 0 4 312
-crates/omaspec-uml/tests/structure/object.puml 2 0 0 0 0 2 92
-crates/omaspec-uml/tests/structure/usecase.puml 2 0 0 0 0 0 87
-examples/door/door.puml 7 0 0 0 0 8 526
-examples/drone/delivery-drone.puml 72 4 0 0 2 35 15364
-examples/gallery/bookshop.puml 6 0 0 0 0 0 279
-examples/gallery/coffee-machine.puml 15 0 0 0 0 4 1452
-examples/gallery/crossing.mmd 9 0 0 0 0 8 710
-examples/gallery/elevator.puml 25 0 0 0 0 18 5781
-examples/gallery/friday.mmd 9 0 0 0 0 16 1327
-examples/gallery/library.puml 9 0 0 0 0 10 1240
-examples/gallery/media-player.mmd 18 0 0 0 0 8 1965
-examples/gallery/pipeline.mmd 16 0 0 0 0 28 2864
-examples/gallery/smart-home.puml 6 0 0 0 0 20 1685
-examples/gallery/ticket-machine.puml 5 0 0 0 1 8 550
-examples/library.mmd 2 0 0 0 0 0 105
-examples/lifecycle.mmd 7 0 0 0 0 0 305
-examples/platform.mmd 17 3 0 0 6 48 5809
-examples/player.puml 8 0 0 0 0 16 1019
-examples/shop.mmd 6 0 0 0 0 4 538
-total 474 7 0 1 13 403 61485
+# file lines crossings through jogs near labels bends length
+crates/omaspec-render/tests/layered/flow-by-hand.mmd 3 0 0 0 0 0 2 296
+crates/omaspec-render/tests/layered/flow-cycles.mmd 7 0 0 0 0 0 10 823
+crates/omaspec-render/tests/layered/flow-directions.mmd 5 0 0 0 0 0 6 218
+crates/omaspec-render/tests/layered/flow-edges.mmd 11 0 0 0 0 0 14 1498
+crates/omaspec-render/tests/layered/flow-rl.mmd 5 0 0 0 0 0 8 356
+crates/omaspec-render/tests/layered/flow-shapes.mmd 12 0 0 0 0 0 0 384
+crates/omaspec-render/tests/layered/flow-styles.mmd 3 0 0 0 0 0 0 96
+crates/omaspec-render/tests/layered/flow-subgraph-direction.mmd 5 0 0 0 0 0 3 282
+crates/omaspec-render/tests/layered/flow-subgraphs.mmd 7 0 0 0 0 0 8 823
+crates/omaspec-render/tests/layered/state-basic.mmd 6 0 0 0 0 0 2 310
+crates/omaspec-render/tests/layered/state-by-hand.mmd 4 0 0 0 0 0 2 279
+crates/omaspec-render/tests/layered/state-deep.mmd 11 0 0 0 0 1 0 506
+crates/omaspec-render/tests/layered/state-direction.mmd 8 0 0 0 0 0 0 337
+crates/omaspec-render/tests/layered/state-loops.mmd 7 0 0 0 2 1 6 339
+crates/omaspec-render/tests/layered/state-nested.mmd 8 0 0 0 0 2 2 624
+crates/omaspec-render/tests/layered/state-notes.mmd 4 0 0 0 0 0 0 161
+crates/omaspec-render/tests/layered/state-open.mmd 6 0 0 0 0 0 8 910
+crates/omaspec-render/tests/layered/state-pseudo.mmd 12 0 0 0 1 0 14 925
+crates/omaspec-render/tests/layered/state-regions.mmd 8 0 0 0 0 0 0 337
+crates/omaspec-render/tests/layered/state-styled.mmd 5 0 0 0 0 0 0 225
+crates/omaspec-uml/tests/state/crossings.puml 8 0 0 0 0 0 12 967
+crates/omaspec-uml/tests/state/history.puml 8 0 0 0 0 1 8 761
+crates/omaspec-uml/tests/state/legend-dark.puml 3 0 0 0 0 0 0 124
+crates/omaspec-uml/tests/state/nested.puml 23 0 0 1 0 1 31 3852
+crates/omaspec-uml/tests/state/regions.puml 12 0 0 0 0 0 0 468
+crates/omaspec-uml/tests/state/sideways.puml 4 0 0 0 0 0 0 209
+crates/omaspec-uml/tests/state/states.puml 13 0 0 0 1 0 18 1854
+crates/omaspec-uml/tests/state/stereotypes.puml 8 0 0 0 0 0 2 351
+crates/omaspec-uml/tests/state/styled-states.puml 4 0 0 0 0 0 0 156
+crates/omaspec-uml/tests/structure/class.puml 5 0 0 0 0 0 8 718
+crates/omaspec-uml/tests/structure/component.puml 2 0 0 0 0 0 2 174
+crates/omaspec-uml/tests/structure/deploy.puml 3 0 0 0 0 0 0 110
+crates/omaspec-uml/tests/structure/labels.puml 3 0 0 0 0 0 4 312
+crates/omaspec-uml/tests/structure/object.puml 2 0 0 0 0 0 2 92
+crates/omaspec-uml/tests/structure/usecase.puml 2 0 0 0 0 0 0 87
+examples/door/door.puml 7 0 0 0 0 0 8 526
+examples/drone/delivery-drone.puml 72 4 0 0 2 4 35 15364
+examples/gallery/bookshop.puml 6 0 0 0 0 0 0 279
+examples/gallery/coffee-machine.puml 15 0 0 0 0 0 4 1452
+examples/gallery/crossing.mmd 9 0 0 0 0 0 8 710
+examples/gallery/elevator.puml 25 0 0 0 0 0 18 5781
+examples/gallery/friday.mmd 9 0 0 0 0 0 16 1327
+examples/gallery/library.puml 9 0 0 0 0 0 10 1240
+examples/gallery/media-player.mmd 18 0 0 0 0 0 8 1965
+examples/gallery/pipeline.mmd 16 0 0 0 0 0 28 2864
+examples/gallery/smart-home.puml 6 0 0 0 0 0 20 1685
+examples/gallery/ticket-machine.puml 5 0 0 0 1 0 8 550
+examples/library.mmd 2 0 0 0 0 0 0 105
+examples/lifecycle.mmd 7 0 0 0 0 0 0 305
+examples/platform.mmd 17 3 0 0 6 0 48 5809
+examples/player.puml 8 0 0 0 0 0 16 1019
+examples/shop.mmd 6 0 0 0 0 0 4 538
+total 474 7 0 1 13 10 403 61485

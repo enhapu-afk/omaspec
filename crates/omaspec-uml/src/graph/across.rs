@@ -141,16 +141,10 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
                 .any(|(a, b)| around.obstacles.iter().any(|&rect| route::cuts(rect, a, b)));
         let (w, h) = link.label;
         let label_at = if w > 0.0 && h > 0.0 {
-            // A line shaped by hand can double back past its label: its
-            // own runs count as well.
-            let mut near = lines.clone();
-            if link.shape.is_some() {
-                near.extend(segments(&points));
-            }
             let room = LabelRoom {
                 solids: &solids,
                 frames: &frames,
-                lines: &near,
+                lines: &lines,
                 origin,
                 on_line: false,
             };

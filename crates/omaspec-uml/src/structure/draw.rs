@@ -169,6 +169,26 @@ impl Laid for Scene {
         })
     }
 
+    fn labels(&self, path: &[usize], slot: usize) -> Vec<Rect> {
+        let mut here = self;
+        for &index in path {
+            let Some(node) = here.nodes.get(index) else {
+                return Vec::new();
+            };
+            here = &node.children;
+        }
+        let Some(edge) = here.edges.get(slot) else {
+            return Vec::new();
+        };
+        let label = (edge.label.width > 0.0 && edge.label.height > 0.0).then_some(Rect {
+            x: edge.label_at.0,
+            y: edge.label_at.1,
+            w: edge.label.width,
+            h: edge.label.height,
+        });
+        label.into_iter().chain(card_rects(edge)).collect()
+    }
+
     fn drawn(&self) -> Drawn {
         let mut drawn = Drawn::default();
         drawn_in(self, &mut drawn);
@@ -1571,21 +1591,8 @@ fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 fn paint_labels(canvas: &mut Canvas, scene: &Scene) {
     for edge in &scene.edges {
         canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
-        if edge.points.len() < 2 {
-            continue;
-        }
-        if !edge.from_card.is_empty() {
-            let at = card_at(
-                &edge.points,
-                true,
-                &edge.from_card,
-                head_span(edge.from_head),
-            );
-            canvas.text(Layer::Front, &edge.from_card, at, Align::Left);
-        }
-        if !edge.to_card.is_empty() {
-            let at = card_at(&edge.points, false, &edge.to_card, head_span(edge.to_head));
-            canvas.text(Layer::Front, &edge.to_card, at, Align::Left);
+        for (card, at) in cards(edge) {
+            canvas.text(Layer::Front, card, at, Align::Left);
         }
     }
     for note in &scene.notes {
@@ -1741,6 +1748,31 @@ fn draw_head(
     }
 }
 
+/// The multiplicities at the ends of `edge`, and where each goes.
+fn cards(edge: &PlacedEdge) -> impl Iterator<Item = (&Block, (f32, f32))> {
+    [
+        (&edge.from_card, true, edge.from_head),
+        (&edge.to_card, false, edge.to_head),
+    ]
+    .into_iter()
+    .filter(|(card, ..)| !card.is_empty() && edge.points.len() >= 2)
+    .map(|(card, at_start, head)| (card, card_at(&edge.points, at_start, card, head_span(head))))
+}
+
+/// Where the multiplicities at the ends of `edge` are.
+fn card_rects(edge: &PlacedEdge) -> impl Iterator<Item = Rect> + '_ {
+    cards(edge).map(|(block, (x, y))| Rect {
+        x,
+        y,
+        w: block.width,
+        h: block.height,
+    })
+}
+
+/// The top left of a multiplicity beside the end of `points`, `along`
+/// past the head there. Beside a level run it sits close below or above
+/// it; beside an upright one it stands clear of it, or the line would
+/// strike it through.
 fn card_at(points: &[(f32, f32)], at_start: bool, block: &Block, along: f32) -> (f32, f32) {
     let (tip, inner) = if at_start {
         (points[0], points[1])
@@ -1753,7 +1785,7 @@ fn card_at(points: &[(f32, f32)], at_start: bool, block: &Block, along: f32) -> 
     let travel = (along + 8.0).min(len * 0.65).max(6.0);
     let (ux, uy) = (vx / len, vy / len);
     let (px, py) = (-uy, ux);
-    let off = block.height * 0.15 + 3.0;
+    let off = py.abs() * (block.height * 0.15 + 3.0) + px.abs() * (block.width / 2.0 + 3.0);
     let cx = tip.0 + ux * travel + px * off;
     let cy = tip.1 + uy * travel + py * off;
     (cx - block.width / 2.0, cy - block.height / 2.0)

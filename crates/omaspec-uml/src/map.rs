@@ -41,6 +41,9 @@ pub struct Wire {
     /// The zero-based line of the entry that shapes it; none when the
     /// layout laid it.
     pub entry: Option<usize>,
+    /// Where its words are: its label, and in a class diagram the
+    /// multiplicities at its ends.
+    pub labels: Vec<Rect>,
 }
 
 impl Wire {
@@ -244,6 +247,9 @@ impl Map {
             }
             wire.from.rect = fit.rect(wire.from.rect);
             wire.to.rect = fit.rect(wire.to.rect);
+            for rect in &mut wire.labels {
+                *rect = fit.rect(*rect);
+            }
         }
         for tile in &mut self.tiles {
             tile.frame = fit.rect(tile.frame);

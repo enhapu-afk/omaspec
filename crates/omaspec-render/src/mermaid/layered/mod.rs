@@ -160,6 +160,19 @@ impl Laid for Laying<'_, '_> {
         })
     }
 
+    fn labels(&self, _path: &[usize], slot: usize) -> Vec<Rect> {
+        edge_in(self.scene, slot)
+            .filter(|edge| edge.label.width > 0.0 && edge.label.height > 0.0)
+            .map(|edge| Rect {
+                x: edge.label_at.0,
+                y: edge.label_at.1,
+                w: edge.label.width,
+                h: edge.label.height,
+            })
+            .into_iter()
+            .collect()
+    }
+
     fn drawn(&self) -> Drawn {
         let mut drawn = Drawn::default();
         nest::drawn_in(self.scene, &mut drawn);

@@ -519,6 +519,7 @@ mod tests {
                     flat: true,
                 },
                 entry: None,
+                labels: Vec::new(),
             }],
             ..Map::default()
         }
