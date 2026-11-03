@@ -1,581 +1,196 @@
-//! Subgraphs and nested states laid out with what is around them.
-//!
-//! A subgraph or nested state that a line runs into from outside is
-//! opened: its members take the ranks of the container around it, as
-//! Graphviz (and Mermaid's dagre) lay out a cluster, and the line runs
-//! through the ranks like any other, in through the side the flow enters
-//! by ([`graph::framed`]). One with concurrent regions, with a direction of
-//! its own or with a line from itself to itself stays a box, laid out on
-//! its own; a line into one of those is routed once everything is placed.
+//! Subgraphs laid out with what is around them ([`open`]). A subgraph with
+//! a direction of its own stays a box, laid out on its own.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
+use omaspec_uml::graph::open::{self, Line, Nested};
 use omaspec_uml::graph::{self, Rect};
-use omaspec_uml::{Block, Family, Font, Stroke};
+use omaspec_uml::{Block, Family, Font};
 
 use super::{
-    COMP_GAP, COMP_PAD, Cap, Flip, Kind, LOOP_REACH, LOOP_STEP, Measured, Member, Palette, Placed,
-    PlacedEdge, Scene, Spot, Tree, axes, caps, clip_ends, edge_look, measure_edge, measure_member,
-    nest, shape,
+    COMP_PAD, Flip, Item, Look, Measured, Member, Palette, Placed, Scene, Spot, Tree, axes, caps,
+    edge_look, measure_edge, measure_member, nest, shape,
 };
 
-/// The path of the container at `spot` from the top.
-fn path_of(tree: &Tree, spot: Spot) -> Option<Vec<usize>> {
-    tree.spots
-        .iter()
-        .find(|&(_, &at)| at == spot)
-        .map(|(path, _)| path.clone())
-}
-
-/// Which groups inside the container at `spot` (at path `base`) to open,
-/// by their paths from it: every one a line from a container laid out
-/// here passes into.
-fn opened(tree: &Tree, spot: Spot, base: &[usize]) -> HashSet<Vec<usize>> {
-    let mut open = HashSet::new();
-    let mut todo = vec![spot];
-    while let Some(here) = todo.pop() {
-        for (index, meet) in tree.meets.iter().enumerate() {
-            if meet.spot != here || !meet.crossing || meet.hidden || meet.inward {
-                continue;
-            }
-            let edge = &tree.graph.edges[index];
-            let (Some(from), Some(to)) = (tree.paths.get(&edge.from), tree.paths.get(&edge.to))
-            else {
-                continue;
-            };
-            let groups = |path: &[usize]| -> Option<Vec<(Vec<usize>, usize)>> {
-                let mut out = Vec::new();
-                for depth in base.len() + 1..path.len() {
-                    let at = &path[..depth];
-                    let Some(&Spot::In(group)) = tree.spots.get(at) else {
-                        return None;
-                    };
-                    let around = *tree.spots.get(&path[..depth - 1])?;
-                    if !openable(tree, group, around, path[depth - 1]) {
-                        return None;
-                    }
-                    out.push((at[base.len()..].to_vec(), group));
-                }
-                Some(out)
-            };
-            let (Some(a), Some(b)) = (groups(from), groups(to)) else {
-                continue;
-            };
-            for (path, group) in a.into_iter().chain(b) {
-                if open.insert(path) {
-                    todo.push(Spot::In(group));
-                }
-            }
-        }
-    }
-    open
-}
-
-/// Whether `group`, member `slot` of the container at `around`, can be
-/// opened.
-fn openable(tree: &Tree, group: usize, around: Spot, slot: usize) -> bool {
-    let inner = Spot::In(group);
-    let members = tree.members(inner);
-    let looped = tree
-        .meets
-        .iter()
-        .any(|meet| meet.spot == around && !meet.inward && meet.from == slot && meet.to == slot);
-    !members.is_empty() && !looped && tree.flow(inner) == tree.flow(around)
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum End {
-    Node(usize),
-    Frame(usize),
-}
-
-/// One line of a container: the edge of mmdr's graph, its graph edge,
-/// and how it is drawn.
-struct Arrow {
-    edge: usize,
-    at: usize,
-    label: Block,
-    stroke: Stroke,
-    caps: (Cap, Cap),
-    /// Drawn by this layout.
-    drawn: bool,
-    crossing: bool,
-    from: usize,
-    to: usize,
-}
-
-/// One layout, through the groups it opens.
-#[derive(Default)]
-struct Flat {
-    ends: HashMap<Vec<usize>, End>,
-    measured: Vec<Option<Measured>>,
-    framed: Vec<Option<Measured>>,
-    nodes: Vec<graph::Node>,
-    frames: Vec<graph::Frame>,
-    within: Vec<Option<usize>>,
-    edges: Vec<graph::Edge>,
-    levels: HashMap<Vec<usize>, Vec<Arrow>>,
-    crossings: Vec<Crossing>,
-}
-
-/// A line between containers drawn here: the path to the container that
-/// holds both ends, the edge, and the paths to its ends.
-struct Crossing {
-    home: Vec<usize>,
-    edge: usize,
-    from: Vec<usize>,
-    to: Vec<usize>,
-}
-
-/// What every step of a layout reads.
-struct Context<'a> {
-    tree: &'a Tree<'a>,
-    open: &'a HashSet<Vec<usize>>,
-    /// The path of the container laid out, from the top.
-    base: &'a [usize],
-    flip: Flip,
-    palette: &'a Palette,
-    family: Family,
-}
-
-/// Lays the container at `spot` out, and every group it opens with it.
+/// Lays the container at `spot` out, and every subgraph it opens with it.
 pub(super) fn layout_open(
     tree: &Tree,
     spot: Spot,
     palette: &Palette,
     family: Family,
 ) -> Option<Scene> {
-    let base = path_of(tree, spot)?;
-    let open = opened(tree, spot, &base);
-    let (axis, flip) = axes(tree.flow(spot));
-    let mut flat = Flat::default();
-    let cx = Context {
-        tree,
-        open: &open,
-        base: &base,
-        flip,
-        palette,
-        family,
-    };
-    flat.gather(&cx, spot, &mut Vec::new(), None)?;
-    flat.join(&cx, spot, &mut Vec::new(), axis)?;
-    let laid = graph::framed(&flat.nodes, &flat.frames, &flat.within, &flat.edges, axis);
-    let mut scene = flat.assemble(tree, spot, &mut Vec::new(), &laid)?;
-    scene.width = laid.width;
-    scene.height = laid.height;
-
-    // Lines end on the outline of a round or slanted box, a line between
-    // containers on that of the box at its end.
-    clip_all(&mut scene);
-    for Crossing {
-        home,
-        edge,
-        from,
-        to,
-    } in &flat.crossings
-    {
-        let outline = |path: &[usize]| {
-            let end = placed_at(&scene, path)?;
-            end.kind.outline(end.rect)
-        };
-        let (start, tip) = (outline(from), outline(to));
-        let Some(line) = scene_at(&mut scene, home)?
-            .edges
-            .iter_mut()
-            .find(|line| line.edge == *edge)
-        else {
-            continue;
-        };
-        if let Some(outline) = start {
-            shape::clip(&mut line.points, &outline, true);
-        }
-        if let Some(outline) = tip {
-            shape::clip(&mut line.points, &outline, false);
-        }
-    }
-    let (width, height) = (scene.width, scene.height);
-    match flip {
-        Flip::No => {}
-        Flip::Y => flip_y(&mut scene, height),
-        Flip::X => flip_x(&mut scene, width),
-    }
-
-    // Labels move off boxes, titles and each other, over the whole layout.
-    let (mut boxes, mut frames) = (Vec::new(), Vec::new());
-    let mut edges = Vec::new();
-    collect(&mut scene, &mut boxes, &mut frames, &mut edges);
-    let lines: Vec<Vec<(f32, f32)>> = edges.iter().map(|edge| edge.points.clone()).collect();
-    let mut labels: Vec<_> = edges
-        .iter()
-        .map(|edge| (edge.label_at, (edge.label.width, edge.label.height)))
-        .collect();
-    let room = graph::route::place_labels(&lines, &mut labels, &boxes, &frames, (width, height));
-    for (edge, (at, _)) in edges.into_iter().zip(labels) {
-        edge.label_at = at;
-    }
-    scene.offset(-room.x, -room.y);
-    (scene.width, scene.height) = (room.w, room.h);
-    Some(scene)
+    open::layout(&Charts::new(tree, palette, family), spot).ok()
 }
 
-fn clip_all(scene: &mut Scene) {
-    clip_ends(scene);
-    for node in &mut scene.nodes {
-        if node.opened {
-            clip_all(&mut node.children);
-        }
-    }
+/// A flowchart's containers, with what each holds and the edges of mmdr's
+/// graph each draws.
+struct Charts<'a> {
+    tree: &'a Tree<'a>,
+    palette: &'a Palette,
+    family: Family,
+    members: HashMap<Spot, Vec<Member>>,
+    /// How deep each container lies.
+    depths: HashMap<Spot, usize>,
+    /// The edges each container draws, in the order of the graph.
+    edges: HashMap<Spot, Vec<usize>>,
 }
 
-/// Mirrors the layout top to bottom, through the groups it opened; a
-/// group laid out on its own moves as a whole.
-fn flip_y(scene: &mut Scene, height: f32) {
-    for node in &mut scene.nodes {
-        let old = node.rect.y;
-        node.rect.y = height - (node.rect.y + node.rect.h);
-        if node.opened {
-            flip_y(&mut node.children, height);
-        } else {
-            node.children.offset(0.0, node.rect.y - old);
+impl<'a> Charts<'a> {
+    fn new(tree: &'a Tree<'a>, palette: &'a Palette, family: Family) -> Charts<'a> {
+        let members = tree
+            .spots
+            .values()
+            .map(|&spot| (spot, tree.members(spot)))
+            .collect();
+        let depths = tree
+            .spots
+            .iter()
+            .map(|(path, &spot)| (spot, path.len()))
+            .collect();
+        let mut edges: HashMap<Spot, Vec<usize>> = HashMap::new();
+        for (index, meet) in tree.meets.iter().enumerate() {
+            if !meet.inward {
+                edges.entry(meet.spot).or_default().push(index);
+            }
         }
-    }
-    for edge in &mut scene.edges {
-        for point in &mut edge.points {
-            point.1 = height - point.1;
-        }
-        edge.label_at.1 = height - (edge.label_at.1 + edge.label.height);
-    }
-}
-
-/// The same, left to right.
-fn flip_x(scene: &mut Scene, width: f32) {
-    for node in &mut scene.nodes {
-        let old = node.rect.x;
-        node.rect.x = width - (node.rect.x + node.rect.w);
-        if node.opened {
-            flip_x(&mut node.children, width);
-        } else {
-            node.children.offset(node.rect.x - old, 0.0);
-        }
-    }
-    for edge in &mut scene.edges {
-        for point in &mut edge.points {
-            point.0 = width - point.0;
-        }
-        edge.label_at.0 = width - (edge.label_at.0 + edge.label.width);
-    }
-}
-
-/// The boxes labels keep off, the borders of the groups this layout
-/// opened, which they keep inside or outside of, and every edge of it:
-/// through the groups it opened, not into those laid out on their own.
-fn collect<'a>(
-    scene: &'a mut Scene,
-    boxes: &mut Vec<Rect>,
-    frames: &mut Vec<Rect>,
-    out: &mut Vec<&'a mut PlacedEdge>,
-) {
-    let Scene { nodes, edges, .. } = scene;
-    out.extend(edges.iter_mut());
-    for node in nodes.iter_mut() {
-        if node.opened {
-            frames.push(node.rect);
-            boxes.extend(nest::cluster_title(node).or(Some(Rect {
-                h: COMP_PAD + node.header_h,
-                ..node.rect
-            })));
-            collect(&mut node.children, boxes, frames, out);
-        } else {
-            boxes.push(node.rect);
-        }
-    }
-}
-
-fn placed_at<'a>(scene: &'a Scene, path: &[usize]) -> Option<&'a Placed> {
-    let (&last, above) = path.split_last()?;
-    let mut scene = scene;
-    for &index in above {
-        scene = &scene.nodes.get(index)?.children;
-    }
-    scene.nodes.get(last)
-}
-
-fn scene_at<'a>(scene: &'a mut Scene, path: &[usize]) -> Option<&'a mut Scene> {
-    match path.split_first() {
-        Some((&first, rest)) => scene_at(&mut scene.nodes.get_mut(first)?.children, rest),
-        None => Some(scene),
-    }
-}
-
-impl Flat {
-    /// Every member of the container at `spot` and of the groups it opens:
-    /// a box, or a frame around what it holds.
-    fn gather(
-        &mut self,
-        cx: &Context,
-        spot: Spot,
-        path: &mut Vec<usize>,
-        frame: Option<usize>,
-    ) -> Option<()> {
-        let Context {
+        Charts {
             tree,
-            open,
-            flip,
             palette,
             family,
-            ..
-        } = *cx;
-        for (index, member) in tree.members(spot).iter().enumerate() {
-            path.push(index);
-            match member {
-                Member::Group(group) if open.contains(path.as_slice()) => {
-                    let item = super::measure_group(tree, *group, palette, family, true)?;
-                    let at = self.frames.len();
-                    self.frames.push(frame_of(&item, frame, flip));
-                    self.framed.push(Some(item));
-                    self.ends.insert(path.clone(), End::Frame(at));
-                    self.gather(cx, Spot::In(*group), path, Some(at))?;
-                }
-                _ => {
-                    let item = measure_member(tree, member, palette, family)?;
-                    self.ends.insert(path.clone(), End::Node(self.nodes.len()));
-                    self.nodes.push(graph::Node {
-                        width: item.width,
-                        height: item.height,
-                        before: 0.0,
-                        loop_extra: 0.0,
-                        flat: item.kind.flat(),
-                    });
-                    self.within.push(frame);
-                    self.measured.push(Some(item));
-                }
-            }
-            path.pop();
-        }
-        Some(())
-    }
-
-    fn index(&self, path: &[usize]) -> Option<usize> {
-        match self.ends.get(path)? {
-            End::Node(at) => Some(*at),
-            End::Frame(at) => Some(self.nodes.len() + at),
-        }
-    }
-
-    /// The lines and room for notes of the container at `spot`, at `path`
-    /// from the one laid out, and of the groups it opens.
-    fn join(
-        &mut self,
-        cx: &Context,
-        spot: Spot,
-        path: &mut Vec<usize>,
-        axis: graph::Direction,
-    ) -> Option<()> {
-        let Context {
-            tree,
-            open,
-            base,
-            palette,
-            family,
-            ..
-        } = *cx;
-        let child = |path: &[usize], index: usize| [path, &[index]].concat();
-        let mut arrows = Vec::new();
-        for (index, edge) in tree.graph.edges.iter().enumerate() {
-            let meet = &tree.meets[index];
-            if meet.spot != spot || meet.inward {
-                continue;
-            }
-            let (stroke, color) = edge_look(tree.graph, index, palette)?;
-            let label = measure_edge(&edge.label, Font::new(palette.size, color), family);
-            let (from, to, drawn) = if meet.crossing {
-                let ends = |id: &String| -> Option<(Option<usize>, bool, Vec<usize>)> {
-                    let full = tree.paths.get(id)?;
-                    let steps = full.get(base.len() + path.len()..)?;
-                    let (at, whole) = self.resolve(path, steps, open);
-                    Some((at, whole, full[base.len()..].to_vec()))
-                };
-                let (from, whole_from, from_path) = ends(&edge.from)?;
-                let (to, whole_to, to_path) = ends(&edge.to)?;
-                let drawn = whole_from && whole_to && !meet.hidden;
-                if drawn {
-                    self.crossings.push(Crossing {
-                        home: path.clone(),
-                        edge: index,
-                        from: from_path,
-                        to: to_path,
-                    });
-                }
-                (from, to, drawn)
-            } else {
-                let from = self.index(&child(path, meet.from));
-                let to = self.index(&child(path, meet.to));
-                (from, to, !meet.hidden)
-            };
-            let (from, to) = (from.unwrap_or(usize::MAX), to.unwrap_or(usize::MAX));
-            if !meet.crossing && meet.from == meet.to && from < self.nodes.len() {
-                let reach = LOOP_REACH
-                    + arrows
-                        .iter()
-                        .filter(|arrow: &&Arrow| arrow.from == from && arrow.to == from)
-                        .count() as f32
-                        * LOOP_STEP;
-                let extra = match axis {
-                    graph::Direction::Down => reach + 4.0 + label.width,
-                    graph::Direction::Right => reach + 4.0 + label.height,
-                };
-                let node = &mut self.nodes[from];
-                node.loop_extra = node.loop_extra.max(extra);
-            }
-            arrows.push(Arrow {
-                edge: index,
-                at: self.edges.len(),
-                label: if drawn { label.clone() } else { Block::empty() },
-                stroke,
-                caps: caps(edge),
-                drawn,
-                crossing: meet.crossing,
-                from,
-                to,
-            });
-            self.edges.push(graph::Edge {
-                from,
-                to,
-                label_width: label.width,
-                label_height: label.height,
-                hidden: !drawn,
-            });
-        }
-        let members = tree.members(spot);
-        self.levels.insert(path.clone(), arrows);
-        for (index, member) in members.iter().enumerate() {
-            path.push(index);
-            if let (Member::Group(group), true) = (member, open.contains(path.as_slice())) {
-                self.join(cx, Spot::In(*group), path, axis)?;
-            }
-            path.pop();
-        }
-        Some(())
-    }
-
-    /// The graph index of a crossing's end, down `steps` from the
-    /// container at `path`, and whether that is the end itself rather than
-    /// the closed box around it.
-    fn resolve(
-        &self,
-        path: &[usize],
-        steps: &[usize],
-        open: &HashSet<Vec<usize>>,
-    ) -> (Option<usize>, bool) {
-        let mut at = path.to_vec();
-        for (depth, &step) in steps.iter().enumerate() {
-            at.push(step);
-            let last = depth + 1 == steps.len();
-            if last || !open.contains(&at) {
-                return (self.index(&at), last);
-            }
-        }
-        (None, false)
-    }
-
-    /// The scene of the container at `spot` and `path`, with the scenes of
-    /// the groups it opened inside.
-    fn assemble(
-        &mut self,
-        tree: &Tree,
-        spot: Spot,
-        path: &mut Vec<usize>,
-        laid: &graph::Layout,
-    ) -> Option<Scene> {
-        let members = tree.members(spot);
-        let mut nodes = Vec::with_capacity(members.len());
-        for (index, member) in members.iter().enumerate() {
-            path.push(index);
-            let placed = match (self.ends.get(path.as_slice()).copied()?, member) {
-                (End::Frame(at), Member::Group(group)) => {
-                    let item = self.framed[at].take()?;
-                    let children = self.assemble(tree, Spot::In(*group), path, laid)?;
-                    let rect = *laid.frames.get(at)?;
-                    Placed {
-                        opened: true,
-                        children: Scene {
-                            width: rect.w,
-                            height: rect.h,
-                            ..children
-                        },
-                        ..Placed::of(item, rect)
-                    }
-                }
-                (End::Node(at), _) => {
-                    let mut item = self.measured[at].take()?;
-                    let rect = *laid.nodes.get(at)?;
-                    if item.nested {
-                        let ox = rect.x + (rect.w - item.children.width) / 2.0;
-                        let oy = rect.y + COMP_PAD + item.header_h + item.gap;
-                        item.children.offset(ox, oy);
-                    }
-                    Placed::of(item, rect)
-                }
-                (End::Frame(_), Member::Leaf(_)) => return None,
-            };
-            nodes.push(placed);
-            path.pop();
-        }
-        let arrows = self.levels.remove(path.as_slice())?;
-        let mut edges = Vec::with_capacity(arrows.len());
-        for arrow in arrows {
-            if !arrow.drawn {
-                continue;
-            }
-            let route = laid.routes.get(arrow.at)?;
-            let meet = &tree.meets[arrow.edge];
-            // A crossing's ends are not in this container; it is clipped by
-            // its paths.
-            let (from, to) = if arrow.crossing {
-                (usize::MAX, usize::MAX)
-            } else {
-                (meet.from, meet.to)
-            };
-            edges.push(PlacedEdge {
-                from,
-                to,
-                edge: arrow.edge,
-                points: route.points.clone(),
-                label: arrow.label,
-                label_at: route.label_at,
-                stroke: arrow.stroke,
-                caps: arrow.caps,
-            });
-        }
-        Some(Scene {
-            nodes,
+            members,
+            depths,
             edges,
-            width: 0.0,
-            height: 0.0,
+        }
+    }
+
+    fn member(&self, spot: Spot, index: usize) -> Option<&Member> {
+        self.members.get(&spot)?.get(index)
+    }
+
+    fn edges(&self, spot: Spot) -> &[usize] {
+        self.edges.get(&spot).map_or(&[], Vec::as_slice)
+    }
+}
+
+impl Nested for Charts<'_> {
+    type Container = Spot;
+    type Item = Item;
+    type Look = Look;
+    type Error = ();
+
+    fn members(&self, spot: Spot) -> usize {
+        self.members.get(&spot).map_or(0, Vec::len)
+    }
+
+    fn inner(&self, spot: Spot, index: usize) -> Option<Spot> {
+        let Member::Group(group) = self.member(spot, index)? else {
+            return None;
+        };
+        let inner = Spot::In(*group);
+        let opens = self.members(inner) > 0 && self.tree.flow(inner) == self.tree.flow(spot);
+        opens.then_some(inner)
+    }
+
+    fn flow(&self, spot: Spot) -> (graph::Direction, bool) {
+        let (axis, flip) = axes(self.tree.flow(spot));
+        (axis, !matches!(flip, Flip::No))
+    }
+
+    fn lines(&self, spot: Spot) -> Vec<Line> {
+        let depth = self.depths.get(&spot).copied().unwrap_or(0);
+        let below = |id: &String| {
+            self.tree
+                .paths
+                .get(id)
+                .and_then(|path| path.get(depth..))
+                .map_or_else(Vec::new, <[usize]>::to_vec)
+        };
+        self.edges(spot)
+            .iter()
+            .map(|&index| {
+                let meet = &self.tree.meets[index];
+                let edge = &self.tree.graph.edges[index];
+                let (from, to) = if meet.crossing {
+                    (below(&edge.from), below(&edge.to))
+                } else {
+                    (vec![meet.from], vec![meet.to])
+                };
+                Line {
+                    from,
+                    to,
+                    hidden: meet.hidden,
+                }
+            })
+            .collect()
+    }
+
+    fn measure(&self, spot: Spot, index: usize, open: bool) -> Result<Measured, ()> {
+        let measured = match self.member(spot, index).ok_or(())? {
+            Member::Group(group) if open => {
+                super::measure_group(self.tree, *group, self.palette, self.family, true)
+            }
+            member => measure_member(self.tree, member, self.palette, self.family),
+        };
+        measured.ok_or(())
+    }
+
+    fn frame(&self, spot: Spot, item: &Measured) -> graph::Frame {
+        let (_, flip) = axes(self.tree.flow(spot));
+        frame_of(item, flip)
+    }
+
+    fn line(&self, spot: Spot, index: usize) -> Result<(Block, Look), ()> {
+        let edge = *self.edges(spot).get(index).ok_or(())?;
+        let (stroke, color) = edge_look(self.tree.graph, edge, self.palette).ok_or(())?;
+        let label = measure_edge(
+            &self.tree.graph.edges[edge].label,
+            Font::new(self.palette.size, color),
+            self.family,
+        );
+        let caps = caps(&self.tree.graph.edges[edge]);
+        Ok((label, Look { edge, stroke, caps }))
+    }
+
+    fn settle(&self, item: &mut Measured, rect: Rect) {
+        if item.item.nested {
+            let ox = rect.x + (rect.w - item.children.width) / 2.0;
+            let oy = rect.y + COMP_PAD + item.item.header_h + item.item.gap;
+            item.children.offset(ox, oy);
+        }
+    }
+
+    fn clip(&self, end: &Placed, points: &mut [(f32, f32)], at_start: bool) {
+        if let Some(outline) = end.item.kind.outline(end.rect) {
+            shape::clip(points, &outline, at_start);
+        }
+    }
+
+    fn band(&self, node: &Placed) -> Rect {
+        nest::cluster_title(node).unwrap_or(Rect {
+            h: COMP_PAD + node.item.header_h,
+            ..node.rect
         })
     }
 }
 
-/// The room an opened group keeps around what it holds, as
+/// The room an opened subgraph keeps around what it holds, as
 /// [`super::measure_group`] sizes one around a layout of its own; the room
 /// for the title comes first along the flow, so a mirrored flow takes it
 /// from the other end. Lines from above pass beside the title, unless the
 /// flow is mirrored.
-fn frame_of(item: &Measured, parent: Option<usize>, flip: Flip) -> graph::Frame {
+fn frame_of(item: &Measured, flip: Flip) -> graph::Frame {
+    let item = &item.item;
     let header_w = item
         .description
         .iter()
         .map(|block| block.width)
         .fold(item.title.width, f32::max);
-    let (top, bottom) = (COMP_PAD + item.header_h + COMP_GAP, COMP_PAD);
+    let (top, bottom) = (COMP_PAD + item.header_h + super::COMP_GAP, COMP_PAD);
     let (top, bottom) = match flip {
         Flip::Y => (bottom, top),
         _ => (top, bottom),
     };
-    let width = match item.kind {
-        Kind::Cluster => item.title.width + 2.0 * nest::TITLE_AIR + 4.0,
-        _ => header_w + 8.0,
-    };
+    let width = item.title.width + 2.0 * nest::TITLE_AIR + 4.0;
     let name = match flip {
         Flip::Y => graph::Name::default(),
         _ => graph::Name {
@@ -586,7 +201,7 @@ fn frame_of(item: &Measured, parent: Option<usize>, flip: Flip) -> graph::Frame 
         },
     };
     graph::Frame {
-        parent,
+        parent: None,
         top,
         bottom,
         left: COMP_PAD,

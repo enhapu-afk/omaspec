@@ -35,6 +35,7 @@
 pub mod across;
 pub mod by_hand;
 mod nest;
+pub mod open;
 mod order;
 pub mod route;
 mod straight;

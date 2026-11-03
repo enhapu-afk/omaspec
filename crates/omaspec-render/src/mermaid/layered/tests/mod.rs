@@ -33,8 +33,12 @@ pub(super) fn block_has(block: &Block, word: &str) -> bool {
 
 pub(super) fn walk<'a>(scene: &'a Scene, word: &str) -> Option<&'a Placed> {
     for node in &scene.nodes {
-        if block_has(&node.title, word)
-            || node.description.iter().any(|block| block_has(block, word))
+        if block_has(&node.item.title, word)
+            || node
+                .item
+                .description
+                .iter()
+                .any(|block| block_has(block, word))
         {
             return Some(node);
         }

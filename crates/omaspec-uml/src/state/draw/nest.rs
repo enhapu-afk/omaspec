@@ -2,7 +2,7 @@
 
 use super::super::{Container, Crossing, Kind, Split};
 use super::{
-    COMP_PAD, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label,
+    COMP_PAD, Item, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label, flat,
     layout_container,
 };
 use crate::Declined;
@@ -70,16 +70,19 @@ pub(super) fn layout_regions(
         cursor += before + along + after;
         nodes.push(Placed {
             rect,
-            kind: Kind::Region,
-            fill: None,
-            border: Stroke::new(skin.state.border, skin.state.thickness),
-            mark: skin.state.border,
-            title: Block::empty(),
-            description: Vec::new(),
-            header_h: 0.0,
-            composite: true,
             opened: false,
             children: scene,
+            item: Item {
+                kind: Kind::Region,
+                fill: None,
+                border: Stroke::new(skin.state.border, skin.state.thickness),
+                mark: skin.state.border,
+                title: Block::empty(),
+                description: Vec::new(),
+                header_h: 0.0,
+                gap: 0.0,
+                composite: true,
+            },
         });
     }
     let (width, height) = match split {
@@ -98,7 +101,7 @@ pub(super) fn layout_regions(
             points: Vec::new(),
             label: Block::empty(),
             label_at: (0.0, 0.0),
-            stroke: arrow_stroke(skin, arrow)?,
+            look: arrow_stroke(skin, arrow)?,
         });
     }
     Ok(Scene {
@@ -114,7 +117,10 @@ pub(super) fn layout_regions(
 /// title, so each owns its whole part of the box.
 pub(super) fn fill_regions(children: &mut Scene, rect: Rect, top: f32) {
     let regions = &mut children.nodes;
-    if regions.first().is_none_or(|node| node.kind != Kind::Region) {
+    if regions
+        .first()
+        .is_none_or(|node| node.item.kind != Kind::Region)
+    {
         return;
     }
     let stacked =
@@ -168,9 +174,9 @@ pub(super) fn link_crossings(
     // The transitions laid out with the containers around them are drawn
     // already.
     found.retain(|(path, slot, _)| {
-        scene_at(scene, path)
-            .edges
-            .get(*slot)
+        scene
+            .scene_at(path)
+            .and_then(|scene| scene.edges.get(*slot))
             .is_some_and(|edge| edge.points.len() < 2)
     });
     if found.is_empty() {
@@ -200,12 +206,15 @@ pub(super) fn link_crossings(
             ));
         };
         let stroke = arrow_stroke(skin, &crossing.arrow)?;
-        if let Some(edge) = scene_at(scene, path).edges.get_mut(*slot) {
+        if let Some(edge) = scene
+            .scene_at(path)
+            .and_then(|scene| scene.edges.get_mut(*slot))
+        {
             *edge = PlacedEdge {
                 points: linked.points,
                 label,
                 label_at: linked.label_at,
-                stroke,
+                look: stroke,
             };
         }
     }
@@ -351,13 +360,7 @@ impl Laid for Scene {
         }
         here.edges
             .get(slot)
-            .filter(|edge| edge.label.width > 0.0 && edge.label.height > 0.0)
-            .map(|edge| Rect {
-                x: edge.label_at.0,
-                y: edge.label_at.1,
-                w: edge.label.width,
-                h: edge.label.height,
-            })
+            .and_then(PlacedEdge::label_rect)
             .into_iter()
             .collect()
     }
@@ -369,32 +372,23 @@ impl Laid for Scene {
     }
 }
 
-fn scene_at<'a>(scene: &'a mut Scene, path: &[usize]) -> &'a mut Scene {
-    match path.split_first() {
-        Some((&first, rest)) => scene_at(&mut scene.nodes[first].children, rest),
-        None => scene,
-    }
-}
-
 fn placements(nodes: &[Placed]) -> Vec<Placement> {
     nodes
         .iter()
         .map(|node| {
-            let frame = node.composite && node.kind != Kind::Region;
+            let item = &node.item;
+            let frame = item.composite && item.kind != Kind::Region;
             // The whole title band: lines come in below it.
-            let title = (frame && node.header_h > 0.0).then_some(Rect {
-                h: COMP_PAD + node.header_h,
+            let title = (frame && item.header_h > 0.0).then_some(Rect {
+                h: COMP_PAD + item.header_h,
                 ..node.rect
             });
             Placement {
                 rect: node.rect,
-                flat: matches!(
-                    node.kind,
-                    Kind::State | Kind::Fork | Kind::Join | Kind::Region
-                ),
+                flat: flat(item.kind),
                 frame,
                 title,
-                children: if node.composite {
+                children: if item.composite {
                     placements(&node.children.nodes)
                 } else {
                     Vec::new()
@@ -442,7 +436,7 @@ pub(super) fn separators(node: &Placed) -> Vec<((f32, f32), (f32, f32))> {
     let regions = &node.children.nodes;
     regions
         .windows(2)
-        .filter(|pair| pair[1].kind == Kind::Region)
+        .filter(|pair| pair[1].item.kind == Kind::Region)
         .map(|pair| {
             let (a, b) = (pair[0].rect, pair[1].rect);
             if b.y >= a.y + a.h - 0.5 {

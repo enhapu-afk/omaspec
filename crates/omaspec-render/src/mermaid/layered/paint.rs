@@ -16,7 +16,6 @@ const CROSS_ARM: f32 = 4.0;
 /// Around an edge label, on its background.
 const LABEL_PAD: f32 = 2.0;
 
-/// Draws `scene`; the lines' corners curve by up to `curve`.
 /// Between the title and the diagram below it, as the state diagrams keep.
 const TITLE_GAP: f32 = 10.0;
 
@@ -33,6 +32,7 @@ pub(super) fn title(canvas: &mut Canvas, palette: &Palette, title: &str, family:
     canvas.text(Layer::Front, &block, at, Align::Left);
 }
 
+/// Draws `scene`; the lines' corners curve by up to `curve`.
 pub(super) fn paint(canvas: &mut Canvas, palette: &Palette, scene: &Scene, curve: f32) {
     paint_shapes(canvas, scene);
     paint_edges(canvas, scene, curve);
@@ -43,7 +43,7 @@ pub(super) fn paint(canvas: &mut Canvas, palette: &Palette, scene: &Scene, curve
 fn paint_shapes(canvas: &mut Canvas, scene: &Scene) {
     for node in &scene.nodes {
         paint_shape(canvas, node);
-        if node.nested {
+        if node.item.nested {
             paint_shapes(canvas, &node.children);
         }
     }
@@ -52,15 +52,15 @@ fn paint_shapes(canvas: &mut Canvas, scene: &Scene) {
 fn paint_shape(canvas: &mut Canvas, node: &Placed) {
     let rect = node.rect;
     let corners = |radius: f32| radius.min(rect.w / 2.0).min(rect.h / 2.0);
-    let border = Some(node.border);
-    match node.kind {
+    let border = Some(node.item.border);
+    match node.item.kind {
         Kind::Cluster => {
             let bounds = (rect.x, rect.y, rect.w, rect.h);
             canvas.rect(
                 Layer::Frames,
                 bounds,
                 corners(CLUSTER_RADIUS),
-                node.fill,
+                node.item.fill,
                 border,
             );
         }
@@ -71,20 +71,20 @@ fn paint_shape(canvas: &mut Canvas, node: &Placed) {
 fn paint_node(canvas: &mut Canvas, node: &Placed, shape: Shape) {
     let rect = node.rect;
     let (x, y, w, h) = (rect.x, rect.y, rect.w, rect.h);
-    let border = Some(node.border);
+    let border = Some(node.item.border);
     let layer = Layer::Frames;
     match shape {
         Shape::Label => {}
-        Shape::Rect => canvas.rect(layer, (x, y, w, h), 0.0, node.fill, border),
+        Shape::Rect => canvas.rect(layer, (x, y, w, h), 0.0, node.item.fill, border),
         Shape::Rounded => {
             let radius = ROUNDED.min(w / 2.0).min(h / 2.0);
-            canvas.rect(layer, (x, y, w, h), radius, node.fill, border);
+            canvas.rect(layer, (x, y, w, h), radius, node.item.fill, border);
         }
-        Shape::Stadium => canvas.rect(layer, (x, y, w, h), h.min(w) / 2.0, node.fill, border),
+        Shape::Stadium => canvas.rect(layer, (x, y, w, h), h.min(w) / 2.0, node.item.fill, border),
         Shape::Subroutine => {
-            canvas.rect(layer, (x, y, w, h), 0.0, node.fill, border);
+            canvas.rect(layer, (x, y, w, h), 0.0, node.item.fill, border);
             for side in [x + SUBROUTINE, x + w - SUBROUTINE] {
-                canvas.line(layer, (side, y), (side, y + h), node.border);
+                canvas.line(layer, (side, y), (side, y + h), node.item.border);
             }
         }
         Shape::Cylinder => {
@@ -105,7 +105,7 @@ fn paint_node(canvas: &mut Canvas, node: &Placed, shape: Shape) {
                 num(y + h - ry),
             );
             let bounds = (x, y, x + w, y + h);
-            canvas.path(layer, &body, bounds, node.fill, border);
+            canvas.path(layer, &body, bounds, node.item.fill, border);
             // The near rim of the top.
             let rim = format!(
                 "M{},{} A{},{} 0 0 0 {},{}",
@@ -120,11 +120,11 @@ fn paint_node(canvas: &mut Canvas, node: &Placed, shape: Shape) {
         }
         Shape::Circle => {
             let center = (x + w / 2.0, y + h / 2.0);
-            canvas.ellipse(layer, center, (w / 2.0, h / 2.0), node.fill, border);
+            canvas.ellipse(layer, center, (w / 2.0, h / 2.0), node.item.fill, border);
         }
         Shape::DoubleCircle => {
             let center = (x + w / 2.0, y + h / 2.0);
-            canvas.ellipse(layer, center, (w / 2.0, h / 2.0), node.fill, border);
+            canvas.ellipse(layer, center, (w / 2.0, h / 2.0), node.item.fill, border);
             let inner = (w / 2.0 - RING, h / 2.0 - RING);
             canvas.ellipse(layer, center, inner, None, border);
         }
@@ -135,7 +135,7 @@ fn paint_node(canvas: &mut Canvas, node: &Placed, shape: Shape) {
         | Shape::Trapezoid
         | Shape::TrapezoidAlt
         | Shape::Flag => {
-            canvas.polygon(layer, &shape.outline(rect), node.fill, border);
+            canvas.polygon(layer, &shape.outline(rect), node.item.fill, border);
         }
     }
 }
@@ -153,9 +153,9 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
         }
         canvas.curve(
             Layer::Frames,
-            &shortened(&edge.points, edge.caps),
+            &shortened(&edge.points, edge.look.caps),
             curve,
-            edge.stroke,
+            edge.look.stroke,
         );
     }
     for node in &scene.nodes {
@@ -167,25 +167,25 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
 fn paint_labels(canvas: &mut Canvas, scene: &Scene, ground: Paint) {
     for node in &scene.nodes {
         let rect = node.rect;
-        match node.kind {
-            Kind::Cluster if node.nested => {
+        match node.item.kind {
+            Kind::Cluster if node.item.nested => {
                 paint_stack(
                     canvas,
-                    &node.title,
-                    &node.description,
+                    &node.item.title,
+                    &node.item.description,
                     rect.x + rect.w / 2.0,
                     rect.y + COMP_PAD,
                 );
             }
             Kind::Node(shape) => {
                 let (cx, cy) = shape.text_center(rect);
-                let top = cy - node.title.height / 2.0;
-                canvas.text(Layer::Front, &node.title, (cx, top), Align::Center);
+                let top = cy - node.item.title.height / 2.0;
+                canvas.text(Layer::Front, &node.item.title, (cx, top), Align::Center);
             }
             Kind::Cluster => {}
         }
-        let inside = if node.nested {
-            node.fill.or(ground)
+        let inside = if node.item.nested {
+            node.item.fill.or(ground)
         } else {
             ground
         };
@@ -218,8 +218,8 @@ fn ground_at(scene: &Scene, point: (f32, f32), ground: Paint) -> Paint {
     for node in &scene.nodes {
         let r = node.rect;
         let inside = point.0 > r.x && point.0 < r.x + r.w && point.1 > r.y && point.1 < r.y + r.h;
-        if node.nested && inside {
-            return ground_at(&node.children, point, node.fill.or(ground));
+        if node.item.nested && inside {
+            return ground_at(&node.children, point, node.item.fill.or(ground));
         }
     }
     ground
@@ -238,9 +238,9 @@ fn paint_stack(canvas: &mut Canvas, title: &Block, description: &[Block], x: f32
 
 fn paint_caps(canvas: &mut Canvas, scene: &Scene) {
     for edge in &scene.edges {
-        let (start, end) = edge.caps;
-        paint_cap(canvas, &edge.points, false, end, edge.stroke);
-        paint_cap(canvas, &edge.points, true, start, edge.stroke);
+        let (start, end) = edge.look.caps;
+        paint_cap(canvas, &edge.points, false, end, edge.look.stroke);
+        paint_cap(canvas, &edge.points, true, start, edge.look.stroke);
     }
     for node in &scene.nodes {
         paint_caps(canvas, &node.children);

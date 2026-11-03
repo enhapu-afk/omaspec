@@ -1,7 +1,7 @@
 use mermaid_rs_renderer::{RenderOptions, parse_mermaid_strict};
 
 use super::super::shape::Shape;
-use super::super::{Cap, Kind};
+use super::super::{Cap, Kind, Scene};
 
 /// The SVG alone, without the map.
 fn try_draw(
@@ -24,18 +24,25 @@ fn the_shop_steps_down_and_loops_back_beside_it() {
     let browse = find(&scene, "Browse");
     let pay = find(&scene, "Pay");
     let saved = find(&scene, "Save");
-    assert_eq!(pay.kind, Kind::Node(Shape::Diamond));
-    assert_eq!(find(&scene, "Order").kind, Kind::Node(Shape::Stadium));
+    assert_eq!(pay.item.kind, Kind::Node(Shape::Diamond));
+    assert_eq!(find(&scene, "Order").item.kind, Kind::Node(Shape::Stadium));
     assert!(browse.rect.y + browse.rect.h <= pay.rect.y + 0.5);
     assert!(pay.rect.y + pay.rect.h <= saved.rect.y + 0.5);
     let back = scene
         .edges
         .iter()
         .find(|edge| {
+            let r = browse.rect;
+            let at_browse = |p: &(f32, f32)| {
+                p.0 >= r.x - 1.0
+                    && p.0 <= r.x + r.w + 1.0
+                    && p.1 >= r.y - 1.0
+                    && p.1 <= r.y + r.h + 1.0
+            };
             edge.points
                 .first()
                 .is_some_and(|p| p.1 > browse.rect.y + 50.0)
-                && edge.to == 0
+                && edge.points.last().is_some_and(at_browse)
         })
         .expect("the way back to Browse");
     for rect in [pay.rect, find(&scene, "Add").rect] {
@@ -51,7 +58,7 @@ fn a_subgraph_runs_its_own_way_and_holds_its_nodes() {
         "../../../../../omaspec-core/tests/fixtures/flowchart.mmd"
     ));
     let ci = find(&scene, "Continuous");
-    assert_eq!(ci.kind, Kind::Cluster);
+    assert_eq!(ci.item.kind, Kind::Cluster);
     for word in ["Push", "Tests", "Package", "Fix"] {
         assert!(encloses(ci.rect, find(&scene, word).rect), "{word}");
     }
@@ -65,10 +72,10 @@ fn a_subgraph_runs_its_own_way_and_holds_its_nodes() {
     assert!(announce.y >= release.y + release.h - 0.5);
     assert!(release.y >= ci.rect.y + ci.rect.h - 0.5);
     // `((Release))` is a circle, as in Mermaid.
-    assert_eq!(find(&scene, "Release").kind, Kind::Node(Shape::Circle));
-    assert_eq!(find(&scene, "Announce").kind, Kind::Node(Shape::Flag));
-    assert_eq!(find(&scene, "Mirror").kind, Kind::Node(Shape::Hexagon));
-    assert_eq!(find(&scene, "Fix").kind, Kind::Node(Shape::Subroutine));
+    assert_eq!(find(&scene, "Release").item.kind, Kind::Node(Shape::Circle));
+    assert_eq!(find(&scene, "Announce").item.kind, Kind::Node(Shape::Flag));
+    assert_eq!(find(&scene, "Mirror").item.kind, Kind::Node(Shape::Hexagon));
+    assert_eq!(find(&scene, "Fix").item.kind, Kind::Node(Shape::Subroutine));
 }
 
 #[test]
@@ -192,7 +199,7 @@ fn a_line_may_end_on_a_subgraph() {
 #[test]
 fn ends_are_arrows_circles_crosses_or_nothing() {
     let scene = laid("flowchart LR\nA --> B\nB --o C\nC --x D\nD --- E\nE <--> F\n");
-    let caps: Vec<(Cap, Cap)> = scene.edges.iter().map(|edge| edge.caps).collect();
+    let caps: Vec<(Cap, Cap)> = scene.edges.iter().map(|edge| edge.look.caps).collect();
     assert_eq!(
         caps,
         [
@@ -213,20 +220,23 @@ fn labels_wrap_and_markup_is_read_the_mermaid_way() {
         "flowchart TD\nA[\"Order history with filters, export and paging\"] -->|a -- b| B[\"<b>bold</b> #quot;q#quot;\"]\n",
     );
     let long = find(&scene, "Order");
-    assert!(long.title.lines.len() > 1);
-    assert!(long.title.width <= 200.0 * 14.0 / 16.0 + 0.5);
+    assert!(long.item.title.lines.len() > 1);
+    assert!(long.item.title.width <= 200.0 * 14.0 / 16.0 + 0.5);
     let edge = &scene.edges[0];
     assert!(block_has(&edge.label, "--"), "{:?}", edge.label);
     let bold = find(&scene, "bold");
-    assert!(bold.title.lines[0].runs[0].style.bold);
-    assert!(block_has(&bold.title, "\"q\""));
+    assert!(bold.item.title.lines[0].runs[0].style.bold);
+    assert!(block_has(&bold.item.title, "\"q\""));
 }
 
 #[test]
 fn a_double_circle_is_drawn_with_two_rings() {
     let scene = laid("flowchart LR\nA((one)) --> B(((two)))\n");
-    assert_eq!(find(&scene, "one").kind, Kind::Node(Shape::Circle));
-    assert_eq!(find(&scene, "two").kind, Kind::Node(Shape::DoubleCircle));
+    assert_eq!(find(&scene, "one").item.kind, Kind::Node(Shape::Circle));
+    assert_eq!(
+        find(&scene, "two").item.kind,
+        Kind::Node(Shape::DoubleCircle)
+    );
 }
 
 #[test]
@@ -278,20 +288,21 @@ fn an_invisible_link_ranks_and_is_not_drawn() {
         b.x >= a.x + a.w - 0.5,
         "B {b:?} is not to the right of A {a:?}"
     );
-    assert!(scene.edges.is_empty(), "{:?}", scene.edges.len());
+    let drawn = |scene: &Scene| scene.edges.iter().any(|edge| !edge.points.is_empty());
+    assert!(!drawn(&scene));
     let chained = laid("flowchart LR\nA[text] ~~~ B ~~~ C\n");
     assert!(find(&chained, "text").rect.x < find(&chained, "C").rect.x);
-    assert!(chained.edges.is_empty());
+    assert!(!drawn(&chained));
 }
 
 #[test]
 fn a_new_shape_is_the_shape_it_names() {
     let scene = laid("flowchart LR\nA@{ shape: cyl, label: \"db\" }\n");
     let node = find(&scene, "db");
-    assert_eq!(node.kind, Kind::Node(Shape::Cylinder));
-    assert!(block_has(&node.title, "db"));
+    assert_eq!(node.item.kind, Kind::Node(Shape::Cylinder));
+    assert!(block_has(&node.item.title, "db"));
     let diamond = laid("flowchart LR\nA@{ shape: diam }\n");
-    assert_eq!(find(&diamond, "A").kind, Kind::Node(Shape::Diamond));
+    assert_eq!(find(&diamond, "A").item.kind, Kind::Node(Shape::Diamond));
     let svg = draw("flowchart LR\nA@{ shape: cyl, label: \"db\" }\n").unwrap();
     assert!(svg.contains("db"), "{svg}");
     assert!(svg.contains('A'), "{svg}");
@@ -304,15 +315,15 @@ fn a_new_shape_is_the_shape_it_names() {
 #[test]
 fn an_empty_subgraph_is_a_frame_and_a_nested_one_stays_inside() {
     let scene = laid("flowchart LR\nA --> B\nsubgraph Empty\nend\n");
-    assert_eq!(find(&scene, "Empty").kind, Kind::Cluster);
+    assert_eq!(find(&scene, "Empty").item.kind, Kind::Cluster);
     assert!(!encloses(
         find(&scene, "Empty").rect,
         find(&scene, "A").rect
     ));
     let nested = laid("flowchart TB\nsubgraph Outer\nsubgraph Inner\nend\nend\n");
     let (outer, inner) = (find(&nested, "Outer"), find(&nested, "Inner"));
-    assert_eq!(outer.kind, Kind::Cluster);
-    assert_eq!(inner.kind, Kind::Cluster);
+    assert_eq!(outer.item.kind, Kind::Cluster);
+    assert_eq!(inner.item.kind, Kind::Cluster);
     assert!(encloses(outer.rect, inner.rect));
 }
 
@@ -325,7 +336,7 @@ fn a_line_into_a_node_inside_its_subgraph_stays_inside() {
     let line = scene
         .edges
         .iter()
-        .find(|edge| edge.caps.1 == Cap::Arrow)
+        .find(|edge| edge.look.caps.1 == Cap::Arrow)
         .expect("the arrow into A");
     let start = line.points[0];
     let end = *line.points.last().unwrap();
@@ -343,7 +354,7 @@ fn a_line_into_a_node_inside_its_subgraph_stays_inside() {
     let line = back
         .edges
         .iter()
-        .find(|edge| edge.caps.1 == Cap::Arrow)
+        .find(|edge| edge.look.caps.1 == Cap::Arrow)
         .unwrap();
     assert!(on_border(*line.points.last().unwrap(), group));
     assert!(
@@ -356,17 +367,17 @@ fn a_line_into_a_node_inside_its_subgraph_stays_inside() {
 fn an_icon_is_its_short_name_in_its_form() {
     let scene = laid("flowchart LR\nA@{ icon: \"fa:user\", form: \"circle\", label: \"User\" }\n");
     let node = find(&scene, "user");
-    assert_eq!(node.kind, Kind::Node(Shape::Circle));
-    assert!(block_has(&node.title, "User"));
+    assert_eq!(node.item.kind, Kind::Node(Shape::Circle));
+    assert!(block_has(&node.item.title, "User"));
     let above = laid("flowchart LR\nA@{ icon: \"fa:user\", label: \"User\", pos: \"t\" }\n");
     let node = find(&above, "user");
-    assert_eq!(node.kind, Kind::Node(Shape::Label));
-    let first: String = node.title.lines[0]
+    assert_eq!(node.item.kind, Kind::Node(Shape::Label));
+    let first: String = node.item.title.lines[0]
         .runs
         .iter()
         .map(|run| run.text.as_str())
         .collect();
-    let second: String = node.title.lines[1]
+    let second: String = node.item.title.lines[1]
         .runs
         .iter()
         .map(|run| run.text.as_str())
@@ -374,7 +385,7 @@ fn an_icon_is_its_short_name_in_its_form() {
     assert_eq!(first, "User");
     assert_eq!(second, "user");
     let group = laid("flowchart LR\nsubgraph S@{ icon: \"fa:user\", label: \"People\" }\nA\nend\n");
-    assert!(block_has(&find(&group, "user").title, "People"));
+    assert!(block_has(&find(&group, "user").item.title, "People"));
 }
 
 #[test]

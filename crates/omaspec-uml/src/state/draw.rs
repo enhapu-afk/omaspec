@@ -50,10 +50,6 @@ const NOTE_PAD: f32 = 6.0;
 /// Arrow heads, the same size as on an activity diagram.
 const HEAD_LENGTH: f32 = 10.0;
 const HEAD_HALF: f32 = 4.0;
-/// How far a self-loop stands off its box. The same numbers as
-/// [`crate::graph`]'s loop, so the reserved room fits the line.
-const LOOP_REACH: f32 = 16.0;
-const LOOP_STEP: f32 = 12.0;
 
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     draw_mapped(diagram).map(|(svg, _)| svg)
@@ -160,53 +156,16 @@ fn chart(
     }
 }
 
-/// One container after layout. `width` and `height` are the graph, notes
-/// excluded, which is what a parent sizes its box from.
-struct Scene {
-    nodes: Vec<Placed>,
-    edges: Vec<PlacedEdge>,
-    notes: Vec<PlacedNote>,
-    width: f32,
-    height: f32,
-}
+/// One container after layout ([`graph::open::Scene`]); a transition keeps its
+/// stroke.
+type Scene = graph::open::Scene<Item, Stroke>;
+type Placed = graph::open::Placed<Item, Stroke>;
+type PlacedEdge = graph::open::Wire<Stroke>;
+type PlacedNote = graph::open::Note;
+type Measured = graph::open::Measured<Item, Stroke>;
 
-impl Scene {
-    fn empty() -> Scene {
-        Scene {
-            nodes: Vec::new(),
-            edges: Vec::new(),
-            notes: Vec::new(),
-            width: 0.0,
-            height: 0.0,
-        }
-    }
-
-    fn offset(&mut self, dx: f32, dy: f32) {
-        if dx == 0.0 && dy == 0.0 {
-            return;
-        }
-        for node in &mut self.nodes {
-            node.rect.x += dx;
-            node.rect.y += dy;
-            node.children.offset(dx, dy);
-        }
-        for edge in &mut self.edges {
-            for point in &mut edge.points {
-                point.0 += dx;
-                point.1 += dy;
-            }
-            edge.label_at.0 += dx;
-            edge.label_at.1 += dy;
-        }
-        for note in &mut self.notes {
-            note.x += dx;
-            note.y += dy;
-        }
-    }
-}
-
-struct Placed {
-    rect: Rect,
+/// What a state keeps for painting.
+struct Item {
     kind: Kind,
     fill: Paint,
     border: Stroke,
@@ -217,59 +176,9 @@ struct Placed {
     description: Vec<Block>,
     /// The title band of a nested state; 0 for a leaf.
     header_h: f32,
-    composite: bool,
-    /// Laid out with the container around it, so its states and
-    /// transitions are that container's too.
-    opened: bool,
-    children: Scene,
-}
-
-impl Placed {
-    fn of(item: Measured, rect: Rect) -> Placed {
-        Placed {
-            rect,
-            kind: item.kind,
-            fill: item.fill,
-            border: item.border,
-            mark: item.mark,
-            title: item.title,
-            description: item.description,
-            header_h: item.header_h,
-            composite: item.composite,
-            opened: false,
-            children: item.children,
-        }
-    }
-}
-
-struct PlacedEdge {
-    points: Vec<(f32, f32)>,
-    label: Block,
-    label_at: (f32, f32),
-    stroke: Stroke,
-}
-
-struct PlacedNote {
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-    text: Block,
-}
-
-struct Measured {
-    width: f32,
-    height: f32,
-    kind: Kind,
-    fill: Paint,
-    border: Stroke,
-    mark: Color,
-    title: Block,
-    description: Vec<Block>,
-    header_h: f32,
+    /// Between the title band and what a nested state holds.
     gap: f32,
     composite: bool,
-    children: Scene,
 }
 
 fn layout_container(container: &Container, skin: &Skin, family: Family) -> Result<Scene, Declined> {
@@ -312,16 +221,19 @@ fn measure_node(
         return Ok(Measured {
             width: header_w.max(children.width) + COMP_PAD * 2.0,
             height: COMP_PAD + header_h + gap + children.height + COMP_PAD,
-            kind: node.kind,
-            fill,
-            border,
-            mark,
-            title,
-            description,
-            header_h,
-            gap,
-            composite: true,
+            flat: flat(node.kind),
             children,
+            item: Item {
+                kind: node.kind,
+                fill,
+                border,
+                mark,
+                title,
+                description,
+                header_h,
+                gap,
+                composite: true,
+            },
         });
     }
 
@@ -365,17 +277,25 @@ fn measure_node(
     Ok(Measured {
         width,
         height,
-        kind: node.kind,
-        fill,
-        border,
-        mark,
-        title,
-        description,
-        header_h: 0.0,
-        gap: 0.0,
-        composite: false,
+        flat: flat(node.kind),
         children: Scene::empty(),
+        item: Item {
+            kind: node.kind,
+            fill,
+            border,
+            mark,
+            title,
+            description,
+            header_h: 0.0,
+            gap: 0.0,
+            composite: false,
+        },
     })
+}
+
+/// Whether lines may meet a box of `kind` anywhere along a side.
+fn flat(kind: Kind) -> bool {
+    matches!(kind, Kind::State | Kind::Fork | Kind::Join | Kind::Region)
 }
 
 fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color), Declined> {
@@ -735,10 +655,11 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     for node in &scene.nodes {
         paint_shape(canvas, skin, node);
-        if node.composite {
+        if node.item.composite {
             paint_divider(canvas, node);
             for (a, b) in separators(node) {
-                let mut stroke = Stroke::new(node.border.color, node.border.width.max(0.5));
+                let mut stroke =
+                    Stroke::new(node.item.border.color, node.item.border.width.max(0.5));
                 stroke.dash = Some((5.0, 4.0));
                 canvas.line(Layer::Frames, a, b, stroke);
             }
@@ -750,15 +671,15 @@ fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     let rect = node.rect;
     let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
-    match node.kind {
+    match node.item.kind {
         Kind::State => {
             let radius = skin.round.min(rect.w / 2.0).min(rect.h / 2.0);
             canvas.rect(
                 Layer::Frames,
                 (rect.x, rect.y, rect.w, rect.h),
                 radius,
-                node.fill,
-                Some(node.border),
+                node.item.fill,
+                Some(node.item.border),
             );
         }
         Kind::Choice => {
@@ -768,14 +689,19 @@ fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
                 (cx, rect.y + rect.h),
                 (rect.x, cy),
             ];
-            canvas.polygon(Layer::Frames, &points, node.fill, Some(node.border));
+            canvas.polygon(
+                Layer::Frames,
+                &points,
+                node.item.fill,
+                Some(node.item.border),
+            );
         }
         Kind::Fork | Kind::Join => {
             canvas.rect(
                 Layer::Frames,
                 (rect.x, rect.y, rect.w, rect.h),
                 2.0,
-                Some(node.mark),
+                Some(node.item.mark),
                 None,
             );
         }
@@ -784,22 +710,22 @@ fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
                 Layer::Frames,
                 (cx, cy),
                 (rect.w / 2.0, rect.h / 2.0),
-                node.fill,
-                Some(node.border),
+                node.item.fill,
+                Some(node.item.border),
             );
         }
         Kind::Start => {
-            let stroke = Stroke::new(node.mark, 1.0);
+            let stroke = Stroke::new(node.item.mark, 1.0);
             canvas.ellipse(
                 Layer::Frames,
                 (cx, cy),
                 (rect.w / 2.0, rect.h / 2.0),
-                Some(node.mark),
+                Some(node.item.mark),
                 Some(stroke),
             );
         }
         Kind::End => {
-            let stroke = Stroke::new(node.mark, 1.5);
+            let stroke = Stroke::new(node.item.mark, 1.5);
             canvas.ellipse(
                 Layer::Frames,
                 (cx, cy),
@@ -811,8 +737,8 @@ fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
                 Layer::Frames,
                 (cx, cy),
                 (rect.w * 0.21, rect.h * 0.21),
-                Some(node.mark),
-                Some(Stroke::new(node.mark, 1.0)),
+                Some(node.item.mark),
+                Some(Stroke::new(node.item.mark, 1.0)),
             );
         }
         Kind::Region => {}
@@ -820,15 +746,15 @@ fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
 }
 
 fn paint_divider(canvas: &mut Canvas, node: &Placed) {
-    if node.header_h <= 0.0 {
+    if node.item.header_h <= 0.0 {
         return;
     }
-    let y = node.rect.y + COMP_PAD + node.header_h;
+    let y = node.rect.y + COMP_PAD + node.item.header_h;
     canvas.line(
         Layer::Frames,
         (node.rect.x, y),
         (node.rect.x + node.rect.w, y),
-        Stroke::new(node.border.color, node.border.width.max(0.5)),
+        Stroke::new(node.item.border.color, node.item.border.width.max(0.5)),
     );
 }
 
@@ -837,7 +763,7 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
         if edge.points.len() < 2 {
             continue;
         }
-        canvas.curve(Layer::Frames, &shortened(&edge.points), curve, edge.stroke);
+        canvas.curve(Layer::Frames, &shortened(&edge.points), curve, edge.look);
     }
     for node in &scene.nodes {
         paint_edges(canvas, &node.children, curve);
@@ -897,31 +823,31 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
 
 fn paint_labels(canvas: &mut Canvas, scene: &Scene) {
     for node in &scene.nodes {
-        match node.kind {
-            Kind::State if node.composite => {
+        match node.item.kind {
+            Kind::State if node.item.composite => {
                 paint_stack(
                     canvas,
-                    &node.title,
-                    &node.description,
+                    &node.item.title,
+                    &node.item.description,
                     node.rect.x + node.rect.w / 2.0,
                     node.rect.y + COMP_PAD,
                 );
             }
             Kind::State => {
-                let height = stack_height(&node.title, &node.description);
+                let height = stack_height(&node.item.title, &node.item.description);
                 paint_stack(
                     canvas,
-                    &node.title,
-                    &node.description,
+                    &node.item.title,
+                    &node.item.description,
                     node.rect.x + node.rect.w / 2.0,
                     node.rect.y + (node.rect.h - height) / 2.0,
                 );
             }
             Kind::Choice | Kind::History | Kind::DeepHistory => {
-                let y = node.rect.y + (node.rect.h - node.title.height) / 2.0;
+                let y = node.rect.y + (node.rect.h - node.item.title.height) / 2.0;
                 canvas.text(
                     Layer::Front,
-                    &node.title,
+                    &node.item.title,
                     (node.rect.x + node.rect.w / 2.0, y),
                     Align::Center,
                 );
@@ -956,7 +882,7 @@ fn paint_stack(canvas: &mut Canvas, title: &Block, description: &[Block], x: f32
 
 fn paint_heads(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     for edge in &scene.edges {
-        arrow_head(canvas, skin, &edge.points, edge.stroke);
+        arrow_head(canvas, skin, &edge.points, edge.look);
     }
     for node in &scene.nodes {
         paint_heads(canvas, skin, &node.children);
@@ -1048,7 +974,7 @@ mod tests {
         scene
             .nodes
             .iter()
-            .find(|node| node.kind == kind)
+            .find(|node| node.item.kind == kind)
             .unwrap_or_else(|| panic!("no {kind:?}"))
     }
 
@@ -1474,9 +1400,9 @@ mod tests {
         let tip = *wake.last().unwrap();
         assert!((tip.1 - idle.rect.y).abs() < 0.1, "{wake:?}");
         let name = Rect {
-            x: placed.rect.x + (placed.rect.w - placed.title.width) / 2.0,
-            w: placed.title.width,
-            h: COMP_PAD + placed.header_h,
+            x: placed.rect.x + (placed.rect.w - placed.item.title.width) / 2.0,
+            w: placed.item.title.width,
+            h: COMP_PAD + placed.item.header_h,
             ..placed.rect
         };
         for pair in wake.windows(2) {

@@ -38,8 +38,6 @@ const COMP_PAD: f32 = 12.0;
 const COMP_GAP: f32 = 8.0;
 const HEAD_LENGTH: f32 = 10.0;
 const HEAD_HALF: f32 = 4.0;
-const LOOP_REACH: f32 = 16.0;
-const LOOP_STEP: f32 = 12.0;
 /// Where Mermaid wraps a flowchart label, at its default 16 px font.
 const WRAP: f32 = 200.0;
 
@@ -135,12 +133,12 @@ fn edge_in(scene: &Scene, edge: usize) -> Option<&PlacedEdge> {
     scene
         .edges
         .iter()
-        .find(|e| e.edge == edge)
+        .find(|e| e.look.edge == edge)
         .or_else(|| scene.nodes.iter().find_map(|n| edge_in(&n.children, edge)))
 }
 
 fn edge_in_mut(scene: &mut Scene, edge: usize) -> Option<&mut PlacedEdge> {
-    if let Some(at) = scene.edges.iter().position(|e| e.edge == edge) {
+    if let Some(at) = scene.edges.iter().position(|e| e.look.edge == edge) {
         return scene.edges.get_mut(at);
     }
     scene
@@ -165,13 +163,7 @@ impl Laid for Laying<'_, '_> {
 
     fn labels(&self, _path: &[usize], slot: usize) -> Vec<Rect> {
         edge_in(self.scene, slot)
-            .filter(|edge| edge.label.width > 0.0 && edge.label.height > 0.0)
-            .map(|edge| Rect {
-                x: edge.label_at.0,
-                y: edge.label_at.1,
-                w: edge.label.width,
-                h: edge.label.height,
-            })
+            .and_then(PlacedEdge::label_rect)
             .into_iter()
             .collect()
     }
@@ -193,8 +185,8 @@ impl Laid for Laying<'_, '_> {
                 .tree
                 .paths
                 .get(id)
-                .and_then(|path| nest::placed_at(self.scene, path));
-            if let Some(outline) = end.and_then(|end| end.kind.outline(end.rect)) {
+                .and_then(|path| self.scene.placed_at(path));
+            if let Some(outline) = end.and_then(|end| end.item.kind.outline(end.rect)) {
                 cuts.push((outline, at_start));
             }
         }
@@ -572,83 +564,28 @@ fn axes(flow: Flow) -> (graph::Direction, Flip) {
     }
 }
 
-struct Scene {
-    nodes: Vec<Placed>,
-    edges: Vec<PlacedEdge>,
-    width: f32,
-    height: f32,
-}
+/// One container after layout ([`graph::open::Scene`]).
+type Scene = graph::open::Scene<Item, Look>;
+type Placed = graph::open::Placed<Item, Look>;
+type PlacedEdge = graph::open::Wire<Look>;
+type Measured = graph::open::Measured<Item, Look>;
 
-impl Scene {
-    fn empty() -> Scene {
-        Scene {
-            nodes: Vec::new(),
-            edges: Vec::new(),
-            width: 0.0,
-            height: 0.0,
-        }
-    }
-
-    fn offset(&mut self, dx: f32, dy: f32) {
-        if dx == 0.0 && dy == 0.0 {
-            return;
-        }
-        for node in &mut self.nodes {
-            node.rect.x += dx;
-            node.rect.y += dy;
-            node.children.offset(dx, dy);
-        }
-        for edge in &mut self.edges {
-            for point in &mut edge.points {
-                point.0 += dx;
-                point.1 += dy;
-            }
-            edge.label_at.0 += dx;
-            edge.label_at.1 += dy;
-        }
-    }
-}
-
-struct Placed {
-    rect: Rect,
+/// What a box keeps for painting.
+struct Item {
     kind: Kind,
     fill: Paint,
     border: Stroke,
     title: Block,
     description: Vec<Block>,
     header_h: f32,
+    /// Between the title and what a subgraph holds.
+    gap: f32,
     nested: bool,
-    /// Laid out with the container around it, so its members and lines
-    /// are that container's too.
-    opened: bool,
-    children: Scene,
 }
 
-impl Placed {
-    fn of(item: Measured, rect: Rect) -> Placed {
-        Placed {
-            rect,
-            kind: item.kind,
-            fill: item.fill,
-            border: item.border,
-            title: item.title,
-            description: item.description,
-            header_h: item.header_h,
-            nested: item.nested,
-            opened: false,
-            children: item.children,
-        }
-    }
-}
-
-struct PlacedEdge {
-    from: usize,
-    to: usize,
-    /// The edge of mmdr's graph it draws.
+/// How a line is drawn, and the edge of mmdr's graph it draws.
+struct Look {
     edge: usize,
-    points: Vec<(f32, f32)>,
-    label: Block,
-    label_at: (f32, f32),
     stroke: Stroke,
     /// How the line starts and ends.
     caps: (Cap, Cap),
@@ -674,20 +611,6 @@ fn caps(edge: &Edge) -> (Cap, Cap) {
         cap(edge.arrow_start, edge.start_decoration),
         cap(edge.arrow_end, edge.end_decoration),
     )
-}
-
-struct Measured {
-    width: f32,
-    height: f32,
-    kind: Kind,
-    fill: Paint,
-    border: Stroke,
-    title: Block,
-    description: Vec<Block>,
-    header_h: f32,
-    gap: f32,
-    nested: bool,
-    children: Scene,
 }
 
 fn layout_spot(tree: &Tree, spot: Spot, palette: &Palette, family: Family) -> Option<Scene> {
@@ -750,15 +673,18 @@ fn measure_group(
     Some(Measured {
         width: header_w.max(children.width) + COMP_PAD * 2.0,
         height: COMP_PAD + header_h + gap + children.height + COMP_PAD,
-        kind,
-        fill: look.fill,
-        border: look.border,
-        title,
-        description,
-        header_h,
-        gap,
-        nested: true,
+        flat: kind.flat(),
         children,
+        item: Item {
+            kind,
+            fill: look.fill,
+            border: look.border,
+            title,
+            description,
+            header_h,
+            gap,
+            nested: true,
+        },
     })
 }
 
@@ -779,15 +705,18 @@ fn measure_leaf(tree: &Tree, id: &str, palette: &Palette, family: Family) -> Opt
     Some(Measured {
         width,
         height,
-        kind,
-        fill: look.fill,
-        border: look.border,
-        title,
-        description,
-        header_h: 0.0,
-        gap: 0.0,
-        nested: false,
+        flat: kind.flat(),
         children: Scene::empty(),
+        item: Item {
+            kind,
+            fill: look.fill,
+            border: look.border,
+            title,
+            description,
+            header_h: 0.0,
+            gap: 0.0,
+            nested: false,
+        },
     })
 }
 
@@ -814,18 +743,4 @@ fn stack_height(title: &Block, description: &[Block]) -> f32 {
     description
         .iter()
         .fold(title.height, |height, block| height + block.height)
-}
-
-/// Carries every line on to the outline of a round or slanted box it
-/// meets.
-fn clip_ends(scene: &mut Scene) {
-    let Scene { nodes, edges, .. } = scene;
-    for edge in edges {
-        if let Some(outline) = nodes.get(edge.from).and_then(|n| n.kind.outline(n.rect)) {
-            shape::clip(&mut edge.points, &outline, true);
-        }
-        if let Some(outline) = nodes.get(edge.to).and_then(|n| n.kind.outline(n.rect)) {
-            shape::clip(&mut edge.points, &outline, false);
-        }
-    }
 }

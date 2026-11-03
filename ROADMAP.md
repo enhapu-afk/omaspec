@@ -1074,13 +1074,23 @@ dispatch spread over two lists. The rules it set for the next change are in
       one by one; every flowchart drew the same bytes. A state diagram the
       reader does not read, which the layered drawer used to lay out from
       mmdr's graph, is now mmdr's, as the reader always said; the title of
-      a state diagram is drawn now ([#3](https://github.com/enhapu-afk/omaspec/issues/3)
-      for flowcharts still open).
-- [ ] Flowcharts on the same scene: their subgraphs opened by lines from
-      outside (`layered/open.rs`) and their lines into frames
-      (`layered/nest.rs`) mirror the state drawer's `draw/open.rs` and
-      `draw/nest.rs`. Moving them next to `omaspec_uml::graph`, with
-      flowcharts lowered into it from mmdr's graph, leaves one scene.
+      a state diagram is drawn now, and a flowchart's since
+      [#3](https://github.com/enhapu-afk/omaspec/issues/3).
+- [x] Flowcharts on the same scene: state diagrams and flowcharts each laid
+      out the containers that open ([0013](docs/adr/0013-containers-like-graphviz.md))
+      with a copy of the same driver: gather the boxes into one layout,
+      build the nested scenes from it, mirror it, place the labels. That
+      driver is `graph::open` now, once, on one scene for every drawer
+      (`graph::open::Scene`, with what a box and a line keep for painting
+      as the drawer's own types). A drawer says what its containers hold,
+      which may open, how big a box, a frame and a label is, and where a
+      line ends on a round box (`graph::open::Nested`). A line into a
+      container laid out on its own keeps its place among the lines,
+      without points, until `graph::across` routes it, for flowcharts too.
+      Every diagram of the repository draws as before: 118 the same bytes,
+      and 2 flowcharts the same pixels, a line between subgraphs now drawn
+      in its order rather than last (1 Mermaid golden). Class diagrams
+      (`structure/draw/open.rs`) still have a copy of their own.
 - [ ] mmdr's reading only as the fallback: where Omaspec reads the text
       itself, mmdr's parse should not decide whether it draws. Needs the
       `%%{init}%%` and the theme read without it.

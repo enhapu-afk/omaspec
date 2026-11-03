@@ -3,23 +3,22 @@
 //! it joined the boxes there, and routed around everything once the whole
 //! diagram is placed.
 
-use std::collections::HashSet;
-
 use omaspec_uml::graph::Rect;
 use omaspec_uml::graph::across::{self, Drawn, Link, Placement};
 use omaspec_uml::{Block, Family, Font};
 
 use super::shape;
 use super::{
-    COMP_PAD, Kind, Palette, Placed, PlacedEdge, Scene, Tree, caps, edge_look, measure_edge,
+    COMP_PAD, Kind, Look, Palette, Placed, PlacedEdge, Scene, Tree, caps, edge_look, measure_edge,
 };
 
 /// Around a subgraph's title, which lines keep off.
 pub(super) const TITLE_AIR: f32 = 4.0;
 
-/// Routes every transition between containers and adds it to the one
-/// that holds both its ends. `None` when one finds no way, which leaves
-/// the diagram to mmdr.
+/// Routes every line between containers that the layouts left without
+/// points, in its place among the lines of the container that holds both
+/// its ends. `None` when one finds no way, which leaves the diagram to
+/// mmdr.
 pub(super) fn link_crossings(
     tree: &Tree,
     scene: &mut Scene,
@@ -28,27 +27,34 @@ pub(super) fn link_crossings(
 ) -> Option<()> {
     let mut links = Vec::new();
     let mut found = Vec::new();
-    // The lines laid out with the containers around them are drawn
-    // already.
-    let mut drawn = HashSet::new();
-    drawn_edges(scene, &mut drawn);
     for (index, meet) in tree.meets.iter().enumerate() {
-        if !meet.crossing || meet.hidden || drawn.contains(&index) {
+        if !meet.crossing || meet.hidden {
             continue;
         }
         let edge = &tree.graph.edges[index];
-        let (stroke, color) = edge_look(tree.graph, index, palette)?;
-        let label = measure_edge(&edge.label, Font::new(palette.size, color), family);
         let from = tree.paths.get(&edge.from)?;
         let to = tree.paths.get(&edge.to)?;
         let (depth, ..) = across::meeting(from, to)?;
+        let home = &from[..depth];
+        // The lines laid out with the containers around them are drawn
+        // already.
+        let waiting = scene
+            .scene_at(home)?
+            .edges
+            .iter()
+            .any(|wire| wire.look.edge == index && wire.points.len() < 2);
+        if !waiting {
+            continue;
+        }
+        let (_, color) = edge_look(tree.graph, index, palette)?;
+        let label = measure_edge(&edge.label, Font::new(palette.size, color), family);
         links.push(Link {
             from: from.clone(),
             to: to.clone(),
             label: (label.width, label.height),
             shape: None,
         });
-        found.push((from[..depth].to_vec(), index, label, stroke));
+        found.push((home.to_vec(), index, label));
     }
     if links.is_empty() {
         return Some(());
@@ -57,36 +63,26 @@ pub(super) fn link_crossings(
     let mut drawn = Drawn::default();
     drawn_in(scene, &mut drawn);
     let routed = across::link(&top, &links, &drawn);
-    for ((home, index, label, stroke), linked) in found.into_iter().zip(routed) {
+    for ((home, index, label), linked) in found.into_iter().zip(routed) {
         let linked = linked?;
         let (mut points, label_at) = (linked.points, linked.label_at);
         let edge = &tree.graph.edges[index];
         for (id, at_start) in [(&edge.from, true), (&edge.to, false)] {
-            let end = placed_at(scene, tree.paths.get(id)?)?;
-            if let Some(outline) = end.kind.outline(end.rect) {
+            let end = scene.placed_at(tree.paths.get(id)?)?;
+            if let Some(outline) = end.item.kind.outline(end.rect) {
                 shape::clip(&mut points, &outline, at_start);
             }
         }
-        let meet = &tree.meets[index];
-        scene_at(scene, &home)?.edges.push(PlacedEdge {
-            from: meet.from,
-            to: meet.to,
-            edge: index,
-            points,
-            label,
-            label_at,
-            stroke,
-            caps: caps(edge),
-        });
+        let wire = scene
+            .scene_at(&home)?
+            .edges
+            .iter_mut()
+            .find(|wire| wire.look.edge == index)?;
+        wire.points = points;
+        wire.label = label;
+        wire.label_at = label_at;
     }
     Some(())
-}
-
-fn drawn_edges(scene: &Scene, out: &mut HashSet<usize>) {
-    out.extend(scene.edges.iter().map(|edge| edge.edge));
-    for node in &scene.nodes {
-        drawn_edges(&node.children, out);
-    }
 }
 
 /// A flowchart line between a subgraph and a node inside it. The shared
@@ -116,13 +112,13 @@ pub(super) fn link_inward(
             return None;
         };
         let (frame_rect, title, node_rect, outline) = {
-            let frame = placed_at(scene, outer)?;
-            let node = placed_at(scene, inner)?;
+            let frame = scene.placed_at(outer)?;
+            let node = scene.placed_at(inner)?;
             (
                 frame.rect,
                 cluster_title(frame),
                 node.rect,
-                node.kind.outline(node.rect),
+                node.item.kind.outline(node.rect),
             )
         };
         let mut points = inward_points(frame_rect, node_rect, title);
@@ -136,32 +132,33 @@ pub(super) fn link_inward(
             return None;
         }
         let label_at = label_on(&points, &label);
-        let member = *outer.last()?;
-        scene_at(scene, &outer[..outer.len() - 1])?
+        scene
+            .scene_at(&outer[..outer.len() - 1])?
             .edges
             .push(PlacedEdge {
-                from: member,
-                to: usize::MAX,
-                edge: index,
                 points,
                 label,
                 label_at,
-                stroke,
-                caps: caps(edge),
+                look: Look {
+                    edge: index,
+                    stroke,
+                    caps: caps(edge),
+                },
             });
     }
     Some(())
 }
 
 pub(super) fn cluster_title(node: &Placed) -> Option<Rect> {
-    if node.kind != Kind::Cluster || node.header_h <= 0.0 {
+    let item = &node.item;
+    if item.kind != Kind::Cluster || item.header_h <= 0.0 {
         return None;
     }
     Some(Rect {
-        x: node.rect.x + (node.rect.w - node.title.width) / 2.0 - TITLE_AIR,
+        x: node.rect.x + (node.rect.w - item.title.width) / 2.0 - TITLE_AIR,
         y: node.rect.y + COMP_PAD - TITLE_AIR,
-        w: node.title.width + 2.0 * TITLE_AIR,
-        h: node.header_h + 2.0 * TITLE_AIR,
+        w: item.title.width + 2.0 * TITLE_AIR,
+        h: item.header_h + 2.0 * TITLE_AIR,
     })
 }
 
@@ -317,49 +314,20 @@ fn label_on(points: &[(f32, f32)], label: &Block) -> (f32, f32) {
     )
 }
 
-pub(super) fn placed_at<'a>(scene: &'a Scene, path: &[usize]) -> Option<&'a Placed> {
-    let (&last, above) = path.split_last()?;
-    let mut scene = scene;
-    for &index in above {
-        scene = &scene.nodes.get(index)?.children;
-    }
-    scene.nodes.get(last)
-}
-
-fn scene_at<'a>(scene: &'a mut Scene, path: &[usize]) -> Option<&'a mut Scene> {
-    match path.split_first() {
-        Some((&first, rest)) => scene_at(&mut scene.nodes.get_mut(first)?.children, rest),
-        None => Some(scene),
-    }
-}
-
 pub(super) fn placements(nodes: &[Placed]) -> Vec<Placement> {
     nodes
         .iter()
         .map(|node| {
-            let frame = node.nested;
-            let title = (frame && node.header_h > 0.0).then(|| match node.kind {
-                // A subgraph's title stands alone: lines may come in past
-                // it, as long as they keep off the text.
-                Kind::Cluster => Rect {
-                    x: node.rect.x + (node.rect.w - node.title.width) / 2.0 - TITLE_AIR,
-                    y: node.rect.y + COMP_PAD - TITLE_AIR,
-                    w: node.title.width + 2.0 * TITLE_AIR,
-                    h: node.header_h + 2.0 * TITLE_AIR,
-                },
-                // A state's title sits in a band of its own, ruled off
-                // below: lines come in under it.
-                _ => Rect {
-                    h: COMP_PAD + node.header_h,
-                    ..node.rect
-                },
-            });
+            let frame = node.item.nested;
+            // A subgraph's title stands alone: lines may come in past it,
+            // as long as they keep off the text.
+            let title = if frame { cluster_title(node) } else { None };
             Placement {
                 rect: node.rect,
-                flat: node.kind.flat(),
+                flat: node.item.kind.flat(),
                 frame,
                 title,
-                children: if node.nested {
+                children: if frame {
                     placements(&node.children.nodes)
                 } else {
                     Vec::new()
