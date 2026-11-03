@@ -76,6 +76,9 @@ pub fn try_draw(
     };
     let mut canvas = Canvas::new(&theme.font_family, false);
     paint::paint(&mut canvas, &palette, &scene, curve);
+    if let Some((_, title)) = omaspec_uml::front_title(source) {
+        paint::title(&mut canvas, &palette, title, family);
+    }
     let mut map = Map::default();
     let laying = Laying {
         tree: &tree,

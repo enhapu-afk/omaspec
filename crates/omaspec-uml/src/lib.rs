@@ -86,7 +86,7 @@ pub enum Diagram {
 }
 
 pub use preprocess::{Included, Includes};
-pub use source::Line;
+pub use source::{Line, front_title};
 
 /// Parses `source`, or declines. The preprocessor runs first; `!include`
 /// declines, since nothing says where the diagram is.

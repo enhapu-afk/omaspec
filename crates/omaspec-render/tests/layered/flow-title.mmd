@@ -1,0 +1,7 @@
+---
+title: Order flow
+---
+flowchart LR
+  A[Cart] --> B{Paid?}
+  B -->|yes| C[Ship]
+  B -->|no| A

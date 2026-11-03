@@ -38,7 +38,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         mirrored,
         paths: vec![Vec::new(); chart.states.len()],
         frame: Frame {
-            title: front_title(source),
+            title: crate::front_title(source).map(|(no, title)| text(title, no)),
             ..Frame::default()
         },
         looks: looks(&chart),
@@ -323,33 +323,6 @@ fn looks(chart: &Chart) -> HashMap<usize, Look> {
             (i, look)
         })
         .collect()
-}
-
-/// `title:` in a front matter at the top.
-fn front_title(source: &str) -> Option<Text> {
-    let mut lines = source.split('\n').enumerate();
-    let mut open = false;
-    for (no, line) in lines.by_ref() {
-        let line = line.trim();
-        if line.is_empty() && !open {
-            continue;
-        }
-        if line == "---" {
-            if open {
-                return None;
-            }
-            open = true;
-            continue;
-        }
-        if !open {
-            return None;
-        }
-        if let Some(title) = line.strip_prefix("title:") {
-            let title = title.trim().trim_matches('"').trim();
-            return (!title.is_empty()).then(|| text(title, no));
-        }
-    }
-    None
 }
 
 /// Words as Mermaid writes them, in the engine's markup: `<br>` breaks

@@ -448,3 +448,26 @@ fn a_wide_title_still_lets_lines_in() {
         }
     }
 }
+
+#[test]
+fn a_front_matter_title_sits_above_the_chart() {
+    // Issue #3: the title was dropped. It goes above, and the chart and its
+    // lines move down under it.
+    let theme = RenderOptions::default().theme;
+    let drawn = |source: &str| {
+        let parsed = parse_mermaid_strict(source).unwrap();
+        super::super::try_draw(&parsed.graph, &theme, source, &[], 0.0).unwrap()
+    };
+    let chart = "flowchart LR\n  A[Cart] --> B[Ship]\n";
+    let (svg, titled) = drawn(&format!("---\ntitle: Order flow\n---\n{chart}"));
+    let (bare_svg, bare) = drawn(chart);
+    assert!(svg.contains("Order flow"), "{svg}");
+    assert!(!bare_svg.contains("Order flow"));
+    let top = |map: &omaspec_uml::map::Map| map.wires[0].path[0].1;
+    assert!(
+        top(&titled) > top(&bare) + 16.0,
+        "{} {}",
+        top(&titled),
+        top(&bare)
+    );
+}

@@ -1,6 +1,6 @@
 //! Frames, boxes, lines and labels.
 
-use omaspec_uml::{Align, Block, Canvas, Layer, Paint, Stroke};
+use omaspec_uml::{Align, Block, Canvas, Family, Font, Layer, Paint, Stroke};
 
 use super::shape::{RING, SUBROUTINE, Shape, cap};
 use super::{COMP_PAD, Cap, HEAD_HALF, HEAD_LENGTH, Kind, Palette, Placed, Scene};
@@ -17,6 +17,22 @@ const CROSS_ARM: f32 = 4.0;
 const LABEL_PAD: f32 = 2.0;
 
 /// Draws `scene`; the lines' corners curve by up to `curve`.
+/// Between the title and the diagram below it, as the state diagrams keep.
+const TITLE_GAP: f32 = 10.0;
+
+/// The front matter's `title`, centered above what `canvas` holds, in bold
+/// as the state diagrams draw theirs.
+pub(super) fn title(canvas: &mut Canvas, palette: &Palette, title: &str, family: Family) {
+    let font = Font::new(palette.size, palette.text).bold();
+    let block = super::label::measure(title, font, family, None);
+    let (left, right) = canvas.width_span();
+    let at = (
+        (left + right - block.width) / 2.0,
+        canvas.top() - TITLE_GAP - block.height,
+    );
+    canvas.text(Layer::Front, &block, at, Align::Left);
+}
+
 pub(super) fn paint(canvas: &mut Canvas, palette: &Palette, scene: &Scene, curve: f32) {
     paint_shapes(canvas, scene);
     paint_edges(canvas, scene, curve);

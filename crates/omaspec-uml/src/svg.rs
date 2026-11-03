@@ -109,6 +109,15 @@ impl Canvas {
         }
     }
 
+    /// The top edge of everything drawn so far.
+    pub fn top(&self) -> f32 {
+        if self.top > self.bottom {
+            0.0
+        } else {
+            self.top
+        }
+    }
+
     /// The bottom edge of everything drawn so far.
     pub fn bottom(&self) -> f32 {
         if self.top > self.bottom {

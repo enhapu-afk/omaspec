@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1629" height="328" viewBox="0 0 1629 328">
-<rect x="0" y="0" width="1629" height="328" fill="#FFFFFF"/>
-<g transform="translate(10,10)">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1629" height="355" viewBox="0 0 1629 355">
+<rect x="0" y="0" width="1629" height="355" fill="#FFFFFF"/>
+<g transform="translate(10,36.3)">
 <g>
 <rect x="0" y="218.4" width="131.85" height="36.3" rx="18.15" ry="18.15" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <rect x="173.85" y="72.23" width="346.34" height="164.89" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
@@ -114,6 +114,9 @@
 <polygon points="1062.98,206.41 1072.98,202.41 1062.98,198.41 1066.98,202.41" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="1324.75,186.08 1334.75,182.08 1324.75,178.08 1328.75,182.08" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="1329.42,268.35 1339.42,264.35 1329.42,260.35 1333.42,264.35" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="742.51" y="-13.3" font-size="14" fill="#0F172A" font-weight="bold" textLength="123.72" lengthAdjust="spacing">A delivery pipeline</tspan>
+</text>
 </g>
 </g>
 </svg>

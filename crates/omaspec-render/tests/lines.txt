@@ -8,6 +8,7 @@ crates/omaspec-render/tests/layered/flow-shapes.mmd 12 0 0 0 0 0 0 384
 crates/omaspec-render/tests/layered/flow-styles.mmd 3 0 0 0 0 0 0 96
 crates/omaspec-render/tests/layered/flow-subgraph-direction.mmd 5 0 0 0 0 0 3 282
 crates/omaspec-render/tests/layered/flow-subgraphs.mmd 7 0 0 0 0 0 8 823
+crates/omaspec-render/tests/layered/flow-title.mmd 3 0 0 0 0 0 0 165
 crates/omaspec-render/tests/layered/state-basic.mmd 6 0 0 0 0 0 2 310
 crates/omaspec-render/tests/layered/state-by-hand.mmd 4 0 0 0 0 0 2 279
 crates/omaspec-render/tests/layered/state-deep.mmd 11 0 0 0 0 1 0 506
@@ -51,4 +52,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305
 examples/platform.mmd 17 3 0 0 6 0 48 5809
 examples/player.puml 8 0 0 0 0 0 16 1019
 examples/shop.mmd 6 0 0 0 0 0 4 538
-total 474 7 0 1 13 8 403 61485
+total 477 7 0 1 13 8 403 61650

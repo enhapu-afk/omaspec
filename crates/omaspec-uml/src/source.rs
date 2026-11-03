@@ -179,6 +179,33 @@ fn trim(line: &str) -> &str {
     line.trim_matches(|c: char| c.is_whitespace() || c == '\u{feff}')
 }
 
+/// The `title:` of the front matter a Mermaid diagram may start with,
+/// unquoted, and its zero-based line.
+pub fn front_title(source: &str) -> Option<(usize, &str)> {
+    let mut open = false;
+    for (no, line) in source.split('\n').enumerate() {
+        let line = line.trim();
+        if line.is_empty() && !open {
+            continue;
+        }
+        if line == "---" {
+            if open {
+                return None;
+            }
+            open = true;
+            continue;
+        }
+        if !open {
+            return None;
+        }
+        if let Some(title) = line.strip_prefix("title:") {
+            let title = title.trim().trim_matches('"').trim();
+            return (!title.is_empty()).then_some((no, title));
+        }
+    }
+    None
+}
+
 /// Whether `text` starts with the ASCII word `prefix`, ignoring case.
 pub fn starts_with_ci(text: &str, prefix: &str) -> bool {
     text.get(..prefix.len())
@@ -188,6 +215,22 @@ pub fn starts_with_ci(text: &str, prefix: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_front_matter_title_is_read_at_the_top_only() {
+        let title = |s| front_title(s);
+        assert_eq!(
+            title("---\ntitle: Door\n---\nflowchart LR\n"),
+            Some((1, "Door"))
+        );
+        assert_eq!(
+            title("\n---\nconfig: x\ntitle: \"Two words\"\n---\n"),
+            Some((3, "Two words"))
+        );
+        assert_eq!(title("---\n---\ntitle: late\n"), None);
+        assert_eq!(title("flowchart LR\n---\ntitle: Not one\n---\n"), None);
+        assert_eq!(title("---\ntitle:\n---\n"), None);
+    }
 
     fn texts(source: &str) -> Vec<(usize, &str)> {
         body(source)
