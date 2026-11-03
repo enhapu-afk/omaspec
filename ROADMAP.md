@@ -1128,13 +1128,24 @@ checked; numbers are measured, not assumed.
 
 ### Step 0: the yardstick
 
-- [ ] Scale measured: generated projects of 100, 500 and 2,000 diagrams (state
-      machines, scenarios that name them, a map, traces), timed in `cargo bench`:
-      opening the folder, reading the project, `lint --project`, drawing the map,
-      Ctrl+P, a change to one machine, memory. Today `specs::read_project` reads and
-      parses every file of the project when the folder opens, a file opens and the
-      window gets the focus, and a changed atlas draws every open document of the
-      project again. The numbers go here and set the order of 0.8.
+- [x] Scale measured (`OMASPEC_SCALE=1 cargo test --release -p omaspec-app scale
+      -- --nocapture`, `omaspec-app/src/scale.rs`): generated projects in areas of
+      50 diagrams (40 state machines, every third in Mermaid, 9 scenarios between
+      them, the area's map), the main map naming the areas. Release build:
+
+      | diagrams | scan | read | lint all | main map: tiles, drawn, again, SVG, parsed | an area's map, again |
+      |---:|---:|---:|---:|---|---|
+      | 101 | 0 ms | 5 ms | 14 ms | 100, 60 ms, 23 ms, 0.6 MB, 192 ms | 27 ms, 11 ms |
+      | 501 | 0 ms | 16 ms | 45 ms | 500, 288 ms, 288 ms, 3.2 MB, 876 ms | 25 ms, 10 ms |
+      | 2001 | 2 ms | 63 ms | 388 ms | 2000, 1132 ms, 1160 ms, 12.8 MB, 3880 ms | 31 ms, 13 ms |
+
+      Scanning and reading hold up. What does not: the main map shows every
+      diagram on none of *its* boxes, so with areas it shows all of them, as
+      vectors; past 256 tiles the kept pictures are thrown away on every drawing
+      (`atlas.rs`, `KEPT`), and the pane takes 4 s to parse what it gets. And
+      lint grows with the square: each participant of a scenario compares its
+      name with every name of every machine afresh (`across.rs`). Both go first
+      in 0.8.
 
 ### 0.6: it fits, it glides, it follows the theme
 
@@ -1211,7 +1222,9 @@ checked; numbers are measured, not assumed.
 - [ ] A project index kept up to date: a file is read again only when it changed,
       a watch on the project folder replaces the full read on every focus, and only
       the documents a change touches are drawn again. The index knows each diagram's
-      names, kind, machines and links, and who uses what. Measured against step 0.
+      names, kind, machines and links, and who uses what; a scenario finds its
+      machines by name there instead of comparing with all of them. Measured
+      against step 0.
 - [ ] Where a name is used: `omaspec refs NAME` and an MCP tool `refs` list every
       diagram, scenario, link and trace that uses a machine, state or event
       (`--json`). *Rename everywhere* in the editor and `omaspec rename OLD NEW`
@@ -1219,9 +1232,12 @@ checked; numbers are measured, not assumed.
       stale use behind; lint names a link to a diagram that is gone.
 - [ ] Search the project: Ctrl+Shift+F over every file of the project, not only the
       open tabs; Ctrl+F in the diagram finds a state or a message and lights it.
-- [ ] Maps that scale: a tile small on screen shows its name and kind, its picture
-      once it is large enough to read; pictures kept per file until it changes; a
-      map's box may name another map, so a large project is maps within maps.
+- [ ] Maps that scale, first in 0.8 (step 0): the main map shows only the
+      diagrams on no map's box, not every one on none of its own; a tile small on
+      screen shows its name and kind, its picture once it is large enough to read;
+      pictures kept per file until it changes, not 256 at most; a map's box may
+      name another map, so a large project is maps within maps. Goal: the main map
+      of 2,000 diagrams drawn and shown in under 100 ms.
 - [ ] A project checked in CI: `omaspec check DIR` runs lint, the checks against the
       machines, the links and `render --check`, with exit codes, `--json` and GitHub
       annotations; `omaspec new --git` offers a pre-commit hook.

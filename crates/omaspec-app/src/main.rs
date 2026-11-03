@@ -9,6 +9,8 @@ mod paper;
 mod preview;
 mod project;
 mod sandbox;
+#[cfg(test)]
+mod scale;
 mod specs;
 mod ui;
 mod worker;
