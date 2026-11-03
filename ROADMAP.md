@@ -1183,6 +1183,22 @@ checked; numbers are measured, not assumed.
       linked diagram is drawn and its picture made (at most 160 ms) and runs
       on one way; nothing under the veil is rasterized. Tested: the way does
       not turn once the zoom runs.
+- [x] The project's map in a look of its own
+      ([0018](docs/adr/0018-diagrams-that-link.md), amended): checked in a
+      real window, a map read as a PlantUML WBS with pictures in it, and a
+      lone root had a stem that led nowhere. Now each diagram is a card
+      (`omaspec_uml::tree::cards`): its picture on its own paper, shaped
+      like the diagram, a small one grown a quarter at most; below it the
+      box's words, kind and language and a few facts. The root's card is
+      larger, ringed in the accent and, on the main map, marked *MAIN*,
+      under the project's name and what the map holds. Curves hang the
+      cards from the top down; boxes that name nothing are labels; the
+      diagrams on no box hang from the root beside its children, dashed,
+      with the line that places the first. Arrows show where a scenario
+      plays against a machine, a state opens a diagram and a diagram
+      includes another. The colors come from the map's skin, so the map
+      takes the Omarchy colors. A WBS or a mind map outside a project draws
+      as before.
 - [ ] Smooth frames, measured: `OMASPEC_FRAMES=1` logs how long each frame of a
       dive, a glide and a play takes. Suspected: on the first half of a dive the
       overview raster is stretched until sharp pixels come; the second half lies

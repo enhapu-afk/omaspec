@@ -29,11 +29,13 @@ pub fn read(root: &Path) -> Vec<Spec> {
 /// with the main one its project file names; each file read once.
 pub fn read_project(root: &Path) -> (Vec<Spec>, Atlas) {
     let mut specs = Vec::new();
+    let project = crate::project::read(root).and_then(Result::ok);
     let mut atlas = Atlas {
-        main: crate::project::read(root)
-            .and_then(Result::ok)
-            .and_then(|p| p.main)
+        main: project
+            .as_ref()
+            .and_then(|p| p.main.clone())
             .map(|m| m.replace('\\', "/").trim_start_matches("./").to_owned()),
+        name: project.and_then(|p| p.name),
         ..Atlas::default()
     };
     for relative in scan(root) {

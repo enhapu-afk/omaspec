@@ -3557,8 +3557,8 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     assert_eq!(
         tiles,
         [
-            ("Orders", true),
             ("Shop", true),
+            ("Orders", true),
             ("Checkout", true),
             ("Refund", true)
         ]

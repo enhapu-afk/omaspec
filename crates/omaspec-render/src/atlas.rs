@@ -13,17 +13,17 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
 use std::hash::{Hash, Hasher};
 
+use omaspec_core::Kind;
 use omaspec_core::Language;
 use omaspec_core::project::key;
 use omaspec_uml::map::{Fit, Map, Shape};
-use omaspec_uml::tree::{self, Tiles};
+use omaspec_uml::tree::{self, Card, Tiles};
 
 use crate::{Engine, Place, RenderError, Rendered, include, mermaid, sanitize};
 
-/// The room for a picture in a tile, in the map's units.
-pub const PICTURE: (f32, f32) = (240.0, 150.0);
-/// The words above the diagrams on no box.
-pub const LOOSE_HEADING: &str = "Not on the map";
+mod cards;
+use cards::{card_of, heading, includes, players, relations};
+
 /// Pictures kept between drawings, at most.
 const KEPT: usize = 256;
 
@@ -34,6 +34,8 @@ pub struct Atlas {
     /// The project's main diagram, by its path: its map also shows the
     /// diagrams that are on no box.
     pub main: Option<String>,
+    /// The project's name, which heads its main map.
+    pub name: Option<String>,
 }
 
 /// A diagram of the project.
@@ -95,6 +97,12 @@ pub(crate) struct Picture {
     result: Result<(String, Map), String>,
     /// The names its states and boxes give: where it links.
     names: Vec<String>,
+    /// What its card says.
+    card: Card,
+    /// A scenario's participants, by key: the machines it plays against.
+    players: Vec<String>,
+    /// The files it includes, as written.
+    includes: Vec<String>,
 }
 
 /// Pictures for tiles, kept between drawings.
@@ -157,7 +165,20 @@ fn draw_native(entry: &Entry) -> Picture {
         Err(_) => Vec::new(),
     };
     names.extend(box_names(&entry.source, entry.language));
-    Picture { result, names }
+    let kind = omaspec_core::classify(&entry.source, entry.language);
+    let card = card_of(&kind, entry, &result);
+    let players = if kind.kind == Kind::Sequence {
+        players(&entry.source, entry.language)
+    } else {
+        Vec::new()
+    };
+    Picture {
+        result,
+        names,
+        card,
+        players,
+        includes: includes(&entry.source, entry.language),
+    }
 }
 
 /// The words of every box of a mind map or a WBS.
@@ -259,10 +280,10 @@ pub(crate) fn render(
     // First the boxes that name diagrams.
     let first = draw(&Tiles {
         pick: &pick,
-        picture: PICTURE,
+        card: &|_| None,
         loose: &[],
-        heading: LOOSE_HEADING,
-        links: &[],
+        relations: &[],
+        heading: None,
     })?;
     let on_map: Vec<String> = unique(first.2.tiles.iter().map(|t| t.key.clone()));
     let on_map_set: HashSet<&str> = on_map.iter().map(String::as_str).collect();
@@ -320,38 +341,20 @@ pub(crate) fn render(
         .copied()
         .chain(loose_entries.iter().map(|(k, _)| k.as_str()))
         .collect();
-    let mut links: Vec<(String, String)> = Vec::new();
-    let mut by_entry: Vec<(&String, &usize)> = tile_of.iter().collect();
-    by_entry.sort();
-    for (from, index) in by_entry {
-        let Some(picture) = drawn.get(index) else {
-            continue;
-        };
-        for name in &picture.names {
-            let to = key(name);
-            // A diagram's own name, or a link the map's own line shows,
-            // either way.
-            if to == *from
-                || !tile_keys.contains(to.as_str())
-                || parents.get(to.as_str()) == Some(&Some(from.as_str()))
-                || parents.get(from.as_str()) == Some(&Some(to.as_str()))
-                || atlas.diagrams[*index].names.iter().any(|n| key(n) == to)
-            {
-                continue;
-            }
-            let link = (from.clone(), to);
-            if !links.contains(&link) {
-                links.push(link);
-            }
-        }
-    }
-
+    let relations = relations(atlas, &tile_of, &drawn, &parents, &tile_keys, &called);
+    let heading = heading(atlas, own, &loose, tile_of.len() - loose_entries.len());
+    let card = |k: &str| {
+        tile_of
+            .get(k)
+            .and_then(|i| drawn.get(i))
+            .map(|p| p.card.clone())
+    };
     let (svg, engine, map) = draw(&Tiles {
         pick: &pick,
-        picture: PICTURE,
+        card: &card,
         loose: &loose,
-        heading: LOOSE_HEADING,
-        links: &links,
+        relations: &relations,
+        heading: Some(&heading),
     })?;
 
     // Each tile's picture, or why there is none.
@@ -442,13 +445,22 @@ fn nest(svg: &str, map: &Map, shown: &[(usize, Shown)]) -> String {
         match what {
             Shown::Picture(inner) => {
                 if let Some((view_box, body)) = parts(inner) {
+                    // The picture keeps to its card's rounded room.
                     let _ = write!(
                         out,
-                        r#"<svg x="{}" y="{}" width="{}" height="{}" viewBox="{view_box}" preserveAspectRatio="xMidYMid meet">"#,
-                        room.0, room.1, room.2, room.3
+                        r#"<clipPath id="room-{at}"><rect x="{}" y="{}" width="{}" height="{}" rx="{}"/></clipPath><g clip-path="url(#room-{at})"><svg x="{}" y="{}" width="{}" height="{}" viewBox="{view_box}" preserveAspectRatio="xMidYMid meet">"#,
+                        room.0,
+                        room.1,
+                        room.2,
+                        room.3,
+                        tree::PICTURE_ROUND,
+                        room.0,
+                        room.1,
+                        room.2,
+                        room.3
                     );
                     out.push_str(&own_ids(&body, &format!("t{at}-")));
-                    out.push_str("</svg>");
+                    out.push_str("</svg></g>");
                 }
             }
             Shown::Words(words) => {
@@ -591,6 +603,7 @@ mod tests {
                 entry("ideas.mmd", "flowchart LR\nA --> B\n"),
             ],
             main: Some("system.puml".into()),
+            name: Some("shop".into()),
         }
     }
 
@@ -636,10 +649,16 @@ mod tests {
         assert_eq!(drawn.svg.matches("<svg").count(), 5, "{}", drawn.svg);
         assert!(drawn.svg.contains("2 diagrams go by this name"));
         assert!(drawn.svg.contains(">Later<"));
-        assert!(drawn.svg.contains(LOOSE_HEADING));
-        // Orders links to Checkout, which hangs below it: no arrow. Payment
-        // links to Checkout too: an arrow.
-        assert_eq!(drawn.svg.matches("stroke-dasharray").count(), 1);
+        assert!(drawn.svg.contains("not on the map yet"));
+        // The project's name heads its main map, with what it holds.
+        assert!(drawn.svg.contains(">shop<"));
+        assert!(drawn.svg.contains("System map · 6 diagrams · 3 on the map"));
+        assert!(drawn.svg.contains("State machine · PlantUML"));
+        // Orders opens Checkout, which hangs below it: no arrow. Payment
+        // opens Checkout too: an arrow.
+        assert_eq!(drawn.svg.matches(">opens<").count(), 1, "{}", drawn.svg);
+        // Each picture keeps to its rounded room.
+        assert_eq!(drawn.svg.matches("<clipPath").count(), 4);
         assert!(crate::export::parse(&drawn.svg).is_ok());
 
         // The same map, not the main one: no tiles below it.
@@ -651,7 +670,44 @@ mod tests {
             .render_linked(MAP, Language::PlantUml, None, Some("system.puml"), &side)
             .unwrap();
         assert_eq!(drawn.links.len(), 4);
-        assert!(!drawn.svg.contains(LOOSE_HEADING));
+        assert!(!drawn.svg.contains("not on the map yet"));
+    }
+
+    #[test]
+    fn a_map_shows_where_a_scenario_plays_and_a_diagram_includes() {
+        let mut renderer = Renderer::new(&Config {
+            java_fallback: false,
+            ..Config::default()
+        });
+        let map = "@startwbs\n* Shop\n** Orders\n** Run\n** Common\n@endwbs\n";
+        let atlas = Atlas {
+            diagrams: vec![
+                entry("system.puml", map),
+                entry(
+                    "orders.puml",
+                    "@startuml\ntitle Orders\n!include common.puml\n[*] --> Open\nOpen --> Paid : pay\n@enduml\n",
+                ),
+                entry(
+                    "run.puml",
+                    "@startuml\ntitle Run\nparticipant User\nparticipant Orders\nUser -> Orders : pay\n@enduml\n",
+                ),
+                entry(
+                    "common.puml",
+                    "@startuml\ntitle Common\n[*] --> Idle\n@enduml\n",
+                ),
+            ],
+            main: Some("system.puml".into()),
+            name: None,
+        };
+        let drawn = renderer
+            .render_linked(map, Language::PlantUml, None, Some("system.puml"), &atlas)
+            .unwrap();
+        assert_eq!(drawn.svg.matches(">plays<").count(), 1, "{}", drawn.svg);
+        assert_eq!(drawn.svg.matches(">includes<").count(), 1);
+        assert!(drawn.svg.contains("Scenario · PlantUML"));
+        assert!(drawn.svg.contains(">1 message<"));
+        // Without the project's name, the map's own.
+        assert!(drawn.svg.contains(">system<"));
     }
 
     #[test]

@@ -1,7 +1,9 @@
 # 0018: Diagrams link by name, and a project has a map
 
 Status: accepted, 2026-11-01. Builds on [0017](0017-projects.md) and
-replaces its decision 5: a new project's main diagram is a map.
+replaces its decision 5: a new project's main diagram is a map. Its
+decision 2 is amended on 2026-11-03: a map has a look of its own (see
+*Amended* below).
 
 ## Context
 
@@ -84,3 +86,45 @@ box show what it has not taken in yet.
   class do not link yet; the trail is the way taken, not where a diagram
   sits on the map; no lint finding for a name two diagrams share; a tile
   does not play.
+
+## Amended: a map in a look of its own (2026-11-03)
+
+Checked in a real window, the map read as a PlantUML WBS with pictures in
+it: heavy black boxes, square lines, a stem under a root alone that led
+nowhere, and diagrams on no box in a list apart, joined to nothing. A map
+is the first thing a project shows; it should look like the rest of
+Omaspec, not like the tree it is written as.
+
+- **Cards, from the top down.** A WBS and a mind map, of either language,
+  are laid out alike as a map: each box that names a diagram is a card
+  with rounded corners and a soft shadow, the diagram's picture on its own
+  paper and, below it, the box's words, the diagram's kind and language
+  (*State machine · PlantUML*) and a few facts (*7 states*). A box that
+  names nothing is a small label between the cards. Curves hang each card
+  below its box's parent, level by level. The root's card is larger and
+  ringed in the accent; on the project's main map it says *MAIN*, and the
+  project's name heads the map with what it holds.
+- **A card takes its diagram's shape.** A tall diagram gets a tall card, a
+  wide one a wide card; a small diagram grows a quarter at most, so its
+  words keep their size. Its picture is always the whole diagram, never a
+  part; at the map's size a large one is a thumbnail, sharp when zoomed
+  into, and its caption still says what it is.
+- **Diagrams on no box hang from the root, dashed.** On the main map they
+  stand in rows beside the root's children, their cards and curves
+  dashed, under a label *not on the map yet*, and the map says which line
+  puts the first of them on it.
+- **Arrows say how diagrams use each other**, beyond the tree: a scenario
+  *plays* against the state machine of a participant (as the checks of
+  [0007](0007-behavior-specifications.md) pair them), a state or a box
+  *opens* the diagram of its name, a diagram *includes* another's file.
+  One arrow for a pair, naming each relation.
+- **The colors come from the map's skin**, so in the Omarchy colors the
+  page, the cards and the accent are the theme's, as the diagrams on them
+  are.
+
+A PlantUML or Mermaid that knows nothing of Omaspec still draws the file
+as the plain tree it is, and Omaspec draws a WBS or a mind map outside a
+project as before. `omaspec_uml::tree::cards` lays out and paints the
+map; `Tiles` carries what each card says, the relations and the heading,
+which `omaspec_render::atlas` works out from the project.
+

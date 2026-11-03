@@ -476,7 +476,7 @@ pub fn n(v: f32) -> String {
     if s == "-0" { "0".into() } else { s.into() }
 }
 
-fn escape(s: &str) -> String {
+pub(crate) fn escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
         match c {

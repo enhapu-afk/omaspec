@@ -23,7 +23,7 @@ use omaspec_core::Language;
 use omaspec_core::kind;
 pub use omaspec_uml::map::Map;
 
-pub use atlas::{Atlas, Entry, LOOSE_HEADING, Link, PICTURE, is_map};
+pub use atlas::{Atlas, Entry, Link, is_map};
 pub use include::{Place, project_root};
 pub use java::JavaPlantUml;
 pub use mermaid::{MermaidDeclined, coverage as mermaid_coverage};
