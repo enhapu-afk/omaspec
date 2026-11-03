@@ -279,12 +279,14 @@ diagrams and flowcharts are now laid out by Omaspec itself (track M).
       the pointer staying put; the sharp pixels for the end are asked for at the start. A
       touchpad zoom, a pan or a pinch stays direct and stops a glide where it is
 
-Found on the way, making the gallery: lint reads `Alt.height -> height` in a signal flow
-as an unclosed `alt` ([#1](https://github.com/enhapu-afk/omaspec/issues/1)); the native
-engine draws the component icon against the end of a name, over it when the name is short
-(`[Lamp]`, [#2](https://github.com/enhapu-afk/omaspec/issues/2)); a Mermaid `title:` in
-front matter is not drawn for state diagrams and flowcharts
-([#3](https://github.com/enhapu-afk/omaspec/issues/3)). The examples avoid all three.
+Found on the way, making the gallery: lint read `Alt.height -> height` in a signal flow
+as an unclosed `alt` ([#1](https://github.com/enhapu-afk/omaspec/issues/1)), right since
+0.4.4; the native engine draws the component icon against the end of a name, over it when
+the name is short (`[Lamp]`, [#2](https://github.com/enhapu-afk/omaspec/issues/2)), which
+the examples avoid; a Mermaid `title:` in front matter was not drawn for state diagrams
+and flowcharts ([#3](https://github.com/enhapu-afk/omaspec/issues/3)), drawn for state
+diagrams since 0.5.0 and for flowcharts after it (the gallery's pipeline had one); a
+sequence diagram still drops it.
 Three more did not show again in 0.4.2 (2026-10-30, several tries each): use case lines
 detouring around the frame, a `stop` in one branch of an `if` landing on the bar of a
 `fork` in another, nested signal-flow blocks overlapping their port names. Use case lines
@@ -991,10 +993,9 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         crowded (`history.puml`: lines 12 units apart leave no room); 2
         PlantUML and 4 Mermaid goldens changed, looked at side by side.
         Open:
-        multiplicities on a frame's border (`class.puml`), labels of lines
-        into containers laid out on their own, which do not know the
-        multiplicities yet, and notes and boxes no line ends at, which the
-        count does not see.
+        labels of lines into containers laid out on their own, which do not
+        know the multiplicities yet, and notes and boxes no line ends at,
+        which the count does not see.
   - [x] Labels inside a container or outside it, not across its border:
         `place_labels` knew the name bands of the containers a layout
         opens but not their borders, so a label of a line leaving one
@@ -1007,6 +1008,12 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         Left: `state-deep.mmd`, whose `Shop` is 3 units too narrow for
         `continue` beside its line, and the lines too close for their
         labels; both need the layout to leave room for labels.
+  - [x] Multiplicities off a container's border: `many` in `class.puml`
+        and `1..*` in the library sat on a package's border where their
+        line leaves it. One across a border takes the other side of its
+        line now, or moves on along it up to where it stops anyway, and
+        labels keep off where it goes. 1 PlantUML golden changed, and the
+        library in the gallery.
   - [ ] Room for labels, as Graphviz makes it: the 8 words left in the way
         (`tests/lines.txt`) all lie where lines run closer than their labels
         are wide. Five belong to lines side by side: the pair keeps its labels

@@ -826,6 +826,8 @@ mod tests {
         for code in [
             "@startuml\n[*] --> Critical\nCritical --> [*] : landed\nCritical : entry / land()\n@enduml",
             "@startuml\nLoop -> Bob : hi\nBob <- Group : back\nPar ..> Alt\n@enduml",
+            // A signal-flow block and its ports (issue #1).
+            "@startflow\nin h\nout height\nblock Alt \"Altimeter\" {\n  in h\n  out height\n}\nh -> Alt.h\nAlt.height -> height\nLoop.out -> height\n@endflow",
         ] {
             let found = messages(code, Language::PlantUml);
             assert!(found.is_empty(), "{code:?}: {found:?}");
