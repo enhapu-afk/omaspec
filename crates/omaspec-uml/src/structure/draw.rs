@@ -44,8 +44,6 @@ const STACK: f32 = 5.0;
 const CAP: f32 = 9.0;
 const ACTOR_H: f32 = 50.0;
 const ACTOR_W: f32 = 40.0;
-const LOOP_REACH: f32 = 16.0;
-const LOOP_STEP: f32 = 12.0;
 
 pub fn draw(diagram: &super::Diagram) -> Result<String, Declined> {
     drawn(diagram, false).map(|(svg, _)| svg)
@@ -161,7 +159,7 @@ impl Laid for Scene {
     }
 
     fn line_mut(&mut self, path: &[usize], slot: usize) -> Option<LineMut<'_>> {
-        let edge = scene_at(self, path)?.edges.get_mut(slot)?;
+        let edge = self.scene_at(path)?.edges.get_mut(slot)?;
         Some(LineMut {
             label: (edge.label.width, edge.label.height),
             points: &mut edge.points,
@@ -180,14 +178,8 @@ impl Laid for Scene {
         let Some(edge) = here.edges.get(slot) else {
             return Vec::new();
         };
-        let label = (edge.label.width > 0.0 && edge.label.height > 0.0).then_some(Rect {
-            x: edge.label_at.0,
-            y: edge.label_at.1,
-            w: edge.label.width,
-            h: edge.label.height,
-        });
         let containers = containers(self);
-        label
+        edge.label_rect()
             .into_iter()
             .chain(card_rects(edge, &containers))
             .collect()
@@ -203,51 +195,14 @@ impl Laid for Scene {
 /// One group after layout. `width` and `height` are the graph, which is
 /// what a parent sizes its box from. A note above the first row can sit
 /// outside that, and the canvas still grows to hold it.
-struct Scene {
-    nodes: Vec<Placed>,
-    edges: Vec<PlacedEdge>,
-    notes: Vec<PlacedNote>,
-    width: f32,
-    height: f32,
-}
+type Scene = graph::open::Scene<Item, Look>;
+type Placed = graph::open::Placed<Item, Look>;
+type PlacedEdge = graph::open::Wire<Look>;
+type PlacedNote = graph::open::Note;
+type Measured = graph::open::Measured<Item, Look>;
 
-impl Scene {
-    fn empty() -> Scene {
-        Scene {
-            nodes: Vec::new(),
-            edges: Vec::new(),
-            notes: Vec::new(),
-            width: 0.0,
-            height: 0.0,
-        }
-    }
-
-    fn offset(&mut self, dx: f32, dy: f32) {
-        if dx == 0.0 && dy == 0.0 {
-            return;
-        }
-        for node in &mut self.nodes {
-            node.rect.x += dx;
-            node.rect.y += dy;
-            node.children.offset(dx, dy);
-        }
-        for edge in &mut self.edges {
-            for point in &mut edge.points {
-                point.0 += dx;
-                point.1 += dy;
-            }
-            edge.label_at.0 += dx;
-            edge.label_at.1 += dy;
-        }
-        for note in &mut self.notes {
-            note.x += dx;
-            note.y += dy;
-        }
-    }
-}
-
-struct Placed {
-    rect: Rect,
+/// What a box keeps for painting.
+struct Item {
     shape: Shape,
     fill: Paint,
     border: Stroke,
@@ -258,47 +213,17 @@ struct Placed {
     /// Lines into a container stay below it. Zero for a leaf that is not a
     /// package; a package uses it as the tab's height.
     banner: f32,
+    gap: f32,
     composite: bool,
-    /// Laid out with the group around it, so its elements and lines are
-    /// that group's too.
-    opened: bool,
-    children: Scene,
 }
 
-impl Placed {
-    fn of(item: Measured, rect: Rect) -> Placed {
-        Placed {
-            rect,
-            shape: item.shape,
-            fill: item.fill,
-            border: item.border,
-            rows: item.rows,
-            body: item.body,
-            banner: item.banner,
-            composite: item.composite,
-            opened: false,
-            children: item.children,
-        }
-    }
-}
-
-struct PlacedEdge {
-    points: Vec<(f32, f32)>,
-    label: Block,
-    label_at: (f32, f32),
+/// What a line keeps for painting, besides its label.
+struct Look {
     from_card: Block,
     to_card: Block,
     from_head: Head,
     to_head: Head,
     stroke: Stroke,
-}
-
-struct PlacedNote {
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-    text: Block,
 }
 
 enum Row {
@@ -330,20 +255,6 @@ impl Row {
     }
 }
 
-struct Measured {
-    width: f32,
-    height: f32,
-    shape: Shape,
-    fill: Paint,
-    border: Stroke,
-    rows: Vec<Row>,
-    body: usize,
-    banner: f32,
-    gap: f32,
-    composite: bool,
-    children: Scene,
-}
-
 struct Labeled {
     label: Block,
     from_card: Block,
@@ -351,13 +262,13 @@ struct Labeled {
 }
 
 fn child_origin(rect: Rect, item: &Measured) -> (f32, f32) {
-    let (x, w) = match item.shape {
+    let (x, w) = match item.item.shape {
         Shape::Node => (rect.x, rect.w - DEPTH),
         Shape::Stack => (rect.x, rect.w - STACK * 2.0),
         _ => (rect.x, rect.w),
     };
     let ox = x + (w - item.children.width) / 2.0;
-    let oy = rect.y + item.banner + item.gap;
+    let oy = rect.y + item.item.banner + item.item.gap;
     (ox, oy)
 }
 
@@ -509,21 +420,24 @@ fn measure_element(
     Ok(Measured {
         width,
         height,
-        shape: el.shape,
-        fill,
-        border,
-        rows,
-        body,
-        banner,
-        gap,
-        composite: el.composite,
+        flat: is_flat(el.shape),
         children,
+        item: Item {
+            shape: el.shape,
+            fill,
+            border,
+            rows,
+            body,
+            banner,
+            gap,
+            composite: el.composite,
+        },
     })
 }
 
 /// The room an opened container keeps around what it holds, as
 /// [`measure_element`] sizes one around a layout of its own.
-fn frame_of(item: &Measured, skin: &Skin) -> graph::Frame {
+fn frame_of(item: &Item, skin: &Skin) -> graph::Frame {
     let header_w = item.rows[..item.body]
         .iter()
         .map(Row::width)
@@ -860,7 +774,8 @@ fn link_crossings(
     gather(root, &mut Vec::new(), &mut found);
     // The lines laid out with the groups around them are drawn already.
     found.retain(|(path, slot, _)| {
-        scene_at(scene, path)
+        scene
+            .scene_at(path)
             .is_some_and(|host| host.edges.get(*slot).is_some_and(|e| e.points.len() < 2))
     });
     if found.is_empty() {
@@ -889,7 +804,7 @@ fn link_crossings(
                 "no way was found for this line between the elements",
             ));
         };
-        let Some(host) = scene_at(scene, &path) else {
+        let Some(host) = scene.scene_at(&path) else {
             return Err(Declined::at(
                 crossing.arrow.line,
                 "no way was found for this line between the elements",
@@ -902,11 +817,13 @@ fn link_crossings(
             points: linked.points,
             label: blocks.label,
             label_at: linked.label_at,
-            from_card: blocks.from_card,
-            to_card: blocks.to_card,
-            from_head: crossing.arrow.from_head,
-            to_head: crossing.arrow.to_head,
-            stroke: arrow_stroke(skin, &crossing.arrow)?,
+            look: Look {
+                from_card: blocks.from_card,
+                to_card: blocks.to_card,
+                from_head: crossing.arrow.from_head,
+                to_head: crossing.arrow.to_head,
+                stroke: arrow_stroke(skin, &crossing.arrow)?,
+            },
         };
     }
     Ok(())
@@ -929,26 +846,18 @@ fn gather<'a>(
     }
 }
 
-fn scene_at<'a>(scene: &'a mut Scene, path: &[usize]) -> Option<&'a mut Scene> {
-    let mut here = scene;
-    for &index in path {
-        here = &mut here.nodes.get_mut(index)?.children;
-    }
-    Some(here)
-}
-
 fn placements(nodes: &[Placed]) -> Vec<Placement> {
     nodes
         .iter()
         .map(|node| {
-            let frame = node.composite;
-            let title = (frame && node.banner > 0.0).then(|| name_band(node));
+            let frame = node.item.composite;
+            let title = (frame && node.item.banner > 0.0).then(|| name_band(node));
             Placement {
                 rect: node.rect,
-                flat: is_flat(node.shape),
+                flat: is_flat(node.item.shape),
                 frame,
                 title,
-                children: if node.composite {
+                children: if node.item.composite {
                     placements(&node.children.nodes)
                 } else {
                     Vec::new()
@@ -964,10 +873,10 @@ fn placements(nodes: &[Placed]) -> Vec<Placement> {
 fn name_band(node: &Placed) -> Rect {
     let rect = node.rect;
     let name = header_width(node);
-    match node.shape {
+    match node.item.shape {
         Shape::Package | Shape::Folder => Rect {
             w: tab_width(rect.w, name),
-            h: node.banner,
+            h: node.item.banner,
             ..rect
         },
         _ => {
@@ -977,7 +886,7 @@ fn name_band(node: &Placed) -> Rect {
                 x: area.x + (area.w - w) / 2.0,
                 y: rect.y,
                 w,
-                h: node.banner,
+                h: node.item.banner,
             }
         }
     }
@@ -1034,7 +943,7 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     for node in &scene.nodes {
         paint_shape(canvas, skin, node);
-        if node.composite {
+        if node.item.composite {
             paint_shapes(canvas, skin, &node.children);
         }
     }
@@ -1043,47 +952,49 @@ fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     let rect = node.rect;
     let round = skin.round.min(rect.w / 2.0).min(rect.h / 2.0).max(0.0);
-    let stroke = Some(node.border);
-    match node.shape {
+    let stroke = Some(node.item.border);
+    match node.item.shape {
         Shape::UseCase => {
             canvas.ellipse(
                 Layer::Frames,
                 (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0),
                 (rect.w / 2.0, rect.h / 2.0),
-                node.fill,
+                node.item.fill,
                 stroke,
             );
         }
-        Shape::Actor => paint_actor(canvas, rect, node.fill, node.border),
-        Shape::Node => paint_node(canvas, rect, node.fill, node.border),
-        Shape::Database | Shape::Storage => paint_cylinder(canvas, rect, node.fill, node.border),
+        Shape::Actor => paint_actor(canvas, rect, node.item.fill, node.item.border),
+        Shape::Node => paint_node(canvas, rect, node.item.fill, node.item.border),
+        Shape::Database | Shape::Storage => {
+            paint_cylinder(canvas, rect, node.item.fill, node.item.border)
+        }
         Shape::Cloud => {
             canvas.path(
                 Layer::Frames,
                 &cloud_path(rect),
                 (rect.x, rect.y, rect.x + rect.w, rect.y + rect.h),
-                node.fill,
+                node.item.fill,
                 stroke,
             );
         }
         Shape::Hexagon => {
-            canvas.polygon(Layer::Frames, &hexagon(rect), node.fill, stroke);
+            canvas.polygon(Layer::Frames, &hexagon(rect), node.item.fill, stroke);
         }
         Shape::Package | Shape::Folder => {
             paint_tab(
                 canvas,
                 rect,
-                node.banner,
+                node.item.banner,
                 header_width(node),
                 round,
-                node.fill,
-                node.border,
+                node.item.fill,
+                node.item.border,
             );
         }
-        Shape::Stack => paint_stack(canvas, rect, round, node.fill, node.border),
-        Shape::Agent => paint_agent(canvas, rect, round, node.fill, node.border),
+        Shape::Stack => paint_stack(canvas, rect, round, node.item.fill, node.item.border),
+        Shape::Agent => paint_agent(canvas, rect, round, node.item.fill, node.item.border),
         Shape::Note | Shape::Artifact | Shape::File => {
-            dog_ear(canvas, rect, node.fill, node.border);
+            dog_ear(canvas, rect, node.item.fill, node.item.border);
         }
         Shape::Class
         | Shape::Abstract
@@ -1099,13 +1010,13 @@ fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
                 Layer::Frames,
                 (rect.x, rect.y, rect.w, rect.h),
                 round,
-                node.fill,
+                node.item.fill,
                 stroke,
             );
         }
     }
-    if node.shape == Shape::Component {
-        component_icon(canvas, rect, node.border);
+    if node.item.shape == Shape::Component {
+        component_icon(canvas, rect, node.item.border);
     }
     paint_rows(canvas, node);
 }
@@ -1226,12 +1137,17 @@ fn paint_tab(
 /// The name band of a package or folder. Members, when a class has them,
 /// start after it.
 fn header_width(node: &Placed) -> f32 {
-    let n = if node.body == 0 {
-        node.rows.len()
+    let n = if node.item.body == 0 {
+        node.item.rows.len()
     } else {
-        node.body
+        node.item.body
     };
-    node.rows.iter().take(n).map(Row::width).fold(0.0, f32::max)
+    node.item
+        .rows
+        .iter()
+        .take(n)
+        .map(Row::width)
+        .fold(0.0, f32::max)
 }
 
 /// Wide enough for the name, and never wider than the box.
@@ -1404,30 +1320,31 @@ enum Place {
 
 fn paint_rows(canvas: &mut Canvas, node: &Placed) {
     let (area, place) = text_area(node);
-    let pad_y = if node.shape == Shape::Note {
+    let pad_y = if node.item.shape == Shape::Note {
         NOTE_PAD
     } else {
         PAD_Y
     };
-    let pad_x = if node.shape == Shape::Note {
+    let pad_x = if node.item.shape == Shape::Note {
         NOTE_PAD
     } else {
         PAD_X
     };
-    let extra =
-        if node.body < node.rows.len() || (node.shape == Shape::Card && !node.rows.is_empty()) {
-            RULE
-        } else {
-            0.0
-        };
-    let content = node.rows.iter().map(Row::height).sum::<f32>() + extra;
+    let extra = if node.item.body < node.item.rows.len()
+        || (node.item.shape == Shape::Card && !node.item.rows.is_empty())
+    {
+        RULE
+    } else {
+        0.0
+    };
+    let content = node.item.rows.iter().map(Row::height).sum::<f32>() + extra;
     let mut y = match place {
         Place::Top => area.y + pad_y,
         Place::Center => area.y + (area.h - content) / 2.0,
     };
-    let header = node.body.min(node.rows.len());
-    for row in &node.rows[..header] {
-        paint_row(canvas, area, pad_x, y, row, node.shape);
+    let header = node.item.body.min(node.item.rows.len());
+    for row in &node.item.rows[..header] {
+        paint_row(canvas, area, pad_x, y, row, node.item.shape);
         y += row.height();
     }
     if extra > 0.0 {
@@ -1436,15 +1353,16 @@ fn paint_rows(canvas: &mut Canvas, node: &Placed) {
             Layer::Frames,
             (area.x, line_y),
             (area.x + area.w, line_y),
-            Stroke::new(node.border.color, node.border.width.max(0.5)),
+            Stroke::new(node.item.border.color, node.item.border.width.max(0.5)),
         );
         y += extra;
     }
-    for row in &node.rows[header..] {
+    for row in &node.item.rows[header..] {
         match row {
             Row::Rule(dash) => {
                 let line_y = y + RULE / 2.0;
-                let mut stroke = Stroke::new(node.border.color, node.border.width.max(0.5));
+                let mut stroke =
+                    Stroke::new(node.item.border.color, node.item.border.width.max(0.5));
                 if *dash != Dash::Solid {
                     stroke.dash = Some(if *dash == Dash::Dotted {
                         (1.5, 3.0)
@@ -1461,7 +1379,7 @@ fn paint_rows(canvas: &mut Canvas, node: &Placed) {
                 y += RULE;
             }
             other => {
-                paint_row(canvas, area, pad_x, y, other, node.shape);
+                paint_row(canvas, area, pad_x, y, other, node.item.shape);
                 y += other.height();
             }
         }
@@ -1492,10 +1410,10 @@ fn paint_row(canvas: &mut Canvas, area: Rect, pad_x: f32, y: f32, row: &Row, sha
 
 fn text_area(node: &Placed) -> (Rect, Place) {
     let rect = node.rect;
-    let place = if node.composite {
+    let place = if node.item.composite {
         Place::Top
     } else {
-        match node.shape {
+        match node.item.shape {
             Shape::UseCase
             | Shape::Cloud
             | Shape::Hexagon
@@ -1506,7 +1424,7 @@ fn text_area(node: &Placed) -> (Rect, Place) {
             _ => Place::Top,
         }
     };
-    let area = match node.shape {
+    let area = match node.item.shape {
         Shape::Node => Rect {
             x: rect.x,
             y: rect.y + DEPTH,
@@ -1528,7 +1446,7 @@ fn text_area(node: &Placed) -> (Rect, Place) {
             w: rect.w,
             h: (rect.h - ACTOR_H).max(1.0),
         },
-        Shape::Agent if !node.composite => Rect {
+        Shape::Agent if !node.item.composite => Rect {
             x: rect.x,
             y: rect.y + 12.0,
             w: rect.w,
@@ -1536,8 +1454,8 @@ fn text_area(node: &Placed) -> (Rect, Place) {
         },
         // The name is the tab, not the middle of the whole box.
         Shape::Package | Shape::Folder => {
-            let h = if node.banner > 1.0 {
-                node.banner.min(rect.h).max(1.0)
+            let h = if node.item.banner > 1.0 {
+                node.item.banner.min(rect.h).max(1.0)
             } else {
                 rect.h
             };
@@ -1563,9 +1481,9 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
         }
         canvas.curve(
             Layer::Frames,
-            &shortened(&edge.points, edge.from_head, edge.to_head),
+            &shortened(&edge.points, edge.look.from_head, edge.look.to_head),
             curve,
-            edge.stroke,
+            edge.look.stroke,
         );
     }
     for node in &scene.nodes {
@@ -1625,16 +1543,16 @@ fn paint_heads(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
             skin,
             edge.points[0],
             edge.points[1],
-            edge.from_head,
-            edge.stroke,
+            edge.look.from_head,
+            edge.look.stroke,
         );
         draw_head(
             canvas,
             skin,
             edge.points[last],
             edge.points[last - 1],
-            edge.to_head,
-            edge.stroke,
+            edge.look.to_head,
+            edge.look.stroke,
         );
     }
     for node in &scene.nodes {
@@ -1758,7 +1676,7 @@ fn draw_head(
 fn containers(scene: &Scene) -> Vec<Rect> {
     fn walk(scene: &Scene, out: &mut Vec<Rect>) {
         for node in &scene.nodes {
-            if node.composite {
+            if node.item.composite {
                 out.push(node.rect);
             }
             walk(&node.children, out);
@@ -1776,8 +1694,8 @@ fn cards<'a>(
     containers: &'a [Rect],
 ) -> impl Iterator<Item = (&'a Block, (f32, f32))> + 'a {
     [
-        (&edge.from_card, true, edge.from_head),
-        (&edge.to_card, false, edge.to_head),
+        (&edge.look.from_card, true, edge.look.from_head),
+        (&edge.look.to_card, false, edge.look.to_head),
     ]
     .into_iter()
     .filter(|(card, ..)| !card.is_empty() && edge.points.len() >= 2)
@@ -1878,7 +1796,7 @@ mod tests {
     fn a_class_stays_inside_its_package() {
         let scene = scene_of("@startuml\npackage shop {\n  class Book\n}\n@enduml\n");
         let shop = &scene.nodes[0];
-        assert!(shop.composite);
+        assert!(shop.item.composite);
         let book = &shop.children.nodes[0];
         assert!(book.rect.x + 0.1 >= shop.rect.x);
         assert!(book.rect.y + 0.1 >= shop.rect.y);
@@ -1898,7 +1816,7 @@ mod tests {
         let edge = scene
             .edges
             .iter()
-            .find(|edge| !edge.to_card.is_empty())
+            .find(|edge| !edge.look.to_card.is_empty())
             .unwrap();
         let on = |cards: Vec<Rect>| cards.iter().any(|&card| on_border(around[0], card));
         assert!(on(card_rects(edge, &[]).collect()), "no longer a case");

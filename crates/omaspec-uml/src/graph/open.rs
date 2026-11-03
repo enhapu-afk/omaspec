@@ -151,6 +151,11 @@ pub trait Nested {
     fn clip(&self, _end: &Placed<Self::Item, Self::Look>, _points: &mut [Point], _at_start: bool) {}
     /// The band of an opened member's name, which labels keep off.
     fn band(&self, node: &Placed<Self::Item, Self::Look>) -> Rect;
+    /// What else in `scene`, the whole layout, labels keep off: marks
+    /// beside the ends of its lines, as multiplicities.
+    fn marks(&self, _scene: &Scene<Self::Item, Self::Look>) -> Vec<Rect> {
+        Vec::new()
+    }
     /// Places the notes of `container` once its labels are placed.
     fn noted(
         &self,
@@ -203,6 +208,18 @@ impl<N, E> Scene<N, E> {
             scene = &scene.nodes.get(index)?.children;
         }
         scene.nodes.get(last)
+    }
+
+    /// Its lines and those of the containers it opened, in the order their
+    /// labels are placed; not those of the containers laid out on their own.
+    pub fn wires(&self) -> Vec<&Wire<E>> {
+        let mut out: Vec<&Wire<E>> = self.edges.iter().collect();
+        for node in &self.nodes {
+            if node.opened {
+                out.extend(node.children.wires());
+            }
+        }
+        out
     }
 
     /// The scene at `path`, down through the boxes' scenes.
@@ -265,10 +282,13 @@ pub fn layout<C: Nested>(cx: &C, top: C::Container) -> Result<Scene<C::Item, C::
         }
     }
 
-    // Labels move off boxes, names and each other, over the whole layout.
+    // Labels move off boxes, names, marks and each other, over the whole
+    // layout.
+    let marks = cx.marks(&scene);
     let (mut boxes, mut frames) = (Vec::new(), Vec::new());
     let mut wires = Vec::new();
     collect(cx, &mut scene, &mut boxes, &mut frames, &mut wires);
+    boxes.extend(marks);
     let lines: Vec<Vec<Point>> = wires.iter().map(|wire| wire.points.clone()).collect();
     let mut labels: Vec<_> = wires
         .iter()

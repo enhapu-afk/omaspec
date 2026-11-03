@@ -1090,7 +1090,8 @@ dispatch spread over two lists. The rules it set for the next change are in
       Every diagram of the repository draws as before: 118 the same bytes,
       and 2 flowcharts the same pixels, a line between subgraphs now drawn
       in its order rather than last (1 Mermaid golden). Class diagrams
-      (`structure/draw/open.rs`) still have a copy of their own.
+      run on it too: the multiplicities labels keep off come from them
+      (`Nested::marks`), every diagram draws the same bytes.
 - [ ] mmdr's reading only as the fallback: where Omaspec reads the text
       itself, mmdr's parse should not decide whether it draws. Needs the
       `%%{init}%%` and the theme read without it.

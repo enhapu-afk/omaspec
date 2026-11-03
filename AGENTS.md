@@ -53,10 +53,9 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
 - State diagrams of both languages are drawn by `omaspec-uml/src/state/`
   (Mermaid's lowered by `state::from_mermaid`). Containers that open
   (docs/adr/0013) are laid out once, by `omaspec_uml::graph::open`, for
-  state diagrams and flowcharts, and lines into closed ones are routed by
-  `graph::across`: a fix to either goes there, not into a drawer. Class
-  diagrams still lay out their own (`structure/draw/open.rs`); a fix there
-  goes into both.
+  state, class and flowchart diagrams, and lines into closed ones are
+  routed by `graph::across`: a fix to either goes there, not into a
+  drawer.
 
 ## Omarchy facts the code relies on
 

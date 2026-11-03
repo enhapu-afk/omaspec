@@ -58,9 +58,8 @@ constraint solving keeps the existing straightening), and free splines
 
 - A driver gathers the boxes of the containers a layout opens into one
   layout and builds the nested scenes from it; a crossing is drawn there or
-  left in its place for the router. State diagrams and flowcharts share
-  one (`graph::open`, since 2026-11-03); class diagrams keep their own
-  (`structure::draw::open`).
+  left in its place for the router. State, class and flowchart diagrams
+  share one (`graph::open`, since 2026-11-03).
 - A diagram without such lines is laid out exactly as before.
 - Golden SVGs of diagrams with lines between containers changed.
 - Open: a line that passes a rank beside a frame can still cross it where
