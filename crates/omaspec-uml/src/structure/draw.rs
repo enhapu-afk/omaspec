@@ -186,7 +186,11 @@ impl Laid for Scene {
             w: edge.label.width,
             h: edge.label.height,
         });
-        label.into_iter().chain(card_rects(edge)).collect()
+        let containers = containers(self);
+        label
+            .into_iter()
+            .chain(card_rects(edge, &containers))
+            .collect()
     }
 
     fn drawn(&self) -> Drawn {
@@ -1023,7 +1027,7 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     paint_shapes(canvas, skin, scene);
     paint_edges(canvas, scene, skin.curve);
     paint_notes(canvas, skin, scene);
-    paint_labels(canvas, scene);
+    paint_labels(canvas, scene, &containers(scene));
     paint_heads(canvas, skin, scene);
 }
 
@@ -1588,10 +1592,12 @@ fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     }
 }
 
-fn paint_labels(canvas: &mut Canvas, scene: &Scene) {
+/// `containers` are those of the whole diagram, whose borders the
+/// multiplicities keep off.
+fn paint_labels(canvas: &mut Canvas, scene: &Scene, containers: &[Rect]) {
     for edge in &scene.edges {
         canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
-        for (card, at) in cards(edge) {
+        for (card, at) in cards(edge, containers) {
             canvas.text(Layer::Front, card, at, Align::Left);
         }
     }
@@ -1604,7 +1610,7 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene) {
         );
     }
     for node in &scene.nodes {
-        paint_labels(canvas, &node.children);
+        paint_labels(canvas, &node.children, containers);
     }
 }
 
@@ -1748,20 +1754,45 @@ fn draw_head(
     }
 }
 
-/// The multiplicities at the ends of `edge`, and where each goes.
-fn cards(edge: &PlacedEdge) -> impl Iterator<Item = (&Block, (f32, f32))> {
+/// The boxes of the containers in `scene`, nested ones too.
+fn containers(scene: &Scene) -> Vec<Rect> {
+    fn walk(scene: &Scene, out: &mut Vec<Rect>) {
+        for node in &scene.nodes {
+            if node.composite {
+                out.push(node.rect);
+            }
+            walk(&node.children, out);
+        }
+    }
+    let mut out = Vec::new();
+    walk(scene, &mut out);
+    out
+}
+
+/// The multiplicities at the ends of `edge`, and where each goes, off the
+/// borders of `containers`.
+fn cards<'a>(
+    edge: &'a PlacedEdge,
+    containers: &'a [Rect],
+) -> impl Iterator<Item = (&'a Block, (f32, f32))> + 'a {
     [
         (&edge.from_card, true, edge.from_head),
         (&edge.to_card, false, edge.to_head),
     ]
     .into_iter()
     .filter(|(card, ..)| !card.is_empty() && edge.points.len() >= 2)
-    .map(|(card, at_start, head)| (card, card_at(&edge.points, at_start, card, head_span(head))))
+    .map(move |(card, at_start, head)| {
+        let along = head_span(head);
+        (
+            card,
+            card_at(&edge.points, at_start, card, along, containers),
+        )
+    })
 }
 
 /// Where the multiplicities at the ends of `edge` are.
-fn card_rects(edge: &PlacedEdge) -> impl Iterator<Item = Rect> + '_ {
-    cards(edge).map(|(block, (x, y))| Rect {
+fn card_rects<'a>(edge: &'a PlacedEdge, containers: &'a [Rect]) -> impl Iterator<Item = Rect> + 'a {
+    cards(edge, containers).map(|(block, (x, y))| Rect {
         x,
         y,
         w: block.width,
@@ -1772,8 +1803,16 @@ fn card_rects(edge: &PlacedEdge) -> impl Iterator<Item = Rect> + '_ {
 /// The top left of a multiplicity beside the end of `points`, `along`
 /// past the head there. Beside a level run it sits close below or above
 /// it; beside an upright one it stands clear of it, or the line would
-/// strike it through.
-fn card_at(points: &[(f32, f32)], at_start: bool, block: &Block, along: f32) -> (f32, f32) {
+/// strike it through. Across the border of one of `containers` the border
+/// would: it takes the other side then, or moves on along the line, up to
+/// where it would stop anyway.
+fn card_at(
+    points: &[(f32, f32)],
+    at_start: bool,
+    block: &Block,
+    along: f32,
+    containers: &[Rect],
+) -> (f32, f32) {
     let (tip, inner) = if at_start {
         (points[0], points[1])
     } else {
@@ -1782,13 +1821,44 @@ fn card_at(points: &[(f32, f32)], at_start: bool, block: &Block, along: f32) -> 
     };
     let (vx, vy) = (inner.0 - tip.0, inner.1 - tip.1);
     let len = (vx * vx + vy * vy).sqrt().max(0.01);
-    let travel = (along + 8.0).min(len * 0.65).max(6.0);
+    let first = (along + 8.0).min(len * 0.65).max(6.0);
     let (ux, uy) = (vx / len, vy / len);
     let (px, py) = (-uy, ux);
     let off = py.abs() * (block.height * 0.15 + 3.0) + px.abs() * (block.width / 2.0 + 3.0);
-    let cx = tip.0 + ux * travel + px * off;
-    let cy = tip.1 + uy * travel + py * off;
-    (cx - block.width / 2.0, cy - block.height / 2.0)
+    let at = |travel: f32, side: f32| {
+        let cx = tip.0 + ux * travel + side * px * off;
+        let cy = tip.1 + uy * travel + side * py * off;
+        (cx - block.width / 2.0, cy - block.height / 2.0)
+    };
+    let across = |(x, y): (f32, f32)| {
+        let card = Rect {
+            x,
+            y,
+            w: block.width,
+            h: block.height,
+        };
+        containers.iter().any(|&frame| on_border(frame, card))
+    };
+    let last = first.max(len * 0.65);
+    (0..)
+        .map(|step| first + step as f32 * 4.0)
+        .take_while(|&travel| travel <= last)
+        .flat_map(|travel| [at(travel, 1.0), at(travel, -1.0)])
+        .find(|&spot| !across(spot))
+        .unwrap_or_else(|| at(first, 1.0))
+}
+
+/// Whether `rect` lies across the border of `frame`: partly in it.
+fn on_border(frame: Rect, rect: Rect) -> bool {
+    let meets = rect.x < frame.x + frame.w
+        && frame.x < rect.x + rect.w
+        && rect.y < frame.y + frame.h
+        && frame.y < rect.y + rect.h;
+    let inside = rect.x >= frame.x - 0.5
+        && rect.y >= frame.y - 0.5
+        && rect.x + rect.w <= frame.x + frame.w + 0.5
+        && rect.y + rect.h <= frame.y + frame.h + 0.5;
+    meets && !inside
 }
 
 #[cfg(test)]
@@ -1814,6 +1884,27 @@ mod tests {
         assert!(book.rect.y + 0.1 >= shop.rect.y);
         assert!(book.rect.x + book.rect.w <= shop.rect.x + shop.rect.w + 0.5);
         assert!(book.rect.y + book.rect.h <= shop.rect.y + shop.rect.h + 0.5);
+    }
+
+    #[test]
+    fn a_multiplicity_keeps_off_a_package_border() {
+        // Shelf below the package: beside the line where it leaves the
+        // package, `many` sat on the package's border.
+        let scene = scene_of(
+            "@startuml\npackage catalog {\n  class Book\n}\nclass Shelf\nShelf o-- \"many\" Book\nBook --> Shelf\n@enduml\n",
+        );
+        let around = containers(&scene);
+        assert_eq!(around.len(), 1);
+        let edge = scene
+            .edges
+            .iter()
+            .find(|edge| !edge.to_card.is_empty())
+            .unwrap();
+        let on = |cards: Vec<Rect>| cards.iter().any(|&card| on_border(around[0], card));
+        assert!(on(card_rects(edge, &[]).collect()), "no longer a case");
+        let cards: Vec<Rect> = card_rects(edge, &around).collect();
+        assert_eq!(cards.len(), 1);
+        assert!(!on(cards));
     }
 
     #[test]

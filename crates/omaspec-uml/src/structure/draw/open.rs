@@ -12,8 +12,8 @@ use std::collections::{HashMap, HashSet};
 use super::{
     Block, Declined, Direction, Draft, Family, Group, LOOP_REACH, LOOP_STEP, Labeled, Measured,
     NOTE_GAP, Placed, PlacedEdge, Rect, Scene, Side, Skin, arrow_stroke, card_rects, child_origin,
-    frame_of, graph, graph_direction, is_flat, link_blocks, measure_element, name_band, note_size,
-    place_notes, text_block,
+    containers, frame_of, graph, graph_direction, is_flat, link_blocks, measure_element, name_band,
+    note_size, place_notes, text_block,
 };
 
 /// Which of the containers inside `group` to open, by their paths from
@@ -111,10 +111,11 @@ pub(super) fn layout_group(group: &Group, skin: &Skin, family: Family) -> Result
     let mut scene = flat.assemble(group, &mut Vec::new(), &laid, skin)?;
     // Labels move off boxes, names, multiplicities and each other, over the
     // whole layout.
+    let around = containers(&scene);
     let (mut boxes, mut frames) = (Vec::new(), Vec::new());
     let mut edges = Vec::new();
     collect(&mut scene, &mut boxes, &mut frames, &mut edges);
-    boxes.extend(edges.iter().flat_map(|edge| card_rects(edge)));
+    boxes.extend(edges.iter().flat_map(|edge| card_rects(edge, &around)));
     let lines: Vec<Vec<(f32, f32)>> = edges.iter().map(|edge| edge.points.clone()).collect();
     let mut labels: Vec<_> = edges
         .iter()
