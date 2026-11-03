@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 use iced::widget::{button, container, row};
 use iced::{Alignment, Element, Length, Padding, Point, Rectangle, Task, Theme};
+use omaspec_core::Language;
 use omaspec_render::Atlas;
 
 use super::doc::Doc;
@@ -58,6 +59,18 @@ impl App {
             .and_then(|p| crate::specs::path_in(&root, p));
         let atlas = self.themed_atlas(&root)?;
         Some((atlas, own))
+    }
+
+    /// Whether document `doc`, written as `text`, is a map whose project's
+    /// diagrams are still being read.
+    pub(super) fn waits_for_its_project(&self, doc: u64, text: &str, language: Language) -> bool {
+        omaspec_render::is_map(text, language)
+            && self
+                .docs
+                .iter()
+                .find(|d| d.key == doc)
+                .and_then(|d| self.project_of(d))
+                .is_some_and(|root| !self.atlases.contains_key(&root))
     }
 
     /// The diagrams of the project at `root` as the diagram pane draws

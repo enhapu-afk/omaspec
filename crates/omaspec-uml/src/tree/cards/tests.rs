@@ -181,7 +181,8 @@ fn a_map_with_only_its_root_draws_no_stem() {
     assert_eq!(stems(&crate::render(source).unwrap()), 1);
     let (svg, map) = crate::render_tiled(source, None, Some(&tiles(&[], &[], None))).unwrap();
     assert_eq!(stems(&svg), 0, "{svg}");
-    assert!(!svg.contains("<path d=\"M"), "no curve from a lone root");
+    // No curve from a lone root, and no anchor for one.
+    assert!(!svg.contains(" C") && !svg.contains("<circle"), "{svg}");
     assert_eq!(map.tiles.len(), 1);
 }
 

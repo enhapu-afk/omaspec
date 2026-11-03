@@ -1199,6 +1199,15 @@ checked; numbers are measured, not assumed.
       includes another. The colors come from the map's skin, so the map
       takes the Omarchy colors. A WBS or a mind map outside a project draws
       as before.
+- [x] The map drawn in a moment again: checked in a real window, a map took
+      seconds to show. Its cards' soft shadows were blurs, which resvg
+      computes for each card over its whole area: rasterizing the test
+      project's map took 0.76 s at a scale of 1 and 2.7 s at 2 (`omaspec
+      render`, process start and PNG included; a state machine 0.11 s). The
+      shadows are rings of rounded rectangles now, only around each card:
+      0.09 s at 1, 0.15 s at 2, 0.18 s at 3, measured the same way. And a map in a project was first drawn without the project's diagrams,
+      as a plain tree, then again once they were read; it waits for them
+      now, so it is drawn once.
 - [ ] Smooth frames, measured: `OMASPEC_FRAMES=1` logs how long each frame of a
       dive, a glide and a play takes. Suspected: on the first half of a dive the
       overview raster is stretched until sharp pixels come; the second half lies

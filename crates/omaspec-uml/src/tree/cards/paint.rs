@@ -86,9 +86,6 @@ pub(super) fn svg(layout: &Layout, skin: &Skin, tiles: &Tiles, family: Family) -
         w = n(width),
         h = n(height)
     );
-    out.push_str(
-        r#"<defs><filter id="map-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter><filter id="map-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="16"/></filter></defs>"#,
-    );
     let _ = write!(
         out,
         r#"<rect x="0" y="0" width="{}" height="{}" fill="{}"/>"#,
@@ -138,31 +135,56 @@ pub(super) fn svg(layout: &Layout, skin: &Skin, tiles: &Tiles, family: Family) -
 }
 
 /// A soft shadow under a card, and a glow of the accent under the root's.
+/// Rounded rectangles that grow and fade rather than a blur: a blur takes
+/// a renderer seconds over a large map, these a moment.
 fn shadow(out: &mut String, node: &Placed, p: &Palette) {
     if node.key.is_none() {
         return;
     }
-    let r = node.rect;
     if node.root {
+        halo(out, node.rect, p.accent, 0.16, 18.0, 0.0);
+    }
+    halo(out, node.rect, Color::BLACK, p.shadow, 12.0, 5.0);
+}
+
+/// Layers of `color` around `r`, reaching `reach` past it and `drop` down,
+/// together as strong as `strength` near the edge and fading out as
+/// (1 − distance / reach)². Each layer is a ring around the card, which
+/// covers the rest, so a renderer blends only the edge.
+fn halo(out: &mut String, r: Rect, color: Color, strength: f32, reach: f32, drop: f32) {
+    const STEPS: u8 = 6;
+    let alpha = strength / f32::from(STEPS);
+    let hole = rounded(r, 16.0);
+    for step in 0..STEPS {
+        let grow = reach * (1.0 - (f32::from(step) / f32::from(STEPS)).sqrt());
+        let layer = Rect {
+            x: r.x - grow,
+            y: r.y - grow + drop,
+            w: r.w + 2.0 * grow,
+            h: r.h + 2.0 * grow,
+        };
         let _ = write!(
             out,
-            r#"<rect x="{}" y="{}" width="{}" height="{}" rx="16" fill="{}" opacity="0.14" filter="url(#map-glow)"/>"#,
-            n(r.x),
-            n(r.y),
-            n(r.w),
-            n(r.h),
-            p.accent
+            r#"<path d="{}{hole}" fill="{color}" fill-opacity="{}" fill-rule="evenodd"/>"#,
+            rounded(layer, 16.0 + grow),
+            n(alpha)
         );
     }
-    let _ = write!(
-        out,
-        r##"<rect x="{}" y="{}" width="{}" height="{}" rx="16" fill="#000000" opacity="{}" filter="url(#map-soft)"/>"##,
-        n(r.x),
-        n(r.y + 6.0),
-        n(r.w),
-        n(r.h),
-        n(p.shadow)
-    );
+}
+
+/// The outline of `r` with its corners rounded by `radius`, as a path.
+fn rounded(r: Rect, radius: f32) -> String {
+    let radius = radius.min(r.w / 2.0).min(r.h / 2.0).max(0.0);
+    let (w, h, q) = (r.w - 2.0 * radius, r.h - 2.0 * radius, n(radius));
+    format!(
+        "M{} {}h{}a{q} {q} 0 0 1 {q} {q}v{}a{q} {q} 0 0 1 -{q} {q}h-{}a{q} {q} 0 0 1 -{q} -{q}v-{}a{q} {q} 0 0 1 {q} -{q}z",
+        n(r.x + radius),
+        n(r.y),
+        n(w),
+        n(h),
+        n(w),
+        n(h)
+    )
 }
 
 /// The curve from the bottom of `from` to the top of `to`; dashed to a

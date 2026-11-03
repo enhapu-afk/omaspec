@@ -1523,6 +1523,15 @@ impl App {
         } else {
             self.linked_of(doc)
         };
+        // A map waits for its project's diagrams, which are being read:
+        // drawn without them it would show as a plain tree first, and then
+        // again. Once read, they draw it.
+        if linked.is_none()
+            && doc != compare::KEY
+            && self.waits_for_its_project(doc, text, language)
+        {
+            return;
+        }
         let id = {
             let paper = if doc == compare::KEY {
                 let Some(compare) = &mut self.compare else {
