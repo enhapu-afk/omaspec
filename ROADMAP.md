@@ -17,10 +17,10 @@ crates/
   omaspec-core/    language detection, lint, outline, formatting, diff, source in images
   omaspec-uml/     native PlantUML engine: preprocessor, parser with spans, layout, SVG
   omaspec-model/   one behavior model for PlantUML and Mermaid, and the specification checks
-  omaspec-render/  router (omaspec-uml → Java PlantUML if installed → error), Mermaid (mmdr parses,
-                     omaspec-uml reads sequence, class, state and other diagrams again and draws
-                     them on its engines, flowcharts on the graph engine; mmdr draws what they
-                     decline), export
+  omaspec-render/  router (omaspec-uml → Java PlantUML if installed → error), Mermaid (Omaspec
+                     reads sequence, class, state and other diagrams itself and draws them on
+                     omaspec-uml's engines, flowcharts from mmdr's parse on the graph engine;
+                     mmdr draws what they decline), export
   omaspec-theme/   Omarchy palette and font, syntax colors
   omaspec-app/     iced GUI and CLI, binary `omaspec`
 spikes/              throwaway experiments behind the ADRs
@@ -1092,9 +1092,19 @@ dispatch spread over two lists. The rules it set for the next change are in
       in its order rather than last (1 Mermaid golden). Class diagrams
       run on it too: the multiplicities labels keep off come from them
       (`Nested::marks`), every diagram draws the same bytes.
-- [ ] mmdr's reading only as the fallback: where Omaspec reads the text
-      itself, mmdr's parse should not decide whether it draws. Needs the
-      `%%{init}%%` and the theme read without it.
+- [x] mmdr's reading only as the fallback: where Omaspec reads the text
+      itself, mmdr's parse no longer decides whether it draws. The header
+      and the `%%{init}%%` directive are read as mmdr reads them
+      (`mermaid/head.rs`); each kind in `NATIVE` names the words of its
+      header, and its drawer gets the theme and the text, not mmdr's graph.
+      mmdr parses only when no drawer of Omaspec's own draws the diagram,
+      and for flowcharts, which lay out on its graph. A test holds the
+      header to mmdr's reading for every kind and every Mermaid diagram of
+      the repository. Every diagram draws as before, and one more: a
+      sequence diagram with a message to a participant it never declared,
+      which mmdr refused while Mermaid creates the participant
+      (`fixtures/sequence.mmd`); lint still names a declared one it is
+      close to.
 - [ ] The keys beside their modes: the gallery's, the play's and the
       prompt's keys in their modules, `shortcut` only puts them together;
       then `App` handed out along the same lines.

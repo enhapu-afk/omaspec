@@ -1,16 +1,12 @@
-use mermaid_rs_renderer::{RenderOptions, parse_mermaid_strict};
+use mermaid_rs_renderer::RenderOptions;
 
 use omaspec_uml::sequence::{
     Diagram, Head, Item, Mark, Message, Shape, from_mermaid as build, mermaid_refusal,
 };
 
 /// The SVG alone, without the map.
-fn try_draw(
-    graph: &mermaid_rs_renderer::Graph,
-    theme: &mermaid_rs_renderer::Theme,
-    source: &str,
-) -> Option<String> {
-    super::try_draw(graph, theme, source).map(|(svg, _)| svg)
+fn try_draw(theme: &mermaid_rs_renderer::Theme, source: &str) -> Option<String> {
+    super::try_draw(theme, source).map(|(svg, _)| svg)
 }
 
 fn built(source: &str) -> Diagram {
@@ -48,7 +44,7 @@ fn an_order_uses_the_alias_and_keeps_the_note_outside_the_alt() {
     assert!(afterwards.unwrap() < paid.unwrap());
     assert!(end.unwrap() < diagram.items.len());
     let theme = RenderOptions::default().theme;
-    let svg = try_draw(&parse_mermaid_strict(source).unwrap().graph, &theme, source).unwrap();
+    let svg = try_draw(&theme, source).unwrap();
     assert!(svg.to_ascii_lowercase().contains("#f8fafc"), "{svg}");
     assert_eq!(svg.matches(">Customer<").count(), 1);
     let customer = baseline(&svg, "Customer");
@@ -140,8 +136,7 @@ fn a_rect_is_a_highlight_and_create_draws_the_head_on_the_message() {
         Item::RectStart { color, .. } if color == "rgb(200, 200, 200)"
     )));
     assert!(mermaid_refusal(rect).is_none());
-    let parsed = parse_mermaid_strict(rect).unwrap();
-    let svg = try_draw(&parsed.graph, &theme, rect).unwrap();
+    let svg = try_draw(&theme, rect).unwrap();
     assert!(svg.contains("#C8C8C8"), "{svg}");
 
     let nested = built("sequenceDiagram\nrect red\nrect blue\nA->>B: hi\nend\nend\n");
@@ -161,8 +156,7 @@ fn a_rect_is_a_highlight_and_create_draws_the_head_on_the_message() {
     let diagram = built(create);
     assert!(messages(&diagram)[0].creates);
     assert_eq!(diagram.participants[0].code, "B");
-    let parsed = parse_mermaid_strict(create).unwrap();
-    let svg = try_draw(&parsed.graph, &theme, create).unwrap();
+    let svg = try_draw(&theme, create).unwrap();
     assert!(baseline(&svg, "B") > baseline(&svg, "A") + 10.0, "{svg}");
 
     let actor = built("sequenceDiagram\ncreate actor D as Donald\nA->>D: hi\n");
@@ -178,8 +172,7 @@ fn a_rect_is_a_highlight_and_create_draws_the_head_on_the_message() {
     ));
     assert_eq!(gone.participants[0].code, "B");
     let source = "sequenceDiagram\ndestroy B\nA->>B: hi\n";
-    let parsed = parse_mermaid_strict(source).unwrap();
-    assert!(try_draw(&parsed.graph, &theme, source).is_some());
+    assert!(try_draw(&theme, source).is_some());
 }
 
 #[test]
@@ -214,8 +207,7 @@ fn an_unclosed_annotation_or_a_bad_color_falls_back() {
     let source = "sequenceDiagram\nA->>B: hi @{\n";
     assert!(build(source).is_none());
     assert_eq!(mermaid_refusal(source), Some((1, "a @{ } annotation")));
-    let parsed = parse_mermaid_strict(source).unwrap();
-    assert!(try_draw(&parsed.graph, &theme, source).is_none());
+    assert!(try_draw(&theme, source).is_none());
     assert!(crate::mermaid::render(source).is_ok(), "{source}");
 
     let color = "sequenceDiagram\nrect #zzzzzz\nA->>B: hi\nend\n";
@@ -240,9 +232,7 @@ fn broken_sequence_text_does_not_panic() {
         owned[at] ^= 0x20;
         let text = String::from_utf8_lossy(&owned).into_owned();
         let drew = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            if let Ok(parsed) = parse_mermaid_strict(&text) {
-                let _ = try_draw(&parsed.graph, &theme, &text);
-            }
+            let _ = try_draw(&theme, &text);
         }));
         assert!(drew.is_ok());
     }

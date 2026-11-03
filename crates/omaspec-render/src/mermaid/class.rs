@@ -1,6 +1,6 @@
 //! Mermaid class diagrams on the structure engine.
 //!
-//! mmdr has parsed the diagram. The engine reads the same source again
+//! The engine reads the source itself, not mmdr
 //! ([`from_mermaid`]) for namespaces, members, notes and styles, which
 //! mmdr's class graph drops, and draws it in the colors of the Mermaid
 //! theme. A construct the engine cannot draw (a lollipop, `direction RL`
@@ -8,16 +8,13 @@
 //! text color) leaves the diagram to mmdr.
 
 use super::{font_name, plain_number};
-use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
+use mermaid_rs_renderer::Theme;
 use omaspec_uml::map::Map;
 use omaspec_uml::structure::{Skinparam, draw_mapped, from_mermaid};
 
 /// The SVG and its map of lines, or `None` when this drawer leaves the
 /// diagram to mmdr. Lines by hand (docs/adr/0016) are drawn here.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
-    if graph.kind != DiagramKind::Class {
-        return None;
-    }
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
     diagram.frame.by_hand = omaspec_uml::hand::numbered(source);
@@ -63,13 +60,12 @@ fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mermaid_rs_renderer::DiagramKind;
 
     #[test]
     fn draws_a_class_in_the_theme_colors() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Class;
-        let (svg, map) = try_draw(&graph, &theme, "classDiagram\nclass Animal\n").unwrap();
+        let (svg, map) = try_draw(&theme, "classDiagram\nclass Animal\n").unwrap();
         assert!(svg.contains("Animal"), "{svg}");
         assert!(svg.contains("#ECECFF"), "{svg}");
         // One class, no line: nothing on the map to light or draw by hand.
@@ -77,19 +73,15 @@ mod tests {
     }
 
     #[test]
-    fn leaves_another_kind_and_a_lollipop() {
+    fn leaves_a_lollipop() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        assert!(try_draw(&graph, &theme, "classDiagram\nclass Animal\n").is_none());
-        graph.kind = DiagramKind::Class;
-        assert!(try_draw(&graph, &theme, "classDiagram\nbar ()-- foo\n").is_none());
+        assert!(try_draw(&theme, "classDiagram\nbar ()-- foo\n").is_none());
         assert_eq!(
             crate::mermaid::refused(DiagramKind::Class, "classDiagram\nbar ()-- foo\n")
                 .map(|(_, reason)| reason),
             Some("a lollipop is not drawn by Omaspec; mmdr draws it".into())
         );
         let wide = try_draw(
-            &graph,
             &theme,
             "classDiagram\nclass Animal\nstyle Animal stroke-width:4px\n",
         )
@@ -98,7 +90,7 @@ mod tests {
         assert!(wide.contains("stroke-width=\"4\""), "{wide}");
         let mut bad = Theme::mermaid_default();
         bad.primary_color = "nope".into();
-        assert!(try_draw(&graph, &bad, "classDiagram\nclass Animal\n").is_none());
+        assert!(try_draw(&bad, "classDiagram\nclass Animal\n").is_none());
     }
 
     #[test]
@@ -116,10 +108,7 @@ mod tests {
         theme.cluster_border = "#555555".into();
         theme.sequence_note_fill = "#2a2a2a".into();
         theme.sequence_note_border = "#555555".into();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Class;
         let svg = try_draw(
-            &graph,
             &theme,
             "classDiagram\nnamespace Shell {\n  class Bar\n}\nclass Theme\n",
         )

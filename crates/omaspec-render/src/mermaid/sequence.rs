@@ -1,6 +1,6 @@
 //! Mermaid sequence diagrams on the PlantUML sequence engine.
 //!
-//! mmdr has parsed the diagram. The engine reads the same source again
+//! The engine reads the source itself, not mmdr
 //! ([`from_mermaid`]) for the arrow heads, the activations and the
 //! participant shapes, which mmdr's graph does not keep, and draws it in
 //! the colors of the Mermaid theme. A construct the engine cannot draw
@@ -8,16 +8,13 @@
 //! a color it cannot read) leaves the diagram to mmdr.
 
 use super::{font_name, plain_number};
-use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
+use mermaid_rs_renderer::Theme;
 use omaspec_uml::map::Map;
 use omaspec_uml::sequence::{Skinparam, draw_mapped, from_mermaid};
 
 /// The SVG and where its messages are, or `None` when this drawer leaves
 /// the diagram to mmdr.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
-    if graph.kind != DiagramKind::Sequence {
-        return None;
-    }
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
     draw_mapped(&diagram).ok()

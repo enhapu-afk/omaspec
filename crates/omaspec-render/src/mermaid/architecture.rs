@@ -1,6 +1,6 @@
 //! Mermaid architecture diagrams on Omaspec's architecture drawer.
 //!
-//! mmdr has parsed the diagram. The drawer reads the same source again
+//! The drawer reads the source itself, not mmdr
 //! ([`from_mermaid`]) for the services, groups and ports, and paints them
 //! in the Mermaid theme. On the stock theme a service keeps the familiar
 //! architecture blue. On any other theme the tile is the accent and a
@@ -8,17 +8,14 @@
 //! refuses, or a theme color it cannot read, leaves the diagram to mmdr.
 
 use super::font_name;
-use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
+use mermaid_rs_renderer::Theme;
 use omaspec_uml::Color;
 use omaspec_uml::architecture::{self, Look, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
 /// The map stays empty: a service is not a message to jump to.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
-    if graph.kind != DiagramKind::Architecture {
-        return None;
-    }
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
@@ -73,6 +70,7 @@ fn solid(value: &str) -> Option<Color> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mermaid_rs_renderer::DiagramKind;
 
     const SAMPLE: &str = "\
 architecture-beta
@@ -84,9 +82,7 @@ architecture-beta
     #[test]
     fn draws_the_classic_blue_on_the_stock_theme() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Architecture;
-        let (svg, map) = try_draw(&graph, &theme, SAMPLE).unwrap();
+        let (svg, map) = try_draw(&theme, SAMPLE).unwrap();
         assert!(
             svg.contains("Web")
                 && svg.contains("DB")
@@ -100,11 +96,8 @@ architecture-beta
     }
 
     #[test]
-    fn leaves_another_kind_an_icon_pack_and_a_bad_theme() {
+    fn leaves_an_icon_pack_and_a_bad_theme() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        assert!(try_draw(&graph, &theme, SAMPLE).is_none());
-        graph.kind = DiagramKind::Architecture;
         assert_eq!(
             crate::mermaid::refused(
                 DiagramKind::Architecture,
@@ -115,7 +108,6 @@ architecture-beta
         );
         assert!(
             try_draw(
-                &graph,
                 &theme,
                 "architecture-beta\n  service db(logos:aws-aurora)[DB]\n"
             )
@@ -123,7 +115,7 @@ architecture-beta
         );
         let mut bad = Theme::mermaid_default();
         bad.primary_color = "nope".into();
-        assert!(try_draw(&graph, &bad, SAMPLE).is_none());
+        assert!(try_draw(&bad, SAMPLE).is_none());
     }
 
     #[test]
@@ -137,9 +129,7 @@ architecture-beta
         theme.line_color = "#e68e0d".into();
         theme.primary_text_color = "#bebebe".into();
         theme.text_color = "#bebebe".into();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Architecture;
-        let svg = try_draw(&graph, &theme, SAMPLE).unwrap().0;
+        let svg = try_draw(&theme, SAMPLE).unwrap().0;
         assert!(
             svg.contains("Web")
                 && svg.contains("#E68E0D")

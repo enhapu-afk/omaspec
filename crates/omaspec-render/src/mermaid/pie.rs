@@ -1,6 +1,6 @@
 //! Mermaid pie charts on Omaspec's pie drawer.
 //!
-//! mmdr has parsed the diagram. The drawer reads the same source again
+//! The drawer reads the source itself, not mmdr
 //! ([`from_mermaid`]) for the slices and the title, and paints them in
 //! the pie colors of the Mermaid theme. When the base colors move and no
 //! `pieN` was set, the slices are mixed from primary, secondary, tertiary
@@ -9,17 +9,14 @@
 //! diagram to mmdr.
 
 use super::font_name;
-use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
+use mermaid_rs_renderer::Theme;
 use omaspec_uml::Color;
 use omaspec_uml::map::Map;
 use omaspec_uml::pie::{Diagram, Look, draw, from_mermaid};
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
 /// The map stays empty: a slice is not a message to jump to.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
-    if graph.kind != DiagramKind::Pie {
-        return None;
-    }
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
@@ -212,14 +209,13 @@ fn solid(value: &str) -> Option<Color> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mermaid_rs_renderer::DiagramKind;
 
     #[test]
     fn draws_the_fixture_in_the_theme_colors() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Pie;
         let source = include_str!("../../../omaspec-core/tests/fixtures/pie.mmd");
-        let (svg, map) = try_draw(&graph, &theme, source).unwrap();
+        let (svg, map) = try_draw(&theme, source).unwrap();
         assert!(
             svg.contains("Disk usage")
                 && svg.contains("Packages")
@@ -248,19 +244,14 @@ mod tests {
     #[test]
     fn show_data_prints_the_written_number() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Pie;
-        let (svg, _) = try_draw(&graph, &theme, "pie showData\n\"Packages\" : 42\n").unwrap();
+        let (svg, _) = try_draw(&theme, "pie showData\n\"Packages\" : 42\n").unwrap();
         assert!(svg.contains("Packages [42]"), "{svg}");
     }
 
     #[test]
-    fn leaves_another_kind_and_a_negative_slice() {
+    fn leaves_a_negative_slice() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        assert!(try_draw(&graph, &theme, "pie\n\"a\" : 1\n").is_none());
-        graph.kind = DiagramKind::Pie;
-        let negative = try_draw(&graph, &theme, "pie showData\n\"a\" : -1\n\"b\" : 2\n")
+        let negative = try_draw(&theme, "pie showData\n\"a\" : -1\n\"b\" : 2\n")
             .unwrap()
             .0;
         assert!(
@@ -270,15 +261,15 @@ mod tests {
         assert!(crate::mermaid::refused(DiagramKind::Pie, "pie\n\"a\" : -1\n").is_none());
         let mut bad = Theme::mermaid_default();
         bad.pie_colors[0] = "nope".into();
-        assert!(try_draw(&graph, &bad, "pie\n\"a\" : 1\n").is_none());
+        assert!(try_draw(&bad, "pie\n\"a\" : 1\n").is_none());
         let mut wide = Theme::mermaid_default();
         wide.pie_opacity = 2.0;
-        assert!(try_draw(&graph, &wide, "pie\n\"a\" : 1\n").is_none());
+        assert!(try_draw(&wide, "pie\n\"a\" : 1\n").is_none());
         let mut clear = Theme::mermaid_default();
         clear.background = "transparent".into();
-        assert!(try_draw(&graph, &clear, "pie\n\"a\" : 1\n").is_some());
+        assert!(try_draw(&clear, "pie\n\"a\" : 1\n").is_some());
         clear.background = "nope".into();
-        assert!(try_draw(&graph, &clear, "pie\n\"a\" : 1\n").is_none());
+        assert!(try_draw(&clear, "pie\n\"a\" : 1\n").is_none());
     }
 
     #[test]
@@ -298,9 +289,7 @@ mod tests {
         let first = derived[0].mix(paper, share);
         let second = derived[1].mix(paper, share);
         assert_ne!(first, second);
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Pie;
-        let svg = try_draw(&graph, &theme, "pie title Disk\n\"A\" : 1\n\"B\" : 1\n")
+        let svg = try_draw(&theme, "pie title Disk\n\"A\" : 1\n\"B\" : 1\n")
             .unwrap()
             .0;
         let pastel = solid(&Theme::mermaid_default().pie_colors[0])
@@ -316,9 +305,7 @@ mod tests {
         );
         theme.pie_colors[0] = "#112233".into();
         theme.pie_opacity = 1.0;
-        let explicit = try_draw(&graph, &theme, "pie\n\"A\" : 1\n\"B\" : 1\n")
-            .unwrap()
-            .0;
+        let explicit = try_draw(&theme, "pie\n\"A\" : 1\n\"B\" : 1\n").unwrap().0;
         assert!(
             explicit.to_ascii_lowercase().contains("#112233"),
             "{explicit}"

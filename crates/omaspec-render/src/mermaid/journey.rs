@@ -1,6 +1,6 @@
 //! Mermaid user journeys on Omaspec's journey drawer.
 //!
-//! mmdr has parsed the diagram. The drawer reads the same source again
+//! The drawer reads the source itself, not mmdr
 //! ([`from_mermaid`]) for the sections, the tasks and the actors. Section
 //! bands and actor dots are mixed from the theme's primary, secondary and
 //! tertiary colors and the accent. The face stays the cream journey mark.
@@ -8,17 +8,14 @@
 //! diagram to mmdr.
 
 use super::font_name;
-use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
+use mermaid_rs_renderer::Theme;
 use omaspec_uml::Color;
 use omaspec_uml::journey::{Diagram, Look, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
 /// The map stays empty: a task is not a message to jump to.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
-    if graph.kind != DiagramKind::Journey {
-        return None;
-    }
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
@@ -83,15 +80,14 @@ fn solid(value: &str) -> Option<Color> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mermaid_rs_renderer::DiagramKind;
 
     #[test]
     fn draws_the_fixture() {
         let mut theme = Theme::mermaid_default();
         theme.text_color = "#112233".into();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Journey;
         let source = include_str!("../../../omaspec-core/tests/fixtures/journey.mmd");
-        let (svg, map) = try_draw(&graph, &theme, source).unwrap();
+        let (svg, map) = try_draw(&theme, source).unwrap();
         let (sections, actors) = marks(&theme).unwrap();
         assert!(
             svg.contains("First boot")
@@ -108,15 +104,12 @@ mod tests {
     }
 
     #[test]
-    fn leaves_another_kind_and_a_bad_score() {
+    fn leaves_a_bad_score() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        assert!(try_draw(&graph, &theme, "journey\nNap: 5: Me\n").is_none());
-        graph.kind = DiagramKind::Journey;
-        let zero = try_draw(&graph, &theme, "journey\nNap: 0: Me\n").unwrap().0;
+        let zero = try_draw(&theme, "journey\nNap: 0: Me\n").unwrap().0;
         assert!(zero.contains("Nap"), "{zero}");
         assert!(crate::mermaid::refused(DiagramKind::Journey, "journey\nNap: 0: Me\n").is_none());
-        let six = try_draw(&graph, &theme, "journey\nNap: 6: Me\n").unwrap().0;
+        let six = try_draw(&theme, "journey\nNap: 6: Me\n").unwrap().0;
         assert!(six.contains("Nap"), "{six}");
         assert_eq!(
             crate::mermaid::refused(DiagramKind::Journey, "journey\nNap: nope: Me\n")
@@ -125,27 +118,27 @@ mod tests {
         );
         let mut bad = Theme::mermaid_default();
         bad.background = "nope".into();
-        assert!(try_draw(&graph, &bad, "journey\nNap: 5: Me\n").is_none());
+        assert!(try_draw(&bad, "journey\nNap: 5: Me\n").is_none());
         bad.background = "transparent".into();
         bad.text_color = "nope".into();
-        assert!(try_draw(&graph, &bad, "journey\nNap: 5: Me\n").is_none());
+        assert!(try_draw(&bad, "journey\nNap: 5: Me\n").is_none());
         bad.text_color = "#333".into();
         bad.font_family = "<bad>".into();
-        assert!(try_draw(&graph, &bad, "journey\nNap: 5: Me\n").is_none());
+        assert!(try_draw(&bad, "journey\nNap: 5: Me\n").is_none());
         bad.font_family = Theme::mermaid_default().font_family;
         bad.font_size = 2.0;
-        assert!(try_draw(&graph, &bad, "journey\nNap: 5: Me\n").is_none());
+        assert!(try_draw(&bad, "journey\nNap: 5: Me\n").is_none());
         let mut primary = Theme::mermaid_default();
         primary.primary_color = "nope".into();
-        assert!(try_draw(&graph, &primary, "journey\nNap: 5: Me\n").is_none());
+        assert!(try_draw(&primary, "journey\nNap: 5: Me\n").is_none());
         primary.primary_color = Theme::mermaid_default().primary_color;
         primary.secondary_color = "nope".into();
-        assert!(try_draw(&graph, &primary, "journey\nNap: 5: Me\n").is_none());
+        assert!(try_draw(&primary, "journey\nNap: 5: Me\n").is_none());
         primary.secondary_color = Theme::mermaid_default().secondary_color;
         primary.primary_border_color = "nope".into();
-        assert!(try_draw(&graph, &primary, "journey\nNap: 5: Me\n").is_some());
+        assert!(try_draw(&primary, "journey\nNap: 5: Me\n").is_some());
         primary.line_color = "nope".into();
-        assert!(try_draw(&graph, &primary, "journey\nNap: 5: Me\n").is_none());
+        assert!(try_draw(&primary, "journey\nNap: 5: Me\n").is_none());
     }
 
     #[test]
@@ -162,9 +155,7 @@ mod tests {
         assert!(sections.iter().all(|color| color.is_dark()));
         assert_unique(&sections);
         assert_unique(&actors);
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Journey;
-        let svg = try_draw(&graph, &theme, "journey\nsection Go\nNap: 5: Me\n")
+        let svg = try_draw(&theme, "journey\nsection Go\nNap: 5: Me\n")
             .unwrap()
             .0;
         assert!(

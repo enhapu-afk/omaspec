@@ -1,23 +1,20 @@
 //! Mermaid Gantt charts on the PlantUML Gantt engine.
 //!
-//! mmdr has parsed the diagram. The engine reads the same source again
+//! The engine reads the source itself, not mmdr
 //! ([`from_mermaid`]) for the dates, the sections and the dependencies,
 //! and draws it in the colors of the Mermaid theme. On a restyled page the
 //! bar picks up the accent, so a surface-colored bar does not vanish.
 //! A construct the day scale cannot place leaves the diagram to mmdr.
 
 use super::{font_name, plain_number};
-use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
+use mermaid_rs_renderer::Theme;
 use omaspec_uml::Color;
 use omaspec_uml::gantt::{Diagram, Marks, Row, Skinparam, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
 /// The map stays empty: a Gantt bar is not a message to jump to.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
-    if graph.kind != DiagramKind::Gantt {
-        return None;
-    }
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
     paint(&mut diagram, theme)?;
@@ -104,12 +101,11 @@ fn solid(value: &str) -> Option<Color> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mermaid_rs_renderer::DiagramKind;
 
     #[test]
     fn draws_a_gantt_in_the_theme_colors() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Gantt;
         let source = "\
 gantt
 dateFormat YYYY-MM-DD
@@ -119,7 +115,7 @@ Done :done, 2026-01-03, 2d
 Hot :crit, 2026-01-05, 1d
 Ship :milestone, m, 2026-01-06, 0d
 ";
-        let (svg, map) = try_draw(&graph, &theme, source).unwrap();
+        let (svg, map) = try_draw(&theme, source).unwrap();
         assert!(
             svg.contains("Plain")
                 && svg.contains("Done")
@@ -151,13 +147,9 @@ Ship :milestone, m, 2026-01-06, 0d
     }
 
     #[test]
-    fn leaves_another_kind_and_an_excluded_day() {
+    fn leaves_an_excluded_day() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        assert!(try_draw(&graph, &theme, "gantt\n").is_none());
-        graph.kind = DiagramKind::Gantt;
         let weekends = try_draw(
-            &graph,
             &theme,
             "gantt\ndateFormat YYYY-MM-DD\nexcludes weekends\nWork :2026-01-05, 5d\n",
         )
@@ -174,14 +166,7 @@ Ship :milestone, m, 2026-01-06, 0d
         );
         let mut bad = Theme::mermaid_default();
         bad.primary_color = "nope".into();
-        assert!(
-            try_draw(
-                &graph,
-                &bad,
-                "gantt\ndateFormat YYYY-MM-DD\nA :2026-01-01, 1d\n"
-            )
-            .is_none()
-        );
+        assert!(try_draw(&bad, "gantt\ndateFormat YYYY-MM-DD\nA :2026-01-01, 1d\n").is_none());
     }
 
     #[test]
@@ -199,10 +184,7 @@ Ship :milestone, m, 2026-01-06, 0d
             .mix(solid("#e68e0d").unwrap(), 0.45);
         let page = solid("#121212").unwrap();
         let ink = solid("#bebebe").unwrap();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Gantt;
         let svg = try_draw(
-            &graph,
             &theme,
             "gantt\ndateFormat YYYY-MM-DD\nsection Core\nPlain :2026-01-05, 2d\n",
         )

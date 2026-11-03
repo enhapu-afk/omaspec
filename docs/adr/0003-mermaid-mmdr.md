@@ -35,7 +35,9 @@ none failed.
 - mmdr reads `%%{init}%%` only on one line; Omaspec joins a multi-line one
   first and pads with blank lines so error lines stay right.
 - mmdr refuses messages to participants that were never declared; Mermaid
-  creates them. Lint already warns about such names.
+  creates them. Lint already warns about such names. Since 2026-11-03 mmdr
+  parses only for the diagrams Omaspec does not draw itself, so Omaspec's
+  sequence drawer creates them as Mermaid does.
 - Flowchart layout costs 40–100 ms even for seven nodes; port assignment
   takes about 70 % of it (`render_with_detailed_timing`). Worth an upstream
   issue with a minimal example.

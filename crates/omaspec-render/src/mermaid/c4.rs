@@ -1,6 +1,6 @@
 //! Mermaid C4 diagrams on Omaspec's C4 drawer.
 //!
-//! mmdr has parsed the diagram. The drawer reads the same source again
+//! The drawer reads the source itself, not mmdr
 //! ([`from_mermaid`]) for the people, boxes, cylinders and relationships,
 //! and paints them in the Mermaid theme. On the stock theme the boxes keep
 //! the classic C4 colors. On any other theme a person, a system, a
@@ -9,17 +9,14 @@
 //! refuses, or a theme color it cannot read, leaves the diagram to mmdr.
 
 use super::font_name;
-use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
+use mermaid_rs_renderer::Theme;
 use omaspec_uml::Color;
 use omaspec_uml::c4::{self, Look, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
 /// The map stays empty: a box is not a message to jump to.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
-    if graph.kind != DiagramKind::C4 {
-        return None;
-    }
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
@@ -75,6 +72,7 @@ fn solid(value: &str) -> Option<Color> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mermaid_rs_renderer::DiagramKind;
 
     const SAMPLE: &str = "\
 C4Context
@@ -87,9 +85,7 @@ Rel(admin, sys, \"Uses\")
     #[test]
     fn draws_the_classic_colors_and_dark_text_on_a_light_box() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::C4;
-        let (svg, map) = try_draw(&graph, &theme, SAMPLE).unwrap();
+        let (svg, map) = try_draw(&theme, SAMPLE).unwrap();
         assert!(
             svg.contains("Admin")
                 && svg.contains("Uses")
@@ -104,11 +100,8 @@ Rel(admin, sys, \"Uses\")
     }
 
     #[test]
-    fn leaves_another_kind_a_sprite_and_a_bad_theme() {
+    fn leaves_a_sprite_and_a_bad_theme() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        assert!(try_draw(&graph, &theme, SAMPLE).is_none());
-        graph.kind = DiagramKind::C4;
         assert_eq!(
             crate::mermaid::refused(
                 DiagramKind::C4,
@@ -119,9 +112,8 @@ Rel(admin, sys, \"Uses\")
         );
         let mut bad = Theme::mermaid_default();
         bad.primary_color = "nope".into();
-        assert!(try_draw(&graph, &bad, SAMPLE).is_none());
+        assert!(try_draw(&bad, SAMPLE).is_none());
         let painted = try_draw(
-            &graph,
             &theme,
             "C4Context\nPerson(admin, \"Admin\")\nUpdateElementStyle(admin, #f9f)\n",
         )
@@ -144,9 +136,7 @@ Rel(admin, sys, \"Uses\")
         theme.line_color = "#e68e0d".into();
         theme.primary_text_color = "#bebebe".into();
         theme.text_color = "#bebebe".into();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::C4;
-        let svg = try_draw(&graph, &theme, SAMPLE).unwrap().0;
+        let svg = try_draw(&theme, SAMPLE).unwrap().0;
         assert!(
             svg.contains("Admin")
                 && svg.contains("#E68E0D")

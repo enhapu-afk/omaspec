@@ -1,6 +1,6 @@
 //! Mermaid ER diagrams on Omaspec's ER drawer.
 //!
-//! mmdr has parsed the diagram. The drawer reads the same source again
+//! The drawer reads the source itself, not mmdr
 //! ([`from_mermaid`]) for the entities, the attributes and the crow's feet,
 //! and paints them in the Mermaid theme. The entity fill is the primary
 //! color, the border is the accent, and a label uses the theme text when
@@ -8,17 +8,14 @@
 //! it cannot read, leaves the diagram to mmdr.
 
 use super::font_name;
-use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
+use mermaid_rs_renderer::Theme;
 use omaspec_uml::Color;
 use omaspec_uml::er::{self, Look, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
 /// The map stays empty: an entity is not a message to jump to.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
-    if graph.kind != DiagramKind::Er {
-        return None;
-    }
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
@@ -54,14 +51,13 @@ fn solid(value: &str) -> Option<Color> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mermaid_rs_renderer::DiagramKind;
 
     #[test]
     fn draws_the_entities_in_the_default_colors() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Er;
         let source = include_str!("../../../omaspec-core/tests/fixtures/er.mmd");
-        let (svg, map) = try_draw(&graph, &theme, source).unwrap();
+        let (svg, map) = try_draw(&theme, source).unwrap();
         assert!(
             svg.contains("PACKAGE")
                 && svg.contains("FILE")
@@ -73,11 +69,8 @@ mod tests {
     }
 
     #[test]
-    fn leaves_another_kind_a_style_and_a_bad_theme() {
+    fn leaves_a_style_and_a_bad_theme() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        assert!(try_draw(&graph, &theme, "erDiagram\n  A ||--|| B : x\n").is_none());
-        graph.kind = DiagramKind::Er;
         assert_eq!(
             crate::mermaid::refused(DiagramKind::Er, "erDiagram\n  style A opacity:1\n")
                 .map(|(_, reason)| reason),
@@ -85,14 +78,10 @@ mod tests {
         );
         let mut bad = Theme::mermaid_default();
         bad.primary_color = "nope".into();
-        assert!(try_draw(&graph, &bad, "erDiagram\n  A ||--|| B : x\n").is_none());
-        let painted = try_draw(
-            &graph,
-            &theme,
-            "erDiagram\n  A ||--|| B : x\n  style A fill:#f9f\n",
-        )
-        .unwrap()
-        .0;
+        assert!(try_draw(&bad, "erDiagram\n  A ||--|| B : x\n").is_none());
+        let painted = try_draw(&theme, "erDiagram\n  A ||--|| B : x\n  style A fill:#f9f\n")
+            .unwrap()
+            .0;
         assert!(
             painted.contains("#FF99FF") && painted.contains("A"),
             "{painted}"
@@ -110,9 +99,7 @@ mod tests {
         theme.line_color = "#e68e0d".into();
         theme.primary_text_color = "#bebebe".into();
         theme.text_color = "#bebebe".into();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Er;
-        let svg = try_draw(&graph, &theme, "erDiagram\n  USER ||--o{ ORDER : places\n")
+        let svg = try_draw(&theme, "erDiagram\n  USER ||--o{ ORDER : places\n")
             .unwrap()
             .0;
         assert!(

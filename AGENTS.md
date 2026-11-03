@@ -48,8 +48,9 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
 - A new diagram type is read, measured and painted in modules of their own
   (as `omaspec-uml/src/activity/`); no new file grows past about 1,000 lines.
 - A Mermaid kind with a drawer of its own is one entry in `NATIVE`
-  (`omaspec-render/src/mermaid.rs`): no other list of kinds, no `try_draw`
-  chain, no `named_decline` of its own.
+  (`omaspec-render/src/mermaid.rs`), with the words of its header: no
+  other list of kinds, no `try_draw` chain, no `named_decline` of its own.
+  Its drawer reads the text itself; mmdr's parse is only the fallback.
 - State diagrams of both languages are drawn by `omaspec-uml/src/state/`
   (Mermaid's lowered by `state::from_mermaid`). Containers that open
   (docs/adr/0013) are laid out once, by `omaspec_uml::graph::open`, for

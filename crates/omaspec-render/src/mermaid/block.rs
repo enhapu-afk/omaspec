@@ -1,6 +1,6 @@
 //! Mermaid block diagrams on Omaspec's block drawer.
 //!
-//! mmdr has parsed the diagram. The drawer reads the same source again
+//! The drawer reads the source itself, not mmdr
 //! ([`from_mermaid`]) for the grid, the nested frames and the edges, and
 //! paints them in the Mermaid theme. On the stock theme a block keeps the
 //! familiar lilac tile. On any other theme the tile mixes the accent onto
@@ -9,17 +9,14 @@
 //! diagram to mmdr.
 
 use super::font_name;
-use mermaid_rs_renderer::{DiagramKind, Graph, Theme};
+use mermaid_rs_renderer::Theme;
 use omaspec_uml::Color;
 use omaspec_uml::block::{self, Look, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr.
 /// The map stays empty: a block is not a message to jump to.
-pub fn try_draw(graph: &Graph, theme: &Theme, source: &str) -> Option<(String, Map)> {
-    if graph.kind != DiagramKind::Block {
-        return None;
-    }
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
@@ -74,6 +71,7 @@ fn solid(value: &str) -> Option<Color> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mermaid_rs_renderer::DiagramKind;
 
     const SAMPLE: &str = "\
 block-beta
@@ -84,9 +82,7 @@ block-beta
     #[test]
     fn draws_the_classic_lilac_on_the_stock_theme() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Block;
-        let (svg, map) = try_draw(&graph, &theme, SAMPLE).unwrap();
+        let (svg, map) = try_draw(&theme, SAMPLE).unwrap();
         assert!(
             svg.contains("Web")
                 && svg.contains("DB")
@@ -100,20 +96,17 @@ block-beta
     }
 
     #[test]
-    fn leaves_another_kind_a_class_and_a_bad_theme() {
+    fn leaves_a_class_and_a_bad_theme() {
         let theme = Theme::mermaid_default();
-        let mut graph = Graph::new();
-        assert!(try_draw(&graph, &theme, SAMPLE).is_none());
-        graph.kind = DiagramKind::Block;
         assert_eq!(
             crate::mermaid::refused(DiagramKind::Block, "block-beta\nclassDef a fill:#fff\n")
                 .map(|(_, reason)| reason),
             Some("a class is not drawn by Omaspec; mmdr draws it".into())
         );
-        assert!(try_draw(&graph, &theme, "block-beta\nclassDef a fill:#fff\n").is_none());
+        assert!(try_draw(&theme, "block-beta\nclassDef a fill:#fff\n").is_none());
         let mut bad = Theme::mermaid_default();
         bad.primary_color = "nope".into();
-        assert!(try_draw(&graph, &bad, SAMPLE).is_none());
+        assert!(try_draw(&bad, SAMPLE).is_none());
     }
 
     #[test]
@@ -127,9 +120,7 @@ block-beta
         theme.line_color = "#e68e0d".into();
         theme.primary_text_color = "#bebebe".into();
         theme.text_color = "#bebebe".into();
-        let mut graph = Graph::new();
-        graph.kind = DiagramKind::Block;
-        let svg = try_draw(&graph, &theme, SAMPLE).unwrap().0;
+        let svg = try_draw(&theme, SAMPLE).unwrap().0;
         assert!(
             svg.contains("Web")
                 && svg.contains("#E68E0D")

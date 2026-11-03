@@ -7,6 +7,7 @@ mod c4;
 mod class;
 mod er;
 mod gantt;
+mod head;
 mod journey;
 mod layered;
 mod mindmap;
@@ -20,8 +21,7 @@ use std::borrow::Cow;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use mermaid_rs_renderer::{
-    DiagramKind, Graph, ParseError, RenderOptions, Theme, compute_layout, parse_mermaid_strict,
-    render_svg,
+    DiagramKind, ParseError, RenderOptions, Theme, compute_layout, parse_mermaid_strict, render_svg,
 };
 use omaspec_core::lang::mermaid_body;
 use omaspec_uml::tree::Tiles;
@@ -123,23 +123,21 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
     // mmdr is young and has panicking code paths; a bad diagram must not
     // take the editor down with it.
     let result = catch_unwind(AssertUnwindSafe(|| -> Result<Drawn, ParseError> {
+        let init = head::init(body)?;
         let mut options = RenderOptions::default();
-        let parsed = parse_mermaid_strict(body)?;
-        if let Some(init) = &parsed.init_config {
+        if let Some(init) = &init {
             apply_init(&mut options, init);
         }
-        // The kinds in `NATIVE` use their engines, state diagrams the one
-        // PlantUML's are drawn with; flowcharts lay out on the shared
-        // graph. Anything a drawer does not accept keeps mmdr's layout.
-        let native = NATIVE.iter().find(|n| n.kind == parsed.graph.kind);
+        // The kinds in `NATIVE` read the text themselves, so mmdr's parse
+        // does not decide whether they draw; state diagrams use the engine
+        // PlantUML's are drawn with.
         let input = Input {
-            graph: &parsed.graph,
             theme: &options.theme,
             body,
             fenced,
             tiles,
         };
-        if let Some(native) = native
+        if let Some(native) = native(body)
             && let Some((svg, map)) = (native.draw)(&input)
         {
             return Ok(Drawn {
@@ -148,7 +146,10 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
                 declined: None,
             });
         }
-        let curve = flowchart_curve(parsed.init_config.as_ref());
+        // Flowcharts lay out on the shared graph from mmdr's reading.
+        // Anything a drawer does not accept keeps mmdr's layout.
+        let parsed = parse_mermaid_strict(body)?;
+        let curve = flowchart_curve(init.as_ref());
         let flowchart = parsed.graph.kind == DiagramKind::Flowchart;
         if let Some((svg, map)) = flowchart
             .then(|| layered::try_draw(&parsed.graph, &options.theme, body, &hands, curve))
@@ -182,11 +183,11 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
     }
 }
 
-/// What a drawer gets: mmdr's graph (which picked the kind), the theme,
-/// the text mmdr parsed, the same text on its own lines inside the fence,
-/// and the tiles for a mind map that is a project's map.
+/// What a drawer gets: the theme, the text as mmdr would read it (a
+/// `%%{init}%%` on one line, a note over several lines on one), the same
+/// text on its own lines inside the fence, and the tiles for a mind map
+/// that is a project's map.
 struct Input<'a> {
-    graph: &'a Graph,
     theme: &'a Theme,
     body: &'a str,
     fenced: &'a str,
@@ -198,9 +199,12 @@ struct Input<'a> {
 type Draw = fn(&Input) -> Option<(String, Map)>;
 
 /// A kind of Mermaid diagram with a drawer of Omaspec's own, which reads
-/// the text itself: mmdr's reading picks the kind and the theme.
+/// the text itself: mmdr reads it only when the drawer leaves it to mmdr.
 struct Native {
     kind: DiagramKind,
+    /// The words a header of this kind starts with, in lower case, as
+    /// mmdr knows them.
+    headers: &'static [&'static str],
     /// What the diagram is called when mmdr draws it instead.
     noun: &'static str,
     /// Draws it, or leaves it to mmdr.
@@ -213,77 +217,104 @@ struct Native {
 const NATIVE: &[Native] = &[
     Native {
         kind: DiagramKind::Sequence,
+        headers: &["sequencediagram"],
         noun: "sequence diagram",
-        draw: |i| sequence::try_draw(i.graph, i.theme, i.body),
+        draw: |i| sequence::try_draw(i.theme, i.body),
         refusal: omaspec_uml::sequence::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Class,
+        headers: &["classdiagram"],
         noun: "class diagram",
-        draw: |i| class::try_draw(i.graph, i.theme, i.body),
+        draw: |i| class::try_draw(i.theme, i.body),
         refusal: omaspec_uml::structure::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::State,
+        headers: &["statediagram"],
         noun: "state diagram",
         draw: |i| state::try_draw(i.theme, i.fenced),
         refusal: |_| None,
     },
     Native {
         kind: DiagramKind::Mindmap,
+        headers: &["mindmap"],
         noun: "mind map",
-        draw: |i| mindmap::try_draw(i.graph, i.theme, i.body, i.tiles),
+        draw: |i| mindmap::try_draw(i.theme, i.body, i.tiles),
         refusal: omaspec_uml::tree::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Gantt,
+        headers: &["gantt"],
         noun: "Gantt chart",
-        draw: |i| gantt::try_draw(i.graph, i.theme, i.body),
+        draw: |i| gantt::try_draw(i.theme, i.body),
         refusal: omaspec_uml::gantt::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Pie,
+        headers: &["pie"],
         noun: "pie chart",
-        draw: |i| pie::try_draw(i.graph, i.theme, i.body),
+        draw: |i| pie::try_draw(i.theme, i.body),
         refusal: omaspec_uml::pie::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Journey,
+        headers: &["journey"],
         noun: "user journey",
-        draw: |i| journey::try_draw(i.graph, i.theme, i.body),
+        draw: |i| journey::try_draw(i.theme, i.body),
         refusal: omaspec_uml::journey::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Timeline,
+        headers: &["timeline"],
         noun: "timeline",
-        draw: |i| timeline::try_draw(i.graph, i.theme, i.body),
+        draw: |i| timeline::try_draw(i.theme, i.body),
         refusal: omaspec_uml::timeline::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Er,
+        headers: &["erdiagram"],
         noun: "ER diagram",
-        draw: |i| er::try_draw(i.graph, i.theme, i.body),
+        draw: |i| er::try_draw(i.theme, i.body),
         refusal: omaspec_uml::er::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::C4,
+        headers: &[
+            "c4",
+            "c4context",
+            "c4container",
+            "c4component",
+            "c4dynamic",
+            "c4deployment",
+        ],
         noun: "C4 diagram",
-        draw: |i| c4::try_draw(i.graph, i.theme, i.body),
+        draw: |i| c4::try_draw(i.theme, i.body),
         refusal: omaspec_uml::c4::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Architecture,
+        headers: &["architecture"],
         noun: "architecture diagram",
-        draw: |i| architecture::try_draw(i.graph, i.theme, i.body),
+        draw: |i| architecture::try_draw(i.theme, i.body),
         refusal: omaspec_uml::architecture::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Block,
+        headers: &["block"],
         noun: "block diagram",
-        draw: |i| block::try_draw(i.graph, i.theme, i.body),
+        draw: |i| block::try_draw(i.theme, i.body),
         refusal: omaspec_uml::block::mermaid_refusal,
     },
 ];
+
+/// The drawer of Omaspec's own for the kind the header of `body` names.
+fn native(body: &str) -> Option<&'static Native> {
+    let header = head::header(body)?;
+    NATIVE
+        .iter()
+        .find(|n| n.headers.iter().any(|word| head::names(&header, word)))
+}
 
 /// The construct a drawer of `kind` refuses by name in `body`: its line,
 /// and why mmdr draws the diagram instead.
@@ -1082,5 +1113,103 @@ Note over Alice,Bob
 end note";
         let svg = render(source).unwrap();
         assert!(svg.contains("both see this"), "{svg}");
+    }
+
+    /// The kind of each native drawer mmdr reads from `body`, if any.
+    fn mmdr_native(body: &str) -> Option<DiagramKind> {
+        let kind = mermaid_rs_renderer::parse_mermaid(body).ok()?.graph.kind;
+        NATIVE.iter().any(|n| n.kind == kind).then_some(kind)
+    }
+
+    #[test]
+    fn the_header_picks_the_drawer_mmdr_would() {
+        let headers = [
+            "sequenceDiagram",
+            "classDiagram",
+            "classDiagram-v2",
+            "stateDiagram",
+            "stateDiagram-v2",
+            "mindmap",
+            "gantt",
+            "pie",
+            "Pie title Pets",
+            "pieChart",
+            "journey",
+            "timeline",
+            "erDiagram",
+            "C4Context",
+            "C4Container",
+            "C4Component",
+            "C4Dynamic",
+            "C4Deployment",
+            "architecture-beta",
+            "block-beta",
+            "flowchart LR",
+            "graph TD",
+            "requirementDiagram",
+            "gitGraph",
+            "sankey-beta",
+            "quadrantChart",
+            "xychart-beta",
+            "packet-beta",
+            "kanban",
+            "zenuml",
+        ];
+        for header in headers {
+            let body = format!("---\ntitle: x\n---\n%% a comment\n{header} %% and one more\n");
+            assert_eq!(
+                native(&body).map(|n| n.kind),
+                mmdr_native(&body),
+                "{header}"
+            );
+        }
+        // And every Mermaid diagram of the repository, as it is drawn.
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+        let mut seen = 0;
+        for dir in [
+            "examples",
+            "examples/gallery",
+            "crates/omaspec-core/tests/fixtures",
+            "crates/omaspec-render/tests/layered",
+        ] {
+            for entry in std::fs::read_dir(format!("{root}/{dir}")).unwrap() {
+                let path = entry.unwrap().path();
+                if path.extension().is_none_or(|ext| ext != "mmd") {
+                    continue;
+                }
+                let source = std::fs::read_to_string(&path).unwrap();
+                let (fenced, _) = mermaid_body(&source);
+                let joined = one_line_init(fenced);
+                let body = fold_multiline_notes(&joined);
+                if let Some(theirs) = mmdr_native(&body) {
+                    assert_eq!(native(&body).map(|n| n.kind), Some(theirs), "{path:?}");
+                    seen += 1;
+                }
+            }
+        }
+        assert!(seen > 20, "{seen}");
+    }
+
+    #[test]
+    fn a_drawer_of_its_own_draws_what_mmdr_refuses() {
+        // Once one participant is declared, mmdr refuses a message to one
+        // that is not; Mermaid creates it, and so does Omaspec's reader.
+        let source = "sequenceDiagram\nparticipant Alice\nAlice->>Bob: hi\n";
+        assert!(parse_mermaid_strict(source).is_err());
+        assert_eq!(coverage(source).unwrap(), None);
+        let svg = render(source).unwrap();
+        assert!(svg.contains("Bob"), "{svg}");
+        // A flowchart lays out on mmdr's reading, so its errors stay.
+        assert!(coverage("flowchart TD\n  subgraph S\n  A --> B\n").is_err());
+    }
+
+    #[test]
+    fn a_broken_init_is_an_error_on_its_line() {
+        let err = render("```mermaid\npie\n%%{init: {theme: }}%%\n\"a\" : 1\n```").unwrap_err();
+        let RenderError::Diagram { line, message, .. } = err else {
+            panic!("{err:?}");
+        };
+        assert_eq!(line, Some(2));
+        assert!(message.contains("invalid directive 'init'"), "{message}");
     }
 }
