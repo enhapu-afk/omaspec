@@ -1,7 +1,8 @@
 # 0006: Goals and scope
 
 Status: accepted, 2026-10-18. Its scope is replaced by
-[0007](0007-behavior-specifications.md); the goals stay.
+[0007](0007-behavior-specifications.md); the goals stay. *Scales* was
+added on 2026-11-03.
 
 ## Decision
 
@@ -35,6 +36,12 @@ Every change is checked against these.
   Omaspec drew the diagram or a fallback did, and why. Output is
   deterministic. `AGENTS.md` lists the commands. A new feature that works
   on a diagram gets a command where one makes sense.
+- **Scales.** A project of hundreds of diagrams is as easy to work in as
+  one of ten: opening, checking, finding, renaming, following links and
+  exporting stay quick, measured on generated projects of up to 2,000
+  diagrams. A change reads again only what it touched. Versions and
+  exchange go through git and plain files that carry their source, never
+  through a server or a format of Omaspec's own.
 - **Keyboard, mouse and touchpad.** Each is a full way to work, none an
   afterthought. Every command has keys and is in the command palette;
   everything on screen can be clicked, dragged and resized; on a touchpad

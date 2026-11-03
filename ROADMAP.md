@@ -1,9 +1,10 @@
 # Omaspec roadmap
 
 A native PlantUML and Mermaid editor for Omarchy, in Rust. Independent, secure
-and fast; friendly to AI agents; for keyboard, mouse and touchpad; in the colors
-of the active Omarchy theme. Goals: [0006](docs/adr/0006-goals-and-scope.md). Focus:
-behavior specifications, checked and later run, not every diagram type
+and fast; at ease with projects of hundreds of diagrams; friendly to AI agents;
+for keyboard, mouse and touchpad; in the colors of the active Omarchy theme.
+Goals: [0006](docs/adr/0006-goals-and-scope.md). Focus: behavior specifications,
+checked and later run, not every diagram type
 ([0007](docs/adr/0007-behavior-specifications.md)).
 
 Decisions live in [docs/adr](docs/adr). Releases go to the AUR early, starting
@@ -1111,3 +1112,144 @@ dispatch spread over two lists. The rules it set for the next change are in
 - [ ] Large files cut along the phases they already have, when they are
       next touched: `formula.rs` (parse, symbols, layout, paint); `c4.rs`,
       `block.rs`, `er.rs`, `architecture.rs` (read, measure, paint).
+
+## Plan for 0.6 to 0.9 (2026-11-03)
+
+What people find hardest with PlantUML and Mermaid, gathered after 0.5: a layout
+they cannot steer, diagrams that turn unreadable on a dark page, links and colors
+lost on export, and projects of hundreds of diagrams nobody keeps track of, with no
+history of what changed and no easy way to hand them on. And what still jars in
+Omaspec itself: a diagram opens smaller than its pane, and the zoom into a linked
+diagram ends close up and then jumps out. So the goals gain one, **Scales**
+([0006](docs/adr/0006-goals-and-scope.md)). Versions and exchange go through git and
+plain files that carry their source: no server, no account, no format of Omaspec's
+own ([0005](docs/adr/0005-offline-no-telemetry.md)). Each step says how it is
+checked; numbers are measured, not assumed.
+
+### Step 0: the yardstick
+
+- [ ] Scale measured: generated projects of 100, 500 and 2,000 diagrams (state
+      machines, scenarios that name them, a map, traces), timed in `cargo bench`:
+      opening the folder, reading the project, `lint --project`, drawing the map,
+      Ctrl+P, a change to one machine, memory. Today `specs::read_project` reads and
+      parses every file of the project when the folder opens, a file opens and the
+      window gets the focus, and a changed atlas draws every open document of the
+      project again. The numbers go here and set the order of 0.8.
+
+### 0.6: it fits, it glides, it follows the theme
+
+- [ ] A diagram fills its pane: `View::fitted` never enlarges past 100 %, so a small
+      diagram opens small in a large pane, with paper all around. Fit fills the pane
+      but for its margin, in the editor, the preview window, Compare and the
+      diagram's own window; only a diagram whose text would grow past a size chosen
+      in a real window stops there. A test: diagrams small and large each fill the
+      pane along the side that limits them.
+- [ ] A dive without a jump: the zoom into a linked state ends with the state's box
+      filling 90 % of the pane (`DIVE_FILL`), then the linked diagram opens fitted, so
+      the view jumps from close to far, and its picture fades in only once it is
+      drawn. The linked diagram is drawn from the atlas as the dive starts; the dive
+      ends where the box is as large as the linked diagram will be when fitted, its
+      picture fading in inside the box on the way, and the new tab starts at exactly
+      that place. Zoom and pan move together on the path van Wijk and Nuij describe
+      (*Smooth and efficient zooming and panning*, 2003; d3's `interpolateZoom`),
+      easing in and out, taking longer the further it goes. Back out (Alt+Left, the
+      trail) is the same path reversed. Test with a frozen clock: the linked
+      diagram's place on screen in the dive's last frame and in the new tab's first
+      differ by at most a pixel, and the zoom changes smoothly from frame to frame.
+- [ ] Smooth frames, measured: `OMASPEC_FRAMES=1` logs how long each frame of a
+      dive, a glide and a play takes. Suspected: a dive into a small box stretches
+      the overview raster until the sharp pixels arrive at the end. Pixels sharp
+      enough for the whole way, asked for before it starts. Goal: no frame over
+      16.7 ms on a 1440p pane; checked in a real window.
+- [ ] Diagrams in the theme's colors by default: `follow_theme` starts off, so the
+      paper stays white on a dark theme (`docs/images/themes.png`). It starts on; a
+      session that switched it off keeps that. A test draws every gallery example in
+      every bundled theme and holds each text to 4.5:1 against what lies under it and
+      each line to 3:1 against the paper, in the SVG. Colors the writer set
+      (`skinparam`, `style`, `classDef`) stay theirs; lint names a pair of them under
+      3:1.
+- [ ] Gallery tiles that read: the picture cropped to the diagram and filling its
+      tile, fewer and larger tiles in a narrow window, in the colors the contrast test
+      holds.
+- [ ] Diamonds 1.6 times as wide as high: `layered/shape.rs` makes a decision with a
+      short word as wide as high (the ratio follows the text, between 1 and 3); at
+      least 1.6 now. PlantUML's activity diamonds looked at the same way. Goldens
+      looked at side by side.
+
+### 0.7: handed on without Omaspec
+
+- [ ] Export looks: `render --look plain|omarchy|light|dark|auto`, in the export
+      prompt and the MCP tool, laid over at render time as the pane lays the theme
+      over; the file and the source in the image stay as written, the colors stay in
+      the SVG. `auto` is one SVG with a light and a dark palette under
+      `prefers-color-scheme` rather than a transparent background, which is how
+      Mermaid's lines vanish on a dark page. Checked by the contrast test of 0.6 in
+      both palettes.
+- [ ] Links in exports: PlantUML's `[[url]]` (the native engine declines it,
+      `omaspec-uml/src/text.rs`), Mermaid's `click … href`, and a linked state or a
+      map's tile as a relative link to that diagram's export. The sanitizer takes
+      relative links that stay in the export's folder; scripts and callbacks never.
+- [ ] A project as files anyone can open: `omaspec export DIR` (and the palette)
+      writes every diagram as an SVG with its source, the map as `index.svg`, linked
+      to one another, and a ZIP of it. A browser is enough; dropping any of the
+      pictures on Omaspec opens its source.
+- [ ] Diagrams in Markdown: a `.md` file is a document of diagrams. Every `plantuml`
+      and `mermaid` block is linted, checked and drawn, findings on the note's own
+      lines; the pane draws the block at the caret, the preview window all of them
+      one under another. `lint`, `inspect` and `render` take it (`render README.md`
+      writes one image per block).
+- [ ] The look pinned per project: `[look]` in `omaspec-project.toml` (pack, colors,
+      font), used alike by the pane, `render`, the MCP server and CI. An SVG is laid
+      out the same on every machine already (text is measured on built-in metrics);
+      a PNG depends on the installed font. Not the same pixels across updates, as
+      the layout keeps improving: `render --check DIR` compares a project with its
+      committed SVGs and names what changed, so an update's change is seen before it
+      is committed.
+
+### 0.8: hundreds of diagrams
+
+- [ ] A project index kept up to date: a file is read again only when it changed,
+      a watch on the project folder replaces the full read on every focus, and only
+      the documents a change touches are drawn again. The index knows each diagram's
+      names, kind, machines and links, and who uses what. Measured against step 0.
+- [ ] Where a name is used: `omaspec refs NAME` and an MCP tool `refs` list every
+      diagram, scenario, link and trace that uses a machine, state or event
+      (`--json`). *Rename everywhere* in the editor and `omaspec rename OLD NEW`
+      rename it across the project, one undo step per file, so a rename leaves no
+      stale use behind; lint names a link to a diagram that is gone.
+- [ ] Search the project: Ctrl+Shift+F over every file of the project, not only the
+      open tabs; Ctrl+F in the diagram finds a state or a message and lights it.
+- [ ] Maps that scale: a tile small on screen shows its name and kind, its picture
+      once it is large enough to read; pictures kept per file until it changes; a
+      map's box may name another map, so a large project is maps within maps.
+- [ ] A project checked in CI: `omaspec check DIR` runs lint, the checks against the
+      machines, the links and `render --check`, with exit codes, `--json` and GitHub
+      annotations; `omaspec new --git` offers a pre-commit hook.
+- [ ] Versions through git, made to read behavior: `omaspec diff --project REV` lists
+      what changed in behavior across the project since a commit or a tag (a
+      changelog of the specification), `omaspec log FILE` the changes commit by
+      commit, and `git diff` shows them once `.gitattributes` names Omaspec as the
+      textconv (`omaspec git setup` writes it). Compare offers the project since a
+      commit.
+
+### 0.9: a layout you can steer
+
+- [ ] Room for labels, as planned under [Next](#next), with its own ADR and two
+      more measures in `tests/lines`: how far the other boxes move when one box is
+      added to each diagram of the corpus (after aligning both pictures), and how
+      far the crossings change when the lines are written in another order. Both may
+      not grow.
+- [ ] Boxes held in place: a box dragged to where it should stay is kept in the
+      block of [0016](docs/adr/0016-lines-by-hand.md), relative to its rank and
+      neighbors rather than in coordinates, so it holds when a theme or a font
+      changes a size; lines by hand on it move with it; an entry that no longer
+      holds is a finding. Its own ADR.
+- [ ] Lines bundled where many end at one box, as Graphviz's `concentrate` does:
+      when it bundles by itself and how a writer turns it off, in an ADR; measured
+      in `tests/lines`.
+- [ ] Focus and collapse: a container folded to its box in the pane, drawn as a
+      linked diagram is ([0018](docs/adr/0018-diagrams-that-link.md)); a focus that
+      dims all but a box and its neighbors.
+- [ ] A sketch look: PlantUML's `skinparam handwritten true` and Mermaid's
+      `look: handDrawn`, declined today, with a seed from each element's name, so the
+      same source always draws the same picture.
