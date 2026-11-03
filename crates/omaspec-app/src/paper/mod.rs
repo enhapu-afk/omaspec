@@ -10,9 +10,10 @@
 
 mod canvas;
 mod hand;
+mod passage;
 mod play;
 mod raster;
-mod view;
+pub(crate) mod view;
 
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
@@ -35,9 +36,11 @@ use omaspec_theme::{Palette, Rgb};
 use crate::ui;
 use crate::worker::{Answer, Drawn, Linked, Ticket, Worker, blocking};
 pub use hand::Gesture;
+pub use passage::Showing;
+use passage::{Passage, PassageLayer};
 pub use play::{Ask, Offer, Play};
 use raster::{Layer, Plan, Raster};
-pub use view::{DIVE, Glide, View};
+pub use view::{Glide, View};
 
 /// Wait this long after the last zoom or pan step before rasterizing sharp
 /// again.
@@ -115,6 +118,8 @@ pub struct Paper {
     pub view: View,
     /// The way the picture glides to `view` after a stepped zoom.
     glide: Option<Glide>,
+    /// A zoom into a link, or out of it, with the diagram it leads to.
+    passage: Option<Passage>,
     viewport: Size,
     scale_factor: f32,
     overview: Layer,
@@ -157,6 +162,7 @@ impl Default for Paper {
             shown: 0,
             view: View::default(),
             glide: None,
+            passage: None,
             viewport: Size::ZERO,
             scale_factor: 1.0,
             overview: Layer::default(),
@@ -403,6 +409,12 @@ impl Paper {
             Message::Glided => match self.glide {
                 Some(glide) if glide.done(Instant::now()) => {
                     self.glide = None;
+                    // Out of a link, the diagram it leads to has gone; into
+                    // one, the veil covers this diagram until its tab shows.
+                    if self.inward() {
+                        return Task::none();
+                    }
+                    self.passage = None;
                     self.rasterize(Duration::ZERO)
                 }
                 _ => Task::none(),
@@ -792,23 +804,95 @@ impl Paper {
         }
     }
 
-    /// Glides into `area` of the diagram (in diagram units), on the way
-    /// into the diagram it links to.
-    pub fn zoom_into(&mut self, area: Rectangle) -> Task<Message> {
+    /// Zooms into `area` of the diagram (in diagram units), on the way into
+    /// the diagram it links to; how long that takes. With `landing`, the
+    /// zoom ends where the area holds that diagram as it will show;
+    /// without, with the area filling most of the pane until
+    /// [`Self::arriving`] says where.
+    pub fn zoom_into(
+        &mut self,
+        area: Rectangle,
+        landing: Option<Showing>,
+    ) -> (Task<Message>, Duration) {
         if self.viewport == Size::ZERO {
-            return Task::none();
+            return (Task::none(), Duration::ZERO);
         }
-        let to = View::showing(area, self.viewport);
-        let at = self
-            .view
-            .on_screen(area, Rectangle::with_size(self.viewport))
-            .center();
-        self.dive(to, at)
+        let to = match &landing {
+            Some(linked) => passage::view_holding(area, linked.size, linked.place, self.viewport),
+            None => View::showing(area, self.viewport),
+        };
+        self.passage = Some(Passage {
+            area,
+            linked: landing,
+            inward: true,
+        });
+        let task = self.dive(to);
+        (task, self.glide.map_or(Duration::ZERO, |g| g.duration()))
     }
 
-    /// Starts in `area` of the diagram and glides out to `to`: back from
-    /// the diagram it links to. A fitted `to` fits the diagram.
-    pub fn zoom_out_of(&mut self, area: Rectangle, to: View) -> Task<Message> {
+    /// The diagram the zoom into a link leads to, drawn: the zoom now ends
+    /// where that diagram will show, in the time it had left, and its
+    /// picture grows out of the link's box on the way.
+    pub fn arriving(&mut self, linked: Showing) {
+        let Some(passage) = self.passage.as_mut().filter(|p| p.inward) else {
+            return;
+        };
+        let moved = passage
+            .linked
+            .as_ref()
+            .is_none_or(|old| old.size != linked.size || old.place != linked.place);
+        let area = passage.area;
+        let to = passage::view_holding(area, linked.size, linked.place, self.viewport);
+        passage.linked = Some(linked);
+        if !moved {
+            return;
+        }
+        let now = Instant::now();
+        match self.glide.filter(|g| !g.done(now)) {
+            Some(glide) => {
+                let left = glide.duration().saturating_sub(Duration::from_secs_f32(
+                    glide.progress(now) * glide.duration().as_secs_f32(),
+                ));
+                self.glide = Some(Glide::dive(glide.at(now), to, self.viewport, now).taking(left));
+            }
+            None => self.glide = None,
+        }
+        self.view = to;
+    }
+
+    /// Ends a zoom into a link at `view`: the diagram it leads to is shown
+    /// in its own tab now, and this one keeps `view` for a click back.
+    pub fn land(&mut self, view: View) {
+        self.glide = None;
+        self.passage = None;
+        self.view = view;
+    }
+
+    /// The diagram as the pane shows it, for a zoom into a link to it or
+    /// out of it.
+    pub fn showing(&self) -> Option<Showing> {
+        let diagram = self.diagram.as_ref()?;
+        if self.viewport == Size::ZERO {
+            return None;
+        }
+        Some(Showing {
+            size: diagram.size,
+            place: self
+                .view
+                .diagram_rect(diagram.size, Rectangle::with_size(self.viewport)),
+            picture: self.overview.shown.clone(),
+        })
+    }
+
+    /// Starts in `area` of the diagram and zooms out to `to`: back from
+    /// the diagram it links to, which shrinks into the area as `from`
+    /// showed it. A fitted `to` fits the diagram.
+    pub fn zoom_out_of(
+        &mut self,
+        area: Rectangle,
+        to: View,
+        from: Option<Showing>,
+    ) -> Task<Message> {
         if self.viewport == Size::ZERO || self.diagram.is_none() {
             return Task::none();
         }
@@ -818,17 +902,34 @@ impl Paper {
             to
         };
         self.settle();
-        self.view = View::showing(area, self.viewport);
-        let at = Point::new(self.viewport.width / 2.0, self.viewport.height / 2.0);
-        self.dive(to, at)
+        self.view = match &from {
+            Some(linked) => passage::view_holding(area, linked.size, linked.place, self.viewport),
+            None => View::showing(area, self.viewport),
+        };
+        self.passage = from.map(|linked| Passage {
+            area,
+            linked: Some(linked),
+            inward: false,
+        });
+        self.dive(to)
     }
 
-    fn dive(&mut self, to: View, at: Point) -> Task<Message> {
+    fn dive(&mut self, to: View) -> Task<Message> {
         let now = Instant::now();
         let from = self.glide.map_or(self.view, |g| g.at(now));
         self.view = to;
-        self.glide = Some(Glide::new(from, to, at, self.viewport, now).taking(view::DIVE));
+        self.glide = Some(Glide::dive(from, to, self.viewport, now));
+        // Into a link, the end lies under the veil: no sharp pixels for
+        // it, which would come in mid-way and cost a frame.
+        if self.inward() {
+            return Task::none();
+        }
         self.rasterize(RASTER_DELAY)
+    }
+
+    /// Whether a zoom into a link runs, or has arrived.
+    fn inward(&self) -> bool {
+        self.passage.as_ref().is_some_and(|p| p.inward)
     }
 
     pub fn set_scale_factor(&mut self, factor: f32) -> Task<Message> {
@@ -863,10 +964,14 @@ impl Paper {
         self.rasterize(RASTER_DELAY)
     }
 
-    /// Stops a glide where it is: a pan or a pinch goes on from there.
+    /// Stops a glide where it is: a pan or a pinch goes on from there, and
+    /// a zoom out of a link leaves the diagram it led to behind.
     fn settle(&mut self) {
         if let Some(glide) = self.glide.take() {
             self.view = glide.at(Instant::now());
+            if self.passage.as_ref().is_some_and(|p| !p.inward) {
+                self.passage = None;
+            }
         }
     }
 
@@ -1084,6 +1189,19 @@ impl Paper {
             .height(Length::Fill)
             .into()
         });
+        // Over the diagram, its marks and its lights: the veil covers them.
+        let passage = self.passage.as_ref().map(|passage| {
+            Canvas::new(PassageLayer {
+                passage,
+                view: self.view,
+                glide: self.glide,
+                veil: ui::color(p.background),
+                scale: self.scale_factor,
+            })
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+        });
         // The red edge lies over everything else, a play's veil too.
         let edge = match (&self.diagram, &self.overview.shown) {
             (Some(diagram), Some(_)) if stale => Some(
@@ -1104,7 +1222,7 @@ impl Paper {
             (&self.play, &self.diagram, self.overview.shown.as_ref())
         else {
             return Stack::with_children(
-                [Some(canvas), marks, light, hand, edge]
+                [Some(canvas), marks, light, hand, passage, edge]
                     .into_iter()
                     .flatten(),
             )
@@ -1580,6 +1698,11 @@ pub mod testing {
 
         pub fn viewport(&self) -> Size {
             self.viewport
+        }
+
+        /// The glide under way, a dive too.
+        pub fn glide(&self) -> Option<Glide> {
+            self.glide
         }
 
         /// What the detail layer asked for, and whether one is shown.

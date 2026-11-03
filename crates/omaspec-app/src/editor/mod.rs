@@ -1094,6 +1094,12 @@ impl App {
                 if let Some(line) = by_hand {
                     return Task::batch([task, self.draw_by_hand(key, &line)]);
                 }
+                // The diagram a zoom leads to got its picture.
+                let arrived = if self.is_arriving(key) {
+                    self.arrive()
+                } else {
+                    Task::none()
+                };
                 let follow = match &mut self.compare {
                     Some(c) if moves && c.sync && c.a == key => {
                         let view = self
@@ -1112,7 +1118,7 @@ impl App {
                 if relight {
                     self.follow_caret(key);
                 }
-                Task::batch([task, follow])
+                Task::batch([task, follow, arrived])
             }
             Message::Resized(event) => {
                 self.panes.resize(event.split, event.ratio);
@@ -1419,6 +1425,12 @@ impl App {
                         .rendered(answer)
                         .map(move |m| Message::Paper(key, m));
                     self.follow_caret(key);
+                    // The diagram a zoom into a link leads to is drawn.
+                    let task = if self.is_arriving(key) {
+                        Task::batch([task, self.arrive()])
+                    } else {
+                        task
+                    };
                     // An example opened to be played starts once it is drawn.
                     if self.play_when_drawn == Some(key) {
                         self.play_when_drawn = None;
@@ -1447,6 +1459,7 @@ impl App {
             }
             worker::Event::Due(Alarm::Session) => self.write_session(),
             worker::Event::Due(Alarm::Follow) => return self.followed(),
+            worker::Event::Due(Alarm::Dive) => return self.dive_anyway(),
             worker::Event::FileChanged(path) => {
                 if !self.changed.contains(&path) {
                     self.changed.push(path);
@@ -2187,8 +2200,9 @@ impl LineShift {
     }
 }
 
-/// Moves the lines a drawn diagram's states, transitions and messages
-/// come from back to the file, where a play looks for them.
+/// Moves the lines a drawn diagram's states, transitions, messages, lines
+/// and a map's boxes come from back to the file, where a play and a
+/// Ctrl+click look for them.
 fn remap_map(map: &Map, shift: LineShift) -> Map {
     let mut map = map.clone();
     let lines = map
@@ -2198,6 +2212,7 @@ fn remap_map(map: &Map, shift: LineShift) -> Map {
         .chain(map.transitions.iter_mut().map(|route| &mut route.line))
         .chain(map.messages.iter_mut().map(|step| &mut step.line))
         .chain(map.misses.iter_mut().map(|(line, _)| line))
+        .chain(map.tiles.iter_mut().filter_map(|tile| tile.line.as_mut()))
         .chain(
             map.wires
                 .iter_mut()

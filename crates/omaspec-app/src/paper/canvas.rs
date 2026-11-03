@@ -32,7 +32,7 @@ const DOUBLE_CLICK: Duration = Duration::from_millis(350);
 /// A press that moves less than this far is a click, not a drag.
 const CLICK_SLOP: f32 = 4.0;
 /// The paper's rounded corners, in screen pixels.
-const RADIUS: f32 = 8.0;
+pub(super) const RADIUS: f32 = 8.0;
 /// Layers of the soft shadow, and how far the outermost one reaches.
 const HALO_STEPS: u8 = 16;
 const HALO_BLUR: f32 = 11.0;
@@ -296,7 +296,7 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
         match (self.diagram, self.overview) {
             (Some(size), Some(overview)) => {
                 let paper = grid.snap(view.diagram_rect(size, local));
-                shadow(&mut frame, paper, self.background, grid.scale);
+                shadow(&mut frame, paper, self.background, grid.scale, 1.0);
                 frame.fill(&rounded(paper, RADIUS), overview.paper);
                 // Each raster at the place it shows, which after an edit may
                 // differ from the new diagram until the next raster is in.
@@ -582,14 +582,14 @@ impl canvas::Program<Message> for PaperEdge {
 /// The screen's pixels, as seen from a canvas: where it lies in the window,
 /// the window's scale, and how big the canvas is.
 #[derive(Clone, Copy)]
-struct Grid {
+pub(super) struct Grid {
     origin: Point,
     scale: f32,
     size: Size,
 }
 
 impl Grid {
-    fn of(bounds: Rectangle, scale: f32) -> Self {
+    pub(super) fn of(bounds: Rectangle, scale: f32) -> Self {
         Self {
             origin: bounds.position(),
             scale: if scale > 0.0 { scale } else { 1.0 },
@@ -599,7 +599,7 @@ impl Grid {
 
     /// `rect` with its edges on whole pixels. The paper and its pictures then
     /// share an edge instead of leaving a sliver of one past the other.
-    fn snap(self, rect: Rectangle) -> Rectangle {
+    pub(super) fn snap(self, rect: Rectangle) -> Rectangle {
         let on = |at: f32, from: f32| ((from + at) * self.scale).round() / self.scale - from;
         let (left, top) = (on(rect.x, self.origin.x), on(rect.y, self.origin.y));
         let right = on(rect.x + rect.width, self.origin.x);
@@ -641,7 +641,7 @@ impl Grid {
     }
 
     /// Draws `pictures` within `clip`, its corners rounded by `radius`.
-    fn draw<'a>(
+    pub(super) fn draw<'a>(
         self,
         frame: &mut Frame,
         clip: Rectangle,
@@ -676,7 +676,7 @@ impl Grid {
     }
 }
 
-fn rounded(rect: Rectangle, radius: f32) -> Path {
+pub(super) fn rounded(rect: Rectangle, radius: f32) -> Path {
     Path::rounded_rectangle(rect.position(), rect.size(), border::Radius::from(radius))
 }
 
@@ -742,12 +742,19 @@ fn band_clip(paper: Rectangle, scale: f32, top: f32, bottom: f32) -> Option<Rect
 /// `paper` is already on whole pixels. Each layer grows and drops by whole
 /// pixels too. A fraction of a pixel would land inside or outside that edge
 /// depending on where the pan sits, and on a dark theme the white glow then
-/// draws a line that appears and disappears as the diagram moves.
-fn shadow(frame: &mut Frame, paper: Rectangle, background: Color, scale: f32) {
+/// draws a line that appears and disappears as the diagram moves. `shown`
+/// fades it, for a paper that comes or goes.
+pub(super) fn shadow(
+    frame: &mut Frame,
+    paper: Rectangle,
+    background: Color,
+    scale: f32,
+    shown: f32,
+) {
     let (color, strength, drop) = shade(background);
     // Each step adds as much; more of them lie near the edge, so the shadow
     // fades out softly, as (1 - distance / HALO_BLUR)².
-    let alpha = strength / f32::from(HALO_STEPS);
+    let alpha = strength * shown / f32::from(HALO_STEPS);
     for step in 0..HALO_STEPS {
         let Some(rect) = halo_rect(paper, step, drop, scale) else {
             continue;

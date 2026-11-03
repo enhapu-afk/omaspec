@@ -1149,29 +1149,46 @@ checked; numbers are measured, not assumed.
 
 ### 0.6: it fits, it glides, it follows the theme
 
-- [ ] A diagram fills its pane: `View::fitted` never enlarges past 100 %, so a small
-      diagram opens small in a large pane, with paper all around. Fit fills the pane
-      but for its margin, in the editor, the preview window, Compare and the
-      diagram's own window; only a diagram whose text would grow past a size chosen
-      in a real window stops there. A test: diagrams small and large each fill the
-      pane along the side that limits them.
-- [ ] A dive without a jump: the zoom into a linked state ends with the state's box
-      filling 90 % of the pane (`DIVE_FILL`), then the linked diagram opens fitted, so
-      the view jumps from close to far, and its picture fades in only once it is
-      drawn. The linked diagram is drawn from the atlas as the dive starts; the dive
-      ends where the box is as large as the linked diagram will be when fitted, its
-      picture fading in inside the box on the way, and the new tab starts at exactly
-      that place. Zoom and pan move together on the path van Wijk and Nuij describe
-      (*Smooth and efficient zooming and panning*, 2003; d3's `interpolateZoom`),
-      easing in and out, taking longer the further it goes. Back out (Alt+Left, the
-      trail) is the same path reversed. Test with a frozen clock: the linked
-      diagram's place on screen in the dive's last frame and in the new tab's first
-      differ by at most a pixel, and the zoom changes smoothly from frame to frame.
+- [x] A diagram fills its pane: `View::fitted` never enlarged past 100 %, so a
+      small diagram opened small in a large pane, with paper all around. Fit fills
+      the pane but for its margin, in the editor, the preview window, Compare and
+      the diagram's own window, growing a diagram up to three times its size
+      (`MAX_FIT`; to be judged in a real window). Tested on its own and in the
+      preview window; the screenshots of a map and of a diagram followed into
+      from it now fill the pane (their test had given the pane a size the window
+      did not have, which a fit up to 100 % had hidden).
+- [x] A dive without a jump: the zoom into a linked state ended with the state's
+      box filling 90 % of the pane, then the linked diagram opened fitted, so the
+      view jumped from close to far, and its picture faded in only once it was
+      drawn. Now the linked diagram opens in its tab at the click and is drawn in
+      the background, in the pane's size; once it is, the zoom ends where the
+      box holds it exactly as its tab will show it (`passage::view_holding`), in
+      the time the zoom had left. On the last half of the way its picture grows
+      out of the box on its own paper while the rest sinks under the pane's
+      background, so the switch to the tab does not show. Back out (Alt+Left,
+      the trail) starts there and runs the other way. Zoom and pan move together
+      on van Wijk and Nuij's way (*Smooth and efficient zooming and panning*,
+      2003, as d3's `interpolateZoom` has it), sine in and out, 0.3 to 0.72 s by
+      the length of the way. Tested: the linked diagram's place at the end of
+      the zoom and in its tab, and at the start of the way back, to a pixel; a
+      far dive zooms out on the way; no frame at 60 per second zooms by more
+      than 12 %. The screenshots `links-arriving` and `links-orders` show the
+      same picture. Found on the way: in the Omarchy colors, Ctrl+click on a
+      map's box jumped past the end of the text, as the line of a tile was not
+      moved back past the colors laid over the source (`remap_map`).
+- [x] The zoom without a hitch: it started at once and turned when the
+      linked diagram was drawn a few milliseconds later, starting again from
+      a standstill; and the map asked for sharp pixels of the end, under the
+      veil, which came in mid-way and on the switch. It now waits until the
+      linked diagram is drawn and its picture made (at most 160 ms) and runs
+      on one way; nothing under the veil is rasterized. Tested: the way does
+      not turn once the zoom runs.
 - [ ] Smooth frames, measured: `OMASPEC_FRAMES=1` logs how long each frame of a
-      dive, a glide and a play takes. Suspected: a dive into a small box stretches
-      the overview raster until the sharp pixels arrive at the end. Pixels sharp
-      enough for the whole way, asked for before it starts. Goal: no frame over
-      16.7 ms on a 1440p pane; checked in a real window.
+      dive, a glide and a play takes. Suspected: on the first half of a dive the
+      overview raster is stretched until sharp pixels come; the second half lies
+      under the veil now. Pixels sharp enough for the whole way, asked for before
+      it starts. Goal: no frame over 16.7 ms on a 1440p pane; checked in a real
+      window.
 - [ ] Diagrams in the theme's colors by default: `follow_theme` starts off, so the
       paper stays white on a dark theme (`docs/images/themes.png`). It starts on; a
       session that switched it off keeps that. A test draws every gallery example in

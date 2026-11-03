@@ -75,6 +75,9 @@ pub enum Alarm {
     Font,
     /// The zoom into a link has arrived.
     Follow,
+    /// The diagram a link leads to is still not drawn: the zoom into the
+    /// link starts anyway.
+    Dive,
 }
 
 #[derive(Debug, Clone)]

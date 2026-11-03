@@ -3416,35 +3416,82 @@ fn what_is_typed_after_the_command_list_goes_to_the_prompt_only() {
 /// with the project's diagrams would.
 fn show_linked(app: &mut App) {
     let key = app.doc().key;
+    // About the pane of a screenshot's window, as in `show`.
     let _ = app.update(Message::Paper(
         key,
-        paper::Message::Viewport(Size::new(900.0, 700.0)),
+        paper::Message::Viewport(Size::new(600.0, 560.0)),
     ));
     let (atlas, own) = app.linked_of(key).expect("a project");
     let text = app.doc().text();
     let language = app.doc().language;
+    // As `dispatch` sends it: in the Omarchy colors when the diagram
+    // follows them, and the answer put back on the file.
+    let (shown, pending) = app.diagram_source(&text, language);
+    let drawn = linked_drawing(&shown, language, own.as_deref(), &atlas);
+    let id = app.doc_mut().paper.pretend_next();
+    let mut reply = answer(key, id, Ok(drawn));
+    reply.language = language;
+    reply.source = shown;
+    if let Some(pending) = pending {
+        app.pending.insert((key, id), pending);
+        app.untangle(&mut reply);
+    }
+    let paper = &mut app.doc_mut().paper;
+    let _ = paper.rendered(reply);
+    paper.finish_rasters();
+}
+
+/// `source` drawn as a diagram of its project, as the worker draws it.
+fn linked_drawing(
+    source: &str,
+    language: Language,
+    own: Option<&str>,
+    atlas: &omaspec_render::Atlas,
+) -> crate::worker::Drawn {
     let mut renderer = omaspec_render::Renderer::new(&omaspec_render::Config {
         java_fallback: false,
         ..Default::default()
     });
     let out = renderer
-        .render_linked(&text, language, None, own.as_deref(), &atlas)
+        .render_linked(source, language, None, own, atlas)
         .unwrap();
-    let drawn = crate::worker::Drawn {
+    crate::worker::Drawn {
         tree: Arc::new(omaspec_render::export::parse(&out.svg).unwrap()),
         svg: out.svg.into(),
         engine: out.engine,
         elapsed: out.elapsed,
         map: Arc::new(out.map),
         links: Arc::new(out.links),
-    };
-    let paper = &mut app.doc_mut().paper;
-    let id = paper.pretend_next();
+    }
+}
+
+/// Draws the document `key`, open in a tab or not shown, as a diagram of
+/// its project, and hands the answer in as the worker does.
+fn deliver_linked(app: &mut App, key: u64) {
+    let (atlas, own) = app.linked_of(key).expect("a project");
+    let doc = app.docs.iter().find(|d| d.key == key).expect("the tab");
+    let (text, language) = (doc.text(), doc.language);
+    let drawn = linked_drawing(&text, language, own.as_deref(), &atlas);
+    let doc = app.docs.iter_mut().find(|d| d.key == key).expect("the tab");
+    let id = doc.paper.pretend_next();
     let mut reply = answer(key, id, Ok(drawn));
     reply.language = language;
     reply.source = text.into();
-    let _ = paper.rendered(reply);
-    paper.finish_rasters();
+    let _ = app.update(Message::Worker(worker::Event::Rendered(Box::new(reply))));
+}
+
+/// Whether a diagram of `size`, laid into `room` as large as fits and
+/// centered, lies at `place`, to a pixel.
+fn lies_at(size: Size, room: iced::Rectangle, place: iced::Rectangle) -> bool {
+    let k = (room.width / size.width).min(room.height / size.height);
+    let laid = iced::Rectangle::new(
+        room.center() - iced::Vector::new(size.width * k / 2.0, size.height * k / 2.0),
+        size * k,
+    );
+    (laid.x - place.x).abs() < 1.0
+        && (laid.y - place.y).abs() < 1.0
+        && (laid.width - place.width).abs() < 1.0
+        && (laid.height - place.height).abs() < 1.0
 }
 
 /// Where the link called `name` is on screen in the active tab.
@@ -3523,9 +3570,53 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     // A click zooms into Orders; once there, Orders opens.
     let map = app.doc().key;
     let before = app.doc().paper.view;
+    let orders_box = paper::link_rect(
+        app.doc()
+            .paper
+            .links()
+            .iter()
+            .find(|l| l.name == "Orders")
+            .unwrap(),
+    );
     let _ = app.update(Message::Paper(map, paper::Message::Follow(orders)));
     assert!(app.following.is_some());
+    // Orders opens at once, in the background; the zoom waits for its
+    // picture, then runs on one way to where Orders shows in its tab: no
+    // jump when it opens, and no turn on the way.
+    assert_eq!(app.doc().paper.view, before);
+    let target = app
+        .docs
+        .iter()
+        .find(|d| d.path == Some(root.join("orders.puml")))
+        .expect("Orders open")
+        .key;
+    assert_ne!(target, map);
+    deliver_linked(&mut app, target);
+    assert!(app.doc().paper.glide().is_none(), "no picture yet");
+    app.docs
+        .iter_mut()
+        .find(|d| d.key == target)
+        .unwrap()
+        .paper
+        .finish_rasters();
+    let _ = app.arrive();
+    let dive = app.doc().paper.glide().expect("the zoom runs");
     assert!(app.doc().paper.view.zoom > before.zoom);
+    let _ = app.arrive();
+    assert_eq!(app.doc().paper.glide(), Some(dive), "one way, not turned");
+    let landing = app
+        .docs
+        .iter()
+        .find(|d| d.key == target)
+        .and_then(|d| d.paper.showing())
+        .expect("Orders drawn");
+    let pane = iced::Rectangle::with_size(app.doc().paper.viewport());
+    let held = app.doc().paper.view.on_screen(orders_box, pane);
+    assert!(
+        lies_at(landing.size, held, landing.place),
+        "{held:?} holds Orders elsewhere than {:?}",
+        landing.place
+    );
     due(&mut app, Alarm::Follow);
     assert_eq!(app.doc().path, Some(root.join("orders.puml")));
     let names = |app: &App| -> Vec<String> { app.trail.iter().map(|s| s.name.clone()).collect() };
@@ -3548,10 +3639,13 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     assert_eq!(links, [("Checkout", false)]);
     let orders_key = app.doc().key;
     let checkout = link_on_screen(&app, "Checkout");
+    let checkout_box = paper::link_rect(&app.doc().paper.links()[0]);
     let _ = app.update(Message::Paper(orders_key, paper::Message::Follow(checkout)));
     due(&mut app, Alarm::Follow);
     assert_eq!(app.doc().path, Some(root.join("checkout.puml")));
     assert_eq!(names(&app), ["shop", "Orders", "Checkout"]);
+    show_linked(&mut app);
+    let leaving = app.doc().paper.showing().expect("Checkout drawn");
 
     // Alt+Left zooms back out to Orders; the trail back to the map.
     assert_eq!(
@@ -3561,6 +3655,14 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     press(&mut app, Command::Back);
     assert_eq!(app.doc().path, Some(root.join("orders.puml")));
     assert_eq!(names(&app), ["shop", "Orders"]);
+    // It starts where Checkout showed, which shrinks into its state.
+    let start = app.doc().paper.glide().expect("a dive out").from();
+    let pane = iced::Rectangle::with_size(app.doc().paper.viewport());
+    assert!(lies_at(
+        leaving.size,
+        start.on_screen(checkout_box, pane),
+        leaving.place
+    ));
     let _ = app.update(Message::BackTo(0));
     assert_eq!(app.doc().path, Some(root.join("system.puml")));
     assert!(app.trail_view().is_none());
@@ -3620,7 +3722,62 @@ fn snapshot_links() {
     let map = app.doc().key;
     let orders = link_on_screen(&app, "Orders");
     let _ = app.update(Message::Paper(map, paper::Message::Follow(orders)));
+    // The zoom arrived: Orders lies where its tab will show it.
+    let target = app.docs.last().unwrap().key;
+    deliver_linked(&mut app, target);
+    app.docs.last_mut().unwrap().paper.finish_rasters();
+    let _ = app.arrive();
+    let takes = app.doc().paper.glide().unwrap().duration();
+    std::thread::sleep(takes);
+    shoot(&mut app, &dir, "links-arriving");
     due(&mut app, Alarm::Follow);
-    show_linked(&mut app);
+    app.doc_mut().paper.finish_rasters();
     shoot(&mut app, &dir, "links-orders");
+}
+
+#[test]
+fn ctrl_click_on_a_link_finds_its_line_in_the_theme_colors_too() {
+    // The Omarchy colors lay a skin over the text before it is drawn; the
+    // line of a map's box comes back onto the file like every other line.
+    let root = temp_dir("links-pick");
+    let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
+    write(
+        "omaspec-project.toml",
+        "name = \"shop\"\nmain = \"system.puml\"\n",
+    );
+    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    write(
+        "orders.puml",
+        "@startuml\ntitle Orders\n[*] --> New\nNew --> Checkout : pay\nCheckout --> Shipped : paid\n@enduml\n",
+    );
+    write(
+        "checkout.puml",
+        "@startuml\ntitle Checkout\nstart\n:Pay;\nstop\n@enduml\n",
+    );
+    let root = std::fs::canonicalize(&root).unwrap();
+    for follow in [false, true] {
+        for (file, link, row) in [("system.puml", "Orders", 2), ("orders.puml", "Checkout", 3)] {
+            let mut app = open(&[root.join(file)]);
+            if follow {
+                press(&mut app, Command::FollowTheme);
+            }
+            let (specs, atlas) = specs::read_project(&root);
+            let _ = app.update(Message::Specs(
+                root.clone(),
+                Arc::new(specs),
+                Arc::new(atlas),
+            ));
+            show_linked(&mut app);
+            let key = app.doc().key;
+            let at = link_on_screen(&app, link);
+            let _ = app.update(Message::Paper(key, paper::Message::Pick(at)));
+            assert_eq!(
+                app.doc().editor.cursor().row,
+                row,
+                "{link} in {file}, following the theme: {follow}; {:?}",
+                app.notice
+            );
+        }
+    }
+    let _ = std::fs::remove_dir_all(root);
 }

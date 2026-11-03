@@ -10,13 +10,24 @@ pub const MIN_ZOOM: f32 = 0.05;
 pub const MAX_ZOOM: f32 = 16.0;
 /// Space around the diagram when it is fitted.
 const FIT_MARGIN: f32 = 24.0;
+/// A fitted diagram grows at most this much: a small one fills the pane,
+/// but its words stay within three times their size.
+pub const MAX_FIT: f32 = 3.0;
 /// Closer than this, a two-finger span is not a pinch.
 const MIN_PINCH_SPAN: f32 = 1.0;
 /// How long a stepped zoom glides.
 pub const GLIDE: Duration = Duration::from_millis(160);
-/// How long a zoom into a linked diagram, or out of it, glides.
-pub const DIVE: Duration = Duration::from_millis(320);
-/// A link zoomed into fills this share of the viewport.
+/// How long a zoom into a linked diagram, or out of it, takes at least and
+/// at most; in between, as long as its way is ([`DIVE_PACE`]).
+const DIVE_SHORTEST: Duration = Duration::from_millis(300);
+const DIVE_LONGEST: Duration = Duration::from_millis(720);
+/// Seconds for each unit of a dive's way: a zoom by e^√2 is one.
+const DIVE_PACE: f32 = 0.4;
+/// How a zoom weighs against a pan on a dive's way (van Wijk and Nuij's ρ,
+/// as d3 has it).
+const RHO: f32 = std::f32::consts::SQRT_2;
+/// A link zoomed into fills this share of the viewport, until the diagram
+/// it leads to says where it will show.
 const DIVE_FILL: f32 = 0.9;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -39,7 +50,8 @@ impl Default for View {
 }
 
 impl View {
-    /// The whole diagram in the viewport, never enlarged beyond 100 %.
+    /// The whole diagram filling the viewport, but for a margin, grown to
+    /// [`MAX_FIT`] at most.
     pub fn fitted(diagram: Size, viewport: Size) -> Self {
         let room = Size::new(
             (viewport.width - 2.0 * FIT_MARGIN).max(1.0),
@@ -47,7 +59,7 @@ impl View {
         );
         let zoom = (room.width / diagram.width)
             .min(room.height / diagram.height)
-            .clamp(MIN_ZOOM, 1.0);
+            .clamp(MIN_ZOOM, MAX_FIT);
         Self {
             zoom,
             center: Point::new(diagram.width / 2.0, diagram.height / 2.0),
@@ -148,18 +160,28 @@ impl View {
 }
 
 /// A view on its way to another: a stepped zoom (a wheel notch, a key,
-/// fit, 100 %) glides there instead of jumping. The zoom grows by the same
-/// factor in each moment, and the diagram point under the anchor moves
-/// straight from where it was to where it ends, so a zoom at the pointer
-/// keeps that point under it all the way.
+/// fit, 100 %) glides there instead of jumping; a zoom into a linked
+/// diagram or out of it dives.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Glide {
     from: View,
     to: View,
-    /// The anchor, from the viewport's center.
-    anchor: Vector,
+    way: Way,
     start: Instant,
     duration: Duration,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Way {
+    /// The zoom grows by the same factor in each moment, and the diagram
+    /// point under the anchor (from the viewport's center) moves straight
+    /// from where it was to where it ends, so a zoom at the pointer keeps
+    /// that point under it all the way. Quick at first, settling at the end.
+    Anchored(Vector),
+    /// Zoom and pan together on the shortest way (van Wijk and Nuij,
+    /// *Smooth and efficient zooming and panning*, 2003), easing in and
+    /// out; `width` is the viewport's.
+    Dive { width: f32 },
 }
 
 impl Glide {
@@ -169,9 +191,24 @@ impl Glide {
         Self {
             from,
             to,
-            anchor: anchor - Point::new(viewport.width / 2.0, viewport.height / 2.0),
+            way: Way::Anchored(anchor - Point::new(viewport.width / 2.0, viewport.height / 2.0)),
             start,
             duration: GLIDE,
+        }
+    }
+
+    /// A dive from `from` to `to`, starting at `start`: it takes as long as
+    /// its way is, within [`DIVE_SHORTEST`] and [`DIVE_LONGEST`].
+    pub fn dive(from: View, to: View, viewport: Size, start: Instant) -> Self {
+        let width = viewport.width.max(1.0);
+        let length = Flight::between(from, to, width).length();
+        Self {
+            from,
+            to,
+            way: Way::Dive { width },
+            start,
+            duration: Duration::from_secs_f32(length * DIVE_PACE)
+                .clamp(DIVE_SHORTEST, DIVE_LONGEST),
         }
     }
 
@@ -180,29 +217,125 @@ impl Glide {
         Self { duration, ..self }
     }
 
+    pub fn duration(&self) -> Duration {
+        self.duration
+    }
+
+    /// Where it starts.
+    #[cfg(test)]
+    pub fn from(&self) -> View {
+        self.from
+    }
+
     pub fn done(&self, now: Instant) -> bool {
         now.saturating_duration_since(self.start) >= self.duration
     }
 
+    /// How far it has come by `now`, from 0 to 1, in time.
+    pub fn progress(&self, now: Instant) -> f32 {
+        (now.saturating_duration_since(self.start).as_secs_f32()
+            / self.duration.as_secs_f32().max(f32::EPSILON))
+        .min(1.0)
+    }
+
     /// The view shown at `now`.
     pub fn at(&self, now: Instant) -> View {
-        let t = now.saturating_duration_since(self.start).as_secs_f32()
-            / self.duration.as_secs_f32().max(f32::EPSILON);
+        let t = self.progress(now);
         if t >= 1.0 {
             return self.to;
         }
-        // Quick at first, settling at the end.
-        let t = 1.0 - (1.0 - t).powi(3);
         let (from, to) = (self.from, self.to);
-        let zoom = from.zoom * (to.zoom / from.zoom).powf(t);
-        let start = from.center + self.anchor * (1.0 / from.zoom);
-        let end = to.center + self.anchor * (1.0 / to.zoom);
-        let under = start + (end - start) * t;
-        View {
-            zoom,
-            center: under - self.anchor * (1.0 / zoom),
-            fit: to.fit,
+        match self.way {
+            Way::Anchored(anchor) => {
+                let t = 1.0 - (1.0 - t).powi(3);
+                let zoom = from.zoom * (to.zoom / from.zoom).powf(t);
+                let start = from.center + anchor * (1.0 / from.zoom);
+                let end = to.center + anchor * (1.0 / to.zoom);
+                let under = start + (end - start) * t;
+                View {
+                    zoom,
+                    center: under - anchor * (1.0 / zoom),
+                    fit: to.fit,
+                }
+            }
+            Way::Dive { width } => {
+                // Sine in and out: soft at both ends, and at most half as
+                // fast again as on average in the middle.
+                let t = (1.0 - (std::f32::consts::PI * t).cos()) / 2.0;
+                let (center, shown) = Flight::between(from, to, width).at(t);
+                View {
+                    zoom: width / shown,
+                    center,
+                    fit: to.fit,
+                }
+            }
         }
+    }
+}
+
+/// The way of a dive, as van Wijk and Nuij lay it out: in the width of the
+/// diagram the viewport shows, in `f64`, as the formulas take differences
+/// of large numbers when the pan is small.
+struct Flight {
+    from: Point,
+    /// From the start to the end.
+    across: Vector,
+    /// The width shown at the start.
+    width: f64,
+    /// Their `S`: how long the way is. On the spot it is the zoom's
+    /// logarithm, below 0 for a zoom in.
+    s: f64,
+    /// Their `r0` and the distance across; `None` for a zoom on the spot.
+    pan: Option<(f64, f64)>,
+}
+
+impl Flight {
+    fn between(from: View, to: View, viewport: f32) -> Self {
+        let rho = f64::from(RHO);
+        let width = |v: View| f64::from(viewport) / f64::from(v.zoom);
+        let (w0, w1) = (width(from), width(to));
+        let across = to.center - from.center;
+        let d1 = f64::from(across.x).hypot(f64::from(across.y));
+        if d1 < 1e-6 * w0.max(w1) {
+            return Self {
+                from: from.center,
+                across,
+                width: w0,
+                s: (w1 / w0).ln() / rho,
+                pan: None,
+            };
+        }
+        let (rho2, rho4, d2) = (rho * rho, rho.powi(4), d1 * d1);
+        let b0 = (w1 * w1 - w0 * w0 + rho4 * d2) / (2.0 * w0 * rho2 * d1);
+        let b1 = (w1 * w1 - w0 * w0 - rho4 * d2) / (2.0 * w1 * rho2 * d1);
+        // ln(√(b² + 1) − b), without the cancellation.
+        let (r0, r1) = (-b0.asinh(), -b1.asinh());
+        Self {
+            from: from.center,
+            across,
+            width: w0,
+            s: (r1 - r0) / rho,
+            pan: Some((r0, d1)),
+        }
+    }
+
+    fn length(&self) -> f32 {
+        self.s.abs() as f32
+    }
+
+    /// The center and the width shown at `t` of the way, from 0 to 1.
+    fn at(&self, t: f32) -> (Point, f32) {
+        let rho = f64::from(RHO);
+        let t = f64::from(t);
+        let (u, shown) = match self.pan {
+            None => (t, self.width * (rho * t * self.s).exp()),
+            Some((r0, d1)) => {
+                let r = rho * t * self.s + r0;
+                let u = self.width / (rho * rho * d1) * (r0.cosh() * r.tanh() - r0.sinh());
+                (u, self.width * r0.cosh() / r.cosh())
+            }
+        };
+        (self.from + self.across * u as f32, shown as f32)
     }
 }
 
@@ -240,23 +373,102 @@ mod tests {
         assert_eq!(glide.at(start + GLIDE), to);
     }
 
+    /// A dive at 60 frames a second: each frame's zoom and center.
+    fn frames(glide: Glide, start: Instant) -> Vec<View> {
+        let step = Duration::from_secs_f32(1.0 / 60.0);
+        let count = (glide.duration().as_secs_f32() * 60.0).ceil() as u32;
+        (0..=count).map(|i| glide.at(start + step * i)).collect()
+    }
+
+    #[test]
+    fn a_dive_eases_in_and_out_and_ends_where_it_should() {
+        let viewport = Size::new(800.0, 600.0);
+        let from = View::fitted(Size::new(1600.0, 1000.0), viewport);
+        let to = View {
+            zoom: 4.0,
+            center: Point::new(980.0, 410.0),
+            fit: false,
+        };
+        let start = Instant::now();
+        let glide = Glide::dive(from, to, viewport, start);
+        assert!(glide.duration() > GLIDE && glide.duration() <= DIVE_LONGEST);
+        let frames = frames(glide, start);
+        let first = frames[0];
+        assert!((first.zoom - from.zoom).abs() < 1e-4 && first.center.distance(from.center) < 0.01);
+        assert_eq!(*frames.last().unwrap(), to);
+        let mut biggest = 1.0f32;
+        for pair in frames.windows(2) {
+            let (a, b) = (pair[0], pair[1]);
+            // In, all the way; no frame zooms by much more than the next.
+            assert!(b.zoom >= a.zoom - 1e-4, "{a:?} then {b:?}");
+            biggest = biggest.max(b.zoom / a.zoom);
+        }
+        assert!(biggest < 1.12, "a frame zooms by {biggest}");
+        // Slow at both ends.
+        let ratio = |i: usize| frames[i + 1].zoom / frames[i].zoom;
+        let middle = frames.len() / 2;
+        assert!(ratio(0) < ratio(middle) && ratio(frames.len() - 2) < ratio(middle));
+    }
+
+    #[test]
+    fn a_far_dive_zooms_out_on_the_way() {
+        // From one corner of a wide diagram to the other at the same zoom:
+        // the shortest way goes up, across and down again.
+        let viewport = Size::new(800.0, 600.0);
+        let at = |x: f32| View {
+            zoom: 2.0,
+            center: Point::new(x, 300.0),
+            fit: false,
+        };
+        let start = Instant::now();
+        let glide = Glide::dive(at(200.0), at(4200.0), viewport, start);
+        let lowest = frames(glide, start)
+            .iter()
+            .map(|v| v.zoom)
+            .fold(f32::MAX, f32::min);
+        assert!(lowest < 1.0, "{lowest}");
+        assert_eq!(glide.duration(), DIVE_LONGEST);
+        // On the spot, a dive only zooms.
+        let glide = Glide::dive(
+            at(200.0),
+            View {
+                zoom: 1.0,
+                ..at(200.0)
+            },
+            viewport,
+            start,
+        );
+        assert!(
+            frames(glide, start)
+                .iter()
+                .all(|v| v.center == Point::new(200.0, 300.0))
+        );
+    }
+
     const DIAGRAM: Size = Size::new(400.0, 200.0);
     const VIEWPORT: Size = Size::new(848.0, 448.0);
 
     #[test]
-    fn fit_never_enlarges() {
+    fn fit_fills_the_pane() {
+        // 800 by 400 inside the margin: the diagram doubles.
         let view = View::fitted(DIAGRAM, VIEWPORT);
-        assert_eq!(view.zoom, 1.0);
+        assert_eq!(view.zoom, 2.0);
         assert_eq!(view.center, Point::new(200.0, 100.0));
         let small = View::fitted(DIAGRAM, Size::new(248.0, 448.0));
         assert_eq!(small.zoom, 0.5);
+        // A tiny diagram stops growing.
+        let tiny = View::fitted(Size::new(40.0, 20.0), VIEWPORT);
+        assert_eq!(tiny.zoom, MAX_FIT);
     }
 
     #[test]
     fn fitted_diagram_is_centered() {
         let bounds = Rectangle::new(Point::ORIGIN, VIEWPORT);
         let rect = View::fitted(DIAGRAM, VIEWPORT).diagram_rect(DIAGRAM, bounds);
-        assert_eq!(rect, Rectangle::new(Point::new(224.0, 124.0), DIAGRAM));
+        assert_eq!(rect, Rectangle::new(Point::new(24.0, 24.0), DIAGRAM * 2.0));
+        let wide = Rectangle::new(Point::ORIGIN, Size::new(1248.0, 448.0));
+        let rect = View::fitted(DIAGRAM, wide.size()).diagram_rect(DIAGRAM, wide);
+        assert_eq!(rect, Rectangle::new(Point::new(224.0, 24.0), DIAGRAM * 2.0));
     }
 
     #[test]

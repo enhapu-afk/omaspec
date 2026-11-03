@@ -456,7 +456,18 @@ mod tests {
     fn shows_the_diagram_fitted_and_in_sync() {
         let p = showing_flow();
         assert!(matches!(p.paper.status, Status::InSync));
-        assert!(p.paper.view.fit && p.paper.view.zoom <= 1.0);
+        // It fills the pane along the side that limits it, but for the
+        // margin, or has grown as far as a fit grows.
+        let view = p.paper.view;
+        let (size, pane) = (p.paper.diagram.as_ref().unwrap().size, p.paper.viewport());
+        let shown = size * view.zoom;
+        assert!(view.fit && view.zoom > 1.0, "{view:?}");
+        assert!(
+            view.zoom == crate::paper::view::MAX_FIT
+                || (pane.width - shown.width - 48.0).abs() < 0.5
+                || (pane.height - shown.height - 48.0).abs() < 0.5,
+            "{shown:?} in {pane:?}"
+        );
         assert!(p.paper.overview_shown() && p.paper.detail().0.is_none());
         assert_eq!(
             p.paper.diagram.as_ref().unwrap().drawn.engine,

@@ -13,7 +13,11 @@ use omaspec_render::Atlas;
 
 use super::doc::Doc;
 use super::{App, Message};
-use crate::paper::{self, View};
+use crate::paper::{self, Showing, View};
+
+/// How long a zoom into a link waits at most for the diagram it leads to
+/// to be drawn, so that it runs on one way.
+const DIVE_WAIT: std::time::Duration = std::time::Duration::from_millis(160);
 use crate::worker::{Alarm, Linked};
 
 /// A diagram on the trail.
@@ -27,11 +31,17 @@ pub struct Step {
     pub from: Option<(Rectangle, View)>,
 }
 
-/// A link being followed: the zoom into it runs.
+/// A link being followed: the zoom into it runs, and the diagram it
+/// leads to is open in a tab of its own, drawn in the background.
 #[derive(Debug, Clone)]
 pub struct Following {
     from: u64,
     to: PathBuf,
+    /// The tab of the diagram it leads to.
+    target: u64,
+    /// Whether the zoom runs: it waits for that diagram to be drawn, so it
+    /// runs on one way from start to end.
+    started: bool,
     name: String,
     rect: Rectangle,
     view: View,
@@ -128,18 +138,94 @@ impl App {
             }
         };
         let rect = paper::link_rect(&link);
+        let to = root.join(file);
+        let view = doc.paper.view;
+        // The linked diagram opens now and is drawn in the pane's size, so
+        // the zoom ends where it will show.
+        let index = match self.open_doc(&to) {
+            Ok(index) => index,
+            Err(err) => {
+                self.notice = Some(format!("{} did not open: {err:#}", to.display()));
+                return Task::none();
+            }
+        };
+        let target = self.docs[index].key;
+        if target == key {
+            return Task::none();
+        }
+        let (size, factor) = (self.paper_size, self.paper_scale());
+        let paper = &mut self.docs[index].paper;
+        paper.view.fit = true;
+        let prepared = Task::batch([
+            paper.set_scale_factor(factor),
+            paper.update(paper::Message::Viewport(size)),
+        ])
+        .map(move |m| Message::Paper(target, m));
+        let drawn = self.render(target, false);
         self.following = Some(Following {
             from: key,
-            to: root.join(file),
+            to,
+            target,
+            started: false,
             name: link.name.replace('\n', " "),
             rect,
-            view: doc.paper.view,
+            view,
         });
-        self.after(Alarm::Follow, paper::DIVE);
-        let doc = self.find(key).expect("the document");
-        doc.paper
-            .zoom_into(rect)
-            .map(move |m| Message::Paper(key, m))
+        // Drawn already, it goes at once; else once it is, or after a while.
+        self.after(Alarm::Dive, DIVE_WAIT);
+        Task::batch([prepared, drawn, self.arrive()])
+    }
+
+    /// The diagram a link leads to got drawn or its picture: the zoom into
+    /// the link starts, to end where that diagram will show, or, running
+    /// already, learns where that is.
+    pub(super) fn arrive(&mut self) -> Task<Message> {
+        let Some(f) = &self.following else {
+            return Task::none();
+        };
+        let (from, target, started, rect) = (f.from, f.target, f.started, f.rect);
+        let linked = self.find(target).and_then(|d| d.paper.showing());
+        if started {
+            if let (Some(linked), Some(doc)) = (linked, self.find(from)) {
+                doc.paper.arriving(linked);
+            }
+            return Task::none();
+        }
+        match linked {
+            Some(linked) if linked.picture.is_some() => self.dive(from, rect, Some(linked)),
+            _ => Task::none(),
+        }
+    }
+
+    /// The diagram a link leads to took too long: the zoom starts without
+    /// knowing where it will show.
+    pub(super) fn dive_anyway(&mut self) -> Task<Message> {
+        match &self.following {
+            Some(f) if !f.started => {
+                let (from, rect) = (f.from, f.rect);
+                let linked = self.find(f.target).and_then(|d| d.paper.showing());
+                self.dive(from, rect, linked)
+            }
+            _ => Task::none(),
+        }
+    }
+
+    /// Starts the zoom from the diagram `from` into its link at `rect`.
+    fn dive(&mut self, from: u64, rect: Rectangle, landing: Option<Showing>) -> Task<Message> {
+        if let Some(f) = &mut self.following {
+            f.started = true;
+        }
+        let Some(doc) = self.find(from) else {
+            return Task::none();
+        };
+        let (dive, takes) = doc.paper.zoom_into(rect, landing);
+        self.after(Alarm::Follow, takes);
+        dive.map(move |m| Message::Paper(from, m))
+    }
+
+    /// Whether `key` is the diagram a zoom into a link leads to.
+    pub(super) fn is_arriving(&self, key: u64) -> bool {
+        self.following.as_ref().is_some_and(|f| f.target == key)
     }
 
     /// The zoom into a link has arrived: its diagram opens, and joins the
@@ -153,20 +239,20 @@ impl App {
         };
         let from_path = from.path.clone();
         let from_name = self.trail_name(from);
-        let index = match self.open_doc(&f.to) {
-            Ok(index) => index,
-            Err(err) => {
-                if let Some(doc) = self.find(f.from) {
-                    doc.paper.view = f.view;
-                }
-                self.notice = Some(format!("{} did not open: {err:#}", f.to.display()));
-                return Task::none();
-            }
-        };
         // The diagram left keeps the view it had, for a tab click back.
         if let Some(doc) = self.find(f.from) {
-            doc.paper.view = f.view;
+            doc.paper.land(f.view);
         }
+        let index = match self.docs.iter().position(|d| d.key == f.target) {
+            Some(index) => index,
+            None => match self.open_doc(&f.to) {
+                Ok(index) => index,
+                Err(err) => {
+                    self.notice = Some(format!("{} did not open: {err:#}", f.to.display()));
+                    return Task::none();
+                }
+            },
+        };
         let at = from_path
             .as_ref()
             .and_then(|p| self.trail.iter().position(|s| &s.path == p));
@@ -222,6 +308,8 @@ impl App {
             return Task::none();
         }
         let (path, from) = (self.trail[index].path.clone(), self.trail[index + 1].from);
+        // The diagram here, as it shows: it shrinks into its link's box.
+        let here_shown = self.doc().paper.showing();
         let opened = match self.open_doc(&path) {
             Ok(opened) => opened,
             Err(err) => {
@@ -236,7 +324,7 @@ impl App {
             Some((rect, view)) => self
                 .doc_mut()
                 .paper
-                .zoom_out_of(rect, view)
+                .zoom_out_of(rect, view, here_shown)
                 .map(move |m| Message::Paper(key, m)),
             None => Task::none(),
         };
