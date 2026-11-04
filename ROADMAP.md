@@ -1252,9 +1252,19 @@ checked; numbers are measured, not assumed.
       in the theme's colors (the helper had handed the renderer the bare file), so
       the README's pictures show the diagrams in the theme. The preview window still
       draws the file's own colors.
-- [ ] Gallery tiles that read: the picture cropped to the diagram and filling its
-      tile, fewer and larger tiles in a narrow window, in the colors the contrast test
-      holds.
+- [x] Gallery tiles that read: a tile's picture was the whole SVG fitted into 272 by
+      170 with room left for the badges, so most diagrams came out small in much
+      paper. It is cut to what is drawn now (the paper the diagram lies on left out)
+      and fills the tile: as wide as fits and up to 1.4 times taller than fits, so a
+      tall diagram shows its top and is cut at the bottom; a wide one keeps its sides,
+      where a timing diagram or a signal flow names its rows. The badges lie on the
+      picture. The tiles fill the panel, 272 to 480 wide at a ratio of 1.6, fewer and
+      larger in a narrow window (one in a window up to 700 wide, two up to 1,000), and
+      their pictures are drawn again for their size once the window stops changing
+      (150 ms after the last change). In a narrow panel the switch of colors goes
+      under the filters, which ran past its edge. The colors are the theme's, which
+      the contrast test holds. Screenshots: `gallery-omarchy` and `gallery-narrow`
+      (`snapshot_gallery`).
 - [x] Diamonds 1.6 times as wide as high: `layered/shape.rs` made a decision with a
       short word as wide as high (the ratio follows the text, between 1 and 3); at
       least 1.6 now (`DIAMOND_RATIO`), the text's corners still on the outline.

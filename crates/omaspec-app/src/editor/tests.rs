@@ -2597,6 +2597,13 @@ fn snapshot_gallery() {
     let _ = app.update(Message::GalleryComplex);
     app.settle_gallery();
     shoot_at(&mut app, &dir, "gallery-complex", size);
+    // In a narrow window, fewer and larger tiles, drawn for their size.
+    let _ = app.update(Message::GalleryComplex);
+    follow_theme(&mut app, true);
+    let narrow = Size::new(760.0, 880.0);
+    let _ = app.update(Message::WindowSized(main, narrow));
+    app.settle_gallery();
+    shoot_at(&mut app, &dir, "gallery-narrow", narrow);
 }
 
 #[test]

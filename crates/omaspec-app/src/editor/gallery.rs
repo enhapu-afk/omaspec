@@ -29,18 +29,21 @@ use super::{App, Message, Reveal, free_name, home_relative, plural};
 use crate::gallery::{EXAMPLES, Group};
 use crate::icons::{self, Icon};
 use crate::ui;
-use crate::worker::blocking;
+use crate::worker::{Alarm, blocking};
 
 /// The search field.
 pub const FIELD: &str = "gallery";
 /// The scrolling grid of tiles.
 const GRID: &str = "gallery-grid";
 
-/// A tile's picture, in logical pixels.
-const THUMB: Size = Size::new(272.0, 170.0);
+/// How much wider than high a tile's picture is.
+const THUMB_ASPECT: f32 = 1.6;
+/// The narrowest and the widest a tile's picture is, in logical pixels:
+/// the tiles fill the panel's width, fewer and larger in a narrow window.
+const THUMB_NARROWEST: f32 = 272.0;
+const THUMB_WIDEST: f32 = 480.0;
 /// Room inside a tile around its picture and its words.
 const TILE_PAD: f32 = 8.0;
-const TILE_WIDTH: f32 = THUMB.width + TILE_PAD * 2.0;
 /// Between tiles.
 const GAP: f32 = 14.0;
 /// Inside the panel, around everything.
@@ -50,9 +53,14 @@ const MARGIN: f32 = 28.0;
 /// Beside the grid, for its scroller.
 const SCROLLER: f32 = 12.0;
 const MAX_COLUMNS: usize = 5;
-/// Room beside a diagram on its tile, and above and below it, where the
-/// badges sit.
-const THUMB_MARGIN: Size = Size::new(12.0, 24.0);
+/// The filters and the switch of colors side by side take this much room.
+const FILTERS_WIDTH: f32 = 780.0;
+/// Between a diagram and the edge of its tile, where it is not cut.
+const THUMB_INSET: f32 = 10.0;
+/// A tall diagram is drawn up to this much larger than whole in its tile,
+/// to fill more of it; its bottom is cut, not its top, where titles and
+/// starts are. A wide one keeps its sides, where rows have their names.
+const THUMB_FILL: f32 = 1.4;
 /// A small diagram is not blown up beyond this.
 const THUMB_ZOOM: f32 = 1.25;
 const RADIUS: f32 = 10.0;
@@ -68,6 +76,9 @@ const RISE_BY: f32 = 12.0;
 const THUMB_FADE: Duration = Duration::from_millis(220);
 /// The glow moves to the chosen tile in this long.
 const LIGHT: Duration = Duration::from_millis(160);
+/// The pictures are drawn again for a window this long after it last
+/// changed its size.
+const THUMBS_AFTER_RESIZE: Duration = Duration::from_millis(150);
 
 /// A tile's picture, ready to show.
 #[derive(Debug, Clone)]
@@ -81,9 +92,10 @@ pub struct Thumb {
     pub elapsed: Duration,
 }
 
-/// `source` drawn by Omaspec's engines (no Java), fitted into `width` ×
-/// `height` pixels on its own paper, centered, at most [`THUMB_ZOOM`]
-/// times its size at `scale`.
+/// `source` drawn by Omaspec's engines (no Java) in `width` × `height`
+/// pixels on its own paper: cut to what is drawn, as wide as fits and up
+/// to [`THUMB_FILL`] taller than fits, at most [`THUMB_ZOOM`] times its
+/// size at `scale`.
 pub fn thumbnail(
     source: &str,
     language: Language,
@@ -101,13 +113,16 @@ pub fn thumbnail(
     let tree = export::parse(&rendered.svg).map_err(|e| e.to_string())?;
     let playable = crate::paper::Play::new(source, language, &rendered.map, Instant::now()).is_ok();
     let size = tree.size();
-    let (beside, above) = (
-        (THUMB_MARGIN.width * scale).round(),
-        (THUMB_MARGIN.height * scale).round(),
+    let drawn_area = drawn_area(&tree).unwrap_or_else(|| {
+        export::usvg::Rect::from_xywh(0.0, 0.0, size.width(), size.height()).expect("a size")
+    });
+    let inset = (THUMB_INSET * scale).round();
+    let room = (width as f32 - inset * 2.0, height as f32 - inset * 2.0);
+    let (across, down) = (
+        room.0 / drawn_area.width().max(1.0),
+        room.1 / drawn_area.height().max(1.0),
     );
-    let fit = ((width as f32 - beside * 2.0) / size.width())
-        .min((height as f32 - above * 2.0) / size.height())
-        .min(THUMB_ZOOM * scale);
+    let fit = across.min(down * THUMB_FILL).min(THUMB_ZOOM * scale);
     // On a clear ground: drawn on white, the edge of a dark background
     // would be a light line on the dark paper around it.
     let drawn = export::rasterize_clear(&tree, fit).map_err(|e| e.to_string())?;
@@ -120,12 +135,18 @@ pub fn thumbnail(
         });
     let mut tile = Pixmap::new(width, height).ok_or("no room for the picture")?;
     tile.fill(paper);
-    // Whole pixels, so the picture stays as sharp as it was drawn.
-    let x = (width.saturating_sub(drawn.width()) / 2) as i32;
-    let y = (height.saturating_sub(drawn.height()) / 2) as i32;
+    // Centered across; down, centered when it fits and from its top when
+    // it does not. Whole pixels, so it stays as sharp as it was drawn.
+    let (w, h) = (drawn_area.width() * fit, drawn_area.height() * fit);
+    let left = inset + (room.0 - w) / 2.0;
+    let top = if h > room.1 {
+        inset
+    } else {
+        inset + (room.1 - h) / 2.0
+    };
     tile.draw_pixmap(
-        x,
-        y,
+        (left - drawn_area.x() * fit).round() as i32,
+        (top - drawn_area.y() * fit).round() as i32,
         drawn.as_ref(),
         &PixmapPaint::default(),
         Transform::identity(),
@@ -137,6 +158,53 @@ pub fn thumbnail(
         playable,
         elapsed: rendered.elapsed,
     })
+}
+
+/// Where something is drawn in `tree`, in its units: the paper a diagram
+/// lies on, a shape filled over the whole picture, left out.
+fn drawn_area(tree: &export::usvg::Tree) -> Option<export::usvg::Rect> {
+    fn walk(
+        group: &export::usvg::Group,
+        size: export::usvg::Size,
+        area: &mut Option<export::usvg::Rect>,
+    ) {
+        use export::usvg::Node;
+        for node in group.children() {
+            let bounds = match node {
+                Node::Group(inner) => {
+                    walk(inner, size, area);
+                    continue;
+                }
+                Node::Path(path) if !path.is_visible() => continue,
+                Node::Path(path) => {
+                    let b = path.abs_bounding_box();
+                    let paper = path.fill().is_some()
+                        && b.left() <= 0.5
+                        && b.top() <= 0.5
+                        && b.right() >= size.width() - 0.5
+                        && b.bottom() >= size.height() - 0.5;
+                    if paper {
+                        continue;
+                    }
+                    node.abs_stroke_bounding_box()
+                }
+                _ => node.abs_stroke_bounding_box(),
+            };
+            *area = Some(match *area {
+                Some(a) => export::usvg::Rect::from_ltrb(
+                    a.left().min(bounds.left()),
+                    a.top().min(bounds.top()),
+                    a.right().max(bounds.right()),
+                    a.bottom().max(bounds.bottom()),
+                )
+                .unwrap_or(a),
+                None => bounds,
+            });
+        }
+    }
+    let mut area = None;
+    walk(tree.root(), tree.size(), &mut area);
+    area
 }
 
 /// A tile's picture as it came, and the one before it while it fades in.
@@ -326,10 +394,17 @@ fn progress(start: Instant, length: Duration, now: Instant) -> f32 {
     1.0 - (1.0 - t).powi(3)
 }
 
-/// How many tiles fit side by side in a window `width` wide.
-pub fn columns(width: f32) -> usize {
+/// How many tiles go side by side in a window `width` wide, and the size
+/// of their pictures: they fill the panel, at least [`THUMB_NARROWEST`]
+/// and at most [`THUMB_WIDEST`] wide.
+pub fn layout(width: f32) -> (usize, Size) {
     let room = width - MARGIN * 2.0 - PANEL_PAD * 2.0 - SCROLLER + GAP;
-    ((room / (TILE_WIDTH + GAP)).floor() as usize).clamp(1, MAX_COLUMNS)
+    let narrowest = THUMB_NARROWEST + TILE_PAD * 2.0 + GAP;
+    let columns = ((room / narrowest).floor() as usize).clamp(1, MAX_COLUMNS);
+    let thumb = (room / columns as f32 - GAP - TILE_PAD * 2.0)
+        .clamp(THUMB_NARROWEST / 2.0, THUMB_WIDEST)
+        .floor();
+    (columns, Size::new(thumb, (thumb / THUMB_ASPECT).round()))
 }
 
 /// The id of example `index`'s tile, so the grid can scroll to it.
@@ -379,7 +454,26 @@ impl App {
                 .hash(&mut hasher);
         }
         self.main_scale.to_bits().hash(&mut hasher);
+        self.thumb_pixels().hash(&mut hasher);
         hasher.finish()
+    }
+
+    /// A tile's picture in pixels, in the window as it is now.
+    fn thumb_pixels(&self) -> (u32, u32) {
+        let thumb = layout(self.main_size.width).1;
+        let scale = self.main_scale;
+        (
+            (thumb.width * scale).round() as u32,
+            (thumb.height * scale).round() as u32,
+        )
+    }
+
+    /// The window changed its size: the pictures are drawn again for the
+    /// tiles' new size, once it has stopped changing.
+    pub(super) fn gallery_resized(&self) {
+        if self.gallery.is_some() {
+            self.after(Alarm::Thumbs, THUMBS_AFTER_RESIZE);
+        }
     }
 
     /// Draws, in the background, the pictures the open gallery lacks in the
@@ -394,10 +488,7 @@ impl App {
             self.thumbs.asked.clear();
         }
         let scale = self.main_scale;
-        let (width, height) = (
-            (THUMB.width * scale).round() as u32,
-            (THUMB.height * scale).round() as u32,
-        );
+        let (width, height) = self.thumb_pixels();
         let mut tasks = Vec::new();
         for (index, example) in EXAMPLES.iter().enumerate() {
             let fresh = self
@@ -472,7 +563,7 @@ impl App {
 
     /// Steps the choice a row up or down.
     pub(super) fn gallery_row(&mut self, down: bool) -> Task<Message> {
-        let n = columns(self.main_size.width) as isize;
+        let n = layout(self.main_size.width).0 as isize;
         self.gallery_move(if down { n } else { -n })
     }
 
@@ -532,7 +623,7 @@ impl App {
         let now = Instant::now();
         let p = &self.palette;
         let quiet = ui::quiet(p);
-        let columns = columns(self.main_size.width);
+        let (columns, thumb) = layout(self.main_size.width);
         let settled = progress(gallery.opened, VEIL, now);
 
         let (drawn, took) = self.thumbs.drawn();
@@ -605,14 +696,33 @@ impl App {
                 e.complex && gallery.group.is_none_or(|g| g == e.group) && e.matches(&gallery.query)
             })
             .count();
-        let filters = row![
+        let tile_width = thumb.width + TILE_PAD * 2.0;
+        let width =
+            tile_width * columns as f32 + GAP * (columns as f32 - 1.0) + PANEL_PAD * 2.0 + SCROLLER;
+        let pills = row![
             row(groups).spacing(6).align_y(Alignment::Center),
             Space::new().width(14),
             self.filter_pill("complex", complex, gallery.complex, Message::GalleryComplex),
-            Space::new().width(Length::Fill),
-            self.colors_switch(),
         ]
         .align_y(Alignment::Center);
+        // The switch of colors goes under the filters where they leave it
+        // no room beside them.
+        let filters: Element<'_, Message> = if width - PANEL_PAD * 2.0 < FILTERS_WIDTH {
+            column![
+                pills,
+                row![Space::new().width(Length::Fill), self.colors_switch()]
+            ]
+            .spacing(8)
+            .into()
+        } else {
+            row![
+                pills,
+                Space::new().width(Length::Fill),
+                self.colors_switch()
+            ]
+            .align_y(Alignment::Center)
+            .into()
+        };
 
         let grid: Element<'_, Message> = if gallery.shown.is_empty() {
             container(
@@ -636,10 +746,9 @@ impl App {
             .into()
         } else {
             let rows = gallery.shown.chunks(columns).enumerate().map(|(r, chunk)| {
-                row(chunk
-                    .iter()
-                    .enumerate()
-                    .map(|(c, &index)| self.tile(gallery, index, gallery.rise(r + c, now), now)))
+                row(chunk.iter().enumerate().map(|(c, &index)| {
+                    self.tile(gallery, index, thumb, gallery.rise(r + c, now), now)
+                }))
                 .spacing(GAP)
                 .into()
             });
@@ -677,8 +786,6 @@ impl App {
         .spacing(16)
         .align_y(Alignment::Center);
 
-        let width =
-            TILE_WIDTH * columns as f32 + GAP * (columns as f32 - 1.0) + PANEL_PAD * 2.0 + SCROLLER;
         let (fill, edge) = (ui::color(p.dark_background), ui::alpha(p.accent, 0.45));
         let panel = container(column![head, filters, grid, foot].spacing(14))
             .width(Length::Fixed(width))
@@ -728,6 +835,7 @@ impl App {
         &'a self,
         gallery: &Gallery,
         index: usize,
+        thumb: Size,
         rise: f32,
         now: Instant,
     ) -> Element<'a, Message> {
@@ -741,10 +849,10 @@ impl App {
         let came = shown.map_or(0.0, |s| progress(s.came, THUMB_FADE, now));
         let kind = &gallery.kinds[index];
 
-        let image_of = |thumb: &Thumb, opacity: f32| -> Element<'a, Message> {
-            Image::new(thumb.handle.clone())
-                .width(THUMB.width)
-                .height(THUMB.height)
+        let image_of = |picture: &Thumb, opacity: f32| -> Element<'a, Message> {
+            Image::new(picture.handle.clone())
+                .width(thumb.width)
+                .height(thumb.height)
                 .border_radius(RADIUS)
                 .opacity(opacity)
                 .into()
@@ -761,8 +869,8 @@ impl App {
                 ),
                 None => Space::new().into(),
             })
-            .width(THUMB.width)
-            .height(THUMB.height)
+            .width(thumb.width)
+            .height(thumb.height)
             .align_x(Alignment::Center)
             .align_y(Alignment::Center)
             .style(move |_: &Theme| {
@@ -789,8 +897,8 @@ impl App {
                     self.small(ui::one_line(why), p.red)
                         .wrapping(text::Wrapping::WordOrGlyph),
                 )
-                .width(THUMB.width)
-                .height(THUMB.height)
+                .width(thumb.width)
+                .height(thumb.height)
                 .padding(14)
                 .align_y(Alignment::Center)
                 .into(),
@@ -815,8 +923,8 @@ impl App {
                 )
                 .padding([1, 8]),
             )
-            .width(THUMB.width)
-            .height(THUMB.height)
+            .width(thumb.width)
+            .height(thumb.height)
             .align_y(Alignment::End)
             .padding(7)
             .into(),
@@ -835,8 +943,8 @@ impl App {
                     )
                     .padding([1, 8]),
                 )
-                .width(THUMB.width)
-                .height(THUMB.height)
+                .width(thumb.width)
+                .height(thumb.height)
                 .align_x(Alignment::End)
                 .align_y(Alignment::End)
                 .padding(7)
@@ -867,14 +975,14 @@ impl App {
                         .on_press(Message::GalleryOpen(Some(index), true))
                         .interaction(iced::mouse::Interaction::Pointer),
                 )
-                .width(THUMB.width)
-                .height(THUMB.height)
+                .width(thumb.width)
+                .height(thumb.height)
                 .align_x(Alignment::End)
                 .padding(7)
                 .into(),
             );
         }
-        let picture = stack(layers).width(THUMB.width).height(THUMB.height);
+        let picture = stack(layers).width(thumb.width).height(thumb.height);
 
         let icon: Element<'a, Message> = match self.icons.get(Icon::of(Some(kind)), tint) {
             Some(handle) => Image::new(handle)
@@ -925,7 +1033,7 @@ impl App {
         let glow = ui::alpha(p.accent, 0.4 * lit * rise);
         let card = container(body)
             .padding(TILE_PAD)
-            .width(Length::Fixed(TILE_WIDTH))
+            .width(Length::Fixed(thumb.width + TILE_PAD * 2.0))
             .style(move |_: &Theme| {
                 container::Style::default()
                     .background(fill)
@@ -1089,10 +1197,7 @@ impl App {
         let _ = self.draw_thumbs();
         let look = self.thumbs.look;
         let scale = self.main_scale;
-        let (width, height) = (
-            (THUMB.width * scale).round() as u32,
-            (THUMB.height * scale).round() as u32,
-        );
+        let (width, height) = self.thumb_pixels();
         for (index, example) in EXAMPLES.iter().enumerate() {
             if !self.thumbs.asked.contains(&index) {
                 continue;
@@ -1204,10 +1309,19 @@ mod tests {
     }
 
     #[test]
-    fn the_grid_takes_as_many_columns_as_fit() {
-        assert_eq!(columns(400.0), 1);
-        assert_eq!(columns(1300.0), 3);
-        assert_eq!(columns(1920.0), 5);
-        assert_eq!(columns(5000.0), MAX_COLUMNS);
+    fn the_tiles_fill_the_panel_fewer_and_larger_in_a_narrow_window() {
+        let at = |width: f32| {
+            let (columns, thumb) = layout(width);
+            (columns, thumb.width)
+        };
+        assert_eq!(at(400.0), (1, 272.0));
+        // One tile as wide as it may be, not two at the narrowest.
+        assert_eq!(at(700.0), (1, THUMB_WIDEST));
+        assert_eq!(at(1000.0), (2, 421.0));
+        assert_eq!(at(1300.0), (3, 370.0));
+        assert_eq!(at(1920.0), (5, 334.0));
+        assert_eq!(at(5000.0), (MAX_COLUMNS, THUMB_WIDEST));
+        let (_, thumb) = layout(1300.0);
+        assert_eq!(thumb.height, (thumb.width / THUMB_ASPECT).round());
     }
 }

@@ -1193,6 +1193,7 @@ impl App {
             Message::WindowSized(window, size) => {
                 if window == self.main {
                     self.main_size = size;
+                    self.gallery_resized();
                 }
                 Task::none()
             }
@@ -1460,6 +1461,7 @@ impl App {
             worker::Event::Due(Alarm::Session) => self.write_session(),
             worker::Event::Due(Alarm::Follow) => return self.followed(),
             worker::Event::Due(Alarm::Dive) => return self.dive_anyway(),
+            worker::Event::Due(Alarm::Thumbs) => return self.draw_thumbs(),
             worker::Event::FileChanged(path) => {
                 if !self.changed.contains(&path) {
                     self.changed.push(path);

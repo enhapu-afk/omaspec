@@ -78,6 +78,8 @@ pub enum Alarm {
     /// The diagram a link leads to is still not drawn: the zoom into the
     /// link starts anyway.
     Dive,
+    /// The window has its new size: the gallery's pictures are drawn for it.
+    Thumbs,
 }
 
 #[derive(Debug, Clone)]

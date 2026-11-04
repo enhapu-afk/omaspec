@@ -184,7 +184,9 @@ elevator, a checkout, an incident in three lanes, a delivery pipeline, a library
 and more) and have a *complex* filter of their own.
 
 Each tile is drawn on the spot by Omaspec's engines, in the colors the diagram pane would
-show; the *Omarchy colors* switch redraws them all in the theme's. Typing filters (by
+show, cut to the diagram and filling the tile; a tall one shows its top. The tiles fill
+the panel, fewer and larger in a narrow window. The *Omarchy colors* switch redraws them
+all in the file's own colors or the theme's. Typing filters (by
 title, kind, language, or `complex`), Tab steps through behavior, structure, plans and
 data, the arrows move between tiles. Enter (or a click) opens a copy in a new tab,
 unsaved, under a free name in the project folder; F5 (or the *plays* badge) opens it and
