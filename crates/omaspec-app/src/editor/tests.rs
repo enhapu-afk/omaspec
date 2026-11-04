@@ -2817,7 +2817,14 @@ fn shoot_at(app: &mut App, dir: &Path, name: &str, size: Size) {
 struct Screen {
     renderer: iced::Renderer,
     scale: f32,
+    size: Size,
     warm: bool,
+    /// The widgets' state between the redraws of [`Self::run`], as a
+    /// window keeps it.
+    cache: Option<iced_runtime::user_interface::Cache>,
+    /// How long the view and its layout took, and the pixels, in each
+    /// redraw of [`Self::run`].
+    spent: Vec<(Duration, Duration)>,
 }
 
 /// A screenshot, as RGBA rows.
@@ -2849,7 +2856,10 @@ impl Screen {
         Screen {
             renderer,
             scale,
+            size: Self::SIZE,
             warm: false,
+            cache: None,
+            spent: Vec::new(),
         }
     }
 
@@ -2864,24 +2874,34 @@ impl Screen {
     }
 
     fn frame(&mut self, app: &App) -> Shot {
+        self.cache = None;
+        self.redraw(app).0
+    }
+
+    /// A redraw, as a window's: the layers update and draw, and the GPU
+    /// makes the pixels; with what the layers published.
+    fn redraw(&mut self, app: &App) -> (Shot, Vec<Message>) {
         use iced::advanced::renderer::{Headless, Style};
         use iced::theme::Base;
+        let start = Instant::now();
         let mut ui = iced_runtime::UserInterface::build(
             app.main_view(),
-            Self::SIZE,
-            iced_runtime::user_interface::Cache::default(),
+            self.size,
+            self.cache.take().unwrap_or_default(),
             &mut self.renderer,
         );
+        let built = start.elapsed();
         let redraw = iced::Event::Window(iced::window::Event::RedrawRequested(
             iced::time::Instant::now(),
         ));
         let cursor = iced::mouse::Cursor::Unavailable;
+        let mut published = Vec::new();
         let _ = ui.update(
             &[redraw],
             cursor,
             &mut self.renderer,
             &mut iced::advanced::clipboard::Null,
-            &mut Vec::new(),
+            &mut published,
         );
         let base = app.theme.base();
         let style = Style {
@@ -2889,22 +2909,54 @@ impl Screen {
         };
         ui.draw(&mut self.renderer, &app.theme, &style, cursor);
         let (width, height) = (
-            (Self::SIZE.width * self.scale).round() as u32,
-            (Self::SIZE.height * self.scale).round() as u32,
+            (self.size.width * self.scale).round() as u32,
+            (self.size.height * self.scale).round() as u32,
         );
         // The interface lives on until the screenshot: the renderer holds
         // its text only weakly.
+        let drawn = Instant::now();
         let rgba = self.renderer.screenshot(
             iced::Size::new(width, height),
             self.scale,
             base.background_color,
         );
-        drop(ui);
-        Shot {
+        self.spent.push((built, drawn.elapsed()));
+        self.cache = Some(ui.into_cache());
+        let shot = Shot {
             width: width as usize,
             height: height as usize,
             rgba,
+        };
+        (shot, published)
+    }
+
+    /// Redraws at 60 Hz, as a window does, until `done` or `most` frames;
+    /// what the layers publish goes to the app. `paper::frames` logs it.
+    fn run(&mut self, app: &mut App, most: usize, done: impl Fn(&App) -> bool) {
+        let tick = Duration::from_micros(16_667);
+        self.spent.clear();
+        for _ in 0..most {
+            if done(app) {
+                break;
+            }
+            let start = Instant::now();
+            for message in self.redraw(app).1 {
+                let _ = app.update(message);
+            }
+            if let Some(wait) = (start + tick).checked_duration_since(Instant::now()) {
+                std::thread::sleep(wait);
+            }
         }
+        let median = |mut d: Vec<Duration>| {
+            d.sort_unstable();
+            d.get(d.len() / 2).map_or(0.0, |d| d.as_secs_f64() * 1000.0)
+        };
+        eprintln!(
+            "frames: headless, {} redraws: the view and its layout {:.1} ms, the pixels made and read back {:.1} ms (medians)",
+            self.spent.len(),
+            median(self.spent.iter().map(|s| s.0).collect()),
+            median(self.spent.iter().map(|s| s.1).collect()),
+        );
     }
 }
 
@@ -3668,6 +3720,94 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     assert!(app.trail_view().is_none());
     // Back on the map, it zooms out of Orders to where it was.
     assert_eq!(app.doc().paper.view, before);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// A zoom into a tile of a map and back out, a stepped zoom and a play,
+/// drawn frame by frame on the GPU in a 2560×1440 window when
+/// OMASPEC_FRAMES is set: `paper::frames` logs each motion as in a real
+/// window, but its gaps hold the pixels read back too. Run it with
+/// `OMASPEC_FRAMES=1 cargo test --release -p omaspec-app frames_ -- --nocapture`.
+#[test]
+fn frames_headless() {
+    if std::env::var_os("OMASPEC_FRAMES").is_none() {
+        return;
+    }
+    let root = temp_dir("frames");
+    let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
+    write(
+        "omaspec-project.toml",
+        "name = \"shop\"\nmain = \"system.puml\"\n",
+    );
+    write(
+        "system.puml",
+        "@startwbs\n* Shop\n** Orders\n*** Checkout\n** Payment\n** Door\n@endwbs\n",
+    );
+    write(
+        "orders.puml",
+        "@startuml\ntitle Orders\n[*] --> New\nNew --> Checkout : pay\nCheckout --> Shipped : paid\nShipped --> [*]\n@enduml\n",
+    );
+    write(
+        "checkout.puml",
+        "@startuml\ntitle Checkout\nstart\n:Enter the address;\n:Pay;\nstop\n@enduml\n",
+    );
+    write(
+        "payment.puml",
+        "@startuml\ntitle Payment\n[*] --> Waiting\nWaiting --> Checkout : start\nCheckout --> Done : ok\n@enduml\n",
+    );
+    write(
+        "door.puml",
+        "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Opening : open [unlocked]\nClosed --> Locked : lock\nLocked --> Closed : unlock\nOpening --> Open : end position\nOpen --> Closing : close\nClosing --> Closed : end position\nClosing --> Opening : obstacle\n@enduml\n",
+    );
+    let root = std::fs::canonicalize(&root).unwrap();
+    let mut app = open(&[root.join("system.puml")]);
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
+    show_linked(&mut app);
+    settle(&mut app);
+    let mut screen = Screen::new(&app, 1.0);
+    screen.size = Size::new(2560.0, 1440.0);
+    // The first redraw tells the pane its size; the map is fitted to it.
+    screen.run(&mut app, 2, |_| false);
+    app.doc_mut().paper.finish_rasters();
+    eprintln!(
+        "frames: the map's pane {:?}, the diagrams drawn on {}",
+        app.doc().paper.viewport(),
+        iced::advanced::renderer::Headless::name(&screen.renderer)
+    );
+
+    let map = app.doc().key;
+    let door = link_on_screen(&app, "Door");
+    let _ = app.update(Message::Paper(map, paper::Message::Follow(door)));
+    let target = app.docs.last().unwrap().key;
+    deliver_linked(&mut app, target);
+    app.docs.last_mut().unwrap().paper.finish_rasters();
+    let _ = app.arrive();
+    screen.run(&mut app, 120, |app| app.doc().paper.glide().is_none());
+    due(&mut app, Alarm::Follow);
+    screen.run(&mut app, 2, |_| false);
+    app.doc_mut().paper.finish_rasters();
+
+    let _ = app.update(Message::Command(Command::Play));
+    let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Take(0))));
+    screen.run(&mut app, 90, |_| false);
+    let _ = app.update(Message::Command(Command::StopPlay));
+    // The play fades, and its bar goes.
+    screen.run(&mut app, 40, |_| false);
+
+    press(&mut app, Command::Back);
+    app.doc_mut().paper.finish_rasters();
+    screen.run(&mut app, 120, |app| app.doc().paper.glide().is_none());
+    app.doc_mut().paper.finish_rasters();
+
+    press(&mut app, Command::ZoomIn);
+    screen.run(&mut app, 60, |app| app.doc().paper.glide().is_none());
+    // The last motion's line comes with the redraw after it.
+    screen.run(&mut app, 2, |_| false);
     let _ = std::fs::remove_dir_all(&root);
 }
 

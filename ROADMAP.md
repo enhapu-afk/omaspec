@@ -1208,12 +1208,29 @@ checked; numbers are measured, not assumed.
       0.09 s at 1, 0.15 s at 2, 0.18 s at 3, measured the same way. And a map in a project was first drawn without the project's diagrams,
       as a plain tree, then again once they were read; it waits for them
       now, so it is drawn once.
-- [ ] Smooth frames, measured: `OMASPEC_FRAMES=1` logs how long each frame of a
-      dive, a glide and a play takes. Suspected: on the first half of a dive the
-      overview raster is stretched until sharp pixels come; the second half lies
-      under the veil now. Pixels sharp enough for the whole way, asked for before
-      it starts. Goal: no frame over 16.7 ms on a 1440p pane; checked in a real
-      window.
+- [x] Smooth frames, measured: with `OMASPEC_FRAMES=1` each dive, glide, play
+      and fade ends with a line on standard error: how long it took, how far
+      apart its frames came and how long each one's work took, from the start of
+      its redraw to the last layer of the diagram drawn (every layer of the pane
+      is drawn through `paper::frames::Timed`); a frame that came over 20 ms
+      after the one before has a line of its own. `OMASPEC_FRAMES=1 cargo test
+      --release -p omaspec-app frames_ -- --nocapture` draws a dive into a map's
+      tile, a play, the way back and a stepped zoom headless on the GPU in a
+      2560×1440 window, at 60 frames a second: the work of a frame is 0.2 to
+      0.4 ms, the view and its layout 0.1 ms. Making the pixels and reading them
+      back takes 19 to 26 ms a frame, as much when nothing moves, so a motion
+      costs the GPU nothing that shows there. The suspicion was the overview
+      stretched on the first half of a dive: that is one picture drawn larger,
+      no cost, and asking sharp pixels for the whole way would upload more
+      while it runs, so it stays as it is until a real window says otherwise.
+      Found on the way: the way back out of a link stopped on its first frame
+      when the diagram left had a play's bar under it. The tabs share the
+      pane's widgets, so the taller pane reported its size on the next frame,
+      and a new size stopped every glide. A glide runs on now, a fitted end
+      moving with the pane in the time left (tested).
+- [ ] Smooth frames in a real window: no frame over 16.7 ms on a 1440p pane,
+      read from `OMASPEC_FRAMES=1` while diving into a map's tiles and back,
+      zooming and playing; the GPU's part shows only there, in the gaps.
 - [ ] Diagrams in the theme's colors by default: `follow_theme` starts off, so the
       paper stays white on a dark theme (`docs/images/themes.png`). It starts on; a
       session that switched it off keeps that. A test draws every gallery example in

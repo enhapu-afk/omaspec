@@ -20,6 +20,8 @@ UPDATE_GOLDEN=1 cargo test -p omaspec-uml --test golden    # the same for the na
 UPDATE_GOLDEN=1 cargo test -p omaspec-render --test golden # the same for the Mermaid diagrams Omaspec draws
 OMASPEC_LINES=1 cargo test -p omaspec-render --test lines -- --nocapture   # how clean the lines are; UPDATE_LINES=1 after an intended change
 OMASPEC_SCALE=1 cargo test --release -p omaspec-app scale -- --nocapture  # generated projects of 100 to 2,000 diagrams, timed
+OMASPEC_FRAMES=1 cargo run --release -p omaspec-app -- FILE   # how smooth each dive, glide, play and fade is, on standard error
+OMASPEC_FRAMES=1 cargo test --release -p omaspec-app frames_ -- --nocapture  # the same, headless on the GPU at 2560x1440
 cargo run -p omaspec-app -- render FILE    # SVG/PNG/PDF; --json for the report; OMASPEC_PLANTUML=path|none for the Java fallback
 cargo run -p omaspec-app -- [FILE...]      # editor window
 cargo run -p omaspec-app -- preview FILE   # preview window that follows the file

@@ -217,6 +217,28 @@ impl Glide {
         Self { duration, ..self }
     }
 
+    /// From where it is at `now` on its way to `to` instead, in a
+    /// `viewport` of another size, in the time it had left.
+    pub fn toward(self, to: View, viewport: Size, now: Instant) -> Self {
+        let left = self
+            .duration
+            .saturating_sub(now.saturating_duration_since(self.start));
+        let from = self.at(now);
+        let way = match self.way {
+            Way::Anchored(anchor) => Way::Anchored(anchor),
+            Way::Dive { .. } => Way::Dive {
+                width: viewport.width.max(1.0),
+            },
+        };
+        Self {
+            from,
+            to,
+            way,
+            start: now,
+            duration: left,
+        }
+    }
+
     pub fn duration(&self) -> Duration {
         self.duration
     }

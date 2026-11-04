@@ -9,6 +9,7 @@
 //! Alt, a line can be drawn by hand ([`hand`]).
 
 mod canvas;
+mod frames;
 mod hand;
 mod passage;
 mod play;
@@ -35,6 +36,7 @@ use omaspec_theme::{Palette, Rgb};
 
 use crate::ui;
 use crate::worker::{Answer, Drawn, Linked, Ticket, Worker, blocking};
+use frames::{Motion, Timed};
 pub use hand::Gesture;
 pub use passage::Showing;
 use passage::{Passage, PassageLayer};
@@ -389,8 +391,25 @@ impl Paper {
                 Task::none()
             }
             Message::Viewport(size) => {
-                self.settle();
+                let now = Instant::now();
+                let resized = size != self.viewport;
                 self.viewport = size;
+                // A glide runs on: the panes share their widgets, so a tab
+                // whose pane is sized otherwise (a play's bar) reports its
+                // size on the frame after it is chosen, as the way back out
+                // of a link starts. A fitted end moves with the pane.
+                if let Some(glide) = self.glide.filter(|g| !g.done(now)) {
+                    if resized && self.view.fit && self.diagram.is_some() {
+                        let to = View::fitted(self.diagram_size(), size);
+                        self.glide = Some(glide.toward(to, size, now));
+                        self.view = to;
+                    }
+                    if self.inward() {
+                        return Task::none();
+                    }
+                    return self.rasterize(RASTER_DELAY);
+                }
+                self.settle();
                 if self.view.fit {
                     self.refit()
                 } else {
@@ -1129,47 +1148,58 @@ impl Paper {
                 (true, if quiet { "" } else { "no diagram yet" })
             }
         };
-        let canvas: Element<'_, Message> = Canvas::new(canvas::DiagramCanvas {
-            diagram: self.diagram.as_ref().map(|d| d.size),
-            overview: self.overview.shown.as_ref(),
-            detail: self.detail.shown.as_ref(),
-            fade: self.fade.as_ref(),
-            view: self.view,
-            glide: self.glide,
-            background: ui::color(p.background),
-            placeholder,
-            text: ui::color(p.dark_foreground),
-            font,
-            scale: self.scale_factor,
-            by_hand: self.drawable(),
-            hand_cursor: self.hand.as_ref().map(hand::Hand::cursor),
-            links: self.followable(),
-        })
+        // What the diagram's own layer asks frames for; a play asks in its
+        // layer over the diagram.
+        let motion = match (&self.glide, &self.passage, &self.fade) {
+            (Some(_), Some(_), _) => Some(Motion::Dive),
+            (Some(_), None, _) => Some(Motion::Glide),
+            (None, _, Some(_)) => Some(Motion::Fade),
+            (None, _, None) => None,
+        };
+        let canvas: Element<'_, Message> = Canvas::new(
+            Timed::new(canvas::DiagramCanvas {
+                diagram: self.diagram.as_ref().map(|d| d.size),
+                overview: self.overview.shown.as_ref(),
+                detail: self.detail.shown.as_ref(),
+                fade: self.fade.as_ref(),
+                view: self.view,
+                glide: self.glide,
+                background: ui::color(p.background),
+                placeholder,
+                text: ui::color(p.dark_foreground),
+                font,
+                scale: self.scale_factor,
+                by_hand: self.drawable(),
+                hand_cursor: self.hand.as_ref().map(hand::Hand::cursor),
+                links: self.followable(),
+            })
+            .driving(motion),
+        )
         .width(Length::Fill)
         .height(Length::Fill)
         .into();
         let marks = (!self.followable().is_empty() && self.overview.shown.is_some()).then(|| {
-            Canvas::new(canvas::LinkMarks {
+            Canvas::new(Timed::new(canvas::LinkMarks {
                 links: self.followable(),
                 view: self.view,
                 glide: self.glide,
                 color: ui::color(p.accent),
                 scale: self.scale_factor,
-            })
+            }))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
         });
         let hand = match (&self.hand, &self.diagram) {
             (Some(hand), Some(diagram)) if self.overview.shown.is_some() => Some(
-                Canvas::new(hand::HandLayer {
+                Canvas::new(Timed::new(hand::HandLayer {
                     hand,
                     map: &diagram.drawn.map,
                     view: self.view,
                     glide: self.glide,
                     accent: ui::color(p.accent),
                     paper: ui::color(p.background),
-                })
+                }))
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .into(),
@@ -1178,26 +1208,26 @@ impl Paper {
         };
         // Its own layer: in the picture's layer the raster would cover it.
         let light = self.breath.map(|breath| {
-            Canvas::new(canvas::BreathLight {
+            Canvas::new(Timed::new(canvas::BreathLight {
                 view: self.view,
                 glide: self.glide,
                 breath,
                 color: ui::color(p.accent),
                 scale: self.scale_factor,
-            })
+            }))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
         });
         // Over the diagram, its marks and its lights: the veil covers them.
         let passage = self.passage.as_ref().map(|passage| {
-            Canvas::new(PassageLayer {
+            Canvas::new(Timed::new(PassageLayer {
                 passage,
                 view: self.view,
                 glide: self.glide,
                 veil: ui::color(p.background),
                 scale: self.scale_factor,
-            })
+            }))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
@@ -1205,13 +1235,13 @@ impl Paper {
         // The red edge lies over everything else, a play's veil too.
         let edge = match (&self.diagram, &self.overview.shown) {
             (Some(diagram), Some(_)) if stale => Some(
-                Canvas::new(canvas::PaperEdge {
+                Canvas::new(Timed::new(canvas::PaperEdge {
                     diagram: diagram.size,
                     view: self.view,
                     glide: self.glide,
                     color: ui::color(p.red),
                     scale: self.scale_factor,
-                })
+                }))
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .into(),
@@ -1229,23 +1259,26 @@ impl Paper {
             .into();
         };
         let layer = |over: bool| -> Element<'_, Message> {
-            Canvas::new(canvas::PlayCanvas {
-                diagram: diagram.size,
-                overview,
-                detail: self.detail.shown.as_ref(),
-                view: self.view,
-                glide: self.glide,
-                play,
-                look: play::Look {
-                    accent: ui::color(p.accent),
-                    veil: ui::color(p.background),
-                    light: ui::color(p.bright_foreground),
-                },
-                over,
-                at: self.clock,
-                leaving: self.leaving,
-                scale: self.scale_factor,
-            })
+            Canvas::new(
+                Timed::new(canvas::PlayCanvas {
+                    diagram: diagram.size,
+                    overview,
+                    detail: self.detail.shown.as_ref(),
+                    view: self.view,
+                    glide: self.glide,
+                    play,
+                    look: play::Look {
+                        accent: ui::color(p.accent),
+                        veil: ui::color(p.background),
+                        light: ui::color(p.bright_foreground),
+                    },
+                    over,
+                    at: self.clock,
+                    leaving: self.leaving,
+                    scale: self.scale_factor,
+                })
+                .driving(over.then_some(Motion::Play)),
+            )
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
@@ -2117,6 +2150,34 @@ block Filter \"Low pass\" {
             Instant::now() - (super::view::GLIDE + std::time::Duration::from_millis(20));
         paper.set_breath(None);
         assert!(paper.breath.is_none());
+    }
+
+    #[test]
+    fn the_way_back_out_of_a_link_runs_on_when_the_pane_reports_its_size() {
+        // The tab left had a play's bar under its picture: the pane of the
+        // diagram gone back to is taller, and says so on the next frame.
+        let door =
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(800.0, 540.0)));
+        show_source(&mut paper, door, Language::PlantUml);
+        let area = Rectangle::new(Point::new(10.0, 10.0), Size::new(40.0, 20.0));
+        let back = View::fitted(paper.diagram_size(), Size::new(800.0, 540.0));
+        let _ = paper.zoom_out_of(area, back, None);
+        let started = paper.glide.expect("the way back runs");
+        let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+        let glide = paper.glide.expect("the way back runs on");
+        assert_ne!(glide, started);
+        // It ends where the taller pane fits the diagram, and goes on from
+        // where it was, not from its start.
+        let fitted = View::fitted(paper.diagram_size(), Size::new(800.0, 600.0));
+        assert_eq!(paper.view, fitted);
+        assert_eq!(glide.at(Instant::now() + glide.duration()), fitted);
+        assert!(glide.duration() <= started.duration());
+
+        // The same size again changes nothing.
+        let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+        assert_eq!(paper.glide, Some(glide));
     }
 
     /// Puts `source` on the sheet, as a render would.
