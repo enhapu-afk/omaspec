@@ -1799,6 +1799,14 @@ fn snapshot_play() {
         app.doc_mut().paper.freeze_play(Duration::from_millis(ms));
         shoot(&mut app, &dir, name);
     }
+    // Zoomed past the pane's foot, at a state with two ways on: the bar
+    // takes two lines and stays clear of the picture and its veil.
+    for _ in 0..3 {
+        let _ = app.doc_mut().paper.zoom(1.2);
+    }
+    let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Take(0))));
+    app.doc_mut().paper.freeze_play(Duration::from_millis(240));
+    shoot(&mut app, &dir, "play-machine-zoomed");
     app.doc_mut().paper.freeze_play(Duration::from_secs(3));
     let _ = app.update(Message::Paper(
         app.doc().key,
@@ -3065,6 +3073,8 @@ fn snapshot_fractional_scale() {
     let mut app = App::themed(start, None, theme).0;
     let main = app.main;
     let _ = app.update(Message::ScaleFactor(main, 1.5));
+    // The file's own white paper, whose edge stands out on Tokyo Night.
+    follow_theme(&mut app, false);
     show(&mut app, door, Language::PlantUml);
     settle(&mut app);
     let scale = 1.5;

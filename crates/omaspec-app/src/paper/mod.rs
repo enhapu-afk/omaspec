@@ -392,7 +392,8 @@ impl Paper {
             }
             Message::Viewport(size) => {
                 let now = Instant::now();
-                let resized = size != self.viewport;
+                let before = self.viewport;
+                let resized = size != before;
                 self.viewport = size;
                 // A glide runs on: the panes share their widgets, so a tab
                 // whose pane is sized otherwise (a play's bar) reports its
@@ -406,6 +407,23 @@ impl Paper {
                     }
                     if self.inward() {
                         return Task::none();
+                    }
+                    return self.rasterize(RASTER_DELAY);
+                }
+                // Only the height changed, as when a play's bar comes, goes
+                // or takes a second line: the picture stays where it is on
+                // screen, held at the pane's top, and a fitted one glides to
+                // its new fit.
+                if resized
+                    && before.width == size.width
+                    && before.height > 0.0
+                    && self.diagram.is_some()
+                {
+                    self.view.center.y -= (before.height - size.height) / (2.0 * self.view.zoom);
+                    if self.view.fit {
+                        let to = View::fitted(self.diagram_size(), size);
+                        let middle = Point::new(size.width / 2.0, size.height / 2.0);
+                        return self.glide_to(to, middle);
                     }
                     return self.rasterize(RASTER_DELAY);
                 }
@@ -1251,11 +1269,12 @@ impl Paper {
         let (Some(play), Some(diagram), Some(overview)) =
             (&self.play, &self.diagram, self.overview.shown.as_ref())
         else {
-            return Stack::with_children(
+            return container(Stack::with_children(
                 [Some(canvas), marks, light, hand, passage, edge]
                     .into_iter()
                     .flatten(),
-            )
+            ))
+            .clip(true)
             .into();
         };
         let layer = |over: bool| -> Element<'_, Message> {
@@ -1283,7 +1302,9 @@ impl Paper {
             .height(Length::Fill)
             .into()
         };
-        let diagram: Element<'_, Message> = Stack::with_children(
+        // Clipped to its own room: unclipped, a picture zoomed past the
+        // pane's foot, and a play's veil over it, lay over the bar below.
+        let diagram: Element<'_, Message> = container(Stack::with_children(
             [
                 Some(canvas),
                 light,
@@ -1293,7 +1314,8 @@ impl Paper {
             ]
             .into_iter()
             .flatten(),
-        )
+        ))
+        .clip(true)
         .into();
         // The strip stays while the play fades, so the diagram does not
         // jump under it. Steps are ignored once it is leaving.
@@ -2150,6 +2172,46 @@ block Filter \"Low pass\" {
             Instant::now() - (super::view::GLIDE + std::time::Duration::from_millis(20));
         paper.set_breath(None);
         assert!(paper.breath.is_none());
+    }
+
+    #[test]
+    fn a_pane_that_only_grows_or_shrinks_in_height_holds_the_picture_then_glides() {
+        // A play's bar takes a second line: the pane loses 50 at its foot.
+        let door =
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+        show_source(&mut paper, door, Language::PlantUml);
+        let (tall, short) = (Size::new(800.0, 600.0), Size::new(800.0, 550.0));
+        let before = paper.view;
+        let top = Point::new(10.0, 10.0);
+        let on_screen = |view: View, viewport: Size| {
+            view.on_screen(
+                Rectangle::new(top, Size::new(1.0, 1.0)),
+                Rectangle::with_size(viewport),
+            )
+            .position()
+        };
+        let _ = paper.update(Message::Viewport(short));
+        let glide = paper.glide.expect("a fitted picture glides to its new fit");
+        let start = on_screen(glide.at(Instant::now()), short);
+        let was = on_screen(before, tall);
+        assert!(
+            (start.x - was.x).abs() < 0.5 && (start.y - was.y).abs() < 0.5,
+            "{start:?} {was:?}"
+        );
+        assert_eq!(paper.view, View::fitted(paper.diagram_size(), short));
+
+        // Zoomed in, not fitted: it stays where it is, without a glide.
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(tall));
+        show_source(&mut paper, door, Language::PlantUml);
+        let _ = paper.update(Message::ZoomAt(2.0, Point::new(400.0, 300.0)));
+        let zoomed = paper.view;
+        let _ = paper.update(Message::Viewport(short));
+        assert!(paper.glide.is_none());
+        let (now, was) = (on_screen(paper.view, short), on_screen(zoomed, tall));
+        assert!((now.y - was.y).abs() < 0.5, "{now:?} {was:?}");
     }
 
     #[test]

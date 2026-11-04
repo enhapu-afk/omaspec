@@ -1228,6 +1228,16 @@ checked; numbers are measured, not assumed.
       pane's widgets, so the taller pane reported its size on the next frame,
       and a new size stopped every glide. A glide runs on now, a fitted end
       moving with the pane in the time left (tested).
+- [x] A play's bar clear of the picture, and no jump when it grows (found in a real
+      window): zoomed in, the picture and a play's veil reached past the pane's foot
+      over the bar of steps, which looked covered while the light travelled. The
+      diagram's layers lie in a container clipped to their room now
+      (`play-machine-zoomed`). And at a state with more ways on, the bar takes a
+      second line, the pane grows shorter, and the picture jumped: refitted, or moved
+      by half the difference. A pane that only grows or shrinks in height holds the
+      picture where it is, from its top, and a fitted one glides to its new fit
+      (tested). The headless check at a scale of 1.5 had drawn on white paper, which
+      the Omarchy colors now replace; it asks for the file's own colors again.
 - [ ] Smooth frames in a real window: no frame over 16.7 ms on a 1440p pane,
       read from `OMASPEC_FRAMES=1` while diving into a map's tiles and back,
       zooming and playing; the GPU's part shows only there, in the gaps.
