@@ -234,8 +234,8 @@ pub fn run(start: Start) -> iced::Result {
             }
             (app, task)
         },
-        App::update,
-        App::view,
+        App::update_timed,
+        App::view_timed,
     )
     .title(App::title)
     .theme(App::theme)
@@ -1066,6 +1066,26 @@ impl App {
                 Subscription::none()
             },
         ])
+    }
+
+    /// [`Self::update`], noted for `OMASPEC_FRAMES` when it takes long.
+    fn update_timed(&mut self, message: Message) -> Task<Message> {
+        if !paper::frames::on() {
+            return self.update(message);
+        }
+        let what = paper::frames::short(&message);
+        let start = Instant::now();
+        let task = self.update(message);
+        paper::frames::took(|| format!("update of {what}"), start.elapsed());
+        task
+    }
+
+    /// [`Self::view`], noted for `OMASPEC_FRAMES` when it takes long.
+    fn view_timed(&self, window: iced::window::Id) -> iced::Element<'_, Message> {
+        let start = Instant::now();
+        let view = self.view(window);
+        paper::frames::took(|| "the view".to_owned(), start.elapsed());
+        view
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {

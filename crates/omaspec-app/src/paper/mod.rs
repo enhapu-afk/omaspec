@@ -9,7 +9,7 @@
 //! Alt, a line can be drawn by hand ([`hand`]).
 
 mod canvas;
-mod frames;
+pub(crate) mod frames;
 mod hand;
 mod passage;
 mod play;
@@ -225,6 +225,18 @@ impl Breath {
     }
 }
 
+/// New pixels of a layer on screen, for [`frames::note`].
+fn pixels(layer: &str, plan: Option<Plan>) -> String {
+    match plan {
+        Some(plan) => format!(
+            "{layer} {}×{} px shown",
+            plan.part.width(),
+            plan.part.height()
+        ),
+        None => format!("{layer} shown"),
+    }
+}
+
 /// The smallest of `links` around `p` (diagram units): a state inside a
 /// tile's picture is not a link of the map.
 fn link_under(links: &[Link], p: Point) -> Option<&Link> {
@@ -377,13 +389,19 @@ impl Paper {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Overview(seq, raster) => {
-                if self.overview.receive(seq, raster) && std::mem::take(&mut self.fresh) {
+                let shown = self.overview.receive(seq, raster);
+                if shown {
+                    frames::note(|| pixels("overview", self.overview.asked));
+                }
+                if shown && std::mem::take(&mut self.fresh) {
                     self.start_fade(Instant::now());
                 }
                 Task::none()
             }
             Message::Detail(seq, raster) => {
-                let _ = self.detail.receive(seq, raster);
+                if self.detail.receive(seq, raster) {
+                    frames::note(|| pixels("detail", self.detail.asked));
+                }
                 Task::none()
             }
             Message::Faded => {
