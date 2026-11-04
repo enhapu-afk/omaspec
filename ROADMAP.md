@@ -1231,13 +1231,27 @@ checked; numbers are measured, not assumed.
 - [ ] Smooth frames in a real window: no frame over 16.7 ms on a 1440p pane,
       read from `OMASPEC_FRAMES=1` while diving into a map's tiles and back,
       zooming and playing; the GPU's part shows only there, in the gaps.
-- [ ] Diagrams in the theme's colors by default: `follow_theme` starts off, so the
-      paper stays white on a dark theme (`docs/images/themes.png`). It starts on; a
-      session that switched it off keeps that. A test draws every gallery example in
-      every bundled theme and holds each text to 4.5:1 against what lies under it and
-      each line to 3:1 against the paper, in the SVG. Colors the writer set
-      (`skinparam`, `style`, `classDef`) stay theirs; lint names a pair of them under
-      3:1.
+- [x] Diagrams in the theme's colors by default: `follow_theme` started off, so the
+      paper stayed white on a dark theme (`docs/images/themes.png`). It starts on now,
+      saved as `theme_colors`, so a session that switches it off keeps that; the
+      `follow_theme: false` every earlier session saved is not read. A test
+      (`editor/legible_tests.rs`) draws the 24 gallery examples in the 22 bundled
+      themes as the pane does and holds each text to 4.5:1 against what lies under it
+      and each line to 3:1 against the paper, read from the SVG
+      (`omaspec_render::contrast`: the last filled shape under a text's middle, the
+      paper under a line). It found the gray of a JSON `null`, an index and an empty
+      card (3.1:1 on PlantUML's light card, down to 1.9:1 on a theme's), which now moves towards the text
+      color until it reads at 4.5:1; and the day grid of a Gantt chart, faint on
+      purpose as PlantUML draws it, which lies in a group of its own
+      (`omaspec_uml::GRID`) that the check leaves out. Colors the writer set stay
+      theirs, as the theme's skin goes before the file's own lines; lint names a pair
+      of them under 3:1 (`omaspec-core/src/faint.rs`): an element's `FontColor` on its
+      `BackgroundColor`, the default text, an arrow and a border on the page, in
+      `skinparam` lines and blocks, with stereotypes, and Mermaid's `color` on `fill`
+      in `classDef` and `style`. The headless screenshots draw as the app does now,
+      in the theme's colors (the helper had handed the renderer the bare file), so
+      the README's pictures show the diagrams in the theme. The preview window still
+      draws the file's own colors.
 - [ ] Gallery tiles that read: the picture cropped to the diagram and filling its
       tile, fewer and larger tiles in a narrow window, in the colors the contrast test
       holds.

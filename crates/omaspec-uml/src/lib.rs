@@ -45,7 +45,7 @@ pub mod tree;
 // The Mermaid drawer in omaspec-render lays out flowcharts on the same
 // graph and draws with the same canvas. The modules stay private.
 pub use color::{Color, Paint, parse as parse_color};
-pub use svg::{Align, Canvas, Layer, Stroke};
+pub use svg::{Align, Canvas, GRID, Layer, Stroke};
 pub use text::{
     Block, Family, Font, Style, block as measure_text, measure as measure_run,
     styled as measure_styled,

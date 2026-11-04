@@ -136,9 +136,11 @@ the source itself, so it stays with the file, exports and copies: `skinparam` li
 `@startuml`, or an `%%{init}%%` line in Mermaid, marked so that the next pack replaces
 it. The Omarchy pack writes the active theme's colors in.
 
-**Diagram theme: follow Omarchy** colors the picture with the active theme without
-changing the file, and follows a theme switch. Mermaid's own `%%{init}%%` lines (theme,
-colors, font) are honored too.
+Diagrams are drawn in the active theme's colors, without changing the file, and follow
+a theme switch; **Diagram theme: follow Omarchy** in the palette switches between that
+and the file's own colors. Colors the file sets itself (`skinparam`, `classDef`, `style`)
+stay its own, and two of them that hardly differ, under 3:1, are a finding. Mermaid's
+own `%%{init}%%` lines (theme, colors, font) are honored too.
 
 ### Lines by hand
 

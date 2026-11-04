@@ -75,6 +75,7 @@ fn paint(
     let right = x_of(&geom, geom.t1);
     let bottom = rows_top + row_h * diagram.rows.len() as f32;
     let grid = Stroke::new(skin.grid, 1.0);
+    canvas.begin_group(Layer::Background, crate::GRID);
     for day in geom.t0..=geom.t1 {
         let x = x_of(&geom, day);
         canvas.line(Layer::Background, (x, rows_top), (x, bottom), grid);
@@ -85,6 +86,7 @@ fn paint(
         (right, rows_top),
         grid,
     );
+    canvas.end_group(Layer::Background);
     for (index, row) in diagram.rows.iter().enumerate() {
         let y = rows_top + index as f32 * row_h;
         match row {

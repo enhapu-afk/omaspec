@@ -31,8 +31,11 @@ pub struct Session {
     pub active: usize,
     #[serde(default = "shown")]
     pub sidebar: bool,
-    /// The diagram takes the active Omarchy colors when drawn.
-    #[serde(default)]
+    /// The diagram takes the active Omarchy colors when drawn: on unless
+    /// switched off. Saved under a name of its own since it is on by
+    /// default, so the `follow_theme: false` every earlier session saved
+    /// does not keep it off.
+    #[serde(default = "shown", rename = "theme_colors")]
     pub follow_theme: bool,
     /// The file picker has been used once.
     #[serde(default)]
@@ -47,7 +50,7 @@ impl Default for Session {
             folder: None,
             active: 0,
             sidebar: true,
-            follow_theme: false,
+            follow_theme: true,
             picked: false,
             docs: Vec::new(),
         }
@@ -303,7 +306,12 @@ mod tests {
         fs::write(dir.join(FILE), "{}").unwrap();
         let loaded = store.load().unwrap();
         assert!(loaded.sidebar);
-        assert!(!loaded.follow_theme);
+        assert!(loaded.follow_theme);
+        // Sessions saved before the Omarchy colors were the default.
+        fs::write(dir.join(FILE), r#"{"follow_theme": false}"#).unwrap();
+        assert!(store.load().unwrap().follow_theme);
+        fs::write(dir.join(FILE), r#"{"theme_colors": false}"#).unwrap();
+        assert!(!store.load().unwrap().follow_theme);
         let _ = fs::remove_dir_all(&dir);
     }
 }

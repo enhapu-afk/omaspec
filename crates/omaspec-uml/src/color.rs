@@ -39,6 +39,34 @@ impl Color {
             step(self.2, other.2),
         )
     }
+
+    /// The WCAG contrast ratio with `other`, 1 to 21.
+    pub fn contrast(self, other: Color) -> f32 {
+        let (a, b) = (self.luminance(), other.luminance());
+        (a.max(b) + 0.05) / (a.min(b) + 0.05)
+    }
+
+    /// WCAG relative luminance.
+    fn luminance(self) -> f32 {
+        let channel = |v: u8| {
+            let v = f32::from(v) / 255.0;
+            if v <= 0.039_28 {
+                v / 12.92
+            } else {
+                ((v + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        0.2126 * channel(self.0) + 0.7152 * channel(self.1) + 0.0722 * channel(self.2)
+    }
+
+    /// This color, moved towards `toward` in steps of a twentieth until it
+    /// reads at `min` on `ground`; `toward` when no step does.
+    pub fn legible_on(self, ground: Color, toward: Color, min: f32) -> Color {
+        (0..=20)
+            .map(|step| self.mix(toward, step as f32 / 20.0))
+            .find(|c| c.contrast(ground) >= min)
+            .unwrap_or(toward)
+    }
 }
 
 impl fmt::Display for Color {

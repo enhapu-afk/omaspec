@@ -6,7 +6,8 @@
 //! engines would silently draw a new one), duplicate and unused participants,
 //! swimlanes that differ only in case or spaces, a state name seen once next
 //! to a frequent one, an entry of the lines by hand that does not read or
-//! comes twice.
+//! comes twice, two colors the writer set that hardly differ
+//! ([`crate::faint`]).
 
 use std::collections::{HashMap, HashSet};
 
@@ -58,6 +59,15 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
         Language::PlantUml => plantuml_syntax(&lines),
     };
     lines_by_hand(&code, &mut findings);
+    let faint = match lang {
+        Language::PlantUml => crate::faint::plantuml(&lines),
+        Language::Mermaid => crate::faint::mermaid(&lines),
+    };
+    findings.extend(
+        faint
+            .into_iter()
+            .map(|f| Finding::new(f.line, Severity::Warning, f.message)),
+    );
     let kind = classify(&code, lang).kind;
     match lang {
         Language::Mermaid => {

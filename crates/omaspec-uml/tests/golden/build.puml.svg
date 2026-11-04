@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="556" height="286" viewBox="0 0 556 286">
 <g transform="translate(10,10)">
 <g>
+<g id="grid">
 <line x1="113.55" y1="70.94" x2="113.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
 <line x1="129.55" y1="70.94" x2="129.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
 <line x1="145.55" y1="70.94" x2="145.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
@@ -29,6 +30,7 @@
 <line x1="513.55" y1="70.94" x2="513.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
 <line x1="529.55" y1="70.94" x2="529.55" y2="224.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
 <line x1="113.55" y1="70.94" x2="529.55" y2="70.94" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+</g>
 <rect x="0" y="136.94" width="529.55" height="22" fill="#EEEEEE"/>
 </g>
 <g>

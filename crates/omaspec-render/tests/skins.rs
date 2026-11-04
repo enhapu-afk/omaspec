@@ -10,7 +10,7 @@ const COLORS: Colors = Colors {
     surface: "#1e1e1e",
     text: "#bebebe",
     accent: "#e68e0d",
-    muted: "#555555",
+    muted: "#666666",
     note: "#2a2a2a",
 };
 

@@ -7,6 +7,7 @@
 //! come from the `regex` crate, which runs in linear time, so no input can
 //! make a check hang.
 
+mod faint;
 mod text;
 
 pub mod diff;

@@ -50,6 +50,13 @@ fn press(app: &mut App, shortcut: Command) {
     let _ = app.update(Message::Command(shortcut));
 }
 
+/// The diagrams in the Omarchy colors, or in the file's.
+fn follow_theme(app: &mut App, on: bool) {
+    if app.follow_theme != on {
+        press(app, Command::FollowTheme);
+    }
+}
+
 #[test]
 fn a_play_takes_digits_only_while_the_diagram_has_the_keys() {
     let c = |s: &str| Key::Character(s.into());
@@ -817,6 +824,11 @@ fn the_diagram_theme_follows_omarchy_without_editing_the_file() {
         .lines()
         .position(|line| line.contains("A -> B"))
         .unwrap();
+    // On from the start; the command switches it off and on.
+    assert!(app.follow_theme);
+    press(&mut app, Command::FollowTheme);
+    assert!(!app.follow_theme);
+    assert!(!app.session().follow_theme);
     press(&mut app, Command::FollowTheme);
     assert!(app.follow_theme);
     assert_eq!(app.doc().text(), file);
@@ -847,7 +859,7 @@ fn a_machine_plays_while_the_diagram_follows_the_theme() {
     let machine =
         "@startuml\n[*] --> State1\nState1 --> State2 : next step\nState2 --> [*]\n@enduml\n";
     select_all_and_paste(&mut app, machine);
-    press(&mut app, Command::FollowTheme);
+    follow_theme(&mut app, true);
     let text = app.doc().text();
     let (shown, pending) = app.diagram_source(&text, Language::PlantUml);
     assert_ne!(&*shown, text.as_str());
@@ -2164,7 +2176,7 @@ fn snapshot_drone() {
     let mut app = App::themed(start, None, theme).0;
     let main = app.main;
     let _ = app.update(Message::ScaleFactor(main, 2.0));
-    press(&mut app, Command::FollowTheme);
+    follow_theme(&mut app, true);
     if app.sidebar_open() {
         press(&mut app, Command::ToggleSidebar);
     }
@@ -2302,7 +2314,7 @@ fn snapshot_story() {
     let main = app.main;
     let _ = app.update(Message::ScaleFactor(main, 2.0));
     let _ = app.update(Message::Scanned(work.clone(), folder::scan(&work)));
-    press(&mut app, Command::FollowTheme);
+    follow_theme(&mut app, true);
     let _ = app.update(Message::Select(0));
     let key = app.doc().key;
     due(&mut app, Alarm::Lint(key));
@@ -2571,16 +2583,17 @@ fn snapshot_gallery() {
     let (main, size) = (app.main, Size::new(1360.0, 880.0));
     let _ = app.update(Message::ScaleFactor(main, 2.0));
     let _ = app.update(Message::WindowSized(main, size));
+    follow_theme(&mut app, false);
     press(&mut app, Command::Gallery);
     press(&mut app, Command::Right);
     press(&mut app, Command::Right);
     app.settle_gallery();
     shoot_at(&mut app, &dir, "gallery", size);
-    press(&mut app, Command::FollowTheme);
+    follow_theme(&mut app, true);
     app.settle_gallery();
     shoot_at(&mut app, &dir, "gallery-omarchy", size);
     // Only the complex ones, in the colors of the files.
-    press(&mut app, Command::FollowTheme);
+    follow_theme(&mut app, false);
     let _ = app.update(Message::GalleryComplex);
     app.settle_gallery();
     shoot_at(&mut app, &dir, "gallery-complex", size);
@@ -2762,17 +2775,24 @@ fn shown(file: &Path) -> App {
 }
 
 /// Draws `source` in the active tab's diagram pane, as a render would.
+/// `source` drawn in the active tab as the app sends it: in the Omarchy
+/// colors while the diagrams follow them, the answer put back on the file.
 fn show(app: &mut App, source: &str, language: Language) {
     let key = app.doc().key;
     let _ = app.update(Message::Paper(
         key,
         paper::Message::Viewport(Size::new(600.0, 560.0)),
     ));
-    let paper = &mut app.doc_mut().paper;
-    let id = paper.pretend_next();
-    let mut reply = answer(key, id, Ok(drawn(source, language)));
+    let (shown, pending) = app.diagram_source(source, language);
+    let id = app.doc_mut().paper.pretend_next();
+    if let Some(pending) = pending {
+        app.pending.insert((key, id), pending);
+    }
+    let mut reply = answer(key, id, Ok(drawn(&shown, language)));
     reply.language = language;
-    reply.source = source.into();
+    reply.source = shown;
+    app.untangle(&mut reply);
+    let paper = &mut app.doc_mut().paper;
     let _ = paper.rendered(reply);
     paper.finish_rasters();
 }
@@ -3898,9 +3918,7 @@ fn ctrl_click_on_a_link_finds_its_line_in_the_theme_colors_too() {
     for follow in [false, true] {
         for (file, link, row) in [("system.puml", "Orders", 2), ("orders.puml", "Checkout", 3)] {
             let mut app = open(&[root.join(file)]);
-            if follow {
-                press(&mut app, Command::FollowTheme);
-            }
+            follow_theme(&mut app, follow);
             let (specs, atlas) = specs::read_project(&root);
             let _ = app.update(Message::Specs(
                 root.clone(),

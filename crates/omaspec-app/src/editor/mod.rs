@@ -1571,14 +1571,7 @@ impl App {
             return (Arc::from(text), None);
         }
         let hex = self.hex_colors();
-        let colors = skin::Colors {
-            background: &hex.background,
-            surface: &hex.surface,
-            text: &hex.text,
-            accent: &hex.accent,
-            muted: &hex.muted,
-            note: &hex.note,
-        };
+        let colors = hex.colors();
         let Some((range, replacement)) = skin::edit(text, language, Some(Pack::Omarchy), &colors)
         else {
             return (Arc::from(text), None);
@@ -2010,14 +2003,7 @@ impl App {
     /// there, or takes it out.
     fn skin(&mut self, pack: Option<Pack>) -> Task<Message> {
         let hex = self.hex_colors();
-        let colors = skin::Colors {
-            background: &hex.background,
-            surface: &hex.surface,
-            text: &hex.text,
-            accent: &hex.accent,
-            muted: &hex.muted,
-            note: &hex.note,
-        };
+        let colors = hex.colors();
         let doc = self.doc();
         let key = doc.key;
         let Some(edit) = skin::edit(&doc.text(), doc.language, pack, &colors) else {
@@ -2154,16 +2140,7 @@ impl App {
 
     /// Omarchy colors as `#rrggbb`, for a skin block.
     fn hex_colors(&self) -> Hex {
-        let p = &self.palette;
-        let hex = |color: omaspec_theme::Rgb| color.to_string();
-        Hex {
-            background: hex(p.background),
-            surface: hex(p.lighter_background),
-            text: hex(p.foreground),
-            accent: hex(p.accent),
-            muted: hex(p.dark_foreground),
-            note: hex(p.selection),
-        }
+        Hex::of(&self.palette)
     }
 }
 
@@ -2175,6 +2152,31 @@ struct Hex {
     accent: String,
     muted: String,
     note: String,
+}
+
+impl Hex {
+    fn of(p: &Palette) -> Self {
+        let hex = |color: omaspec_theme::Rgb| color.to_string();
+        Self {
+            background: hex(p.background),
+            surface: hex(p.lighter_background),
+            text: hex(p.foreground),
+            accent: hex(p.accent),
+            muted: hex(p.dark_foreground),
+            note: hex(p.selection),
+        }
+    }
+
+    fn colors(&self) -> skin::Colors<'_> {
+        skin::Colors {
+            background: &self.background,
+            surface: &self.surface,
+            text: &self.text,
+            accent: &self.accent,
+            muted: &self.muted,
+            note: &self.note,
+        }
+    }
 }
 
 /// A render whose source had the Omarchy colors laid over the file.
@@ -2392,5 +2394,7 @@ fn export_path(typed: PathBuf, format: Format) -> PathBuf {
     }
 }
 
+#[cfg(test)]
+mod legible_tests;
 #[cfg(test)]
 mod tests;

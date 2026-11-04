@@ -7,6 +7,7 @@
 //! its own thread and drops requests that a newer one has overtaken.
 
 mod atlas;
+pub mod contrast;
 pub mod export;
 mod include;
 mod java;

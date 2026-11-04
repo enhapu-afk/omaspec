@@ -20,6 +20,11 @@ pub enum Layer {
 
 const LAYERS: usize = 5;
 
+/// The id of the group that holds a chart's grid: lines that only guide
+/// the eye, drawn faint on purpose, as PlantUML draws them. A check of
+/// how well a picture reads leaves them out.
+pub const GRID: &str = "grid";
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Stroke {
     pub color: Color,
@@ -177,6 +182,16 @@ impl Canvas {
             n(w.max(0.0)),
             n(h.max(0.0))
         );
+    }
+
+    /// What is drawn into `layer` until [`Self::end_group`] lies in a group
+    /// with the id `id`, as the lines of a chart's [`GRID`].
+    pub fn begin_group(&mut self, layer: Layer, id: &str) {
+        let _ = write!(self.layers[layer as usize], r#"<g id="{id}">"#);
+    }
+
+    pub fn end_group(&mut self, layer: Layer) {
+        self.layers[layer as usize].push_str("</g>");
     }
 
     pub fn line(

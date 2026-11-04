@@ -74,8 +74,9 @@ not allow.
 
 ### It looks like your Omarchy
 
-Omaspec follows `omarchy theme` and `omarchy font set` while it runs, and colors the
-diagram with the theme if you like. Every bundled theme is checked for legible colors.
+Omaspec follows `omarchy theme` and `omarchy font set` while it runs, and draws the
+diagrams in the theme's colors without touching the files. Every bundled theme is
+checked for legible colors, the gallery's diagrams in each of them too.
 
 ![Tokyo Night, Catppuccin Latte, Gruvbox and Rosé Pine](docs/images/themes.png)
 

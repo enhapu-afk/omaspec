@@ -59,8 +59,9 @@ state or a label in the diagram jumps to its line.
 
 ![The door in the editor: the source in the middle, the diagram on the right](../images/guide/machine.png)
 
-The diagram here is in the colors of the Omarchy theme. To get that, run *Diagram theme:
-follow Omarchy* from the command list; your file stays as it is.
+The diagram is drawn in the colors of your Omarchy theme; your file stays as it is.
+*Diagram theme: follow Omarchy* in the command list switches to the file's own colors
+and back.
 
 ## 3. Let Omaspec check it
 

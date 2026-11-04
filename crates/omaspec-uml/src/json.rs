@@ -35,6 +35,8 @@ const NEST_LIMIT: u32 = 100;
 const FILL: Color = Color::hex(0xF1F1F1);
 const HIGHLIGHT: Color = Color::hex(0xCCFF02);
 const MUTED: Color = Color::hex(0x888888);
+/// The contrast a gray text keeps with its card (WCAG AA).
+const LEGIBLE: f32 = 4.5;
 const BAD: &str = "the JSON cannot be read here";
 
 /// What a `<style>` reaches in a JSON diagram besides the page and the
@@ -188,10 +190,11 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     let mut canvas = Canvas::new("sans-serif", false);
     let family = canvas.family();
     let notes = Annotations::new(&diagram.frame, look.around, family)?;
+    let ground = |fill: Paint| fill.or(look.page).unwrap_or(Color::WHITE);
     let card = lay(
         &diagram.value,
-        &Fonts::new(look.ink),
-        &Fonts::new(look.lit_ink),
+        &Fonts::new(look.ink, ground(look.fill)),
+        &Fonts::new(look.lit_ink, ground(look.lit_fill)),
         family,
     );
     paint(&mut canvas, &look, &card, 0.0, notes.top());
@@ -668,15 +671,17 @@ struct Fonts {
 }
 
 impl Fonts {
-    /// Keys and values in `ink`; `null`, indices and empty cards stay gray.
-    fn new(ink: Color) -> Fonts {
+    /// Keys and values in `ink`; `null`, indices and empty cards in gray,
+    /// darkened or lightened towards `ink` until it reads on `ground`.
+    fn new(ink: Color, ground: Color) -> Fonts {
         let value = Font::new(FONT, ink);
+        let muted = MUTED.legible_on(ground, ink, LEGIBLE);
         Fonts {
             key: value.bold(),
             value,
-            null: Font::new(FONT, MUTED).italic(),
-            index: Font::new(FONT, MUTED),
-            empty: Font::new(FONT, MUTED),
+            null: Font::new(FONT, muted).italic(),
+            index: Font::new(FONT, muted),
+            empty: Font::new(FONT, muted),
         }
     }
 }
