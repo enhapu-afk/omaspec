@@ -18,6 +18,8 @@ use crate::text::{self, Block, Family, Font};
 pub(super) const GAP: f32 = 20.0;
 /// Half the size of an empty diamond, and the width of a test's pointed ends.
 pub(super) const HALF: f32 = 12.0;
+/// The least a diamond with its test inside is wider than high.
+const DIAMOND_RATIO: f32 = 1.6;
 /// The narrowest a branch of an `if` or a parallel is, and the room beside it.
 pub(super) const BRANCH_MIN: f32 = 30.0;
 pub(super) const BRANCH_MARGIN: f32 = 10.0;
@@ -300,8 +302,13 @@ impl Layout<'_> {
             return Ok((2.0 * HALF, 2.0 * HALF, Block::empty()));
         }
         if self.skin.test_in_diamond {
-            // Twice the text each way holds it inside the diamond's sides.
-            return Ok((2.0 * text.width + 16.0, 2.0 * text.height + 8.0, text));
+            // Any `t` keeps the corners of the text and its margin on the
+            // diamond's sides, which is then `t` times as wide as high: the
+            // text's own shape, twice its size each way, but at least
+            // [`DIAMOND_RATIO`] as wide as high.
+            let (w, h) = (text.width + 8.0, text.height + 4.0);
+            let t = (w / h).max(DIAMOND_RATIO);
+            return Ok((w + h * t, h + w / t, text));
         }
         let w = text.width.max(2.0 * HALF) + 2.0 * HALF;
         let h = text.height.max(2.0 * HALF);

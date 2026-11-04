@@ -1255,10 +1255,21 @@ checked; numbers are measured, not assumed.
 - [ ] Gallery tiles that read: the picture cropped to the diagram and filling its
       tile, fewer and larger tiles in a narrow window, in the colors the contrast test
       holds.
-- [ ] Diamonds 1.6 times as wide as high: `layered/shape.rs` makes a decision with a
+- [x] Diamonds 1.6 times as wide as high: `layered/shape.rs` made a decision with a
       short word as wide as high (the ratio follows the text, between 1 and 3); at
-      least 1.6 now. PlantUML's activity diamonds looked at the same way. Goldens
-      looked at side by side.
+      least 1.6 now (`DIAMOND_RATIO`), the text's corners still on the outline.
+      PlantUML's activity diamonds looked at the same way: a test is drawn with
+      pointed ends, at least twice as wide as high already, and the empty diamond
+      where branches meet is a mark of 24 by 24, as PlantUML draws both; a test
+      inside its diamond (`conditionStyle InsideDiamond`) took the text's own
+      shape, so a short one stood taller than wide, and is at least 1.6 as wide
+      now. Six Mermaid goldens looked at side by side, old against new. Lines
+      (`tests/lines`): no crossing, jog or word in the way more, 45 units shorter
+      in all. A line by hand whose corner lies just below a diamond's row comes
+      closer, as its corners are measured in the span of its two boxes
+      ([0016](docs/adr/0016-lines-by-hand.md)), which the flatter diamond lowers:
+      in `flow-by-hand` the line back to *Edit* now meets its side, not its
+      bottom.
 
 ### 0.7: handed on without Omaspec
 

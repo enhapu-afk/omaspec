@@ -118,11 +118,12 @@ impl Shape {
                 (d, d)
             }
             Shape::Diamond => {
-                // Any `t` keeps the text's corners on the outline; a wide
-                // label gets a wider, flatter diamond than Mermaid's
-                // square one.
+                // Any `t` keeps the text's corners on the outline, and the
+                // diamond is `t` times as wide as high: a wide label gets a
+                // flatter one, a short word one at least [`DIAMOND_RATIO`]
+                // as wide as high, not Mermaid's square.
                 let (w, h) = (width + 16.0, height + 12.0);
-                let t = (w / (h * 2.5)).clamp(1.0, 3.0);
+                let t = (w / (h * 2.5)).clamp(DIAMOND_RATIO, 3.0);
                 ((w + h * t).max(MIN_H), (h + w / t).max(MIN_H))
             }
             Shape::Hexagon => (w + h / 2.0, h),
@@ -205,6 +206,9 @@ const PAD_X: f32 = 16.0;
 const PAD_Y: f32 = 10.0;
 const MIN_W: f32 = 40.0;
 const MIN_H: f32 = 36.0;
+/// The least a decision's diamond is wider than high: a square one reads
+/// as a box stood on its corner.
+const DIAMOND_RATIO: f32 = 1.6;
 /// From a subroutine's outer side to its inner line.
 pub(super) const SUBROUTINE: f32 = 8.0;
 /// Between the two rings of a double circle.
@@ -312,6 +316,26 @@ mod tests {
         let mut tip = vec![(50.0, -40.0), (50.0, 0.0)];
         clip(&mut tip, &outline, false);
         assert!((tip[1].1).abs() < 0.1, "{tip:?}");
+    }
+
+    #[test]
+    fn a_decision_is_wider_than_high_and_holds_its_text() {
+        // A short word, a label, and a long one.
+        for (tw, th) in [(20.0, 16.0), (90.0, 16.0), (400.0, 16.0)] {
+            let (w, h) = Shape::Diamond.size(tw, th);
+            let ratio = w / h;
+            assert!(
+                (DIAMOND_RATIO - 0.01..=3.01).contains(&ratio),
+                "{tw}: {ratio}"
+            );
+            // The text's corners, with its margin, lie inside.
+            let (x, y) = ((tw + 16.0) / 2.0, (th + 12.0) / 2.0);
+            assert!(x / (w / 2.0) + y / (h / 2.0) <= 1.001, "{tw}: {w} x {h}");
+        }
+        assert!(
+            (Shape::Diamond.size(20.0, 16.0).0 / Shape::Diamond.size(20.0, 16.0).1 - 1.6).abs()
+                < 0.01
+        );
     }
 
     #[test]

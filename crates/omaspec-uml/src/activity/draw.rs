@@ -540,6 +540,41 @@ mod tests {
     }
 
     #[test]
+    fn a_test_inside_its_diamond_is_wider_than_high() {
+        // A short test, and a long one that keeps its own shape.
+        for (test, least, most) in [("ok?", 1.59, 1.61), ("is the address complete?", 1.6, 9.0)] {
+            let svg = render(&format!(
+                "skinparam conditionStyle InsideDiamond\nstart\nif ({test}) then (yes)\n:go;\nendif\nstop"
+            ))
+            .unwrap();
+            // The largest polygon of four corners: the diamond, not a head.
+            let (w, h) = svg
+                .split("<polygon points=\"")
+                .skip(1)
+                .filter_map(|rest| {
+                    let points: Vec<(f32, f32)> = rest
+                        .split('"')
+                        .next()?
+                        .split(' ')
+                        .filter_map(|p| {
+                            let (x, y) = p.split_once(',')?;
+                            Some((x.parse().ok()?, y.parse().ok()?))
+                        })
+                        .collect();
+                    let xs = points.iter().map(|p| p.0);
+                    let ys = points.iter().map(|p| p.1);
+                    let w = xs.clone().fold(f32::MIN, f32::max) - xs.fold(f32::MAX, f32::min);
+                    let h = ys.clone().fold(f32::MIN, f32::max) - ys.fold(f32::MAX, f32::min);
+                    (points.len() == 4).then_some((w, h))
+                })
+                .max_by(|a, b| (a.0 * a.1).total_cmp(&(b.0 * b.1)))
+                .expect("a diamond");
+            let ratio = w / h;
+            assert!((least..=most).contains(&ratio), "{test}: {w} x {h}");
+        }
+    }
+
+    #[test]
     fn swimlanes_get_a_column_each() {
         let svg = render("|A|\nstart\n:one;\n|B|\n:two;\n|A|\nstop").unwrap();
         // The borders of two lanes, the arrow from one to the other turns.
