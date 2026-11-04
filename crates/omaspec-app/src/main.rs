@@ -4,6 +4,7 @@ mod files;
 mod gallery;
 mod icons;
 mod logo;
+mod look;
 mod mcp;
 mod paper;
 mod preview;
@@ -223,6 +224,13 @@ enum Command {
         /// Copy the image to the clipboard instead of writing a file.
         #[arg(long, conflicts_with = "output")]
         copy: bool,
+        /// Draw in a look, laid over the file's own colors as the editor
+        /// lays the Omarchy theme over: plain (black lines), omarchy (the
+        /// active theme), light, dark, or auto (one SVG, dark under the
+        /// viewer's dark scheme). The file and the source stored in the
+        /// image stay as written.
+        #[arg(long, value_enum)]
+        look: Option<crate::look::Look>,
         /// Print a JSON report on stdout instead of status lines.
         ///
         /// Each diagram is one object: where the image went, or the error
@@ -388,6 +396,7 @@ fn main() -> ExitCode {
             scale,
             no_source,
             copy,
+            look,
             json,
             lang,
         }) => commands::render(&commands::RenderArgs {
@@ -397,6 +406,7 @@ fn main() -> ExitCode {
             scale,
             source: !no_source,
             copy,
+            look,
             lang: lang.get(),
             json,
         }),

@@ -14,6 +14,7 @@ mod java;
 mod mermaid;
 pub mod pick;
 pub mod sanitize;
+pub mod schemes;
 mod service;
 
 use std::fmt;

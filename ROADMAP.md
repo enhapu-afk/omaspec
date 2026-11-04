@@ -1238,7 +1238,7 @@ checked; numbers are measured, not assumed.
       picture where it is, from its top, and a fitted one glides to its new fit
       (tested). The headless check at a scale of 1.5 had drawn on white paper, which
       the Omarchy colors now replace; it asks for the file's own colors again.
-- [ ] Smooth frames in a real window: no frame over 16.7 ms on a 1440p pane,
+- [x] Smooth frames in a real window: no frame over 16.7 ms on a 1440p pane,
       read from `OMASPEC_FRAMES=1` while diving into a map's tiles and back,
       zooming and playing; the GPU's part shows only there, in the gaps. Measured
       on a 60 Hz laptop screen (2026-11-04): dives, fades and plays kept every
@@ -1250,8 +1250,8 @@ checked; numbers are measured, not assumed.
       (tested), and a zoom into a link no longer runs on into the way back in
       the log. Gaps of 20 to 23 ms on the second or third frame of a glide stay:
       the first frame after a key or a wheel notch comes off the refresh, and
-      the next falls back in step. Left to check: the glides again, in the
-      large diagram whose overview had 16 megapixels.
+      the next falls back in step. Checked again in the large diagram whose
+      overview had 16 megapixels: the glides keep every refresh.
 - [x] Diagrams in the theme's colors by default: `follow_theme` started off, so the
       paper stayed white on a dark theme (`docs/images/themes.png`). It starts on now,
       saved as `theme_colors`, so a session that switches it off keeps that; the
@@ -1304,13 +1304,26 @@ checked; numbers are measured, not assumed.
 
 ### 0.7: handed on without Omaspec
 
-- [ ] Export looks: `render --look plain|omarchy|light|dark|auto`, in the export
+- [x] Export looks: `render --look plain|omarchy|light|dark|auto`, in the export
       prompt and the MCP tool, laid over at render time as the pane lays the theme
       over; the file and the source in the image stay as written, the colors stay in
       the SVG. `auto` is one SVG with a light and a dark palette under
       `prefers-color-scheme` rather than a transparent background, which is how
       Mermaid's lines vanish on a dark page. Checked by the contrast test of 0.6 in
-      both palettes.
+      both palettes. Built (`look.rs`): plain is the plain pack, omarchy the active
+      theme, light and dark two palettes of Omaspec's own, the same on every
+      machine; a map draws its tiles in the look too, and a line an error names is
+      the file's. `auto` draws the light and the dark look and makes one SVG of them
+      (`omaspec_render::schemes`): the two may differ in colors only, the light one is
+      kept, and a style sheet at its end turns a light color into its dark one by
+      its attribute (`[fill="#ffffff"]`), or by a class on each element where one
+      light color turns into several; a viewer without the query (resvg, a PDF)
+      draws the light one, so auto is an SVG's only. Every gallery example makes one
+      (tested), all by attribute, and a browser shows it light or dark by its scheme
+      (headless Chromium, `--force-dark-mode`). The export prompt offers as shown,
+      the file's colors, plain, light, dark and, for an SVG, auto (Tab, or a click);
+      the MCP tool `render` takes `look`. The contrast test holds the gallery in the
+      light and the dark palette too.
 - [ ] Links in exports: PlantUML's `[[url]]` (the native engine declines it,
       `omaspec-uml/src/text.rs`), Mermaid's `click … href`, and a linked state or a
       map's tile as a relative link to that diagram's export. The sanitizer takes

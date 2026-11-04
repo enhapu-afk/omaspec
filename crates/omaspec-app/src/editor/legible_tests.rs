@@ -1,15 +1,16 @@
 //! The diagrams in the colors of every bundled Omarchy theme, as the pane
-//! draws them while it follows the theme: each text reads at 4.5:1 against
-//! what lies under it, each line at 3:1 against the paper.
+//! draws them while it follows the theme, and in the light and the dark
+//! look of an export: each text reads at 4.5:1 against what lies under it,
+//! each line at 3:1 against the paper. And each one in both looks makes
+//! one SVG for both color schemes (`render --look auto`).
 
-use omaspec_core::Language;
-use omaspec_core::skin::{self, Pack};
+use omaspec_core::skin::{Colors, Pack};
 use omaspec_render::contrast::{self, Kind};
 use omaspec_render::{Config, Renderer};
 use omaspec_theme::Palette;
 
-use super::Hex;
 use crate::gallery::EXAMPLES;
+use crate::look::{self, Hex, Look};
 
 /// Least contrast of a text with what lies under it (WCAG AA).
 const TEXT: f32 = 4.5;
@@ -35,55 +36,50 @@ fn themes() -> Vec<(String, Palette)> {
     themes
 }
 
-/// `text` with the Omarchy pack of `palette` laid over it.
-fn themed(text: &str, language: Language, palette: &Palette) -> String {
-    let hex = Hex::of(palette);
-    match skin::edit(text, language, Some(Pack::Omarchy), &hex.colors()) {
-        Some((range, block)) => format!("{}{block}{}", &text[..range.start], &text[range.end..]),
-        None => text.to_owned(),
-    }
-}
-
-#[test]
-fn the_gallery_reads_in_every_bundled_theme() {
-    let themes = themes();
-    if themes.is_empty() {
-        return;
-    }
-    let mut renderer = Renderer::new(&Config {
+fn renderer() -> Renderer {
+    Renderer::new(&Config {
         java_fallback: false,
         ..Config::default()
-    });
-    let verbose = std::env::var_os("OMASPEC_CONTRAST").is_some();
+    })
+}
+
+/// The pairs of every gallery example in `colors` that read too faintly,
+/// named after `name`.
+fn faults(renderer: &mut Renderer, name: &str, colors: &Colors) -> Vec<String> {
     let mut faults = Vec::new();
-    for (name, palette) in &themes {
-        for example in EXAMPLES {
-            let language = example.language();
-            let source = themed(example.text, language, palette);
-            let svg = match renderer.render(&source, language) {
-                Ok(out) => out.svg,
-                Err(err) => {
-                    faults.push(format!("{name} {}: does not draw: {err}", example.file));
-                    continue;
-                }
+    for example in EXAMPLES {
+        let language = example.language();
+        let source = match look::overlay(example.text, language, Pack::Omarchy, colors) {
+            Some((shown, _)) => shown,
+            None => example.text.to_owned(),
+        };
+        let svg = match renderer.render(&source, language) {
+            Ok(out) => out.svg,
+            Err(err) => {
+                faults.push(format!("{name} {}: does not draw: {err}", example.file));
+                continue;
+            }
+        };
+        for pair in contrast::pairs(&svg).unwrap() {
+            let (least, what) = match &pair.kind {
+                Kind::Text(words) => (TEXT, format!("text {words:?}")),
+                Kind::Line => (LINE, "line".to_owned()),
             };
-            for pair in contrast::pairs(&svg).unwrap() {
-                let (least, what) = match &pair.kind {
-                    Kind::Text(words) => (TEXT, format!("text {words:?}")),
-                    Kind::Line => (LINE, "line".to_owned()),
-                };
-                let ratio = pair.ratio();
-                if ratio < least {
-                    faults.push(format!(
-                        "{name} {}: {what} {:?} on {:?} at {:?}: {ratio:.2}",
-                        example.file, pair.color, pair.on, pair.at
-                    ));
-                }
+            let ratio = pair.ratio();
+            if ratio < least {
+                faults.push(format!(
+                    "{name} {}: {what} {:?} on {:?} at {:?}: {ratio:.2}",
+                    example.file, pair.color, pair.on, pair.at
+                ));
             }
         }
     }
-    if verbose {
-        for fault in &faults {
+    faults
+}
+
+fn assert_none(faults: &[String]) {
+    if std::env::var_os("OMASPEC_CONTRAST").is_some() {
+        for fault in faults {
             eprintln!("{fault}");
         }
     }
@@ -93,4 +89,45 @@ fn the_gallery_reads_in_every_bundled_theme() {
         faults.len(),
         &faults[..faults.len().min(20)]
     );
+}
+
+#[test]
+fn the_gallery_reads_in_every_bundled_theme() {
+    let mut renderer = renderer();
+    let mut all = Vec::new();
+    for (name, palette) in themes() {
+        all.extend(faults(&mut renderer, &name, &Hex::of(&palette).colors()));
+    }
+    assert_none(&all);
+}
+
+#[test]
+fn the_gallery_reads_in_the_light_and_the_dark_look() {
+    let mut renderer = renderer();
+    let mut all = faults(&mut renderer, "light", &look::LIGHT);
+    all.extend(faults(&mut renderer, "dark", &look::DARK));
+    assert_none(&all);
+}
+
+#[test]
+fn every_example_makes_one_svg_for_both_color_schemes() {
+    let mut renderer = renderer();
+    let mut failed = Vec::new();
+    for example in EXAMPLES {
+        let language = example.language();
+        let mut draw = |look: Look| {
+            let (text, _) = look::apply(example.text, language, look);
+            renderer.render(&text, language).unwrap().svg
+        };
+        let (light, dark) = (draw(Look::Light), draw(Look::Dark));
+        match omaspec_render::schemes::both(&light, &dark) {
+            Ok(both) => assert!(
+                both.contains("prefers-color-scheme: dark"),
+                "{}: no dark colors",
+                example.file
+            ),
+            Err(err) => failed.push(format!("{}: {err}", example.file)),
+        }
+    }
+    assert!(failed.is_empty(), "{failed:#?}");
 }

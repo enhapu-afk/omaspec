@@ -57,12 +57,12 @@ use iced::{Animation, Font, Size, Subscription, Task, Theme, window};
 use omaspec_core::Language;
 use omaspec_core::skin::{self, Pack};
 use omaspec_model::Spec;
-use omaspec_render::RenderError;
 use omaspec_render::export::Format;
 use omaspec_theme::{Palette, Theme as Omarchy};
 use omaspec_uml::map::Map;
 
 use crate::icons::Icons;
+use crate::look::{Hex, LineShift};
 use crate::paper;
 use crate::ui;
 use crate::worker::{self, Alarm, Worker};
@@ -277,6 +277,8 @@ pub enum Message {
     BackTo(usize),
     PromptInput(String),
     PromptSubmit,
+    /// A click on a look of the export prompt.
+    PromptLook(ExportLook),
     PickerInput(String),
     PickerSubmit,
     ReplaceInput(String),
@@ -342,6 +344,8 @@ pub enum Command {
     CompareSync,
     /// Between the search and the replacement.
     SwitchField,
+    /// The export prompt's next look.
+    NextLook,
     Format,
     /// Folds the block the caret is in.
     Collapse,
@@ -582,6 +586,9 @@ fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
         } else {
             Command::NextGroup
         }),
+        Key::Named(Named::Tab) if mode == Mode::Prompt && !mods.control() => {
+            Some(Command::NextLook)
+        }
         Key::Named(Named::F5) if !matches!(mode, Mode::Prompt | Mode::Picker) => {
             Some(Command::Play)
         }
@@ -717,6 +724,29 @@ struct Prompt {
     overwrite: bool,
     /// The tab that opened the prompt. Enter saves that tab.
     doc: u64,
+    /// What an export is drawn in; Tab takes the next.
+    look: ExportLook,
+}
+
+/// What an export is drawn in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExportLook {
+    /// As the diagram pane shows it.
+    Shown,
+    /// In the file's own colors.
+    File,
+    /// In a look laid over the file's colors ([`crate::look`]).
+    Look(crate::look::Look),
+}
+
+impl ExportLook {
+    pub fn label(self) -> &'static str {
+        match self {
+            ExportLook::Shown => "as shown",
+            ExportLook::File => "file's colors",
+            ExportLook::Look(look) => look.name(),
+        }
+    }
 }
 
 /// How long the tab highlight and the area frame take to move over.
@@ -1281,6 +1311,10 @@ impl App {
                 }
                 Task::none()
             }
+            Message::PromptLook(look) => {
+                self.next_export_look(Some(look));
+                Task::none()
+            }
             Message::PromptSubmit => match self.prompt.as_ref().map(|p| p.asking) {
                 Some(Asking::SaveAs) => self.save_as_submitted(),
                 Some(Asking::Open) => self.open_submitted(),
@@ -1593,28 +1627,16 @@ impl App {
             return (Arc::from(text), None);
         }
         let hex = self.hex_colors();
-        let colors = hex.colors();
-        let Some((range, replacement)) = skin::edit(text, language, Some(Pack::Omarchy), &colors)
-        else {
-            return (Arc::from(text), None);
-        };
-        let shown = format!(
-            "{}{replacement}{}",
-            &text[..range.start],
-            &text[range.end..]
-        );
-        let shift = LineShift {
-            at: text[..range.start].matches('\n').count(),
-            added: replacement.matches('\n').count(),
-            replaced: text[range].matches('\n').count(),
-        };
-        (
-            Arc::from(shown),
-            Some(Pending {
-                original: Arc::from(text),
-                shift,
-            }),
-        )
+        match crate::look::overlay(text, language, Pack::Omarchy, &hex.colors()) {
+            Some((shown, shift)) => (
+                Arc::from(shown),
+                Some(Pending {
+                    original: Arc::from(text),
+                    shift,
+                }),
+            ),
+            None => (Arc::from(text), None),
+        }
     }
 
     /// Puts a render answer back on the file it was drawn from.
@@ -1627,7 +1649,7 @@ impl App {
             .retain(|&(doc, id), _| doc != key.0 || id > key.1);
         match &mut answer.result {
             Ok(drawn) => drawn.map = Arc::new(remap_map(&drawn.map, pending.shift)),
-            Err(err) => remap_error(err, pending.shift),
+            Err(err) => pending.shift.remap(err),
         }
         answer.source = pending.original;
     }
@@ -1730,6 +1752,10 @@ impl App {
             Command::FindAll => self.open_search(false),
             Command::ReplaceAll => self.open_search(true),
             Command::SwitchField => self.switch_field(),
+            Command::NextLook => {
+                self.next_export_look(None);
+                Task::none()
+            }
             Command::Format => {
                 if self.doc_mut().format() {
                     self.edited(key);
@@ -2166,71 +2192,10 @@ impl App {
     }
 }
 
-/// Omarchy colors written into a skin block.
-struct Hex {
-    background: String,
-    surface: String,
-    text: String,
-    accent: String,
-    muted: String,
-    note: String,
-}
-
-impl Hex {
-    fn of(p: &Palette) -> Self {
-        let hex = |color: omaspec_theme::Rgb| color.to_string();
-        Self {
-            background: hex(p.background),
-            surface: hex(p.lighter_background),
-            text: hex(p.foreground),
-            accent: hex(p.accent),
-            muted: hex(p.dark_foreground),
-            note: hex(p.selection),
-        }
-    }
-
-    fn colors(&self) -> skin::Colors<'_> {
-        skin::Colors {
-            background: &self.background,
-            surface: &self.surface,
-            text: &self.text,
-            accent: &self.accent,
-            muted: &self.muted,
-            note: &self.note,
-        }
-    }
-}
-
 /// A render whose source had the Omarchy colors laid over the file.
 struct Pending {
     original: Arc<str>,
     shift: LineShift,
-}
-
-/// Where the overlaid skin sits in the rendered source, so a reported
-/// line can be read as a line of the file.
-#[derive(Clone, Copy)]
-struct LineShift {
-    /// First rendered line of the skin block.
-    at: usize,
-    /// Lines the skin block takes.
-    added: usize,
-    /// Lines of the file that block replaced.
-    replaced: usize,
-}
-
-impl LineShift {
-    /// The file line for rendered line `rendered`. `None` when that line
-    /// is part of the overlay.
-    fn file_line(self, rendered: usize) -> Option<usize> {
-        if rendered < self.at {
-            Some(rendered)
-        } else if rendered < self.at + self.added {
-            None
-        } else {
-            Some(rendered - self.added + self.replaced)
-        }
-    }
 }
 
 /// Moves the lines a drawn diagram's states, transitions, messages, lines
@@ -2258,18 +2223,6 @@ fn remap_map(map: &Map, shift: LineShift) -> Map {
         }
     }
     map
-}
-
-/// Moves an error's line from the rendered source back to the file.
-fn remap_error(err: &mut RenderError, shift: LineShift) {
-    let line = match err {
-        RenderError::Diagram { line, .. } | RenderError::Unavailable { line, .. } => line,
-        RenderError::Engine { .. } => return,
-    };
-    let Some(at) = *line else {
-        return;
-    };
-    *line = shift.file_line(at);
 }
 
 /// Drops the keyboard focus, so typing does not change the source while

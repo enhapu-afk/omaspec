@@ -92,6 +92,29 @@ impl Maps {
         Some((Arc::clone(atlas), own))
     }
 
+    /// [`Self::render`], with each tile's diagram as `paint` writes it:
+    /// a map in a look shows its tiles in that look.
+    pub fn render_painted(
+        &mut self,
+        renderer: &mut Renderer,
+        text: &str,
+        language: Language,
+        path: Option<&Path>,
+        place: Option<&Place>,
+        paint: &dyn Fn(&str, Language) -> String,
+    ) -> Result<Rendered, RenderError> {
+        match self.of(text, language, path, place) {
+            Some((atlas, own)) => {
+                let mut painted = Atlas::clone(&atlas);
+                for entry in &mut painted.diagrams {
+                    entry.source = paint(&entry.source, entry.language);
+                }
+                renderer.render_linked(text, language, place, own.as_deref(), &painted)
+            }
+            None => renderer.render_at(text, language, place),
+        }
+    }
+
     /// Draws a diagram at `place` as its project shows it: a map with its
     /// tiles, anything else as it is.
     pub fn render(

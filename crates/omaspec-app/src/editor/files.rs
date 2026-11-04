@@ -1,7 +1,7 @@
 //! Opening, saving, exporting and closing documents, the prompt that asks
 //! for a name, and changes on disk.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 use iced::{Task, window};
@@ -11,8 +11,8 @@ use omaspec_render::export::Format;
 use super::compare::Target;
 use super::doc::Doc;
 use super::{
-    App, Asking, MAX_IMAGE, Message, PROMPT, Prompt, expand, export_path, free_name, is_image,
-    plural, suggested_export,
+    App, Asking, ExportLook, MAX_IMAGE, Message, PROMPT, Prompt, expand, export_path, free_name,
+    is_image, plural, suggested_export,
 };
 
 impl App {
@@ -243,6 +243,7 @@ impl App {
             input,
             overwrite: false,
             doc: key,
+            look: ExportLook::Shown,
         });
         let focus = iced::widget::operation::focus(PROMPT);
         if from_diagram {
@@ -289,6 +290,41 @@ impl App {
         Task::none()
     }
 
+    /// The looks an export of `format` can take: as the pane shows it, the
+    /// other of the file's and the theme's colors, and Omaspec's looks;
+    /// `auto` for an SVG only. A Markdown export is the source alone.
+    pub(super) fn export_looks(&self, format: Format) -> Vec<ExportLook> {
+        use crate::look::Look;
+        if format == Format::Markdown {
+            return vec![ExportLook::Shown];
+        }
+        let mut looks = vec![ExportLook::Shown];
+        looks.push(if self.follow_theme {
+            ExportLook::File
+        } else {
+            ExportLook::Look(Look::Omarchy)
+        });
+        looks.extend([Look::Plain, Look::Light, Look::Dark].map(ExportLook::Look));
+        if format == Format::Svg {
+            looks.push(ExportLook::Look(Look::Auto));
+        }
+        looks
+    }
+
+    /// The export prompt draws in `look`, or in the next one.
+    pub(super) fn next_export_look(&mut self, look: Option<ExportLook>) {
+        let Some(Asking::Export(format)) = self.prompt.as_ref().map(|p| p.asking) else {
+            return;
+        };
+        let looks = self.export_looks(format);
+        if let Some(prompt) = &mut self.prompt {
+            prompt.look = look.filter(|l| looks.contains(l)).unwrap_or_else(|| {
+                let at = looks.iter().position(|l| *l == prompt.look).unwrap_or(0);
+                looks[(at + 1) % looks.len()]
+            });
+        }
+    }
+
     /// Writes the export the prompt names. An existing file asks once; the
     /// diagram's own source file is refused.
     pub(super) fn export_submitted(&mut self) -> Task<Message> {
@@ -298,7 +334,12 @@ impl App {
         let Asking::Export(format) = prompt.asking else {
             return Task::none();
         };
-        let (key, input, overwrite) = (prompt.doc, prompt.input.clone(), prompt.overwrite);
+        let (key, input, overwrite, look) = (
+            prompt.doc,
+            prompt.input.clone(),
+            prompt.overwrite,
+            prompt.look,
+        );
         let Some(typed) = expand(input.trim()) else {
             self.notice = Some("name a file to export to".into());
             return Task::none();
@@ -333,11 +374,16 @@ impl App {
             ));
             return Task::none();
         }
+        let place = self.place_of(key);
         let doc = &self.docs[index];
-        let task = doc
-            .paper
-            .export_to(format, &doc.name(), path)
-            .map(Message::Exported);
+        let task = match look {
+            ExportLook::Shown => doc
+                .paper
+                .export_to(format, &doc.name(), path)
+                .map(Message::Exported),
+            ExportLook::File => export_in(None, doc, place, format, path),
+            ExportLook::Look(look) => export_in(Some(look), doc, place, format, path),
+        };
         self.prompt = None;
         task
     }
@@ -463,5 +509,74 @@ impl App {
         // A state machine saved or changed on disk is checked against again.
         tasks.push(self.load_specs());
         Task::batch(tasks)
+    }
+}
+
+/// `doc` drawn anew in `look` (the file's colors without one) and written
+/// to `out` as `format`, in the background; the image keeps the file's
+/// own source.
+fn export_in(
+    look: Option<crate::look::Look>,
+    doc: &Doc,
+    place: Option<omaspec_render::Place>,
+    format: Format,
+    out: PathBuf,
+) -> Task<Message> {
+    let (text, language, path, file) = (doc.text(), doc.language, doc.path.clone(), doc.name());
+    Task::perform(
+        crate::worker::blocking(move || -> Result<String, String> {
+            let drawn = Drawn {
+                text: &text,
+                language,
+                path: path.as_deref(),
+                place: place.as_ref(),
+                file: &file,
+            };
+            let bytes = drawn.export(look, format)?;
+            crate::files::write_atomic(&out, &bytes).map_err(|e| format!("{e:#}"))?;
+            Ok(out.display().to_string())
+        }),
+        |result| Message::Exported(result.unwrap_or_else(|| Err("the export failed".into()))),
+    )
+}
+
+/// A diagram to export in a look.
+pub(super) struct Drawn<'a> {
+    pub text: &'a str,
+    pub language: omaspec_core::Language,
+    pub path: Option<&'a Path>,
+    pub place: Option<&'a omaspec_render::Place>,
+    /// The file name stored with the source.
+    pub file: &'a str,
+}
+
+impl Drawn<'_> {
+    /// The diagram in `look` (the file's colors without one) as `format`,
+    /// with the file's own source in it.
+    pub(super) fn export(
+        &self,
+        look: Option<crate::look::Look>,
+        format: Format,
+    ) -> Result<Vec<u8>, String> {
+        let mut renderer = omaspec_render::Renderer::new(&crate::commands::render_config());
+        let rendered = crate::look::render(
+            &mut crate::specs::Maps::default(),
+            &mut renderer,
+            self.text,
+            self.language,
+            self.path,
+            self.place,
+            look,
+        )
+        .map_err(|e| e.to_string())?;
+        let options = omaspec_render::export::Options {
+            scale: 2.0,
+            source: Some(omaspec_render::export::Source {
+                code: self.text,
+                language: self.language,
+                file: Some(self.file),
+            }),
+        };
+        omaspec_render::export::export(&rendered.svg, format, &options).map_err(|e| e.to_string())
     }
 }

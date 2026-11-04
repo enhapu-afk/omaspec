@@ -18,13 +18,13 @@ use omaspec_model::{Change, ChangeKind};
 use super::compare::{self, Compare, Row};
 use super::picker::Kind;
 use super::{
-    App, Asking, Command, Message, Mode, PICKER, PROMPT, Pane, Prompt, REPLACE, TABS, keys, plural,
-    shortcut,
+    App, Asking, Command, ExportLook, Message, Mode, PICKER, PROMPT, Pane, Prompt, REPLACE, TABS,
+    keys, plural, shortcut,
 };
 use crate::icons::{self, Icon};
 use crate::ui;
 
-const EXPORT_HINT: &str = "Enter exports · Esc cancels";
+const EXPORT_HINT: &str = "Tab: look · Enter exports · Esc cancels";
 
 fn prompt_text(asking: Asking) -> (&'static str, &'static str, &'static str) {
     match asking {
@@ -824,14 +824,43 @@ impl App {
             .size(13)
             .padding(2);
         let note = self.notice.clone().unwrap_or_else(|| hint.into());
-        let bar = row![
-            self.label(title, p.accent),
-            input,
-            self.label(note, p.dark_foreground),
-        ]
-        .spacing(10)
-        .align_y(Alignment::Center);
-        ui::bar(bar.into(), p)
+        let mut bar = row![self.label(title, p.accent), input]
+            .spacing(10)
+            .align_y(Alignment::Center);
+        if let Asking::Export(format) = prompt.asking {
+            let looks = self.export_looks(format);
+            if looks.len() > 1 {
+                bar = bar.push(self.look_chips(&looks, prompt.look));
+            }
+        }
+        ui::bar(bar.push(self.label(note, p.dark_foreground)).into(), p)
+    }
+
+    /// The looks an export can take, the chosen one lit; a click takes one.
+    fn look_chips(&self, looks: &[ExportLook], chosen: ExportLook) -> Element<'_, Message> {
+        let p = &self.palette;
+        let chips = looks.iter().map(|&look| {
+            let on = look == chosen;
+            let words = self.small(
+                look.label(),
+                if on {
+                    p.bright_foreground
+                } else {
+                    p.dark_foreground
+                },
+            );
+            let chip = ui::pill(
+                words,
+                on.then(|| ui::color(p.lighter_background)),
+                on.then(|| ui::alpha(p.accent, 0.7)),
+            )
+            .padding([1, 8]);
+            mouse_area(chip)
+                .on_press(Message::PromptLook(look))
+                .interaction(iced::mouse::Interaction::Pointer)
+                .into()
+        });
+        row(chips).spacing(4).align_y(Alignment::Center).into()
     }
 
     /// What the status bar tells in place of the diagram's state: the

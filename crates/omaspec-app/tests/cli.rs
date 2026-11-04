@@ -321,6 +321,56 @@ fn omaspec_with(env: (&str, &str), args: &[&str]) -> Output {
 }
 
 #[test]
+fn render_takes_a_look_and_keeps_the_file_s_source() {
+    let dir = scratch("look");
+    let file = dir.join("door.puml");
+    // A line the engine does not take: its number is the file's.
+    let code = "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n";
+    fs::write(&file, code).unwrap();
+    let path = file.to_str().unwrap();
+    let out = |name: &str| dir.join(name).to_str().unwrap().to_owned();
+
+    let dark = out("dark.svg");
+    assert_eq!(
+        omaspec(&["render", path, "--look", "dark", "-o", &dark])
+            .status
+            .code(),
+        Some(0)
+    );
+    let svg = fs::read_to_string(&dark).unwrap();
+    assert!(
+        svg.to_ascii_lowercase().contains("#16181d"),
+        "the dark paper"
+    );
+    assert_eq!(embed::source_from_svg(&svg).unwrap().code, code);
+
+    let auto = out("auto.svg");
+    assert_eq!(
+        omaspec(&["render", path, "--look", "auto", "-o", &auto])
+            .status
+            .code(),
+        Some(0)
+    );
+    let svg = fs::read_to_string(&auto).unwrap();
+    assert!(svg.contains("@media (prefers-color-scheme: dark)"));
+    assert_eq!(embed::source_from_svg(&svg).unwrap().code, code);
+
+    // auto is an SVG's: a PNG is light or dark.
+    let png = omaspec(&["render", path, "--look", "auto", "-o", &out("auto.png")]);
+    assert_eq!(png.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&png.stderr).contains("take light or dark"));
+
+    // An error's line is the file's, not the look's.
+    let broken = dir.join("broken.puml");
+    fs::write(&broken, "@startuml\n[*] --> Closed\nClosed -> \n@enduml\n").unwrap();
+    let native = ("OMASPEC_PLANTUML", "none");
+    let broken = broken.to_str().unwrap();
+    let dark = omaspec_with(native, &["render", broken, "--look", "dark", "--json"]);
+    let report: serde_json::Value = serde_json::from_slice(&dark.stdout).unwrap();
+    assert_eq!(report[0]["line"], 3, "{report}");
+}
+
+#[test]
 fn render_writes_svg_png_and_pdf_next_to_the_diagram() {
     let dir = scratch("render");
     let file = dir.join("states.mmd");

@@ -550,6 +550,8 @@ pub struct RenderArgs<'a> {
     /// Store the diagram source in SVG and PNG images.
     pub source: bool,
     pub copy: bool,
+    /// A look laid over the file's colors.
+    pub look: Option<crate::look::Look>,
     pub lang: Option<Language>,
     /// A JSON report on stdout instead of status lines. The images are
     /// still written; stdout is not an image in this mode.
@@ -589,6 +591,11 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             Format::from_extension(ext)
         })
         .unwrap_or(Format::Svg);
+    anyhow::ensure!(
+        args.look != Some(crate::look::Look::Auto) || format == Format::Svg,
+        "--look auto makes an SVG, which a viewer turns dark with its own scheme; for {} take light or dark",
+        format.extension().to_uppercase()
+    );
 
     if args.json && !args.copy {
         let image_on_stdout = match args.output {
@@ -612,12 +619,14 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             .path
             .as_deref()
             .and_then(|path| omaspec_render::Place::of(path, None));
-        let drawn = maps.render(
+        let drawn = crate::look::render(
+            &mut maps,
             &mut renderer,
             &input.text,
             lang,
             input.path.as_deref(),
             place.as_ref(),
+            args.look,
         );
         let rendered = match drawn {
             Ok(r) => r,

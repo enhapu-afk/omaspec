@@ -18,6 +18,7 @@ use crate::commands::{
 };
 use crate::editor::folder::scan;
 use crate::files::{Input, MAX_SOURCE, read_input, write_atomic};
+use crate::look::Look;
 use crate::specs::Projects;
 
 /// The largest picture `render` returns for the agent to look at; a file
@@ -251,6 +252,11 @@ pub fn definitions() -> Vec<Value> {
                     "type": "boolean",
                     "description": "Store the diagram's source in an SVG or PNG file (the default), so it can be opened again.",
                 })),
+                ("look", json!({
+                    "type": "string",
+                    "enum": ["plain", "omarchy", "light", "dark", "auto"],
+                    "description": "Draw in a look instead of the file's own colors, laid over as the editor lays the Omarchy theme over; the file and the stored source stay as written. plain: black lines; omarchy: the active theme; light, dark: Omaspec's palettes; auto: one SVG, dark under a dark color scheme (SVG only).",
+                })),
             ]),
             "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false },
         }),
@@ -340,18 +346,39 @@ impl Tools {
             scale > 0.0 && scale <= 16.0,
             "`scale` must be more than 0 and at most 16"
         );
+        let look = match args.text("look")? {
+            Some(name) => Some(Look::from_name(name).with_context(|| {
+                format!("no look `{name}`; take plain, omarchy, light, dark or auto")
+            })?),
+            None => None,
+        };
+        if look == Some(Look::Auto) {
+            let format = format
+                .or_else(|| Format::from_extension(output.as_ref()?.extension()?.to_str()?))
+                .unwrap_or(if output.is_some() {
+                    Format::Svg
+                } else {
+                    Format::Png
+                });
+            ensure!(
+                format == Format::Svg,
+                "the look auto makes an SVG, which a viewer turns dark with its own scheme; ask for `format: svg`, or take light or dark"
+            );
+        }
         let place = input
             .path
             .as_deref()
             .and_then(|path| place_in(path, project));
         // A map shows the diagrams of its project in tiles (docs/adr/0018),
         // read no further than its includes are.
-        let drawn = crate::specs::Maps::default().render(
+        let drawn = crate::look::render(
+            &mut crate::specs::Maps::default(),
             renderer,
             &input.text,
             lang,
             input.path.as_deref(),
             place.as_ref(),
+            look,
         );
         let rendered = match drawn {
             Ok(rendered) => rendered,
@@ -1077,6 +1104,35 @@ mod tests {
         assert_eq!(over["isError"], true, "{over}");
         assert_eq!(std::fs::read_to_string(&diagram).unwrap(), code);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn render_takes_a_look() {
+        let code = "@startuml\nAlice -> Bob : hi\n@enduml\n";
+        let dark = call(
+            "render",
+            json!({"code": code, "format": "svg", "look": "dark"}),
+        );
+        let svg = dark["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .to_ascii_lowercase();
+        assert!(svg.contains("#16181d"), "{dark}");
+        let auto = call(
+            "render",
+            json!({"code": code, "format": "svg", "look": "auto"}),
+        );
+        assert!(
+            auto["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("prefers-color-scheme: dark")
+        );
+        // A picture to look at is a PNG: auto is not one.
+        let png = call("render", json!({"code": code, "look": "auto"}));
+        assert_eq!(png["isError"], true, "{png}");
+        let none = call("render", json!({"code": code, "look": "sepia"}));
+        assert_eq!(none["isError"], true, "{none}");
     }
 
     #[test]

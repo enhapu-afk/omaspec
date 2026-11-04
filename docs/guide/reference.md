@@ -49,7 +49,9 @@ omaspec ~/diagrams           # with that folder in the sidebar
 
 The status bar shows the Omaspec mark and `Ctrl+Shift+P`; a click opens the command
 list. Export asks for a path in that line (Enter writes it, a second Enter replaces a
-file that is already there).
+file that is already there), and for a look: as the diagram shows, in the file's own
+colors, plain, light, dark, or for an SVG auto. Tab takes the next, a click takes one.
+The image keeps the file's own source whatever the look.
 
 ### Project and tabs
 
@@ -288,6 +290,7 @@ omaspec convert door.puml -o door.mmd  # the same machine or scenario in Mermaid
 omaspec render flow.mmd             # flow.svg next to it, with the source inside
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
+omaspec render flow.mmd --look auto # plain, omarchy, light or dark; auto: one SVG, dark under a dark scheme
 omaspec extract diagram.png         # the source stored in an exported PNG or SVG
 omaspec example                     # the examples of the gallery; `example NAME` prints one, --json
 omaspec theme                       # the palette Omaspec reads from your Omarchy theme

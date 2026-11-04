@@ -1035,6 +1035,74 @@ fn images_open_their_diagram_under_a_free_name() {
 }
 
 #[test]
+fn an_export_takes_a_look_and_keeps_the_file_s_source() {
+    let dir = temp_dir("export-look");
+    let src = dir.join("door.puml");
+    let text = "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n";
+    std::fs::write(&src, text).unwrap();
+    let mut app = open(std::slice::from_ref(&src));
+
+    // Tab steps through the looks an SVG can take, back to the first.
+    press(&mut app, Command::ExportSvg);
+    let looks = app.export_looks(Format::Svg);
+    assert_eq!(app.prompt.as_ref().unwrap().look, ExportLook::Shown);
+    let labels: Vec<&str> = looks.iter().map(|l| l.label()).collect();
+    assert_eq!(
+        labels,
+        [
+            "as shown",
+            "file's colors",
+            "plain",
+            "light",
+            "dark",
+            "auto"
+        ]
+    );
+    for want in looks.iter().skip(1).chain([&ExportLook::Shown]) {
+        press(&mut app, Command::NextLook);
+        assert_eq!(app.prompt.as_ref().unwrap().look, *want);
+    }
+    let _ = app.update(Message::PromptLook(ExportLook::Look(
+        crate::look::Look::Dark,
+    )));
+    assert_eq!(
+        app.prompt.as_ref().unwrap().look,
+        ExportLook::Look(crate::look::Look::Dark)
+    );
+    // A PNG cannot be auto; a Markdown file is the source alone.
+    assert!(
+        !app.export_looks(Format::Png)
+            .contains(&ExportLook::Look(crate::look::Look::Auto))
+    );
+    assert_eq!(app.export_looks(Format::Markdown), [ExportLook::Shown]);
+
+    // Drawn in dark, with the file's own text stored in it.
+    let drawn = files::Drawn {
+        text,
+        language: Language::PlantUml,
+        path: Some(&src),
+        place: None,
+        file: "door.puml",
+    };
+    let svg = String::from_utf8(
+        drawn
+            .export(Some(crate::look::Look::Dark), Format::Svg)
+            .unwrap(),
+    )
+    .unwrap();
+    assert!(svg.to_ascii_lowercase().contains("#16181d"));
+    let stored = omaspec_core::embed::source_from_svg(&svg).unwrap();
+    assert_eq!(stored.code, text);
+    let auto = String::from_utf8(
+        drawn
+            .export(Some(crate::look::Look::Auto), Format::Svg)
+            .unwrap(),
+    )
+    .unwrap();
+    assert!(auto.contains("prefers-color-scheme: dark"));
+}
+
+#[test]
 fn export_asks_for_a_path_and_refuses_the_source() {
     let dir = temp_dir("export-to");
     let src = dir.join("flow.puml");
@@ -2669,6 +2737,14 @@ fn snapshot_palette_and_empty_page() {
     let _ = app.update(Message::PickerSubmit);
     press(&mut app, Command::Palette);
     shoot(&mut app, &dir, "editor-palette-recent");
+    press(&mut app, Command::Cancel);
+
+    // The export prompt with its looks, dark chosen.
+    press(&mut app, Command::ExportSvg);
+    let _ = app.update(Message::PromptLook(ExportLook::Look(
+        crate::look::Look::Dark,
+    )));
+    shoot(&mut app, &dir, "editor-export-looks");
     press(&mut app, Command::Cancel);
 
     press(&mut app, Command::NewTab);
