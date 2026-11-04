@@ -9,7 +9,8 @@
 //! the start of its redraw to the end of the last layer drawn: the update,
 //! the view and the shapes, not the GPU's part, which shows only in the
 //! next gap. Each frame that came late has a line of its own, with what
-//! happened in the [`BEFORE`] before it ([`note`], [`took`]): new pixels
+//! happened since the frame before it, or in the [`BEFORE`] before it
+//! ([`note`], [`took`]): new pixels
 //! that came, an update or a view that took long. Each motion ends with a
 //! line: how long it took, its gaps and its work.
 
@@ -159,6 +160,17 @@ pub fn took(what: impl FnOnce() -> String, took: Duration) {
     }
 }
 
+/// Every motion under way has ended: its pane went, before the frame that
+/// ends it came (a zoom into a link ends as its tab shows).
+pub fn end() {
+    if on() {
+        let lines: Vec<String> = log().runs.drain(..).map(|run| run.summary()).collect();
+        for line in lines {
+            eprintln!("{line}");
+        }
+    }
+}
+
 /// `value` as `Debug` writes it, cut short: a message can hold much.
 pub fn short(value: &impl fmt::Debug) -> String {
     struct Short(String);
@@ -240,7 +252,7 @@ impl Log {
         while self
             .notes
             .front()
-            .is_some_and(|(then, _)| at.saturating_duration_since(*then) > BEFORE * 4)
+            .is_some_and(|(then, _)| at.saturating_duration_since(*then) > GONE)
         {
             self.notes.pop_front();
         }
@@ -250,13 +262,14 @@ impl Log {
         self.notes.push_back((at, what));
     }
 
-    /// What happened in the [`BEFORE`] up to `now`, each with how long
-    /// before.
-    fn before(&self, now: Instant) -> String {
+    /// What happened since `since`, or in the [`BEFORE`] up to `now` if
+    /// that is longer, each with how long before `now`.
+    fn before(&self, since: Instant, now: Instant) -> String {
+        let since = since.min(now.checked_sub(BEFORE).unwrap_or(since));
         let seen: Vec<String> = self
             .notes
             .iter()
-            .filter(|(at, _)| *at <= now && now.saturating_duration_since(*at) <= BEFORE)
+            .filter(|(at, _)| since <= *at && *at <= now)
             .map(|(at, what)| format!("{} before: {what}", ms(now.saturating_duration_since(*at))))
             .collect();
         if seen.is_empty() {
@@ -288,7 +301,8 @@ impl Log {
                 self.runs.len() - 1
             }
         };
-        let named = self.before(now);
+        let since = self.runs[index].frames.last().map_or(now, |f| f.0);
+        let named = self.before(since, now);
         let run = &mut self.runs[index];
         if run.frames.last().is_some_and(|f| f.0 == now) {
             // A second layer driving the same motion.
@@ -427,21 +441,21 @@ mod tests {
     }
 
     #[test]
-    fn a_late_frame_names_what_came_just_before_it() {
+    fn a_late_frame_names_what_came_since_the_frame_before() {
         let start = Instant::now();
         let mut log = Log::default();
-        let _ = log.redraw(start);
-        let _ = log.frame(Motion::Glide, start, true);
         log.note(at(start, 2), "long ago".into());
+        let _ = log.redraw(at(start, 10));
+        let _ = log.frame(Motion::Glide, at(start, 10), true);
         log.note(at(start, 20), "overview 1904×1200 px shown".into());
         log.note(at(start, 31), "update of ZoomStep took 2.0 ms".into());
-        let _ = log.redraw(at(start, 64));
-        let lines = log.frame(Motion::Glide, at(start, 64), true);
+        let _ = log.redraw(at(start, 74));
+        let lines = log.frame(Motion::Glide, at(start, 74), true);
         assert_eq!(
             lines,
             ["frames: glide frame 2 came 64.0 ms after the one before; \
-              44.0 ms before: overview 1904×1200 px shown; \
-              33.0 ms before: update of ZoomStep took 2.0 ms"]
+              54.0 ms before: overview 1904×1200 px shown; \
+              43.0 ms before: update of ZoomStep took 2.0 ms"]
         );
     }
 

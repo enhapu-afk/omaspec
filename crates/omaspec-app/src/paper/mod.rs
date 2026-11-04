@@ -153,6 +153,11 @@ pub struct Paper {
     /// The latest request when the hand's bends were sent: a picture asked
     /// for after it has them.
     hand_sent_at: u64,
+    /// Pixels that came while the view glided, to replace those on screen
+    /// once it stops: shown at once, the frame that first draws them comes
+    /// late (`OMASPEC_FRAMES` showed a 16-megapixel overview cost one).
+    held_overview: Option<(u64, Option<Raster>)>,
+    held_detail: Option<(u64, Option<Raster>)>,
 }
 
 impl Default for Paper {
@@ -181,6 +186,8 @@ impl Default for Paper {
             hand: None,
             by_hand_done: None,
             hand_sent_at: 0,
+            held_overview: None,
+            held_detail: None,
         }
     }
 }
@@ -388,20 +395,22 @@ impl Paper {
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            // A picture on screen is replaced once the view stops gliding; a
+            // missing one comes at once.
+            Message::Overview(seq, raster) if self.holds() => {
+                self.held_overview = Some((seq, raster));
+                Task::none()
+            }
+            Message::Detail(seq, raster) if self.holds() => {
+                self.held_detail = Some((seq, raster));
+                Task::none()
+            }
             Message::Overview(seq, raster) => {
-                let shown = self.overview.receive(seq, raster);
-                if shown {
-                    frames::note(|| pixels("overview", self.overview.asked));
-                }
-                if shown && std::mem::take(&mut self.fresh) {
-                    self.start_fade(Instant::now());
-                }
+                self.show_overview(seq, raster);
                 Task::none()
             }
             Message::Detail(seq, raster) => {
-                if self.detail.receive(seq, raster) {
-                    frames::note(|| pixels("detail", self.detail.asked));
-                }
+                self.show_detail(seq, raster);
                 Task::none()
             }
             Message::Faded => {
@@ -464,6 +473,7 @@ impl Paper {
             Message::Glided => match self.glide {
                 Some(glide) if glide.done(Instant::now()) => {
                     self.glide = None;
+                    self.show_held();
                     // Out of a link, the diagram it leads to has gone; into
                     // one, the veil covers this diagram until its tab shows.
                     if self.inward() {
@@ -921,6 +931,7 @@ impl Paper {
         self.glide = None;
         self.passage = None;
         self.view = view;
+        self.show_held();
     }
 
     /// The diagram as the pane shows it, for a zoom into a link to it or
@@ -1028,6 +1039,39 @@ impl Paper {
                 self.passage = None;
             }
         }
+        self.show_held();
+    }
+
+    /// Whether pixels that come now wait: the view glides, and a picture
+    /// is on screen meanwhile.
+    fn holds(&self) -> bool {
+        self.overview.shown.is_some() && self.glide.is_some_and(|g| !g.done(Instant::now()))
+    }
+
+    /// Shows the pixels that came while the view glided.
+    fn show_held(&mut self) {
+        if let Some((seq, raster)) = self.held_overview.take() {
+            self.show_overview(seq, raster);
+        }
+        if let Some((seq, raster)) = self.held_detail.take() {
+            self.show_detail(seq, raster);
+        }
+    }
+
+    fn show_overview(&mut self, seq: u64, raster: Option<Raster>) {
+        let shown = self.overview.receive(seq, raster);
+        if shown {
+            frames::note(|| pixels("overview", self.overview.asked));
+        }
+        if shown && std::mem::take(&mut self.fresh) {
+            self.start_fade(Instant::now());
+        }
+    }
+
+    fn show_detail(&mut self, seq: u64, raster: Option<Raster>) {
+        if self.detail.receive(seq, raster) {
+            frames::note(|| pixels("detail", self.detail.asked));
+        }
     }
 
     /// Takes `view` from another pane (Compare A|B zooms both together): a
@@ -1078,6 +1122,10 @@ impl Paper {
     /// Drops the pixels while the pane is hidden; a viewport report brings
     /// them back.
     pub fn release(&mut self) {
+        // What moved here has ended, though its last frame never came.
+        frames::end();
+        self.held_overview = None;
+        self.held_detail = None;
         self.overview.clear();
         self.detail.clear();
         self.fresh = false;
@@ -2190,6 +2238,41 @@ block Filter \"Low pass\" {
             Instant::now() - (super::view::GLIDE + std::time::Duration::from_millis(20));
         paper.set_breath(None);
         assert!(paper.breath.is_none());
+    }
+
+    #[test]
+    fn new_pixels_wait_until_the_view_stops_gliding() {
+        let door =
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+        show_source(&mut paper, door, Language::PlantUml);
+        paper.finish_rasters();
+        let before = paper.overview.shown.as_ref().map(|r| r.region);
+        assert!(before.is_some());
+        let _ = paper.zoom(1.2);
+        assert!(paper.glide.is_some());
+        let asked = paper.overview.asked;
+        paper.deliver_overview();
+        assert!(paper.held_overview.is_some(), "held while it glides");
+        assert_eq!(paper.overview.shown.as_ref().map(|r| r.region), before);
+        // Once it stops, the held pixels are shown.
+        paper.glide = paper.glide.map(|g| g.taking(std::time::Duration::ZERO));
+        let _ = paper.update(Message::Glided);
+        assert!(paper.held_overview.is_none());
+        assert_eq!(paper.overview.asked, asked);
+        assert!(paper.overview.shown.is_some());
+
+        // Without a picture on screen, pixels come at once.
+        let mut bare = Paper::default();
+        let _ = bare.update(Message::Viewport(Size::new(800.0, 600.0)));
+        let mut reply = answer(1, bare.pretend_next(), Ok(drawn(door, Language::PlantUml)));
+        reply.source = door.into();
+        reply.language = Language::PlantUml;
+        let _ = bare.rendered(reply);
+        let _ = bare.zoom(1.2);
+        bare.deliver_overview();
+        assert!(bare.held_overview.is_none() && bare.overview.shown.is_some());
     }
 
     #[test]
