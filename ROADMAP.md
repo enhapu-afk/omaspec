@@ -1240,7 +1240,18 @@ checked; numbers are measured, not assumed.
       the Omarchy colors now replace; it asks for the file's own colors again.
 - [ ] Smooth frames in a real window: no frame over 16.7 ms on a 1440p pane,
       read from `OMASPEC_FRAMES=1` while diving into a map's tiles and back,
-      zooming and playing; the GPU's part shows only there, in the gaps.
+      zooming and playing; the GPU's part shows only there, in the gaps. Measured
+      on a 60 Hz laptop screen (2026-11-04): dives, fades and plays kept every
+      refresh (frames 16.7 ms apart, at most 0.2 to 1.1 ms of work each); glides
+      missed one now and then, about one frame in 200. A late frame names what
+      happened since the frame before it now, which showed each of those came
+      right after a new overview was shown, once one of 16 megapixels. Pixels
+      that would replace a picture on screen wait until the glide stops now
+      (tested), and a zoom into a link no longer runs on into the way back in
+      the log. Gaps of 20 to 23 ms on the second or third frame of a glide stay:
+      the first frame after a key or a wheel notch comes off the refresh, and
+      the next falls back in step. Left to check: the glides again, in the
+      large diagram whose overview had 16 megapixels.
 - [x] Diagrams in the theme's colors by default: `follow_theme` started off, so the
       paper stayed white on a dark theme (`docs/images/themes.png`). It starts on now,
       saved as `theme_colors`, so a session that switches it off keeps that; the
