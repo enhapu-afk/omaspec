@@ -730,6 +730,7 @@ fn the_palette_runs_commands() {
                 "Up" => key = Key::Named(Named::ArrowUp),
                 "Down" => key = Key::Named(Named::ArrowDown),
                 "F5" => key = Key::Named(Named::F5),
+                "F2" => key = Key::Named(Named::F2),
                 c => key = Key::Character(c.to_lowercase().into()),
             }
         }
@@ -4307,6 +4308,83 @@ fn a_change_in_the_project_draws_again_only_the_documents_it_touches() {
             .diagrams
             .iter()
             .any(|d| d.file == "rooms/attic.puml")
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn rename_everywhere_renames_open_tabs_as_one_step_and_writes_the_rest() {
+    let root = temp_dir("rename-everywhere");
+    let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
+    write(
+        "omaspec-project.toml",
+        "name = \"house\"\nmain = \"system.puml\"\n",
+    );
+    write("system.puml", "@startwbs\n* House\n** Door\n@endwbs\n");
+    let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+    write("door.puml", door);
+    write(
+        "visit.puml",
+        "@startuml\nparticipant Guest\nparticipant Door\nGuest -> Door : open\n@enduml\n",
+    );
+    let root = std::fs::canonicalize(&root).unwrap();
+    let mut app = open(&[root.join("door.puml"), root.join("visit.puml")]);
+    let _ = app.update(Message::Select(0));
+    let rename_at = |app: &mut App, word: &str, nth: usize, new: &str| {
+        let text = app.doc().text();
+        let at = text.match_indices(word).nth(nth).unwrap().0 + 1;
+        act(app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+        press(app, Command::RenameEverywhere);
+        let prompt = app
+            .prompt
+            .as_ref()
+            .expect("the rename asks for the new name");
+        assert!(matches!(prompt.asking, Asking::Rename));
+        assert_eq!(prompt.input, word);
+        let _ = app.update(Message::PromptInput(new.into()));
+        let _ = app.update(Message::PromptSubmit);
+    };
+
+    // The diagram, from its title: both tabs, as one step each, unsaved;
+    // the map, not open, written.
+    rename_at(&mut app, "Door", 0, "Front gate");
+    let notice = app.notice.clone().unwrap();
+    assert!(
+        notice.starts_with("renamed the diagram Door (door.puml) to Front gate in 3 files (2 open"),
+        "{notice}"
+    );
+    assert!(app.docs[0].text().contains("title Front gate\n") && app.docs[0].modified);
+    assert!(app.docs[1].text().contains("Guest -> FrontGate : open\n") && app.docs[1].modified);
+    assert_eq!(
+        std::fs::read_to_string(root.join("system.puml")).unwrap(),
+        "@startwbs\n* House\n** Front gate\n@endwbs\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(root.join("door.puml")).unwrap(),
+        door
+    );
+    act(&mut app, Action::Undo);
+    assert_eq!(app.docs[0].text(), door);
+
+    // A state: only where it is a state, not the event of its spelling.
+    rename_at(&mut app, "Open", 0, "Ajar");
+    assert!(
+        app.docs[0]
+            .text()
+            .contains("Closed --> Ajar : open\nAjar --> Closed : close\n"),
+        "{}",
+        app.docs[0].text()
+    );
+
+    // A word that names nothing.
+    let text = app.doc().text();
+    let at = text.find("enduml").unwrap() + 2;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::RenameEverywhere);
+    assert!(app.prompt.is_none());
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("no diagram, state or event is named at the caret")
     );
     let _ = std::fs::remove_dir_all(&root);
 }

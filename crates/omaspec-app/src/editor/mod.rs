@@ -39,6 +39,7 @@ mod links;
 mod panes;
 mod picker;
 mod play;
+mod rename;
 mod search;
 mod session;
 mod syntax;
@@ -391,6 +392,9 @@ pub enum Command {
     Detach,
     /// Puts a skin pack into the source, or takes it out.
     Skin(Option<Pack>),
+    /// Renames the diagram, state or event at the caret at every use in
+    /// the project.
+    RenameEverywhere,
     /// Takes the bends of the line at the caret out of the source.
     ResetLine,
     /// Takes every line by hand out of the source.
@@ -440,6 +444,11 @@ const PALETTE: &[(&str, &str, Command)] = &[
     ("Back out of the linked diagram", "Alt+Left", Command::Back),
     ("Find in all tabs", "Ctrl+Shift+F", Command::FindAll),
     ("Replace in all tabs", "Ctrl+Shift+H", Command::ReplaceAll),
+    (
+        "Rename the diagram, state or event at the caret everywhere",
+        "F2",
+        Command::RenameEverywhere,
+    ),
     ("Save", "Ctrl+S", Command::Save),
     ("Save as", "Ctrl+Shift+S", Command::SaveAs),
     ("Revert to the saved file", "", Command::Revert),
@@ -609,6 +618,7 @@ fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
         Key::Named(Named::F5) if !matches!(mode, Mode::Prompt | Mode::Picker) => {
             Some(Command::Play)
         }
+        Key::Named(Named::F2) if plain && mode == Mode::Editing => Some(Command::RenameEverywhere),
         Key::Named(Named::Escape) if mode == Mode::Playing => Some(Command::StopPlay),
         Key::Character(c)
             if playing && matches!(c, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9") =>
@@ -734,6 +744,8 @@ enum Asking {
     /// The folder to export the project into. A folder that is there asks
     /// once more.
     ExportProject,
+    /// The new name of what the caret names ([`App::renaming`]).
+    Rename,
 }
 
 /// A question in the bottom line.
@@ -810,6 +822,8 @@ struct App {
     indexes: HashMap<PathBuf, Arc<Mutex<crate::index::Index>>>,
     /// The folders of each such project, and of all of them those watched.
     project_dirs: HashMap<PathBuf, Arc<Vec<PathBuf>>>,
+    /// What the rename prompt renames.
+    renaming: Option<rename::Renaming>,
     watched: Arc<Vec<PathBuf>>,
     /// A link being followed, while the zoom into it runs.
     following: Option<links::Following>,
@@ -928,6 +942,7 @@ impl App {
             themed_atlases: HashMap::new(),
             indexes: HashMap::new(),
             project_dirs: HashMap::new(),
+            renaming: None,
             watched: Arc::default(),
             following: None,
             trail: Vec::new(),
@@ -1366,6 +1381,7 @@ impl App {
                 }
                 Some(Asking::Export(_)) => self.export_submitted(),
                 Some(Asking::ExportProject) => self.export_project_submitted(),
+                Some(Asking::Rename) => self.rename_submitted(),
                 None => Task::none(),
             },
             Message::PickerInput(query) => {
@@ -1880,6 +1896,7 @@ impl App {
             }
             Command::FindAll => self.open_search(false),
             Command::ReplaceAll => self.open_search(true),
+            Command::RenameEverywhere => self.start_rename(),
             Command::SwitchField => self.switch_field(),
             Command::NextLook => {
                 self.next_export_look(None);
@@ -1987,6 +2004,7 @@ impl App {
             Command::Quit => self.quit(),
             Command::Cancel => {
                 self.prompt = None;
+                self.renaming = None;
                 self.gallery = None;
                 self.close_picker();
                 self.focus_editor()

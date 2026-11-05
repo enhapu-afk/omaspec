@@ -253,3 +253,67 @@ fn mermaid_states_events_and_titles_are_renamed_alike() {
         "sequenceDiagram\nparticipant User\nparticipant Gate\nUser->>Gate: open\nGate-->>User: open\n"
     );
 }
+
+#[test]
+fn the_name_at_a_place_is_what_a_rename_there_renames() {
+    let files = files();
+    let specs = specs(&files);
+    let at = |file: &str, line: usize, word: &str| {
+        let text = files.iter().find(|f| f.path == file).unwrap().text;
+        let col = text.split('\n').nth(line).unwrap().find(word).unwrap() + 1;
+        named_at(file, line, col, &files, &specs).map(|n| (n.name, n.machine, n.thing))
+    };
+    let named = |name: &str, machine: Option<&str>, thing| {
+        Some((name.to_owned(), machine.map(str::to_owned), thing))
+    };
+    // door.puml: the title, a state, an event.
+    assert_eq!(
+        at("door.puml", 1, "Door"),
+        named("Door", None, Thing::Diagram)
+    );
+    assert_eq!(
+        at("door.puml", 3, "Open"),
+        named("Open", Some("door.puml"), Thing::State)
+    );
+    assert_eq!(
+        at("door.puml", 3, "open"),
+        named("open", Some("door.puml"), Thing::Event)
+    );
+    // A box; a participant; a message's event; a linked state.
+    assert_eq!(
+        at("house.puml", 2, "Door"),
+        named("Door", None, Thing::Diagram)
+    );
+    assert_eq!(
+        at("run.puml", 3, "Door"),
+        named("Door", Some("door.puml"), Thing::Diagram)
+    );
+    assert_eq!(
+        at("run.puml", 6, "open"),
+        named("open", Some("lamp.puml"), Thing::Event)
+    );
+    assert_eq!(
+        at("lamp.puml", 3, "Door"),
+        named("Door", Some("lamp.puml"), Thing::State)
+    );
+    assert_eq!(
+        at("notes.md", 3, "Door"),
+        named("Door", Some("door.puml"), Thing::Diagram)
+    );
+    // Words that name nothing.
+    assert_eq!(at("door.puml", 6, "stays"), None);
+    assert_eq!(at("run.puml", 7, "opens"), None);
+
+    // What it names is what a rename there renames.
+    let n = named_at("run.puml", 6, 18, &files, &specs).unwrap();
+    let plan = rename(
+        &n.name,
+        "switch",
+        n.machine.as_deref(),
+        Some(n.thing),
+        &files,
+        &specs,
+    )
+    .unwrap();
+    assert_eq!(plan.what, "the event open of lamp.puml");
+}

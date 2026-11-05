@@ -31,7 +31,7 @@ pub use convert::{Converted, Notice, Refused, convert};
 pub use diff::{Change, ChangeKind, diff};
 pub use label::Trigger;
 pub use refs::{File, FileKind, Ref, RefKind, refs};
-pub use rename::{Edit, Plan, Thing, rename};
+pub use rename::{Edit, Named, Plan, Thing, named_at, rename};
 pub use run::{Run, Taken};
 pub use specs::Specs;
 pub use trace::{Followed, TraceStep};

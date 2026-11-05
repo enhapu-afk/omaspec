@@ -61,6 +61,11 @@ fn prompt_text(asking: Asking) -> (&'static str, &'static str, &'static str) {
             "folder for the SVGs and the ZIP",
             EXPORT_HINT,
         ),
+        Asking::Rename => (
+            "Rename everywhere",
+            "the new name",
+            "Enter renames it at every use in the project · open tabs stay unsaved · Esc cancels",
+        ),
     }
 }
 

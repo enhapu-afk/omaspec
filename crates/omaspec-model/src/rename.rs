@@ -174,6 +174,114 @@ pub fn rename(
     Ok(plan)
 }
 
+/// What a name at a place of a file is, for a rename there.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Named {
+    /// As it is written there.
+    pub name: String,
+    /// The file of the state machine whose state or event it is, or of
+    /// the diagram a participant plays.
+    pub machine: Option<String>,
+    pub thing: Thing,
+}
+
+/// The name at byte `col` of the file's `line` (zero-based): the diagram
+/// a title, a box or a participant names, or a state or an event of a
+/// machine; `None` where no such name is.
+pub fn named_at(
+    file: &str,
+    line: usize,
+    col: usize,
+    files: &[File],
+    specs: &Specs,
+) -> Option<Named> {
+    let project = Project::read(files, specs);
+    let pieces = &project.pieces;
+    let piece = pieces
+        .iter()
+        .find(|p| p.file == file && p.block.as_ref().is_none_or(|b| b.code_line(line).is_some()))?;
+    let code_line = piece
+        .block
+        .as_ref()
+        .map_or(Some(line), |b| b.code_line(line))?;
+    let text = piece.line_text(line);
+    let at = |k: &str, part: Range<usize>| {
+        spans(text, k)
+            .into_iter()
+            .find(|s| s.start <= col && col <= s.end && s.start >= part.start && s.end <= part.end)
+    };
+    let found = |span: Range<usize>, machine: Option<&str>, thing| Named {
+        name: text[span].to_owned(),
+        machine: machine.map(str::to_owned),
+        thing,
+    };
+    let whole = 0..text.len();
+    let label = (head(text) + 1).min(text.len())..text.len();
+    let left = 0..head(text);
+    // Where the diagram says its name.
+    for name in &piece.names {
+        if piece.name_lines(&key(name)).contains(&code_line)
+            && let Some(span) = at(&key(name), whole.clone())
+        {
+            return Some(found(span, None, Thing::Diagram));
+        }
+    }
+    // A map's box.
+    for (words, _) in piece.boxes.iter().filter(|(_, l)| *l == code_line) {
+        if let Some(span) = at(&key(words), whole.clone()) {
+            return Some(found(span, None, Thing::Diagram));
+        }
+    }
+    // A state left of a label, an event right of it.
+    if let Some(m) = &piece.machine {
+        for state in &m.states {
+            if let Some(span) = at(&key(&state.name), left.clone()) {
+                return Some(found(span, Some(piece.file), Thing::State));
+            }
+        }
+        for t in m.transitions.iter().filter(|t| t.line == code_line) {
+            for event in &t.trigger.events {
+                if let Some(span) = at(&key(crate::across::event_of(event)), label.clone()) {
+                    return Some(found(span, Some(piece.file), Thing::Event));
+                }
+            }
+        }
+    }
+    // A participant, or the event of a message sent to one.
+    if let Some((diagram, offset)) = &piece.sequence {
+        let plays =
+            |p: &omaspec_uml::sequence::Participant| project.played_by(&[&p.code, &p.label]);
+        for p in &diagram.participants {
+            for name in [&p.code, &p.label] {
+                if let Some(span) = at(&key(name), left.clone())
+                    && let Some(m) = plays(p)
+                {
+                    // An alias is no name of the machine's: its own is.
+                    let machine = &pieces[m];
+                    let written = key(&text[span.clone()]);
+                    let mut named = found(span, Some(machine.file), Thing::Diagram);
+                    if !machine.names.iter().any(|n| key(n) == written) {
+                        named.name = machine.names.first()?.clone();
+                    }
+                    return Some(named);
+                }
+            }
+        }
+        for item in &diagram.items {
+            if let omaspec_uml::sequence::Item::Message(m) = item
+                && m.line + offset == code_line
+                && let omaspec_uml::sequence::End::Participant(to) = m.to
+                && let Some(machine) = plays(&diagram.participants[to])
+                && let Some(text) = &m.text
+                && let Some(span) = at(&key(crate::across::event_of(&text.value)), label.clone())
+            {
+                return Some(found(span, Some(pieces[machine].file), Thing::Event));
+            }
+        }
+    }
+    None
+}
+
 fn describe(thing: Thing, name: &str, file: &str) -> String {
     match thing {
         Thing::Diagram => format!("the diagram {name} ({file})"),

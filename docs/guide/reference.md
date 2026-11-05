@@ -32,6 +32,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | F5 | play the diagram (a state machine or a scenario) |
 | Ctrl+O | open a file, folder or image by path |
 | Ctrl+Shift+F, Ctrl+Shift+H | find, and replace, in all tabs (each tab one undo step) |
+| F2 | rename the diagram, state or event at the caret at every use in the project |
 | Ctrl+S, Ctrl+Shift+S | save (atomic, keeps the line endings), save as |
 | Ctrl+Enter | render now |
 | F8 | jump to the next lint finding |
@@ -374,6 +375,9 @@ use is spelled as the old one was (`FrontGate`, `front_gate`, words where it had
 When the old name is several things, as *Open* and *open*, it asks for `--state` or
 `--event` (and `--machine`) rather than guess, and it refuses a name already taken.
 Files keep their names, and recorded traces are records: both are listed, not changed.
+In the editor, **F2** renames what the caret names (a title, a box, a participant, a state
+or an event): an open tab takes it as one undo step and stays unsaved, a file not open is
+written as a save writes it.
 
 ## AI agents
 

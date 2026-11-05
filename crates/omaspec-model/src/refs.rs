@@ -302,8 +302,14 @@ impl<'a> Project<'a> {
         }
     }
 
-    /// The machines that go by `name`.
+    /// The machines that go by `name`, or the one in the file at `name`.
     pub(crate) fn machines_named(&self, name: &str) -> Vec<usize> {
+        let in_file: Vec<usize> = (0..self.pieces.len())
+            .filter(|&x| self.pieces[x].file == name && self.pieces[x].machine.is_some())
+            .collect();
+        if !in_file.is_empty() {
+            return in_file;
+        }
         self.specs
             .named(&[name])
             .into_iter()

@@ -234,6 +234,11 @@ impl App {
                 .join(crate::project_export::FOLDER)
                 .display()
                 .to_string(),
+            Asking::Rename => self
+                .renaming
+                .as_ref()
+                .map(|r| r.named.name.clone())
+                .unwrap_or_default(),
         };
         let key = doc.key;
         // The question is drawn in the editor window. A shortcut from the
