@@ -1126,7 +1126,8 @@ diagram ends close up and then jumps out. So the goals gain one, **Scales**
 ([0006](docs/adr/0006-goals-and-scope.md)). Versions and exchange go through git and
 plain files that carry their source: no server, no account, no format of Omaspec's
 own ([0005](docs/adr/0005-offline-no-telemetry.md)). Each step says how it is
-checked; numbers are measured, not assumed.
+checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
+0.8.0 on 2026-11-05.
 
 ### Step 0: the yardstick
 
