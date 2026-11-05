@@ -585,7 +585,7 @@ impl Parser {
 
     fn not_after_delay(&self, what: &str, no: usize) -> Result<(), Declined> {
         if self.after_delay {
-            return Err(Declined::at(
+            return Err(Declined::refused(
                 no,
                 format!("after a delay, PlantUML takes no `{what}` before the next message"),
             ));
@@ -595,7 +595,7 @@ impl Parser {
 
     fn not_created(&self, participant: usize, no: usize) -> Declined {
         let code = &self.diagram.participants[participant].code;
-        Declined::at(
+        Declined::refused(
             no,
             format!("after `create {code}`, the next message must go to `{code}`"),
         )

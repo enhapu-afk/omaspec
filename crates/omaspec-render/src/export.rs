@@ -112,6 +112,8 @@ pub enum ExportError {
     TooLarge {
         width: u32,
         height: u32,
+        /// The largest scale at which the whole picture fits, when known.
+        fits: Option<f32>,
     },
     Pdf(String),
     Jpeg(String),
@@ -124,9 +126,19 @@ impl fmt::Display for ExportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ExportError::Svg(e) => write!(f, "cannot read the SVG: {e}"),
-            ExportError::TooLarge { width, height } => write!(
+            ExportError::TooLarge {
+                width,
+                height,
+                fits: Some(fits),
+            } if *fits > 0.0 => write!(
                 f,
-                "a {width}×{height} px image is too large; export SVG or PDF, or lower the scale"
+                "a {width}×{height} px image is too large (at most {} million pixels); it fits at a scale of {fits} or less, or export SVG or PDF",
+                MAX_PIXELS / 1_000_000
+            ),
+            ExportError::TooLarge { width, height, .. } => write!(
+                f,
+                "a {width}×{height} px image is too large (at most {} million pixels); export SVG or PDF",
+                MAX_PIXELS / 1_000_000
             ),
             ExportError::Pdf(e) => write!(f, "cannot write the PDF: {e}"),
             ExportError::Jpeg(e) => write!(f, "cannot write the JPEG: {e}"),
@@ -251,17 +263,42 @@ pub fn parse(svg: &str) -> Result<usvg::Tree, ExportError> {
 
 /// Rasterizes `tree` at `scale` on white paper.
 pub fn rasterize(tree: &usvg::Tree, scale: f32) -> Result<tiny_skia::Pixmap, ExportError> {
+    let (width, height) = pixels(tree, scale)?;
+    let whole = tiny_skia::IntRect::from_xywh(0, 0, width, height)
+        .ok_or(too_large(tree, width, height, MAX_SIDE))?;
+    rasterize_part(tree, scale, whole)
+}
+
+/// Pixels a side tiny-skia takes at most.
+const MAX_SIDE: f32 = (i32::MAX / 4) as f32;
+
+/// The size of `tree` drawn at `scale`, if it is no more than
+/// [`MAX_PIXELS`].
+fn pixels(tree: &usvg::Tree, scale: f32) -> Result<(u32, u32), ExportError> {
     let size = tree.size();
     let (width, height) = (
         (size.width() * scale).ceil().max(1.0) as u32,
         (size.height() * scale).ceil().max(1.0) as u32,
     );
     if u64::from(width) * u64::from(height) > MAX_PIXELS {
-        return Err(ExportError::TooLarge { width, height });
+        return Err(too_large(tree, width, height, MAX_SIDE));
     }
-    let whole = tiny_skia::IntRect::from_xywh(0, 0, width, height)
-        .ok_or(ExportError::TooLarge { width, height })?;
-    rasterize_part(tree, scale, whole)
+    Ok((width, height))
+}
+
+/// `tree` too large as `width` × `height` pixels, with the largest scale,
+/// to two places, at which it fits in [`MAX_PIXELS`] and `side` pixels a
+/// side.
+fn too_large(tree: &usvg::Tree, width: u32, height: u32, side: f32) -> ExportError {
+    let size = tree.size();
+    let by_area = (MAX_PIXELS as f32 / (size.width() * size.height())).sqrt();
+    let by_side = side / size.width().max(size.height());
+    let fits = (by_area.min(by_side) * 100.0).floor() / 100.0;
+    ExportError::TooLarge {
+        width,
+        height,
+        fits: fits.is_finite().then_some(fits),
+    }
 }
 
 /// Rasterizes the pixels `part` of `tree` drawn at `scale`, on white paper.
@@ -272,11 +309,15 @@ pub fn rasterize_part(
     part: tiny_skia::IntRect,
 ) -> Result<tiny_skia::Pixmap, ExportError> {
     let (width, height) = (part.width(), part.height());
+    let too_large = ExportError::TooLarge {
+        width,
+        height,
+        fits: None,
+    };
     if u64::from(width) * u64::from(height) > MAX_PIXELS {
-        return Err(ExportError::TooLarge { width, height });
+        return Err(too_large);
     }
-    let mut pixmap =
-        tiny_skia::Pixmap::new(width, height).ok_or(ExportError::TooLarge { width, height })?;
+    let mut pixmap = tiny_skia::Pixmap::new(width, height).ok_or(too_large)?;
     pixmap.fill(tiny_skia::Color::WHITE);
     let transform = tiny_skia::Transform::from_scale(scale, scale)
         .post_translate(-part.x() as f32, -part.y() as f32);
@@ -287,16 +328,9 @@ pub fn rasterize_part(
 /// Rasterizes `tree` at `scale` on a clear pixmap, so a rounded icon keeps
 /// transparent corners.
 pub fn rasterize_clear(tree: &usvg::Tree, scale: f32) -> Result<tiny_skia::Pixmap, ExportError> {
-    let size = tree.size();
-    let (width, height) = (
-        (size.width() * scale).ceil().max(1.0) as u32,
-        (size.height() * scale).ceil().max(1.0) as u32,
-    );
-    if u64::from(width) * u64::from(height) > MAX_PIXELS {
-        return Err(ExportError::TooLarge { width, height });
-    }
+    let (width, height) = pixels(tree, scale)?;
     let mut pixmap =
-        tiny_skia::Pixmap::new(width, height).ok_or(ExportError::TooLarge { width, height })?;
+        tiny_skia::Pixmap::new(width, height).ok_or(too_large(tree, width, height, MAX_SIDE))?;
     resvg::render(
         tree,
         tiny_skia::Transform::from_scale(scale, scale),
@@ -313,14 +347,9 @@ fn png(tree: &usvg::Tree, scale: f32) -> Result<Vec<u8>, ExportError> {
 
 fn jpeg(tree: &usvg::Tree, scale: f32) -> Result<Vec<u8>, ExportError> {
     let pixmap = rasterize(tree, scale)?;
-    let width = u16::try_from(pixmap.width()).map_err(|_| ExportError::TooLarge {
-        width: pixmap.width(),
-        height: pixmap.height(),
-    })?;
-    let height = u16::try_from(pixmap.height()).map_err(|_| ExportError::TooLarge {
-        width: pixmap.width(),
-        height: pixmap.height(),
-    })?;
+    let side = || too_large(tree, pixmap.width(), pixmap.height(), f32::from(u16::MAX));
+    let width = u16::try_from(pixmap.width()).map_err(|_| side())?;
+    let height = u16::try_from(pixmap.height()).map_err(|_| side())?;
     // JPEG has no alpha. Edges are premultiplied against the white paper.
     let mut rgb = Vec::with_capacity(pixmap.width() as usize * pixmap.height() as usize * 3);
     for pixel in pixmap.pixels() {
@@ -777,6 +806,31 @@ mod tests {
         let huge = r#"<svg xmlns="http://www.w3.org/2000/svg" width="20000" height="20000"/>"#;
         let err = export(huge, Format::Png, &Options::default()).unwrap_err();
         assert!(matches!(err, ExportError::TooLarge { .. }));
+        // It names the scale that fits, and that scale does.
+        assert_eq!(
+            err.to_string(),
+            "a 40000×40000 px image is too large (at most 100 million pixels); it fits at a scale of 0.5 or less, or export SVG or PDF"
+        );
+        let tall = r#"<svg xmlns="http://www.w3.org/2000/svg" width="8951" height="57239"/>"#;
+        let at = |scale: f32| {
+            export(
+                tall,
+                Format::Png,
+                &Options {
+                    scale,
+                    ..Options::default()
+                },
+            )
+        };
+        let Err(ExportError::TooLarge {
+            fits: Some(fits), ..
+        }) = at(0.45)
+        else {
+            panic!("too large at 0.45");
+        };
+        assert_eq!(fits, 0.44);
+        // Measured, not drawn: 99 million pixels take long in a test.
+        assert!(pixels(&parse(tall).unwrap(), fits).is_ok());
     }
 
     #[test]

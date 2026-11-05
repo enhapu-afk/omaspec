@@ -440,6 +440,7 @@ impl<'a> Drawer<'a> {
             return Err(Declined {
                 line: None,
                 reason: "a sequence diagram needs a participant".into(),
+                refused: false,
             });
         }
 

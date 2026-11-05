@@ -59,6 +59,10 @@ pub struct Declined {
     /// when a single line is to blame.
     pub line: Option<usize>,
     pub reason: String,
+    /// Whether PlantUML refuses it too: a mistake in the diagram, which no
+    /// other engine draws, rather than something this one does not know
+    /// yet.
+    pub refused: bool,
 }
 
 impl Declined {
@@ -66,6 +70,15 @@ impl Declined {
         Self {
             line: Some(line),
             reason: reason.into(),
+            refused: false,
+        }
+    }
+
+    /// A mistake PlantUML refuses too, at `line`.
+    pub(crate) fn refused(line: usize, reason: impl Into<String>) -> Self {
+        Self {
+            refused: true,
+            ..Self::at(line, reason)
         }
     }
 }

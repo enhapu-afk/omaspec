@@ -123,13 +123,13 @@ mod tests {
         // The page and one picture each.
         assert_eq!(drawn.svg.matches("<svg").count(), 3, "{}", drawn.svg);
         // An error names the document's line.
-        let broken = format!("{doc}\n```plantuml\nstate X {{\n```\n");
+        let broken = format!("{doc}\n```plantuml\n\"Long name\" --> X\n[*] --> X\n```\n");
         let err = renderer.render_document(&broken, None).unwrap_err();
         let (RenderError::Unavailable { line, .. } | RenderError::Diagram { line, .. }) = &err
         else {
             panic!("{err:?}");
         };
-        // Zero-based: `state X {` on the document's fifteenth line.
+        // Zero-based: the quoted name on the document's fifteenth line.
         assert_eq!(*line, Some(14), "{err:?}");
         let none = renderer.render_document("# Notes\n", None).unwrap_err();
         assert!(

@@ -48,6 +48,7 @@ pub fn parse_wbs(lines: &[Line]) -> Result<Wbs, Declined> {
     let root = p.root.ok_or_else(|| Declined {
         line: None,
         reason: "a WBS diagram needs a node".into(),
+        refused: false,
     })?;
     Ok(Wbs { root, frame })
 }

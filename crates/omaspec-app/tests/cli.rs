@@ -760,7 +760,10 @@ fn a_project_exports_as_svgs_linked_to_one_another_and_a_zip() {
     );
 
     // A diagram that does not draw is reported; the rest is written.
-    write("broken.puml", "@startuml\nstate X {\n@enduml\n");
+    write(
+        "broken.puml",
+        "@startuml\n\"Long name\" --> X\n[*] --> X\n@enduml\n",
+    );
     let out = Command::new(env!("CARGO_BIN_EXE_omaspec"))
         .args([
             "export",

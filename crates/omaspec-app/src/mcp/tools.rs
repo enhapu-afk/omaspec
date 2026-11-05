@@ -800,10 +800,15 @@ fn outline(args: &Args) -> Result<Answer> {
     let entries = one_based(&crate::document::outline(&input, lang));
     // A document's diagrams each have their own language.
     let language = (!crate::document::is_document(&input)).then(|| language(&input, lang));
-    Ok(Answer::data(json!({
+    let cut = crate::commands::outline_cut(&entries);
+    let mut answer = json!({
         "language": language,
         "outline": serde_json::to_value(entries)?,
-    })))
+    });
+    if cut {
+        answer["cut"] = json!(true);
+    }
+    Ok(Answer::data(answer))
 }
 
 fn diff(args: &Args) -> Result<Answer> {

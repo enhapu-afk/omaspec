@@ -335,6 +335,11 @@ fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
             close(&mut stack, |k| k == kind);
         } else if re!(r"(?i)^end\s*$").is_match(&t) {
             close(&mut stack, is_group);
+        } else if let Some(c) = re!(r"(?i)^state\s+(.*?)\s*\{$").captures(&t) {
+            // PlantUML ends a state without its `}` with the diagram.
+            stack.push((row, format!("state {} {{", declared_state(&c[1]))));
+        } else if re!(r"(?i)^skinparam\b.*\{$").is_match(&t) {
+            stack.push((row, "skinparam {".into()));
         } else if t == "}" {
             close(&mut stack, |k| k.ends_with(" {"));
         }
@@ -347,6 +352,18 @@ fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
         ));
     }
     findings
+}
+
+/// The name a `state … {` line declares: its alias, else its name.
+fn declared_state(decl: &str) -> &str {
+    let decl = decl.trim();
+    if let Some((_, alias)) = decl.split_once(" as ") {
+        return alias.split_whitespace().next().unwrap_or(alias);
+    }
+    match decl.strip_prefix('"') {
+        Some(quoted) => quoted.split('"').next().unwrap_or(quoted),
+        None => decl.split_whitespace().next().unwrap_or(decl),
+    }
 }
 
 /// A meaningful line and its zero-based number.
@@ -812,6 +829,20 @@ mod tests {
             Language::PlantUml,
         );
         assert_eq!(found, [(2, Severity::Warning, "Unclosed group {".into())]);
+        // A `}` closes the innermost state, so the outer one is left
+        // open; a skin parameter's braces are no state's.
+        let found = messages(
+            "@startuml\nstate \"Long name\" as L {\n  state P #pink {\n    [*] --> X\n  skinparam state {\n    BackgroundColor red\n  }\n}\n@enduml",
+            Language::PlantUml,
+        );
+        assert_eq!(found, [(1, Severity::Warning, "Unclosed state L {".into())]);
+        assert!(
+            messages(
+                "@startuml\nstate P{\n[*] --> X\n}\n@enduml",
+                Language::PlantUml
+            )
+            .is_empty()
+        );
     }
 
     #[test]

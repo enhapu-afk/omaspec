@@ -638,6 +638,7 @@ impl Machine<'_> {
         let in_file = |err: Declined| Declined {
             line: Some(top),
             reason: format!("in `{target}`: {}", err.reason),
+            refused: err.refused,
         };
         let (_, lines) = source::body(&file.text).map_err(in_file)?;
         let lines: Vec<Line> = lines.into_iter().map(|l| Line { no: top, ..l }).collect();

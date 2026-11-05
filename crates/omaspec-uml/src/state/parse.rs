@@ -117,9 +117,9 @@ struct RawArrow {
 
 impl Parser {
     fn finish(mut self) -> Result<Diagram, Declined> {
-        if let Some((_, line)) = self.open.last() {
-            return Err(Declined::at(*line, "a state has no `}`"));
-        }
+        // A state without its `}` ends with the diagram, as PlantUML has
+        // it; lint names it.
+        self.open.clear();
         empty_region(&self.root)?;
         for (from, to, mut arrow) in std::mem::take(&mut self.arrows) {
             let (home, rest) = from.split_at(from.len() - 1);
@@ -353,10 +353,10 @@ impl Parser {
         let region = self.late_region(&self.here());
         for (end, name) in [(&from, &raw.from), (&to, &raw.to)] {
             if self.late_region(end) != region {
-                return Err(Declined::at(
+                return Err(Declined::refused(
                     line,
                     format!(
-                        "PlantUML takes no transition into or out of a second concurrent region (`{name}`)"
+                        "PlantUML takes no transition into or out of a second concurrent region (`{name}`); a name is one state in the whole diagram, so a state of that name elsewhere is this one"
                     ),
                 ));
             }
@@ -1212,7 +1212,7 @@ fn second_end(raw: &str, line: usize) -> Result<(String, Option<String>), Declin
 fn end_name(raw: &str, line: usize) -> Result<String, Declined> {
     let raw = raw.trim();
     if raw.starts_with('"') {
-        return Err(Declined::at(
+        return Err(Declined::refused(
             line,
             "PlantUML takes no quoted name in a transition; declare it: `state \"Long name\" as Name`",
         ));

@@ -395,6 +395,7 @@ impl Parser {
             return Err(Declined {
                 line: None,
                 reason: "an activity diagram needs an activity".into(),
+                refused: false,
             });
         }
         self.root.out = self.pending.take();

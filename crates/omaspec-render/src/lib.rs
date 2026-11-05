@@ -309,6 +309,14 @@ impl Renderer {
         let includes = folder.as_ref().map(|f| f as &dyn omaspec_uml::Includes);
         let declined = match omaspec_uml::render_mapped(source, includes) {
             Ok((svg, map)) => return Ok((svg, Engine::NativePlantUml, map)),
+            // A mistake PlantUML refuses too: Java would only say it worse.
+            Err(declined) if declined.refused => {
+                return Err(RenderError::Diagram {
+                    engine: Engine::NativePlantUml,
+                    line: declined.line,
+                    message: declined.reason,
+                });
+            }
             Err(declined) => declined,
         };
         // PlantUML has no signal-flow diagram. A line this engine declines

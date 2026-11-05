@@ -19,7 +19,8 @@ const REGION_GAP: f32 = 14.0;
 
 /// The regions of a split state, each laid out on its own and stacked
 /// along the split, in a row as wide as the widest (or as high as the
-/// highest, side by side).
+/// highest, side by side). A smaller region starts at the row's start,
+/// left or at the top, as PlantUML has it, not in its middle.
 pub(super) fn layout_regions(
     container: &Container,
     split: Split,
@@ -46,7 +47,7 @@ pub(super) fn layout_regions(
         let (along, rect) = match split {
             Split::Stacked => {
                 let along = scene.height;
-                scene.offset((across - scene.width) / 2.0, cursor + before);
+                scene.offset(0.0, cursor + before);
                 let rect = Rect {
                     x: 0.0,
                     y: cursor,
@@ -57,7 +58,7 @@ pub(super) fn layout_regions(
             }
             Split::Beside => {
                 let along = scene.width;
-                scene.offset(cursor + before, (across - scene.height) / 2.0);
+                scene.offset(cursor + before, 0.0);
                 let rect = Rect {
                     x: cursor,
                     y: 0.0,

@@ -224,7 +224,9 @@ pub(crate) fn inspect_document<'a>(
         .filter_map(|(piece, findings)| {
             let (_, block) = piece.block.as_ref()?;
             let mut inspection = inspection(&file, &piece.code, piece.language, findings);
-            inspection.outline = outline::outline(&piece.code, piece.language)
+            let entries = outline::outline(&piece.code, piece.language);
+            inspection.outline_cut = crate::commands::outline_cut(&entries);
+            inspection.outline = entries
                 .into_iter()
                 .map(|mut entry| {
                     entry.line = piece.line(entry.line) + 1;

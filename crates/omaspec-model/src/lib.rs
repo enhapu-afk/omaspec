@@ -5,7 +5,8 @@
 //! So far the model holds state machines. PlantUML state diagrams come
 //! from the native engine's parse, Mermaid ones from the reading the
 //! Mermaid drawer draws from; a diagram either reader does not fully
-//! understand is not checked, so a finding is never a guess.
+//! understand is not checked, so a finding is never a guess, and the
+//! check says so rather than nothing.
 //!
 //! No I/O and no GUI, like `omaspec-core` and `omaspec-uml`.
 
@@ -22,7 +23,7 @@ mod run;
 mod specs;
 mod trace;
 
-use omaspec_core::lint::{self, Finding};
+use omaspec_core::lint::{self, Finding, Severity};
 use omaspec_core::{Kind as DiagramKind, Language, classify};
 use omaspec_uml::map::{Map, Shape, Spot};
 
@@ -162,11 +163,47 @@ impl Machine {
     }
 }
 
-/// The findings of a specification check on `code`, in line order.
+/// The findings of a specification check on `code`, in line order; for a
+/// state diagram the readers do not take, why it goes unchecked.
 pub fn check(code: &str, lang: Language) -> Vec<Finding> {
-    Machine::read(code, lang)
-        .map(|m| check::machine(&m))
-        .unwrap_or_default()
+    match Machine::read(code, lang) {
+        Some(m) => check::machine(&m),
+        None => unread(code, lang),
+    }
+}
+
+/// Why the state diagram `code` is not checked: a mistake PlantUML refuses
+/// too is an error on its line; what Omaspec does not read yet is told
+/// once, so that no state machine passes unchecked in silence.
+fn unread(code: &str, lang: Language) -> Vec<Finding> {
+    if classify(code, lang).kind != DiagramKind::State {
+        return Vec::new();
+    }
+    let skipped = |why: Option<&str>| match why {
+        Some(why) => format!(
+            "Omaspec does not read this state machine fully ({why}), so its checks skip it."
+        ),
+        None => "Omaspec does not read this state machine fully, so its checks skip it.".to_owned(),
+    };
+    let (line, severity, message) = match (lang, omaspec_uml::parse(code)) {
+        (Language::PlantUml, Err(declined)) if declined.refused => (
+            declined.line,
+            Severity::Error,
+            format!("{}.", diff::capital(&declined.reason)),
+        ),
+        (Language::PlantUml, Err(declined)) => (
+            declined.line,
+            Severity::Info,
+            skipped(Some(&declined.reason)),
+        ),
+        _ => (None, Severity::Info, skipped(None)),
+    };
+    let finding = Finding {
+        line: line.unwrap_or(0),
+        severity,
+        message,
+    };
+    vec![finding]
 }
 
 /// Every finding for `code`: the lint's and the specification check's, in

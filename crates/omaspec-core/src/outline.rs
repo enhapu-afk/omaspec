@@ -12,8 +12,12 @@ use crate::kind::{Kind, classify};
 use crate::lang::Language;
 use crate::text::{brace_balance, re};
 
-/// At most this many entries; a huge diagram stays usable.
+/// At most this many entries in the editor's outline, and folds; a huge
+/// diagram stays usable there.
 pub const MAX_ENTRIES: usize = 500;
+/// At most this many entries in [`outline`], for the command line and the
+/// MCP server, which say so when a diagram has more.
+pub const MAX_LISTED: usize = 100_000;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Entry {
@@ -27,8 +31,9 @@ pub struct Entry {
     pub label: String,
 }
 
+/// The outline of `code`, at most [`MAX_LISTED`] entries.
 pub fn outline(code: &str, lang: Language) -> Vec<Entry> {
-    outline_with_folds(code, lang).0
+    outline_at_most(code, lang, MAX_LISTED).0
 }
 
 /// The outline, and the blocks the editor can fold: header line and last
@@ -38,16 +43,24 @@ pub fn outline(code: &str, lang: Language) -> Vec<Entry> {
 /// block's closing line (`end`, `endif`, `}`), which a collapsed fold
 /// shows after its header, like `alt ok ⋯ end`. A block that never closes
 /// runs to the last line before a trailing `@end…`.
+/// At most [`MAX_ENTRIES`] entries, for the editor.
 pub fn outline_with_folds(code: &str, lang: Language) -> (Vec<Entry>, Vec<(usize, usize)>) {
+    outline_at_most(code, lang, MAX_ENTRIES)
+}
+
+fn outline_at_most(code: &str, lang: Language, max: usize) -> (Vec<Entry>, Vec<(usize, usize)>) {
     let lines: Vec<&str> = code.split('\n').collect();
+    let b = Builder::new(max);
     match lang {
-        Language::Mermaid => mermaid(&lines),
-        Language::PlantUml => plantuml(code, &lines, classify(code, lang).kind),
+        Language::Mermaid => mermaid(&lines, b),
+        Language::PlantUml => plantuml(code, &lines, classify(code, lang).kind, b),
     }
 }
 
 struct Builder {
     out: Vec<Entry>,
+    /// At most this many entries.
+    max: usize,
     /// The header and branch lines of each open block, innermost last.
     blocks: Vec<Vec<usize>>,
     /// The first line of the open section.
@@ -57,9 +70,10 @@ struct Builder {
 }
 
 impl Builder {
-    fn new() -> Self {
+    fn new(max: usize) -> Self {
         Self {
             out: Vec::new(),
+            max,
             blocks: Vec::new(),
             section: None,
             folds: Vec::new(),
@@ -78,7 +92,7 @@ impl Builder {
     }
 
     fn add_at(&mut self, line: usize, tag: &str, label: String, depth: isize) {
-        if self.out.len() < MAX_ENTRIES {
+        if self.out.len() < self.max {
             self.out.push(Entry {
                 line,
                 depth: depth.max(0) as usize,
@@ -200,8 +214,12 @@ fn decl_name(rest: &str) -> String {
     }
 }
 
-fn plantuml(code: &str, lines: &[&str], kind: Kind) -> (Vec<Entry>, Vec<(usize, usize)>) {
-    let mut b = Builder::new();
+fn plantuml(
+    code: &str,
+    lines: &[&str],
+    kind: Kind,
+    mut b: Builder,
+) -> (Vec<Entry>, Vec<(usize, usize)>) {
     let mut until: Option<&Regex> = None;
     let mut body = 0isize;
     let mind = lines
@@ -439,8 +457,7 @@ fn state_line(b: &mut Builder, row: usize, l: &str) {
     }
 }
 
-fn mermaid(lines: &[&str]) -> (Vec<Entry>, Vec<(usize, usize)>) {
-    let mut b = Builder::new();
+fn mermaid(lines: &[&str], mut b: Builder) -> (Vec<Entry>, Vec<(usize, usize)>) {
     let mut head = String::new();
     let mut front = false;
     let mut first_indent: Option<usize> = None;

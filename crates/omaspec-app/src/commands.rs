@@ -442,7 +442,18 @@ pub fn outline(file: Option<PathBuf>, forced: Option<Language>, json: bool) -> R
             writeln!(out, "{:>5}  {}{text}", e.line + 1, "  ".repeat(e.depth))?;
         }
     }
+    if outline_cut(&entries) {
+        eprintln!(
+            "the outline lists only its first {} entries",
+            outline::MAX_LISTED
+        );
+    }
     Ok(ExitCode::SUCCESS)
+}
+
+/// Whether `entries` are only an outline's first ones.
+pub(crate) fn outline_cut(entries: &[Entry]) -> bool {
+    entries.len() >= outline::MAX_LISTED
 }
 
 pub(crate) fn one_based(entries: &[Entry]) -> Vec<Entry> {
@@ -462,6 +473,10 @@ pub(crate) struct Inspection<'a> {
     kind: DiagramKind,
     findings: Vec<Reported<'a>>,
     pub(crate) outline: Vec<Entry>,
+    /// Whether the outline holds only its first entries
+    /// ([`outline::MAX_LISTED`]).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub(crate) outline_cut: bool,
     /// Whether Omaspec's own engine draws the diagram. When it does not,
     /// Mermaid still draws through mmdr and PlantUML through Java, if it
     /// is installed; the reason says which.
@@ -560,12 +575,14 @@ pub(crate) fn inspection<'a>(
     lang: Language,
     findings: &'a [Finding],
 ) -> Inspection<'a> {
+    let entries = outline::outline(code, lang);
     Inspection {
         file: file.to_owned(),
         language: lang,
         kind: classify(code, lang),
         findings: reported(file, findings),
-        outline: one_based(&outline::outline(code, lang)),
+        outline_cut: outline_cut(&entries),
+        outline: one_based(&entries),
         native: Some(native(code, lang)),
     }
 }
