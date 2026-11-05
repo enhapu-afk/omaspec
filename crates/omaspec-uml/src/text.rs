@@ -3,10 +3,11 @@
 //!
 //! Markup it draws: `\n`, `<b>`, `<i>`, `<u>`, `<s>`, `<color:…>`,
 //! `<size:…>`, `**bold**`, `//italic//`, `__underline__`, `--strike--`,
-//! `""mono""`, `~` to escape, and Creole tables (`|= a |= b |` over
-//! `| 1 | 2 |`). Markup it knows but does not draw (images, links, lists,
-//! headings, rules, …) is an error naming it; anything else that looks
-//! like a tag is shown as written, as PlantUML does.
+//! `""mono""`, `~` to escape, Creole tables (`|= a |= b |` over
+//! `| 1 | 2 |`) and links (`[[url]]`, `[[url label]]`, `[[url{tooltip}
+//! label]]`), underlined in the text's color. Markup it knows but does not
+//! draw (images, lists, headings, rules, …) is an error naming it; anything
+//! else that looks like a tag is shown as written, as PlantUML does.
 
 use crate::color::{self, Color};
 use crate::metrics;
@@ -122,6 +123,24 @@ pub struct Run {
     pub text: String,
     pub style: Style,
     pub width: f32,
+    /// Where a click on it leads, from `[[…]]`.
+    pub link: Option<Link>,
+}
+
+/// A link in the text, as written: the sanitizer decides which addresses
+/// a picture keeps.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Link {
+    pub url: String,
+    /// Shown when the pointer rests on it.
+    pub tooltip: Option<String>,
+}
+
+/// A piece of a line before it is measured.
+struct Piece {
+    text: String,
+    style: Style,
+    link: Option<Link>,
 }
 
 /// Space on the left and the right of a Creole table cell.
@@ -222,16 +241,26 @@ pub fn styled(lines: Vec<Vec<(String, Style)>>, font: Font, family: Family) -> B
     stack(
         lines
             .into_iter()
-            .map(|pieces| line_of(pieces, font.size, family))
+            .map(|pieces| {
+                let pieces = pieces
+                    .into_iter()
+                    .map(|(text, style)| Piece {
+                        text,
+                        style,
+                        link: None,
+                    })
+                    .collect();
+                line_of(pieces, font.size, family)
+            })
             .collect(),
     )
 }
 
-fn line_of(pieces: Vec<(String, Style)>, size: f32, family: Family) -> Line {
+fn line_of(pieces: Vec<Piece>, size: f32, family: Family) -> Line {
     let mut runs = Vec::new();
     let mut width: f32 = 0.0;
     let mut size = size;
-    for (text, style) in pieces {
+    for Piece { text, style, link } in pieces {
         if text.is_empty() {
             continue;
         }
@@ -242,6 +271,7 @@ fn line_of(pieces: Vec<(String, Style)>, size: f32, family: Family) -> Line {
             text,
             style,
             width: w,
+            link,
         });
     }
     Line {
@@ -506,8 +536,8 @@ const TOGGLES: [(&str, Toggle); 5] = [
 ];
 
 /// One line with its inline markup, as pieces of text and their style.
-fn inline(line: &str, base: Style) -> Result<Vec<(String, Style)>, String> {
-    let mut out: Vec<(String, Style)> = Vec::new();
+fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
+    let mut out: Vec<Piece> = Vec::new();
     let mut text = String::new();
     let mut style = base;
     // Open tags, to undo on their closing tag: the style before them.
@@ -515,9 +545,13 @@ fn inline(line: &str, base: Style) -> Result<Vec<(String, Style)>, String> {
     // Markers that are open: the value they replaced.
     let mut open: [Option<bool>; 5] = [None; 5];
     let mut i = 0;
-    let flush = |out: &mut Vec<(String, Style)>, text: &mut String, style: Style| {
+    let flush = |out: &mut Vec<Piece>, text: &mut String, style: Style| {
         if !text.is_empty() {
-            out.push((std::mem::take(text), style));
+            out.push(Piece {
+                text: std::mem::take(text),
+                style,
+                link: None,
+            });
         }
     };
 
@@ -551,8 +585,20 @@ fn inline(line: &str, base: Style) -> Result<Vec<(String, Style)>, String> {
             i += 2;
             continue;
         }
-        if rest.starts_with("[[") {
-            return Err("links (`[[…]]`) are not supported yet".into());
+        if rest.starts_with("[[")
+            && let Some(end) = rest[2..].find("]]")
+        {
+            let (link, label) = creole_link(&rest[2..2 + end])?;
+            flush(&mut out, &mut text, style);
+            let mut linked = style;
+            linked.underline = true;
+            out.push(Piece {
+                text: label,
+                style: linked,
+                link: Some(link),
+            });
+            i += end + 4;
+            continue;
         }
         if c == '<'
             && let Some(close) = rest.find('>')
@@ -597,6 +643,52 @@ fn inline(line: &str, base: Style) -> Result<Vec<(String, Style)>, String> {
     }
     flush(&mut out, &mut text, style);
     Ok(out)
+}
+
+/// What is between `[[` and `]]`: an address, quoted if it holds spaces,
+/// then an optional `{tooltip}` and an optional label, which is drawn
+/// instead of the address.
+fn creole_link(inner: &str) -> Result<(Link, String), String> {
+    let inner = inner.trim();
+    let (url, rest) = match inner.strip_prefix('"') {
+        Some(quoted) => {
+            let end = quoted
+                .find('"')
+                .ok_or_else(|| format!("the link `[[{inner}]]` has an open quote"))?;
+            (&quoted[..end], &quoted[end + 1..])
+        }
+        None => inner.split_at(
+            inner
+                .find(|c: char| c.is_whitespace() || c == '{')
+                .unwrap_or(inner.len()),
+        ),
+    };
+    let url = url.trim();
+    if url.is_empty() {
+        return Err(format!("the link `[[{inner}]]` has no address"));
+    }
+    let mut rest = rest.trim_start();
+    let mut tooltip = None;
+    if let Some(open) = rest.strip_prefix('{') {
+        let end = open
+            .find('}')
+            .ok_or_else(|| format!("the link `[[{inner}]]` has an open `{{`"))?;
+        tooltip = Some(open[..end].trim())
+            .filter(|t| !t.is_empty())
+            .map(str::to_owned);
+        rest = &open[end + 1..];
+    }
+    let label = match rest.trim() {
+        "" => url,
+        label => label,
+    };
+    Ok((
+        Link {
+            url: url.to_owned(),
+            tooltip,
+        },
+        label.to_owned(),
+    ))
 }
 
 enum Tag {
@@ -802,7 +894,8 @@ mod tests {
             ("<img:x.png>", "<img:x.png>"),
             ("<$sprite>", "<$sprite>"),
             ("<&key>", "<&key>"),
-            ("[[http://x]]", "links"),
+            ("[[{tip} label]]", "no address"),
+            ("[[\"a b label]]", "open quote"),
             ("* item", "lists"),
             ("----", "rules"),
             ("<color:#red/blue>x", "gradients"),
@@ -812,6 +905,45 @@ mod tests {
             let err = block(text, font(), Family::Sans).unwrap_err();
             assert!(err.contains(part), "{text}: {err}");
         }
+    }
+
+    #[test]
+    fn links_are_underlined_and_keep_their_address() {
+        let links = |text: &str| -> Vec<(String, Option<Link>)> {
+            block(text, font(), Family::Sans).unwrap().lines[0]
+                .runs
+                .iter()
+                .map(|r| (r.text.clone(), r.link.clone()))
+                .collect()
+        };
+        let link = |url: &str, tooltip: Option<&str>| {
+            Some(Link {
+                url: url.into(),
+                tooltip: tooltip.map(Into::into),
+            })
+        };
+        assert_eq!(
+            links("see [[https://a.b]] or [[docs/x.html the guide]]"),
+            [
+                ("see ".into(), None),
+                ("https://a.b".into(), link("https://a.b", None)),
+                (" or ".into(), None),
+                ("the guide".into(), link("docs/x.html", None)),
+            ]
+        );
+        assert_eq!(
+            links("[[https://a.b{Read me} more]]"),
+            [("more".into(), link("https://a.b", Some("Read me")))]
+        );
+        assert_eq!(
+            links("[[\"x y.html\"{}]]"),
+            [("x y.html".into(), link("x y.html", None))]
+        );
+        assert_eq!(pieces("<b>[[a b]]</b>"), [("0:b".into(), "b")]);
+        let run = &block("[[a b]]", font(), Family::Sans).unwrap().lines[0].runs[0];
+        assert!(run.style.underline);
+        // Without its end it is text.
+        assert_eq!(pieces("a [[b"), [("0:a [[b".into(), "")]);
     }
 
     #[test]

@@ -417,6 +417,32 @@ fn an_exported_map_and_a_linked_state_link_to_the_diagrams_they_open() {
 }
 
 #[test]
+fn a_creole_link_is_kept_and_a_script_is_not() {
+    let dir = scratch("creole-links");
+    let src = dir.join("seq.puml");
+    fs::write(
+        &src,
+        "@startuml\nAlice -> Bob : see [[https://example.org{The site} the docs]]\n\
+         note right : [[javascript:alert(1) bad]] and [[guide.html local]]\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&["render", src.to_str().unwrap()]);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let svg = fs::read_to_string(dir.join("seq.svg")).unwrap();
+    assert!(
+        svg.contains(r#"<a href="https://example.org"><title>The site</title><tspan"#),
+        "{svg}"
+    );
+    assert!(svg.contains(r#"<a href="guide.html">"#), "{svg}");
+    assert!(!svg.contains(r#"href="javascript"#), "{svg}");
+}
+
+#[test]
 fn render_writes_svg_png_and_pdf_next_to_the_diagram() {
     let dir = scratch("render");
     let file = dir.join("states.mmd");

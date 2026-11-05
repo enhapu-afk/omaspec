@@ -372,6 +372,12 @@ impl Canvas {
     fn write_line(&self, out: &mut String, line: &Line, x: f32, baseline: f32) {
         for (i, run) in line.runs.iter().enumerate() {
             let s = &run.style;
+            if let Some(link) = &run.link {
+                let _ = write!(out, r#"<a href="{}">"#, escape(&link.url));
+                if let Some(tooltip) = &link.tooltip {
+                    let _ = write!(out, "<title>{}</title>", escape(tooltip));
+                }
+            }
             out.push_str("<tspan");
             if i == 0 {
                 let _ = write!(out, r#" x="{}" y="{}""#, n(x), n(baseline));
@@ -405,6 +411,9 @@ impl Canvas {
                 );
             }
             let _ = write!(out, ">{}</tspan>", escape(&run.text));
+            if run.link.is_some() {
+                out.push_str("</a>");
+            }
         }
     }
 
