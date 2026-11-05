@@ -140,6 +140,45 @@ enum Command {
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
     },
+    /// Rename a diagram, a state or an event everywhere it is used.
+    ///
+    /// A diagram: its title or `@start…` name, the maps' boxes, the
+    /// participants that play it, the states of other machines that open
+    /// it. A state: its machine's lines, left of their labels. An event:
+    /// its machine's triggers and the messages sent to its participants.
+    /// Each use is spelled as the old one was (`FrontGate`, `front_gate`,
+    /// or words where it had spaces). Files keep their names; recorded
+    /// traces are left alone and listed. When the old name is several
+    /// things, --machine and --diagram, --state or --event say which.
+    /// Exits with 1 when the rename is refused.
+    Rename {
+        /// The name as it is now.
+        old: String,
+        /// The new name.
+        new: String,
+        /// The state machine whose state or event (or own name) it is.
+        #[arg(long, value_name = "NAME")]
+        machine: Option<String>,
+        /// Rename the diagram of that name.
+        #[arg(long, conflicts_with_all = ["state", "event"])]
+        diagram: bool,
+        /// Rename the state of that name.
+        #[arg(long, conflicts_with = "event")]
+        state: bool,
+        /// Rename the event of that name.
+        #[arg(long)]
+        event: bool,
+        /// Show what would change; write nothing.
+        #[arg(long)]
+        dry_run: bool,
+        /// Print what changed as JSON.
+        #[arg(long)]
+        json: bool,
+        /// The project folder; by default the project the current folder
+        /// is in, else the current folder.
+        #[arg(long, value_name = "DIR")]
+        project: Option<PathBuf>,
+    },
     /// Tell what changed in the behavior between two versions of a diagram.
     ///
     /// State machines are compared by their states, transitions and
@@ -431,6 +470,30 @@ fn main() -> ExitCode {
             json,
             project,
         }) => names::refs_command(&name, machine.as_deref(), project.as_deref(), json),
+        Some(Command::Rename {
+            old,
+            new,
+            machine,
+            diagram,
+            state,
+            event,
+            dry_run,
+            json,
+            project,
+        }) => {
+            use omaspec_model::Thing;
+            let thing = match (diagram, state, event) {
+                (true, _, _) => Some(Thing::Diagram),
+                (_, true, _) => Some(Thing::State),
+                (_, _, true) => Some(Thing::Event),
+                _ => None,
+            };
+            let which = names::Which {
+                machine: machine.as_deref(),
+                thing,
+            };
+            names::rename_command(&old, &new, &which, project.as_deref(), dry_run, json)
+        }
         Some(Command::Diff {
             files,
             rev,

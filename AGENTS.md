@@ -12,6 +12,7 @@ cargo run -p omaspec-app -- new DIR        # a project: omaspec-project.toml, it
 cargo run -p omaspec-app -- lint FILE      # --project DIR for the state machines; also fmt, outline, inspect, extract
 cargo run -p omaspec-app -- trace FILE     # a JSON Lines trace against the state machines of its project
 cargo run -p omaspec-app -- refs NAME      # where a diagram, state or event is used in the project (docs/adr/0019)
+cargo run -p omaspec-app -- rename OLD NEW # renamed at every use; --dry-run shows what would change
 cargo run -p omaspec-app -- mcp            # MCP server over standard input and output (docs/adr/0008)
 cargo run -p omaspec-app -- diff FILE      # what changed in the behavior since the last commit; or OLD NEW
 cargo run -p omaspec-app -- convert FILE   # the machine or scenario in the other language (docs/adr/0009)

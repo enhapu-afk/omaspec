@@ -145,6 +145,79 @@ fn refs_lists_the_uses_of_a_name_across_the_project() {
 }
 
 #[test]
+fn rename_renames_a_name_at_every_use_or_says_why_not() {
+    let dir = scratch("rename");
+    fs::write(dir.join("omaspec-project.toml"), "name = \"house\"\n").unwrap();
+    let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+    fs::write(dir.join("door.puml"), door).unwrap();
+    fs::write(
+        dir.join("visit.puml"),
+        "@startuml\nparticipant Guest\nparticipant Door\nGuest -> Door : open\n@enduml\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("today.jsonl"),
+        "{\"object\":\"Door\",\"event\":\"open\"}\n",
+    )
+    .unwrap();
+    let project = dir.to_str().unwrap();
+
+    // Open is a state and an event of the door: which, is asked.
+    let out = omaspec(&["rename", "Open", "Ajar", "--project", project]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("--state or --event"));
+
+    // A dry run writes nothing.
+    let out = omaspec(&[
+        "rename",
+        "open",
+        "swing",
+        "--event",
+        "--dry-run",
+        "--project",
+        project,
+    ]);
+    assert_eq!(out.status.code(), Some(0));
+    assert!(
+        stdout(&out).starts_with("would rename the event open of door.puml to swing in 2 files:")
+    );
+    assert!(stdout(&out).contains("today.jsonl:1: left alone, a recorded trace"));
+    assert_eq!(fs::read_to_string(dir.join("door.puml")).unwrap(), door);
+
+    let out = omaspec(&[
+        "rename",
+        "open",
+        "swing",
+        "--event",
+        "--json",
+        "--project",
+        project,
+    ]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["renamed"], true);
+    assert_eq!(
+        json["files"],
+        serde_json::json!(["door.puml", "visit.puml"])
+    );
+    assert!(
+        fs::read_to_string(dir.join("door.puml"))
+            .unwrap()
+            .contains("Closed --> Open : swing\n")
+    );
+    assert!(
+        fs::read_to_string(dir.join("visit.puml"))
+            .unwrap()
+            .contains("Guest -> Door : swing\n")
+    );
+    // The trace is a record.
+    assert!(
+        fs::read_to_string(dir.join("today.jsonl"))
+            .unwrap()
+            .contains("\"open\"")
+    );
+}
+
+#[test]
 fn fmt_check_and_write() {
     let dir = scratch("fmt");
     let file = dir.join("flow.puml");

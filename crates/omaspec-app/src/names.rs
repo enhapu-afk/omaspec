@@ -158,3 +158,101 @@ pub fn refs_command(
         ExitCode::SUCCESS
     })
 }
+
+/// What `omaspec rename` is told to rename, when the old name is several
+/// things.
+pub struct Which<'a> {
+    pub machine: Option<&'a str>,
+    pub thing: Option<omaspec_model::Thing>,
+}
+
+/// `omaspec rename`: `old` renamed to `new` at every use in the project,
+/// each changed file written as a save writes it, unless `dry_run`; the
+/// lines as they read afterwards, and what was left alone. Exit 1 when the
+/// rename is refused.
+pub fn rename_command(
+    old: &str,
+    new: &str,
+    which: &Which,
+    project: Option<&Path>,
+    dry_run: bool,
+    json: bool,
+) -> Result<ExitCode> {
+    let root = root(project)?;
+    let owned = project_files(&root);
+    let specs = specs_of(&owned);
+    let files: Vec<File> = owned.iter().map(Owned::file).collect();
+    let plan = match omaspec_model::rename(old, new, which.machine, which.thing, &files, &specs) {
+        Ok(plan) => plan,
+        Err(why) => {
+            if json {
+                println!("{}", json!({ "renamed": false, "error": why }));
+            } else {
+                eprintln!("not renamed: {why}");
+            }
+            return Ok(ExitCode::FAILURE);
+        }
+    };
+    let mut lines: Vec<(String, usize, String)> = Vec::new();
+    for file in plan.files() {
+        let text = &owned
+            .iter()
+            .find(|f| f.path == file)
+            .context("a file of the plan")?
+            .text;
+        let after = plan.apply(file, text);
+        let changed: Vec<usize> = plan
+            .edits
+            .iter()
+            .filter(|e| e.file == file)
+            .map(|e| e.line)
+            .collect();
+        for (line, text) in after.split('\n').enumerate() {
+            if changed.contains(&line) {
+                lines.push((file.to_owned(), line, text.trim().to_owned()));
+            }
+        }
+        if !dry_run {
+            crate::files::write_atomic(&root.join(file), after.as_bytes())
+                .with_context(|| format!("{file} not written"))?;
+        }
+    }
+    let mut out = std::io::stdout().lock();
+    if json {
+        let value = json!({
+            "renamed": !dry_run,
+            "what": plan.what,
+            "to": new,
+            "files": plan.files(),
+            "lines": lines
+                .iter()
+                .map(|(file, line, text)| json!({ "file": file, "line": line + 1, "text": text }))
+                .collect::<Vec<_>>(),
+            "traces": plan.traces.iter().map(ref_json).collect::<Vec<_>>(),
+            "notes": plan.notes,
+        });
+        serde_json::to_writer_pretty(&mut out, &value)?;
+        writeln!(out)?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    let count = plan.files().len();
+    let files = if count == 1 { "file" } else { "files" };
+    let verb = if dry_run { "would rename" } else { "renamed" };
+    writeln!(out, "{verb} {} to {new} in {count} {files}:", plan.what)?;
+    for (file, line, text) in &lines {
+        writeln!(out, "{file}:{}: {text}", line + 1)?;
+    }
+    for r in &plan.traces {
+        writeln!(
+            out,
+            "{}:{}: left alone, a recorded trace: {}",
+            r.file,
+            r.line + 1,
+            r.text
+        )?;
+    }
+    for note in &plan.notes {
+        writeln!(out, "{note}")?;
+    }
+    Ok(ExitCode::SUCCESS)
+}

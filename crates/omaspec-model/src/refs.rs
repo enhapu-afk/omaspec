@@ -243,11 +243,11 @@ pub(crate) struct Piece<'a> {
     pub(crate) code: String,
     pub(crate) language: Language,
     /// A document's block, whose lines are the document's.
-    block: Option<markdown::Block>,
+    pub(crate) block: Option<markdown::Block>,
     /// The names it goes by.
     pub(crate) names: Vec<String>,
     pub(crate) machine: Option<Machine>,
-    sequence: Option<(sequence::Diagram, usize)>,
+    pub(crate) sequence: Option<(sequence::Diagram, usize)>,
     /// A map's boxes: their words and lines.
     pub(crate) boxes: Vec<(String, usize)>,
 }
@@ -319,7 +319,7 @@ impl<'a> Project<'a> {
     }
 
     /// The machine the participant or object `names` plays: one, or none.
-    fn played_by(&self, names: &[&str]) -> Option<usize> {
+    pub(crate) fn played_by(&self, names: &[&str]) -> Option<usize> {
         match self.specs.named(names).as_slice() {
             [spec] => self.piece_of(spec),
             _ => None,
@@ -359,7 +359,7 @@ impl<'a> Piece<'a> {
         self.block.as_ref().map_or(line, |b| b.doc_line(line))
     }
 
-    fn line_text(&self, line: usize) -> &str {
+    pub(crate) fn line_text(&self, line: usize) -> &'a str {
         self.file_text.split('\n').nth(line).unwrap_or("")
     }
 
@@ -392,7 +392,7 @@ impl<'a> Piece<'a> {
     }
 
     /// The lines of the participants that play the machine of piece `d`.
-    fn participants_playing(&self, d: usize, project: &Project) -> Vec<usize> {
+    pub(crate) fn participants_playing(&self, d: usize, project: &Project) -> Vec<usize> {
         let Some((diagram, offset)) = &self.sequence else {
             return Vec::new();
         };
@@ -406,7 +406,7 @@ impl<'a> Piece<'a> {
 
     /// The lines of the messages that send the event of key `wanted` to a
     /// participant playing the machine of piece `x`.
-    fn messages_to(&self, x: usize, wanted: &str, project: &Project) -> Vec<usize> {
+    pub(crate) fn messages_to(&self, x: usize, wanted: &str, project: &Project) -> Vec<usize> {
         let Some((diagram, offset)) = &self.sequence else {
             return Vec::new();
         };

@@ -337,6 +337,7 @@ omaspec lint --project specs a.puml # sequences checked against the state machin
 omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
 omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json
 omaspec refs Door                   # every use of a diagram, state or event in the project; --machine, --json
+omaspec rename Door Gate            # renamed at every use; --state, --event, --machine, --dry-run, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI
 omaspec outline flow.puml           # structure: participants, groups, lanes, states, …
 omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it
@@ -366,6 +367,13 @@ it says its name, the maps' boxes, the participants that play it, the states of 
 machines that open it and the traces of it; for a state or an event of a state machine,
 its transitions, the messages sent to its participants and the traces. Each use is
 `file:line: kind: text`; `--machine Door` keeps to one machine's name, states and events.
+`omaspec rename OLD NEW` renames one of them at every use: a diagram's title, its boxes, the
+participants that play it and the states that open it; a state left of its machine's
+labels; an event in its machine's triggers and in the messages sent to its players. Each
+use is spelled as the old one was (`FrontGate`, `front_gate`, words where it had spaces).
+When the old name is several things, as *Open* and *open*, it asks for `--state` or
+`--event` (and `--machine`) rather than guess, and it refuses a name already taken.
+Files keep their names, and recorded traces are records: both are listed, not changed.
 
 ## AI agents
 
