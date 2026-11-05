@@ -31,7 +31,9 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+Shift+E | the examples, as tiles; Enter opens a copy, F5 plays it |
 | F5 | play the diagram (a state machine or a scenario) |
 | Ctrl+O | open a file, folder or image by path |
-| Ctrl+Shift+F, Ctrl+Shift+H | find, and replace, in all tabs (each tab one undo step) |
+| Ctrl+Shift+F | find in every file of the project, the open tabs first; a hit opens its file |
+| Ctrl+Shift+H | replace in all tabs (each tab one undo step) |
+| Ctrl+F in the diagram | find a state, a message or any label; it lights up and comes into sight |
 | F2 | rename the diagram, state or event at the caret at every use in the project |
 | Ctrl+S, Ctrl+Shift+S | save (atomic, keeps the line endings), save as |
 | Ctrl+Enter | render now |

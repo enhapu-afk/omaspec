@@ -274,13 +274,9 @@ pub enum Message {
     Scanned(PathBuf, Vec<PathBuf>),
     /// The state machines and all diagrams found in a project folder.
     Specs(PathBuf, Arc<Specs>, Arc<omaspec_render::Atlas>),
-    /// The same from a project's index, with the folders it looked into.
-    Indexed(
-        PathBuf,
-        Arc<Specs>,
-        Arc<omaspec_render::Atlas>,
-        Arc<Vec<PathBuf>>,
-    ),
+    /// The same from a project's index, with the folders it looked into
+    /// and its documents.
+    Indexed(PathBuf, crate::index::Snapshot),
     /// A click on the trail over the diagram: back to that step.
     BackTo(usize),
     PromptInput(String),
@@ -395,6 +391,8 @@ pub enum Command {
     /// Renames the diagram, state or event at the caret at every use in
     /// the project.
     RenameEverywhere,
+    /// Lists the diagram's labels; the one chosen lights up.
+    FindInDiagram,
     /// Takes the bends of the line at the caret out of the source.
     ResetLine,
     /// Takes every line by hand out of the source.
@@ -442,12 +440,21 @@ const PALETTE: &[(&str, &str, Command)] = &[
     ("Browse the examples", "Ctrl+Shift+E", Command::Gallery),
     ("Open Help Omaspec", "", Command::OpenHelp),
     ("Back out of the linked diagram", "Alt+Left", Command::Back),
-    ("Find in all tabs", "Ctrl+Shift+F", Command::FindAll),
+    (
+        "Find in the project and all tabs",
+        "Ctrl+Shift+F",
+        Command::FindAll,
+    ),
     ("Replace in all tabs", "Ctrl+Shift+H", Command::ReplaceAll),
     (
         "Rename the diagram, state or event at the caret everywhere",
         "F2",
         Command::RenameEverywhere,
+    ),
+    (
+        "Find a state or a message in the diagram (Ctrl+F there)",
+        "",
+        Command::FindInDiagram,
     ),
     ("Save", "Ctrl+S", Command::Save),
     ("Save as", "Ctrl+Shift+S", Command::SaveAs),
@@ -824,6 +831,9 @@ struct App {
     project_dirs: HashMap<PathBuf, Arc<Vec<PathBuf>>>,
     /// What the rename prompt renames.
     renaming: Option<rename::Renaming>,
+    /// The Markdown documents of each project open, with their texts, for
+    /// the search; its diagrams' texts are in `atlases`.
+    documents: HashMap<PathBuf, Arc<Vec<(String, String)>>>,
     watched: Arc<Vec<PathBuf>>,
     /// A link being followed, while the zoom into it runs.
     following: Option<links::Following>,
@@ -943,6 +953,7 @@ impl App {
             indexes: HashMap::new(),
             project_dirs: HashMap::new(),
             renaming: None,
+            documents: HashMap::new(),
             watched: Arc::default(),
             following: None,
             trail: Vec::new(),
@@ -1350,9 +1361,12 @@ impl App {
                 }
                 Task::none()
             }
-            Message::Indexed(root, specs, atlas, dirs) => {
-                self.found_dirs(root.clone(), dirs);
-                self.update(Message::Specs(root, specs, atlas))
+            Message::Indexed(root, found) => {
+                self.found_dirs(root.clone(), found.dirs);
+                if self.indexes.contains_key(&root) {
+                    self.documents.insert(root.clone(), found.documents);
+                }
+                self.update(Message::Specs(root, found.specs, found.atlas))
             }
             Message::Specs(root, specs, atlas) => {
                 self.found_specs(root.clone(), specs);
@@ -1385,8 +1399,12 @@ impl App {
                 None => Task::none(),
             },
             Message::PickerInput(query) => {
-                let search = self.picker.as_ref().is_some_and(|p| p.kind == Kind::Search);
-                let hits = search.then(|| self.search_items(&query));
+                let search = self
+                    .picker
+                    .as_ref()
+                    .filter(|p| p.kind == Kind::Search)
+                    .map(|p| p.replace.is_none());
+                let hits = search.map(|project| self.search_items(&query, project));
                 if let Some(picker) = &mut self.picker {
                     picker.set_query(query);
                     if let Some(hits) = hits {
@@ -1897,6 +1915,7 @@ impl App {
             Command::FindAll => self.open_search(false),
             Command::ReplaceAll => self.open_search(true),
             Command::RenameEverywhere => self.start_rename(),
+            Command::FindInDiagram => self.find_in_diagram(),
             Command::SwitchField => self.switch_field(),
             Command::NextLook => {
                 self.next_export_look(None);

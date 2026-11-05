@@ -28,6 +28,19 @@ pub enum Choice {
         doc: u64,
         range: std::ops::Range<usize>,
     },
+    /// Light the `nth` label that reads `text` in the diagram of the tab
+    /// with this key.
+    Light {
+        doc: u64,
+        text: String,
+        nth: usize,
+    },
+    /// Open the file at `path` and select the bytes `cols` of its `line`.
+    ShowIn {
+        path: PathBuf,
+        line: usize,
+        cols: std::ops::Range<usize>,
+    },
     /// Compare the tab with this version.
     Compare(super::compare::Target),
     /// Play the recorded trace of `object` in this file.
@@ -54,6 +67,8 @@ pub enum Kind {
     NewProject,
     /// The owner lists the items for each query; no fuzzy filter.
     Search,
+    /// The labels the diagram shows.
+    Labels,
 }
 
 #[derive(Debug, Clone)]
@@ -356,6 +371,37 @@ impl App {
                 self.after(Alarm::Flash(doc), FLASH);
                 shown
             }
+            Some(Choice::Light { doc, text, nth }) => {
+                // Where the caret is now: the light leaves the label once
+                // it moves.
+                self.follow_caret(doc);
+                let Some(found) = self.find(doc) else {
+                    return Task::none();
+                };
+                let lit = found
+                    .paper
+                    .light_label(&text, nth)
+                    .map(move |m| Message::Paper(doc, m));
+                Task::batch([self.apply_keyboard_focus(), lit])
+            }
+            Some(Choice::ShowIn { path, line, cols }) => {
+                let index = match self.open_doc(&path) {
+                    Ok(index) => index,
+                    Err(err) => {
+                        self.notice = Some(format!("{}: {err:#}", path.display()));
+                        return self.focus_editor();
+                    }
+                };
+                self.keep_session();
+                let shown = self.select(index);
+                let doc = self.doc_mut();
+                let text = doc.text();
+                let start: usize = text.split('\n').take(line).map(|l| l.len() + 1).sum();
+                doc.show_range(start + cols.start..start + cols.end);
+                let key = doc.key;
+                self.after(Alarm::Flash(key), FLASH);
+                Task::batch([shown, self.load_specs()])
+            }
             Some(Choice::Run(command)) => {
                 let sets_area = matches!(command, Command::Focus(_));
                 self.command_window = host;
@@ -397,6 +443,8 @@ mod tests {
             Choice::Open(path) => Some(path),
             Choice::Run(_)
             | Choice::Show { .. }
+            | Choice::ShowIn { .. }
+            | Choice::Light { .. }
             | Choice::Compare(_)
             | Choice::Trace { .. }
             | Choice::NewProject { .. } => None,

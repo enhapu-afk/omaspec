@@ -2,6 +2,7 @@
 //! the query has a capital letter.
 
 use std::ops::Range;
+use std::path::PathBuf;
 
 use iced::Task;
 use regex::{Regex, RegexBuilder};
@@ -80,16 +81,29 @@ impl App {
         } else {
             query
         };
-        let mut picker = Picker::new(Kind::Search, "find in all tabs", Vec::new());
+        let title = if replace || self.search_root().is_none() {
+            "find in all tabs"
+        } else {
+            "find in the project"
+        };
+        let mut picker = Picker::new(Kind::Search, title, Vec::new());
         picker.replace = replace.then(String::new);
-        picker.set_items(self.search_items(&query));
+        picker.set_items(self.search_items(&query, !replace));
         picker.query = query;
         self.place_picker(picker);
         iced::widget::operation::focus(PICKER)
     }
 
-    /// The hits of `query` in every tab, this one first.
-    pub(super) fn search_items(&self, query: &str) -> Vec<Item> {
+    /// The project a search goes through: the tab's, else the sidebar's.
+    fn search_root(&self) -> Option<PathBuf> {
+        self.project_of(self.doc())
+            .or_else(|| self.folder_project())
+            .filter(|root| self.atlases.contains_key(root))
+    }
+
+    /// The hits of `query` in every tab, this one first; with `project`,
+    /// then in every file of the project not open, as saved.
+    pub(super) fn search_items(&self, query: &str, project: bool) -> Vec<Item> {
         let Some(matcher) = matcher(query) else {
             return Vec::new();
         };
@@ -112,7 +126,73 @@ impl App {
                     }),
             );
         }
+        let Some(root) = project.then(|| self.search_root()).flatten() else {
+            return items;
+        };
+        let open: Vec<&std::path::Path> =
+            self.docs.iter().filter_map(|d| d.path.as_deref()).collect();
+        let diagrams = self.atlases[&root]
+            .diagrams
+            .iter()
+            .map(|d| (d.file.as_str(), d.source.as_str()));
+        let documents = self.documents.get(&root).into_iter().flat_map(|docs| {
+            docs.iter()
+                .map(|(file, text)| (file.as_str(), text.as_str()))
+        });
+        let mut files: Vec<(&str, &str)> = diagrams.chain(documents).collect();
+        files.sort_by_key(|(file, _)| *file);
+        for (file, text) in files {
+            let path = root.join(file);
+            if open.contains(&path.as_path()) {
+                continue;
+            }
+            let left = MAX_HITS.saturating_sub(items.len());
+            if left == 0 {
+                break;
+            }
+            let mut starts = vec![0];
+            starts.extend(text.match_indices('\n').map(|(at, _)| at + 1));
+            items.extend(hits(text, &matcher, left).into_iter().map(|hit| {
+                let start = starts[hit.line];
+                Item {
+                    label: hit.text,
+                    hint: format!("{file}:{}", hit.line + 1),
+                    choice: Choice::ShowIn {
+                        path: path.clone(),
+                        line: hit.line,
+                        cols: hit.range.start - start..hit.range.end - start,
+                    },
+                }
+            }));
+        }
         items
+    }
+
+    /// The labels the diagram shows, to light one: a state, a message, a
+    /// note's words.
+    pub(super) fn find_in_diagram(&mut self) -> Task<Message> {
+        let key = self.doc().key;
+        let items: Vec<Item> = self
+            .doc()
+            .paper
+            .labels()
+            .into_iter()
+            .map(|(text, nth, line)| Item {
+                label: text.replace('\n', " "),
+                hint: line.map(|l| format!("line {}", l + 1)).unwrap_or_default(),
+                choice: Choice::Light {
+                    doc: key,
+                    text,
+                    nth,
+                },
+            })
+            .collect();
+        if items.is_empty() {
+            self.notice = Some("the diagram shows no labels yet".into());
+            return Task::none();
+        }
+        self.place_picker(Picker::new(Kind::Labels, "find in the diagram", items));
+        iced::widget::operation::focus(PICKER)
     }
 
     /// Tab moves between the search and the replacement.

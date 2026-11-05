@@ -296,6 +296,7 @@ impl App {
         // Projects no document is in any more are forgotten.
         self.indexes.retain(|root, _| roots.contains(root));
         self.project_dirs.retain(|root, _| roots.contains(root));
+        self.documents.retain(|root, _| roots.contains(root));
         self.watch_dirs();
         let tasks: Vec<_> = roots
             .into_iter()
@@ -310,12 +311,10 @@ impl App {
                         // A refresh that panicked leaves files to read again.
                         let mut index = index.lock().unwrap_or_else(PoisonError::into_inner);
                         index.refresh();
-                        (root, index.specs(), index.atlas(), index.dirs())
+                        (root, index.snapshot())
                     }),
                     |found| match found {
-                        Some((root, specs, atlas, dirs)) => {
-                            Message::Indexed(root, specs, atlas, dirs)
-                        }
+                        Some((root, snapshot)) => Message::Indexed(root, snapshot),
                         None => Message::Specs(PathBuf::new(), Arc::default(), Arc::default()),
                     },
                 )

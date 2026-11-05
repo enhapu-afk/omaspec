@@ -109,7 +109,7 @@ impl App {
                 .width(Length::Fill)
                 .clip(true),
             self.label(
-                "+/- zoom · f fit · Ctrl+click finds the line · Esc back",
+                "+/- zoom · f fit · Ctrl+F finds a label · Ctrl+click finds the line · Esc back",
                 p.dark_foreground
             ),
             self.label(
@@ -175,6 +175,7 @@ impl App {
             None => self.status_bar(),
         };
         let mode = self.mode(self.main);
+        let on_diagram = mode == Mode::Editing && self.focus == Pane::Diagram;
         let window_id = self.main;
         let window = self.with_picker(Some(window_id), column![self.tabs(), grid, bottom].into());
         // A stack either way, as for the picker.
@@ -183,7 +184,11 @@ impl App {
             None => stack![window],
         };
         keys::Guard::new(window, move |key, mods| {
-            shortcut(key, mods, mode).map(|command| Message::Keyed(window_id, command))
+            on_diagram
+                .then(|| diagram_key(key, mods))
+                .flatten()
+                .or_else(|| shortcut(key, mods, mode))
+                .map(|command| Message::Keyed(window_id, command))
         })
         .into()
     }
@@ -1379,7 +1384,11 @@ impl App {
         let count = match (picker.kind, picker.count()) {
             (Kind::Files, 0) if self.folder.is_none() => "no folder: Ctrl+O opens one".to_owned(),
             (Kind::Search, 0) if picker.query.is_empty() => {
-                "type to search the text of all tabs".to_owned()
+                if picker.placeholder == "find in the project" {
+                    "type to search every file of the project, the open tabs first".to_owned()
+                } else {
+                    "type to search the text of all tabs".to_owned()
+                }
             }
             (_, 0) => "no match".to_owned(),
             (Kind::Files, n) => format!("{n} {}", plural(n, "file")),
@@ -1389,6 +1398,7 @@ impl App {
             (Kind::NewProject, _) => "Enter, then name its folder".to_owned(),
             (Kind::Search, n) if n >= super::search::MAX_HITS => format!("the first {n} hits"),
             (Kind::Search, n) => format!("{n} {}", plural(n, "hit")),
+            (Kind::Labels, n) => format!("{n} {} · Enter lights it", plural(n, "label")),
         };
         let count = match &picker.replace {
             Some(_) => {
@@ -1633,6 +1643,18 @@ fn side<'a>(bar: Element<'a, Message>, body: Element<'a, Message>) -> Element<'a
         .into()
 }
 
+/// Keys of the diagram, where it has the keyboard: Ctrl+F finds a label
+/// in it, as in the text it finds words.
+fn diagram_key(key: &iced::keyboard::Key, mods: iced::keyboard::Modifiers) -> Option<Command> {
+    let ctrl = mods.control() && !mods.alt() && !mods.shift();
+    match key.as_ref() {
+        iced::keyboard::Key::Character(c) if ctrl && c.eq_ignore_ascii_case("f") => {
+            Some(Command::FindInDiagram)
+        }
+        _ => None,
+    }
+}
+
 /// Keys in the diagram's own window: those of the preview window, and the
 /// editor window's shortcuts. While a list or a question is open, its keys
 /// win, so Escape closes the list instead of bringing the diagram back.
@@ -1643,6 +1665,9 @@ fn detached_key(
 ) -> Option<Command> {
     if mode != Mode::Editing {
         return shortcut(key, mods, mode);
+    }
+    if let Some(command) = diagram_key(key, mods) {
+        return Some(command);
     }
     use iced::keyboard::{Key, key::Named};
     let plain = !mods.control() && !mods.alt() && !mods.logo();
@@ -1683,6 +1708,20 @@ mod tests {
             Some(Command::Save)
         );
         assert_eq!(detached_key(&c("x"), Modifiers::empty(), editing), None);
+        // Ctrl+F finds a label in the diagram, there and where the diagram
+        // has the keyboard in the editor's window.
+        assert_eq!(
+            detached_key(&c("f"), Modifiers::CTRL, editing),
+            Some(Command::FindInDiagram)
+        );
+        assert_eq!(
+            diagram_key(&c("F"), Modifiers::CTRL),
+            Some(Command::FindInDiagram)
+        );
+        assert_eq!(
+            diagram_key(&c("f"), Modifiers::CTRL | Modifiers::SHIFT),
+            None
+        );
 
         // The command list is open: typing and its keys stay with it.
         let picker = Mode::Picker;

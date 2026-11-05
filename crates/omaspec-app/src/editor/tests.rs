@@ -4296,12 +4296,7 @@ fn a_change_in_the_project_draws_again_only_the_documents_it_touches() {
         "@startuml\ntitle Attic\n[*] --> Dusty\n@enduml\n",
     );
     let index = crate::index::Index::read(&root);
-    let _ = app.update(Message::Indexed(
-        root.clone(),
-        index.specs(),
-        index.atlas(),
-        index.dirs(),
-    ));
+    let _ = app.update(Message::Indexed(root.clone(), index.snapshot()));
     assert_eq!(*app.watched, [root.clone(), root.join("rooms")]);
     assert!(
         app.atlases[&root]
@@ -4424,4 +4419,97 @@ fn a_link_to_a_diagram_that_is_not_there_is_a_finding_until_it_is() {
     read(&mut app);
     assert!(!gone(&app), "{:?}", app.doc().findings);
     let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn find_goes_through_every_file_of_the_project_the_open_tabs_first() {
+    let root = temp_dir("find-project");
+    let write = |file: &str, text: &str| {
+        let path = root.join(file);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    };
+    write("omaspec-project.toml", "name = \"house\"\n");
+    write(
+        "door.puml",
+        "@startuml\ntitle Door\n[*] --> Closed\n@enduml\n",
+    );
+    write(
+        "rooms/visit.puml",
+        "@startuml\nGuest -> Door : open\n@enduml\n",
+    );
+    write("notes.md", "# Notes\n\nThe door opens.\n");
+    let root = std::fs::canonicalize(&root).unwrap();
+    let mut app = open(&[root.join("door.puml")]);
+    let index = crate::index::Index::read(&root);
+    let _ = app.update(Message::Indexed(root.clone(), index.snapshot()));
+
+    press(&mut app, Command::FindAll);
+    assert_eq!(
+        app.picker.as_ref().unwrap().placeholder,
+        "find in the project"
+    );
+    let _ = app.update(Message::PickerInput("door".into()));
+    let picker = app.picker.as_ref().unwrap();
+    let hints: Vec<&str> = picker
+        .visible()
+        .map(|(_, item)| item.hint.as_str())
+        .collect();
+    assert_eq!(hints, ["door.puml:2", "notes.md:3", "rooms/visit.puml:2"]);
+
+    // A hit in a file not open opens it, the hit selected.
+    let _ = app.update(Message::PickerClick(2));
+    assert_eq!(
+        app.doc().path.as_deref(),
+        Some(root.join("rooms/visit.puml").as_path())
+    );
+    let selection = app.doc().editor.selection();
+    assert_eq!(
+        &app.doc().text()[selection.start as usize..selection.end as usize],
+        "Door"
+    );
+
+    // Replacing stays with the open tabs.
+    press(&mut app, Command::ReplaceAll);
+    assert_eq!(app.picker.as_ref().unwrap().placeholder, "find in all tabs");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_label_found_in_the_diagram_lights_up_and_comes_into_sight() {
+    let mut app = open(&[]);
+    let source =
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+    select_all_and_paste(&mut app, source);
+    show(&mut app, source, Language::PlantUml);
+    press(&mut app, Command::FindInDiagram);
+    let picker = app.picker.as_ref().expect("the diagram's labels");
+    assert_eq!(picker.kind, Kind::Labels);
+    let labels: Vec<(&str, &str)> = picker
+        .visible()
+        .map(|(_, item)| (item.label.as_str(), item.hint.as_str()))
+        .collect();
+    assert!(labels.contains(&("Open", "line 3")), "{labels:?}");
+    assert!(labels.contains(&("close", "line 4")), "{labels:?}");
+
+    // Far off to one side, the label chosen glides into sight, lit.
+    let doc = app.doc().key;
+    let _ = app.update(Message::Paper(
+        doc,
+        paper::Message::Pan(iced::Vector::new(5000.0, 0.0)),
+    ));
+    let _ = app.update(Message::PickerInput("Open".into()));
+    let _ = app.update(Message::PickerSubmit);
+    assert!(app.picker.is_none());
+    let paper = &app.doc().paper;
+    let lit = paper.breath_target().expect("the light");
+    let visible = paper.view.visible(paper.viewport());
+    assert!(visible.contains(lit.center()), "{lit:?} in {visible:?}");
+
+    // It stays while the caret stays, and follows the caret once it moves.
+    app.follow_caret(doc);
+    assert_eq!(app.doc().paper.breath_target(), Some(lit));
+    let at = source.find("Closed").unwrap() + 1;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    assert_ne!(app.doc().paper.breath_target(), Some(lit));
 }

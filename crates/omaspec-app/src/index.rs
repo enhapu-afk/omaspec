@@ -47,6 +47,20 @@ struct Indexed {
     /// As a map shows it; `None` for a document, whose diagrams are no
     /// tiles, and for a file that could not be read.
     entry: Option<Entry>,
+    /// A document's text, which a search goes through.
+    document: Option<String>,
+}
+
+/// What an index holds at one moment, for a window to keep.
+#[derive(Debug, Clone, Default)]
+pub struct Snapshot {
+    pub specs: Arc<Specs>,
+    pub atlas: Arc<Atlas>,
+    /// The folders the scan looked into, the root first.
+    pub dirs: Arc<Vec<PathBuf>>,
+    /// The Markdown documents, by their paths in the project, with their
+    /// texts; the diagrams' texts are the atlas's.
+    pub documents: Arc<Vec<(String, String)>>,
 }
 
 /// A project folder's diagrams and state machines, kept up to date by
@@ -57,6 +71,7 @@ pub struct Index {
     files: BTreeMap<String, Indexed>,
     specs: Arc<Specs>,
     atlas: Arc<Atlas>,
+    documents: Arc<Vec<(String, String)>>,
     /// The folders the last refresh looked into, the root first.
     dirs: Arc<Vec<PathBuf>>,
     /// Whether it was refreshed at all.
@@ -71,6 +86,7 @@ impl Index {
             files: BTreeMap::new(),
             specs: Arc::default(),
             atlas: Arc::default(),
+            documents: Arc::default(),
             dirs: Arc::default(),
             read: false,
         }
@@ -142,7 +158,25 @@ impl Index {
             main,
             name,
         });
+        let documents: Vec<(String, String)> = self
+            .files
+            .iter()
+            .filter_map(|(path, f)| Some((path.clone(), f.document.clone()?)))
+            .collect();
+        if *self.documents != documents {
+            self.documents = Arc::new(documents);
+        }
         changed
+    }
+
+    /// The machines, diagrams, folders and documents as they are now.
+    pub fn snapshot(&self) -> Snapshot {
+        Snapshot {
+            specs: self.specs(),
+            atlas: self.atlas(),
+            dirs: self.dirs(),
+            documents: Arc::clone(&self.documents),
+        }
     }
 
     /// The project's folder.
@@ -182,6 +216,7 @@ fn read(root: &Path, path: &Path, name: &str, stamp: Stamp) -> Indexed {
             stamp,
             specs: Vec::new(),
             entry: None,
+            document: None,
         };
     };
     // A document's state machines count; its diagrams are no tiles.
@@ -193,6 +228,7 @@ fn read(root: &Path, path: &Path, name: &str, stamp: Stamp) -> Indexed {
                 .filter_map(|b| Spec::read_in_document(&b.code, b.language, name))
                 .collect(),
             entry: None,
+            document: Some(text),
         };
     }
     let language = detect(&text, Language::from_file_name(name));
@@ -206,6 +242,7 @@ fn read(root: &Path, path: &Path, name: &str, stamp: Stamp) -> Indexed {
             source: text,
             language,
         }),
+        document: None,
     }
 }
 

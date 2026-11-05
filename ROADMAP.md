@@ -1447,8 +1447,18 @@ checked; numbers are measured, not assumed.
       `click … href` to a diagram or a picture of the project where no diagram is
       is a lint warning, in the editor too. The project's documents and traces are
       read when asked, not kept by the index, which keeps its machines.
-- [ ] Search the project: Ctrl+Shift+F over every file of the project, not only the
+- [x] Search the project: Ctrl+Shift+F over every file of the project, not only the
       open tabs; Ctrl+F in the diagram finds a state or a message and lights it.
+      Built: the search goes through the open tabs first, as typed, then through
+      every diagram and Markdown document of the project as saved, from the
+      project's index (which now keeps the documents' texts too); a hit in a file
+      not open opens it with the hit selected. Replacing stays with the open tabs,
+      as it writes. Where the diagram has the keyboard (its area, or its own
+      window), Ctrl+F lists the labels it shows with the line that writes each; the
+      one chosen is lit as the caret's name is, and stays lit until the caret moves
+      (each editor event lit the caret's name again, which put it out at once:
+      seen on a headless screenshot); the view glides to it when it is out of
+      sight.
 - [x] Maps that scale, first in 0.8 (step 0): the main map shows only the
       diagrams on no map's box, not every one on none of its own; a tile small on
       screen shows its name and kind, its picture once it is large enough to read;
