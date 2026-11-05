@@ -152,6 +152,8 @@ struct Chart {
     auto: u32,
     tasks: Vec<Raw>,
     events: Vec<Item>,
+    /// `click … href`: the tasks named, and the address.
+    clicks: Vec<(String, crate::text::Link)>,
 }
 
 /// Days a duration skips. Dates are absolute day counts, kept sorted.
@@ -276,6 +278,7 @@ impl Chart {
             auto: 0,
             tasks: Vec::new(),
             events: Vec::new(),
+            clicks: Vec::new(),
         }
     }
 
@@ -288,6 +291,12 @@ impl Chart {
         }
         if starts_with_ci(text, "accDescr") && text.contains('{') && !text.contains('}') {
             self.in_descr = true;
+            return Ok(());
+        }
+        if let Some(click) = crate::click::click(text) {
+            if let Some(link) = click.link {
+                self.clicks.push((click.id, link));
+            }
             return Ok(());
         }
         if starts_with_ci(text, "accTitle")
@@ -559,6 +568,13 @@ impl Chart {
                 Item::Task(index) => {
                     let task = &self.tasks[index];
                     let place = &places[index];
+                    // The last click that names the task, as Mermaid binds them in order.
+                    let link = self
+                        .clicks
+                        .iter()
+                        .rev()
+                        .find(|(ids, _)| ids.split(',').any(|id| id.trim() == task.key))
+                        .map(|(_, link)| link.clone());
                     rows.push(Row::Bar(Bar {
                         key: task.key.clone(),
                         label: task.label.clone(),
@@ -571,6 +587,7 @@ impl Chart {
                         done: None,
                         marks: task.marks,
                         link_from: None,
+                        link,
                     }));
                 }
             }

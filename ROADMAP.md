@@ -1324,10 +1324,26 @@ checked; numbers are measured, not assumed.
       the file's colors, plain, light, dark and, for an SVG, auto (Tab, or a click);
       the MCP tool `render` takes `look`. The contrast test holds the gallery in the
       light and the dark palette too.
-- [ ] Links in exports: PlantUML's `[[url]]` (the native engine declines it,
-      `omaspec-uml/src/text.rs`), Mermaid's `click … href`, and a linked state or a
-      map's tile as a relative link to that diagram's export. The sanitizer takes
-      relative links that stay in the export's folder; scripts and callbacks never.
+- [x] Links in exports: PlantUML's `[[url]]` (the native engine declined it),
+      Mermaid's `click … href`, and a linked state or a map's tile as a relative link
+      to that diagram's export. The sanitizer takes relative links that stay in the
+      export's folder; scripts and callbacks never. Built: a map's tile and a state
+      that opens a diagram of the project link to that diagram's SVG beside its file
+      (`../shop.svg` from `orders/`), laid over the export as invisible boxes
+      (`omaspec_render::anchors`) by `render`, the MCP tool and the export prompt in
+      every look; a copy to the clipboard gets none, and a PNG or a PDF has no links
+      to follow. Creole's `[[url]]`, `[[url label]]` and `[[url{tooltip} label]]` are
+      drawn underlined in the text's color, as PlantUML's blue would vanish on a dark
+      page. `[[url]]` on a class or another structure element, a participant, a state
+      or a gantt task (`links to [[url]]`) makes its shape and words one link; the
+      layout stays as it is without it (tested). Mermaid's `click A "url"`,
+      `click A href "url" "tooltip"` and a class's `link` do the same for a
+      flowchart's node, a class and a gantt task, read by one reader of Omaspec's own
+      (`omaspec_uml::click`) rather than mmdr's, which takes a callback's name for an
+      address; a callback is read and left out, and a target (`_blank`) is not kept.
+      A link the writer wrote may not climb out of the picture's folder (`..`), as
+      the engine does not know where the picture goes. Tested end to end, from the
+      source to the SVG: a script's address never reaches it.
 - [ ] A project as files anyone can open: `omaspec export DIR` (and the palette)
       writes every diagram as an SVG with its source, the map as `index.svg`, linked
       to one another, and a ZIP of it. A browser is enough; dropping any of the

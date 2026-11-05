@@ -11,7 +11,8 @@
 //! lollipop head. A style may set `fill`, `stroke`, `stroke-width`,
 //! `stroke-dasharray` and `color`. Anything else in a style is refused,
 //! because a property this drawer drops would be a different picture.
-//! `click`, `link` and `callback` do not change the picture.
+//! `click … href` and `link` make a class a link; a callback is left
+//! out, as Mermaid's strict security level leaves it out.
 
 use std::collections::HashMap;
 
@@ -224,6 +225,8 @@ struct Parser {
     pending_direct: Vec<(String, Vec<String>, PaintStyle, usize)>,
     title: Option<crate::common::Text>,
     notes: usize,
+    /// `click … href` and `link`: a class, its address and its line.
+    clicks: Vec<(String, crate::text::Link, usize)>,
 }
 
 impl Parser {
@@ -245,6 +248,7 @@ impl Parser {
             pending_direct: Vec::new(),
             title,
             notes: 0,
+            clicks: Vec::new(),
         }
     }
 
@@ -274,6 +278,12 @@ impl Parser {
                 text: text_at(&note.body, note.line),
                 line: note.line,
             });
+        }
+        // A click on a class that is not there does nothing, as in Mermaid.
+        for (name, link, line) in std::mem::take(&mut self.clicks) {
+            if let Ok(path) = self.resolve(&name, &[], line, false) {
+                self.node_mut(&path).link = Some(link);
+            }
         }
         for (text, line) in std::mem::take(&mut self.float_notes) {
             let key = format!("__note{}", self.notes);
@@ -307,6 +317,12 @@ impl Parser {
         }
         if let Some(rest) = word(text, "style") {
             return self.style_line(line, rest);
+        }
+        if let Some(click) = crate::click::click(text) {
+            if let Some(link) = click.link {
+                self.clicks.push((click.id, link, line));
+            }
+            return Ok(());
         }
         if ignored(text) {
             return Ok(());

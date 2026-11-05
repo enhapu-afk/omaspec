@@ -5,7 +5,7 @@ use super::date;
 use super::{Bar, Diagram, Marks, Row};
 use crate::Declined;
 use crate::color::{self, Color};
-use crate::common::{Frame, keyword, snippet};
+use crate::common::{Frame, keyword, snippet, take_link};
 use crate::source::{Line, starts_with_ci};
 
 pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
@@ -256,6 +256,7 @@ impl Builder {
                         done: task.done,
                         marks: Marks::default(),
                         link_from: task.link_from.clone(),
+                        link: task.link.clone(),
                     }));
                 }
             }
@@ -283,9 +284,6 @@ fn banned(text: &str, no: usize) -> Result<(), Declined> {
     }
     if outside.contains("week numbering") || keyword(text, "weeks").is_some() {
         return Err(fail(no, "week numbering is not supported yet"));
-    }
-    if outside.contains("links to") || text.contains("[[") {
-        return Err(fail(no, "links are not supported yet"));
     }
     if outside.contains('{') {
         return Err(fail(no, "resources are not supported yet"));
@@ -329,6 +327,8 @@ struct Task {
     color: Option<Color>,
     done: Option<f32>,
     link_from: Option<String>,
+    /// `links to [[url]]`.
+    link: Option<crate::text::Link>,
 }
 
 impl Task {
@@ -345,6 +345,7 @@ impl Task {
             color: None,
             done: None,
             link_from: None,
+            link: None,
         }
     }
 }
@@ -392,6 +393,19 @@ fn clauses(task: &mut Task, mut rest: &str, no: usize) -> Result<(), Declined> {
             next
         } else if let Some(next) = keyword(rest, "is") {
             is_clause(task, next, no)?
+        } else if let Some(next) = keyword(rest, "links") {
+            let next = keyword(next, "to").ok_or_else(|| fail(no, "`links` needs `to`"))?;
+            if !next.starts_with("[[") {
+                return Err(fail(no, "`links to` needs a link: `[[url]]`"));
+            }
+            if task.link.is_some() {
+                return Err(fail(no, "the link is already set"));
+            }
+            let end = next
+                .find("]]")
+                .ok_or_else(|| fail(no, "a link has no `]]`"))?;
+            task.link = take_link(&next[..end + 2], no)?.1;
+            next[end + 2..].trim_start()
         } else {
             return Err(fail(
                 no,

@@ -443,6 +443,63 @@ fn a_creole_link_is_kept_and_a_script_is_not() {
 }
 
 #[test]
+fn a_mermaid_click_is_a_link_and_a_callback_is_not() {
+    let dir = scratch("mermaid-clicks");
+    let write = |file: &str, text: &str| fs::write(dir.join(file), text).unwrap();
+    write(
+        "flow.mmd",
+        "flowchart LR\n  A[Start] --> B[Docs]\n  B --> C[Script]\n  \
+         click A \"https://example.org/start\" \"Begin here\"\n  \
+         click B href \"docs/guide.html\" _blank\n  click C callback\n",
+    );
+    write(
+        "classes.mmd",
+        "classDiagram\n  Animal <|-- Duck\n  link Duck \"https://example.org/duck\"\n  \
+         click Animal call alert()\n",
+    );
+    write(
+        "plan.mmd",
+        "gantt\n  dateFormat YYYY-MM-DD\n  section A\n  One :a1, 2026-01-01, 3d\n  \
+         Two :a2, after a1, 2d\n  click a1,a2 href \"https://example.org/plan\"\n",
+    );
+    let files: Vec<String> = ["flow.mmd", "classes.mmd", "plan.mmd"]
+        .iter()
+        .map(|f| dir.join(f).to_str().unwrap().to_owned())
+        .collect();
+    let args: Vec<&str> = std::iter::once("render")
+        .chain(files.iter().map(String::as_str))
+        .collect();
+    let out = omaspec(&args);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let read = |file: &str| fs::read_to_string(dir.join(file)).unwrap();
+    let flow = read("flow.svg");
+    assert!(
+        flow.contains(r#"<a href="https://example.org/start"><title>Begin here</title>"#),
+        "{flow}"
+    );
+    assert!(flow.contains(r#"<a href="docs/guide.html">"#), "{flow}");
+    assert!(!flow.contains(r#"href="callback""#), "{flow}");
+    let classes = read("classes.svg");
+    assert!(
+        classes.contains(r#"<a href="https://example.org/duck">"#),
+        "{classes}"
+    );
+    assert!(!classes.contains(r#"href="alert"#), "{classes}");
+    // Each of the two tasks: its bar and its name.
+    assert_eq!(
+        read("plan.svg")
+            .matches(r#"<a href="https://example.org/plan">"#)
+            .count(),
+        4
+    );
+}
+
+#[test]
 fn render_writes_svg_png_and_pdf_next_to_the_diagram() {
     let dir = scratch("render");
     let file = dir.join("states.mmd");

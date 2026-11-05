@@ -16,6 +16,7 @@ mod annotations;
 pub mod architecture;
 pub mod block;
 pub mod c4;
+pub mod click;
 mod color;
 mod common;
 pub mod curve;
@@ -47,7 +48,7 @@ pub mod tree;
 pub use color::{Color, Paint, parse as parse_color};
 pub use svg::{Align, Canvas, GRID, Layer, Stroke};
 pub use text::{
-    Block, Family, Font, Style, block as measure_text, measure as measure_run,
+    Block, Family, Font, Link, Style, block as measure_text, measure as measure_run,
     styled as measure_styled,
 };
 

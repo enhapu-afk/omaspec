@@ -69,6 +69,8 @@ pub struct Bar {
     /// The task this one follows with `->`. `then` does not set it, and
     /// neither does Mermaid `after`: Mermaid moves the bar and draws no arrow.
     pub link_from: Option<String>,
+    /// Mermaid `click … href`: a click on the bar and its name follows it.
+    pub link: Option<crate::text::Link>,
 }
 
 /// Mermaid status tags on one task. They combine: `crit, done` sets both.

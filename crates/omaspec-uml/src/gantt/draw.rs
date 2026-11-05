@@ -143,7 +143,30 @@ fn paint(
     Ok(())
 }
 
+/// A task's name and its bar; a linked task's are links.
 fn paint_bar(
+    canvas: &mut Canvas,
+    skin: &Skin,
+    family: Family,
+    geom: &Geom,
+    bar: &Bar,
+    y: f32,
+    row_h: f32,
+) -> Result<(), Declined> {
+    let Some(link) = &bar.link else {
+        return paint_task(canvas, skin, family, geom, bar, y, row_h);
+    };
+    for layer in [Layer::Front, Layer::Bars] {
+        canvas.begin_link(layer, link);
+    }
+    let painted = paint_task(canvas, skin, family, geom, bar, y, row_h);
+    for layer in [Layer::Front, Layer::Bars] {
+        canvas.end_link(layer);
+    }
+    painted
+}
+
+fn paint_task(
     canvas: &mut Canvas,
     skin: &Skin,
     family: Family,

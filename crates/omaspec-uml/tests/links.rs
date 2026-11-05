@@ -69,3 +69,17 @@ fn a_state_and_its_words_are_one_link() {
         .replace("</a>", "");
     assert_eq!(unlinked, plain);
 }
+
+#[test]
+fn a_task_links_to_an_address() {
+    let source = "@startgantt\n[Design] requires 3 days\n\
+                  [Build] requires 2 days and links to [[https://example.org/build{The build}]] and is colored in LightBlue\n\
+                  [Build] starts at [Design]'s end\n@endgantt\n";
+    let svg = omaspec_uml::render(source).unwrap();
+    // The bar and the task's name.
+    assert_eq!(links(&svg, "https://example.org/build", "<rect"), (2, true));
+    assert_eq!(links(&svg, "https://example.org/build", "<text"), (2, true));
+    let twice = "@startgantt\n[A] requires 1 day\n[A] links to [[a.html]]\n[A] links to [[b.html]]\n@endgantt\n";
+    let err = omaspec_uml::render(twice).unwrap_err();
+    assert!(err.reason.contains("already set"), "{err:?}");
+}

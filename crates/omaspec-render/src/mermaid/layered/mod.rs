@@ -17,7 +17,7 @@ use omaspec_uml::graph::by_hand::{self, Arrow, Laid, LineMut};
 use omaspec_uml::graph::{self, Rect};
 use omaspec_uml::hand::{self, Key};
 use omaspec_uml::map::Map;
-use omaspec_uml::{Block, Canvas, Family, Font, Paint, Stroke};
+use omaspec_uml::{Block, Canvas, Family, Font, Link, Paint, Stroke};
 
 use look::{Palette, edge_look, look_for, palette, styled_node};
 use shape::{Kind, Shape};
@@ -224,6 +224,9 @@ struct Tree<'a> {
     spots: HashMap<Vec<usize>, Spot>,
     /// Where each transition is laid out, by index.
     meets: Vec<Meet>,
+    /// `click … href`: the address a click on a node opens, read from the
+    /// source, as mmdr takes a callback's name for an address.
+    links: HashMap<String, Link>,
 }
 
 /// Where a transition is laid out: the container that holds both ends,
@@ -298,6 +301,11 @@ fn prepare<'a>(graph: &'a Graph, source: &str, fix: &flowchart::Fix) -> Option<T
         paths: HashMap::new(),
         spots: HashMap::new(),
         meets: Vec::new(),
+        links: source
+            .lines()
+            .filter_map(omaspec_uml::click::click)
+            .filter_map(|click| Some((click.id, click.link?)))
+            .collect(),
     };
     tree.walk(Spot::Root, &mut Vec::new());
     let mut meets = Vec::with_capacity(graph.edges.len());
@@ -581,6 +589,8 @@ struct Item {
     /// Between the title and what a subgraph holds.
     gap: f32,
     nested: bool,
+    /// Followed on a click on the node and its words.
+    link: Option<Link>,
 }
 
 /// How a line is drawn, and the edge of mmdr's graph it draws.
@@ -684,6 +694,7 @@ fn measure_group(
             header_h,
             gap,
             nested: true,
+            link: None,
         },
     })
 }
@@ -716,6 +727,7 @@ fn measure_leaf(tree: &Tree, id: &str, palette: &Palette, family: Family) -> Opt
             header_h: 0.0,
             gap: 0.0,
             nested: false,
+            link: tree.links.get(id).cloned(),
         },
     })
 }
