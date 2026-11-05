@@ -357,7 +357,7 @@ fn diagram(
     }
     if piece.machine.is_some() {
         for scenario in pieces {
-            if scenario.participants_playing(d, project).is_empty() {
+            if scenario.participants_playing(d).is_empty() {
                 continue;
             }
             for line in scenario.lines() {
@@ -431,7 +431,7 @@ fn event(project: &Project, x: usize, k: &str, new: &str, plan: &mut Plan) {
         Some(start..start + end)
     };
     for scenario in &project.pieces {
-        for line in scenario.messages_to(x, k, project) {
+        for line in scenario.messages_to(x, k) {
             replace(
                 plan,
                 scenario,

@@ -100,6 +100,7 @@ impl App {
     /// Takes the diagrams read for `root`; the documents of that project
     /// that the change touches are drawn again.
     pub(super) fn found_atlas(&mut self, root: PathBuf, atlas: Arc<Atlas>) -> Task<Message> {
+        self.hold_links(&root, &atlas);
         let before = self.atlases.get(&root);
         if before.is_some_and(|a| Arc::ptr_eq(a, &atlas) || **a == *atlas) {
             return Task::none();
@@ -115,6 +116,34 @@ impl App {
             .map(|d| d.key)
             .collect();
         Task::batch(keys.into_iter().map(|key| self.render(key, true)))
+    }
+
+    /// Gives each document of the project at `root` its path there and the
+    /// project's diagrams, which its links are held against; checks it again
+    /// when they changed.
+    fn hold_links(&mut self, root: &PathBuf, atlas: &Atlas) {
+        let has = Arc::new(crate::document::diagrams_of(atlas));
+        for index in 0..self.docs.len() {
+            if self.project_of(&self.docs[index]).as_ref() != Some(root) {
+                continue;
+            }
+            let doc = &mut self.docs[index];
+            let Some(own) = doc
+                .path
+                .as_deref()
+                .and_then(|p| crate::specs::path_in(root, p))
+            else {
+                continue;
+            };
+            let same = doc
+                .links
+                .as_ref()
+                .is_some_and(|(o, h)| *o == own && **h == *has);
+            if !same {
+                doc.links = Some((own, Arc::clone(&has)));
+                doc.analyze();
+            }
+        }
     }
 
     /// The colors changed: the tiles are drawn in the new ones.

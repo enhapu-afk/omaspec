@@ -63,8 +63,10 @@ hand, and a text search finds too much (the event *open* beside the state
    notice says how many files changed and what was left alone.
 7. **A link to a diagram that is gone is a finding.** A link written into a
    diagram (`[[orders.svg]]`, `click A href "orders.svg"`) that points into
-   the project, at a diagram's file or its SVG, where no diagram is, is
-   reported by lint, the editor and `check`.
+   the project, at a diagram's file or its picture, where no diagram is,
+   is a warning of `omaspec lint`, the MCP tool `lint` and the editor. A
+   document's numbered picture (`README-2.svg`) and an address that leaves
+   the project are not this check's.
 
 ## Why
 
@@ -80,7 +82,8 @@ specification.
 
 - `omaspec_model::refs` finds the uses in a project's files without I/O;
   `omaspec_model::rename` plans the edits, line by line, so the command
-  line, the MCP server and the editor apply the same plan.
+  line and the editor apply the same plan; `named_at` tells what the
+  caret names, `gone_links` the links to diagrams that are not there.
 - The project's state machines (`Specs`) say which participant plays which
   machine; documents and traces are read when asked, not kept.
 - Not now: a class, an activity's action or a flowchart's node is no

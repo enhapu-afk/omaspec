@@ -1426,12 +1426,27 @@ checked; numbers are measured, not assumed.
       file 152 ms, was 424 ms (103 ms without the machines; the rest is each file
       parsed again as a scenario), and now linear: 11, 43 and 152 ms for 101, 501
       and 2,001.
-- [ ] Where a name is used: `omaspec refs NAME` and an MCP tool `refs` list every
+- [x] Where a name is used: `omaspec refs NAME` and an MCP tool `refs` list every
       diagram, scenario, link and trace that uses a machine, state or event
-      (`--json`), from the project's index, which learns each diagram's kind and
-      links and who uses what for it. *Rename everywhere* in the editor and `omaspec rename OLD NEW`
+      (`--json`). *Rename everywhere* in the editor and `omaspec rename OLD NEW`
       rename it across the project, one undo step per file, so a rename leaves no
-      stale use behind; lint names a link to a diagram that is gone.
+      stale use behind; lint names a link to a diagram that is gone. Built
+      ([0019](docs/adr/0019-where-a-name-is-used.md)): a use is compared as links
+      compare names, so `DoorControl` counts for *Door control*: where a diagram
+      says its name, the maps' boxes, the participants that play it, the states
+      that open it, and a machine's states (its lines left of a label) and events
+      (its triggers, the messages to its players), and the traces of each, in
+      diagram files and Markdown documents alike (`omaspec_model::refs`). A rename
+      renames one of them and asks which when the old name is several (*Open* the
+      state, *open* the event) or refuses a name that is taken; each use is
+      spelled as the old one was (`FrontGate`, `front_gate`, words where it had
+      spaces), so PlantUML and Mermaid stay valid. Files keep their names (the
+      rename says how to `git mv` one) and recorded traces are listed, not
+      rewritten. F2 in the editor renames what the caret names; an open tab takes
+      it as one undo step, a file not open is written. A `[[link]]` or a
+      `click … href` to a diagram or a picture of the project where no diagram is
+      is a lint warning, in the editor too. The project's documents and traces are
+      read when asked, not kept by the index, which keeps its machines.
 - [ ] Search the project: Ctrl+Shift+F over every file of the project, not only the
       open tabs; Ctrl+F in the diagram finds a state or a message and lights it.
 - [x] Maps that scale, first in 0.8 (step 0): the main map shows only the

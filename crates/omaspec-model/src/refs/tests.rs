@@ -1,4 +1,5 @@
 use super::*;
+use crate::Spec;
 
 #[test]
 fn a_name_is_found_however_it_is_spelled() {
@@ -149,4 +150,29 @@ fn a_name_nothing_uses_is_none_and_no_name_is_an_error() {
     let specs = specs(&files);
     assert!(refs("--", None, &files, &specs).is_err());
     assert!(refs("Idle", Some("Window"), &files, &specs).is_err());
+}
+
+#[test]
+fn a_link_to_a_diagram_that_is_not_there_is_named() {
+    let has = |path: &str| ["shop", "orders/checkout"].contains(&path);
+    let gone = |code: &str, language| -> Vec<(usize, String)> {
+        gone_links(code, language, "orders/orders.puml", &has)
+            .into_iter()
+            .map(|f| (f.line, f.message))
+            .collect()
+    };
+    let code = "@startuml\nstate Pay [[checkout.svg]]\nstate Back [[../shop.puml]]\nstate Gone [[refund.svg the refund]]\nstate Web [[https://example.com/x.svg]]\nstate Up [[../../x.svg]]\nstate Doc [[README-2.svg]]\nstate Text [[notes.txt]]\n@enduml\n";
+    assert_eq!(
+        gone(code, Language::PlantUml),
+        [(
+            3,
+            "The link to refund.svg leads to no diagram of the project: there is none at orders/refund."
+                .to_owned()
+        )]
+    );
+    let flow = "flowchart LR\nA --> B\nclick A href \"checkout.svg\"\nclick B \"missing.mmd\" \"tip\"\nclick B callback\n";
+    let found = gone(flow, Language::Mermaid);
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].0, 3);
+    assert!(found[0].1.contains("orders/missing"));
 }

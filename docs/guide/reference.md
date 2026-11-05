@@ -377,7 +377,8 @@ When the old name is several things, as *Open* and *open*, it asks for `--state`
 Files keep their names, and recorded traces are records: both are listed, not changed.
 In the editor, **F2** renames what the caret names (a title, a box, a participant, a state
 or an event): an open tab takes it as one undo step and stays unsaved, a file not open is
-written as a save writes it.
+written as a save writes it. A link written into a diagram (`[[orders.svg]]`, `click A href
+"orders.svg"`) to a diagram of the project that is not there is a lint warning.
 
 ## AI agents
 

@@ -20,11 +20,6 @@ use crate::editor::folder::scan_for;
 /// reads it.
 const MAX_TRACE: u64 = 16 << 20;
 
-/// The state machines in the project folder `root`, by their paths in it.
-pub fn read(root: &Path) -> Specs {
-    read_project(root).0
-}
-
 /// The state machines in the project folder `root`, and all its diagrams
 /// with the main one its project file names; each file read once
 /// ([`crate::index::Index`] keeps them up to date).
@@ -218,7 +213,7 @@ pub fn root_of(file: Option<&Path>, project: Option<&Path>) -> Option<PathBuf> {
 /// folder read once.
 #[derive(Default)]
 pub struct Projects {
-    read: HashMap<PathBuf, Specs>,
+    read: HashMap<PathBuf, (Specs, Atlas)>,
     none: Specs,
 }
 
@@ -227,9 +222,34 @@ impl Projects {
     /// input without a project.
     pub fn of(&mut self, file: Option<&Path>, project: Option<&Path>) -> &Specs {
         match root_of(file, project) {
-            Some(root) => self.read.entry(root.clone()).or_insert_with(|| read(&root)),
+            Some(root) => &self.project(root).0,
             None => &self.none,
         }
+    }
+
+    /// Every finding of `input`'s diagrams, on its lines: the lint's, the
+    /// checks against its project's state machines, and its links to
+    /// diagrams the project does not have.
+    pub fn findings(
+        &mut self,
+        input: &crate::files::Input,
+        forced: Option<Language>,
+        project: Option<&Path>,
+    ) -> Vec<omaspec_core::lint::Finding> {
+        let Some(root) = root_of(input.path.as_deref(), project) else {
+            return crate::document::findings(input, forced, &self.none);
+        };
+        let (specs, atlas) = self.project(root.clone());
+        let mut all = crate::document::findings(input, forced, specs);
+        all.extend(crate::document::gone_links(input, forced, &root, atlas));
+        all.sort_by_key(|f| f.line);
+        all
+    }
+
+    fn project(&mut self, root: PathBuf) -> &(Specs, Atlas) {
+        self.read
+            .entry(root.clone())
+            .or_insert_with(|| read_project(&root))
     }
 }
 
@@ -317,7 +337,7 @@ mod tests {
         .unwrap();
         std::fs::write(root.join("login.puml"), "@startuml\nA -> B : hi\n@enduml\n").unwrap();
         std::fs::write(root.join("lamp.mmd"), "stateDiagram-v2\n[*] --> Off\n").unwrap();
-        let specs = read(&root);
+        let specs = read_project(&root).0;
         let mut files: Vec<&str> = specs.iter().map(|s| s.file.as_str()).collect();
         files.sort();
         assert_eq!(files, ["lamp.mmd", "states/door.puml"]);

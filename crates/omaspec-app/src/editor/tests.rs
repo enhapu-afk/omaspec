@@ -4388,3 +4388,40 @@ fn rename_everywhere_renames_open_tabs_as_one_step_and_writes_the_rest() {
     );
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn a_link_to_a_diagram_that_is_not_there_is_a_finding_until_it_is() {
+    let root = temp_dir("gone-link");
+    std::fs::write(root.join("omaspec-project.toml"), "name = \"shop\"\n").unwrap();
+    std::fs::write(
+        root.join("orders.puml"),
+        "@startuml\nstate Pay [[checkout.svg]]\n[*] --> Pay\n@enduml\n",
+    )
+    .unwrap();
+    let root = std::fs::canonicalize(&root).unwrap();
+    let mut app = open(&[root.join("orders.puml")]);
+    let read = |app: &mut App| {
+        let (specs, atlas) = specs::read_project(&root);
+        let _ = app.update(Message::Specs(
+            root.clone(),
+            Arc::new(specs),
+            Arc::new(atlas),
+        ));
+    };
+    let gone = |app: &App| {
+        app.doc()
+            .findings
+            .iter()
+            .any(|f| f.line == 1 && f.message.contains("checkout.svg"))
+    };
+    read(&mut app);
+    assert!(gone(&app), "{:?}", app.doc().findings);
+    std::fs::write(
+        root.join("checkout.puml"),
+        "@startuml\nstart\n:Pay;\nstop\n@enduml\n",
+    )
+    .unwrap();
+    read(&mut app);
+    assert!(!gone(&app), "{:?}", app.doc().findings);
+    let _ = std::fs::remove_dir_all(&root);
+}

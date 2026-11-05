@@ -140,6 +140,10 @@ pub struct Doc {
     /// The state machines of its project, which a sequence diagram is
     /// checked against.
     pub specs: Arc<Specs>,
+    /// Its path in its project and the paths of the project's diagrams
+    /// without their extensions, which the links it writes are held
+    /// against; `None` outside a project.
+    pub links: Option<(String, Arc<std::collections::HashSet<String>>)>,
     pub outline: Vec<Entry>,
     pub paper: Paper,
     /// The text last sent to the renderer.
@@ -259,6 +263,7 @@ impl Doc {
             drawn_findings: Vec::new(),
             kind: None,
             specs: Arc::default(),
+            links: None,
             outline: Vec::new(),
             paper: Paper::editable(),
             rendered: None,
@@ -568,6 +573,7 @@ impl Doc {
             self.set_language(language);
         }
         self.findings = omaspec_model::findings_with(&text, self.language, &self.specs);
+        self.findings.extend(self.gone_links(&text, self.language));
         self.findings.extend(self.drawn_findings.iter().cloned());
         self.findings.sort_by_key(|f| f.line);
         self.kind = Some(omaspec_core::classify(&text, self.language));
@@ -596,6 +602,7 @@ impl Doc {
                 block.language,
                 &self.specs,
             ));
+            findings.extend(self.gone_links(&masked, block.language));
             let (more, more_folds) = outline::outline_with_folds(&masked, block.language);
             entries.extend(more);
             folds.extend(more_folds);
@@ -615,6 +622,16 @@ impl Doc {
         self.outline = entries;
         self.sync_fold_regions(&text, folds);
         self.language != before
+    }
+
+    /// The links in `text` to diagrams its project does not have.
+    fn gone_links(&self, text: &str, language: Language) -> Vec<Finding> {
+        match &self.links {
+            Some((own, has)) => {
+                omaspec_model::gone_links(text, language, own, &|p| has.contains(p))
+            }
+            None => Vec::new(),
+        }
     }
 
     /// The language of the text as it is now: the one set by hand, else

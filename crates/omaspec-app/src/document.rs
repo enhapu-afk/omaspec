@@ -111,6 +111,50 @@ pub(crate) fn findings(input: &Input, forced: Option<Language>, specs: &Specs) -
     all
 }
 
+/// The links of `input`'s diagrams, the file in the project at `root`,
+/// to diagrams the project (its `atlas`) does not have, on its lines.
+pub(crate) fn gone_links(
+    input: &Input,
+    forced: Option<Language>,
+    root: &Path,
+    atlas: &omaspec_render::Atlas,
+) -> Vec<Finding> {
+    let Some(own) = input
+        .path
+        .as_deref()
+        .and_then(|path| crate::specs::path_in(root, path))
+    else {
+        return Vec::new();
+    };
+    let has = diagrams_of(atlas);
+    pieces(input, forced)
+        .iter()
+        .flat_map(|piece| {
+            omaspec_model::gone_links(&piece.code, piece.language, &own, &|p| has.contains(p))
+                .into_iter()
+                .map(|mut finding| {
+                    finding.line = piece.line(finding.line);
+                    finding
+                })
+        })
+        .collect()
+}
+
+/// The paths of a project's diagrams without their extensions, as
+/// [`omaspec_model::gone_links`] asks for them.
+pub(crate) fn diagrams_of(atlas: &omaspec_render::Atlas) -> std::collections::HashSet<String> {
+    atlas
+        .diagrams
+        .iter()
+        .map(|d| {
+            d.file
+                .rsplit_once('.')
+                .map_or(d.file.as_str(), |(stem, _)| stem)
+                .to_owned()
+        })
+        .collect()
+}
+
 /// What `inspect` reports on a Markdown document: each diagram's
 /// inspection, its lines the document's.
 #[derive(Serialize)]

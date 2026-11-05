@@ -744,8 +744,7 @@ fn lint(args: &Args) -> Result<Answer> {
             Some(folder) => Some(folder.clone()),
             None => args.project_of(input.path.as_deref())?,
         };
-        let specs = projects.of(input.path.as_deref(), project.as_deref());
-        let found = crate::document::findings(input, lang, specs);
+        let found = projects.findings(input, lang, project.as_deref());
         all.push((name(input), found));
     }
     let mut data = findings(&all)?;

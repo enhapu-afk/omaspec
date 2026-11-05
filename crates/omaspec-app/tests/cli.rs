@@ -218,6 +218,36 @@ fn rename_renames_a_name_at_every_use_or_says_why_not() {
 }
 
 #[test]
+fn lint_names_a_link_to_a_diagram_that_is_not_there() {
+    let dir = scratch("gone-links");
+    fs::write(dir.join("omaspec-project.toml"), "name = \"shop\"\n").unwrap();
+    fs::write(
+        dir.join("checkout.puml"),
+        "@startuml\nstart\n:Pay;\nstop\n@enduml\n",
+    )
+    .unwrap();
+    let orders = dir.join("orders.puml");
+    fs::write(
+        &orders,
+        "@startuml\nstate Pay [[checkout.svg]]\nstate Refund [[refund.svg]]\n[*] --> Pay\nPay --> Refund\nRefund --> [*]\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&["lint", orders.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0), "a warning");
+    assert!(
+        stdout(&out).ends_with(
+            "orders.puml:3: warning: The link to refund.svg leads to no diagram of the project: there is none at refund.\n"
+        ),
+        "{}",
+        stdout(&out)
+    );
+    assert_eq!(stdout(&out).lines().count(), 1);
+    fs::write(dir.join("refund.puml"), "@startuml\nstart\nstop\n@enduml\n").unwrap();
+    let out = omaspec(&["lint", orders.to_str().unwrap()]);
+    assert_eq!(stdout(&out), "");
+}
+
+#[test]
 fn fmt_check_and_write() {
     let dir = scratch("fmt");
     let file = dir.join("flow.puml");

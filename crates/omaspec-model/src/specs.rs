@@ -39,6 +39,14 @@ impl Specs {
     /// The machines that go by any of `names`, each once, in the project's
     /// order.
     pub fn named(&self, names: &[&str]) -> Vec<&Spec> {
+        self.indices(names)
+            .into_iter()
+            .map(|index| &self.list[index])
+            .collect()
+    }
+
+    /// [`Self::named`], by their places in the list.
+    pub(crate) fn indices(&self, names: &[&str]) -> Vec<usize> {
         let mut found: Vec<usize> = names
             .iter()
             .filter_map(|name| self.named.get(&key(name)))
@@ -47,7 +55,7 @@ impl Specs {
             .collect();
         found.sort_unstable();
         found.dedup();
-        found.into_iter().map(|index| &self.list[index]).collect()
+        found
     }
 }
 

@@ -104,8 +104,7 @@ pub fn lint(
     let mut all: Vec<(String, Vec<Finding>)> = Vec::new();
     let mut projects = Projects::default();
     for input in read_inputs(files)? {
-        let specs = projects.of(input.path.as_deref(), project);
-        let findings = crate::document::findings(&input, forced, specs);
+        let findings = projects.findings(&input, forced, project);
         all.push((input.name(), findings));
     }
     report(&all, json, strict)
