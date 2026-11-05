@@ -104,6 +104,47 @@ fn trace_holds_a_recording_against_the_machines_of_its_folder() {
 }
 
 #[test]
+fn refs_lists_the_uses_of_a_name_across_the_project() {
+    let dir = scratch("refs");
+    fs::write(
+        dir.join("omaspec-project.toml"),
+        "name = \"house\"\nmain = \"system.puml\"\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("system.puml"),
+        "@startwbs\n* House\n** Door control\n@endwbs\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("door.puml"),
+        "@startuml\ntitle Door control\n[*] --> Closed\nClosed --> Open : open\n@enduml\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("visit.puml"),
+        "@startuml\nparticipant Guest\nparticipant DoorControl\nGuest -> DoorControl : open\n@enduml\n",
+    )
+    .unwrap();
+    let project = dir.to_str().unwrap();
+    let out = omaspec(&["refs", "door_control", "--project", project]);
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(
+        stdout(&out),
+        "door.puml:2: diagram: title Door control\n\
+         system.puml:3: box: ** Door control\n\
+         visit.puml:3: participant: participant DoorControl\n"
+    );
+    let out = omaspec(&["refs", "open", "--json", "--project", project]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json[2]["kind"], "message");
+    assert_eq!(json[2]["machine"], "door.puml");
+    let out = omaspec(&["refs", "Window", "--project", project]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("uses Window"));
+}
+
+#[test]
 fn fmt_check_and_write() {
     let dir = scratch("fmt");
     let file = dir.join("flow.puml");
@@ -1207,7 +1248,7 @@ fn mcp_serves_an_agent_over_standard_io() {
     assert_eq!(hello["result"]["protocolVersion"], "2025-06-18");
     ask(serde_json::json!({"jsonrpc": "2.0", "method": "notifications/initialized"}));
     let tools = ask(serde_json::json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}));
-    assert_eq!(tools["result"]["tools"].as_array().unwrap().len(), 8);
+    assert_eq!(tools["result"]["tools"].as_array().unwrap().len(), 9);
 
     // A relative path, from the folder the server runs in: the second
     // `open` finds the door open already.

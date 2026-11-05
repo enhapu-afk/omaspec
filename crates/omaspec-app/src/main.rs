@@ -9,6 +9,7 @@ mod index;
 mod logo;
 mod look;
 mod mcp;
+mod names;
 mod paper;
 mod preview;
 mod project;
@@ -113,6 +114,29 @@ enum Command {
         strict: bool,
         /// The folder whose state machines the traces are held against; by
         /// default each trace's project, else its own folder.
+        #[arg(long, value_name = "DIR")]
+        project: Option<PathBuf>,
+    },
+    /// List every place in the project that uses a name.
+    ///
+    /// A diagram of that name: where it says its name, the maps' boxes, the
+    /// scenarios' participants that play it, the states of other machines
+    /// that open it, the traces of it. A state or an event of a state
+    /// machine: the transitions, the messages sent to its participants, the
+    /// traces. Names compare as links compare them: letters and digits,
+    /// case aside, so `Door control` is `DoorControl`. One use a line,
+    /// `file:line: kind: text`. Exits with 1 when nothing uses the name.
+    Refs {
+        /// The name of a diagram, a state or an event.
+        name: String,
+        /// Only this state machine's own name, states and events.
+        #[arg(long, value_name = "NAME")]
+        machine: Option<String>,
+        /// Print the uses as JSON.
+        #[arg(long)]
+        json: bool,
+        /// The project folder; by default the project the current folder
+        /// is in, else the current folder.
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
     },
@@ -401,6 +425,12 @@ fn main() -> ExitCode {
             strict,
             project,
         }) => commands::trace(&files, json, strict, project.as_deref()),
+        Some(Command::Refs {
+            name,
+            machine,
+            json,
+            project,
+        }) => names::refs_command(&name, machine.as_deref(), project.as_deref(), json),
         Some(Command::Diff {
             files,
             rev,

@@ -13,6 +13,7 @@ tools an agent calls while it writes a specification:
 | --------- | -------------------------------------------------------------------- | ---------------- |
 | `lint`    | the lint's findings and the specification checks, for a diagram or every diagram in a folder | `omaspec lint --json` |
 | `trace`   | a recorded trace (JSON Lines) held against the state machines of its project | `omaspec trace --json` |
+| `refs`    | every place in the project that uses a diagram, state or event ([0019](0019-where-a-name-is-used.md)) | `omaspec refs --json` |
 | `inspect` | language, kind, findings, outline, and whether Omaspec draws it    | `omaspec inspect` |
 | `outline` | the structure of a diagram                                           | `omaspec outline --json` |
 | `diff`    | what changed in the behavior between two versions, or against a git revision | `omaspec diff --json` |

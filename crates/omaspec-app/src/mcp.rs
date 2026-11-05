@@ -232,7 +232,8 @@ mod tests {
         assert_eq!(
             names,
             [
-                "lint", "trace", "inspect", "outline", "diff", "convert", "format", "render"
+                "lint", "trace", "refs", "inspect", "outline", "diff", "convert", "format",
+                "render"
             ]
         );
         for tool in tools {

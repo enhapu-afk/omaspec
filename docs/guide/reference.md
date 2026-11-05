@@ -336,6 +336,7 @@ omaspec lint diagrams/*.puml        # syntax, likely typos, specification checks
 omaspec lint --project specs a.puml # sequences checked against the state machines in specs/, not the project
 omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
 omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json
+omaspec refs Door                   # every use of a diagram, state or event in the project; --machine, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI
 omaspec outline flow.puml           # structure: participants, groups, lanes, states, …
 omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it
@@ -356,14 +357,22 @@ omaspec theme                       # the palette Omaspec reads from your Omarch
 ```
 
 `lint`, `fmt --check` and `trace` exit with 1 when they find something, so they work in
-CI and in git hooks.
+CI and in git hooks; `refs` exits with 1 when nothing uses the name.
+
+**Where a name is used** ([ADR 0019](../adr/0019-where-a-name-is-used.md)). `omaspec refs
+NAME` lists every place in the project that uses a name, compared as links compare names
+(letters and digits, case aside, so `Door control` is `DoorControl`): for a diagram, where
+it says its name, the maps' boxes, the participants that play it, the states of other
+machines that open it and the traces of it; for a state or an event of a state machine,
+its transitions, the messages sent to its participants and the traces. Each use is
+`file:line: kind: text`; `--machine Door` keeps to one machine's name, states and events.
 
 ## AI agents
 
 `omaspec mcp` is a Model Context Protocol server over standard input and output
 ([ADR 0008](../adr/0008-mcp-server.md)): an agent lints a diagram, holds a trace against
 the state machines of its project, formats it, and renders it, getting a PNG back to look
-at. The tools are the command line's (`lint`, which also takes a folder, `trace`,
+at. The tools are the command line's (`lint`, which also takes a folder, `trace`, `refs`,
 `inspect`, `outline`, `diff`, `convert`, `format`, `render`), with the same findings and
 one-based lines. Nothing goes over the network.
 

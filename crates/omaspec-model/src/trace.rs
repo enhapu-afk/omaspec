@@ -158,18 +158,18 @@ pub fn follow(trace: &str, spec: &Spec, object: &str) -> Followed {
 }
 
 /// One line of a trace.
-struct Entry {
+pub(crate) struct Entry {
     /// Zero-based.
     line: usize,
-    object: String,
-    machine: Option<String>,
-    event: Option<String>,
-    state: Option<String>,
+    pub(crate) object: String,
+    pub(crate) machine: Option<String>,
+    pub(crate) event: Option<String>,
+    pub(crate) state: Option<String>,
     time: Option<String>,
 }
 
 /// The line `text`, or why it is not read.
-fn entry(line: usize, text: &str) -> Result<Entry, String> {
+pub(crate) fn entry(line: usize, text: &str) -> Result<Entry, String> {
     let value: Value = serde_json::from_str(text)
         .map_err(|e| format!("This line is not JSON ({e}), so it is not checked."))?;
     let Value::Object(fields) = value else {

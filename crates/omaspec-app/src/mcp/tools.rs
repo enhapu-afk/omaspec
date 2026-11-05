@@ -26,8 +26,8 @@ use crate::specs::Projects;
 const MAX_LOOK_PIXELS: f64 = 25_000_000.0;
 
 /// The tools, in the order they are listed.
-const NAMES: [&str; 8] = [
-    "lint", "trace", "inspect", "outline", "diff", "convert", "format", "render",
+const NAMES: [&str; 9] = [
+    "lint", "trace", "refs", "inspect", "outline", "diff", "convert", "format", "render",
 ];
 
 pub fn exists(name: &str) -> bool {
@@ -132,6 +132,31 @@ pub fn definitions() -> Vec<Value> {
                 })),
                 ("project", project.clone()),
             ]),
+            "annotations": reading,
+        }),
+        json!({
+            "name": "refs",
+            "title": "Find where a name is used",
+            "description": "Lists every place in a project that uses a name, compared as the project's links compare names (letters and digits, case aside, so `Door control` is `DoorControl`). For a diagram of that name: where it says its name (`diagram`), the maps' boxes (`box`), the scenarios' participants that play its state machine (`participant`), the states of other machines that open it (`link`), the traces of it (`trace`). For a state or an event of a state machine: the lines that declare the state or lead into or out of it (`state`), the transitions the event fires (`event`), the messages that send it to a participant playing the machine (`message`), the traces (`trace`). Each use has its file, line (one-based), kind, the machine a state or event belongs to, and the line's text. Use it before renaming or removing a diagram, a state or an event.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of a diagram, a state or an event.",
+                    },
+                    "machine": {
+                        "type": "string",
+                        "description": "Only this state machine's own name, states and events.",
+                    },
+                    "project": {
+                        "type": "string",
+                        "description": "The project folder, relative to the folder the server was started in; by default the project that folder is in, else the folder itself.",
+                    },
+                },
+                "required": ["name"],
+                "additionalProperties": false,
+            },
             "annotations": reading,
         }),
         json!({
@@ -323,6 +348,7 @@ impl Tools {
         match name {
             "lint" => lint(&args),
             "trace" => trace(&args),
+            "refs" => refs(&args),
             "inspect" => inspect(&args),
             "outline" => outline(&args),
             "diff" => diff(&args),
@@ -738,6 +764,16 @@ fn trace(args: &Args) -> Result<Answer> {
     Ok(Answer::data(data))
 }
 
+fn refs(args: &Args) -> Result<Answer> {
+    let name = args.text("name")?.context("give the `name` to look for")?;
+    let here = server_folder(args.root)?;
+    let found = omaspec_render::project_root(&here).unwrap_or(here);
+    let root = args.project_or(Some(found))?.context("no project folder")?;
+    let uses = crate::names::refs_in(&root, name, args.text("machine")?)?;
+    let all: Vec<Value> = uses.iter().map(crate::names::ref_json).collect();
+    Ok(Answer::data(json!({ "name": name, "uses": all })))
+}
+
 fn inspect(args: &Args) -> Result<Answer> {
     let input = diagram(args)?;
     let project = args.project_of(input.path.as_deref())?;
@@ -1025,6 +1061,50 @@ mod tests {
         assert_eq!(data["machines"], 1, "{result}");
         assert_eq!(data["errors"], 1, "{data}");
         assert_eq!(data["findings"][0]["line"], 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn refs_lists_where_a_name_is_used() {
+        let dir = scratch("refs");
+        std::fs::write(
+            dir.join("door.puml"),
+            "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\n@enduml\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("visit.puml"),
+            "@startuml\nparticipant Guest\nparticipant Door\nGuest -> Door : open\n@enduml\n",
+        )
+        .unwrap();
+        let result = call(
+            "refs",
+            json!({"name": "open", "project": dir.to_str().unwrap()}),
+        );
+        let uses = &result["structuredContent"]["uses"];
+        let kinds: Vec<(&str, i64, &str)> = uses
+            .as_array()
+            .unwrap_or_else(|| panic!("{result}"))
+            .iter()
+            .map(|u| {
+                (
+                    u["file"].as_str().unwrap(),
+                    u["line"].as_i64().unwrap(),
+                    u["kind"].as_str().unwrap(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            kinds,
+            [
+                ("door.puml", 4, "state"),
+                ("door.puml", 4, "event"),
+                ("visit.puml", 4, "message"),
+            ]
+        );
+        assert_eq!(uses[2]["machine"], "door.puml");
+        let refused = call("refs", json!({"project": dir.to_str().unwrap()}));
+        assert_eq!(refused["isError"], true, "{refused}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
