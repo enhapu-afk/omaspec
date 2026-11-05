@@ -49,7 +49,7 @@ fn faults(renderer: &mut Renderer, name: &str, colors: &Colors) -> Vec<String> {
     let mut faults = Vec::new();
     for example in EXAMPLES {
         let language = example.language();
-        let source = match look::overlay(example.text, language, Pack::Omarchy, colors) {
+        let source = match look::overlay(example.text, language, Pack::Omarchy, colors, None) {
             Some((shown, _)) => shown,
             None => example.text.to_owned(),
         };

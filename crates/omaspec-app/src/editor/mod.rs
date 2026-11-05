@@ -1082,7 +1082,16 @@ impl App {
 
     fn subscription(&self) -> Subscription<Message> {
         let theme_dir = omaspec_theme::current_dir().filter(|d| d.is_dir());
-        let files: Vec<PathBuf> = self.docs.iter().filter_map(|d| d.path.clone()).collect();
+        let mut files: Vec<PathBuf> = self.docs.iter().filter_map(|d| d.path.clone()).collect();
+        // A look the project pins is read again when its file changes.
+        files.extend(
+            self.docs
+                .iter()
+                .filter_map(|d| self.project_of(d))
+                .map(|root| root.join(omaspec_core::project::FILE)),
+        );
+        files.sort();
+        files.dedup();
         let doc = self.doc();
         Subscription::batch([
             worker::service(worker::Watched {
@@ -1602,8 +1611,9 @@ impl App {
         let Some(worker) = self.worker.clone() else {
             return;
         };
-        let (source, pending) = self.diagram_source(text, language);
         let place = self.place_of(doc);
+        let (source, pending) =
+            self.diagram_source_in(place.as_ref().map(|p| p.root.as_path()), text, language);
         let linked = if doc == compare::KEY {
             None
         } else {
@@ -1653,20 +1663,55 @@ impl App {
     /// The text the renderer should see, and how to read its lines back
     /// when the Omarchy colors were laid over the file.
     fn diagram_source(&self, text: &str, language: Language) -> (Arc<str>, Option<Pending>) {
-        if !self.follow_theme {
+        self.diagram_source_in(None, text, language)
+    }
+
+    /// [`Self::diagram_source`] for a diagram of the project at `root`,
+    /// in the look it pins ([`Self::pane_skin`]).
+    fn diagram_source_in(
+        &self,
+        root: Option<&Path>,
+        text: &str,
+        language: Language,
+    ) -> (Arc<str>, Option<Pending>) {
+        let Some(skin) = self.pane_skin(root) else {
             return (Arc::from(text), None);
-        }
-        let hex = self.hex_colors();
-        match crate::look::overlay(text, language, Pack::Omarchy, &hex.colors()) {
-            Some((shown, shift)) => (
+        };
+        match crate::look::apply(text, language, &skin) {
+            (shown, Some(shift)) => (
                 Arc::from(shown),
                 Some(Pending {
                     original: Arc::from(text),
                     shift,
                 }),
             ),
-            None => (Arc::from(text), None),
+            (_, None) => (Arc::from(text), None),
         }
+    }
+
+    /// What the pane draws a diagram of the project at `root` in: the
+    /// look the project pins (`auto` as light or dark as the theme is),
+    /// else the Omarchy colors when the diagram follows them, else nothing,
+    /// the file's own colors.
+    fn pane_skin(&self, root: Option<&Path>) -> Option<crate::look::Skin> {
+        if let Some(pinned) = self.pinned_look(root) {
+            let dark = self
+                .palette
+                .background
+                .contrast(omaspec_theme::Rgb::new(255, 255, 255))
+                > self
+                    .palette
+                    .background
+                    .contrast(omaspec_theme::Rgb::new(0, 0, 0));
+            return Some(pinned.on(dark));
+        }
+        self.follow_theme
+            .then(|| crate::look::Skin::colors(self.hex_colors()))
+    }
+
+    /// The look the project at `root` pins, if its file reads.
+    fn pinned_look(&self, root: Option<&Path>) -> Option<crate::look::Skin> {
+        crate::look::skin_for(None, root).ok().flatten()
     }
 
     /// Puts a render answer back on the file it was drawn from.
@@ -1889,7 +1934,10 @@ impl App {
             }
             Command::FollowTheme => {
                 self.follow_theme = !self.follow_theme;
-                self.notice = Some(if self.follow_theme {
+                let root = self.place_of(key).map(|p| p.root);
+                self.notice = Some(if self.pinned_look(root.as_deref()).is_some() {
+                    "this project pins its look in omaspec-project.toml; other diagrams follow the change".into()
+                } else if self.follow_theme {
                     "diagram colors follow the Omarchy theme".into()
                 } else {
                     "diagram colors are the ones in the file".into()

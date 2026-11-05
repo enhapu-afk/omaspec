@@ -140,6 +140,25 @@ impl Skin {
         }
     }
 
+    /// The color pack in `colors` (the Omarchy theme's, as the pane
+    /// shows them).
+    pub fn colors(colors: Hex) -> Skin {
+        Skin {
+            kind: Kind::Colors(colors),
+            font: None,
+        }
+    }
+
+    /// As shown on a dark page with `dark`, else on a light one: `auto`'s
+    /// dark or light one; any other as it is.
+    pub fn on(&self, dark: bool) -> Skin {
+        if dark {
+            self.dark()
+        } else {
+            self.without_schemes()
+        }
+    }
+
     /// `auto`'s dark one.
     fn dark(&self) -> Skin {
         match &self.kind {
@@ -265,19 +284,9 @@ impl From<&Colors<'_>> for Hex {
     }
 }
 
-/// `text` with `pack` laid over it, and where it sits; `None` when the pack
-/// changes nothing.
+/// `text` with `pack` laid over it, written in `font`, and where it sits;
+/// `None` when the pack changes nothing.
 pub fn overlay(
-    text: &str,
-    language: Language,
-    pack: Pack,
-    colors: &Colors,
-) -> Option<(String, LineShift)> {
-    overlay_in(text, language, pack, colors, None)
-}
-
-/// [`overlay`] with the pack written in `font`.
-fn overlay_in(
     text: &str,
     language: Language,
     pack: Pack,
@@ -302,7 +311,7 @@ fn overlay_in(
 /// the light palette.
 pub fn apply(text: &str, language: Language, skin: &Skin) -> (String, Option<LineShift>) {
     let (pack, colors) = skin.pack();
-    let laid = overlay_in(text, language, pack, &colors, skin.font.as_deref());
+    let laid = overlay(text, language, pack, &colors, skin.font.as_deref());
     match laid {
         Some((shown, shift)) => (shown, Some(shift)),
         None => (text.to_owned(), None),

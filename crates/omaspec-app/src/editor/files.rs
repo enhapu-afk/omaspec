@@ -464,7 +464,11 @@ impl App {
             return Task::none();
         }
         let look = match look {
-            ExportLook::Shown if self.follow_theme => Some(crate::look::Look::Omarchy),
+            // As the pane shows it: in the look the project pins, else in
+            // the theme's colors when it follows them.
+            ExportLook::Shown if self.follow_theme && self.pinned_look(Some(&root)).is_none() => {
+                Some(crate::look::Look::Omarchy)
+            }
             ExportLook::Shown => None,
             ExportLook::File => Some(crate::look::Look::File),
             ExportLook::Look(look) => Some(look),
@@ -571,7 +575,16 @@ impl App {
     pub(super) fn files_changed(&mut self) -> Task<Message> {
         let mut tasks = Vec::new();
         let mut notices = Vec::new();
-        for path in std::mem::take(&mut self.changed) {
+        let changed = std::mem::take(&mut self.changed);
+        // A project file: the look it pins may be another now.
+        if changed.iter().any(|p| {
+            p.file_name()
+                .is_some_and(|n| n == omaspec_core::project::FILE)
+        }) {
+            self.forget_themed_atlases();
+            self.rerender_all();
+        }
+        for path in changed {
             let Some(doc) = self
                 .docs
                 .iter_mut()

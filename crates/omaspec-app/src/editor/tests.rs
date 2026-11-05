@@ -852,6 +852,52 @@ fn the_diagram_theme_follows_omarchy_without_editing_the_file() {
 }
 
 #[test]
+fn the_pane_draws_in_the_look_the_project_pins() {
+    let dir = temp_dir("pinned-look");
+    std::fs::write(
+        dir.join("omaspec-project.toml"),
+        "name = \"pinned\"\n[look]\npack = \"dark\"\naccent = \"#d73a49\"\n",
+    )
+    .unwrap();
+    let src = dir.join("door.puml");
+    let text = "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n";
+    std::fs::write(&src, text).unwrap();
+    let mut app = open(std::slice::from_ref(&src));
+    let root = app.place_of(app.doc().key).map(|p| p.root);
+    // The project's look, whether the diagram follows the theme or not,
+    // with its lines read back as the file's.
+    for follow in [false, true] {
+        follow_theme(&mut app, follow);
+        let (shown, pending) = app.diagram_source_in(root.as_deref(), text, Language::PlantUml);
+        assert!(
+            shown.contains("skinparam backgroundColor #16181d"),
+            "{shown}"
+        );
+        assert!(shown.contains("#d73a49"), "{shown}");
+        let pending = pending.expect("a look laid over");
+        let line = shown
+            .lines()
+            .position(|l| l.starts_with("Closed -->"))
+            .unwrap();
+        assert_eq!(pending.shift.file_line(line), Some(2));
+    }
+    // The theme's command says the project's look holds.
+    press(&mut app, Command::FollowTheme);
+    assert!(
+        app.notice
+            .as_deref()
+            .is_some_and(|n| n.contains("pins its look")),
+        "{:?}",
+        app.notice
+    );
+    // A diagram outside the project keeps the file's colors.
+    follow_theme(&mut app, false);
+    let (shown, pending) = app.diagram_source(text, Language::PlantUml);
+    assert!(pending.is_none() && &*shown == text);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn a_machine_plays_while_the_diagram_follows_the_theme() {
     // The theme's skin block moves the rendered lines; the map is moved
     // back onto the file with the rest of the answer, so a play finds every

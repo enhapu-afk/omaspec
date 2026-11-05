@@ -80,11 +80,11 @@ impl App {
             return Some(Arc::clone(found));
         }
         let raw = self.atlases.get(root)?;
-        let themed = if self.follow_theme {
+        let themed = if self.follow_theme || self.pinned_look(Some(root)).is_some() {
             let mut atlas = Atlas::clone(raw);
             for entry in &mut atlas.diagrams {
                 entry.source = self
-                    .diagram_source(&entry.source, entry.language)
+                    .diagram_source_in(Some(root), &entry.source, entry.language)
                     .0
                     .to_string();
             }
