@@ -121,6 +121,14 @@ git tool that converts text; any other file goes through as it is, and
 `--no-textconv` shows the lines. The command is `omaspec` where that is the
 one on the path, else the whole path of the one that ran the setup.
 
+In the editor, Compare (Ctrl+Shift+D) offers the project a tab is in since
+`HEAD`, its five newest tags and the commits that changed its folder. The
+project diff runs in the background, the open tabs as they are, and its
+changes are a list to pick from, as the project search lists its hits:
+filtered by their words and files, one picked opens its file where it
+changed and compares the tab with the same commit, the file's version then
+found where it lay (a moved file, a folder gone since).
+
 ## Not covered
 
 - A renamed state or participant is one removed and one added.

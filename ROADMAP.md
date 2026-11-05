@@ -1505,7 +1505,7 @@ checked; numbers are measured, not assumed.
       annotations, and in Actions those are printed with the report too. `omaspec new
       --git` writes a pre-commit hook that runs it, and leaves a hook that is there
       already.
-- [ ] Versions through git, made to read behavior: `omaspec diff --project REV` lists
+- [x] Versions through git, made to read behavior: `omaspec diff --project REV` lists
       what changed in behavior across the project since a commit or a tag (a
       changelog of the specification), `omaspec log FILE` the changes commit by
       commit, and `git diff` shows them once `.gitattributes` names Omaspec as the
@@ -1530,8 +1530,13 @@ checked; numbers are measured, not assumed.
       `omaspec git textconv` for it, so `git diff`, `git log -p` and `git show`
       compare a version's behavior one fact a line (`omaspec_model::behavior`: a
       machine's sorted states, transitions and findings, a scenario's messages in
-      order), the same for PlantUML and Mermaid; any other file as it is. Left:
-      Compare.
+      order), the same for PlantUML and Mermaid; any other file as it is. Compare
+      (Ctrl+Shift+D) offers *the project since* `HEAD`, the newest tags and the
+      folder's commits: the project diff in the background, the open tabs as they
+      are, its changes a list filtered by words and files; one picked opens its file
+      where it changed, next to that commit's version (found where it lay, if it
+      moved). Checked on headless screenshots of the list, the pick and the behavior
+      view.
 
 ### 0.9: a layout you can steer
 

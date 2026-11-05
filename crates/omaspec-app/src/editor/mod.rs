@@ -298,6 +298,17 @@ pub enum Message {
     ProjectExported(Result<String, String>),
     /// Commits of the file in a tab, for the compare picker.
     Revisions(u64, Vec<(String, String)>),
+    /// Revisions of the project at this folder a tab is in, for the compare
+    /// picker.
+    ProjectRevisions(u64, PathBuf, Vec<(String, String)>),
+    /// What changed in the project at this folder since a revision (the
+    /// revision and its label), or why that is not told.
+    ProjectChanges(
+        PathBuf,
+        String,
+        String,
+        Result<Vec<omaspec_model::DiagramChanges>, String>,
+    ),
     /// The recorded traces of a tab's state machine: label, file, object.
     Traces(u64, Vec<(String, PathBuf, String)>),
     /// The text of a version to compare a tab with.
@@ -1488,6 +1499,13 @@ impl App {
                     picker.add_items(items);
                 }
                 Task::none()
+            }
+            Message::ProjectRevisions(key, root, found) => {
+                self.project_revisions(key, root, found);
+                Task::none()
+            }
+            Message::ProjectChanges(root, rev, label, changes) => {
+                self.project_changes(&root, &rev, &label, changes)
             }
             Message::Traces(key, found) => self.found_traces(key, found),
             Message::Version(key, target, text) => {

@@ -2,13 +2,18 @@
 //! open tab or the file in a git commit. B shows as a diagram, as the
 //! source lines that changed from B to A (blank lines and indentation do
 //! not count), or as what changed in the behavior
-//! ([`omaspec_model::diff`]).
+//! ([`omaspec_model::diff`]). The project a tab is in compares too, since
+//! a commit or a tag ([`omaspec_model::diff_project`]): its changes are a
+//! list to pick from, and a change picked opens its file next to that
+//! version.
+
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use iced::Task;
 use omaspec_core::Language;
 use omaspec_core::diff::{self, Op};
-use omaspec_model::{Change, Specs};
+use omaspec_model::{Change, ChangeKind, DiagramChanges, Specs};
 
 use super::doc::Doc;
 use super::picker::{Choice, Item, Kind, Picker};
@@ -21,6 +26,19 @@ use crate::worker::blocking;
 pub const KEY: u64 = u64::MAX;
 /// Unchanged lines shown around a change.
 const CONTEXT: usize = 2;
+
+/// A change's file as a revision had it, to compare the file with.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Since {
+    pub rev: String,
+    /// What the B pane's title says.
+    pub label: String,
+    /// Where the file was then, if it moved since.
+    pub old: PathBuf,
+}
+
+/// Changes listed at most.
+const MAX_CHANGES: usize = 1000;
 
 /// What B is.
 #[derive(Debug, Clone, PartialEq)]
@@ -184,16 +202,150 @@ impl App {
             choice: Choice::Compare(Target::Tab(d.key)),
         }));
         let git = doc.path.clone().filter(|_| doc.on_disk());
+        let project = self.project_of(self.doc());
         self.place_picker(Picker::new(Kind::Versions, "compare with", items));
         let focus = iced::widget::operation::focus(PICKER);
-        let Some(path) = git else {
-            return focus;
+        let commits = match git {
+            Some(path) => Task::perform(
+                blocking(move || crate::git::revisions(&path)),
+                move |found| Message::Revisions(key, found.unwrap_or_default()),
+            ),
+            None => Task::none(),
         };
-        let commits = Task::perform(
-            blocking(move || crate::git::revisions(&path)),
-            move |found| Message::Revisions(key, found.unwrap_or_default()),
+        let project = match project {
+            Some(root) => Task::perform(
+                blocking({
+                    let root = root.clone();
+                    move || crate::git::folder_revisions(&root)
+                }),
+                move |found| {
+                    Message::ProjectRevisions(key, root.clone(), found.unwrap_or_default())
+                },
+            ),
+            None => Task::none(),
+        };
+        Task::batch([focus, commits, project])
+    }
+
+    /// The project's revisions, offered while the compare picker of tab
+    /// `key` is open.
+    pub(super) fn project_revisions(
+        &mut self,
+        key: u64,
+        root: PathBuf,
+        found: Vec<(String, String)>,
+    ) {
+        let items: Vec<Item> = found
+            .into_iter()
+            .map(|(rev, label)| Item {
+                label: format!("the project since {label}"),
+                hint: "project".into(),
+                choice: Choice::ProjectSince {
+                    root: root.clone(),
+                    rev,
+                    label,
+                },
+            })
+            .collect();
+        let current = self.doc().key == key;
+        if let Some(picker) = &mut self.picker
+            && picker.kind == Kind::Versions
+            && current
+        {
+            picker.add_items(items);
+        }
+    }
+
+    /// Compares the project at `root` with its version in `rev`, in the
+    /// background: what is saved, an open tab as it is now.
+    pub(super) fn compare_project(
+        &mut self,
+        root: PathBuf,
+        rev: String,
+        label: String,
+    ) -> Task<Message> {
+        let open: Vec<(String, String)> = self
+            .docs
+            .iter()
+            .filter_map(|d| {
+                let path = d.path.as_deref()?;
+                Some((crate::specs::path_in(&root, path)?, d.text()))
+            })
+            .collect();
+        self.notice = Some(format!("comparing the project with {label}…"));
+        Task::perform(
+            blocking({
+                let (root, rev) = (root.clone(), rev.clone());
+                move || project_diff(&root, &rev, open)
+            }),
+            move |changes| {
+                let changes = changes.unwrap_or_else(|| Err("the comparison stopped".into()));
+                Message::ProjectChanges(root.clone(), rev.clone(), label.clone(), changes)
+            },
+        )
+    }
+
+    /// The project's changes since `label`, as a list to pick from.
+    pub(super) fn project_changes(
+        &mut self,
+        root: &Path,
+        rev: &str,
+        label: &str,
+        changes: Result<Vec<DiagramChanges>, String>,
+    ) -> Task<Message> {
+        let diagrams = match changes {
+            Ok(diagrams) => diagrams,
+            Err(err) => {
+                self.notice = Some(format!("cannot compare the project: {err}"));
+                return Task::none();
+            }
+        };
+        if diagrams.is_empty() {
+            self.notice = Some(format!("no diagram changed in its behavior since {label}"));
+            return Task::none();
+        }
+        let items = change_items(root, rev, label, &diagrams);
+        self.notice = Some(format!(
+            "{} {} in {} {} since {label}",
+            items.len(),
+            super::plural(items.len(), "change"),
+            diagrams.len(),
+            super::plural(diagrams.len(), "diagram"),
+        ));
+        self.place_picker(Picker::new(Kind::Changes, "filter the changes", items));
+        iced::widget::operation::focus(PICKER)
+    }
+
+    /// Opens the file at `path` on `line`, and with `since` compares it
+    /// with that version.
+    pub(super) fn show_change(
+        &mut self,
+        path: &Path,
+        line: usize,
+        since: Option<Since>,
+    ) -> Task<Message> {
+        let shown = self.show_in(path, line, 0..0);
+        let Some(since) = since else {
+            return shown;
+        };
+        let key = self.doc().key;
+        let target = Target::Commit {
+            rev: since.rev.clone(),
+            label: since.label,
+        };
+        let read = Task::perform(
+            blocking(move || {
+                crate::git::show(&since.old, &since.rev).map_err(|e| format!("{e:#}"))
+            }),
+            move |text| {
+                Message::Version(
+                    key,
+                    target.clone(),
+                    text.unwrap_or_else(|| Err("git failed".into())),
+                )
+            },
         );
-        Task::batch([focus, commits])
+        Task::batch([shown, read])
     }
 
     /// Shows tab `key` (A) next to `text` (B).
@@ -305,11 +457,245 @@ impl App {
     }
 }
 
+/// The project at `root` as saved, the texts of `open` (by their paths in
+/// the project) as they are, compared with its version in `rev`.
+fn project_diff(
+    root: &Path,
+    rev: &str,
+    open: Vec<(String, String)>,
+) -> Result<Vec<DiagramChanges>, String> {
+    let old = crate::names::diagram_files_at(root, rev).map_err(|e| format!("{e:#}"))?;
+    let mut new = crate::names::diagram_files(root);
+    for (path, text) in open {
+        if let Some(file) = new.iter_mut().find(|f| f.path == path) {
+            *file = crate::names::owned(path, text);
+        }
+    }
+    let files = crate::history::files;
+    Ok(omaspec_model::diff_project(&files(&old), &files(&new)))
+}
+
+/// One item for each change of `diagrams`, at most [`MAX_CHANGES`]: the
+/// change, its file and line; picked, its file opens there, next to the
+/// version in `rev` when the diagram was there then.
+fn change_items(root: &Path, rev: &str, label: &str, diagrams: &[DiagramChanges]) -> Vec<Item> {
+    let mut items = Vec::new();
+    for d in diagrams {
+        let first_new = d.changes.iter().find_map(|c| c.new_line).unwrap_or(0);
+        for c in &d.changes {
+            // A line of the version in `rev` is named as `omaspec diff`
+            // names it; the file opens where it changed first.
+            let (hint, line) = match (&d.new_file, c.new_line, &d.old_file, c.old_line) {
+                (Some(file), Some(line), ..) => (format!("{file}:{}", line + 1), line),
+                (_, _, Some(old), Some(line)) => (format!("{old}@{rev}:{}", line + 1), first_new),
+                (Some(file), None, ..) => (file.clone(), first_new),
+                (None, _, Some(old), None) => (format!("{old}@{rev}"), 0),
+                (None, _, None, _) => continue,
+            };
+            let what = match (c.kind, c.severity) {
+                (ChangeKind::Found, Some(severity)) => {
+                    format!("found {}: ", severity_word(severity))
+                }
+                (ChangeKind::Resolved, Some(severity)) => {
+                    format!("resolved {}: ", severity_word(severity))
+                }
+                _ => String::new(),
+            };
+            let since = match (&d.new_file, &d.old_file) {
+                (Some(_), Some(old)) => Some(Since {
+                    rev: rev.to_owned(),
+                    label: format!("{old} as of {label}"),
+                    old: root.join(old),
+                }),
+                _ => None,
+            };
+            items.push(Item {
+                label: format!("{what}{}", c.message),
+                hint,
+                choice: Choice::Changed {
+                    path: d.new_file.as_ref().map(|f| root.join(f)),
+                    line,
+                    since,
+                    note: format!(
+                        "{} was removed since {label}",
+                        d.old_file.as_deref().unwrap_or_default()
+                    ),
+                },
+            });
+            if items.len() >= MAX_CHANGES {
+                return items;
+            }
+        }
+    }
+    items
+}
+
+fn severity_word(severity: omaspec_core::lint::Severity) -> &'static str {
+    match severity {
+        omaspec_core::lint::Severity::Error => "error",
+        omaspec_core::lint::Severity::Warning => "warning",
+        omaspec_core::lint::Severity::Info => "info",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const B: &str = "@startuml\nA -> B : one\nB -> C : two\nC -> D : three\nD -> E : four\nE -> F : five\nF -> G : six\nG -> H : seven\nH -> I : eight\nI -> J : nine\n@enduml\n";
+
+    const DOOR: &str = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
+
+    /// A project in a fresh repository, committed; `None` without git.
+    fn committed(name: &str, files: &[(&str, &str)]) -> Option<PathBuf> {
+        let root = std::env::temp_dir().join(format!("omaspec-cmp-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        for (file, text) in files {
+            std::fs::write(root.join(file), text).unwrap();
+        }
+        let git = |args: &[&str]| {
+            std::process::Command::new("git")
+                .arg("-C")
+                .arg(&root)
+                .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+                .args(["-c", "commit.gpgsign=false"])
+                .args(args)
+                .output()
+                .is_ok_and(|o| o.status.success())
+        };
+        (git(&["init", "-q"]) && git(&["add", "."]) && git(&["commit", "-qm", "one"]))
+            .then_some(root)
+    }
+
+    #[test]
+    fn the_project_since_a_commit_is_a_list_of_its_changes() {
+        let Some(root) = committed(
+            "project",
+            &[
+                ("door.puml", DOOR),
+                ("visit.puml", "@startuml\nUser -> Door : lock\n@enduml\n"),
+                ("flow.puml", "@startuml\nstart\n:fill;\nstop\n@enduml\n"),
+            ],
+        ) else {
+            eprintln!("skipped: no git");
+            return;
+        };
+        // Saved: the door no longer locks, the flow is gone. Open and not
+        // saved: a state more, which counts as it is in the tab.
+        let unlockable = DOOR
+            .replace("Closed --> Locked : lock\n", "")
+            .replace("Locked --> Closed : unlock\n", "");
+        std::fs::write(root.join("door.puml"), &unlockable).unwrap();
+        std::fs::remove_file(root.join("flow.puml")).unwrap();
+        let open = vec![(
+            "door.puml".to_owned(),
+            unlockable.replace("@enduml", "Open --> Ajar : wind\n@enduml"),
+        )];
+        let diagrams = project_diff(&root, "HEAD", open).unwrap();
+
+        let start = super::super::Start {
+            files: vec![root.join("door.puml")],
+            ..Default::default()
+        };
+        let mut app = App::new(start, None).0;
+        let key = app.doc().key;
+        // The compare picker offers the project since its revisions.
+        let _ = app.update(Message::Command(super::super::Command::Compare));
+        let _ = app.update(Message::ProjectRevisions(
+            key,
+            root.clone(),
+            vec![("abc1234".into(), "HEAD · abc1234 one".into())],
+        ));
+        let picker = app.picker.as_ref().unwrap();
+        assert!(
+            picker
+                .visible()
+                .any(|(_, item)| item.label == "the project since HEAD · abc1234 one"),
+        );
+
+        let _ = app.update(Message::ProjectChanges(
+            root.clone(),
+            "HEAD".into(),
+            "HEAD".into(),
+            Ok(diagrams),
+        ));
+        let picker = app.picker.as_ref().unwrap();
+        assert_eq!(picker.kind, Kind::Changes);
+        let labels: Vec<(String, String)> = picker
+            .visible()
+            .map(|(_, item)| (item.label.clone(), item.hint.clone()))
+            .collect();
+        let has = |label: &str, hint: &str| {
+            labels
+                .iter()
+                .any(|(l, h)| l.contains(label) && h.as_str() == hint)
+        };
+        // The open tab as it is: Ajar is on its sixth line.
+        assert!(has("New state Ajar.", "door.puml:6"), "{labels:?}");
+        // What is gone, on its line then.
+        assert!(
+            has(
+                "Transition removed: Closed to Locked on lock.",
+                "door.puml@HEAD:6"
+            ),
+            "{labels:?}"
+        );
+        assert!(
+            has(
+                "found warning: Door has no transition for lock",
+                "visit.puml:2"
+            ),
+            "{labels:?}"
+        );
+        assert!(
+            has("Activity diagram flow removed.", "flow.puml@HEAD:1"),
+            "{labels:?}"
+        );
+        assert!(
+            app.notice
+                .as_ref()
+                .unwrap()
+                .ends_with("in 3 diagrams since HEAD")
+        );
+
+        // Typing a file's name keeps its changes.
+        let picker = app.picker.as_mut().unwrap();
+        picker.set_query("visit".into());
+        assert!(
+            picker
+                .visible()
+                .all(|(_, item)| item.hint.starts_with("visit.puml"))
+        );
+        // A removed diagram only tells that it went.
+        picker.set_query("flow removed".into());
+        let _ = app.update(Message::PickerSubmit);
+        assert_eq!(
+            app.notice.as_deref(),
+            Some("flow.puml was removed since HEAD")
+        );
+
+        // A change picked opens its file on its line, and compares it with
+        // the version then.
+        let _ = app.update(Message::ProjectChanges(
+            root.clone(),
+            "HEAD".into(),
+            "HEAD".into(),
+            project_diff(&root, "HEAD", Vec::new()),
+        ));
+        let picker = app.picker.as_mut().unwrap();
+        picker.set_query("Transition removed".into());
+        let Some(Choice::Changed { path, since, .. }) = picker.chosen().cloned() else {
+            panic!("a change");
+        };
+        assert_eq!(path.as_deref(), Some(root.join("door.puml").as_path()));
+        let since = since.expect("the door was there then");
+        assert_eq!(since.label, "door.puml as of HEAD");
+        assert_eq!(crate::git::show(&since.old, &since.rev).unwrap(), DOOR);
+        let _ = app.update(Message::PickerSubmit);
+        assert!(app.doc().path.as_deref() == Some(root.join("door.puml").as_path()));
+        let _ = std::fs::remove_dir_all(&root);
+    }
 
     #[test]
     fn lists_changes_with_context() {

@@ -1399,6 +1399,12 @@ impl App {
             (Kind::Search, n) if n >= super::search::MAX_HITS => format!("the first {n} hits"),
             (Kind::Search, n) => format!("{n} {}", plural(n, "hit")),
             (Kind::Labels, n) => format!("{n} {} · Enter lights it", plural(n, "label")),
+            (Kind::Changes, n) => {
+                format!(
+                    "{n} {} · Enter shows it, next to the version before",
+                    plural(n, "change")
+                )
+            }
         };
         let count = match &picker.replace {
             Some(_) => {

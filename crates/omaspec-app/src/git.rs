@@ -48,6 +48,37 @@ pub fn revisions(file: &Path) -> Vec<(String, String)> {
     let (Some(dir), Some(name)) = (file.parent(), file.file_name()) else {
         return Vec::new();
     };
+    commits(dir, name)
+}
+
+/// `HEAD`, the newest tags and the commits that changed anything in the
+/// folder `dir`, as (revision, what to show): what a project is compared
+/// since. Empty outside a git repository.
+pub fn folder_revisions(dir: &Path) -> Vec<(String, String)> {
+    let mut found = commits(dir, std::ffi::OsStr::new("."));
+    if found.is_empty() {
+        return found;
+    }
+    let tags = git(dir)
+        .args(["tag", "--sort=-creatordate", "--format=%(refname:short)"])
+        .output();
+    let tags = tags.ok().filter(|o| o.status.success()).map(|o| o.stdout);
+    let tags = String::from_utf8_lossy(tags.as_deref().unwrap_or_default()).into_owned();
+    let tags = tags
+        .lines()
+        .filter(|tag| revision(tag).is_ok())
+        .take(MAX_TAGS)
+        .map(|tag| (tag.to_owned(), format!("tag {tag}")));
+    let head = found.remove(0);
+    found.splice(0..0, std::iter::once(head).chain(tags));
+    found
+}
+
+/// Tags offered at most, the newest.
+const MAX_TAGS: usize = 5;
+
+/// `HEAD` and the commits that changed `path` (in `dir`), newest first.
+fn commits(dir: &Path, path: &std::ffi::OsStr) -> Vec<(String, String)> {
     let out = git(dir)
         .args([
             "log",
@@ -58,7 +89,7 @@ pub fn revisions(file: &Path) -> Vec<(String, String)> {
             "--date=short",
             "--",
         ])
-        .arg(name)
+        .arg(path)
         .output();
     let Some(out) = out.ok().filter(|o| o.status.success()) else {
         return Vec::new();
@@ -78,12 +109,18 @@ pub fn revisions(file: &Path) -> Vec<(String, String)> {
     found
 }
 
-/// The text of `file` as of `rev`.
+/// The text of `file` as of `rev`; a file whose folder is gone since is
+/// asked for from the nearest folder still there.
 pub fn show(file: &Path, rev: &str) -> Result<String> {
     revision(rev)?;
     let file = std::path::absolute(file)?;
-    let dir = file.parent().context("no folder")?;
-    let name = file.file_name().context("no file name")?.to_string_lossy();
+    let dir = file
+        .ancestors()
+        .skip(1)
+        .find(|d| d.is_dir())
+        .context("no folder")?;
+    let name = file.strip_prefix(dir)?;
+    let name = crate::specs::file_name(name);
     // `./` makes the path relative to `dir`, not to the repository.
     let out = git(dir)
         .args([
@@ -626,6 +663,19 @@ mod tests {
         );
         assert!(files_at(&specs, "--output=x", all).is_err());
         assert!(files_at(&specs, "nosuchrev", all).is_err());
+
+        // What the project compares since: HEAD, the tags, then its commits.
+        assert!(git(&["tag", "v1", "HEAD~1"]));
+        let revs = folder_revisions(&specs);
+        let labels: Vec<&str> = revs.iter().map(|(_, label)| label.as_str()).collect();
+        assert!(
+            labels[0].starts_with("HEAD · ") && labels[0].ends_with("two"),
+            "{labels:?}"
+        );
+        assert_eq!(labels[1], "tag v1");
+        assert_eq!(revs[1].0, "v1");
+        assert!(labels[2].ends_with("one"), "{labels:?}");
+        assert_eq!(labels.len(), 3);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

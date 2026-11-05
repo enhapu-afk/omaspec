@@ -38,7 +38,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+S, Ctrl+Shift+S | save (atomic, keeps the line endings), save as |
 | Ctrl+Enter | render now |
 | F8 | jump to the next lint finding |
-| Ctrl+Shift+D | compare with another tab or a git commit |
+| Ctrl+Shift+D | compare with another tab, a git commit, or the project since one |
 | Ctrl+Shift+N | the diagram in a window of its own |
 | Ctrl+Shift+I, Ctrl+Shift+C | format; copy the diagram as PNG |
 | Ctrl+N, Ctrl+W, Ctrl+PageDown/PageUp | new tab, close tab, switch tabs |
@@ -150,6 +150,13 @@ Ctrl+Shift+D compares the tab (A) with another tab or with the file in a git com
 and panned together, or B as the source lines that changed from B to A (blank lines and
 indentation aside; a click goes to the line). Meanwhile the marks beside the lines show
 the difference to B.
+
+The same list offers *the project since* `HEAD`, its five newest tags and the commits that
+changed it: what changed in the behavior of every diagram of the project since then, the
+open tabs as they are, as `omaspec diff DIR --rev` tells it. Typing filters the changes by
+their words and their files; Enter opens the file where it changed, next to the version
+of that commit (a removed diagram only says so). What is gone is named on its line then,
+`door.puml@HEAD:6`.
 
 ![Compare A|B: the diagram, and the lines changed since a commit](../images/compare.png)
 

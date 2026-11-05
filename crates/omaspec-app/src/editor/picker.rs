@@ -43,6 +43,22 @@ pub enum Choice {
     },
     /// Compare the tab with this version.
     Compare(super::compare::Target),
+    /// Compare the project at `root` with its version in the git revision
+    /// `rev`, which `label` names.
+    ProjectSince {
+        root: PathBuf,
+        rev: String,
+        label: String,
+    },
+    /// Open the file at `path` on `line` and, with `since`, compare it with
+    /// that version; `None` for a diagram removed since, which `note`
+    /// tells.
+    Changed {
+        path: Option<PathBuf>,
+        line: usize,
+        since: Option<super::compare::Since>,
+        note: String,
+    },
     /// Play the recorded trace of `object` in this file.
     Trace {
         path: PathBuf,
@@ -69,6 +85,9 @@ pub enum Kind {
     Search,
     /// The labels the diagram shows.
     Labels,
+    /// What changed in a project since a commit; filtered by the change
+    /// and its file.
+    Changes,
 }
 
 #[derive(Debug, Clone)]
@@ -165,11 +184,18 @@ impl Picker {
             self.matches = (0..self.items.len()).collect();
             return;
         }
+        let changes = self.kind == Kind::Changes;
         let mut scored: Vec<(i32, usize)> = self
             .items
             .iter()
             .enumerate()
-            .filter_map(|(i, item)| Some((folder::score(&self.query, &item.label)?, i)))
+            .filter_map(|(i, item)| {
+                let score = match changes {
+                    true => folder::score(&self.query, &format!("{} {}", item.label, item.hint)),
+                    false => folder::score(&self.query, &item.label),
+                };
+                Some((score?, i))
+            })
             .collect();
         scored.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
         self.matches = scored.into_iter().take(KEPT).map(|(_, i)| i).collect();
@@ -384,24 +410,23 @@ impl App {
                     .map(move |m| Message::Paper(doc, m));
                 Task::batch([self.apply_keyboard_focus(), lit])
             }
-            Some(Choice::ShowIn { path, line, cols }) => {
-                let index = match self.open_doc(&path) {
-                    Ok(index) => index,
-                    Err(err) => {
-                        self.notice = Some(format!("{}: {err:#}", path.display()));
-                        return self.focus_editor();
-                    }
-                };
-                self.keep_session();
-                let shown = self.select(index);
-                let doc = self.doc_mut();
-                let text = doc.text();
-                let start: usize = text.split('\n').take(line).map(|l| l.len() + 1).sum();
-                doc.show_range(start + cols.start..start + cols.end);
-                let key = doc.key;
-                self.after(Alarm::Flash(key), FLASH);
-                Task::batch([shown, self.load_specs()])
+            Some(Choice::ShowIn { path, line, cols }) => self.show_in(&path, line, cols),
+            Some(Choice::ProjectSince { root, rev, label }) => {
+                let compared = self.compare_project(root, rev, label);
+                Task::batch([self.focus_editor(), compared])
             }
+            Some(Choice::Changed {
+                path,
+                line,
+                since,
+                note,
+            }) => match path {
+                Some(path) => self.show_change(&path, line, since),
+                None => {
+                    self.notice = Some(note);
+                    self.focus_editor()
+                }
+            },
             Some(Choice::Run(command)) => {
                 let sets_area = matches!(command, Command::Focus(_));
                 self.command_window = host;
@@ -415,6 +440,31 @@ impl App {
             }
             None => self.focus_editor(),
         }
+    }
+
+    /// Opens the file at `path` and selects the bytes `cols` of its `line`.
+    pub(super) fn show_in(
+        &mut self,
+        path: &std::path::Path,
+        line: usize,
+        cols: std::ops::Range<usize>,
+    ) -> Task<Message> {
+        let index = match self.open_doc(path) {
+            Ok(index) => index,
+            Err(err) => {
+                self.notice = Some(format!("{}: {err:#}", path.display()));
+                return self.focus_editor();
+            }
+        };
+        self.keep_session();
+        let shown = self.select(index);
+        let doc = self.doc_mut();
+        let text = doc.text();
+        let start: usize = text.split('\n').take(line).map(|l| l.len() + 1).sum();
+        doc.show_range(start + cols.start..start + cols.end);
+        let key = doc.key;
+        self.after(Alarm::Flash(key), FLASH);
+        Task::batch([shown, self.load_specs()])
     }
 }
 
@@ -446,6 +496,8 @@ mod tests {
             | Choice::ShowIn { .. }
             | Choice::Light { .. }
             | Choice::Compare(_)
+            | Choice::ProjectSince { .. }
+            | Choice::Changed { .. }
             | Choice::Trace { .. }
             | Choice::NewProject { .. } => None,
         }
