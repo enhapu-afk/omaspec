@@ -1508,7 +1508,19 @@ checked; numbers are measured, not assumed.
       changelog of the specification), `omaspec log FILE` the changes commit by
       commit, and `git diff` shows them once `.gitattributes` names Omaspec as the
       textconv (`omaspec git setup` writes it). Compare offers the project since a
-      commit.
+      commit. Built so far ([0009](docs/adr/0009-diff-and-convert.md), amended):
+      the project's diff, as `omaspec diff DIR` (`--rev`, or two folders), since
+      `--project` already names the folder a file's machines come from. The commit
+      is read through one `git ls-tree` and one `git cat-file --batch` under the
+      rules the index reads the folder by; diagrams pair by file, a moved one by its
+      text, its name or its file's name, a document's by name, then order; each
+      version's scenarios are checked against its own machines, so one that did not
+      change tells what a changed machine no longer takes. `--json` for scripts,
+      exit 1 on a change. The git helpers moved out of the editor (`git.rs`).
+      Release build, one machine changed: 9, 46 and 186 ms to compare 101, 501 and
+      2,001 diagrams, 8, 21 and 73 ms to read the old version from git (the scale
+      test's `diff` and `git` columns). Left: `omaspec log`, the textconv and
+      Compare.
 
 ### 0.9: a layout you can steer
 

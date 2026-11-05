@@ -18,6 +18,10 @@ use omaspec_uml::sequence::{self, End, Item, Side};
 
 use crate::{Kind, Machine, Specs, Trigger, across, check};
 
+mod project;
+
+pub use project::{DiagramChanges, diff_project};
+
 /// One change from the old version to the new one.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Change {
@@ -68,6 +72,15 @@ pub fn diff(
     new_lang: Language,
     specs: &Specs,
 ) -> Result<Vec<Change>, String> {
+    between((old, old_lang, specs), (new, new_lang, specs))
+}
+
+/// [`diff`], each version checked against the state machines of its own
+/// project version.
+pub(crate) fn between(
+    (old, old_lang, old_specs): (&str, Language, &Specs),
+    (new, new_lang, new_specs): (&str, Language, &Specs),
+) -> Result<Vec<Change>, String> {
     let (a, b) = (classify(old, old_lang), classify(new, new_lang));
     match (a.kind, b.kind) {
         (DiagramKind::State, DiagramKind::State) => {
@@ -82,8 +95,8 @@ pub fn diff(
             let b = across::read_sequence(new, new_lang).ok_or(UNREAD_NEW)?;
             let mut changes = scenarios(&a.0, a.1, &b.0, b.1)?;
             changes.extend(findings(
-                across::check(old, old_lang, specs),
-                across::check(new, new_lang, specs),
+                across::check(old, old_lang, old_specs),
+                across::check(new, new_lang, new_specs),
             ));
             Ok(changes)
         }
@@ -473,7 +486,7 @@ fn kind_name(kind: Kind) -> &'static str {
     }
 }
 
-fn capital(text: &str) -> String {
+pub(crate) fn capital(text: &str) -> String {
     let mut chars = text.chars();
     match chars.next() {
         Some(first) => first.to_uppercase().chain(chars).collect(),
@@ -481,7 +494,7 @@ fn capital(text: &str) -> String {
     }
 }
 
-fn change(
+pub(crate) fn change(
     kind: ChangeKind,
     message: String,
     old_line: Option<usize>,
@@ -504,7 +517,7 @@ fn sort(changes: &mut [Change]) {
 /// What the checks find in only one of the versions, the new findings
 /// first. A finding that names a line (`first on line 12`) is the same
 /// finding on another line.
-fn findings(old: Vec<Finding>, new: Vec<Finding>) -> Vec<Change> {
+pub(crate) fn findings(old: Vec<Finding>, new: Vec<Finding>) -> Vec<Change> {
     let mut left: Vec<Option<&Finding>> = old.iter().map(Some).collect();
     let mut out = Vec::new();
     for f in &new {
@@ -536,7 +549,7 @@ fn findings(old: Vec<Finding>, new: Vec<Finding>) -> Vec<Change> {
 }
 
 /// `message` with the number after each `line ` left out.
-fn without_lines(message: &str) -> String {
+pub(crate) fn without_lines(message: &str) -> String {
     let mut out = String::with_capacity(message.len());
     let mut rest = message;
     while let Some(at) = rest.find("line ") {

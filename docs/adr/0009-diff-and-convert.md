@@ -65,6 +65,35 @@ The conversion lets a specification live where it is read, Mermaid in a
 README, PlantUML in a company wiki, without retyping it and without a
 silent loss: what is written means the same, or is not written.
 
+## Amended: a whole project (2026-11-05)
+
+`omaspec diff DIR` compares a project with its version in a commit (`--rev`,
+`HEAD` unless given) or with another folder, as a changelog of the
+specification (ROADMAP, 0.8). The roadmap named it `--project REV`, but
+`--project` already names the folder whose machines a file is checked
+against; a folder given as the file is the project, as `check`, `render` and
+`export` take one.
+
+- **Both versions are read alike.** The folder as the project's index reads
+  it, the commit through `git ls-tree` and one `git cat-file --batch`, under
+  the same rules (hidden and dependency folders aside, 1 MB a file); git runs
+  as Compare runs it, without filters or text conversions, and fetches
+  nothing a partial clone is missing.
+- **Diagrams are paired** by their files; a Markdown document's diagrams by
+  their names, then their texts, then in order. One that left its file is
+  found by its text, then its name, then its file's name, and told as moved.
+- **Each version is checked against its own machines**, so a scenario that
+  did not change tells what a changed machine no longer takes; a finding
+  that only names a moved machine's new file is no change.
+- A new diagram is told with what the checks find in it, a removed one with
+  what they found; a diagram whose behavior is not compared (an activity
+  diagram, a map) only says that its lines changed, blank lines and
+  indentation aside. The exit code is 0 when nothing changed, as for a file.
+
+Measured on the generated projects of the scale test, one machine changed:
+2,001 diagrams compare in 186 ms, and their versions come out of git in
+73 ms (release build).
+
 ## Not covered
 
 - A renamed state or participant is one removed and one added.

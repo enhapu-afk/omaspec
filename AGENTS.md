@@ -14,7 +14,7 @@ cargo run -p omaspec-app -- trace FILE     # a JSON Lines trace against the stat
 cargo run -p omaspec-app -- refs NAME      # where a diagram, state or event is used in the project (docs/adr/0019)
 cargo run -p omaspec-app -- rename OLD NEW # renamed at every use; --dry-run shows what would change
 cargo run -p omaspec-app -- mcp            # MCP server over standard input and output (docs/adr/0008)
-cargo run -p omaspec-app -- diff FILE      # what changed in the behavior since the last commit; or OLD NEW
+cargo run -p omaspec-app -- diff FILE      # what changed in the behavior since the last commit; or OLD NEW; a folder: the project
 cargo run -p omaspec-app -- convert FILE   # the machine or scenario in the other language (docs/adr/0009)
 cargo run -p omaspec-app -- example [NAME] # the gallery's examples (examples/gallery); prints one
 UPDATE_GOLDEN=1 cargo test -p omaspec-core --test golden   # after an intended behavior change; review the diff

@@ -123,6 +123,10 @@ struct Measured {
     bytes: usize,
     lint: Duration,
     errors: usize,
+    /// `omaspec diff DIR` with one machine changed: the two versions
+    /// compared, and the old one read from git (`None` without git).
+    diff: Duration,
+    git: Option<Duration>,
     main: Drawn,
     area: Drawn,
 }
@@ -187,6 +191,26 @@ fn measure(project: &Project) -> Measured {
     }
     let lint = start.elapsed();
 
+    // `omaspec diff DIR`, one machine changed: a state no longer reached.
+    let committed = commit(&project.root);
+    let old = crate::names::diagram_files(&project.root);
+    let first = &project.files[0];
+    let text = std::fs::read_to_string(first).unwrap();
+    std::fs::write(first, text.replace("Busy --> Fault : fail\n", "")).unwrap();
+    let new = crate::names::diagram_files(&project.root);
+    let files = crate::history::files;
+    let start = Instant::now();
+    let changed = omaspec_model::diff_project(&files(&old), &files(&new));
+    let diff = start.elapsed();
+    assert_eq!(changed.len(), 1, "only the machine changed");
+    let git = committed.then(|| {
+        let start = Instant::now();
+        let at = crate::names::diagram_files_at(&project.root, "HEAD").unwrap();
+        assert_eq!(at.len(), old.len());
+        start.elapsed()
+    });
+    std::fs::write(first, text).unwrap();
+
     Measured {
         diagrams: project.files.len(),
         scan,
@@ -197,6 +221,8 @@ fn measure(project: &Project) -> Measured {
         bytes,
         lint,
         errors,
+        diff,
+        git,
         main: draw_map(&project.main),
         area: draw_map(&project.area),
     }
@@ -254,6 +280,22 @@ fn draw_map(path: &Path) -> Drawn {
     }
 }
 
+/// Commits the project at `root` as a repository of its own; false
+/// without git.
+fn commit(root: &Path) -> bool {
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .arg("-C")
+            .arg(root)
+            .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+            .args(["-c", "commit.gpgsign=false"])
+            .args(args)
+            .output()
+            .is_ok_and(|o| o.status.success())
+    };
+    git(&["init", "-q"]) && git(&["add", "."]) && git(&["commit", "-qm", "scale"])
+}
+
 fn scratch(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!("omaspec-scale-{name}-{}", std::process::id()))
 }
@@ -282,7 +324,7 @@ fn scale_timings() {
         return;
     }
     println!(
-        "\n{:>9} {:>7} {:>8} {:>8} {:>8} {:>8} {:>8} | {:>17} {:>17} {:>8} {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
+        "\n{:>9} {:>7} {:>8} {:>8} {:>8} {:>8} {:>8} {:>8} {:>8} | {:>17} {:>17} {:>8} {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
         "diagrams",
         "scan",
         "read",
@@ -290,6 +332,8 @@ fn scale_timings() {
         "one",
         "text",
         "lint",
+        "diff",
+        "git",
         "main map tiles",
         "cold / warm",
         "svg",
@@ -305,7 +349,7 @@ fn scale_timings() {
         let m = measure(&project);
         assert_eq!(m.errors, 0);
         println!(
-            "{:>9} {:>7} {:>8} {:>8} {:>8} {:>6}kB {:>8} | {:>17} {:>8} / {:>6} {:>6}kB {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
+            "{:>9} {:>7} {:>8} {:>8} {:>8} {:>6}kB {:>8} {:>8} {:>8} | {:>17} {:>8} / {:>6} {:>6}kB {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
             m.diagrams,
             ms(m.scan),
             ms(m.read),
@@ -313,6 +357,8 @@ fn scale_timings() {
             ms(m.one),
             m.bytes / 1024,
             ms(m.lint),
+            ms(m.diff),
+            m.git.map_or("-".to_owned(), ms),
             m.main.tiles,
             ms(m.main.cold),
             ms(m.main.warm),

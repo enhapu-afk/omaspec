@@ -3,8 +3,10 @@
 use std::collections::HashMap;
 use std::ops::Deref;
 
-use crate::Spec;
+use omaspec_core::markdown;
+
 use crate::across::key;
+use crate::{File, FileKind, Spec};
 
 /// The state machines of a project, as a list, and each one found by its
 /// names (letters and digits only, case aside) the way a participant of a
@@ -34,6 +36,24 @@ impl Specs {
             }
         }
         Specs { list, named }
+    }
+
+    /// The state machines of a project's `files`, as its index reads them:
+    /// a diagram file's one, each of a Markdown document's.
+    pub fn of_files(files: &[File]) -> Specs {
+        files
+            .iter()
+            .flat_map(|f| match f.kind {
+                FileKind::Diagram(language) => Spec::read(f.text, language, f.path)
+                    .into_iter()
+                    .collect::<Vec<_>>(),
+                FileKind::Document => markdown::blocks(f.text)
+                    .iter()
+                    .filter_map(|b| Spec::read_in_document(&b.code, b.language, f.path))
+                    .collect(),
+                FileKind::Trace => Vec::new(),
+            })
+            .collect()
     }
 
     /// The machines that go by any of `names`, each once, in the project's

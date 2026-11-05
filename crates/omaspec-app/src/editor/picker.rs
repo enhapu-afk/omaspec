@@ -8,7 +8,7 @@ use iced::Task;
 
 use super::compare::Target;
 use super::doc::Doc;
-use super::{App, Command, FLASH, Message, PALETTE, PICKER, compare, folder, home_relative};
+use super::{App, Command, FLASH, Message, PALETTE, PICKER, folder, home_relative};
 use crate::worker::{Alarm, blocking};
 
 /// Rows on screen at once.
@@ -339,7 +339,7 @@ impl App {
                         let focus = self.focus_editor();
                         let read = Task::perform(
                             blocking(move || {
-                                compare::show(&path, &rev).map_err(|e| format!("{e:#}"))
+                                crate::git::show(&path, &rev).map_err(|e| format!("{e:#}"))
                             }),
                             move |text| {
                                 Message::Version(

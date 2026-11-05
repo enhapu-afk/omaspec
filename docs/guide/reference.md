@@ -331,7 +331,9 @@ light up, and where the trace deviates the bar turns red and says why.
 
 **What changed, and in the other language.** `omaspec diff` compares two versions, or a
 file with its last commit, by states, transitions and messages, not by lines; layout and
-colors do not count. `omaspec convert` writes a machine or scenario in the other language,
+colors do not count. Given a folder, it does so for the whole project: every diagram that
+changed in its behavior, came, went or moved, and every scenario that a changed machine
+no longer plays, as a changelog of the specification. `omaspec convert` writes a machine or scenario in the other language,
 and only when the result means the same ([ADR 0009](../adr/0009-diff-and-convert.md)).
 
 ## Command line
@@ -348,6 +350,7 @@ omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for C
 omaspec outline flow.puml           # structure: participants, groups, lanes, states, …
 omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it
 omaspec diff door.puml              # what changed in the behavior since the last commit; --rev, or two files
+omaspec diff . --rev v1.0           # the same for the whole project since a tag; or two folders
 omaspec convert door.puml -o door.mmd  # the same machine or scenario in Mermaid (or PlantUML), or why not
 omaspec render flow.mmd             # flow.svg next to it, with the source inside
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON

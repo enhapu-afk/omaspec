@@ -28,7 +28,7 @@ use omaspec_uml::map::{Map, Shape, Spot};
 
 pub use across::Spec;
 pub use convert::{Converted, Notice, Refused, convert};
-pub use diff::{Change, ChangeKind, diff};
+pub use diff::{Change, ChangeKind, DiagramChanges, diff, diff_project};
 pub use label::Trigger;
 pub use refs::{File, FileKind, Ref, RefKind, gone_links, refs};
 pub use rename::{Edit, Named, Plan, Thing, named_at, rename};

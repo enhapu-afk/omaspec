@@ -174,7 +174,7 @@ pub(crate) fn versions(
         }
         None => {
             let rev = rev.unwrap_or("HEAD");
-            let text = crate::editor::compare::show(new, rev)?;
+            let text = crate::git::show(new, rev)?;
             let old = Input {
                 // Named like the new file, so its language is found the same.
                 path: Some(new.to_owned()),
@@ -234,6 +234,21 @@ pub fn diff(
     json: bool,
     project: Option<&Path>,
 ) -> Result<ExitCode> {
+    if files.iter().any(|f| f.is_dir()) {
+        anyhow::ensure!(
+            files.iter().all(|f| f.is_dir()),
+            "diff compares two files or two folders"
+        );
+        anyhow::ensure!(
+            forced.is_none(),
+            "--lang is for a diagram file; a folder's files say their languages"
+        );
+        anyhow::ensure!(
+            project.is_none(),
+            "a folder is its own project; --project is for a diagram file"
+        );
+        return crate::history::diff(files, rev, json);
+    }
     let (old, new) = match files {
         [new] => (None, new.as_path()),
         [old, new] => (Some(old.as_path()), new.as_path()),
@@ -257,16 +272,7 @@ pub fn diff(
         writeln!(out)?;
     } else {
         for c in &changes {
-            let at = match (c.new_line, c.old_line) {
-                (Some(line), _) => format!("{new_name}:{}", line + 1),
-                (None, Some(line)) => format!("{old_name}:{}", line + 1),
-                (None, None) => new_name.clone(),
-            };
-            let what = match c.severity {
-                Some(severity) => format!("{} {}", c.kind.name(), severity_name(severity)),
-                None => c.kind.name().to_owned(),
-            };
-            writeln!(out, "{at}: {what}: {}", c.message)?;
+            writeln!(out, "{}", change_line(&old_name, &new_name, c))?;
         }
     }
     Ok(if changes.is_empty() {
@@ -274,6 +280,21 @@ pub fn diff(
     } else {
         ExitCode::FAILURE
     })
+}
+
+/// A change as `diff` prints it, `file:line: kind: message`, on its line
+/// in the new version (`new`), else in the old one (`old`).
+pub(crate) fn change_line(old: &str, new: &str, c: &omaspec_model::Change) -> String {
+    let at = match (c.new_line, c.old_line) {
+        (Some(line), _) => format!("{new}:{}", line + 1),
+        (None, Some(line)) => format!("{old}:{}", line + 1),
+        (None, None) => new.to_owned(),
+    };
+    let what = match c.severity {
+        Some(severity) => format!("{} {}", c.kind.name(), severity_name(severity)),
+        None => c.kind.name().to_owned(),
+    };
+    format!("{at}: {what}: {}", c.message)
 }
 
 fn severity_name(severity: Severity) -> &'static str {

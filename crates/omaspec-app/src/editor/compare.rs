@@ -4,10 +4,7 @@
 //! not count), or as what changed in the behavior
 //! ([`omaspec_model::diff`]).
 
-use std::path::Path;
-use std::process::Command;
-
-use anyhow::{Context, Result};
+use anyhow::Result;
 use iced::Task;
 use omaspec_core::Language;
 use omaspec_core::diff::{self, Op};
@@ -22,8 +19,6 @@ use crate::worker::blocking;
 
 /// The render ticket's document key for B.
 pub const KEY: u64 = u64::MAX;
-/// Commits offered at most.
-const MAX_COMMITS: usize = 30;
 /// Unchanged lines shown around a change.
 const CONTEXT: usize = 2;
 
@@ -169,99 +164,6 @@ pub fn marks(b: &str, a: &str) -> Option<(Vec<std::ops::Range<usize>>, Vec<usize
     Some((added, removed))
 }
 
-/// Git in `dir`, kept from starting programs a repository names.
-///
-/// A repository's own `.git/config` comes with a folder someone hands over
-/// (an archive, a stick), and git trusts it. `log.showSignature` with
-/// `gpg.program` would make `git log` run any program on a signed commit;
-/// the others switch off what could run one too: a file system monitor, a
-/// pager, external diffs and text conversions, hooks. No prompt waits for a
-/// password, and no lock is taken.
-fn git(dir: &Path) -> Command {
-    let mut command = Command::new("git");
-    command.arg("-C").arg(dir);
-    for setting in [
-        "log.showSignature=false",
-        "core.fsmonitor=false",
-        "core.pager=cat",
-        "core.hooksPath=/dev/null",
-        "diff.external=",
-    ] {
-        command.args(["-c", setting]);
-    }
-    command
-        .env("GIT_PAGER", "cat")
-        .env("GIT_TERMINAL_PROMPT", "0")
-        .env("GIT_OPTIONAL_LOCKS", "0");
-    command
-}
-
-/// `HEAD` and the commits that changed `file`, newest first, as
-/// (revision, what to show); empty outside a git repository.
-pub fn revisions(file: &Path) -> Vec<(String, String)> {
-    let (Some(dir), Some(name)) = (file.parent(), file.file_name()) else {
-        return Vec::new();
-    };
-    let out = git(dir)
-        .args([
-            "log",
-            "--no-show-signature",
-            "--no-color",
-            &format!("-n{MAX_COMMITS}"),
-            "--format=%h%x09%ad%x09%s",
-            "--date=short",
-            "--",
-        ])
-        .arg(name)
-        .output();
-    let Some(out) = out.ok().filter(|o| o.status.success()) else {
-        return Vec::new();
-    };
-    let log = String::from_utf8_lossy(&out.stdout);
-    let mut found: Vec<(String, String)> = log
-        .lines()
-        .filter_map(|line| {
-            let mut parts = line.splitn(3, '\t');
-            let (rev, date, subject) = (parts.next()?, parts.next()?, parts.next()?);
-            Some((rev.to_owned(), format!("{rev} {date} {subject}")))
-        })
-        .collect();
-    if let Some((_, label)) = found.first_mut() {
-        *label = format!("HEAD · {label}");
-    }
-    found
-}
-
-/// The text of `file` as of `rev`.
-pub fn show(file: &Path, rev: &str) -> Result<String> {
-    // A revision, never an option: `--output=…` would make git write.
-    let known = |c: char| c.is_ascii_alphanumeric() || "_.^~/@{}-".contains(c);
-    anyhow::ensure!(
-        !rev.is_empty() && !rev.starts_with('-') && rev.chars().all(known),
-        "`{rev}` is no git revision"
-    );
-    let file = std::path::absolute(file)?;
-    let dir = file.parent().context("no folder")?;
-    let name = file.file_name().context("no file name")?.to_string_lossy();
-    // `./` makes the path relative to `dir`, not to the repository.
-    let out = git(dir)
-        .args([
-            "show",
-            "--no-color",
-            "--no-textconv",
-            "--no-ext-diff",
-            &format!("{rev}:./{name}"),
-        ])
-        .output()
-        .context("cannot run git")?;
-    anyhow::ensure!(
-        out.status.success(),
-        "git: {}",
-        String::from_utf8_lossy(&out.stderr).trim()
-    );
-    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-}
-
 impl App {
     /// The versions to compare this tab with: the other tabs at once, the
     /// file's git commits when git has listed them.
@@ -287,9 +189,10 @@ impl App {
         let Some(path) = git else {
             return focus;
         };
-        let commits = Task::perform(blocking(move || revisions(&path)), move |found| {
-            Message::Revisions(key, found.unwrap_or_default())
-        });
+        let commits = Task::perform(
+            blocking(move || crate::git::revisions(&path)),
+            move |found| Message::Revisions(key, found.unwrap_or_default()),
+        );
         Task::batch([focus, commits])
     }
 
@@ -455,127 +358,5 @@ mod tests {
         assert_eq!(added, vec![std::ops::Range { start: 2, end: 4 }]);
         // "six" was before "seven", now line 7 of A.
         assert_eq!(removed, [7]);
-    }
-
-    /// A repository handed over with a `.git/config` that names programs:
-    /// listing and reading its versions starts none of them.
-    #[test]
-    fn a_prepared_repository_starts_nothing() {
-        let dir = std::env::temp_dir().join(format!("omaspec-git-trap-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let run = |args: &[&str]| {
-            Command::new("git")
-                .arg("-C")
-                .arg(&dir)
-                .args(["-c", "user.name=t", "-c", "user.email=t@t"])
-                .args(args)
-                .output()
-                .is_ok_and(|o| o.status.success())
-        };
-        if !run(&["init", "-q"]) {
-            eprintln!("skipped: no git");
-            return;
-        }
-        let file = dir.join("door.puml");
-        std::fs::write(&file, "@startuml\nA -> B : x\n@enduml\n").unwrap();
-        std::fs::write(dir.join(".gitattributes"), "*.puml diff=trap\n").unwrap();
-        assert!(run(&["add", "."]) && run(&["commit", "-qm", "one", "--no-gpg-sign"]));
-        // A commit that looks signed, touching the file.
-        std::fs::write(&file, "@startuml\nA -> B : y\n@enduml\n").unwrap();
-        assert!(run(&["add", "door.puml"]));
-        let out = |args: &[&str]| {
-            let o = Command::new("git")
-                .arg("-C")
-                .arg(&dir)
-                .args(args)
-                .output()
-                .unwrap();
-            String::from_utf8_lossy(&o.stdout).trim().to_owned()
-        };
-        let (tree, parent) = (out(&["write-tree"]), out(&["rev-parse", "HEAD"]));
-        let commit = format!(
-            "tree {tree}\nparent {parent}\nauthor t <t@t> 1700000000 +0000\ncommitter t <t@t> 1700000000 +0000\ngpgsig -----BEGIN PGP SIGNATURE-----\n \n iQEzBAABCAAdFiEE\n -----END PGP SIGNATURE-----\n\nsigned\n"
-        );
-        std::fs::write(dir.join("commit.txt"), commit).unwrap();
-        let signed = out(&["hash-object", "-t", "commit", "-w", "commit.txt"]);
-        assert!(run(&["update-ref", "HEAD", &signed]));
-        let trap = dir.join("trap.sh");
-        let marker = dir.join("ran");
-        std::fs::write(
-            &trap,
-            format!("#!/bin/sh\necho \"$0 $*\" >> {}\n", marker.display()),
-        )
-        .unwrap();
-        std::fs::set_permissions(&trap, std::os::unix::fs::PermissionsExt::from_mode(0o755))
-            .unwrap();
-        let trap = trap.display().to_string();
-        for (key, value) in [
-            ("log.showSignature", "true"),
-            ("gpg.program", trap.as_str()),
-            ("core.fsmonitor", trap.as_str()),
-            ("core.pager", trap.as_str()),
-            ("diff.trap.textconv", trap.as_str()),
-            ("diff.external", trap.as_str()),
-        ] {
-            assert!(run(&["config", key, value]));
-        }
-        assert_eq!(revisions(&file).len(), 2);
-        assert!(show(&file, "HEAD").unwrap().contains("A -> B : y"));
-        assert!(
-            !marker.exists(),
-            "git started {}",
-            std::fs::read_to_string(&marker).unwrap_or_default()
-        );
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn reads_versions_from_git() {
-        let dir = std::env::temp_dir().join(format!("omaspec-git-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let git = |args: &[&str]| {
-            let ok = Command::new("git")
-                .arg("-C")
-                .arg(&dir)
-                .args([
-                    "-c",
-                    "user.name=t",
-                    "-c",
-                    "user.email=t@t",
-                    "-c",
-                    "commit.gpgsign=false",
-                ])
-                .args(args)
-                .output()
-                .unwrap()
-                .status
-                .success();
-            assert!(ok, "git {args:?}");
-        };
-        let file = dir.join("flow.mmd");
-        assert!(revisions(&file).is_empty(), "no repository yet");
-        git(&["init", "-q"]);
-        std::fs::write(&file, "flowchart LR\n  A --> B\n").unwrap();
-        git(&["add", "flow.mmd"]);
-        git(&["commit", "-q", "-m", "first"]);
-        std::fs::write(&file, "flowchart LR\n  A --> C\n").unwrap();
-        git(&["commit", "-q", "-am", "second"]);
-        std::fs::write(&file, "flowchart LR\n  A --> D\n").unwrap();
-
-        let revs = revisions(&file);
-        assert_eq!(revs.len(), 2);
-        assert!(revs[0].1.starts_with("HEAD · ") && revs[0].1.ends_with("second"));
-        assert_eq!(
-            show(&file, &revs[0].0).unwrap(),
-            "flowchart LR\n  A --> C\n"
-        );
-        assert_eq!(
-            show(&file, &revs[1].0).unwrap(),
-            "flowchart LR\n  A --> B\n"
-        );
-        assert!(show(&file, "nosuchrev").is_err());
-        let _ = std::fs::remove_dir_all(&dir);
     }
 }

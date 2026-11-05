@@ -123,6 +123,18 @@ pub fn scan_for(dir: &Path, wanted: impl Fn(&str) -> bool) -> Vec<PathBuf> {
     walk(dir, wanted).0
 }
 
+/// Whether [`walk`] looks at a file at `relative`, its path under the
+/// folder with `/` between its parts: no part hidden, no folder of
+/// dependencies or builds, none deeper than the walk goes. Whether its
+/// name is wanted is the caller's.
+pub fn walked(relative: &str) -> bool {
+    let parts: Vec<&str> = relative.split('/').collect();
+    let folders = &parts[..parts.len() - 1];
+    folders.len() <= MAX_DEPTH
+        && parts.iter().all(|p| !p.is_empty() && !p.starts_with('.'))
+        && folders.iter().all(|f| !SKIPPED.contains(f))
+}
+
 /// [`scan_for`], and the folders it looked into, `dir` first.
 pub fn walk(dir: &Path, wanted: impl Fn(&str) -> bool) -> (Vec<PathBuf>, Vec<PathBuf>) {
     let mut found = Vec::new();
@@ -414,6 +426,24 @@ mod tests {
         assert_eq!(
             found,
             ["a.puml", "docs/deep/state.wsd", "docs/flow.mmd", "notes.md"]
+        );
+        // The same, told by the paths alone (as git lists them).
+        let walked_too: Vec<&str> = [
+            "a.puml",
+            "docs/deep/state.wsd",
+            ".git/x.puml",
+            ".hidden.puml",
+            "node_modules/pkg/b.mmd",
+            "target/c.puml",
+            "1/2/3/4/5/6/7/8/deep.puml",
+            "1/2/3/4/5/6/7/8/9/deeper.puml",
+        ]
+        .into_iter()
+        .filter(|p| walked(p))
+        .collect();
+        assert_eq!(
+            walked_too,
+            ["a.puml", "docs/deep/state.wsd", "1/2/3/4/5/6/7/8/deep.puml"]
         );
         let listed = list(&dir);
         let names: Vec<(&str, bool)> = listed

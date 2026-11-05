@@ -8,10 +8,10 @@ use std::process::ExitCode;
 
 use anyhow::{Context, Result};
 use omaspec_core::{Language, detect, markdown};
-use omaspec_model::{File, FileKind, Ref, Spec, Specs};
+use omaspec_model::{File, FileKind, Ref, Specs};
 use serde_json::{Value, json};
 
-use crate::editor::folder::scan_for;
+use crate::editor::folder::{MAX_FILES, scan_for, walked};
 use crate::specs::file_name;
 
 /// A diagram or a document may hold at most this many bytes, as for
@@ -38,53 +38,71 @@ impl Owned {
 
 /// The diagrams, documents and traces of the project at `root`.
 pub fn project_files(root: &Path) -> Vec<Owned> {
-    let wanted = |name: &str| {
-        Language::from_file_name(name).is_some()
-            || markdown::is_markdown(name)
-            || name.ends_with(".jsonl")
+    read_files(root, true)
+}
+
+/// The diagrams and documents of the project at `root`, as its index
+/// reads them.
+pub fn diagram_files(root: &Path) -> Vec<Owned> {
+    read_files(root, false)
+}
+
+/// [`diagram_files`] as of the git revision `rev`: those the folder held
+/// then, under the same rules.
+pub fn diagram_files_at(root: &Path, rev: &str) -> Result<Vec<Owned>> {
+    let keep = |path: &str, size: u64| {
+        let name = path.rsplit('/').next().unwrap_or(path);
+        size <= MAX_FILE && walked(path) && is_diagram(name)
     };
+    let mut files = crate::git::files_at(root, rev, keep)?;
+    files.sort_by(|a, b| Path::new(&a.0).cmp(Path::new(&b.0)));
+    files.truncate(MAX_FILES);
+    Ok(files
+        .into_iter()
+        .map(|(path, text)| owned(path, text))
+        .collect())
+}
+
+fn is_diagram(name: &str) -> bool {
+    Language::from_file_name(name).is_some() || markdown::is_markdown(name)
+}
+
+fn read_files(root: &Path, traces: bool) -> Vec<Owned> {
+    let wanted = |name: &str| is_diagram(name) || (traces && name.ends_with(".jsonl"));
     scan_for(root, wanted)
         .into_iter()
         .filter_map(|relative| {
             let path = root.join(&relative);
             let name = file_name(&relative);
-            let trace = name.ends_with(".jsonl");
-            let most = if trace { MAX_TRACE } else { MAX_FILE };
+            let most = if name.ends_with(".jsonl") {
+                MAX_TRACE
+            } else {
+                MAX_FILE
+            };
             let small = std::fs::metadata(&path).is_ok_and(|m| m.is_file() && m.len() <= most);
             let text = small
                 .then(|| std::fs::read_to_string(&path).ok())
                 .flatten()?;
-            let kind = if trace {
-                FileKind::Trace
-            } else if markdown::is_markdown(&name) {
-                FileKind::Document
-            } else {
-                FileKind::Diagram(detect(&text, Language::from_file_name(&name)))
-            };
-            Some(Owned {
-                path: name,
-                text,
-                kind,
-            })
+            Some(owned(name, text))
         })
         .collect()
 }
 
+/// The file at `path` in a project, its kind told by its name and its text.
+fn owned(path: String, text: String) -> Owned {
+    let kind = if path.ends_with(".jsonl") {
+        FileKind::Trace
+    } else if markdown::is_markdown(&path) {
+        FileKind::Document
+    } else {
+        FileKind::Diagram(detect(&text, Language::from_file_name(&path)))
+    };
+    Owned { path, text, kind }
+}
+
 /// The state machines of `files`, as the project's index reads them.
 pub fn specs_of(files: &[Owned]) -> Specs {
-    files
-        .iter()
-        .flat_map(|f| match f.kind {
-            FileKind::Diagram(language) => Spec::read(&f.text, language, &f.path)
-                .into_iter()
-                .collect::<Vec<_>>(),
-            FileKind::Document => markdown::blocks(&f.text)
-                .iter()
-                .filter_map(|b| Spec::read_in_document(&b.code, b.language, &f.path))
-                .collect(),
-            FileKind::Trace => Vec::new(),
-        })
-        .collect()
+    Specs::of_files(&files.iter().map(Owned::file).collect::<Vec<_>>())
 }
 
 /// The uses of `name` in the project at `root`; with `machine`, only that

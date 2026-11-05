@@ -5,6 +5,8 @@ mod document;
 mod editor;
 mod files;
 mod gallery;
+mod git;
+mod history;
 mod icons;
 mod index;
 mod logo;
@@ -202,20 +204,28 @@ enum Command {
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
     },
-    /// Tell what changed in the behavior between two versions of a diagram.
+    /// Tell what changed in the behavior between two versions of a diagram,
+    /// or of a project.
     ///
     /// State machines are compared by their states, transitions and
     /// triggers, sequence diagrams by their participants, messages and
     /// blocks, also between PlantUML and Mermaid; then what the
     /// specification checks find now, or no longer. Layout, colors and
     /// notes do not count. With one file, the version in its last commit
-    /// (or --rev) is the old one. Exits with 0 when the behavior is the
-    /// same, 1 when it changed.
+    /// (or --rev) is the old one. A folder is a project: every diagram in
+    /// it, and in its Markdown documents, compared with the one it was in
+    /// the last commit (or --rev), or in another folder; a diagram that
+    /// moved is followed by its text or its name, and each version's
+    /// sequence diagrams are checked against that version's state
+    /// machines. Exits with 0 when the behavior is the same, 1 when it
+    /// changed.
     Diff {
-        /// The old version and the new one; or only the new one.
+        /// The old version and the new one; or only the new one. Two files,
+        /// or two folders.
         #[arg(required = true, num_args = 1..=2)]
         files: Vec<PathBuf>,
-        /// The git revision one file is compared with [default: HEAD].
+        /// The git revision one file or folder is compared with [default:
+        /// HEAD].
         #[arg(long)]
         rev: Option<String>,
         /// Print the changes as JSON.
