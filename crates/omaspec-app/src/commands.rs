@@ -651,6 +651,14 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 continue;
             }
         };
+        // Each tile or state that opens a diagram links to its export.
+        let own = place
+            .as_ref()
+            .zip(input.path.as_deref())
+            .and_then(|(place, path)| crate::specs::path_in(&place.root, path));
+        let links = own.map_or_else(Vec::new, |own| {
+            crate::specs::export_links(&rendered.links, &own)
+        });
         let options = export::Options {
             scale: args.scale,
             source: args.source.then(|| export::Source {
@@ -658,6 +666,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 language: lang,
                 file: input.file_name(),
             }),
+            links: &links,
         };
         let bytes = export::export(&rendered.svg, format, &options)?;
         let took = format!(

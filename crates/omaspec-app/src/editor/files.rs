@@ -376,10 +376,14 @@ impl App {
         }
         let place = self.place_of(key);
         let doc = &self.docs[index];
+        let own = place
+            .as_ref()
+            .zip(doc.path.as_deref())
+            .and_then(|(place, path)| crate::specs::path_in(&place.root, path));
         let task = match look {
             ExportLook::Shown => doc
                 .paper
-                .export_to(format, &doc.name(), path)
+                .export_to(format, &doc.name(), own, path)
                 .map(Message::Exported),
             ExportLook::File => export_in(None, doc, place, format, path),
             ExportLook::Look(look) => export_in(Some(look), doc, place, format, path),
@@ -525,12 +529,17 @@ fn export_in(
     let (text, language, path, file) = (doc.text(), doc.language, doc.path.clone(), doc.name());
     Task::perform(
         crate::worker::blocking(move || -> Result<String, String> {
+            let own = place
+                .as_ref()
+                .zip(path.as_deref())
+                .and_then(|(place, path)| crate::specs::path_in(&place.root, path));
             let drawn = Drawn {
                 text: &text,
                 language,
                 path: path.as_deref(),
                 place: place.as_ref(),
                 file: &file,
+                own: own.as_deref(),
             };
             let bytes = drawn.export(look, format)?;
             crate::files::write_atomic(&out, &bytes).map_err(|e| format!("{e:#}"))?;
@@ -548,6 +557,9 @@ pub(super) struct Drawn<'a> {
     pub place: Option<&'a omaspec_render::Place>,
     /// The file name stored with the source.
     pub file: &'a str,
+    /// Its path in its project: its tiles and states link to the exports
+    /// of the diagrams they open.
+    pub own: Option<&'a str>,
 }
 
 impl Drawn<'_> {
@@ -569,6 +581,9 @@ impl Drawn<'_> {
             look,
         )
         .map_err(|e| e.to_string())?;
+        let links = self.own.map_or_else(Vec::new, |own| {
+            crate::specs::export_links(&rendered.links, own)
+        });
         let options = omaspec_render::export::Options {
             scale: 2.0,
             source: Some(omaspec_render::export::Source {
@@ -576,6 +591,7 @@ impl Drawn<'_> {
                 language: self.language,
                 file: Some(self.file),
             }),
+            links: &links,
         };
         omaspec_render::export::export(&rendered.svg, format, &options).map_err(|e| e.to_string())
     }

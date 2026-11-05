@@ -4,7 +4,9 @@
 //! elements and attributes: no scripts, no event handlers, no
 //! `foreignObject`, no animations (they can rewrite links), no comments
 //! and processing instructions. Links may point inside the document
-//! (`#id`); `<a>` may also open `http(s)` and `mailto` links, `<image>` may
+//! (`#id`); `<a>` may also open `http(s)` and `mailto` links, and a
+//! relative path that stays in the picture's folder or below it (no `..`:
+//! the engine does not know where the picture goes), `<image>` may
 //! hold an embedded raster image (`data:image/png;base64,…`). Everything
 //! else, `javascript:` and `file:` above all, is dropped, as are CSS
 //! `@import` and `url()`s that leave the document. Escapes and comments
@@ -176,6 +178,17 @@ fn write_element(node: Node, root: bool, out: &mut String) {
     let _ = write!(out, "</{name}>");
 }
 
+/// A relative path that stays in the folder it is read from or below it:
+/// no `..`, written or escaped.
+fn inside(href: &str) -> bool {
+    let path = href.split('#').next().unwrap_or_default();
+    let decoded = path
+        .to_ascii_lowercase()
+        .replace("%2e", ".")
+        .replace("%2f", "/");
+    crate::anchors::relative(href) && !decoded.split('/').any(|part| part == "..")
+}
+
 /// The link target if `element` may keep it.
 fn safe_href<'a>(element: &str, value: &'a str) -> Option<&'a str> {
     let v = value.trim();
@@ -185,6 +198,7 @@ fn safe_href<'a>(element: &str, value: &'a str) -> Option<&'a str> {
             && ["http://", "https://", "mailto:"]
                 .iter()
                 .any(|p| lower.starts_with(p)))
+        || (element == "a" && inside(v))
         || (matches!(element, "image" | "feImage")
             && [
                 "data:image/png",
@@ -491,6 +505,17 @@ mod tests {
         assert!(!out.contains("passwd"));
         assert!(!out.contains("secret"));
         assert!(out.contains("data:image/png;base64,AAAA"));
+
+        // A relative link stays in the picture's folder or below it.
+        let out = clean(concat!(
+            r#"<a href="docs/guide.html"><text>a</text></a>"#,
+            r#"<a href="../outside.svg"><text>b</text></a>"#,
+            r#"<a href="docs/%2E%2E/%2e%2e/up.svg"><text>c</text></a>"#,
+            r#"<use href="docs/shape.svg"/>"#,
+        ));
+        assert!(out.contains(r#"href="docs/guide.html""#), "{out}");
+        assert!(!out.contains("outside") && !out.contains("up.svg"), "{out}");
+        assert!(!out.contains("shape.svg"), "only `<a>` leaves the document");
     }
 
     #[test]

@@ -371,6 +371,52 @@ fn render_takes_a_look_and_keeps_the_file_s_source() {
 }
 
 #[test]
+fn an_exported_map_and_a_linked_state_link_to_the_diagrams_they_open() {
+    let dir = scratch("export-links");
+    fs::create_dir_all(dir.join("orders")).unwrap();
+    let write = |file: &str, text: &str| fs::write(dir.join(file), text).unwrap();
+    write(
+        "omaspec-project.toml",
+        "name = \"shop\"\nmain = \"system.puml\"\n",
+    );
+    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    write(
+        "orders/orders.puml",
+        "@startuml\ntitle Orders\n[*] --> New\nNew --> Payment : pay\n@enduml\n",
+    );
+    write(
+        "payment.puml",
+        "@startuml\ntitle Payment\n[*] --> Waiting\n@enduml\n",
+    );
+    let path = |file: &str| dir.join(file).to_str().unwrap().to_owned();
+    let out = omaspec(&["render", &path("system.puml"), &path("orders/orders.puml")]);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let map = fs::read_to_string(dir.join("system.svg")).unwrap();
+    assert!(
+        map.contains(r#"<a href="orders/orders.svg"><title>Orders</title>"#),
+        "{map}"
+    );
+    let orders = fs::read_to_string(dir.join("orders/orders.svg")).unwrap();
+    assert!(
+        orders.contains(r#"<a href="../payment.svg"><title>Payment</title>"#),
+        "{orders}"
+    );
+    // A picture has no links to follow.
+    let png = path("orders/orders.png");
+    assert_eq!(
+        omaspec(&["render", &path("orders/orders.puml"), "-o", &png])
+            .status
+            .code(),
+        Some(0)
+    );
+}
+
+#[test]
 fn render_writes_svg_png_and_pdf_next_to_the_diagram() {
     let dir = scratch("render");
     let file = dir.join("states.mmd");

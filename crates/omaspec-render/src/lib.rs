@@ -6,6 +6,7 @@
 //! [`sanitize`] before anyone sees it. [`RenderService`] runs a renderer on
 //! its own thread and drops requests that a newer one has overtaken.
 
+pub mod anchors;
 mod atlas;
 pub mod contrast;
 pub mod export;

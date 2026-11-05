@@ -10,6 +10,7 @@ use std::sync::Arc;
 
 use omaspec_core::{Language, detect};
 use omaspec_model::Spec;
+use omaspec_render::anchors::Anchor;
 use omaspec_render::{Atlas, Entry, Place, RenderError, Rendered, Renderer};
 
 use crate::editor::folder::{scan, scan_for};
@@ -92,6 +93,29 @@ impl Maps {
         Some((Arc::clone(atlas), own))
     }
 
+    /// The project a diagram links into, with its own path there: a map
+    /// always ([`Self::of`]); anything else only in a project, where a
+    /// state that names a diagram links to it.
+    fn linked(
+        &mut self,
+        text: &str,
+        language: Language,
+        path: Option<&Path>,
+        place: Option<&Place>,
+    ) -> Option<(Arc<Atlas>, Option<String>)> {
+        if omaspec_render::is_map(text, language) {
+            return self.of(text, language, path, place);
+        }
+        let place = place?;
+        let root = omaspec_render::project_root(&place.dir).filter(|root| *root == place.root)?;
+        let atlas = self
+            .0
+            .entry(root.clone())
+            .or_insert_with(|| Arc::new(read_project(&root).1));
+        let own = path.and_then(|p| path_in(&root, p));
+        Some((Arc::clone(atlas), own))
+    }
+
     /// [`Self::render`], with each tile's diagram as `paint` writes it:
     /// a map in a look shows its tiles in that look.
     pub fn render_painted(
@@ -103,7 +127,7 @@ impl Maps {
         place: Option<&Place>,
         paint: &dyn Fn(&str, Language) -> String,
     ) -> Result<Rendered, RenderError> {
-        match self.of(text, language, path, place) {
+        match self.linked(text, language, path, place) {
             Some((atlas, own)) => {
                 let mut painted = Atlas::clone(&atlas);
                 for entry in &mut painted.diagrams {
@@ -125,13 +149,42 @@ impl Maps {
         path: Option<&Path>,
         place: Option<&Place>,
     ) -> Result<Rendered, RenderError> {
-        match self.of(text, language, path, place) {
+        match self.linked(text, language, path, place) {
             Some((atlas, own)) => {
                 renderer.render_linked(text, language, place, own.as_deref(), &atlas)
             }
             None => renderer.render_at(text, language, place),
         }
     }
+}
+
+/// The tiles and states of a drawn diagram as links between exports: each
+/// that opens one diagram of the project links to that diagram's SVG
+/// beside its file, relative to `own`, this diagram's path in the project
+/// (as `omaspec render` writes them, and `omaspec export`).
+pub fn export_links(links: &[omaspec_render::Link], own: &str) -> Vec<Anchor> {
+    let from: Vec<&str> = own.split('/').collect();
+    let dir = &from[..from.len().saturating_sub(1)];
+    links
+        .iter()
+        .filter_map(|link| {
+            let [target] = link.files.as_slice() else {
+                return None;
+            };
+            let to: Vec<&str> = target.split('/').collect();
+            let (folders, file) = to.split_at(to.len().checked_sub(1)?);
+            let shared = dir.iter().zip(folders).take_while(|(a, b)| a == b).count();
+            let mut parts: Vec<String> = vec!["..".to_owned(); dir.len() - shared];
+            parts.extend(folders[shared..].iter().map(|f| (*f).to_owned()));
+            let stem = file[0].rsplit_once('.').map_or(file[0], |(stem, _)| stem);
+            parts.push(format!("{stem}.svg"));
+            Some(Anchor {
+                rect: link.rect,
+                href: parts.join("/"),
+                title: Some(link.name.replace('\n', " ")),
+            })
+        })
+        .collect()
 }
 
 /// A path in the project as maps and messages show it: `/` between
@@ -192,6 +245,47 @@ impl Projects {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn links_between_exports_are_relative_to_the_diagram_s_folder() {
+        let link = |name: &str, files: &[&str]| omaspec_render::Link {
+            rect: omaspec_uml::graph::Rect {
+                x: 1.0,
+                y: 2.0,
+                w: 3.0,
+                h: 4.0,
+            },
+            name: name.to_owned(),
+            files: files.iter().map(|f| (*f).to_owned()).collect(),
+            tile: true,
+        };
+        let links = [
+            link("Orders", &["orders/orders.puml"]),
+            link("Shop", &["shop.mmd"]),
+            link("Pay", &["orders/pay/pay.puml"]),
+            // Two diagrams by one name: no link to choose.
+            link("Twice", &["a.puml", "b.puml"]),
+        ];
+        let hrefs = |own: &str| -> Vec<String> {
+            export_links(&links, own)
+                .into_iter()
+                .map(|a| a.href)
+                .collect()
+        };
+        assert_eq!(
+            hrefs("system.puml"),
+            ["orders/orders.svg", "shop.svg", "orders/pay/pay.svg"]
+        );
+        assert_eq!(
+            hrefs("orders/checkout.puml"),
+            ["orders.svg", "../shop.svg", "pay/pay.svg"]
+        );
+        assert_eq!(hrefs("maps/deep/map.puml")[1], "../../shop.svg");
+        assert_eq!(
+            export_links(&links, "system.puml")[0].title.as_deref(),
+            Some("Orders")
+        );
+    }
 
     #[test]
     fn reads_the_state_machines_of_a_folder() {

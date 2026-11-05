@@ -991,6 +991,7 @@ fn images_open_their_diagram_under_a_free_name() {
             language: Language::Mermaid,
             file: Some("flow.mmd"),
         }),
+        links: &[],
     };
     let png = export::export(&svg, Format::Png, &options).unwrap();
     std::fs::write(dir.join("flow.png"), &png).unwrap();
@@ -1083,6 +1084,7 @@ fn an_export_takes_a_look_and_keeps_the_file_s_source() {
         path: Some(&src),
         place: None,
         file: "door.puml",
+        own: None,
     };
     let svg = String::from_utf8(
         drawn
