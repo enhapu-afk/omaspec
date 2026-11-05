@@ -10,6 +10,7 @@ use crate::color::{self, Color, Paint};
 use crate::source::{Line, starts_with_ci};
 use crate::style::{self, Element};
 use crate::svg::Align;
+use crate::text::Link;
 
 /// Text as written, `\n` escapes and markup still in it; lines of a
 /// multi-line block joined with newlines.
@@ -653,6 +654,36 @@ pub fn text_at(value: &str, line: usize) -> Text {
     }
 }
 
+/// An element's link (`[[url]]`, `[[url{tooltip}]]`) taken out of its
+/// declaration: the declaration without it, and the link. A label after
+/// the address is the tooltip, as nothing in the element shows it.
+pub fn take_link(input: &str, line: usize) -> Result<(String, Option<Link>), Declined> {
+    let mut quote = false;
+    for (i, c) in input.char_indices() {
+        if c == '"' {
+            quote = !quote;
+        }
+        if quote || !input[i..].starts_with("[[") {
+            continue;
+        }
+        let Some(end) = input[i + 2..].find("]]") else {
+            break;
+        };
+        let (mut link, label) = crate::text::creole_link(&input[i + 2..i + 2 + end])
+            .map_err(|reason| Declined::at(line, reason))?;
+        if link.tooltip.is_none() && label != link.url {
+            link.tooltip = Some(label);
+        }
+        let rest = format!(
+            "{} {}",
+            input[..i].trim_end(),
+            input[i + 4 + end..].trim_start()
+        );
+        return Ok((rest.trim().to_owned(), Some(link)));
+    }
+    Ok((input.to_owned(), None))
+}
+
 /// The lines after `lines[at]` up to the one `is_end` accepts, joined with
 /// newlines, blank lines kept, and the index after that end.
 pub fn block(
@@ -721,6 +752,21 @@ pub fn normalize_key(key: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_element_s_link_comes_out_of_its_declaration() {
+        let (rest, link) = take_link("Foo [[https://a.b{Tip}]] #red", 3).unwrap();
+        assert_eq!(rest, "Foo #red");
+        let link = link.unwrap();
+        assert_eq!(link.url, "https://a.b");
+        assert_eq!(link.tooltip.as_deref(), Some("Tip"));
+        let (rest, link) = take_link("[Comp][[docs/c.html The component]]", 3).unwrap();
+        assert_eq!(rest, "[Comp]");
+        assert_eq!(link.unwrap().tooltip.as_deref(), Some("The component"));
+        let (rest, link) = take_link("\"a [[b]]\" as A", 3).unwrap();
+        assert_eq!((rest.as_str(), link), ("\"a [[b]]\" as A", None));
+        assert!(take_link("A [[{tip}]]", 3).is_err());
+    }
 
     #[test]
     fn skinparams_for_stereotypes_only_of_states() {

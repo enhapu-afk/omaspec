@@ -1031,6 +1031,7 @@ fn ensure(
         stereotype: None,
         spot: None,
         color: None,
+        link: None,
         line,
     });
     at

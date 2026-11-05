@@ -83,6 +83,9 @@ pub struct Element {
     /// a container. A class body is members, not a container.
     pub composite: bool,
     pub children: Group,
+    /// `[[url]]` on its declaration (Mermaid: `click … href`, `link`): a
+    /// click on the element follows it.
+    pub link: Option<crate::text::Link>,
     pub line: usize,
 }
 

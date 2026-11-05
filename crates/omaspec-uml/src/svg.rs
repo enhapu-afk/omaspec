@@ -6,7 +6,7 @@ use std::fmt::Write as _;
 use crate::color::{Color, Paint};
 use crate::common::Scale;
 use crate::map::Fit;
-use crate::text::{Block, Family, Line, TABLE_PAD, TableRow};
+use crate::text::{Block, Family, Line, Link, TABLE_PAD, TableRow};
 
 /// Drawing order, back to front.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -194,6 +194,17 @@ impl Canvas {
         self.layers[layer as usize].push_str("</g>");
     }
 
+    /// What is drawn into `layer` until [`Self::end_link`] is a link: a
+    /// click on it follows `link`. An element drawn on several layers
+    /// opens one on each.
+    pub fn begin_link(&mut self, layer: Layer, link: &Link) {
+        open_link(&mut self.layers[layer as usize], link);
+    }
+
+    pub fn end_link(&mut self, layer: Layer) {
+        self.layers[layer as usize].push_str("</a>");
+    }
+
     pub fn line(
         &mut self,
         layer: Layer,
@@ -373,10 +384,7 @@ impl Canvas {
         for (i, run) in line.runs.iter().enumerate() {
             let s = &run.style;
             if let Some(link) = &run.link {
-                let _ = write!(out, r#"<a href="{}">"#, escape(&link.url));
-                if let Some(tooltip) = &link.tooltip {
-                    let _ = write!(out, "<title>{}</title>", escape(tooltip));
-                }
+                open_link(out, link);
             }
             out.push_str("<tspan");
             if i == 0 {
@@ -498,6 +506,14 @@ pub fn n(v: f32) -> String {
     let s = format!("{:.2}", v);
     let s = s.trim_end_matches('0').trim_end_matches('.');
     if s == "-0" { "0".into() } else { s.into() }
+}
+
+/// `<a>` to `link`, with its tooltip as the title.
+fn open_link(out: &mut String, link: &Link) {
+    let _ = write!(out, r#"<a href="{}">"#, escape(&link.url));
+    if let Some(tooltip) = &link.tooltip {
+        let _ = write!(out, "<title>{}</title>", escape(tooltip));
+    }
 }
 
 pub(crate) fn escape(s: &str) -> String {

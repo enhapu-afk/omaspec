@@ -852,6 +852,7 @@ impl Parser {
             explicit: true,
             composite: false,
             children: Group::default(),
+            link: None,
             line,
         });
         let mut path = home;
@@ -905,6 +906,7 @@ impl Parser {
                     direction: self.direction,
                     ..Group::default()
                 },
+                link: None,
                 line,
             };
             self.group_mut(&parent).nodes.push(element);
@@ -1052,6 +1054,7 @@ fn note_box(key: String, text: String, line: usize) -> Element {
         explicit: true,
         composite: false,
         children: Group::default(),
+        link: None,
         line,
     }
 }

@@ -648,7 +648,7 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
 /// What is between `[[` and `]]`: an address, quoted if it holds spaces,
 /// then an optional `{tooltip}` and an optional label, which is drawn
 /// instead of the address.
-fn creole_link(inner: &str) -> Result<(Link, String), String> {
+pub(crate) fn creole_link(inner: &str) -> Result<(Link, String), String> {
     let inner = inner.trim();
     let (url, rest) = match inner.strip_prefix('"') {
         Some(quoted) => {

@@ -44,6 +44,8 @@ pub struct Participant {
     /// stereotype.
     pub spot: Option<Spot>,
     pub color: Option<String>,
+    /// `[[url]]` on its declaration: a click on its head follows it.
+    pub link: Option<crate::text::Link>,
     /// Where it was declared, or first used.
     pub line: usize,
 }

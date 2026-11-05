@@ -6,7 +6,7 @@ use super::{
     Participant, ParticipantBox, Shape, Side, Spot, Text,
 };
 use crate::Declined;
-use crate::common::{Frame, block, keyword, snippet, squeezed_eq, text_at};
+use crate::common::{Frame, block, keyword, snippet, squeezed_eq, take_link, text_at};
 use crate::source::{Line, starts_with_ci};
 
 /// Parses a sequence diagram from the lines [`crate::source::body`] gives.
@@ -391,6 +391,7 @@ impl Parser {
             stereotype: None,
             spot: None,
             color: None,
+            link: None,
             line,
         });
         self.used.push(false);
@@ -438,6 +439,7 @@ impl Parser {
         let mut stereotype = None;
         let mut spot = None;
         let mut color = None;
+        let mut link = None;
         let mut rest = rest.trim_start();
         while !rest.is_empty() {
             if let Some(after) = rest.strip_prefix("<<") {
@@ -453,6 +455,12 @@ impl Parser {
                 let end = rest.find(char::is_whitespace).unwrap_or(rest.len());
                 color = Some(rest[..end].to_owned());
                 rest = rest[end..].trim_start();
+            } else if rest.starts_with("[[")
+                && let Some(end) = rest.find("]]")
+            {
+                let (_, taken) = take_link(&rest[..end + 2], no)?;
+                link = taken;
+                rest = rest[end + 2..].trim_start();
             } else {
                 return Err(Declined::at(
                     no,
@@ -503,6 +511,7 @@ impl Parser {
                     stereotype,
                     spot,
                     color,
+                    link,
                     line: no,
                 });
                 self.used.push(false);

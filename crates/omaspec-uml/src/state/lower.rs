@@ -239,6 +239,7 @@ fn marker(kind: Kind, line: usize) -> Node {
         stereotype: None,
         composite: false,
         children: Container::default(),
+        link: None,
         line,
     }
 }

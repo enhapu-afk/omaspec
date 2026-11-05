@@ -10,7 +10,7 @@ use super::{
     Slot, Text,
 };
 use crate::Declined;
-use crate::common::{Frame, block, brace_delta, keyword, snippet, squeezed_eq, text_at};
+use crate::common::{Frame, block, brace_delta, keyword, snippet, squeezed_eq, take_link, text_at};
 use crate::graph::across::meeting;
 use crate::source::{Line, starts_with_ci};
 
@@ -222,6 +222,7 @@ struct Decl {
     line_color: Option<String>,
     open: Open,
     parents: Vec<Inherit>,
+    link: Option<crate::text::Link>,
     line: usize,
 }
 
@@ -520,6 +521,9 @@ impl Parser {
         if let Some(color) = &decl.line_color {
             node.line_color = Some(color.clone());
         }
+        if decl.link.is_some() {
+            node.link.clone_from(&decl.link);
+        }
         Ok(())
     }
 
@@ -550,6 +554,7 @@ impl Parser {
             explicit: true,
             composite: matches!(decl.open, Open::Group),
             children: Group::default(),
+            link: decl.link.clone(),
             line: decl.line,
         });
         let mut path = here;
@@ -620,6 +625,7 @@ impl Parser {
             explicit: false,
             composite: false,
             children: Group::default(),
+            link: None,
             line,
         });
         let mut path = home.to_vec();
@@ -862,6 +868,7 @@ impl Parser {
             explicit: true,
             composite: false,
             children: Group::default(),
+            link: None,
             line,
         });
         let mut path = here;
@@ -1087,10 +1094,11 @@ fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl,
         opened = true;
         rest = body.trim();
     }
+    let (rest, link) = take_link(rest, line)?;
     if rest.is_empty() {
         return Err(Declined::at(line, "a declaration needs a name"));
     }
-    let (rest, stereotypes) = take_stereotypes(rest, line)?;
+    let (rest, stereotypes) = take_stereotypes(&rest, line)?;
     let (rest, fill, line_color) = take_colors(&rest, line)?;
     let (name, parents) = take_inherits(rest.trim(), line)?;
     if name.is_empty() {
@@ -1115,6 +1123,7 @@ fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl,
         line_color,
         open: if opened { open } else { Open::None },
         parents,
+        link,
         line,
     })
 }
@@ -1129,7 +1138,8 @@ fn bare(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
         opened = true;
         rest = body.trim();
     }
-    let (rest, stereotypes) = take_stereotypes(rest, line)?;
+    let (rest, link) = take_link(rest, line)?;
+    let (rest, stereotypes) = take_stereotypes(&rest, line)?;
     let (rest, fill, line_color) = take_colors(&rest, line)?;
     let rest = rest.trim();
     if rest.is_empty() {
@@ -1157,6 +1167,7 @@ fn bare(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
         line_color,
         open: if opened { open } else { Open::None },
         parents: Vec::new(),
+        link,
         line,
     }))
 }

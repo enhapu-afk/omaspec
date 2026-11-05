@@ -179,6 +179,8 @@ struct Item {
     /// Between the title band and what a nested state holds.
     gap: f32,
     composite: bool,
+    /// Followed on a click on the state and its words.
+    link: Option<crate::text::Link>,
 }
 
 fn layout_container(container: &Container, skin: &Skin, family: Family) -> Result<Scene, Declined> {
@@ -233,6 +235,7 @@ fn measure_node(
                 header_h,
                 gap,
                 composite: true,
+                link: node.link.clone(),
             },
         });
     }
@@ -289,6 +292,7 @@ fn measure_node(
             header_h: 0.0,
             gap: 0.0,
             composite: false,
+            link: node.link.clone(),
         },
     })
 }
@@ -669,6 +673,15 @@ fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 }
 
 fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
+    let Some(link) = &node.item.link else {
+        return paint_outline(canvas, skin, node);
+    };
+    canvas.begin_link(Layer::Frames, link);
+    paint_outline(canvas, skin, node);
+    canvas.end_link(Layer::Frames);
+}
+
+fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     let rect = node.rect;
     let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
     match node.item.kind {
@@ -823,6 +836,9 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
 
 fn paint_labels(canvas: &mut Canvas, scene: &Scene) {
     for node in &scene.nodes {
+        if let Some(link) = &node.item.link {
+            canvas.begin_link(Layer::Front, link);
+        }
         match node.item.kind {
             Kind::State if node.item.composite => {
                 paint_stack(
@@ -853,6 +869,9 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene) {
                 );
             }
             Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
+        }
+        if node.item.link.is_some() {
+            canvas.end_link(Layer::Front);
         }
         paint_labels(canvas, &node.children);
     }

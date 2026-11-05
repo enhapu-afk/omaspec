@@ -128,6 +128,8 @@ struct Column {
     height: f32,
     /// The item of the message that creates it, if it is created later.
     created_by: Option<usize>,
+    /// Followed on a click on its head.
+    link: Option<crate::text::Link>,
 }
 
 /// A stereotype's spot as drawn: its letter in a circle.
@@ -431,6 +433,7 @@ impl<'a> Drawer<'a> {
                 width,
                 height,
                 created_by: created_by[i],
+                link: p.link.clone(),
             });
         }
         if cols.is_empty() {
@@ -1675,8 +1678,19 @@ impl<'a> Drawer<'a> {
     }
 
     /// Draws column `c`'s head with its top at `top`; at the bottom the
-    /// label of an icon goes above it.
+    /// label of an icon goes above it. A linked head is a link.
     fn head(&self, canvas: &mut Canvas, c: usize, top: f32, bottom: bool) {
+        let link = self.cols[c].link.as_ref();
+        if let Some(link) = link {
+            canvas.begin_link(Layer::Front, link);
+        }
+        self.head_shape(canvas, c, top, bottom);
+        if link.is_some() {
+            canvas.end_link(Layer::Front);
+        }
+    }
+
+    fn head_shape(&self, canvas: &mut Canvas, c: usize, top: f32, bottom: bool) {
         let col = &self.cols[c];
         let skin = self.skin;
         let cx = self.x[c];

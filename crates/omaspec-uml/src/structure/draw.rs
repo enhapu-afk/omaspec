@@ -215,6 +215,8 @@ struct Item {
     banner: f32,
     gap: f32,
     composite: bool,
+    /// Followed on a click on the box and its words.
+    link: Option<crate::text::Link>,
 }
 
 /// What a line keeps for painting, besides its label.
@@ -431,6 +433,7 @@ fn measure_element(
             banner,
             gap,
             composite: el.composite,
+            link: el.link.clone(),
         },
     })
 }
@@ -950,6 +953,20 @@ fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 }
 
 fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
+    let Some(link) = &node.item.link else {
+        return paint_box(canvas, skin, node);
+    };
+    for layer in [Layer::Frames, Layer::Front] {
+        canvas.begin_link(layer, link);
+    }
+    paint_box(canvas, skin, node);
+    for layer in [Layer::Frames, Layer::Front] {
+        canvas.end_link(layer);
+    }
+}
+
+/// An element's shape and its words.
+fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     let rect = node.rect;
     let round = skin.round.min(rect.w / 2.0).min(rect.h / 2.0).max(0.0);
     let stroke = Some(node.item.border);

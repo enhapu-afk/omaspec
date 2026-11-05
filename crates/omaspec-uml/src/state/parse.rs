@@ -17,7 +17,7 @@ use super::{
     Container, Crossing, Dash, Diagram, Direction, Kind, Node, Note, Side, Split, Text, Transition,
 };
 use crate::Declined;
-use crate::common::{Frame, block, keyword, snippet, squeezed_eq, text_at};
+use crate::common::{Frame, block, keyword, snippet, squeezed_eq, take_link, text_at};
 use crate::graph::across::meeting;
 use crate::source::Line;
 
@@ -102,6 +102,7 @@ struct Decl {
     border_bold: bool,
     description: Option<String>,
     open: bool,
+    link: Option<crate::text::Link>,
     line: usize,
 }
 
@@ -689,6 +690,7 @@ fn plain_node(key: &str, label: &str, line: usize) -> Node {
         stereotype: None,
         composite: false,
         children: Container::default(),
+        link: None,
         line,
     }
 }
@@ -706,6 +708,7 @@ fn marker_node(kind: Kind, line: usize) -> Node {
         stereotype: None,
         composite: false,
         children: Container::default(),
+        link: None,
         line,
     }
 }
@@ -743,6 +746,9 @@ fn apply(node: &mut Node, decl: &Decl) -> Result<(), Declined> {
     if let Some(text) = &decl.description {
         node.description.push(text_at(text, decl.line));
     }
+    if decl.link.is_some() {
+        node.link.clone_from(&decl.link);
+    }
     Ok(())
 }
 
@@ -750,7 +756,9 @@ fn declaration(text: &str, line: usize) -> Result<Decl, Declined> {
     let Some(rest) = keyword(text, "state") else {
         return Err(Declined::at(line, "`state` needs a name"));
     };
-    let rest = rest.trim();
+    // First, as an address holds a colon and a tooltip a brace.
+    let (rest, link) = take_link(rest.trim(), line)?;
+    let rest = rest.as_str();
     let (rest, open) = match rest.rfind('{') {
         Some(at) => {
             if !rest[at + 1..].trim().is_empty() || rest[..at].contains('{') {
@@ -785,6 +793,7 @@ fn declaration(text: &str, line: usize) -> Result<Decl, Declined> {
         border_bold: false,
         description,
         open,
+        link,
         line,
     };
     let mut label: Option<(String, bool)> = None;

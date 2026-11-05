@@ -98,6 +98,8 @@ pub struct Node {
     /// `state Name { … }`. An empty body is still a composite.
     pub composite: bool,
     pub children: Container,
+    /// `[[url]]` on its declaration: a click on the state follows it.
+    pub link: Option<crate::text::Link>,
     pub line: usize,
 }
 

@@ -82,6 +82,7 @@ pub(super) fn layout_regions(
                 header_h: 0.0,
                 gap: 0.0,
                 composite: true,
+                link: None,
             },
         });
     }
