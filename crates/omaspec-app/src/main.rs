@@ -5,6 +5,7 @@ mod editor;
 mod files;
 mod gallery;
 mod icons;
+mod index;
 mod logo;
 mod look;
 mod mcp;

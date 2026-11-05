@@ -263,7 +263,8 @@ The window keeps its session in `~/.local/state/omaspec/` (readable by you only)
 tabs with their unsaved text, the folder, the caret. Closing the window loses nothing; the
 next start brings it all back. Closing a tab with unsaved changes asks once in the status
 bar. A second window works without a session. A file changed on disk is reloaded when its
-tab has no unsaved changes.
+tab has no unsaved changes. A diagram of the project changed by another program, an agent
+or a `git checkout` shows on its maps and links at once.
 
 ## Preview next to your editor
 

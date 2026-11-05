@@ -1403,15 +1403,33 @@ checked; numbers are measured, not assumed.
 
 ### 0.8: hundreds of diagrams
 
-- [ ] A project index kept up to date: a file is read again only when it changed,
+- [x] A project index kept up to date: a file is read again only when it changed,
       a watch on the project folder replaces the full read on every focus, and only
       the documents a change touches are drawn again. The index knows each diagram's
-      names, kind, machines and links, and who uses what; a scenario finds its
-      machines by name there instead of comparing with all of them. Measured
-      against step 0.
+      names and machines; a scenario finds its machines by name there instead of
+      comparing with all of them. Measured against step 0. Built: `index.rs` keeps
+      each project's diagrams (as maps show them) and state machines by path with
+      the size and time of change they were read at; a refresh scans the folder
+      and reads only what differs, and hands back the same `Arc`s when nothing
+      did, so nothing is checked or drawn again. `omaspec_model::Specs` finds a
+      machine by the key of any of its names, for scenarios and traces alike. The
+      editor keeps an index per project open and watches the folders the scan
+      looks into (not the whole tree, at most 512; hidden, build and dependency
+      folders aside), a burst of changes reported once; the focus only compares
+      sizes and times. After a change it draws again a map, a document that names
+      the changed file (an `!include`), a Markdown document, and every document of
+      the project only when a diagram came, went or took another name. The preview
+      window keeps an index for the map it shows, which it read whole for every
+      drawing. `read_project` (the command line, the MCP server) reads through the
+      same index. Release build, 2,001 diagrams: read whole 84 ms, brought up to
+      date with nothing changed 6 ms, with one file changed 11 ms; lint over every
+      file 152 ms, was 424 ms (103 ms without the machines; the rest is each file
+      parsed again as a scenario), and now linear: 11, 43 and 152 ms for 101, 501
+      and 2,001.
 - [ ] Where a name is used: `omaspec refs NAME` and an MCP tool `refs` list every
       diagram, scenario, link and trace that uses a machine, state or event
-      (`--json`). *Rename everywhere* in the editor and `omaspec rename OLD NEW`
+      (`--json`), from the project's index, which learns each diagram's kind and
+      links and who uses what for it. *Rename everywhere* in the editor and `omaspec rename OLD NEW`
       rename it across the project, one undo step per file, so a rename leaves no
       stale use behind; lint names a link to a diagram that is gone.
 - [ ] Search the project: Ctrl+Shift+F over every file of the project, not only the

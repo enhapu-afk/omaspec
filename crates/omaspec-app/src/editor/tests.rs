@@ -4205,3 +4205,108 @@ fn ctrl_click_on_a_link_finds_its_line_in_the_theme_colors_too() {
     }
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn a_change_in_the_project_draws_again_only_the_documents_it_touches() {
+    let root = temp_dir("touched");
+    let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
+    write(
+        "omaspec-project.toml",
+        "name = \"house\"\nmain = \"system.puml\"\n",
+    );
+    write(
+        "system.puml",
+        "@startwbs\n* House\n** Door\n** Lamp\n@endwbs\n",
+    );
+    write(
+        "door.puml",
+        "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Lamp : open\n@enduml\n",
+    );
+    write(
+        "lamp.puml",
+        "@startuml\ntitle Lamp\n[*] --> Off\nOff --> On : switch\n@enduml\n",
+    );
+    write(
+        "common.puml",
+        "@startuml\nskinparam shadowing false\n@enduml\n",
+    );
+    write(
+        "hall.puml",
+        "@startuml\ntitle Hall\n!include common.puml\n[*] --> Empty\n@enduml\n",
+    );
+    let root = std::fs::canonicalize(&root).unwrap();
+    let mut app = open(&[
+        root.join("system.puml"),
+        root.join("door.puml"),
+        root.join("hall.puml"),
+    ]);
+    app.worker = Some(worker::Worker::detached());
+    let read = |app: &mut App| {
+        let (specs, atlas) = specs::read_project(&root);
+        let _ = app.update(Message::Specs(
+            root.clone(),
+            Arc::new(specs),
+            Arc::new(atlas),
+        ));
+    };
+    let asked = |app: &App| -> Vec<u64> { app.docs.iter().map(|d| d.paper.requested()).collect() };
+    // The first reading draws them all.
+    read(&mut app);
+    let first = asked(&app);
+    // Read again unchanged: none.
+    read(&mut app);
+    assert_eq!(asked(&app), first);
+    let drawn_again = |before: &[u64], after: &[u64]| -> Vec<bool> {
+        before.iter().zip(after).map(|(a, b)| b > a).collect()
+    };
+
+    // The lamp's states change, not its names: the map shows it; the door
+    // links to it by name only.
+    write(
+        "lamp.puml",
+        "@startuml\ntitle Lamp\n[*] --> Off\nOff --> On : switch\nOn --> Off : switch\n@enduml\n",
+    );
+    read(&mut app);
+    let after = asked(&app);
+    assert_eq!(drawn_again(&first, &after), [true, false, false]);
+
+    // A file the hall includes changes: the map and the hall.
+    write(
+        "common.puml",
+        "@startuml\nskinparam shadowing true\n@enduml\n",
+    );
+    read(&mut app);
+    let again = asked(&app);
+    assert_eq!(drawn_again(&after, &again), [true, false, true]);
+
+    // The lamp goes by another name: the door's state may link elsewhere.
+    write(
+        "lamp.puml",
+        "@startuml\ntitle Light\n[*] --> Off\n@enduml\n",
+    );
+    read(&mut app);
+    assert_eq!(drawn_again(&again, &asked(&app)), [true, true, true]);
+
+    // What the project's index reads comes with its folders, which are
+    // watched from then on.
+    std::fs::create_dir(root.join("rooms")).unwrap();
+    write(
+        "rooms/attic.puml",
+        "@startuml\ntitle Attic\n[*] --> Dusty\n@enduml\n",
+    );
+    let index = crate::index::Index::read(&root);
+    let _ = app.update(Message::Indexed(
+        root.clone(),
+        index.specs(),
+        index.atlas(),
+        index.dirs(),
+    ));
+    assert_eq!(*app.watched, [root.clone(), root.join("rooms")]);
+    assert!(
+        app.atlases[&root]
+            .diagrams
+            .iter()
+            .any(|d| d.file == "rooms/attic.puml")
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}

@@ -19,9 +19,10 @@ use omaspec_render::Place;
 use omaspec_render::export::Format;
 use omaspec_theme::{Palette, Rgb, Theme as Omarchy};
 
+use crate::index::Index;
 use crate::paper::{self, Ask, Paper, Status};
 use crate::ui;
-use crate::worker::{self, Alarm, Worker};
+use crate::worker::{self, Alarm, Linked, Worker};
 
 /// Editors write a file in several steps; read it once they are done.
 const FILE_SETTLE: Duration = Duration::from_millis(50);
@@ -77,6 +78,9 @@ struct Preview {
     /// The files shown before a click on a link brought this one, to go
     /// back to with Backspace.
     back: Vec<PathBuf>,
+    /// The index of the project whose map is shown: a change in it draws
+    /// the map again, and only the files that changed are read.
+    index: Option<Index>,
 }
 
 impl Preview {
@@ -99,6 +103,7 @@ impl Preview {
             paper: Paper::default(),
             notice: None,
             back: Vec::new(),
+            index: None,
         };
         let scale = window::latest()
             .and_then(window::scale_factor)
@@ -123,6 +128,8 @@ impl Preview {
             })
             .map(Message::Worker),
             worker::watch(vec![self.path.clone()]).map(Message::Worker),
+            worker::watch_projects(self.index.as_ref().map(Index::dirs).unwrap_or_default())
+                .map(Message::Worker),
             keyboard::listen().map(Message::Key),
             window::events().filter_map(|(_, event)| match event {
                 window::Event::Rescaled(factor) => Some(Message::ScaleFactor(factor)),
@@ -173,7 +180,9 @@ impl Preview {
                 self.worker = Some(worker);
                 self.request_render();
             }
-            worker::Event::FileChanged(_) => self.after(Alarm::File, FILE_SETTLE),
+            worker::Event::FileChanged(_) | worker::Event::ProjectChanged => {
+                self.after(Alarm::File, FILE_SETTLE);
+            }
             worker::Event::ThemeChanged => self.after(Alarm::Theme, THEME_SETTLE),
             worker::Event::FontChanged => self.after(Alarm::Font, THEME_SETTLE),
             worker::Event::Due(Alarm::Font) => self.font = ui::current_mono_font(),
@@ -205,31 +214,48 @@ impl Preview {
 
     /// Reads the file and asks the worker to render it.
     fn request_render(&mut self) {
-        let Some(worker) = &self.worker else { return };
+        let Some(worker) = self.worker.clone() else {
+            return;
+        };
         match std::fs::read_to_string(&self.path) {
             // A Markdown document: all its diagrams, one under another.
             Ok(source) if omaspec_core::markdown::is_markdown(&self.name) => {
                 let place = Place::of(&self.path, None);
-                self.paper.request_document(worker, 0, source.into(), place);
+                self.paper
+                    .request_document(&worker, 0, source.into(), place);
             }
             Ok(source) => {
                 let hint = Language::from_file_name(&self.name);
                 let language = self.forced.unwrap_or_else(|| detect(&source, hint));
                 let place = Place::of(&self.path, None);
-                // A map shows its project's diagrams in tiles
-                // (docs/adr/0018); they are read again with the map.
-                let linked = crate::specs::Maps::default().of(
-                    &source,
-                    language,
-                    Some(&self.path),
-                    place.as_ref(),
-                );
+                let linked = self.map_of(&source, language, place.as_ref());
                 self.paper
-                    .request_linked(worker, 0, source.into(), language, place, linked);
+                    .request_linked(&worker, 0, source.into(), language, place, linked);
             }
             // Mid-save the file can be briefly missing; the next event retries.
             Err(err) => self.paper.status = Status::Unreadable(err.to_string()),
         }
+    }
+
+    /// The project the map in `source` shows in tiles (docs/adr/0018),
+    /// brought up to date: `None` for anything but a map with a place.
+    fn map_of(
+        &mut self,
+        source: &str,
+        language: Language,
+        place: Option<&Place>,
+    ) -> Option<Linked> {
+        let Some(place) = place.filter(|_| omaspec_render::is_map(source, language)) else {
+            self.index = None;
+            return None;
+        };
+        let index = match &mut self.index {
+            Some(index) if index.root() == place.root => index,
+            _ => self.index.insert(Index::new(&place.root)),
+        };
+        index.refresh();
+        let own = crate::specs::path_in(&place.root, &self.path);
+        Some((index.atlas(), own))
     }
 
     /// A click on a tile of a map or a state with a diagram of its own:

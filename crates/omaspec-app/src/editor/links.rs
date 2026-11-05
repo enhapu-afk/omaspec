@@ -98,17 +98,20 @@ impl App {
     }
 
     /// Takes the diagrams read for `root`; the documents of that project
-    /// are drawn again when they changed.
+    /// that the change touches are drawn again.
     pub(super) fn found_atlas(&mut self, root: PathBuf, atlas: Arc<Atlas>) -> Task<Message> {
-        if self.atlases.get(&root).is_some_and(|a| **a == *atlas) {
+        let before = self.atlases.get(&root);
+        if before.is_some_and(|a| Arc::ptr_eq(a, &atlas) || **a == *atlas) {
             return Task::none();
         }
+        let change = before.map(|before| Change::between(before, &atlas));
         self.atlases.insert(root.clone(), atlas);
         self.themed_atlases.remove(&root);
         let keys: Vec<u64> = self
             .docs
             .iter()
             .filter(|d| self.project_of(d).as_ref() == Some(&root))
+            .filter(|d| change.as_ref().is_none_or(|c| c.touches(d)))
             .map(|d| d.key)
             .collect();
         Task::batch(keys.into_iter().map(|key| self.render(key, true)))
@@ -417,4 +420,52 @@ fn diagram_name(doc: &Doc) -> String {
 
 fn text_of(file: &str) -> String {
     file.split('.').next().unwrap_or(file).to_owned()
+}
+
+/// How a project's diagrams changed, as far as the drawing of a document
+/// goes.
+#[derive(Debug, PartialEq, Eq)]
+struct Change {
+    /// A diagram came, went or goes by other names, or the project's main
+    /// diagram or name changed: a link may lead elsewhere now.
+    names: bool,
+    /// The file names of the diagrams that changed otherwise, as an
+    /// `!include` writes them.
+    files: Vec<String>,
+}
+
+impl Change {
+    fn between(before: &Atlas, after: &Atlas) -> Change {
+        let same = |a: &omaspec_render::Entry, b: &omaspec_render::Entry| {
+            a.file == b.file && a.names == b.names
+        };
+        let names = before.main != after.main
+            || before.name != after.name
+            || before.diagrams.len() != after.diagrams.len()
+            || !before
+                .diagrams
+                .iter()
+                .zip(&after.diagrams)
+                .all(|(a, b)| same(a, b));
+        let files = before
+            .diagrams
+            .iter()
+            .zip(&after.diagrams)
+            .filter(|(a, b)| !names && a != b)
+            .map(|(_, b)| b.file.rsplit('/').next().unwrap_or(&b.file).to_owned())
+            .collect();
+        Change { names, files }
+    }
+
+    /// Whether `doc` is drawn otherwise now: a map shows every diagram, a
+    /// Markdown document may hold one; any other diagram only links to
+    /// diagrams by their names and includes files.
+    fn touches(&self, doc: &Doc) -> bool {
+        if self.names || doc.is_document() {
+            return true;
+        }
+        let text = doc.text();
+        omaspec_render::is_map(&text, doc.language)
+            || self.files.iter().any(|file| text.contains(file.as_str()))
+    }
 }

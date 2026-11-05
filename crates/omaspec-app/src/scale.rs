@@ -115,6 +115,10 @@ struct Measured {
     diagrams: usize,
     scan: Duration,
     read: Duration,
+    /// The project's index brought up to date with nothing changed, and
+    /// with one file changed.
+    again: Duration,
+    one: Duration,
     machines: usize,
     bytes: usize,
     lint: Duration,
@@ -151,6 +155,19 @@ fn measure(project: &Project) -> Measured {
     let read = start.elapsed();
     let bytes = atlas.diagrams.iter().map(|d| d.source.len()).sum();
 
+    // What the editor does on the focus and after a save, with its index.
+    let mut index = crate::index::Index::read(&project.root);
+    let start = Instant::now();
+    assert!(index.refresh().is_empty());
+    let again = start.elapsed();
+    let first = &project.files[0];
+    let text = std::fs::read_to_string(first).unwrap();
+    std::fs::write(first, format!("{text}' changed\n")).unwrap();
+    let start = Instant::now();
+    assert_eq!(index.refresh().len(), 1);
+    let one = start.elapsed();
+    std::fs::write(first, text).unwrap();
+
     // `omaspec lint` over every file, against the project's machines.
     let start = Instant::now();
     let mut errors = 0;
@@ -174,6 +191,8 @@ fn measure(project: &Project) -> Measured {
         diagrams: project.files.len(),
         scan,
         read,
+        again,
+        one,
         machines: machines.len(),
         bytes,
         lint,
@@ -263,10 +282,12 @@ fn scale_timings() {
         return;
     }
     println!(
-        "\n{:>9} {:>7} {:>8} {:>8} {:>8} | {:>17} {:>17} {:>8} {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
+        "\n{:>9} {:>7} {:>8} {:>8} {:>8} {:>8} {:>8} | {:>17} {:>17} {:>8} {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
         "diagrams",
         "scan",
         "read",
+        "again",
+        "one",
         "text",
         "lint",
         "main map tiles",
@@ -284,10 +305,12 @@ fn scale_timings() {
         let m = measure(&project);
         assert_eq!(m.errors, 0);
         println!(
-            "{:>9} {:>7} {:>8} {:>6}kB {:>8} | {:>17} {:>8} / {:>6} {:>6}kB {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
+            "{:>9} {:>7} {:>8} {:>8} {:>8} {:>6}kB {:>8} | {:>17} {:>8} / {:>6} {:>6}kB {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
             m.diagrams,
             ms(m.scan),
             ms(m.read),
+            ms(m.again),
+            ms(m.one),
             m.bytes / 1024,
             ms(m.lint),
             m.main.tiles,

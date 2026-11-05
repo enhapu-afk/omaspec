@@ -273,6 +273,13 @@ pub enum Message {
     Scanned(PathBuf, Vec<PathBuf>),
     /// The state machines and all diagrams found in a project folder.
     Specs(PathBuf, Arc<Specs>, Arc<omaspec_render::Atlas>),
+    /// The same from a project's index, with the folders it looked into.
+    Indexed(
+        PathBuf,
+        Arc<Specs>,
+        Arc<omaspec_render::Atlas>,
+        Arc<Vec<PathBuf>>,
+    ),
     /// A click on the trail over the diagram: back to that step.
     BackTo(usize),
     PromptInput(String),
@@ -798,6 +805,12 @@ struct App {
     /// states link to; and the same in the diagram's colors.
     atlases: HashMap<PathBuf, Arc<omaspec_render::Atlas>>,
     themed_atlases: HashMap<PathBuf, Arc<omaspec_render::Atlas>>,
+    /// Each such project folder's index, which reads again only the
+    /// files that changed; shared with the refresh under way.
+    indexes: HashMap<PathBuf, Arc<Mutex<crate::index::Index>>>,
+    /// The folders of each such project, and of all of them those watched.
+    project_dirs: HashMap<PathBuf, Arc<Vec<PathBuf>>>,
+    watched: Arc<Vec<PathBuf>>,
     /// A link being followed, while the zoom into it runs.
     following: Option<links::Following>,
     /// The diagrams followed into, from the first.
@@ -913,6 +926,9 @@ impl App {
             specs: HashMap::new(),
             atlases: HashMap::new(),
             themed_atlases: HashMap::new(),
+            indexes: HashMap::new(),
+            project_dirs: HashMap::new(),
+            watched: Arc::default(),
             following: None,
             trail: Vec::new(),
             help: None,
@@ -1100,6 +1116,7 @@ impl App {
             })
             .map(Message::Worker),
             worker::watch(files).map(Message::Worker),
+            worker::watch_projects(Arc::clone(&self.watched)).map(Message::Worker),
             doc.editor
                 .subscription()
                 .with(doc.key)
@@ -1317,6 +1334,10 @@ impl App {
                     self.fill_tree();
                 }
                 Task::none()
+            }
+            Message::Indexed(root, specs, atlas, dirs) => {
+                self.found_dirs(root.clone(), dirs);
+                self.update(Message::Specs(root, specs, atlas))
             }
             Message::Specs(root, specs, atlas) => {
                 self.found_specs(root.clone(), specs);
@@ -1561,6 +1582,8 @@ impl App {
                 self.after(Alarm::File, FILE_SETTLE);
             }
             worker::Event::Due(Alarm::File) => return self.files_changed(),
+            worker::Event::ProjectChanged => self.after(Alarm::Project, FILE_SETTLE),
+            worker::Event::Due(Alarm::Project) => return self.load_specs(),
             worker::Event::ThemeChanged => self.after(Alarm::Theme, THEME_SETTLE),
             worker::Event::FontChanged => self.after(Alarm::Font, THEME_SETTLE),
             worker::Event::Due(Alarm::Font) => self.set_font(ui::current_mono_font()),

@@ -75,13 +75,18 @@ box show what it has not taken in yet.
 - `omaspec_uml::tree::Tiles` makes the mind map and WBS drawers draw tiles,
   the diagrams on no box and the dashed arrows; `Map::tiles` says where.
 - `omaspec_render::Atlas` holds a project's diagrams; `render_linked` draws
-  a map with its tiles (pictures kept per file until it changes) and says where a
-  map's tiles and a machine's linked states are (`Rendered::links`).
+  a map with its tiles (pictures kept per file until it changes) and says
+  where a map's tiles and a machine's linked states are (`Rendered::links`).
 - The editor reads the project's diagrams with its state machines and draws
-  its diagrams linked; it draws a project's diagrams again when one of them
-  changes on disk. `omaspec render`, the preview window and the MCP
-  server's `render` draw a map with its tiles; the MCP server reads no
-  further than its folder ([0008](0008-mcp-server.md)).
+  its diagrams linked. It keeps an index of each project open
+  (`omaspec-app/src/index.rs`, 2026-11-05): it watches the project's
+  folders, reads again only the files that changed, and draws again only
+  the documents a change touches: a map, a document that names the changed
+  file, and every one when a diagram comes, goes or takes another name.
+  `omaspec render`, the preview window and the MCP server's `render` draw
+  a map with its tiles; the preview window keeps an index for the map it
+  shows; the MCP server reads no further than its folder
+  ([0008](0008-mcp-server.md)).
 - Not now: a participant of a scenario, an action of an activity or a
   class do not link yet; the trail is the way taken, not where a diagram
   sits on the map; no lint finding for a name two diagrams share; a tile

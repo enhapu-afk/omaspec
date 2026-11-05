@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, PoisonError};
 
 use iced::Task;
 use omaspec_core::{DiagramKind, Language};
@@ -12,13 +12,16 @@ use omaspec_model::Specs;
 
 use super::doc::Doc;
 use super::{App, Message};
-use crate::specs;
+use crate::index::Index;
 use crate::worker::blocking;
 
 /// The scan stops after this many diagrams.
 pub const MAX_FILES: usize = 5000;
 /// … and does not go deeper than this.
 const MAX_DEPTH: usize = 8;
+/// The folders of the projects open watched for changes, at most; a
+/// change elsewhere is found when the window gets the focus.
+const MAX_WATCHED: usize = 512;
 /// Folders that hold build output or dependencies, not diagrams.
 const SKIPPED: &[&str] = &["node_modules", "target", "__pycache__", "venv"];
 /// The sidebar shows at most this many children of one folder.
@@ -117,12 +120,19 @@ pub fn scan(dir: &Path) -> Vec<PathBuf> {
 /// The files under `dir` whose names `wanted` keeps, as [`scan`] finds
 /// diagrams.
 pub fn scan_for(dir: &Path, wanted: impl Fn(&str) -> bool) -> Vec<PathBuf> {
+    walk(dir, wanted).0
+}
+
+/// [`scan_for`], and the folders it looked into, `dir` first.
+pub fn walk(dir: &Path, wanted: impl Fn(&str) -> bool) -> (Vec<PathBuf>, Vec<PathBuf>) {
     let mut found = Vec::new();
+    let mut dirs = Vec::new();
     let mut pending = vec![(dir.to_path_buf(), 0)];
     while let Some((current, depth)) = pending.pop() {
         let Ok(entries) = std::fs::read_dir(&current) else {
             continue;
         };
+        dirs.push(current);
         for entry in entries.flatten() {
             let name = entry.file_name();
             let name = name.to_string_lossy();
@@ -144,13 +154,13 @@ pub fn scan_for(dir: &Path, wanted: impl Fn(&str) -> bool) -> Vec<PathBuf> {
                 }
                 if found.len() >= MAX_FILES {
                     found.sort();
-                    return found;
+                    return (found, dirs);
                 }
             }
         }
     }
     found.sort();
-    found
+    (found, dirs)
 }
 
 /// How well `query` matches `candidate`, or `None` if its letters do not
@@ -271,9 +281,10 @@ impl App {
         Some(omaspec_render::project_root(folder).unwrap_or_else(|| folder.clone()))
     }
 
-    /// Reads the state machines of every project folder an open document
-    /// is in, in the background.
-    pub(super) fn load_specs(&self) -> Task<Message> {
+    /// Brings the index of every project folder an open document is in up
+    /// to date, in the background: its state machines and diagrams, each
+    /// file read again only when it changed.
+    pub(super) fn load_specs(&mut self) -> Task<Message> {
         let mut roots: Vec<PathBuf> = self
             .docs
             .iter()
@@ -282,20 +293,63 @@ impl App {
         roots.extend(self.folder_project());
         roots.sort();
         roots.dedup();
-        Task::batch(roots.into_iter().map(|root| {
-            Task::perform(
-                blocking(move || {
-                    let (specs, atlas) = specs::read_project(&root);
-                    (root, specs, atlas)
-                }),
-                |found| match found {
-                    Some((root, specs, atlas)) => {
-                        Message::Specs(root, Arc::new(specs), Arc::new(atlas))
-                    }
-                    None => Message::Specs(PathBuf::new(), Arc::default(), Arc::default()),
-                },
-            )
-        }))
+        // Projects no document is in any more are forgotten.
+        self.indexes.retain(|root, _| roots.contains(root));
+        self.project_dirs.retain(|root, _| roots.contains(root));
+        self.watch_dirs();
+        let tasks: Vec<_> = roots
+            .into_iter()
+            .map(|root| {
+                let index = Arc::clone(
+                    self.indexes
+                        .entry(root.clone())
+                        .or_insert_with(|| Arc::new(Mutex::new(Index::new(&root)))),
+                );
+                Task::perform(
+                    blocking(move || {
+                        // A refresh that panicked leaves files to read again.
+                        let mut index = index.lock().unwrap_or_else(PoisonError::into_inner);
+                        index.refresh();
+                        (root, index.specs(), index.atlas(), index.dirs())
+                    }),
+                    |found| match found {
+                        Some((root, specs, atlas, dirs)) => {
+                            Message::Indexed(root, specs, atlas, dirs)
+                        }
+                        None => Message::Specs(PathBuf::new(), Arc::default(), Arc::default()),
+                    },
+                )
+            })
+            .collect();
+        Task::batch(tasks)
+    }
+
+    /// Takes the folders of the project at `root`, which are watched.
+    pub(super) fn found_dirs(&mut self, root: PathBuf, dirs: Arc<Vec<PathBuf>>) {
+        if !self.indexes.contains_key(&root) {
+            // No document is in that project any more.
+            return;
+        }
+        if self.project_dirs.get(&root) != Some(&dirs) {
+            self.project_dirs.insert(root, dirs);
+            self.watch_dirs();
+        }
+    }
+
+    /// Watches the folders of every project open, at most [`MAX_WATCHED`].
+    fn watch_dirs(&mut self) {
+        let mut dirs: Vec<PathBuf> = self
+            .project_dirs
+            .values()
+            .flat_map(|d| d.iter().cloned())
+            .collect();
+        dirs.sort();
+        dirs.dedup();
+        // A project's root sorts before its folders, and stays watched.
+        dirs.truncate(MAX_WATCHED);
+        if *self.watched != dirs {
+            self.watched = Arc::new(dirs);
+        }
     }
 
     /// Takes the state machines read for `root`, and checks each document
@@ -306,6 +360,7 @@ impl App {
         }
         for index in 0..self.docs.len() {
             if self.project_of(&self.docs[index]).as_ref() == Some(&root)
+                && !Arc::ptr_eq(&self.docs[index].specs, &specs)
                 && *self.docs[index].specs != *specs
             {
                 let doc = &mut self.docs[index];

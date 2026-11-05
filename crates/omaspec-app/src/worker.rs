@@ -17,7 +17,7 @@ use std::time::{Duration, Instant};
 use iced::Subscription;
 use iced::futures::channel::mpsc::{self, UnboundedSender};
 use iced::futures::{SinkExt, Stream, StreamExt};
-use notify::event::{AccessKind, AccessMode, ModifyKind};
+use notify::event::{AccessKind, AccessMode, CreateKind, ModifyKind, RemoveKind};
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use omaspec_core::Language;
 use omaspec_render::export::{self, usvg};
@@ -142,6 +142,9 @@ pub enum Alarm {
     Dive,
     /// The window has its new size: the gallery's pictures are drawn for it.
     Thumbs,
+    /// Files of a project changed and have settled: its index is brought
+    /// up to date.
+    Project,
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +156,9 @@ pub enum Event {
     /// The fontconfig changed: `monospace` may be another font now.
     FontChanged,
     FileChanged(PathBuf),
+    /// A diagram, a Markdown document, a project file or a folder in a
+    /// project's folders came, changed or went ([`watch_projects`]).
+    ProjectChanged,
     WatchFailed(String),
     Due(Alarm),
 }
@@ -165,6 +171,15 @@ pub struct Worker {
 }
 
 impl Worker {
+    /// A handle whose requests go nowhere, so that a test sees what a
+    /// window asks for.
+    #[cfg(test)]
+    pub fn detached() -> Worker {
+        let (input, _) = mpsc::unbounded();
+        let (timer, _) = std_mpsc::channel();
+        Worker { input, timer }
+    }
+
     /// Asks for `source` to be drawn; `place` is where the diagram's file
     /// is, so its `!include`s can be read. With `linked`, the diagram links
     /// to the project's diagrams in the atlas, from its own path there.
@@ -392,6 +407,94 @@ fn watch_stream(files: &[PathBuf]) -> impl Stream<Item = Event> + use<> {
     })
 }
 
+/// Reports [`Event::ProjectChanged`] for a change in any of `dirs`, the
+/// folders of the projects open ([`crate::index::Index::dirs`]): each
+/// watched on its own, not their whole trees, which may hold build output
+/// and dependencies. Changes that come together are reported once.
+pub fn watch_projects(dirs: Arc<Vec<PathBuf>>) -> Subscription<Event> {
+    Subscription::run_with(dirs, |dirs: &Arc<Vec<PathBuf>>| {
+        watch_projects_stream(Arc::clone(dirs))
+    })
+}
+
+fn watch_projects_stream(dirs: Arc<Vec<PathBuf>>) -> impl Stream<Item = Event> + use<> {
+    iced::stream::channel(16, async move |mut output| {
+        let (report, mut events) = mpsc::unbounded::<Event>();
+        let failed = report.clone();
+        let watcher =
+            notify::recommended_watcher(move |event: notify::Result<notify::Event>| match event {
+                Ok(e) if touches_project(&e) => {
+                    let _ = report.unbounded_send(Event::ProjectChanged);
+                }
+                Ok(_) => {}
+                Err(err) => {
+                    let _ = report.unbounded_send(Event::WatchFailed(err.to_string()));
+                }
+            });
+        // Dropping the watcher stops it, so it lives as long as the loop.
+        let _watcher = match watcher {
+            Ok(mut watcher) => {
+                for dir in dirs.iter() {
+                    // A folder gone since the scan: the next one sees it.
+                    let _ = watcher.watch(dir, RecursiveMode::NonRecursive);
+                }
+                Some(watcher)
+            }
+            Err(err) => {
+                let _ = failed.unbounded_send(Event::WatchFailed(err.to_string()));
+                None
+            }
+        };
+        let mut held = None;
+        loop {
+            let event = match held.take() {
+                Some(event) => event,
+                None => match events.next().await {
+                    Some(event) => event,
+                    None => break,
+                },
+            };
+            // A checkout changes many files at once: one report for them.
+            if matches!(event, Event::ProjectChanged) {
+                while let Ok(next) = events.try_recv() {
+                    if !matches!(next, Event::ProjectChanged) {
+                        held = Some(next);
+                        break;
+                    }
+                }
+            }
+            if output.send(event).await.is_err() {
+                break;
+            }
+        }
+    })
+}
+
+/// Whether `event` may change a project's index: a diagram, a Markdown
+/// document or a project file written, made or removed, or a folder made,
+/// removed or renamed. Reading the files, as the index does, is none.
+fn touches_project(event: &notify::Event) -> bool {
+    let named = || {
+        event.paths.iter().any(|path| {
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|name| {
+                    Language::from_file_name(name).is_some()
+                        || omaspec_core::markdown::is_markdown(name)
+                        || name == omaspec_core::project::FILE
+                })
+        })
+    };
+    match event.kind {
+        EventKind::Create(CreateKind::Folder) | EventKind::Remove(RemoveKind::Folder) => true,
+        EventKind::Modify(ModifyKind::Name(_)) => {
+            named() || event.paths.iter().any(|p| p.extension().is_none())
+        }
+        EventKind::Remove(_) => named(),
+        kind => is_change(&kind) && named(),
+    }
+}
+
 fn watch_dir(
     dir: &Path,
     files: &[PathBuf],
@@ -533,6 +636,46 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    #[test]
+    fn reports_changes_in_a_project_s_folders() {
+        let root = temp_dir("watch-project");
+        let rooms = root.join("rooms");
+        std::fs::create_dir_all(&rooms).unwrap();
+        let door = rooms.join("door.puml");
+        std::fs::write(&door, "@startuml\n@enduml\n").unwrap();
+        let events = Events::start(watch_projects_stream(Arc::new(vec![
+            root.clone(),
+            rooms.clone(),
+        ])));
+        // The folders are watched once the stream runs.
+        std::thread::sleep(Duration::from_millis(200));
+
+        // Reading a diagram, as the index does, or writing a file that is
+        // none, is no change.
+        let _ = std::fs::read_to_string(&door).unwrap();
+        std::fs::write(root.join("notes.txt"), "x").unwrap();
+        assert!(events.settle(Duration::from_millis(300)).is_empty());
+
+        // Diagrams written in a folder below.
+        for n in 0..20 {
+            std::fs::write(rooms.join(format!("unit-{n}.puml")), "@startuml\n@enduml\n").unwrap();
+        }
+        let came = events.settle(Duration::from_millis(300));
+        assert!(!came.is_empty());
+        assert!(
+            came.iter().all(|e| matches!(e, Event::ProjectChanged)),
+            "{came:?}"
+        );
+
+        // A diagram removed; a folder made.
+        std::fs::remove_file(&door).unwrap();
+        assert!(matches!(events.next(), Event::ProjectChanged));
+        let _ = events.settle(Duration::from_millis(300));
+        std::fs::create_dir(root.join("hall")).unwrap();
+        assert!(matches!(events.next(), Event::ProjectChanged));
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

@@ -9,15 +9,13 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use omaspec_core::{Language, detect, markdown};
+use omaspec_core::Language;
 use omaspec_model::{Spec, Specs};
 use omaspec_render::anchors::Anchor;
-use omaspec_render::{Atlas, Entry, Place, RenderError, Rendered, Renderer};
+use omaspec_render::{Atlas, Place, RenderError, Rendered, Renderer};
 
 use crate::editor::folder::scan_for;
 
-/// A file may hold at most this many bytes.
-const MAX_FILE: u64 = 1 << 20;
 /// A recorded trace may hold at most this many bytes, as the command line
 /// reads it.
 const MAX_TRACE: u64 = 16 << 20;
@@ -28,49 +26,10 @@ pub fn read(root: &Path) -> Specs {
 }
 
 /// The state machines in the project folder `root`, and all its diagrams
-/// with the main one its project file names; each file read once.
+/// with the main one its project file names; each file read once
+/// ([`crate::index::Index`] keeps them up to date).
 pub fn read_project(root: &Path) -> (Specs, Atlas) {
-    let mut specs = Vec::new();
-    let project = crate::project::read(root).and_then(Result::ok);
-    let mut atlas = Atlas {
-        main: project
-            .as_ref()
-            .and_then(|p| p.main.clone())
-            .map(|m| m.replace('\\', "/").trim_start_matches("./").to_owned()),
-        name: project.and_then(|p| p.name),
-        ..Atlas::default()
-    };
-    let files = scan_for(root, |name| {
-        Language::from_file_name(name).is_some() || markdown::is_markdown(name)
-    });
-    for relative in files {
-        let path = root.join(&relative);
-        let small = std::fs::metadata(&path).is_ok_and(|m| m.is_file() && m.len() <= MAX_FILE);
-        let Some(text) = small.then(|| std::fs::read_to_string(&path).ok()).flatten() else {
-            continue;
-        };
-        let name = file_name(&relative);
-        // A document's state machines count; its diagrams are no tiles.
-        if markdown::is_markdown(&name) {
-            specs.extend(
-                markdown::blocks(&text)
-                    .iter()
-                    .filter_map(|b| Spec::read_in_document(&b.code, b.language, &name)),
-            );
-            continue;
-        }
-        let language = detect(&text, Language::from_file_name(&name));
-        specs.extend(Spec::read(&text, language, &name));
-        atlas.diagrams.push(Entry {
-            names: omaspec_core::project::names(&text, language, &name),
-            place: Place::of(&path, Some(root)),
-            file: name,
-            source: text,
-            language,
-        });
-    }
-    atlas.diagrams.sort_by(|a, b| a.file.cmp(&b.file));
-    (Specs::new(specs), atlas)
+    crate::index::Index::read(root).into_parts()
 }
 
 /// The path of the file at `path` in the project at `root`, as maps show
@@ -82,7 +41,7 @@ pub fn path_in(root: &Path, path: &Path) -> Option<String> {
 
 /// The projects' diagrams that maps show (`docs/adr/0018`), each project
 /// read once: `omaspec render` and the MCP server keep one for all their
-/// diagrams, the preview window reads afresh for every drawing.
+/// diagrams.
 #[derive(Default)]
 pub struct Maps(HashMap<PathBuf, Arc<Atlas>>);
 
