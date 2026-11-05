@@ -120,6 +120,20 @@ impl Worker {
             language,
             place,
             linked,
+            document: false,
+        });
+    }
+
+    /// Renders every diagram of the Markdown document `source`, one under
+    /// another (`Renderer::render_document`).
+    pub fn render_document(&self, ticket: Ticket, source: Arc<str>, place: Option<Place>) {
+        let _ = self.input.unbounded_send(Input::Render {
+            ticket,
+            source,
+            language: Language::PlantUml,
+            place,
+            linked: None,
+            document: true,
         });
     }
 
@@ -141,6 +155,7 @@ enum Input {
         language: Language,
         place: Option<Place>,
         linked: Option<Linked>,
+        document: bool,
     },
     Done(Generation, Result<Drawn, RenderError>),
     Forward(Event),
@@ -211,14 +226,19 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     language,
                     place,
                     linked,
+                    document,
                 } => {
-                    let generation = service.submit_linked(
-                        ticket.doc,
-                        source.to_string(),
-                        language,
-                        place,
-                        linked,
-                    );
+                    let generation = if document {
+                        service.submit_document(ticket.doc, source.to_string(), place)
+                    } else {
+                        service.submit_linked(
+                            ticket.doc,
+                            source.to_string(),
+                            language,
+                            place,
+                            linked,
+                        )
+                    };
                     requests.insert(generation, (ticket, source, language));
                     continue;
                 }

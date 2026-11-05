@@ -27,6 +27,8 @@ struct Job {
     place: Option<Place>,
     /// The project the diagram links into, and its own path there.
     linked: Option<(Arc<Atlas>, Option<String>)>,
+    /// A Markdown document: all its diagrams ([`Renderer::render_document`]).
+    document: bool,
 }
 
 /// The result of one request.
@@ -116,6 +118,29 @@ impl RenderService {
             language,
             place,
             linked,
+            document: false,
+        });
+        generation
+    }
+
+    /// Queues every diagram of the Markdown document `source` at `place`,
+    /// drawn one under another.
+    pub fn submit_document(
+        &mut self,
+        slot: u64,
+        source: String,
+        place: Option<Place>,
+    ) -> Generation {
+        let generation = self.next;
+        self.next += 1;
+        let _ = self.jobs.send(Job {
+            generation,
+            slot,
+            source,
+            language: Language::PlantUml,
+            place,
+            linked: None,
+            document: true,
         });
         generation
     }
@@ -130,6 +155,7 @@ fn render_guarded(
     job: &Job,
 ) -> Result<Rendered, RenderError> {
     let result = catch_unwind(AssertUnwindSafe(|| match &job.linked {
+        _ if job.document => renderer.render_document(&job.source, job.place.as_ref()),
         Some((atlas, own)) => renderer.render_linked(
             &job.source,
             job.language,

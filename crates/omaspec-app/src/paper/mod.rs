@@ -319,6 +319,24 @@ impl Paper {
         self.status = Status::Rendering;
     }
 
+    /// Asks `worker` to render every diagram of the Markdown document
+    /// `source`, one under another, as the preview window shows it.
+    pub fn request_document(
+        &mut self,
+        worker: &Worker,
+        doc: u64,
+        source: Arc<str>,
+        place: Option<Place>,
+    ) {
+        self.requested += 1;
+        let ticket = Ticket {
+            doc,
+            id: self.requested,
+        };
+        worker.render_document(ticket, source, place);
+        self.status = Status::Rendering;
+    }
+
     /// The id of the answer on screen; older ones are dropped.
     pub fn shown(&self) -> u64 {
         self.shown
@@ -1779,6 +1797,23 @@ pub mod testing {
             ..Config::default()
         });
         let out = renderer.render(source, language).unwrap();
+        Drawn {
+            tree: Arc::new(export::parse(&out.svg).unwrap()),
+            svg: out.svg.into(),
+            engine: out.engine,
+            elapsed: out.elapsed,
+            map: Arc::new(out.map),
+            links: Arc::new(out.links),
+        }
+    }
+
+    /// Every diagram of the Markdown document `text`, one under another.
+    pub fn drawn_document(text: &str) -> Drawn {
+        let mut renderer = Renderer::new(&Config {
+            java_fallback: false,
+            ..Config::default()
+        });
+        let out = renderer.render_document(text, None).unwrap();
         Drawn {
             tree: Arc::new(export::parse(&out.svg).unwrap()),
             svg: out.svg.into(),

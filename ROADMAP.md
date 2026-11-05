@@ -1361,11 +1361,25 @@ checked; numbers are measured, not assumed.
       state in a subfolder and `--look auto`, which a map with cards could not take
       before: the shadows are stronger on the dark page, and opacities now turn like
       colors (`schemes.rs`). An SVG an earlier export left in the folder stays.
-- [ ] Diagrams in Markdown: a `.md` file is a document of diagrams. Every `plantuml`
+- [x] Diagrams in Markdown: a `.md` file is a document of diagrams. Every `plantuml`
       and `mermaid` block is linted, checked and drawn, findings on the note's own
       lines; the pane draws the block at the caret, the preview window all of them
       one under another. `lint`, `inspect` and `render` take it (`render README.md`
-      writes one image per block).
+      writes one image per block). Built: `omaspec_core::markdown` finds the blocks
+      by CommonMark's fences (` ``` ` and `~~~`, `puml` and `mmd` too, a body without
+      `@startuml` read inside it) and draws one from the document with every other
+      line empty (`masked`), so each engine, check, play and Ctrl+click names the
+      document's lines without a mapping of its own. `render README.md` writes
+      README-1.svg, … each with its diagram's source (README-1.puml); `inspect` lists
+      the diagrams with their fence lines; the MCP tools take a document, `render`
+      with `diagram` to pick one. The editor highlights a document with a Markdown
+      grammar that embeds PlantUML's and Mermaid's (scrive loads them in one set),
+      draws the diagram at the caret, and says that formatting, skin packs,
+      converting, lines by hand and the language commands are for diagram files.
+      The preview window stacks the diagrams (`omaspec_render::stack`). A document's
+      state machines belong to its project, named by `@startuml` and `title` only.
+      Found on the way: mmdr names line 1 for a flowchart it cannot read at all; on
+      a blank line, the error moves to the header after it.
 - [ ] The look pinned per project: `[look]` in `omaspec-project.toml` (pack, colors,
       font), used alike by the pane, `render`, the MCP server and CI. An SVG is laid
       out the same on every machine already (text is measured on built-in metrics);

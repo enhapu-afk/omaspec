@@ -204,6 +204,19 @@ Ctrl+O, such an image opens as a new, unsaved tab under a name nothing has yet
 (`flow-2.mmd` next to `flow.mmd`), so saving never overwrites the original.
 `omaspec extract diagram.png` prints the source.
 
+### Markdown documents
+
+A `.md` file is a document of diagrams: every fenced block that names `plantuml`, `puml`,
+`mermaid` or `mmd` is one, highlighted in its language, linted and checked on the
+document's lines. A PlantUML block without `@startuml` is read inside it, as GitLab draws
+it. The pane draws the diagram the caret is in (or the last one above it); a Ctrl+click,
+a play and an error land on the document's lines, and an export or a copy is that diagram
+alone, as `README-2.svg` with its source as `README-2.puml`. Formatting, skin packs,
+converting, lines by hand and the language commands work on diagram files only. The
+preview window shows all of a document's diagrams one under another. A document's state
+machines belong to its project, named by `@startuml Name` or `title`; `lint`, `inspect`,
+`render` and the MCP tools take a document as they take a diagram.
+
 ### A project to hand on
 
 *Export the project* in the command list, or `omaspec export DIR`, writes every diagram

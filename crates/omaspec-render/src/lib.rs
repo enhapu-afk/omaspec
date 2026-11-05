@@ -17,6 +17,7 @@ pub mod pick;
 pub mod sanitize;
 pub mod schemes;
 mod service;
+pub mod stack;
 
 use std::fmt;
 use std::path::PathBuf;
@@ -219,6 +220,50 @@ impl Renderer {
             engine,
             elapsed: start.elapsed(),
             map,
+            links: Vec::new(),
+        })
+    }
+
+    /// Renders every diagram of the Markdown document `text` (its fenced
+    /// `plantuml` and `mermaid` blocks) one under another
+    /// ([`stack::stack`]). Each is drawn from the document with every other
+    /// line empty, so an error names the document's line; the first error
+    /// ends the drawing, and a document without a diagram says so.
+    pub fn render_document(
+        &mut self,
+        text: &str,
+        place: Option<&Place>,
+    ) -> Result<Rendered, RenderError> {
+        let start = Instant::now();
+        let blocks = omaspec_core::markdown::blocks(text);
+        let Some(first) = blocks.first() else {
+            return Err(RenderError::Unavailable {
+                line: None,
+                reason: "no PlantUML or Mermaid diagram in this document".into(),
+            });
+        };
+        let mut engine = None;
+        let mut pictures = Vec::with_capacity(blocks.len());
+        for block in &blocks {
+            let masked = omaspec_core::markdown::masked(text, block);
+            let drawn = self.render_at(&masked, block.language, place)?;
+            engine.get_or_insert(drawn.engine);
+            pictures.push(drawn.svg);
+        }
+        let shown: Vec<&str> = pictures.iter().map(String::as_str).collect();
+        let engine = engine.unwrap_or(match first.language {
+            Language::Mermaid => Engine::Mermaid,
+            Language::PlantUml => Engine::NativePlantUml,
+        });
+        let svg = stack::stack(&shown).map_err(|e| RenderError::Engine {
+            engine,
+            message: format!("invalid SVG: {e}"),
+        })?;
+        Ok(Rendered {
+            svg,
+            engine,
+            elapsed: start.elapsed(),
+            map: Map::default(),
             links: Vec::new(),
         })
     }

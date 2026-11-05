@@ -1,5 +1,5 @@
 //! `omaspec preview FILE`: a window that shows a diagram and follows the
-//! file.
+//! file; a Markdown document's diagrams one under another.
 //!
 //! Made for editing in Neovim (or any editor) with the preview tiled next to
 //! it: every save renders again, an error shows in the status bar while the
@@ -207,6 +207,11 @@ impl Preview {
     fn request_render(&mut self) {
         let Some(worker) = &self.worker else { return };
         match std::fs::read_to_string(&self.path) {
+            // A Markdown document: all its diagrams, one under another.
+            Ok(source) if omaspec_core::markdown::is_markdown(&self.name) => {
+                let place = Place::of(&self.path, None);
+                self.paper.request_document(worker, 0, source.into(), place);
+            }
             Ok(source) => {
                 let hint = Language::from_file_name(&self.name);
                 let language = self.forced.unwrap_or_else(|| detect(&source, hint));
@@ -377,11 +382,14 @@ impl Preview {
             ],
             (None, _) => row![label(state, color)],
         };
-        let language = self
-            .paper
-            .diagram
-            .as_ref()
-            .map_or("", |d| d.language.name());
+        let language = if omaspec_core::markdown::is_markdown(&self.name) {
+            "Markdown"
+        } else {
+            self.paper
+                .diagram
+                .as_ref()
+                .map_or("", |d| d.language.name())
+        };
         let bar = row![
             label("󰈸".into(), p.accent),
             label(self.name.clone(), p.foreground),
@@ -589,6 +597,11 @@ mod tests {
         let _ = p.update(press("j"));
         p.paper.finish_rasters();
         shoot(&p, &dir, "preview-zoomed");
+        // A Markdown document: its diagrams one under another.
+        let doc = "# Door\n\n```plantuml\n@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n```\n\n\
+                   A visit:\n\n```mermaid\nsequenceDiagram\n  User->>Door: open\n  User->>Door: close\n```\n";
+        let p = showing(crate::paper::testing::drawn_document(doc));
+        shoot(&p, &dir, "preview-markdown");
     }
 
     fn shoot(p: &Preview, dir: &Path, name: &str) {

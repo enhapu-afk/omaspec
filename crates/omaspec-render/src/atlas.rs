@@ -518,7 +518,7 @@ fn parts(svg: &str) -> Option<(String, String)> {
 }
 
 /// `body` with its ids and the references to them made its own.
-fn own_ids(body: &str, prefix: &str) -> String {
+pub(crate) fn own_ids(body: &str, prefix: &str) -> String {
     body.replace(" id=\"", &format!(" id=\"{prefix}"))
         .replace("url(#", &format!("url(#{prefix}"))
         .replace("href=\"#", &format!("href=\"#{prefix}"))
