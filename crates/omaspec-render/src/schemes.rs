@@ -1,5 +1,6 @@
 //! One SVG in two color schemes. The same text drawn in a light and in a
-//! dark palette gives two pictures that differ only in their colors; the
+//! dark palette gives two pictures that differ only in their colors (and
+//! how strong they are: a shadow is stronger on a dark page); the
 //! light one is kept as it is, and a style sheet at its end gives the dark
 //! colors under `prefers-color-scheme: dark`. A light color that turns
 //! into the same dark one everywhere is turned by its attribute
@@ -14,7 +15,8 @@ use roxmltree::{Document, Node, NodeType};
 
 use crate::sanitize::{self, SanitizeError};
 
-/// Attributes and style properties that hold a color.
+/// Attributes and style properties that hold a color, or how strong one
+/// is.
 const COLORS: &[&str] = &[
     "fill",
     "stroke",
@@ -22,6 +24,11 @@ const COLORS: &[&str] = &[
     "flood-color",
     "lighting-color",
     "color",
+    "opacity",
+    "fill-opacity",
+    "stroke-opacity",
+    "stop-opacity",
+    "flood-opacity",
 ];
 
 /// The two pictures differ in more than their colors.
@@ -331,5 +338,19 @@ mod tests {
         assert!(both(LIGHT, &other).is_err());
         // The same picture twice needs no sheet.
         assert_eq!(both(LIGHT, LIGHT).unwrap(), LIGHT);
+    }
+
+    #[test]
+    fn a_shadow_may_be_stronger_on_the_dark_page() {
+        let shadow = |fill: &str, opacity: &str| {
+            format!(
+                r##"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><path d="M0 0h10v10z" fill="#000000" fill-opacity="{opacity}"/><rect width="5" height="5" fill="{fill}"/></svg>"##
+            )
+        };
+        let both = both(&shadow("#ffffff", "0.02"), &shadow("#23272f", "0.06")).unwrap();
+        assert!(
+            both.contains(r#"[fill-opacity="0.02"] { fill-opacity: 0.06; }"#),
+            "{both}"
+        );
     }
 }
