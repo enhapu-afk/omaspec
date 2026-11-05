@@ -50,12 +50,9 @@ fn paint_shapes(canvas: &mut Canvas, scene: &Scene) {
 }
 
 fn paint_shape(canvas: &mut Canvas, node: &Placed) {
-    let Some(link) = &node.item.link else {
-        return paint_outline(canvas, node);
-    };
-    canvas.begin_link(Layer::Frames, link);
-    paint_outline(canvas, node);
-    canvas.end_link(Layer::Frames);
+    canvas.linked(node.item.link.as_ref(), &[Layer::Frames], |canvas| {
+        paint_outline(canvas, node);
+    });
 }
 
 fn paint_outline(canvas: &mut Canvas, node: &Placed) {
@@ -189,13 +186,9 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, ground: Paint) {
             Kind::Node(shape) => {
                 let (cx, cy) = shape.text_center(rect);
                 let top = cy - node.item.title.height / 2.0;
-                if let Some(link) = &node.item.link {
-                    canvas.begin_link(Layer::Front, link);
-                }
-                canvas.text(Layer::Front, &node.item.title, (cx, top), Align::Center);
-                if node.item.link.is_some() {
-                    canvas.end_link(Layer::Front);
-                }
+                canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
+                    canvas.text(Layer::Front, &node.item.title, (cx, top), Align::Center);
+                });
             }
             Kind::Cluster => {}
         }

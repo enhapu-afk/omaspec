@@ -153,17 +153,9 @@ fn paint_bar(
     y: f32,
     row_h: f32,
 ) -> Result<(), Declined> {
-    let Some(link) = &bar.link else {
-        return paint_task(canvas, skin, family, geom, bar, y, row_h);
-    };
-    for layer in [Layer::Front, Layer::Bars] {
-        canvas.begin_link(layer, link);
-    }
-    let painted = paint_task(canvas, skin, family, geom, bar, y, row_h);
-    for layer in [Layer::Front, Layer::Bars] {
-        canvas.end_link(layer);
-    }
-    painted
+    canvas.linked(bar.link.as_ref(), &[Layer::Front, Layer::Bars], |canvas| {
+        paint_task(canvas, skin, family, geom, bar, y, row_h)
+    })
 }
 
 fn paint_task(

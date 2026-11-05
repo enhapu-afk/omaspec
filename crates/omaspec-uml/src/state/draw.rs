@@ -673,12 +673,9 @@ fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 }
 
 fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
-    let Some(link) = &node.item.link else {
-        return paint_outline(canvas, skin, node);
-    };
-    canvas.begin_link(Layer::Frames, link);
-    paint_outline(canvas, skin, node);
-    canvas.end_link(Layer::Frames);
+    canvas.linked(node.item.link.as_ref(), &[Layer::Frames], |canvas| {
+        paint_outline(canvas, skin, node);
+    });
 }
 
 fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
@@ -836,43 +833,9 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
 
 fn paint_labels(canvas: &mut Canvas, scene: &Scene) {
     for node in &scene.nodes {
-        if let Some(link) = &node.item.link {
-            canvas.begin_link(Layer::Front, link);
-        }
-        match node.item.kind {
-            Kind::State if node.item.composite => {
-                paint_stack(
-                    canvas,
-                    &node.item.title,
-                    &node.item.description,
-                    node.rect.x + node.rect.w / 2.0,
-                    node.rect.y + COMP_PAD,
-                );
-            }
-            Kind::State => {
-                let height = stack_height(&node.item.title, &node.item.description);
-                paint_stack(
-                    canvas,
-                    &node.item.title,
-                    &node.item.description,
-                    node.rect.x + node.rect.w / 2.0,
-                    node.rect.y + (node.rect.h - height) / 2.0,
-                );
-            }
-            Kind::Choice | Kind::History | Kind::DeepHistory => {
-                let y = node.rect.y + (node.rect.h - node.item.title.height) / 2.0;
-                canvas.text(
-                    Layer::Front,
-                    &node.item.title,
-                    (node.rect.x + node.rect.w / 2.0, y),
-                    Align::Center,
-                );
-            }
-            Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
-        }
-        if node.item.link.is_some() {
-            canvas.end_link(Layer::Front);
-        }
+        canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
+            paint_words(canvas, node);
+        });
         paint_labels(canvas, &node.children);
     }
     for edge in &scene.edges {
@@ -885,6 +848,41 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene) {
             (note.x + NOTE_PAD, note.y + NOTE_PAD),
             Align::Left,
         );
+    }
+}
+
+/// A node's own words: a state's title and description, a choice's label.
+fn paint_words(canvas: &mut Canvas, node: &Placed) {
+    match node.item.kind {
+        Kind::State if node.item.composite => {
+            paint_stack(
+                canvas,
+                &node.item.title,
+                &node.item.description,
+                node.rect.x + node.rect.w / 2.0,
+                node.rect.y + COMP_PAD,
+            );
+        }
+        Kind::State => {
+            let height = stack_height(&node.item.title, &node.item.description);
+            paint_stack(
+                canvas,
+                &node.item.title,
+                &node.item.description,
+                node.rect.x + node.rect.w / 2.0,
+                node.rect.y + (node.rect.h - height) / 2.0,
+            );
+        }
+        Kind::Choice | Kind::History | Kind::DeepHistory => {
+            let y = node.rect.y + (node.rect.h - node.item.title.height) / 2.0;
+            canvas.text(
+                Layer::Front,
+                &node.item.title,
+                (node.rect.x + node.rect.w / 2.0, y),
+                Align::Center,
+            );
+        }
+        Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
     }
 }
 

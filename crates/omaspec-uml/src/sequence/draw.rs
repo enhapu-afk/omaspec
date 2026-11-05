@@ -1680,14 +1680,9 @@ impl<'a> Drawer<'a> {
     /// Draws column `c`'s head with its top at `top`; at the bottom the
     /// label of an icon goes above it. A linked head is a link.
     fn head(&self, canvas: &mut Canvas, c: usize, top: f32, bottom: bool) {
-        let link = self.cols[c].link.as_ref();
-        if let Some(link) = link {
-            canvas.begin_link(Layer::Front, link);
-        }
-        self.head_shape(canvas, c, top, bottom);
-        if link.is_some() {
-            canvas.end_link(Layer::Front);
-        }
+        canvas.linked(self.cols[c].link.as_ref(), &[Layer::Front], |canvas| {
+            self.head_shape(canvas, c, top, bottom);
+        });
     }
 
     fn head_shape(&self, canvas: &mut Canvas, c: usize, top: f32, bottom: bool) {

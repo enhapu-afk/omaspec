@@ -953,16 +953,11 @@ fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 }
 
 fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
-    let Some(link) = &node.item.link else {
-        return paint_box(canvas, skin, node);
-    };
-    for layer in [Layer::Frames, Layer::Front] {
-        canvas.begin_link(layer, link);
-    }
-    paint_box(canvas, skin, node);
-    for layer in [Layer::Frames, Layer::Front] {
-        canvas.end_link(layer);
-    }
+    canvas.linked(
+        node.item.link.as_ref(),
+        &[Layer::Frames, Layer::Front],
+        |canvas| paint_box(canvas, skin, node),
+    );
 }
 
 /// An element's shape and its words.

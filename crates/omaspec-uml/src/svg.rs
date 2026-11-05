@@ -194,15 +194,26 @@ impl Canvas {
         self.layers[layer as usize].push_str("</g>");
     }
 
-    /// What is drawn into `layer` until [`Self::end_link`] is a link: a
-    /// click on it follows `link`. An element drawn on several layers
-    /// opens one on each.
-    pub fn begin_link(&mut self, layer: Layer, link: &Link) {
-        open_link(&mut self.layers[layer as usize], link);
-    }
-
-    pub fn end_link(&mut self, layer: Layer) {
-        self.layers[layer as usize].push_str("</a>");
+    /// Draws with `paint`; with a `link`, what it draws into each of
+    /// `layers` is a link a click follows, one on each layer an element is
+    /// drawn on.
+    pub fn linked<T>(
+        &mut self,
+        link: Option<&Link>,
+        layers: &[Layer],
+        paint: impl FnOnce(&mut Canvas) -> T,
+    ) -> T {
+        let Some(link) = link else {
+            return paint(self);
+        };
+        for &layer in layers {
+            open_link(&mut self.layers[layer as usize], link);
+        }
+        let painted = paint(self);
+        for &layer in layers {
+            self.layers[layer as usize].push_str("</a>");
+        }
+        painted
     }
 
     pub fn line(
