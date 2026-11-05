@@ -1545,7 +1545,15 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       more measures in `tests/lines`: how far the other boxes move when one box is
       added to each diagram of the corpus (after aligning both pictures), and how
       far the crossings change when the lines are written in another order. Both may
-      not grow.
+      not grow. So far: the two measures (2026-11-05): a line from each diagram's
+      first named box to a new one, both pictures aligned on their median shift,
+      moves a box 908 units summed over the diagrams' averages (`smart-home` 84,
+      `platform` 60); each run of lines written the other way round crosses 17
+      times, not 7 (`platform` 3 → 9). A box added that does not draw (a line
+      across regions) is not measured (`-`). The ADR
+      ([0020](docs/adr/0020-room-for-labels.md), proposed): ranks doubled, a
+      labelled line's point in the rank between its ends a box of its label's
+      size.
 - [ ] Boxes held in place: a box dragged to where it should stay is kept in the
       block of [0016](docs/adr/0016-lines-by-hand.md), relative to its rank and
       neighbors rather than in coordinates, so it holds when a theme or a font
