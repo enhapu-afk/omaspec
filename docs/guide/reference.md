@@ -243,8 +243,10 @@ a play and an error land on the document's lines, and an export or a copy is tha
 alone, as `README-2.svg` with its source as `README-2.puml`. Formatting, skin packs,
 converting, lines by hand and the language commands work on diagram files only. The
 preview window shows all of a document's diagrams one under another. A document's state
-machines belong to its project, named by `@startuml Name` or `title`; `lint`, `inspect`,
-`render` and the MCP tools take a document as they take a diagram.
+machines belong to its project, named by `@startuml Name` or `title`. On the command line
+and over MCP, `lint`, `inspect`, `render` and `outline` take a document's diagrams on its
+lines, and `fmt` formats each of them in its place, leaving the prose as it is; `convert`
+and `diff` take a diagram file and say so for a document.
 
 ### A project to hand on
 

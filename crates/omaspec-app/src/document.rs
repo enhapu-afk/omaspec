@@ -1,7 +1,9 @@
 //! What a command reads from an input: its one diagram, or each diagram of
 //! a Markdown document (`omaspec_core::markdown`), with lines that are the
-//! document's. `lint`, `inspect` and `render` take a document as they take
-//! a diagram, on the command line and over MCP.
+//! document's. The command line and the MCP server decide here alike:
+//! `lint`, `inspect`, `render` and `outline` take a document's diagrams,
+//! `fmt` formats each in its place, and a command for one diagram file
+//! (`convert`, `diff`) refuses a document through [`one_diagram`].
 
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
@@ -51,6 +53,44 @@ pub(crate) fn pieces(input: &Input, forced: Option<Language>) -> Vec<Piece<'_>> 
 /// Whether `input` is a Markdown document.
 pub(crate) fn is_document(input: &Input) -> bool {
     input.file_name().is_some_and(markdown::is_markdown)
+}
+
+/// Refuses a Markdown document for a command that takes one diagram file
+/// (`does`: what it does), on the command line and over MCP alike.
+pub(crate) fn one_diagram(input: &Input, does: &str) -> anyhow::Result<()> {
+    if is_document(input) {
+        let count = markdown::blocks(&input.text).len();
+        let diagrams = if count == 1 { "diagram" } else { "diagrams" };
+        anyhow::bail!(
+            "{} is a Markdown document with {count} {diagrams}; {does} takes a diagram file",
+            input.name()
+        );
+    }
+    Ok(())
+}
+
+/// `input` formatted: its diagram, or each diagram of a Markdown document
+/// in its place, the document's prose as it is.
+pub(crate) fn formatted(input: &Input, forced: Option<Language>) -> String {
+    if is_document(input) {
+        return markdown::rewrite_blocks(&input.text, |block| {
+            omaspec_core::format::format(&block.code, block.language)
+        });
+    }
+    omaspec_core::format::format(&input.text, language(input, forced))
+}
+
+/// The outline of `input`'s diagrams, on its lines.
+pub(crate) fn outline(input: &Input, forced: Option<Language>) -> Vec<outline::Entry> {
+    pieces(input, forced)
+        .iter()
+        .flat_map(|piece| match &piece.block {
+            Some((_, block)) => {
+                outline::outline(&markdown::masked(&input.text, block), piece.language)
+            }
+            None => outline::outline(&piece.code, piece.language),
+        })
+        .collect()
 }
 
 impl Piece<'_> {

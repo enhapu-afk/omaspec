@@ -38,11 +38,19 @@ pub struct RenderArgs<'a> {
 
 pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     let inputs = read_inputs(&with_folders(args.files)?)?;
-    // A Markdown document gives one image per diagram.
-    let pieces: Vec<crate::document::Piece> = inputs
+    // A Markdown document gives one image per diagram; one without any
+    // is said so.
+    let read: Vec<(&crate::files::Input, Vec<crate::document::Piece>)> = inputs
         .iter()
-        .flat_map(|input| crate::document::pieces(input, args.lang))
+        .map(|input| (input, crate::document::pieces(input, args.lang)))
         .collect();
+    let empty: Vec<&crate::files::Input> = read
+        .iter()
+        .filter(|(_, pieces)| pieces.is_empty())
+        .map(|(input, _)| *input)
+        .collect();
+    let pieces: Vec<crate::document::Piece> =
+        read.into_iter().flat_map(|(_, pieces)| pieces).collect();
     anyhow::ensure!(
         args.output.is_none() || pieces.len() == 1,
         "--output works with one diagram only"
@@ -92,10 +100,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     let mut reports = Vec::new();
     // A map shows its project's diagrams in tiles (docs/adr/0018).
     let mut maps = crate::specs::Maps::default();
-    for input in inputs
-        .iter()
-        .filter(|input| !pieces.iter().any(|p| std::ptr::eq(p.input, *input)))
-    {
+    for input in empty {
         failed = true;
         let message = "no PlantUML or Mermaid diagram in it".to_owned();
         if args.json {

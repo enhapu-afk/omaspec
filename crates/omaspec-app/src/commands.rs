@@ -8,7 +8,7 @@ use std::process::ExitCode;
 use anyhow::{Context, Result};
 use omaspec_core::lint::{Finding, Severity};
 use omaspec_core::outline::Entry;
-use omaspec_core::{DiagramKind, Language, classify, detect, embed, format, outline};
+use omaspec_core::{DiagramKind, Language, classify, detect, embed, outline};
 use omaspec_render::{Config, RenderError, mermaid_coverage};
 use omaspec_theme::{Palette, Rgb, Source, Theme};
 use serde::Serialize;
@@ -240,6 +240,7 @@ pub fn diff(
         _ => anyhow::bail!("diff compares two versions"),
     };
     let (old, old_name, new) = versions(old, new, rev)?;
+    crate::document::one_diagram(&new, "diff")?;
     let specs = Projects::default().of(new.path.as_deref(), project).clone();
     let changes = omaspec_model::diff(
         &old.text,
@@ -298,6 +299,7 @@ pub fn convert(
     json: bool,
 ) -> Result<ExitCode> {
     let input = read_input(file.as_deref().filter(|f| f.as_os_str() != "-"))?;
+    crate::document::one_diagram(&input, "convert")?;
     let from = language(&input, forced);
     let to = other(from);
     let result = omaspec_model::convert(&input.text, from, to);
@@ -379,7 +381,7 @@ pub fn fmt(
     let mut unformatted = false;
     let mut out = stdout();
     for input in &inputs {
-        let formatted = format::format(&input.text, language(input, forced));
+        let formatted = crate::document::formatted(input, forced);
         let changed = formatted != input.text;
         if check {
             if changed {
@@ -404,7 +406,7 @@ pub fn fmt(
 
 pub fn outline(file: Option<PathBuf>, forced: Option<Language>, json: bool) -> Result<ExitCode> {
     let input = read_input(file.as_deref().filter(|f| f.as_os_str() != "-"))?;
-    let entries = outline::outline(&input.text, language(&input, forced));
+    let entries = crate::document::outline(&input, forced);
     let mut out = stdout();
     if json {
         serde_json::to_writer_pretty(&mut out, &one_based(&entries))?;

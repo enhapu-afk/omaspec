@@ -6,8 +6,8 @@ use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Context, Result, bail, ensure};
 use base64::Engine as _;
+use omaspec_core::Language;
 use omaspec_core::lint::{Finding, Severity};
-use omaspec_core::{Language, format, outline};
 use omaspec_render::export::{self, Format};
 use omaspec_render::{Place, Renderer};
 use serde_json::{Map, Value, json};
@@ -793,10 +793,12 @@ fn inspect(args: &Args) -> Result<Answer> {
 
 fn outline(args: &Args) -> Result<Answer> {
     let input = diagram(args)?;
-    let lang = language(&input, args.lang()?);
-    let entries = one_based(&outline::outline(&input.text, lang));
+    let lang = args.lang()?;
+    let entries = one_based(&crate::document::outline(&input, lang));
+    // A document's diagrams each have their own language.
+    let language = (!crate::document::is_document(&input)).then(|| language(&input, lang));
     Ok(Answer::data(json!({
-        "language": lang,
+        "language": language,
         "outline": serde_json::to_value(entries)?,
     })))
 }
@@ -804,6 +806,7 @@ fn outline(args: &Args) -> Result<Answer> {
 fn diff(args: &Args) -> Result<Answer> {
     let lang = args.lang()?;
     let new = diagram(args)?;
+    crate::document::one_diagram(&new, "diff")?;
     let project = args.project_of(new.path.as_deref())?;
     let (old, old_name) = match (
         args.path("old_path")?,
@@ -854,6 +857,7 @@ fn diff(args: &Args) -> Result<Answer> {
 
 fn convert(args: &Args) -> Result<Answer> {
     let input = diagram(args)?;
+    crate::document::one_diagram(&input, "convert")?;
     let from = language(&input, args.lang()?);
     let to = other(from);
     let output = args.path("output")?;
@@ -897,8 +901,7 @@ fn convert(args: &Args) -> Result<Answer> {
 
 fn format(args: &Args) -> Result<Answer> {
     let input = diagram(args)?;
-    let lang = language(&input, args.lang()?);
-    let formatted = format::format(&input.text, lang);
+    let formatted = crate::document::formatted(&input, args.lang()?);
     let changed = formatted != input.text;
     if !args.flag("write")?.unwrap_or(false) {
         return Ok(Answer::data(json!({
@@ -1060,6 +1063,33 @@ mod tests {
         assert_eq!(data["machines"], 1, "{result}");
         assert_eq!(data["errors"], 1, "{data}");
         assert_eq!(data["findings"][0]["line"], 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_document_is_formatted_by_its_diagrams_and_never_converted() {
+        let dir = scratch("document-tools");
+        let doc = dir.join("notes.md");
+        std::fs::write(
+            &doc,
+            "  - item\n      more\n\n```plantuml\nstate A {\n[*] --> B\n}\n```\n",
+        )
+        .unwrap();
+        let path = doc.to_str().unwrap();
+        let result = call("format", json!({"path": path}));
+        assert_eq!(
+            result["structuredContent"]["formatted"],
+            "  - item\n      more\n\n```plantuml\nstate A {\n  [*] --> B\n}\n```\n",
+            "{result}"
+        );
+        let outline = call("outline", json!({"path": path}));
+        assert_eq!(
+            outline["structuredContent"]["outline"][0]["line"], 5,
+            "{outline}"
+        );
+        assert!(outline["structuredContent"]["language"].is_null());
+        let refused = call("convert", json!({"path": path}));
+        assert_eq!(refused["isError"], true, "{refused}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -139,6 +139,54 @@ pub fn masked(text: &str, block: &Block) -> String {
     out
 }
 
+/// `text` with each diagram's code replaced by what `with` makes of it,
+/// at the fence's indentation; the prose, the fences and the line endings
+/// stay as they are. A body put inside `@startuml` and `@enduml` comes back
+/// without them.
+pub fn rewrite_blocks(text: &str, with: impl Fn(&Block) -> String) -> String {
+    let crlf = text.contains("\r\n");
+    let normalized = normalize_newlines(text);
+    let mut lines: Vec<String> = normalized.split('\n').map(str::to_owned).collect();
+    for block in blocks(&normalized).iter().rev() {
+        let indent =
+            lines[block.lines.start].len() - lines[block.lines.start].trim_start_matches(' ').len();
+        let made = with(block);
+        let mut body: Vec<&str> = made.split('\n').collect();
+        if block.wrapped {
+            let is =
+                |line: &&str, word: &str| line.trim_start().to_ascii_lowercase().starts_with(word);
+            if body.first().is_some_and(|l| is(l, "@startuml")) {
+                body.remove(0);
+            }
+            if body.last().is_some_and(|l| is(l, "@enduml")) {
+                body.pop();
+            }
+        }
+        while body.last().is_some_and(|l| l.is_empty()) && !block.code.ends_with('\n') {
+            body.pop();
+        }
+        let pad = " ".repeat(indent);
+        let body: Vec<String> = body
+            .iter()
+            .map(|line| {
+                if line.is_empty() {
+                    String::new()
+                } else {
+                    format!("{pad}{line}")
+                }
+            })
+            .collect();
+        let end = if block.closed {
+            block.lines.end - 1
+        } else {
+            block.lines.end
+        };
+        lines.splice(block.lines.start + 1..end, body);
+    }
+    let out = lines.join("\n");
+    if crlf { out.replace('\n', "\r\n") } else { out }
+}
+
 /// The diagram the document shows with the caret on `line`: the block that
 /// holds it, else the last one above it, else the first.
 pub fn block_at(blocks: &[Block], line: usize) -> Option<usize> {
@@ -205,6 +253,19 @@ fn unindent(line: &str, indent: usize) -> &str {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn rewriting_the_blocks_leaves_the_prose_alone() {
+        let text = "# Door\n\n  - a list item\n      indented more\n\n```plantuml\nstate A {\n[*] --> B\n}\n```\n\n1. step\n   ```mermaid\n   flowchart LR\n   A-->B\n   ```\n";
+        let upper = super::rewrite_blocks(text, |b| b.code.to_uppercase());
+        assert_eq!(
+            upper,
+            "# Door\n\n  - a list item\n      indented more\n\n```plantuml\nSTATE A {\n[*] --> B\n}\n```\n\n1. step\n   ```mermaid\n   FLOWCHART LR\n   A-->B\n   ```\n"
+        );
+        // Unchanged code gives back the same text, line endings and all.
+        let crlf = text.replace('\n', "\r\n");
+        assert_eq!(super::rewrite_blocks(&crlf, |b| b.code.clone()), crlf);
+    }
+
     use super::*;
 
     const DOC: &str = "# Door\n\

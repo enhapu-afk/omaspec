@@ -248,6 +248,44 @@ fn lint_names_a_link_to_a_diagram_that_is_not_there() {
 }
 
 #[test]
+fn a_markdown_document_is_formatted_and_outlined_by_its_diagrams_and_converted_never() {
+    let dir = scratch("document-commands");
+    let doc = dir.join("README.md");
+    let text = "# Door\n\n  - a list item\n      indented more\n\n```plantuml\nstate A {\n[*] --> B\n}\n```\n\n```mermaid\nsequenceDiagram\nparticipant Guest\nGuest->>Door: knock\n```\n";
+    fs::write(&doc, text).unwrap();
+    let path = doc.to_str().unwrap();
+
+    // Only the diagrams are formatted; the list keeps its indentation.
+    let out = omaspec(&["fmt", "--write", path]);
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(
+        fs::read_to_string(&doc).unwrap(),
+        text.replace("\n[*] --> B\n", "\n  [*] --> B\n")
+    );
+    let out = omaspec(&["fmt", "--check", path]);
+    assert_eq!(out.status.code(), Some(0), "formatted already");
+
+    // The outline of each diagram, on the document's lines.
+    let out = omaspec(&["outline", path]);
+    assert_eq!(
+        stdout(&out),
+        "    7  state A\n    8    state B\n   14  participant Guest\n"
+    );
+
+    // A command for one diagram file says why not.
+    for command in [&["convert", path][..], &["diff", path, path][..]] {
+        let out = omaspec(command);
+        assert_ne!(out.status.code(), Some(0));
+        assert!(
+            String::from_utf8_lossy(&out.stderr)
+                .contains("README.md is a Markdown document with 2 diagrams"),
+            "{command:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+}
+
+#[test]
 fn fmt_check_and_write() {
     let dir = scratch("fmt");
     let file = dir.join("flow.puml");
