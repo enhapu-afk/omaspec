@@ -7,6 +7,7 @@
 //! from the document with every other line empty, so whatever the engine,
 //! a play or a Ctrl+click says about a line is the document's.
 
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -21,7 +22,7 @@ use omaspec_core::outline::{self, Entry};
 use omaspec_core::{DiagramKind, Language, classify, detect};
 use omaspec_model::Specs;
 use omaspec_theme::{Palette, Tweaks};
-use scrive_core::TokenTheme;
+use scrive_core::{Revision, TokenTheme};
 use scrive_iced::{CodeEditor, LineMarker};
 
 use super::syntax;
@@ -161,6 +162,9 @@ pub struct Doc {
     flash_fade: Option<Animation<bool>>,
     /// In a Markdown document: the opening fence of the diagram shown.
     shown: Option<usize>,
+    /// A Markdown document's diagrams as of a revision of its text, read
+    /// again only when the text changed.
+    blocks: RefCell<Option<(Revision, Arc<Vec<Block>>)>>,
 }
 
 impl Doc {
@@ -273,6 +277,7 @@ impl Doc {
             flash: None,
             flash_fade: None,
             shown: None,
+            blocks: RefCell::new(None),
         };
         doc.analyze();
         doc
@@ -283,13 +288,30 @@ impl Doc {
         markdown::is_markdown(&self.name())
     }
 
+    /// A Markdown document's diagrams; none for a diagram file. Read once
+    /// for each revision of the text.
+    pub fn blocks(&self) -> Arc<Vec<Block>> {
+        if !self.is_document() {
+            return Arc::default();
+        }
+        let revision = self.editor.document().revision();
+        if let Some((read, blocks)) = &*self.blocks.borrow()
+            && *read == revision
+        {
+            return Arc::clone(blocks);
+        }
+        let blocks = Arc::new(markdown::blocks(&self.text()));
+        *self.blocks.borrow_mut() = Some((revision, Arc::clone(&blocks)));
+        blocks
+    }
+
     /// In a document, the diagram the pane shows and its number there,
     /// from 1: the caret's, the last above it, or the first.
-    fn shown_block(&self, text: &str) -> Option<(usize, Block)> {
-        let blocks = markdown::blocks(text);
+    fn shown_block(&self) -> Option<(usize, Block)> {
+        let blocks = self.blocks();
         let row = self.editor.cursor().row as usize;
         let at = markdown::block_at(&blocks, row)?;
-        blocks.into_iter().nth(at).map(|block| (at + 1, block))
+        blocks.get(at).map(|block| (at + 1, block.clone()))
     }
 
     /// After the caret moved: whether a document shows another diagram
@@ -298,7 +320,7 @@ impl Doc {
         if !self.is_document() {
             return false;
         }
-        let shown = self.shown_block(&self.text());
+        let shown = self.shown_block();
         let start = shown.as_ref().map(|(_, block)| block.lines.start);
         if start == self.shown {
             return false;
@@ -318,7 +340,7 @@ impl Doc {
         if !self.is_document() {
             return text;
         }
-        self.shown_block(&text)
+        self.shown_block()
             .map_or_else(String::new, |(_, block)| markdown::masked(&text, &block))
     }
 
@@ -330,7 +352,7 @@ impl Doc {
         if !self.is_document() {
             return Some((text, self.language, self.name()));
         }
-        let (number, block) = self.shown_block(&text)?;
+        let (number, block) = self.shown_block()?;
         let name = self.name();
         let stem = name
             .rsplit_once('.')
@@ -369,11 +391,15 @@ impl Doc {
     /// Re-indents the text (one undo step); says whether anything changed.
     /// The caret stays on its line.
     pub fn format(&mut self) -> bool {
-        if self.is_document() {
-            return false;
-        }
         let text = self.text();
-        let formatted = omaspec_core::format::format(&text, self.language);
+        // A document's diagrams each in its place, its prose as it is.
+        let formatted = if self.is_document() {
+            markdown::rewrite_blocks(&text, |block| {
+                omaspec_core::format::format(&block.code, block.language)
+            })
+        } else {
+            omaspec_core::format::format(&text, self.language)
+        };
         if formatted == text {
             return false;
         }
@@ -591,11 +617,11 @@ impl Doc {
     fn analyze_document(&mut self) -> bool {
         let text = self.text();
         let revision = self.editor.document().revision();
-        let blocks = markdown::blocks(&text);
+        let blocks = self.blocks();
         let mut findings = Vec::new();
         let mut entries = Vec::new();
         let mut folds = Vec::new();
-        for block in &blocks {
+        for block in blocks.iter() {
             let masked = markdown::masked(&text, block);
             findings.extend(omaspec_model::findings_with(
                 &masked,
@@ -697,7 +723,7 @@ impl Doc {
         let text: Arc<str> = if self.is_document() {
             self.caret_moved();
             let text = self.text();
-            let shown = self.shown_block(&text);
+            let shown = self.shown_block();
             shown
                 .map_or_else(String::new, |(_, block)| markdown::masked(&text, &block))
                 .into()

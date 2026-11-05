@@ -1248,8 +1248,8 @@ fn a_markdown_document_shows_the_diagram_at_the_caret() {
         dir.join("README-2.svg").display().to_string()
     );
     let _ = app.update(Message::Command(Command::Cancel));
-    // What takes the text for one diagram says that it does not.
-    press(&mut app, Command::Format);
+    // What takes a diagram file says that it does not.
+    press(&mut app, Command::Convert);
     assert!(
         app.notice
             .as_deref()
@@ -4513,4 +4513,26 @@ fn a_label_found_in_the_diagram_lights_up_and_comes_into_sight() {
     let at = source.find("Closed").unwrap() + 1;
     act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
     assert_ne!(app.doc().paper.breath_target(), Some(lit));
+}
+
+#[test]
+fn a_markdown_document_is_formatted_diagram_by_diagram_in_one_step() {
+    let dir = temp_dir("document-format");
+    let path = dir.join("NOTES.md");
+    let text = "# Door\n\n  - a list item\n      indented more\n\n```plantuml\nstate A {\n[*] --> B\n}\n```\n";
+    std::fs::write(&path, text).unwrap();
+    let mut app = open(std::slice::from_ref(&path));
+
+    // Its diagrams are read once for each version of the text.
+    let blocks = app.doc().blocks();
+    assert_eq!(blocks.len(), 1);
+    assert!(Arc::ptr_eq(&blocks, &app.doc().blocks()));
+
+    press(&mut app, Command::Format);
+    let formatted = text.replace("\n[*] --> B\n", "\n  [*] --> B\n");
+    assert_eq!(app.doc().text(), formatted);
+    assert!(!Arc::ptr_eq(&blocks, &app.doc().blocks()));
+    act(&mut app, Action::Undo);
+    assert_eq!(app.doc().text(), text);
+    let _ = std::fs::remove_dir_all(&dir);
 }

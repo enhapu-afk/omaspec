@@ -240,8 +240,9 @@ A `.md` file is a document of diagrams: every fenced block that names `plantuml`
 document's lines. A PlantUML block without `@startuml` is read inside it, as GitLab draws
 it. The pane draws the diagram the caret is in (or the last one above it); a Ctrl+click,
 a play and an error land on the document's lines, and an export or a copy is that diagram
-alone, as `README-2.svg` with its source as `README-2.puml`. Formatting, skin packs,
-converting, lines by hand and the language commands work on diagram files only. The
+alone, as `README-2.svg` with its source as `README-2.puml`. Formatting re-indents each
+diagram in its place, the prose as it is; skin packs, converting, lines by hand and the
+language commands work on diagram files only, and say so. The
 preview window shows all of a document's diagrams one under another. A document's state
 machines belong to its project, named by `@startuml Name` or `title`. On the command line
 and over MCP, `lint`, `inspect`, `render` and `outline` take a document's diagrams on its

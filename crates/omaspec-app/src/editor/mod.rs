@@ -43,6 +43,7 @@ mod rename;
 mod search;
 mod session;
 mod syntax;
+mod takes;
 mod view;
 
 use std::collections::{HashMap, HashSet};
@@ -1810,33 +1811,6 @@ impl App {
         }
     }
 
-    /// Why `command` does not work on the tab, a Markdown document, if it
-    /// does not: it takes the whole text for one diagram.
-    fn not_in_documents(&self, command: Command) -> Option<&'static str> {
-        if !self.doc().is_document() {
-            return None;
-        }
-        Some(match command {
-            Command::Format => "formatting works on a diagram file, not on a Markdown document",
-            Command::Skin(_) => {
-                "a skin pack goes into a diagram file, not into a Markdown document"
-            }
-            Command::Convert => {
-                "writing it in the other language works on a diagram file, not on a Markdown document"
-            }
-            Command::ResetLine | Command::ResetLines => {
-                "lines by hand are drawn in a diagram file, not in a Markdown document"
-            }
-            Command::LanguageDetected | Command::LanguagePlantUml | Command::LanguageMermaid => {
-                "in a Markdown document, each fence names its diagram's language"
-            }
-            Command::CompareBehavior => {
-                "the changes in behavior compare diagram files, not Markdown documents"
-            }
-            _ => return None,
-        })
-    }
-
     fn run(&mut self, command: Command) -> Task<Message> {
         if self.prompt.is_some() && blocks_while_asking(command) {
             return Task::none();
@@ -1847,7 +1821,9 @@ impl App {
         if !matches!(command, Command::CloseTab) {
             self.closing = None;
         }
-        if let Some(why) = self.not_in_documents(command) {
+        if self.doc().is_document()
+            && let Err(why) = command.in_a_document()
+        {
             self.notice = Some(why.into());
             return Task::none();
         }
