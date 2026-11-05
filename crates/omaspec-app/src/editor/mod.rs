@@ -831,6 +831,8 @@ struct App {
     project_dirs: HashMap<PathBuf, Arc<Vec<PathBuf>>>,
     /// What the rename prompt renames.
     renaming: Option<rename::Renaming>,
+    /// The looks the projects pin.
+    looks: crate::look::Pinned,
     /// The Markdown documents of each project open, with their texts, for
     /// the search; its diagrams' texts are in `atlases`.
     documents: HashMap<PathBuf, Arc<Vec<(String, String)>>>,
@@ -953,6 +955,7 @@ impl App {
             indexes: HashMap::new(),
             project_dirs: HashMap::new(),
             renaming: None,
+            looks: crate::look::Pinned::default(),
             documents: HashMap::new(),
             watched: Arc::default(),
             following: None,
@@ -1766,9 +1769,10 @@ impl App {
             .then(|| crate::look::Skin::colors(self.hex_colors()))
     }
 
-    /// The look the project at `root` pins, if its file reads.
+    /// The look the project at `root` pins, if its file reads; read again
+    /// only when the file changed.
     fn pinned_look(&self, root: Option<&Path>) -> Option<crate::look::Skin> {
-        crate::look::skin_for(None, root).ok().flatten()
+        self.looks.of(root)
     }
 
     /// Puts a render answer back on the file it was drawn from.

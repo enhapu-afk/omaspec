@@ -13,7 +13,9 @@
 //! diagrams are drawn in that, and `--look file` keeps the file's colors.
 //! Either is a [`Skin`].
 
-use std::path::Path;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 use clap::ValueEnum;
 use omaspec_core::Language;
@@ -193,6 +195,37 @@ pub fn skin_for(chosen: Option<Look>, root: Option<&Path>) -> anyhow::Result<Opt
         Some(Ok(project)) => Ok(project.look.as_ref().map(Skin::pinned)),
         Some(Err(err)) => Err(anyhow::anyhow!(err)),
         None => Ok(None),
+    }
+}
+
+/// The looks projects pin, each project file read again only when its
+/// size or time of change differ: the editor asks with every drawing.
+#[derive(Default)]
+pub struct Pinned(RefCell<HashMap<PathBuf, Kept>>);
+
+/// What tells a changed project file.
+type Stamp = (u64, Option<std::time::SystemTime>);
+
+/// A project's look as its file was when read.
+type Kept = (Option<Stamp>, Option<Skin>);
+
+impl Pinned {
+    /// The look the project at `root` pins, if its file reads.
+    pub fn of(&self, root: Option<&Path>) -> Option<Skin> {
+        let root = root?;
+        let stamp = std::fs::metadata(root.join(omaspec_core::project::FILE))
+            .ok()
+            .map(|m| (m.len(), m.modified().ok()));
+        if let Some((kept, skin)) = self.0.borrow().get(root)
+            && *kept == stamp
+        {
+            return skin.clone();
+        }
+        let skin = skin_for(None, Some(root)).ok().flatten();
+        self.0
+            .borrow_mut()
+            .insert(root.to_path_buf(), (stamp, skin.clone()));
+        skin
     }
 }
 
@@ -417,6 +450,25 @@ impl LineShift {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_pinned_look_is_read_again_only_when_its_file_changed() {
+        let root = std::env::temp_dir().join(format!("omaspec-pinned-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let file = root.join(omaspec_core::project::FILE);
+        std::fs::write(&file, "name = \"house\"\n\n[look]\npack = \"light\"\n").unwrap();
+        let looks = Pinned::default();
+        let light = looks.of(Some(&root)).expect("a pinned look");
+        assert_eq!(looks.of(Some(&root)), Some(light.clone()));
+        std::fs::write(&file, "name = \"house\"\n\n[look]\npack = \"dark\"\n").unwrap();
+        let dark = looks.of(Some(&root)).expect("the new look");
+        assert_ne!(dark, light);
+        std::fs::remove_file(&file).unwrap();
+        assert_eq!(looks.of(Some(&root)), None);
+        assert_eq!(looks.of(None), None);
+        let _ = std::fs::remove_dir_all(&root);
+    }
 
     #[test]
     fn a_look_is_laid_over_and_lines_read_back_as_the_file_s() {

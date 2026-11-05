@@ -4,6 +4,7 @@
 //! `--check`, each SVG is held against the one beside the diagram instead
 //! of written ([`crate::check`]).
 
+use std::collections::HashMap;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -119,6 +120,8 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             eprintln!("{}: error: {message}", input.name());
         }
     }
+    // Each project's look, read once.
+    let mut skins: HashMap<Option<PathBuf>, Option<crate::look::Skin>> = HashMap::new();
     for piece in &pieces {
         let input = piece.input;
         let lang = piece.language;
@@ -128,15 +131,21 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             .and_then(|path| omaspec_render::Place::of(path, None));
         // `--look`, else the look its project pins; a picture without
         // color schemes takes auto's light one.
-        let skin = crate::look::skin_for(args.look, place.as_ref().map(|p| p.root.as_path()))?.map(
-            |skin| {
-                if format == Format::Svg {
-                    skin
-                } else {
-                    skin.without_schemes()
-                }
-            },
-        );
+        let root = place.as_ref().map(|p| p.root.clone());
+        let skin = match skins.get(&root) {
+            Some(skin) => skin.clone(),
+            None => {
+                let skin = crate::look::skin_for(args.look, root.as_deref())?.map(|skin| {
+                    if format == Format::Svg {
+                        skin
+                    } else {
+                        skin.without_schemes()
+                    }
+                });
+                skins.insert(root, skin.clone());
+                skin
+            }
+        };
         let drawn = crate::look::render(
             &mut maps,
             &mut renderer,
