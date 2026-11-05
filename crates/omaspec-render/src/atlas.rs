@@ -1,13 +1,17 @@
 //! A project's map (`docs/adr/0018-diagrams-that-link.md`): a mind map or
 //! a WBS whose boxes name diagrams of the project, drawn with each of
 //! those diagrams in a tile. The main diagram also shows the diagrams on
-//! no box, and dashed arrows show where one diagram links to another.
+//! no map's box, and dashed arrows show where one diagram links to
+//! another. A box may name another map, so a large project is maps within
+//! maps.
 //!
 //! The pictures come from Omaspec's own engines, never from Java: a map
-//! with twenty tiles draws twenty diagrams. They are kept between
-//! drawings, so typing in the map draws only the map again. Each picture
-//! is nested into the map's SVG as vectors, sharp at any zoom, and the
-//! whole passes [`crate::sanitize`].
+//! with twenty tiles draws twenty diagrams, side by side on the cores
+//! there are. Each is kept until its file changes, so typing in the map
+//! draws only the map again. Each picture is nested into the map's SVG as
+//! vectors, sharp at any zoom, and the whole passes [`crate::sanitize`];
+//! [`Rendered::cards`] is the map with the pictures left out, for a pane
+//! to show while its tiles are small.
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
@@ -24,8 +28,10 @@ use crate::{Engine, Place, RenderError, Rendered, include, mermaid, sanitize};
 mod cards;
 use cards::{card_of, heading, includes, players, relations};
 
-/// Pictures kept between drawings, at most.
-const KEPT: usize = 256;
+/// Pictures drawn side by side when this many or more are missing.
+const SIDE_BY_SIDE: usize = 4;
+/// Stack for each of those, as deep as the render thread's.
+const STACK: usize = 64 << 20;
 
 /// The diagrams of a project, as a map shows them.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -105,30 +111,106 @@ pub(crate) struct Picture {
     includes: Vec<String>,
 }
 
-/// Pictures for tiles, kept between drawings.
+/// Pictures for tiles, and the names on other maps' boxes, each kept by
+/// its file until the file changes.
 #[derive(Default)]
-pub(crate) struct Pictures(HashMap<u64, Picture>);
+pub(crate) struct Pictures {
+    drawn: HashMap<String, (u64, Picture)>,
+    boxes: HashMap<String, (u64, Vec<String>)>,
+}
+
+/// What `entry` is drawn from: its source, language and place.
+fn fingerprint(entry: &Entry) -> u64 {
+    let mut hasher = std::hash::DefaultHasher::new();
+    entry.source.hash(&mut hasher);
+    entry.language.extension().hash(&mut hasher);
+    entry
+        .place
+        .as_ref()
+        .map(|p| (&p.dir, &p.root))
+        .hash(&mut hasher);
+    hasher.finish()
+}
 
 impl Pictures {
     fn of(&mut self, entry: &Entry) -> Picture {
-        let mut hasher = std::hash::DefaultHasher::new();
-        entry.source.hash(&mut hasher);
-        entry.language.extension().hash(&mut hasher);
-        entry
-            .place
-            .as_ref()
-            .map(|p| (&p.dir, &p.root))
-            .hash(&mut hasher);
-        let id = hasher.finish();
-        if let Some(found) = self.0.get(&id) {
+        let id = fingerprint(entry);
+        if let Some((kept, found)) = self.drawn.get(&entry.file)
+            && *kept == id
+        {
             return found.clone();
         }
-        if self.0.len() >= KEPT {
-            self.0.clear();
-        }
         let picture = draw_native(entry);
-        self.0.insert(id, picture.clone());
+        self.drawn.insert(entry.file.clone(), (id, picture.clone()));
         picture
+    }
+
+    /// Draws the pictures of `entries` that are not kept yet, side by side
+    /// when there are several.
+    fn prepare(&mut self, entries: &[&Entry]) {
+        let missing: Vec<(&Entry, u64)> = entries
+            .iter()
+            .map(|entry| (*entry, fingerprint(entry)))
+            .filter(|(entry, id)| {
+                self.drawn
+                    .get(&entry.file)
+                    .is_none_or(|(kept, _)| kept != id)
+            })
+            .collect();
+        if missing.len() < SIDE_BY_SIDE {
+            return;
+        }
+        let threads = std::thread::available_parallelism()
+            .map_or(1, std::num::NonZero::get)
+            .min(missing.len());
+        let chunk = missing.len().div_ceil(threads);
+        let drawn: Vec<(String, u64, Picture)> = std::thread::scope(|scope| {
+            let workers: Vec<_> = missing
+                .chunks(chunk)
+                .filter_map(|part| {
+                    std::thread::Builder::new()
+                        .name("omaspec-tiles".into())
+                        .stack_size(STACK)
+                        .spawn_scoped(scope, move || {
+                            part.iter()
+                                .map(|(entry, id)| (entry.file.clone(), *id, draw_native(entry)))
+                                .collect::<Vec<_>>()
+                        })
+                        .ok()
+                })
+                .collect();
+            workers
+                .into_iter()
+                .flat_map(|worker| match worker.join() {
+                    Ok(done) => done,
+                    // The engine's panic ends this drawing, as on one thread.
+                    Err(panic) => std::panic::resume_unwind(panic),
+                })
+                .collect()
+        });
+        for (file, id, picture) in drawn {
+            self.drawn.insert(file, (id, picture));
+        }
+    }
+
+    /// The words on the boxes of the map `entry`, kept by its file.
+    fn boxes(&mut self, entry: &Entry) -> Vec<String> {
+        let id = fingerprint(entry);
+        if let Some((kept, names)) = self.boxes.get(&entry.file)
+            && *kept == id
+        {
+            return names.clone();
+        }
+        let names = box_names(&entry.source, entry.language);
+        self.boxes.insert(entry.file.clone(), (id, names.clone()));
+        names
+    }
+
+    /// Forgets the files that are not in `atlas` any more.
+    fn keep_only(&mut self, atlas: &Atlas) {
+        let files: HashSet<&str> = atlas.diagrams.iter().map(|e| e.file.as_str()).collect();
+        self.drawn.retain(|file, _| files.contains(file.as_str()));
+        self.boxes.retain(|file, _| files.contains(file.as_str()));
     }
 }
 
@@ -294,13 +376,17 @@ pub(crate) fn render(
         .copied()
         .collect();
 
-    // Then the diagrams on no box, by their first name.
+    // Then the diagrams on no map's box, by their first name.
     let mut loose: Vec<(String, String)> = Vec::new();
     let mut loose_entries: Vec<(String, usize)> = Vec::new();
     if own.is_some() && atlas.main.as_deref() == own {
+        let elsewhere = on_other_maps(atlas, own, &called, pictures);
         let mut taken: HashSet<String> = on_map.iter().cloned().collect();
         for (index, entry) in atlas.diagrams.iter().enumerate() {
-            if Some(entry.file.as_str()) == own || named.contains(&index) {
+            if Some(entry.file.as_str()) == own
+                || named.contains(&index)
+                || elsewhere.contains(&index)
+            {
                 continue;
             }
             let Some(name) = entry.names.first() else {
@@ -326,6 +412,9 @@ pub(crate) fn render(
         }
     }
     tile_of.extend(loose_entries.iter().cloned());
+    pictures.keep_only(atlas);
+    let wanted: Vec<&Entry> = tile_of.values().map(|&i| &atlas.diagrams[i]).collect();
+    pictures.prepare(&wanted);
     let drawn: HashMap<usize, Picture> = tile_of
         .values()
         .map(|&i| (i, pictures.of(&atlas.diagrams[i])))
@@ -382,11 +471,12 @@ pub(crate) fn render(
             (at, shown)
         })
         .collect();
-    let svg = nest(&svg, &map, &shown);
-    let svg = sanitize::sanitize(&svg).map_err(|e| RenderError::Engine {
+    let invalid = |e: sanitize::SanitizeError| RenderError::Engine {
         engine,
         message: format!("invalid SVG: {e}"),
-    })?;
+    };
+    let cards = sanitize::sanitize(&nest(&svg, &map, &shown, false)).map_err(invalid)?;
+    let svg = sanitize::sanitize(&nest(&svg, &map, &shown, true)).map_err(invalid)?;
     let links = map
         .tiles
         .iter()
@@ -416,7 +506,28 @@ pub(crate) fn render(
         elapsed: start.elapsed(),
         map,
         links,
+        cards: Some(cards),
     })
+}
+
+/// The diagrams a box of another map of the project names: they have a
+/// place on a map already, so the main map leaves them to it.
+fn on_other_maps(
+    atlas: &Atlas,
+    own: Option<&str>,
+    called: &HashMap<String, Vec<usize>>,
+    pictures: &mut Pictures,
+) -> HashSet<usize> {
+    atlas
+        .diagrams
+        .iter()
+        .filter(|entry| Some(entry.file.as_str()) != own)
+        // Empty, and kept so, for a diagram that is no map.
+        .flat_map(|entry| pictures.boxes(entry))
+        .filter_map(|name| called.get(&key(&name)))
+        .flatten()
+        .copied()
+        .collect()
 }
 
 fn unique(keys: impl Iterator<Item = String>) -> Vec<String> {
@@ -432,8 +543,10 @@ fn first_line(text: &str) -> &str {
     }
 }
 
-/// The map's SVG with each picture nested into its tile's room.
-fn nest(svg: &str, map: &Map, shown: &[(usize, Shown)]) -> String {
+/// The map's SVG with each picture nested into its tile's room, or with
+/// the rooms left empty without `pictures`; what a tile says instead of a
+/// picture is there either way.
+fn nest(svg: &str, map: &Map, shown: &[(usize, Shown)], pictures: bool) -> String {
     let Some(end) = svg.rfind("</svg>") else {
         return svg.to_owned();
     };
@@ -443,6 +556,7 @@ fn nest(svg: &str, map: &Map, shown: &[(usize, Shown)]) -> String {
         let tile = &map.tiles[*at];
         let room = back(map.fit, tile.picture);
         match what {
+            Shown::Picture(_) if !pictures => {}
             Shown::Picture(inner) => {
                 if let Some((view_box, body)) = parts(inner) {
                     // The picture keeps to its card's rounded room.
@@ -660,6 +774,15 @@ mod tests {
         // Each picture keeps to its rounded room.
         assert_eq!(drawn.svg.matches("<clipPath").count(), 4);
         assert!(crate::export::parse(&drawn.svg).is_ok());
+        // The cards: the same map without the pictures, each card still
+        // naming its diagram and its kind, and what a tile says instead.
+        let cards = drawn.cards.as_deref().expect("a map's cards");
+        assert_eq!(cards.matches("<svg").count(), 1, "{cards}");
+        assert!(!cards.contains("<clipPath"));
+        assert!(cards.contains(">Orders<") && cards.contains("State machine · PlantUML"));
+        assert!(cards.contains("2 diagrams go by this name"));
+        assert!(cards.len() < drawn.svg.len());
+        assert!(crate::export::parse(cards).is_ok());
 
         // The same map, not the main one: no tiles below it.
         let side = Atlas {
@@ -708,6 +831,48 @@ mod tests {
         assert!(drawn.svg.contains(">1 message<"));
         // Without the project's name, the map's own.
         assert!(drawn.svg.contains(">system<"));
+    }
+
+    #[test]
+    fn a_map_on_a_box_of_the_main_map_holds_its_diagrams() {
+        let mut renderer = Renderer::new(&Config {
+            java_fallback: false,
+            ..Config::default()
+        });
+        let main = "@startwbs\n* Shop\n** Orders\n** Back office\n@endwbs\n";
+        let office = "@startwbs\n* Back office\n** Payment\n** Refund\n@endwbs\n";
+        let mut atlas = project();
+        atlas.diagrams[0] = entry("system.puml", main);
+        atlas
+            .diagrams
+            .push(entry("office/back-office.puml", office));
+        let tiles = |renderer: &mut Renderer, atlas: &Atlas, source: &str, own: &str| {
+            let drawn = renderer
+                .render_linked(source, Language::PlantUml, None, Some(own), atlas)
+                .unwrap();
+            drawn
+                .links
+                .iter()
+                .map(|l| l.name.clone())
+                .collect::<Vec<_>>()
+        };
+        // Payment and Refund have a place on the back office's map; the
+        // main map shows that map, and the diagrams on no map's box.
+        assert_eq!(
+            tiles(&mut renderer, &atlas, main, "system.puml"),
+            ["Orders", "Back office", "checkout", "ideas", "ideas"]
+        );
+        assert_eq!(
+            tiles(&mut renderer, &atlas, office, "office/back-office.puml"),
+            ["Payment", "Refund"]
+        );
+        // A box written on the other map moves its diagram off the main one.
+        let moved = office.replace("** Refund\n", "** Refund\n** Ideas\n");
+        atlas.diagrams.last_mut().unwrap().source = moved;
+        assert_eq!(
+            tiles(&mut renderer, &atlas, main, "system.puml"),
+            ["Orders", "Back office", "checkout"]
+        );
     }
 
     #[test]

@@ -2,8 +2,8 @@
 
 Status: accepted, 2026-11-01. Builds on [0017](0017-projects.md) and
 replaces its decision 5: a new project's main diagram is a map. Its
-decision 2 is amended on 2026-11-03: a map has a look of its own (see
-*Amended* below).
+decision 2 is amended on 2026-11-03: a map has a look of its own, and on
+2026-11-05: maps within maps (see *Amended* below).
 
 ## Context
 
@@ -75,7 +75,7 @@ box show what it has not taken in yet.
 - `omaspec_uml::tree::Tiles` makes the mind map and WBS drawers draw tiles,
   the diagrams on no box and the dashed arrows; `Map::tiles` says where.
 - `omaspec_render::Atlas` holds a project's diagrams; `render_linked` draws
-  a map with its tiles (pictures kept between drawings) and says where a
+  a map with its tiles (pictures kept per file until it changes) and says where a
   map's tiles and a machine's linked states are (`Rendered::links`).
 - The editor reads the project's diagrams with its state machines and draws
   its diagrams linked; it draws a project's diagrams again when one of them
@@ -128,3 +128,29 @@ project as before. `omaspec_uml::tree::cards` lays out and paints the
 map; `Tiles` carries what each card says, the relations and the heading,
 which `omaspec_render::atlas` works out from the project.
 
+## Amended: maps within maps (2026-11-05)
+
+Measured on generated projects (`omaspec-app/src/scale.rs`), the main map
+did not scale: it showed every diagram on none of *its* boxes, so a project
+whose main map names its areas showed all of its diagrams again, 2,000
+pictures as vectors, drawn in 1.1 s and parsed by the pane in 3.9 s.
+
+- **A box may name another map**, so a large project is maps within maps:
+  the main map names its areas, each area's map its diagrams. The main map
+  shows the diagrams that no box of *any* map names; a diagram written on
+  an area's map has its place there.
+- **A large map shows its cards first.** Each card names its diagram, its
+  kind and a few facts without the picture; the pane shows a map's SVG
+  whole when it is small (up to 128 kB, about 20 tiles) and, for a larger
+  one, its cards (`Rendered::cards`), parsing the pictures in the
+  background once a tile is about 96 pixels wide on screen, where a
+  state's name in it can be read. `omaspec render`, exports and the MCP
+  server always draw the pictures.
+- **Pictures are kept per file until it changes**, not 256 at most, and
+  the missing ones are drawn side by side on the cores there are.
+
+The main map of a project of 2,001 diagrams in areas of 50 is drawn in
+about 65 ms and shown in about 20 ms more. Half of the drawing is the map
+nested with its pictures and sanitized as a whole, which the pane needs
+only when zoomed in; drawing the cards first and the pictures after is
+the next step should a project need it.

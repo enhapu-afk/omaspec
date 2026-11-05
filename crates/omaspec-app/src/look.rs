@@ -358,9 +358,11 @@ pub fn render(
                 message: format!("the look auto does not draw here: {err}; take light or dark"),
             }
         })?;
+        // One picture in two schemes; the pane shows it whole.
         return Ok(Rendered {
             svg,
             elapsed: light.elapsed + dark.elapsed,
+            cards: None,
             ..light
         });
     }

@@ -3800,14 +3800,7 @@ fn linked_drawing(
     let out = renderer
         .render_linked(source, language, None, own, atlas)
         .unwrap();
-    crate::worker::Drawn {
-        tree: Arc::new(omaspec_render::export::parse(&out.svg).unwrap()),
-        svg: out.svg.into(),
-        engine: out.engine,
-        elapsed: out.elapsed,
-        map: Arc::new(out.map),
-        links: Arc::new(out.links),
-    }
+    crate::worker::Drawn::of(out).unwrap()
 }
 
 /// Draws the document `key`, open in a tab or not shown, as a diagram of

@@ -30,7 +30,7 @@ use omaspec_core::lint::Severity;
 use omaspec_core::locate;
 use omaspec_model::Spec;
 use omaspec_render::Place;
-use omaspec_render::export::{self, Format};
+use omaspec_render::export::{self, Format, usvg};
 use omaspec_render::{Link, RenderError, pick};
 use omaspec_theme::{Palette, Rgb};
 
@@ -78,6 +78,9 @@ pub enum Message {
     Faded,
     /// The writer's step in the play.
     Play(Ask),
+    /// A map's tiles with their pictures, parsed for the picture with this
+    /// id ([`Diagram::pictures`]).
+    Pictures(u64, Option<Arc<usvg::Tree>>),
     /// The play fades away.
     StopPlay,
     /// The play has faded away.
@@ -100,6 +103,12 @@ pub struct Diagram {
     pub size: Size,
     pub source: Arc<str>,
     pub language: Language,
+    /// A map shown by its cards: `drawn.svg` parsed, its tiles' pictures
+    /// in it, once the tiles are large enough to read
+    /// ([`Drawn::readable`]).
+    pictures: Option<Arc<usvg::Tree>>,
+    /// Whether that parse was asked for.
+    asked_pictures: bool,
 }
 
 pub enum Status {
@@ -128,6 +137,9 @@ pub struct Paper {
     detail: Layer,
     /// A new diagram came; its first overview raster starts the fade.
     fresh: bool,
+    /// Whether the layers' plans are of a map with its pictures
+    /// ([`Diagram::pictures`]); a change rasterizes them again.
+    on_pictures: bool,
     /// The pictures on screen when the new diagram came.
     before: Vec<Raster>,
     fade: Option<Fade>,
@@ -179,6 +191,7 @@ impl Default for Paper {
             overview: Layer::default(),
             detail: Layer::default(),
             fresh: false,
+            on_pictures: false,
             before: Vec::new(),
             fade: None,
             play: None,
@@ -391,6 +404,8 @@ impl Paper {
                     drawn,
                     source: answer.source,
                     language: answer.language,
+                    pictures: None,
+                    asked_pictures: false,
                 });
                 if latest {
                     self.status = Status::InSync;
@@ -431,6 +446,15 @@ impl Paper {
             Message::Overview(seq, raster) => {
                 self.show_overview(seq, raster);
                 Task::none()
+            }
+            Message::Pictures(id, tree) => {
+                if id != self.shown {
+                    return Task::none();
+                }
+                if let Some(diagram) = &mut self.diagram {
+                    diagram.pictures = tree;
+                }
+                self.rasterize(Duration::ZERO)
             }
             Message::Detail(seq, raster) => {
                 self.show_detail(seq, raster);
@@ -733,15 +757,15 @@ impl Paper {
     /// copies than the source mentions (a lifeline's head and its foot), the
     /// later mention keeps the last copy.
     fn place_of(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
-        let diagram = self.diagram.as_ref()?;
-        let texts = pick::texts(&diagram.drawn.tree);
+        let tree = self.shown_tree()?;
+        let texts = pick::texts(tree);
         let (text, nth) = locate::aimed(source, row, col, texts.iter().map(String::as_str))?;
         let copies = texts.iter().filter(|drawn| drawn.as_str() == text).count();
         if copies == 0 {
             return None;
         }
         let nth = nth.min(copies - 1);
-        let (x, y, w, h) = pick::spot(&diagram.drawn.tree, &text, nth)?;
+        let (x, y, w, h) = pick::spot(tree, &text, nth)?;
         if w <= 0.0 || h <= 0.0 {
             return None;
         }
@@ -855,7 +879,7 @@ impl Paper {
     pub fn label_at(&self, at: Point) -> Option<(pick::Label, Arc<str>)> {
         let diagram = self.diagram.as_ref()?;
         let point = self.view.to_diagram(at, self.viewport);
-        let label = pick::label_at(&diagram.drawn.tree, point.x, point.y)?;
+        let label = pick::label_at(self.shown_tree()?, point.x, point.y)?;
         Some((label, Arc::clone(&diagram.source)))
     }
 
@@ -1163,23 +1187,69 @@ impl Paper {
             .map_or(Size::new(1.0, 1.0), |d| d.size)
     }
 
+    /// Whether a map's tiles are large enough on screen to read their
+    /// pictures.
+    fn reads_pictures(&self) -> bool {
+        self.diagram
+            .as_ref()
+            .and_then(|d| d.drawn.readable)
+            .is_some_and(|zoom| self.view.zoom >= zoom)
+    }
+
+    /// What the pane shows: a map's tiles with their pictures when they
+    /// can be read and are parsed, else what was drawn.
+    fn shown_tree(&self) -> Option<&Arc<usvg::Tree>> {
+        let diagram = self.diagram.as_ref()?;
+        match &diagram.pictures {
+            Some(full) if self.reads_pictures() => Some(full),
+            _ => Some(&diagram.drawn.tree),
+        }
+    }
+
     /// Rasterizes what the view needs sharp, after `delay` (see
-    /// [`raster`]); asks nothing when the rasters in hand will do.
+    /// [`raster`]); asks nothing when the rasters in hand will do. A map
+    /// zoomed in until its tiles can be read has its pictures parsed first.
     fn rasterize(&mut self, delay: Duration) -> Task<Message> {
-        let Some(diagram) = &self.diagram else {
-            return Task::none();
-        };
         if self.viewport == Size::ZERO {
             return Task::none();
         }
+        let reads = self.reads_pictures();
+        let shown = self.shown;
+        let Some(diagram) = &mut self.diagram else {
+            return Task::none();
+        };
+        let parse = if reads && diagram.pictures.is_none() && !diagram.asked_pictures {
+            diagram.asked_pictures = true;
+            let svg = Arc::clone(&diagram.drawn.svg);
+            Task::perform(
+                blocking(move || export::parse(&svg).ok().map(Arc::new)),
+                move |tree| Message::Pictures(shown, tree.flatten()),
+            )
+        } else {
+            Task::none()
+        };
+        let full = reads && diagram.pictures.is_some();
+        if full != self.on_pictures {
+            // The same plans, from the other tree.
+            self.on_pictures = full;
+            self.overview.forget();
+            self.detail.forget();
+        }
+        let Some(diagram) = &self.diagram else {
+            return parse;
+        };
         let scale = self.view.zoom * self.scale_factor;
         let visible = self.view.visible(self.viewport);
         let overview = Plan::overview(diagram.size, scale);
         let detail = Plan::detail(diagram.size, scale, visible, self.detail.asked);
-        let tree = &diagram.drawn.tree;
+        let tree = match &diagram.pictures {
+            Some(pictures) if full => Arc::clone(pictures),
+            _ => Arc::clone(&diagram.drawn.tree),
+        };
         Task::batch([
-            self.overview.ask(overview, tree, delay, Message::Overview),
-            self.detail.ask(detail, tree, delay, Message::Detail),
+            parse,
+            self.overview.ask(overview, &tree, delay, Message::Overview),
+            self.detail.ask(detail, &tree, delay, Message::Detail),
         ])
     }
 
@@ -1797,14 +1867,7 @@ pub mod testing {
             ..Config::default()
         });
         let out = renderer.render(source, language).unwrap();
-        Drawn {
-            tree: Arc::new(export::parse(&out.svg).unwrap()),
-            svg: out.svg.into(),
-            engine: out.engine,
-            elapsed: out.elapsed,
-            map: Arc::new(out.map),
-            links: Arc::new(out.links),
-        }
+        Drawn::of(out).unwrap()
     }
 
     /// Every diagram of the Markdown document `text`, one under another.
@@ -1814,14 +1877,45 @@ pub mod testing {
             ..Config::default()
         });
         let out = renderer.render_document(text, None).unwrap();
-        Drawn {
-            tree: Arc::new(export::parse(&out.svg).unwrap()),
-            svg: out.svg.into(),
-            engine: out.engine,
-            elapsed: out.elapsed,
-            map: Arc::new(out.map),
-            links: Arc::new(out.links),
-        }
+        Drawn::of(out).unwrap()
+    }
+
+    /// A project's map of two tiles, shown by its cards as a large map is.
+    pub fn map_by_cards() -> Drawn {
+        let entry = |file: &str, source: &str| {
+            let language = Language::from_file_name(file).unwrap();
+            omaspec_render::Entry {
+                file: file.into(),
+                names: omaspec_core::project::names(source, language, file),
+                source: source.into(),
+                language,
+                place: None,
+            }
+        };
+        let map = "@startwbs\n* Shop\n** Orders\n** Payment\n@endwbs\n";
+        let atlas = omaspec_render::Atlas {
+            diagrams: vec![
+                entry("system.puml", map),
+                entry(
+                    "orders.puml",
+                    "@startuml\ntitle Orders\n[*] --> Open\nOpen --> Paid : pay\n@enduml\n",
+                ),
+                entry(
+                    "payment.puml",
+                    "@startuml\ntitle Payment\n[*] --> Waiting\nWaiting --> Done : ok\n@enduml\n",
+                ),
+            ],
+            main: Some("system.puml".into()),
+            name: None,
+        };
+        let mut renderer = Renderer::new(&Config {
+            java_fallback: false,
+            ..Config::default()
+        });
+        let out = renderer
+            .render_linked(map, Language::PlantUml, None, Some("system.puml"), &atlas)
+            .unwrap();
+        Drawn::parsed(out, 0).unwrap()
     }
 
     /// A box of 3000 × 12000 units, larger than the overview holds sharp.
@@ -1834,6 +1928,7 @@ pub mod testing {
             elapsed: Duration::ZERO,
             map: Arc::default(),
             links: Arc::default(),
+            readable: None,
         }
     }
 
@@ -1894,7 +1989,7 @@ pub mod testing {
         /// Rasterizes the overview the view asked for and hands it in as
         /// the background task's message would.
         pub fn deliver_overview(&mut self) {
-            let tree = Arc::clone(&self.diagram.as_ref().unwrap().drawn.tree);
+            let tree = Arc::clone(self.shown_tree().unwrap());
             let raster = raster::render(&tree, self.overview.asked.unwrap());
             let _ = self.update(Message::Overview(self.overview.seq(), raster));
         }
@@ -1906,7 +2001,7 @@ pub mod testing {
 
         /// Rasterizes what the view asked for, as the background tasks would.
         pub fn finish_rasters(&mut self) {
-            let tree = Arc::clone(&self.diagram.as_ref().unwrap().drawn.tree);
+            let tree = Arc::clone(self.shown_tree().unwrap());
             self.overview.finish(&tree);
             self.detail.finish(&tree);
         }
@@ -2400,6 +2495,52 @@ block Filter \"Low pass\" {
     }
 
     /// Puts `source` on the sheet, as a render would.
+    #[test]
+    fn a_large_map_shows_its_cards_and_the_pictures_once_its_tiles_can_be_read() {
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(200.0, 150.0)));
+        paper.pretend_requested(1);
+        let map = super::testing::map_by_cards();
+        let readable = map.readable.expect("a map shown by its cards");
+        let (cards, svg) = (Arc::clone(&map.tree), Arc::clone(&map.svg));
+        let _ = paper.rendered(answer(1, 1, Ok(map)));
+
+        // Fitted into a small pane, the tiles are too small to read: the
+        // cards, and nothing more is parsed.
+        assert!(paper.view.zoom < readable, "{} {readable}", paper.view.zoom);
+        assert!(Arc::ptr_eq(paper.shown_tree().unwrap(), &cards));
+        assert!(!paper.diagram.as_ref().unwrap().asked_pictures);
+
+        // Zoomed in until they can be: the pictures are asked for, and the
+        // cards stay until they come.
+        let _ = paper.zoom(readable / paper.view.zoom * 1.25);
+        assert!(paper.diagram.as_ref().unwrap().asked_pictures);
+        assert!(Arc::ptr_eq(paper.shown_tree().unwrap(), &cards));
+        let asked = paper.overview.asked;
+        let _ = paper.update(Message::Pictures(paper.shown, paper_pictures(&svg)));
+        let full = Arc::clone(paper.shown_tree().unwrap());
+        assert!(!Arc::ptr_eq(&full, &cards));
+        // The same plans, rasterized again from the pictures.
+        assert_eq!(paper.overview.asked, asked);
+        assert!(paper.on_pictures);
+        // The pictures of an older drawing are no answer.
+        let _ = paper.update(Message::Pictures(paper.shown - 1, None));
+        assert!(Arc::ptr_eq(paper.shown_tree().unwrap(), &full));
+
+        // Zoomed out again: the cards; the pictures are kept for the way
+        // back in.
+        let _ = paper.zoom(0.5);
+        assert!(Arc::ptr_eq(paper.shown_tree().unwrap(), &cards));
+        assert!(!paper.on_pictures);
+        let _ = paper.zoom(2.0);
+        assert!(Arc::ptr_eq(paper.shown_tree().unwrap(), &full));
+    }
+
+    /// The parse the pane asks for when a map's tiles can be read.
+    fn paper_pictures(svg: &str) -> Option<Arc<usvg::Tree>> {
+        export::parse(svg).ok().map(Arc::new)
+    }
+
     fn show_source(paper: &mut Paper, source: &str, language: Language) {
         let mut reply = answer(1, paper.pretend_next(), Ok(drawn(source, language)));
         reply.source = source.into();

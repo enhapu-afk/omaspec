@@ -26,7 +26,7 @@ struct Project {
     root: PathBuf,
     /// Every diagram, the maps included.
     files: Vec<PathBuf>,
-    /// The main map, which also shows every diagram on none of its boxes.
+    /// The main map, which also shows every diagram on no map's box.
     main: PathBuf,
     /// The map of the first area, whose boxes name its diagrams.
     area: PathBuf,
@@ -130,6 +130,8 @@ struct Drawn {
     warm: Duration,
     svg: usize,
     parse: Duration,
+    /// Its pixels for a pane of 1600 × 1000, fitted, as the overview.
+    raster: Duration,
 }
 
 fn measure(project: &Project) -> Measured {
@@ -182,7 +184,7 @@ fn measure(project: &Project) -> Measured {
 }
 
 /// Draws the map at `path` as `omaspec render` does, twice with one
-/// renderer, and parses its SVG as the diagram pane does.
+/// renderer, and parses and rasterizes what the diagram pane shows first.
 fn draw_map(path: &Path) -> Drawn {
     let text = std::fs::read_to_string(path).unwrap();
     let place = Place::of(path, None);
@@ -213,14 +215,23 @@ fn draw_map(path: &Path) -> Drawn {
     };
     let (drawn, cold) = render();
     let (_, warm) = render();
+    let (tiles, svg) = (drawn.links.len(), drawn.svg.len());
+    // What the pane parses first: a large map's cards, its pictures once
+    // they can be read.
     let start = Instant::now();
-    omaspec_render::export::parse(&drawn.svg).unwrap();
+    let shown = crate::worker::Drawn::of(drawn).unwrap();
+    let parse = start.elapsed();
+    let size = shown.tree.size();
+    let fit = (1600.0 / size.width()).min(1000.0 / size.height());
+    let start = Instant::now();
+    omaspec_render::export::rasterize(&shown.tree, fit).unwrap();
     Drawn {
-        tiles: drawn.links.len(),
+        tiles,
         cold,
         warm,
-        svg: drawn.svg.len(),
-        parse: start.elapsed(),
+        svg,
+        parse,
+        raster: start.elapsed(),
     }
 }
 
@@ -240,9 +251,9 @@ fn a_generated_project_reads_lints_and_maps_cleanly() {
     assert_eq!(measured.machines, MACHINES);
     assert_eq!(measured.errors, 0, "the generated diagrams hold together");
     // The area's map has a tile for each of its diagrams; the main map
-    // shows the area and every diagram on none of its boxes.
+    // shows the area, whose map shows them.
     assert_eq!(measured.area.tiles, MACHINES + SCENARIOS);
-    assert_eq!(measured.main.tiles, 1 + MACHINES + SCENARIOS);
+    assert_eq!(measured.main.tiles, 1);
     let _ = std::fs::remove_dir_all(&project.root);
 }
 
@@ -252,7 +263,7 @@ fn scale_timings() {
         return;
     }
     println!(
-        "\n{:>9} {:>7} {:>8} {:>8} {:>8} | {:>17} {:>17} {:>8} {:>8} | {:>17} {:>8}",
+        "\n{:>9} {:>7} {:>8} {:>8} {:>8} | {:>17} {:>17} {:>8} {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
         "diagrams",
         "scan",
         "read",
@@ -262,15 +273,18 @@ fn scale_timings() {
         "cold / warm",
         "svg",
         "parse",
+        "raster",
         "area map cold",
-        "warm"
+        "warm",
+        "parse",
+        "raster"
     );
     for areas in [2, 10, 40] {
         let project = generate(&scratch(&areas.to_string()), areas);
         let m = measure(&project);
         assert_eq!(m.errors, 0);
         println!(
-            "{:>9} {:>7} {:>8} {:>6}kB {:>8} | {:>17} {:>8} / {:>6} {:>6}kB {:>8} | {:>17} {:>8}",
+            "{:>9} {:>7} {:>8} {:>6}kB {:>8} | {:>17} {:>8} / {:>6} {:>6}kB {:>8} {:>8} | {:>17} {:>8} {:>8} {:>8}",
             m.diagrams,
             ms(m.scan),
             ms(m.read),
@@ -281,8 +295,11 @@ fn scale_timings() {
             ms(m.main.warm),
             m.main.svg / 1024,
             ms(m.main.parse),
+            ms(m.main.raster),
             ms(m.area.cold),
             ms(m.area.warm),
+            ms(m.area.parse),
+            ms(m.area.raster),
         );
         let _ = std::fs::remove_dir_all(&project.root);
     }

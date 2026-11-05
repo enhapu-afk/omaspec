@@ -118,11 +118,14 @@ source.
 A mind map or a WBS in a project is a map: each box that names a diagram is a tile with
 that diagram's picture, drawn by Omaspec's engines in the map's colors, sharp at any
 zoom. A box that names none stays a box. A dashed arrow joins two tiles where one diagram
-links to the other and the map's tree does not; the project's main diagram also shows
-the diagrams no box names, under *Not on the map*. A click on a tile opens its diagram,
-Ctrl+click finds its box in the source. Tiles show the files as saved. `omaspec render`
-and exports draw the tiles too; the preview window follows a click, and Backspace goes
-back.
+links to the other and the map's tree does not; the project's main diagram also shows the
+diagrams no box of any map names, under *Not on the map*. A box may name another map, so
+a large project is maps within maps: the main map names its areas, each area's map its
+diagrams. A large map shows its cards first, each with its diagram's name and kind, and
+the pictures once the tiles are large enough to read. A click on a tile opens its
+diagram, Ctrl+click finds its box in the source. Tiles show the files as saved.
+`omaspec render` and exports draw the tiles too; the preview window follows a click, and
+Backspace goes back.
 
 ```plantuml
 @startwbs

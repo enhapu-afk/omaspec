@@ -67,6 +67,11 @@ pub struct Rendered {
     /// The tiles and states that name other diagrams of the project
     /// ([`Renderer::render_linked`]).
     pub links: Vec<Link>,
+    /// A map's picture with its tiles' rooms left empty: each card shows
+    /// the name and the kind of its diagram, and the whole is quick to
+    /// show while the tiles are small on screen. [`Self::svg`] holds the
+    /// pictures. `None` for anything but a map.
+    pub cards: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -221,6 +226,7 @@ impl Renderer {
             elapsed: start.elapsed(),
             map,
             links: Vec::new(),
+            cards: None,
         })
     }
 
@@ -265,6 +271,7 @@ impl Renderer {
             elapsed: start.elapsed(),
             map: Map::default(),
             links: Vec::new(),
+            cards: None,
         })
     }
 

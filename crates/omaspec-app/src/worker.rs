@@ -34,6 +34,68 @@ pub struct Drawn {
     pub map: Arc<Map>,
     /// Its tiles and states that open other diagrams of the project.
     pub links: Arc<Vec<Link>>,
+    /// A map whose `tree` is its cards without their pictures
+    /// (`Rendered::cards`): the zoom from which a tile's picture can be
+    /// read. From there the pane parses `svg`, which has them.
+    pub readable: Option<f32>,
+}
+
+/// How wide a tile is on screen, in logical pixels, when its picture can
+/// be read: a state's name in it about as large as small print.
+const READABLE: f32 = 96.0;
+
+/// A map's SVG up to this size is parsed whole at once, as quick to parse
+/// as the pane can wait for (about 40 ms); a larger one is shown by its
+/// cards first.
+const WHOLE: usize = 128 << 10;
+
+impl Drawn {
+    /// `rendered` as the pane shows it, parsed here: a large map by its
+    /// cards, its pictures when the pane asks for them.
+    pub fn of(rendered: omaspec_render::Rendered) -> Result<Drawn, RenderError> {
+        Self::parsed(rendered, WHOLE)
+    }
+
+    /// [`Self::of`], with a map's SVG up to `whole` bytes parsed whole.
+    pub(crate) fn parsed(
+        rendered: omaspec_render::Rendered,
+        whole: usize,
+    ) -> Result<Drawn, RenderError> {
+        let cards = rendered
+            .cards
+            .as_deref()
+            .filter(|_| rendered.svg.len() > whole);
+        let tree =
+            export::parse(cards.unwrap_or(&rendered.svg)).map_err(|e| RenderError::Engine {
+                engine: rendered.engine,
+                message: e.to_string(),
+            })?;
+        let readable = cards
+            .is_some()
+            .then(|| readable_zoom(&rendered.links))
+            .flatten();
+        Ok(Drawn {
+            svg: rendered.svg.into(),
+            tree: Arc::new(tree),
+            engine: rendered.engine,
+            elapsed: rendered.elapsed,
+            map: Arc::new(rendered.map),
+            links: Arc::new(rendered.links),
+            readable,
+        })
+    }
+}
+
+/// The zoom at which the tiles of a map, the middle one by width, are
+/// [`READABLE`] wide on screen; `None` without tiles.
+fn readable_zoom(links: &[Link]) -> Option<f32> {
+    let mut widths: Vec<f32> = links
+        .iter()
+        .filter(|l| l.tile && l.rect.w > 0.0)
+        .map(|l| l.rect.w)
+        .collect();
+    widths.sort_by(f32::total_cmp);
+    widths.get(widths.len() / 2).map(|w| READABLE / w)
 }
 
 impl fmt::Debug for Drawn {
@@ -190,20 +252,7 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
         let done = input.clone();
         let mut service = RenderService::spawn(crate::commands::render_config(), move |outcome| {
             // Parse here, on the render thread, so the window never waits for it.
-            let result = outcome.result.and_then(|rendered| {
-                let tree = export::parse(&rendered.svg).map_err(|e| RenderError::Engine {
-                    engine: rendered.engine,
-                    message: e.to_string(),
-                })?;
-                Ok(Drawn {
-                    svg: rendered.svg.into(),
-                    tree: Arc::new(tree),
-                    engine: rendered.engine,
-                    elapsed: rendered.elapsed,
-                    map: Arc::new(rendered.map),
-                    links: Arc::new(rendered.links),
-                })
-            });
+            let result = outcome.result.and_then(Drawn::of);
             let _ = done.unbounded_send(Input::Done(outcome.generation, result));
         });
 

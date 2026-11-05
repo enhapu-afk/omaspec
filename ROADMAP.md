@@ -1416,12 +1416,35 @@ checked; numbers are measured, not assumed.
       stale use behind; lint names a link to a diagram that is gone.
 - [ ] Search the project: Ctrl+Shift+F over every file of the project, not only the
       open tabs; Ctrl+F in the diagram finds a state or a message and lights it.
-- [ ] Maps that scale, first in 0.8 (step 0): the main map shows only the
+- [x] Maps that scale, first in 0.8 (step 0): the main map shows only the
       diagrams on no map's box, not every one on none of its own; a tile small on
       screen shows its name and kind, its picture once it is large enough to read;
       pictures kept per file until it changes, not 256 at most; a map's box may
       name another map, so a large project is maps within maps. Goal: the main map
-      of 2,000 diagrams drawn and shown in under 100 ms.
+      of 2,000 diagrams drawn and shown in under 100 ms. Built (amending
+      [0018](docs/adr/0018-diagrams-that-link.md)): the main map leaves a diagram
+      that another map's box names to that map (`atlas::on_other_maps`, the words
+      on each map's boxes kept by file); a map comes with its cards, the same SVG
+      without the pictures (`Rendered::cards`), which the pane shows for a map
+      over 128 kB, parsing the pictures in the background once a tile is 96
+      pixels wide on screen and showing the cards again below that; a small map
+      is shown whole as before (checked on the screenshot of a map of five
+      tiles). Pictures are kept by file and fingerprint, those missing drawn on
+      as many threads as there are cores. Release build, the main map naming the
+      areas, the pane's first parse and a fitted raster for 1600 × 1000:
+
+      | diagrams | main map: tiles, drawn, again, SVG, parsed, rastered | an area's map: drawn, again, parsed, rastered |
+      |---:|---|---|
+      | 101 | 2, 4 ms, 2 ms, 44 kB, 22 ms (whole), 9 ms | 26 ms, 21 ms, 26 ms, 12 ms |
+      | 501 | 10, 17 ms, 9 ms, 219 kB, 6 ms, 5 ms | 27 ms, 20 ms, 25 ms, 12 ms |
+      | 2001 | 40, 63 ms, 39 ms, 877 kB, 15 ms, 6 ms | 27 ms, 19 ms, 24 ms, 12 ms |
+
+      2,000 diagrams: about 84 ms from nothing drawn to pixels, 60 ms again (was
+      1.1 s and 3.9 s). Of the 63 ms, 15 go to reading the boxes of the 40 areas'
+      maps and 15 to drawing their pictures, and 36 to nesting the pictures into
+      the map and sanitizing the whole, which the pane needs only once zoomed in;
+      handing it the cards before the whole is the next step should a project
+      need it.
 - [ ] A project checked in CI: `omaspec check DIR` runs lint, the checks against the
       machines, the links and `render --check`, with exit codes, `--json` and GitHub
       annotations; `omaspec new --git` offers a pre-commit hook.
