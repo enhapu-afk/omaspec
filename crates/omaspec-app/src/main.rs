@@ -1,3 +1,4 @@
+mod check;
 mod commands;
 mod document;
 mod editor;
@@ -11,6 +12,7 @@ mod paper;
 mod preview;
 mod project;
 mod project_export;
+mod render_command;
 mod sandbox;
 #[cfg(test)]
 mod scale;
@@ -204,12 +206,14 @@ enum Command {
     /// Render diagrams to SVG, PNG or PDF.
     ///
     /// Each image is written next to its diagram unless --output says
-    /// otherwise; SVG and PNG carry the diagram source. PlantUML diagrams
+    /// otherwise; a Markdown document gives one per diagram (README-1.svg,
+    /// …), and a folder its diagrams and documents; SVG and PNG carry the diagram source. PlantUML diagrams
     /// the native engine cannot draw yet go to the `plantuml` command if
     /// installed (or the one in $OMASPEC_PLANTUML; `none` turns it off).
     /// `--json` prints where each image went, or the error and its line.
     Render {
-        /// Diagrams to render; `-` or none reads standard input.
+        /// Diagrams, Markdown documents or folders of them to render; `-`
+        /// or none reads standard input.
         files: Vec<PathBuf>,
         /// Output file, `-` for standard output; only with one diagram.
         #[arg(short, long)]
@@ -242,6 +246,11 @@ enum Command {
         /// cannot be the image in this mode.
         #[arg(long)]
         json: bool,
+        /// Write nothing: hold each diagram's SVG, drawn now, against the
+        /// one beside it (as committed) and say what changed; exit 1 when
+        /// one differs or is missing. For CI, after an update of Omaspec.
+        #[arg(long, conflicts_with_all = ["output", "copy"])]
+        check: bool,
         #[command(flatten)]
         lang: LangArg,
     },
@@ -426,8 +435,9 @@ fn main() -> ExitCode {
             copy,
             look,
             json,
+            check,
             lang,
-        }) => commands::render(&commands::RenderArgs {
+        }) => render_command::render(&render_command::RenderArgs {
             files: &files,
             output: output.as_deref(),
             format: format.map(Format::from),
@@ -437,6 +447,7 @@ fn main() -> ExitCode {
             look,
             lang: lang.get(),
             json,
+            check,
         }),
         Some(Command::Export {
             dir,

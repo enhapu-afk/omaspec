@@ -82,6 +82,29 @@ name = "shop"
 main = "system.puml"
 ```
 
+### A look the project pins
+
+A `[look]` table in `omaspec-project.toml` is what every diagram of the project is
+drawn in: in the pane (over the theme's colors), by `render`, the MCP server, `export`
+and CI alike. The file and the source stored in an image stay as written.
+
+```toml
+[look]
+pack = "light"        # plain, spec, presentation, light, dark, or auto (light, and dark under a dark scheme)
+accent = "#d73a49"    # with light or dark: background, surface, text, accent, muted, note
+font = "Inter"        # skinparam defaultFontName, Mermaid's fontFamily
+```
+
+A line that does not hold is named. `omarchy` is refused there, as it differs from
+machine to machine; `render --look` still takes it, and `--look file` the file's own
+colors. An SVG is laid out the same on every machine (text is measured on built-in
+metrics); a PNG depends on the fonts installed. The layout keeps improving, so an update
+may draw a project otherwise: `omaspec render --check .` draws every diagram and holds it
+against the SVG beside it, writing nothing, and names what changed: the diagram changed
+since its SVG was drawn, or the same diagram drawn differently (its size, words new or
+gone, parts moved, parts in other colors). It exits 1 then, for CI; `omaspec render .`
+draws them again, to commit.
+
 ### Diagrams that link
 
 The diagrams of a project link by name ([ADR 0018](../adr/0018-diagrams-that-link.md)): a
@@ -318,6 +341,8 @@ omaspec render flow.mmd             # flow.svg next to it, with the source insid
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
 omaspec render flow.mmd --look auto # plain, omarchy, light or dark; auto: one SVG, dark under a dark scheme
+omaspec render .                    # every diagram of the folder, each beside its own, in the project's look
+omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1
 omaspec export ~/specs/shop         # every diagram as an SVG, linked, the map as index.svg, and shop.zip, in shop/export
 omaspec lint README.md              # each plantuml and mermaid block of a Markdown document, on its lines
 omaspec render README.md            # one image per block: README-1.svg, README-2.svg, …

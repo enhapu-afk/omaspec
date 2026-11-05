@@ -23,6 +23,8 @@ iced_runtime = "0.14"
 landlock = "0.4"
 notify = "8"
 regex = "1"
+# `render --check` reads the SVGs it holds the new ones against.
+roxmltree = "0.21"
 # The confined PlantUML's open-file limit (`sandbox`); already in iced's tree.
 rustix = { version = "1", features = ["process"] }
 # Pinned: young crate, see docs/adr/0002-editor-widget-scrive.md.

@@ -2533,6 +2533,7 @@ dependencies = [
  "omaspec-theme",
  "omaspec-uml",
  "regex",
+ "roxmltree 0.21.1",
  "rustix 1.1.5",
  "scrive-core",
  "scrive-iced",

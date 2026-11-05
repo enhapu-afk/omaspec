@@ -733,6 +733,78 @@ fn a_project_s_look_draws_its_diagrams_unless_another_is_asked_for() {
 }
 
 #[test]
+fn render_check_holds_a_project_against_its_committed_svgs() {
+    let dir = scratch("render-check");
+    fs::create_dir_all(dir.join("states")).unwrap();
+    fs::write(
+        dir.join("omaspec-project.toml"),
+        "name = \"ci\"\n[look]\npack = \"light\"\n",
+    )
+    .unwrap();
+    let door = dir.join("states/door.puml");
+    fs::write(
+        &door,
+        "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\n@enduml\n",
+    )
+    .unwrap();
+    fs::write(dir.join("flow.mmd"), "flowchart LR\n  A --> B\n").unwrap();
+    let root = dir.to_str().unwrap();
+    let run = |args: &[&str]| {
+        let out = Command::new(env!("CARGO_BIN_EXE_omaspec"))
+            .arg("render")
+            .args(args)
+            .env("OMASPEC_PLANTUML", "none")
+            .output()
+            .unwrap();
+        (
+            out.status.code(),
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+        )
+    };
+    // A folder: every diagram in it, each beside its own.
+    assert_eq!(run(&[root]).0, Some(0));
+    assert!(dir.join("states/door.svg").is_file() && dir.join("flow.svg").is_file());
+    let (code, out, err) = run(&["--check", root]);
+    assert_eq!((code, out.as_str()), (Some(0), ""), "{err}");
+    assert!(err.contains("2 SVGs drawn as they are"), "{err}");
+    // A diagram changed without its SVG.
+    fs::write(&door, "@startuml\ntitle Door\n[*] --> Closed\n@enduml\n").unwrap();
+    let (code, out, _) = run(&["--check", root]);
+    assert_eq!(code, Some(1));
+    assert!(
+        out.contains("door.svg: the diagram changed since this SVG was drawn"),
+        "{out}"
+    );
+    // The same diagrams in another look: drawn differently.
+    assert_eq!(run(&[root]).0, Some(0));
+    fs::write(
+        dir.join("omaspec-project.toml"),
+        "[look]\npack = \"dark\"\n",
+    )
+    .unwrap();
+    let (code, out, _) = run(&["--check", root]);
+    assert_eq!(code, Some(1));
+    assert!(
+        out.contains("flow.svg: drawn differently:") && out.contains("in other colors"),
+        "{out}"
+    );
+    // Nothing was written by the check.
+    assert!(
+        !fs::read_to_string(dir.join("flow.svg"))
+            .unwrap()
+            .to_ascii_lowercase()
+            .contains("#16181d")
+    );
+    // A missing SVG, and what --check refuses.
+    fs::remove_file(dir.join("flow.svg")).unwrap();
+    let (code, out, _) = run(&["--check", dir.join("flow.mmd").to_str().unwrap()]);
+    assert_eq!(code, Some(1));
+    assert!(out.contains("flow.svg: not there"), "{out}");
+    assert_eq!(run(&["--check", "-f", "png", root]).0, Some(2));
+}
+
+#[test]
 fn render_writes_svg_png_and_pdf_next_to_the_diagram() {
     let dir = scratch("render");
     let file = dir.join("states.mmd");

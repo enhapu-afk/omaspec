@@ -1380,13 +1380,26 @@ checked; numbers are measured, not assumed.
       state machines belong to its project, named by `@startuml` and `title` only.
       Found on the way: mmdr names line 1 for a flowchart it cannot read at all; on
       a blank line, the error moves to the header after it.
-- [ ] The look pinned per project: `[look]` in `omaspec-project.toml` (pack, colors,
+- [x] The look pinned per project: `[look]` in `omaspec-project.toml` (pack, colors,
       font), used alike by the pane, `render`, the MCP server and CI. An SVG is laid
       out the same on every machine already (text is measured on built-in metrics);
       a PNG depends on the installed font. Not the same pixels across updates, as
       the layout keeps improving: `render --check DIR` compares a project with its
       committed SVGs and names what changed, so an update's change is seen before it
-      is committed.
+      is committed. Built: `[look]` takes `pack` (plain, spec, presentation, light,
+      dark, auto), the six colors with light or dark, and `font` (written as
+      `defaultFontName` and Mermaid's `fontFamily`); every line that does not hold
+      is named, and `omarchy` is refused, as it differs from machine to machine.
+      `render`, the MCP tool and `export` draw in it unless `--look` says otherwise
+      (`--look file`: the file's colors; a pinned auto gives a PNG its light one),
+      and the pane shows it over the theme's colors, its map's tiles too, drawn
+      again when the project file changes; a `--look` and a pinned look are one
+      `Skin`. `render` takes folders, and `render --check` writes nothing: it holds
+      each SVG drawn now against the one beside its diagram (`check.rs`) and says
+      whether the diagram changed since, or how the same one is drawn otherwise:
+      its size, words new or gone, parts moved, parts in other colors; exit 1, and
+      `--json` with `same` for each. The render command moved out of `commands.rs`
+      (`render_command.rs`), which had grown past 1,000 lines.
 
 ### 0.8: hundreds of diagrams
 
