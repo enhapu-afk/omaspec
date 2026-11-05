@@ -5,7 +5,7 @@
 # with `updpkgsums`; see packaging/RELEASING.md.
 
 pkgname=omaspec
-pkgver=0.5.0
+pkgver=0.8.0
 pkgrel=1
 pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy"
 arch=('x86_64' 'aarch64')
@@ -20,7 +20,7 @@ optdepends=(
   'libnotify: notifications outside Omarchy'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('fff61239d05f73bcbd135e811a1a7ba96a220854f2ed91c244511d5a58aac6d1')
+sha256sums=('cdd8908f66919bfb61e0d48654d010d3b066374dba945af8413d661e56eebb6e')
 
 prepare() {
   cd "$pkgname-$pkgver"
