@@ -11,7 +11,7 @@ use anyhow::{Context, Result};
 use iced::Task;
 use omaspec_core::Language;
 use omaspec_core::diff::{self, Op};
-use omaspec_model::{Change, Spec};
+use omaspec_model::{Change, Specs};
 
 use super::doc::Doc;
 use super::picker::{Choice, Item, Kind, Picker};
@@ -78,7 +78,7 @@ impl Compare {
     /// Recomputes the changed lines and the changes in behavior against
     /// A's `text`, in `language`, whose project has the state machines
     /// `specs`.
-    pub fn refresh(&mut self, a_text: &str, language: Language, specs: &[Spec]) {
+    pub fn refresh(&mut self, a_text: &str, language: Language, specs: &Specs) {
         self.rows = rows(&self.text, a_text);
         self.behavior = omaspec_model::diff(&self.text, self.language, a_text, language, specs);
     }

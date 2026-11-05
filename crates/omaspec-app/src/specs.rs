@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use omaspec_core::{Language, detect, markdown};
-use omaspec_model::Spec;
+use omaspec_model::{Spec, Specs};
 use omaspec_render::anchors::Anchor;
 use omaspec_render::{Atlas, Entry, Place, RenderError, Rendered, Renderer};
 
@@ -23,13 +23,13 @@ const MAX_FILE: u64 = 1 << 20;
 const MAX_TRACE: u64 = 16 << 20;
 
 /// The state machines in the project folder `root`, by their paths in it.
-pub fn read(root: &Path) -> Vec<Spec> {
+pub fn read(root: &Path) -> Specs {
     read_project(root).0
 }
 
 /// The state machines in the project folder `root`, and all its diagrams
 /// with the main one its project file names; each file read once.
-pub fn read_project(root: &Path) -> (Vec<Spec>, Atlas) {
+pub fn read_project(root: &Path) -> (Specs, Atlas) {
     let mut specs = Vec::new();
     let project = crate::project::read(root).and_then(Result::ok);
     let mut atlas = Atlas {
@@ -70,7 +70,7 @@ pub fn read_project(root: &Path) -> (Vec<Spec>, Atlas) {
         });
     }
     atlas.diagrams.sort_by(|a, b| a.file.cmp(&b.file));
-    (specs, atlas)
+    (Specs::new(specs), atlas)
 }
 
 /// The path of the file at `path` in the project at `root`, as maps show
@@ -258,15 +258,18 @@ pub fn root_of(file: Option<&Path>, project: Option<&Path>) -> Option<PathBuf> {
 /// The state machines of every project folder one command needs, each
 /// folder read once.
 #[derive(Default)]
-pub struct Projects(HashMap<PathBuf, Vec<Spec>>);
+pub struct Projects {
+    read: HashMap<PathBuf, Specs>,
+    none: Specs,
+}
 
 impl Projects {
     /// The state machines `file` is checked against; none for standard
     /// input without a project.
-    pub fn of(&mut self, file: Option<&Path>, project: Option<&Path>) -> &[Spec] {
+    pub fn of(&mut self, file: Option<&Path>, project: Option<&Path>) -> &Specs {
         match root_of(file, project) {
-            Some(root) => self.0.entry(root.clone()).or_insert_with(|| read(&root)),
-            None => &[],
+            Some(root) => self.read.entry(root.clone()).or_insert_with(|| read(&root)),
+            None => &self.none,
         }
     }
 }

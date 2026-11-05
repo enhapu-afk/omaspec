@@ -26,7 +26,7 @@ use omaspec_core::lint::{Finding, Severity};
 use omaspec_uml::Diagram;
 use omaspec_uml::sequence::{self, End, GroupKind, Item, Mark, Message};
 
-use crate::{Kind, Machine};
+use crate::{Kind, Machine, Specs};
 
 /// A state machine of the project, with the names a participant may call
 /// it by.
@@ -89,7 +89,7 @@ pub(crate) fn event_of(label: &str) -> &str {
 }
 
 /// The findings of `code` against the project's state machines.
-pub fn check(code: &str, lang: Language, specs: &[Spec]) -> Vec<Finding> {
+pub fn check(code: &str, lang: Language, specs: &Specs) -> Vec<Finding> {
     if specs.is_empty() {
         return Vec::new();
     }
@@ -98,13 +98,10 @@ pub fn check(code: &str, lang: Language, specs: &[Spec]) -> Vec<Finding> {
     };
     let mut players: HashMap<usize, Player> = HashMap::new();
     for (index, participant) in diagram.participants.iter().enumerate() {
-        let wanted = [key(&participant.code), key(&participant.label)];
-        let mut found = specs
-            .iter()
-            .filter(|s| s.names.iter().any(|n| wanted.contains(&key(n))));
+        let found = specs.named(&[&participant.code, &participant.label]);
         // Two machines with the participant's name: which is meant is
         // unclear, so neither is used.
-        if let (Some(spec), None) = (found.next(), found.next()) {
+        if let [spec] = found.as_slice() {
             players.insert(index, Player::new(spec, &participant.label));
         }
     }
@@ -562,8 +559,10 @@ mod tests {
 
     const DOOR: &str = "@startuml\n[*] --> Closed\nClosed --> Open : open [unlocked]\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
 
-    fn door() -> Vec<Spec> {
-        vec![Spec::read(DOOR, Language::PlantUml, "door.puml").unwrap()]
+    fn door() -> Specs {
+        Specs::new(vec![
+            Spec::read(DOOR, Language::PlantUml, "door.puml").unwrap(),
+        ])
     }
 
     fn check_puml(body: &str) -> Vec<(usize, String)> {
@@ -673,6 +672,6 @@ mod tests {
         )
         .unwrap();
         let code = "@startuml\nX -> Both : a\nX -> Both : b\n@enduml\n";
-        assert_eq!(check(code, Language::PlantUml, &[spec]), []);
+        assert_eq!(check(code, Language::PlantUml, &Specs::new(vec![spec])), []);
     }
 }

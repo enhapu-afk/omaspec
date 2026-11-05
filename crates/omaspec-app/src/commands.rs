@@ -241,9 +241,7 @@ pub fn diff(
         _ => anyhow::bail!("diff compares two versions"),
     };
     let (old, old_name, new) = versions(old, new, rev)?;
-    let specs = Projects::default()
-        .of(new.path.as_deref(), project)
-        .to_vec();
+    let specs = Projects::default().of(new.path.as_deref(), project).clone();
     let changes = omaspec_model::diff(
         &old.text,
         language(&old, forced),
@@ -514,7 +512,7 @@ pub fn inspect(
     let input = read_input(file.as_deref().filter(|f| f.as_os_str() != "-"))?;
     let specs = Projects::default()
         .of(input.path.as_deref(), project)
-        .to_vec();
+        .clone();
     let mut out = stdout();
     if crate::document::is_document(&input) {
         // Each diagram of the document, on its lines.

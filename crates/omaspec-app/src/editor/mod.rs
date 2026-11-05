@@ -56,7 +56,7 @@ use iced::widget::pane_grid;
 use iced::{Animation, Font, Size, Subscription, Task, Theme, window};
 use omaspec_core::Language;
 use omaspec_core::skin::{self, Pack};
-use omaspec_model::Spec;
+use omaspec_model::Specs;
 use omaspec_render::export::Format;
 use omaspec_theme::{Palette, Theme as Omarchy};
 use omaspec_uml::map::Map;
@@ -272,7 +272,7 @@ pub enum Message {
     /// The diagrams found in a folder, for the file picker.
     Scanned(PathBuf, Vec<PathBuf>),
     /// The state machines and all diagrams found in a project folder.
-    Specs(PathBuf, Arc<Vec<Spec>>, Arc<omaspec_render::Atlas>),
+    Specs(PathBuf, Arc<Specs>, Arc<omaspec_render::Atlas>),
     /// A click on the trail over the diagram: back to that step.
     BackTo(usize),
     PromptInput(String),
@@ -793,7 +793,7 @@ struct App {
     tree: HashMap<PathBuf, folder::Listing>,
     /// The state machines of each project folder an open diagram is in,
     /// which sequence diagrams are checked against.
-    specs: HashMap<PathBuf, Arc<Vec<Spec>>>,
+    specs: HashMap<PathBuf, Arc<Specs>>,
     /// All diagrams of each such project folder, which maps show and
     /// states link to; and the same in the diagram's colors.
     atlases: HashMap<PathBuf, Arc<omaspec_render::Atlas>>,

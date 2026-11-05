@@ -32,7 +32,7 @@ use serde_json::Value;
 use crate::across::{
     Spec, event_of, events_list, key, no_transition, orthogonal, states_list, written,
 };
-use crate::{Kind, Machine, Run, Taken};
+use crate::{Kind, Machine, Run, Specs, Taken};
 
 /// Ways an object can be at once that are followed; past that it is not
 /// checked, rather than checked wrongly.
@@ -40,7 +40,7 @@ const MAX_WAYS: usize = 1000;
 
 /// The findings of `trace` against the project's state machines, in line
 /// order.
-pub fn check(trace: &str, specs: &[Spec]) -> Vec<Finding> {
+pub fn check(trace: &str, specs: &Specs) -> Vec<Finding> {
     let mut out = Vec::new();
     // By object; `None` for one without a machine, reported once.
     let mut objects: HashMap<String, Option<Object>> = HashMap::new();
@@ -203,13 +203,8 @@ fn entry(line: usize, text: &str) -> Result<Entry, String> {
 }
 
 /// The one state machine named `name`, or why there is none.
-fn machine_named<'a>(name: &str, specs: &'a [Spec]) -> Result<&'a Spec, String> {
-    let wanted = key(name);
-    let found: Vec<&Spec> = specs
-        .iter()
-        .filter(|s| s.names.iter().any(|n| key(n) == wanted))
-        .collect();
-    match found.as_slice() {
+fn machine_named<'a>(name: &str, specs: &'a Specs) -> Result<&'a Spec, String> {
+    match specs.named(&[name]).as_slice() {
         [spec] => Ok(spec),
         [] => Err(format!("No state machine of the project is named {name}")),
         several => {
@@ -562,8 +557,10 @@ mod tests {
 
     const DOOR: &str = "@startuml\n[*] --> Closed\nClosed --> Open : open [unlocked]\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
 
-    fn specs() -> Vec<Spec> {
-        vec![Spec::read(DOOR, Language::PlantUml, "door.puml").unwrap()]
+    fn specs() -> Specs {
+        Specs::new(vec![
+            Spec::read(DOOR, Language::PlantUml, "door.puml").unwrap(),
+        ])
     }
 
     /// The findings as `(line, severity, message)`, one-based lines.
@@ -696,14 +693,14 @@ mod tests {
 
     #[test]
     fn what_needs_no_event_may_happen_unlogged() {
-        let specs = vec![
+        let specs = Specs::new(vec![
             Spec::read(
                 "@startuml\n[*] --> Idle\nIdle --> Check : job\nstate Check <<choice>>\nCheck --> Busy\nCheck --> Failed\nBusy --> Idle : done\nFailed --> Idle : reset\n@enduml\n",
                 Language::PlantUml,
                 "worker.puml",
             )
             .unwrap(),
-        ];
+        ]);
         let found = check(
             "{\"object\":\"Worker\",\"event\":\"job\"}\n{\"object\":\"Worker\",\"event\":\"reset\"}",
             &specs,
@@ -713,14 +710,14 @@ mod tests {
 
     #[test]
     fn every_region_with_a_way_takes_the_event() {
-        let specs = vec![
+        let specs = Specs::new(vec![
             Spec::read(
                 "@startuml\n[*] --> Box\nstate Box {\n  [*] --> A1\n  A1 --> A2 : go\n  --\n  [*] --> B1\n  B1 --> B2 : go\n}\n@enduml\n",
                 Language::PlantUml,
                 "box.puml",
             )
             .unwrap(),
-        ];
+        ]);
         let found = check(
             "{\"object\":\"Box\",\"event\":\"go\",\"state\":\"A2\"}\n{\"object\":\"Box\",\"state\":\"B2\"}",
             &specs,

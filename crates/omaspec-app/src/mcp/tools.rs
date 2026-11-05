@@ -743,7 +743,7 @@ fn inspect(args: &Args) -> Result<Answer> {
     let project = args.project_of(input.path.as_deref())?;
     let specs = Projects::default()
         .of(input.path.as_deref(), project.as_deref())
-        .to_vec();
+        .clone();
     if crate::document::is_document(&input) {
         let pieces = crate::document::pieces(&input, None);
         let found: Vec<_> = pieces.iter().map(|p| p.findings(&specs)).collect();
@@ -802,7 +802,7 @@ fn diff(args: &Args) -> Result<Answer> {
     };
     let specs = Projects::default()
         .of(new.path.as_deref(), project.as_deref())
-        .to_vec();
+        .clone();
     let changes = omaspec_model::diff(
         &old.text,
         language(&old, lang),

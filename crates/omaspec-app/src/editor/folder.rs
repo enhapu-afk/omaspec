@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use iced::Task;
 use omaspec_core::{DiagramKind, Language};
-use omaspec_model::Spec;
+use omaspec_model::Specs;
 
 use super::doc::Doc;
 use super::{App, Message};
@@ -300,7 +300,7 @@ impl App {
 
     /// Takes the state machines read for `root`, and checks each document
     /// in it again whose machines changed.
-    pub(super) fn found_specs(&mut self, root: PathBuf, specs: Arc<Vec<Spec>>) {
+    pub(super) fn found_specs(&mut self, root: PathBuf, specs: Arc<Specs>) {
         if root.as_os_str().is_empty() {
             return;
         }

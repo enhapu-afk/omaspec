@@ -17,6 +17,7 @@ mod label;
 mod mermaid;
 mod plantuml;
 mod run;
+mod specs;
 mod trace;
 
 use omaspec_core::lint::{self, Finding};
@@ -28,6 +29,7 @@ pub use convert::{Converted, Notice, Refused, convert};
 pub use diff::{Change, ChangeKind, diff};
 pub use label::Trigger;
 pub use run::{Run, Taken};
+pub use specs::Specs;
 pub use trace::{Followed, TraceStep};
 
 /// A state machine: its states, where each one sits, and its transitions.
@@ -166,12 +168,12 @@ pub fn check(code: &str, lang: Language) -> Vec<Finding> {
 /// Every finding for `code`: the lint's and the specification check's, in
 /// line order.
 pub fn findings(code: &str, lang: Language) -> Vec<Finding> {
-    findings_with(code, lang, &[])
+    findings_with(code, lang, &Specs::default())
 }
 
 /// The findings of a recorded trace (JSON Lines) against the state
 /// machines of its project, in line order.
-pub fn check_trace(trace: &str, specs: &[Spec]) -> Vec<Finding> {
+pub fn check_trace(trace: &str, specs: &Specs) -> Vec<Finding> {
     trace::check(trace, specs)
 }
 
@@ -189,7 +191,7 @@ pub fn follow_trace(trace: &str, spec: &Spec, object: &str) -> Followed {
 
 /// Every finding for `code`, also against the state machines of the
 /// project it belongs to (`specs`), in line order.
-pub fn findings_with(code: &str, lang: Language, specs: &[Spec]) -> Vec<Finding> {
+pub fn findings_with(code: &str, lang: Language, specs: &Specs) -> Vec<Finding> {
     let mut all = lint::lint(code, lang);
     all.extend(check(code, lang));
     all.extend(across::check(code, lang, specs));

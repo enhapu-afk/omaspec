@@ -221,7 +221,7 @@ fn the_check_survives_broken_state_diagrams() {
         };
         let code = mutated(&mut rng, start);
         let lines = code.split('\n').count();
-        for f in omaspec_model::findings_with(&code, lang, &[]) {
+        for f in omaspec_model::findings_with(&code, lang, &omaspec_model::Specs::default()) {
             assert!(
                 f.line < lines,
                 "round {round}: line {} of {lines}: {code:?}",
@@ -269,7 +269,8 @@ fn the_check_across_diagrams_survives_broken_sequences() {
         // Both specs carry the name `busy`: the participant is matched to
         // none of them. Each alone is matched.
         for specs in [&specs[..], &specs[..1], &specs[1..]] {
-            for f in omaspec_model::findings_with(&code, lang, specs) {
+            let specs = omaspec_model::Specs::new(specs.to_vec());
+            for f in omaspec_model::findings_with(&code, lang, &specs) {
                 assert!(
                     f.line < lines,
                     "round {round}: line {} of {lines}: {code:?}",
@@ -355,7 +356,8 @@ fn the_trace_check_survives_broken_traces() {
         // Both specs carry the name `busy`: no object is matched. Each
         // alone is.
         for specs in [&specs[..], &specs[..1], &specs[1..]] {
-            for f in omaspec_model::check_trace(&trace, specs) {
+            let specs = omaspec_model::Specs::new(specs.to_vec());
+            for f in omaspec_model::check_trace(&trace, &specs) {
                 assert!(
                     f.line < lines,
                     "round {round}: line {} of {lines}: {trace:?}",
@@ -432,8 +434,14 @@ fn conversions_keep_the_behavior() {
         {
             continue;
         }
-        let changes = omaspec_model::diff(&code, lang, &written.code, to, &[])
-            .unwrap_or_else(|e| panic!("round {round}: {e} for {code:?} → {:?}", written.code));
+        let changes = omaspec_model::diff(
+            &code,
+            lang,
+            &written.code,
+            to,
+            &omaspec_model::Specs::default(),
+        )
+        .unwrap_or_else(|e| panic!("round {round}: {e} for {code:?} → {:?}", written.code));
         assert!(
             changes.is_empty(),
             "round {round}: {changes:#?} for {code:?} → {:?}",
@@ -445,7 +453,14 @@ fn conversions_keep_the_behavior() {
                 .iter()
                 .any(|n| n.message.contains(" is called "))
         {
-            let changes = omaspec_model::diff(&code, lang, &back.code, lang, &[]).unwrap();
+            let changes = omaspec_model::diff(
+                &code,
+                lang,
+                &back.code,
+                lang,
+                &omaspec_model::Specs::default(),
+            )
+            .unwrap();
             assert!(
                 changes.is_empty(),
                 "round {round}: back: {changes:#?} for {code:?} → {:?}",
@@ -481,10 +496,14 @@ fn diffs_survive_broken_diagrams() {
         };
         let times = 1 + rng.below(2);
         let new = mutated_times(&mut rng, start, times);
-        if let Ok(same) = omaspec_model::diff(&old, lang, &old, lang, &[]) {
+        if let Ok(same) =
+            omaspec_model::diff(&old, lang, &old, lang, &omaspec_model::Specs::default())
+        {
             assert!(same.is_empty(), "round {round}: {same:#?} for {old:?}");
         }
-        let Ok(changes) = omaspec_model::diff(&old, lang, &new, lang, &[]) else {
+        let Ok(changes) =
+            omaspec_model::diff(&old, lang, &new, lang, &omaspec_model::Specs::default())
+        else {
             continue;
         };
         compared += 1;

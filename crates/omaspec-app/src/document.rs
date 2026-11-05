@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use omaspec_core::lint::Finding;
 use omaspec_core::markdown::{self, Block};
 use omaspec_core::{Language, outline};
-use omaspec_model::Spec;
+use omaspec_model::Specs;
 use serde::Serialize;
 
 use crate::commands::{Inspection, inspection, language};
@@ -63,7 +63,7 @@ impl Piece<'_> {
     }
 
     /// Its findings, also against `specs`, on the input's lines.
-    pub fn findings(&self, specs: &[Spec]) -> Vec<Finding> {
+    pub fn findings(&self, specs: &Specs) -> Vec<Finding> {
         let mut found = omaspec_model::findings_with(&self.code, self.language, specs);
         for finding in &mut found {
             finding.line = self.line(finding.line);
@@ -102,7 +102,7 @@ fn numbered(path: &Path, number: usize, extension: &str) -> PathBuf {
 }
 
 /// Every finding of `input`'s diagrams, on its lines, in line order.
-pub(crate) fn findings(input: &Input, forced: Option<Language>, specs: &[Spec]) -> Vec<Finding> {
+pub(crate) fn findings(input: &Input, forced: Option<Language>, specs: &Specs) -> Vec<Finding> {
     let mut all: Vec<Finding> = pieces(input, forced)
         .iter()
         .flat_map(|piece| piece.findings(specs))

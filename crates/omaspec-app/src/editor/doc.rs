@@ -19,7 +19,7 @@ use omaspec_core::lint::{Finding, Severity};
 use omaspec_core::markdown::{self, Block};
 use omaspec_core::outline::{self, Entry};
 use omaspec_core::{DiagramKind, Language, classify, detect};
-use omaspec_model::Spec;
+use omaspec_model::Specs;
 use omaspec_theme::{Palette, Tweaks};
 use scrive_core::TokenTheme;
 use scrive_iced::{CodeEditor, LineMarker};
@@ -139,7 +139,7 @@ pub struct Doc {
     pub kind: Option<DiagramKind>,
     /// The state machines of its project, which a sequence diagram is
     /// checked against.
-    pub specs: Arc<Vec<Spec>>,
+    pub specs: Arc<Specs>,
     pub outline: Vec<Entry>,
     pub paper: Paper,
     /// The text last sent to the renderer.

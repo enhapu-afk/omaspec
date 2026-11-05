@@ -16,7 +16,7 @@ use omaspec_core::lint::{Finding, Severity};
 use omaspec_core::{Kind as DiagramKind, Language, classify};
 use omaspec_uml::sequence::{self, End, Item, Side};
 
-use crate::{Kind, Machine, Spec, Trigger, across, check};
+use crate::{Kind, Machine, Specs, Trigger, across, check};
 
 /// One change from the old version to the new one.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,7 +66,7 @@ pub fn diff(
     old_lang: Language,
     new: &str,
     new_lang: Language,
-    specs: &[Spec],
+    specs: &Specs,
 ) -> Result<Vec<Change>, String> {
     let (a, b) = (classify(old, old_lang), classify(new, new_lang));
     match (a.kind, b.kind) {
@@ -836,7 +836,7 @@ mod tests {
             Language::PlantUml,
             &puml(new),
             Language::PlantUml,
-            &[],
+            &Specs::default(),
         )
         .unwrap()
         .into_iter()
@@ -857,7 +857,7 @@ mod tests {
             Language::PlantUml,
             mermaid,
             Language::Mermaid,
-            &[],
+            &Specs::default(),
         );
         assert_eq!(changes, Ok(Vec::new()));
     }
@@ -977,7 +977,7 @@ mod tests {
             Language::PlantUml,
             &sequence,
             Language::PlantUml,
-            &[],
+            &Specs::default(),
         )
         .unwrap_err();
         assert!(err.contains("different kinds"), "{err}");
@@ -986,7 +986,7 @@ mod tests {
             Language::PlantUml,
             &classes,
             Language::PlantUml,
-            &[],
+            &Specs::default(),
         )
         .unwrap_err();
         assert!(err.contains("not of a class diagram"), "{err}");
