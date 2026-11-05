@@ -465,7 +465,8 @@ impl App {
         }
         let look = match look {
             ExportLook::Shown if self.follow_theme => Some(crate::look::Look::Omarchy),
-            ExportLook::Shown | ExportLook::File => None,
+            ExportLook::Shown => None,
+            ExportLook::File => Some(crate::look::Look::File),
             ExportLook::Look(look) => Some(look),
         };
         self.prompt = None;
@@ -666,6 +667,7 @@ impl Drawn<'_> {
         format: Format,
     ) -> Result<Vec<u8>, String> {
         let mut renderer = omaspec_render::Renderer::new(&crate::commands::render_config());
+        let skin = look.and_then(crate::look::Look::skin);
         let rendered = crate::look::render(
             &mut crate::specs::Maps::default(),
             &mut renderer,
@@ -673,7 +675,7 @@ impl Drawn<'_> {
             self.language,
             self.path,
             self.place,
-            look,
+            skin.as_ref(),
         )
         .map_err(|e| e.to_string())?;
         let links = self.own.map_or_else(Vec::new, |own| {

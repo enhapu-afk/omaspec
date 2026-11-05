@@ -655,6 +655,17 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             .path
             .as_deref()
             .and_then(|path| omaspec_render::Place::of(path, None));
+        // `--look`, else the look its project pins; a picture without
+        // color schemes takes auto's light one.
+        let skin = crate::look::skin_for(args.look, place.as_ref().map(|p| p.root.as_path()))?.map(
+            |skin| {
+                if format == Format::Svg {
+                    skin
+                } else {
+                    skin.without_schemes()
+                }
+            },
+        );
         let drawn = crate::look::render(
             &mut maps,
             &mut renderer,
@@ -662,7 +673,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             lang,
             input.path.as_deref(),
             place.as_ref(),
-            args.look,
+            skin.as_ref(),
         );
         let rendered = match drawn {
             Ok(r) => r,

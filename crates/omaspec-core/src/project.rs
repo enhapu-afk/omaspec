@@ -3,9 +3,9 @@
 //! anywhere below it finds its project; it names the project and the
 //! diagram that describes the whole system.
 //!
-//! The file is a small part of TOML: comments, and `name` and `main` as
-//! strings. Anything else is an error that names its line, so a typo does
-//! not go unnoticed.
+//! The file is a small part of TOML: comments, `name` and `main` as
+//! strings, and a `[look]` table ([`Look`]) of strings. Anything else is an
+//! error that names its line, so a typo does not go unnoticed.
 //!
 //! The diagrams of a project find each other by name ([`names`], [`key`]):
 //! a participant its state machine, a state or a box of a map the diagram
@@ -25,7 +25,65 @@ pub struct Project {
     pub name: Option<String>,
     /// The diagram that describes the whole system, relative to the root.
     pub main: Option<String>,
+    /// `[look]`: what every diagram of the project is drawn in.
+    pub look: Option<Look>,
 }
+
+/// `[look]`: what every diagram of the project is drawn in, the same in
+/// the pane, `render`, the MCP server and CI, on every machine. The file
+/// stays as written; the look is laid over it as `render --look` lays one.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Look {
+    pub pack: LookPack,
+    /// Colors that replace the palette's, by name ([`COLOR_NAMES`]), as
+    /// `#rrggbb`; with `light` and `dark` only.
+    pub colors: Vec<(String, String)>,
+    /// The font every diagram is written in ([`crate::skin::is_font`]).
+    pub font: Option<String>,
+}
+
+/// The pack a project's look lays over its diagrams.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum LookPack {
+    /// Black lines, no fills.
+    Plain,
+    /// Black and white, strict UML, a serif font.
+    Spec,
+    /// Larger type and round corners.
+    Presentation,
+    /// Omaspec's light palette; the pack when only colors are set.
+    #[default]
+    Light,
+    /// Omaspec's dark palette.
+    Dark,
+    /// The light palette, and the dark one under a dark scheme (SVG only).
+    Auto,
+}
+
+impl LookPack {
+    pub const ALL: [LookPack; 6] = [
+        LookPack::Plain,
+        LookPack::Spec,
+        LookPack::Presentation,
+        LookPack::Light,
+        LookPack::Dark,
+        LookPack::Auto,
+    ];
+
+    pub fn name(self) -> &'static str {
+        match self {
+            LookPack::Plain => "plain",
+            LookPack::Spec => "spec",
+            LookPack::Presentation => "presentation",
+            LookPack::Light => "light",
+            LookPack::Dark => "dark",
+            LookPack::Auto => "auto",
+        }
+    }
+}
+
+/// The colors a look may set, as the color packs name them.
+pub const COLOR_NAMES: [&str; 6] = ["background", "surface", "text", "accent", "muted", "note"];
 
 /// A line of `omaspec-project.toml` that does not hold.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -47,6 +105,9 @@ impl Project {
     /// Reads the text of `omaspec-project.toml`.
     pub fn parse(text: &str) -> Result<Project, Error> {
         let mut project = Project::default();
+        // The line of `[look]`, once it began, and of its `pack`.
+        let mut look_at: Option<usize> = None;
+        let mut pack_at = 0;
         for (index, line) in text.lines().enumerate() {
             let line_no = index + 1;
             let fail = |message: String| Error {
@@ -58,15 +119,31 @@ impl Project {
                 continue;
             }
             if line.starts_with('[') {
-                return Err(fail(format!(
-                    "`{line}`: a project file has no tables, only `name` and `main`"
-                )));
+                let table = line.split('#').next().unwrap_or(line).trim();
+                if table != "[look]" {
+                    return Err(fail(format!(
+                        "`{line}`: a project file has one table, `[look]`"
+                    )));
+                }
+                if look_at.is_some() {
+                    return Err(fail("`[look]` is set twice".into()));
+                }
+                look_at = Some(line_no);
+                project.look = Some(Look::default());
+                continue;
             }
             let Some((key, value)) = line.split_once('=') else {
                 return Err(fail(format!("`{line}` is no `key = \"value\"`")));
             };
             let key = key.trim();
             let value = string(value.trim()).map_err(fail)?;
+            if let Some(look) = &mut project.look {
+                if key == "pack" {
+                    pack_at = line_no;
+                }
+                look.set(key, &value).map_err(fail)?;
+                continue;
+            }
             let slot = match key {
                 "name" => &mut project.name,
                 "main" => &mut project.main,
@@ -89,11 +166,44 @@ impl Project {
             }
             *slot = Some(value);
         }
+        if let Some(look) = &project.look
+            && !look.colors.is_empty()
+        {
+            let why = match look.pack {
+                LookPack::Plain | LookPack::Spec => "draws in black and white",
+                LookPack::Presentation => "keeps the colors of the file",
+                LookPack::Auto => "takes Omaspec's two palettes",
+                LookPack::Light | LookPack::Dark => "",
+            };
+            if !why.is_empty() {
+                return Err(Error {
+                    line: pack_at.max(look_at.unwrap_or(1)),
+                    message: format!(
+                        "`pack = \"{}\"` {why}; colors go with `light` or `dark`",
+                        look.pack.name()
+                    ),
+                });
+            }
+        }
         Ok(project)
     }
 
     /// The text of `omaspec-project.toml` for this project.
     pub fn to_toml(&self) -> String {
+        let mut out = self.top_toml();
+        if let Some(look) = &self.look {
+            out.push_str(&format!("\n[look]\npack = {}\n", quoted(look.pack.name())));
+            for (name, color) in &look.colors {
+                out.push_str(&format!("{name} = {}\n", quoted(color)));
+            }
+            if let Some(font) = &look.font {
+                out.push_str(&format!("font = {}\n", quoted(font)));
+            }
+        }
+        out
+    }
+
+    fn top_toml(&self) -> String {
         let mut out =
             String::from("# An Omaspec project: the diagrams in this folder and below it.\n");
         if let Some(name) = &self.name {
@@ -104,6 +214,75 @@ impl Project {
         }
         out
     }
+}
+
+impl Look {
+    /// Sets `key` of `[look]` to `value`, or says why it does not hold.
+    fn set(&mut self, key: &str, value: &str) -> Result<(), String> {
+        match key {
+            "pack" => {
+                if value == "omarchy" {
+                    return Err("`omarchy` follows each machine's theme; a project pins a look that is the same everywhere: light, dark or auto".into());
+                }
+                self.pack = LookPack::ALL
+                    .into_iter()
+                    .find(|p| p.name() == value)
+                    .ok_or_else(|| {
+                        format!(
+                            "no pack `{value}`; take plain, spec, presentation, light, dark or auto"
+                        )
+                    })?;
+            }
+            "font" => {
+                if self.font.is_some() {
+                    return Err("`font` is set twice".into());
+                }
+                if !crate::skin::is_font(value) {
+                    return Err(format!(
+                        "`{value}` is no font name: letters, digits, spaces, `-`, `_` and `.`"
+                    ));
+                }
+                self.font = Some(value.trim().to_owned());
+            }
+            name if COLOR_NAMES.contains(&name) => {
+                if self.colors.iter().any(|(n, _)| n == name) {
+                    return Err(format!("`{name}` is set twice"));
+                }
+                if !is_hex_color(value) {
+                    return Err(format!(
+                        "`{name} = \"{value}\"`: a color is written `#rrggbb`"
+                    ));
+                }
+                self.colors
+                    .push((name.to_owned(), value.to_ascii_lowercase()));
+            }
+            "name" | "main" => {
+                return Err(format!("`{key}` belongs above `[look]`"));
+            }
+            _ => {
+                return Err(format!(
+                    "unknown key `{key}` in `[look]`; it knows pack, font and the colors {}",
+                    COLOR_NAMES.join(", ")
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// The color `name` sets, if it sets one.
+    pub fn color(&self, name: &str) -> Option<&str> {
+        self.colors
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, c)| c.as_str())
+    }
+}
+
+/// `#rgb` or `#rrggbb`.
+fn is_hex_color(value: &str) -> bool {
+    value
+        .strip_prefix('#')
+        .is_some_and(|hex| matches!(hex.len(), 3 | 6) && hex.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
 /// The file name of a new project's map, its main diagram.
@@ -361,6 +540,7 @@ mod tests {
             let project = Project {
                 name: Some(name.into()),
                 main: Some("system.mmd".into()),
+                look: None,
             };
             assert_eq!(
                 Project::parse(&project.to_toml()).unwrap(),
@@ -368,6 +548,24 @@ mod tests {
                 "{name}"
             );
         }
+    }
+
+    #[test]
+    fn a_look_pins_a_pack_its_colors_and_a_font() {
+        let text = "name = \"Shop\"\n\n[look]  # the same everywhere\npack = \"dark\"\naccent = \"#D73A49\"\nfont = \"Inter\"\n";
+        let project = Project::parse(text).unwrap();
+        let look = project.look.clone().unwrap();
+        assert_eq!(look.pack, LookPack::Dark);
+        assert_eq!(look.color("accent"), Some("#d73a49"));
+        assert_eq!(look.font.as_deref(), Some("Inter"));
+        assert_eq!(Project::parse(&project.to_toml()).unwrap(), project);
+        // Colors alone are the light palette's, changed.
+        let colors = Project::parse("[look]\nbackground = \"#fff\"").unwrap();
+        assert_eq!(colors.look.unwrap().pack, LookPack::Light);
+        assert_eq!(
+            Project::parse("[look]").unwrap().look,
+            Some(Look::default())
+        );
     }
 
     #[test]
@@ -381,7 +579,28 @@ mod tests {
         let cases = [
             ("name = \"A\"\ncolor = \"red\"", 2, "unknown key `color`"),
             ("name = \"A\"\nname = \"B\"", 2, "set twice"),
-            ("[project]\nname = \"A\"", 1, "no tables"),
+            ("[project]\nname = \"A\"", 1, "one table, `[look]`"),
+            ("[look]\n[look]", 2, "set twice"),
+            ("[look]\nname = \"A\"", 2, "belongs above `[look]`"),
+            ("[look]\npack = \"omarchy\"", 2, "each machine's theme"),
+            ("[look]\npack = \"sepia\"", 2, "no pack `sepia`"),
+            ("[look]\naccent = \"red\"", 2, "written `#rrggbb`"),
+            ("[look]\nfont = \"a{b}\"", 2, "no font name"),
+            (
+                "[look]\nshadow = \"none\"",
+                2,
+                "unknown key `shadow` in `[look]`",
+            ),
+            (
+                "[look]\npack = \"plain\"\naccent = \"#ff0000\"",
+                2,
+                "black and white",
+            ),
+            (
+                "[look]\naccent = \"#ff0000\"\npack = \"auto\"",
+                3,
+                "two palettes",
+            ),
             ("name = A", 1, "no string"),
             ("name = \"A", 1, "no closing"),
             ("name = \"A\" B", 1, "after the string"),

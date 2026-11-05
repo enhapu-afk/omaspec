@@ -671,6 +671,68 @@ fn a_markdown_document_is_linted_inspected_and_drawn_block_by_block() {
 }
 
 #[test]
+fn a_project_s_look_draws_its_diagrams_unless_another_is_asked_for() {
+    let dir = scratch("pinned-look");
+    fs::write(
+        dir.join("omaspec-project.toml"),
+        "name = \"pinned\"\n\n[look]\npack = \"dark\"\naccent = \"#d73a49\"\nfont = \"Inter\"\n",
+    )
+    .unwrap();
+    let door = dir.join("door.puml");
+    let text = "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n";
+    fs::write(&door, text).unwrap();
+    let render = |args: &[&str]| {
+        let out = Command::new(env!("CARGO_BIN_EXE_omaspec"))
+            .arg("render")
+            .args(args)
+            .env("OMASPEC_PLANTUML", "none")
+            .output()
+            .unwrap();
+        (
+            out.status.code(),
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+        )
+    };
+    let door_path = door.to_str().unwrap();
+    assert_eq!(render(&[door_path]).0, Some(0));
+    let svg = fs::read_to_string(dir.join("door.svg"))
+        .unwrap()
+        .to_ascii_lowercase();
+    assert!(svg.contains("#16181d") && svg.contains("#d73a49"), "{svg}");
+    assert!(svg.contains(r#"font-family="inter""#), "{svg}");
+    // The file and the source stored in the picture stay as written.
+    assert_eq!(fs::read_to_string(&door).unwrap(), text);
+    assert_eq!(
+        embed::source_from_svg(&svg)
+            .unwrap()
+            .code
+            .to_ascii_lowercase(),
+        text.to_ascii_lowercase()
+    );
+    // Another look, or the file's own colors, when asked for.
+    let own = dir.join("own.svg");
+    assert_eq!(
+        render(&[door_path, "--look", "file", "-o", own.to_str().unwrap()]).0,
+        Some(0)
+    );
+    assert!(
+        !fs::read_to_string(&own)
+            .unwrap()
+            .to_ascii_lowercase()
+            .contains("#16181d")
+    );
+    // A look that is not the same on every machine is refused, by its line.
+    fs::write(
+        dir.join("omaspec-project.toml"),
+        "[look]\npack = \"omarchy\"\n",
+    )
+    .unwrap();
+    let (code, err) = render(&[door_path]);
+    assert_eq!(code, Some(2));
+    assert!(err.contains("omaspec-project.toml:2:"), "{err}");
+}
+
+#[test]
 fn render_writes_svg_png_and_pdf_next_to_the_diagram() {
     let dir = scratch("render");
     let file = dir.join("states.mmd");

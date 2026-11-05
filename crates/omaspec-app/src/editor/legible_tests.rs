@@ -116,7 +116,7 @@ fn every_example_makes_one_svg_for_both_color_schemes() {
     for example in EXAMPLES {
         let language = example.language();
         let mut draw = |look: Look| {
-            let (text, _) = look::apply(example.text, language, look);
+            let (text, _) = look::apply(example.text, language, &look.skin().unwrap());
             renderer.render(&text, language).unwrap().svg
         };
         let (light, dark) = (draw(Look::Light), draw(Look::Dark));

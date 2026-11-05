@@ -228,9 +228,11 @@ enum Command {
         copy: bool,
         /// Draw in a look, laid over the file's own colors as the editor
         /// lays the Omarchy theme over: plain (black lines), omarchy (the
-        /// active theme), light, dark, or auto (one SVG, dark under the
-        /// viewer's dark scheme). The file and the source stored in the
-        /// image stay as written.
+        /// active theme), light, dark, auto (one SVG, dark under the
+        /// viewer's dark scheme), or file (the file's own colors). The file
+        /// and the source stored in the image stay as written. Without it,
+        /// a diagram of a project that pins a look (`[look]` in
+        /// omaspec-project.toml) is drawn in that.
         #[arg(long, value_enum)]
         look: Option<crate::look::Look>,
         /// Print a JSON report on stdout instead of status lines.

@@ -259,8 +259,8 @@ pub fn definitions() -> Vec<Value> {
                 })),
                 ("look", json!({
                     "type": "string",
-                    "enum": ["plain", "omarchy", "light", "dark", "auto"],
-                    "description": "Draw in a look instead of the file's own colors, laid over as the editor lays the Omarchy theme over; the file and the stored source stay as written. plain: black lines; omarchy: the active theme; light, dark: Omaspec's palettes; auto: one SVG, dark under a dark color scheme (SVG only).",
+                    "enum": ["plain", "omarchy", "light", "dark", "auto", "file"],
+                    "description": "Draw in a look instead of the file's own colors, laid over as the editor lays the Omarchy theme over; the file and the stored source stay as written. plain: black lines; omarchy: the active theme; light, dark: Omaspec's palettes; auto: one SVG, dark under a dark color scheme (SVG only); file: the file's own colors. Without it, a diagram of a project that pins a look (`[look]` in omaspec-project.toml) is drawn in that.",
                 })),
             ]),
             "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false },
@@ -378,27 +378,36 @@ impl Tools {
         );
         let look = match args.text("look")? {
             Some(name) => Some(Look::from_name(name).with_context(|| {
-                format!("no look `{name}`; take plain, omarchy, light, dark or auto")
+                format!("no look `{name}`; take plain, omarchy, light, dark, auto or file")
             })?),
             None => None,
         };
-        if look == Some(Look::Auto) {
-            let format = format
-                .or_else(|| Format::from_extension(output.as_ref()?.extension()?.to_str()?))
-                .unwrap_or(if output.is_some() {
-                    Format::Svg
-                } else {
-                    Format::Png
-                });
-            ensure!(
-                format == Format::Svg,
-                "the look auto makes an SVG, which a viewer turns dark with its own scheme; ask for `format: svg`, or take light or dark"
-            );
-        }
+        // The format the picture comes out in.
+        let shown = format
+            .or_else(|| Format::from_extension(output.as_ref()?.extension()?.to_str()?))
+            .unwrap_or(if output.is_some() {
+                Format::Svg
+            } else {
+                Format::Png
+            });
+        ensure!(
+            look != Some(Look::Auto) || shown == Format::Svg,
+            "the look auto makes an SVG, which a viewer turns dark with its own scheme; ask for `format: svg`, or take light or dark"
+        );
         let place = input
             .path
             .as_deref()
             .and_then(|path| place_in(path, project));
+        // `look`, else the one its project pins; a picture without color
+        // schemes takes auto's light one.
+        let skin =
+            crate::look::skin_for(look, place.as_ref().map(|p| p.root.as_path()))?.map(|skin| {
+                if shown == Format::Svg {
+                    skin
+                } else {
+                    skin.without_schemes()
+                }
+            });
         // A map shows the diagrams of its project in tiles (docs/adr/0018),
         // read no further than its includes are.
         let drawn = crate::look::render(
@@ -408,7 +417,7 @@ impl Tools {
             lang,
             input.path.as_deref(),
             place.as_ref(),
-            look,
+            skin.as_ref(),
         );
         let rendered = match drawn {
             Ok(rendered) => rendered,

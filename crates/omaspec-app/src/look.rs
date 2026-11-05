@@ -8,7 +8,10 @@
 //! `render --look` exports in one: `plain` (black lines, no fills),
 //! `omarchy` (the active theme), `light` and `dark` (Omaspec's own two
 //! palettes, the same on every machine), and `auto`, one SVG with both of
-//! those, the dark one under `prefers-color-scheme: dark`.
+//! those, the dark one under `prefers-color-scheme: dark`. A project may
+//! pin a look in `omaspec-project.toml` (`[look]`); without `--look` its
+//! diagrams are drawn in that, and `--look file` keeps the file's colors.
+//! Either is a [`Skin`].
 
 use std::path::Path;
 
@@ -34,15 +37,18 @@ pub enum Look {
     /// One SVG in the light palette and, under `prefers-color-scheme:
     /// dark`, the dark one.
     Auto,
+    /// The file's own colors, also where its project pins a look.
+    File,
 }
 
 impl Look {
-    pub const ALL: [Look; 5] = [
+    pub const ALL: [Look; 6] = [
         Look::Plain,
         Look::Omarchy,
         Look::Light,
         Look::Dark,
         Look::Auto,
+        Look::File,
     ];
 
     pub fn name(self) -> &'static str {
@@ -52,11 +58,122 @@ impl Look {
             Look::Light => "light",
             Look::Dark => "dark",
             Look::Auto => "auto",
+            Look::File => "file",
         }
     }
 
     pub fn from_name(name: &str) -> Option<Look> {
         Look::ALL.into_iter().find(|look| look.name() == name)
+    }
+
+    /// What this look draws in; `None` for the file's own colors.
+    pub fn skin(self) -> Option<Skin> {
+        let kind = match self {
+            Look::Plain => Kind::Pack(Pack::Plain),
+            Look::Omarchy => Kind::Colors(Hex::of_omarchy()),
+            Look::Light => Kind::Colors(Hex::from(&LIGHT)),
+            Look::Dark => Kind::Colors(Hex::from(&DARK)),
+            Look::Auto => Kind::Auto(Hex::from(&LIGHT), Hex::from(&DARK)),
+            Look::File => return None,
+        };
+        Some(Skin { kind, font: None })
+    }
+}
+
+/// What a diagram is drawn in: a pack in its colors, with a font, laid
+/// over the file; or the light and the dark one in one SVG.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Skin {
+    kind: Kind,
+    font: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Kind {
+    /// A pack that keeps its own colors: plain, spec, presentation.
+    Pack(Pack),
+    /// The color pack in these colors.
+    Colors(Hex),
+    /// The light and the dark colors, one SVG.
+    Auto(Hex, Hex),
+}
+
+impl Skin {
+    /// The look a project pins (`[look]`).
+    pub fn pinned(look: &omaspec_core::project::Look) -> Skin {
+        use omaspec_core::project::LookPack;
+        let colors = |base: &Colors| {
+            let mut hex = Hex::from(base);
+            for (name, color) in &look.colors {
+                hex.set(name, color);
+            }
+            hex
+        };
+        let kind = match look.pack {
+            LookPack::Plain => Kind::Pack(Pack::Plain),
+            LookPack::Spec => Kind::Pack(Pack::Spec),
+            LookPack::Presentation => Kind::Pack(Pack::Presentation),
+            LookPack::Light => Kind::Colors(colors(&LIGHT)),
+            LookPack::Dark => Kind::Colors(colors(&DARK)),
+            LookPack::Auto => Kind::Auto(Hex::from(&LIGHT), Hex::from(&DARK)),
+        };
+        Skin {
+            kind,
+            font: look.font.clone(),
+        }
+    }
+
+    /// Whether it makes one SVG of two palettes.
+    pub fn is_auto(&self) -> bool {
+        matches!(self.kind, Kind::Auto(..))
+    }
+
+    /// The light one of `auto`, as a picture without color schemes (a
+    /// PNG, a PDF) shows it; any other as it is.
+    pub fn without_schemes(&self) -> Skin {
+        match &self.kind {
+            Kind::Auto(light, _) => Skin {
+                kind: Kind::Colors(light.clone()),
+                font: self.font.clone(),
+            },
+            _ => self.clone(),
+        }
+    }
+
+    /// `auto`'s dark one.
+    fn dark(&self) -> Skin {
+        match &self.kind {
+            Kind::Auto(_, dark) => Skin {
+                kind: Kind::Colors(dark.clone()),
+                font: self.font.clone(),
+            },
+            _ => self.clone(),
+        }
+    }
+
+    /// The pack and its colors.
+    fn pack(&self) -> (Pack, Colors<'_>) {
+        match &self.kind {
+            Kind::Pack(pack) => (*pack, LIGHT),
+            Kind::Colors(hex) | Kind::Auto(hex, _) => (Pack::Omarchy, hex.colors()),
+        }
+    }
+}
+
+/// The skin `chosen` (`--look`) draws in, else the look the project at
+/// `root` pins, else none: the file's own colors. A project file that does
+/// not read is an error.
+pub fn skin_for(chosen: Option<Look>, root: Option<&Path>) -> anyhow::Result<Option<Skin>> {
+    if let Some(look) = chosen {
+        return Ok(look.skin());
+    }
+    let Some(root) = root else {
+        return Ok(None);
+    };
+    match crate::project::read(root) {
+        Some(Ok(project)) => Ok(project.look.as_ref().map(Skin::pinned)),
+        Some(Err(err)) => Err(anyhow::anyhow!(err)),
+        None => Ok(None),
     }
 }
 
@@ -80,7 +197,8 @@ pub const DARK: Colors<'static> = Colors {
     note: "#3a3526",
 };
 
-/// Omarchy colors as `#rrggbb`, for a skin pack.
+/// Colors as `#rrggbb`, for a skin pack: Omarchy's, or a look's.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hex {
     pub background: String,
     pub surface: String,
@@ -108,6 +226,20 @@ impl Hex {
         Self::of(&omaspec_theme::Theme::load_current().palette.legible())
     }
 
+    /// The color `name` (`background`, `surface`, …) as `color`.
+    fn set(&mut self, name: &str, color: &str) {
+        let slot = match name {
+            "background" => &mut self.background,
+            "surface" => &mut self.surface,
+            "text" => &mut self.text,
+            "accent" => &mut self.accent,
+            "muted" => &mut self.muted,
+            "note" => &mut self.note,
+            _ => return,
+        };
+        color.clone_into(slot);
+    }
+
     pub fn colors(&self) -> Colors<'_> {
         Colors {
             background: &self.background,
@@ -120,6 +252,19 @@ impl Hex {
     }
 }
 
+impl From<&Colors<'_>> for Hex {
+    fn from(c: &Colors) -> Self {
+        Self {
+            background: c.background.to_owned(),
+            surface: c.surface.to_owned(),
+            text: c.text.to_owned(),
+            accent: c.accent.to_owned(),
+            muted: c.muted.to_owned(),
+            note: c.note.to_owned(),
+        }
+    }
+}
+
 /// `text` with `pack` laid over it, and where it sits; `None` when the pack
 /// changes nothing.
 pub fn overlay(
@@ -128,7 +273,18 @@ pub fn overlay(
     pack: Pack,
     colors: &Colors,
 ) -> Option<(String, LineShift)> {
-    let (range, replacement) = skin::edit(text, language, Some(pack), colors)?;
+    overlay_in(text, language, pack, colors, None)
+}
+
+/// [`overlay`] with the pack written in `font`.
+fn overlay_in(
+    text: &str,
+    language: Language,
+    pack: Pack,
+    colors: &Colors,
+    font: Option<&str>,
+) -> Option<(String, LineShift)> {
+    let (range, replacement) = skin::edit_in(text, language, Some(pack), colors, font)?;
     let shift = LineShift {
         at: text[..range.start].matches('\n').count(),
         added: replacement.matches('\n').count(),
@@ -142,24 +298,20 @@ pub fn overlay(
     Some((shown, shift))
 }
 
-/// `text` as drawn in `look`, with where the pack sits; for `auto`, in the
-/// light palette (see [`dark_of_auto`]).
-pub fn apply(text: &str, language: Language, look: Look) -> (String, Option<LineShift>) {
-    let laid = match look {
-        Look::Plain => overlay(text, language, Pack::Plain, &LIGHT),
-        Look::Omarchy => overlay(text, language, Pack::Omarchy, &Hex::of_omarchy().colors()),
-        Look::Light | Look::Auto => overlay(text, language, Pack::Omarchy, &LIGHT),
-        Look::Dark => overlay(text, language, Pack::Omarchy, &DARK),
-    };
+/// `text` as drawn in `skin`, with where the pack sits; for `auto`, in
+/// the light palette.
+pub fn apply(text: &str, language: Language, skin: &Skin) -> (String, Option<LineShift>) {
+    let (pack, colors) = skin.pack();
+    let laid = overlay_in(text, language, pack, &colors, skin.font.as_deref());
     match laid {
         Some((shown, shift)) => (shown, Some(shift)),
         None => (text.to_owned(), None),
     }
 }
 
-/// `text` drawn in `look` as `maps` draws it, a map with its tiles in the
-/// look too; a line the engine names is a line of the file. `auto` draws
-/// the light and the dark look and makes one SVG of them.
+/// `text` drawn in `skin` as `maps` draws it, a map with its tiles in the
+/// skin too; a line the engine names is a line of the file. `auto` draws
+/// the light and the dark one and makes one SVG of them.
 pub fn render(
     maps: &mut Maps,
     renderer: &mut Renderer,
@@ -167,12 +319,12 @@ pub fn render(
     language: Language,
     path: Option<&Path>,
     place: Option<&Place>,
-    look: Option<Look>,
+    skin: Option<&Skin>,
 ) -> Result<Rendered, RenderError> {
-    let Some(look) = look else {
+    let Some(skin) = skin else {
         return maps.render(renderer, text, language, path, place);
     };
-    if look == Look::Auto {
+    if skin.is_auto() {
         let light = render(
             maps,
             renderer,
@@ -180,7 +332,7 @@ pub fn render(
             language,
             path,
             place,
-            Some(Look::Light),
+            Some(&skin.without_schemes()),
         )?;
         let dark = render(
             maps,
@@ -189,7 +341,7 @@ pub fn render(
             language,
             path,
             place,
-            Some(Look::Dark),
+            Some(&skin.dark()),
         )?;
         let svg = omaspec_render::schemes::both(&light.svg, &dark.svg).map_err(|err| {
             RenderError::Engine {
@@ -203,8 +355,8 @@ pub fn render(
             ..light
         });
     }
-    let (shown, shift) = apply(text, language, look);
-    let paint = |text: &str, language: Language| apply(text, language, look).0;
+    let (shown, shift) = apply(text, language, skin);
+    let paint = |text: &str, language: Language| apply(text, language, skin).0;
     maps.render_painted(renderer, &shown, language, path, place, &paint)
         .map_err(|mut err| {
             if let Some(shift) = shift {
@@ -258,13 +410,13 @@ mod tests {
     #[test]
     fn a_look_is_laid_over_and_lines_read_back_as_the_file_s() {
         let text = "@startuml\nA -> B : hi\n@enduml\n";
-        let (shown, shift) = apply(text, Language::PlantUml, Look::Dark);
+        let (shown, shift) = apply(text, Language::PlantUml, &Look::Dark.skin().unwrap());
         let shift = shift.expect("a pack");
         assert!(shown.contains("skinparam backgroundColor #16181d"));
         let rendered = shown.lines().position(|l| l == "A -> B : hi").unwrap();
         assert_eq!(shift.file_line(rendered), Some(1));
         assert_eq!(shift.file_line(shift.at), None);
-        let (plain, _) = apply(text, Language::PlantUml, Look::Plain);
+        let (plain, _) = apply(text, Language::PlantUml, &Look::Plain.skin().unwrap());
         assert!(plain.contains("skinparam monochrome true"));
         for look in Look::ALL {
             assert_eq!(Look::from_name(look.name()), Some(look));

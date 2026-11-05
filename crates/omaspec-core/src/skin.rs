@@ -62,6 +62,20 @@ pub fn edit(
     pack: Option<Pack>,
     colors: &Colors,
 ) -> Option<(Range<usize>, String)> {
+    edit_in(code, language, pack, colors, None)
+}
+
+/// [`edit`], the pack written in `font` (a name [`is_font`] takes) when
+/// one is given: `skinparam defaultFontName` in PlantUML, `fontFamily` in
+/// Mermaid.
+pub fn edit_in(
+    code: &str,
+    language: Language,
+    pack: Option<Pack>,
+    colors: &Colors,
+    font: Option<&str>,
+) -> Option<(Range<usize>, String)> {
+    let font = font.filter(|f| is_font(f));
     let lines = line_ranges(code);
     let block = match language {
         Language::PlantUml => plantuml_block(code, &lines),
@@ -69,10 +83,10 @@ pub fn edit(
     };
     let text = pack.map(|p| match language {
         Language::PlantUml if p == Pack::Omarchy && crate::kind::plantuml_block(code) == "json" => {
-            json_omarchy(colors)
+            json_omarchy(colors, font)
         }
-        Language::PlantUml => plantuml(p, colors),
-        Language::Mermaid => mermaid(p, colors),
+        Language::PlantUml => plantuml(p, colors, font),
+        Language::Mermaid => mermaid(p, colors, font),
     });
     match (block, text) {
         (Some(range), Some(text)) => (code[range.clone()] != text).then_some((range, text)),
@@ -86,6 +100,18 @@ pub fn edit(
         }
         (None, None) => None,
     }
+}
+
+/// Whether `name` can be a font a pack is written in: letters, digits,
+/// spaces, `-`, `_` and `.`, at most 64 characters, so it stays one value
+/// in a skinparam line and in Mermaid's JSON.
+pub fn is_font(name: &str) -> bool {
+    let name = name.trim();
+    !name.is_empty()
+        && name.chars().count() <= 64
+        && name
+            .chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, ' ' | '-' | '_' | '.'))
 }
 
 /// The pack in `code`, if a marker names one.
@@ -145,8 +171,8 @@ fn mermaid_spot(code: &str, lines: &[Range<usize>]) -> usize {
     lines.get(at).map_or(code.len(), |r| r.start)
 }
 
-fn plantuml(pack: Pack, c: &Colors) -> String {
-    let body: Vec<String> = match pack {
+fn plantuml(pack: Pack, c: &Colors, font: Option<&str>) -> String {
+    let mut body: Vec<String> = match pack {
         Pack::Plain => vec![
             "skinparam monochrome true".into(),
             "skinparam shadowing false".into(),
@@ -233,6 +259,10 @@ fn plantuml(pack: Pack, c: &Colors) -> String {
             lines
         }
     };
+    if let Some(font) = font {
+        body.retain(|line| !line.starts_with("skinparam defaultFontName "));
+        body.push(format!("skinparam defaultFontName {}", font.trim()));
+    }
     let mut text = format!("{PLANTUML_MARK}{} (Omaspec)\n", pack.name());
     for line in body {
         text.push_str(&line);
@@ -245,11 +275,12 @@ fn plantuml(pack: Pack, c: &Colors) -> String {
 
 /// The Omarchy pack for a JSON diagram. PlantUML draws one from its styles
 /// alone, so the colors go into a `<style>` block.
-fn json_omarchy(c: &Colors) -> String {
+fn json_omarchy(c: &Colors, font: Option<&str>) -> String {
+    let font = font.map_or_else(String::new, |f| format!("  FontName {}\n", f.trim()));
     format!(
         "{PLANTUML_MARK}{} (Omaspec)\n\
          <style>\n\
-         document {{\n  BackGroundColor {bg}\n  FontColor {text}\n}}\n\
+         document {{\n  BackGroundColor {bg}\n  FontColor {text}\n{font}}}\n\
          jsonDiagram {{\n  \
            node {{\n    BackGroundColor {surface}\n    LineColor {accent}\n    FontColor {text}\n  }}\n  \
            highlight {{\n    BackGroundColor {accent}\n    FontColor {bg}\n  }}\n\
@@ -264,8 +295,8 @@ fn json_omarchy(c: &Colors) -> String {
     )
 }
 
-fn mermaid(pack: Pack, c: &Colors) -> String {
-    let init = match pack {
+fn mermaid(pack: Pack, c: &Colors, font: Option<&str>) -> String {
+    let mut init = match pack {
         Pack::Plain => r##"{"theme": "base", "themeVariables": {"background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#000000", "primaryBorderColor": "#000000", "lineColor": "#000000", "secondaryColor": "#ffffff", "tertiaryColor": "#ffffff", "textColor": "#000000", "clusterBkg": "#ffffff", "clusterBorder": "#000000", "edgeLabelBackground": "#ffffff", "actorBkg": "#ffffff", "actorBorder": "#000000", "noteBkg": "#ffffff", "noteBorderColor": "#000000"}}"##.to_owned(),
         Pack::Spec => r#"{"theme": "neutral", "themeVariables": {"fontFamily": "serif"}}"#.to_owned(),
         Pack::Presentation => r##"{"themeVariables": {"fontSize": "18px", "primaryColor": "#e8f0fe", "primaryBorderColor": "#3367d6", "lineColor": "#3367d6", "clusterBkg": "#f5f8fd"}}"##.to_owned(),
@@ -279,6 +310,21 @@ fn mermaid(pack: Pack, c: &Colors) -> String {
             note = c.note,
         ),
     };
+    if let Some(font) = font {
+        let font = format!("\"fontFamily\": \"{}\"", font.trim());
+        init = match init.find("\"fontFamily\": \"") {
+            Some(at) => {
+                let value = at + "\"fontFamily\": \"".len();
+                let end = value + init[value..].find('"').unwrap_or(0) + 1;
+                format!("{}{font}{}", &init[..at], &init[end..])
+            }
+            None => init.replacen(
+                "\"themeVariables\": {",
+                &format!("\"themeVariables\": {{{font}, "),
+                1,
+            ),
+        };
+    }
     format!(
         "{MERMAID_MARK}{} (Omaspec)\n%%{{init: {init}}}%%\n",
         pack.name()
@@ -288,6 +334,53 @@ fn mermaid(pack: Pack, c: &Colors) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_pack_is_written_in_a_font() {
+        let font = Some("IBM Plex Sans");
+        let (_, puml) = edit_in(
+            "@startuml\nA -> B\n@enduml\n",
+            Language::PlantUml,
+            Some(Pack::Plain),
+            &COLORS,
+            font,
+        )
+        .unwrap();
+        assert!(
+            puml.contains("skinparam defaultFontName IBM Plex Sans\n"),
+            "{puml}"
+        );
+        assert!(!puml.contains("defaultFontName sans-serif"), "{puml}");
+        let (_, spec) =
+            edit_in("pie\n", Language::Mermaid, Some(Pack::Spec), &COLORS, font).unwrap();
+        assert!(
+            spec.contains(r#""fontFamily": "IBM Plex Sans""#) && !spec.contains("serif\""),
+            "{spec}"
+        );
+        let (_, colors) = edit_in(
+            "pie\n",
+            Language::Mermaid,
+            Some(Pack::Omarchy),
+            &COLORS,
+            font,
+        )
+        .unwrap();
+        assert!(
+            colors.contains(r#""themeVariables": {"fontFamily": "IBM Plex Sans", "background""#),
+            "{colors}"
+        );
+        // A name that would break out of its line or its string is left out.
+        let (_, plain) = edit_in(
+            "pie\n",
+            Language::Mermaid,
+            Some(Pack::Plain),
+            &COLORS,
+            Some("x\", \"y"),
+        )
+        .unwrap();
+        assert!(!plain.contains("fontFamily"), "{plain}");
+        assert!(is_font("Inter") && !is_font("") && !is_font("a{b}"));
+    }
 
     const COLORS: Colors = Colors {
         background: "#121212",

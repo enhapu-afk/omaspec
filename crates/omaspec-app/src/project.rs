@@ -103,6 +103,7 @@ pub fn create(dir: &Path, language: Language, git: bool) -> Result<Created> {
     let file = Project {
         name: Some(name.clone()),
         main: Some(main.clone()),
+        look: None,
     };
     if !write_new(&root.join(FILE), &file.to_toml())? {
         bail!("`{}` is a project already", root.display());

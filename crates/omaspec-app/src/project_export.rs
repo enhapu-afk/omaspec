@@ -135,7 +135,8 @@ fn pairs<S: serde::Serializer>(pairs: &[(String, String)], s: S) -> Result<S::Ok
 }
 
 /// Exports the project at `root` into `out`, or into its `export` folder,
-/// drawn in `look` (the files' own colors when `None`). A diagram that does
+/// drawn in `look`, else in the look the project pins, else in the files'
+/// own colors. A diagram that does
 /// not draw is reported and left out; two diagrams that would be one SVG
 /// (`a.puml` and `a.mmd`), or one that would be the main diagram's
 /// `index.svg`, stop the export before anything is written.
@@ -168,6 +169,8 @@ pub fn export(
     let files: Vec<&str> = atlas.diagrams.iter().map(|e| e.file.as_str()).collect();
     let targets = targets(&files, main.as_deref())?;
     let name = zip_name(atlas.name.as_deref(), &root);
+    // `look`, else the one the project pins.
+    let skin = crate::look::skin_for(look, Some(&root))?;
     let atlas = Arc::new(atlas);
     let mut maps = Maps::with(root.clone(), Arc::clone(&atlas));
 
@@ -188,7 +191,7 @@ pub fn export(
             entry.language,
             Some(&path),
             entry.place.as_ref(),
-            look,
+            skin.as_ref(),
         );
         let rendered = match drawn {
             Ok(rendered) => rendered,
