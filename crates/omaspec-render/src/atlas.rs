@@ -56,6 +56,23 @@ pub struct Entry {
     pub language: Language,
     /// Where its `!include`s are read.
     pub place: Option<Place>,
+    /// A map's: the words on its boxes, which place diagrams on it.
+    pub boxes: Vec<String>,
+}
+
+impl Entry {
+    /// The diagram in the file at `file`, a path in the project, with the
+    /// names it goes by and, a map, the words on its boxes.
+    pub fn new(file: &str, source: String, language: Language, place: Option<Place>) -> Entry {
+        Entry {
+            names: omaspec_core::project::names(&source, language, file),
+            boxes: box_names(&source, language),
+            file: file.to_owned(),
+            source,
+            language,
+            place,
+        }
+    }
 }
 
 /// A box of a drawn diagram that names diagrams of the project: a tile
@@ -111,12 +128,10 @@ pub(crate) struct Picture {
     includes: Vec<String>,
 }
 
-/// Pictures for tiles, and the names on other maps' boxes, each kept by
-/// its file until the file changes.
+/// Pictures for tiles, each kept by its file until the file changes.
 #[derive(Default)]
 pub(crate) struct Pictures {
     drawn: HashMap<String, (u64, Picture)>,
-    boxes: HashMap<String, (u64, Vec<String>)>,
 }
 
 /// What `entry` is drawn from: its source, language and place.
@@ -133,85 +148,72 @@ fn fingerprint(entry: &Entry) -> u64 {
 }
 
 impl Pictures {
-    fn of(&mut self, entry: &Entry) -> Picture {
-        let id = fingerprint(entry);
-        if let Some((kept, found)) = self.drawn.get(&entry.file)
-            && *kept == id
-        {
-            return found.clone();
-        }
-        let picture = draw_native(entry);
-        self.drawn.insert(entry.file.clone(), (id, picture.clone()));
-        picture
+    /// The picture of `entry`, if it was drawn from the file as it is now.
+    fn kept(&self, entry: &Entry) -> Option<&Picture> {
+        let (id, picture) = self.drawn.get(&entry.file)?;
+        (*id == fingerprint(entry)).then_some(picture)
     }
 
-    /// Draws the pictures of `entries` that are not kept yet, side by side
-    /// when there are several.
-    fn prepare(&mut self, entries: &[&Entry]) {
-        let missing: Vec<(&Entry, u64)> = entries
+    /// Those of `entries` without a picture of the file as it is now.
+    fn missing<'e>(&self, entries: &[&'e Entry]) -> Vec<&'e Entry> {
+        entries
             .iter()
-            .map(|entry| (*entry, fingerprint(entry)))
-            .filter(|(entry, id)| {
-                self.drawn
-                    .get(&entry.file)
-                    .is_none_or(|(kept, _)| kept != id)
-            })
-            .collect();
-        if missing.len() < SIDE_BY_SIDE {
-            return;
-        }
-        let threads = std::thread::available_parallelism()
-            .map_or(1, std::num::NonZero::get)
-            .min(missing.len());
-        let chunk = missing.len().div_ceil(threads);
-        let drawn: Vec<(String, u64, Picture)> = std::thread::scope(|scope| {
-            let workers: Vec<_> = missing
-                .chunks(chunk)
-                .filter_map(|part| {
-                    std::thread::Builder::new()
-                        .name("omaspec-tiles".into())
-                        .stack_size(STACK)
-                        .spawn_scoped(scope, move || {
-                            part.iter()
-                                .map(|(entry, id)| (entry.file.clone(), *id, draw_native(entry)))
-                                .collect::<Vec<_>>()
-                        })
-                        .ok()
-                })
-                .collect();
-            workers
-                .into_iter()
-                .flat_map(|worker| match worker.join() {
-                    Ok(done) => done,
-                    // The engine's panic ends this drawing, as on one thread.
-                    Err(panic) => std::panic::resume_unwind(panic),
-                })
-                .collect()
-        });
-        for (file, id, picture) in drawn {
-            self.drawn.insert(file, (id, picture));
-        }
+            .copied()
+            .filter(|entry| self.kept(entry).is_none())
+            .collect()
     }
 
-    /// The words on the boxes of the map `entry`, kept by its file.
-    fn boxes(&mut self, entry: &Entry) -> Vec<String> {
-        let id = fingerprint(entry);
-        if let Some((kept, names)) = self.boxes.get(&entry.file)
-            && *kept == id
-        {
-            return names.clone();
-        }
-        let names = box_names(&entry.source, entry.language);
-        self.boxes.insert(entry.file.clone(), (id, names.clone()));
-        names
+    /// Keeps `picture`, drawn from `entry` as it is now.
+    fn keep(&mut self, entry: &Entry, picture: Picture) {
+        self.drawn
+            .insert(entry.file.clone(), (fingerprint(entry), picture));
     }
 
     /// Forgets the files that are not in `atlas` any more.
     fn keep_only(&mut self, atlas: &Atlas) {
         let files: HashSet<&str> = atlas.diagrams.iter().map(|e| e.file.as_str()).collect();
         self.drawn.retain(|file, _| files.contains(file.as_str()));
-        self.boxes.retain(|file, _| files.contains(file.as_str()));
     }
+}
+
+/// `entries` drawn by Omaspec's own engines, side by side on the cores
+/// there are when there are several, in their order.
+fn draw_all(entries: &[&Entry]) -> Vec<Picture> {
+    if entries.len() < SIDE_BY_SIDE {
+        return entries.iter().map(|entry| draw_native(entry)).collect();
+    }
+    let threads = std::thread::available_parallelism()
+        .map_or(1, std::num::NonZero::get)
+        .min(entries.len());
+    let chunk = entries.len().div_ceil(threads);
+    std::thread::scope(|scope| {
+        let workers: Vec<_> = entries
+            .chunks(chunk)
+            .map(|part| {
+                std::thread::Builder::new()
+                    .name("omaspec-tiles".into())
+                    .stack_size(STACK)
+                    .spawn_scoped(scope, move || {
+                        part.iter()
+                            .map(|entry| draw_native(entry))
+                            .collect::<Vec<_>>()
+                    })
+            })
+            .collect();
+        workers
+            .into_iter()
+            .zip(entries.chunks(chunk))
+            .flat_map(|(worker, part)| match worker {
+                Ok(worker) => match worker.join() {
+                    Ok(done) => done,
+                    // The engine's panic ends this drawing, as on one thread.
+                    Err(panic) => std::panic::resume_unwind(panic),
+                },
+                // No thread to spare: drawn here.
+                Err(_) => part.iter().map(|entry| draw_native(entry)).collect(),
+            })
+            .collect()
+    })
 }
 
 /// `entry` drawn by Omaspec's own engines, never Java, and sanitized.
@@ -380,7 +382,7 @@ pub(crate) fn render(
     let mut loose: Vec<(String, String)> = Vec::new();
     let mut loose_entries: Vec<(String, usize)> = Vec::new();
     if own.is_some() && atlas.main.as_deref() == own {
-        let elsewhere = on_other_maps(atlas, own, &called, pictures);
+        let elsewhere = on_other_maps(atlas, own, &called);
         let mut taken: HashSet<String> = on_map.iter().cloned().collect();
         for (index, entry) in atlas.diagrams.iter().enumerate() {
             if Some(entry.file.as_str()) == own
@@ -414,10 +416,13 @@ pub(crate) fn render(
     tile_of.extend(loose_entries.iter().cloned());
     pictures.keep_only(atlas);
     let wanted: Vec<&Entry> = tile_of.values().map(|&i| &atlas.diagrams[i]).collect();
-    pictures.prepare(&wanted);
+    let missing = pictures.missing(&wanted);
+    for (entry, picture) in missing.iter().zip(draw_all(&missing)) {
+        pictures.keep(entry, picture);
+    }
     let drawn: HashMap<usize, Picture> = tile_of
         .values()
-        .map(|&i| (i, pictures.of(&atlas.diagrams[i])))
+        .filter_map(|&i| Some((i, pictures.kept(&atlas.diagrams[i])?.clone())))
         .collect();
     let parents: HashMap<&str, Option<&str>> = first
         .2
@@ -516,15 +521,13 @@ fn on_other_maps(
     atlas: &Atlas,
     own: Option<&str>,
     called: &HashMap<String, Vec<usize>>,
-    pictures: &mut Pictures,
 ) -> HashSet<usize> {
     atlas
         .diagrams
         .iter()
         .filter(|entry| Some(entry.file.as_str()) != own)
-        // Empty, and kept so, for a diagram that is no map.
-        .flat_map(|entry| pictures.boxes(entry))
-        .filter_map(|name| called.get(&key(&name)))
+        .flat_map(|entry| &entry.boxes)
+        .filter_map(|name| called.get(&key(name)))
         .flatten()
         .copied()
         .collect()
@@ -683,14 +686,12 @@ mod tests {
     use crate::{Config, Renderer};
 
     fn entry(file: &str, source: &str) -> Entry {
-        let language = Language::from_file_name(file).unwrap();
-        Entry {
-            file: file.into(),
-            names: omaspec_core::project::names(source, language, file),
-            source: source.into(),
-            language,
-            place: None,
-        }
+        Entry::new(
+            file,
+            source.into(),
+            Language::from_file_name(file).unwrap(),
+            None,
+        )
     }
 
     fn project() -> Atlas {
@@ -868,7 +869,7 @@ mod tests {
         );
         // A box written on the other map moves its diagram off the main one.
         let moved = office.replace("** Refund\n", "** Refund\n** Ideas\n");
-        atlas.diagrams.last_mut().unwrap().source = moved;
+        *atlas.diagrams.last_mut().unwrap() = entry("office/back-office.puml", &moved);
         assert_eq!(
             tiles(&mut renderer, &atlas, main, "system.puml"),
             ["Orders", "Back office", "checkout"]

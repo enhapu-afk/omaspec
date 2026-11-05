@@ -235,13 +235,12 @@ fn read(root: &Path, path: &Path, name: &str, stamp: Stamp) -> Indexed {
     Indexed {
         stamp,
         specs: Spec::read(&text, language, name).into_iter().collect(),
-        entry: Some(Entry {
-            names: omaspec_core::project::names(&text, language, name),
-            place: Place::of(path, Some(root)),
-            file: name.to_owned(),
-            source: text,
+        entry: Some(Entry::new(
+            name,
+            text,
             language,
-        }),
+            Place::of(path, Some(root)),
+        )),
         document: None,
     }
 }

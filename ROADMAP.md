@@ -1487,7 +1487,13 @@ checked; numbers are measured, not assumed.
       maps and 15 to drawing their pictures, and 36 to nesting the pictures into
       the map and sanitizing the whole, which the pane needs only once zoomed in;
       handing it the cards before the whole is the next step should a project
-      need it.
+      need it. Reworked after a review the same day: the words on a map's boxes
+      are read with the file into its atlas entry (`Entry::new`), so the main map's
+      rule is a filter on the atlas, not a side effect of the picture cache; the
+      cache only keeps pictures, drawing them side by side is `draw_all`'s; the
+      pane alone decides when the pictures show (`paper/cards.rs`), `Drawn` only
+      says its tree is the cards. The main map now draws in 56 ms, its boxes read
+      once per file change.
 - [ ] A project checked in CI: `omaspec check DIR` runs lint, the checks against the
       machines, the links and `render --check`, with exit codes, `--json` and GitHub
       annotations; `omaspec new --git` offers a pre-commit hook.

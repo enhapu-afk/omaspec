@@ -34,15 +34,11 @@ pub struct Drawn {
     pub map: Arc<Map>,
     /// Its tiles and states that open other diagrams of the project.
     pub links: Arc<Vec<Link>>,
-    /// A map whose `tree` is its cards without their pictures
-    /// (`Rendered::cards`): the zoom from which a tile's picture can be
-    /// read. From there the pane parses `svg`, which has them.
-    pub readable: Option<f32>,
+    /// Whether `tree` is a large map's cards without their pictures
+    /// (`Rendered::cards`); `svg` has them, for the pane to parse when it
+    /// shows them.
+    pub cards: bool,
 }
-
-/// How wide a tile is on screen, in logical pixels, when its picture can
-/// be read: a state's name in it about as large as small print.
-const READABLE: f32 = 96.0;
 
 /// A map's SVG up to this size is parsed whole at once, as quick to parse
 /// as the pane can wait for (about 40 ms); a larger one is shown by its
@@ -70,10 +66,7 @@ impl Drawn {
                 engine: rendered.engine,
                 message: e.to_string(),
             })?;
-        let readable = cards
-            .is_some()
-            .then(|| readable_zoom(&rendered.links))
-            .flatten();
+        let cards = cards.is_some();
         Ok(Drawn {
             svg: rendered.svg.into(),
             tree: Arc::new(tree),
@@ -81,21 +74,9 @@ impl Drawn {
             elapsed: rendered.elapsed,
             map: Arc::new(rendered.map),
             links: Arc::new(rendered.links),
-            readable,
+            cards,
         })
     }
-}
-
-/// The zoom at which the tiles of a map, the middle one by width, are
-/// [`READABLE`] wide on screen; `None` without tiles.
-fn readable_zoom(links: &[Link]) -> Option<f32> {
-    let mut widths: Vec<f32> = links
-        .iter()
-        .filter(|l| l.tile && l.rect.w > 0.0)
-        .map(|l| l.rect.w)
-        .collect();
-    widths.sort_by(f32::total_cmp);
-    widths.get(widths.len() / 2).map(|w| READABLE / w)
 }
 
 impl fmt::Debug for Drawn {
