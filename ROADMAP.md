@@ -1344,10 +1344,23 @@ checked; numbers are measured, not assumed.
       A link the writer wrote may not climb out of the picture's folder (`..`), as
       the engine does not know where the picture goes. Tested end to end, from the
       source to the SVG: a script's address never reaches it.
-- [ ] A project as files anyone can open: `omaspec export DIR` (and the palette)
+- [x] A project as files anyone can open: `omaspec export DIR` (and the palette)
       writes every diagram as an SVG with its source, the map as `index.svg`, linked
       to one another, and a ZIP of it. A browser is enough; dropping any of the
-      pictures on Omaspec opens its source.
+      pictures on Omaspec opens its source. Built (`project_export.rs`): the SVGs lie
+      beside one another as the diagrams do, in the project's `export` folder unless
+      `-o` names another, the main diagram once more as `index.svg` with its links
+      from the top, and `<project>.zip` in the folder unpacks into a folder of the
+      project's name; nothing is written outside the folder. `--look` as `render`
+      takes it, `--json` for a report. A diagram that does not draw is named and left
+      out (exit 1); two that would be one SVG (`a.puml` and `a.mmd`), or one that
+      would be `index.svg` beside another main diagram, stop the export before
+      anything is written. The palette's *Export the project* asks for the folder in
+      the bottom line with the looks an SVG takes, asks once more when the folder is
+      there, and exports in the background. Tested end to end with a map, a linked
+      state in a subfolder and `--look auto`, which a map with cards could not take
+      before: the shadows are stronger on the dark page, and opacities now turn like
+      colors (`schemes.rs`). An SVG an earlier export left in the folder stays.
 - [ ] Diagrams in Markdown: a `.md` file is a document of diagrams. Every `plantuml`
       and `mermaid` block is linted, checked and drawn, findings on the note's own
       lines; the pane draws the block at the caret, the preview window all of them

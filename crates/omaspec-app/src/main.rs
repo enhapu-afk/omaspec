@@ -9,6 +9,7 @@ mod mcp;
 mod paper;
 mod preview;
 mod project;
+mod project_export;
 mod sandbox;
 #[cfg(test)]
 mod scale;
@@ -241,6 +242,30 @@ enum Command {
         #[command(flatten)]
         lang: LangArg,
     },
+    /// Export a project as files anyone can open: every diagram as an SVG
+    /// with its source, linked to one another, and a ZIP of it.
+    ///
+    /// The SVGs lie beside one another as the diagrams do, in the project's
+    /// `export` folder unless --output names another; the main diagram is
+    /// `index.svg` too. Each tile of a map and each state that opens a
+    /// diagram links to that diagram's SVG, so a browser is enough to
+    /// follow them. `<project>.zip` in the folder holds all of it. Nothing
+    /// is written outside the folder.
+    Export {
+        /// The project's folder; the current one when left out.
+        #[arg(default_value = ".")]
+        dir: PathBuf,
+        /// The folder to write into.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Draw in a look, as `render --look` does; auto is one SVG that
+        /// turns dark under the viewer's dark scheme.
+        #[arg(long, value_enum)]
+        look: Option<crate::look::Look>,
+        /// Print a JSON report on stdout instead of status lines.
+        #[arg(long)]
+        json: bool,
+    },
     /// Serve the checks, formatting and rendering to an AI agent over the
     /// Model Context Protocol.
     ///
@@ -410,6 +435,12 @@ fn main() -> ExitCode {
             lang: lang.get(),
             json,
         }),
+        Some(Command::Export {
+            dir,
+            output,
+            look,
+            json,
+        }) => project_export::command(&dir, output.as_deref(), look, json),
         Some(Command::Mcp) => mcp::run(),
         Some(Command::Example { name, json }) => commands::example(name.as_deref(), json),
         Some(Command::Extract {

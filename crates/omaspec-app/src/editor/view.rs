@@ -56,6 +56,11 @@ fn prompt_text(asking: Asking) -> (&'static str, &'static str, &'static str) {
             ),
             Format::Zip => ("Export ZIP", "where to write the ZIP", EXPORT_HINT),
         },
+        Asking::ExportProject => (
+            "Export the project",
+            "folder for the SVGs and the ZIP",
+            EXPORT_HINT,
+        ),
     }
 }
 
@@ -827,11 +832,9 @@ impl App {
         let mut bar = row![self.label(title, p.accent), input]
             .spacing(10)
             .align_y(Alignment::Center);
-        if let Asking::Export(format) = prompt.asking {
-            let looks = self.export_looks(format);
-            if looks.len() > 1 {
-                bar = bar.push(self.look_chips(&looks, prompt.look));
-            }
+        let looks = self.prompt_looks(prompt.asking);
+        if looks.len() > 1 {
+            bar = bar.push(self.look_chips(&looks, prompt.look));
         }
         ui::bar(bar.push(self.label(note, p.dark_foreground)).into(), p)
     }

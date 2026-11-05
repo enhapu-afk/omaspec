@@ -1105,6 +1105,48 @@ fn an_export_takes_a_look_and_keeps_the_file_s_source() {
 }
 
 #[test]
+fn the_palette_exports_the_project_into_a_folder_it_names() {
+    let dir = temp_dir("export-project");
+    std::fs::write(
+        dir.join("omaspec-project.toml"),
+        "name = \"shop\"\nmain = \"system.puml\"\n",
+    )
+    .unwrap();
+    let src = dir.join("system.puml");
+    std::fs::write(&src, "@startwbs\n* Shop\n@endwbs\n").unwrap();
+    let mut app = open(std::slice::from_ref(&src));
+
+    press(&mut app, Command::ExportProject);
+    let prompt = app.prompt.as_ref().unwrap();
+    assert!(matches!(prompt.asking, Asking::ExportProject));
+    assert_eq!(prompt.input, dir.join("export").display().to_string());
+    // The looks an SVG can take, auto among them.
+    assert_eq!(
+        app.prompt_looks(Asking::ExportProject),
+        app.export_looks(Format::Svg)
+    );
+    press(&mut app, Command::NextLook);
+    assert_eq!(app.prompt.as_ref().unwrap().look, ExportLook::File);
+
+    // A folder that is there asks once; then the export runs.
+    std::fs::create_dir_all(dir.join("export")).unwrap();
+    let _ = app.update(Message::PromptSubmit);
+    assert!(app.prompt.as_ref().is_some_and(|p| p.overwrite));
+    let _ = app.update(Message::PromptSubmit);
+    assert!(app.prompt.is_none());
+    assert!(
+        app.notice
+            .as_deref()
+            .is_some_and(|n| n.starts_with("exporting")),
+        "{:?}",
+        app.notice
+    );
+    let _ = app.update(Message::ProjectExported(Ok("1 diagram in export".into())));
+    assert_eq!(app.notice.as_deref(), Some("1 diagram in export"));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn export_asks_for_a_path_and_refuses_the_source() {
     let dir = temp_dir("export-to");
     let src = dir.join("flow.puml");

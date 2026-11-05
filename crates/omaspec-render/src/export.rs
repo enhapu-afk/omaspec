@@ -449,6 +449,22 @@ fn zip_bundle(svg: &str, options: &Options<'_>) -> Result<Vec<u8>, ExportError> 
     Ok(cursor.into_inner())
 }
 
+/// `files` as one ZIP, each under its path (`/` between folders),
+/// compressed.
+pub fn zip<'a>(
+    files: impl IntoIterator<Item = (&'a str, &'a [u8])>,
+) -> Result<Vec<u8>, ExportError> {
+    let mut cursor = Cursor::new(Vec::new());
+    let mut archive = ZipWriter::new(&mut cursor);
+    for (name, bytes) in files {
+        write_zip(&mut archive, name, bytes, true)?;
+    }
+    archive
+        .finish()
+        .map_err(|e| ExportError::Zip(e.to_string()))?;
+    Ok(cursor.into_inner())
+}
+
 fn write_zip<W: Write + io::Seek>(
     archive: &mut ZipWriter<W>,
     name: &str,

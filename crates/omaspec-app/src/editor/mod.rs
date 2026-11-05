@@ -289,6 +289,8 @@ pub enum Message {
     Focused,
     Copied(Result<&'static str, String>),
     Exported(Result<String, String>),
+    /// What a project's export wrote, or why it wrote nothing.
+    ProjectExported(Result<String, String>),
     /// Commits of the file in a tab, for the compare picker.
     Revisions(u64, Vec<(String, String)>),
     /// The recorded traces of a tab's state machine: label, file, object.
@@ -366,6 +368,9 @@ pub enum Command {
     ExportPdf,
     ExportMarkdown,
     ExportZip,
+    /// Asks where, then writes the project as SVGs linked to one another
+    /// and a ZIP of them.
+    ExportProject,
     CloseOthers,
     RenderNow,
     NewTab,
@@ -511,6 +516,11 @@ const PALETTE: &[(&str, &str, Command)] = &[
         "Export the diagram as ZIP (SVG, source, PDF)",
         "",
         Command::ExportZip,
+    ),
+    (
+        "Export the project (SVGs linked to one another, and a ZIP)",
+        "",
+        Command::ExportProject,
     ),
     ("New tab", "Ctrl+N", Command::NewTab),
     ("Close the tab", "Ctrl+W", Command::CloseTab),
@@ -714,6 +724,9 @@ enum Asking {
     /// Where to write this export. Enter writes it; an existing file asks
     /// once more.
     Export(Format),
+    /// The folder to export the project into. A folder that is there asks
+    /// once more.
+    ExportProject,
 }
 
 /// A question in the bottom line.
@@ -1322,6 +1335,7 @@ impl App {
                     self.new_project_submitted(language, git)
                 }
                 Some(Asking::Export(_)) => self.export_submitted(),
+                Some(Asking::ExportProject) => self.export_project_submitted(),
                 None => Task::none(),
             },
             Message::PickerInput(query) => {
@@ -1373,6 +1387,16 @@ impl App {
                         format!("exported {path}")
                     }
                     Err(err) => format!("not exported: {err}"),
+                });
+                Task::none()
+            }
+            Message::ProjectExported(result) => {
+                self.notice = Some(match result {
+                    Ok(summary) => {
+                        ui::notify("Project exported", &summary);
+                        summary
+                    }
+                    Err(err) => format!("project not exported: {err}"),
                 });
                 Task::none()
             }
@@ -1792,6 +1816,7 @@ impl App {
             Command::ExportPdf => self.export(Format::Pdf),
             Command::ExportMarkdown => self.export(Format::Markdown),
             Command::ExportZip => self.export(Format::Zip),
+            Command::ExportProject => self.export_project(),
             Command::CloseOthers => self.close_others(),
             Command::RenderNow => self.render(key, true),
             Command::NewTab => {

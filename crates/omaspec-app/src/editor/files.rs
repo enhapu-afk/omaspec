@@ -228,6 +228,12 @@ impl App {
                 format!("{}/", base.display())
             }
             Asking::Export(format) => suggested_export(doc, &folder, format),
+            Asking::ExportProject => self
+                .project_to_export()
+                .unwrap_or(folder)
+                .join(crate::project_export::FOLDER)
+                .display()
+                .to_string(),
         };
         let key = doc.key;
         // The question is drawn in the editor window. A shortcut from the
@@ -311,12 +317,25 @@ impl App {
         looks
     }
 
+    /// The looks the prompt `asking` offers: an export's, a project's as an
+    /// SVG's; none for the other questions.
+    pub(super) fn prompt_looks(&self, asking: Asking) -> Vec<ExportLook> {
+        match asking {
+            Asking::Export(format) => self.export_looks(format),
+            Asking::ExportProject => self.export_looks(Format::Svg),
+            _ => Vec::new(),
+        }
+    }
+
     /// The export prompt draws in `look`, or in the next one.
     pub(super) fn next_export_look(&mut self, look: Option<ExportLook>) {
-        let Some(Asking::Export(format)) = self.prompt.as_ref().map(|p| p.asking) else {
+        let Some(asking) = self.prompt.as_ref().map(|p| p.asking) else {
             return;
         };
-        let looks = self.export_looks(format);
+        let looks = self.prompt_looks(asking);
+        if looks.is_empty() {
+            return;
+        }
         if let Some(prompt) = &mut self.prompt {
             prompt.look = look.filter(|l| looks.contains(l)).unwrap_or_else(|| {
                 let at = looks.iter().position(|l| *l == prompt.look).unwrap_or(0);
@@ -390,6 +409,75 @@ impl App {
         };
         self.prompt = None;
         task
+    }
+
+    /// The project the palette's *Export the project* writes: the active
+    /// tab's, else the one the sidebar is in, else the sidebar's folder.
+    pub(super) fn project_to_export(&self) -> Option<PathBuf> {
+        self.place_of(self.doc().key)
+            .map(|place| place.root)
+            .or_else(|| {
+                let folder = self.folder.as_deref()?;
+                omaspec_render::project_root(folder).or_else(|| Some(folder.to_path_buf()))
+            })
+    }
+
+    /// Asks where to export the project to.
+    pub(super) fn export_project(&mut self) -> Task<Message> {
+        if self.project_to_export().is_none() {
+            self.notice = Some("open a project or a folder to export".into());
+            return Task::none();
+        }
+        self.ask(Asking::ExportProject)
+    }
+
+    /// Exports the project into the folder the prompt names, in the
+    /// background. A folder that is there asks once.
+    pub(super) fn export_project_submitted(&mut self) -> Task<Message> {
+        let Some(prompt) = &self.prompt else {
+            return Task::none();
+        };
+        let (input, overwrite, look) = (prompt.input.clone(), prompt.overwrite, prompt.look);
+        let Some(root) = self.project_to_export() else {
+            self.prompt = None;
+            return Task::none();
+        };
+        let Some(out) = expand(input.trim()) else {
+            self.notice = Some("name a folder to export to".into());
+            return Task::none();
+        };
+        if out.is_file() {
+            self.notice = Some(format!("{} is a file", out.display()));
+            return Task::none();
+        }
+        if out.is_dir() && !overwrite {
+            if let Some(prompt) = &mut self.prompt {
+                prompt.overwrite = true;
+            }
+            self.notice = Some(format!(
+                "{} is there: Enter again writes into it",
+                out.display()
+            ));
+            return Task::none();
+        }
+        let look = match look {
+            ExportLook::Shown if self.follow_theme => Some(crate::look::Look::Omarchy),
+            ExportLook::Shown | ExportLook::File => None,
+            ExportLook::Look(look) => Some(look),
+        };
+        self.prompt = None;
+        self.notice = Some(format!("exporting {} …", root.display()));
+        Task::perform(
+            crate::worker::blocking(move || -> Result<String, String> {
+                let mut renderer = omaspec_render::Renderer::new(&crate::commands::render_config());
+                crate::project_export::export(&root, Some(&out), look, &mut renderer)
+                    .map(|exported| exported.summary())
+                    .map_err(|e| format!("{e:#}"))
+            }),
+            |result| {
+                Message::ProjectExported(result.unwrap_or_else(|| Err("the export failed".into())))
+            },
+        )
     }
 
     /// Asks how a new project starts: in PlantUML or Mermaid, with git or

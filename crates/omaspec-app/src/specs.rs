@@ -93,6 +93,11 @@ impl Maps {
         Some((Arc::clone(atlas), own))
     }
 
+    /// Maps that know the project at `root` already.
+    pub fn with(root: PathBuf, atlas: Arc<Atlas>) -> Maps {
+        Maps(HashMap::from([(root, atlas)]))
+    }
+
     /// The project a diagram links into, with its own path there: a map
     /// always ([`Self::of`]); anything else only in a project, where a
     /// state that names a diagram links to it.
@@ -158,6 +163,18 @@ impl Maps {
     }
 }
 
+/// The SVG of the diagram at `file`, a path in the project, beside it:
+/// `orders/orders.puml` is drawn into `orders/orders.svg`.
+pub fn svg_of(file: &str) -> String {
+    let (folder, name) = file.rsplit_once('/').map_or(("", file), |(f, n)| (f, n));
+    let stem = name.rsplit_once('.').map_or(name, |(stem, _)| stem);
+    if folder.is_empty() {
+        format!("{stem}.svg")
+    } else {
+        format!("{folder}/{stem}.svg")
+    }
+}
+
 /// The tiles and states of a drawn diagram as links between exports: each
 /// that opens one diagram of the project links to that diagram's SVG
 /// beside its file, relative to `own`, this diagram's path in the project
@@ -176,8 +193,7 @@ pub fn export_links(links: &[omaspec_render::Link], own: &str) -> Vec<Anchor> {
             let shared = dir.iter().zip(folders).take_while(|(a, b)| a == b).count();
             let mut parts: Vec<String> = vec!["..".to_owned(); dir.len() - shared];
             parts.extend(folders[shared..].iter().map(|f| (*f).to_owned()));
-            let stem = file[0].rsplit_once('.').map_or(file[0], |(stem, _)| stem);
-            parts.push(format!("{stem}.svg"));
+            parts.push(svg_of(file[0]));
             Some(Anchor {
                 rect: link.rect,
                 href: parts.join("/"),

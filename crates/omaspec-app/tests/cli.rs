@@ -500,6 +500,114 @@ fn a_mermaid_click_is_a_link_and_a_callback_is_not() {
 }
 
 #[test]
+fn a_project_exports_as_svgs_linked_to_one_another_and_a_zip() {
+    let dir = scratch("export-project");
+    fs::create_dir_all(dir.join("orders")).unwrap();
+    let write = |file: &str, text: &str| fs::write(dir.join(file), text).unwrap();
+    write(
+        "omaspec-project.toml",
+        "name = \"shop\"\nmain = \"system.puml\"\n",
+    );
+    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    write(
+        "orders/orders.puml",
+        "@startuml\ntitle Orders\n[*] --> New\nNew --> Payment : pay\n@enduml\n",
+    );
+    write(
+        "payment.mmd",
+        "stateDiagram-v2\n  title: Payment\n  [*] --> Waiting\n",
+    );
+    let root = dir.to_str().unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_omaspec"))
+        .args(["export", root, "--look", "auto"])
+        .env("OMASPEC_PLANTUML", "none")
+        .output()
+        .unwrap();
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let export = dir.join("export");
+    let read = |file: &str| fs::read_to_string(export.join(file)).unwrap();
+    // The map at the top, twice: as itself and as the page to start at.
+    for map in ["index.svg", "system.svg"] {
+        let svg = read(map);
+        assert!(
+            svg.contains(r#"<a href="orders/orders.svg"><title>Orders</title>"#),
+            "{svg}"
+        );
+        assert!(svg.contains("prefers-color-scheme: dark"));
+    }
+    assert!(
+        read("orders/orders.svg").contains(r#"<a href="../payment.svg"><title>Payment</title>"#)
+    );
+    // Each picture opens as its diagram again.
+    let stored = omaspec_core::embed::source_from_svg(&read("payment.svg")).unwrap();
+    assert!(stored.code.starts_with("stateDiagram-v2"));
+    // The ZIP unpacks into a folder named after the project.
+    let zip = fs::read(export.join("shop.zip")).unwrap();
+    assert!(zip.starts_with(b"PK"));
+    for entry in [
+        "shop/index.svg",
+        "shop/system.svg",
+        "shop/orders/orders.svg",
+        "shop/payment.svg",
+    ] {
+        assert!(
+            zip.windows(entry.len()).any(|w| w == entry.as_bytes()),
+            "{entry}"
+        );
+    }
+    // Nothing beside the folder.
+    let mut top: Vec<String> = fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    top.sort();
+    assert_eq!(
+        top,
+        [
+            "export",
+            "omaspec-project.toml",
+            "orders",
+            "payment.mmd",
+            "system.puml"
+        ]
+    );
+
+    // A diagram that does not draw is reported; the rest is written.
+    write("broken.puml", "@startuml\nstate X {\n@enduml\n");
+    let out = Command::new(env!("CARGO_BIN_EXE_omaspec"))
+        .args([
+            "export",
+            root,
+            "-o",
+            dir.join("out").to_str().unwrap(),
+            "--json",
+        ])
+        .env("OMASPEC_PLANTUML", "none")
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(report["failed"][0]["file"], "broken.puml", "{report}");
+    assert_eq!(report["failed"][0]["line"], 2, "{report}");
+    assert_eq!(report["written"].as_array().unwrap().len(), 3, "{report}");
+    assert_eq!(report["index"], true);
+    assert!(dir.join("out/orders/orders.svg").is_file());
+
+    // Two diagrams that would be one SVG stop it before anything is written.
+    write("orders/orders.mmd", "flowchart LR\n  A --> B\n");
+    let out = omaspec(&["export", root, "-o", dir.join("twice").to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("would both be orders/orders.svg"), "{err}");
+    assert!(!dir.join("twice").exists());
+}
+
+#[test]
 fn render_writes_svg_png_and_pdf_next_to_the_diagram() {
     let dir = scratch("render");
     let file = dir.join("states.mmd");

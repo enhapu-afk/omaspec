@@ -193,6 +193,17 @@ door.puml → door.png (Omaspec PlantUML, 2.9 ms)
 The image carries its source. Drop it on the Omaspec window (or open it with **Ctrl+O**)
 and it opens as a diagram again; `omaspec extract door.png` prints the source.
 
+**All of it.** *Export the project* in the command list, or on the command line, writes
+every diagram of the folder as an SVG into its `export` folder, and all of them as one
+ZIP there to send. In a project (`omaspec new`), the map is `index.svg` too and every
+tile and linked state links to its diagram, so a browser is enough to walk through it:
+
+```console
+$ omaspec export ~/specs
+1 diagram → /home/you/specs/export
+all of it in /home/you/specs/export/specs.zip
+```
+
 **In Mermaid.** `omaspec convert` writes the same machine in the other language, and
 refuses when the result would not mean the same:
 

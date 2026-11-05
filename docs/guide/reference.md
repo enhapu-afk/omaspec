@@ -204,6 +204,20 @@ Ctrl+O, such an image opens as a new, unsaved tab under a name nothing has yet
 (`flow-2.mmd` next to `flow.mmd`), so saving never overwrites the original.
 `omaspec extract diagram.png` prints the source.
 
+### A project to hand on
+
+*Export the project* in the command list, or `omaspec export DIR`, writes every diagram
+of the project as an SVG with its source into its `export` folder (or the one `-o`
+names), beside one another as the diagrams are, the main diagram once more as
+`index.svg`, and all of it as `<project>.zip` in that folder. Each tile of a map and each
+state that opens a diagram links to that diagram's SVG, so a browser is enough to follow
+them; the look is the export's (`--look auto` follows the viewer's dark scheme). Links
+written in a diagram stay links in an SVG: PlantUML's `[[url]]`, `[[url label]]` and
+`[[url{tooltip}]]` in text or on an element (`class Order [[docs/order.html]]`), and
+Mermaid's `click A href "url"` or a class's `link`; a callback is left out. A diagram
+that does not draw is named and left out; nothing is written outside the folder, and an
+SVG an earlier export left there stays.
+
 ### Session
 
 The window keeps its session in `~/.local/state/omaspec/` (readable by you only): open
@@ -291,6 +305,7 @@ omaspec render flow.mmd             # flow.svg next to it, with the source insid
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
 omaspec render flow.mmd --look auto # plain, omarchy, light or dark; auto: one SVG, dark under a dark scheme
+omaspec export ~/specs/shop         # every diagram as an SVG, linked, the map as index.svg, and shop.zip, in shop/export
 omaspec extract diagram.png         # the source stored in an exported PNG or SVG
 omaspec example                     # the examples of the gallery; `example NAME` prints one, --json
 omaspec theme                       # the palette Omaspec reads from your Omarchy theme
