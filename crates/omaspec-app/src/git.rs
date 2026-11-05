@@ -1,5 +1,6 @@
 //! Git, asked for versions: the commits that changed a file, its text in
-//! one of them, and a folder's files as of a commit (`omaspec diff DIR`).
+//! one of them, a folder's files as of a commit (`omaspec diff DIR`), and
+//! a file's history with its texts (`omaspec log`).
 //! Git starts nothing a repository's own configuration names ([`git`]),
 //! and a revision is never taken for an option.
 
@@ -134,7 +135,7 @@ pub fn files_at(
         String::from_utf8_lossy(&out.stderr).trim()
     );
     // `<mode> <type> <object> <size>\t<path>`, each ended by a zero.
-    let mut wanted: Vec<(String, u64, String)> = Vec::new();
+    let mut wanted: Vec<(String, String)> = Vec::new();
     for record in out.stdout.split(|&b| b == 0).filter(|r| !r.is_empty()) {
         let record = String::from_utf8_lossy(record);
         let Some((meta, path)) = record.split_once('\t') else {
@@ -150,13 +151,25 @@ pub fn files_at(
             continue;
         };
         if mode != "120000" && keep(path, size) {
-            wanted.push((object.to_owned(), size, path.to_owned()));
+            wanted.push((object.to_owned(), path.to_owned()));
         }
     }
-    if wanted.is_empty() {
+    let objects: Vec<&str> = wanted.iter().map(|(o, _)| o.as_str()).collect();
+    let texts = blobs(dir, &objects, u64::MAX)?;
+    Ok(wanted
+        .into_iter()
+        .zip(texts)
+        .filter_map(|((_, path), text)| Some((path, text?)))
+        .collect())
+}
+
+/// The texts of the git `objects` in `dir` (whole or abbreviated ids), in
+/// their order, through one `git cat-file --batch`, without filters or
+/// text conversions; `None` for one larger than `max` bytes.
+fn blobs(dir: &Path, objects: &[&str], max: u64) -> Result<Vec<Option<String>>> {
+    if objects.is_empty() {
         return Ok(Vec::new());
     }
-    // One git for all of them, without filters or text conversions.
     let mut child = git(dir)
         .args(["cat-file", "--batch"])
         .stdin(Stdio::piped())
@@ -165,30 +178,187 @@ pub fn files_at(
         .spawn()
         .context("cannot run git")?;
     let mut stdin = child.stdin.take().context("no input to git")?;
-    let objects: String = wanted.iter().map(|(o, _, _)| format!("{o}\n")).collect();
+    let asked: String = objects.iter().map(|o| format!("{o}\n")).collect();
     // Written beside the reading, so neither waits on a full pipe.
-    let writer = std::thread::spawn(move || stdin.write_all(objects.as_bytes()));
+    let writer = std::thread::spawn(move || stdin.write_all(asked.as_bytes()));
     let mut reader = BufReader::new(child.stdout.take().context("no output from git")?);
-    let mut found = Vec::with_capacity(wanted.len());
+    let mut found = Vec::with_capacity(objects.len());
     let mut header = String::new();
-    for (object, size, path) in wanted {
+    for object in objects {
         header.clear();
         reader.read_line(&mut header)?;
         // `<object> blob <size>`, or `<object> missing`.
         let mut parts = header.split_whitespace();
-        let same = parts.next() == Some(object.as_str())
-            && parts.next() == Some("blob")
-            && parts.next() == Some(size.to_string().as_str());
-        anyhow::ensure!(same, "git: cannot read {path} ({})", header.trim());
-        let mut body = vec![0; usize::try_from(size)? + 1];
-        reader.read_exact(&mut body)?;
+        let size = match (parts.next(), parts.next(), parts.next()) {
+            (Some(id), Some("blob"), Some(size)) if id.starts_with(object) => {
+                size.parse::<u64>()?
+            }
+            _ => anyhow::bail!("git: cannot read {object} ({})", header.trim()),
+        };
+        // The text and the newline after it.
+        let mut body = Vec::new();
+        (&mut reader).take(size + 1).read_to_end(&mut body)?;
+        anyhow::ensure!(body.len() as u64 == size + 1, "git: {object} ends early");
         body.pop();
-        found.push((path, String::from_utf8_lossy(&body).into_owned()));
+        found.push((size <= max).then(|| String::from_utf8_lossy(&body).into_owned()));
     }
     drop(reader);
     let _ = writer.join();
     let _ = child.wait();
     Ok(found)
+}
+
+/// The path of the folder `dir` from its repository's root, `/` after
+/// it: empty at the root.
+pub fn prefix(dir: &Path) -> Result<String> {
+    let out = git(dir)
+        .args(["rev-parse", "--show-prefix"])
+        .output()
+        .context("cannot run git")?;
+    anyhow::ensure!(
+        out.status.success(),
+        "git: {}",
+        String::from_utf8_lossy(&out.stderr).trim()
+    );
+    Ok(String::from_utf8_lossy(&out.stdout)
+        .trim_end_matches('\n')
+        .to_owned())
+}
+
+/// A commit that changed a file.
+#[derive(Debug, Clone)]
+pub struct FileCommit {
+    pub hash: String,
+    pub short: String,
+    /// `2026-11-05`.
+    pub date: String,
+    pub subject: String,
+    /// Its first parent; `None` for the first commit.
+    pub parent: Option<String>,
+    /// The file before the commit; `None` where the commit added it.
+    pub before: Option<Version>,
+    /// The file after the commit; `None` where the commit removed it.
+    pub after: Option<Version>,
+}
+
+/// A file as one commit has it.
+#[derive(Debug, Clone)]
+pub struct Version {
+    /// From the repository's root, `/` between folders.
+    pub path: String,
+    /// `None` when it is larger than the reader takes.
+    pub text: Option<String>,
+}
+
+/// The commits that changed `file`, newest first, following it where it
+/// was renamed, at most `count` of them; with the file before and after
+/// each, texts of at most `max` bytes. Merges are left out, as `git log`
+/// shows no change for them.
+pub fn file_log(file: &Path, count: Option<usize>, max: u64) -> Result<Vec<FileCommit>> {
+    let file = std::path::absolute(file)?;
+    // A file removed with its folder is asked for from the nearest folder
+    // still there.
+    let dir = file
+        .ancestors()
+        .skip(1)
+        .find(|d| d.is_dir())
+        .context("no folder")?;
+    let name = file.strip_prefix(dir)?;
+    let mut command = git(dir);
+    command.args([
+        "log",
+        "--follow",
+        // Abbreviated as `%h` is; git abbreviates them so they stay unique.
+        "--raw",
+        "-z",
+        "--no-color",
+        "--date=short",
+        "--format=%x01%H%x09%h%x09%ad%x09%P%x09%s",
+    ]);
+    if let Some(count) = count {
+        command.arg(format!("-n{count}"));
+    }
+    let out = command
+        .arg("--")
+        .arg(name)
+        .output()
+        .context("cannot run git")?;
+    anyhow::ensure!(
+        out.status.success(),
+        "git: {}",
+        String::from_utf8_lossy(&out.stderr).trim()
+    );
+    let mut commits: Vec<(FileCommit, Option<String>, Option<String>)> = Vec::new();
+    // `\x01<header>\0`, then `\n:<modes> <before> <after> <status>\0<path>\0`, a
+    // rename with the path before and after.
+    let text = String::from_utf8_lossy(&out.stdout);
+    let mut tokens = text.split('\0');
+    while let Some(token) = tokens.next() {
+        let token = token.trim_start_matches('\n');
+        if let Some(header) = token.strip_prefix('\x01') {
+            let mut parts = header.splitn(5, '\t');
+            let mut part = || parts.next().unwrap_or_default().to_owned();
+            let (hash, short, date, parents, subject) = (part(), part(), part(), part(), part());
+            let commit = FileCommit {
+                hash,
+                short,
+                date,
+                subject,
+                parent: parents.split_whitespace().next().map(str::to_owned),
+                before: None,
+                after: None,
+            };
+            commits.push((commit, None, None));
+        } else if let Some(meta) = token.strip_prefix(':') {
+            let mut parts = meta.split_whitespace().skip(2);
+            let (Some(before), Some(after), Some(status)) =
+                (parts.next(), parts.next(), parts.next())
+            else {
+                continue;
+            };
+            let first = tokens.next().unwrap_or_default().to_owned();
+            let (from, to) = match status.starts_with(['R', 'C']) {
+                true => (first, tokens.next().unwrap_or_default().to_owned()),
+                false => (first.clone(), first),
+            };
+            let Some((commit, b, a)) = commits.last_mut() else {
+                continue;
+            };
+            let blob = |id: &str| (!id.chars().all(|c| c == '0')).then(|| id.to_owned());
+            if let Some(id) = blob(before) {
+                commit.before = Some(Version {
+                    path: from,
+                    text: None,
+                });
+                *b = Some(id);
+            }
+            if let Some(id) = blob(after) {
+                commit.after = Some(Version {
+                    path: to,
+                    text: None,
+                });
+                *a = Some(id);
+            }
+        }
+    }
+    let ids: Vec<&str> = commits
+        .iter()
+        .flat_map(|(_, b, a)| [b.as_deref(), a.as_deref()])
+        .flatten()
+        .collect();
+    let mut texts = blobs(dir, &ids, max)?.into_iter();
+    Ok(commits
+        .into_iter()
+        .map(|(mut commit, b, a)| {
+            if let (Some(version), Some(_)) = (commit.before.as_mut(), b) {
+                version.text = texts.next().flatten();
+            }
+            if let (Some(version), Some(_)) = (commit.after.as_mut(), a) {
+                version.text = texts.next().flatten();
+            }
+            commit
+        })
+        .collect())
 }
 
 #[cfg(test)]
@@ -265,6 +435,9 @@ mod tests {
         let files = files_at(&dir, "HEAD", |path, _| path.ends_with(".puml")).unwrap();
         assert_eq!(files.len(), 1);
         assert!(files[0].1.contains("A -> B : y"));
+        let log = file_log(&file, None, u64::MAX).unwrap();
+        assert_eq!(log.len(), 2);
+        assert_eq!(log[0].subject, "signed");
         assert!(
             !marker.exists(),
             "git started {}",
@@ -319,6 +492,57 @@ mod tests {
             "flowchart LR\n  A --> B\n"
         );
         assert!(show(&file, "nosuchrev").is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_file_s_log_follows_it_and_reads_each_version() {
+        let dir = std::env::temp_dir().join(format!("omaspec-git-log-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("specs")).unwrap();
+        let git = |args: &[&str]| {
+            Command::new("git")
+                .arg("-C")
+                .arg(&dir)
+                .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+                .args(["-c", "commit.gpgsign=false"])
+                .args(args)
+                .output()
+                .is_ok_and(|o| o.status.success())
+        };
+        if !git(&["init", "-q"]) {
+            eprintln!("skipped: no git");
+            return;
+        }
+        let write = |file: &str, text: &str| std::fs::write(dir.join(file), text).unwrap();
+        write("specs/door.puml", "one\n");
+        assert!(git(&["add", "."]) && git(&["commit", "-qm", "add"]));
+        write("specs/door.puml", "two\n");
+        assert!(git(&["commit", "-qam", "change\tit"]));
+        assert!(git(&["mv", "specs/door.puml", "specs/front door.puml"]));
+        assert!(git(&["commit", "-qm", "rename"]));
+        assert!(git(&["rm", "-q", "specs/front door.puml"]) && git(&["commit", "-qm", "gone"]));
+
+        let log = file_log(&dir.join("specs/front door.puml"), None, u64::MAX).unwrap();
+        let subjects: Vec<&str> = log.iter().map(|c| c.subject.as_str()).collect();
+        assert_eq!(subjects, ["gone", "rename", "change\tit", "add"]);
+        let text = |v: &Option<Version>| v.as_ref().and_then(|v| v.text.clone());
+        let path = |v: &Option<Version>| v.as_ref().map(|v| v.path.clone());
+        // Removed: only before; renamed: both paths; added: only after.
+        assert_eq!(text(&log[0].before).as_deref(), Some("two\n"));
+        assert!(log[0].after.is_none());
+        assert_eq!(path(&log[1].before).as_deref(), Some("specs/door.puml"));
+        assert_eq!(
+            path(&log[1].after).as_deref(),
+            Some("specs/front door.puml")
+        );
+        assert_eq!(text(&log[2].before).as_deref(), Some("one\n"));
+        assert!(log[3].before.is_none() && log[3].parent.is_none());
+        assert!(log[0].short.len() < log[0].hash.len());
+        // At most two, and none of a text over the size given.
+        let short = file_log(&dir.join("specs/front door.puml"), Some(2), 2).unwrap();
+        assert_eq!(short.len(), 2);
+        assert!(text(&short[1].after).is_none());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

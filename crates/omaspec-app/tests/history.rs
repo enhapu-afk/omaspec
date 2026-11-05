@@ -186,3 +186,82 @@ fn two_folders_and_what_a_folder_does_not_take() {
     }
     let _ = fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn a_diagram_s_log_commit_by_commit() {
+    let dir = scratch("log");
+    let commit =
+        |message: &str| git(&dir, &["add", "-A"]) && git(&dir, &["commit", "-qm", message]);
+    write(&dir, "door.puml", DOOR);
+    write(&dir, "visit.puml", VISIT);
+    if !(git(&dir, &["init", "-q"]) && commit("one")) {
+        eprintln!("skipped: no git");
+        return;
+    }
+    // Only indented: the same behavior.
+    write(&dir, "door.puml", &DOOR.replace("\n[*]", "\n  [*]"));
+    assert!(commit("indent"));
+    fs::create_dir_all(dir.join("rooms")).unwrap();
+    assert!(git(&dir, &["mv", "door.puml", "rooms/door.puml"]) && commit("move"));
+    // The door no longer locks, and the visit knocks first: the visit's
+    // log checks it against the door of that commit.
+    write(
+        &dir,
+        "rooms/door.puml",
+        &DOOR
+            .replace("Closed --> Locked : lock\n", "")
+            .replace("Locked --> Closed : unlock\n", ""),
+    );
+    write(
+        &dir,
+        "visit.puml",
+        &VISIT.replace(
+            "User -> Door : lock",
+            "User -> Door : knock\nUser -> Door : lock",
+        ),
+    );
+    assert!(commit("no lock"));
+
+    let door = dir.join("rooms/door.puml");
+    let (code, out, err) = omaspec(&["log", door.to_str().unwrap()]);
+    assert_eq!(code, Some(0), "{err}");
+    let blocks: Vec<&str> = out.split("\n").filter(|l| !l.starts_with("    ")).collect();
+    assert!(blocks[0].ends_with(" no lock"), "{out}");
+    assert!(blocks[1].ends_with(" move"), "{out}");
+    assert!(blocks[2].ends_with(" indent"), "{out}");
+    assert!(blocks[3].ends_with(" one"), "{out}");
+    assert!(
+        out.contains("^:6: removed: Transition removed: Closed to Locked on lock."),
+        "{out}"
+    );
+    assert!(out.contains(":1: changed: Moved from door.puml."), "{out}");
+    assert!(
+        out.contains(" indent\n    no change in behavior\n"),
+        "{out}"
+    );
+    assert!(out.contains("door.puml@"), "{out}");
+    assert!(out.contains(":1: added: New state machine Door."), "{out}");
+    assert!(err.contains("4 commits changed"), "{err}");
+    assert!(err.contains("1 of them kept its behavior"), "{err}");
+
+    let visit = dir.join("visit.puml");
+    let (code, out, err) = omaspec(&["log", "-n", "1", "--json", visit.to_str().unwrap()]);
+    assert_eq!(code, Some(0), "{err}");
+    let json: serde_json::Value = serde_json::from_str(&out).unwrap();
+    let entries = json.as_array().unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0]["subject"], "no lock");
+    let changes = entries[0]["diagrams"][0]["changes"].as_array().unwrap();
+    let said = |kind: &str, text: &str| {
+        changes
+            .iter()
+            .any(|c| c["change"] == kind && c["message"].as_str().unwrap().contains(text))
+    };
+    assert!(said("added", "knock"), "{out}");
+    assert!(said("found", "no transition for lock"), "{out}");
+
+    // Outside a repository, git says so.
+    let (code, _, err) = omaspec(&["log", scratch("nogit").join("a.puml").to_str().unwrap()]);
+    assert_eq!(code, Some(2), "{err}");
+    let _ = fs::remove_dir_all(&dir);
+}

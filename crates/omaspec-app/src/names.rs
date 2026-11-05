@@ -16,7 +16,7 @@ use crate::specs::file_name;
 
 /// A diagram or a document may hold at most this many bytes, as for
 /// `!include`; a trace as many as the command line reads.
-const MAX_FILE: u64 = 1 << 20;
+pub const MAX_FILE: u64 = 1 << 20;
 const MAX_TRACE: u64 = 16 << 20;
 
 /// A file of a project, read.
@@ -89,7 +89,7 @@ fn read_files(root: &Path, traces: bool) -> Vec<Owned> {
 }
 
 /// The file at `path` in a project, its kind told by its name and its text.
-fn owned(path: String, text: String) -> Owned {
+pub fn owned(path: String, text: String) -> Owned {
     let kind = if path.ends_with(".jsonl") {
         FileKind::Trace
     } else if markdown::is_markdown(&path) {

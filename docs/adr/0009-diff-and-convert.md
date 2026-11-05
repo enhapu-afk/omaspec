@@ -94,6 +94,18 @@ Measured on the generated projects of the scale test, one machine changed:
 2,001 diagrams compare in 186 ms, and their versions come out of git in
 73 ms (release build).
 
+`omaspec log FILE` tells the same for one diagram, commit by commit, newest
+first: each commit that changed the file, as `git log --follow` finds it
+across renames, compared as the project diff compares a diagram (so a
+rename is told as moved, and a commit that only moved lines says its
+behavior stayed the same). A sequence diagram is checked against the state
+machines of its project as that commit and its parent had them, so a
+finding belongs to the commit that caused it. One `git log --raw` names the
+commits and their blobs, one `git cat-file --batch` reads them; a project
+is read from git only for a sequence diagram, once per commit. Lines of the
+version before a commit are named `file@commit^`, of the version after it
+`file@commit`, as `git show` takes them.
+
 ## Not covered
 
 - A renamed state or participant is one removed and one added.

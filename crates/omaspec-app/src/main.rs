@@ -238,6 +238,27 @@ enum Command {
         #[command(flatten)]
         lang: LangArg,
     },
+    /// Tell, commit by commit, what changed in the behavior of a diagram.
+    ///
+    /// Each commit that changed the file, newest first, following it where
+    /// it was renamed: what `diff` tells between the file before and after
+    /// the commit, or that its behavior stayed the same. A sequence diagram
+    /// is checked against the state machines of its project as each commit
+    /// had them. What is not committed yet is `omaspec diff FILE`'s.
+    Log {
+        /// A diagram file or a Markdown document in a git repository.
+        file: PathBuf,
+        /// At most this many commits.
+        #[arg(short = 'n', long = "max-count", value_name = "N")]
+        count: Option<usize>,
+        /// Print the commits and their changes as JSON.
+        #[arg(long)]
+        json: bool,
+        /// The folder whose state machines sequence diagrams are checked
+        /// against; by default the file's project, else its own folder.
+        #[arg(long, value_name = "DIR")]
+        project: Option<PathBuf>,
+    },
     /// Write a state machine or a sequence diagram in the other language.
     ///
     /// PlantUML becomes Mermaid, Mermaid becomes PlantUML, through what the
@@ -533,6 +554,12 @@ fn main() -> ExitCode {
             };
             names::rename_command(&old, &new, &which, project.as_deref(), dry_run, json)
         }
+        Some(Command::Log {
+            file,
+            count,
+            json,
+            project,
+        }) => history::log(&file, count, project.as_deref(), json),
         Some(Command::Diff {
             files,
             rev,

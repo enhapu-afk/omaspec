@@ -1521,8 +1521,11 @@ checked; numbers are measured, not assumed.
       exit 1 on a change. The git helpers moved out of the editor (`git.rs`).
       Release build, one machine changed: 9, 46 and 186 ms to compare 101, 501 and
       2,001 diagrams, 8, 21 and 73 ms to read the old version from git (the scale
-      test's `diff` and `git` columns). Left: `omaspec log`, the textconv and
-      Compare.
+      test's `diff` and `git` columns). `omaspec log FILE`: each commit that changed
+      a diagram (or a Markdown document), newest first, followed across renames,
+      with what it changed in the behavior or that it kept it; a sequence diagram
+      is checked against its project's machines as that commit had them. `-n`,
+      `--json`. Left: the textconv and Compare.
 
 ### 0.9: a layout you can steer
 
