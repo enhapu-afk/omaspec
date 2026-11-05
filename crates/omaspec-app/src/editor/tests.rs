@@ -1040,6 +1040,7 @@ fn images_open_their_diagram_under_a_free_name() {
             file: Some("flow.mmd"),
         }),
         links: &[],
+        up: 0,
     };
     let png = export::export(&svg, Format::Png, &options).unwrap();
     std::fs::write(dir.join("flow.png"), &png).unwrap();

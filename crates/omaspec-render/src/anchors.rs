@@ -1,9 +1,11 @@
 //! Links laid over a picture: an invisible box over each place a click
 //! opens something else, as a map's tile opens its diagram. Omaspec lays
-//! them over an engine's SVG after it was sanitized, with links it made
-//! itself from the project's paths: relative ones, which may go up a
-//! folder (`../orders.svg`) and never leave the project. A viewer that
-//! does not follow links (resvg, a PDF) draws nothing of them.
+//! them over an engine's SVG, with links it made itself from the
+//! project's paths: relative ones, which may go up a folder
+//! (`../orders.svg`). The export sanitizes the result once more, allowing
+//! relative links up to the project and no further
+//! ([`crate::sanitize::Links`]), so one rule keeps every link. A viewer
+//! that does not follow links (resvg, a PDF) draws nothing of them.
 
 use std::fmt::Write as _;
 
@@ -22,24 +24,9 @@ pub struct Anchor {
     pub title: Option<String>,
 }
 
-/// Whether `href` is a relative path: no scheme, not from the root, no
-/// backslash, no query. `..` may be in it.
-pub fn relative(href: &str) -> bool {
-    let path = href.split('#').next().unwrap_or_default();
-    !path.is_empty()
-        && !path.starts_with('/')
-        && !path.contains(['\\', '?'])
-        && !path.chars().any(char::is_control)
-        && path
-            .split('/')
-            .next()
-            .is_some_and(|first| !first.contains(':'))
-}
-
-/// `svg` with an invisible link over each of `anchors`; an anchor whose
-/// link is not [`relative`] is left out.
+/// `svg` with an invisible link over each of `anchors`, for the sanitizer
+/// to hold to its rule.
 pub fn lay(svg: &str, anchors: &[Anchor]) -> String {
-    let anchors: Vec<&Anchor> = anchors.iter().filter(|a| relative(&a.href)).collect();
     if anchors.is_empty() {
         return svg.to_owned();
     }
@@ -103,31 +90,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_relative_paths_are_links_omaspec_lays() {
-        for ok in [
-            "orders.svg",
-            "shop/orders.svg",
-            "../orders.svg",
-            "orders.svg#top",
-        ] {
-            assert!(relative(ok), "{ok}");
-        }
-        for bad in [
-            "",
-            "/etc/passwd",
-            "//host/x.svg",
-            "https://example.org",
-            "javascript:alert(1)",
-            "file:///x",
-            "a\\b.svg",
-            "x.svg?y",
-            "c:/x.svg",
-        ] {
-            assert!(!relative(bad), "{bad}");
-        }
-    }
-
-    #[test]
     fn a_link_lies_over_its_place_in_the_root_s_units() {
         // Shown at half its size: the viewBox doubles each unit.
         let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50" viewBox="0 0 200 100"><rect width="200" height="100" fill="white"/></svg>"#;
@@ -157,8 +119,10 @@ mod tests {
             ],
         );
         assert!(laid.contains(r#"<a href="orders.svg"><title>Orders &amp; co</title><rect x="20.00" y="10.00" width="40.00" height="20.00""#), "{laid}");
-        assert!(!laid.contains("javascript"));
         assert!(laid.ends_with("</g></svg>"));
+        // The sanitizer keeps the one, not the other.
+        let laid = crate::sanitize::sanitize(&laid).unwrap();
+        assert!(laid.contains(r#"href="orders.svg""#) && !laid.contains("javascript"));
         // Nothing of it shows.
         let tree = crate::export::parse(&laid).unwrap();
         let png = crate::export::rasterize(&tree, 1.0).unwrap();

@@ -142,6 +142,12 @@ pub fn svg_of(file: &str) -> String {
     }
 }
 
+/// How many folders below its project's root the file at `own`, a path in
+/// the project, lies: how far up its export's links may lead.
+pub fn depth(own: &str) -> usize {
+    own.matches('/').count()
+}
+
 /// The tiles and states of a drawn diagram as links between exports: each
 /// that opens one diagram of the project links to that diagram's SVG
 /// beside its file, relative to `own`, this diagram's path in the project

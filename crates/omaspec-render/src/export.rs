@@ -90,6 +90,9 @@ pub struct Options<'a> {
     pub source: Option<Source<'a>>,
     /// Laid over an SVG, in a ZIP's too ([`crate::anchors`]).
     pub links: &'a [crate::anchors::Anchor],
+    /// How many folders the picture lies below its project's root: how far
+    /// up its links may lead.
+    pub up: usize,
 }
 
 impl Default for Options<'_> {
@@ -98,6 +101,7 @@ impl Default for Options<'_> {
             scale: 2.0,
             source: None,
             links: &[],
+            up: 0,
         }
     }
 }
@@ -134,10 +138,21 @@ impl fmt::Display for ExportError {
 
 impl std::error::Error for ExportError {}
 
+/// `svg`, sanitized, with `options.links` laid over it and the whole
+/// sanitized once more with links that may go up to the project.
+fn linked(svg: &str, options: &Options) -> Result<String, ExportError> {
+    if options.links.is_empty() {
+        return Ok(svg.to_owned());
+    }
+    let links = crate::sanitize::Links { up: options.up };
+    crate::sanitize::sanitize_with(&crate::anchors::lay(svg, options.links), links)
+        .map_err(|e| ExportError::Svg(e.to_string()))
+}
+
 pub fn export(svg: &str, format: Format, options: &Options) -> Result<Vec<u8>, ExportError> {
     match format {
         Format::Svg => {
-            let svg = crate::anchors::lay(svg, options.links);
+            let svg = linked(svg, options)?;
             Ok(match options.source {
                 Some(s) => embed::svg_with_source(&svg, s.code, s.language, s.file),
                 None => svg,
@@ -429,7 +444,7 @@ fn embed_file(
 fn zip_bundle(svg: &str, options: &Options<'_>) -> Result<Vec<u8>, ExportError> {
     let source = options.source.ok_or(ExportError::NeedsSource)?;
     let stem = stem(source.file);
-    let laid = crate::anchors::lay(svg, options.links);
+    let laid = linked(svg, options)?;
     let svg_bytes =
         embed::svg_with_source(&laid, source.code, source.language, source.file).into_bytes();
     let pdf_bytes = pdf(svg, &parse(svg)?, options)?;
@@ -594,6 +609,7 @@ mod tests {
                 scale: 2.0,
                 source: Some(source),
                 links: &[],
+                up: 0,
             },
         )
         .unwrap();
@@ -646,6 +662,7 @@ mod tests {
                 scale: 2.0,
                 source: Some(sample()),
                 links: &[],
+                up: 0,
             },
         )
         .unwrap()
@@ -680,6 +697,7 @@ mod tests {
             scale: 1.0,
             source: Some(fenced),
             links: &[],
+            up: 0,
         };
         let text = String::from_utf8(export(SVG, Format::Markdown, &options).unwrap()).unwrap();
         assert_eq!(text, "# pie\n\n```mermaid\npie\n  \"a\": 1\n```\n");

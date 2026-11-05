@@ -176,6 +176,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             .as_ref()
             .zip(input.path.as_deref())
             .and_then(|(place, path)| crate::specs::path_in(&place.root, path));
+        let up = own.as_deref().map_or(0, crate::specs::depth);
         let links = own.map_or_else(Vec::new, |own| {
             crate::specs::export_links(&rendered.links, &own)
         });
@@ -188,6 +189,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 file: source_name.as_deref(),
             }),
             links: &links,
+            up,
         };
         let bytes = export::export(&rendered.svg, format, &options)?;
         let took = format!(

@@ -224,6 +224,7 @@ pub fn export(
                     file: Some(file),
                 }),
                 links: &links,
+                up: crate::specs::depth(own),
             };
             Ok(export::export(&rendered.svg, Format::Svg, &options)?)
         };

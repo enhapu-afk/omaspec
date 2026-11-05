@@ -1367,6 +1367,7 @@ impl Paper {
                     &source
                 };
                 // Each tile or state that opens a diagram links to its export.
+                let up = own.as_deref().map_or(0, crate::specs::depth);
                 let links =
                     own.map_or_else(Vec::new, |own| crate::specs::export_links(&links, &own));
                 let options = export::Options {
@@ -1377,6 +1378,7 @@ impl Paper {
                         file: Some(&file),
                     }),
                     links: &links,
+                    up,
                 };
                 let bytes = export::export(&svg, format, &options).map_err(|e| e.to_string())?;
                 then(bytes)

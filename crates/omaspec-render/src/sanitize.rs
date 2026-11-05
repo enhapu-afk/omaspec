@@ -6,7 +6,9 @@
 //! and processing instructions. Links may point inside the document
 //! (`#id`); `<a>` may also open `http(s)` and `mailto` links, and a
 //! relative path that stays in the picture's folder or below it (no `..`:
-//! the engine does not know where the picture goes), `<image>` may
+//! the engine does not know where the picture goes), or, for the links an
+//! export lays between a project's diagrams, that goes up no further than
+//! the project ([`Links`]); `<image>` may
 //! hold an embedded raster image (`data:image/png;base64,…`). Everything
 //! else, `javascript:` and `file:` above all, is dropped, as are CSS
 //! `@import` and `url()`s that leave the document. Escapes and comments
@@ -93,6 +95,20 @@ impl std::error::Error for SanitizeError {}
 /// The safe subset of `svg`. Fails if `svg` is not well-formed XML with an
 /// `<svg>` root; a DTD is refused (no entity tricks).
 pub fn sanitize(svg: &str) -> Result<String, SanitizeError> {
+    sanitize_with(svg, Links::default())
+}
+
+/// How far up from the picture's folder a relative link of an `<a>` may
+/// lead: not at all for an engine's SVG, which does not know where the
+/// picture goes; for an export's links between the diagrams of a project,
+/// as many folders as the picture lies below the project's own.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Links {
+    pub up: usize,
+}
+
+/// [`sanitize`], with relative links that may go `links.up` folders up.
+pub fn sanitize_with(svg: &str, links: Links) -> Result<String, SanitizeError> {
     let options = ParsingOptions {
         allow_dtd: false,
         ..Default::default()
@@ -104,7 +120,7 @@ pub fn sanitize(svg: &str) -> Result<String, SanitizeError> {
         return Err(SanitizeError("the root element is not <svg>".into()));
     }
     let mut out = String::with_capacity(svg.len());
-    write_element(root, true, &mut out);
+    write_element(root, true, links, &mut out);
     Ok(out)
 }
 
@@ -112,7 +128,7 @@ fn is_svg(node: Node, name: &str) -> bool {
     node.tag_name().namespace() == Some(SVG_NS) && node.tag_name().name() == name
 }
 
-fn write_element(node: Node, root: bool, out: &mut String) {
+fn write_element(node: Node, root: bool, links: Links, out: &mut String) {
     let name = node.tag_name().name();
     out.push('<');
     out.push_str(name);
@@ -132,7 +148,7 @@ fn write_element(node: Node, root: bool, out: &mut String) {
         }
         let value = attr.value();
         let value = match local {
-            "href" => match safe_href(name, value) {
+            "href" => match safe_href(name, value, links) {
                 Some(v) => v.to_owned(),
                 None => continue,
             },
@@ -164,7 +180,7 @@ fn write_element(node: Node, root: bool, out: &mut String) {
     out.push('>');
     for child in children {
         match child.node_type() {
-            NodeType::Element => write_element(child, false, out),
+            NodeType::Element => write_element(child, false, links, out),
             _ => {
                 let text = child.text().unwrap_or_default();
                 if name == "style" {
@@ -178,19 +194,43 @@ fn write_element(node: Node, root: bool, out: &mut String) {
     let _ = write!(out, "</{name}>");
 }
 
-/// A relative path that stays in the folder it is read from or below it:
-/// no `..`, written or escaped.
-fn inside(href: &str) -> bool {
+/// Whether `href` is a relative path: no scheme, not from the root, no
+/// backslash, no query.
+pub(crate) fn relative(href: &str) -> bool {
+    let path = href.split('#').next().unwrap_or_default();
+    !path.is_empty()
+        && !path.starts_with('/')
+        && !path.contains(['\\', '?'])
+        && !path.chars().any(char::is_control)
+        && path
+            .split('/')
+            .next()
+            .is_some_and(|first| !first.contains(':'))
+}
+
+/// A relative path that goes no more than `up` folders above the one it is
+/// read from, its `..` written or escaped.
+fn inside(href: &str, up: usize) -> bool {
     let path = href.split('#').next().unwrap_or_default();
     let decoded = path
         .to_ascii_lowercase()
         .replace("%2e", ".")
         .replace("%2f", "/");
-    crate::anchors::relative(href) && !decoded.split('/').any(|part| part == "..")
+    let mut depth: isize = 0;
+    let floor = -isize::try_from(up).unwrap_or(isize::MAX);
+    relative(href)
+        && decoded.split('/').all(|part| {
+            match part {
+                "" | "." => {}
+                ".." => depth -= 1,
+                _ => depth += 1,
+            }
+            depth >= floor
+        })
 }
 
 /// The link target if `element` may keep it.
-fn safe_href<'a>(element: &str, value: &'a str) -> Option<&'a str> {
+fn safe_href<'a>(element: &str, value: &'a str, links: Links) -> Option<&'a str> {
     let v = value.trim();
     let lower = v.to_ascii_lowercase();
     let ok = v.starts_with('#')
@@ -198,7 +238,7 @@ fn safe_href<'a>(element: &str, value: &'a str) -> Option<&'a str> {
             && ["http://", "https://", "mailto:"]
                 .iter()
                 .any(|p| lower.starts_with(p)))
-        || (element == "a" && inside(v))
+        || (element == "a" && inside(v, links.up))
         || (matches!(element, "image" | "feImage")
             && [
                 "data:image/png",
@@ -516,6 +556,45 @@ mod tests {
         assert!(out.contains(r#"href="docs/guide.html""#), "{out}");
         assert!(!out.contains("outside") && !out.contains("up.svg"), "{out}");
         assert!(!out.contains("shape.svg"), "only `<a>` leaves the document");
+
+        // An export's links may go up to its project, no further.
+        let svg = concat!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg">"#,
+            r#"<a href="../shop.svg"><text>a</text></a>"#,
+            r#"<a href="../../above.svg"><text>b</text></a>"#,
+            r#"<a href="x/../../%2e%2e/escaped.svg"><text>c</text></a>"#,
+            r#"<a href="../orders/checkout.svg"><text>d</text></a>"#,
+            "</svg>",
+        );
+        let out = sanitize_with(svg, Links { up: 1 }).unwrap();
+        assert!(out.contains(r#"href="../shop.svg""#), "{out}");
+        assert!(out.contains(r#"href="../orders/checkout.svg""#), "{out}");
+        assert!(!out.contains("above") && !out.contains("escaped"), "{out}");
+    }
+
+    #[test]
+    fn only_relative_paths_are_links() {
+        for ok in [
+            "orders.svg",
+            "shop/orders.svg",
+            "../orders.svg",
+            "orders.svg#top",
+        ] {
+            assert!(relative(ok), "{ok}");
+        }
+        for bad in [
+            "",
+            "/etc/passwd",
+            "//host/x.svg",
+            "https://example.org",
+            "javascript:alert(1)",
+            "file:///x",
+            "a\\b.svg",
+            "x.svg?y",
+            "c:/x.svg",
+        ] {
+            assert!(!relative(bad), "{bad}");
+        }
     }
 
     #[test]

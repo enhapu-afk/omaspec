@@ -43,8 +43,10 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
 - Rust 2024, `unsafe_code` is forbidden workspace-wide, clippy and rustfmt clean.
 - No network access at run time, no telemetry.
 - Every SVG from an engine goes through `omaspec_render::sanitize` before it is shown or
-  exported; exports parse SVG only through `omaspec_render::export::parse`, which never
-  reads files an SVG points to.
+  exported; so do the links an export lays over it (`sanitize_with`, relative links up to
+  the project, one rule for all links); only the embedded source is written after it.
+  Exports parse SVG only through `omaspec_render::export::parse`, which never reads files
+  an SVG points to.
 - `omaspec-core`, `omaspec-uml` and `omaspec-model` do no I/O and have no GUI
   dependency.
 - Spikes are throwaway; crates never depend on them.

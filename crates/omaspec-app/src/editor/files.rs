@@ -707,6 +707,7 @@ impl Drawn<'_> {
                 file: Some(self.file),
             }),
             links: &links,
+            up: self.own.map_or(0, crate::specs::depth),
         };
         omaspec_render::export::export(&rendered.svg, format, &options).map_err(|e| e.to_string())
     }
