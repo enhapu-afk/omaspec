@@ -335,6 +335,9 @@ enum Command {
     /// the native engine cannot draw yet go to the `plantuml` command if
     /// installed (or the one in $OMASPEC_PLANTUML; `none` turns it off).
     /// `--json` prints where each image went, or the error and its line.
+    /// As text (`-o door.txt`, `--format text`) a state machine or a
+    /// sequence diagram is written as its behavior, one fact a line, for an
+    /// agent or a terminal that shows no pictures.
     Render {
         /// Diagrams, Markdown documents or folders of them to render; `-`
         /// or none reads standard input.
@@ -342,7 +345,8 @@ enum Command {
         /// Output file, `-` for standard output; only with one diagram.
         #[arg(short, long)]
         output: Option<PathBuf>,
-        /// Image format; default from the output's extension, else SVG.
+        /// Image format, or text (a state machine's or sequence diagram's
+        /// behavior); default from the output's extension, else SVG.
         #[arg(short, long, value_enum)]
         format: Option<FormatChoice>,
         /// PNG pixels per diagram unit.
@@ -490,18 +494,23 @@ enum FormatChoice {
     Pdf,
     Markdown,
     Zip,
+    /// A state machine's or a sequence diagram's behavior as text, one
+    /// fact a line; so is an output ending in `.txt`.
+    Text,
 }
 
-impl From<FormatChoice> for Format {
-    fn from(f: FormatChoice) -> Self {
-        match f {
+impl FormatChoice {
+    /// The picture's format; `None` for text.
+    fn image(self) -> Option<Format> {
+        Some(match self {
             FormatChoice::Svg => Format::Svg,
             FormatChoice::Png => Format::Png,
             FormatChoice::Jpeg => Format::Jpeg,
             FormatChoice::Pdf => Format::Pdf,
             FormatChoice::Markdown => Format::Markdown,
             FormatChoice::Zip => Format::Zip,
-        }
+            FormatChoice::Text => return None,
+        })
     }
 }
 
@@ -636,7 +645,8 @@ fn main() -> ExitCode {
         }) => render_command::render(&render_command::RenderArgs {
             files: &files,
             output: output.as_deref(),
-            format: format.map(Format::from),
+            format: format.and_then(FormatChoice::image),
+            text: matches!(format, Some(FormatChoice::Text)),
             scale,
             source: !no_source,
             copy,

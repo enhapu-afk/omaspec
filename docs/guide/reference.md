@@ -373,6 +373,7 @@ omaspec convert door.puml -o door.mmd  # the same machine or scenario in Mermaid
 omaspec render flow.mmd             # flow.svg next to it, with the source inside
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
+omaspec render door.puml -o -  --format text   # its behavior, one fact a line, for an agent or a terminal; or -o door.txt
 omaspec render flow.mmd --look auto # plain, omarchy, light or dark; auto: one SVG, dark under a dark scheme
 omaspec render .                    # every diagram of the folder, each beside its own, in the project's look
 omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1
@@ -462,5 +463,8 @@ Mermaid flowcharts, state and sequence diagrams. The other Mermaid types are dra
 process. The other PlantUML types (YAML, network diagrams, Salt and more) render through
 the optional `plantuml` package, confined with Landlock. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
-angles. Omaspec also has a diagram of its own, signal flow (`@startflow`,
+angles. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a
+`flowchart LR`), also when its nodes have lines to the outside, where Mermaid itself
+drops it and lays the subgraph out in the chart's direction. Omaspec also has a diagram
+of its own, signal flow (`@startflow`,
 [ADR 0010](../adr/0010-signal-flow.md)). The [roadmap](../../ROADMAP.md) has the details.

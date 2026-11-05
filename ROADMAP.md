@@ -1560,3 +1560,16 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
 - [ ] A sketch look: PlantUML's `skinparam handwritten true` and Mermaid's
       `look: handDrawn`, declined today, with a seed from each element's name, so the
       same source always draws the same picture.
+
+### Since 0.8.0
+
+- [x] Diagrams as text (2026-11-05): `render --format text`, or an output ending in
+      `.txt`, and the MCP tool `render` with `format: text` write a state machine or a
+      sequence diagram as its behavior, one fact a line, as `git diff` compares it
+      after `omaspec git setup` (`omaspec_model::behavior`): for an agent or a
+      terminal that shows no pictures. A diagram of another kind says so and points
+      to `outline`. Box drawings in characters were weighed and left: a layout engine
+      of their own for a picture that reads worse than the facts.
+- [x] A Mermaid subgraph's own `direction` documented: Omaspec keeps it also when the
+      subgraph's nodes have lines to the outside, where Mermaid drops it (its issue
+      6438); held by `tests/layered/flow-subgraph-direction.mmd`.

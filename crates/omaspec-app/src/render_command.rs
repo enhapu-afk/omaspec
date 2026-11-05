@@ -3,7 +3,9 @@
 //! document gives one image per diagram, and a folder its diagrams. With
 //! `--check`, each SVG is held against the one beside the diagram instead
 //! of written ([`hold`], [`crate::check`]). `omaspec check` holds them
-//! the same way.
+//! the same way. As text (`.txt`), a state machine or a sequence diagram
+//! is its behavior, one fact a line ([`as_text`]), for an agent or a
+//! terminal that shows no pictures.
 
 use std::collections::HashMap;
 use std::io::Write as _;
@@ -23,6 +25,8 @@ pub struct RenderArgs<'a> {
     pub files: &'a [PathBuf],
     pub output: Option<&'a Path>,
     pub format: Option<Format>,
+    /// Text instead of a picture ([`as_text`]); so is a `.txt` output.
+    pub text: bool,
     pub scale: f32,
     /// Store the diagram source in SVG and PNG images.
     pub source: bool,
@@ -61,6 +65,17 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         args.scale > 0.0 && args.scale <= 16.0,
         "--scale must be between 0 and 16"
     );
+    let txt = args
+        .output
+        .and_then(Path::extension)
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("txt"));
+    if args.text || txt {
+        anyhow::ensure!(
+            !args.check,
+            "--check holds each diagram's SVG; text is not drawn"
+        );
+        return render_text(args, &pieces, &empty);
+    }
     let format = args
         .format
         .or_else(|| {
@@ -223,6 +238,106 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 }
             }
             None => stdout().write_all(&bytes)?,
+        }
+    }
+    if args.json {
+        let mut out = stdout();
+        serde_json::to_writer_pretty(&mut out, &reports)?;
+        writeln!(out)?;
+    }
+    Ok(if failed {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    })
+}
+
+/// The behavior of the state machine or sequence diagram `code`, one fact
+/// a line, as `git diff` compares it after `omaspec git setup`; `Err` says
+/// why a diagram has none.
+pub(crate) fn as_text(code: &str, language: Language) -> Result<String, String> {
+    if let Some(text) = omaspec_model::behavior(code, language) {
+        return Ok(text);
+    }
+    let kind = omaspec_core::classify(code, language).kind;
+    Err(match kind {
+        omaspec_core::Kind::State | omaspec_core::Kind::Sequence => {
+            "Omaspec does not fully read this diagram, so it cannot write it as text; `omaspec lint` says why".to_owned()
+        }
+        _ => "Omaspec writes state machines and sequence diagrams as text; `omaspec outline` gives the structure of any diagram".to_owned(),
+    })
+}
+
+/// `render` as text: each diagram's [`as_text`] beside it (`door.txt`), to
+/// `--output`, to standard output or to the clipboard.
+fn render_text(
+    args: &RenderArgs,
+    pieces: &[crate::document::Piece],
+    empty: &[&crate::files::Input],
+) -> Result<ExitCode> {
+    let mut failed = !empty.is_empty();
+    let mut reports = Vec::new();
+    let mut report =
+        |file: String, output: Option<String>, copied: bool, message: Option<String>| {
+            reports.push(Report {
+                file,
+                ok: message.is_none(),
+                output,
+                copied,
+                engine: None,
+                elapsed_ms: None,
+                line: None,
+                message,
+                same: None,
+            });
+        };
+    for input in empty {
+        let message = "no PlantUML or Mermaid diagram in it";
+        match args.json {
+            true => report(input.name(), None, false, Some(message.to_owned())),
+            false => eprintln!("{}: error: {message}", input.name()),
+        }
+    }
+    for piece in pieces {
+        let name = piece.input.name();
+        let text = match as_text(&piece.code, piece.language) {
+            Ok(text) => text,
+            Err(message) => {
+                failed = true;
+                match args.json {
+                    true => report(name, None, false, Some(message)),
+                    false => eprintln!("{name}: error: {message}"),
+                }
+                continue;
+            }
+        };
+        if args.copy {
+            copy_to_clipboard(text.as_bytes(), "text/plain")?;
+            match args.json {
+                true => report(name, None, true, None),
+                false => eprintln!("{name} copied as text"),
+            }
+            continue;
+        }
+        let dest = match (args.output, &piece.input.path) {
+            (Some(out), _) if out.as_os_str() != "-" => Some(out.to_owned()),
+            (Some(_), _) | (None, None) => None,
+            (None, Some(_)) => piece.image_path("txt"),
+        };
+        match dest {
+            Some(dest) => {
+                anyhow::ensure!(
+                    piece.input.path.as_deref() != Some(dest.as_path()),
+                    "{} would overwrite the diagram itself",
+                    dest.display()
+                );
+                write_atomic(&dest, text.as_bytes())?;
+                match args.json {
+                    true => report(name, Some(dest.display().to_string()), false, None),
+                    false => eprintln!("{name} → {}", dest.display()),
+                }
+            }
+            None => stdout().write_all(text.as_bytes())?,
         }
     }
     if args.json {

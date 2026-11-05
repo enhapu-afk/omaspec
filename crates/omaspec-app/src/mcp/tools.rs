@@ -249,7 +249,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "render",
             "title": "Render a diagram",
-            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip); SVG and PNG files carry the diagram's source. A mind map or WBS in a project is its map: each box that names a diagram of the project shows that diagram in a tile. A diagram with an error comes back as an error with its line. In a Markdown document, `diagram` picks one of its `plantuml` and `mermaid` blocks; an image written stores that diagram's source.",
+            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip, txt); SVG and PNG files carry the diagram's source. As text (`format: text`, or a .txt output), a state machine or a sequence diagram comes back as its behavior, one fact a line: states, transitions and findings sorted, messages in order. A mind map or WBS in a project is its map: each box that names a diagram of the project shows that diagram in a tile. A diagram with an error comes back as an error with its line. In a Markdown document, `diagram` picks one of its `plantuml` and `mermaid` blocks; an image written stores that diagram's source.",
             "inputSchema": schema(&[
                 ("path", path),
                 ("code", code),
@@ -264,8 +264,8 @@ pub fn definitions() -> Vec<Value> {
                 })),
                 ("format", json!({
                     "type": "string",
-                    "enum": ["svg", "png", "jpeg", "pdf", "markdown", "zip"],
-                    "description": "The format; by default the output's extension, else PNG to look at.",
+                    "enum": ["svg", "png", "jpeg", "pdf", "markdown", "zip", "text"],
+                    "description": "The format; by default the output's extension, else PNG to look at. text: a state machine's or sequence diagram's behavior, one fact a line.",
                 })),
                 ("scale", json!({
                     "type": "number",
@@ -389,6 +389,13 @@ impl Tools {
         };
         let lang = piece.language;
         let output = args.path("output")?;
+        let txt = output
+            .as_deref()
+            .and_then(std::path::Path::extension)
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("txt"));
+        if txt || args.text("format")? == Some("text") {
+            return Self::render_text(&input, piece, output);
+        }
         let format = match args.text("format")? {
             Some(name) => Some(Format::from_extension(name).with_context(|| {
                 format!("no format `{name}`; take svg, png, jpeg, pdf, markdown or zip")
@@ -537,6 +544,34 @@ impl Tools {
         report["format"] = json!(format.extension());
         report["output"] = json!(dest.display().to_string());
         Ok(Answer::data(report))
+    }
+
+    /// `render` as text: the behavior of a state machine or a sequence
+    /// diagram, one fact a line, back to the agent or into `output`.
+    fn render_text(
+        input: &Input,
+        piece: &crate::document::Piece,
+        output: Option<std::path::PathBuf>,
+    ) -> Result<Answer> {
+        let said = crate::render_command::as_text(&piece.code, piece.language)
+            .map_err(|why| anyhow::anyhow!(why))?;
+        let Some(dest) = output else {
+            let mut answer = Answer::data(json!({ "format": "text" }));
+            answer.content.insert(0, text(&said));
+            return Ok(answer);
+        };
+        if let Some(path) = &input.path {
+            ensure!(
+                std::path::absolute(path)? != std::path::absolute(&dest)?,
+                "{} would overwrite the diagram itself",
+                dest.display()
+            );
+        }
+        write_atomic(&dest, said.as_bytes())?;
+        Ok(Answer::data(json!({
+            "format": "text",
+            "output": dest.display().to_string(),
+        })))
     }
 }
 
@@ -1155,6 +1190,48 @@ mod tests {
         let outline = call("outline", json!({"code": code}));
         let entries = outline["structuredContent"]["outline"].as_array().unwrap();
         assert!(entries.iter().any(|e| e["line"] == 3), "{outline}");
+    }
+
+    #[test]
+    fn render_tells_a_machine_as_text() {
+        let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+        let result = call("render", json!({"code": door, "format": "text"}));
+        assert_eq!(result["structuredContent"]["format"], "text", "{result}");
+        assert_eq!(
+            result["content"][0]["text"],
+            "State machine Door\n  state Closed\n  state Open\n  Closed -> Open on open\n  Open -> Closed on close\n  [*] -> Closed\n"
+        );
+        // Written to a .txt file, and refused for a diagram without behavior.
+        let dir = std::env::temp_dir().join(format!("omaspec-mcp-text-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let out = dir.join("door.txt");
+        let written = call(
+            "render",
+            json!({"code": door, "output": out.display().to_string()}),
+        );
+        assert_eq!(
+            written["structuredContent"]["output"],
+            out.display().to_string(),
+            "{written}"
+        );
+        assert!(
+            std::fs::read_to_string(&out)
+                .unwrap()
+                .starts_with("State machine Door\n")
+        );
+        let flow = call(
+            "render",
+            json!({"code": "@startuml\nstart\n:fill;\nstop\n@enduml\n", "format": "text"}),
+        );
+        assert_eq!(flow["isError"], true, "{flow}");
+        assert!(
+            flow["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("omaspec outline")
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

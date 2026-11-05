@@ -29,7 +29,8 @@ Every change is checked against these.
 - **Friendly to AI agents.** What an agent needs to work on a diagram runs
   without a window: `lint` (exit codes, `--json`), `inspect` (JSON), `fmt
   --check`, `outline`, `extract`, and `render` to SVG or PNG, which an agent
-  that reads images can look at. Errors read `file:line: error: …` and name
+  that reads images can look at, or as text: a state machine's or a
+  scenario's behavior, one fact a line, for one that reads no images. Errors read `file:line: error: …` and name
   the construct, so the line can be fixed. `render --json` prints the same
   fact as JSON, one object per diagram: where the image went, or the error
   and its line. `inspect` says, for PlantUML and for Mermaid, whether

@@ -26,7 +26,7 @@ OMASPEC_LINES=1 cargo test -p omaspec-render --test lines -- --nocapture   # how
 OMASPEC_SCALE=1 cargo test --release -p omaspec-app scale -- --nocapture  # generated projects of 100 to 2,000 diagrams, timed
 OMASPEC_FRAMES=1 cargo run --release -p omaspec-app -- FILE   # how smooth each dive, glide, play and fade is, on standard error
 OMASPEC_FRAMES=1 cargo test --release -p omaspec-app frames_ -- --nocapture  # the same, headless on the GPU at 2560x1440
-cargo run -p omaspec-app -- render FILE    # SVG/PNG/PDF; --json for the report; OMASPEC_PLANTUML=path|none for the Java fallback
+cargo run -p omaspec-app -- render FILE    # SVG/PNG/PDF, or text (.txt: the behavior); --json for the report; OMASPEC_PLANTUML=path|none for the Java fallback
 cargo run -p omaspec-app -- render --check DIR   # each SVG drawn now against the one beside it; exit 1 when one differs
 cargo run -p omaspec-app -- check DIR      # lint, the machines, the links and render --check; --json, --github, --strict
 cargo run -p omaspec-app -- export DIR     # the project as SVGs linked to one another, index.svg and a ZIP, in DIR/export
