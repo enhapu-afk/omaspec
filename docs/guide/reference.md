@@ -337,7 +337,12 @@ file with its last commit, by states, transitions and messages, not by lines; la
 colors do not count. Given a folder, it does so for the whole project: every diagram that
 changed in its behavior, came, went or moved, and every scenario that a changed machine
 no longer plays, as a changelog of the specification. `omaspec log` tells it for one
-diagram, commit by commit, following it where it was renamed. `omaspec convert` writes a machine or scenario in the other language,
+diagram, commit by commit, following it where it was renamed. After `omaspec git setup`,
+git itself does: `git diff`, `git log -p` and `git show` compare a state machine's sorted
+states, transitions and findings and a scenario's messages, not its lines
+(`--no-textconv` shows the lines). The setup writes `.gitattributes`, to commit, and the
+command into the repository's own configuration, as git takes none from a repository: in
+another clone, run it once. `omaspec convert` writes a machine or scenario in the other language,
 and only when the result means the same ([ADR 0009](../adr/0009-diff-and-convert.md)).
 
 ## Command line
@@ -356,6 +361,7 @@ omaspec inspect flow.puml           # language, kind, findings, outline, and whe
 omaspec diff door.puml              # what changed in the behavior since the last commit; --rev, or two files
 omaspec diff . --rev v1.0           # the same for the whole project since a tag; or two folders
 omaspec log door.puml               # commit by commit, what each changed in the behavior; -n 5, --json
+omaspec git setup                   # git diff, git log -p and git show tell diagrams by their behavior
 omaspec convert door.puml -o door.mmd  # the same machine or scenario in Mermaid (or PlantUML), or why not
 omaspec render flow.mmd             # flow.svg next to it, with the source inside
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON

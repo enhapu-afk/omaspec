@@ -225,6 +225,32 @@ pub fn prefix(dir: &Path) -> Result<String> {
         .to_owned())
 }
 
+/// The value of `key` in the repository's own configuration at `dir`;
+/// `None` where it is not set.
+pub fn local_config(dir: &Path, key: &str) -> Option<String> {
+    let out = git(dir)
+        .args(["config", "--local", "--get", key])
+        .output()
+        .ok()?;
+    out.status
+        .success()
+        .then(|| String::from_utf8_lossy(&out.stdout).trim_end().to_owned())
+}
+
+/// Sets `key` to `value` in the repository's own configuration at `dir`.
+pub fn set_local_config(dir: &Path, key: &str, value: &str) -> Result<()> {
+    let out = git(dir)
+        .args(["config", "--local", key, value])
+        .output()
+        .context("cannot run git")?;
+    anyhow::ensure!(
+        out.status.success(),
+        "git: {}",
+        String::from_utf8_lossy(&out.stderr).trim()
+    );
+    Ok(())
+}
+
 /// A commit that changed a file.
 #[derive(Debug, Clone)]
 pub struct FileCommit {

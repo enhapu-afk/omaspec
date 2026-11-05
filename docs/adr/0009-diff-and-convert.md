@@ -106,6 +106,21 @@ is read from git only for a sequence diagram, once per commit. Lines of the
 version before a commit are named `file@commit^`, of the version after it
 `file@commit`, as `git show` takes them.
 
+`omaspec git setup` lets git itself compare diagrams by their behavior. The
+project's `.gitattributes` gives the diagram files `diff=omaspec`, and the
+repository's own configuration names `omaspec git textconv` for it: git
+takes no command from a repository, so the attributes are committed and
+each clone runs the setup once. The text conversion writes a version's
+behavior one fact a line (`omaspec_model::behavior`): a state machine's
+states and transitions sorted, as their order is layout, with the machine
+checks' findings; a scenario's participants sorted and its messages and
+blocks in their order, as that is behavior. `git diff`, `git log -p` and
+`git show` then line-diff those, which tells less than `omaspec diff` (a
+changed target is a transition removed and one added) but works in every
+git tool that converts text; any other file goes through as it is, and
+`--no-textconv` shows the lines. The command is `omaspec` where that is the
+one on the path, else the whole path of the one that ran the setup.
+
 ## Not covered
 
 - A renamed state or participant is one removed and one added.

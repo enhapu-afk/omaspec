@@ -1525,7 +1525,13 @@ checked; numbers are measured, not assumed.
       a diagram (or a Markdown document), newest first, followed across renames,
       with what it changed in the behavior or that it kept it; a sequence diagram
       is checked against its project's machines as that commit had them. `-n`,
-      `--json`. Left: the textconv and Compare.
+      `--json`. `omaspec git setup`: the project's `.gitattributes` gives the
+      diagram files `diff=omaspec`, the repository's own configuration names
+      `omaspec git textconv` for it, so `git diff`, `git log -p` and `git show`
+      compare a version's behavior one fact a line (`omaspec_model::behavior`: a
+      machine's sorted states, transitions and findings, a scenario's messages in
+      order), the same for PlantUML and Mermaid; any other file as it is. Left:
+      Compare.
 
 ### 0.9: a layout you can steer
 

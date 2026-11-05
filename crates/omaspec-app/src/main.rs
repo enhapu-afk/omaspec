@@ -6,6 +6,7 @@ mod editor;
 mod files;
 mod gallery;
 mod git;
+mod git_setup;
 mod history;
 mod icons;
 mod index;
@@ -259,6 +260,11 @@ enum Command {
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
     },
+    /// Let git show diagrams by their behavior.
+    Git {
+        #[command(subcommand)]
+        command: GitCommand,
+    },
     /// Write a state machine or a sequence diagram in the other language.
     ///
     /// PlantUML becomes Mermaid, Mermaid becomes PlantUML, through what the
@@ -445,6 +451,30 @@ enum Command {
     },
 }
 
+#[derive(Subcommand)]
+enum GitCommand {
+    /// Make `git diff`, `git log -p` and `git show` tell diagrams by their
+    /// behavior.
+    ///
+    /// Adds `diff=omaspec` for the diagram files to the project's
+    /// .gitattributes, to be committed, and sets the command git runs for
+    /// it (`diff.omaspec.textconv`) in the repository's own configuration,
+    /// as git takes no command from a repository: in another clone, run it
+    /// once. `git diff --no-textconv` shows the lines again.
+    Setup {
+        /// The project folder; by default the project the current folder
+        /// is in, else the current folder.
+        dir: Option<PathBuf>,
+    },
+    /// Print a diagram as git compares it: the states, transitions and
+    /// findings of a state machine, sorted, the participants and messages
+    /// of a sequence diagram; any other file as it is.
+    Textconv {
+        /// The file git hands over.
+        file: PathBuf,
+    },
+}
+
 #[derive(Args, Clone, Copy)]
 struct LangArg {
     /// The diagram language; detected from the content (and file name) if omitted.
@@ -554,6 +584,12 @@ fn main() -> ExitCode {
             };
             names::rename_command(&old, &new, &which, project.as_deref(), dry_run, json)
         }
+        Some(Command::Git {
+            command: GitCommand::Setup { dir },
+        }) => git_setup::setup(dir.as_deref()),
+        Some(Command::Git {
+            command: GitCommand::Textconv { file },
+        }) => git_setup::textconv(&file),
         Some(Command::Log {
             file,
             count,

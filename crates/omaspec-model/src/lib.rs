@@ -11,6 +11,7 @@
 //! No I/O and no GUI, like `omaspec-core` and `omaspec-uml`.
 
 mod across;
+mod behavior;
 mod check;
 mod convert;
 mod diff;
@@ -28,6 +29,7 @@ use omaspec_core::{Kind as DiagramKind, Language, classify};
 use omaspec_uml::map::{Map, Shape, Spot};
 
 pub use across::Spec;
+pub use behavior::behavior;
 pub use convert::{Converted, Notice, Refused, convert};
 pub use diff::{Change, ChangeKind, DiagramChanges, diff, diff_project};
 pub use label::Trigger;
