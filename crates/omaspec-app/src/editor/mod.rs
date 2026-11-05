@@ -1443,6 +1443,8 @@ impl App {
             .editor
             .update(event)
             .map(move |e| Message::Editor(key, e));
+        // In a Markdown document, the caret picks the diagram shown.
+        let moved = doc.caret_moved();
         if doc.editor.take_dirty() {
             doc.edited();
             if let Some(worker) = worker {
@@ -1454,6 +1456,9 @@ impl App {
             self.keep_session();
         }
         self.follow_caret(key);
+        if moved {
+            return Task::batch([task, self.render(key, false)]);
+        }
         task
     }
 
@@ -1585,6 +1590,7 @@ impl App {
             return Task::none();
         };
         let language = doc.language;
+        doc.paper.document = doc.is_document();
         self.dispatch(key, &source, language);
         Task::none()
     }
@@ -1698,6 +1704,33 @@ impl App {
         }
     }
 
+    /// Why `command` does not work on the tab, a Markdown document, if it
+    /// does not: it takes the whole text for one diagram.
+    fn not_in_documents(&self, command: Command) -> Option<&'static str> {
+        if !self.doc().is_document() {
+            return None;
+        }
+        Some(match command {
+            Command::Format => "formatting works on a diagram file, not on a Markdown document",
+            Command::Skin(_) => {
+                "a skin pack goes into a diagram file, not into a Markdown document"
+            }
+            Command::Convert => {
+                "writing it in the other language works on a diagram file, not on a Markdown document"
+            }
+            Command::ResetLine | Command::ResetLines => {
+                "lines by hand are drawn in a diagram file, not in a Markdown document"
+            }
+            Command::LanguageDetected | Command::LanguagePlantUml | Command::LanguageMermaid => {
+                "in a Markdown document, each fence names its diagram's language"
+            }
+            Command::CompareBehavior => {
+                "the changes in behavior compare diagram files, not Markdown documents"
+            }
+            _ => return None,
+        })
+    }
+
     fn run(&mut self, command: Command) -> Task<Message> {
         if self.prompt.is_some() && blocks_while_asking(command) {
             return Task::none();
@@ -1707,6 +1740,10 @@ impl App {
         }
         if !matches!(command, Command::CloseTab) {
             self.closing = None;
+        }
+        if let Some(why) = self.not_in_documents(command) {
+            self.notice = Some(why.into());
+            return Task::none();
         }
         let key = self.doc().key;
         let paper = |task: Task<paper::Message>| task.map(move |m| Message::Paper(key, m));
@@ -1808,7 +1845,10 @@ impl App {
                     Format::Svg
                 };
                 let doc = self.doc();
-                doc.paper.copy(format, &doc.name()).map(Message::Copied)
+                let name = doc
+                    .shown_diagram()
+                    .map_or_else(|| doc.name(), |(_, _, name)| name);
+                doc.paper.copy(format, &name).map(Message::Copied)
             }
             Command::ExportSvg => self.export(Format::Svg),
             Command::ExportPng => self.export(Format::Png),
@@ -2206,7 +2246,7 @@ impl App {
         let (text, row, col) = {
             let doc = &self.docs[index];
             let cursor = doc.editor.cursor();
-            (doc.text(), cursor.row, cursor.col)
+            (doc.shown_source(), cursor.row, cursor.col)
         };
         self.docs[index].paper.follow_source(&text, row, col);
     }
@@ -2346,7 +2386,18 @@ fn plural(n: usize, word: &str) -> String {
 fn suggested_export(doc: &Doc, folder: &Path, kind: Format) -> String {
     let path = match &doc.path {
         Some(path) => {
-            let out = path.with_extension(kind.extension());
+            let out = if doc.is_document() {
+                // A document's diagram by its number: README-2.svg.
+                let name = doc
+                    .shown_diagram()
+                    .map_or_else(|| doc.name(), |(_, _, name)| name);
+                let stem = name
+                    .rsplit_once('.')
+                    .map_or(name.as_str(), |(stem, _)| stem);
+                path.with_file_name(format!("{stem}.{}", kind.extension()))
+            } else {
+                path.with_extension(kind.extension())
+            };
             if doc.path.as_deref() == Some(out.as_path()) {
                 let stem = path
                     .file_stem()

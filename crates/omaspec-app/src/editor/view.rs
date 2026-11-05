@@ -887,6 +887,10 @@ impl App {
         let cursor = doc.editor.cursor();
         let lighter = ui::color(p.lighter_background);
         let language = match doc.forced {
+            _ if doc.is_document() && doc.kind.is_some() => {
+                format!("Markdown · {}", doc.language.name())
+            }
+            _ if doc.is_document() => "Markdown".to_owned(),
             Some(_) => format!("{} •", doc.language.name()),
             None => doc.language.name().to_owned(),
         };

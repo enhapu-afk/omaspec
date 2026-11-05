@@ -33,6 +33,9 @@ files keep their CRLF line endings.
 - `scrive-iced`: the hover card wraps to the editor's width, at most 60
   characters as before. It was as wide as its longest line, so a narrow
   editor cut off a finding's message at the right edge.
+- `scrive-core`: `SyntaxDef::from_sublime_syntaxes(main, embedded)` loads a
+  grammar with the grammars it embeds in one set, so the Markdown grammar
+  highlights the PlantUML and Mermaid in its fences.
 - `scrive-core`: diagram blocks that are not brackets (`alt`/`end`,
   partitions, subgraphs) can fold. `Document` keeps those regions beside
   the bracket folds (`set_fold_regions`, `collapse_all`, `expand_all`).

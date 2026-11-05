@@ -146,6 +146,10 @@ pub struct Paper {
     /// Whether lines can be drawn by hand here: in the editor, not in the
     /// preview window, which follows a file another editor writes.
     pub by_hand: bool,
+    /// Whether the picture is a diagram of a Markdown document, drawn from
+    /// the document with every other line empty: no lines by hand, and an
+    /// image stores the diagram without those lines.
+    pub document: bool,
     /// The line drawn by hand, or lit with Alt.
     hand: Option<hand::Hand>,
     /// A line drawn by hand, with the bends to write into the source.
@@ -183,6 +187,7 @@ impl Default for Paper {
             breath: None,
             aim: None,
             by_hand: false,
+            document: false,
             hand: None,
             by_hand_done: None,
             hand_sent_at: 0,
@@ -584,6 +589,7 @@ impl Paper {
     /// lines, and no play over it.
     fn drawable(&self) -> bool {
         self.by_hand
+            && !self.document
             && self.play.is_none()
             && matches!(
                 self.status,
@@ -1205,17 +1211,24 @@ impl Paper {
         let svg = Arc::clone(&diagram.drawn.svg);
         let links = Arc::clone(&diagram.drawn.links);
         let source = Arc::clone(&diagram.source);
+        let document = self.document;
         let language = diagram.language;
         let file = file.to_owned();
         Task::perform(
             blocking(move || {
+                // A document's diagram without the empty lines around it.
+                let source = if document {
+                    source.trim_matches('\n')
+                } else {
+                    &source
+                };
                 // Each tile or state that opens a diagram links to its export.
                 let links =
                     own.map_or_else(Vec::new, |own| crate::specs::export_links(&links, &own));
                 let options = export::Options {
                     scale: 2.0,
                     source: Some(export::Source {
-                        code: &source,
+                        code: source,
                         language,
                         file: Some(&file),
                     }),

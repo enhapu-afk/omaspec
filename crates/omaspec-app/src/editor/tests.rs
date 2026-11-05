@@ -665,7 +665,8 @@ fn the_picker_and_the_open_prompt_open_files_and_folders() {
         .collect();
     assert_eq!(nested, ["flow.mmd"]);
     let _ = app.update(Message::Scanned(dir.clone(), folder::scan(&dir)));
-    assert_eq!(app.files.len(), 2);
+    // The two diagrams and the Markdown document.
+    assert_eq!(app.files.len(), 3);
 
     press(&mut app, Command::Pick);
     assert_eq!(app.mode(app.main), Mode::Picker);
@@ -1143,6 +1144,72 @@ fn the_palette_exports_the_project_into_a_folder_it_names() {
     );
     let _ = app.update(Message::ProjectExported(Ok("1 diagram in export".into())));
     assert_eq!(app.notice.as_deref(), Some("1 diagram in export"));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_markdown_document_shows_the_diagram_at_the_caret() {
+    let dir = temp_dir("markdown");
+    let src = dir.join("README.md");
+    let text = "# Door\n\n```plantuml\n@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\n@enduml\n```\n\n\
+                A visit:\n\n```mermaid\nsequenceDiagram\n  User->>Door: kick\n```\n";
+    std::fs::write(&src, text).unwrap();
+    let mut app = open(std::slice::from_ref(&src));
+    let doc = &mut app.docs[0];
+    assert!(doc.is_document());
+    // Each diagram is checked on the document's lines.
+    assert!(
+        doc.findings
+            .iter()
+            .any(|f| f.line == 6 && f.message.contains("Nothing leaves Open")),
+        "{:?}",
+        doc.findings
+    );
+    assert!(
+        doc.outline.iter().any(|e| e.line == 4 && e.label == "Door"),
+        "{:?}",
+        doc.outline
+    );
+    // The pane draws the first diagram, on its lines, nothing else.
+    let source = doc.source_if_new().unwrap();
+    assert_eq!(source.split('\n').nth(3), Some("@startuml"));
+    assert_eq!(source.split('\n').count(), text.split('\n').count());
+    assert!(!source.contains("# Door") && !source.contains("sequenceDiagram"));
+    assert_eq!(doc.language, Language::PlantUml);
+    // With the caret in the second, the pane draws that one.
+    doc.place_caret(14, 2);
+    assert!(doc.caret_moved());
+    assert!(!doc.caret_moved());
+    assert_eq!(doc.language, Language::Mermaid);
+    let source = doc.source_if_new().unwrap();
+    assert_eq!(source.split('\n').nth(13), Some("sequenceDiagram"));
+    assert!(!source.contains("@startuml"));
+    // On prose below it, it stays.
+    doc.place_caret(16, 0);
+    assert!(!doc.caret_moved());
+    // An image of it is that diagram, under its number.
+    let (code, language, name) = doc.shown_diagram().unwrap();
+    assert_eq!(
+        (language, name.as_str()),
+        (Language::Mermaid, "README-2.mmd")
+    );
+    assert_eq!(code, "sequenceDiagram\n  User->>Door: kick");
+    press(&mut app, Command::ExportSvg);
+    assert_eq!(
+        app.prompt.as_ref().unwrap().input,
+        dir.join("README-2.svg").display().to_string()
+    );
+    let _ = app.update(Message::Command(Command::Cancel));
+    // What takes the text for one diagram says that it does not.
+    press(&mut app, Command::Format);
+    assert!(
+        app.notice
+            .as_deref()
+            .is_some_and(|n| n.contains("Markdown document")),
+        "{:?}",
+        app.notice
+    );
+    assert_eq!(app.docs[0].text(), text);
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -2763,6 +2830,29 @@ fn an_empty_page_starts_from_a_template_and_nothing_else_does() {
 /// Writes `editor-palette-recent` (the palette after a command was chosen
 /// from it) and `editor-empty` (an empty page that does not draw) when
 /// OMASPEC_SNAPSHOT_DIR is set.
+/// Writes `editor-markdown` when OMASPEC_SNAPSHOT_DIR is set: a Markdown
+/// document, its fences highlighted in their languages, the caret in the
+/// second diagram and the pane showing that one.
+#[test]
+fn snapshot_markdown_document() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("snapshot-markdown");
+    let file = work.join("README.md");
+    let text = "# Door\n\nThe door's states, and a visit.\n\n```plantuml\n@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n```\n\n\
+                A visit, checked against it:\n\n```mermaid\nsequenceDiagram\n  User->>Door: open\n  User->>Door: close\n```\n";
+    std::fs::write(&file, text).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    app.doc_mut().place_caret(18, 4);
+    assert!(app.doc_mut().caret_moved());
+    let source = app.doc_mut().source_if_new().unwrap();
+    show(&mut app, &source, Language::Mermaid);
+    app.doc_mut().paper.document = true;
+    shoot(&mut app, &dir, "editor-markdown");
+}
+
 #[test]
 fn snapshot_palette_and_empty_page() {
     let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {

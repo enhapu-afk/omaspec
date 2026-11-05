@@ -1,5 +1,11 @@
 //! One open document: its text in the editor widget, the file it belongs
 //! to, its lint findings, outline and diagram.
+//!
+//! A Markdown document (`.md`) holds diagrams in fenced blocks
+//! (`omaspec_core::markdown`): every one is linted and outlined on the
+//! document's lines, and the pane shows the one at the caret. It is drawn
+//! from the document with every other line empty, so whatever the engine,
+//! a play or a Ctrl+click says about a line is the document's.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -10,8 +16,9 @@ use iced::time::{Duration, Instant};
 use iced::{Animation, Color, Font};
 use omaspec_core::diff::{self, Change};
 use omaspec_core::lint::{Finding, Severity};
+use omaspec_core::markdown::{self, Block};
 use omaspec_core::outline::{self, Entry};
-use omaspec_core::{DiagramKind, Language, detect};
+use omaspec_core::{DiagramKind, Language, classify, detect};
 use omaspec_model::Spec;
 use omaspec_theme::{Palette, Tweaks};
 use scrive_core::TokenTheme;
@@ -148,6 +155,8 @@ pub struct Doc {
     flash: Option<u32>,
     /// Set while that light goes out.
     flash_fade: Option<Animation<bool>>,
+    /// In a Markdown document: the opening fence of the diagram shown.
+    shown: Option<usize>,
 }
 
 impl Doc {
@@ -211,11 +220,28 @@ impl Doc {
             .as_deref()
             .and_then(Path::file_name)
             .and_then(|n| Language::from_file_name(&n.to_string_lossy()));
-        let language = forced.unwrap_or_else(|| detect(text, hint));
-        let editor = CodeEditor::new(text)
-            .theme(look.tokens.clone())
-            .language(syntax::grammar(language))
-            .line_comment(Some(syntax::line_comment(language)))
+        let document = path
+            .as_deref()
+            .and_then(Path::file_name)
+            .is_some_and(|n| markdown::is_markdown(&n.to_string_lossy()));
+        let language = if document {
+            markdown::blocks(text)
+                .first()
+                .map_or(Language::PlantUml, |b| b.language)
+        } else {
+            forced.unwrap_or_else(|| detect(text, hint))
+        };
+        let editor = CodeEditor::new(text).theme(look.tokens.clone());
+        let editor = if document {
+            editor
+                .language(syntax::document_grammar())
+                .line_comment(None)
+        } else {
+            editor
+                .language(syntax::grammar(language))
+                .line_comment(Some(syntax::line_comment(language)))
+        };
+        let editor = editor
             .font(look.font)
             .text_size(14.0)
             .id(format!("editor-{key}"));
@@ -241,9 +267,74 @@ impl Doc {
             changes: Vec::new(),
             flash: None,
             flash_fade: None,
+            shown: None,
         };
         doc.analyze();
         doc
+    }
+
+    /// Whether this is a Markdown document of diagrams.
+    pub fn is_document(&self) -> bool {
+        markdown::is_markdown(&self.name())
+    }
+
+    /// In a document, the diagram the pane shows and its number there,
+    /// from 1: the caret's, the last above it, or the first.
+    fn shown_block(&self, text: &str) -> Option<(usize, Block)> {
+        let blocks = markdown::blocks(text);
+        let row = self.editor.cursor().row as usize;
+        let at = markdown::block_at(&blocks, row)?;
+        blocks.into_iter().nth(at).map(|block| (at + 1, block))
+    }
+
+    /// After the caret moved: whether a document shows another diagram
+    /// now. Its language and kind become the document's.
+    pub fn caret_moved(&mut self) -> bool {
+        if !self.is_document() {
+            return false;
+        }
+        let shown = self.shown_block(&self.text());
+        let start = shown.as_ref().map(|(_, block)| block.lines.start);
+        if start == self.shown {
+            return false;
+        }
+        self.shown = start;
+        if let Some((_, block)) = &shown {
+            self.language = block.language;
+            self.kind = Some(classify(&block.code, block.language));
+        }
+        true
+    }
+
+    /// What the pane draws from: the text, a document's shown diagram on
+    /// the document's lines with nothing else in them.
+    pub fn shown_source(&self) -> String {
+        let text = self.text();
+        if !self.is_document() {
+            return text;
+        }
+        self.shown_block(&text)
+            .map_or_else(String::new, |(_, block)| markdown::masked(&text, &block))
+    }
+
+    /// The diagram the pane shows as an image stores it: its code, its
+    /// language and its file name, a document's numbered
+    /// (`README-2.puml`); `None` for a document without one.
+    pub fn shown_diagram(&self) -> Option<(String, Language, String)> {
+        let text = self.text();
+        if !self.is_document() {
+            return Some((text, self.language, self.name()));
+        }
+        let (number, block) = self.shown_block(&text)?;
+        let name = self.name();
+        let stem = name
+            .rsplit_once('.')
+            .map_or(name.as_str(), |(stem, _)| stem);
+        Some((
+            block.code,
+            block.language,
+            format!("{stem}-{number}.{}", block.language.extension()),
+        ))
     }
 
     pub fn name(&self) -> String {
@@ -273,6 +364,9 @@ impl Doc {
     /// Re-indents the text (one undo step); says whether anything changed.
     /// The caret stays on its line.
     pub fn format(&mut self) -> bool {
+        if self.is_document() {
+            return false;
+        }
         let text = self.text();
         let formatted = omaspec_core::format::format(&text, self.language);
         if formatted == text {
@@ -463,6 +557,9 @@ impl Doc {
     /// outline. Detects the language again unless it is set by hand; says
     /// whether it changed.
     pub fn analyze(&mut self) -> bool {
+        if self.is_document() {
+            return self.analyze_document();
+        }
         let text = self.text();
         let revision = self.editor.document().revision();
         let language = self.language_of(&text);
@@ -481,6 +578,43 @@ impl Doc {
         self.outline = entries;
         self.sync_fold_regions(&text, folds);
         changed
+    }
+
+    /// [`Self::analyze`] for a document: each diagram on the document's
+    /// lines; the language and kind are the shown one's.
+    fn analyze_document(&mut self) -> bool {
+        let text = self.text();
+        let revision = self.editor.document().revision();
+        let blocks = markdown::blocks(&text);
+        let mut findings = Vec::new();
+        let mut entries = Vec::new();
+        let mut folds = Vec::new();
+        for block in &blocks {
+            let masked = markdown::masked(&text, block);
+            findings.extend(omaspec_model::findings_with(
+                &masked,
+                block.language,
+                &self.specs,
+            ));
+            let (more, more_folds) = outline::outline_with_folds(&masked, block.language);
+            entries.extend(more);
+            folds.extend(more_folds);
+        }
+        findings.extend(self.drawn_findings.iter().cloned());
+        findings.sort_by_key(|f| f.line);
+        self.findings = findings;
+        let before = self.language;
+        self.shown = None;
+        self.caret_moved();
+        if blocks.is_empty() {
+            self.kind = None;
+        }
+        let _ = self
+            .editor
+            .set_diagnostics(revision, syntax::diagnostics(&text, &self.findings));
+        self.outline = entries;
+        self.sync_fold_regions(&text, folds);
+        self.language != before
     }
 
     /// The language of the text as it is now: the one set by hand, else
@@ -540,13 +674,22 @@ impl Doc {
             .line_comment(Some(syntax::line_comment(language)));
     }
 
-    /// The text to render, unless it was sent already.
+    /// The text to render, unless it was sent already: a document's shown
+    /// diagram on the document's lines, nothing else in them.
     pub fn source_if_new(&mut self) -> Option<Arc<str>> {
-        let text = self.editor.document().text();
+        let text: Arc<str> = if self.is_document() {
+            self.caret_moved();
+            let text = self.text();
+            let shown = self.shown_block(&text);
+            shown
+                .map_or_else(String::new, |(_, block)| markdown::masked(&text, &block))
+                .into()
+        } else {
+            self.editor.document().text().into()
+        };
         if self.rendered.as_deref() == Some(&*text) {
             return None;
         }
-        let text: Arc<str> = text.into();
         self.rendered = Some(Arc::clone(&text));
         Some(text)
     }

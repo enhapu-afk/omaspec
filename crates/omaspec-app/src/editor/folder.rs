@@ -104,11 +104,14 @@ fn kind_of(path: &Path, name: &str) -> Option<DiagramKind> {
     ))
 }
 
-/// The diagram files under `dir` (by extension), relative to it and
-/// sorted. Hidden entries and dependency folders are skipped. The file
-/// picker uses this. The sidebar lists [`list`] instead, one level at a time.
+/// The diagram files and Markdown documents under `dir` (by extension),
+/// relative to it and sorted. Hidden entries and dependency folders are
+/// skipped. The file picker uses this. The sidebar lists [`list`] instead,
+/// one level at a time.
 pub fn scan(dir: &Path) -> Vec<PathBuf> {
-    scan_for(dir, |name| Language::from_file_name(name).is_some())
+    scan_for(dir, |name| {
+        Language::from_file_name(name).is_some() || omaspec_core::markdown::is_markdown(name)
+    })
 }
 
 /// The files under `dir` whose names `wanted` keeps, as [`scan`] finds
@@ -354,7 +357,10 @@ mod tests {
         }
         let found = scan(&dir);
         let found: Vec<&str> = found.iter().map(|p| p.to_str().unwrap()).collect();
-        assert_eq!(found, ["a.puml", "docs/deep/state.wsd", "docs/flow.mmd"]);
+        assert_eq!(
+            found,
+            ["a.puml", "docs/deep/state.wsd", "docs/flow.mmd", "notes.md"]
+        );
         let listed = list(&dir);
         let names: Vec<(&str, bool)> = listed
             .children

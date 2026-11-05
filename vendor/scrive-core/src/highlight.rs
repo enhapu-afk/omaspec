@@ -105,6 +105,24 @@ impl SyntaxDef {
         Ok(Self { set: builder.build(), name })
     }
 
+    /// Omaspec addition to scrive 0.3.0: `main` with the grammars it embeds
+    /// (`embed: scope:…`) in one set, so a Markdown grammar can highlight
+    /// the diagrams in its fences.
+    pub fn from_sublime_syntaxes(main: &str, embedded: &[&str]) -> Result<Self, SyntaxError> {
+        let syntax = SyntaxDefinition::load_from_str(main, false, None)
+            .map_err(|e| SyntaxError(e.to_string()))?;
+        let name = syntax.name.clone();
+        let mut builder = SyntaxSetBuilder::new();
+        builder.add(syntax);
+        for other in embedded {
+            builder.add(
+                SyntaxDefinition::load_from_str(other, false, None)
+                    .map_err(|e| SyntaxError(e.to_string()))?,
+            );
+        }
+        Ok(Self { set: builder.build(), name })
+    }
+
     /// The syntax reference to parse with — the one injected grammar.
     fn reference(&self) -> &SyntaxReference {
         self.set

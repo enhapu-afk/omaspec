@@ -173,7 +173,7 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
         Ok(Ok(drawn)) => Ok(drawn),
         Ok(Err(err)) => Err(RenderError::Diagram {
             engine: Engine::Mermaid,
-            line: error_line(&err).map(|l| l + offset),
+            line: error_line(&err).map(|l| written_from(source, l + offset)),
             message: err.to_string(),
         }),
         Err(_) => Err(RenderError::Engine {
@@ -706,6 +706,18 @@ fn is_end_note(line: &str) -> bool {
 }
 
 /// Zero-based line of a parse error, if it has one.
+/// The first line of `source` at or after `line` that is not blank: mmdr
+/// names line 1 for a diagram it cannot read at all, which may be a blank
+/// line before the header.
+fn written_from(source: &str, line: usize) -> usize {
+    source
+        .split('\n')
+        .enumerate()
+        .skip(line)
+        .find(|(_, text)| !text.trim().is_empty())
+        .map_or(line, |(at, _)| at)
+}
+
 fn error_line(err: &ParseError) -> Option<usize> {
     let line = match err {
         ParseError::UnknownParticipant { line, .. } => *line,

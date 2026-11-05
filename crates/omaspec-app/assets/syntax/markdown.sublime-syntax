@@ -1,0 +1,48 @@
+%YAML 1.2
+---
+# Markdown for Omaspec: headings, lists, quotes, code and links, and the
+# PlantUML and Mermaid in fenced blocks highlighted by their own grammars.
+# Lines are matched without their newline (syntect "no newlines" mode), so
+# `$` is the end of the line. A closing fence is any fence line without an
+# info string, which CommonMark's rule (the same character, at least as
+# long) narrows only in rare documents.
+name: Markdown (Omaspec)
+file_extensions: [md, markdown]
+scope: text.markdown.omaspec
+
+variables:
+  fence: '^ {0,3}(?:`{3,}|~{3,})'
+
+contexts:
+  main:
+    - match: '{{fence}}\s*\{?\.?(?:plantuml|puml)\b.*$'
+      scope: comment.line.fence.markdown
+      embed: scope:source.plantuml
+      escape: '{{fence}}\s*$'
+      escape_captures:
+        0: comment.line.fence.markdown
+    - match: '{{fence}}\s*\{?\.?(?:mermaid|mmd)\b.*$'
+      scope: comment.line.fence.markdown
+      embed: scope:source.mermaid
+      escape: '{{fence}}\s*$'
+      escape_captures:
+        0: comment.line.fence.markdown
+    - match: '{{fence}}.*$'
+      scope: comment.line.fence.markdown
+      push: code
+    - match: '^ {0,3}#{1,6}(?:\s.*)?$'
+      scope: entity.name.section.markdown
+    - match: '^\s*>.*$'
+      scope: markup.quote.markdown
+    - match: '^\s*(?:[-*+]|\d{1,9}[.)])(?=\s)'
+      scope: keyword.other.list.markdown
+    - match: '`[^`]+`'
+      scope: string.other.raw.markdown
+    - match: '!?\[[^\]]*\]\([^)]*\)'
+      scope: variable.other.link.markdown
+
+  code:
+    - meta_content_scope: string.other.raw.block.markdown
+    - match: '{{fence}}\s*$'
+      scope: comment.line.fence.markdown
+      pop: true

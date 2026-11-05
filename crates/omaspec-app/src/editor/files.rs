@@ -399,10 +399,13 @@ impl App {
             .as_ref()
             .zip(doc.path.as_deref())
             .and_then(|(place, path)| crate::specs::path_in(&place.root, path));
+        let shown_name = doc
+            .shown_diagram()
+            .map_or_else(|| doc.name(), |(_, _, name)| name);
         let task = match look {
             ExportLook::Shown => doc
                 .paper
-                .export_to(format, &doc.name(), own, path)
+                .export_to(format, &shown_name, own, path)
                 .map(Message::Exported),
             ExportLook::File => export_in(None, doc, place, format, path),
             ExportLook::Look(look) => export_in(Some(look), doc, place, format, path),
@@ -614,7 +617,11 @@ fn export_in(
     format: Format,
     out: PathBuf,
 ) -> Task<Message> {
-    let (text, language, path, file) = (doc.text(), doc.language, doc.path.clone(), doc.name());
+    // A document's diagram as itself: README-2.puml.
+    let (text, language, file) = doc
+        .shown_diagram()
+        .unwrap_or_else(|| (doc.text(), doc.language, doc.name()));
+    let path = doc.path.clone();
     Task::perform(
         crate::worker::blocking(move || -> Result<String, String> {
             let own = place

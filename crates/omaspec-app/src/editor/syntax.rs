@@ -10,6 +10,7 @@ use omaspec_theme::{Palette, Rgb, tokens};
 
 const PLANTUML: &str = include_str!("../../assets/syntax/plantuml.sublime-syntax");
 const MERMAID: &str = include_str!("../../assets/syntax/mermaid.sublime-syntax");
+const MARKDOWN: &str = include_str!("../../assets/syntax/markdown.sublime-syntax");
 
 pub fn grammar(language: Language) -> SyntaxDef {
     let source = match language {
@@ -17,6 +18,13 @@ pub fn grammar(language: Language) -> SyntaxDef {
         Language::Mermaid => MERMAID,
     };
     SyntaxDef::from_sublime_syntax(source).expect("the bundled grammars are valid")
+}
+
+/// A Markdown document's grammar: its own, with PlantUML's and Mermaid's
+/// in the fences that name them.
+pub fn document_grammar() -> SyntaxDef {
+    SyntaxDef::from_sublime_syntaxes(MARKDOWN, &[PLANTUML, MERMAID])
+        .expect("the bundled grammars are valid")
 }
 
 /// What Ctrl+/ puts in front of a line.
@@ -72,6 +80,29 @@ mod tests {
         let _ = grammar(Language::PlantUml);
         let _ = grammar(Language::Mermaid);
         let _ = token_theme(&Palette::fallback(), &HashMap::new());
+    }
+
+    #[test]
+    fn a_document_highlights_the_diagrams_in_its_fences() {
+        let palette = Palette::fallback();
+        let highlighter = scrive_core::Highlighter::new(
+            document_grammar(),
+            token_theme(&palette, &HashMap::new()),
+        );
+        let text = "# Door\n\n@startuml is prose here\n```plantuml\n@startuml\n```\n@startuml\n";
+        let lines = highlighter.highlight(text);
+        let color = |row: usize| {
+            lines[row]
+                .first()
+                .map(|span| (span.style.fg.r, span.style.fg.g, span.style.fg.b))
+        };
+        // The directive in the fence takes PlantUML's color; the same
+        // words outside a fence are prose, before and after it.
+        let directive = color(4);
+        assert_ne!(directive, color(2), "{lines:?}");
+        assert_eq!(color(2), color(6));
+        // The heading is a section.
+        assert_ne!(color(0), color(2));
     }
 
     #[test]

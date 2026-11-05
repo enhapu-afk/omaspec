@@ -24,6 +24,8 @@ pub struct Block {
     pub lines: Range<usize>,
     /// Whether `code` was put inside `@startuml` and `@enduml`.
     pub wrapped: bool,
+    /// Whether a fence closes it; else it runs to the document's end.
+    pub closed: bool,
 }
 
 impl Block {
@@ -102,11 +104,53 @@ pub fn blocks(text: &str) -> Vec<Block> {
                 code,
                 lines: start..end,
                 wrapped,
+                closed: close.is_some(),
             });
         }
         at = end;
     }
     found
+}
+
+/// The document `text` with only `block`'s diagram in it, each of its lines
+/// where the document has it and every other line empty, so what an engine
+/// or a check says about a line is said about the document's. A body put
+/// inside `@startuml` and `@enduml` has them on its fences.
+pub fn masked(text: &str, block: &Block) -> String {
+    let text = normalize_newlines(text);
+    let count = text.split('\n').count();
+    let mut lines = vec![""; count];
+    let code: Vec<&str> = block.code.split('\n').collect();
+    let mut after = None;
+    for (index, line) in code.iter().enumerate() {
+        let last = index + 1 == code.len();
+        if block.wrapped && last && !block.closed {
+            // No closing fence to stand on.
+            after = Some(*line);
+        } else if let Some(slot) = lines.get_mut(block.doc_line(index)) {
+            *slot = line;
+        }
+    }
+    let mut out = lines.join("\n");
+    if let Some(line) = after {
+        out.push('\n');
+        out.push_str(line);
+    }
+    out
+}
+
+/// The diagram the document shows with the caret on `line`: the block that
+/// holds it, else the last one above it, else the first.
+pub fn block_at(blocks: &[Block], line: usize) -> Option<usize> {
+    if blocks.is_empty() {
+        return None;
+    }
+    Some(
+        blocks
+            .iter()
+            .rposition(|block| block.lines.start <= line)
+            .unwrap_or(0),
+    )
 }
 
 /// An opening fence: its character, length, indentation and info string.
@@ -209,6 +253,35 @@ mod tests {
         assert_eq!(body.code_line(19), None);
         assert_eq!(found[0].code_line(6), Some(1));
         assert!(found[1].holds(13) && !found[1].holds(14));
+    }
+
+    #[test]
+    fn a_masked_document_has_one_diagram_on_its_lines() {
+        let found = blocks(DOC);
+        let lines = DOC.split('\n').count();
+        let door = masked(DOC, &found[0]);
+        assert_eq!(door.split('\n').count(), lines);
+        assert_eq!(
+            door.split('\n').collect::<Vec<_>>()[4..9],
+            ["", "@startuml", "[*] --> Closed", "@enduml", ""]
+        );
+        assert!(!door.contains("Door") && !door.contains("sequenceDiagram"));
+        // A body has `@startuml` and `@enduml` on its fences.
+        let body = masked(DOC, &found[2]);
+        assert_eq!(
+            body.split('\n').collect::<Vec<_>>()[19..22],
+            ["@startuml", "Alice -> Bob", "@enduml"]
+        );
+        // Open to the end: `@enduml` comes after the last line.
+        let open = "```puml\nA -> B";
+        let block = &blocks(open)[0];
+        assert_eq!(masked(open, block), "@startuml\nA -> B\n@enduml");
+        // The caret's block, the last above it, or the first.
+        assert_eq!(block_at(&found, 0), Some(0));
+        assert_eq!(block_at(&found, 6), Some(0));
+        assert_eq!(block_at(&found, 15), Some(1));
+        assert_eq!(block_at(&found, 30), Some(2));
+        assert_eq!(block_at(&[], 3), None);
     }
 
     #[test]
