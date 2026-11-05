@@ -1,4 +1,5 @@
 mod check;
+mod check_command;
 mod commands;
 mod document;
 mod editor;
@@ -56,8 +57,9 @@ enum Command {
     /// main diagram, `system.puml` or `system.mmd`: the whole system as a
     /// small state machine to start from. A folder that is there keeps its
     /// files; one that is a project already is refused. With --git, a git
-    /// repository starts in it, unless it is inside one. Exits with 1 when
-    /// git could not start one.
+    /// repository starts in it, unless it is inside one, and a pre-commit
+    /// hook runs `omaspec check` unless a hook is there already. Exits
+    /// with 1 when git could not start one.
     New {
         /// The project's folder; created if it is not there.
         dir: PathBuf,
@@ -94,6 +96,27 @@ enum Command {
         /// above it with `omaspec-project.toml`), else its own folder.
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
+    },
+    /// Check a project for CI.
+    ///
+    /// Runs lint on every diagram and Markdown document in the folder,
+    /// including the checks against its state machines and links to
+    /// diagrams it does not have, then holds each SVG against the one
+    /// drawn now, as `render --check` does. Exits with 1 on an error or
+    /// an SVG that differs or is missing (with --strict also a warning).
+    /// In GitHub Actions the annotations are printed too.
+    Check {
+        /// The project folder.
+        dir: PathBuf,
+        /// Print the report as JSON.
+        #[arg(long)]
+        json: bool,
+        /// Fail on warnings too.
+        #[arg(long)]
+        strict: bool,
+        /// Print GitHub Actions annotations instead of the report.
+        #[arg(long, conflicts_with = "json")]
+        github: bool,
     },
     /// Hold recorded traces against the state machines of their project.
     ///
@@ -458,6 +481,12 @@ fn main() -> ExitCode {
             strict,
             project,
         }) => commands::lint(&files, lang.get(), json, strict, project.as_deref()),
+        Some(Command::Check {
+            dir,
+            json,
+            strict,
+            github,
+        }) => check_command::check(&dir, json, strict, github),
         Some(Command::Trace {
             files,
             json,

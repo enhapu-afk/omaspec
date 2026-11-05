@@ -1494,9 +1494,15 @@ checked; numbers are measured, not assumed.
       pane alone decides when the pictures show (`paper/cards.rs`), `Drawn` only
       says its tree is the cards. The main map now draws in 56 ms, its boxes read
       once per file change.
-- [ ] A project checked in CI: `omaspec check DIR` runs lint, the checks against the
-      machines, the links and `render --check`, with exit codes, `--json` and GitHub
-      annotations; `omaspec new --git` offers a pre-commit hook.
+- [x] A project checked in CI: `omaspec check DIR` runs lint on every diagram and
+      Markdown document in the folder (syntax, the checks against the state machines,
+      links to diagrams the project does not have) and holds each SVG against the one
+      drawn now, the same drawing as `render --check`. It exits with 1 on an error or
+      an SVG that differs or is missing, and with `--strict` on a warning. `--json`
+      prints the findings and the pictures; `--github` prints GitHub Actions
+      annotations, and in Actions those are printed with the report too. `omaspec new
+      --git` writes a pre-commit hook that runs it, and leaves a hook that is there
+      already.
 - [ ] Versions through git, made to read behavior: `omaspec diff --project REV` lists
       what changed in behavior across the project since a commit or a tag (a
       changelog of the specification), `omaspec log FILE` the changes commit by

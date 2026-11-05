@@ -514,7 +514,7 @@ impl App {
                 },
                 hint: match git {
                     false => main,
-                    true => format!("{main} · git init"),
+                    true => format!("{main} · git init, pre-commit hook"),
                 },
                 choice: Choice::NewProject { language, git },
             }

@@ -337,7 +337,7 @@ and only when the result means the same ([ADR 0009](../adr/0009-diff-and-convert
 ## Command line
 
 ```bash
-omaspec new ~/specs/shop            # a project: omaspec-project.toml, the map system.puml, shop.puml; --lang mermaid, --git
+omaspec new ~/specs/shop            # a project: omaspec-project.toml, the map system.puml, shop.puml; --lang mermaid, --git (a pre-commit hook)
 omaspec lint diagrams/*.puml        # syntax, likely typos, specification checks; exit 1 on errors
 omaspec lint --project specs a.puml # sequences checked against the state machines in specs/, not the project
 omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
@@ -355,6 +355,7 @@ omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by ex
 omaspec render flow.mmd --look auto # plain, omarchy, light or dark; auto: one SVG, dark under a dark scheme
 omaspec render .                    # every diagram of the folder, each beside its own, in the project's look
 omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1
+omaspec check ~/specs/shop          # lint, the machines, the links and render --check; --strict, --json, --github
 omaspec export ~/specs/shop         # every diagram as an SVG, linked, the map as index.svg, and shop.zip, in shop/export
 omaspec lint README.md              # each plantuml and mermaid block of a Markdown document, on its lines
 omaspec render README.md            # one image per block: README-1.svg, README-2.svg, …
@@ -363,8 +364,14 @@ omaspec example                     # the examples of the gallery; `example NAME
 omaspec theme                       # the palette Omaspec reads from your Omarchy theme
 ```
 
-`lint`, `fmt --check` and `trace` exit with 1 when they find something, so they work in
-CI and in git hooks; `refs` exits with 1 when nothing uses the name.
+`lint`, `fmt --check`, `trace` and `check` exit with 1 when they find something, so they
+work in CI and in git hooks; `refs` exits with 1 when nothing uses the name. `omaspec
+check DIR` is the one command for a project: lint, including the checks against its
+state machines and links to diagrams it does not have, then each SVG held against the
+one drawn now. `--github` prints GitHub Actions annotations (`::error`, `::warning`),
+and in Actions they are printed with the report too. `omaspec new --git` writes a
+pre-commit hook that runs `check`, and leaves a hook that is there already. Draw the
+SVGs with `omaspec render` once, so the hook has something to hold them against.
 
 **Where a name is used** ([ADR 0019](../adr/0019-where-a-name-is-used.md)). `omaspec refs
 NAME` lists every place in the project that uses a name, compared as links compare names

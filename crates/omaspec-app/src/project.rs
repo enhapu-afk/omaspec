@@ -2,7 +2,8 @@
 //! editor's *New project* make a folder with `omaspec-project.toml`, a map
 //! of the project and a first state machine on it
 //! (`docs/adr/0018-diagrams-that-link.md`), and on request a git
-//! repository.
+//! repository with a pre-commit hook that runs `omaspec check`, unless a
+//! hook is there already.
 
 use std::fs::OpenOptions;
 use std::io::{ErrorKind, Write};
@@ -30,6 +31,18 @@ pub struct Created {
     pub machine: String,
     pub wrote_machine: bool,
     pub git: Git,
+    /// The pre-commit hook, when a repository was started now.
+    pub hook: Option<Hook>,
+}
+
+/// What happened to the pre-commit hook of a repository started now.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Hook {
+    Written,
+    /// A hook was there already, and was left as it was.
+    Already,
+    /// The hook could not be written: why.
+    Failed(String),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -59,7 +72,18 @@ impl Created {
         }
         match &self.git {
             Git::No => {}
-            Git::Initialized => parts.push("a git repository".into()),
+            Git::Initialized => match &self.hook {
+                Some(Hook::Written) => {
+                    parts.push("a git repository, a pre-commit hook".into());
+                }
+                Some(Hook::Already) => {
+                    parts.push("a git repository; its pre-commit hook stays".into());
+                }
+                Some(Hook::Failed(why)) => {
+                    parts.push(format!("a git repository; no pre-commit hook: {why}"));
+                }
+                None => parts.push("a git repository".into()),
+            },
             Git::Inside(repo) => parts.push(format!("in the git repository {}", repo.display())),
             Git::Failed(why) => parts.push(format!("no git: {why}")),
         }
@@ -70,9 +94,10 @@ impl Created {
 /// Makes `dir` a project: creates the folder if it is not there, writes
 /// the first state machine and the map in `language` (each unless a file
 /// of its name is there), then `omaspec-project.toml`, and with `git` runs
-/// `git init` unless the folder is inside a repository already. A folder
-/// that is a project already, the home folder and the file system's root
-/// are refused.
+/// `git init` unless the folder is inside a repository already. A
+/// repository started now gets a pre-commit hook that runs `omaspec
+/// check`, unless a hook is there already. A folder that is a project
+/// already, the home folder and the file system's root are refused.
 pub fn create(dir: &Path, language: Language, git: bool) -> Result<Created> {
     let root =
         std::path::absolute(dir).with_context(|| format!("no folder `{}`", dir.display()))?;
@@ -108,7 +133,14 @@ pub fn create(dir: &Path, language: Language, git: bool) -> Result<Created> {
     if !write_new(&root.join(FILE), &file.to_toml())? {
         bail!("`{}` is a project already", root.display());
     }
-    let git = if git { init_git(&root) } else { Git::No };
+    let (git, hook) = if git {
+        match init_git(&root) {
+            Git::Initialized => (Git::Initialized, Some(install_hook(&root))),
+            other => (other, None),
+        }
+    } else {
+        (Git::No, None)
+    };
     Ok(Created {
         root,
         name,
@@ -117,7 +149,53 @@ pub fn create(dir: &Path, language: Language, git: bool) -> Result<Created> {
         machine,
         wrote_machine,
         git,
+        hook,
     })
+}
+
+/// The hook `omaspec new --git` writes. It checks the project before a
+/// commit; `git commit --no-verify` skips it.
+const HOOK: &str = "\
+#!/bin/sh
+# Checks the project's diagrams before a commit (`omaspec render` draws
+# the SVGs the check holds). `git commit --no-verify` skips it.
+exec omaspec check .
+";
+
+/// Writes [`HOOK`] into `root`'s git hooks, unless a pre-commit hook is
+/// there already.
+fn install_hook(root: &Path) -> Hook {
+    let path = root.join(".git/hooks/pre-commit");
+    if path.exists() {
+        return Hook::Already;
+    }
+    if let Some(dir) = path.parent()
+        && let Err(err) = std::fs::create_dir_all(dir)
+    {
+        return Hook::Failed(err.to_string());
+    }
+    let mut file = match open_hook(&path) {
+        Ok(file) => file,
+        Err(err) if err.kind() == ErrorKind::AlreadyExists => return Hook::Already,
+        Err(err) => return Hook::Failed(err.to_string()),
+    };
+    match file
+        .write_all(HOOK.as_bytes())
+        .and_then(|()| file.sync_all())
+    {
+        Ok(()) => Hook::Written,
+        Err(err) => Hook::Failed(err.to_string()),
+    }
+}
+
+/// A new hook file, executable.
+fn open_hook(path: &Path) -> std::io::Result<std::fs::File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o755)
+        .open(path)
 }
 
 /// What `omaspec-project.toml` in `root` says; `None` when there is none.
@@ -247,6 +325,7 @@ mod tests {
 
     #[test]
     fn git_starts_a_repository_unless_one_is_around_it() {
+        use std::os::unix::fs::PermissionsExt;
         let dir = temp("git");
         let made = create(&dir.join("shop"), Language::PlantUml, true).unwrap();
         match made.git {
@@ -257,8 +336,23 @@ mod tests {
             git => assert_eq!(git, Git::Initialized),
         }
         assert!(dir.join("shop/.git").is_dir());
+        assert_eq!(made.hook, Some(Hook::Written));
+        let hook = dir.join("shop/.git/hooks/pre-commit");
+        let text = std::fs::read_to_string(&hook).unwrap();
+        assert!(text.contains("exec omaspec check .\n"), "{text}");
+        assert_eq!(
+            std::fs::metadata(&hook).unwrap().permissions().mode() & 0o111,
+            0o111
+        );
+        // A hook that is there already stays, including one of our own
+        // written over.
+        std::fs::write(&hook, "keep\n").unwrap();
+        assert_eq!(install_hook(&made.root), Hook::Already);
+        assert_eq!(std::fs::read_to_string(&hook).unwrap(), "keep\n");
+
         let inner = create(&dir.join("shop/parts"), Language::PlantUml, true).unwrap();
         assert_eq!(inner.git, Git::Inside(made.root.clone()));
+        assert_eq!(inner.hook, None);
         assert!(!dir.join("shop/parts/.git").exists());
         let _ = std::fs::remove_dir_all(&dir);
     }

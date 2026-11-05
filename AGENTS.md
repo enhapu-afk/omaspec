@@ -26,6 +26,7 @@ OMASPEC_FRAMES=1 cargo run --release -p omaspec-app -- FILE   # how smooth each 
 OMASPEC_FRAMES=1 cargo test --release -p omaspec-app frames_ -- --nocapture  # the same, headless on the GPU at 2560x1440
 cargo run -p omaspec-app -- render FILE    # SVG/PNG/PDF; --json for the report; OMASPEC_PLANTUML=path|none for the Java fallback
 cargo run -p omaspec-app -- render --check DIR   # each SVG drawn now against the one beside it; exit 1 when one differs
+cargo run -p omaspec-app -- check DIR      # lint, the machines, the links and render --check; --json, --github, --strict
 cargo run -p omaspec-app -- export DIR     # the project as SVGs linked to one another, index.svg and a ZIP, in DIR/export
 cargo run -p omaspec-app -- [FILE...]      # editor window
 cargo run -p omaspec-app -- preview FILE   # preview window that follows the file

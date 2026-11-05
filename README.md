@@ -98,7 +98,8 @@ checked for legible colors, the gallery's diagrams in each of them too.
 - **Next to Neovim.** `omaspec preview flow.puml` is a window that renders again on every
   save.
 - **For scripts and AI agents.** Every check is on the command line, with JSON output and
-  exit codes, and `omaspec mcp` is an MCP server with the same tools.
+  exit codes. `omaspec check DIR` runs them for CI, and `omaspec mcp` is an MCP server
+  with the same tools.
 - **24 examples** to start from, as tiles drawn on the spot (Ctrl+Shift+E).
 
 ![The gallery of examples](docs/images/gallery.png)

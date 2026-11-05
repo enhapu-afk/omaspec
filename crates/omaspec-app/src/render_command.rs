@@ -2,7 +2,8 @@
 //! each beside its diagram unless `--output` says otherwise; a Markdown
 //! document gives one image per diagram, and a folder its diagrams. With
 //! `--check`, each SVG is held against the one beside the diagram instead
-//! of written ([`crate::check`]).
+//! of written ([`hold`], [`crate::check`]). `omaspec check` holds them
+//! the same way.
 
 use std::collections::HashMap;
 use std::io::Write as _;
@@ -11,8 +12,8 @@ use std::process::ExitCode;
 
 use anyhow::Result;
 use omaspec_core::Language;
-use omaspec_render::Renderer;
 use omaspec_render::export::{self, Format};
+use omaspec_render::{RenderError, Renderer};
 use serde::Serialize;
 
 use crate::commands::{failure, millis, render_config, stdout};
@@ -94,13 +95,17 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         );
     }
 
+    if args.check {
+        let held = hold(&pieces, empty, args.look, args.scale, args.source)?;
+        return report_held(args.json, &held);
+    }
+
     let mut renderer = Renderer::new(&render_config());
-    // With `--check`: how many SVGs were held against, how many differ.
-    let (mut checked, mut differ) = (0, 0);
     let mut failed = false;
     let mut reports = Vec::new();
     // A map shows its project's diagrams in tiles (docs/adr/0018).
     let mut maps = crate::specs::Maps::default();
+    let mut skins = HashMap::new();
     for input in empty {
         failed = true;
         let message = "no PlantUML or Mermaid diagram in it".to_owned();
@@ -120,43 +125,21 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             eprintln!("{}: error: {message}", input.name());
         }
     }
-    // Each project's look, read once.
-    let mut skins: HashMap<Option<PathBuf>, Option<crate::look::Skin>> = HashMap::new();
     for piece in &pieces {
         let input = piece.input;
-        let lang = piece.language;
-        let place = input
-            .path
-            .as_deref()
-            .and_then(|path| omaspec_render::Place::of(path, None));
-        // `--look`, else the look its project pins; a picture without
-        // color schemes takes auto's light one.
-        let root = place.as_ref().map(|p| p.root.clone());
-        let skin = match skins.get(&root) {
-            Some(skin) => skin.clone(),
-            None => {
-                let skin = crate::look::skin_for(args.look, root.as_deref())?.map(|skin| {
-                    if format == Format::Svg {
-                        skin
-                    } else {
-                        skin.without_schemes()
-                    }
-                });
-                skins.insert(root, skin.clone());
-                skin
-            }
-        };
-        let drawn = crate::look::render(
+        let exported = match export_piece(
+            piece,
             &mut maps,
             &mut renderer,
-            &piece.code,
-            lang,
-            input.path.as_deref(),
-            place.as_ref(),
-            skin.as_ref(),
-        );
-        let rendered = match drawn {
-            Ok(r) => r,
+            &mut skins,
+            Draw {
+                format,
+                scale: args.scale,
+                source: args.source,
+                look: args.look,
+            },
+        )? {
+            Ok(exported) => exported,
             Err(err) => {
                 failed = true;
                 let (line, engine, message) = failure(&err);
@@ -180,62 +163,12 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 continue;
             }
         };
-        // Each tile or state that opens a diagram links to its export.
-        let own = place
-            .as_ref()
-            .zip(input.path.as_deref())
-            .and_then(|(place, path)| crate::specs::path_in(&place.root, path));
-        let up = own.as_deref().map_or(0, crate::specs::depth);
-        let links = own.map_or_else(Vec::new, |own| {
-            crate::specs::export_links(&rendered.links, &own)
-        });
-        let source_name = piece.source_name();
-        let options = export::Options {
-            scale: args.scale,
-            source: args.source.then(|| export::Source {
-                code: &piece.code,
-                language: lang,
-                file: source_name.as_deref(),
-            }),
-            links: &links,
-            up,
-        };
-        let bytes = export::export(&rendered.svg, format, &options)?;
+        let bytes = exported.bytes;
         let took = format!(
             "{}, {:.1} ms",
-            rendered.engine.name(),
-            rendered.elapsed.as_secs_f64() * 1000.0
+            exported.engine,
+            exported.elapsed.as_secs_f64() * 1000.0
         );
-        if args.check {
-            let dest = piece.image_path("svg").expect("a file's diagram");
-            let verdict = match std::fs::read_to_string(&dest) {
-                Ok(old) => {
-                    crate::check::compare(&old, &String::from_utf8_lossy(&bytes), &piece.code)
-                }
-                Err(_) => Some("not there; `omaspec render` draws it".to_owned()),
-            };
-            checked += 1;
-            if verdict.is_some() {
-                failed = true;
-                differ += 1;
-            }
-            if args.json {
-                reports.push(Report {
-                    file: input.name(),
-                    ok: true,
-                    output: Some(dest.display().to_string()),
-                    copied: false,
-                    engine: Some(rendered.engine.name()),
-                    elapsed_ms: Some(millis(rendered.elapsed)),
-                    line: None,
-                    same: Some(verdict.is_none()),
-                    message: verdict,
-                });
-            } else if let Some(why) = verdict {
-                writeln!(stdout(), "{}: {why}", dest.display())?;
-            }
-            continue;
-        }
 
         if args.copy {
             copy_to_clipboard(&bytes, format.mime())?;
@@ -245,8 +178,8 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                     ok: true,
                     output: None,
                     copied: true,
-                    engine: Some(rendered.engine.name()),
-                    elapsed_ms: Some(millis(rendered.elapsed)),
+                    engine: Some(exported.engine),
+                    elapsed_ms: Some(millis(exported.elapsed)),
                     line: None,
                     message: None,
                     same: None,
@@ -279,8 +212,8 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                         ok: true,
                         output: Some(dest.display().to_string()),
                         copied: false,
-                        engine: Some(rendered.engine.name()),
-                        elapsed_ms: Some(millis(rendered.elapsed)),
+                        engine: Some(exported.engine),
+                        elapsed_ms: Some(millis(exported.elapsed)),
                         line: None,
                         message: None,
                         same: None,
@@ -296,14 +229,6 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         let mut out = stdout();
         serde_json::to_writer_pretty(&mut out, &reports)?;
         writeln!(out)?;
-    } else if args.check && checked > 0 {
-        eprintln!(
-            "{}",
-            match differ {
-                0 => format!("{checked} SVGs drawn as they are"),
-                n => format!("{n} of {checked} SVGs differ; `omaspec render` draws them again"),
-            }
-        );
     }
     Ok(if failed {
         ExitCode::FAILURE
@@ -337,6 +262,269 @@ struct Report {
 
 fn skip_false(copied: &bool) -> bool {
     !*copied
+}
+
+/// One diagram drawn as `render` draws it, or why it was not.
+struct Exported {
+    bytes: Vec<u8>,
+    engine: &'static str,
+    elapsed: std::time::Duration,
+}
+
+/// How [`export_piece`] draws.
+#[derive(Clone, Copy)]
+struct Draw {
+    format: Format,
+    scale: f32,
+    source: bool,
+    look: Option<crate::look::Look>,
+}
+
+/// What [`hold`] says about one diagram: drawn and held against the SVG
+/// beside it, or not drawn.
+pub(crate) struct Held {
+    pub file: String,
+    pub ok: bool,
+    pub output: Option<String>,
+    pub engine: Option<&'static str>,
+    pub elapsed_ms: Option<f64>,
+    /// One-based, when the error names a line.
+    pub line: Option<usize>,
+    pub message: Option<String>,
+    /// Whether the SVG beside the diagram is the one drawn now. `None`
+    /// when nothing was held against.
+    pub same: Option<bool>,
+}
+
+/// Draws the diagrams of `files` as `render --check` does and holds each
+/// SVG against the one beside its diagram. Writes nothing.
+pub(crate) fn hold_files(files: &[PathBuf]) -> Result<Vec<Held>> {
+    let inputs = read_inputs(&with_folders(files)?)?;
+    let read: Vec<(&crate::files::Input, Vec<crate::document::Piece>)> = inputs
+        .iter()
+        .map(|input| (input, crate::document::pieces(input, None)))
+        .collect();
+    let empty: Vec<&crate::files::Input> = read
+        .iter()
+        .filter(|(_, pieces)| pieces.is_empty())
+        .map(|(input, _)| *input)
+        .collect();
+    let pieces: Vec<crate::document::Piece> =
+        read.into_iter().flat_map(|(_, pieces)| pieces).collect();
+    hold(&pieces, empty, None, 2.0, true)
+}
+
+/// Each diagram of `pieces` drawn as `render --check` draws it, at
+/// `scale` and with the source stored when `source`, held against the SVG
+/// beside it. `empty` are documents with no diagram.
+fn hold(
+    pieces: &[crate::document::Piece],
+    empty: Vec<&crate::files::Input>,
+    look: Option<crate::look::Look>,
+    scale: f32,
+    source: bool,
+) -> Result<Vec<Held>> {
+    let mut renderer = Renderer::new(&render_config());
+    let mut maps = crate::specs::Maps::default();
+    let mut skins = HashMap::new();
+    let draw = Draw {
+        format: Format::Svg,
+        scale,
+        source,
+        look,
+    };
+    let mut held = Vec::new();
+    for input in empty {
+        held.push(Held {
+            file: input.name(),
+            ok: false,
+            output: None,
+            engine: None,
+            elapsed_ms: None,
+            line: None,
+            message: Some("no PlantUML or Mermaid diagram in it".to_owned()),
+            same: None,
+        });
+    }
+    for piece in pieces {
+        match export_piece(piece, &mut maps, &mut renderer, &mut skins, draw)? {
+            Err(err) => {
+                let (line, engine, message) = failure(&err);
+                held.push(Held {
+                    file: piece.input.name(),
+                    ok: false,
+                    output: None,
+                    engine,
+                    elapsed_ms: None,
+                    line: line.map(|l| piece.line(l - 1) + 1),
+                    message: Some(message),
+                    same: None,
+                });
+            }
+            Ok(exported) => {
+                let dest = piece.image_path("svg").expect("a file's diagram");
+                let verdict = match std::fs::read_to_string(&dest) {
+                    Ok(old) => crate::check::compare(
+                        &old,
+                        &String::from_utf8_lossy(&exported.bytes),
+                        &piece.code,
+                    ),
+                    Err(_) => Some("not there; `omaspec render` draws it".to_owned()),
+                };
+                held.push(Held {
+                    file: piece.input.name(),
+                    ok: true,
+                    output: Some(dest.display().to_string()),
+                    engine: Some(exported.engine),
+                    elapsed_ms: Some(millis(exported.elapsed)),
+                    line: None,
+                    same: Some(verdict.is_none()),
+                    message: verdict,
+                });
+            }
+        }
+    }
+    Ok(held)
+}
+
+/// Prints what [`hold`] found, as `render --check` does.
+fn report_held(json: bool, held: &[Held]) -> Result<ExitCode> {
+    let mut checked = 0;
+    let mut differ = 0;
+    let mut failed = false;
+    let mut reports = Vec::new();
+    for item in held {
+        if item.same.is_none() {
+            failed |= item.message.is_some();
+            if json {
+                reports.push(report_of(item));
+            } else if let Some(message) = &item.message {
+                let at = item.line.map(|l| format!(":{l}")).unwrap_or_default();
+                eprintln!("{}{at}: error: {message}", item.file);
+            }
+            continue;
+        }
+        checked += 1;
+        if item.same == Some(false) {
+            failed = true;
+            differ += 1;
+        }
+        if json {
+            reports.push(report_of(item));
+        } else if let Some(why) = &item.message {
+            writeln!(
+                stdout(),
+                "{}: {why}",
+                item.output.as_deref().unwrap_or(&item.file)
+            )?;
+        }
+    }
+    if json {
+        let mut out = stdout();
+        serde_json::to_writer_pretty(&mut out, &reports)?;
+        writeln!(out)?;
+    } else if checked > 0 {
+        eprintln!(
+            "{}",
+            match differ {
+                0 => format!("{checked} SVGs drawn as they are"),
+                n => format!("{n} of {checked} SVGs differ; `omaspec render` draws them again"),
+            }
+        );
+    }
+    Ok(if failed {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    })
+}
+
+fn report_of(item: &Held) -> Report {
+    Report {
+        file: item.file.clone(),
+        ok: item.ok,
+        output: item.output.clone(),
+        copied: false,
+        engine: item.engine,
+        elapsed_ms: item.elapsed_ms,
+        line: item.line,
+        message: item.message.clone(),
+        same: item.same,
+    }
+}
+
+/// `piece` drawn and exported as `draw` says. The outer error stops the
+/// command; the inner one is this diagram.
+fn export_piece(
+    piece: &crate::document::Piece,
+    maps: &mut crate::specs::Maps,
+    renderer: &mut Renderer,
+    skins: &mut HashMap<Option<PathBuf>, Option<crate::look::Skin>>,
+    draw: Draw,
+) -> Result<Result<Exported, RenderError>> {
+    let input = piece.input;
+    let place = input
+        .path
+        .as_deref()
+        .and_then(|path| omaspec_render::Place::of(path, None));
+    // `--look`, else the look its project pins; a picture without color
+    // schemes takes auto's light one.
+    let root = place.as_ref().map(|p| p.root.clone());
+    let skin = match skins.get(&root) {
+        Some(skin) => skin.clone(),
+        None => {
+            let skin = crate::look::skin_for(draw.look, root.as_deref())?.map(|skin| {
+                if draw.format == Format::Svg {
+                    skin
+                } else {
+                    skin.without_schemes()
+                }
+            });
+            skins.insert(root, skin.clone());
+            skin
+        }
+    };
+    let rendered = match crate::look::render(
+        maps,
+        renderer,
+        &piece.code,
+        piece.language,
+        input.path.as_deref(),
+        place.as_ref(),
+        skin.as_ref(),
+    ) {
+        Ok(rendered) => rendered,
+        Err(err) => return Ok(Err(err)),
+    };
+    // Each tile or state that opens a diagram links to its export.
+    let own = place
+        .as_ref()
+        .zip(input.path.as_deref())
+        .and_then(|(place, path)| crate::specs::path_in(&place.root, path));
+    let up = own.as_deref().map_or(0, crate::specs::depth);
+    let links = own.map_or_else(Vec::new, |own| {
+        crate::specs::export_links(&rendered.links, &own)
+    });
+    let source_name = piece.source_name();
+    let bytes = export::export(
+        &rendered.svg,
+        draw.format,
+        &export::Options {
+            scale: draw.scale,
+            source: draw.source.then(|| export::Source {
+                code: &piece.code,
+                language: piece.language,
+                file: source_name.as_deref(),
+            }),
+            links: &links,
+            up,
+        },
+    )?;
+    Ok(Ok(Exported {
+        bytes,
+        engine: rendered.engine.name(),
+        elapsed: rendered.elapsed,
+    }))
 }
 
 /// `files`, each folder among them as the diagrams and Markdown documents

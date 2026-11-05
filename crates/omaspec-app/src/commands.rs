@@ -602,7 +602,7 @@ pub fn extract(image: &Path, output: Option<&Path>, force: bool) -> Result<ExitC
 
 /// `omaspec new`: makes `dir` a project and says what it made.
 pub fn new_project(dir: &Path, language: Language, git: bool, json: bool) -> Result<ExitCode> {
-    use crate::project::{Git, create};
+    use crate::project::{Git, Hook, create};
     let made = create(dir, language, git)?;
     let mut out = stdout();
     if json {
@@ -617,7 +617,15 @@ pub fn new_project(dir: &Path, language: Language, git: bool, json: bool) -> Res
         });
         value["git"] = match &made.git {
             Git::No => serde_json::json!(null),
-            Git::Initialized => serde_json::json!({ "initialized": true }),
+            Git::Initialized => serde_json::json!({
+                "initialized": true,
+                "hook": match &made.hook {
+                    Some(Hook::Written) => "written",
+                    Some(Hook::Already) => "already",
+                    Some(Hook::Failed(_)) => "failed",
+                    None => "none",
+                },
+            }),
             Git::Inside(repo) => serde_json::json!({ "initialized": false, "inside": repo }),
             Git::Failed(why) => serde_json::json!({ "initialized": false, "error": why }),
         };
@@ -638,7 +646,24 @@ pub fn new_project(dir: &Path, language: Language, git: bool, json: bool) -> Res
         writeln!(out, "created {}", file.display())?;
         match &made.git {
             Git::No | Git::Failed(_) => {}
-            Git::Initialized => writeln!(out, "started a git repository in {}", dir.display())?,
+            Git::Initialized => {
+                writeln!(out, "started a git repository in {}", dir.display())?;
+                let hook = dir.join(".git/hooks/pre-commit");
+                match &made.hook {
+                    Some(Hook::Written) => {
+                        writeln!(out, "wrote {}, a pre-commit hook", hook.display())?;
+                    }
+                    Some(Hook::Already) => {
+                        writeln!(out, "kept {}, a pre-commit hook", hook.display())?;
+                    }
+                    Some(Hook::Failed(why)) => {
+                        eprintln!(
+                            "omaspec: the repository is there, but no pre-commit hook: {why}"
+                        );
+                    }
+                    None => {}
+                }
+            }
             Git::Inside(repo) => writeln!(
                 out,
                 "no git repository started: {} is in {} already",

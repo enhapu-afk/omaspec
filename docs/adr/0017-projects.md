@@ -62,8 +62,10 @@ opened from, and a diagram at its top. Nothing started a project either.
    writer replaces.
 6. **git is asked for, not assumed.** `git init` runs only on request, and
    not when the folder is inside a repository already, which would make a
-   repository in a repository. Without git, the project is made and the
-   failure is said (`omaspec new` exits with 1).
+   repository in a repository. A repository started now gets a pre-commit
+   hook that runs `omaspec check`, unless a hook is there already. Without
+   git, the project is made and the failure is said (`omaspec new` exits
+   with 1).
 
 ## Why
 
