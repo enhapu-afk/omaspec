@@ -304,7 +304,10 @@ specifies, and a sequence diagram as a scenario
 **Checks while you type.** A state no path from the start reaches, a state nothing
 leaves, the same event leading from one state to two others with no guard to choose, a
 composite state entered with no start inside. Transition labels are read as UML writes
-them, `event [guard] / action`.
+them, `event [guard] / action`. In PlantUML a name is one state in the whole diagram, so
+a name written again in another composite state or region is the first one; lint says so
+where it happens. A state machine Omaspec does not read is never passed over in silence:
+lint says why its checks skip it.
 
 **Scenarios against machines.** A sequence diagram is checked against the state machines
 of its project: a participant named like a state diagram (`door.puml`, or `title Door`)

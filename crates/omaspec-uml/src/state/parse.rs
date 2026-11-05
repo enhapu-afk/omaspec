@@ -75,6 +75,9 @@ struct Parser {
     /// Open states: the path to the node being filled (a region once its
     /// state is split), and the line of the `{`.
     open: Vec<(Vec<usize>, usize)>,
+    /// The region of the diagram being filled outside any state, once a
+    /// `--` or `||` there split the diagram; empty before.
+    top: Vec<usize>,
     /// Every transition with the paths of its ends. They go into their
     /// containers at the end, after every split has moved its states.
     arrows: Vec<(Vec<usize>, Vec<usize>, Transition)>,
@@ -150,8 +153,7 @@ impl Parser {
     fn here(&self) -> Vec<usize> {
         self.open
             .last()
-            .map(|(path, _)| path.clone())
-            .unwrap_or_default()
+            .map_or_else(|| self.top.clone(), |(path, _)| path.clone())
     }
 
     /// The children of the node at `path`, or the diagram for an empty
@@ -281,7 +283,9 @@ impl Parser {
 
     /// `--` or `||` inside a state: what follows is the next concurrent
     /// region. The first one splits the state; what it held so far becomes
-    /// its first region.
+    /// its first region. Outside any state it splits the diagram, whose
+    /// regions PlantUML draws side by side either way, without a line
+    /// between them.
     fn split(&mut self, text: &str, line: usize) -> Result<(), Declined> {
         let split = if text.trim().chars().all(|c| c == '-') {
             Split::Stacked
@@ -290,11 +294,9 @@ impl Parser {
         } else {
             return Err(Declined::at(line, "a separator mixes `-` and `|`"));
         };
-        let Some((path, _)) = self.open.last().cloned() else {
-            return Err(Declined::at(
-                line,
-                "concurrent regions outside a state are not supported yet",
-            ));
+        let (path, split) = match self.open.last() {
+            Some((path, _)) => (path.clone(), split),
+            None => (self.top.clone(), Split::Beside),
         };
         let in_region = path
             .split_last()
@@ -333,8 +335,9 @@ impl Parser {
         container.nodes.push(region_node(next, line));
         let mut region = state;
         region.push(self.container(&region).nodes.len() - 1);
-        if let Some(top) = self.open.last_mut() {
-            top.0 = region;
+        match self.open.last_mut() {
+            Some(top) => top.0 = region,
+            None => self.top = region,
         }
         Ok(())
     }
@@ -1639,6 +1642,27 @@ mod tests {
     }
 
     #[test]
+    fn a_separator_outside_any_state_splits_the_diagram() {
+        // Side by side either way, as PlantUML draws it; each region has
+        // its own start, and a later state lands in the region it is in.
+        let d = diagram(
+            "@startuml\n[*] --> A\nA --> [*]\n--\n[*] --> X\n||\nstate S {\n  [*] --> In\n}\n[*] --> S\n@enduml\n",
+        );
+        assert_eq!(d.root.split, Some(Split::Beside));
+        assert_eq!(d.root.nodes.len(), 3);
+        assert!(d.root.nodes.iter().all(|n| n.kind == Kind::Region));
+        for region in &d.root.nodes {
+            let kinds: Vec<Kind> = region.children.nodes.iter().map(|n| n.kind).collect();
+            assert!(kinds.contains(&Kind::Start), "{kinds:?}");
+        }
+        assert!(node(&d.root.nodes[2].children, "S").composite);
+        // A transition from one of them into another is PlantUML's error.
+        let err = declined("@startuml\n[*] --> A\n||\n[*] --> X\nX --> A\n@enduml\n");
+        assert!(err.refused, "{err:?}");
+        assert_eq!(err.line, Some(4));
+    }
+
+    #[test]
     fn a_state_names_its_own_history_without_its_name() {
         // Inside `On`, PlantUML makes `On[H]` the history of another `On` inside it.
         let err =
@@ -1903,13 +1927,6 @@ mod tests {
     fn regions_side_by_side() {
         let diagram = diagram("@startuml\nstate A {\n  state B\n  ||\n  state C\n}\n@enduml\n");
         assert_eq!(node(&diagram.root, "A").children.split, Some(Split::Beside));
-    }
-
-    #[test]
-    fn concurrent_regions_need_a_state_around_them() {
-        let err = declined("@startuml\n[*] --> A\n--\n[*] --> B\n@enduml\n");
-        assert_eq!(err.line, Some(2));
-        assert!(err.reason.contains("concurrent"), "{}", err.reason);
     }
 
     #[test]

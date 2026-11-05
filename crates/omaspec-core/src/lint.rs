@@ -9,6 +9,8 @@
 //! comes twice, two colors the writer set that hardly differ
 //! ([`crate::faint`]).
 
+mod namesakes;
+
 use std::collections::{HashMap, HashSet};
 
 use omaspec_uml::element_lines;
@@ -98,12 +100,17 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
             match kind {
                 Kind::Sequence => sequence(&plantuml_parts(&rows), &mut findings),
                 Kind::Activity => swimlanes(&rows, &mut findings),
-                Kind::State => state_names(
-                    &rows,
-                    re!(r#"^("[^"]+"|[\w.]+|\[\*\])\s*-[-\w\[\],#]*>\s*("[^"]+"|[\w.]+|\[\*\])"#),
-                    re!(r#"(?i)^state\s+(?:"[^"]*"\s+as\s+)?([\w.]+)"#),
-                    &mut findings,
-                ),
+                Kind::State => {
+                    state_names(
+                        &rows,
+                        re!(
+                            r#"^("[^"]+"|[\w.]+|\[\*\])\s*-[-\w\[\],#]*>\s*("[^"]+"|[\w.]+|\[\*\])"#
+                        ),
+                        re!(r#"(?i)^state\s+(?:"[^"]*"\s+as\s+)?([\w.]+)"#),
+                        &mut findings,
+                    );
+                    namesakes::namesakes(&rows, &mut findings);
+                }
                 _ => {}
             }
         }

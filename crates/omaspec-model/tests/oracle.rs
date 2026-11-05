@@ -491,7 +491,7 @@ fn trigger(t: &Trigger) -> String {
 }
 
 /// A state as `Outer/Inner#1/Name`: the states around it, with the region
-/// it sits in when that is not the first; a start, an end and a history
+/// it sits in when that is not the first (`#1/Name` outside any state); a start, an end and a history
 /// by their mark, a choice, fork or join with its stereotype.
 fn state_key(path: &str, kind: Kind, name: &str) -> String {
     let named = |stereotype: &str, mark: &str| {
@@ -526,7 +526,10 @@ fn from_machine(m: &Machine) -> Reading {
             prefix = format!("{}{region}/{prefix}", m.states[p].name);
             at = p;
         }
-        prefix
+        match m.states[at].region {
+            0 => prefix,
+            r => format!("#{r}/{prefix}"),
+        }
     };
     let keys: Vec<String> = (0..m.states.len())
         .map(|s| state_key(&prefix(s), m.states[s].kind, &m.states[s].name))

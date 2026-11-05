@@ -1,0 +1,19 @@
+@startuml
+title A kitchen at night
+' Three regions outside any state: PlantUML draws them side by side,
+' each from its own start, with no line between them.
+[*] --> Dark
+Dark --> Lit : switch
+Lit --> Dark : switch
+--
+[*] --> Quiet
+Quiet --> Humming : compressor on
+Humming --> Quiet : cold enough
+||
+[*] --> Oven
+state Oven {
+  [*] --> Off
+  Off --> Heating : turn the knob
+  Heating --> Off : turn it back
+}
+@enduml

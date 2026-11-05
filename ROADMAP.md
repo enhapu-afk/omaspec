@@ -763,7 +763,9 @@ diagrams alike.
       to `B`). Names hold letters, digits, `_`, `.` and `:` and are never quoted in a
       transition (`state "B x" as B`); arrows are `->`, `-->`, `<--` and their longer
       kin, arrow colors start with `#`; a second or later concurrent region keeps its
-      states to itself; inside `state On {`, `On[H]` is another `On` in PlantUML, so it
+      states to itself; outside any state, `--` and `||` split the diagram into regions
+      that PlantUML draws side by side, each from its own start, without a line between
+      them (drawn so since 2026-11-05, in the order written; Mermaid has none); inside `state On {`, `On[H]` is another `On` in PlantUML, so it
       declines with the hint to write `[H]`; a stereotype comes after the alias. Each
       of these declines naming the line, and arrows with a direction (`-left->`) still
       decline. Mermaid→PlantUML conversion gives a Mermaid id PlantUML does not take a

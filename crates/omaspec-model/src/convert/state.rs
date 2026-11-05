@@ -109,6 +109,13 @@ fn to_mermaid(code: &str) -> Result<Written, Refused> {
     if diagram.root.direction == Direction::Right {
         w.out.push("    direction LR".into());
     }
+    if diagram.root.split.is_some() {
+        let line = diagram.root.nodes.get(1).map(|region| region.line);
+        return Err(refused(
+            line,
+            "Mermaid has concurrent regions only inside a state, not outside any",
+        ));
+    }
     w.container(&diagram.root, 1)?;
     let crossings = std::mem::take(&mut w.crossings);
     w.out.extend(crossings);
@@ -645,6 +652,10 @@ mod tests {
         assert!(err.reason.contains("history"), "{err:?}");
         let semicolon = "@startuml\n[*] --> A\nA --> B : x / a; b\n@enduml\n";
         let err = both(semicolon, Language::PlantUml, Language::Mermaid).unwrap_err();
+        assert_eq!(err.line, Some(2), "{err:?}");
+        let regions = "@startuml\n[*] --> A\n--\n[*] --> X\n@enduml\n";
+        let err = both(regions, Language::PlantUml, Language::Mermaid).unwrap_err();
+        assert!(err.reason.contains("only inside a state"), "{err:?}");
         assert_eq!(err.line, Some(2), "{err:?}");
     }
 
