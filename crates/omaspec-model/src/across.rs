@@ -51,6 +51,18 @@ impl Spec {
             machine,
         })
     }
+
+    /// The state machine of a diagram in the Markdown document shown as
+    /// `file`: named by its `@startuml` name and its title only, as the
+    /// document's name is no machine's.
+    pub fn read_in_document(code: &str, lang: Language, file: &str) -> Option<Spec> {
+        let machine = Machine::read(code, lang)?;
+        Some(Spec {
+            names: omaspec_core::project::names(code, lang, ""),
+            file: file.to_owned(),
+            machine,
+        })
+    }
 }
 
 /// `@startuml Name`.

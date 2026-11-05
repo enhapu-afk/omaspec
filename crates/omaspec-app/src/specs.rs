@@ -1,5 +1,6 @@
-//! The state machines of a project folder, which sequence diagrams are
-//! checked against (`omaspec_model::Spec`), and all its diagrams, which
+//! The state machines of a project folder (in diagram files and in
+//! Markdown documents), which sequence diagrams are checked against
+//! (`omaspec_model::Spec`), and all its diagram files, which
 //! maps show and states link to (`omaspec_render::Atlas`). The folder is
 //! scanned as the file picker scans it; a file larger than 1 MB is not
 //! read, as for `!include`.
@@ -8,12 +9,12 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use omaspec_core::{Language, detect};
+use omaspec_core::{Language, detect, markdown};
 use omaspec_model::Spec;
 use omaspec_render::anchors::Anchor;
 use omaspec_render::{Atlas, Entry, Place, RenderError, Rendered, Renderer};
 
-use crate::editor::folder::{scan, scan_for};
+use crate::editor::folder::scan_for;
 
 /// A file may hold at most this many bytes.
 const MAX_FILE: u64 = 1 << 20;
@@ -39,13 +40,25 @@ pub fn read_project(root: &Path) -> (Vec<Spec>, Atlas) {
         name: project.and_then(|p| p.name),
         ..Atlas::default()
     };
-    for relative in scan(root) {
+    let files = scan_for(root, |name| {
+        Language::from_file_name(name).is_some() || markdown::is_markdown(name)
+    });
+    for relative in files {
         let path = root.join(&relative);
         let small = std::fs::metadata(&path).is_ok_and(|m| m.is_file() && m.len() <= MAX_FILE);
         let Some(text) = small.then(|| std::fs::read_to_string(&path).ok()).flatten() else {
             continue;
         };
         let name = file_name(&relative);
+        // A document's state machines count; its diagrams are no tiles.
+        if markdown::is_markdown(&name) {
+            specs.extend(
+                markdown::blocks(&text)
+                    .iter()
+                    .filter_map(|b| Spec::read_in_document(&b.code, b.language, &name)),
+            );
+            continue;
+        }
         let language = detect(&text, Language::from_file_name(&name));
         specs.extend(Spec::read(&text, language, &name));
         atlas.diagrams.push(Entry {
@@ -301,6 +314,33 @@ mod tests {
             export_links(&links, "system.puml")[0].title.as_deref(),
             Some("Orders")
         );
+    }
+
+    #[test]
+    fn a_document_s_state_machines_belong_to_its_project() {
+        let root = std::env::temp_dir().join(format!("omaspec-specs-md-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("docs")).unwrap();
+        std::fs::write(
+            root.join("docs/README.md"),
+            "# Door\n\n```plantuml\n@startuml\ntitle Door\n[*] --> Closed\n@enduml\n```\n\n\
+             ```plantuml\n[*] --> Untitled\n```\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("visit.puml"),
+            "@startuml\nA -> Door : open\n@enduml\n",
+        )
+        .unwrap();
+        let (specs, atlas) = read_project(&root);
+        assert_eq!(specs.len(), 2);
+        assert_eq!(specs[0].names, ["Door"]);
+        assert_eq!(specs[0].file, "docs/README.md");
+        // Without a title or a name it is no one's machine.
+        assert!(specs[1].names.is_empty());
+        // A document is no tile of a map.
+        assert_eq!(atlas.diagrams.len(), 1);
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

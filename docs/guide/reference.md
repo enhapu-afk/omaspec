@@ -306,6 +306,8 @@ omaspec render flow.mmd --json      # where the image went, or the error and its
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
 omaspec render flow.mmd --look auto # plain, omarchy, light or dark; auto: one SVG, dark under a dark scheme
 omaspec export ~/specs/shop         # every diagram as an SVG, linked, the map as index.svg, and shop.zip, in shop/export
+omaspec lint README.md              # each plantuml and mermaid block of a Markdown document, on its lines
+omaspec render README.md            # one image per block: README-1.svg, README-2.svg, …
 omaspec extract diagram.png         # the source stored in an exported PNG or SVG
 omaspec example                     # the examples of the gallery; `example NAME` prints one, --json
 omaspec theme                       # the palette Omaspec reads from your Omarchy theme

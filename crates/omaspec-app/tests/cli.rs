@@ -608,6 +608,69 @@ fn a_project_exports_as_svgs_linked_to_one_another_and_a_zip() {
 }
 
 #[test]
+fn a_markdown_document_is_linted_inspected_and_drawn_block_by_block() {
+    let dir = scratch("markdown");
+    let doc = dir.join("README.md");
+    fs::write(
+        &doc,
+        "# Door\n\n```plantuml\n@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\n@enduml\n```\n\n\
+         ```mermaid\nsequenceDiagram\n  User->>Door: kick\n```\n\n```rust\nfn main() {}\n```\n\n\
+         ```puml\nAlice -> Bob : hi\n```\n",
+    )
+    .unwrap();
+    let path = doc.to_str().unwrap();
+    // The scenario against the machine beside it, on the document's line.
+    let out = omaspec(&["lint", path]);
+    let text = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        text.contains(&format!(
+            "{path}:13: warning: Door has no transition for kick"
+        )),
+        "{text}"
+    );
+    let out = omaspec(&["inspect", path]);
+    let inspected: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let lines: Vec<&serde_json::Value> = inspected["diagrams"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| &d["line"])
+        .collect();
+    assert_eq!(lines, [3, 11, 20], "{inspected}");
+    assert_eq!(inspected["diagrams"][0]["outline"][0]["line"], 5);
+    // One image per diagram, numbered, each with its own source.
+    let out = Command::new(env!("CARGO_BIN_EXE_omaspec"))
+        .args(["render", path])
+        .env("OMASPEC_PLANTUML", "none")
+        .output()
+        .unwrap();
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    for (n, start) in [
+        (1, "@startuml\ntitle Door"),
+        (2, "sequenceDiagram"),
+        (3, "@startuml\nAlice"),
+    ] {
+        let svg = fs::read_to_string(dir.join(format!("README-{n}.svg"))).unwrap();
+        let stored = embed::source_from_svg(&svg).unwrap();
+        assert!(stored.code.starts_with(start), "{n}: {}", stored.code);
+    }
+    assert!(!dir.join("README-4.svg").exists());
+    let out = omaspec(&["render", path, "-o", dir.join("one.svg").to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(2));
+    // A document without a diagram is said to be one.
+    let empty = dir.join("notes.md");
+    fs::write(&empty, "# Notes\n").unwrap();
+    let out = omaspec(&["render", empty.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("no PlantUML or Mermaid diagram"));
+}
+
+#[test]
 fn render_writes_svg_png_and_pdf_next_to_the_diagram() {
     let dir = scratch("render");
     let file = dir.join("states.mmd");

@@ -106,7 +106,7 @@ pub fn lint(
     let mut projects = Projects::default();
     for input in read_inputs(files)? {
         let specs = projects.of(input.path.as_deref(), project);
-        let findings = omaspec_model::findings_with(&input.text, language(&input, forced), specs);
+        let findings = crate::document::findings(&input, forced, specs);
         all.push((input.name(), findings));
     }
     report(&all, json, strict)
@@ -442,7 +442,7 @@ pub(crate) struct Inspection<'a> {
     language: Language,
     kind: DiagramKind,
     findings: Vec<Reported<'a>>,
-    outline: Vec<Entry>,
+    pub(crate) outline: Vec<Entry>,
     /// Whether Omaspec's own engine draws the diagram. When it does not,
     /// Mermaid still draws through mmdr and PlantUML through Java, if it
     /// is installed; the reason says which.
@@ -513,13 +513,22 @@ pub fn inspect(
     project: Option<&Path>,
 ) -> Result<ExitCode> {
     let input = read_input(file.as_deref().filter(|f| f.as_os_str() != "-"))?;
-    let lang = language(&input, forced);
     let specs = Projects::default()
         .of(input.path.as_deref(), project)
         .to_vec();
+    let mut out = stdout();
+    if crate::document::is_document(&input) {
+        // Each diagram of the document, on its lines.
+        let pieces = crate::document::pieces(&input, None);
+        let findings: Vec<Vec<Finding>> = pieces.iter().map(|p| p.findings(&specs)).collect();
+        let document = crate::document::inspect_document(&input, &pieces, &findings);
+        serde_json::to_writer_pretty(&mut out, &document)?;
+        writeln!(out)?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    let lang = language(&input, forced);
     let findings = omaspec_model::findings_with(&input.text, lang, &specs);
     let inspection = inspection(&input.name(), &input.text, lang, &findings);
-    let mut out = stdout();
     serde_json::to_writer_pretty(&mut out, &inspection)?;
     writeln!(out)?;
     Ok(ExitCode::SUCCESS)
@@ -576,8 +585,13 @@ pub(crate) fn render_config() -> Config {
 
 pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     let inputs = read_inputs(args.files)?;
+    // A Markdown document gives one image per diagram.
+    let pieces: Vec<crate::document::Piece> = inputs
+        .iter()
+        .flat_map(|input| crate::document::pieces(input, args.lang))
+        .collect();
     anyhow::ensure!(
-        args.output.is_none() || inputs.len() == 1,
+        args.output.is_none() || pieces.len() == 1,
         "--output works with one diagram only"
     );
     anyhow::ensure!(
@@ -613,8 +627,30 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     let mut reports = Vec::new();
     // A map shows its project's diagrams in tiles (docs/adr/0018).
     let mut maps = crate::specs::Maps::default();
-    for input in &inputs {
-        let lang = language(input, args.lang);
+    for input in inputs
+        .iter()
+        .filter(|input| !pieces.iter().any(|p| std::ptr::eq(p.input, *input)))
+    {
+        failed = true;
+        let message = "no PlantUML or Mermaid diagram in it".to_owned();
+        if args.json {
+            reports.push(Report {
+                file: input.name(),
+                ok: false,
+                output: None,
+                copied: false,
+                engine: None,
+                elapsed_ms: None,
+                line: None,
+                message: Some(message),
+            });
+        } else {
+            eprintln!("{}: error: {message}", input.name());
+        }
+    }
+    for piece in &pieces {
+        let input = piece.input;
+        let lang = piece.language;
         let place = input
             .path
             .as_deref()
@@ -622,7 +658,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         let drawn = crate::look::render(
             &mut maps,
             &mut renderer,
-            &input.text,
+            &piece.code,
             lang,
             input.path.as_deref(),
             place.as_ref(),
@@ -633,6 +669,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             Err(err) => {
                 failed = true;
                 let (line, engine, message) = failure(&err);
+                let line = line.map(|l| piece.line(l - 1) + 1);
                 if args.json {
                     reports.push(Report {
                         file: input.name(),
@@ -659,12 +696,13 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         let links = own.map_or_else(Vec::new, |own| {
             crate::specs::export_links(&rendered.links, &own)
         });
+        let source_name = piece.source_name();
         let options = export::Options {
             scale: args.scale,
             source: args.source.then(|| export::Source {
-                code: &input.text,
+                code: &piece.code,
                 language: lang,
-                file: input.file_name(),
+                file: source_name.as_deref(),
             }),
             links: &links,
         };
@@ -700,7 +738,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         let dest = match (args.output, &input.path) {
             (Some(out), _) if out.as_os_str() != "-" => Some(out.to_owned()),
             (Some(_), _) | (None, None) => None,
-            (None, Some(path)) => Some(path.with_extension(format.extension())),
+            (None, Some(_)) => piece.image_path(format.extension()),
         };
         match dest {
             Some(dest) => {

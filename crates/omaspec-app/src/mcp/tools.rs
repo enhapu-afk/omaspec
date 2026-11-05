@@ -16,7 +16,7 @@ use crate::commands::{
     failure, inspection, language, millis, one_based, other, render_config, reported,
     reported_changes, versions,
 };
-use crate::editor::folder::scan;
+use crate::editor::folder::scan_for;
 use crate::files::{Input, MAX_SOURCE, read_input, write_atomic};
 use crate::look::Look;
 use crate::specs::Projects;
@@ -105,11 +105,11 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "lint",
             "title": "Check diagrams",
-            "description": "Checks PlantUML and Mermaid diagrams for syntax problems, likely typos and contradictions in a specification. A state diagram is checked as a state machine: states no path reaches, states nothing leaves, one event leading to two states. A sequence diagram is checked against the state machines of its project: each message a participant receives must be an event its machine takes, in order. Give a file, a folder (every diagram in it, checked against the folder's state machines) or the code. Errors are contradictions or broken syntax; warnings may be meant and say how to make them explicit.",
+            "description": "Checks PlantUML and Mermaid diagrams for syntax problems, likely typos and contradictions in a specification. A state diagram is checked as a state machine: states no path reaches, states nothing leaves, one event leading to two states. A sequence diagram is checked against the state machines of its project: each message a participant receives must be an event its machine takes, in order. Give a file, a Markdown document (each `plantuml` and `mermaid` block in it, lines the document's), a folder (every diagram and document in it, checked against the folder's state machines) or the code. Errors are contradictions or broken syntax; warnings may be meant and say how to make them explicit.",
             "inputSchema": schema(&[
                 ("path", json!({
                     "type": "string",
-                    "description": "A diagram file, or a folder whose diagrams are all checked; relative to the folder the server was started in.",
+                    "description": "A diagram file or a Markdown document, or a folder whose diagrams and documents are all checked; relative to the folder the server was started in.",
                 })),
                 ("code", code.clone()),
                 ("lang", lang.clone()),
@@ -224,7 +224,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "render",
             "title": "Render a diagram",
-            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip); SVG and PNG files carry the diagram's source. A mind map or WBS in a project is its map: each box that names a diagram of the project shows that diagram in a tile. A diagram with an error comes back as an error with its line.",
+            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip); SVG and PNG files carry the diagram's source. A mind map or WBS in a project is its map: each box that names a diagram of the project shows that diagram in a tile. A diagram with an error comes back as an error with its line. In a Markdown document, `diagram` picks one of its `plantuml` and `mermaid` blocks; an image written stores that diagram's source.",
             "inputSchema": schema(&[
                 ("path", path),
                 ("code", code),
@@ -251,6 +251,11 @@ pub fn definitions() -> Vec<Value> {
                 ("source", json!({
                     "type": "boolean",
                     "description": "Store the diagram's source in an SVG or PNG file (the default), so it can be opened again.",
+                })),
+                ("diagram", json!({
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "In a Markdown document, which of its `plantuml` and `mermaid` blocks to draw: 1 for the first. Needed when it has more than one.",
                 })),
                 ("look", json!({
                     "type": "string",
@@ -330,8 +335,33 @@ impl Tools {
 
     fn render(renderer: &mut Renderer, args: &Args) -> Result<Answer> {
         let input = diagram(args)?;
-        let lang = language(&input, args.lang()?);
         let project = args.project_of(input.path.as_deref())?;
+        let pieces = crate::document::pieces(&input, args.lang()?);
+        let piece = match (
+            crate::document::is_document(&input),
+            args.number("diagram")?,
+        ) {
+            (true, Some(n)) => {
+                let at = (n.fract() == 0.0 && n >= 1.0).then(|| n as usize - 1);
+                at.and_then(|at| pieces.get(at)).with_context(|| {
+                    format!(
+                        "`diagram` is from 1 to {}, the document's diagrams",
+                        pieces.len()
+                    )
+                })?
+            }
+            (true, None) => match pieces.as_slice() {
+                [one] => one,
+                [] => bail!("the document has no `plantuml` or `mermaid` block"),
+                more => bail!(
+                    "the document has {} diagrams; give `diagram`, 1 for the first",
+                    more.len()
+                ),
+            },
+            (false, Some(_)) => bail!("`diagram` picks a diagram of a Markdown document"),
+            (false, None) => &pieces[0],
+        };
+        let lang = piece.language;
         let output = args.path("output")?;
         let format = match args.text("format")? {
             Some(name) => Some(Format::from_extension(name).with_context(|| {
@@ -374,7 +404,7 @@ impl Tools {
         let drawn = crate::look::render(
             &mut crate::specs::Maps::default(),
             renderer,
-            &input.text,
+            &piece.code,
             lang,
             input.path.as_deref(),
             place.as_ref(),
@@ -384,6 +414,7 @@ impl Tools {
             Ok(rendered) => rendered,
             Err(err) => {
                 let (line, engine, message) = failure(&err);
+                let line = line.map(|l| piece.line(l - 1) + 1);
                 let mut answer = Answer::data(json!({
                     "line": line,
                     "engine": engine,
@@ -450,15 +481,16 @@ impl Tools {
         let links = own.map_or_else(Vec::new, |own| {
             crate::specs::export_links(&rendered.links, &own)
         });
+        let source_name = piece.source_name();
         let options = export::Options {
             scale,
             source: args
                 .flag("source")?
                 .unwrap_or(true)
                 .then(|| export::Source {
-                    code: &input.text,
+                    code: &piece.code,
                     language: lang,
-                    file: input.file_name(),
+                    file: source_name.as_deref(),
                 }),
             links: &links,
         };
@@ -658,7 +690,10 @@ fn lint(args: &Args) -> Result<Answer> {
             // are in.
             let root = omaspec_render::project_root(&dir).unwrap_or_else(|| dir.clone());
             folder = args.project_or(Some(root))?;
-            let mut files = scan(&dir);
+            let mut files = scan_for(&dir, |name| {
+                omaspec_core::Language::from_file_name(name).is_some()
+                    || omaspec_core::markdown::is_markdown(name)
+            });
             files.sort();
             files
                 .iter()
@@ -675,7 +710,7 @@ fn lint(args: &Args) -> Result<Answer> {
             None => args.project_of(input.path.as_deref())?,
         };
         let specs = projects.of(input.path.as_deref(), project.as_deref());
-        let found = omaspec_model::findings_with(&input.text, language(input, lang), specs);
+        let found = crate::document::findings(input, lang, specs);
         all.push((name(input), found));
     }
     let mut data = findings(&all)?;
@@ -696,11 +731,17 @@ fn trace(args: &Args) -> Result<Answer> {
 
 fn inspect(args: &Args) -> Result<Answer> {
     let input = diagram(args)?;
-    let lang = language(&input, args.lang()?);
     let project = args.project_of(input.path.as_deref())?;
     let specs = Projects::default()
         .of(input.path.as_deref(), project.as_deref())
         .to_vec();
+    if crate::document::is_document(&input) {
+        let pieces = crate::document::pieces(&input, None);
+        let found: Vec<_> = pieces.iter().map(|p| p.findings(&specs)).collect();
+        let document = crate::document::inspect_document(&input, &pieces, &found);
+        return Ok(Answer::data(serde_json::to_value(document)?));
+    }
+    let lang = language(&input, args.lang()?);
     let found = omaspec_model::findings_with(&input.text, lang, &specs);
     let inspection = inspection(&name(&input), &input.text, lang, &found);
     Ok(Answer::data(serde_json::to_value(inspection)?))
@@ -1076,6 +1117,51 @@ mod tests {
                 .unwrap()
                 .contains("\n  A -> B\n")
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_markdown_document_is_its_diagrams() {
+        let dir = scratch("markdown");
+        let doc = dir.join("README.md");
+        std::fs::write(
+            &doc,
+            "# Door\n\n```plantuml\n@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\n@enduml\n```\n\n\
+             ```mermaid\nsequenceDiagram\n  User->>Door: kick\n```\n",
+        )
+        .unwrap();
+        let path = doc.to_str().unwrap();
+        // The scenario is checked against the machine beside it, on the
+        // document's line.
+        let linted = call("lint", json!({"path": path}));
+        let kick = linted["structuredContent"]["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|f| f["message"].as_str().unwrap().contains("kick"))
+            .unwrap_or_else(|| panic!("{linted}"));
+        assert_eq!(kick["line"], 13, "{linted}");
+        let inspected = call("inspect", json!({"path": path}));
+        assert_eq!(
+            inspected["structuredContent"]["diagrams"][1]["line"], 11,
+            "{inspected}"
+        );
+        // Two diagrams: `diagram` picks one.
+        let refused = call("render", json!({"path": path}));
+        assert_eq!(refused["isError"], true, "{refused}");
+        assert!(refused.to_string().contains("2 diagrams"), "{refused}");
+        let out = dir.join("door.svg");
+        let written = call(
+            "render",
+            json!({"path": path, "diagram": 1, "output": out.to_str().unwrap()}),
+        );
+        assert_eq!(written["isError"], Value::Null, "{written}");
+        let stored =
+            omaspec_core::embed::source_from_svg(&std::fs::read_to_string(&out).unwrap()).unwrap();
+        assert!(stored.code.starts_with("@startuml\ntitle Door"));
+        assert_eq!(stored.file.as_deref(), Some("README-1.puml"));
+        let beyond = call("render", json!({"path": path, "diagram": 3}));
+        assert_eq!(beyond["isError"], true, "{beyond}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
