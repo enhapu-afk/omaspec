@@ -1570,7 +1570,14 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       block of [0016](docs/adr/0016-lines-by-hand.md), relative to its rank and
       neighbors rather than in coordinates, so it holds when a theme or a font
       changes a size; lines by hand on it move with it; an entry that no longer
-      holds is a finding. Its own ADR.
+      holds is a finding. Its own ADR. So far: the ADR
+      ([0021](docs/adr/0021-boxes-held-in-place.md), proposed, 2026-11-06): an
+      entry `Box after Neighbor` (or `before`) in the block holds a box in its
+      neighbor's rank, right beside it; ranking takes the two as one, the order
+      puts the box next to its neighbor after the sweeps, placement is as
+      before. Alt and a drag on a box shows where it would go and writes the
+      entry. `rename` carries the names in the block, of lines too, which it
+      did not.
 - [ ] Lines bundled where many end at one box, as Graphviz's `concentrate` does:
       when it bundles by itself and how a writer turns it off, in an ADR; measured
       in `tests/lines`.
