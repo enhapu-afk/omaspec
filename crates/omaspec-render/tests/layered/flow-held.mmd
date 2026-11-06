@@ -1,0 +1,10 @@
+flowchart TD
+    Order --> Pack
+    Order --> Pay
+    Pay --> Ship
+    Pack --> Ship
+    Ship --> Mail
+
+%% lines by hand (Omaspec)
+%% Pay before Pack
+%% Mail after Ship

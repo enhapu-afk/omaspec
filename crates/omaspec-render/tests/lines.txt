@@ -3,6 +3,7 @@ crates/omaspec-render/tests/layered/flow-by-hand.mmd 3 0 0 0 0 0 3 294 2 17.1
 crates/omaspec-render/tests/layered/flow-cycles.mmd 7 0 0 0 0 0 14 863 0 30.3
 crates/omaspec-render/tests/layered/flow-directions.mmd 5 0 0 0 0 0 6 218 0 13.6
 crates/omaspec-render/tests/layered/flow-edges.mmd 11 0 0 0 0 0 14 1483 0 12.3
+crates/omaspec-render/tests/layered/flow-held.mmd 5 0 0 0 0 0 8 256 0 22.2
 crates/omaspec-render/tests/layered/flow-rl.mmd 5 0 0 0 0 0 8 374 0 9.7
 crates/omaspec-render/tests/layered/flow-shapes.mmd 12 0 0 0 0 0 0 384 0 5.2
 crates/omaspec-render/tests/layered/flow-styles.mmd 3 0 0 0 0 0 0 96 0 15.7
@@ -21,6 +22,7 @@ crates/omaspec-render/tests/layered/state-pseudo.mmd 12 0 0 0 1 0 14 991 0 7.5
 crates/omaspec-render/tests/layered/state-regions.mmd 8 0 0 0 0 0 0 337 0 0.0
 crates/omaspec-render/tests/layered/state-styled.mmd 5 0 0 0 0 0 0 225 0 24.6
 crates/omaspec-uml/tests/state/crossings.puml 8 0 0 0 0 0 12 967 0 31.0
+crates/omaspec-uml/tests/state/held.puml 8 2 0 0 2 0 18 1722 6 12.0
 crates/omaspec-uml/tests/state/history.puml 8 0 0 0 0 0 12 969 0 46.1
 crates/omaspec-uml/tests/state/legend-dark.puml 3 0 0 0 0 0 0 124 0 29.8
 crates/omaspec-uml/tests/state/nested.puml 23 0 0 0 0 0 35 4212 0 4.7
@@ -53,4 +55,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 14.7
 examples/platform.mmd 17 3 0 0 6 0 50 6123 6 43.2
 examples/player.puml 8 0 0 0 0 0 16 1154 0 15.1
 examples/shop.mmd 6 0 0 0 0 0 4 619 0 17.1
-total 487 6 0 1 13 0 478 67809 15 931.7
+total 500 8 0 1 15 0 504 69788 21 966.0

@@ -203,6 +203,14 @@ fn a_box_held_before_its_neighbor_stands_left_of_it_in_every_drawer() {
             "{held}: {:?}",
             drawn.map.misses
         );
+        // The map knows the box's entry, also for a diagram in a longer
+        // text.
+        let entry = held.lines().position(|l| l.contains("C before B"));
+        let place = drawn.map.places.iter().find(|p| p.name == "C").unwrap();
+        assert_eq!(place.entry, entry, "{held}");
+        let shifted = drawn.map.clone().shifted(5);
+        let place = shifted.places.iter().find(|p| p.name == "C").unwrap();
+        assert_eq!(place.entry, entry.map(|e| e + 5));
         assert_eq!(
             lint::lint(&held, language),
             lint::lint(code, language),

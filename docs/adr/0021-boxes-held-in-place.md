@@ -1,6 +1,6 @@
 # 0021: A box held in place stands beside a neighbor
 
-Status: proposed, 2026-11-06. Extends [0016](0016-lines-by-hand.md); the
+Status: accepted, 2026-11-06 (proposed the same day). Extends [0016](0016-lines-by-hand.md); the
 second step of 0.9 in the [roadmap](../../ROADMAP.md), *a layout you can
 steer*.
 
@@ -89,6 +89,38 @@ box clear of the others and its lines straight where it can, which a shift
 by hand would undo. A held box is ranked with its neighbor, not below a box
 of the rank before: the drop shows a place among boxes, and that is what is
 written.
+
+## As built
+
+- **Where the holds go.** When a diagram is read, its holds are sorted
+  by name into the containers of the model that hold both boxes
+  (`state::Container::hold`, `structure::Group::hold`, and the flowchart's
+  tree); an entry that names no box, or two in different containers, is
+  said then. Each drawer gives a container's holds to the layout through
+  `open::Nested::holds`; `graph::hold` checks the rest (a box beside
+  itself, boxes of one rank joined by a line, holds that go round) and
+  `open::layout` says a container laid out with what is around it, which
+  is not held as a whole. Each scene keeps what it could not hold
+  (`Scene::unheld`), and the map gets all of it with the misses of lines
+  by hand.
+- **What is said.** `No box is named Ghost; Done after Ghost is left
+  out`, or the entry and why it does not hold, ending `Idle stands where
+  the layout puts it`. Lint says an entry that does not read and a box
+  held twice; the first entry for a box holds.
+- **The map's places.** Every box with a name (not `[*]`, not a history)
+  is a place of the map: its name, where it is, the container it keeps to,
+  which way that container's ranks run, and its entry. The pane finds the
+  ranks from the places themselves: boxes of one container whose spans
+  along the flow overlap.
+- **Lines first.** With Alt, a line under the pointer takes the gesture as
+  before; a box takes it only where no line runs. The palette's commands
+  are named *By hand: reset the line or box at the caret* and *By hand:
+  reset every line and box*.
+- **Fixtures.** `tests/state/held.puml` and `tests/layered/flow-held.mmd`
+  hold boxes, as goldens and in `tests/lines` (the flowchart's second
+  entry joins two boxes by a line and so does not hold); every other
+  picture and every other row of `tests/lines.txt` stayed as it was. The
+  five drawers are checked together in `omaspec-render/tests/hand.rs`.
 
 ## How it is checked
 

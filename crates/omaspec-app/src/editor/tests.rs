@@ -1604,6 +1604,56 @@ fn a_line_dragged_with_alt_is_drawn_as_shown_and_undone_in_one_step() {
     assert_eq!(app.doc().text(), MACHINE);
 }
 
+const FORK: &str =
+    "@startuml\n[*] --> Idle\nIdle --> Running : start\nIdle --> Paused : pause\n@enduml\n";
+
+/// docs/adr/0021: a box dragged with Alt is held where the bar showed, in
+/// one undo step; Alt and a double click give it back; Escape writes
+/// nothing.
+#[test]
+fn a_box_dragged_with_alt_is_held_and_given_back() {
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, FORK);
+    show(&mut app, FORK, Language::PlantUml);
+    let running = app.doc().paper.screen_of_box("Running");
+    let paused = app.doc().paper.screen_of_box("Paused");
+    assert!(running.x < paused.x);
+    let left_of_running = iced::Point::new(running.x - 80.0, running.y);
+    hand(&mut app, paper::Gesture::Hover(Some(paused)));
+    hand(&mut app, paper::Gesture::Press(paused));
+    hand(&mut app, paper::Gesture::Move(left_of_running));
+    hand(&mut app, paper::Gesture::Release);
+    let text = app.doc().text();
+    assert!(
+        text.contains("\n\n' lines by hand (Omaspec)\n' Paused before Running\n@enduml\n"),
+        "{text}"
+    );
+    assert!(app.notice.as_ref().unwrap().contains("held in place"));
+    show(&mut app, &text, Language::PlantUml);
+    let running = app.doc().paper.screen_of_box("Running");
+    let paused = app.doc().paper.screen_of_box("Paused");
+    assert!(paused.x < running.x);
+    act(&mut app, Action::Undo);
+    assert_eq!(app.doc().text(), FORK);
+    act(&mut app, Action::Redo);
+    show(&mut app, &text, Language::PlantUml);
+    // Alt and a double click give it back to the layout.
+    hand(&mut app, paper::Gesture::Double(paused));
+    assert_eq!(app.doc().text(), FORK);
+    // Escape stops a drag; nothing is written.
+    show(&mut app, FORK, Language::PlantUml);
+    let running = app.doc().paper.screen_of_box("Running");
+    let paused = app.doc().paper.screen_of_box("Paused");
+    hand(&mut app, paper::Gesture::Press(paused));
+    hand(
+        &mut app,
+        paper::Gesture::Move(iced::Point::new(running.x - 80.0, running.y)),
+    );
+    hand(&mut app, paper::Gesture::Cancel);
+    hand(&mut app, paper::Gesture::Release);
+    assert_eq!(app.doc().text(), FORK);
+}
+
 #[test]
 fn a_line_drawn_by_hand_resets_from_the_palette() {
     let mut app = open(&[]);
@@ -1629,7 +1679,7 @@ fn a_line_drawn_by_hand_resets_from_the_palette() {
         app.notice
             .as_ref()
             .unwrap()
-            .contains("no line is drawn by hand")
+            .contains("no line is drawn by hand and no box held")
     );
 }
 
@@ -1997,6 +2047,34 @@ fn snapshot_by_hand() {
     hand(&mut app, paper::Gesture::Press(at));
     hand(&mut app, paper::Gesture::Move(at + across * 70.0));
     shoot(&mut app, &dir, "hand-drag");
+}
+
+/// Writes headless screenshots of a box held in place when
+/// OMASPEC_SNAPSHOT_DIR is set: lit with Alt, and dragged with the bar
+/// where it would go (docs/adr/0021).
+#[test]
+fn snapshot_held() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("held");
+    let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Opening : open [unlocked]\nClosed --> Locked : lock\nLocked --> Closed : unlock\nOpening --> Open : end position\nOpen --> Closing : close\nClosing --> Closed : end position\nClosing --> Opening : obstacle\n@enduml\n";
+    let file = work.join("door.puml");
+    std::fs::write(&file, door).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, door, Language::PlantUml);
+    let locked = app.doc().paper.screen_of_box("Locked");
+    let opening = app.doc().paper.screen_of_box("Opening");
+    hand(&mut app, paper::Gesture::Hover(Some(locked)));
+    shoot(&mut app, &dir, "held-lit");
+    hand(&mut app, paper::Gesture::Press(locked));
+    let beyond = if locked.x < opening.x { 90.0 } else { -90.0 };
+    hand(
+        &mut app,
+        paper::Gesture::Move(iced::Point::new(opening.x + beyond, opening.y)),
+    );
+    shoot(&mut app, &dir, "held-drag");
 }
 
 /// Writes headless screenshots of a play when OMASPEC_SNAPSHOT_DIR

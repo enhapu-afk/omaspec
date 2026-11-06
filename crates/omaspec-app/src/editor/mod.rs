@@ -501,11 +501,11 @@ const PALETTE: &[(&str, &str, Command)] = &[
     ),
     ("Skin: remove", "", Command::Skin(None)),
     (
-        "Lines by hand: reset the line at the caret",
+        "By hand: reset the line or box at the caret",
         "",
         Command::ResetLine,
     ),
-    ("Lines by hand: reset every line", "", Command::ResetLines),
+    ("By hand: reset every line and box", "", Command::ResetLines),
     ("Diagram theme: follow Omarchy", "", Command::FollowTheme),
     ("Collapse the block", "Ctrl+Shift+[", Command::Collapse),
     ("Expand the block", "Ctrl+Shift+]", Command::Expand),
@@ -1212,17 +1212,21 @@ impl App {
                 let step = matches!(message, paper::Message::Play(_));
                 let relight = key != compare::KEY && matches!(message, paper::Message::PlayGone);
                 let moves = paper::Paper::moves_view(&message);
-                let (task, by_hand) = match self.find(key) {
+                let (task, by_hand, held) = match self.find(key) {
                     Some(doc) => (
                         doc.paper
                             .update(message)
                             .map(move |m| Message::Paper(key, m)),
                         doc.paper.take_by_hand(),
+                        doc.paper.take_held(),
                     ),
-                    None => (Task::none(), None),
+                    None => (Task::none(), None, None),
                 };
                 if let Some(line) = by_hand {
                     return Task::batch([task, self.draw_by_hand(key, &line)]);
+                }
+                if let Some((name, hold)) = held {
+                    return Task::batch([task, self.hold_box(key, &name, hold.as_ref())]);
                 }
                 // The diagram a zoom leads to got its picture.
                 let arrived = if self.is_arriving(key) {
@@ -2262,9 +2266,39 @@ impl App {
         self.render(key, false)
     }
 
-    /// The line at the caret back to the way the layout gives it.
+    /// Holds the box `name` where `hold` says, or gives it back to the
+    /// layout, in the source, as one undo step (docs/adr/0021).
+    fn hold_box(
+        &mut self,
+        key: u64,
+        name: &str,
+        hold: Option<&omaspec_uml::hand::Hold>,
+    ) -> Task<Message> {
+        let Some(doc) = self.find(key) else {
+            return Task::none();
+        };
+        let language = doc.current_language();
+        let Some(edit) = omaspec_core::hand::hold(&doc.text(), language, name, hold) else {
+            doc.paper.held_unchanged();
+            return Task::none();
+        };
+        doc.replace(vec![edit]);
+        self.edited(key);
+        self.notice = Some(match hold {
+            Some(hold) => format!("{hold}: held in place (Ctrl+Z undoes it)"),
+            None => format!("{name} stands where the layout puts it again (Ctrl+Z undoes it)"),
+        });
+        self.render(key, false)
+    }
+
+    /// The line at the caret back to the way the layout gives it, or the
+    /// box whose entry is at the caret.
     fn reset_line(&mut self) -> Task<Message> {
         let row = self.doc().editor.cursor().row as usize;
+        if let Some(name) = self.doc().paper.place_on(row).map(|p| p.name.clone()) {
+            let doc = self.doc().key;
+            return self.hold_box(doc, &name, None);
+        }
         let found = self
             .doc()
             .paper
@@ -2290,16 +2324,16 @@ impl App {
         }
     }
 
-    /// Every line back to the way the layout gives it.
+    /// Every line and every box back to the way the layout gives them.
     fn reset_lines(&mut self) -> Task<Message> {
         let key = self.doc().key;
         let Some(edit) = omaspec_core::hand::clear(&self.doc().text()) else {
-            self.notice = Some("no line is drawn by hand".into());
+            self.notice = Some("no line is drawn by hand and no box held".into());
             return Task::none();
         };
         self.doc_mut().replace(vec![edit]);
         self.edited(key);
-        self.notice = Some("every line runs its own way again (Ctrl+Z undoes it)".into());
+        self.notice = Some("every line and box goes back to the layout (Ctrl+Z undoes it)".into());
         self.render(key, false)
     }
 

@@ -86,6 +86,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         &mut map,
     );
     map.wires = wires(&arrows, &scene, &diagram.frame.by_hand, skin.curve);
+    map.places = nest::places(&diagram.root, &scene, &diagram.frame.held);
     map.misses = misses;
     map.misses.extend(crate::hand::said(
         &diagram.frame.held,

@@ -13,6 +13,8 @@ pub struct Map {
     pub transitions: Vec<Route>,
     pub messages: Vec<Step>,
     pub wires: Vec<Wire>,
+    /// The boxes a writer may hold in place ([`Place`]).
+    pub places: Vec<Place>,
     /// The boxes of a map drawn as tiles that show other diagrams.
     pub tiles: Vec<Tile>,
     /// Entries of the block of lines by hand that did not hold: the
@@ -104,6 +106,24 @@ impl Wire {
             corners: corners.iter().map(|&p| Corner::of(p, span)).collect(),
         }
     }
+}
+
+/// A box of a graph diagram, which the writer may hold beside another
+/// ([0021](../../../docs/adr/0021-boxes-held-in-place.md)).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Place {
+    /// What the block of lines by hand calls it.
+    pub name: String,
+    pub rect: Rect,
+    /// The container it keeps to, by the indices of its members from the
+    /// top: only boxes of the same one stand in a rank with it.
+    pub within: Vec<usize>,
+    /// The ranks of that container run across the page, left to right,
+    /// rather than down it.
+    pub across: bool,
+    /// The zero-based line of the entry that holds it; none when the
+    /// layout places it.
+    pub entry: Option<usize>,
 }
 
 /// A state's box, or the mark of a pseudo state.
@@ -251,6 +271,9 @@ impl Map {
                 *rect = fit.rect(*rect);
             }
         }
+        for place in &mut self.places {
+            place.rect = fit.rect(place.rect);
+        }
         for tile in &mut self.tiles {
             tile.frame = fit.rect(tile.frame);
             tile.picture = fit.rect(tile.picture);
@@ -274,6 +297,9 @@ impl Map {
         for wire in &mut self.wires {
             wire.line = wire.line.map(|l| l + lines);
             wire.entry = wire.entry.map(|e| e + lines);
+        }
+        for place in &mut self.places {
+            place.entry = place.entry.map(|e| e + lines);
         }
         for (line, _) in &mut self.misses {
             *line += lines;

@@ -159,6 +159,50 @@ pub fn lay(
     misses
 }
 
+/// Every box under `top` a writer may hold in place
+/// ([0021](../../../../docs/adr/0021-boxes-held-in-place.md)): each with a
+/// name (`name`, by its path; a pseudo state's `[*]` or `[H]` is none), the
+/// container it keeps to and which way its ranks run (`across`, by the
+/// container's path), and the entry of `held` that holds it.
+pub fn places(
+    top: &[Placement],
+    name: impl Fn(&[usize]) -> String,
+    across: impl Fn(&[usize]) -> bool,
+    held: &[(usize, hand::Hold)],
+) -> Vec<crate::map::Place> {
+    fn walk(
+        level: &[Placement],
+        path: &mut Vec<usize>,
+        visit: &mut impl FnMut(&[usize], &Placement),
+    ) {
+        for (index, place) in level.iter().enumerate() {
+            path.push(index);
+            visit(path, place);
+            walk(&place.children, path, visit);
+            path.pop();
+        }
+    }
+    let mut out = Vec::new();
+    walk(top, &mut Vec::new(), &mut |path, place| {
+        let name = name(path);
+        if name.is_empty() || name.starts_with('[') {
+            return;
+        }
+        let within = path[..path.len() - 1].to_vec();
+        out.push(crate::map::Place {
+            entry: held
+                .iter()
+                .find(|(_, h)| h.name == name)
+                .map(|&(line, _)| line),
+            across: across(&within),
+            name,
+            rect: place.rect,
+            within,
+        });
+    });
+    out
+}
+
 fn end(place: &Placement) -> hand::End {
     hand::End {
         rect: place.rect,

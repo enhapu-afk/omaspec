@@ -89,6 +89,7 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
     let map = if mapped {
         let top = placements(&scene.nodes);
         Map {
+            places: places(&diagram.root, &top, &diagram.frame.held),
             wires: by_hand::wires(&top, &arrows, &scene, hands, |points| {
                 crate::curve::flatten(points, skin.curve)
             }),
@@ -144,18 +145,40 @@ fn arrows(root: &Group) -> Vec<(Arrow, Key)> {
     }
     let mut found = Vec::new();
     collect(root, &mut Vec::new(), &mut found);
-    by_hand::keyed(found, |path| {
+    by_hand::keyed(found, |path| key_at(root, path))
+}
+
+/// The key of the box at `path`.
+fn key_at(root: &Group, path: &[usize]) -> String {
+    let mut group = root;
+    let mut key = String::new();
+    for &index in path {
+        let Some(node) = group.nodes.get(index) else {
+            break;
+        };
+        key.clone_from(&node.key);
+        group = &node.children;
+    }
+    key
+}
+
+/// Every box a writer may hold in place, for the map (docs/adr/0021).
+fn places(
+    root: &Group,
+    top: &[Placement],
+    held: &[(usize, crate::hand::Hold)],
+) -> Vec<crate::map::Place> {
+    let across = |within: &[usize]| {
         let mut group = root;
-        let mut key = String::new();
-        for &index in path {
-            let Some(node) = group.nodes.get(index) else {
-                break;
-            };
-            key.clone_from(&node.key);
-            group = &node.children;
+        for &index in within {
+            match group.nodes.get(index) {
+                Some(node) => group = &node.children,
+                None => return false,
+            }
         }
-        key
-    })
+        group.direction == Direction::Right
+    };
+    by_hand::places(top, |path| key_at(root, path), across, held)
 }
 
 impl Laid for Scene {

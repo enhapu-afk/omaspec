@@ -1566,7 +1566,7 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       by side lost that corner as a spike (`hand::shape`); it turns there now.
       42 goldens changed, each looked at next to its old picture; render and
       scale timings unchanged.
-- [ ] Boxes held in place: a box dragged to where it should stay is kept in the
+- [x] Boxes held in place: a box dragged to where it should stay is kept in the
       block of [0016](docs/adr/0016-lines-by-hand.md), relative to its rank and
       neighbors rather than in coordinates, so it holds when a theme or a font
       changes a size; lines by hand on it move with it; an entry that no longer
@@ -1582,8 +1582,13 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       hold that cannot be kept is said and changes nothing), the entries
       (`hand::Hold`, read, written, linted), all five drawers of graph
       diagrams (states and structure in PlantUML, flowcharts, states and
-      classes in Mermaid), the findings in the map, and `rename`. Next: the
-      drag in the editor.
+      classes in Mermaid), the findings in the map, and `rename`. Then the
+      drag (2026-11-06, ADR accepted): the map's places (every named box, its
+      container and which way its ranks run), Alt and a drag on a box where no
+      line runs with its outline and the bar (`paper::held`), Alt and a double
+      click, the palette's *By hand* commands; headless snapshots
+      `held-lit` and `held-drag`. Two fixtures hold boxes; every other
+      picture stayed as it was.
 - [ ] Lines bundled where many end at one box, as Graphviz's `concentrate` does:
       when it bundles by itself and how a writer turns it off, in an ADR; measured
       in `tests/lines`.

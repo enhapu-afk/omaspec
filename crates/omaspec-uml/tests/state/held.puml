@@ -1,0 +1,15 @@
+@startuml
+title Held in place
+[*] --> Idle
+Idle --> Running : start
+Running --> Idle : stop
+Idle --> Paused : pause
+Paused --> Idle : resume
+Running --> Done : finish
+Paused --> Done : quit
+Done --> [*]
+
+' lines by hand (Omaspec)
+' Paused before Running
+' Done after Idle
+@enduml

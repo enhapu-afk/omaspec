@@ -1,6 +1,6 @@
 //! Concurrent regions, and transitions between containers.
 
-use super::super::{Container, Crossing, Kind, Split};
+use super::super::{Container, Crossing, Direction, Kind, Split};
 use super::{
     COMP_PAD, Item, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label, flat,
     layout_container,
@@ -315,6 +315,30 @@ pub(super) fn lay_by_hand(
     }
     let top = placements(&scene.nodes);
     by_hand::lay(&top, arrows, scene, hands)
+}
+
+/// Every state a writer may hold in place, for the map (docs/adr/0021).
+pub(super) fn places(
+    root: &Container,
+    scene: &Scene,
+    held: &[(usize, hand::Hold)],
+) -> Vec<crate::map::Place> {
+    let across = |within: &[usize]| {
+        let mut container = root;
+        for &index in within {
+            match container.nodes.get(index) {
+                Some(node) => container = &node.children,
+                None => return false,
+            }
+        }
+        container.direction == Direction::Right
+    };
+    by_hand::places(
+        &placements(&scene.nodes),
+        |path| name(root, path),
+        across,
+        held,
+    )
 }
 
 /// Every transition drawn, as a [`Wire`] for the map. `curve` is how far

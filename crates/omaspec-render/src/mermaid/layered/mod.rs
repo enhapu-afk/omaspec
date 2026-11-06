@@ -89,12 +89,42 @@ pub fn try_draw(
     map.wires = by_hand::wires(&top, &arrows, &laying, hands, |points| {
         omaspec_uml::curve::flatten(points, curve)
     });
+    map.places = places(&tree, &top, held);
     map.misses = misses;
     map.misses
         .extend(hand::said(held, &unplaced, &scene.all_unheld()));
     map.misses.sort();
     let map = map.placed(canvas.fit(MARGIN));
     Some((canvas.finish(MARGIN, Some(palette.background)), map))
+}
+
+/// Every box a writer may hold in place, for the map (docs/adr/0021): a
+/// node or a subgraph, by its id.
+fn places(
+    tree: &Tree,
+    top: &[omaspec_uml::graph::across::Placement],
+    held: &[(usize, hand::Hold)],
+) -> Vec<omaspec_uml::map::Place> {
+    let names: HashMap<&Vec<usize>, &String> =
+        tree.paths.iter().map(|(id, path)| (path, id)).collect();
+    let across = |within: &[usize]| {
+        let spot = if within.is_empty() {
+            Some(Spot::Root)
+        } else {
+            tree.spots.get(within).copied()
+        };
+        spot.is_some_and(|spot| axes(tree.flow(spot)).0 == graph::Direction::Right)
+    };
+    by_hand::places(
+        top,
+        |path| {
+            names
+                .get(&path.to_vec())
+                .map_or_else(String::new, |id| (*id).clone())
+        },
+        across,
+        held,
+    )
 }
 
 /// Gives each container of `tree` the boxes of `held` it holds both of,

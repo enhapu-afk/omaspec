@@ -6,13 +6,15 @@
 //! new picture fades in over the one before. A state machine or a scenario
 //! can be played in it ([`play`]). The name under the caret lights on the
 //! sheet, in the theme accent, and glides there the way a zoom does. With
-//! Alt, a line can be drawn by hand ([`hand`]).
+//! Alt, a line can be drawn by hand ([`hand`]), and a box held in place
+//! ([`held`]).
 
 mod canvas;
 mod cards;
 mod find;
 pub(crate) mod frames;
 mod hand;
+mod held;
 mod passage;
 mod play;
 mod raster;
@@ -170,6 +172,10 @@ pub struct Paper {
     /// The latest request when the hand's bends were sent: a picture asked
     /// for after it has them.
     hand_sent_at: u64,
+    /// The box lit with Alt, or held by the pointer (docs/adr/0021).
+    grab: Option<held::Grab>,
+    /// A box dropped, with the entry to write into the source.
+    grab_done: Option<held::Drop>,
     /// Pixels that came while the view glided, to replace those on screen
     /// once it stops: shown at once, the frame that first draws them comes
     /// late (`OMASPEC_FRAMES` showed a 16-megapixel overview cost one).
@@ -206,6 +212,8 @@ impl Default for Paper {
             hand: None,
             by_hand_done: None,
             hand_sent_at: 0,
+            grab: None,
+            grab_done: None,
             held_overview: None,
             held_detail: None,
         }
@@ -381,6 +389,10 @@ impl Paper {
                     (Some(hand), Some(old)) => hand.redrawn(&old.drawn.map, &drawn.map, theirs),
                     _ => None,
                 };
+                self.grab = match (self.grab.take(), &self.diagram) {
+                    (Some(grab), Some(old)) => grab.redrawn(&old.drawn.map, &drawn.map, theirs),
+                    _ => None,
+                };
                 // A changed diagram ends its play; the same one drawn again
                 // (in a new theme or font) keeps it, in the new places.
                 if let Some(play) = &mut self.play {
@@ -423,6 +435,9 @@ impl Paper {
                 // The bends sent did not draw; the old picture stays.
                 if id > self.hand_sent_at && self.hand.as_ref().is_some_and(|h| h.sent) {
                     self.hand = None;
+                }
+                if id > self.hand_sent_at && self.grab.as_ref().is_some_and(|g| g.sent) {
+                    self.grab = None;
                 }
                 if latest {
                     self.status = Status::Failed(err);
@@ -559,6 +574,7 @@ impl Paper {
             Message::Hand(gesture) => {
                 let Some(diagram) = self.diagram.as_ref().filter(|_| self.drawable()) else {
                     self.hand = None;
+                    self.grab = None;
                     return Task::none();
                 };
                 let map = Arc::clone(&diagram.drawn.map);
@@ -567,6 +583,45 @@ impl Paper {
                     let p = view.to_diagram(at, viewport);
                     (p.x, p.y)
                 };
+                // A box under no line takes the gesture, and keeps it
+                // while it is dragged (docs/adr/0021).
+                let reach = hand::reach(view.zoom);
+                let on_box = |at: Point| {
+                    let p = to_diagram(at);
+                    hand::wire_at(&map, p, reach).is_none() && held::place_at(&map, p).is_some()
+                };
+                let to_box = match gesture {
+                    Gesture::Hover(Some(at)) | Gesture::Press(at) | Gesture::Double(at) => {
+                        self.hand
+                            .as_ref()
+                            .is_none_or(|h| h.drag.is_none() && !h.sent)
+                            && on_box(at)
+                    }
+                    Gesture::Hover(None) => true,
+                    Gesture::Move(_) | Gesture::Release | Gesture::Cancel => {
+                        self.grab.as_ref().is_some_and(|g| g.drag.is_some())
+                    }
+                };
+                if to_box {
+                    if !matches!(gesture, Gesture::Hover(None)) {
+                        self.hand = None;
+                    }
+                    if let Some(drop) = held::Grab::gesture(
+                        &mut self.grab,
+                        gesture,
+                        &map,
+                        to_diagram,
+                        held::slop(view.zoom),
+                    ) {
+                        self.grab_done = Some(drop);
+                        self.hand_sent_at = self.requested;
+                    }
+                    if !matches!(gesture, Gesture::Hover(None)) {
+                        return Task::none();
+                    }
+                } else if self.grab.as_ref().is_some_and(|g| !g.sent) {
+                    self.grab = None;
+                }
                 if let Some(line) = hand::Hand::gesture(
                     &mut self.hand,
                     gesture,
@@ -586,6 +641,26 @@ impl Paper {
     /// source; once.
     pub fn take_by_hand(&mut self) -> Option<omaspec_uml::hand::Line> {
         self.by_hand_done.take()
+    }
+
+    /// The box just dropped, with the entry to write into the source (or
+    /// to take out); once.
+    pub fn take_held(&mut self) -> Option<(String, Option<omaspec_uml::hand::Hold>)> {
+        self.grab_done.take().map(|drop| (drop.name, drop.hold))
+    }
+
+    /// The entry just taken changed nothing in the source: the box is lit
+    /// as it is drawn.
+    pub fn held_unchanged(&mut self) {
+        if let Some(grab) = &mut self.grab {
+            grab.sent = false;
+        }
+    }
+
+    /// The box held by the entry on `row` of the source.
+    pub fn place_on(&self, row: usize) -> Option<&omaspec_uml::map::Place> {
+        let map = &self.diagram.as_ref()?.drawn.map;
+        map.places.iter().find(|p| p.entry == Some(row))
     }
 
     /// The corners just taken changed nothing in the source: no picture
@@ -1317,7 +1392,11 @@ impl Paper {
                 font,
                 scale: self.scale_factor,
                 by_hand: self.drawable(),
-                hand_cursor: self.hand.as_ref().map(hand::Hand::cursor),
+                hand_cursor: self
+                    .hand
+                    .as_ref()
+                    .map(hand::Hand::cursor)
+                    .or(self.grab.as_ref().map(held::Grab::cursor)),
                 links: self.followable(),
             })
             .driving(motion),
@@ -1346,6 +1425,21 @@ impl Paper {
                     glide: self.glide,
                     accent: ui::color(p.accent),
                     paper: ui::color(p.background),
+                }))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into(),
+            ),
+            _ => None,
+        };
+        let grab = match (&self.grab, &self.diagram) {
+            (Some(grab), Some(diagram)) if self.overview.shown.is_some() => Some(
+                Canvas::new(Timed::new(held::HeldLayer {
+                    grab,
+                    map: &diagram.drawn.map,
+                    view: self.view,
+                    glide: self.glide,
+                    accent: ui::color(p.accent),
                 }))
                 .width(Length::Fill)
                 .height(Length::Fill)
@@ -1399,7 +1493,7 @@ impl Paper {
             (&self.play, &self.diagram, self.overview.shown.as_ref())
         else {
             return container(Stack::with_children(
-                [Some(canvas), marks, light, hand, passage, edge]
+                [Some(canvas), marks, light, hand, grab, passage, edge]
                     .into_iter()
                     .flatten(),
             ))
@@ -1981,6 +2075,22 @@ pub mod testing {
 
         /// Where the line `key` draws runs, half way along its longest run,
         /// in the pane; and the way down the pane, across that run.
+        /// Where the middle of the box `name` is on screen.
+        pub fn screen_of_box(&self, name: &str) -> Point {
+            let map = &self.diagram.as_ref().unwrap().drawn.map;
+            let place = map
+                .places
+                .iter()
+                .find(|p| p.name == name)
+                .unwrap_or_else(|| panic!("no box {name}"));
+            let r = place.rect;
+            let middle = Point::new(r.x + r.w / 2.0, r.y + r.h / 2.0);
+            let pane = iced::Rectangle::with_size(self.viewport);
+            self.view
+                .on_screen(iced::Rectangle::new(middle, Size::ZERO), pane)
+                .position()
+        }
+
         pub fn screen_of_line(&self, key: &str) -> (Point, Vector) {
             let map = &self.diagram.as_ref().unwrap().drawn.map;
             let wire = map

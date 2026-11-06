@@ -190,8 +190,8 @@ on either side with it. While you drag, the line shows exactly how it will be dr
 router lays it again, so what you let go is what stays. A straight line dragged sideways
 slides along the sides of its boxes while it can, and steps around them when it cannot.
 Alt and a double click gives the line back to the layout. Escape stops a drag, and Ctrl+Z
-takes one back. The palette's *Lines by hand* commands reset the line at the caret, or
-every line.
+takes one back. The palette's *By hand* commands reset the line (or the box) at the caret,
+or every line and box.
 
 The shape goes into the source as comments at the end of the diagram, so it travels with
 the file, its copies and its images, and PlantUML and Mermaid read past it:
@@ -211,6 +211,29 @@ left out and shows among the findings, and so does a line that runs through a bo
 by hand work in state, class, component, use case, deployment and object diagrams and in
 Mermaid flowcharts; the preview window shows them but leaves the dragging to the editor.
 Why it works this way: [ADR 0016](../adr/0016-lines-by-hand.md).
+
+### Boxes held in place
+
+A box can be moved too, to a place among the others. Hold **Alt** over a box (where no
+line runs) and it lights; Alt and a drag takes its outline along, and a bar shows where it
+would go: between two boxes of the rank nearest the pointer. Let go, and the box stays
+there, beside its neighbor. The same block keeps it:
+
+```plantuml
+' lines by hand (Omaspec)
+' Paused before Running
+' Error after Idle
+```
+
+`Paused before Running` keeps *Paused* in the rank of *Running*, right before it (left of
+it when the flow runs down, above it when it runs across); `after`, right after it. No
+coordinates are kept, so the box holds its place in any theme and font, and when the
+diagram grows. Lines by hand on it move with it. A box stays in its container, and a
+box joined to another by a line cannot stand in its rank; where an entry cannot hold, a
+name is gone, or two entries go round, the box stands where the layout puts it and the
+entry shows among the findings. Alt and a double click gives the box back to the
+layout. Renaming a state renames it in the block too. Why it works this way:
+[ADR 0021](../adr/0021-boxes-held-in-place.md).
 
 ### Examples
 
