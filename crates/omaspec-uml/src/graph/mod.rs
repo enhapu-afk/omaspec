@@ -80,6 +80,9 @@ pub struct Edge {
     /// Stays out of a bundle ([`bundle`]): the writer kept this line, or
     /// a box it meets, apart.
     pub apart: bool,
+    /// A mark at an end, a multiplicity. It sits on the stem, so the line
+    /// stays out of a trunk.
+    pub marked: bool,
 }
 
 /// A frame around some boxes of a layout: a container laid out with
@@ -1710,6 +1713,7 @@ mod tests {
             label_height: 0.0,
             hidden: false,
             apart: false,
+            marked: false,
         }
     }
 

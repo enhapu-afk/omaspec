@@ -163,6 +163,7 @@ mod tests {
                         label_height: 0.0,
                         hidden: false,
                         apart: false,
+                        marked: false,
                     }
                 })
                 .filter(|e| e.from != e.to)

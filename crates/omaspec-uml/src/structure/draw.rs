@@ -1931,15 +1931,36 @@ mod tests {
             .map(|edge| edge.points.last().unwrap().0)
             .collect();
         xs.sort_by(f32::total_cmp);
-        // A line with a label keeps its own arrival, so these stay apart.
-        // What does bundle shares a point; nothing lands in between.
-        assert!(
-            xs.windows(2).all(|pair| {
-                let gap = pair[1] - pair[0];
-                gap < 0.5 || gap > 4.0
-            }),
-            "{xs:?}"
+        // A line with a label keeps its own arrival.
+        assert!(xs.windows(2).all(|pair| pair[1] - pair[0] > 4.0), "{xs:?}");
+    }
+
+    /// Two multiplicities into one box stay on their own arrivals. On one
+    /// trunk the marks would cover each other: the placer knows only its
+    /// own line.
+    #[test]
+    fn multiplicities_into_one_box_stay_apart() {
+        let scene = scene_of(
+            "@startuml\nclass A\nclass B\nclass C\nA --> \"1\" C\nB --> \"*\" C\n@enduml\n",
         );
+        let ends: Vec<f32> = scene
+            .edges
+            .iter()
+            .map(|edge| edge.points.last().unwrap().0)
+            .collect();
+        assert!(
+            (ends[0] - ends[1]).abs() > 4.0,
+            "each multiplicity keeps its arrival: {ends:?}"
+        );
+        let marks: Vec<Rect> = scene
+            .edges
+            .iter()
+            .flat_map(|edge| card_rects(edge, &[]))
+            .collect();
+        assert_eq!(marks.len(), 2, "{marks:?}");
+        let (a, b) = (marks[0], marks[1]);
+        let overlaps = a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+        assert!(!overlaps, "{marks:?}");
     }
 
     /// As Graphviz ranks clusters: a package moves down only as far as its

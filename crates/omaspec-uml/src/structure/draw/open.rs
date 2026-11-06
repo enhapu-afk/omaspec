@@ -69,6 +69,20 @@ impl<'a> Nested for Elements<'a> {
         group.apart.clone()
     }
 
+    fn marked(&self, group: &'a Group, index: usize) -> bool {
+        let arrow = match group.edges.get(index) {
+            Some(edge) => edge,
+            None => match group.crossings.get(index - group.edges.len()) {
+                Some(crossing) => &crossing.arrow,
+                None => return false,
+            },
+        };
+        let written = |text: &Option<crate::common::Text>| {
+            text.as_ref().is_some_and(|text| !text.value.is_empty())
+        };
+        written(&arrow.from_card) || written(&arrow.to_card)
+    }
+
     fn flow(&self, group: &'a Group) -> (graph::Direction, bool) {
         (graph_direction(group.direction), false)
     }

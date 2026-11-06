@@ -32,12 +32,13 @@ pixels beside the box.
    at least 10 units in from a corner of the side.
 2. **Some lines stay on their own arrival.** A line with words on it: the
    words sit on the run beside the box (0020), and several of them on one
-   trunk would pile up, which `tests/lines` counts. A line the writer kept
-   apart. Two lines between the same two boxes, each with its own arrow
-   and its own label. A line that leaves a box, so two boxes that overlap
-   across the flow are still joined by a straight line (0012). A
-   self-loop, a line into a circle or a diamond, and a line that ends on a
-   frame.
+   trunk would pile up, which `tests/lines` counts. A line with a
+   multiplicity at either end: the mark sits on the stem, and two of them
+   on one trunk pile up the same way. A line the writer kept apart. Two
+   lines between the same two boxes, each with its own arrow and its own
+   label. A line that leaves a box, so two boxes that overlap across the
+   flow are still joined by a straight line (0012). A self-loop, a line
+   into a circle or a diamond, and a line that ends on a frame.
 3. **A trunk that would cross, or jog, is left undrawn.** Before a trunk
    is kept, the lines of that one layout are checked against it. A corner
    that only touches, and a run two lines already share, do not count as a
@@ -58,8 +59,7 @@ pixels beside the box.
 5. **A line by hand is drawn as written.** It counts while the trunk is
    chosen, and then its own corners replace the route, as 0016 already
    does.
-6. **Arrowheads on one trunk stack.** The later line covers the stem. A
-   multiplicity at an end moves with the stem.
+6. **Arrowheads on one trunk stack.** The later line covers the stem.
 
 ## Why
 
@@ -100,12 +100,14 @@ intentional.
 ## How it is checked
 
 - `graph::bundle`: three lines into one box arrive as one; a labelled
-  line, a line kept apart, and two lines between the same boxes keep their
-  own arrivals; lines that leave a box stay spread.
+  line, a line with a mark at an end, a line kept apart, and two lines
+  between the same boxes keep their own arrivals; lines that leave a box
+  stay spread.
 - `graph::nest`: of the lines into the rules of the smart home, a pair
   shares a trunk, and a point a short step away stays on its own.
 - The structure drawer: the labelled lines into the hub each keep their
-  arrival, clear of its name.
+  arrival, clear of its name, and two multiplicities into one box stay
+  apart, their marks clear of each other.
 - `tests/lines`, and the golden SVGs. Seven changed, where a line turns
   onto a trunk (`flow-directions.mmd`, `flow-held.mmd`, `flow-rl.mmd`,
   `state-pseudo.mmd`, `pipeline.mmd`, `states.puml`, `class.puml`), and

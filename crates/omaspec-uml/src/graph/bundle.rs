@@ -5,9 +5,10 @@
 //! The points of a line stay where the layout put them, so no box moves.
 //! A line with words on it keeps its own arrival: those words sit on the
 //! run beside the box ([0020](../../../../docs/adr/0020-room-for-labels.md)),
-//! and several of them on one trunk would pile up. What is shared, for a
-//! line that carries no words, is the last stem, the few pixels beside
-//! the box. Each such line keeps the run it has through the ranks and
+//! and several of them on one trunk would pile up. A mark at an end, a
+//! multiplicity, sits on the stem and stays off the trunk for the same
+//! reason. What is shared, for a line that carries neither, is the last
+//! stem, the few pixels beside the box. Each such line keeps the run it has through the ranks and
 //! turns onto the trunk only as it arrives. A line that leaves a box
 //! stays on its own, so two boxes that overlap across the flow are still
 //! joined by a straight line.
@@ -88,6 +89,7 @@ fn arrives(index: usize, edges: &[Edge], chains: &[Vec<usize>], nodes: &[Node]) 
         && edge.from != edge.to
         && !edge.hidden
         && !edge.apart
+        && !edge.marked
         && edge.label_width == 0.0
         && edge.label_height == 0.0
         && nodes[edge.to].flat
@@ -446,6 +448,7 @@ mod tests {
             label_height: 0.0,
             hidden: false,
             apart: false,
+            marked: false,
         }
     }
 
@@ -484,6 +487,18 @@ mod tests {
         for edge in &mut edges {
             edge.label_width = 36.0;
             edge.label_height = 12.0;
+        }
+        let at = heads(&edges);
+        let span = at.iter().copied().fold(f32::MIN, f32::max)
+            - at.iter().copied().fold(f32::MAX, f32::min);
+        assert!(span >= super::super::PORT_STEP - 0.1, "{at:?}");
+    }
+
+    #[test]
+    fn a_mark_at_an_end_keeps_its_own_arrival() {
+        let mut edges = [edge(0, 3), edge(1, 3), edge(2, 3)];
+        for edge in &mut edges {
+            edge.marked = true;
         }
         let at = heads(&edges);
         let span = at.iter().copied().fold(f32::MIN, f32::max)

@@ -161,6 +161,11 @@ pub trait Nested {
     fn apart_at(&self, _container: Self::Container) -> Vec<usize> {
         Vec::new()
     }
+    /// Line `index` carries a mark at an end (a multiplicity). The mark
+    /// sits on the stem, so the line stays out of a trunk.
+    fn marked(&self, _container: Self::Container, _index: usize) -> bool {
+        false
+    }
     /// The room the members keep for notes.
     fn rooms(&self, _container: Self::Container) -> Result<Vec<(usize, Room)>, Self::Error> {
         Ok(Vec::new())
@@ -595,6 +600,7 @@ impl<C: Nested> Flat<C> {
                 label_height: label.height,
                 hidden: !drawn,
                 apart: apart.contains(&from) || apart.contains(&to),
+                marked: cx.marked(container, index),
             });
             level.push(Pending {
                 at: self.edges.len() - 1,
