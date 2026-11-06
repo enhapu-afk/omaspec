@@ -42,7 +42,8 @@ const HEAD_HALF: f32 = 4.0;
 const WRAP: f32 = 200.0;
 
 /// The SVG and its map: its lines, which `hands` may have drawn by hand
-/// (docs/adr/0016). `None` when this drawer leaves the diagram to mmdr.
+/// (docs/adr/0016), and its boxes, which `held` may hold in place
+/// (docs/adr/0021). `None` when this drawer leaves the diagram to mmdr.
 /// `source` is what mmdr parsed, for what its graph does not keep. The
 /// lines' corners curve by up to `curve`.
 pub fn try_draw(
@@ -50,11 +51,14 @@ pub fn try_draw(
     theme: &Theme,
     source: &str,
     hands: &[(usize, hand::Line)],
+    held: &[(usize, hand::Hold)],
     curve: f32,
 ) -> Option<(String, Map)> {
     let mut repaired = None;
     let (graph, fix) = flowchart::apply(graph, source, &mut repaired)?;
-    let tree = prepare(graph, source, &fix)?;
+    let mut tree = prepare(graph, source, &fix)?;
+    // Boxes held in place, by the container that holds both.
+    let unplaced = hold_boxes(&mut tree, held);
     let palette = palette(theme)?;
     let family = Family::of(&theme.font_family);
     let mut scene = layout_spot(&tree, Spot::Root, &palette, family)?;
@@ -86,8 +90,40 @@ pub fn try_draw(
         omaspec_uml::curve::flatten(points, curve)
     });
     map.misses = misses;
+    map.misses
+        .extend(hand::said(held, &unplaced, &scene.all_unheld()));
+    map.misses.sort();
     let map = map.placed(canvas.fit(MARGIN));
     Some((canvas.finish(MARGIN, Some(palette.background)), map))
+}
+
+/// Gives each container of `tree` the boxes of `held` it holds both of,
+/// by their ids; returns the entries that name no box, or two in
+/// different containers.
+fn hold_boxes(tree: &mut Tree, held: &[(usize, hand::Hold)]) -> Vec<(usize, String)> {
+    if held.is_empty() {
+        return Vec::new();
+    }
+    let places: HashMap<String, (Vec<usize>, usize)> = tree
+        .paths
+        .iter()
+        .filter_map(|(id, path)| {
+            let (&index, container) = path.split_last()?;
+            Some((id.clone(), (container.to_vec(), index)))
+        })
+        .collect();
+    let (sorted, misses) = omaspec_uml::graph::hold::sort(held, &places);
+    for (path, holds) in sorted {
+        let spot = if path.is_empty() {
+            Some(Spot::Root)
+        } else {
+            tree.spots.get(&path).copied()
+        };
+        if let Some(spot) = spot {
+            tree.held.insert(spot, holds);
+        }
+    }
+    misses
 }
 
 /// Every line drawn, with what the block of lines by hand calls it: a
@@ -227,6 +263,8 @@ struct Tree<'a> {
     /// `click … href`: the address a click on a node opens, read from the
     /// source, as mmdr takes a callback's name for an address.
     links: HashMap<String, Link>,
+    /// The boxes held beside others, by the container that holds both.
+    held: HashMap<Spot, Vec<omaspec_uml::graph::hold::Held>>,
 }
 
 /// Where a transition is laid out: the container that holds both ends,
@@ -300,6 +338,7 @@ fn prepare<'a>(graph: &'a Graph, source: &str, fix: &flowchart::Fix) -> Option<T
         kinds,
         paths: HashMap::new(),
         spots: HashMap::new(),
+        held: HashMap::new(),
         meets: Vec::new(),
         links: source
             .lines()

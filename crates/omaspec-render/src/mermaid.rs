@@ -114,6 +114,7 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
 
     // Lines by hand (docs/adr/0016), on the lines of the fenced text.
     let hands = omaspec_uml::hand::numbered(fenced);
+    let held = omaspec_uml::hand::held(fenced);
     let joined = one_line_init(fenced);
     // A note over several lines (`note right of X` … `end note`) is not a
     // construct mmdr reads. Joined onto one line, the same note is drawn.
@@ -152,7 +153,7 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
         let curve = flowchart_curve(init.as_ref());
         let flowchart = parsed.graph.kind == DiagramKind::Flowchart;
         if let Some((svg, map)) = flowchart
-            .then(|| layered::try_draw(&parsed.graph, &options.theme, body, &hands, curve))
+            .then(|| layered::try_draw(&parsed.graph, &options.theme, body, &hands, &held, curve))
             .flatten()
         {
             return Ok(Drawn {

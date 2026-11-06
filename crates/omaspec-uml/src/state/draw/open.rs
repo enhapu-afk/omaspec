@@ -49,6 +49,10 @@ impl<'a> Nested for States<'a> {
         opens.then_some(inner)
     }
 
+    fn holds(&self, container: &'a Container) -> Vec<graph::hold::Held> {
+        container.held.clone()
+    }
+
     fn flow(&self, container: &'a Container) -> (graph::Direction, bool) {
         (graph_direction(container.direction), container.mirrored)
     }

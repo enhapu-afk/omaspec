@@ -17,6 +17,7 @@
 
 use std::collections::{HashMap, HashSet};
 
+use super::hold::{Held, Hold, Unheld};
 use super::{Direction, Edge, Frame, Layout, Node, Rect, framed, route};
 use crate::text::Block;
 
@@ -38,6 +39,10 @@ pub struct Scene<N, E> {
     pub notes: Vec<Note>,
     pub width: f32,
     pub height: f32,
+    /// The boxes held ([`Nested::holds`]) that this layout could not keep,
+    /// by the line of each entry, and why; the scenes of the boxes laid
+    /// out on their own inside hold their own ([`Scene::unheld`]).
+    pub unheld: Vec<(usize, Unheld)>,
 }
 
 /// A box placed, or a frame around what an opened container holds.
@@ -141,6 +146,12 @@ pub trait Nested {
         container: Self::Container,
         index: usize,
     ) -> Result<(Block, Self::Look), Self::Error>;
+    /// The boxes of `container` held beside others
+    /// ([0021](../../../../docs/adr/0021-boxes-held-in-place.md)), in the
+    /// order of their entries.
+    fn holds(&self, _container: Self::Container) -> Vec<Held> {
+        Vec::new()
+    }
     /// The room the members keep for notes.
     fn rooms(&self, _container: Self::Container) -> Result<Vec<(usize, Room)>, Self::Error> {
         Ok(Vec::new())
@@ -174,7 +185,19 @@ impl<N, E> Scene<N, E> {
             notes: Vec::new(),
             width: 0.0,
             height: 0.0,
+            unheld: Vec::new(),
         }
+    }
+
+    /// The holds not kept here and in every box laid out inside, by the
+    /// line of each entry.
+    pub fn all_unheld(&self) -> Vec<(usize, Unheld)> {
+        let mut out = self.unheld.clone();
+        for node in &self.nodes {
+            out.extend(node.children.all_unheld());
+        }
+        out.sort_by_key(|&(line, _)| line);
+        out
     }
 
     pub fn offset(&mut self, dx: f32, dy: f32) {
@@ -273,8 +296,18 @@ pub fn layout<C: Nested>(cx: &C, top: C::Container) -> Result<Scene<C::Item, C::
     };
     flat.gather(cx, top, &mut Vec::new(), None)?;
     flat.join(cx, top, &mut Vec::new(), axis)?;
-    let laid = framed(&flat.nodes, &flat.frames, &flat.within, &flat.edges, axis);
+    let (holds, lines, mut unheld) = flat.holds(cx);
+    let laid = framed(
+        &flat.nodes,
+        &flat.frames,
+        &flat.within,
+        &flat.edges,
+        &holds,
+        axis,
+    );
+    unheld.extend(laid.unheld.iter().map(|&(at, why)| (lines[at], why)));
     let mut scene = flat.assemble(cx, top, &mut Vec::new(), &laid);
+    scene.unheld = unheld;
     if mirrored {
         match axis {
             Direction::Down => flip_y(&mut scene, laid.height),
@@ -435,6 +468,33 @@ impl<C: Nested> Flat<C> {
             path.pop();
         }
         Ok(())
+    }
+
+    /// The holds of every container this layout lays out, as the layout's
+    /// boxes, with the line of each; and those that cannot be, a container
+    /// laid out here being held.
+    fn holds(&self, cx: &C) -> (Vec<Hold>, Vec<usize>, Vec<(usize, Unheld)>) {
+        let mut paths: Vec<&Vec<usize>> = self.containers.keys().collect();
+        paths.sort();
+        let (mut holds, mut lines, mut unheld) = (Vec::new(), Vec::new(), Vec::new());
+        for path in paths {
+            for held in cx.holds(self.containers[path]) {
+                let end = |index: usize| self.ends.get(&[path.as_slice(), &[index]].concat());
+                match (end(held.index), end(held.beside)) {
+                    (Some(&End::Node(node)), Some(&End::Node(beside))) => {
+                        holds.push(Hold {
+                            node,
+                            beside,
+                            after: held.after,
+                        });
+                        lines.push(held.line);
+                    }
+                    (Some(_), Some(_)) => unheld.push((held.line, Unheld::Frame)),
+                    _ => unheld.push((held.line, Unheld::Missing)),
+                }
+            }
+        }
+        (holds, lines, unheld)
     }
 
     /// The layout's index of the member at `path`.
@@ -627,6 +687,7 @@ impl<C: Nested> Flat<C> {
             notes: Vec::new(),
             width: 0.0,
             height: 0.0,
+            unheld: Vec::new(),
         }
     }
 

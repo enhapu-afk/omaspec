@@ -92,7 +92,16 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
             wires: by_hand::wires(&top, &arrows, &scene, hands, |points| {
                 crate::curve::flatten(points, skin.curve)
             }),
-            misses,
+            misses: {
+                let mut misses = misses;
+                misses.extend(crate::hand::said(
+                    &diagram.frame.held,
+                    &diagram.frame.unplaced,
+                    &scene.all_unheld(),
+                ));
+                misses.sort();
+                misses
+            },
             ..Map::default()
         }
         .placed(canvas.fit(MARGIN))

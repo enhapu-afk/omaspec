@@ -45,6 +45,45 @@ pub struct Container {
     /// Set when the state is split into concurrent regions: then every
     /// node here is a [`Kind::Region`].
     pub split: Option<Split>,
+    /// Its states the writer held beside others ([`Container::hold`]).
+    pub held: Vec<crate::graph::hold::Held>,
+}
+
+impl Container {
+    /// Gives each container the states of `held` it holds both of
+    /// ([0021](../../../docs/adr/0021-boxes-held-in-place.md)), by their
+    /// keys; returns the entries that name no state, or two in different
+    /// containers. A start, an end or a history has no key to hold it by.
+    pub fn hold(&mut self, held: &[(usize, crate::hand::Hold)]) -> Vec<(usize, String)> {
+        fn places(
+            container: &Container,
+            path: &mut Vec<usize>,
+            out: &mut std::collections::HashMap<String, (Vec<usize>, usize)>,
+        ) {
+            for (index, node) in container.nodes.iter().enumerate() {
+                if !node.key.is_empty() {
+                    out.entry(node.key.clone()).or_insert((path.clone(), index));
+                }
+                path.push(index);
+                places(&node.children, path, out);
+                path.pop();
+            }
+        }
+        if held.is_empty() {
+            return Vec::new();
+        }
+        let mut found = Default::default();
+        places(self, &mut Vec::new(), &mut found);
+        let (sorted, misses) = crate::graph::hold::sort(held, &found);
+        for (path, holds) in sorted {
+            let mut container = &mut *self;
+            for &index in &path {
+                container = &mut container.nodes[index].children;
+            }
+            container.held = holds;
+        }
+        misses
+    }
 }
 
 impl Default for Container {
@@ -57,6 +96,7 @@ impl Default for Container {
             direction: Direction::Down,
             mirrored: false,
             split: None,
+            held: Vec::new(),
         }
     }
 }

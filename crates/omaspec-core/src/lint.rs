@@ -120,28 +120,29 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
 }
 
 /// Entries of the block of lines by hand that do not read, and a second
-/// entry for the same line: the drawing leaves both out.
+/// entry for the same line or the same box: the drawing leaves both out.
 fn lines_by_hand(code: &str, findings: &mut Vec<Finding>) {
+    use omaspec_uml::hand::Hand;
     let Some(block) = omaspec_uml::hand::read(code) else {
         return;
     };
     let mut seen = HashSet::new();
+    let mut held = HashSet::new();
     for entry in &block.entries {
-        match &entry.read {
-            Err(why) => findings.push(Finding::new(
-                entry.line,
-                Severity::Warning,
-                format!("{}. This line by hand is left out", capitalized(why)),
+        let said = match &entry.read {
+            Err(why) => Some(format!("{}. This entry is left out", capitalized(why))),
+            Ok(Hand::Line(line)) if !seen.insert(line.key.clone()) => Some(format!(
+                "{} has its shape above already; this one is left out",
+                line.key
             )),
-            Ok(line) if !seen.insert(line.key.clone()) => findings.push(Finding::new(
-                entry.line,
-                Severity::Warning,
-                format!(
-                    "{} has its shape above already; this one is left out",
-                    line.key
-                ),
+            Ok(Hand::Hold(hold)) if !held.insert(hold.name.clone()) => Some(format!(
+                "{} is held in place above already; this entry is left out",
+                hold.name
             )),
-            Ok(_) => {}
+            Ok(_) => None,
+        };
+        if let Some(said) = said {
+            findings.push(Finding::new(entry.line, Severity::Warning, said));
         }
     }
 }
@@ -797,7 +798,7 @@ mod tests {
 
     #[test]
     fn lines_by_hand_that_do_not_read_or_come_twice() {
-        let code = "@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B at 0.5 -60\n' A -> B at 0.2 1\n' B -> A at 0.5\n@enduml\n";
+        let code = "@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B at 0.5 -60\n' A -> B at 0.2 1\n' B -> A at 0.5\n' C after A\n' C before B\n' C after\n@enduml\n";
         assert_eq!(
             messages(code, Language::PlantUml),
             [
@@ -809,7 +810,18 @@ mod tests {
                 (
                     6,
                     Severity::Warning,
-                    "A corner is two numbers, across and down. This line by hand is left out"
+                    "A corner is two numbers, across and down. This entry is left out".into()
+                ),
+                (
+                    8,
+                    Severity::Warning,
+                    "C is held in place above already; this entry is left out".into()
+                ),
+                (
+                    9,
+                    Severity::Warning,
+                    "A box held in place reads `Box after Neighbor` or `Box before Neighbor`. \
+                     This entry is left out"
                         .into()
                 ),
             ]

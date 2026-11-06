@@ -34,6 +34,45 @@ pub struct Group {
     pub crossings: Vec<Crossing>,
     pub notes: Vec<Note>,
     pub direction: Direction,
+    /// Its boxes the writer held beside others ([`Group::hold`]).
+    pub held: Vec<crate::graph::hold::Held>,
+}
+
+impl Group {
+    /// Gives each group the boxes of `held` it holds both of
+    /// ([0021](../../../docs/adr/0021-boxes-held-in-place.md)), by their
+    /// keys; returns the entries that name no box, or two in different
+    /// groups.
+    pub fn hold(&mut self, held: &[(usize, crate::hand::Hold)]) -> Vec<(usize, String)> {
+        fn places(
+            group: &Group,
+            path: &mut Vec<usize>,
+            out: &mut std::collections::HashMap<String, (Vec<usize>, usize)>,
+        ) {
+            for (index, node) in group.nodes.iter().enumerate() {
+                if !node.key.is_empty() {
+                    out.entry(node.key.clone()).or_insert((path.clone(), index));
+                }
+                path.push(index);
+                places(&node.children, path, out);
+                path.pop();
+            }
+        }
+        if held.is_empty() {
+            return Vec::new();
+        }
+        let mut found = Default::default();
+        places(self, &mut Vec::new(), &mut found);
+        let (sorted, misses) = crate::graph::hold::sort(held, &found);
+        for (path, holds) in sorted {
+            let mut group = &mut *self;
+            for &index in &path {
+                group = &mut group.nodes[index].children;
+            }
+            group.held = holds;
+        }
+        misses
+    }
 }
 
 impl Default for Group {
@@ -44,6 +83,7 @@ impl Default for Group {
             crossings: Vec::new(),
             notes: Vec::new(),
             direction: Direction::Down,
+            held: Vec::new(),
         }
     }
 }

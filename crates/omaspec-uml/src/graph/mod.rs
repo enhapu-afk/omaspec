@@ -41,6 +41,7 @@
 pub mod across;
 pub mod by_hand;
 mod doubled;
+pub mod hold;
 mod nest;
 pub mod open;
 mod order;
@@ -159,6 +160,8 @@ pub struct Layout {
     pub frames: Vec<Rect>,
     pub width: f32,
     pub height: f32,
+    /// The holds not kept, by their index, and why ([`hold`]).
+    pub unheld: Vec<(usize, hold::Unheld)>,
 }
 
 /// Room between two nodes of one rank.
@@ -183,19 +186,21 @@ const JOG: f32 = 12.0;
 const TRACK: f32 = 10.0;
 /// Lays `nodes` out. Edges that name a missing node are dropped.
 pub fn layout(nodes: &[Node], edges: &[Edge], direction: Direction) -> Layout {
-    framed(nodes, &[], &[], edges, direction)
+    framed(nodes, &[], &[], edges, &[], direction)
 }
 
 /// Lays `nodes` out with `frames` around some of them, all in one go:
 /// `within[i]` is the innermost frame around node `i`, if any. An edge end
 /// past the nodes, `nodes.len() + f`, is frame `f` itself: the line ends
 /// at its border. Edges that name neither are dropped, and so is an edge
-/// between a frame and what it holds.
+/// between a frame and what it holds. `holds` keep boxes beside others
+/// ([`hold`]).
 pub fn framed(
     nodes: &[Node],
     frames: &[Frame],
     within: &[Option<usize>],
     edges: &[Edge],
+    holds: &[hold::Hold],
     direction: Direction,
 ) -> Layout {
     let n = nodes.len();
@@ -214,17 +219,24 @@ pub fn framed(
             frames: vec![Rect::default(); frames.len()],
             width: 0.0,
             height: 0.0,
+            unheld: (0..holds.len())
+                .map(|i| (i, hold::Unheld::Missing))
+                .collect(),
         };
     }
 
     let mut tree = (!frames.is_empty()).then(|| nest::Tree::new(frames, within, n, direction));
+    // A held box is ranked as one with its neighbor.
+    let (holds, unheld) = hold::check(n, within, edges, holds);
+    let group = hold::groups(n, &holds);
+    let grouped = hold::ranked(edges, &group);
     let (rank, back) = match &tree {
-        Some(tree) => nest::ranks(tree, edges),
-        None => ranks(n, edges),
+        Some(tree) => nest::ranks(tree, &grouped),
+        None => ranks(n, &grouped),
     };
     // A box of rank r takes rank 2r: every line passes a rank between its
     // boxes, where a label takes room (docs/adr/0020).
-    let rank: Vec<usize> = rank.into_iter().map(|r| 2 * r).collect();
+    let rank: Vec<usize> = (0..n).map(|x| 2 * rank[group[x]]).collect();
     let spans = tree
         .as_ref()
         .map_or_else(Vec::new, |tree| nest::spans(tree, &rank));
@@ -246,7 +258,7 @@ pub fn framed(
         .iter()
         .map(|slot| slot.real.is_some_and(|real| nodes[real].flat))
         .collect();
-    doubled::order_ranks(&mut rows, &mut slots, framing);
+    doubled::order_ranks(&mut rows, &mut slots, framing, &holds);
     let flips = doubled::label_sides(&mut slots, &rows, &chains, &labels, direction);
     match &mut tree {
         Some(tree) => {
@@ -487,7 +499,10 @@ pub fn framed(
         }
         route.points = line;
     }
-    normalize(rects, routes, frame_rects, &kept)
+    Layout {
+        unheld,
+        ..normalize(rects, routes, frame_rects, &kept)
+    }
 }
 
 /// A frame on screen: across the flow between its borders, along it from
@@ -1630,6 +1645,7 @@ fn normalize(
             frames,
             width: 0.0,
             height: 0.0,
+            unheld: Vec::new(),
         };
     }
     let (dx, dy) = (-min_x, -min_y);
@@ -1651,6 +1667,7 @@ fn normalize(
         frames,
         width: max_x + dx,
         height: max_y + dy,
+        unheld: Vec::new(),
     }
 }
 

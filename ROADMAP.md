@@ -1577,7 +1577,13 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       puts the box next to its neighbor after the sweeps, placement is as
       before. Alt and a drag on a box shows where it would go and writes the
       entry. `rename` carries the names in the block, of lines too, which it
-      did not.
+      did not. Built so far (2026-11-06): the layout (`graph::hold`: the two
+      ranked as one, the box moved beside its neighbor after the sweeps; a
+      hold that cannot be kept is said and changes nothing), the entries
+      (`hand::Hold`, read, written, linted), all five drawers of graph
+      diagrams (states and structure in PlantUML, flowcharts, states and
+      classes in Mermaid), the findings in the map, and `rename`. Next: the
+      drag in the editor.
 - [ ] Lines bundled where many end at one box, as Graphviz's `concentrate` does:
       when it bundles by itself and how a writer turns it off, in an ADR; measured
       in `tests/lines`.

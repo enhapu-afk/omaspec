@@ -57,6 +57,10 @@ impl<'a> Nested for Elements<'a> {
         node.composite.then_some(&node.children)
     }
 
+    fn holds(&self, group: &'a Group) -> Vec<graph::hold::Held> {
+        group.held.clone()
+    }
+
     fn flow(&self, group: &'a Group) -> (graph::Direction, bool) {
         (graph_direction(group.direction), false)
     }

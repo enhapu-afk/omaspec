@@ -1,13 +1,14 @@
 //! Lines by hand as edits of the source
 //! ([0016](../../../docs/adr/0016-lines-by-hand.md)): a drag in the diagram
-//! gives a line its bends, a reset takes them out again. The block goes
+//! gives a line its bends, a reset takes them out again; a box dropped
+//! beside another is held there ([0021](../../../docs/adr/0021-boxes-held-in-place.md)). The block goes
 //! before PlantUML's `@end…` line, and at the end of a Mermaid diagram,
 //! inside its code fence; a blank line goes before it. It goes again with
 //! its last entry. The entries' form is [`omaspec_uml::hand`].
 
 use std::ops::Range;
 
-use omaspec_uml::hand::{self, Line, MARK};
+use omaspec_uml::hand::{self, Hand, Hold, Line, MARK};
 
 use crate::lang::Language;
 use crate::text::line_ranges;
@@ -17,28 +18,63 @@ use crate::text::line_ranges;
 /// replace and its new text. `None` when nothing changes. Entries that do
 /// not read stay as they are written.
 pub fn edit(code: &str, language: Language, line: &Line) -> Option<(Range<usize>, String)> {
+    let entry = (!line.corners.is_empty()).then(|| Hand::Line(line.clone()));
+    put(
+        code,
+        language,
+        |hand| matches!(hand, Hand::Line(l) if l.key == line.key),
+        entry,
+    )
+}
+
+/// The edit that holds the box `name` where `hold` says, in place of what
+/// the block says for it, or gives it back to the layout when `hold` is
+/// `None`. `None` when nothing changes.
+pub fn hold(
+    code: &str,
+    language: Language,
+    name: &str,
+    hold: Option<&Hold>,
+) -> Option<(Range<usize>, String)> {
+    put(
+        code,
+        language,
+        |hand| matches!(hand, Hand::Hold(h) if h.name == name),
+        hold.cloned().map(Hand::Hold),
+    )
+}
+
+/// The edit that puts `entry` in place of the entry `mine` picks, or takes
+/// that out when `entry` is `None`.
+fn put(
+    code: &str,
+    language: Language,
+    mine: impl Fn(&Hand) -> bool,
+    entry: Option<Hand>,
+) -> Option<(Range<usize>, String)> {
     let rows = line_ranges(code);
     let nl = newline(code);
     let Some(block) = hand::read(code) else {
-        return (!line.corners.is_empty()).then(|| insert(code, language, &rows, line));
+        return entry.map(|entry| insert(code, language, &rows, &entry));
     };
     let row = |i: usize| code[rows[i].clone()].trim_end_matches(['\n', '\r']);
     let mark = row(block.first);
     let indent = &mark[..mark.len() - mark.trim_start().len()];
     let mut kept: Vec<String> = Vec::new();
-    let mut put = line.corners.is_empty();
-    for entry in &block.entries {
-        if entry.read.as_ref().is_ok_and(|l| l.key == line.key) {
-            if !put {
-                kept.push(format!("{indent}{} {line}", block.comment));
+    let mut put = entry.is_none();
+    let written = |entry: &Hand| format!("{indent}{} {entry}", block.comment);
+    for read in &block.entries {
+        if read.read.as_ref().is_ok_and(&mine) {
+            if let (false, Some(entry)) = (put, &entry) {
+                kept.push(written(entry));
                 put = true;
             }
         } else {
-            kept.push(row(entry.line).to_owned());
+            kept.push(row(read.line).to_owned());
         }
     }
-    if !put {
-        kept.push(format!("{indent}{} {line}", block.comment));
+    if let (false, Some(entry)) = (put, &entry) {
+        kept.push(written(entry));
     }
     let range = rows[block.first].start..rows[block.last].end;
     if kept.is_empty() {
@@ -51,18 +87,19 @@ pub fn edit(code: &str, language: Language, line: &Line) -> Option<(Range<usize>
     (code[range.clone()] != text).then_some((range, text))
 }
 
-/// The edit that takes every line by hand out: the whole block.
+/// The edit that takes every line by hand and every box held out: the
+/// whole block.
 pub fn clear(code: &str) -> Option<(Range<usize>, String)> {
     let block = hand::read(code)?;
     Some(removal(code, &line_ranges(code), block.first, block.last))
 }
 
-/// A new block for `line`.
+/// A new block for `entry`.
 fn insert(
     code: &str,
     language: Language,
     rows: &[Range<usize>],
-    line: &Line,
+    entry: &Hand,
 ) -> (Range<usize>, String) {
     let text = |i: usize| code[rows[i].clone()].trim_start_matches('\u{feff}').trim();
     let (at, comment) = match language {
@@ -94,7 +131,7 @@ fn insert(
     if at > 0 && !blank_before {
         out.push_str(nl);
     }
-    out.push_str(&format!("{comment} {MARK}{nl}{comment} {line}{nl}"));
+    out.push_str(&format!("{comment} {MARK}{nl}{comment} {entry}{nl}"));
     (at..at, out)
 }
 
@@ -251,6 +288,55 @@ mod tests {
         );
         assert_eq!(apply(code, clear(code)), "flowchart LR\n  A --> B\n");
         assert!(clear(STATES).is_none());
+    }
+
+    #[test]
+    fn a_box_is_held_and_given_back() {
+        let hold = Hold {
+            name: "Running".into(),
+            beside: "Idle".into(),
+            after: false,
+        };
+        let held = apply(
+            STATES,
+            super::hold(STATES, Language::PlantUml, "Running", Some(&hold)),
+        );
+        assert!(
+            held.ends_with("\n' lines by hand (Omaspec)\n' Running before Idle\n@enduml\n"),
+            "{held}"
+        );
+        let shaped = apply(
+            &held,
+            edit(
+                &held,
+                Language::PlantUml,
+                &line("Idle", "Running", 1, &[(0.5, -0.4)]),
+            ),
+        );
+        let after = Hold {
+            after: true,
+            ..hold.clone()
+        };
+        let moved = apply(
+            &shaped,
+            super::hold(&shaped, Language::PlantUml, "Running", Some(&after)),
+        );
+        assert!(
+            moved.contains("' Running after Idle\n' Idle -> Running at 0.5 -0.4\n"),
+            "{moved}"
+        );
+        assert_eq!(
+            super::hold(&moved, Language::PlantUml, "Running", Some(&after)),
+            None
+        );
+        let back = apply(
+            &moved,
+            super::hold(&moved, Language::PlantUml, "Running", None),
+        );
+        assert!(
+            !back.contains("Running after") && back.contains("Idle -> Running"),
+            "{back}"
+        );
     }
 
     #[test]

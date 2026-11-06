@@ -7,6 +7,7 @@
 //! the lines meet their boxes, the points move onto them ([`point_wants`]),
 //! and the gaps make room for the lines that bend there ([`rank_gaps`]).
 
+use super::hold::{self, Hold};
 use super::{ALONG_PAD, Direction, Edge, PORT_CORNER, Ports, Slot, TRACK, center, nest};
 
 /// Between a label and its line, across the flow, by direction: beside a
@@ -131,12 +132,14 @@ pub(super) fn label_beside(
 /// below; then each rank between them by where its points' lines go on
 /// to, and of two that go on to the same slot by where they come from. So
 /// lines cross only in the gap after the rank they leave, where they bend,
-/// and as often as before the ranks were doubled. `framing` holds the
+/// and as often as before the ranks were doubled. A held box moves beside
+/// its neighbor once the ranks of boxes are ordered ([`hold::order`]). `framing` holds the
 /// frames around each slot and how many there are, if any.
 pub(super) fn order_ranks(
     rows: &mut [Vec<usize>],
     slots: &mut [Slot],
     framing: Option<(&[Vec<usize>], usize)>,
+    holds: &[Hold],
 ) {
     // Every line passes a point in each rank between two ranks of boxes,
     // which has one slot before it and one after.
@@ -182,6 +185,8 @@ pub(super) fn order_ranks(
         slots[slot].preds = preds;
         slots[slot].succs = succs;
     }
+    // A held box stands beside its neighbor (docs/adr/0021).
+    hold::order(&mut boxes, holds);
     for (rank, row) in boxes.into_iter().enumerate() {
         rows[2 * rank] = row;
     }

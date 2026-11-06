@@ -120,10 +120,14 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
         source::Kind::Uml => match uml(&lines)? {
             Diagram::State(mut d) => {
                 d.frame.by_hand = hand::numbered(source);
+                d.frame.held = hand::held(source);
+                d.frame.unplaced = d.root.hold(&d.frame.held);
                 Diagram::State(d)
             }
             Diagram::Structure(mut d) => {
                 d.frame.by_hand = hand::numbered(source);
+                d.frame.held = hand::held(source);
+                d.frame.unplaced = d.root.hold(&d.frame.held);
                 Diagram::Structure(d)
             }
             other => other,

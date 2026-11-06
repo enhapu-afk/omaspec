@@ -140,6 +140,13 @@ pub struct Frame {
     /// The lines the writer drew by hand, each with the line of its entry
     /// ([`crate::hand`]); only the graph types read them.
     pub by_hand: Vec<(usize, crate::hand::Line)>,
+    /// The boxes the writer held in place, each with the line of its entry
+    /// ([`crate::hand::Hold`]); the graph types give them to their
+    /// containers.
+    pub held: Vec<(usize, crate::hand::Hold)>,
+    /// Entries of held boxes that name no box, or two in different
+    /// containers: by line, and why.
+    pub unplaced: Vec<(usize, String)>,
 }
 
 /// `legend … endlegend`: below the diagram unless `top`, aligned in its

@@ -406,6 +406,51 @@ fn state(piece: &Piece, k: &str, new: &str, plan: &mut Plan) {
         }
         replace(plan, piece, line, k, new, |t| Some(0..head(t)), false);
     }
+    by_hand(piece, k, new, plan);
+}
+
+/// The entries of the block of lines and boxes by hand (docs/adr/0016,
+/// docs/adr/0021) that name the state of key `k`: each written again with
+/// `new` in its place, so a line keeps its shape and a box its place.
+fn by_hand(piece: &Piece, k: &str, new: &str, plan: &mut Plan) {
+    use omaspec_uml::hand::{self, Hand};
+    let Some(block) = hand::read(&piece.code) else {
+        return;
+    };
+    let renamed = |name: &mut String| {
+        let hit = key(name) == k;
+        if hit {
+            *name = new.to_owned();
+        }
+        hit
+    };
+    for entry in &block.entries {
+        let Ok(mut said) = entry.read.clone() else {
+            continue;
+        };
+        let hit = match &mut said {
+            Hand::Line(line) => renamed(&mut line.key.from) | renamed(&mut line.key.to),
+            Hand::Hold(hold) => renamed(&mut hold.name) | renamed(&mut hold.beside),
+        };
+        if !hit {
+            continue;
+        }
+        let line = piece.doc_line(entry.line);
+        let text = piece.line_text(line);
+        let start = text.len() - text.trim_start().len();
+        let after = text[start..]
+            .strip_prefix(block.comment)
+            .map_or(start, |rest| text.len() - rest.trim_start().len());
+        let end = text.trim_end().len();
+        if after < end {
+            plan.edits.push(Edit {
+                file: piece.file.to_owned(),
+                line,
+                range: after..end,
+                with: said.to_string(),
+            });
+        }
+    }
 }
 
 /// The event of key `k` of the machine of piece `x`: its transitions'

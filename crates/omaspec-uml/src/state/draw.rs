@@ -87,6 +87,12 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     );
     map.wires = wires(&arrows, &scene, &diagram.frame.by_hand, skin.curve);
     map.misses = misses;
+    map.misses.extend(crate::hand::said(
+        &diagram.frame.held,
+        &diagram.frame.unplaced,
+        &scene.all_unheld(),
+    ));
+    map.misses.sort();
     let map = map.placed(canvas.fit(MARGIN));
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
@@ -1164,6 +1170,40 @@ mod tests {
                 .collect()
         };
         assert_eq!(start(&plain), start(&map));
+    }
+
+    /// docs/adr/0021: a state held before another stands left of it, in
+    /// its rank; an entry that does not hold is said.
+    #[test]
+    fn a_state_held_beside_another_stands_there() {
+        let source = "@startuml\n[*] --> Idle\nIdle --> Running : start\nRunning --> Idle : stop\nIdle --> Paused : pause\nPaused --> Idle : resume\nRunning --> Done : finish\n@enduml\n";
+        let spot = |m: &crate::map::Map, name: &str| {
+            m.states.iter().find(|s| s.name == name).unwrap().rect
+        };
+        let (_, free) = crate::render_mapped(source, None).unwrap();
+        assert!(spot(&free, "Running").x < spot(&free, "Paused").x);
+        let held = source.replace(
+            "@enduml",
+            "' lines by hand (Omaspec)\n' Paused before Running\n' Done after Ghost\n' Idle after Running\n@enduml",
+        );
+        let (_, map) = crate::render_mapped(&held, None).unwrap();
+        assert!(spot(&map, "Paused").x < spot(&map, "Running").x);
+        assert!((spot(&map, "Paused").y - spot(&map, "Running").y).abs() < 0.5);
+        assert_eq!(
+            map.misses,
+            [
+                (
+                    9,
+                    "No box is named Ghost; Done after Ghost is left out".to_owned()
+                ),
+                (
+                    10,
+                    "Idle after Running: a line joins boxes this puts in one rank as Running, \
+                     which cannot hold both; Idle stands where the layout puts it"
+                        .to_owned()
+                ),
+            ]
+        );
     }
 
     #[test]

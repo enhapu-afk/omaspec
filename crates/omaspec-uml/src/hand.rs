@@ -13,10 +13,16 @@
 //! page ([`shape`]); no router lays it. Mermaid writes `%%` where PlantUML
 //! writes `'`. The block is the mark and the comments right after it;
 //! anything else ends it.
+//!
+//! The block holds boxes in place too
+//! ([0021](../../../docs/adr/0021-boxes-held-in-place.md)): `Paused after
+//! Running` keeps `Paused` in the rank of `Running`, right after it across
+//! the flow ([`Hold`]).
 
 use std::fmt;
 
 use crate::graph::Rect;
+use crate::graph::hold::Unheld;
 
 /// The block's first line, after the comment mark.
 pub const MARK: &str = "lines by hand (Omaspec)";
@@ -61,6 +67,23 @@ pub struct Line {
     pub corners: Vec<Corner>,
 }
 
+/// A box held beside another: `name` stands in the rank of `beside`, right
+/// after it across the flow (right of it when the flow runs down, below it
+/// when it runs across), or right before it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Hold {
+    pub name: String,
+    pub beside: String,
+    pub after: bool,
+}
+
+/// What an entry says: the shape of a line, or where a box stands.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Hand {
+    Line(Line),
+    Hold(Hold),
+}
+
 /// A box a line leaves or enters: where it is, and whether the line may
 /// meet it anywhere along a side, as a state, or only in the middle of
 /// one, as a circle or a diamond.
@@ -87,8 +110,8 @@ pub struct Block {
 pub struct Entry {
     /// Zero-based line in the source.
     pub line: usize,
-    /// The line, or what is wrong with it.
-    pub read: Result<Line, String>,
+    /// What it says, or what is wrong with it.
+    pub read: Result<Hand, String>,
 }
 
 /// The block in `code`, if there is a mark.
@@ -134,10 +157,24 @@ pub fn lines(code: &str) -> Vec<Line> {
 pub fn numbered(code: &str) -> Vec<(usize, Line)> {
     let mut out: Vec<(usize, Line)> = Vec::new();
     for entry in read(code).map(|b| b.entries).unwrap_or_default() {
-        if let Ok(line) = entry.read
+        if let Ok(Hand::Line(line)) = entry.read
             && !out.iter().any(|(_, l)| l.key == line.key)
         {
             out.push((entry.line, line));
+        }
+    }
+    out
+}
+
+/// The boxes held in `code`: each entry that reads, the first for a box,
+/// with the zero-based line of its entry.
+pub fn held(code: &str) -> Vec<(usize, Hold)> {
+    let mut out: Vec<(usize, Hold)> = Vec::new();
+    for entry in read(code).map(|b| b.entries).unwrap_or_default() {
+        if let Ok(Hand::Hold(hold)) = entry.read
+            && !out.iter().any(|(_, h)| h.name == hold.name)
+        {
+            out.push((entry.line, hold));
         }
     }
     out
@@ -177,6 +214,52 @@ pub fn left_out(key: &Key, count: usize) -> String {
     } else {
         format!("{count} corners of {key} lie in boxes at its ends and are left out")
     }
+}
+
+/// What the writer reads about a held box that is not kept where its entry
+/// says, and why; it stands where the layout puts it.
+pub fn unheld(hold: &Hold, why: Unheld) -> String {
+    let Hold { name, beside, .. } = hold;
+    let why = match why {
+        Unheld::Missing => "one of the two is no box of the diagram".to_owned(),
+        Unheld::Itself => "a box cannot stand beside itself".to_owned(),
+        Unheld::Apart => format!("{name} and {beside} lie in different containers"),
+        Unheld::Joined => {
+            format!("a line joins boxes this puts in one rank as {beside}, which cannot hold both")
+        }
+        Unheld::Round => format!("{name} and {beside} are held in one rank already"),
+        Unheld::Frame => {
+            "a container laid out with what is around it is not held as a whole".to_owned()
+        }
+    };
+    format!("{hold}: {why}; {name} stands where the layout puts it")
+}
+
+/// What the writer reads about the held boxes of a diagram that are not
+/// kept: the entries that name no box or two apart (`unplaced`), and
+/// those the layout could not keep (`unheld`), by line.
+pub fn said(
+    held: &[(usize, Hold)],
+    unplaced: &[(usize, String)],
+    unheld: &[(usize, Unheld)],
+) -> Vec<(usize, String)> {
+    let mut out = unplaced.to_vec();
+    for &(line, why) in unheld {
+        if let Some((_, hold)) = held.iter().find(|(at, _)| *at == line) {
+            out.push((line, self::unheld(hold, why)));
+        }
+    }
+    out.sort();
+    out
+}
+
+/// What the writer reads about a held box, or its neighbor, that is not in
+/// the diagram.
+pub fn no_box(hold: &Hold, missing: &str) -> String {
+    format!(
+        "No box is named {}; {hold} is left out",
+        self::name(missing)
+    )
 }
 
 /// What the writer reads about corners far off the drawing.
@@ -383,6 +466,24 @@ impl fmt::Display for Key {
     }
 }
 
+/// An entry as written, without the comment mark.
+impl fmt::Display for Hold {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let side = if self.after { "after" } else { "before" };
+        write!(f, "{} {side} {}", name(&self.name), name(&self.beside))
+    }
+}
+
+/// An entry as written, without the comment mark.
+impl fmt::Display for Hand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Hand::Line(line) => line.fmt(f),
+            Hand::Hold(hold) => hold.fmt(f),
+        }
+    }
+}
+
 /// An entry as written, without the comment mark: each corner as two
 /// shares, to a thousandth.
 impl fmt::Display for Line {
@@ -416,6 +517,8 @@ fn name(name: &str) -> String {
         && !name.starts_with('#')
         && name != "->"
         && name != "at"
+        && name != "after"
+        && name != "before"
         && !name.contains(|c: char| c.is_whitespace() || c == '"' || c == ',');
     if bare {
         name.to_owned()
@@ -470,6 +573,7 @@ fn tokens(text: &str) -> Result<Vec<Token<'_>>, String> {
 }
 
 const SHAPE: &str = "a line by hand reads `From -> To at 0.5 -0.4`";
+const HELD: &str = "a box held in place reads `Box after Neighbor` or `Box before Neighbor`";
 
 /// The name of one end of a line, from its token.
 fn end_name(token: Option<&Token>, what: &str) -> Result<String, String> {
@@ -500,9 +604,40 @@ fn value(token: Option<&Token>) -> Result<f32, String> {
     }
 }
 
-/// One entry, without its comment mark.
-fn parse(text: &str) -> Result<Line, String> {
+/// One entry, without its comment mark: a line by hand, or a box held in
+/// place.
+fn parse(text: &str) -> Result<Hand, String> {
     let tokens = tokens(text)?;
+    match tokens.get(1) {
+        Some(t) if t.is("after") || t.is("before") => hold(&tokens).map(Hand::Hold),
+        _ => line(&tokens).map(Hand::Line),
+    }
+}
+
+/// A box held in place: `Box after Neighbor` or `Box before Neighbor`.
+fn hold(tokens: &[Token]) -> Result<Hold, String> {
+    let named = |t: Option<&Token>, what: &str| match t {
+        Some(t) if t.quoted || !(t.is("after") || t.is("before") || t.is(",")) => {
+            if t.text.is_empty() {
+                Err(format!("the name of the {what} is empty"))
+            } else {
+                Ok(t.text.to_owned())
+            }
+        }
+        _ => Err(HELD.to_owned()),
+    };
+    if tokens.len() != 3 {
+        return Err(HELD.to_owned());
+    }
+    Ok(Hold {
+        name: named(tokens.first(), "box")?,
+        after: tokens[1].is("after"),
+        beside: named(tokens.get(2), "neighbor")?,
+    })
+}
+
+/// A line by hand, from its tokens.
+fn line(tokens: &[Token]) -> Result<Line, String> {
     let mut it = tokens.iter().peekable();
     let from = end_name(it.next(), "start")?;
     if !it.next().is_some_and(|t| t.is("->")) {
@@ -555,7 +690,39 @@ mod tests {
     use super::*;
 
     fn line(text: &str) -> Line {
-        parse(text).unwrap_or_else(|e| panic!("{text}: {e}"))
+        match parse(text) {
+            Ok(Hand::Line(line)) => line,
+            other => panic!("{text}: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_box_is_held_after_or_before_a_neighbor() {
+        let held = |text: &str| match parse(text) {
+            Ok(Hand::Hold(hold)) => hold,
+            other => panic!("{text}: {other:?}"),
+        };
+        let hold = held("Paused after Running");
+        assert_eq!(
+            hold,
+            Hold {
+                name: "Paused".to_owned(),
+                beside: "Running".to_owned(),
+                after: true,
+            }
+        );
+        assert_eq!(hold.to_string(), "Paused after Running");
+        let quoted = held(r#""Wait here" before "after""#);
+        assert!(!quoted.after && quoted.beside == "after");
+        assert_eq!(quoted.to_string(), r#""Wait here" before "after""#);
+        for wrong in ["Paused after", "Paused after Running too", "after before X"] {
+            assert!(parse(wrong).is_err(), "{wrong}");
+        }
+        let code = "' lines by hand (Omaspec)\n' A after B\n' A before C\n' B -> C at 0.5 0.5\n";
+        let kept = super::held(code);
+        assert_eq!(kept.len(), 1, "the first entry for a box holds");
+        assert_eq!((kept[0].0, kept[0].1.beside.as_str()), (1, "B"));
+        assert_eq!(numbered(code).len(), 1);
     }
 
     #[test]

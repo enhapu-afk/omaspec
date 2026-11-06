@@ -1165,7 +1165,7 @@ mod tests {
             edge(4, 5),
             edge(6, 4),
         ];
-        let laid = framed(&nodes, &frames, &within, &edges, Direction::Down);
+        let laid = framed(&nodes, &frames, &within, &edges, &[], Direction::Down);
         for (index, &f) in within.iter().enumerate() {
             if let Some(f) = f {
                 assert!(
@@ -1229,7 +1229,7 @@ mod tests {
         let frames = [frame(None)];
         let within = [None, Some(0), Some(0)];
         let edges = [edge(0, 3), edge(1, 2), edge(3, 0)];
-        let laid = framed(&nodes, &frames, &within, &edges, Direction::Down);
+        let laid = framed(&nodes, &frames, &within, &edges, &[], Direction::Down);
         let border = laid.frames[0];
         let into = &laid.routes[0].points;
         let end = *into.last().unwrap();
@@ -1256,7 +1256,7 @@ mod tests {
         let frames = [frame(None), frame(None)];
         let within = [Some(0), Some(0), Some(1), Some(1)];
         let edges = [edge(0, 1), edge(2, 3), edge(0, 2)];
-        let laid = framed(&nodes, &frames, &within, &edges, Direction::Down);
+        let laid = framed(&nodes, &frames, &within, &edges, &[], Direction::Down);
         let (members, lending) = (laid.frames[0], laid.frames[1]);
         assert!(apart(members, lending), "{members:?} {lending:?}");
         // The loan sits a rank below the member, level with the level.
@@ -1280,7 +1280,7 @@ mod tests {
         let frames = [frame(None), frame(Some(0)), frame(None)];
         let within = [Some(1), Some(0), Some(2), None];
         let edges = [edge(3, 0), edge(0, 1), edge(1, 2), edge(0, 2)];
-        let laid = framed(&nodes, &frames, &within, &edges, Direction::Down);
+        let laid = framed(&nodes, &frames, &within, &edges, &[], Direction::Down);
         assert!(inside(laid.frames[1], laid.frames[0]), "{:?}", laid.frames);
         assert!(inside(laid.nodes[0], laid.frames[1]));
         assert!(inside(laid.nodes[1], laid.frames[0]));

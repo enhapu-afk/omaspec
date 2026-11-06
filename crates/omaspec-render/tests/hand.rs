@@ -150,3 +150,77 @@ fn a_line_by_hand_is_drawn_as_the_pane_shows_it_in_every_graph_drawer() {
     }
     assert!(kinds.len() >= 8, "only {kinds:?}");
 }
+
+/// docs/adr/0021: a box held before its neighbor stands left of it, in
+/// every drawer of graph diagrams; an entry for no box is said.
+#[test]
+fn a_box_held_before_its_neighbor_stands_left_of_it_in_every_drawer() {
+    use omaspec_uml::hand::Hold;
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    let diagrams = [
+        (
+            "@startuml\nstate A\nstate B\nstate C\nA --> B\nA --> C\n@enduml\n",
+            Language::PlantUml,
+        ),
+        (
+            "@startuml\nclass A\nclass B\nclass C\nA --> B\nA --> C\n@enduml\n",
+            Language::PlantUml,
+        ),
+        ("flowchart TD\n  A --> B\n  A --> C\n", Language::Mermaid),
+        ("stateDiagram-v2\n  A --> B\n  A --> C\n", Language::Mermaid),
+        ("classDiagram\n  A --> B\n  A --> C\n", Language::Mermaid),
+    ];
+    let hold = |name: &str, beside: &str| Hold {
+        name: name.into(),
+        beside: beside.into(),
+        after: false,
+    };
+    for (code, language) in diagrams {
+        let ends = |map: &omaspec_uml::map::Map| {
+            let to = |name: &str| {
+                map.wires
+                    .iter()
+                    .find(|w| w.key.from == "A" && w.key.to == name)
+                    .unwrap_or_else(|| panic!("{code}: no line A -> {name}"))
+                    .to
+                    .rect
+            };
+            (to("B"), to("C"))
+        };
+        let bare = renderer.render(code, language).unwrap();
+        let (b, c) = ends(&bare.map);
+        assert!(b.x < c.x, "{code}: B starts left of C");
+        let (range, text) = hand::hold(code, language, "C", Some(&hold("C", "B"))).unwrap();
+        let held = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
+        let drawn = renderer.render(&held, language).unwrap();
+        let (b, c) = ends(&drawn.map);
+        assert!(c.x < b.x && (c.y - b.y).abs() < 0.5, "{held}");
+        assert!(
+            drawn.map.misses.is_empty(),
+            "{held}: {:?}",
+            drawn.map.misses
+        );
+        assert_eq!(
+            lint::lint(&held, language),
+            lint::lint(code, language),
+            "{held}"
+        );
+        let (range, text) = hand::hold(code, language, "C", Some(&hold("C", "Nobody"))).unwrap();
+        let nowhere = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
+        let missed = renderer.render(&nowhere, language).unwrap();
+        assert_eq!(missed.svg, bare.svg, "{nowhere}");
+        assert_eq!(
+            missed
+                .map
+                .misses
+                .iter()
+                .map(|(_, why)| why.as_str())
+                .collect::<Vec<_>>(),
+            ["No box is named Nobody; C before Nobody is left out"],
+            "{nowhere}"
+        );
+    }
+}

@@ -19,6 +19,8 @@ pub fn try_draw(theme: &Theme, fenced: &str) -> Option<(String, Map)> {
     params.append(&mut diagram.frame.skinparams);
     diagram.frame.skinparams = params;
     diagram.frame.by_hand = omaspec_uml::hand::numbered(fenced);
+    diagram.frame.held = omaspec_uml::hand::held(fenced);
+    diagram.frame.unplaced = diagram.root.hold(&diagram.frame.held);
     draw_mapped(&diagram).ok()
 }
 

@@ -112,6 +112,7 @@ pub(super) fn layout_regions(
         notes: Vec::new(),
         width,
         height,
+        unheld: Vec::new(),
     })
 }
 

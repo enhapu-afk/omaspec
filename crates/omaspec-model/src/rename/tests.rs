@@ -317,3 +317,24 @@ fn the_name_at_a_place_is_what_a_rename_there_renames() {
     .unwrap();
     assert_eq!(plan.what, "the event open of lamp.puml");
 }
+
+/// docs/adr/0021: a renamed state keeps its line by hand and its place;
+/// a line that only passes it keeps its entry as it is.
+#[test]
+fn a_renamed_state_keeps_its_lines_and_its_place_by_hand() {
+    let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\n\n' lines by hand (Omaspec)\n' Closed -> Open at 0.5 -0.4\n' Locked before Open\n' Open after \"Closed\"\n' Closed -> Locked at 1.2 0.3\n@enduml\n";
+    let files = [File {
+        path: "door.puml",
+        text: door,
+        kind: FileKind::Diagram(Language::PlantUml),
+    }];
+    let specs = specs(&files);
+    let state = rename("Open", "Ajar", None, Some(Thing::State), &files, &specs).unwrap();
+    let after = state.apply("door.puml", door);
+    assert!(
+        after.ends_with(
+            "' lines by hand (Omaspec)\n' Closed -> Ajar at 0.5 -0.4\n' Locked before Ajar\n' Ajar after Closed\n' Closed -> Locked at 1.2 0.3\n@enduml\n"
+        ),
+        "{after}"
+    );
+}

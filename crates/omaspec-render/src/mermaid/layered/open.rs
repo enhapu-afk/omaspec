@@ -91,6 +91,10 @@ impl Nested for Charts<'_> {
         opens.then_some(inner)
     }
 
+    fn holds(&self, spot: Spot) -> Vec<graph::hold::Held> {
+        self.tree.held.get(&spot).cloned().unwrap_or_default()
+    }
+
     fn flow(&self, spot: Spot) -> (graph::Direction, bool) {
         let (axis, flip) = axes(self.tree.flow(spot));
         (axis, !matches!(flip, Flip::No))
