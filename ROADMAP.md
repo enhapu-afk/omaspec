@@ -1555,13 +1555,17 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       [0020](docs/adr/0020-room-for-labels.md), accepted): ranks doubled, a
       labelled line's point in the rank between its ends a box of its label's
       size, in `graph::doubled`. Words in the way 8 → 0, crossings 7 → 6, written
-      the other way round 17 → 15; jogs 1 → 3 and boxes moved 908 → 928 were taken
-      knowingly (the ADR says where); bends 404 → 492, length 62,009 → 68,194; the
-      pictures 1.7 % wider and 3.5 % longer in all. `flow-subgraphs.mmd`, which
-      has no labels, came out 12 % longer, against the ADR's word: left open there.
-      A line by hand with one corner below two boxes side by side lost that corner
-      as a spike (`hand::shape`); it turns there now. 42 goldens changed, each
-      looked at next to its old picture; render and scale timings unchanged.
+      the other way round 17 → 15, jogs 1 → 1, lines too near 13 → 13; boxes moved
+      908 → 932 taken knowingly (the ADR says where); bends 404 → 478, length
+      62,009 → 67,809; the pictures 1.9 % wider and 2.9 % longer in all, nearly
+      only those with labels. `flow-subgraphs.mmd`, without labels, had come out
+      12 % longer: the one point of a short line no longer holds its place while
+      placing, and a point before a pass beside a frame's name heads for it; it
+      keeps its length now. Open: `flow-subgraph-direction.mmd`, without labels,
+      6 % longer. A line by hand with one corner below two boxes side
+      by side lost that corner as a spike (`hand::shape`); it turns there now.
+      42 goldens changed, each looked at next to its old picture; render and
+      scale timings unchanged.
 - [ ] Boxes held in place: a box dragged to where it should stay is kept in the
       block of [0016](docs/adr/0016-lines-by-hand.md), relative to its rank and
       neighbors rather than in coordinates, so it holds when a theme or a font

@@ -276,6 +276,10 @@ pub fn framed(
                 };
                 let short;
                 (jogs, room, short) = nest::jogs(tree, &spans, &borders, &lines);
+                // A point before a pass beside a frame's name heads for it.
+                for wants in doubled::pass_wants(&slots, &rows, &chains, &jogs) {
+                    placer.fit(&mut slots, &mut borders, &wants);
+                }
                 if short.is_empty() || attempt == 1 {
                     break;
                 }
@@ -962,10 +966,18 @@ fn row_wants(slots: &[Slot], row: &[usize], down: bool, flat: &[bool]) -> Vec<(u
             };
             let neighbors = if near.is_empty() { far } else { near };
             let own = center(s);
+            // The one point of a line from one rank of boxes to the next
+            // heads for the boxes' middles, as the boxes did for each other
+            // before the ranks were doubled; it moves onto its line later.
+            let end = |n: &usize| slots[*n].real.is_some() || slots[*n].anchor.is_some();
+            let short = s.real.is_none()
+                && s.preds.len() == 1
+                && s.succs.len() == 1
+                && s.preds.iter().chain(&s.succs).all(end);
             let toward = |n: usize| {
                 let other = &slots[n];
                 let at = center(other);
-                if s.real.is_some() || !flat[n] {
+                if s.real.is_some() || !flat[n] || short {
                     return at;
                 }
                 let reach =

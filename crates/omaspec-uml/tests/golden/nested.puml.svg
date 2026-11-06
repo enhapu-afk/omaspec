@@ -1,169 +1,169 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="540" height="1186" viewBox="0 0 540 1186">
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="1206" viewBox="0 0 540 1206">
 <g transform="translate(83.02,10)">
 <g>
-<ellipse cx="249.46" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="226.55" y="54" width="83.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="23.85" y="162.26" width="235.22" height="304.82" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<line x1="23.85" y1="190.56" x2="259.07" y2="190.56" fill="none" stroke="#181818" stroke-width="1"/>
-<ellipse cx="181.56" cy="209.56" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="111.1" y="266.53" width="82.46" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="35.85" y="354.79" width="105.77" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="185.62" y="354.79" width="61.45" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<ellipse cx="129.62" cy="442.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
-<ellipse cx="129.62" cy="442.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="0" y="499.09" width="446.05" height="665.94" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="298.45" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="256.83" y="54" width="83.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="36.67" y="162.26" width="238.45" height="304.82" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<line x1="36.67" y1="190.56" x2="275.12" y2="190.56" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="157.9" cy="209.56" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="116.67" y="266.53" width="82.46" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="48.67" y="354.79" width="105.77" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="201.67" y="354.79" width="61.45" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="101.55" cy="442.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="101.55" cy="442.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="499.09" width="446.05" height="685.94" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <line x1="0" y1="527.38" x2="446.05" y2="527.38" fill="none" stroke="#181818" stroke-width="1"/>
-<ellipse cx="186.06" cy="546.38" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="145.94" y="603.35" width="52.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="12" y="747.62" width="155.53" height="405.42" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<line x1="12" y1="775.91" x2="167.53" y2="775.91" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="12" y1="962.47" x2="167.53" y2="962.47" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
-<ellipse cx="110.02" cy="794.91" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="64.52" y="837.91" width="91.01" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="68.41" y="916.18" width="83.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<ellipse cx="87.36" cy="987.47" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="45.75" y="1030.47" width="83.22" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="44.19" y="1108.74" width="86.34" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="211.53" y="934.18" width="101.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<ellipse cx="316.07" cy="442.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
-<ellipse cx="316.07" cy="442.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="249.46,22 249.46,44" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M238.55,86.3 L238.55,101.09 C238.55,105.07 235.33,108.3 231.34,108.3 L231.34,108.3 C227.36,108.3 224.14,111.52 224.14,115.51 L224.14,141.05 C224.14,145.04 220.91,148.26 216.93,148.26 L213.72,148.26 C211.51,148.26 209.72,150.05 209.72,152.26 L209.72,152.26" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="211.92,467.09 211.92,489.09" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M373.07,499.09 L373.07,135.94 C373.07,115.15 356.22,98.3 335.43,98.3 L299.78,98.3 C298.68,98.3 297.78,97.4 297.78,96.3 L297.78,96.3" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M68.41,926.18 L36,926.18 C9.49,926.18 -12,904.69 -12,878.18 L-12,527.09 C-12,500.58 9.49,479.09 36,479.09 L147.62,479.09 C174.13,479.09 195.62,457.6 195.62,431.09 L195.62,397.09" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M300.65,934.18 L300.65,505.88 C300.65,491.08 288.66,479.09 273.86,479.09 L273.86,479.09 C259.07,479.09 247.07,467.09 247.07,452.3 L247.07,423.09 C247.07,415.36 240.8,409.09 233.07,409.09 L231.07,409.09 C224.44,409.09 219.07,403.72 219.07,397.09 L219.07,397.09" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M231.96,354.79 L231.96,271.31 C231.96,266.46 228.03,262.53 223.18,262.53 L223.18,262.53 C218.33,262.53 214.39,258.6 214.39,253.75 L214.39,169.13 C214.39,163.13 219.26,158.26 225.27,158.26 L225.27,158.26 C231.27,158.26 236.14,153.4 236.14,147.39 L236.14,127.51 C236.14,122.42 240.26,118.3 245.34,118.3 L245.34,118.3 C250.43,118.3 254.55,114.17 254.55,109.09 L254.55,96.3" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M235.07,387.09 L235.07,387.09 C235.07,393.72 240.44,399.09 247.07,399.09 L296.07,399.09 C307.12,399.09 316.07,408.04 316.07,419.09 L316.07,419.09" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="181.56,220.56 181.56,256.53" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="129.45,298.82 129.45,344.79" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M181.56,298.82 L181.56,302.79 C181.56,307.23 185.16,310.82 189.59,310.82 L189.59,310.82 C194.03,310.82 197.62,314.42 197.62,318.85 L197.62,344.79" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="129.62,387.09 129.62,419.09" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="186.06,557.38 186.06,593.35" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M157.94,635.65 L157.94,656.69 C157.94,668.26 148.56,677.65 136.98,677.65 L136.98,677.65 C125.41,677.65 116.02,687.03 116.02,698.61 L116.02,737.62" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M132.02,747.62 L132.02,705.3 C132.02,695.55 139.92,687.65 149.67,687.65 L149.67,687.65 C159.41,687.65 167.32,679.75 167.32,670 L167.32,645.65" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M176.69,635.65 L176.69,655.97 C176.69,662.42 181.92,667.65 188.37,667.65 L188.37,667.65 C194.82,667.65 200.05,672.88 200.05,679.33 L200.05,705.88 C200.05,712.36 205.31,717.62 211.79,717.62 L211.79,717.62 C218.27,717.62 223.53,722.87 223.53,729.36 L223.53,924.18" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M263.4,934.18 L263.4,696.32 C263.4,674.96 246.09,657.65 224.73,657.65 L198.06,657.65 C191.44,657.65 186.06,652.28 186.06,645.65 L186.06,645.65" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="110.02,805.91 110.02,827.91" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="102.02,870.21 102.02,906.18" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="118.02,916.18 118.02,880.21" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="87.36,998.47 87.36,1020.47" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="79.36,1062.77 79.36,1098.74" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="95.36,1108.74 95.36,1072.77" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="165.97" cy="546.38" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="139.91" y="603.35" width="52.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="12" y="767.62" width="155.53" height="405.42" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<line x1="12" y1="795.91" x2="167.53" y2="795.91" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="12" y1="982.47" x2="167.53" y2="982.47" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
+<ellipse cx="110.02" cy="814.91" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="64.52" y="857.91" width="91.01" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="68.41" y="936.18" width="83.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="87.36" cy="1007.47" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="45.75" y="1050.47" width="83.22" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="44.19" y="1128.74" width="86.34" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="211.53" y="954.18" width="101.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="332.12" cy="442.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="332.12" cy="442.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="298.45,22 298.45,44" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M268.83,86.3 L268.83,102.87 C268.83,105.86 266.4,108.3 263.4,108.3 L263.4,108.3 C260.4,108.3 257.97,110.73 257.97,113.73 L257.97,142.83 C257.97,145.83 255.54,148.26 252.54,148.26 L251.11,148.26 C248.9,148.26 247.11,150.05 247.11,152.26 L247.11,152.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="227.48,467.09 227.48,489.09" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M389.12,499.09 L389.12,128.82 C389.12,111.96 375.45,98.3 358.59,98.3 L330.06,98.3 C328.96,98.3 328.06,97.4 328.06,96.3 L328.06,96.3" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M68.41,946.18 L36,946.18 C9.49,946.18 -12,924.69 -12,898.18 L-12,527.09 C-12,500.58 9.49,479.09 36,479.09 L163.67,479.09 C190.18,479.09 211.67,457.6 211.67,431.09 L211.67,397.09" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M300.65,954.18 L300.65,755.75 C300.65,751.26 304.29,747.62 308.79,747.62 L308.79,747.62 C313.28,747.62 316.92,743.97 316.92,739.48 L316.92,505.99 C316.92,491.13 304.88,479.09 290.02,479.09 L290.02,479.09 C275.16,479.09 263.12,467.04 263.12,452.19 L263.12,423.09 C263.12,415.36 256.85,409.09 249.12,409.09 L247.12,409.09 C240.49,409.09 235.12,403.72 235.12,397.09 L235.12,397.09" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M241.75,354.79 L241.75,268.18 C241.75,265.06 239.22,262.53 236.1,262.53 L236.1,262.53 C232.97,262.53 230.44,260 230.44,256.87 L230.44,246.89 C230.44,238.98 236.86,232.56 244.78,232.56 L244.78,232.56 C252.69,232.56 259.11,226.14 259.11,218.23 L259.11,163.69 C259.11,160.7 261.54,158.26 264.54,158.26 L264.54,158.26 C267.54,158.26 269.97,155.83 269.97,152.83 L269.97,125.73 C269.97,121.62 273.3,118.3 277.4,118.3 L277.4,118.3 C281.51,118.3 284.83,114.97 284.83,110.87 L284.83,96.3" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M251.12,387.09 L251.12,387.09 C251.12,393.72 256.49,399.09 263.12,399.09 L312.12,399.09 C323.16,399.09 332.12,408.04 332.12,419.09 L332.12,419.09" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="157.9,220.56 157.9,256.53" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="128.67,298.82 128.67,344.79" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M187.13,298.82 L187.13,298.82 C187.13,305.45 192.5,310.82 199.13,310.82 L206.44,310.82 C217.1,310.82 225.75,319.47 225.75,330.14 L225.75,344.79" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="101.55,387.09 101.55,419.09" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="165.97,557.38 165.97,593.35" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M151.91,635.65 L151.91,721.43 C151.91,724.84 149.14,727.62 145.72,727.62 L145.72,727.62 C142.3,727.62 139.53,730.39 139.53,733.81 L139.53,757.62" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="157.91,767.62 157.91,645.65" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M170.66,635.65 L170.66,638.54 C170.66,649.09 179.22,657.65 189.77,657.65 L189.77,657.65 C200.33,657.65 208.88,666.2 208.88,676.76 L208.88,710.29 C208.88,714.34 212.16,717.62 216.21,717.62 L216.21,717.62 C220.25,717.62 223.53,720.89 223.53,724.94 L223.53,944.18" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M272.23,954.18 L272.23,693.75 C272.23,668.29 251.59,647.65 226.13,647.65 L182.03,647.65 C180.93,647.65 180.03,646.75 180.03,645.65 L180.03,645.65" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="110.02,825.91 110.02,847.91" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="102.02,890.21 102.02,926.18" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="118.02,936.18 118.02,900.21" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="87.36,1018.47 87.36,1040.47" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="79.36,1082.77 79.36,1118.74" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="95.36,1128.74 95.36,1092.77" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<path d="M322.65,934.18 L322.65,961.31 L434.05,961.31 L434.05,944.18 L424.05,934.18 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
-<path d="M424.05,934.18 L424.05,944.18 L434.05,944.18" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M322.65,954.18 L322.65,981.31 L434.05,981.31 L434.05,964.18 L424.05,954.18 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M424.05,954.18 L424.05,964.18 L434.05,964.18" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="240.55" y="74.99" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Standby</tspan>
+<tspan x="270.83" y="74.99" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Standby</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="115.02" y="187.26" font-size="14" fill="#000000" font-weight="bold" textLength="52.88" lengthAdjust="spacing">Booting</tspan>
+<tspan x="129.45" y="187.26" font-size="14" fill="#000000" font-weight="bold" textLength="52.88" lengthAdjust="spacing">Booting</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="125.1" y="287.52" font-size="14" fill="#000000" font-weight="bold" textLength="54.46" lengthAdjust="spacing">SelfTest</tspan>
+<tspan x="130.67" y="287.52" font-size="14" fill="#000000" font-weight="bold" textLength="54.46" lengthAdjust="spacing">SelfTest</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="49.85" y="375.78" font-size="14" fill="#000000" font-weight="bold" textLength="77.77" lengthAdjust="spacing">LoadConfig</tspan>
+<tspan x="62.67" y="375.78" font-size="14" fill="#000000" font-weight="bold" textLength="77.77" lengthAdjust="spacing">LoadConfig</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="199.62" y="375.78" font-size="14" fill="#000000" font-weight="bold" textLength="33.45" lengthAdjust="spacing">Fault</tspan>
+<tspan x="215.67" y="375.78" font-size="14" fill="#000000" font-weight="bold" textLength="33.45" lengthAdjust="spacing">Fault</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="84.76" y="335.96" font-size="12" fill="#000000" textLength="38.69" lengthAdjust="spacing">passed</tspan>
+<tspan x="83.98" y="335.96" font-size="12" fill="#000000" textLength="38.69" lengthAdjust="spacing">passed</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="162.94" y="335.96" font-size="12" fill="#000000" textLength="28.68" lengthAdjust="spacing">failed</tspan>
+<tspan x="191.07" y="335.96" font-size="12" fill="#000000" textLength="28.68" lengthAdjust="spacing">failed</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="184.12" y="524.08" font-size="14" fill="#000000" font-weight="bold" textLength="77.8" lengthAdjust="spacing">Operational</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="159.94" y="624.34" font-size="14" fill="#000000" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
+<tspan x="153.91" y="624.34" font-size="14" fill="#000000" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="54.76" y="772.61" font-size="14" fill="#000000" font-weight="bold" textLength="70.01" lengthAdjust="spacing">Measuring</tspan>
+<tspan x="54.76" y="792.61" font-size="14" fill="#000000" font-weight="bold" textLength="70.01" lengthAdjust="spacing">Measuring</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="78.52" y="858.9" font-size="14" fill="#000000" font-weight="bold" textLength="63.01" lengthAdjust="spacing">Sampling</tspan>
+<tspan x="78.52" y="878.9" font-size="14" fill="#000000" font-weight="bold" textLength="63.01" lengthAdjust="spacing">Sampling</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="82.41" y="937.17" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Filtering</tspan>
+<tspan x="82.41" y="957.17" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Filtering</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="24" y="897.34" font-size="12" fill="#000000" textLength="72.02" lengthAdjust="spacing">sample ready</tspan>
+<tspan x="24" y="917.34" font-size="12" fill="#000000" textLength="72.02" lengthAdjust="spacing">sample ready</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="124.02" y="897.34" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">next</tspan>
+<tspan x="124.02" y="917.34" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">next</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="59.75" y="1051.46" font-size="14" fill="#000000" font-weight="bold" textLength="55.22" lengthAdjust="spacing">Logging</tspan>
+<tspan x="59.75" y="1071.46" font-size="14" fill="#000000" font-weight="bold" textLength="55.22" lengthAdjust="spacing">Logging</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="58.19" y="1129.73" font-size="14" fill="#000000" font-weight="bold" textLength="58.34" lengthAdjust="spacing">Flushing</tspan>
+<tspan x="58.19" y="1149.73" font-size="14" fill="#000000" font-weight="bold" textLength="58.34" lengthAdjust="spacing">Flushing</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="24" y="1089.9" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">buffer full</tspan>
+<tspan x="24" y="1109.9" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">buffer full</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="101.36" y="1089.9" font-size="12" fill="#000000" textLength="38.69" lengthAdjust="spacing">flushed</tspan>
+<tspan x="101.36" y="1109.9" font-size="12" fill="#000000" textLength="38.69" lengthAdjust="spacing">flushed</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="225.53" y="955.17" font-size="14" fill="#000000" font-weight="bold" textLength="73.12" lengthAdjust="spacing">Calibrating</tspan>
+<tspan x="225.53" y="975.17" font-size="14" fill="#000000" font-weight="bold" textLength="73.12" lengthAdjust="spacing">Calibrating</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="86.68" y="702.78" font-size="12" fill="#000000" textLength="23.34" lengthAdjust="spacing">start</tspan>
+<tspan x="122.57" y="702.78" font-size="12" fill="#000000" textLength="23.34" lengthAdjust="spacing">start</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="138.02" y="702.78" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
+<tspan x="163.91" y="702.78" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="206.05" y="702.78" font-size="12" fill="#000000" textLength="45.35" lengthAdjust="spacing">calibrate</tspan>
+<tspan x="214.88" y="702.78" font-size="12" fill="#000000" textLength="45.35" lengthAdjust="spacing">calibrate</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="269.4" y="702.78" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
+<tspan x="278.23" y="702.78" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="328.65" y="952.24" font-size="13" fill="#000000" textLength="95.39" lengthAdjust="spacing">takes about 30 s</tspan>
+<tspan x="328.65" y="972.24" font-size="13" fill="#000000" textLength="95.39" lengthAdjust="spacing">takes about 30 s</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="168.78" y="133.43" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">power on</tspan>
+<tspan x="202.62" y="133.43" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">power on</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="379.07" y="335.96" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">power off</tspan>
+<tspan x="395.12" y="335.96" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">power off</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="-73.02" y="595.01" font-size="12" fill="#000000" textLength="58.02" lengthAdjust="spacing">sensor lost</tspan>
+<tspan x="-73.02" y="600.01" font-size="12" fill="#000000" textLength="58.02" lengthAdjust="spacing">sensor lost</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="306.65" y="584.52" font-size="12" fill="#000000" textLength="64.04" lengthAdjust="spacing">out of range</tspan>
+<tspan x="322.92" y="584.52" font-size="12" fill="#000000" textLength="64.04" lengthAdjust="spacing">out of range</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="220.39" y="247.7" font-size="12" fill="#000000" textLength="26.68" lengthAdjust="spacing">reset</tspan>
+<tspan x="236.44" y="247.7" font-size="12" fill="#000000" textLength="26.68" lengthAdjust="spacing">reset</tspan>
 </text>
-<polygon points="245.46,44 249.46,54 253.46,44 249.46,48" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="205.72,152.26 209.72,162.26 213.72,152.26 209.72,156.26" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="207.92,489.09 211.92,499.09 215.92,489.09 211.92,493.09" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="301.78,96.3 297.78,86.3 293.78,96.3 297.78,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="199.62,397.09 195.62,387.09 191.62,397.09 195.62,393.09" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="223.07,397.09 219.07,387.09 215.07,397.09 219.07,393.09" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="258.55,96.3 254.55,86.3 250.55,96.3 254.55,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="312.07,419.09 316.07,429.09 320.07,419.09 316.07,423.09" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="177.56,256.53 181.56,266.53 185.56,256.53 181.56,260.53" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="125.45,344.79 129.45,354.79 133.45,344.79 129.45,348.79" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="193.62,344.79 197.62,354.79 201.62,344.79 197.62,348.79" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="125.62,419.09 129.62,429.09 133.62,419.09 129.62,423.09" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="182.06,593.35 186.06,603.35 190.06,593.35 186.06,597.35" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="112.02,737.62 116.02,747.62 120.02,737.62 116.02,741.62" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="171.32,645.65 167.32,635.65 163.32,645.65 167.32,641.65" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="219.53,924.18 223.53,934.18 227.53,924.18 223.53,928.18" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="190.06,645.65 186.06,635.65 182.06,645.65 186.06,641.65" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="106.02,827.91 110.02,837.91 114.02,827.91 110.02,831.91" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="98.02,906.18 102.02,916.18 106.02,906.18 102.02,910.18" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="122.02,880.21 118.02,870.21 114.02,880.21 118.02,876.21" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="83.36,1020.47 87.36,1030.47 91.36,1020.47 87.36,1024.47" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="75.36,1098.74 79.36,1108.74 83.36,1098.74 79.36,1102.74" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="99.36,1072.77 95.36,1062.77 91.36,1072.77 95.36,1068.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="294.45,44 298.45,54 302.45,44 298.45,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="243.11,152.26 247.11,162.26 251.11,152.26 247.11,156.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="223.48,489.09 227.48,499.09 231.48,489.09 227.48,493.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="332.06,96.3 328.06,86.3 324.06,96.3 328.06,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="215.67,397.09 211.67,387.09 207.67,397.09 211.67,393.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="239.12,397.09 235.12,387.09 231.12,397.09 235.12,393.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="288.83,96.3 284.83,86.3 280.83,96.3 284.83,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="328.12,419.09 332.12,429.09 336.12,419.09 332.12,423.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="153.9,256.53 157.9,266.53 161.9,256.53 157.9,260.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="124.67,344.79 128.67,354.79 132.67,344.79 128.67,348.79" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="221.75,344.79 225.75,354.79 229.75,344.79 225.75,348.79" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="97.55,419.09 101.55,429.09 105.55,419.09 101.55,423.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="161.97,593.35 165.97,603.35 169.97,593.35 165.97,597.35" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="135.53,757.62 139.53,767.62 143.53,757.62 139.53,761.62" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="161.91,645.65 157.91,635.65 153.91,645.65 157.91,641.65" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="219.53,944.18 223.53,954.18 227.53,944.18 223.53,948.18" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="184.03,645.65 180.03,635.65 176.03,645.65 180.03,641.65" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="106.02,847.91 110.02,857.91 114.02,847.91 110.02,851.91" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="98.02,926.18 102.02,936.18 106.02,926.18 102.02,930.18" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="122.02,900.21 118.02,890.21 114.02,900.21 118.02,896.21" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="83.36,1040.47 87.36,1050.47 91.36,1040.47 87.36,1044.47" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="75.36,1118.74 79.36,1128.74 83.36,1118.74 79.36,1122.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="99.36,1092.77 95.36,1082.77 91.36,1092.77 95.36,1088.77" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 </g>
 </svg>

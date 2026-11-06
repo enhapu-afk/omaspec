@@ -212,9 +212,9 @@ pub(super) fn order_ranks(
 /// by rank (none for a rank of boxes), as [`super::fit_to`] and
 /// [`nest::Placer::fit`] take them: each where its line enters the slot
 /// after it, so the line bends once, a little past the rank before, as it
-/// did before the ranks were doubled; and where the two boxes of a line
-/// overlap across the flow, as far as their sides reach, inside that, so
-/// the line runs straight. Points keep their order and room, so the room
+/// did before the ranks were doubled; and a label's point, where the two
+/// boxes of its line overlap across the flow as far as their sides reach,
+/// inside that, so the line runs straight. Points keep their order and room, so the room
 /// of a label beside may hold a line off; it then bends once more, before
 /// the box it goes into.
 pub(super) fn point_wants(
@@ -251,7 +251,10 @@ pub(super) fn point_wants(
                 0.0
             };
             let mut at = center(&slots[next]) + port;
-            if last == 2 {
+            // A label's point: its ports head for it, so inside the
+            // overlap the line runs straight. A line without one meets its
+            // boxes where its ports say, and its point follows.
+            if last == 2 && slots[chain[step]].pack_cross > 0.0 {
                 let ((a, b), (c, d)) = (reach(chain[0]), reach(next));
                 let (lo, hi) = (a.max(c), b.min(d));
                 if lo <= hi {
@@ -274,6 +277,39 @@ pub(super) fn point_wants(
                         Some(at) => (slot, at - s.before - s.box_cross / 2.0, 1.0),
                         None => (slot, s.cross, 0.05),
                     }
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// Where the points before a line's pass beside a frame's name want to
+/// lie, by rank: where the line comes down beside the name ([`nest::jogs`]),
+/// so it bends once on its way there, not once more after the point.
+pub(super) fn pass_wants(
+    slots: &[Slot],
+    rows: &[Vec<usize>],
+    chains: &[Vec<usize>],
+    jogs: &nest::Jogs,
+) -> Vec<Vec<(usize, f32, f32)>> {
+    let mut beside: Vec<Option<f32>> = vec![None; slots.len()];
+    for (&(index, step), way) in jogs {
+        if let (Some(&point), Some(jog)) = (chains[index].get(step), way.first())
+            && step > 0
+        {
+            beside[point] = Some(jog.above);
+        }
+    }
+    rows.iter()
+        .enumerate()
+        .map(|(rank, row)| {
+            if rank % 2 == 0 {
+                return Vec::new();
+            }
+            row.iter()
+                .filter_map(|&slot| {
+                    let s = &slots[slot];
+                    beside[slot].map(|at| (slot, at - s.before - s.box_cross / 2.0, 1.0))
                 })
                 .collect()
         })

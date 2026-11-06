@@ -70,11 +70,19 @@ pictures showed why:
   where they come from. Lines cross only where they bend, as often as
   before.
 - **Points onto their lines.** Once the lines meet their boxes, each point
-  in a rank between moves to where its line enters the next slot, and
-  where the two boxes of a line overlap across the flow, into that
-  overlap, so the line bends once, a little past the box it leaves, or
-  runs straight. A point on a frame's border follows its line too. A line
-  without a label heads for the box at its other end, as before.
+  in a rank between moves to where its line enters the next slot, so the
+  line bends once, a little past the box it leaves, or runs straight; a
+  label's point, where the two boxes of its line overlap across the flow,
+  into that overlap. A line without a label meets its boxes as before,
+  heading for the box at its other end, and its point follows. A point on
+  a frame's border follows its line too, and a point before a line's pass
+  beside a frame's name heads for where the line comes down beside it.
+- **The point of a short line is not held.** While the ranks are placed,
+  a point of a long line stays where it still reaches the flat box it
+  comes from or goes to, so the line stays straight. The one point of a
+  line from one rank of boxes to the next heads for the boxes' middles
+  instead, as the boxes did for each other before; held, it let boxes
+  drift apart to the edge of their reach (`flow-subgraphs.mmd`).
 - **Frames.** A line from one rank of boxes to the next passes between
   them inside the frames around both ends only: it crosses a frame's side
   in the gap, as before, instead of being held inside a frame that only
@@ -117,29 +125,30 @@ to a box's corners (jogs 4 → 9).
 | crossings | 7 | 6 |
 | crossings, runs written the other way round | 17 | 15 |
 | lines through boxes | 0 | 0 |
-| jogs | 1 | 3 |
-| boxes moved by one box added | 908 | 928 |
-| bends | 404 | 492 |
-| length | 62,009 | 68,194 |
+| jogs | 1 | 1 |
+| lines too near | 13 | 13 |
+| boxes moved by one box added | 908 | 932 |
+| bends | 404 | 478 |
+| length | 62,009 | 67,809 |
 
-Two measures that were not to grow did, and are taken knowingly:
+One measure that was not to grow did, and is taken knowingly: **boxes
+moved, 908 → 932** (2.6 %), summed over the diagrams. For single diagrams
+it went up and down, most where labels now take room (`state-loops.mmd`
+38 → 23, `platform.mmd` 60 → 43, `history.puml` 35 → 46, where the box
+added turns the order inside `On` around). The one jog left is in
+`state-loops.mmd`: three lines and a label between two of them are wider
+than the box they leave (`nested.puml` had the jog before).
 
-- **Jogs, 1 → 3.** In `state-loops.mmd` three lines and a label between
-  two of them are wider than the box they leave; in `state-nested.mmd`
-  `Error` is pulled toward the line back to `Off`, out of `Busy`'s reach;
-  in `flow-subgraphs.mmd` `Check` stands off `Work` (below). Each is a step
-  of about 5 units where a label kept a line off, or a box stood too far.
-- **Boxes moved, 908 → 928** (2 %), summed over the diagrams; for single
-  diagrams it went up and down, most where labels now take room.
-
-The pictures are 1.7 % wider and 3.5 % longer over the corpus; most of it
-is room the labels did not have (`state-loops.mmd` 30 % longer, its words
-apart now). Against rule 1, `flow-subgraphs.mmd`, which has no labels, came
-out 12 % longer: its lines bend once more where the points between keep
-their room. Open.
+The pictures are 1.9 % wider and 2.9 % longer over the corpus, nearly all
+of it in diagrams with labels, in room the labels did not have
+(`state-loops.mmd` 30 % longer, its words apart now). Of the diagrams
+without labels, `flow-subgraphs.mmd` keeps its length (559 units, as
+before); against rule 1, `flow-subgraph-direction.mmd`, which runs left to
+right, is 6 % longer (270 → 286), its two containers further apart. Open.
 
 42 golden SVGs changed (26 Mermaid, 16 PlantUML), each looked at next to
-its old picture. `cargo bench -p omaspec-render` and the scale test
+its old picture; 13 of them again after the two refinements above for
+short lines and passes beside names (2026-11-06). `cargo bench -p omaspec-render` and the scale test
 (`OMASPEC_SCALE=1`, up to 2,001 diagrams) took the same time before and
 after.
 
@@ -163,5 +172,5 @@ after.
 - `tests/lines.txt` was written anew; the per-diagram counts it holds are
   the ones to keep from here.
 - Open: the labels of lines between containers laid out on their own,
-  which `graph::across` routes after placement; the length of
-  `flow-subgraphs.mmd`; the three jogs.
+  which `graph::across` routes after placement; the jog in
+  `state-loops.mmd`; the length of `flow-subgraph-direction.mmd`.
