@@ -5,7 +5,7 @@ Everything Omaspec does, to look up. New here? Start with the
 
 - [Editor](#editor): [keys](#keys), [project and tabs](#project-and-tabs),
   [diagrams that link](#diagrams-that-link), [compare](#compare), [a second monitor](#a-second-monitor), [skin packs](#skin-packs),
-  [examples](#examples), [images with their source](#images-with-their-source),
+  [fold and focus](#fold-and-focus), [examples](#examples), [images with their source](#images-with-their-source),
   [session](#session)
 - [Preview next to your editor](#preview-next-to-your-editor)
 - [Specifications](#specifications)
@@ -47,6 +47,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+Alt+arrows | move between the project, the editor and the diagram |
 | Alt+=, Alt+-, Alt+0, Alt+F | zoom the diagram, 100 %, fit |
 | click, Alt+Left | into a linked state or a tile of a map, and back out |
+| Shift+click | focus on a box and its neighbors; on paper, end it |
 | Ctrl+F, Ctrl+H, Ctrl+/, Ctrl+D | in the text: find, replace, comment, next occurrence |
 | Super+F | fullscreen (Omarchy's chord for every window) |
 
@@ -269,6 +270,24 @@ Renaming a box renames it here too. *By hand: reset every line and box* removes 
 entries with the rest of the block. Why it works this way:
 [ADR 0022](../adr/0022-lines-bundled.md).
 
+### Fold and focus
+
+A large diagram can be read a part at a time. Over a nested state, a package or a
+subgraph the pointer shows a small button in its top right corner: a click folds it to a
+box of its own, its lines ending on the box, and the box carries the two small squares of
+a state with a diagram inside. A click on the folded box unfolds it. The palette folds or
+unfolds the container whose name the caret is on, and unfolds every container. Folds are
+the pane's, not the file's: nothing is written, the checks and a play see the whole
+diagram, and a play unfolds everything before it starts. An export draws what the pane
+shows.
+
+Shift and a click on a box puts it in focus: the rest of the diagram goes quiet behind a
+veil, and the box, the boxes its lines lead to or come from, those lines and their words
+come through. In the editor the focus follows the caret onto another box's name; Shift and
+a click on the paper, or the palette's *Focus* command, ends it. Both work in state,
+class, component and deployment diagrams and in Mermaid flowcharts. Why:
+[ADR 0024](../adr/0024-focus-and-collapse.md).
+
 ### Examples
 
 Ctrl+Shift+E (or *Examples* on an empty page) lays the examples that come with Omaspec
@@ -353,6 +372,7 @@ the status bar while the last good picture stays.
 | `p` | play the diagram |
 | `r`, `q` | render again, quit |
 | click, Backspace | into a linked state or a tile of a map, and back |
+| `u`, Shift+click, Escape | unfold every container; focus on a box; end the focus |
 
 The mouse wheel zooms at the pointer, two-finger scroll and dragging pan, Ctrl +
 two-finger scroll zooms, a double click fits, and Ctrl+click names the source line of

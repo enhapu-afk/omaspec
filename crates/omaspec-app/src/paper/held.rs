@@ -436,6 +436,7 @@ mod tests {
             within: Vec::new(),
             across: false,
             entry: None,
+            frame: false,
         }
     }
 

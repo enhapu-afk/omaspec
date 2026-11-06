@@ -33,6 +33,14 @@ impl App {
                 .update(paper::Message::StopPlay)
                 .map(move |m| Message::Paper(key, m));
         }
+        // A play shows the whole machine: the folds open first, and it
+        // starts once that picture is in.
+        if self.doc_mut().paper.unfold_all() {
+            self.doc_mut().paper.take_refold();
+            self.play_when_drawn = Some(key);
+            self.notice = Some("unfolding to play the whole machine".into());
+            return self.render(key, true);
+        }
         match self.doc_mut().paper.start_play() {
             Ok(()) => {
                 self.set_focus(Pane::Diagram);

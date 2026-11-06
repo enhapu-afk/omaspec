@@ -23,6 +23,7 @@ use look::{Palette, edge_look, look_for, palette, styled_node};
 use shape::{Kind, Shape};
 
 mod flowchart;
+mod fold;
 mod label;
 mod look;
 mod nest;
@@ -56,6 +57,16 @@ pub fn try_draw(
 ) -> Option<(String, Map)> {
     let mut repaired = None;
     let (graph, fix) = flowchart::apply(graph, source, &mut repaired)?;
+    // Subgraphs the pane folded (docs/adr/0024), and the entries by hand
+    // that name what they hold left out.
+    let names = omaspec_uml::fold::read(source);
+    let (folded, fix, hidden) = match fold::fold(graph, &fix, &names) {
+        Some((graph, fix, hidden)) => (Some(graph), fix, hidden),
+        None => (None, fix, HashSet::new()),
+    };
+    let graph = folded.as_ref().unwrap_or(graph);
+    let (hands, held) = (fold::lines(hands, &hidden), fold::holds(held, &hidden));
+    let (hands, held) = (hands.as_slice(), held.as_slice());
     let mut tree = prepare(graph, source, &fix)?;
     // Boxes held in place, by the container that holds both.
     let mut unplaced = hold_boxes(&mut tree, held);

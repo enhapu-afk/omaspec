@@ -43,6 +43,88 @@ pub struct Group {
     pub apart: Vec<usize>,
 }
 
+impl Diagram {
+    /// Folds the packages, nodes and frames named in `names` to their box
+    /// (docs/adr/0024); the lines into them end on its border.
+    pub fn fold(&mut self, names: &[String]) {
+        crate::fold::fold(&mut self.root, &mut self.frame, names);
+    }
+}
+
+impl crate::fold::Folds for Group {
+    fn count(&self) -> usize {
+        self.nodes.len()
+    }
+
+    fn key(&self, index: usize) -> &str {
+        &self.nodes[index].key
+    }
+
+    fn composite(&self, index: usize) -> bool {
+        self.nodes[index].composite
+    }
+
+    fn inner(&self, index: usize) -> &Group {
+        &self.nodes[index].children
+    }
+
+    fn inner_mut(&mut self, index: usize) -> &mut Group {
+        &mut self.nodes[index].children
+    }
+
+    fn close(&mut self, index: usize) {
+        let node = &mut self.nodes[index];
+        node.composite = false;
+        node.children = Group {
+            direction: node.children.direction,
+            ..Group::default()
+        };
+    }
+
+    fn crossings(&mut self) -> Vec<(&mut Vec<usize>, &mut Vec<usize>)> {
+        self.crossings
+            .iter_mut()
+            .map(|c| (&mut c.from, &mut c.to))
+            .collect()
+    }
+
+    fn settle(&mut self) {
+        // Alike but for the line they were written on.
+        let alike = |a: &Link, b: &Link| {
+            Link {
+                line: 0,
+                ..a.clone()
+            } == Link {
+                line: 0,
+                ..b.clone()
+            }
+        };
+        let (direct, crossing): (Vec<Crossing>, Vec<Crossing>) =
+            std::mem::take(&mut self.crossings)
+                .into_iter()
+                .partition(|c| c.from.len() == 1 && c.to.len() == 1);
+        for c in crossing {
+            if !self
+                .crossings
+                .iter()
+                .any(|k| k.from == c.from && k.to == c.to && alike(&k.arrow, &c.arrow))
+            {
+                self.crossings.push(c);
+            }
+        }
+        for c in direct {
+            let edge = Link {
+                from: c.from[0],
+                to: c.to[0],
+                ..c.arrow
+            };
+            if !self.edges.iter().any(|e| alike(e, &edge)) {
+                self.edges.push(edge);
+            }
+        }
+    }
+}
+
 impl Group {
     /// Gives each group the boxes of `held` it holds both of
     /// ([0021](../../../docs/adr/0021-boxes-held-in-place.md)), by their

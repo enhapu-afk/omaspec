@@ -172,6 +172,20 @@ impl Worker {
         place: Option<Place>,
         linked: Option<Linked>,
     ) {
+        self.render_folded(ticket, source, language, place, linked, Vec::new());
+    }
+
+    /// [`Self::render`] with the containers named in `folds` folded to
+    /// their box (docs/adr/0024). The answer carries `source` as it is.
+    pub fn render_folded(
+        &self,
+        ticket: Ticket,
+        source: Arc<str>,
+        language: Language,
+        place: Option<Place>,
+        linked: Option<Linked>,
+        folds: Vec<String>,
+    ) {
         let _ = self.input.unbounded_send(Input::Render {
             ticket,
             source,
@@ -179,6 +193,7 @@ impl Worker {
             place,
             linked,
             document: false,
+            folds,
         });
     }
 
@@ -192,6 +207,7 @@ impl Worker {
             place,
             linked: None,
             document: true,
+            folds: Vec::new(),
         });
     }
 
@@ -214,6 +230,8 @@ enum Input {
         place: Option<Place>,
         linked: Option<Linked>,
         document: bool,
+        /// Containers folded to their box.
+        folds: Vec<String>,
     },
     Done(Generation, Result<Drawn, RenderError>),
     Forward(Event),
@@ -272,13 +290,14 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     place,
                     linked,
                     document,
+                    folds,
                 } => {
                     let generation = if document {
                         service.submit_document(ticket.doc, source.to_string(), place)
                     } else {
                         service.submit_linked(
                             ticket.doc,
-                            source.to_string(),
+                            folded(&source, language, &folds),
                             language,
                             place,
                             linked,
@@ -308,6 +327,25 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
             }
         }
     })
+}
+
+/// `source` with a line for each container `folds` names after it, which
+/// the drawers fold (`omaspec_uml::fold`); the file never holds them.
+fn folded(source: &str, language: Language, folds: &[String]) -> String {
+    let mut text = source.to_owned();
+    if folds.is_empty() {
+        return text;
+    }
+    if !text.ends_with('\n') {
+        text.push('\n');
+    }
+    for name in folds {
+        text.push_str(&omaspec_uml::fold::line(
+            name,
+            language == Language::Mermaid,
+        ));
+    }
+    text
 }
 
 /// One thread for all alarms; it ends with the service.

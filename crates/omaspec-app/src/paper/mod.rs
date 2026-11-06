@@ -7,11 +7,14 @@
 //! can be played in it ([`play`]). The name under the caret lights on the
 //! sheet, in the theme accent, and glides there the way a zoom does. With
 //! Alt, a line can be drawn by hand ([`hand`]), and a box held in place
-//! ([`held`]).
+//! ([`held`]). A container folds to its box ([`fold`]), and the focus on
+//! one box veils all but it and its neighbors ([`focus`]).
 
 mod canvas;
 mod cards;
 mod find;
+mod focus;
+mod fold;
 pub(crate) mod frames;
 mod hand;
 mod held;
@@ -92,6 +95,13 @@ pub enum Message {
     /// What the pointer does with Alt: a line drawn by hand. Its new bends
     /// wait for the window in [`Paper::take_by_hand`].
     Hand(Gesture),
+    /// A click on a container's fold button: it folds to its box.
+    Fold(String),
+    /// A click on a folded box: it unfolds.
+    Unfold(String),
+    /// Shift and a click at this point of the pane: the box there comes
+    /// into focus, or the focus ends.
+    FocusAt(Point),
 }
 
 /// The pictures of the diagram before, fading out under the new one.
@@ -181,6 +191,18 @@ pub struct Paper {
     /// late (`OMASPEC_FRAMES` showed a 16-megapixel overview cost one).
     held_overview: Option<(u64, Option<Raster>)>,
     held_detail: Option<(u64, Option<Raster>)>,
+    /// Whether containers fold here and a box takes the focus: in the
+    /// editor and the preview window, not in Compare.
+    pub folding: bool,
+    /// The containers folded to their box, by name (docs/adr/0024).
+    folds: Vec<String>,
+    /// The folds changed: the owner draws the diagram again.
+    refold: bool,
+    /// The container just folded or unfolded: the view glides to it once
+    /// it is drawn.
+    unfolding: Option<String>,
+    /// The box in focus, by name.
+    focus: Option<String>,
 }
 
 impl Default for Paper {
@@ -216,6 +238,11 @@ impl Default for Paper {
             grab_done: None,
             held_overview: None,
             held_detail: None,
+            folding: false,
+            folds: Vec::new(),
+            refold: false,
+            unfolding: None,
+            focus: None,
         }
     }
 }
@@ -338,7 +365,12 @@ impl Paper {
             doc,
             id: self.requested,
         };
-        worker.render(ticket, source, language, place, linked);
+        let folds = if self.folding {
+            self.folds.clone()
+        } else {
+            Vec::new()
+        };
+        worker.render_folded(ticket, source, language, place, linked, folds);
         self.status = Status::Rendering;
     }
 
@@ -429,7 +461,16 @@ impl Paper {
                 // Same plans, new pixels.
                 self.overview.forget();
                 self.detail.forget();
-                self.rasterize(Duration::ZERO)
+                let pixels = self.rasterize(Duration::ZERO);
+                // A container unfolded out of sight: the view glides to it.
+                match self.view_for_unfold() {
+                    Some(to) => {
+                        let middle =
+                            Point::new(self.viewport.width / 2.0, self.viewport.height / 2.0);
+                        Task::batch([pixels, self.glide_to(to, middle)])
+                    }
+                    None => pixels,
+                }
             }
             Err(err) => {
                 // The bends sent did not draw; the old picture stays.
@@ -551,6 +592,18 @@ impl Paper {
             }
             Message::Fit => self.fit(),
             Message::Pick(_) | Message::Follow(_) => Task::none(),
+            Message::Fold(name) => {
+                self.set_fold(&name, true);
+                Task::none()
+            }
+            Message::Unfold(name) => {
+                self.set_fold(&name, false);
+                Task::none()
+            }
+            Message::FocusAt(at) => {
+                self.focus_at(at);
+                Task::none()
+            }
             Message::Play(ask) => {
                 // On the clock the play is drawn at, so that a picture of
                 // one moment takes its steps at that moment too.
@@ -687,10 +740,21 @@ impl Paper {
             .find(|w| w.line == Some(row) || w.entry == Some(row))
     }
 
-    /// A pane where lines can be drawn by hand: the editor's.
+    /// A pane where containers fold and a box takes the focus: the
+    /// preview window's.
+    pub fn foldable() -> Self {
+        Self {
+            folding: true,
+            ..Self::default()
+        }
+    }
+
+    /// A pane where lines can be drawn by hand and containers fold: the
+    /// editor's.
     pub fn editable() -> Self {
         Self {
             by_hand: true,
+            folding: true,
             ..Self::default()
         }
     }
@@ -1378,6 +1442,11 @@ impl Paper {
             (None, _, Some(_)) => Some(Motion::Fade),
             (None, _, None) => None,
         };
+        let spots = if self.overview.shown.is_some() {
+            self.fold_spots()
+        } else {
+            Vec::new()
+        };
         let canvas: Element<'_, Message> = Canvas::new(
             Timed::new(canvas::DiagramCanvas {
                 diagram: self.diagram.as_ref().map(|d| d.size),
@@ -1398,6 +1467,8 @@ impl Paper {
                     .map(hand::Hand::cursor)
                     .or(self.grab.as_ref().map(held::Grab::cursor)),
                 links: self.followable(),
+                folds: spots.clone(),
+                focusing: self.folding && !self.document && self.play.is_none(),
             })
             .driving(motion),
         )
@@ -1416,6 +1487,43 @@ impl Paper {
             .height(Length::Fill)
             .into()
         });
+        let folds = (!spots.is_empty()).then(|| {
+            Canvas::new(Timed::new(fold::FoldMarks {
+                spots,
+                view: self.view,
+                glide: self.glide,
+                color: ui::color(p.accent),
+                paper: ui::color(p.background),
+                scale: self.scale_factor,
+            }))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+        });
+        // The focus: a veil and what comes through, then its light.
+        let focus = match (self.lit(), &self.diagram, self.overview.shown.as_ref()) {
+            (Some(lit), Some(diagram), Some(overview)) => {
+                let layer = |over: bool| -> Element<'_, Message> {
+                    Canvas::new(Timed::new(focus::FocusLayer {
+                        lit: lit.clone(),
+                        diagram: diagram.size,
+                        overview,
+                        detail: self.detail.shown.as_ref(),
+                        view: self.view,
+                        glide: self.glide,
+                        accent: ui::color(p.accent),
+                        veil: ui::color(p.background),
+                        over,
+                        scale: self.scale_factor,
+                    }))
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .into()
+                };
+                [Some(layer(false)), Some(layer(true))]
+            }
+            _ => [None, None],
+        };
         let hand = match (&self.hand, &self.diagram) {
             (Some(hand), Some(diagram)) if self.overview.shown.is_some() => Some(
                 Canvas::new(Timed::new(hand::HandLayer {
@@ -1492,10 +1600,22 @@ impl Paper {
         let (Some(play), Some(diagram), Some(overview)) =
             (&self.play, &self.diagram, self.overview.shown.as_ref())
         else {
+            let [veil, glow] = focus;
             return container(Stack::with_children(
-                [Some(canvas), marks, light, hand, grab, passage, edge]
-                    .into_iter()
-                    .flatten(),
+                [
+                    Some(canvas),
+                    veil,
+                    glow,
+                    marks,
+                    folds,
+                    light,
+                    hand,
+                    grab,
+                    passage,
+                    edge,
+                ]
+                .into_iter()
+                .flatten(),
             ))
             .clip(true)
             .into();
@@ -2089,6 +2209,11 @@ pub mod testing {
             self.view
                 .on_screen(iced::Rectangle::new(middle, Size::ZERO), pane)
                 .position()
+        }
+
+        /// The containers folded, by name.
+        pub fn folded(&self) -> &[String] {
+            &self.folds
         }
 
         pub fn screen_of_line(&self, key: &str) -> (Point, Vector) {

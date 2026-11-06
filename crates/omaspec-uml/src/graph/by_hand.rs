@@ -198,6 +198,7 @@ pub fn places(
             name,
             rect: place.rect,
             within,
+            frame: place.frame,
         });
     });
     out

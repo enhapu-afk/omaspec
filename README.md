@@ -88,6 +88,8 @@ checked for legible colors, the gallery's diagrams in each of them too.
 - **Diagrams that link.** A state links to the diagram of its name: click it and the
   view zooms in, Alt+Left zooms back out. A mind map or WBS in a project is its map,
   each box that names a diagram a tile with that diagram's picture.
+- **Fold and focus.** Fold a nested state, a package or a subgraph to its box, and
+  Shift+click a box to see only it, its neighbors and the lines between them.
 - **A layout you can steer.** Drag a line or a box with Alt; the shape goes into the
   file as a comment and holds in any theme. `skinparam handwritten true` or Mermaid's
   `look: handDrawn` draws the diagram by hand, the same picture every time.

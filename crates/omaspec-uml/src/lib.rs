@@ -22,6 +22,7 @@ mod common;
 pub mod curve;
 pub mod er;
 pub mod flow;
+pub mod fold;
 pub mod formula;
 pub mod gantt;
 pub mod graph;
@@ -274,11 +275,17 @@ pub fn render_tiled(
     let unmapped = |svg: Result<String, Declined>| svg.map(|svg| (svg, map::Map::default()));
     match parse_with(source, includes)? {
         Diagram::Sequence(d) => sequence::draw_mapped(&d),
-        Diagram::State(d) => state::draw_mapped(&d),
+        Diagram::State(mut d) => {
+            d.fold(&fold::read(source));
+            state::draw_mapped(&d)
+        }
         Diagram::Activity(d) => unmapped(activity::draw(&d)),
         Diagram::MindMap(d) => tree::draw_mindmap_tiled(&d, tiles),
         Diagram::Wbs(d) => tree::draw_wbs_tiled(&d, tiles),
-        Diagram::Structure(d) => structure::draw_mapped(&d),
+        Diagram::Structure(mut d) => {
+            d.fold(&fold::read(source));
+            structure::draw_mapped(&d)
+        }
         Diagram::Timing(d) => unmapped(timing::draw(&d)),
         Diagram::Gantt(d) => unmapped(gantt::draw(&d)),
         Diagram::Flow(d) => unmapped(flow::draw(&d)),

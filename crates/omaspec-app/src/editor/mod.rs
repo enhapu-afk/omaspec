@@ -31,6 +31,7 @@
 pub(crate) mod compare;
 mod doc;
 mod files;
+mod fold;
 pub(crate) mod folder;
 mod gallery;
 mod help;
@@ -409,6 +410,12 @@ pub enum Command {
     ResetLine,
     /// Takes every line by hand out of the source.
     ResetLines,
+    /// Focuses the diagram on the box at the caret, or ends the focus.
+    FocusBox,
+    /// Folds the container at the caret to its box, or unfolds it.
+    FoldBox,
+    /// Unfolds every container of the diagram.
+    UnfoldAll,
     /// Colors the diagram with the active Omarchy theme, without writing
     /// that into the file. Again uses the colors the file already has.
     FollowTheme,
@@ -507,6 +514,17 @@ const PALETTE: &[(&str, &str, Command)] = &[
         Command::ResetLine,
     ),
     ("By hand: reset every line and box", "", Command::ResetLines),
+    (
+        "Focus on the box at the caret and its neighbors, or end it (Shift+click there)",
+        "",
+        Command::FocusBox,
+    ),
+    (
+        "Fold the container at the caret to its box, or unfold it",
+        "",
+        Command::FoldBox,
+    ),
+    ("Unfold every container", "", Command::UnfoldAll),
     ("Diagram theme: follow Omarchy", "", Command::FollowTheme),
     ("Collapse the block", "Ctrl+Shift+[", Command::Collapse),
     ("Expand the block", "Ctrl+Shift+]", Command::Expand),
@@ -1213,16 +1231,21 @@ impl App {
                 let step = matches!(message, paper::Message::Play(_));
                 let relight = key != compare::KEY && matches!(message, paper::Message::PlayGone);
                 let moves = paper::Paper::moves_view(&message);
-                let (task, by_hand, held) = match self.find(key) {
+                let (task, by_hand, held, refold) = match self.find(key) {
                     Some(doc) => (
                         doc.paper
                             .update(message)
                             .map(move |m| Message::Paper(key, m)),
                         doc.paper.take_by_hand(),
                         doc.paper.take_held(),
+                        doc.paper.take_refold(),
                     ),
-                    None => (Task::none(), None, None),
+                    None => (Task::none(), None, None, false),
                 };
+                // A container folded or unfolded in the pane: drawn again.
+                if refold {
+                    return Task::batch([task, self.render(key, true)]);
+                }
                 if let Some(line) = by_hand {
                     return Task::batch([task, self.draw_by_hand(key, &line)]);
                 }
@@ -1985,6 +2008,9 @@ impl App {
             Command::Skin(pack) => self.skin(pack),
             Command::ResetLine => self.reset_line(),
             Command::ResetLines => self.reset_lines(),
+            Command::FocusBox => self.focus_box(),
+            Command::FoldBox => self.fold_box(),
+            Command::UnfoldAll => self.unfold_all(),
             Command::StartFrom(language) => {
                 if !self.doc().text().trim().is_empty() {
                     return Task::none();
@@ -2390,6 +2416,7 @@ impl App {
             (doc.shown_source(), cursor.row, cursor.col)
         };
         self.docs[index].paper.follow_source(&text, row, col);
+        self.focus_follows(index, &text, row as usize, col as usize);
     }
 
     /// Omarchy colors as `#rrggbb`, for a skin block.

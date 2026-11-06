@@ -100,7 +100,7 @@ impl Preview {
             theme_name,
             palette,
             font: ui::mono_font(),
-            paper: Paper::default(),
+            paper: Paper::foldable(),
             notice: None,
             back: Vec::new(),
             index: None,
@@ -155,7 +155,14 @@ impl Preview {
                 Task::none()
             }
             Message::Paper(paper::Message::Follow(at)) => self.follow(at),
-            Message::Paper(message) => self.paper.update(message).map(Message::Paper),
+            Message::Paper(message) => {
+                let task = self.paper.update(message).map(Message::Paper);
+                // A container folded or unfolded: drawn again.
+                if self.paper.take_refold() {
+                    self.request_render();
+                }
+                task
+            }
             Message::ScaleFactor(factor) => self.paper.set_scale_factor(factor).map(Message::Paper),
             Message::Key(event) => self.key(event),
             Message::Copied(result) => {
@@ -322,10 +329,27 @@ impl Preview {
             Key::Named(Named::F5) | Key::Character("p") => {
                 if playing {
                     paper.update(paper::Message::StopPlay)
+                } else if paper.unfold_all() {
+                    // A play shows the whole machine.
+                    paper.take_refold();
+                    self.notice = Some("every container unfolded: press F5 again to play".into());
+                    self.request_render();
+                    Task::none()
                 } else {
                     self.notice = paper.start_play().err();
                     Task::none()
                 }
+            }
+            Key::Character("u") if !playing => {
+                if paper.unfold_all() {
+                    paper.take_refold();
+                    self.request_render();
+                }
+                Task::none()
+            }
+            Key::Named(Named::Escape) if !playing && paper.focused().is_some() => {
+                paper.set_focus(None);
+                Task::none()
             }
             Key::Character(c) if playing && c.len() == 1 && ("1"..="9").contains(&c) => {
                 let n = c.parse::<usize>().unwrap_or(1);

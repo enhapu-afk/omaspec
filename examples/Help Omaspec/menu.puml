@@ -26,6 +26,10 @@ partition Diagram {
   :Put a skin into the source,
   the sketch drawn by hand among them;
   :Follow the Omarchy theme;
+  :Fold the nested state at the caret
+  to its box, or unfold it;
+  :Focus on the box at the caret and its
+  neighbors; Shift+click one in the diagram;
 }
 partition Fold {
   :Collapse the block at the caret;

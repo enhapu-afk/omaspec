@@ -29,7 +29,7 @@ use super::canvas::fill_paper_band;
 /// How long the veil takes to fall over the diagram, or lift off it.
 const VEIL_FADE: Duration = Duration::from_millis(320);
 /// How dark the veil gets, over the paper.
-const VEIL: f32 = 0.62;
+pub(super) const VEIL: f32 = 0.62;
 /// How long a state's light takes to come on or go out.
 const LIGHT_FADE: Duration = Duration::from_millis(420);
 /// A pause between two steps that follow each other by themselves.
@@ -1015,7 +1015,7 @@ fn ease_in_out(t: f32) -> f32 {
     }
 }
 
-fn with_alpha(c: Color, a: f32) -> Color {
+pub(super) fn with_alpha(c: Color, a: f32) -> Color {
     Color {
         a: (c.a * a).clamp(0.0, 1.0),
         ..c
@@ -1138,14 +1138,14 @@ fn zoom(spot: &Spot, view: &Viewer) -> f32 {
 
 /// The outline a state's light follows, on screen: a rounded box (a bar
 /// is one), a ring, a diamond.
-enum Glow {
+pub(super) enum Glow {
     Box(Rectangle, f32),
     Ring(Point, f32),
     Diamond(Rectangle),
 }
 
 impl Glow {
-    fn of(spot: &Spot, view: &Viewer) -> Glow {
+    pub(super) fn of(spot: &Spot, view: &Viewer) -> Glow {
         let r = (view.place)(spot.rect);
         let radius = spot.radius * zoom(spot, view);
         match spot.shape {
@@ -1156,7 +1156,7 @@ impl Glow {
     }
 
     /// The box the outline fits in.
-    fn bounds(&self) -> Rectangle {
+    pub(super) fn bounds(&self) -> Rectangle {
         match *self {
             Glow::Box(r, _) | Glow::Diamond(r) => r,
             Glow::Ring(c, radius) => Rectangle::new(
@@ -1185,7 +1185,7 @@ impl Glow {
 
     /// Covers in `color` what lies in its bounds but outside the outline:
     /// the corners a rectangular clip lets through.
-    fn mask(&self, frame: &mut Frame, color: Color) {
+    pub(super) fn mask(&self, frame: &mut Frame, color: Color) {
         let r = self.bounds();
         let (x0, y0, x1, y1) = (r.x, r.y, r.x + r.width, r.y + r.height);
         match *self {
@@ -1242,7 +1242,7 @@ impl Glow {
     }
 
     /// A soft bloom around the outline and a crisp line on it.
-    fn draw(&self, frame: &mut Frame, accent: Color, level: f32) {
+    pub(super) fn draw(&self, frame: &mut Frame, accent: Color, level: f32) {
         const LAYERS: usize = 7;
         for layer in 0..LAYERS {
             let k = 1.0 - layer as f32 / LAYERS as f32;

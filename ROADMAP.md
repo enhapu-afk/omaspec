@@ -1612,9 +1612,25 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       `tests/state/bundled.puml`, where three lines arrive at Done as one.
       Every diagram that was already there moves as before. Six goldens
       changed, and `bundled.puml` is a new one.
-- [ ] Focus and collapse: a container folded to its box in the pane, drawn as a
-      linked diagram is ([0018](docs/adr/0018-diagrams-that-link.md)); a focus that
-      dims all but a box and its neighbors.
+- [x] Focus and collapse (2026-11-06, [0024](docs/adr/0024-focus-and-collapse.md)):
+      a container folded to its box in the pane, drawn as a linked diagram is
+      ([0018](docs/adr/0018-diagrams-that-link.md)); a focus that dims all but a box
+      and its neighbors. Built: a composite state (PlantUML and Mermaid), a package
+      and a flowchart subgraph fold to a box of their name, what they held gone,
+      their lines ending on the box and the lines that came out alike drawn once
+      (`omaspec_uml::fold`, the flowchart's `layered::fold`); the folded box carries
+      the two small squares of a linked state. The pane keeps the folds per tab and
+      hands them to the engine as comment lines after the diagram (`' fold (Omaspec)
+      Name`), so the file, the checks and the play never see them. A button on the
+      corner of the container under the pointer folds it, a click on a folded box
+      unfolds it; the palette folds the container at the caret and unfolds them all,
+      the preview window with `u`. Shift and a click on a box puts it in focus: the
+      play's veil over the diagram, and through it the box in the accent's light,
+      its neighbors, their lines and words; Shift and a click on paper ends it, in the
+      editor the focus follows the caret onto another box. A play unfolds first and
+      starts once that picture is in. `tests/fold.rs` folds in each drawer; headless
+      snapshots `focus` and `folded`. Every golden and `tests/lines.txt` stayed as
+      they were.
 - [x] A sketch look (2026-11-06, [0023](docs/adr/0023-sketch-look.md)): PlantUML's
       `skinparam handwritten true` and Mermaid's `look: handDrawn` (in the init or the
       front matter's `config`), declined until now, with a seed from each element's

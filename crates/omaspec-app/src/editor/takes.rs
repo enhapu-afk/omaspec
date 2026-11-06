@@ -65,6 +65,9 @@ impl Command {
             | Command::PlayTrace
             | Command::PlayAsk(_)
             | Command::StopPlay
+            | Command::FocusBox
+            | Command::FoldBox
+            | Command::UnfoldAll
             | Command::Back => Ok(()),
             // The window, the project and the lists, whatever the tab holds.
             Command::Palette

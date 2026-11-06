@@ -2077,6 +2077,130 @@ fn snapshot_held() {
     shoot(&mut app, &dir, "held-drag");
 }
 
+/// A coffee machine whose `Brewing` holds three states, for folds.
+const BREWER: &str = "@startuml\ntitle Coffee\n[*] --> Ready\nstate Brewing {\n  [*] --> Grinding\n  Grinding --> Heating : ground\n  Heating --> Pouring : hot\n}\nReady --> Grinding : start\nPouring --> Ready : cup full\nBrewing --> Ready : cancel\n@enduml\n";
+
+/// `source` drawn in the active tab with `folds` folded, as the worker
+/// draws it: the fold lines after the diagram, the answer on the file.
+fn show_folded(app: &mut App, source: &str, folds: &[&str]) {
+    let key = app.doc().key;
+    let mut text = source.to_owned();
+    for name in folds {
+        text.push_str(&omaspec_uml::fold::line(name, false));
+    }
+    let id = app.doc_mut().paper.pretend_next();
+    let mut reply = answer(key, id, Ok(drawn(&text, Language::PlantUml)));
+    reply.language = Language::PlantUml;
+    reply.source = source.into();
+    let paper = &mut app.doc_mut().paper;
+    let _ = paper.rendered(reply);
+    paper.finish_rasters();
+}
+
+#[test]
+fn a_container_folds_from_the_caret_and_unfolds_with_a_click() {
+    let work = temp_dir("fold");
+    let file = work.join("coffee.puml");
+    std::fs::write(&file, BREWER).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, BREWER, Language::PlantUml);
+    let key = app.doc().key;
+    // The caret on the container's name folds it.
+    let at = BREWER.find("Brewing {").unwrap() + 2;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::FoldBox);
+    assert_eq!(app.doc().paper.folded(), ["Brewing"]);
+    assert_eq!(app.notice.as_deref(), Some("Brewing folded"));
+    show_folded(&mut app, BREWER, &["Brewing"]);
+    // Drawn as a box: its states are gone, a line to one ends on it.
+    let map = &app.doc().paper.diagram.as_ref().unwrap().drawn.map;
+    let names: Vec<&str> = map.places.iter().map(|p| p.name.as_str()).collect();
+    assert!(
+        names.contains(&"Brewing") && !names.contains(&"Grinding"),
+        "{names:?}"
+    );
+    assert!(
+        map.wires
+            .iter()
+            .any(|w| w.key.from == "Ready" && w.key.to == "Brewing"),
+        "{:?}",
+        map.wires.iter().map(|w| &w.key).collect::<Vec<_>>()
+    );
+    // The file is as it was.
+    assert_eq!(app.doc().text(), BREWER);
+    // A click on the folded box unfolds it, and the diagram is drawn again.
+    let _ = app.update(Message::Paper(
+        key,
+        paper::Message::Unfold("Brewing".into()),
+    ));
+    assert!(app.doc().paper.folded().is_empty());
+    show(&mut app, BREWER, Language::PlantUml);
+    // A play opens every fold first.
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::FoldBox);
+    assert_eq!(app.doc().paper.folded(), ["Brewing"]);
+    press(&mut app, Command::Play);
+    assert!(app.doc().paper.folded().is_empty());
+    assert_eq!(app.play_when_drawn, Some(key));
+    // Nothing to fold at a state that holds none.
+    let at = BREWER.find("Ready").unwrap();
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::FoldBox);
+    assert_eq!(app.notice.as_deref(), Some("Ready holds nothing to fold"));
+}
+
+#[test]
+fn the_focus_takes_a_box_and_follows_the_caret() {
+    let work = temp_dir("focus");
+    let file = work.join("coffee.puml");
+    std::fs::write(&file, BREWER).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, BREWER, Language::PlantUml);
+    let key = app.doc().key;
+    let ready = app.doc().paper.screen_of_box("Ready");
+    let _ = app.update(Message::Paper(key, paper::Message::FocusAt(ready)));
+    assert_eq!(app.doc().paper.focused(), Some("Ready"));
+    // The caret on another state's name takes the focus there.
+    let at = BREWER.find("Heating --> Pouring").unwrap() + 1;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    app.follow_caret(key);
+    assert_eq!(app.doc().paper.focused(), Some("Heating"));
+    // The command ends it; Shift and a click on paper as well.
+    press(&mut app, Command::FocusBox);
+    assert_eq!(app.doc().paper.focused(), None);
+    press(&mut app, Command::FocusBox);
+    assert_eq!(app.doc().paper.focused(), Some("Heating"));
+    let _ = app.update(Message::Paper(
+        key,
+        paper::Message::FocusAt(iced::Point::new(2.0, 2.0)),
+    ));
+    assert_eq!(app.doc().paper.focused(), None);
+}
+
+/// Writes headless screenshots of folds and of the focus when
+/// OMASPEC_SNAPSHOT_DIR is set (docs/adr/0024): a container folded to its
+/// box, and the focus on one state.
+#[test]
+fn snapshot_fold_and_focus() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("fold-shots");
+    let file = work.join("coffee.puml");
+    std::fs::write(&file, BREWER).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, BREWER, Language::PlantUml);
+    let key = app.doc().key;
+    let heating = app.doc().paper.screen_of_box("Heating");
+    let _ = app.update(Message::Paper(key, paper::Message::FocusAt(heating)));
+    shoot(&mut app, &dir, "focus");
+    let _ = app.update(Message::Paper(key, paper::Message::FocusAt(heating)));
+    let _ = app.update(Message::Paper(key, paper::Message::Fold("Brewing".into())));
+    show_folded(&mut app, BREWER, &["Brewing"]);
+    shoot(&mut app, &dir, "folded");
+}
+
 /// Writes headless screenshots of a play when OMASPEC_SNAPSHOT_DIR
 /// is set: a state machine at rest, a light on its way and arriving,
 /// a scenario half unfolded.

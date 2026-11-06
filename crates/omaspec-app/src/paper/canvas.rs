@@ -60,6 +60,11 @@ pub struct DiagramCanvas<'a> {
     pub hand_cursor: Option<mouse::Interaction>,
     /// The tiles and states a click follows; none while a play runs.
     pub links: &'a [Link],
+    /// The containers a click folds and the boxes it unfolds
+    /// (docs/adr/0024).
+    pub folds: Vec<super::fold::Spot>,
+    /// Whether Shift and a click focus a box.
+    pub focusing: bool,
 }
 
 impl DiagramCanvas<'_> {
@@ -239,6 +244,9 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
                 if state.modifiers.control() {
                     return Some(Action::publish(Message::Pick(at)).and_capture());
                 }
+                if state.modifiers.shift() && self.focusing && self.overview.is_some() {
+                    return Some(Action::publish(Message::FocusAt(at)).and_capture());
+                }
                 let now = Instant::now();
                 state.hand_click = None;
                 if state
@@ -265,7 +273,19 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
             }
             Event::Mouse(mouse::Event::ButtonReleased(Button::Left)) => {
                 state.drag.take()?;
-                match state.press.take() {
+                let press = state.press.take();
+                // A click on a fold button or a folded box (docs/adr/0024).
+                let fold = match press {
+                    Some((at, false)) => {
+                        super::fold::click(&self.folds, self.view, at, bounds.size())
+                    }
+                    _ => None,
+                };
+                if let Some(message) = fold {
+                    state.last_click = None;
+                    return Some(Action::publish(message));
+                }
+                match press {
                     Some((at, false)) if self.link_at(at, bounds.size()).is_some() => {
                         state.last_click = None;
                         Some(Action::publish(Message::Follow(at)))
@@ -346,9 +366,10 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
         } else if cursor.is_over(bounds)
             && self.overview.is_some()
             && (state.modifiers.control()
-                || cursor
-                    .position_in(bounds)
-                    .is_some_and(|at| self.link_at(at, bounds.size()).is_some()))
+                || cursor.position_in(bounds).is_some_and(|at| {
+                    self.link_at(at, bounds.size()).is_some()
+                        || super::fold::click(&self.folds, self.view, at, bounds.size()).is_some()
+                }))
         {
             // Ctrl+click jumps to the source; a click on a link follows it.
             mouse::Interaction::Pointer
@@ -584,7 +605,7 @@ impl canvas::Program<Message> for PaperEdge {
 #[derive(Clone, Copy)]
 pub(super) struct Grid {
     origin: Point,
-    scale: f32,
+    pub(super) scale: f32,
     size: Size,
 }
 

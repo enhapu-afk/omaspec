@@ -72,6 +72,85 @@ impl Container {
     }
 }
 
+impl Diagram {
+    /// Folds the composite states named in `names` to their box
+    /// (docs/adr/0024); the lines into them end on its border.
+    pub fn fold(&mut self, names: &[String]) {
+        crate::fold::fold(&mut self.root, &mut self.frame, names);
+    }
+}
+
+impl crate::fold::Folds for Container {
+    fn count(&self) -> usize {
+        self.nodes.len()
+    }
+
+    fn key(&self, index: usize) -> &str {
+        &self.nodes[index].key
+    }
+
+    fn composite(&self, index: usize) -> bool {
+        self.nodes[index].composite
+    }
+
+    fn inner(&self, index: usize) -> &Container {
+        &self.nodes[index].children
+    }
+
+    fn inner_mut(&mut self, index: usize) -> &mut Container {
+        &mut self.nodes[index].children
+    }
+
+    fn close(&mut self, index: usize) {
+        let node = &mut self.nodes[index];
+        node.composite = false;
+        node.children = Container::default();
+    }
+
+    fn crossings(&mut self) -> Vec<(&mut Vec<usize>, &mut Vec<usize>)> {
+        self.crossings
+            .iter_mut()
+            .map(|c| (&mut c.from, &mut c.to))
+            .collect()
+    }
+
+    fn settle(&mut self) {
+        // Alike but for the line they were written on.
+        let alike = |a: &Transition, b: &Transition| {
+            Transition {
+                line: 0,
+                ..a.clone()
+            } == Transition {
+                line: 0,
+                ..b.clone()
+            }
+        };
+        let (direct, crossing): (Vec<Crossing>, Vec<Crossing>) =
+            std::mem::take(&mut self.crossings)
+                .into_iter()
+                .partition(|c| c.from.len() == 1 && c.to.len() == 1);
+        for c in crossing {
+            if !self
+                .crossings
+                .iter()
+                .any(|k| k.from == c.from && k.to == c.to && alike(&k.arrow, &c.arrow))
+            {
+                self.crossings.push(c);
+            }
+        }
+        for c in direct {
+            let edge = Transition {
+                from: c.from[0],
+                to: c.to[0],
+                ..c.arrow
+            };
+            if !self.edges.iter().any(|e| alike(e, &edge)) {
+                self.edges.push(edge);
+            }
+        }
+    }
+}
+
 impl crate::hand::boxes::Members for Container {
     fn count(&self) -> usize {
         self.nodes.len()

@@ -124,6 +124,10 @@ pub struct Place {
     /// The zero-based line of the entry that holds it; none when the
     /// layout places it.
     pub entry: Option<usize>,
+    /// It holds others: a composite state, a package, a subgraph, which
+    /// the pane may fold to its box
+    /// ([0024](../../../docs/adr/0024-focus-and-collapse.md)).
+    pub frame: bool,
 }
 
 /// A state's box, or the mark of a pseudo state.
