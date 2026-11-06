@@ -122,12 +122,14 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
                 d.frame.by_hand = hand::numbered(source);
                 d.frame.held = hand::held(source);
                 d.frame.unplaced = d.root.hold(&d.frame.held);
+                d.frame.unplaced.extend(d.root.part(&hand::apart(source)));
                 Diagram::State(d)
             }
             Diagram::Structure(mut d) => {
                 d.frame.by_hand = hand::numbered(source);
                 d.frame.held = hand::held(source);
                 d.frame.unplaced = d.root.hold(&d.frame.held);
+                d.frame.unplaced.extend(d.root.part(&hand::apart(source)));
                 Diagram::Structure(d)
             }
             other => other,

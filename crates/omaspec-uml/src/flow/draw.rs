@@ -136,6 +136,7 @@ fn paint(
             label_width: label_width(wire, skin, family)?,
             label_height: 0.0,
             hidden: true,
+            apart: false,
         });
     }
     let layout = graph::layout(&nodes, &edges, Direction::Right);
@@ -358,6 +359,7 @@ fn measure_subsystem(block: &Block, skin: &Skin, family: Family) -> Result<Block
             label_width: label_width(wire, skin, family)?,
             label_height: 0.0,
             hidden: true,
+            apart: false,
         });
     }
     let laid = graph::layout(&nodes, &edges, Direction::Right);

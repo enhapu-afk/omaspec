@@ -53,6 +53,14 @@ impl<'a> Nested for States<'a> {
         container.held.clone()
     }
 
+    fn bundled(&self, container: &'a Container) -> bool {
+        container.bundled
+    }
+
+    fn apart_at(&self, container: &'a Container) -> Vec<usize> {
+        container.apart.clone()
+    }
+
     fn flow(&self, container: &'a Container) -> (graph::Direction, bool) {
         (graph_direction(container.direction), container.mirrored)
     }

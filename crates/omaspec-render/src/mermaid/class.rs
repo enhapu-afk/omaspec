@@ -20,6 +20,10 @@ pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     diagram.frame.by_hand = omaspec_uml::hand::numbered(source);
     diagram.frame.held = omaspec_uml::hand::held(source);
     diagram.frame.unplaced = diagram.root.hold(&diagram.frame.held);
+    diagram
+        .frame
+        .unplaced
+        .extend(diagram.root.part(&omaspec_uml::hand::apart(source)));
     draw_mapped(&diagram).ok()
 }
 

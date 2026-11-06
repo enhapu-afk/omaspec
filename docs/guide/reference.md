@@ -235,6 +235,28 @@ entry shows among the findings. Alt and a double click gives the box back to the
 layout. Renaming a state renames it in the block too. Why it works this way:
 [ADR 0021](../adr/0021-boxes-held-in-place.md).
 
+### Lines bundled
+
+Where several lines arrive at one box, they meet on one short stem beside it, so the
+box has one arrival instead of a comb. Through the ranks each line keeps its own run,
+and a label keeps the room it has; the lines turn onto the stem only as they arrive. A
+line with a label keeps its own arrival. So do the lines that leave a box, and two
+lines between the same two boxes. Arrowheads on the stem stack, the later line on top.
+
+The same block turns that off:
+
+```plantuml
+' lines by hand (Omaspec)
+' apart
+' apart at Done
+```
+
+`apart` keeps every line of the diagram on its own arrival. `apart at Done` does that
+for the lines that meet *Done*. A repeated entry is a warning, and a name that is no
+box shows among the findings. Renaming a box renames it here too. *By hand: reset
+every line and box* removes these entries with the rest of the block. Why it works
+this way: [ADR 0022](../adr/0022-lines-bundled.md).
+
 ### Examples
 
 Ctrl+Shift+E (or *Examples* on an empty page) lays the examples that come with Omaspec

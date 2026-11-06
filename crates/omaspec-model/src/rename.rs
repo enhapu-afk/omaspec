@@ -410,8 +410,9 @@ fn state(piece: &Piece, k: &str, new: &str, plan: &mut Plan) {
 }
 
 /// The entries of the block of lines and boxes by hand (docs/adr/0016,
-/// docs/adr/0021) that name the state of key `k`: each written again with
-/// `new` in its place, so a line keeps its shape and a box its place.
+/// docs/adr/0021, docs/adr/0022) that name the state of key `k`: each
+/// written again with `new` in its place, so a line keeps its shape, a
+/// box its place and a box kept apart stays apart.
 fn by_hand(piece: &Piece, k: &str, new: &str, plan: &mut Plan) {
     use omaspec_uml::hand::{self, Hand};
     let Some(block) = hand::read(&piece.code) else {
@@ -431,6 +432,7 @@ fn by_hand(piece: &Piece, k: &str, new: &str, plan: &mut Plan) {
         let hit = match &mut said {
             Hand::Line(line) => renamed(&mut line.key.from) | renamed(&mut line.key.to),
             Hand::Hold(hold) => renamed(&mut hold.name) | renamed(&mut hold.beside),
+            Hand::Apart(apart) => apart.at.as_mut().is_some_and(renamed),
         };
         if !hit {
             continue;

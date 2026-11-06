@@ -58,7 +58,8 @@ pub fn try_draw(
     let (graph, fix) = flowchart::apply(graph, source, &mut repaired)?;
     let mut tree = prepare(graph, source, &fix)?;
     // Boxes held in place, by the container that holds both.
-    let unplaced = hold_boxes(&mut tree, held);
+    let mut unplaced = hold_boxes(&mut tree, held);
+    unplaced.extend(part_boxes(&mut tree, &hand::apart(source)));
     let palette = palette(theme)?;
     let family = Family::of(&theme.font_family);
     let mut scene = layout_spot(&tree, Spot::Root, &palette, family)?;
@@ -154,6 +155,35 @@ fn hold_boxes(tree: &mut Tree, held: &[(usize, hand::Hold)]) -> Vec<(usize, Stri
         }
     }
     misses
+}
+
+/// Keeps the lines of `entries` apart. An entry that names no box is
+/// returned, to be said.
+fn part_boxes(tree: &mut Tree, entries: &[(usize, hand::Apart)]) -> Vec<(usize, String)> {
+    if entries.is_empty() {
+        return Vec::new();
+    }
+    let places: HashMap<String, (Vec<usize>, usize)> = tree
+        .paths
+        .iter()
+        .filter_map(|(id, path)| {
+            let (&index, container) = path.split_last()?;
+            Some((id.clone(), (container.to_vec(), index)))
+        })
+        .collect();
+    let parted = hand::parted(entries, &places);
+    tree.bundled = parted.bundled;
+    for (path, members) in parted.members {
+        let spot = if path.is_empty() {
+            Some(Spot::Root)
+        } else {
+            tree.spots.get(&path).copied()
+        };
+        if let Some(spot) = spot {
+            tree.apart.insert(spot, members);
+        }
+    }
+    parted.misses
 }
 
 /// Every line drawn, with what the block of lines by hand calls it: a
@@ -295,6 +325,11 @@ struct Tree<'a> {
     links: HashMap<String, Link>,
     /// The boxes held beside others, by the container that holds both.
     held: HashMap<Spot, Vec<omaspec_uml::graph::hold::Held>>,
+    /// When false, no line of the diagram bundles
+    /// ([0022](../../../../../docs/adr/0022-lines-bundled.md)).
+    bundled: bool,
+    /// Members whose lines stay out of a bundle, by the container.
+    apart: HashMap<Spot, Vec<usize>>,
 }
 
 /// Where a transition is laid out: the container that holds both ends,
@@ -369,6 +404,8 @@ fn prepare<'a>(graph: &'a Graph, source: &str, fix: &flowchart::Fix) -> Option<T
         paths: HashMap::new(),
         spots: HashMap::new(),
         held: HashMap::new(),
+        bundled: true,
+        apart: HashMap::new(),
         meets: Vec::new(),
         links: source
             .lines()

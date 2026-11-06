@@ -17,7 +17,10 @@
 //! The block holds boxes in place too
 //! ([0021](../../../docs/adr/0021-boxes-held-in-place.md)): `Paused after
 //! Running` keeps `Paused` in the rank of `Running`, right after it across
-//! the flow ([`Hold`]).
+//! the flow ([`Hold`]). And it keeps lines apart
+//! ([0022](../../../docs/adr/0022-lines-bundled.md)): `apart` draws every
+//! line on its own, and `apart at Name` does that for the lines of one box
+//! ([`Apart`]).
 
 use std::fmt;
 
@@ -77,11 +80,21 @@ pub struct Hold {
     pub after: bool,
 }
 
-/// What an entry says: the shape of a line, or where a box stands.
+/// Lines that stay out of a bundle
+/// ([0022](../../../docs/adr/0022-lines-bundled.md)): every line, or the
+/// lines that meet the box `at`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Apart {
+    pub at: Option<String>,
+}
+
+/// What an entry says: the shape of a line, where a box stands, or which
+/// lines stay apart.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Hand {
     Line(Line),
     Hold(Hold),
+    Apart(Apart),
 }
 
 /// A box a line leaves or enters: where it is, and whether the line may
@@ -164,6 +177,67 @@ pub fn numbered(code: &str) -> Vec<(usize, Line)> {
         }
     }
     out
+}
+
+/// The lines kept apart in `code`: each entry that reads, the first that
+/// keeps every line apart and the first for each box, with the zero-based
+/// line of its entry.
+pub fn apart(code: &str) -> Vec<(usize, Apart)> {
+    let mut out: Vec<(usize, Apart)> = Vec::new();
+    let mut whole = false;
+    for entry in read(code).map(|b| b.entries).unwrap_or_default() {
+        if let Ok(Hand::Apart(apart)) = entry.read {
+            let skip = match &apart.at {
+                None => whole,
+                Some(name) => out.iter().any(|(_, kept)| kept.at.as_deref() == Some(name)),
+            };
+            whole |= apart.at.is_none();
+            if !skip {
+                out.push((entry.line, apart));
+            }
+        }
+    }
+    out
+}
+
+/// Where `entries` keep lines apart, among the boxes of `places` (a name
+/// to the path of its container and its index there). `bundled` is false
+/// when an entry keeps every line apart. A name that is no box is a miss.
+pub fn parted(
+    entries: &[(usize, Apart)],
+    places: &std::collections::HashMap<String, (Vec<usize>, usize)>,
+) -> Parted {
+    let mut parted = Parted {
+        bundled: true,
+        members: std::collections::HashMap::new(),
+        misses: Vec::new(),
+    };
+    for (line, apart) in entries {
+        match &apart.at {
+            None => parted.bundled = false,
+            Some(name) => match places.get(name) {
+                Some((path, index)) => {
+                    parted.members.entry(path.clone()).or_default().push(*index);
+                }
+                None => parted.misses.push((
+                    *line,
+                    format!("No box is named {name}; {apart} is left out"),
+                )),
+            },
+        }
+    }
+    parted
+}
+
+/// What [`parted`] finds.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Parted {
+    /// When false, no line of the diagram bundles.
+    pub bundled: bool,
+    /// Member indices, by the path of their container.
+    pub members: std::collections::HashMap<Vec<usize>, Vec<usize>>,
+    /// Entries that name no box, by line, and what to say.
+    pub misses: Vec<(usize, String)>,
 }
 
 /// The boxes held in `code`: each entry that reads, the first for a box,
@@ -475,11 +549,21 @@ impl fmt::Display for Hold {
 }
 
 /// An entry as written, without the comment mark.
+impl fmt::Display for Apart {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.at {
+            None => write!(f, "apart"),
+            Some(at) => write!(f, "apart at {}", name(at)),
+        }
+    }
+}
+
 impl fmt::Display for Hand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Hand::Line(line) => line.fmt(f),
             Hand::Hold(hold) => hold.fmt(f),
+            Hand::Apart(apart) => apart.fmt(f),
         }
     }
 }
@@ -519,6 +603,7 @@ fn name(name: &str) -> String {
         && name != "at"
         && name != "after"
         && name != "before"
+        && name != "apart"
         && !name.contains(|c: char| c.is_whitespace() || c == '"' || c == ',');
     if bare {
         name.to_owned()
@@ -574,6 +659,7 @@ fn tokens(text: &str) -> Result<Vec<Token<'_>>, String> {
 
 const SHAPE: &str = "a line by hand reads `From -> To at 0.5 -0.4`";
 const HELD: &str = "a box held in place reads `Box after Neighbor` or `Box before Neighbor`";
+const APART: &str = "lines stay apart as `apart`, or as `apart at Name`";
 
 /// The name of one end of a line, from its token.
 fn end_name(token: Option<&Token>, what: &str) -> Result<String, String> {
@@ -604,13 +690,35 @@ fn value(token: Option<&Token>) -> Result<f32, String> {
     }
 }
 
-/// One entry, without its comment mark: a line by hand, or a box held in
-/// place.
+/// One entry, without its comment mark: a line by hand, a box held in
+/// place, or lines kept apart.
 fn parse(text: &str) -> Result<Hand, String> {
     let tokens = tokens(text)?;
+    if tokens.first().is_some_and(|t| t.is("apart"))
+        && (tokens.len() == 1 || tokens.get(1).is_some_and(|t| t.is("at")))
+    {
+        return kept_apart(&tokens).map(Hand::Apart);
+    }
     match tokens.get(1) {
         Some(t) if t.is("after") || t.is("before") => hold(&tokens).map(Hand::Hold),
         _ => line(&tokens).map(Hand::Line),
+    }
+}
+
+/// Lines kept apart: `apart`, or `apart at Name`.
+fn kept_apart(tokens: &[Token]) -> Result<Apart, String> {
+    match tokens {
+        [one] if one.is("apart") => Ok(Apart { at: None }),
+        [one, at, name] if one.is("apart") && at.is("at") && (name.quoted || !name.is("at")) => {
+            if name.text.is_empty() {
+                Err("the name of the box is empty".to_owned())
+            } else {
+                Ok(Apart {
+                    at: Some(name.text.to_owned()),
+                })
+            }
+        }
+        _ => Err(APART.to_owned()),
     }
 }
 
@@ -723,6 +831,32 @@ mod tests {
         assert_eq!(kept.len(), 1, "the first entry for a box holds");
         assert_eq!((kept[0].0, kept[0].1.beside.as_str()), (1, "B"));
         assert_eq!(numbered(code).len(), 1);
+    }
+
+    #[test]
+    fn lines_stay_apart_for_the_diagram_or_for_one_box() {
+        let apart = |text: &str| match parse(text) {
+            Ok(Hand::Apart(apart)) => apart,
+            other => panic!("{text}: {other:?}"),
+        };
+        assert_eq!(apart("apart"), Apart { at: None });
+        assert_eq!(apart("apart").to_string(), "apart");
+        let one = apart("apart at Error");
+        assert_eq!(one.at.as_deref(), Some("Error"));
+        assert_eq!(one.to_string(), "apart at Error");
+        let quoted = apart(r#"apart at "Wait here""#);
+        assert_eq!(quoted.to_string(), r#"apart at "Wait here""#);
+        // A box named apart is still held in place.
+        assert!(matches!(parse("apart after Running"), Ok(Hand::Hold(_))));
+        for wrong in ["apart at", "apart at Error too", "apart Error"] {
+            assert!(parse(wrong).is_err(), "{wrong}");
+        }
+        let code =
+            "' lines by hand (Omaspec)\n' apart\n' apart\n' apart at Idle\n' apart at Idle\n";
+        let kept = super::apart(code);
+        assert_eq!(kept.len(), 2, "the first of each stays");
+        assert!(kept[0].1.at.is_none());
+        assert_eq!(kept[1].1.at.as_deref(), Some("Idle"));
     }
 
     #[test]

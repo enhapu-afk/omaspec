@@ -47,6 +47,11 @@ pub struct Container {
     pub split: Option<Split>,
     /// Its states the writer held beside others ([`Container::hold`]).
     pub held: Vec<crate::graph::hold::Held>,
+    /// When false, no line here bundles
+    /// ([0022](../../../docs/adr/0022-lines-bundled.md)).
+    pub bundled: bool,
+    /// Members whose lines stay out of a bundle.
+    pub apart: Vec<usize>,
 }
 
 impl Container {
@@ -84,6 +89,47 @@ impl Container {
         }
         misses
     }
+
+    /// Keeps the lines of `entries` apart
+    /// ([0022](../../../docs/adr/0022-lines-bundled.md)). An entry that
+    /// names no state is returned, to be said. A start, an end or a
+    /// history has no key to keep apart.
+    pub fn part(&mut self, entries: &[(usize, crate::hand::Apart)]) -> Vec<(usize, String)> {
+        fn places(
+            container: &Container,
+            path: &mut Vec<usize>,
+            out: &mut std::collections::HashMap<String, (Vec<usize>, usize)>,
+        ) {
+            for (index, node) in container.nodes.iter().enumerate() {
+                if !node.key.is_empty() {
+                    out.entry(node.key.clone()).or_insert((path.clone(), index));
+                }
+                path.push(index);
+                places(&node.children, path, out);
+                path.pop();
+            }
+        }
+        fn apply(container: &mut Container, path: &[usize], parted: &crate::hand::Parted) {
+            container.bundled = parted.bundled;
+            if let Some(members) = parted.members.get(path) {
+                container.apart.clone_from(members);
+            }
+            for (index, node) in container.nodes.iter_mut().enumerate() {
+                let mut child = path.to_vec();
+                child.push(index);
+                apply(&mut node.children, &child, parted);
+            }
+        }
+        if entries.is_empty() {
+            return Vec::new();
+        }
+        let mut found = Default::default();
+        places(self, &mut Vec::new(), &mut found);
+        let parted = crate::hand::parted(entries, &found);
+        let misses = parted.misses.clone();
+        apply(self, &[], &parted);
+        misses
+    }
 }
 
 impl Default for Container {
@@ -97,6 +143,8 @@ impl Default for Container {
             mirrored: false,
             split: None,
             held: Vec::new(),
+            bundled: true,
+            apart: Vec::new(),
         }
     }
 }

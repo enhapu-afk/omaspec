@@ -26,7 +26,9 @@
 //! a transition and the one back lie side by side, not around the
 //! diagram. Lines that meet one side of a box share it, in the order of
 //! their other ends, each as near as that allows to the point facing its
-//! other end ([`ports`]). Self-loops sit on the free side (right when the
+//! other end ([`ports`]). Lines that then arrive together at one side of a
+//! box, and carry no words, share the last stem ([`bundle`]), so many
+//! lines into one box meet it once. Self-loops sit on the free side (right when the
 //! flow is downward, below when it goes right) and reserve that room while
 //! the rank is packed; the drawn box stays the size the caller measured.
 //!
@@ -39,6 +41,7 @@
 //! on [`route`].
 
 pub mod across;
+mod bundle;
 pub mod by_hand;
 mod doubled;
 pub mod hold;
@@ -74,6 +77,9 @@ pub struct Edge {
     /// and no room of its own: a line between containers, which is routed
     /// once everything is placed.
     pub hidden: bool,
+    /// Stays out of a bundle ([`bundle`]): the writer kept this line, or
+    /// a box it meets, apart.
+    pub apart: bool,
 }
 
 /// A frame around some boxes of a layout: a container laid out with
@@ -493,6 +499,17 @@ pub fn framed(
     };
     let mut lines: Vec<Vec<(f32, f32)>> = routes.iter().map(|r| r.points.clone()).collect();
     straight::unjog(&mut lines, &ends, &rects, &label_rect);
+    bundle::share(&mut bundle::Drawn {
+        routes: &mut lines,
+        edges,
+        chains: &chains,
+        rows: &rows,
+        slots: &slots,
+        rects: &rects,
+        nodes,
+        back: &back,
+        direction,
+    });
     for (index, (route, line)) in routes.iter_mut().zip(lines).enumerate() {
         if let Some(rect) = label_rect(index, &line) {
             route.label_at = (rect.x, rect.y);
@@ -1692,6 +1709,7 @@ mod tests {
             label_width: 0.0,
             label_height: 0.0,
             hidden: false,
+            apart: false,
         }
     }
 

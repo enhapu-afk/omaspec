@@ -1,0 +1,10 @@
+@startuml
+title Lines bundled
+[*] --> Idle
+Idle --> Running : start
+Idle --> Paused : pause
+Idle --> Stopped : halt
+Running --> Done
+Paused --> Done
+Stopped --> Done
+@enduml

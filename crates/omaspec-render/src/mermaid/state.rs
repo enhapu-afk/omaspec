@@ -21,6 +21,10 @@ pub fn try_draw(theme: &Theme, fenced: &str) -> Option<(String, Map)> {
     diagram.frame.by_hand = omaspec_uml::hand::numbered(fenced);
     diagram.frame.held = omaspec_uml::hand::held(fenced);
     diagram.frame.unplaced = diagram.root.hold(&diagram.frame.held);
+    diagram
+        .frame
+        .unplaced
+        .extend(diagram.root.part(&omaspec_uml::hand::apart(fenced)));
     draw_mapped(&diagram).ok()
 }
 

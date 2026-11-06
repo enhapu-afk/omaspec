@@ -95,6 +95,14 @@ impl Nested for Charts<'_> {
         self.tree.held.get(&spot).cloned().unwrap_or_default()
     }
 
+    fn bundled(&self, _spot: Spot) -> bool {
+        self.tree.bundled
+    }
+
+    fn apart_at(&self, spot: Spot) -> Vec<usize> {
+        self.tree.apart.get(&spot).cloned().unwrap_or_default()
+    }
+
     fn flow(&self, spot: Spot) -> (graph::Direction, bool) {
         let (axis, flip) = axes(self.tree.flow(spot));
         (axis, !matches!(flip, Flip::No))

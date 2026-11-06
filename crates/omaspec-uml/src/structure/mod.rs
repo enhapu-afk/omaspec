@@ -36,6 +36,11 @@ pub struct Group {
     pub direction: Direction,
     /// Its boxes the writer held beside others ([`Group::hold`]).
     pub held: Vec<crate::graph::hold::Held>,
+    /// When false, no line here bundles
+    /// ([0022](../../../docs/adr/0022-lines-bundled.md)).
+    pub bundled: bool,
+    /// Members whose lines stay out of a bundle.
+    pub apart: Vec<usize>,
 }
 
 impl Group {
@@ -73,6 +78,46 @@ impl Group {
         }
         misses
     }
+
+    /// Keeps the lines of `entries` apart
+    /// ([0022](../../../docs/adr/0022-lines-bundled.md)). An entry that
+    /// names no box is returned, to be said.
+    pub fn part(&mut self, entries: &[(usize, crate::hand::Apart)]) -> Vec<(usize, String)> {
+        fn places(
+            group: &Group,
+            path: &mut Vec<usize>,
+            out: &mut std::collections::HashMap<String, (Vec<usize>, usize)>,
+        ) {
+            for (index, node) in group.nodes.iter().enumerate() {
+                if !node.key.is_empty() {
+                    out.entry(node.key.clone()).or_insert((path.clone(), index));
+                }
+                path.push(index);
+                places(&node.children, path, out);
+                path.pop();
+            }
+        }
+        fn apply(group: &mut Group, path: &[usize], parted: &crate::hand::Parted) {
+            group.bundled = parted.bundled;
+            if let Some(members) = parted.members.get(path) {
+                group.apart.clone_from(members);
+            }
+            for (index, node) in group.nodes.iter_mut().enumerate() {
+                let mut child = path.to_vec();
+                child.push(index);
+                apply(&mut node.children, &child, parted);
+            }
+        }
+        if entries.is_empty() {
+            return Vec::new();
+        }
+        let mut found = Default::default();
+        places(self, &mut Vec::new(), &mut found);
+        let parted = crate::hand::parted(entries, &found);
+        let misses = parted.misses.clone();
+        apply(self, &[], &parted);
+        misses
+    }
 }
 
 impl Default for Group {
@@ -84,6 +129,8 @@ impl Default for Group {
             notes: Vec::new(),
             direction: Direction::Down,
             held: Vec::new(),
+            bundled: true,
+            apart: Vec::new(),
         }
     }
 }

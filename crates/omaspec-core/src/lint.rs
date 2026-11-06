@@ -128,6 +128,8 @@ fn lines_by_hand(code: &str, findings: &mut Vec<Finding>) {
     };
     let mut seen = HashSet::new();
     let mut held = HashSet::new();
+    let mut whole = false;
+    let mut boxes = HashSet::new();
     for entry in &block.entries {
         let said = match &entry.read {
             Err(why) => Some(format!("{}. This entry is left out", capitalized(why))),
@@ -139,6 +141,19 @@ fn lines_by_hand(code: &str, findings: &mut Vec<Finding>) {
                 "{} is held in place above already; this entry is left out",
                 hold.name
             )),
+            Ok(Hand::Apart(apart)) => match &apart.at {
+                None if whole => {
+                    Some("the lines stay apart above already; this entry is left out".to_owned())
+                }
+                None => {
+                    whole = true;
+                    None
+                }
+                Some(name) if !boxes.insert(name.clone()) => Some(format!(
+                    "{name} stays apart above already; this entry is left out"
+                )),
+                Some(_) => None,
+            },
             Ok(_) => None,
         };
         if let Some(said) = said {
@@ -798,7 +813,7 @@ mod tests {
 
     #[test]
     fn lines_by_hand_that_do_not_read_or_come_twice() {
-        let code = "@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B at 0.5 -60\n' A -> B at 0.2 1\n' B -> A at 0.5\n' C after A\n' C before B\n' C after\n@enduml\n";
+        let code = "@startuml\nA --> B\n\n' lines by hand (Omaspec)\n' A -> B at 0.5 -60\n' A -> B at 0.2 1\n' B -> A at 0.5\n' C after A\n' C before B\n' C after\n' apart\n' apart\n' apart at Idle\n' apart at Idle\n@enduml\n";
         assert_eq!(
             messages(code, Language::PlantUml),
             [
@@ -823,6 +838,16 @@ mod tests {
                     "A box held in place reads `Box after Neighbor` or `Box before Neighbor`. \
                      This entry is left out"
                         .into()
+                ),
+                (
+                    11,
+                    Severity::Warning,
+                    "the lines stay apart above already; this entry is left out".into()
+                ),
+                (
+                    13,
+                    Severity::Warning,
+                    "Idle stays apart above already; this entry is left out".into()
                 ),
             ]
         );

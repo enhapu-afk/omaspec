@@ -1931,7 +1931,15 @@ mod tests {
             .map(|edge| edge.points.last().unwrap().0)
             .collect();
         xs.sort_by(f32::total_cmp);
-        assert!(xs.windows(2).all(|pair| pair[1] - pair[0] > 4.0), "{xs:?}");
+        // A line with a label keeps its own arrival, so these stay apart.
+        // What does bundle shares a point; nothing lands in between.
+        assert!(
+            xs.windows(2).all(|pair| {
+                let gap = pair[1] - pair[0];
+                gap < 0.5 || gap > 4.0
+            }),
+            "{xs:?}"
+        );
     }
 
     /// As Graphviz ranks clusters: a package moves down only as far as its

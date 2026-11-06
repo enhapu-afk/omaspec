@@ -1108,6 +1108,7 @@ mod tests {
             label_width: 0.0,
             label_height: 0.0,
             hidden: false,
+            apart: false,
         }
     }
 
@@ -1200,8 +1201,10 @@ mod tests {
                 }
             }
         }
-        // Into the rules from above, each at its own place.
-        let mut tops: Vec<f32> = [0, 1, 2, 5]
+        // Into the rules from above. A pair that can share a trunk does.
+        // A point within a short step of that trunk stays on its own, and
+        // the line that leaves upward is not pulled onto it.
+        let mut arrivals: Vec<f32> = [0, 1, 2, 5]
             .iter()
             .map(|&index| {
                 let end = *laid.routes[index].points.last().unwrap();
@@ -1215,10 +1218,17 @@ mod tests {
             .collect();
         let out = laid.routes[3].points[0];
         assert!((out.1 - rules.y).abs() < 0.1, "{:?}", laid.routes[3].points);
-        tops.push(out.0);
-        tops.sort_by(f32::total_cmp);
-        for pair in tops.windows(2) {
-            assert!(pair[1] - pair[0] > 1.0, "{tops:?}");
+        arrivals.sort_by(f32::total_cmp);
+        assert!(
+            arrivals.windows(2).any(|pair| pair[1] - pair[0] < 0.5),
+            "arrivals share a trunk: {arrivals:?}"
+        );
+        let mut places = arrivals;
+        places.push(out.0);
+        places.sort_by(f32::total_cmp);
+        for pair in places.windows(2) {
+            let gap = pair[1] - pair[0];
+            assert!(gap < 0.5 || gap > 4.0, "{places:?}");
         }
     }
 

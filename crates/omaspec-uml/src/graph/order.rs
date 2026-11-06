@@ -162,6 +162,7 @@ mod tests {
                         label_width: 0.0,
                         label_height: 0.0,
                         hidden: false,
+                        apart: false,
                     }
                 })
                 .filter(|e| e.from != e.to)

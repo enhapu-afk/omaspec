@@ -61,6 +61,14 @@ impl<'a> Nested for Elements<'a> {
         group.held.clone()
     }
 
+    fn bundled(&self, group: &'a Group) -> bool {
+        group.bundled
+    }
+
+    fn apart_at(&self, group: &'a Group) -> Vec<usize> {
+        group.apart.clone()
+    }
+
     fn flow(&self, group: &'a Group) -> (graph::Direction, bool) {
         (graph_direction(group.direction), false)
     }

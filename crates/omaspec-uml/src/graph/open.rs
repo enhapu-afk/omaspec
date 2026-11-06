@@ -152,6 +152,15 @@ pub trait Nested {
     fn holds(&self, _container: Self::Container) -> Vec<Held> {
         Vec::new()
     }
+    /// Whether the lines of `container` may share a trunk
+    /// ([0022](../../../../docs/adr/0022-lines-bundled.md)).
+    fn bundled(&self, _container: Self::Container) -> bool {
+        true
+    }
+    /// Members of `container` whose lines stay out of a bundle.
+    fn apart_at(&self, _container: Self::Container) -> Vec<usize> {
+        Vec::new()
+    }
     /// The room the members keep for notes.
     fn rooms(&self, _container: Self::Container) -> Result<Vec<(usize, Room)>, Self::Error> {
         Ok(Vec::new())
@@ -295,7 +304,8 @@ pub fn layout<C: Nested>(cx: &C, top: C::Container) -> Result<Scene<C::Item, C::
         levels: HashMap::new(),
     };
     flat.gather(cx, top, &mut Vec::new(), None)?;
-    flat.join(cx, top, &mut Vec::new(), axis)?;
+    let apart = flat.apart_nodes(cx);
+    flat.join(cx, top, &mut Vec::new(), axis, &apart)?;
     let (holds, lines, mut unheld) = flat.holds(cx);
     let laid = framed(
         &flat.nodes,
@@ -497,6 +507,31 @@ impl<C: Nested> Flat<C> {
         (holds, lines, unheld)
     }
 
+    /// The boxes whose lines stay out of a bundle: every box of a
+    /// container that bundles nothing, and the members named apart.
+    fn apart_nodes(&self, cx: &C) -> HashSet<usize> {
+        let mut set = HashSet::new();
+        for (path, &container) in &self.containers {
+            if !cx.bundled(container) {
+                for (at, end) in &self.ends {
+                    if at.starts_with(path.as_slice())
+                        && let End::Node(node) = end
+                    {
+                        set.insert(*node);
+                    }
+                }
+            }
+            for index in cx.apart_at(container) {
+                let mut at = path.clone();
+                at.push(index);
+                if let Some(End::Node(node)) = self.ends.get(&at) {
+                    set.insert(*node);
+                }
+            }
+        }
+        set
+    }
+
     /// The layout's index of the member at `path`.
     fn index(&self, path: &[usize]) -> Option<usize> {
         match self.ends.get(path)? {
@@ -513,6 +548,7 @@ impl<C: Nested> Flat<C> {
         container: C::Container,
         path: &mut Vec<usize>,
         axis: Direction,
+        apart: &HashSet<usize>,
     ) -> Result<(), C::Error> {
         let count = cx.members(container);
         let child = |path: &[usize], index: usize| [path, &[index]].concat();
@@ -558,6 +594,7 @@ impl<C: Nested> Flat<C> {
                 label_width: label.width,
                 label_height: label.height,
                 hidden: !drawn,
+                apart: apart.contains(&from) || apart.contains(&to),
             });
             level.push(Pending {
                 at: self.edges.len() - 1,
@@ -582,7 +619,7 @@ impl<C: Nested> Flat<C> {
         for index in 0..count {
             path.push(index);
             if let Some(&inner) = self.containers.get(path.as_slice()) {
-                self.join(cx, inner, path, axis)?;
+                self.join(cx, inner, path, axis, apart)?;
             }
             path.pop();
         }
