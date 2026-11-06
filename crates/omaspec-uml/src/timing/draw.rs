@@ -18,6 +18,7 @@ const HEAD: f32 = 8.0;
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
+    canvas.sketch(skin.sketch);
     let family = canvas.family();
     let notes = Annotations::new(
         &diagram.frame,

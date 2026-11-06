@@ -28,6 +28,7 @@ pub fn draw_tiled(d: &MindMap, tiles: Option<&Tiles>) -> Result<(String, map::Ma
     }
     let skin = Skin::from_params(&d.frame.skinparams, TreeKind::MindMap)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
+    canvas.sketch(skin.sketch);
     let family = canvas.family();
     let annotations = Annotations::new(
         &d.frame,

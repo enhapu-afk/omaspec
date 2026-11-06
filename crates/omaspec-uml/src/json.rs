@@ -10,7 +10,8 @@
 //! decline and name the line. PlantUML draws a JSON diagram from its
 //! styles alone: a `<style>` colors the page, the texts around it, the
 //! cards (`jsonDiagram { node {…} }`) and the highlighted rows
-//! (`highlight`); skinparams change nothing, here as there.
+//! (`highlight`); skinparams change nothing, here as there, but for
+//! `handwritten`, which draws every diagram by hand (docs/adr/0023).
 
 use crate::Declined;
 use crate::annotations::Annotations;
@@ -64,6 +65,8 @@ struct Look {
     lit_ink: Color,
     /// Title, header, footer and caption.
     around: [Font; 4],
+    /// `skinparam handwritten true`: shapes drawn by hand.
+    sketch: bool,
 }
 
 impl Look {
@@ -81,7 +84,13 @@ impl Look {
                 Font::new(10.0, MUTED),
                 Font::new(FONT, Color::BLACK),
             ],
+            sketch: false,
         };
+        for p in params {
+            if normalize_key(&p.key) == "handwritten" {
+                look.sketch = p.flag()?;
+            }
+        }
         let mut lit_ink = None;
         // Skinparams do not reach the diagram; what a style stands for does.
         for p in params.iter().filter(|p| p.declared.is_some()) {
@@ -188,6 +197,7 @@ pub fn parse(lines: &[Line<'_>]) -> Result<Diagram, Declined> {
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     let look = Look::read(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new("sans-serif", false);
+    canvas.sketch(look.sketch);
     let family = canvas.family();
     let notes = Annotations::new(&diagram.frame, look.around, family)?;
     let ground = |fill: Paint| fill.or(look.page).unwrap_or(Color::WHITE);

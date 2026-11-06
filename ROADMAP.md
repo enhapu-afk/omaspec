@@ -1615,9 +1615,20 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
 - [ ] Focus and collapse: a container folded to its box in the pane, drawn as a
       linked diagram is ([0018](docs/adr/0018-diagrams-that-link.md)); a focus that
       dims all but a box and its neighbors.
-- [ ] A sketch look: PlantUML's `skinparam handwritten true` and Mermaid's
-      `look: handDrawn`, declined today, with a seed from each element's name, so the
-      same source always draws the same picture.
+- [x] A sketch look (2026-11-06, [0023](docs/adr/0023-sketch-look.md)): PlantUML's
+      `skinparam handwritten true` and Mermaid's `look: handDrawn` (in the init or the
+      front matter's `config`), declined until now, with a seed from each element's
+      name, so the same source always draws the same picture. Built in the canvas
+      every engine draws with (`omaspec_uml::sketch`): every run drawn twice as
+      rough.js draws it, a little bowed, its ends a little off, curves and circles
+      through points a little off, a fill a little off its outline, text as it is; a
+      line keeps its ends on its box and its head. States, classes and flowchart
+      nodes seed their strokes by name, other shapes by their size, so a box keeps
+      its strokes when the layout moves it. Every diagram kind Omaspec draws, of
+      both languages; a Mermaid front matter that only sets the look no longer sends
+      a diagram to mmdr. *Skin: sketch* writes it into the source. `tests/sketch.rs`
+      draws every diagram of the repository by hand: the same engine, the same words,
+      the same picture twice. Every golden stayed as it was.
 
 ### Since 0.8.0
 

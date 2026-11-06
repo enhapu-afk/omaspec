@@ -50,6 +50,7 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
 pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&d.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
+    canvas.sketch(skin.sketch);
     let family = canvas.family();
     let mut drawer = Drawer::new(d, &skin, family)?;
     drawer.place();
@@ -2194,7 +2195,7 @@ mod tests {
         for (source, line, part) in [
             ("A -> B : <img:x.png>", Some(0), "<img:x.png>"),
             ("participant A #red/blue", Some(0), "gradients"),
-            ("skinparam handwritten true\nA -> B", Some(0), "handwritten"),
+            ("skinparam shadowing true\nA -> B", Some(0), "shadowing"),
             ("title alone", None, "participant"),
             ("note over A\n* item\nend note", Some(0), "lists"),
         ] {

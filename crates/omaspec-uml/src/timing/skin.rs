@@ -12,6 +12,8 @@ use crate::text::Font;
 pub struct Skin {
     pub font_name: String,
     pub monochrome: bool,
+    /// `skinparam handwritten true`: shapes drawn by hand (docs/adr/0023).
+    pub sketch: bool,
     /// `style strictuml`: an open arrow head.
     pub strict: bool,
     pub background: Paint,
@@ -47,6 +49,7 @@ impl Default for Skin {
         Skin {
             font_name: "sans-serif".into(),
             monochrome: false,
+            sketch: false,
             strict: false,
             background: None,
             round: 0.0,
@@ -144,7 +147,8 @@ impl Skin {
             }
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
-                "shadowing" | "handwritten" => {
+                "handwritten" => skin.sketch = p.flag()?,
+                "shadowing" => {
                     if p.flag()? {
                         return Err(p.unsupported());
                     }

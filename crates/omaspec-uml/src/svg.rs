@@ -6,6 +6,7 @@ use std::fmt::Write as _;
 use crate::color::{Color, Paint};
 use crate::common::Scale;
 use crate::map::Fit;
+use crate::sketch::{self, Hand, Outline};
 use crate::text::{Block, Family, Line, Link, TABLE_PAD, TableRow};
 
 /// Drawing order, back to front.
@@ -67,6 +68,27 @@ pub struct Canvas {
     right: f32,
     bottom: f32,
     scale: Option<Scale>,
+    /// The sketch look ([`crate::sketch`]), when the diagram asks for it.
+    sketch: Option<Sketch>,
+}
+
+/// What the sketch look seeds the next shape with.
+#[derive(Debug, Clone, Copy, Default)]
+struct Sketch {
+    /// The element being drawn, by its name.
+    name: Option<u64>,
+    /// Shapes of that element drawn so far.
+    count: u64,
+}
+
+/// The kinds of shape, for a seed from a shape's own form.
+mod form {
+    pub const RECT: u8 = 1;
+    pub const LINE: u8 = 2;
+    pub const POLYGON: u8 = 3;
+    pub const POLYLINE: u8 = 4;
+    pub const PATH: u8 = 5;
+    pub const ELLIPSE: u8 = 6;
 }
 
 impl Canvas {
@@ -81,7 +103,76 @@ impl Canvas {
             right: f32::NEG_INFINITY,
             bottom: f32::NEG_INFINITY,
             scale: None,
+            sketch: None,
         }
+    }
+
+    /// Draws every shape from here on by hand when `on`
+    /// ([`crate::sketch`]); text stays as it is.
+    pub fn sketch(&mut self, on: bool) {
+        self.sketch = on.then(Sketch::default);
+    }
+
+    /// Whether shapes are drawn by hand.
+    pub fn sketched(&self) -> bool {
+        self.sketch.is_some()
+    }
+
+    /// Draws with `paint` the shapes of the element called `name`: drawn
+    /// by hand, they take their strokes from the name, so a box keeps them
+    /// wherever the layout puts it.
+    pub fn named<T>(&mut self, name: &str, paint: impl FnOnce(&mut Canvas) -> T) -> T {
+        let Some(before) = self.sketch else {
+            return paint(self);
+        };
+        self.sketch = Some(Sketch {
+            name: Some(sketch::seed(name.as_bytes(), 0)),
+            count: 0,
+        });
+        let painted = paint(self);
+        self.sketch = Some(before);
+        painted
+    }
+
+    /// The hand for the next shape: seeded by the element's name and how
+    /// many of its shapes came before, or by the shape's own form.
+    fn hand(&mut self, kind: u8, points: &[(f32, f32)]) -> Hand {
+        let sketch = self.sketch.as_mut().expect("drawn by hand");
+        let seed = match sketch.name {
+            Some(name) => {
+                sketch.count += 1;
+                name ^ sketch::seed(&[kind], sketch.count)
+            }
+            None => sketch::shape_seed(kind, points),
+        };
+        Hand::new(seed)
+    }
+
+    /// `outlines` drawn by hand: the fill a little off, the border twice.
+    /// A shape with no border keeps its form.
+    fn by_hand(
+        &mut self,
+        layer: Layer,
+        hand: &mut Hand,
+        outlines: &[Outline],
+        fill: Paint,
+        stroke: Stroke,
+    ) {
+        if fill.is_some() {
+            let d = hand.fill(outlines);
+            let paint = self.paint(fill, None);
+            let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
+        }
+        let d = hand.stroke(outlines, stroke.dash.is_none());
+        self.stroke_by_hand(layer, &d, stroke);
+    }
+
+    fn stroke_by_hand(&mut self, layer: Layer, d: &str, stroke: Stroke) {
+        let paint = self.paint(None, Some(stroke));
+        let _ = write!(
+            self.layers[layer as usize],
+            r#"<path d="{d}"{paint} stroke-linecap="round" stroke-linejoin="round"/>"#
+        );
     }
 
     /// Sizes the finished picture by `scale`; what is drawn stays as it is.
@@ -168,6 +259,14 @@ impl Canvas {
     ) {
         self.grow(x, y);
         self.grow(x + w, y + h);
+        if let Some(stroke) = stroke
+            && self.sketched()
+        {
+            let mut hand = self.hand(form::RECT, &[(0.0, 0.0), (w, h), (rx, 0.0)]);
+            let outline = Outline::rect((x, y, w.max(0.0), h.max(0.0)), rx);
+            self.by_hand(layer, &mut hand, &[outline], fill, stroke);
+            return;
+        }
         let paint = self.paint(fill, stroke);
         let round = if rx > 0.0 {
             format!(r#" rx="{0}" ry="{0}""#, n(rx))
@@ -225,6 +324,13 @@ impl Canvas {
     ) {
         self.grow(x1, y1);
         self.grow(x2, y2);
+        if self.sketched() {
+            let points = [(x1, y1), (x2, y2)];
+            let mut hand = self.hand(form::LINE, &points);
+            let d = hand.stroke(&[Outline::polyline(&points, false)], stroke.dash.is_none());
+            self.stroke_by_hand(layer, &d, stroke);
+            return;
+        }
         let paint = self.paint(None, Some(stroke));
         let _ = write!(
             self.layers[layer as usize],
@@ -246,6 +352,15 @@ impl Canvas {
         for &(x, y) in points {
             self.grow(x, y);
         }
+        if let Some(stroke) = stroke
+            && self.sketched()
+            && points.len() > 2
+        {
+            let mut hand = self.hand(form::POLYGON, points);
+            let outline = Outline::polyline(points, true);
+            self.by_hand(layer, &mut hand, &[outline], fill, stroke);
+            return;
+        }
         let paint = self.paint(fill, stroke);
         let points: Vec<String> = points
             .iter()
@@ -261,6 +376,12 @@ impl Canvas {
     pub fn polyline(&mut self, layer: Layer, points: &[(f32, f32)], stroke: Stroke) {
         for &(x, y) in points {
             self.grow(x, y);
+        }
+        if self.sketched() && points.len() > 1 {
+            let mut hand = self.hand(form::POLYLINE, points);
+            let d = hand.stroke(&[Outline::polyline(points, false)], stroke.dash.is_none());
+            self.stroke_by_hand(layer, &d, stroke);
+            return;
         }
         let paint = self.paint(None, Some(stroke));
         let points: Vec<String> = points
@@ -284,12 +405,17 @@ impl Canvas {
         for &(x, y) in points {
             self.grow(x, y);
         }
+        let d = crate::curve::path(points, radius);
+        if self.sketched()
+            && let Some(outlines) = sketch::outlines(&d)
+        {
+            let mut hand = self.hand(form::POLYLINE, points);
+            let d = hand.stroke(&outlines, stroke.dash.is_none());
+            self.stroke_by_hand(layer, &d, stroke);
+            return;
+        }
         let paint = self.paint(None, Some(stroke));
-        let _ = write!(
-            self.layers[layer as usize],
-            r#"<path d="{}"{paint}/>"#,
-            crate::curve::path(points, radius)
-        );
+        let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
     }
 
     /// A path; `bounds` are its left, top, right and bottom edge, for the
@@ -304,6 +430,15 @@ impl Canvas {
     ) {
         self.grow(bounds.0, bounds.1);
         self.grow(bounds.2, bounds.3);
+        if let Some(stroke) = stroke
+            && self.sketched()
+            && let Some(outlines) = sketch::outlines(d)
+        {
+            let size = [(0.0, 0.0), (bounds.2 - bounds.0, bounds.3 - bounds.1)];
+            let mut hand = self.hand(form::PATH, &size);
+            self.by_hand(layer, &mut hand, &outlines, fill, stroke);
+            return;
+        }
         let paint = self.paint(fill, stroke);
         let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
     }
@@ -318,6 +453,21 @@ impl Canvas {
     ) {
         self.grow(cx - rx, cy - ry);
         self.grow(cx + rx, cy + ry);
+        if let Some(stroke) = stroke
+            && self.sketched()
+            && rx > 0.0
+            && ry > 0.0
+        {
+            let mut hand = self.hand(form::ELLIPSE, &[(0.0, 0.0), (rx, ry)]);
+            if fill.is_some() {
+                let d = hand.ellipse_fill((cx, cy), (rx, ry));
+                let paint = self.paint(fill, None);
+                let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
+            }
+            let d = hand.ellipse_stroke((cx, cy), (rx, ry));
+            self.stroke_by_hand(layer, &d, stroke);
+            return;
+        }
         let paint = self.paint(fill, stroke);
         let _ = write!(
             self.layers[layer as usize],

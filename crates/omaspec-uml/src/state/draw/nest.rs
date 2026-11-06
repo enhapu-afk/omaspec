@@ -74,6 +74,7 @@ pub(super) fn layout_regions(
             opened: false,
             children: scene,
             item: Item {
+                name: String::new(),
                 kind: Kind::Region,
                 fill: None,
                 border: Stroke::new(skin.state.border, skin.state.thickness),

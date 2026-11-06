@@ -23,6 +23,8 @@ pub enum TreeKind {
 pub struct Skin {
     pub font_name: String,
     pub monochrome: bool,
+    /// `skinparam handwritten true`: shapes drawn by hand (docs/adr/0023).
+    pub sketch: bool,
     pub background: Paint,
     pub fill: Paint,
     pub border: Color,
@@ -56,6 +58,7 @@ impl Skin {
         Skin {
             font_name: "sans-serif".into(),
             monochrome: false,
+            sketch: false,
             background: None,
             fill: Some(Color::hex(0xF1F1F1)),
             border: dark,
@@ -94,7 +97,8 @@ impl Skin {
             };
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
-                "shadowing" | "handwritten" | "nodeshadowing" => {
+                "handwritten" => skin.sketch = p.flag()?,
+                "shadowing" | "nodeshadowing" => {
                     if p.flag()? {
                         return Err(p.unsupported());
                     }
@@ -241,7 +245,6 @@ mod tests {
     #[test]
     fn declines_what_reaches_the_diagram_but_is_not_drawn() {
         for (key, value) in [
-            ("handwritten", "true"),
             ("NodeFontName", "Courier"),
             ("wrapWidth", "100"),
             ("ArrowStyle", "bold"),

@@ -17,6 +17,7 @@ use omaspec_uml::map::Map;
 pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
+    diagram.frame.skinparams.extend(super::sketch_param(source));
     paint(&mut diagram, theme)?;
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
 }

@@ -52,6 +52,8 @@ pub struct Slice {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Look {
     pub font_name: String,
+    /// Mermaid's `look: handDrawn`: shapes drawn by hand (docs/adr/0023).
+    pub sketch: bool,
     pub label_size: f32,
     pub title_size: f32,
     /// Legend text.
@@ -70,6 +72,7 @@ impl Default for Look {
     fn default() -> Self {
         Self {
             font_name: "sans-serif".into(),
+            sketch: false,
             label_size: 14.0,
             title_size: 16.0,
             ink: Color::BLACK,
@@ -101,6 +104,7 @@ pub fn mermaid_refusal(source: &str) -> Option<(usize, &'static str)> {
 /// The SVG. Labels that the text engine cannot draw decline the chart.
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     let mut canvas = Canvas::new(&diagram.look.font_name, false);
+    canvas.sketch(diagram.look.sketch);
     let family = canvas.family();
     let title = title_block(diagram, family)?;
     let top = match &title {
@@ -311,12 +315,16 @@ fn scan(source: &str) -> Scanned {
     let mut iter = source.lines().enumerate().peekable();
     if iter.peek().is_some_and(|(_, raw)| raw.trim() == "---") {
         iter.next();
+        let mut kept = crate::source::Front::default();
         for (no, raw) in iter.by_ref() {
             let text = raw.trim();
             if text == "---" {
                 break;
             }
             if text.is_empty() || text.starts_with('#') {
+                continue;
+            }
+            if kept.drawn(raw) {
                 continue;
             }
             let Some((key, value)) = text.split_once(':') else {

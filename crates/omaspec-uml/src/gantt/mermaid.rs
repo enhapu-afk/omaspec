@@ -81,12 +81,16 @@ fn scan(source: &str) -> Scanned {
     let mut iter = source.lines().enumerate().peekable();
     if iter.peek().is_some_and(|(_, raw)| raw.trim() == "---") {
         iter.next();
+        let mut kept = crate::source::Front::default();
         for (no, raw) in iter.by_ref() {
             let text = raw.trim();
             if text == "---" {
                 break;
             }
             if text.is_empty() || text.starts_with('#') {
+                continue;
+            }
+            if kept.drawn(raw) {
                 continue;
             }
             let Some((key, value)) = text.split_once(':') else {

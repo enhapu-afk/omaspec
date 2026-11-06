@@ -17,6 +17,7 @@ use omaspec_uml::structure::{Skinparam, draw_mapped, from_mermaid};
 pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
+    diagram.frame.skinparams.extend(super::sketch_param(source));
     diagram.frame.by_hand = omaspec_uml::hand::numbered(source);
     diagram.frame.held = omaspec_uml::hand::held(source);
     diagram.frame.unplaced = diagram.root.hold(&diagram.frame.held);

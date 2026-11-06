@@ -21,6 +21,7 @@ use omaspec_uml::tree::{Idea, MindMap, Skinparam, Tiles, draw_mindmap_tiled, fro
 pub fn try_draw(theme: &Theme, source: &str, tiles: Option<&Tiles>) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
+    diagram.frame.skinparams.extend(super::sketch_param(source));
     paint(&mut diagram, theme)?;
     draw_mindmap_tiled(&diagram, tiles).ok()
 }

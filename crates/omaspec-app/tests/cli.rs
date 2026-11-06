@@ -517,7 +517,7 @@ fn inspect_reports_kind_and_outline() {
     assert_eq!(json["native"], "understood");
     fs::write(
         &file,
-        "@startuml\nskinparam handwritten true\nA -> B\n@enduml\n",
+        "@startuml\nskinparam shadowing true\nA -> B\n@enduml\n",
     )
     .unwrap();
     let out = omaspec(&["inspect", file.to_str().unwrap()]);
@@ -527,7 +527,7 @@ fn inspect_reports_kind_and_outline() {
         json["native"]["declined"]["reason"]
             .as_str()
             .unwrap()
-            .contains("handwritten")
+            .contains("shadowing")
     );
 }
 

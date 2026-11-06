@@ -108,6 +108,8 @@ pub enum Card {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Look {
     pub font_name: String,
+    /// Mermaid's `look: handDrawn`: shapes drawn by hand (docs/adr/0023).
+    pub sketch: bool,
     pub font_size: f32,
     /// Theme text, before it is checked against a fill.
     pub preferred: Color,
@@ -122,6 +124,7 @@ impl Default for Look {
     fn default() -> Self {
         Self {
             font_name: "sans-serif".into(),
+            sketch: false,
             font_size: 14.0,
             preferred: Color::BLACK,
             fill: Color::hex(0xECECFF),
@@ -151,6 +154,7 @@ pub fn mermaid_refusal(source: &str) -> Option<(usize, &'static str)> {
 /// The SVG. Labels sit in the gap the layout left for them.
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     let mut canvas = Canvas::new(&diagram.look.font_name, false);
+    canvas.sketch(diagram.look.sketch);
     let family = canvas.family();
     let laid = lay(diagram, family)?;
     paint_diagram(&mut canvas, diagram, &laid)?;
@@ -173,12 +177,16 @@ fn read(source: &str) -> Result<Diagram, Stop> {
     let mut iter = source.lines().enumerate().peekable();
     if iter.peek().is_some_and(|(_, raw)| raw.trim() == "---") {
         iter.next();
+        let mut kept = crate::source::Front::default();
         for (no, raw) in iter.by_ref() {
             let text = raw.trim();
             if text == "---" {
                 break;
             }
             if text.is_empty() || text.starts_with('#') {
+                continue;
+            }
+            if kept.drawn(raw) {
                 continue;
             }
             let Some((key, value)) = text.split_once(':') else {

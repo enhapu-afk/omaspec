@@ -33,6 +33,7 @@ mod metrics;
 pub mod pie;
 mod preprocess;
 pub mod sequence;
+mod sketch;
 mod source;
 pub mod state;
 pub mod structure;

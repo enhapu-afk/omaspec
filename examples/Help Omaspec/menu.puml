@@ -23,7 +23,8 @@ partition Diagram {
   :Format the diagram;
   :Write it in the other language,
   PlantUML or Mermaid, in a new tab;
-  :Put a skin into the source;
+  :Put a skin into the source,
+  the sketch drawn by hand among them;
   :Follow the Omarchy theme;
 }
 partition Fold {

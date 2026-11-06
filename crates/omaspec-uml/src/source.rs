@@ -206,6 +206,64 @@ pub fn front_title(source: &str) -> Option<(usize, &str)> {
     None
 }
 
+/// The lines of a Mermaid front matter that every drawer draws as they
+/// ask, past its `title`: a `config:` that holds only a `look`, `classic`
+/// or `handDrawn`, which the drawer reads itself (docs/adr/0023). Any
+/// other setting may change the picture, so a reader that does not know
+/// it leaves the diagram to mmdr.
+#[derive(Debug, Default)]
+pub(crate) struct Front {
+    /// How far `config:` is indented, while its keys follow.
+    config: Option<usize>,
+}
+
+impl Front {
+    /// Whether `raw`, a line of the front matter as written, is one of
+    /// those, in the order the lines come.
+    pub(crate) fn drawn(&mut self, raw: &str) -> bool {
+        let text = raw.trim();
+        let indent = raw.len() - raw.trim_start().len();
+        if let Some(at) = self.config {
+            if indent > at {
+                return text.split_once(':').is_some_and(|(key, value)| {
+                    let value = value.split(" #").next().unwrap_or_default();
+                    let value = value.trim().trim_matches(['"', '\'']);
+                    key.trim() == "look"
+                        && (value.eq_ignore_ascii_case("classic")
+                            || value.eq_ignore_ascii_case("handDrawn"))
+                });
+            }
+            self.config = None;
+        }
+        if text == "config:" {
+            self.config = Some(indent);
+            return true;
+        }
+        false
+    }
+}
+
+/// How many lines a Mermaid front matter at the top of `source` takes,
+/// for a reader that draws no setting of it but those [`Front`] knows;
+/// `Err` with the line of the first other setting.
+pub(crate) fn front_lines(source: &str) -> Result<usize, usize> {
+    let mut lines = source.lines().enumerate();
+    if lines.next().is_none_or(|(_, raw)| raw.trim() != "---") {
+        return Ok(0);
+    }
+    let mut front = Front::default();
+    for (no, raw) in lines {
+        let text = raw.trim();
+        if text == "---" {
+            return Ok(no + 1);
+        }
+        if !(text.is_empty() || text.starts_with('#') || front.drawn(raw)) {
+            return Err(no);
+        }
+    }
+    Ok(0)
+}
+
 /// Whether `text` starts with the ASCII word `prefix`, ignoring case.
 pub fn starts_with_ci(text: &str, prefix: &str) -> bool {
     text.get(..prefix.len())
@@ -230,6 +288,40 @@ mod tests {
         assert_eq!(title("---\n---\ntitle: late\n"), None);
         assert_eq!(title("flowchart LR\n---\ntitle: Not one\n---\n"), None);
         assert_eq!(title("---\ntitle:\n---\n"), None);
+    }
+
+    #[test]
+    fn a_config_of_a_look_is_drawn_and_nothing_else_in_it() {
+        let drawn = |lines: &[&str]| {
+            let mut front = Front::default();
+            lines
+                .iter()
+                .map(|line| front.drawn(line))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            drawn(&["config:", "  look: handDrawn", "title: x"]),
+            [true, true, false]
+        );
+        assert_eq!(
+            drawn(&["config:", "  look: 'classic' # plain"]),
+            [true, true]
+        );
+        assert_eq!(
+            drawn(&["config:", "  theme: dark", "  look: neo"]),
+            [true, false, false]
+        );
+        assert_eq!(drawn(&["look: handDrawn"]), [false]);
+    }
+
+    #[test]
+    fn a_front_matter_of_a_look_is_passed_over() {
+        assert_eq!(front_lines("C4Context\n"), Ok(0));
+        assert_eq!(
+            front_lines("---\nconfig:\n  look: handDrawn\n---\nC4Context\n"),
+            Ok(4)
+        );
+        assert_eq!(front_lines("---\ntitle: x\n---\nC4Context\n"), Err(1));
     }
 
     fn texts(source: &str) -> Vec<(usize, &str)> {

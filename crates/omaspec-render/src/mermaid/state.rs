@@ -16,6 +16,7 @@ pub fn try_draw(theme: &Theme, fenced: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(fenced)?;
     // The theme first; the states' own colors over it.
     let mut params = skin_of(theme)?;
+    params.extend(super::sketch_param(fenced));
     params.append(&mut diagram.frame.skinparams);
     diagram.frame.skinparams = params;
     diagram.frame.by_hand = omaspec_uml::hand::numbered(fenced);

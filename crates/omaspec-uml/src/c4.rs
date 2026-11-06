@@ -127,6 +127,8 @@ pub enum RelKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Look {
     pub font_name: String,
+    /// Mermaid's `look: handDrawn`: shapes drawn by hand (docs/adr/0023).
+    pub sketch: bool,
     pub font_size: f32,
     pub preferred: Color,
     pub background: Paint,
@@ -140,6 +142,7 @@ impl Default for Look {
     fn default() -> Self {
         Self {
             font_name: "sans-serif".into(),
+            sketch: false,
             font_size: 14.0,
             preferred: Color::hex(0x333333),
             background: Some(Color::WHITE),
@@ -172,6 +175,7 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         return Err(Declined::at(0, "the font size is not one Omaspec draws"));
     }
     let mut canvas = Canvas::new(&diagram.look.font_name, false);
+    canvas.sketch(diagram.look.sketch);
     let family = canvas.family();
     let laid = lay(diagram, family)?;
     paint(&mut canvas, diagram, &laid);
@@ -235,7 +239,9 @@ fn read(source: &str) -> Result<Diagram, Stop> {
         saw_header: false,
         skipping: false,
     };
-    for (no, raw) in source.lines().enumerate() {
+    let front =
+        crate::source::front_lines(source).map_err(|no| fail(no, "a front matter setting"))?;
+    for (no, raw) in source.lines().enumerate().skip(front) {
         one_line(&mut chart, no, raw)?;
     }
     if let Some(frame) = chart.stack.last() {

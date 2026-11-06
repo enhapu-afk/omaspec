@@ -24,6 +24,8 @@ pub struct Look {
 pub struct Skin {
     pub font_name: String,
     pub monochrome: bool,
+    /// `skinparam handwritten true`: shapes drawn by hand (docs/adr/0023).
+    pub sketch: bool,
     /// `skinparam style strictuml`: plain triangles for arrow heads.
     pub strict: bool,
     pub background: Paint,
@@ -74,6 +76,7 @@ impl Default for Skin {
         Skin {
             font_name: "sans-serif".into(),
             monochrome: false,
+            sketch: false,
             strict: false,
             background: None,
             activity: shape,
@@ -204,7 +207,8 @@ impl Skin {
             }
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
-                "shadowing" | "handwritten" | "activityshadowing" => {
+                "handwritten" => skin.sketch = p.flag()?,
+                "shadowing" | "activityshadowing" => {
                     if p.flag()? {
                         return Err(p.unsupported());
                     }
@@ -493,7 +497,6 @@ mod tests {
     #[test]
     fn declines_what_reaches_the_diagram_but_is_not_drawn() {
         for (key, value) in [
-            ("handwritten", "true"),
             ("ActivityFontName", "Courier"),
             ("SwimlaneWidth", "same"),
             ("ActivityBackgroundColor", "#red/blue"),

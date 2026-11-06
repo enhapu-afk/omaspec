@@ -31,6 +31,7 @@ pub fn draw_tiled(d: &Wbs, tiles: Option<&Tiles>) -> Result<(String, Map), Decli
     }
     let skin = Skin::from_params(&d.frame.skinparams, TreeKind::Wbs)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
+    canvas.sketch(skin.sketch);
     let family = canvas.family();
     let annotations = Annotations::new(
         &d.frame,

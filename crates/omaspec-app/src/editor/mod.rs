@@ -499,6 +499,7 @@ const PALETTE: &[(&str, &str, Command)] = &[
         "",
         Command::Skin(Some(Pack::Omarchy)),
     ),
+    ("Skin: sketch", "", Command::Skin(Some(Pack::Sketch))),
     ("Skin: remove", "", Command::Skin(None)),
     (
         "By hand: reset the line or box at the caret",

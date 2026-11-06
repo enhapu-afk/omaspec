@@ -27,6 +27,8 @@ pub struct Look {
 pub struct Skin {
     pub font_name: String,
     pub monochrome: bool,
+    /// `skinparam handwritten true`: shapes drawn by hand (docs/adr/0023).
+    pub sketch: bool,
     /// `skinparam style strictuml`: an open arrow head.
     pub strict: bool,
     pub background: Paint,
@@ -57,6 +59,7 @@ impl Default for Skin {
         Skin {
             font_name: "sans-serif".into(),
             monochrome: false,
+            sketch: false,
             strict: false,
             background: None,
             round: 8.0,
@@ -171,7 +174,8 @@ impl Skin {
             }
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
-                "shadowing" | "handwritten" | "stateshadowing" => {
+                "handwritten" => skin.sketch = p.flag()?,
+                "shadowing" | "stateshadowing" => {
                     if p.flag()? {
                         return Err(p.unsupported());
                     }
@@ -462,9 +466,16 @@ mod tests {
     }
 
     #[test]
+    fn handwritten_draws_by_hand() {
+        assert!(!skin(&[]).unwrap().sketch);
+        assert!(skin(&[("handwritten", "true")]).unwrap().sketch);
+        assert!(!skin(&[("handwritten", "false")]).unwrap().sketch);
+        assert_eq!(skin(&[("handwritten", "maybe")]).unwrap_err().line, Some(0));
+    }
+
+    #[test]
     fn declines_what_would_change_the_picture() {
         for (key, value) in [
-            ("handwritten", "true"),
             ("shadowing", "true"),
             ("StateFontName", "Courier"),
             ("StateBackgroundColor", "#red/blue"),

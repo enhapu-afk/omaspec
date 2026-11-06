@@ -17,6 +17,7 @@ use omaspec_uml::timeline::{Diagram, Look, draw, from_mermaid};
 pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
+    diagram.look.sketch = super::head::hand_drawn(source);
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
 }
 
@@ -33,6 +34,7 @@ fn paint(diagram: &mut Diagram, theme: &Theme) -> Option<()> {
     };
     diagram.look = Look {
         font_name: font_name(&theme.font_family)?,
+        sketch: false,
         label_size: theme.font_size,
         title_size: theme.font_size,
         ink: solid(&theme.text_color)?,

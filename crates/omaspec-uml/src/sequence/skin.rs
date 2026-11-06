@@ -30,6 +30,8 @@ pub enum MessageAlign {
 pub struct Skin {
     pub font_name: String,
     pub monochrome: bool,
+    /// `skinparam handwritten true`: shapes drawn by hand (docs/adr/0023).
+    pub sketch: bool,
     /// `skinparam style strictuml`: plain triangles for arrow heads.
     pub strict: bool,
     /// Corner radius of boxes.
@@ -85,6 +87,7 @@ impl Default for Skin {
         Skin {
             font_name: "sans-serif".into(),
             monochrome: false,
+            sketch: false,
             strict: false,
             round: 2.5,
             background: None,
@@ -211,7 +214,8 @@ impl Skin {
             }
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
-                "shadowing" | "handwritten" => {
+                "handwritten" => skin.sketch = p.flag()?,
+                "shadowing" => {
                     if p.flag()? {
                         return Err(p.unsupported());
                     }
@@ -627,7 +631,6 @@ mod tests {
     #[test]
     fn declines_what_it_does_not_draw() {
         for (key, value) in [
-            ("handwritten", "true"),
             ("shadowing", "true"),
             ("monochrome", "reverse"),
             ("maxMessageSize", "100"),

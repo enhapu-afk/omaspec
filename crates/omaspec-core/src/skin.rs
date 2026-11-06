@@ -19,10 +19,19 @@ pub enum Pack {
     Presentation,
     /// The colors of the active Omarchy theme, written out.
     Omarchy,
+    /// Shapes drawn by hand: PlantUML's `handwritten`, Mermaid's
+    /// `handDrawn` look (docs/adr/0023).
+    Sketch,
 }
 
 impl Pack {
-    pub const ALL: [Pack; 4] = [Pack::Plain, Pack::Spec, Pack::Presentation, Pack::Omarchy];
+    pub const ALL: [Pack; 5] = [
+        Pack::Plain,
+        Pack::Spec,
+        Pack::Presentation,
+        Pack::Omarchy,
+        Pack::Sketch,
+    ];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -30,6 +39,7 @@ impl Pack {
             Pack::Spec => "spec",
             Pack::Presentation => "presentation",
             Pack::Omarchy => "omarchy",
+            Pack::Sketch => "sketch",
         }
     }
 }
@@ -191,6 +201,10 @@ fn plantuml(pack: Pack, c: &Colors, font: Option<&str>) -> String {
             "skinparam shadowing false".into(),
             "skinparam ArrowThickness 1.5".into(),
         ],
+        Pack::Sketch => vec![
+            "skinparam handwritten true".into(),
+            "skinparam shadowing false".into(),
+        ],
         Pack::Omarchy => {
             let mut lines = vec![
                 format!("skinparam backgroundColor {}", c.background),
@@ -300,6 +314,7 @@ fn mermaid(pack: Pack, c: &Colors, font: Option<&str>) -> String {
         Pack::Plain => r##"{"theme": "base", "themeVariables": {"background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#000000", "primaryBorderColor": "#000000", "lineColor": "#000000", "secondaryColor": "#ffffff", "tertiaryColor": "#ffffff", "textColor": "#000000", "clusterBkg": "#ffffff", "clusterBorder": "#000000", "edgeLabelBackground": "#ffffff", "actorBkg": "#ffffff", "actorBorder": "#000000", "noteBkg": "#ffffff", "noteBorderColor": "#000000"}}"##.to_owned(),
         Pack::Spec => r#"{"theme": "neutral", "themeVariables": {"fontFamily": "serif"}}"#.to_owned(),
         Pack::Presentation => r##"{"themeVariables": {"fontSize": "18px", "primaryColor": "#e8f0fe", "primaryBorderColor": "#3367d6", "lineColor": "#3367d6", "clusterBkg": "#f5f8fd"}}"##.to_owned(),
+        Pack::Sketch => r#"{"look": "handDrawn"}"#.to_owned(),
         Pack::Omarchy => format!(
             r#"{{"theme": "base", "themeVariables": {{"background": "{bg}", "primaryColor": "{surface}", "primaryTextColor": "{text}", "primaryBorderColor": "{accent}", "lineColor": "{accent}", "secondaryColor": "{surface}", "tertiaryColor": "{bg}", "textColor": "{text}", "clusterBkg": "{bg}", "clusterBorder": "{muted}", "edgeLabelBackground": "{bg}", "actorBkg": "{surface}", "actorBorder": "{accent}", "actorLine": "{muted}", "noteBkg": "{note}", "noteBorderColor": "{muted}"}}}}"#,
             bg = c.background,
@@ -318,10 +333,14 @@ fn mermaid(pack: Pack, c: &Colors, font: Option<&str>) -> String {
                 let end = value + init[value..].find('"').unwrap_or(0) + 1;
                 format!("{}{font}{}", &init[..at], &init[end..])
             }
-            None => init.replacen(
+            None if init.contains("\"themeVariables\": {") => init.replacen(
                 "\"themeVariables\": {",
                 &format!("\"themeVariables\": {{{font}, "),
                 1,
+            ),
+            None => format!(
+                "{}, \"themeVariables\": {{{font}}}}}",
+                init.trim_end_matches('}')
             ),
         };
     }
@@ -368,6 +387,20 @@ mod tests {
         assert!(
             colors.contains(r#""themeVariables": {"fontFamily": "IBM Plex Sans", "background""#),
             "{colors}"
+        );
+        let (_, sketch) = edit_in(
+            "pie\n",
+            Language::Mermaid,
+            Some(Pack::Sketch),
+            &COLORS,
+            font,
+        )
+        .unwrap();
+        assert!(
+            sketch.contains(
+                r#"{"look": "handDrawn", "themeVariables": {"fontFamily": "IBM Plex Sans"}}"#
+            ),
+            "{sketch}"
         );
         // A name that would break out of its line or its string is left out.
         let (_, plain) = edit_in(

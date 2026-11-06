@@ -78,6 +78,7 @@ pub fn try_draw(
         by_hand::lay(&top, &arrows, &mut laying, hands)
     };
     let mut canvas = Canvas::new(&theme.font_family, false);
+    canvas.sketch(super::head::hand_drawn(source));
     paint::paint(&mut canvas, &palette, &scene, curve);
     if let Some((_, title)) = omaspec_uml::front_title(source) {
         paint::title(&mut canvas, &palette, title, family);
@@ -686,6 +687,8 @@ type Measured = graph::open::Measured<Item, Look>;
 
 /// What a box keeps for painting.
 struct Item {
+    /// Its id: what the sketch look seeds its strokes with.
+    name: String,
     kind: Kind,
     fill: Paint,
     border: Stroke,
@@ -792,6 +795,7 @@ fn measure_group(
         flat: kind.flat(),
         children,
         item: Item {
+            name: id.to_owned(),
             kind,
             fill: look.fill,
             border: look.border,
@@ -825,6 +829,7 @@ fn measure_leaf(tree: &Tree, id: &str, palette: &Palette, family: Family) -> Opt
         flat: kind.flat(),
         children: Scene::empty(),
         item: Item {
+            name: id.to_owned(),
             kind,
             fill: look.fill,
             border: look.border,

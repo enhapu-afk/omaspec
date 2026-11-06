@@ -374,6 +374,17 @@ fn font_name(family: &str) -> Option<String> {
     Some(names.join(", "))
 }
 
+/// `skinparam handwritten true` for a drawer that reads skinparams, when
+/// the diagram asks for Mermaid's `look: handDrawn` (docs/adr/0023).
+fn sketch_param(source: &str) -> Option<omaspec_uml::sequence::Skinparam> {
+    head::hand_drawn(source).then(|| omaspec_uml::sequence::Skinparam {
+        key: "handwritten".into(),
+        value: "true".into(),
+        line: 0,
+        declared: None,
+    })
+}
+
 /// A number as a skinparam takes it: no `.0` on a whole one.
 fn plain_number(value: f32) -> String {
     if value.is_finite() && value.fract() == 0.0 {

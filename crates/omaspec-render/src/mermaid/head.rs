@@ -67,6 +67,52 @@ pub(super) fn init(body: &str) -> Result<Option<Value>, ParseError> {
     Ok(found)
 }
 
+/// Whether the diagram asks for Mermaid's hand-drawn look (docs/adr/0023):
+/// `"look": "handDrawn"` in its `%%{init}%%`, or else `look: handDrawn` in
+/// the `config` of its front matter.
+pub(super) fn hand_drawn(body: &str) -> bool {
+    let look = init(body)
+        .ok()
+        .flatten()
+        .and_then(|init| init.get("look")?.as_str().map(str::to_owned))
+        .or_else(|| front_look(body));
+    look.is_some_and(|look| look.eq_ignore_ascii_case("handDrawn"))
+}
+
+/// `look` in the `config` of the front matter, the YAML between `---`
+/// lines before the diagram: a key one level inside `config:`.
+fn front_look(body: &str) -> Option<String> {
+    let mut lines = body.lines().skip_while(|line| line.trim().is_empty());
+    if lines.next()?.trim() != "---" {
+        return None;
+    }
+    // How far `config:` is indented, and its keys.
+    let mut config: Option<(usize, Option<usize>)> = None;
+    for raw in lines {
+        let text = raw.trim();
+        if text == "---" {
+            break;
+        }
+        if text.is_empty() || text.starts_with('#') {
+            continue;
+        }
+        let indent = raw.len() - raw.trim_start().len();
+        match &mut config {
+            Some((at, keys)) if indent > *at => {
+                let level = *keys.get_or_insert(indent);
+                if indent == level
+                    && let Some(value) = text.strip_prefix("look:")
+                {
+                    let value = value.split(" #").next().unwrap_or_default();
+                    return Some(value.trim().trim_matches(['"', '\'']).to_owned());
+                }
+            }
+            _ => config = (text == "config:").then_some((indent, None)),
+        }
+    }
+    None
+}
+
 /// The lines outside the front matter that are not empty: each with its
 /// index, as written, and trimmed.
 fn significant(body: &str) -> impl Iterator<Item = (usize, &str, &str)> {
@@ -87,6 +133,28 @@ fn significant(body: &str) -> impl Iterator<Item = (usize, &str, &str)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_hand_drawn_look_comes_from_the_init_or_the_front_matter() {
+        assert!(hand_drawn(
+            "%%{init: {\"look\": \"handDrawn\"}}%%\nflowchart LR\n  A --> B\n"
+        ));
+        assert!(hand_drawn(
+            "---\ntitle: Doors\nconfig:\n  theme: dark\n  look: handDrawn # sketched\n---\nflowchart LR\n"
+        ));
+        assert!(hand_drawn(
+            "---\nconfig:\n    look: 'handdrawn'\n---\npie\n"
+        ));
+        // Deeper than `config`'s own keys, outside it, or overruled by the init.
+        assert!(!hand_drawn(
+            "---\nconfig:\n  flowchart:\n    look: handDrawn\n---\nflowchart LR\n"
+        ));
+        assert!(!hand_drawn("---\nlook: handDrawn\n---\nflowchart LR\n"));
+        assert!(!hand_drawn(
+            "---\nconfig:\n  look: handDrawn\n---\n%%{init: {\"look\": \"classic\"}}%%\npie\n"
+        ));
+        assert!(!hand_drawn("flowchart LR\n  look: handDrawn\n"));
+    }
 
     #[test]
     fn the_header_comes_after_front_matter_and_comments() {

@@ -59,6 +59,7 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
 pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
+    canvas.sketch(skin.sketch);
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,
@@ -173,6 +174,8 @@ type Measured = graph::open::Measured<Item, Stroke>;
 
 /// What a state keeps for painting.
 struct Item {
+    /// Its key: what the sketch look seeds its strokes with.
+    name: String,
     kind: Kind,
     fill: Paint,
     border: Stroke,
@@ -233,6 +236,7 @@ fn measure_node(
             flat: flat(node.kind),
             children,
             item: Item {
+                name: node.key.clone(),
                 kind: node.kind,
                 fill,
                 border,
@@ -290,6 +294,7 @@ fn measure_node(
         flat: flat(node.kind),
         children: Scene::empty(),
         item: Item {
+            name: node.key.clone(),
             kind: node.kind,
             fill,
             border,
@@ -665,15 +670,19 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 
 fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     for node in &scene.nodes {
-        paint_shape(canvas, skin, node);
-        if node.item.composite {
-            paint_divider(canvas, node);
-            for (a, b) in separators(node) {
-                let mut stroke =
-                    Stroke::new(node.item.border.color, node.item.border.width.max(0.5));
-                stroke.dash = Some((5.0, 4.0));
-                canvas.line(Layer::Frames, a, b, stroke);
+        canvas.named(&node.item.name, |canvas| {
+            paint_shape(canvas, skin, node);
+            if node.item.composite {
+                paint_divider(canvas, node);
+                for (a, b) in separators(node) {
+                    let mut stroke =
+                        Stroke::new(node.item.border.color, node.item.border.width.max(0.5));
+                    stroke.dash = Some((5.0, 4.0));
+                    canvas.line(Layer::Frames, a, b, stroke);
+                }
             }
+        });
+        if node.item.composite {
             paint_shapes(canvas, skin, &node.children);
         }
     }

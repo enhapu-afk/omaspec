@@ -169,10 +169,18 @@ brings the diagram back.
 
 ### Skin packs
 
-Skin packs (in the palette: plain, spec, presentation, Omarchy colors) put a look into
-the source itself, so it stays with the file, exports and copies: `skinparam` lines after
-`@startuml`, or an `%%{init}%%` line in Mermaid, marked so that the next pack replaces
-it. The Omarchy pack writes the active theme's colors in.
+Skin packs (in the palette: plain, spec, presentation, Omarchy colors, sketch) put a
+look into the source itself, so it stays with the file, exports and copies: `skinparam`
+lines after `@startuml`, or an `%%{init}%%` line in Mermaid, marked so that the next pack
+replaces it. The Omarchy pack writes the active theme's colors in.
+
+The sketch pack draws the diagram by hand: `skinparam handwritten true` in PlantUML,
+`look: handDrawn` in Mermaid (in `%%{init}%%`, or in the front matter's `config`), the
+way both languages already ask for it. Every line and border is drawn twice, a little
+bowed, as a pen draws it; the words stay as they are, so the diagram reads as well as
+before. The hand is steady: a box takes its strokes from its name, so the same file
+draws the same picture every time, and a box keeps its strokes when the layout moves it.
+Why: [ADR 0023](../adr/0023-sketch-look.md).
 
 Diagrams are drawn in the active theme's colors, without changing the file, and follow
 a theme switch; **Diagram theme: follow Omarchy** in the palette switches between that

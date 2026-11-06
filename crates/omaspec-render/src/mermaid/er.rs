@@ -18,6 +18,7 @@ use omaspec_uml::map::Map;
 pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     paint(&mut diagram, theme)?;
+    diagram.look.sketch = super::head::hand_drawn(source);
     draw(&diagram).ok().map(|svg| (svg, Map::default()))
 }
 
@@ -33,6 +34,7 @@ fn paint(diagram: &mut er::Diagram, theme: &Theme) -> Option<()> {
     };
     diagram.look = Look {
         font_name: font_name(&theme.font_family)?,
+        sketch: false,
         font_size: theme.font_size,
         preferred: solid(&theme.primary_text_color)?,
         fill: solid(&theme.primary_color)?,

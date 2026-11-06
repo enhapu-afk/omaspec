@@ -50,8 +50,10 @@ fn paint_shapes(canvas: &mut Canvas, scene: &Scene) {
 }
 
 fn paint_shape(canvas: &mut Canvas, node: &Placed) {
-    canvas.linked(node.item.link.as_ref(), &[Layer::Frames], |canvas| {
-        paint_outline(canvas, node);
+    canvas.named(&node.item.name, |canvas| {
+        canvas.linked(node.item.link.as_ref(), &[Layer::Frames], |canvas| {
+            paint_outline(canvas, node);
+        });
     });
 }
 

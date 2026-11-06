@@ -59,6 +59,7 @@ pub fn draw_mapped(diagram: &super::Diagram) -> Result<(String, Map), Declined> 
 fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
+    canvas.sketch(skin.sketch);
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,
@@ -235,6 +236,8 @@ type Measured = graph::open::Measured<Item, Look>;
 
 /// What a box keeps for painting.
 struct Item {
+    /// Its key: what the sketch look seeds its strokes with.
+    name: String,
     shape: Shape,
     fill: Paint,
     border: Stroke,
@@ -457,6 +460,7 @@ fn measure_element(
         flat: is_flat(el.shape),
         children,
         item: Item {
+            name: el.key.clone(),
             shape: el.shape,
             fill,
             border,
@@ -985,11 +989,13 @@ fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 }
 
 fn paint_shape(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
-    canvas.linked(
-        node.item.link.as_ref(),
-        &[Layer::Frames, Layer::Front],
-        |canvas| paint_box(canvas, skin, node),
-    );
+    canvas.named(&node.item.name, |canvas| {
+        canvas.linked(
+            node.item.link.as_ref(),
+            &[Layer::Frames, Layer::Front],
+            |canvas| paint_box(canvas, skin, node),
+        );
+    });
 }
 
 /// An element's shape and its words.
