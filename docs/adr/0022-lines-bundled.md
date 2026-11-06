@@ -1,6 +1,7 @@
 # 0022: Lines into one box share a trunk
 
-Status: accepted, 2026-11-06 (proposed the same day). Extends
+Status: accepted, 2026-11-06 (proposed the same day; amended the same
+day: lines bundle only when they arrive alike). Extends
 [0012](0012-lines-like-graphviz.md) and
 [0020](0020-room-for-labels.md); the third step of 0.9 in the
 [roadmap](../../ROADMAP.md), *a layout you can steer*.
@@ -34,7 +35,12 @@ pixels beside the box.
    words sit on the run beside the box (0020), and several of them on one
    trunk would pile up, which `tests/lines` counts. A line with a
    multiplicity at either end: the mark sits on the stem, and two of them
-   on one trunk pile up the same way. A line the writer kept apart. Two
+   on one trunk pile up the same way. A line that arrives unlike the
+   others: another head at the box (a triangle beside an arrow, a circle
+   beside a cross), another color, width or dash. On one trunk the heads
+   would cover each other, and a dashed line would hide under a solid one,
+   so lines bundle only with lines that arrive alike. A line the writer
+   kept apart. Two
    lines between the same two boxes, each with its own arrow and its own
    label. A line that leaves a box, so two boxes that overlap across the
    flow are still joined by a straight line (0012). A self-loop, a line
@@ -60,6 +66,8 @@ pixels beside the box.
    chosen, and then its own corners replace the route, as 0016 already
    does.
 6. **Arrowheads on one trunk stack.** The later line covers the stem.
+   They are one kind of head in one stroke (point 2), so the stack reads
+   as one.
 
 ## Why
 
@@ -79,7 +87,10 @@ intentional.
 
 - **Where it runs.** `graph::bundle::share`, after the small steps are
   taken out (`straight::unjog`) and before a label is placed, so the label
-  follows the point the line now has. `graph::open` marks a line apart
+  follows the point the line now has. Arrivals group by their box, their
+  side and their key (`Edge::arrival`, made by `graph::arrival` from the
+  head at the box and the stroke; each drawer gives it through
+  `Nested::arrival`). `graph::open` marks a line apart
   when either end is a box the writer kept apart. State diagrams and
   structure diagrams, and Mermaid flowcharts, states and class diagrams,
   read the entries (`hand::apart`, `hand::parted`) and say a miss with the
@@ -91,7 +102,7 @@ intentional.
   crossings stay 8, lines through boxes 0, jogs 1, words in the way 0, and
   crossings written the other way round stay 21. Corners that pass near
   another line go 15 → 17, one each in `flow-directions.mmd` and
-  `flow-rl.mmd`. Bends go 504 → 532 and length 69,788 → 70,771: seven
+  `flow-rl.mmd`. Bends go 504 → 530 and length 69,788 → 70,715: six
   diagrams gain the short turn onto a trunk (`pipeline.mmd` gains two),
   and the new fixture has 12 bends of its own. How far the boxes move
   goes 966.0 → 986.4, and the 20.4 is that fixture. Every diagram that was
@@ -100,18 +111,23 @@ intentional.
 ## How it is checked
 
 - `graph::bundle`: three lines into one box arrive as one; a labelled
-  line, a line with a mark at an end, a line kept apart, and two lines
-  between the same boxes keep their own arrivals; lines that leave a box
-  stay spread.
+  line, a line with a mark at an end, a line kept apart, a line that
+  arrives unlike the others, and two lines between the same boxes keep
+  their own arrivals; lines that leave a box stay spread.
 - `graph::nest`: of the lines into the rules of the smart home, a pair
   shares a trunk, and a point a short step away stays on its own.
 - The structure drawer: the labelled lines into the hub each keep their
   arrival, clear of its name, and two multiplicities into one box stay
-  apart, their marks clear of each other.
-- `tests/lines`, and the golden SVGs. Seven changed, where a line turns
+  apart, their marks clear of each other. An arrow, a triangle and a
+  dependency into one box keep three arrivals; three arrows share one.
+- The Mermaid flowchart drawer: `--o` and `--x`, and `-.->` and `==>`,
+  keep their own arrivals beside `-->`.
+- `tests/lines`, and the golden SVGs. Six changed, where a line turns
   onto a trunk (`flow-directions.mmd`, `flow-held.mmd`, `flow-rl.mmd`,
-  `state-pseudo.mmd`, `pipeline.mmd`, `states.puml`, `class.puml`), and
-  `bundled.puml` is new. Each was looked at.
+  `state-pseudo.mmd`, `pipeline.mmd`, `states.puml`), and `bundled.puml`
+  is new. Each was looked at. `class.puml` had changed too, a solid and a
+  dashed line into *Book* on one trunk; since they arrive unlike, it is
+  as it was before this ADR.
 - Lint warns on a repeated `apart` and a repeated `apart at`. `rename`
   carries the name in `apart at`.
 

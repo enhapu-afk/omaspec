@@ -237,7 +237,7 @@ pub enum Dash {
 }
 
 /// What sits at one end of a line.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Head {
     #[default]
     None,

@@ -166,6 +166,12 @@ pub trait Nested {
     fn marked(&self, _container: Self::Container, _index: usize) -> bool {
         false
     }
+    /// How a line drawn as `look` arrives at the box it ends at
+    /// ([`super::arrival`]): lines share a trunk only when this is the
+    /// same, so the heads that stack on it are one kind.
+    fn arrival(&self, _look: &Self::Look) -> u64 {
+        0
+    }
     /// The room the members keep for notes.
     fn rooms(&self, _container: Self::Container) -> Result<Vec<(usize, Room)>, Self::Error> {
         Ok(Vec::new())
@@ -601,6 +607,7 @@ impl<C: Nested> Flat<C> {
                 hidden: !drawn,
                 apart: apart.contains(&from) || apart.contains(&to),
                 marked: cx.marked(container, index),
+                arrival: cx.arrival(&look),
             });
             level.push(Pending {
                 at: self.edges.len() - 1,

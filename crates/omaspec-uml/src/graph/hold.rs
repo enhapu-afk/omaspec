@@ -247,6 +247,7 @@ mod tests {
             hidden: false,
             apart: false,
             marked: false,
+            arrival: 0,
         }
     }
 

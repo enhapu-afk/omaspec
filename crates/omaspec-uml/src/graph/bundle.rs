@@ -8,10 +8,12 @@
 //! and several of them on one trunk would pile up. A mark at an end, a
 //! multiplicity, sits on the stem and stays off the trunk for the same
 //! reason. What is shared, for a line that carries neither, is the last
-//! stem, the few pixels beside the box. Each such line keeps the run it has through the ranks and
-//! turns onto the trunk only as it arrives. A line that leaves a box
-//! stays on its own, so two boxes that overlap across the flow are still
-//! joined by a straight line.
+//! stem, the few pixels beside the box. Each such line keeps the run it
+//! has through the ranks and turns onto the trunk only as it arrives. A
+//! line that leaves a box stays on its own, so two boxes that overlap
+//! across the flow are still joined by a straight line. Lines share a
+//! trunk only when they arrive alike ([`Edge::arrival`]): the same head,
+//! color, width and dash, so the heads that stack there are one.
 
 use super::{Direction, Edge, Node, Rect, Slot};
 
@@ -48,26 +50,27 @@ pub(super) struct Drawn<'a> {
 /// Gives the lines of `drawn` that arrive together one trunk. The lines
 /// are in the order of the edges, already freed of small steps.
 pub(super) fn share(drawn: &mut Drawn<'_>) {
-    let arrivals: Vec<(usize, usize, Side)> = (0..drawn.edges.len())
+    // Each arriving line, by where it arrives and how it looks there.
+    let arrivals: Vec<(usize, (usize, Side, u64))> = (0..drawn.edges.len())
         .filter_map(|index| {
             if !arrives(index, drawn.edges, drawn.chains, drawn.nodes) {
                 return None;
             }
-            let to = drawn.edges[index].to;
-            let side = arrival_side(&drawn.routes[index], drawn.rects[to], drawn.direction)?;
-            Some((index, to, side))
+            let edge = &drawn.edges[index];
+            let side = arrival_side(&drawn.routes[index], drawn.rects[edge.to], drawn.direction)?;
+            Some((index, (edge.to, side, edge.arrival)))
         })
         .collect();
     let mut groups: Vec<Vec<usize>> = Vec::new();
     let mut seen = vec![false; arrivals.len()];
-    for (at, &(index, to, side)) in arrivals.iter().enumerate() {
+    for (at, &(index, how)) in arrivals.iter().enumerate() {
         if seen[at] {
             continue;
         }
         let mut group = vec![index];
         seen[at] = true;
-        for (other_at, &(other, other_to, other_side)) in arrivals.iter().enumerate().skip(at + 1) {
-            if seen[other_at] || other_to != to || other_side != side {
+        for (other_at, &(other, other_how)) in arrivals.iter().enumerate().skip(at + 1) {
+            if seen[other_at] || other_how != how {
                 continue;
             }
             group.push(other);
@@ -449,6 +452,7 @@ mod tests {
             hidden: false,
             apart: false,
             marked: false,
+            arrival: 0,
         }
     }
 
@@ -504,6 +508,24 @@ mod tests {
         let span = at.iter().copied().fold(f32::MIN, f32::max)
             - at.iter().copied().fold(f32::MAX, f32::min);
         assert!(span >= super::super::PORT_STEP - 0.1, "{at:?}");
+    }
+
+    #[test]
+    fn lines_that_arrive_differently_keep_their_own_arrivals() {
+        let mut edges = [edge(0, 3), edge(1, 3), edge(2, 3)];
+        for (key, edge) in edges.iter_mut().enumerate() {
+            edge.arrival = key as u64;
+        }
+        let at = heads(&edges);
+        let span = at.iter().copied().fold(f32::MIN, f32::max)
+            - at.iter().copied().fold(f32::MAX, f32::min);
+        assert!(span >= super::super::PORT_STEP - 0.1, "{at:?}");
+        // Two that arrive alike still share their trunk; the third keeps
+        // its own arrival.
+        edges[1].arrival = edges[0].arrival;
+        let at = heads(&edges);
+        assert!((at[0] - at[1]).abs() < 0.5, "{at:?}");
+        assert!((at[2] - at[0]).abs() >= 4.0, "{at:?}");
     }
 
     #[test]

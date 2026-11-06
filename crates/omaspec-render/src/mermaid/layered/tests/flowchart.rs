@@ -482,3 +482,32 @@ fn a_front_matter_title_sits_above_the_chart() {
         top(&bare)
     );
 }
+
+/// Lines that end in another cap, or are drawn another way, keep their
+/// own arrival: on one trunk a circle and a cross would cover each other,
+/// and a dotted line would hide under a thick one (docs/adr/0022). Lines
+/// that arrive alike still share one.
+#[test]
+fn lines_that_arrive_differently_keep_their_own_arrivals() {
+    let ends = |source: &str| -> Vec<f32> {
+        let mut ends: Vec<f32> = laid(source)
+            .edges
+            .iter()
+            .map(|edge| edge.points.last().unwrap().0)
+            .collect();
+        ends.sort_by(f32::total_cmp);
+        ends
+    };
+    for source in [
+        "flowchart TD\n  A --> C\n  B --o C\n  D --x C\n",
+        "flowchart TD\n  A --> C\n  B -.-> C\n  D ==> C\n",
+    ] {
+        let at = ends(source);
+        assert!(
+            at.windows(2).all(|pair| pair[1] - pair[0] > 4.0),
+            "{source}: {at:?}"
+        );
+    }
+    let at = ends("flowchart TD\n  A --> C\n  B --> C\n  D --> C\n");
+    assert!(at[2] - at[0] < 0.5, "{at:?}");
+}

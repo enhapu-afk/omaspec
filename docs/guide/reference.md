@@ -241,8 +241,10 @@ Where several lines arrive at one box, they meet on one short stem beside it, so
 box has one arrival instead of a comb. Through the ranks each line keeps its own run,
 and a label keeps the room it has; the lines turn onto the stem only as they arrive. A
 line with a label keeps its own arrival, and so does one with a multiplicity at an
-end. So do the lines that leave a box, and two lines between the same two boxes.
-Arrowheads on the stem stack, the later line on top.
+end. So do the lines that leave a box, and two lines between the same two boxes. Only
+lines that arrive alike share a stem: the same arrowhead, color, width and dash, so an
+inheritance triangle never sits on an arrow and a dashed line never hides under a
+solid one. Arrowheads on the stem stack, the later line on top.
 
 The same block turns that off:
 

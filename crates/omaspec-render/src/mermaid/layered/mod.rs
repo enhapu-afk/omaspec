@@ -708,7 +708,7 @@ struct Look {
 }
 
 /// What a line ends in.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum Cap {
     None,
     Arrow,

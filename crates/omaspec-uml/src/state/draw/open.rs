@@ -123,6 +123,11 @@ impl<'a> Nested for States<'a> {
         }
     }
 
+    /// Every transition ends in the same head; its stroke may differ.
+    fn arrival(&self, stroke: &Stroke) -> u64 {
+        graph::arrival((), stroke)
+    }
+
     fn line(&self, container: &'a Container, index: usize) -> Result<(Block, Stroke), Declined> {
         let arrow = match container.edges.get(index) {
             Some(edge) => edge,

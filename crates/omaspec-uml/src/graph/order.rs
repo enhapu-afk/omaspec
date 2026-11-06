@@ -164,6 +164,7 @@ mod tests {
                         hidden: false,
                         apart: false,
                         marked: false,
+                        arrival: 0,
                     }
                 })
                 .filter(|e| e.from != e.to)

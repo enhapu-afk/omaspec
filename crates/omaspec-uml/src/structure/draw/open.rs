@@ -83,6 +83,11 @@ impl<'a> Nested for Elements<'a> {
         written(&arrow.from_card) || written(&arrow.to_card)
     }
 
+    /// The head at the end the line arrives at, and its stroke.
+    fn arrival(&self, look: &Look) -> u64 {
+        graph::arrival(look.to_head, &look.stroke)
+    }
+
     fn flow(&self, group: &'a Group) -> (graph::Direction, bool) {
         (graph_direction(group.direction), false)
     }

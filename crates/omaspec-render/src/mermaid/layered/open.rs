@@ -163,6 +163,11 @@ impl Nested for Charts<'_> {
         Ok((label, Look { edge, stroke, caps }))
     }
 
+    /// The cap at the end the line arrives at, and its stroke.
+    fn arrival(&self, look: &Look) -> u64 {
+        graph::arrival(look.caps.1, &look.stroke)
+    }
+
     fn settle(&self, item: &mut Measured, rect: Rect) {
         if item.item.nested {
             let ox = rect.x + (rect.w - item.children.width) / 2.0;

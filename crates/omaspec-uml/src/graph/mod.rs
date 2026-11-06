@@ -83,6 +83,25 @@ pub struct Edge {
     /// A mark at an end, a multiplicity. It sits on the stem, so the line
     /// stays out of a trunk.
     pub marked: bool,
+    /// How the line looks where it arrives ([`arrival`]). A trunk is
+    /// shared only by lines of one key, so it never stacks two kinds of
+    /// head, or a dashed line under a solid one.
+    pub arrival: u64,
+}
+
+/// The key of a line's arrival ([`Edge::arrival`]): the head it ends in,
+/// and its color, width and dash.
+pub fn arrival(head: impl std::hash::Hash, stroke: &crate::svg::Stroke) -> u64 {
+    use std::hash::{DefaultHasher, Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    head.hash(&mut hasher);
+    let crate::color::Color(r, g, b) = stroke.color;
+    (r, g, b, stroke.width.to_bits()).hash(&mut hasher);
+    stroke
+        .dash
+        .map(|(on, off)| (on.to_bits(), off.to_bits()))
+        .hash(&mut hasher);
+    hasher.finish()
 }
 
 /// A frame around some boxes of a layout: a container laid out with
@@ -1714,6 +1733,7 @@ mod tests {
             hidden: false,
             apart: false,
             marked: false,
+            arrival: 0,
         }
     }
 

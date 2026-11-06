@@ -138,6 +138,7 @@ fn paint(
             hidden: true,
             apart: false,
             marked: false,
+            arrival: 0,
         });
     }
     let layout = graph::layout(&nodes, &edges, Direction::Right);
@@ -362,6 +363,7 @@ fn measure_subsystem(block: &Block, skin: &Skin, family: Family) -> Result<Block
             hidden: true,
             apart: false,
             marked: false,
+            arrival: 0,
         });
     }
     let laid = graph::layout(&nodes, &edges, Direction::Right);

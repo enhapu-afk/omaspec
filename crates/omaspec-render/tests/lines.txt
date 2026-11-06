@@ -33,7 +33,7 @@ crates/omaspec-uml/tests/state/states.puml 13 0 0 0 1 0 22 1981 0 13.3
 crates/omaspec-uml/tests/state/stereotypes.puml 8 0 0 0 0 0 2 515 0 23.6
 crates/omaspec-uml/tests/state/styled-states.puml 4 0 0 0 0 0 0 156 0 19.9
 crates/omaspec-uml/tests/state/top-regions.puml 10 0 0 0 0 0 0 404 0 -
-crates/omaspec-uml/tests/structure/class.puml 5 0 0 0 0 0 12 920 0 0.0
+crates/omaspec-uml/tests/structure/class.puml 5 0 0 0 0 0 10 864 0 0.0
 crates/omaspec-uml/tests/structure/component.puml 2 0 0 0 0 0 2 208 0 5.0
 crates/omaspec-uml/tests/structure/deploy.puml 3 0 0 0 0 0 0 110 0 18.9
 crates/omaspec-uml/tests/structure/labels.puml 3 0 0 0 0 0 6 417 0 5.6
@@ -56,4 +56,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 14.7
 examples/platform.mmd 17 3 0 0 6 0 50 6123 6 43.2
 examples/player.puml 8 0 0 0 0 0 16 1154 0 15.1
 examples/shop.mmd 6 0 0 0 0 0 4 619 0 17.1
-total 507 8 0 1 17 0 532 70771 21 986.4
+total 507 8 0 1 17 0 530 70715 21 986.4

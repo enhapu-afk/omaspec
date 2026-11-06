@@ -1963,6 +1963,36 @@ mod tests {
         assert!(!overlaps, "{marks:?}");
     }
 
+    /// An arrow, a triangle and a dependency into one box each keep their
+    /// arrival: on one trunk the heads would cover each other. Lines that
+    /// arrive alike still share one.
+    #[test]
+    fn lines_that_arrive_differently_stay_apart() {
+        let ends = |source: &str| -> Vec<f32> {
+            scene_of(source)
+                .edges
+                .iter()
+                .map(|edge| edge.points.last().unwrap().0)
+                .collect()
+        };
+        let mixed = ends(
+            "@startuml\nclass A\nclass B\nclass D\nclass C\nA --> C\nB --|> C\nD ..> C\n@enduml\n",
+        );
+        let mut sorted = mixed.clone();
+        sorted.sort_by(f32::total_cmp);
+        assert!(
+            sorted.windows(2).all(|pair| pair[1] - pair[0] > 4.0),
+            "each head keeps its arrival: {mixed:?}"
+        );
+        let alike = ends(
+            "@startuml\nclass A\nclass B\nclass D\nclass C\nA --> C\nB --> C\nD --> C\n@enduml\n",
+        );
+        assert!(
+            alike.windows(2).all(|pair| (pair[1] - pair[0]).abs() < 0.5),
+            "alike, they share a trunk: {alike:?}"
+        );
+    }
+
     /// As Graphviz ranks clusters: a package moves down only as far as its
     /// lines ask, so two can share ranks side by side.
     #[test]

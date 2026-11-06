@@ -1593,6 +1593,9 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       does (2026-11-06, [0022](docs/adr/0022-lines-bundled.md)): on by
       default. Lines that arrive on one flat side of one box, from different
       boxes, with no words on them, share the last 12 units beside the box.
+      Only lines that arrive alike share one: the same head at the box (an
+      arrow and a triangle, or a circle and a cross, would cover each
+      other), the same color, width and dash.
       Each keeps its run through the ranks, so a label keeps its room, and
       turns onto the trunk only as it arrives. The line in the middle stays
       straight. A trunk that would cross a line of the same layout, or that
@@ -1602,11 +1605,11 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       the name. The points in the rank stay put, so no box moves and the
       signal flow is left alone. `tests/lines`: crossings 8, lines through
       boxes 0, jogs 1, words in the way 0 and the crossings written the other
-      way round 21, as before; near lines 15 → 17; bends 504 → 532 and length
-      69,788 → 70,771, the short turn onto a trunk in seven diagrams plus the
+      way round 21, as before; near lines 15 → 17; bends 504 → 530 and length
+      69,788 → 70,715, the short turn onto a trunk in six diagrams plus the
       fixture; boxes moved 966.0 → 986.4, and the 20.4 is
       `tests/state/bundled.puml`, where three lines arrive at Done as one.
-      Every diagram that was already there moves as before. Seven goldens
+      Every diagram that was already there moves as before. Six goldens
       changed, and `bundled.puml` is a new one.
 - [ ] Focus and collapse: a container folded to its box in the pane, drawn as a
       linked diagram is ([0018](docs/adr/0018-diagrams-that-link.md)); a focus that
