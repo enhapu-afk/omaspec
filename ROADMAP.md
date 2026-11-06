@@ -1601,7 +1601,8 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       straight. A trunk that would cross a line of the same layout, or that
       would jog, is left undrawn. `apart` and `apart at Name`, in the block
       of 0016, keep a diagram or one box's lines on their own arrivals; lint
-      warns on a repeat, a missing name is a finding, and `rename` carries
+      warns on a repeat, a missing name is a finding (in `lint` and `check`
+      too, as a hold's, which only the editor said), and `rename` carries
       the name. The points in the rank stay put, so no box moves and the
       signal flow is left alone. `tests/lines`: crossings 8, lines through
       boxes 0, jogs 1, words in the way 0 and the crossings written the other

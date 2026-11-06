@@ -247,6 +247,43 @@ fn lint_names_a_link_to_a_diagram_that_is_not_there() {
     assert_eq!(stdout(&out), "");
 }
 
+/// What the editor shows under the picture about the block of lines by
+/// hand, lint says too, so `check` holds it in CI: a box held beside one
+/// that is not there, lines kept apart at a box that is not there.
+#[test]
+fn lint_names_an_entry_by_hand_for_a_box_that_is_not_there() {
+    let dir = scratch("by-hand");
+    let machine = dir.join("door.puml");
+    fs::write(
+        &machine,
+        "@startuml\n[*] --> Idle\nIdle --> Open\nOpen --> [*]\n\n' lines by hand (Omaspec)\n' Open after Ghost\n' apart at Nobody\n' apart at Open\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&["lint", machine.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0), "warnings");
+    assert_eq!(
+        stdout(&out),
+        "door.puml:7: warning: No box is named Ghost; Open after Ghost is left out\n\
+         door.puml:8: warning: No box is named Nobody; apart at Nobody is left out\n"
+            .replace("door.puml", machine.to_str().unwrap())
+    );
+    let out = omaspec(&["lint", "--strict", machine.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+    let chart = dir.join("flow.mmd");
+    fs::write(
+        &chart,
+        "flowchart TD\n  A --> C\n  B --> C\n\n%% lines by hand (Omaspec)\n%% apart at Nobody\n",
+    )
+    .unwrap();
+    let out = omaspec(&["lint", chart.to_str().unwrap()]);
+    assert!(
+        stdout(&out)
+            .ends_with(":6: warning: No box is named Nobody; apart at Nobody is left out\n"),
+        "{}",
+        stdout(&out)
+    );
+}
+
 #[test]
 fn a_markdown_document_is_formatted_and_outlined_by_its_diagrams_and_converted_never() {
     let dir = scratch("document-commands");

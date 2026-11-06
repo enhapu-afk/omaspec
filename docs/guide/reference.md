@@ -256,9 +256,10 @@ The same block turns that off:
 
 `apart` keeps every line of the diagram on its own arrival. `apart at Done` does that
 for the lines that meet *Done*. A repeated entry is a warning, and a name that is no
-box shows among the findings. Renaming a box renames it here too. *By hand: reset
-every line and box* removes these entries with the rest of the block. Why it works
-this way: [ADR 0022](../adr/0022-lines-bundled.md).
+box shows among the findings, in the editor and from `omaspec lint` and `check`.
+Renaming a box renames it here too. *By hand: reset every line and box* removes these
+entries with the rest of the block. Why it works this way:
+[ADR 0022](../adr/0022-lines-bundled.md).
 
 ### Examples
 
@@ -437,8 +438,8 @@ omaspec theme                       # the palette Omaspec reads from your Omarch
 `lint`, `fmt --check`, `trace` and `check` exit with 1 when they find something, so they
 work in CI and in git hooks; `refs` exits with 1 when nothing uses the name. `omaspec
 check DIR` is the one command for a project: lint, including the checks against its
-state machines and links to diagrams it does not have, then each SVG held against the
-one drawn now. `--github` prints GitHub Actions annotations (`::error`, `::warning`),
+state machines, links to diagrams it does not have and entries by hand that do not
+hold, then each SVG held against the one drawn now. `--github` prints GitHub Actions annotations (`::error`, `::warning`),
 and in Actions they are printed with the report too. `omaspec new --git` writes a
 pre-commit hook that runs `check`, and leaves a hook that is there already. Draw the
 SVGs with `omaspec render` once, so the hook has something to hold them against.

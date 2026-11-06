@@ -56,7 +56,8 @@ pixels beside the box.
    [0016](0016-lines-by-hand.md).** `apart` keeps every line of the diagram
    on its own arrival. `apart at Name` does that for the lines that meet
    one box. The first of each wins; lint warns on a repeat. A name that is
-   no box is a finding, as for a hold, and the lines stay bundled. A box
+   no box is a finding, as for a hold, and the lines stay bundled; `lint`
+   and `check` say it too. A box
    whose name is the word `apart` is written in quotes, and
    `apart after Running` is still a hold. `rename` carries the name. The
    palette's command that resets every line and box removes the whole
@@ -94,7 +95,8 @@ intentional.
   when either end is a box the writer kept apart. State diagrams and
   structure diagrams, and Mermaid flowcharts, states and class diagrams,
   read the entries (`hand::apart`, `hand::parted`) and say a miss with the
-  other findings.
+  other findings, which `lint`, `check` and the MCP server report as the
+  editor does (`omaspec_render::by_hand_misses`).
 - **The fixture.** `tests/state/bundled.puml`: *Running*, *Paused* and
   *Stopped* arrive at *Done* on one stem, and the labelled lines out of
   *Idle* stay spread.
@@ -128,7 +130,8 @@ intentional.
   is new. Each was looked at. `class.puml` had changed too, a solid and a
   dashed line into *Book* on one trunk; since they arrive unlike, it is
   as it was before this ADR.
-- Lint warns on a repeated `apart` and a repeated `apart at`. `rename`
+- Lint warns on a repeated `apart` and a repeated `apart at`, and on an
+  `apart at` or a hold that names no box (`tests/cli.rs`). `rename`
   carries the name in `apart at`.
 
 ## Consequences

@@ -561,7 +561,7 @@ pub fn inspect(
         return Ok(ExitCode::SUCCESS);
     }
     let lang = language(&input, forced);
-    let findings = omaspec_model::findings_with(&input.text, lang, &specs);
+    let findings = crate::document::findings_of(&input.text, lang, &specs);
     let inspection = inspection(&input.name(), &input.text, lang, &findings);
     serde_json::to_writer_pretty(&mut out, &inspection)?;
     writeln!(out)?;

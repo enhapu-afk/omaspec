@@ -824,7 +824,7 @@ fn inspect(args: &Args) -> Result<Answer> {
         return Ok(Answer::data(serde_json::to_value(document)?));
     }
     let lang = language(&input, args.lang()?);
-    let found = omaspec_model::findings_with(&input.text, lang, &specs);
+    let found = crate::document::findings_of(&input.text, lang, &specs);
     let inspection = inspection(&name(&input), &input.text, lang, &found);
     Ok(Answer::data(serde_json::to_value(inspection)?))
 }

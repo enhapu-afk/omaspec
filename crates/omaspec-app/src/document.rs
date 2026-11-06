@@ -8,7 +8,7 @@
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
-use omaspec_core::lint::Finding;
+use omaspec_core::lint::{Finding, Severity};
 use omaspec_core::markdown::{self, Block};
 use omaspec_core::{Language, outline};
 use omaspec_model::Specs;
@@ -104,7 +104,7 @@ impl Piece<'_> {
 
     /// Its findings, also against `specs`, on the input's lines.
     pub fn findings(&self, specs: &Specs) -> Vec<Finding> {
-        let mut found = omaspec_model::findings_with(&self.code, self.language, specs);
+        let mut found = findings_of(&self.code, self.language, specs);
         for finding in &mut found {
             finding.line = self.line(finding.line);
         }
@@ -134,6 +134,25 @@ impl Piece<'_> {
             None => self.input.file_name()?.to_owned(),
         })
     }
+}
+
+/// Every finding of one diagram, `code`, in line order: the lint's, the
+/// checks against `specs`, and what drawing it says about its lines and
+/// boxes by hand, which the editor shows under the picture
+/// ([`omaspec_render::by_hand_misses`]).
+pub(crate) fn findings_of(code: &str, language: Language, specs: &Specs) -> Vec<Finding> {
+    let mut found = omaspec_model::findings_with(code, language, specs);
+    found.extend(
+        omaspec_render::by_hand_misses(code, language)
+            .into_iter()
+            .map(|(line, message)| Finding {
+                line,
+                severity: Severity::Warning,
+                message,
+            }),
+    );
+    found.sort_by_key(|f| f.line);
+    found
 }
 
 fn numbered(path: &Path, number: usize, extension: &str) -> PathBuf {

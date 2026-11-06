@@ -145,6 +145,25 @@ fn not_native(source: &str) -> Option<RenderError> {
     })
 }
 
+/// What Omaspec's own engines say about the block of lines and boxes by
+/// hand in `source` as they draw it (docs/adr/0016, 0021, 0022): an entry
+/// that names no line or no box, a box the layout could not hold, each by
+/// its zero-based line. The editor shows the same under the picture. Only
+/// a diagram with that block is drawn; the Java PlantUML never is, and a
+/// diagram that does not draw says nothing here.
+pub fn by_hand_misses(source: &str, language: Language) -> Vec<(usize, String)> {
+    if omaspec_uml::hand::read(source).is_none() {
+        return Vec::new();
+    }
+    let map = match language {
+        Language::Mermaid => mermaid::render_mapped(source).ok().map(|(_, _, map)| map),
+        Language::PlantUml => omaspec_uml::render_mapped(source, None)
+            .ok()
+            .map(|(_, map)| map),
+    };
+    map.map(|map| map.misses).unwrap_or_default()
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     /// The `plantuml` command for the Java fallback; searched in `PATH` if
