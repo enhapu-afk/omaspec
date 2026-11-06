@@ -49,74 +49,40 @@ impl Group {
     /// keys; returns the entries that name no box, or two in different
     /// groups.
     pub fn hold(&mut self, held: &[(usize, crate::hand::Hold)]) -> Vec<(usize, String)> {
-        fn places(
-            group: &Group,
-            path: &mut Vec<usize>,
-            out: &mut std::collections::HashMap<String, (Vec<usize>, usize)>,
-        ) {
-            for (index, node) in group.nodes.iter().enumerate() {
-                if !node.key.is_empty() {
-                    out.entry(node.key.clone()).or_insert((path.clone(), index));
-                }
-                path.push(index);
-                places(&node.children, path, out);
-                path.pop();
-            }
-        }
-        if held.is_empty() {
-            return Vec::new();
-        }
-        let mut found = Default::default();
-        places(self, &mut Vec::new(), &mut found);
-        let (sorted, misses) = crate::graph::hold::sort(held, &found);
-        for (path, holds) in sorted {
-            let mut group = &mut *self;
-            for &index in &path {
-                group = &mut group.nodes[index].children;
-            }
-            group.held = holds;
-        }
-        misses
+        crate::hand::boxes::hold(self, held)
     }
 
     /// Keeps the lines of `entries` apart
     /// ([0022](../../../docs/adr/0022-lines-bundled.md)). An entry that
     /// names no box is returned, to be said.
     pub fn part(&mut self, entries: &[(usize, crate::hand::Apart)]) -> Vec<(usize, String)> {
-        fn places(
-            group: &Group,
-            path: &mut Vec<usize>,
-            out: &mut std::collections::HashMap<String, (Vec<usize>, usize)>,
-        ) {
-            for (index, node) in group.nodes.iter().enumerate() {
-                if !node.key.is_empty() {
-                    out.entry(node.key.clone()).or_insert((path.clone(), index));
-                }
-                path.push(index);
-                places(&node.children, path, out);
-                path.pop();
-            }
+        crate::hand::boxes::part(self, entries)
+    }
+}
+
+impl crate::hand::boxes::Members for Group {
+    fn count(&self) -> usize {
+        self.nodes.len()
+    }
+
+    fn key(&self, index: usize) -> &str {
+        &self.nodes[index].key
+    }
+
+    fn inner(&self, index: usize) -> &Group {
+        &self.nodes[index].children
+    }
+
+    fn inner_mut(&mut self, index: usize) -> &mut Group {
+        &mut self.nodes[index].children
+    }
+
+    fn kept(&mut self) -> crate::hand::boxes::Kept<'_> {
+        crate::hand::boxes::Kept {
+            held: &mut self.held,
+            bundled: &mut self.bundled,
+            apart: &mut self.apart,
         }
-        fn apply(group: &mut Group, path: &[usize], parted: &crate::hand::Parted) {
-            group.bundled = parted.bundled;
-            if let Some(members) = parted.members.get(path) {
-                group.apart.clone_from(members);
-            }
-            for (index, node) in group.nodes.iter_mut().enumerate() {
-                let mut child = path.to_vec();
-                child.push(index);
-                apply(&mut node.children, &child, parted);
-            }
-        }
-        if entries.is_empty() {
-            return Vec::new();
-        }
-        let mut found = Default::default();
-        places(self, &mut Vec::new(), &mut found);
-        let parted = crate::hand::parted(entries, &found);
-        let misses = parted.misses.clone();
-        apply(self, &[], &parted);
-        misses
     }
 }
 

@@ -1,4 +1,4 @@
-//! Lines by hand ([0016](../../../docs/adr/0016-lines-by-hand.md)): the
+//! Lines by hand ([0016](../../../../docs/adr/0016-lines-by-hand.md)): the
 //! shape a writer gave a line, kept as a block of comments at the end of
 //! the diagram, so it travels with the file.
 //!
@@ -15,17 +15,20 @@
 //! anything else ends it.
 //!
 //! The block holds boxes in place too
-//! ([0021](../../../docs/adr/0021-boxes-held-in-place.md)): `Paused after
+//! ([0021](../../../../docs/adr/0021-boxes-held-in-place.md)): `Paused after
 //! Running` keeps `Paused` in the rank of `Running`, right after it across
 //! the flow ([`Hold`]). And it keeps lines apart
-//! ([0022](../../../docs/adr/0022-lines-bundled.md)): `apart` draws every
+//! ([0022](../../../../docs/adr/0022-lines-bundled.md)): `apart` draws every
 //! line on its own, and `apart at Name` does that for the lines of one box
 //! ([`Apart`]).
 
 use std::fmt;
 
 use crate::graph::Rect;
-use crate::graph::hold::Unheld;
+
+pub(crate) mod boxes;
+
+pub use boxes::{Parted, apart, held, no_box, parted, said, unheld};
 
 /// The block's first line, after the comment mark.
 pub const MARK: &str = "lines by hand (Omaspec)";
@@ -81,7 +84,7 @@ pub struct Hold {
 }
 
 /// Lines that stay out of a bundle
-/// ([0022](../../../docs/adr/0022-lines-bundled.md)): every line, or the
+/// ([0022](../../../../docs/adr/0022-lines-bundled.md)): every line, or the
 /// lines that meet the box `at`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Apart {
@@ -179,81 +182,6 @@ pub fn numbered(code: &str) -> Vec<(usize, Line)> {
     out
 }
 
-/// The lines kept apart in `code`: each entry that reads, the first that
-/// keeps every line apart and the first for each box, with the zero-based
-/// line of its entry.
-pub fn apart(code: &str) -> Vec<(usize, Apart)> {
-    let mut out: Vec<(usize, Apart)> = Vec::new();
-    let mut whole = false;
-    for entry in read(code).map(|b| b.entries).unwrap_or_default() {
-        if let Ok(Hand::Apart(apart)) = entry.read {
-            let skip = match &apart.at {
-                None => whole,
-                Some(name) => out.iter().any(|(_, kept)| kept.at.as_deref() == Some(name)),
-            };
-            whole |= apart.at.is_none();
-            if !skip {
-                out.push((entry.line, apart));
-            }
-        }
-    }
-    out
-}
-
-/// Where `entries` keep lines apart, among the boxes of `places` (a name
-/// to the path of its container and its index there). `bundled` is false
-/// when an entry keeps every line apart. A name that is no box is a miss.
-pub fn parted(
-    entries: &[(usize, Apart)],
-    places: &std::collections::HashMap<String, (Vec<usize>, usize)>,
-) -> Parted {
-    let mut parted = Parted {
-        bundled: true,
-        members: std::collections::HashMap::new(),
-        misses: Vec::new(),
-    };
-    for (line, apart) in entries {
-        match &apart.at {
-            None => parted.bundled = false,
-            Some(name) => match places.get(name) {
-                Some((path, index)) => {
-                    parted.members.entry(path.clone()).or_default().push(*index);
-                }
-                None => parted.misses.push((
-                    *line,
-                    format!("No box is named {name}; {apart} is left out"),
-                )),
-            },
-        }
-    }
-    parted
-}
-
-/// What [`parted`] finds.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Parted {
-    /// When false, no line of the diagram bundles.
-    pub bundled: bool,
-    /// Member indices, by the path of their container.
-    pub members: std::collections::HashMap<Vec<usize>, Vec<usize>>,
-    /// Entries that name no box, by line, and what to say.
-    pub misses: Vec<(usize, String)>,
-}
-
-/// The boxes held in `code`: each entry that reads, the first for a box,
-/// with the zero-based line of its entry.
-pub fn held(code: &str) -> Vec<(usize, Hold)> {
-    let mut out: Vec<(usize, Hold)> = Vec::new();
-    for entry in read(code).map(|b| b.entries).unwrap_or_default() {
-        if let Ok(Hand::Hold(hold)) = entry.read
-            && !out.iter().any(|(_, h)| h.name == hold.name)
-        {
-            out.push((entry.line, hold));
-        }
-    }
-    out
-}
-
 /// The key of each line of a diagram, given the names of its ends and its
 /// line in the source: lines between the same two count up in the order
 /// of the source.
@@ -288,52 +216,6 @@ pub fn left_out(key: &Key, count: usize) -> String {
     } else {
         format!("{count} corners of {key} lie in boxes at its ends and are left out")
     }
-}
-
-/// What the writer reads about a held box that is not kept where its entry
-/// says, and why; it stands where the layout puts it.
-pub fn unheld(hold: &Hold, why: Unheld) -> String {
-    let Hold { name, beside, .. } = hold;
-    let why = match why {
-        Unheld::Missing => "one of the two is no box of the diagram".to_owned(),
-        Unheld::Itself => "a box cannot stand beside itself".to_owned(),
-        Unheld::Apart => format!("{name} and {beside} lie in different containers"),
-        Unheld::Joined => {
-            format!("a line joins boxes this puts in one rank as {beside}, which cannot hold both")
-        }
-        Unheld::Round => format!("{name} and {beside} are held in one rank already"),
-        Unheld::Frame => {
-            "a container laid out with what is around it is not held as a whole".to_owned()
-        }
-    };
-    format!("{hold}: {why}; {name} stands where the layout puts it")
-}
-
-/// What the writer reads about the held boxes of a diagram that are not
-/// kept: the entries that name no box or two apart (`unplaced`), and
-/// those the layout could not keep (`unheld`), by line.
-pub fn said(
-    held: &[(usize, Hold)],
-    unplaced: &[(usize, String)],
-    unheld: &[(usize, Unheld)],
-) -> Vec<(usize, String)> {
-    let mut out = unplaced.to_vec();
-    for &(line, why) in unheld {
-        if let Some((_, hold)) = held.iter().find(|(at, _)| *at == line) {
-            out.push((line, self::unheld(hold, why)));
-        }
-    }
-    out.sort();
-    out
-}
-
-/// What the writer reads about a held box, or its neighbor, that is not in
-/// the diagram.
-pub fn no_box(hold: &Hold, missing: &str) -> String {
-    format!(
-        "No box is named {}; {hold} is left out",
-        self::name(missing)
-    )
 }
 
 /// What the writer reads about corners far off the drawing.
