@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="825" height="394" viewBox="0 0 825 394">
+<svg xmlns="http://www.w3.org/2000/svg" width="790" height="440" viewBox="0 0 790 440">
 <g transform="translate(10,10)">
 <g>
-<rect x="0" y="50.59" width="804.21" height="224.25" fill="#EEEEEE" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="50.59" width="769.03" height="224.25" fill="#EEEEEE" stroke="#181818" stroke-width="1"/>
 <rect x="0" y="26.3" width="69.14" height="25.3" fill="#EEEEEE" stroke="#181818" stroke-width="1"/>
 <rect x="136" y="58.59" width="121.17" height="123.96" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
 <line x1="136" y1="85.89" x2="257.17" y2="85.89" fill="none" stroke="#008000" stroke-width="1"/>
@@ -10,14 +10,14 @@
 <rect x="12" y="79.31" width="80" height="82.53" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
 <line x1="12" y1="120.57" x2="92" y2="120.57" fill="none" stroke="#008000" stroke-width="1"/>
 <rect x="371.97" y="99.44" width="93.38" height="42.26" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
-<rect x="712.21" y="106.42" width="80" height="28.3" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
-<rect x="353.43" y="234.55" width="80" height="28.3" fill="#FFC0CB" stroke="#008000" stroke-width="1"/>
-<rect x="316.1" y="320.81" width="80" height="28.3" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
-<path d="M328.1,306.81 L328.1,296.18 C328.1,291.02 323.92,286.84 318.76,286.84 L318.76,286.84 C313.61,286.84 309.43,282.67 309.43,277.51 L309.43,244.68 C309.43,222.51 291.46,204.55 269.3,204.55 L251.17,204.55 C239.02,204.55 229.17,194.7 229.17,182.55 L229.17,182.55" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="366.76,306.81 366.76,262.84" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="382.76,262.84 382.76,310.81" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M245.17,192.15 L245.17,192.15 C245.17,193.47 246.25,194.55 247.57,194.55 L325.43,194.55 C347.52,194.55 365.43,212.46 365.43,234.55 L365.43,234.55" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M521.36,155.7 L521.36,166.55 C521.36,193.06 499.87,214.55 473.36,214.55 L441.43,214.55 C430.38,214.55 421.43,223.5 421.43,234.55 L421.43,234.55" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
+<rect x="677.03" y="106.42" width="80" height="28.3" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
+<rect x="346.99" y="234.55" width="80" height="28.3" fill="#FFC0CB" stroke="#008000" stroke-width="1"/>
+<rect x="300.32" y="366.81" width="80" height="28.3" fill="#F0F8FF" stroke="#008000" stroke-width="1"/>
+<path d="M312.32,352.81 L312.32,291.51 C312.32,288.93 310.23,286.84 307.65,286.84 L307.65,286.84 C305.08,286.84 302.99,284.75 302.99,282.18 L302.99,241.45 C302.99,221.07 286.46,204.55 266.08,204.55 L251.17,204.55 C239.02,204.55 229.17,194.7 229.17,182.55 L229.17,182.55" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="358.99,352.81 358.99,262.84" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="368.32,262.84 368.32,356.81" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M245.17,192.15 L245.17,192.15 C245.17,193.47 246.25,194.55 247.57,194.55 L318.99,194.55 C341.08,194.55 358.99,212.46 358.99,234.55 L358.99,234.55" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M521.36,155.7 L521.36,166.55 C521.36,193.06 499.87,214.55 473.36,214.55 L434.99,214.55 C423.94,214.55 414.99,223.5 414.99,234.55 L414.99,234.55" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,7"/>
 <path d="M267.17,58.59 L267.17,85.72 L327.97,85.72 L327.97,67.64 L318.93,58.59 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M318.93,58.59 L318.93,67.64 L327.97,67.64" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 </g>
@@ -68,39 +68,39 @@
 <tspan x="406.6" y="132.4" font-size="14" fill="#000000" textLength="24.12" lengthAdjust="spacing">Tag</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="736.25" y="125.41" font-size="14" fill="#000000" textLength="31.91" lengthAdjust="spacing">Point</tspan>
+<tspan x="701.08" y="125.41" font-size="14" fill="#000000" textLength="31.91" lengthAdjust="spacing">Point</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="377.48" y="253.54" font-size="14" fill="#000000" textLength="31.91" lengthAdjust="spacing">Book</tspan>
+<tspan x="371.03" y="253.54" font-size="14" fill="#000000" textLength="31.91" lengthAdjust="spacing">Book</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="340.14" y="339.8" font-size="14" fill="#000000" textLength="31.91" lengthAdjust="spacing">Shelf</tspan>
+<tspan x="324.37" y="385.8" font-size="14" fill="#000000" textLength="31.91" lengthAdjust="spacing">Shelf</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="334.1" y="302.98" font-size="12" fill="#000000" textLength="28.68" lengthAdjust="spacing">holds</tspan>
+<tspan x="277.64" y="321.98" font-size="12" fill="#000000" textLength="28.68" lengthAdjust="spacing">holds</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="219.5" y="194.7" font-size="12" fill="#000000" textLength="6.67" lengthAdjust="spacing">1</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="334.42" y="287" font-size="12" fill="#000000" textLength="29.34" lengthAdjust="spacing">many</tspan>
+<tspan x="326.65" y="287" font-size="12" fill="#000000" textLength="29.34" lengthAdjust="spacing">many</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="388.76" y="302.98" font-size="12" fill="#000000" textLength="18" lengthAdjust="spacing">sits</tspan>
+<tspan x="374.32" y="321.98" font-size="12" fill="#000000" textLength="18" lengthAdjust="spacing">sits</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="273.17" y="76.66" font-size="13" fill="#000000" textLength="44.8" lengthAdjust="spacing">stocked</tspan>
 </text>
-<polygon points="328.1,320.81 322.1,313.81 328.1,306.81 334.1,313.81" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="366.76,320.81 360.76,313.81 366.76,306.81 372.76,313.81" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
-<polygon points="378.76,310.81 382.76,320.81 386.76,310.81 382.76,315.31" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="312.32,366.81 306.32,359.81 312.32,352.81 318.32,359.81" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="358.99,366.81 352.99,359.81 358.99,352.81 364.99,359.81" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
+<polygon points="364.32,356.81 368.32,366.81 372.32,356.81 368.32,361.31" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="252.17,196.55 245.17,182.55 238.17,196.55" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="528.36,155.7 521.36,141.7 514.36,155.7" fill="none" stroke="#181818" stroke-width="1"/>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="384.6" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="35" lengthAdjust="spacing">Shop</tspan>
+<tspan x="367.02" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="35" lengthAdjust="spacing">Shop</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="367.86" y="370.1" font-size="14" fill="#000000" textLength="68.49" lengthAdjust="spacing">the catalog</tspan>
+<tspan x="350.27" y="416.1" font-size="14" fill="#000000" textLength="68.49" lengthAdjust="spacing">the catalog</tspan>
 </text>
 </g>
 </g>

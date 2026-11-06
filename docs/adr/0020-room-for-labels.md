@@ -1,6 +1,6 @@
 # 0020: A label takes room in the layout, as in Graphviz
 
-Status: proposed, 2026-11-05. Extends [0012](0012-lines-like-graphviz.md) and
+Status: accepted, 2026-11-06 (proposed 2026-11-05). Extends [0012](0012-lines-like-graphviz.md) and
 [0013](0013-containers-like-graphviz.md); the first step of 0.9 in the
 [roadmap](../../ROADMAP.md), *a layout you can steer*.
 
@@ -54,6 +54,95 @@ A label is a node of its size in the layout, as `dot` makes it:
    [0016](0016-lines-by-hand.md), which keep their corners as shares of the
    boxes' span.
 
+## As built
+
+Building it (`graph::doubled`) refined the decision where the first
+pictures showed why:
+
+- **The label's rank.** A line that skips ranks has several ranks between
+  ranks of boxes; its label takes the one nearest the middle, the lower of
+  two, where the gap that held it was before. A rank of boxes never holds
+  a label.
+- **Ordering as before.** The sweeps alone, on twice the ranks, got stuck
+  where they had not (a long line under a box instead of above it). So the
+  ranks of boxes are ordered as before, each line's point between them
+  skipped, and each rank between follows where its lines go on to, then
+  where they come from. Lines cross only where they bend, as often as
+  before.
+- **Points onto their lines.** Once the lines meet their boxes, each point
+  in a rank between moves to where its line enters the next slot, and
+  where the two boxes of a line overlap across the flow, into that
+  overlap, so the line bends once, a little past the box it leaves, or
+  runs straight. A point on a frame's border follows its line too. A line
+  without a label heads for the box at its other end, as before.
+- **Frames.** A line from one rank of boxes to the next passes between
+  them inside the frames around both ends only: it crosses a frame's side
+  in the gap, as before, instead of being held inside a frame that only
+  reaches that rank.
+- **Rule 4, by neighbors.** A label takes the other side of its line when
+  its usual side has a neighbor that comes from the same slot or goes on
+  to the same one, and the other side has none: of a pair into one box or
+  out of one, and of a line and the one back.
+- **Lines into a box met in the middle** (a circle, a diamond) keep no room
+  between their points, so they run together into it, their labels
+  outside.
+- **Gaps.** Half the room before a rank between, half after; a gap where a
+  line bends on its way into a box keeps the other half after its last
+  track, for the arrow.
+- **Small steps.** `straight::unjog` keeps lines off the labels of others,
+  moves a label with its own line, and looks again from the start after
+  each step it takes out.
+- **What else changed:** `graph::ports` no longer makes room for labels
+  between lines meeting one side (the rank between does; 0012, rule 2, is
+  kept by the rank between), and a hidden line keeps the room of its
+  label, which the signal flow puts there.
+- **A line by hand** ([0016](0016-lines-by-hand.md)) with one corner below
+  two boxes side by side, which now stand further apart, lost that corner:
+  `hand::shape` ran down to it and straight back, and straightening
+  dropped the spike. It turns there now.
+
+Tried and left: boxes lining up through the point of a line to the box
+beyond (boxes moved 920 → 955, more crossings in random graphs); no room
+between points without a label (random graphs crossed 3058 → 4833); every
+point pulled toward the rank after it (more bends and jogs); ports closer
+to a box's corners (jogs 4 → 9).
+
+## Results
+
+`tests/lines` over the 54 diagrams, before and after:
+
+| measure | before | after |
+|---|---|---|
+| words in the way | 8 | 0 |
+| crossings | 7 | 6 |
+| crossings, runs written the other way round | 17 | 15 |
+| lines through boxes | 0 | 0 |
+| jogs | 1 | 3 |
+| boxes moved by one box added | 908 | 928 |
+| bends | 404 | 492 |
+| length | 62,009 | 68,194 |
+
+Two measures that were not to grow did, and are taken knowingly:
+
+- **Jogs, 1 → 3.** In `state-loops.mmd` three lines and a label between
+  two of them are wider than the box they leave; in `state-nested.mmd`
+  `Error` is pulled toward the line back to `Off`, out of `Busy`'s reach;
+  in `flow-subgraphs.mmd` `Check` stands off `Work` (below). Each is a step
+  of about 5 units where a label kept a line off, or a box stood too far.
+- **Boxes moved, 908 → 928** (2 %), summed over the diagrams; for single
+  diagrams it went up and down, most where labels now take room.
+
+The pictures are 1.7 % wider and 3.5 % longer over the corpus; most of it
+is room the labels did not have (`state-loops.mmd` 30 % longer, its words
+apart now). Against rule 1, `flow-subgraphs.mmd`, which has no labels, came
+out 12 % longer: its lines bend once more where the points between keep
+their room. Open.
+
+42 golden SVGs changed (26 Mermaid, 16 PlantUML), each looked at next to
+its old picture. `cargo bench -p omaspec-render` and the scale test
+(`OMASPEC_SCALE=1`, up to 2,001 diagrams) took the same time before and
+after.
+
 ## How it is checked
 
 - `tests/lines`: words in the way go down from 8; crossings, lines through
@@ -71,5 +160,8 @@ A label is a node of its size in the layout, as `dot` makes it:
   one per line per rank passed.
 - The gap before a label shrinks to what the label rank leaves; a line
   bends at most once more on its way past a label.
+- `tests/lines.txt` was written anew; the per-diagram counts it holds are
+  the ones to keep from here.
 - Open: the labels of lines between containers laid out on their own,
-  which `graph::across` routes after placement.
+  which `graph::across` routes after placement; the length of
+  `flow-subgraphs.mmd`; the three jogs.

@@ -76,7 +76,7 @@
 <tspan x="970.29" y="113.58" font-size="14" fill="#000000" textLength="31.89" lengthAdjust="spacing">Rack</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="63.4" y="219.32" font-size="12" fill="#000000" textLength="28.01" lengthAdjust="spacing">ships</tspan>
+<tspan x="63.4" y="218.32" font-size="12" fill="#000000" textLength="28.01" lengthAdjust="spacing">ships</tspan>
 </text>
 <polygon points="53.4,227.15 57.4,237.15 61.4,227.15 57.4,231.65" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="53.4,303.15 57.4,313.15 61.4,303.15 57.4,307.65" fill="#181818" stroke="#181818" stroke-width="1"/>

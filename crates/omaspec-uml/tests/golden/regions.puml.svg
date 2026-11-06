@@ -45,10 +45,10 @@
 <tspan x="93.08" y="269.85" font-size="14" fill="#000000" font-weight="bold" textLength="83.23" lengthAdjust="spacing">NumLockOn</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="12" y="231.02" font-size="12" fill="#000000" textLength="108.7" lengthAdjust="spacing">EvNumLockPressed</tspan>
+<tspan x="12" y="230.02" font-size="12" fill="#000000" textLength="108.7" lengthAdjust="spacing">EvNumLockPressed</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="148.7" y="231.02" font-size="12" fill="#000000" textLength="108.7" lengthAdjust="spacing">EvNumLockPressed</tspan>
+<tspan x="148.7" y="230.02" font-size="12" fill="#000000" textLength="108.7" lengthAdjust="spacing">EvNumLockPressed</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="93.81" y="384.14" font-size="14" fill="#000000" font-weight="bold" textLength="87.12" lengthAdjust="spacing">CapsLockOff</tspan>
@@ -57,10 +57,10 @@
 <tspan x="94.2" y="462.41" font-size="14" fill="#000000" font-weight="bold" textLength="86.35" lengthAdjust="spacing">CapsLockOn</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="12" y="423.58" font-size="12" fill="#000000" textLength="111.37" lengthAdjust="spacing">EvCapsLockPressed</tspan>
+<tspan x="12" y="422.58" font-size="12" fill="#000000" textLength="111.37" lengthAdjust="spacing">EvCapsLockPressed</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="151.37" y="423.58" font-size="12" fill="#000000" textLength="111.37" lengthAdjust="spacing">EvCapsLockPressed</tspan>
+<tspan x="151.37" y="422.58" font-size="12" fill="#000000" textLength="111.37" lengthAdjust="spacing">EvCapsLockPressed</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="112.47" y="556.67" font-size="14" fill="#000000" font-weight="bold" textLength="49.8" lengthAdjust="spacing">Paused</tspan>
@@ -75,10 +75,10 @@
 <tspan x="169.64" y="721.23" font-size="14" fill="#000000" font-weight="bold" textLength="42.01" lengthAdjust="spacing">Ready</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="196.65" y="682.41" font-size="12" fill="#000000" textLength="15.34" lengthAdjust="spacing">full</tspan>
+<tspan x="196.65" y="681.41" font-size="12" fill="#000000" textLength="15.34" lengthAdjust="spacing">full</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="143.37" y="513.85" font-size="12" fill="#000000" textLength="32.69" lengthAdjust="spacing">pause</tspan>
+<tspan x="143.37" y="512.85" font-size="12" fill="#000000" textLength="32.69" lengthAdjust="spacing">pause</tspan>
 </text>
 <polygon points="133.37,70.3 137.37,80.3 141.37,70.3 137.37,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="133.37,521.68 137.37,531.68 141.37,521.68 137.37,525.68" fill="#181818" stroke="#181818" stroke-width="1"/>

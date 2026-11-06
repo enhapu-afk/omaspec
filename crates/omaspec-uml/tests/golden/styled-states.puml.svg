@@ -25,10 +25,10 @@
 <tspan x="14" y="259.82" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Shipped</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="47.61" y="142.73" font-size="12" fill="#000000" textLength="19.34" lengthAdjust="spacing">pay</tspan>
+<tspan x="47.61" y="141.73" font-size="12" fill="#000000" textLength="19.34" lengthAdjust="spacing">pay</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="47.61" y="220.99" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">ship</tspan>
+<tspan x="47.61" y="219.99" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">ship</tspan>
 </text>
 <polygon points="37.61,72.3 41.61,82.3 45.61,72.3 41.61,76.3" fill="#3C8D3C" stroke="#3C8D3C" stroke-width="1.5"/>
 <polygon points="37.61,150.56 41.61,160.56 45.61,150.56 41.61,154.56" fill="#3C8D3C" stroke="#3C8D3C" stroke-width="1.5"/>

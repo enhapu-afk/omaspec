@@ -4,8 +4,10 @@
 //! it. Such a step is no detour anyone wants; it only looks unsteady. Each
 //! jog shorter than [`SNAP`] goes: the run before it or the one after it
 //! moves onto the other's line, an end sliding along the side of its box.
-//! A run moves only where it keeps inside that side, off every other box,
-//! and as far from every other line as before, or [`CLEAR`] at least.
+//! A run moves only where it keeps inside that side, off every other box
+//! and the labels of other lines, and as far from every other line as
+//! before, or [`CLEAR`] at least; its own label moves with it, onto no
+//! line or box.
 
 use super::Rect;
 
@@ -26,15 +28,38 @@ pub(super) struct End {
     pub flat: bool,
 }
 
+/// Where the label of a line lies for the points it has, if it has one.
+pub(super) type Label<'a> = &'a dyn Fn(usize, &[Point]) -> Option<Rect>;
+
 /// Takes the small steps out of `lines`, whose ends are `ends`; `boxes`
-/// are every box the lines must keep out of.
-pub(super) fn unjog(lines: &mut [Vec<Point>], ends: &[(Option<End>, Option<End>)], boxes: &[Rect]) {
+/// are every box the lines must keep out of. The label of each line
+/// (`label`) follows it: the other lines keep out of it, and a run moves
+/// only where its label, moved with it, covers no other line or box.
+pub(super) fn unjog(
+    lines: &mut [Vec<Point>],
+    ends: &[(Option<End>, Option<End>)],
+    boxes: &[Rect],
+    label: Label,
+) {
+    let mut labels: Vec<Option<Rect>> = (0..lines.len()).map(|i| label(i, &lines[i])).collect();
     for index in 0..lines.len() {
         let mut k = 1;
         while k + 2 < lines[index].len() {
-            if let Some(moved) = snap(lines, index, k, ends[index], boxes) {
+            let solids: Vec<Rect> = labels
+                .iter()
+                .enumerate()
+                .filter(|&(other, _)| other != index)
+                .filter_map(|(_, label)| *label)
+                .chain(boxes.iter().copied())
+                .collect();
+            let own = |points: &[Point]| label(index, points);
+            if let Some(moved) = snap(lines, index, k, ends[index], &solids, &own) {
+                labels[index] = label(index, &moved);
                 lines[index] = moved;
-                // The jog is gone and its runs merged; look here again.
+                // The jog is gone and its runs merged, which may have made
+                // a step before it small: look again from the start. Each
+                // pass takes points out, so this ends.
+                k = 1;
                 continue;
             }
             k += 1;
@@ -50,6 +75,7 @@ fn snap(
     k: usize,
     (start, end): (Option<End>, Option<End>),
     boxes: &[Rect],
+    label: &dyn Fn(&[Point]) -> Option<Rect>,
 ) -> Option<Vec<Point>> {
     let points = &lines[index];
     let (a, b) = (points[k], points[k + 1]);
@@ -132,6 +158,17 @@ fn snap(
         if !clear {
             continue;
         }
+        // The label follows its run, onto nothing else.
+        if let Some(rect) = label(&moved) {
+            let lined = lines
+                .iter()
+                .enumerate()
+                .filter(|&(other, _)| other != index)
+                .any(|(_, line)| line.windows(2).any(|s| cuts(s[0], s[1], rect)));
+            if lined || boxes.iter().any(|&solid| overlap(solid, rect)) {
+                continue;
+            }
+        }
         return Some(merged(moved));
     }
     None
@@ -159,6 +196,11 @@ fn cuts(a: Point, b: Point, rect: Rect) -> bool {
         && x0 < rect.x + rect.w - 0.5
         && y1 > rect.y + 0.5
         && y0 < rect.y + rect.h - 0.5
+}
+
+/// Whether two boxes overlap by more than a touch.
+fn overlap(a: Rect, b: Rect) -> bool {
+    a.x + 0.5 < b.x + b.w && b.x + 0.5 < a.x + a.w && a.y + 0.5 < b.y + b.h && b.y + 0.5 < a.y + a.h
 }
 
 /// The distance between two axis-aligned runs that lie side by side; far
@@ -230,7 +272,7 @@ mod tests {
                 flat: true,
             }),
         )];
-        unjog(&mut lines, &ends, &[a, b]);
+        unjog(&mut lines, &ends, &[a, b], &|_, _| None);
         assert_eq!(lines[0], [(40.0, 30.0), (40.0, 100.0)]);
     }
 
@@ -258,7 +300,7 @@ mod tests {
             (None, None),
             (None, None),
         ];
-        unjog(&mut lines, &ends, &[a, b]);
+        unjog(&mut lines, &ends, &[a, b], &|_, _| None);
         assert_eq!(lines[0], jogged);
         // A round box takes its line in the middle of a side only.
         let mut lines = vec![jogged.clone()];
@@ -272,7 +314,7 @@ mod tests {
                 flat: false,
             }),
         )];
-        unjog(&mut lines, &ends, &[a, b]);
+        unjog(&mut lines, &ends, &[a, b], &|_, _| None);
         assert_eq!(lines[0], jogged);
         // A large step is a choice of the layout, not a jog.
         let wide = vec![(40.0, 30.0), (40.0, 60.0), (50.0, 60.0), (50.0, 100.0)];
@@ -287,7 +329,7 @@ mod tests {
                 flat: true,
             }),
         )];
-        unjog(&mut lines, &ends, &[a, b]);
+        unjog(&mut lines, &ends, &[a, b], &|_, _| None);
         assert_eq!(lines[0], wide);
     }
 
@@ -314,7 +356,7 @@ mod tests {
                 flat: true,
             }),
         )];
-        unjog(&mut lines, &ends, &[a, b]);
+        unjog(&mut lines, &ends, &[a, b], &|_, _| None);
         assert_eq!(
             lines[0],
             [

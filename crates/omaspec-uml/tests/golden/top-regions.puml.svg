@@ -32,10 +32,10 @@
 <tspan x="38.78" y="179.55" font-size="14" fill="#000000" font-weight="bold" textLength="17.11" lengthAdjust="spacing">Lit</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="0" y="140.73" font-size="12" fill="#000000" textLength="33.34" lengthAdjust="spacing">switch</tspan>
+<tspan x="0" y="139.73" font-size="12" fill="#000000" textLength="33.34" lengthAdjust="spacing">switch</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="61.34" y="140.73" font-size="12" fill="#000000" textLength="33.34" lengthAdjust="spacing">switch</tspan>
+<tspan x="61.34" y="139.73" font-size="12" fill="#000000" textLength="33.34" lengthAdjust="spacing">switch</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="198.14" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="35.78" lengthAdjust="spacing">Quiet</tspan>
@@ -44,13 +44,13 @@
 <tspan x="183.75" y="179.55" font-size="14" fill="#000000" font-weight="bold" textLength="64.55" lengthAdjust="spacing">Humming</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="122.67" y="140.73" font-size="12" fill="#000000" textLength="79.36" lengthAdjust="spacing">compressor on</tspan>
+<tspan x="122.67" y="139.73" font-size="12" fill="#000000" textLength="79.36" lengthAdjust="spacing">compressor on</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="230.03" y="140.73" font-size="12" fill="#000000" textLength="65.38" lengthAdjust="spacing">cold enough</tspan>
+<tspan x="230.03" y="139.73" font-size="12" fill="#000000" textLength="65.38" lengthAdjust="spacing">cold enough</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="396.26" y="105.29" font-size="14" fill="#000000" font-weight="bold" textLength="35.01" lengthAdjust="spacing">Oven</tspan>
+<tspan x="396.27" y="105.29" font-size="14" fill="#000000" font-weight="bold" textLength="35.01" lengthAdjust="spacing">Oven</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="409.34" y="191.58" font-size="14" fill="#000000" font-weight="bold" textLength="20.22" lengthAdjust="spacing">Off</tspan>
@@ -59,10 +59,10 @@
 <tspan x="393.78" y="269.85" font-size="14" fill="#000000" font-weight="bold" textLength="51.34" lengthAdjust="spacing">Heating</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="335.4" y="231.02" font-size="12" fill="#000000" textLength="70.04" lengthAdjust="spacing">turn the knob</tspan>
+<tspan x="335.4" y="230.02" font-size="12" fill="#000000" textLength="70.04" lengthAdjust="spacing">turn the knob</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="433.45" y="231.02" font-size="12" fill="#000000" textLength="58.69" lengthAdjust="spacing">turn it back</tspan>
+<tspan x="433.45" y="230.02" font-size="12" fill="#000000" textLength="58.69" lengthAdjust="spacing">turn it back</tspan>
 </text>
 <polygon points="43.34,70.3 47.34,80.3 51.34,70.3 47.34,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="35.34,148.56 39.34,158.56 43.34,148.56 39.34,152.56" fill="#181818" stroke="#181818" stroke-width="1"/>

@@ -256,11 +256,20 @@ pub fn shape(from: End, to: End, corners: &[Point]) -> Vec<Point> {
     let goes_on = |a: Point, b: Point| (!same(a, b)).then(|| is_down(a, b));
     let leave = meet(from, first, inner.get(1).and_then(|&b| goes_on(first, b)));
     let n = inner.len();
-    let enter = meet(
+    let mut enter = meet(
         to,
         last,
         (n >= 2).then(|| goes_on(inner[n - 2], last)).flatten(),
     );
+    // A single corner the line would run to and straight back from, a
+    // spike that straightening drops, stays a corner: the line leaves it
+    // the other way than it came.
+    if let (1, Some(&a), Some(&b)) = (n, leave.last(), enter.last())
+        && spike(a, first, b)
+        && let Some(down) = goes_on(a, first)
+    {
+        enter = meet(to, last, Some(!down));
+    }
     let mut out = leave;
     out.extend(inner);
     out.extend(enter.into_iter().rev());
@@ -328,6 +337,17 @@ fn same(a: Point, b: Point) -> bool {
 /// Whether `a` and `b` lie straight across or straight down from each other.
 fn in_line(a: Point, b: Point) -> bool {
     (a.0 - b.0).abs() < 0.01 || (a.1 - b.1).abs() < 0.01
+}
+
+/// Whether the line from `a` through `p` to `b` turns straight back at `p`.
+fn spike(a: Point, p: Point, b: Point) -> bool {
+    if is_down(a, p) && is_down(p, b) {
+        (p.1 - a.1) * (b.1 - p.1) < 0.0
+    } else if (a.1 - p.1).abs() < 0.01 && (p.1 - b.1).abs() < 0.01 {
+        (p.0 - a.0) * (b.0 - p.0) < 0.0
+    } else {
+        false
+    }
 }
 
 /// Whether the run from `a` to `b` goes down the page (or up).
@@ -668,6 +688,11 @@ mod tests {
             shape(from, to, &[(150.0, 120.0)]),
             [(80.0, 30.0), (150.0, 30.0), (150.0, 210.0), (300.0, 210.0)]
         );
+        // One corner below both boxes, which lie side by side: the line
+        // turns there instead of running down to it and back.
+        let (left, right) = (state(0.0, 0.0), state(200.0, 0.0));
+        let out = shape(right, left, &[(140.0, 60.0)]);
+        assert!(out.contains(&(140.0, 60.0)), "{out:?}");
         // Two corners out of line get a corner between them.
         let out = shape(from, to, &[(150.0, 20.0), (250.0, 220.0)]);
         assert!(

@@ -34,10 +34,10 @@
 <tspan x="56.74" y="245.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="50.55" lengthAdjust="spacing">NumOn</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="12" y="206.58" font-size="14" fill="#0F172A" textLength="56.01" lengthAdjust="spacing">num lock</tspan>
+<tspan x="12" y="205.58" font-size="14" fill="#0F172A" textLength="56.01" lengthAdjust="spacing">num lock</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="96.01" y="206.58" font-size="14" fill="#0F172A" textLength="56.01" lengthAdjust="spacing">num lock</tspan>
+<tspan x="96.01" y="205.58" font-size="14" fill="#0F172A" textLength="56.01" lengthAdjust="spacing">num lock</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="225.16" y="165.29" font-size="14" fill="#0F172A" font-weight="bold" textLength="54.45" lengthAdjust="spacing">CapsOff</tspan>
@@ -46,13 +46,13 @@
 <tspan x="225.54" y="245.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="53.68" lengthAdjust="spacing">CapsOn</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="180.03" y="206.58" font-size="14" fill="#0F172A" textLength="58.35" lengthAdjust="spacing">caps lock</tspan>
+<tspan x="180.03" y="205.58" font-size="14" fill="#0F172A" textLength="58.35" lengthAdjust="spacing">caps lock</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="266.38" y="206.58" font-size="14" fill="#0F172A" textLength="58.35" lengthAdjust="spacing">caps lock</tspan>
+<tspan x="266.38" y="205.58" font-size="14" fill="#0F172A" textLength="58.35" lengthAdjust="spacing">caps lock</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="174.37" y="299.18" font-size="14" fill="#0F172A" textLength="42.03" lengthAdjust="spacing">unplug</tspan>
+<tspan x="174.37" y="298.18" font-size="14" fill="#0F172A" textLength="42.03" lengthAdjust="spacing">unplug</tspan>
 </text>
 <polygon points="164.37,44 168.37,54 172.37,44 168.37,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="164.37,307.48 168.37,317.48 172.37,307.48 168.37,311.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>

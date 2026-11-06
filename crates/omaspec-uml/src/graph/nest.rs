@@ -475,10 +475,13 @@ pub(super) fn sort_row(
 
 /// Between two neighbors of a rank: as much as between two boxes, but
 /// between lines passing by less, and next to where a line ends on a
-/// frame's border as little, since that line stops short of the rank.
+/// frame's border as little, since that line stops short of the rank;
+/// none between two lines that run together into a box met in the middle.
 fn gap(slots: &[Slot], a: usize, b: usize, border: bool) -> f32 {
     let anchored = slots[a].anchor.is_some() || slots[b].anchor.is_some();
-    if !border && (anchored || slots[a].real.is_none() && slots[b].real.is_none()) {
+    if !border && slots[a].meets.is_some() && slots[a].meets == slots[b].meets {
+        0.0
+    } else if !border && (anchored || slots[a].real.is_none() && slots[b].real.is_none()) {
         DUMMY_GAP
     } else {
         CROSS_GAP

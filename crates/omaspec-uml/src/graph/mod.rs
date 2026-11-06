@@ -10,12 +10,18 @@
 //! `nest`); any other is laid out on its own and passed upward as a
 //! finished box, so a nested state's own direction stays inside it.
 //!
+//! Ranks are doubled, as `dot` doubles them where lines have labels
+//! (docs/adr/0020): a box of rank *r* takes rank *2r*, so every line
+//! passes a rank between the boxes it joins, where it has a point of its
+//! own. A labelled line's point there is a box as big as its label, which
+//! ordering and placement keep free like any box, so the label lies
+//! beside its line and nothing else lies on it.
+//!
 //! Every bend sits in a gap between two ranks, never inside a rank, so no
 //! line cuts through a box, however tall its neighbors are. A line bends a
 //! little after the rank it leaves, each on a track of its own where
-//! several run across the same gap, so none lies on another; its label
-//! sits beside the line further down that gap, which was made tall enough
-//! for it and for the tracks. A back edge runs the same way, through the
+//! several run across the same gap, so none lies on another; the gap is
+//! made tall enough for the tracks. A back edge runs the same way, through the
 //! ranks between its boxes, and is drawn backward, as Graphviz draws it:
 //! a transition and the one back lie side by side, not around the
 //! diagram. Lines that meet one side of a box share it, in the order of
@@ -34,6 +40,7 @@
 
 pub mod across;
 pub mod by_hand;
+mod doubled;
 mod nest;
 pub mod open;
 mod order;
@@ -167,12 +174,11 @@ const PORT_STEP: f32 = 16.0;
 const PORT_CORNER: f32 = 12.0;
 /// Passes that place where lines meet their boxes.
 const PORT_PASSES: usize = 3;
-/// Room between two ranks, before a label asks for more.
+/// Room between two ranks of boxes, before labels and tracks ask for
+/// more: half before the rank between them, half after.
 const ALONG_PAD: f32 = 32.0;
 /// Where a line bends, past the end of the rank it leaves.
 const JOG: f32 = 12.0;
-/// From that bend down to the label.
-const LABEL_DROP: f32 = 5.0;
 /// Between two lines running across one gap.
 const TRACK: f32 = 10.0;
 /// Lays `nodes` out. Edges that name a missing node are dropped.
@@ -216,6 +222,9 @@ pub fn framed(
         Some(tree) => nest::ranks(tree, edges),
         None => ranks(n, edges),
     };
+    // A box of rank r takes rank 2r: every line passes a rank between its
+    // boxes, where a label takes room (docs/adr/0020).
+    let rank: Vec<usize> = rank.into_iter().map(|r| 2 * r).collect();
     let spans = tree
         .as_ref()
         .map_or_else(Vec::new, |tree| nest::spans(tree, &rank));
@@ -226,18 +235,34 @@ pub fn framed(
         chains,
         first,
         frames: held,
+        labels,
     } = slots_of(nodes, edges, &rank, &back, direction, nested);
     let mut borders = Vec::new();
     let mut ports = Vec::new();
     let mut jogs = nest::Jogs::new();
     let mut room = Vec::new();
+    let framing = tree.as_ref().map(|tree| (held.as_slice(), tree.count()));
+    let flat: Vec<bool> = slots
+        .iter()
+        .map(|slot| slot.real.is_some_and(|real| nodes[real].flat))
+        .collect();
+    doubled::order_ranks(&mut rows, &mut slots, framing);
+    let flips = doubled::label_sides(&mut slots, &rows, &chains, &labels, direction);
     match &mut tree {
         Some(tree) => {
-            sweep_framed(&mut rows, &slots, &held, tree.count());
             // A frame too narrow for the lines to pass its name grows, once.
             for attempt in 0..2 {
                 borders = place_framed(nodes, &mut slots, &rows, &held, tree);
-                ports = self::ports(nodes, &slots, &chains, edges, direction);
+                ports = self::ports(nodes, &slots, &chains, edges, &labels);
+                let placer = nest::Placer::new(&slots, &rows, &held, tree);
+                for wants in doubled::point_wants(&slots, &rows, &chains, &ports, &flat) {
+                    placer.fit(&mut slots, &mut borders, &wants);
+                }
+                // Where a line meets a frame's border follows it.
+                for wants in doubled::anchor_wants(&slots, &rows) {
+                    placer.fit(&mut slots, &mut borders, &wants);
+                }
+                ports = self::ports(nodes, &slots, &chains, edges, &labels);
                 if direction != Direction::Down {
                     break;
                 }
@@ -261,16 +286,21 @@ pub fn framed(
             }
         }
         None => {
-            sweep(&mut rows, &slots);
             place_across(&mut slots, &rows);
-            ports = self::ports(nodes, &slots, &chains, edges, direction);
+            ports = self::ports(nodes, &slots, &chains, edges, &labels);
+            for (row, wants) in rows
+                .iter()
+                .zip(doubled::point_wants(&slots, &rows, &chains, &ports, &flat))
+            {
+                fit_to(&mut slots, row, &wants);
+            }
+            ports = self::ports(nodes, &slots, &chains, edges, &labels);
         }
     }
-    let mut gaps = rank_gaps(rows.len(), edges, &chains, &first, direction);
-    let (tracks, counts) = tracks(&slots, edges, &chains, &ports, &first, &jogs, gaps.len());
-    for (gap, count) in gaps.iter_mut().zip(counts) {
-        *gap += count.saturating_sub(1) as f32 * TRACK;
-    }
+    let gap_count = rows.len().saturating_sub(1);
+    let (tracks, counts, into_box) =
+        tracks(&slots, edges, &chains, &ports, &first, &jogs, gap_count);
+    let mut gaps = doubled::rank_gaps(&counts, &into_box);
     // Where frames end and begin, a gap grows by their room; lines bend
     // past the frames that end there.
     let stacks = tree
@@ -366,12 +396,11 @@ pub fn framed(
                     })
                 })
                 .collect();
-            let (mut points, label_at) = forward_route(
+            let mut points = forward_route(
                 &chains[index],
                 &slots,
                 &ends,
                 (&bends, &passes),
-                edge,
                 ports[index],
                 direction,
             );
@@ -379,7 +408,8 @@ pub fn framed(
             if back[index] {
                 points.reverse();
             }
-            (points, label_at)
+            // Placed beside its line once the small steps are gone.
+            (points, (0.0, 0.0))
         };
         routes.push(Route {
             points,
@@ -432,9 +462,25 @@ pub fn framed(
             }
         })
         .collect();
+    // The labels keep their room: a run moves off them too, and each label
+    // then follows its own line.
+    let label_rect = |index: usize, points: &[(f32, f32)]| {
+        let slot = &slots[chains[index][labels[index]?]];
+        let edge = &edges[index];
+        let (x, y) = doubled::label_beside(points, slot, edge, flips[index], direction);
+        Some(Rect {
+            x,
+            y,
+            w: edge.label_width,
+            h: edge.label_height,
+        })
+    };
     let mut lines: Vec<Vec<(f32, f32)>> = routes.iter().map(|r| r.points.clone()).collect();
-    straight::unjog(&mut lines, &ends, &rects);
-    for (route, line) in routes.iter_mut().zip(lines) {
+    straight::unjog(&mut lines, &ends, &rects, &label_rect);
+    for (index, (route, line)) in routes.iter_mut().zip(lines).enumerate() {
+        if let Some(rect) = label_rect(index, &line) {
+            route.label_at = (rect.x, rect.y);
+        }
         route.points = line;
     }
     normalize(rects, routes, frame_rects, &kept)
@@ -549,6 +595,11 @@ struct Slot {
     /// rank or its last, which the line stops short of at the border. The
     /// frame, and that rank.
     anchor: Option<(usize, usize)>,
+    /// For a point right before the end of its line where that end is met
+    /// in the middle of its side (a circle, a diamond): that end's slot.
+    /// Two such points of one end keep no room between them, so their
+    /// lines run together into it, as they meet it.
+    meets: Option<usize>,
 }
 
 impl Slot {
@@ -564,6 +615,7 @@ impl Slot {
             cross: 0.0,
             primary: 0.0,
             anchor,
+            meets: None,
         }
     }
 }
@@ -580,6 +632,10 @@ struct Built {
     first: Vec<usize>,
     /// The frames around each slot, outermost first.
     frames: Vec<Vec<usize>>,
+    /// For every labelled edge, where along its chain its label lies: a
+    /// point in a rank between two ranks of boxes, the one nearest the
+    /// middle, as big as the label.
+    labels: Vec<Option<usize>>,
 }
 
 fn slots_of(
@@ -626,6 +682,7 @@ fn slots_of(
     };
     let mut chains = vec![Vec::new(); edges.len()];
     let mut first = vec![0; edges.len()];
+    let mut labels = vec![None; edges.len()];
     for (index, edge) in edges.iter().enumerate() {
         // A hidden back edge only breaks a cycle; its line is routed later
         // and should not pull the ranks it would pass.
@@ -663,22 +720,47 @@ fn slots_of(
         for (at, row) in rows.iter_mut().enumerate().take(lower).skip(upper + 1) {
             let dummy = slots.len();
             slots.push(Slot::point(None, None));
+            // A line from one rank of boxes to the next passes between
+            // them inside the frames around both ends only, as it did in the
+            // gap between them before the ranks were doubled.
             frames.push(nested.map_or_else(Vec::new, |(tree, spans)| {
-                tree.chain(nest::passing(
-                    tree,
-                    spans,
-                    (top, bottom),
-                    (upper, lower),
-                    at,
-                ))
+                if lower == upper + 2 {
+                    let (a, b) = (tree.around_end(top), tree.around_end(bottom));
+                    let same = a.iter().zip(b).take_while(|(x, y)| x == y).count();
+                    a[..same].to_vec()
+                } else {
+                    tree.chain(nest::passing(
+                        tree,
+                        spans,
+                        (top, bottom),
+                        (upper, lower),
+                        at,
+                    ))
+                }
             }));
             row.push(dummy);
             link(&mut slots, *chain.last().unwrap(), dummy);
             chain.push(dummy);
         }
         let end = slot_of(bottom, false, &mut slots, &mut frames, &mut rows);
-        link(&mut slots, *chain.last().unwrap(), end);
+        let before = *chain.last().unwrap();
+        link(&mut slots, before, end);
+        if before != chain[0] && slots[end].real.is_some_and(|x| !nodes[x].flat) {
+            slots[before].meets = Some(end);
+        }
         chain.push(end);
+        // The label takes the rank between two ranks of boxes nearest the
+        // middle of the line; of two, the lower. A hidden line keeps that
+        // room too, for a label its drawer puts there.
+        let labelled = edge.label_width > 0.0 || edge.label_height > 0.0;
+        if labelled && lower > upper + 1 {
+            let at = 2 * ((lower - upper) / 4) + 1;
+            let (cross, along) = doubled::label_room(edge, direction);
+            let slot = &mut slots[chain[at]];
+            slot.pack_cross = cross;
+            slot.box_along = along;
+            labels[index] = Some(at);
+        }
         chains[index] = chain;
         first[index] = upper;
     }
@@ -688,6 +770,7 @@ fn slots_of(
         chains,
         first,
         frames,
+        labels,
     }
 }
 
@@ -938,13 +1021,15 @@ fn tracks(
     first: &[usize],
     jogs: &nest::Jogs,
     gaps: usize,
-) -> (Vec<Vec<usize>>, Vec<usize>) {
+) -> (Vec<Vec<usize>>, Vec<usize>, Vec<bool>) {
     let cross = |slot: usize, port: f32| center(&slots[slot]) + port;
     let mut tracks: Vec<Vec<usize>> = chains
         .iter()
         .map(|c| vec![0; c.len().saturating_sub(1)])
         .collect();
-    // By gap: (edge, step, start, end) of each line that moves across.
+    // By gap: (edge, step, start, end) of each line that moves across; and
+    // whether one of them goes on into a box there.
+    let mut into_box = vec![false; gaps];
     let mut movers: Vec<Vec<(usize, usize, f32, f32)>> = vec![Vec::new(); gaps];
     for (index, chain) in chains.iter().enumerate() {
         if chain.len() < 2 || edges[index].hidden {
@@ -971,6 +1056,7 @@ fn tracks(
             let gap = first[index] + step;
             if (end - start).abs() > 0.5 && gap < gaps {
                 movers[gap].push((index, step, start, end));
+                into_box[gap] |= step + 1 == last && slots[chain[last]].real.is_some();
             }
         }
     }
@@ -991,7 +1077,7 @@ fn tracks(
             tracks[index][step] = track;
         }
     }
-    (tracks, counts)
+    (tracks, counts, into_box)
 }
 
 fn row_width(slots: &[Slot], row: &[usize]) -> f32 {
@@ -1005,9 +1091,12 @@ fn row_width(slots: &[Slot], row: &[usize]) -> f32 {
     width
 }
 
-/// Between two neighbors of a rank: less between two lines passing by.
+/// Between two neighbors of a rank: less between two lines passing by,
+/// none between two that run together into a box met in the middle.
 fn gap(slots: &[Slot], a: usize, b: usize) -> f32 {
-    if slots[a].real.is_none() && slots[b].real.is_none() {
+    if slots[a].meets.is_some() && slots[a].meets == slots[b].meets {
+        0.0
+    } else if slots[a].real.is_none() && slots[b].real.is_none() {
         DUMMY_GAP
     } else {
         CROSS_GAP
@@ -1041,25 +1130,41 @@ fn center(slot: &Slot) -> f32 {
 /// line passing through counts double, so long lines stay straight; a box
 /// with no neighbor barely pulls and stays put.
 fn fit_row(slots: &mut [Slot], row: &[usize], down: bool) {
+    let wants: Vec<(usize, f32, f32)> = row
+        .iter()
+        .map(|&slot| {
+            let s = &slots[slot];
+            let (near, far) = if down {
+                (&s.preds, &s.succs)
+            } else {
+                (&s.succs, &s.preds)
+            };
+            let neighbors = if near.is_empty() { far } else { near };
+            let (want, weight) = if neighbors.is_empty() {
+                (center(s), 0.05)
+            } else {
+                let sum: f32 = neighbors.iter().map(|&n| center(&slots[n])).sum();
+                let weight = if s.real.is_none() { 2.0 } else { 1.0 };
+                (sum / neighbors.len() as f32, weight)
+            };
+            (slot, want - s.before - s.box_cross / 2.0, weight)
+        })
+        .collect();
+    fit_to(slots, row, &wants);
+}
+
+/// Places `row` as near as its order and gaps allow to `wants`: for each
+/// slot in turn, where the left of its packed room wants to lie, and how
+/// much it pulls.
+fn fit_to(slots: &mut [Slot], row: &[usize], wants: &[(usize, f32, f32)]) {
+    if wants.is_empty() {
+        return;
+    }
     let mut targets = Vec::with_capacity(row.len());
     let mut offset = 0.0;
-    for (index, &slot) in row.iter().enumerate() {
-        let s = &slots[slot];
-        let (near, far) = if down {
-            (&s.preds, &s.succs)
-        } else {
-            (&s.succs, &s.preds)
-        };
-        let neighbors = if near.is_empty() { far } else { near };
-        let (want, weight) = if neighbors.is_empty() {
-            (center(s), 0.05)
-        } else {
-            let sum: f32 = neighbors.iter().map(|&n| center(&slots[n])).sum();
-            let weight = if s.real.is_none() { 2.0 } else { 1.0 };
-            (sum / neighbors.len() as f32, weight)
-        };
-        targets.push((want - s.before - s.box_cross / 2.0 - offset, weight));
-        offset += s.pack_cross;
+    for (index, (&slot, &(_, want, weight))) in row.iter().zip(wants).enumerate() {
+        targets.push((want - offset, weight));
+        offset += slots[slot].pack_cross;
         if let Some(&next) = row.get(index + 1) {
             offset += gap(slots, slot, next);
         }
@@ -1095,37 +1200,6 @@ fn monotone(targets: &[(f32, f32)]) -> Vec<f32> {
         .collect()
 }
 
-/// How much room the labels need in the gap after each rank.
-fn rank_gaps(
-    ranks: usize,
-    edges: &[Edge],
-    chains: &[Vec<usize>],
-    first: &[usize],
-    direction: Direction,
-) -> Vec<f32> {
-    let mut gaps = vec![ALONG_PAD; ranks.saturating_sub(1)];
-    for ((edge, chain), &top) in edges.iter().zip(chains).zip(first) {
-        if chain.is_empty() {
-            continue;
-        }
-        let bottom = top + chain.len() - 1;
-        if bottom == top {
-            continue;
-        }
-        // The label sits in the gap nearest the middle of a long edge.
-        let at = top + (bottom - top) / 2;
-        let at = at.min(gaps.len().saturating_sub(1));
-        let need = match direction {
-            Direction::Down => edge.label_height,
-            Direction::Right => edge.label_width,
-        };
-        if let Some(gap) = gaps.get_mut(at) {
-            *gap = gap.max(ALONG_PAD + need);
-        }
-    }
-    gaps
-}
-
 fn rect_of(slots: &[Slot], real: usize, direction: Direction) -> Rect {
     let slot = slots.iter().find(|s| s.real == Some(real)).unwrap();
     match direction {
@@ -1145,22 +1219,22 @@ fn rect_of(slots: &[Slot], real: usize, direction: Direction) -> Rect {
 }
 
 /// Where a line meets the boxes at the two ends of its chain, across the
-/// flow from the middle of each side, and which side of it its label
-/// takes.
+/// flow from the middle of each side.
 #[derive(Debug, Clone, Copy, Default)]
 struct Ports {
     start: f32,
     end: f32,
-    /// Left of the line rather than right when the flow runs down, below
-    /// rather than above when it runs across: the first line of several
-    /// into one side, whose neighbors lie on the usual side of it.
-    flip_label: bool,
 }
+
+/// A line on one side of a slot, for [`ports`]: the edge, the slot at the
+/// other end of its step, the box at the other end of the line, and the
+/// slot it heads for.
+type Meeting = (usize, usize, usize, usize);
 
 /// Where every line meets its boxes. The lines that meet one side of a
 /// box share it in the order of their other ends, so none crosses another
-/// there, [`PORT_STEP`] apart where the side is long enough, and further
-/// where a label lies between two of them. Each lies as near as that
+/// there, [`PORT_STEP`] apart where the side is long enough; their labels
+/// lie in the ranks between, not at the box. Each lies as near as that
 /// order allows to where it heads: where the box at its other end is flat
 /// too and the two overlap across the flow, the middle of the overlap, so
 /// the line runs straight; otherwise the point facing its other end. A
@@ -1173,7 +1247,7 @@ fn ports(
     slots: &[Slot],
     chains: &[Vec<usize>],
     edges: &[Edge],
-    direction: Direction,
+    labels: &[Option<usize>],
 ) -> Vec<Ports> {
     let mut ports = vec![Ports::default(); chains.len()];
     let flat: Vec<bool> = slots
@@ -1181,16 +1255,25 @@ fn ports(
         .map(|slot| slot.real.is_some_and(|real| nodes[real].flat))
         .collect();
     // At each slot, the lines leaving it and those arriving: (edge, the
-    // slot at the other end of the step), in the order of the other ends.
-    let mut sides: Vec<[Vec<(usize, usize)>; 2]> =
-        (0..slots.len()).map(|_| Default::default()).collect();
+    // slot at the other end of the step, the box at the other end of the
+    // line, the slot it heads for), in the order of the other ends of the
+    // steps. A line from one rank of boxes to the next with no label heads
+    // for the box at its other end, as if the point between were not
+    // there; that point moves onto the line afterwards ([`point_wants`]).
+    let mut sides: Vec<[Vec<Meeting>; 2]> = (0..slots.len()).map(|_| Default::default()).collect();
     for (index, chain) in chains.iter().enumerate() {
         if chain.len() < 2 || edges[index].hidden {
             continue;
         }
         let last = chain.len() - 1;
-        sides[chain[0]][0].push((index, chain[1]));
-        sides[chain[last]][1].push((index, chain[last - 1]));
+        let plain = chain.len() == 3 && labels[index].is_none();
+        let (ahead, behind) = if plain {
+            (chain[last], chain[0])
+        } else {
+            (chain[1], chain[last - 1])
+        };
+        sides[chain[0]][0].push((index, chain[1], chain[last], ahead));
+        sides[chain[last]][1].push((index, chain[last - 1], chain[0], behind));
     }
     for side in sides.iter_mut().flatten() {
         side.sort_by(|a, b| {
@@ -1199,42 +1282,19 @@ fn ports(
                 .then(a.0.cmp(&b.0))
         });
     }
-    for pair in &sides {
-        let side = &pair[1];
-        let flipped = match direction {
-            Direction::Down => side.first(),
-            Direction::Right => side.last(),
-        };
-        if let (Some(&(index, _)), true) = (flipped, side.len() > 1) {
-            ports[index].flip_label = true;
-        }
-    }
-    // How much room the label of a line takes beside it, above or below,
-    // when the flow runs across. Where it runs down, labels are too wide
-    // to make room for; one in the way moves along its line later.
-    let label_room = |index: usize, below: bool| {
-        let edge = &edges[index];
-        let beside = direction == Direction::Right
-            && chains[index].len() == 2
-            && edge.label_height > 0.0
-            && ports[index].flip_label == below;
-        if beside { edge.label_height + 8.0 } else { 0.0 }
-    };
-    // How far apart neighbors on each side keep. On a flat side, room for
-    // a label between them; on a circle or a diamond, lines to other boxes
-    // meet in the middle unless lines side by side would cross them.
+    // How far apart neighbors on each side keep. On a circle or a
+    // diamond, lines to other boxes meet in the middle unless lines side by
+    // side would cross them.
     let steps: Vec<[Vec<f32>; 2]> = sides
         .iter()
         .enumerate()
         .map(|(slot, pair)| {
             let flat = flat[slot];
             pair.clone().map(|side| {
-                let paired = side.windows(2).any(|lines| lines[0].1 == lines[1].1);
+                let paired = side.windows(2).any(|lines| lines[0].2 == lines[1].2);
                 side.windows(2)
-                    .map(|lines| match (flat, lines[0].1 == lines[1].1) {
-                        (true, _) => PORT_STEP
-                            .max(label_room(lines[0].0, true) + label_room(lines[1].0, false)),
-                        (false, true) => PORT_STEP,
+                    .map(|lines| match (flat, lines[0].2 == lines[1].2) {
+                        (true, _) | (false, true) => PORT_STEP,
                         (false, false) if paired => PORT_STEP / 2.0,
                         (false, false) => 0.0,
                     })
@@ -1268,7 +1328,7 @@ fn ports(
             for (end, side) in sides[slot].iter().enumerate() {
                 let wants: Vec<f32> = side
                     .iter()
-                    .map(|&(index, other)| {
+                    .map(|&(index, .., other)| {
                         let far_flat = flat[other];
                         let at = center(&slots[other]);
                         if half.is_infinite() {
@@ -1297,7 +1357,7 @@ fn ports(
                     })
                     .collect();
                 let offsets = share(&wants, &steps[slot][end], half);
-                for (&(index, _), offset) in side.iter().zip(offsets) {
+                for (&(index, ..), offset) in side.iter().zip(offsets) {
                     if end == 0 {
                         ports[index].start = offset;
                     } else {
@@ -1354,19 +1414,17 @@ struct Pass {
 
 /// Along the chain, bending in each gap at `bends`, a little past the rank
 /// before it and on the line's track; `ports` moves the ends across the
-/// flow. The label sits beside the line after the bend, in the gap
-/// [`rank_gaps`] made room in.
+/// flow.
 fn forward_route(
     chain: &[usize],
     slots: &[Slot],
     ends: &[Option<Rect>],
     (bends, passes): (&[f32], &[Pass]),
-    edge: &Edge,
     ports: Ports,
     direction: Direction,
-) -> (Vec<(f32, f32)>, (f32, f32)) {
+) -> Vec<(f32, f32)> {
     if chain.len() < 2 {
-        return (Vec::new(), (0.0, 0.0));
+        return Vec::new();
     }
     let across = |(x, y): (f32, f32), by: f32| match direction {
         Direction::Down => (x + by, y),
@@ -1377,19 +1435,14 @@ fn forward_route(
         match ends[chain[index]] {
             Some(rect) if index == 0 => across(exit_point(rect, direction), ports.start),
             Some(rect) => across(entry_point(rect, direction), ports.end),
-            // A dummy is a point the edge passes through.
+            // A dummy is a point the edge passes through, beside its label
+            // if it has one.
             None => match direction {
-                Direction::Down => (slot.cross, slot.primary),
-                Direction::Right => (slot.primary, slot.cross),
+                Direction::Down => (center(slot), slot.primary),
+                Direction::Right => (slot.primary, center(slot)),
             },
         }
     };
-    let labeled = edge.label_width > 0.0 || edge.label_height > 0.0;
-    let label_step = (chain.len() - 1) / 2;
-    // Only beside the last step do other lines into the same side lie on
-    // the usual side of this one.
-    let flip = ports.flip_label && chain.len() == 2;
-    let mut label_at = (0.0, 0.0);
     let mut points = vec![point(0)];
     for (step, &bend) in bends.iter().enumerate().take(chain.len() - 1) {
         let next = point(step + 1);
@@ -1411,17 +1464,9 @@ fn forward_route(
                 points.push((bend, next.1));
             }
         }
-        if labeled && step == label_step {
-            label_at = match (direction, flip) {
-                (Direction::Down, false) => (heading + 6.0, bend + LABEL_DROP),
-                (Direction::Down, true) => (heading - 6.0 - edge.label_width, bend + LABEL_DROP),
-                (Direction::Right, false) => (bend + LABEL_DROP, next.1 - edge.label_height - 4.0),
-                (Direction::Right, true) => (bend + LABEL_DROP, next.1 + 4.0),
-            };
-        }
         points.push(next);
     }
-    (simplify(points), label_at)
+    simplify(points)
 }
 
 fn exit_point(rect: Rect, direction: Direction) -> (f32, f32) {

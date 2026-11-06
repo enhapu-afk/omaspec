@@ -1017,7 +1017,8 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         line now, or moves on along it up to where it stops anyway, and
         labels keep off where it goes. 1 PlantUML golden changed, and the
         library in the gallery.
-  - [ ] Room for labels, as Graphviz makes it: the 8 words left in the way
+  - [x] Room for labels, as Graphviz makes it (2026-11-06, under 0.9 below,
+        [0020](docs/adr/0020-room-for-labels.md)): the 8 words left in the way
         (`tests/lines.txt`) all lie where lines run closer than their labels
         are wide. Five belong to lines side by side: the pair keeps its labels
         outside (0012, rule 4), but outside lies a third line 43 to 73 units
@@ -1541,19 +1542,26 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
 
 ### 0.9: a layout you can steer
 
-- [ ] Room for labels, as planned under [Next](#next), with its own ADR and two
+- [x] Room for labels, as planned under [Next](#next), with its own ADR and two
       more measures in `tests/lines`: how far the other boxes move when one box is
       added to each diagram of the corpus (after aligning both pictures), and how
-      far the crossings change when the lines are written in another order. Both may
-      not grow. So far: the two measures (2026-11-05): a line from each diagram's
-      first named box to a new one, both pictures aligned on their median shift,
-      moves a box 908 units summed over the diagrams' averages (`smart-home` 84,
-      `platform` 60); each run of lines written the other way round crosses 17
-      times, not 7 (`platform` 3 → 9). A box added that does not draw (a line
-      across regions) is not measured (`-`). The ADR
-      ([0020](docs/adr/0020-room-for-labels.md), proposed): ranks doubled, a
+      far the crossings change when the lines are written in another order. The
+      two measures (2026-11-05): a line from each diagram's first named box to a
+      new one, both pictures aligned on their median shift, moves a box 908 units
+      summed over the diagrams' averages (`smart-home` 84, `platform` 60); each run
+      of lines written the other way round crosses 17 times, not 7 (`platform`
+      3 → 9). A box added that does not draw (a line across regions) is not
+      measured (`-`). Built (2026-11-06,
+      [0020](docs/adr/0020-room-for-labels.md), accepted): ranks doubled, a
       labelled line's point in the rank between its ends a box of its label's
-      size.
+      size, in `graph::doubled`. Words in the way 8 → 0, crossings 7 → 6, written
+      the other way round 17 → 15; jogs 1 → 3 and boxes moved 908 → 928 were taken
+      knowingly (the ADR says where); bends 404 → 492, length 62,009 → 68,194; the
+      pictures 1.7 % wider and 3.5 % longer in all. `flow-subgraphs.mmd`, which
+      has no labels, came out 12 % longer, against the ADR's word: left open there.
+      A line by hand with one corner below two boxes side by side lost that corner
+      as a spike (`hand::shape`); it turns there now. 42 goldens changed, each
+      looked at next to its old picture; render and scale timings unchanged.
 - [ ] Boxes held in place: a box dragged to where it should stay is kept in the
       block of [0016](docs/adr/0016-lines-by-hand.md), relative to its rank and
       neighbors rather than in coordinates, so it holds when a theme or a font
