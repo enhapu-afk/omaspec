@@ -11,10 +11,14 @@
 //! click beside the menu close it; any other key closes it too. The bar is
 //! hidden by default on Omarchy: a tap on Alt shows and hides it, F10
 //! opens File, and the session keeps it as it was left.
+//! The panels float as iced overlays ([`super::anchored`]), placed by the
+//! layout of the root or the heading they belong to and kept inside the
+//! window.
 
-use iced::widget::{button, column, container, mouse_area, row, stack, text};
-use iced::{Alignment, Element, Length, Padding, Point, Size, Task, window};
+use iced::widget::{button, column, container, mouse_area, row, text};
+use iced::{Alignment, Element, Length, Padding, Point, Task, window};
 
+use super::anchored::{Anchor, Anchored};
 use super::table::{self, Entry, Menu, Row, Spot};
 use super::{App, Command, Message};
 use crate::ui;
@@ -23,15 +27,12 @@ use crate::ui;
 const WIDTH: f32 = 380.0;
 /// A child menu's width.
 const CHILD_WIDTH: f32 = 300.0;
-/// One row's height.
-const ROW: f32 = 24.0;
 /// A line between groups, with its room.
 const GAP: f32 = 7.0;
 /// The panel's padding on each side.
 const PAD: f32 = 6.0;
-/// The bar's height, and each root's width in it.
+/// The bar's height.
 pub const BAR_H: f32 = 26.0;
-const ROOT_W: f32 = 84.0;
 /// The bar's padding at the left.
 const BAR_PAD: f32 = 6.0;
 
@@ -109,50 +110,6 @@ impl Open {
                 .pointed
                 .is_some_and(|i| matches!(self.rows().get(i), Some(Row::Child { .. })))
     }
-}
-
-/// The height of `rows` as drawn, with the panel's padding.
-fn height(rows: &[Row]) -> f32 {
-    offset(rows, rows.len()) + 2.0 * PAD
-}
-
-/// Where row `i` starts, from the top of the rows (after its own gap).
-fn offset(rows: &[Row], i: usize) -> f32 {
-    let before: f32 = rows
-        .iter()
-        .take(i)
-        .enumerate()
-        .map(|(j, r)| ROW + if r.gap() && j > 0 { GAP } else { 0.0 })
-        .sum();
-    let own = if rows.get(i).is_some_and(|r| r.gap() && i > 0) {
-        GAP
-    } else {
-        0.0
-    };
-    before + own
-}
-
-/// Where a menu of `size` opens for a click at `at` in a window of
-/// `window`: at the pointer, or moved left or up as far as needed to stay
-/// inside, never past the window's top left.
-pub fn place(at: Point, size: Size, window: Size) -> Point {
-    let x = if at.x + size.width > window.width {
-        (window.width - size.width).max(0.0)
-    } else {
-        at.x
-    };
-    let y = if at.y + size.height > window.height {
-        (at.y - size.height).max(0.0)
-    } else {
-        at.y
-    };
-    Point::new(x, y)
-}
-
-/// Where the bar's menu `menu` hangs: under its root.
-fn under_root(menu: Menu) -> Point {
-    let index = Menu::ALL.iter().position(|m| *m == menu).unwrap_or(0);
-    Point::new(BAR_PAD + ROOT_W * index as f32, BAR_H)
 }
 
 impl App {
@@ -335,12 +292,17 @@ impl App {
         }
     }
 
-    /// The bar over the tabs: a root per menu; the open one is lit.
+    /// The bar over the tabs: a root per menu, the open one lit, and its
+    /// menu floating under that root, placed by the layout.
     pub(super) fn bar_view(&self) -> Element<'_, Message> {
         let p = &self.palette;
-        let open = self.menu.as_ref().and_then(Open::bar);
+        let open = self
+            .menu
+            .as_ref()
+            .filter(|m| m.on == self.main && m.bar().is_some());
+        let open_menu = open.and_then(Open::bar);
         let roots = Menu::ALL.into_iter().map(|menu| {
-            let lit = open == Some(menu);
+            let lit = open_menu == Some(menu);
             let ink = if lit {
                 p.bright_foreground
             } else {
@@ -350,41 +312,36 @@ impl App {
                 ui::color(p.lighter_background),
                 ui::alpha(p.lighter_background, 0.6),
             );
-            let root = button(
-                container(self.label(menu.label(), ink))
-                    .width(Length::Fill)
-                    .align_x(Alignment::Center),
-            )
-            .width(ROOT_W)
-            .height(BAR_H - 4.0)
-            .padding(0)
-            .on_press(Message::OpenMenu(menu))
-            .style(move |_: &iced::Theme, status| {
-                let background = if lit {
-                    Some(chosen.into())
-                } else if matches!(status, button::Status::Hovered | button::Status::Pressed) {
-                    Some(hover.into())
-                } else {
-                    None
-                };
-                button::Style {
-                    background,
-                    border: iced::Border {
-                        radius: 6.0.into(),
-                        ..Default::default()
-                    },
-                    ..button::Style::default()
-                }
-            });
+            let root = button(self.label(menu.label(), ink))
+                .height(BAR_H - 4.0)
+                .padding([0, 12])
+                .on_press(Message::OpenMenu(menu))
+                .style(move |_: &iced::Theme, status| {
+                    let background = if lit {
+                        Some(chosen.into())
+                    } else if matches!(status, button::Status::Hovered | button::Status::Pressed) {
+                        Some(hover.into())
+                    } else {
+                        None
+                    };
+                    button::Style {
+                        background,
+                        border: iced::Border {
+                            radius: 6.0.into(),
+                            ..Default::default()
+                        },
+                        ..button::Style::default()
+                    }
+                });
             // While a menu is open, the mouse coming onto another root
             // opens that one.
-            match open {
+            match open_menu {
                 Some(_) => mouse_area(root).on_enter(Message::HoverMenu(menu)).into(),
                 None => root.into(),
             }
         });
         let bg = ui::color(p.dark_background);
-        container(row(roots).align_y(Alignment::Center))
+        let bar = container(row(roots).spacing(2).align_y(Alignment::Center))
             .width(Length::Fill)
             .height(BAR_H)
             .padding(Padding {
@@ -393,14 +350,21 @@ impl App {
                 left: BAR_PAD,
                 right: BAR_PAD,
             })
-            .style(move |_: &iced::Theme| container::Style::default().background(bg))
+            .style(move |_: &iced::Theme| container::Style::default().background(bg));
+        let panel = open.map(|open| self.panel(self.menu_rows(open, &open.rows()), WIDTH));
+        let index = open_menu.map_or(0, |menu| {
+            Menu::ALL.iter().position(|m| *m == menu).unwrap_or(0)
+        });
+        // A press beside the menu closes it; one on the bar reaches its
+        // roots, so another root opens and the same one closes.
+        Anchored::new(bar, panel, Anchor::Below(index))
+            .on_outside(Message::Command(Command::Cancel))
+            .through()
             .into()
     }
 
-    /// `base` with the menu over it when the menu is `window`'s: a
-    /// backdrop that closes it, the panel, and the child panel beside it.
-    /// A menu of the bar draws the bar again on top, so its roots stay
-    /// under the mouse.
+    /// `base` with the context menu floating at its point, when the menu
+    /// is `window`'s; a press beside it closes it.
     pub(super) fn with_menu<'a>(
         &'a self,
         window: window::Id,
@@ -409,49 +373,18 @@ impl App {
         let Some(open) = self.menu.as_ref().filter(|m| m.on == window) else {
             return base;
         };
-        let rows = open.rows();
-        let size = Size::new(WIDTH, height(&rows));
-        let window_size = if window == self.main {
-            self.main_size
-        } else {
-            self.detached_size
+        let Kind::Context { at, .. } = open.kind else {
+            return base;
         };
-        let at = match open.kind {
-            Kind::Context { at, .. } => place(at, size, window_size),
-            Kind::Bar(menu) => under_root(menu),
-        };
-        let backdrop = mouse_area(container(text("")).width(Length::Fill).height(Length::Fill))
-            .on_press(Message::Command(Command::Cancel))
-            .on_right_press(Message::Command(Command::Cancel));
-        let panel = container(self.panel(self.menu_rows(open, &rows), WIDTH)).padding(Padding {
-            top: at.y,
-            left: at.x,
-            ..Padding::ZERO
-        });
-        let mut layers = stack![base, backdrop];
-        if open.bar().is_some() {
-            layers = layers.push(self.bar_view());
-        }
-        layers = layers.push(panel);
-        if let Some(child) = open.child {
-            let entries = open.child_entries();
-            let child_rows: Vec<Row> = entries.iter().copied().map(Row::Entry).collect();
-            let child_size = Size::new(CHILD_WIDTH, height(&child_rows));
-            // Its first row level with the heading, overlapping the edge.
-            let beside = Point::new(at.x + WIDTH - PAD, at.y + offset(&rows, child.row));
-            let child_at = place(beside, child_size, window_size);
-            let panel = self.panel(self.child_rows(&entries, child.pointed), CHILD_WIDTH);
-            layers = layers.push(container(panel).padding(Padding {
-                top: child_at.y,
-                left: child_at.x,
-                ..Padding::ZERO
-            }));
-        }
-        layers.into()
+        let panel = self.panel(self.menu_rows(open, &open.rows()), WIDTH);
+        Anchored::new(base, Some(panel), Anchor::At(at))
+            .on_outside(Message::Command(Command::Cancel))
+            .into()
     }
 
     /// The rows of a menu: entries with their keys, child headings with a
-    /// chevron, lines between the groups.
+    /// chevron and, when open, the child menu floating beside them, lines
+    /// between the groups.
     fn menu_rows<'a>(&'a self, open: &Open, rows: &[Row]) -> Element<'a, Message> {
         let p = &self.palette;
         let mut col = column![];
@@ -460,13 +393,16 @@ impl App {
                 col = col.push(self.rule());
             }
             let chosen = open.pointed == Some(i);
-            let button = match row {
-                Row::Entry(entry) => self.entry(
-                    self.entry_line(entry, chosen),
-                    0,
-                    chosen,
-                    Message::MenuRun(entry.command),
-                ),
+            let row: Element<'a, Message> = match row {
+                Row::Entry(entry) => {
+                    let button = self.entry(
+                        self.entry_line(entry, chosen),
+                        0,
+                        chosen,
+                        Message::MenuRun(entry.command),
+                    );
+                    mouse_area(button).on_enter(Message::MenuPoint(i)).into()
+                }
                 Row::Child { name, .. } => {
                     let ink = if chosen {
                         p.bright_foreground
@@ -481,11 +417,19 @@ impl App {
                     ]
                     .spacing(10)
                     .align_y(Alignment::Center);
-                    self.entry(line, 0, chosen, Message::MenuPoint(i))
+                    let heading = self.entry(line, 0, chosen, Message::MenuPoint(i));
+                    let heading = mouse_area(heading).on_enter(Message::MenuPoint(i));
+                    let child = open.child.filter(|c| c.row == i).map(|c| {
+                        self.panel(
+                            self.child_rows(&open.child_entries(), c.pointed),
+                            CHILD_WIDTH,
+                        )
+                    });
+                    // Its first row level with the heading, on the panel's edge.
+                    Anchored::new(heading, child, Anchor::Beside { dx: 0.0, dy: -PAD }).into()
                 }
             };
-            col =
-                col.push(container(mouse_area(button).on_enter(Message::MenuPoint(i))).height(ROW));
+            col = col.push(row);
         }
         col.into()
     }
@@ -505,9 +449,7 @@ impl App {
                 chosen,
                 Message::MenuRun(entry.command),
             );
-            col = col.push(
-                container(mouse_area(button).on_enter(Message::MenuPointChild(i))).height(ROW),
-            );
+            col = col.push(mouse_area(button).on_enter(Message::MenuPointChild(i)));
         }
         col.into()
     }
@@ -569,50 +511,5 @@ impl App {
                     })
             })
             .into()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_menu_stays_inside_the_window() {
-        let window = Size::new(1000.0, 600.0);
-        let size = Size::new(200.0, 300.0);
-        // Room enough: at the pointer.
-        assert_eq!(
-            place(Point::new(100.0, 100.0), size, window),
-            Point::new(100.0, 100.0)
-        );
-        // Near the right edge: moved left to the edge.
-        assert_eq!(
-            place(Point::new(900.0, 100.0), size, window),
-            Point::new(800.0, 100.0)
-        );
-        // Near the bottom: opens upward from the pointer.
-        assert_eq!(
-            place(Point::new(100.0, 500.0), size, window),
-            Point::new(100.0, 200.0)
-        );
-        // A window too small for it: the top left, not beyond.
-        assert_eq!(
-            place(Point::new(10.0, 10.0), size, Size::new(100.0, 100.0)),
-            Point::ORIGIN
-        );
-    }
-
-    #[test]
-    fn rows_are_measured_as_drawn() {
-        let rows = table::rows(Menu::File);
-        let gaps = rows.iter().skip(1).filter(|r| r.gap()).count();
-        assert_eq!(
-            height(&rows),
-            rows.len() as f32 * ROW + gaps as f32 * GAP + 2.0 * PAD
-        );
-        // The first row starts at the top; a row after a gap starts past it.
-        assert_eq!(offset(&rows, 0), 0.0);
-        let after_gap = rows.iter().position(|r| r.gap()).unwrap();
-        assert_eq!(offset(&rows, after_gap), after_gap as f32 * ROW + GAP);
     }
 }

@@ -28,6 +28,7 @@
 //! editor's own: Ctrl+F find, Ctrl+H replace, Ctrl+/ comment, F8 next
 //! finding, Ctrl+Z undo.
 
+mod anchored;
 pub(crate) mod compare;
 mod doc;
 mod files;

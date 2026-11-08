@@ -64,11 +64,12 @@ the lines by hand) is in its canvases.
    take none, it closes on a click like every desktop's menus where
    `iced_aw` closes when the pointer leaves a margin, it is the same
    widgets as the rest of the window so it looks like it, and it adds no
-   dependency. What it lacks, `iced_aw` has: child menus (File › Export)
-   and placement from the layout; the app gets both from an overlay
-   widget of its own, as `TabWheel` in `editor/view.rs` already is. A
-   native menu is not an option: iced draws the whole window, on every
-   desktop.
+   dependency. What it lacked, `iced_aw` has: child menus (File › Export)
+   and placement from the layout; the app has both from an overlay
+   widget of its own, `editor/anchored.rs`, which floats a panel beside
+   the widget it belongs to as iced's overlay, placed by that widget's
+   layout and kept inside the window by its measured size. A native menu
+   is not an option: iced draws the whole window, on every desktop.
 
 ## Why
 

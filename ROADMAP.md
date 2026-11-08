@@ -1758,7 +1758,10 @@ window grows the menus a desktop user looks for.
         default on Omarchy; a tap on Alt alone or the View entry shows and
         hides it, and the session keeps it. F10 opens File, Left and Right
         walk the menus and go into a child and out of it; the mouse coming
-        onto another root switches. The snapshot `menu`.
+        onto another root switches. The panels float as iced overlays
+        (`editor/anchored.rs`), placed by the layout of their root or
+        heading and kept inside the window by their measured size. The
+        snapshot `menu`.
   - [x] The toolbar (2026-11-08): eight tools over the diagram pane, as
         line icons with a tooltip naming the command and its key: fit,
         zoom in and out, 100 %, play (lit while one runs), unfold every
