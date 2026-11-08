@@ -26,6 +26,10 @@ const LAYERS: usize = 5;
 /// how well a picture reads leaves them out.
 pub const GRID: &str = "grid";
 
+/// The handwriting face a sketched diagram's words are set in. Measured
+/// widths stay those of the canvas font; each run is locked to its width.
+pub const HAND_FONT: &str = "Excalifont";
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Stroke {
     pub color: Color,
@@ -79,6 +83,8 @@ struct Sketch {
     name: Option<u64>,
     /// Shapes of that element drawn so far.
     count: u64,
+    /// Inside [`Canvas::plain`]: this shape stays as it is.
+    plain: bool,
 }
 
 /// The kinds of shape, for a seed from a shape's own form.
@@ -108,14 +114,40 @@ impl Canvas {
     }
 
     /// Draws every shape from here on by hand when `on`
-    /// ([`crate::sketch`]); text stays as it is.
+    /// ([`crate::sketch`]), and sets the words in [`HAND_FONT`].
+    /// They stay measured as the font the canvas was made with, so a box
+    /// keeps its size; [`Self::text`] locks each run to that width.
     pub fn sketch(&mut self, on: bool) {
         self.sketch = on.then(Sketch::default);
+        if on {
+            self.font = HAND_FONT.to_owned();
+        }
     }
 
     /// Whether shapes are drawn by hand.
     pub fn sketched(&self) -> bool {
         self.sketch.is_some()
+    }
+
+    /// Whether the next shape goes through the hand. A [`Self::plain`]
+    /// block draws as it is, even while the diagram is sketched.
+    fn handed(&self) -> bool {
+        self.sketch.is_some_and(|sketch| !sketch.plain)
+    }
+
+    /// Draws what `paint` draws as it is. A label's ground and a highlight
+    /// stay straight, so they still cover the line or the band under them.
+    pub fn plain<T>(&mut self, paint: impl FnOnce(&mut Canvas) -> T) -> T {
+        let Some(before) = self.sketch else {
+            return paint(self);
+        };
+        self.sketch = Some(Sketch {
+            plain: true,
+            ..before
+        });
+        let painted = paint(self);
+        self.sketch = Some(before);
+        painted
     }
 
     /// Draws with `paint` the shapes of the element called `name`: drawn
@@ -128,10 +160,18 @@ impl Canvas {
         self.sketch = Some(Sketch {
             name: Some(sketch::seed(name.as_bytes(), 0)),
             count: 0,
+            plain: before.plain,
         });
         let painted = paint(self);
         self.sketch = Some(before);
         painted
+    }
+
+    /// A filled box whose edge is the whole shape. Drawn by hand it gains
+    /// a rim, so a card that had no border still reads as drawn.
+    pub fn card(&mut self, layer: Layer, rect: (f32, f32, f32, f32), rx: f32, fill: Color) {
+        let stroke = self.handed().then(|| Stroke::new(rim(fill), 1.25));
+        self.rect(layer, rect, rx, Some(fill), stroke);
     }
 
     /// The hand for the next shape: seeded by the element's name and how
@@ -148,8 +188,7 @@ impl Canvas {
         Hand::new(seed)
     }
 
-    /// `outlines` drawn by hand: the fill a little off, the border twice.
-    /// A shape with no border keeps its form.
+    /// `outlines` drawn by hand: the fill a little inside, the border over it.
     fn by_hand(
         &mut self,
         layer: Layer,
@@ -259,12 +298,16 @@ impl Canvas {
     ) {
         self.grow(x, y);
         self.grow(x + w, y + h);
-        if let Some(stroke) = stroke
-            && self.sketched()
-        {
+        if self.handed() && (stroke.is_some() || fill.is_some()) {
             let mut hand = self.hand(form::RECT, &[(0.0, 0.0), (w, h), (rx, 0.0)]);
             let outline = Outline::rect((x, y, w.max(0.0), h.max(0.0)), rx);
-            self.by_hand(layer, &mut hand, &[outline], fill, stroke);
+            if let Some(stroke) = stroke {
+                self.by_hand(layer, &mut hand, &[outline], fill, stroke);
+            } else {
+                let d = hand.fill(&[outline]);
+                let paint = self.paint(fill, None);
+                let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
+            }
             return;
         }
         let paint = self.paint(fill, stroke);
@@ -324,7 +367,7 @@ impl Canvas {
     ) {
         self.grow(x1, y1);
         self.grow(x2, y2);
-        if self.sketched() {
+        if self.handed() {
             let points = [(x1, y1), (x2, y2)];
             let mut hand = self.hand(form::LINE, &points);
             let d = hand.stroke(&[Outline::polyline(&points, false)], stroke.dash.is_none());
@@ -352,14 +395,16 @@ impl Canvas {
         for &(x, y) in points {
             self.grow(x, y);
         }
-        if let Some(stroke) = stroke
-            && self.sketched()
-            && points.len() > 2
-        {
+        if self.handed() && points.len() > 2 && (stroke.is_some() || fill.is_some()) {
             let mut hand = self.hand(form::POLYGON, points);
             let outline = Outline::polyline(points, true);
-            self.by_hand(layer, &mut hand, &[outline], fill, stroke);
-            return;
+            // A mark with no border of its own, an arrowhead among them,
+            // takes a stroke in its own ink so the edge is drawn too.
+            let stroke = stroke.or_else(|| fill.map(|color| Stroke::new(color, 1.0)));
+            if let Some(stroke) = stroke {
+                self.by_hand(layer, &mut hand, &[outline], fill, stroke);
+                return;
+            }
         }
         let paint = self.paint(fill, stroke);
         let points: Vec<String> = points
@@ -377,7 +422,7 @@ impl Canvas {
         for &(x, y) in points {
             self.grow(x, y);
         }
-        if self.sketched() && points.len() > 1 {
+        if self.handed() && points.len() > 1 {
             let mut hand = self.hand(form::POLYLINE, points);
             let d = hand.stroke(&[Outline::polyline(points, false)], stroke.dash.is_none());
             self.stroke_by_hand(layer, &d, stroke);
@@ -406,7 +451,7 @@ impl Canvas {
             self.grow(x, y);
         }
         let d = crate::curve::path(points, radius);
-        if self.sketched()
+        if self.handed()
             && let Some(outlines) = sketch::outlines(&d)
         {
             let mut hand = self.hand(form::POLYLINE, points);
@@ -430,14 +475,17 @@ impl Canvas {
     ) {
         self.grow(bounds.0, bounds.1);
         self.grow(bounds.2, bounds.3);
-        if let Some(stroke) = stroke
-            && self.sketched()
+        if self.handed()
+            && (stroke.is_some() || fill.is_some())
             && let Some(outlines) = sketch::outlines(d)
         {
             let size = [(0.0, 0.0), (bounds.2 - bounds.0, bounds.3 - bounds.1)];
             let mut hand = self.hand(form::PATH, &size);
-            self.by_hand(layer, &mut hand, &outlines, fill, stroke);
-            return;
+            let stroke = stroke.or_else(|| fill.map(|color| Stroke::new(color, 1.0)));
+            if let Some(stroke) = stroke {
+                self.by_hand(layer, &mut hand, &outlines, fill, stroke);
+                return;
+            }
         }
         let paint = self.paint(fill, stroke);
         let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
@@ -453,19 +501,17 @@ impl Canvas {
     ) {
         self.grow(cx - rx, cy - ry);
         self.grow(cx + rx, cy + ry);
-        if let Some(stroke) = stroke
-            && self.sketched()
-            && rx > 0.0
-            && ry > 0.0
-        {
+        if self.handed() && rx > 0.0 && ry > 0.0 && (stroke.is_some() || fill.is_some()) {
             let mut hand = self.hand(form::ELLIPSE, &[(0.0, 0.0), (rx, ry)]);
             if fill.is_some() {
                 let d = hand.ellipse_fill((cx, cy), (rx, ry));
                 let paint = self.paint(fill, None);
                 let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
             }
-            let d = hand.ellipse_stroke((cx, cy), (rx, ry));
-            self.stroke_by_hand(layer, &d, stroke);
+            if let Some(stroke) = stroke {
+                let d = hand.ellipse_stroke((cx, cy), (rx, ry));
+                self.stroke_by_hand(layer, &d, stroke);
+            }
             return;
         }
         let paint = self.paint(fill, stroke);
@@ -557,10 +603,13 @@ impl Canvas {
                 n(s.size),
                 self.color(s.color)
             );
-            if s.bold {
+            // The handwriting face has a regular cut only. A bold or an
+            // italic ask would send usvg to a plain face for that run.
+            let hand = self.font == HAND_FONT && !s.mono;
+            if s.bold && !hand {
                 out.push_str(r#" font-weight="bold""#);
             }
-            if s.italic {
+            if s.italic && !hand {
                 out.push_str(r#" font-style="italic""#);
             }
             if s.mono {
@@ -694,6 +743,15 @@ pub(crate) fn escape(s: &str) -> String {
     out
 }
 
+/// A rim that reads on `fill`: darker on a light card, lighter on a dark one.
+fn rim(fill: Color) -> Color {
+    if fill.is_dark() {
+        fill.mix(Color::WHITE, 0.5)
+    } else {
+        fill.mix(Color::BLACK, 0.4)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -729,6 +787,82 @@ mod tests {
         assert!(svg.contains(r##"<rect x="5" y="5" width="20" height="10" rx="2.5" ry="2.5" fill="#FFFFFF" stroke="#000000" stroke-width="0.5"/>"##));
         assert!(svg.contains(r#"<g transform="translate(0,0)">"#), "{svg}");
         assert!(svg.contains("a &lt; b &amp; &quot;c&quot;\u{fffd}"));
+    }
+
+    #[test]
+    fn a_sketch_sets_the_handwriting_face_and_not_a_bold_one() {
+        let mut c = Canvas::new("sans-serif", false);
+        c.sketch(true);
+        let word = block(
+            "Book",
+            Font::new(12.0, Color::BLACK).bold().italic(),
+            Family::Sans,
+        )
+        .unwrap();
+        c.text(Layer::Front, &word, (4.0, 4.0), Align::Left);
+        let svg = c.finish(4.0, None);
+        assert!(
+            svg.contains(&format!("font-family=\"{HAND_FONT}\"")),
+            "{svg}"
+        );
+        assert!(!svg.contains("font-weight"), "{svg}");
+        assert!(!svg.contains("font-style"), "{svg}");
+        // A monospaced run keeps its face.
+        let code = block("\"\"id\"\"", Font::new(12.0, Color::BLACK), Family::Sans).unwrap();
+        let mut c = Canvas::new("sans-serif", false);
+        c.sketch(true);
+        c.text(Layer::Front, &code, (4.0, 4.0), Align::Left);
+        let svg = c.finish(4.0, None);
+        assert!(svg.contains(r#"font-family="monospace""#), "{svg}");
+    }
+
+    #[test]
+    fn a_card_with_no_border_is_drawn_by_hand() {
+        let mut c = Canvas::new("sans-serif", false);
+        c.sketch(true);
+        c.card(
+            Layer::Bars,
+            (0.0, 0.0, 80.0, 40.0),
+            6.0,
+            Color::hex(0x88AADD),
+        );
+        let svg = c.finish(0.0, None);
+        assert!(!svg.contains("<rect"), "{svg}");
+        assert!(svg.contains(r#"stroke-linecap="round""#), "{svg}");
+    }
+
+    #[test]
+    fn a_fill_with_no_border_is_drawn_by_hand() {
+        let mut c = Canvas::new("sans-serif", false);
+        c.sketch(true);
+        c.rect(
+            Layer::Bars,
+            (0.0, 0.0, 40.0, 20.0),
+            4.0,
+            Some(Color::hex(0xDDEEFF)),
+            None,
+        );
+        let svg = c.finish(0.0, None);
+        assert!(!svg.contains("<rect"), "{svg}");
+        assert!(svg.contains("<path"), "{svg}");
+    }
+
+    #[test]
+    fn a_label_ground_stays_straight() {
+        let mut c = Canvas::new("sans-serif", false);
+        c.sketch(true);
+        c.plain(|c| {
+            c.rect(
+                Layer::Frames,
+                (0.0, 0.0, 40.0, 16.0),
+                3.0,
+                Some(Color::WHITE),
+                None,
+            );
+        });
+        let svg = c.finish(0.0, None);
+        assert!(svg.contains("<rect"), "{svg}");
+        assert!(!svg.contains(r#"stroke-linecap="round""#), "{svg}");
     }
 
     #[test]

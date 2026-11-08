@@ -228,12 +228,11 @@ fn paint_tasks(
         let x = place.x0 + index as f32 * (TASK_W + GAP);
         let width = count as f32 * TASK_W + (count - 1) as f32 * GAP;
         let fill = section_fill(diagram, section_index);
-        canvas.rect(
+        canvas.card(
             Layer::Bars,
             (x, place.section_y, width, SECTION_H),
             3.0,
-            Some(fill),
-            None,
+            fill,
         );
         if !section.label.is_empty() {
             let block = text::block(
@@ -278,13 +277,7 @@ fn paint_task(
         (center, place.line_bottom),
         dash,
     );
-    canvas.rect(
-        Layer::Bars,
-        (x, place.task_y, TASK_W, TASK_H),
-        3.0,
-        Some(fill),
-        None,
-    );
+    canvas.card(Layer::Bars, (x, place.task_y, TASK_W, TASK_H), 3.0, fill);
     let label = text::block(
         &task.label,
         Font::new(diagram.look.label_size, on_fill(fill)),
@@ -346,7 +339,8 @@ fn paint_face(canvas: &mut Canvas, cx: f32, cy: f32, score: f32) {
         );
         return;
     }
-    let sweep = u8::from(score > 3.0);
+    // Sweep 0 dips below the chord, which is a smile where y grows downward.
+    let sweep = u8::from(score < 3.0);
     let d = format!(
         "M {},{} A 6,4 0 0,{sweep} {},{}",
         svg::n(cx - 6.0),
@@ -778,6 +772,8 @@ mod tests {
         faces.sort_by(|left, right| left.0.partial_cmp(&right.0).unwrap());
         assert_eq!(faces.len(), 2, "{svg}");
         assert!((faces[1].1 - faces[0].1 - 120.0).abs() < 0.05, "{faces:?}");
+        assert!(svg.contains("A 6,4 0 0,0"), "a score above 3 smiles\n{svg}");
+        assert!(svg.contains("A 6,4 0 0,1"), "a score below 3 frowns\n{svg}");
     }
 
     #[test]

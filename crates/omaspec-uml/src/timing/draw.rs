@@ -214,18 +214,20 @@ fn paint(
         for highlight in &diagram.highlights {
             let left = x_of(highlight.start.min(highlight.end));
             let width = x_of(highlight.start.max(highlight.end)) - left;
-            canvas.rect(
-                Layer::Background,
-                (
-                    left,
-                    first.body,
-                    width.max(1.0),
-                    last.body + last.height - first.body,
-                ),
-                0.0,
-                Some(highlight.color.unwrap_or(skin.highlight)),
-                None,
-            );
+            canvas.plain(|canvas| {
+                canvas.rect(
+                    Layer::Background,
+                    (
+                        left,
+                        first.body,
+                        width.max(1.0),
+                        last.body + last.height - first.body,
+                    ),
+                    0.0,
+                    Some(highlight.color.unwrap_or(skin.highlight)),
+                    None,
+                );
+            });
             if !highlight.caption.is_empty() {
                 let caption = block(&highlight.caption, skin.state, family, highlight.line)?;
                 canvas.text(

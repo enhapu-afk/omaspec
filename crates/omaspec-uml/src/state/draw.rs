@@ -723,12 +723,11 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
             );
         }
         Kind::Fork | Kind::Join => {
-            canvas.rect(
+            canvas.card(
                 Layer::Frames,
                 (rect.x, rect.y, rect.w, rect.h),
                 2.0,
-                Some(node.item.mark),
-                None,
+                node.item.mark,
             );
         }
         Kind::History | Kind::DeepHistory => {

@@ -38,11 +38,14 @@ changed.
    `config`; the init wins, as it does in Mermaid. A front matter that
    holds a `config` with only a `look` (`classic` or `handDrawn`) no longer
    sends a diagram to mmdr. A diagram mmdr draws stays plain.
-2. **Shapes, not text.** Every line, border and fill goes through the
-   hand; the words stay as they are, so a sketch reads as well as the
-   plain picture, and the click map, the lights of a play and Ctrl+click
-   stay where they were. Neither PlantUML nor Mermaid changes the font
-   either.
+2. **Shapes by hand, words in a handwriting face.** Every line, border
+   and fill goes through the hand. The words are set in Excalifont, the
+   handwriting face shipped with the program (SIL Open Font License,
+   the Latin subset). They are still measured as the UI font, and each
+   run is locked to that width, so a box stays the size it was and the
+   click map, the lights of a play and Ctrl+click stay where they were.
+   A monospaced run stays monospace. Bold and italic are not asked of
+   the handwriting face, which has only a regular cut.
 3. **Drawn as rough.js draws.** Each run is a slightly bowed curve, drawn
    twice, its ends a little off; a short run strays less (a tenth of its
    length at most), a long one bows less. Curves, rounded corners and
@@ -50,9 +53,14 @@ changed.
    sides draws each side on its own, past its corners, as a hand draws a
    box; a rounded one in one stroke, so its corners stay round. A line
    keeps its two ends where they are, so it meets its box and its
-   arrowhead. A fill is a little off its outline. A dashed line is drawn
-   once, as two dashed strokes would not meet. A shape with no border, a
-   label's ground among them, keeps its form.
+   arrowhead. A fill is a closed wobble along its outline, nearer it than
+   the border, so it sits inside the stroke. A dashed line is drawn
+   once, as two dashed strokes would not meet. A box drawn with no border
+   of its own gains a light rim, so a card still reads as drawn. A label's
+   ground and a highlight keep their form, so they still cover what is
+   under them. So does a fill that only sits inside another shape, a hair
+   from its edge or as the wall between two caps, where the stroke is
+   what reads as drawn.
 4. **A steady hand.** What is off, and how far, follows from a seed: the
    element's name where the drawer knows it (states, classes and the other
    boxes of a structure diagram, flowchart nodes and subgraphs), the
@@ -74,25 +82,32 @@ The look is what the writer wrote down; drawing it plain, or handing it to
 Java for that one line, ignores it. Seeded by name rather than by chance,
 the sketch is a picture like any other: exports, `render --check` and the
 goldens stay exact. Rough.js's way is the one Mermaid's readers know, and
-it is cheap: a few curves per shape, no font of its own. Text left plain
-keeps every measure of the layout, the legibility checks and the places a
-click finds.
+it is cheap: a few curves per shape. The words take the handwriting face,
+measured as before, so every measure of the layout, the legibility checks
+and the places a click finds stay where they were.
 
 ## Consequences
 
 - `omaspec_uml::sketch` draws the strokes and fills and reads an SVG path
   into outlines (lines, cubics, quadratics and arcs, absolute and
-  relative); `Canvas` turns each shape into them when sketched.
+  relative); `Canvas` turns each shape into them when sketched. A fill
+  with no border goes through the hand too. `Canvas::plain` is the
+  exception, for a label's ground, a highlight, and a fill that only
+  sits inside another shape. `Canvas::card` is a filled box that gains
+  a rim while sketched.
 - The skins of the PlantUML drawers read `handwritten` (`shadowing true`
   still declines); the Mermaid drawers take `look` through
   `head::hand_drawn`, as a skinparam or their look's `sketch`.
 - A sketched SVG is two to four times the size of the plain one (the
   gallery's coffee machine 10 kB → 41 kB); drawing it takes the same
   milliseconds.
+- The words of a sketch are set in Excalifont. usvg loads the bundled
+  face; an exported SVG embeds it as a `@font-face`, so a browser sets
+  the same words. The picture on screen does not carry the font bytes.
 - `omaspec-render/tests/sketch.rs` draws every diagram of the repository
   and one of each Mermaid kind by hand: the same engine, the same words,
   the same picture twice, and a box that keeps its strokes when it moves.
 - Not now: a sketched look for a project as a whole (`[look]` in
-  `omaspec-project.toml`), a handwriting font, rough.js's hatched fills,
-  and the maps of [0018](0018-diagrams-that-link.md), which draw their
-  cards in Omaspec's own look.
+  `omaspec-project.toml`), rough.js's hatched fills, and the maps of
+  [0018](0018-diagrams-that-link.md), which draw their cards in
+  Omaspec's own look.

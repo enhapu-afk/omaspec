@@ -1114,13 +1114,15 @@ impl<'a> Drawer<'a> {
             if height <= 0.0 {
                 continue;
             }
-            canvas.rect(
-                Layer::Background,
-                (left, band.top, right - left, height),
-                0.0,
-                Some(fill),
-                None,
-            );
+            canvas.plain(|canvas| {
+                canvas.rect(
+                    Layer::Background,
+                    (left, band.top, right - left, height),
+                    0.0,
+                    Some(fill),
+                    None,
+                );
+            });
         }
     }
 

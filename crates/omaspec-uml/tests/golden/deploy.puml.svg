@@ -12,8 +12,7 @@
 <line x1="92.8" y1="141.89" x2="92.8" y2="170.18" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="52.4" cy="141.89" rx="40.4" ry="9" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <path d="M34.6,263.55 C23.2,263.55 19.4,254.75 31.56,251.23 C28.52,242.43 43.72,238.03 54.36,244.19 C61.2,238.03 78.68,238.91 83.24,247.71 C95.4,249.47 93.88,261.35 80.2,263.55 C84.76,273.23 66.52,280.27 54.36,272.35 C45.24,280.27 25.48,274.99 33.08,265.31Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
-<rect x="27.45" y="337.45" width="59.89" height="20" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
-<rect x="27.45" y="313.15" width="55.89" height="25.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<polygon points="83.35,337.45 83.35,313.15 27.45,313.15 27.45,357.45 87.35,357.45 87.35,337.45" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="158.8" y="94.59" width="59.8" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <path d="M262.6,94.59 L262.6,122.89 L339.5,122.89 L339.5,104.02 L330.07,94.59 Z" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <path d="M330.07,94.59 L330.07,104.02 L339.5,104.02" fill="#FEFECE" stroke="#181818" stroke-width="1"/>

@@ -10,6 +10,7 @@ pub mod anchors;
 mod atlas;
 pub mod contrast;
 pub mod export;
+mod fonts;
 mod include;
 mod java;
 mod mermaid;

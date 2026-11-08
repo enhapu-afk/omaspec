@@ -1644,7 +1644,21 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       both languages; a Mermaid front matter that only sets the look no longer sends
       a diagram to mmdr. *Skin: sketch* writes it into the source. `tests/sketch.rs`
       draws every diagram of the repository by hand: the same engine, the same words,
-      the same picture twice. Every golden stayed as it was.
+      the same picture twice. Every golden stayed as it was. Then (2026-11-07): the
+      words in Excalifont, the handwriting face shipped with the program (SIL Open Font
+      License, its Latin subset in `omaspec-render/fonts`), still measured as the UI
+      font and each run locked to that width, so a box keeps its size and a click, a
+      play's lights and Ctrl+click find what they found; a monospaced run stays
+      monospace, and bold or italic is not asked of a face with one cut. An exported
+      SVG, in a ZIP too, embeds the face as a `@font-face` before the sanitizer's last
+      pass, which keeps a `data:font/woff2` or `data:font/ttf` and drops any other
+      data URL; the picture on screen does not carry it. A fill with no border (a
+      card, a tile, a pie's slice) goes through the hand too, and a card gains a light
+      rim; a label's ground, a highlight and a fill that only sits inside another
+      shape stay straight (`Canvas::plain`), so they still cover what is under them.
+      A package or a folder is one outline, tab and body, so a sketch no longer draws
+      the edge they share twice; three goldens (class, component, deploy) changed by
+      that alone.
 
 ### Since 0.8.0
 

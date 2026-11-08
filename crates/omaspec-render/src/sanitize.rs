@@ -353,7 +353,8 @@ fn css_code_point(code: u32) -> char {
 
 /// Drops `@import` and replaces an external `url()`, `src()` or
 /// `image-set()` with `none`. A `url()` or `src()` whose target starts
-/// with `#` stays. `javascript:` and `expression(` clear the whole value.
+/// with `#`, or is an embedded `data:font/woff2` or `data:font/ttf`,
+/// stays. `javascript:` and `expression(` clear the whole value.
 fn neutralize_css(css: &str) -> String {
     if contains_ci(css, "javascript:") || contains_ci(css, "expression(") {
         return String::new();
@@ -382,7 +383,13 @@ fn neutralize_css(css: &str) -> String {
                 out.push_str("none");
             } else {
                 let target = css[open + 1..close].trim().trim_matches(['"', '\'']);
-                if target.starts_with('#') {
+                let embedded = target.to_ascii_lowercase();
+                // A handwriting face embedded in an export. A data URL of
+                // any other kind can carry a script, and goes.
+                if target.starts_with('#')
+                    || embedded.starts_with("data:font/woff2")
+                    || embedded.starts_with("data:font/ttf")
+                {
                     out.push_str(&css[i..close + 1]);
                 } else {
                     out.push_str("none");
@@ -606,6 +613,16 @@ mod tests {
         assert!(!out.contains("://x/"));
         assert!(!out.contains("file:"));
         assert!(out.contains("url(#ok)"));
+    }
+
+    #[test]
+    fn a_handwriting_font_stays_and_other_data_urls_go() {
+        let out = clean(
+            r#"<style>@font-face{src:url("data:font/woff2;base64,QQ==")} text{fill:url("data:text/html,hi")}</style>"#,
+        );
+        assert!(out.contains("data:font/woff2;base64,QQ=="), "{out}");
+        assert!(!out.contains("data:text/html"), "{out}");
+        assert!(out.contains("none"), "{out}");
     }
 
     #[test]

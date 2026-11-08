@@ -236,12 +236,11 @@ fn paint_legend(
         )
         .map_err(|reason| Declined::at(slice.line, reason))?;
         let row = block.height.max(SWATCH);
-        canvas.rect(
+        canvas.card(
             Layer::Bars,
             (x, y + (row - SWATCH) / 2.0, SWATCH, SWATCH),
             2.0,
-            Some(fill_of(slice, index)),
-            None,
+            fill_of(slice, index),
         );
         canvas.text(
             Layer::Front,

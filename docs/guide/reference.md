@@ -177,10 +177,14 @@ replaces it. The Omarchy pack writes the active theme's colors in.
 
 The sketch pack draws the diagram by hand: `skinparam handwritten true` in PlantUML,
 `look: handDrawn` in Mermaid (in `%%{init}%%`, or in the front matter's `config`), the
-way both languages already ask for it. Every line and border is drawn twice, a little
-bowed, as a pen draws it; the words stay as they are, so the diagram reads as well as
-before. The hand is steady: a box takes its strokes from its name, so the same file
-draws the same picture every time, and a box keeps its strokes when the layout moves it.
+way both languages already ask for it. Every line, border and fill is drawn by hand, a
+little bowed, and a card that had no border gains a light rim. A label's ground and a
+highlight stay straight, so they still cover what is under them. A fill that only sits
+inside another shape stays straight as well. The words are set in a handwriting
+face, still measured as the plain font, so a box stays the size it was. The hand
+is steady: a box takes its strokes
+from its name, so the same file draws the same picture every time, and a box keeps its
+strokes when the layout moves it.
 Why: [ADR 0023](../adr/0023-sketch-look.md).
 
 Diagrams are drawn in the active theme's colors, without changing the file, and follow

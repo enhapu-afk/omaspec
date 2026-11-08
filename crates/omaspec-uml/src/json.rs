@@ -869,18 +869,20 @@ fn paint_card(canvas: &mut Canvas, look: &Look, card: &Card, x: f32, y: f32) {
     for (index, row) in card.rows.iter().enumerate() {
         if row.highlight {
             let inset = 2.0;
-            canvas.rect(
-                Layer::Background,
-                (
-                    x + inset,
-                    row_y + inset,
-                    card.width - 2.0 * inset,
-                    row.height - 2.0 * inset,
-                ),
-                2.0,
-                look.lit_fill,
-                None,
-            );
+            canvas.plain(|canvas| {
+                canvas.rect(
+                    Layer::Background,
+                    (
+                        x + inset,
+                        row_y + inset,
+                        card.width - 2.0 * inset,
+                        row.height - 2.0 * inset,
+                    ),
+                    2.0,
+                    look.lit_fill,
+                    None,
+                );
+            });
         }
         let (key_y, value_y) = row_places(row_y, row);
         if let Some(key) = &row.key {

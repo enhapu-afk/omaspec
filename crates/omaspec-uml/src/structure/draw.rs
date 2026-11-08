@@ -1134,13 +1134,16 @@ fn paint_cylinder(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) 
     let bot = rect.y + rect.h - ry;
     canvas.ellipse(Layer::Frames, (cx, bot), (rx, ry), fill, Some(stroke));
     if bot > top {
-        canvas.rect(
-            Layer::Frames,
-            (rect.x, top, rect.w, bot - top),
-            0.0,
-            fill,
-            None,
-        );
+        // The wall between the caps keeps its form, so the lower rim stays visible.
+        canvas.plain(|canvas| {
+            canvas.rect(
+                Layer::Frames,
+                (rect.x, top, rect.w, bot - top),
+                0.0,
+                fill,
+                None,
+            );
+        });
         canvas.line(Layer::Frames, (rect.x, top), (rect.x, bot), stroke);
         canvas.line(
             Layer::Frames,
@@ -1152,6 +1155,8 @@ fn paint_cylinder(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) 
     canvas.ellipse(Layer::Frames, (cx, top), (rx, ry), fill, Some(stroke));
 }
 
+/// A package or a folder as one outline. Two rectangles left the tab a
+/// pixel over the body, and a sketch drew the shared edge twice.
 fn paint_tab(
     canvas: &mut Canvas,
     rect: Rect,
@@ -1166,22 +1171,74 @@ fn paint_tab(
     } else {
         (rect.h * 0.4).max(1.0)
     };
-    let body_y = rect.y + banner;
-    let body_h = (rect.h - banner).max(1.0);
-    canvas.rect(
+    let tab_w = tab_width(rect.w, label_w);
+    if tab_w >= rect.w - 0.5 {
+        canvas.rect(
+            Layer::Frames,
+            (rect.x, rect.y, rect.w, rect.h),
+            round,
+            fill,
+            Some(stroke),
+        );
+        return;
+    }
+    let body = (rect.h - banner).max(1.0);
+    let r = round
+        .min(banner / 2.0)
+        .min(body / 2.0)
+        .min(tab_w / 2.0)
+        .min((rect.w - tab_w) / 2.0)
+        .max(0.0);
+    if r < 0.5 {
+        let top = rect.y + banner;
+        canvas.polygon(
+            Layer::Frames,
+            &[
+                (rect.x + tab_w, top),
+                (rect.x + tab_w, rect.y),
+                (rect.x, rect.y),
+                (rect.x, rect.y + rect.h),
+                (rect.x + rect.w, rect.y + rect.h),
+                (rect.x + rect.w, top),
+            ],
+            fill,
+            Some(stroke),
+        );
+        return;
+    }
+    canvas.path(
         Layer::Frames,
-        (rect.x, body_y, rect.w, body_h),
-        round,
+        &tab_path(rect, tab_w, banner, r),
+        (rect.x, rect.y, rect.x + rect.w, rect.y + rect.h),
         fill,
         Some(stroke),
     );
-    canvas.rect(
-        Layer::Frames,
-        (rect.x, rect.y, tab_width(rect.w, label_w), banner + 1.0),
-        0.0,
-        fill,
-        Some(stroke),
-    );
+}
+
+/// The tab and the body in one rounded outline. The step where the tab
+/// meets the body stays sharp; only the outer corners turn.
+fn tab_path(rect: Rect, tab_w: f32, banner: f32, r: f32) -> String {
+    let (x, y, w, h) = (rect.x, rect.y, rect.w, rect.h);
+    let top = y + banner;
+    let right = x + w;
+    let bottom = y + h;
+    let tab = x + tab_w;
+    let mut d = format!("M{},{}", n(x + r), n(y));
+    let corner = |d: &mut String, ex: f32, ey: f32| {
+        let _ = write!(d, "A{},{} 0 0 1 {},{}", n(r), n(r), n(ex), n(ey));
+    };
+    let _ = write!(d, "L{},{}", n(tab - r), n(y));
+    corner(&mut d, tab, y + r);
+    let _ = write!(d, "L{},{}L{},{}", n(tab), n(top), n(right - r), n(top));
+    corner(&mut d, right, top + r);
+    let _ = write!(d, "L{},{}", n(right), n(bottom - r));
+    corner(&mut d, right - r, bottom);
+    let _ = write!(d, "L{},{}", n(x + r), n(bottom));
+    corner(&mut d, x, bottom - r);
+    let _ = write!(d, "L{},{}", n(x), n(y + r));
+    corner(&mut d, x + r, y);
+    d.push('Z');
+    d
 }
 
 /// The name band of a package or folder. Members, when a class has them,
@@ -1889,13 +1946,45 @@ mod tests {
         // The line, straight or turning in curves.
         assert!(svg.contains("<polyline") || svg.contains(" C"), "{svg}");
         let (x, w) = tspan(&svg, "shop");
-        let tab = rects(&svg)
+        let outline = polygons(&svg)
             .into_iter()
-            .find(|rect| rect.x <= x + 0.6 && rect.x + rect.w + 0.6 >= x + w && rect.h < 40.0)
-            .expect("a tab around the name");
+            .find(|pts| tab_holds(pts, x, w))
+            .expect("one outline around the name");
+        let top = outline.iter().map(|p| p.1).fold(f32::INFINITY, f32::min);
+        let tab_right = outline
+            .iter()
+            .filter(|p| (p.1 - top).abs() < 0.6)
+            .map(|p| p.0)
+            .fold(f32::NEG_INFINITY, f32::max);
+        let tab_left = outline
+            .iter()
+            .filter(|p| (p.1 - top).abs() < 0.6)
+            .map(|p| p.0)
+            .fold(f32::INFINITY, f32::min);
+        let full = outline
+            .iter()
+            .map(|p| p.0)
+            .fold((f32::INFINITY, f32::NEG_INFINITY), |(lo, hi), x| {
+                (lo.min(x), hi.max(x))
+            });
         assert!(
-            tab.w + 0.6 < rects(&svg).iter().map(|rect| rect.w).fold(0.0, f32::max),
+            tab_right - tab_left + 0.6 < full.1 - full.0,
             "the tab is the name, not the whole package"
+        );
+        // The tab's right side ends where the body starts, on one y.
+        let step = outline
+            .iter()
+            .filter(|p| (p.0 - tab_right).abs() < 0.6 && p.1 > top + 0.6)
+            .map(|p| p.1)
+            .fold(f32::INFINITY, f32::min);
+        let body = outline
+            .iter()
+            .filter(|p| p.0 > tab_right + 0.6)
+            .map(|p| p.1)
+            .fold(f32::INFINITY, f32::min);
+        assert!(
+            (step - body).abs() < 0.6,
+            "the tab sits on the body: {step} vs {body}"
         );
     }
 
@@ -2041,16 +2130,34 @@ mod tests {
         (attr(tag, "x"), attr(tag, "textLength"))
     }
 
-    fn rects(svg: &str) -> Vec<Rect> {
-        svg.match_indices("<rect ")
+    /// The top edge of `pts` covers the run from `x` over `w`.
+    fn tab_holds(pts: &[(f32, f32)], x: f32, w: f32) -> bool {
+        let top = pts.iter().map(|p| p.1).fold(f32::INFINITY, f32::min);
+        let mut left = f32::INFINITY;
+        let mut right = f32::NEG_INFINITY;
+        for p in pts.iter().filter(|p| (p.1 - top).abs() < 0.6) {
+            left = left.min(p.0);
+            right = right.max(p.0);
+        }
+        left <= x + 0.6 && right + 0.6 >= x + w
+    }
+
+    fn polygons(svg: &str) -> Vec<Vec<(f32, f32)>> {
+        svg.match_indices("<polygon ")
             .map(|(at, _)| {
                 let tag = &svg[at..svg[at..].find('>').map(|end| at + end).unwrap()];
-                Rect {
-                    x: attr(tag, "x"),
-                    y: attr(tag, "y"),
-                    w: attr(tag, "width"),
-                    h: attr(tag, "height"),
-                }
+                let key = "points=\"";
+                let start = tag.find(key).expect("points") + key.len();
+                tag[start..]
+                    .split('"')
+                    .next()
+                    .unwrap()
+                    .split_whitespace()
+                    .map(|pair| {
+                        let (x, y) = pair.split_once(',').unwrap();
+                        (x.parse().unwrap(), y.parse().unwrap())
+                    })
+                    .collect()
             })
             .collect()
     }

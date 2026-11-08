@@ -1,7 +1,8 @@
 //! The sketch look (docs/adr/0023): every diagram of the repository that
 //! Omaspec draws itself draws by hand too when it asks, PlantUML's with
 //! `skinparam handwritten true` and Mermaid's with `look: handDrawn`, in
-//! the same engine, always the same picture, and its text as before.
+//! the same engine, always the same picture, and its words as before,
+//! set in the handwriting face.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -40,6 +41,12 @@ fn hand_drawn(code: &str) -> String {
         Some(rest) => format!("---\nconfig:\n  look: handDrawn\n{rest}"),
         None => format!("---\nconfig:\n  look: handDrawn\n---\n{code}"),
     }
+}
+
+/// A ruled shape inside the picture. The page rect behind it does not count.
+fn geometric(svg: &str) -> bool {
+    let body = svg.split_once("<g").map(|(_, rest)| rest).unwrap_or(svg);
+    body.contains("<rect") || body.contains("<ellipse") || body.contains("<polygon")
 }
 
 /// The words of a picture: what lies between `>` and `<`.
@@ -165,6 +172,19 @@ fn every_mermaid_kind_draws_by_hand_from_the_init_too() {
                 by_hand.svg.contains(r#"stroke-linecap="round""#),
                 "not drawn by hand: {sketched}"
             );
+            // Cards, tiles and a pie used to stay geometric: a fill with no
+            // border never reached the hand.
+            if code.starts_with("timeline")
+                || code.starts_with("journey")
+                || code.starts_with("architecture-beta")
+                || code.starts_with("pie")
+            {
+                assert!(
+                    !geometric(&by_hand.svg),
+                    "still a ruled shape: {sketched}\n{}",
+                    by_hand.svg
+                );
+            }
         }
         // The plain look, asked for, draws as before.
         let classic = format!("---\nconfig:\n  look: classic\n---\n{code}");
@@ -172,6 +192,55 @@ fn every_mermaid_kind_draws_by_hand_from_the_init_too() {
         assert_eq!(classic.engine, Engine::NativeMermaid, "{code}");
         assert!(!classic.svg.contains(r#"stroke-linecap="round""#), "{code}");
     }
+}
+
+/// A pie of one slice and a JSON card are fills with no border of their own.
+#[test]
+fn a_fill_with_no_border_is_drawn_by_hand() {
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    let samples = [
+        (
+            Language::Mermaid,
+            "%%{init: {\"look\": \"handDrawn\"}}%%\npie title Pets\n  \"Dogs\" : 1\n",
+        ),
+        (
+            Language::PlantUml,
+            "@startjson\nskinparam handwritten true\n{\"a\": 1}\n@endjson\n",
+        ),
+    ];
+    for (language, code) in samples {
+        let svg = renderer.render(code, language).unwrap().svg;
+        assert!(!geometric(&svg), "{code}\n{svg}");
+    }
+}
+
+/// The words are set in the bundled handwriting face, and usvg uses it.
+#[test]
+fn a_sketch_writes_in_the_handwriting_face() {
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    let svg = renderer
+        .render(
+            "@startuml\nskinparam handwritten true\nclass Book\n@enduml\n",
+            Language::PlantUml,
+        )
+        .unwrap()
+        .svg;
+    assert!(svg.contains("font-family=\"Excalifont\""), "{svg}");
+    let face = omaspec_render::export::parse(&svg).unwrap();
+    let plain = omaspec_render::export::parse(&svg.replace("Excalifont", "sans-serif")).unwrap();
+    let drawn = omaspec_render::export::rasterize(&face, 2.0).unwrap();
+    let other = omaspec_render::export::rasterize(&plain, 2.0).unwrap();
+    assert_eq!(
+        (drawn.width(), drawn.height()),
+        (other.width(), other.height())
+    );
+    assert_ne!(drawn.data(), other.data());
 }
 
 /// The strokes of a picture drawn by hand, each less where it starts, so

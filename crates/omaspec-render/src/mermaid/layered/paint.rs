@@ -217,7 +217,10 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, ground: Paint) {
                 edge.label.width + 2.0 * LABEL_PAD,
                 edge.label.height + 2.0 * LABEL_PAD,
             );
-            canvas.rect(Layer::Front, bounds, 2.0, ground, None);
+            // The ground keeps its form, so it still covers the line under the words.
+            canvas.plain(|canvas| {
+                canvas.rect(Layer::Front, bounds, 2.0, ground, None);
+            });
         }
         canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
     }

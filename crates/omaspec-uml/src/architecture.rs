@@ -1507,13 +1507,7 @@ fn paint(canvas: &mut Canvas, diagram: &Diagram, laid: &Laid) {
 }
 
 fn paint_tile(canvas: &mut Canvas, tile: Rect, fill: Color, icon: Icon, glyph: Color) {
-    canvas.rect(
-        Layer::Bars,
-        (tile.x, tile.y, tile.w, tile.h),
-        8.0,
-        Some(fill),
-        None,
-    );
+    canvas.card(Layer::Bars, (tile.x, tile.y, tile.w, tile.h), 8.0, fill);
     match icon {
         Icon::Cloud => paint_cloud(canvas, tile, glyph),
         Icon::Database => paint_database(canvas, tile, glyph),

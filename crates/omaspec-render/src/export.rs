@@ -150,14 +150,17 @@ impl fmt::Display for ExportError {
 
 impl std::error::Error for ExportError {}
 
-/// `svg`, sanitized, with `options.links` laid over it and the whole
-/// sanitized once more with links that may go up to the project.
+/// `svg`, sanitized, with `options.links` laid over it and the handwriting
+/// face embedded when its words ask for it, and the whole sanitized once
+/// more with links that may go up to the project. Every exported SVG is
+/// this; only the embedded source is written after it.
 fn linked(svg: &str, options: &Options) -> Result<String, ExportError> {
-    if options.links.is_empty() {
-        return Ok(svg.to_owned());
+    let faced = crate::fonts::embed(svg);
+    if options.links.is_empty() && faced.len() == svg.len() {
+        return Ok(faced);
     }
     let links = crate::sanitize::Links { up: options.up };
-    crate::sanitize::sanitize_with(&crate::anchors::lay(svg, options.links), links)
+    crate::sanitize::sanitize_with(&crate::anchors::lay(&faced, options.links), links)
         .map_err(|e| ExportError::Svg(e.to_string()))
 }
 
@@ -190,6 +193,7 @@ pub fn export(svg: &str, format: Format, options: &Options) -> Result<Vec<u8>, E
 static SVG_OPTIONS: LazyLock<usvg::Options<'static>> = LazyLock::new(|| {
     let mut fonts = usvg::fontdb::Database::new();
     fonts.load_system_fonts();
+    crate::fonts::load(&mut fonts);
     generic_families(&mut fonts);
     usvg::Options {
         fontdb: Arc::new(fonts),
@@ -665,6 +669,50 @@ mod tests {
             let at = whole.pixel(50 + x, 20 + y).unwrap();
             assert_eq!(piece.pixel(x, y).unwrap(), at, "pixel {x},{y}");
         }
+    }
+
+    #[test]
+    fn the_handwriting_face_is_loaded_and_an_export_embeds_it() {
+        assert!(SVG_OPTIONS.fontdb.faces().any(|face| {
+            face.families
+                .iter()
+                .any(|(name, _)| name == crate::fonts::HAND_FONT)
+        }));
+        let svg = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><text font-family="{}" font-size="8">Hi</text></svg>"#,
+            crate::fonts::HAND_FONT
+        );
+        let out =
+            String::from_utf8(export(&svg, Format::Svg, &Options::default()).unwrap()).unwrap();
+        assert!(out.contains("@font-face"), "{out}");
+        assert!(out.contains("data:font/woff2;base64,"), "{out}");
+        // The face went through the sanitizer with the rest of the picture.
+        assert_eq!(crate::sanitize::sanitize(&out).unwrap(), out);
+        // Behind an XML declaration, the face still lands inside the root.
+        let declared = format!("<?xml version=\"1.0\"?>{svg}");
+        let out = String::from_utf8(export(&declared, Format::Svg, &Options::default()).unwrap())
+            .unwrap();
+        let root = out.find("<svg").unwrap();
+        assert!(out.find("<style>").unwrap() > root, "{out}");
+
+        // The SVG in a ZIP is the same export.
+        let options = Options {
+            source: Some(Source {
+                code: "@startuml\n@enduml\n",
+                language: Language::PlantUml,
+                file: Some("hand.puml"),
+            }),
+            ..Options::default()
+        };
+        let bytes = export(&svg, Format::Zip, &options).unwrap();
+        let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).unwrap();
+        let mut inside = String::new();
+        archive
+            .by_name("hand.svg")
+            .unwrap()
+            .read_to_string(&mut inside)
+            .unwrap();
+        assert!(inside.contains("data:font/woff2;base64,"), "{inside}");
     }
 
     #[test]

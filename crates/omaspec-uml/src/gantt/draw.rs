@@ -92,13 +92,15 @@ fn paint(
         let y = rows_top + index as f32 * row_h;
         match row {
             Row::Section { text, line } => {
-                canvas.rect(
-                    Layer::Background,
-                    (0.0, y, right.max(name_w), row_h),
-                    0.0,
-                    Some(skin.section_fill),
-                    None,
-                );
+                canvas.plain(|canvas| {
+                    canvas.rect(
+                        Layer::Background,
+                        (0.0, y, right.max(name_w), row_h),
+                        0.0,
+                        Some(skin.section_fill),
+                        None,
+                    );
+                });
                 let label = block(text, skin.section, family, *line)?;
                 canvas.text(
                     Layer::Front,
@@ -114,13 +116,15 @@ fn paint(
         for day in geom.t0..geom.t1 {
             let absolute = origin.saturating_add(day);
             if diagram.closed.binary_search(&absolute).is_ok() {
-                canvas.rect(
-                    Layer::Background,
-                    (x_of(&geom, day), rows_top, geom.day, bottom - rows_top),
-                    0.0,
-                    Some(skin.closed),
-                    None,
-                );
+                canvas.plain(|canvas| {
+                    canvas.rect(
+                        Layer::Background,
+                        (x_of(&geom, day), rows_top, geom.day, bottom - rows_top),
+                        0.0,
+                        Some(skin.closed),
+                        None,
+                    );
+                });
             }
         }
     }
@@ -206,13 +210,16 @@ fn paint_task(
     if let Some(done) = bar.done {
         let part = (width * done).clamp(0.0, width);
         if part > 2.0 {
-            canvas.rect(
-                Layer::Bars,
-                (x + 1.0, bar_y + 1.0, part - 2.0, BAR - 2.0),
-                skin.round,
-                Some(darker(fill)),
-                None,
-            );
+            // The done part sits a hair inside the bar, so it keeps its form.
+            canvas.plain(|canvas| {
+                canvas.rect(
+                    Layer::Bars,
+                    (x + 1.0, bar_y + 1.0, part - 2.0, BAR - 2.0),
+                    skin.round,
+                    Some(darker(fill)),
+                    None,
+                );
+            });
         }
     }
     Ok(())

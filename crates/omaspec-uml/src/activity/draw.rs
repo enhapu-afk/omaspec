@@ -110,13 +110,15 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
             if let Some(color) = &d.lanes[lane].color {
                 let fill = crate::color::parse(color)
                     .map_err(|e| Declined::at(d.lanes[lane].title.line, e))?;
-                canvas.rect(
-                    Layer::Background,
-                    (left, lanes_top, right - left, bottom - lanes_top),
-                    0.0,
-                    fill,
-                    None,
-                );
+                canvas.plain(|canvas| {
+                    canvas.rect(
+                        Layer::Background,
+                        (left, lanes_top, right - left, bottom - lanes_top),
+                        0.0,
+                        fill,
+                        None,
+                    );
+                });
             }
             canvas.text(
                 Layer::Front,
@@ -344,13 +346,7 @@ impl Painter<'_> {
                 }
                 let y = y + self.dy;
                 if *height > 0.0 {
-                    canvas.rect(
-                        Layer::Front,
-                        (lo, y, hi - lo, *height),
-                        2.0,
-                        Some(skin.bar),
-                        None,
-                    );
+                    canvas.card(Layer::Front, (lo, y, hi - lo, *height), 2.0, skin.bar);
                 } else {
                     canvas.line(Layer::Frames, (lo, y), (hi, y), skin.arrow);
                 }

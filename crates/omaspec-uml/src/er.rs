@@ -1393,13 +1393,15 @@ fn paint_chip(canvas: &mut Canvas, diagram: &Diagram, block: &Block, at: (f32, f
         w: block.width + 8.0,
         h: block.height + 4.0,
     };
-    canvas.rect(
-        Layer::Frames,
-        (chip.x, chip.y, chip.w, chip.h),
-        3.0,
-        diagram.look.background.or(Some(Color::WHITE)),
-        None,
-    );
+    canvas.plain(|canvas| {
+        canvas.rect(
+            Layer::Frames,
+            (chip.x, chip.y, chip.w, chip.h),
+            3.0,
+            diagram.look.background.or(Some(Color::WHITE)),
+            None,
+        );
+    });
     canvas.text(
         Layer::Front,
         block,

@@ -246,12 +246,11 @@ fn paint(
         let width = count as f32 * BOX_W + (count - 1) as f32 * GAP;
         if place.bands {
             let fill = fill_of(diagram, section_index);
-            canvas.rect(
+            canvas.card(
                 Layer::Bars,
                 (x, place.section_y, width, SECTION_H),
                 5.0,
-                Some(fill),
-                None,
+                fill,
             );
             if !section.label.is_empty() {
                 let block = text::block(
@@ -300,13 +299,7 @@ fn paint_period(
             dash,
         );
     }
-    canvas.rect(
-        Layer::Bars,
-        (x, place.period_y, BOX_W, PERIOD_H),
-        5.0,
-        Some(fill),
-        None,
-    );
+    canvas.card(Layer::Bars, (x, place.period_y, BOX_W, PERIOD_H), 5.0, fill);
     let label = text::block(
         &period.label,
         Font::new(diagram.look.label_size, on_fill(fill)),
@@ -322,7 +315,7 @@ fn paint_period(
     let card = event_fill(fill);
     let mut y = place.event_y;
     for event in &period.events {
-        canvas.rect(Layer::Bars, (x, y, BOX_W, EVENT_H), 5.0, Some(card), None);
+        canvas.card(Layer::Bars, (x, y, BOX_W, EVENT_H), 5.0, card);
         let block = text::block(
             &event.label,
             Font::new(diagram.look.label_size, on_fill(card)),
@@ -382,13 +375,7 @@ fn paint_down(
         if bands {
             let fill = fill_of(diagram, section_index);
             let width = row_width(section);
-            canvas.rect(
-                Layer::Bars,
-                (DOWN_X, y, width, SECTION_H),
-                5.0,
-                Some(fill),
-                None,
-            );
+            canvas.card(Layer::Bars, (DOWN_X, y, width, SECTION_H), 5.0, fill);
             if !section.label.is_empty() {
                 let block = text::block(
                     &section.label,
@@ -428,7 +415,7 @@ fn paint_period_down(
     y: f32,
 ) -> Result<(), Declined> {
     let x = DOWN_X;
-    canvas.rect(Layer::Bars, (x, y, BOX_W, PERIOD_H), 5.0, Some(fill), None);
+    canvas.card(Layer::Bars, (x, y, BOX_W, PERIOD_H), 5.0, fill);
     let label = text::block(
         &period.label,
         Font::new(diagram.look.label_size, on_fill(fill)),
@@ -452,13 +439,7 @@ fn paint_period_down(
     let event_y = y + (PERIOD_H - EVENT_H) / 2.0;
     for (slot, event) in period.events.iter().enumerate() {
         let ex = x + BOX_W + BESIDE + slot as f32 * EVENT_STEP;
-        canvas.rect(
-            Layer::Bars,
-            (ex, event_y, BOX_W, EVENT_H),
-            5.0,
-            Some(card),
-            None,
-        );
+        canvas.card(Layer::Bars, (ex, event_y, BOX_W, EVENT_H), 5.0, card);
         let block = text::block(
             &event.label,
             Font::new(diagram.look.label_size, on_fill(card)),

@@ -2,7 +2,8 @@
 //! `look: handDrawn` (docs/adr/0023). Each shape is drawn by hand, as
 //! rough.js draws one: every run twice, each a little bowed, its ends a
 //! little off; curves and circles through points a little off their
-//! place; a fill a little off its outline. Text stays as it is.
+//! place; a fill a closed wobble along its outline. Words are set in
+//! Excalifont, still measured as the UI font.
 //!
 //! The hand is steady: what is off and by how much follows from a seed,
 //! the element's name where the drawer gives one and the shape's own size
@@ -21,9 +22,12 @@ pub(crate) use path::outlines;
 pub(crate) type Point = (f32, f32);
 
 /// How far an end or a handle may stray, in the picture's units, at most.
-const OFFSET: f32 = 1.6;
-/// How much a run bows: rough.js's `bowing`.
-const BOWING: f32 = 1.0;
+/// Rough.js's `maxRandomnessOffset` at roughness 1 reads about this far
+/// on a diagram.
+const OFFSET: f32 = 2.4;
+/// How much a run bows: rough.js's `bowing`, a little past 1 so a long
+/// side reads as drawn rather than as a ruled line.
+const BOWING: f32 = 1.35;
 
 /// A part of an outline: a straight run, or a curve as points along it.
 #[derive(Debug, Clone, PartialEq)]
@@ -126,12 +130,16 @@ impl Outline {
 /// A steady hand: the same seed draws the same strokes.
 pub(crate) struct Hand {
     state: u64,
+    /// Share of [`OFFSET`] this stroke uses. A fill stays nearer the
+    /// outline than the border that is drawn over it.
+    amount: f32,
 }
 
 impl Hand {
     pub(crate) fn new(seed: u64) -> Hand {
         Hand {
             state: seed ^ 0x9E37_79B9_7F4A_7C15,
+            amount: 1.0,
         }
     }
 
@@ -159,6 +167,7 @@ impl Hand {
     /// open outline keeps its ends where they are, so a line still meets
     /// its box and its arrowhead.
     pub(crate) fn stroke(&mut self, outlines: &[Outline], twice: bool) -> String {
+        self.amount = 1.0;
         let mut d = String::new();
         for outline in outlines {
             let curved = outline
@@ -233,15 +242,15 @@ impl Hand {
         } else {
             -0.001_666_8 * length + 1.233_334
         };
-        let mut offset = OFFSET;
+        let mut offset = OFFSET * self.amount;
         if offset * offset * 100.0 > length * length {
             offset = length / 10.0;
         }
         let half = offset / 2.0;
         let spread = if overlay { half } else { offset };
         let diverge = 0.2 + self.next() * 0.2;
-        let bow_x = self.off(BOWING * OFFSET * (b.1 - a.1) / 200.0, gain);
-        let bow_y = self.off(BOWING * OFFSET * (a.0 - b.0) / 200.0, gain);
+        let bow_x = self.off(BOWING * offset * (b.1 - a.1) / 200.0, gain);
+        let bow_y = self.off(BOWING * offset * (a.0 - b.0) / 200.0, gain);
         // A run that goes on from the one before starts where that ended.
         let start = if moves && !keep.0 {
             (a.0 + self.off(spread, gain), a.1 + self.off(spread, gain))
@@ -293,8 +302,8 @@ impl Hand {
             return points.first().copied().unwrap_or_default();
         }
         // A small curve, as a rounded corner, strays less, or it turns into
-        // a bevel.
-        let offset = (OFFSET * if overlay { 0.35 } else { 0.6 }).min(length / 24.0);
+        // a bevel. A long one strays enough to read as drawn.
+        let offset = (OFFSET * self.amount * if overlay { 0.55 } else { 0.9 }).min(length / 14.0);
         let last = points.len() - 1;
         // The first point stays when the curve goes on from the run
         // before, or starts an open line.
@@ -316,28 +325,68 @@ impl Hand {
         shaken[last]
     }
 
-    /// The fill of `outlines`: one closed path along each, a little off.
+    /// The fill of `outlines`: one closed wobble along each, nearer the
+    /// outline than the border, so it sits inside the stroke.
     pub(crate) fn fill(&mut self, outlines: &[Outline]) -> String {
+        self.amount = 0.62;
         let mut d = String::new();
         for outline in outlines {
-            let points = outline.points();
-            if points.len() < 3 {
+            if outline.points().len() < 3 {
                 continue;
             }
-            let spread = OFFSET * 0.4;
-            let shaken: Vec<Point> = points.iter().map(|&p| self.jitter(p, spread)).collect();
-            let _ = write!(d, "M{},{}", n(shaken[0].0), n(shaken[0].1));
-            for p in &shaken[1..] {
-                let _ = write!(d, "L{},{}", n(p.0), n(p.1));
-            }
+            self.closed(&mut d, outline);
             d.push('Z');
         }
         d
     }
 
+    /// One stroke around `outline`, back to where it began, as drawn.
+    fn closed(&mut self, d: &mut String, outline: &Outline) {
+        let last = outline.pieces.len().saturating_sub(1);
+        let mut at: Option<Point> = None;
+        let mut start = Point::default();
+        for (i, piece) in outline.pieces.iter().enumerate() {
+            let home = i == last;
+            let from = if let Some(at) = at {
+                at
+            } else {
+                let from = match piece {
+                    Piece::Line(a, _) => *a,
+                    Piece::Curve(points) => points.first().copied().unwrap_or_default(),
+                };
+                let spread = OFFSET * self.amount * 0.5;
+                let begun = self.jitter(from, spread);
+                let _ = write!(d, "M{},{}", n(begun.0), n(begun.1));
+                start = begun;
+                begun
+            };
+            at = Some(match piece {
+                Piece::Line(_, b) => self.run(
+                    d,
+                    from,
+                    if home { start } else { *b },
+                    false,
+                    false,
+                    (true, home),
+                ),
+                Piece::Curve(points) => {
+                    let mut points = points.clone();
+                    if let Some(first) = points.first_mut() {
+                        *first = from;
+                    }
+                    if home && let Some(tail) = points.last_mut() {
+                        *tail = start;
+                    }
+                    self.curve(d, &points, false, false, (true, home))
+                }
+            });
+        }
+    }
+
     /// The border of an ellipse drawn twice, each time round a little
     /// further than where it started, as a hand closes a circle.
     pub(crate) fn ellipse_stroke(&mut self, (cx, cy): Point, (rx, ry): Point) -> String {
+        self.amount = 1.0;
         let mut d = String::new();
         for overlay in [false, true] {
             let points =
@@ -350,7 +399,8 @@ impl Hand {
 
     /// The fill of an ellipse, a little off its border.
     pub(crate) fn ellipse_fill(&mut self, (cx, cy): Point, (rx, ry): Point) -> String {
-        let mut points = self.ellipse_points((cx, cy), (rx, ry), 0.4, false);
+        self.amount = 0.7;
+        let mut points = self.ellipse_points((cx, cy), (rx, ry), 0.7, false);
         let mut d = String::new();
         points.push(points[0]);
         let _ = write!(d, "M{},{}", n(points[0].0), n(points[0].1));
@@ -372,7 +422,7 @@ impl Hand {
         let steps = ((around / 14.0).ceil() as usize).clamp(8, 48);
         let step = std::f32::consts::TAU / steps as f32;
         let start = self.next() * std::f32::consts::TAU;
-        let spread = (OFFSET * 0.5 * amount).min(rx.min(ry) / 4.0);
+        let spread = (OFFSET * self.amount * 0.5 * amount).min(rx.min(ry) / 4.0);
         let grow = 1.0 + self.off(0.04 * amount, 1.0);
         let count = if overlap { steps + 2 } else { steps };
         (0..count)
@@ -486,7 +536,7 @@ mod tests {
         for pair in numbers(&d).chunks(2) {
             let (x, y) = (pair[0], pair[1]);
             assert!(
-                (7.0..=133.0).contains(&x) && (7.0..=53.0).contains(&y),
+                (2.0..=138.0).contains(&x) && (2.0..=58.0).contains(&y),
                 "{x},{y} in {d}"
             );
         }
@@ -500,6 +550,22 @@ mod tests {
         assert_eq!(d.matches('M').count(), 2, "{d}");
         assert!(d.starts_with("M0,0C"), "{d}");
         assert_eq!(d.matches(" 100,80").count(), 2, "{d}");
+    }
+
+    #[test]
+    fn a_fill_closes_along_its_outline() {
+        let outline = Outline::rect((10.0, 20.0, 90.0, 40.0), 0.0);
+        let d = Hand::new(4).fill(&[outline]);
+        assert!(d.ends_with('Z'), "{d}");
+        assert!(d.contains('C'), "{d}");
+        assert!(!d.contains('L'), "{d}");
+        for pair in numbers(&d).chunks(2) {
+            let (x, y) = (pair[0], pair[1]);
+            assert!(
+                (4.0..=106.0).contains(&x) && (14.0..=66.0).contains(&y),
+                "{x},{y} in {d}"
+            );
+        }
     }
 
     #[test]
