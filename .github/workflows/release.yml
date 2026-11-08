@@ -42,6 +42,11 @@ jobs:
           install -m755 target/release/omaspec "$dir/"
           cp LICENSE README.md packaging/omaspec.desktop packaging/omaspec.svg \
             packaging/omaspec-mime.xml "$dir/"
+          # The license of the handwriting face built into the binary. A tag
+          # from before it has none.
+          if [ -f crates/omaspec-render/fonts/OFL.txt ]; then
+            cp crates/omaspec-render/fonts/OFL.txt "$dir/"
+          fi
           cp -r packaging/omarchy "$dir/omarchy"
           tar czf "$dir.tar.gz" "$dir"
           sha256sum "$dir.tar.gz" > "$dir.tar.gz.sha256"

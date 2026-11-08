@@ -5,6 +5,7 @@ pkgbase = omaspec-bin
 	url = https://github.com/enhapu-afk/omaspec
 	arch = x86_64
 	license = MIT
+	license = OFL-1.1-no-RFN
 	depends = gcc-libs
 	depends = glibc
 	depends = fontconfig

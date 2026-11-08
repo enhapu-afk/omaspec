@@ -173,4 +173,8 @@ edges. Issues, and diagrams it draws wrong, are very welcome;
 MIT. The editor widget is [scrive](https://github.com/robbym/scrive) (MIT), built from a
 copy with small additions in [vendor](vendor). JPEG export uses
 [jpeg-encoder](https://github.com/vstroebel/jpeg-encoder), whose DCT is derived from the
-Independent JPEG Group's software.
+Independent JPEG Group's software. The words of a sketch are set in
+[Excalifont](https://plus.excalidraw.com/excalifont), copyright 2024 Excalidraw, built
+into the binary as its Latin subset under the SIL Open Font License 1.1
+([OFL.txt](crates/omaspec-render/fonts/OFL.txt)); Excalifont is a trademark of
+Excalidraw. A diagram drawn or exported with it is not bound by that license.
