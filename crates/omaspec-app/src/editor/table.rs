@@ -4,10 +4,6 @@
 //! list (`Ctrl+Shift+P`), the menus, the toolbar and the context menus
 //! all read this one table; no other list of commands exists.
 
-// The menus, the toolbar and the context menus (docs/adr/0025) read the
-// places from the next step on; until then only the list reads the table.
-#![allow(dead_code)]
-
 use iced::widget::pane_grid;
 use omaspec_core::skin::Pack;
 
@@ -403,6 +399,13 @@ pub const TABLE: &[Entry] = &[
         .menu(View)
         .gap(),
     cmd(
+        "Menu bar on/off, as a tap on Alt",
+        "",
+        Command::ToggleMenuBar,
+    )
+    .menu(View)
+    .short("Menu bar on/off"),
+    cmd(
         "Focus the area to the left",
         "Ctrl+Alt+Left",
         Command::Focus(pane_grid::Direction::Left),
@@ -461,6 +464,51 @@ pub fn entries(menu: Menu) -> impl Iterator<Item = &'static Entry> {
     TABLE.iter().filter(move |e| e.menu == Some(menu))
 }
 
+/// A row of a menu of the bar: an entry, or a child menu with its entries.
+pub enum Row {
+    Entry(&'static Entry),
+    Child {
+        name: &'static str,
+        entries: Vec<&'static Entry>,
+        /// A line above, as the first entry of the child has it.
+        gap: bool,
+    },
+}
+
+impl Row {
+    pub fn gap(&self) -> bool {
+        match self {
+            Row::Entry(e) => e.gap,
+            Row::Child { gap, .. } => *gap,
+        }
+    }
+}
+
+/// The rows of `menu`: its entries, those of one child menu as one row.
+pub fn rows(menu: Menu) -> Vec<Row> {
+    let mut rows: Vec<Row> = Vec::new();
+    for entry in entries(menu) {
+        match entry.child {
+            None => rows.push(Row::Entry(entry)),
+            Some(name) => match rows.last_mut() {
+                Some(Row::Child {
+                    name: open,
+                    entries,
+                    ..
+                }) if *open == name => {
+                    entries.push(entry);
+                }
+                _ => rows.push(Row::Child {
+                    name,
+                    entries: vec![entry],
+                    gap: entry.gap,
+                }),
+            },
+        }
+    }
+    rows
+}
+
 /// The entries of the context menu opened at `at`: first those placed in
 /// both menus, which act on what is under the pointer (the box, the
 /// line), then the rest in the table's order.
@@ -474,11 +522,15 @@ pub fn context(at: Spot) -> impl Iterator<Item = &'static Entry> {
 }
 
 /// The toolbar's entries, in the table's order.
+// The toolbar over the diagram pane (docs/adr/0025) is the next step.
+#[allow(dead_code)]
 pub fn tools() -> impl Iterator<Item = &'static Entry> {
     TABLE.iter().filter(|e| e.tool)
 }
 
 /// The entry of `command`, if the table has it.
+// The toolbar's tooltips (docs/adr/0025) are the next step.
+#[allow(dead_code)]
 pub fn entry(command: Command) -> Option<&'static Entry> {
     TABLE.iter().find(|e| e.command == command)
 }
@@ -499,6 +551,26 @@ mod tests {
                 e.command
             );
         }
+    }
+
+    #[test]
+    fn a_child_menu_is_one_row() {
+        let rows = rows(Menu::File);
+        let export = rows
+            .iter()
+            .find(|r| matches!(r, Row::Child { name: "Export", .. }))
+            .expect("File has Export");
+        let Row::Child {
+            entries: children,
+            gap,
+            ..
+        } = export
+        else {
+            unreachable!()
+        };
+        assert_eq!(children.len(), 6);
+        assert!(gap, "a line before Export");
+        assert!(rows.len() < entries(Menu::File).count());
     }
 
     #[test]

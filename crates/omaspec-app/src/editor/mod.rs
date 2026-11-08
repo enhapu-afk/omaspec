@@ -329,10 +329,18 @@ pub enum Message {
     /// The right mouse button at this point of the main window, over the
     /// editor: its context menu opens there (docs/adr/0025).
     ContextAt(table::Spot, iced::Point),
-    /// The mouse came onto this entry of the context menu.
+    /// A click on a root of the menu bar, or the mouse coming onto one
+    /// while a menu is open.
+    OpenMenu(table::Menu),
+    /// The mouse came onto this row of the open menu.
     MenuPoint(usize),
-    /// A click on an entry of the context menu.
+    /// The mouse came onto this entry of the child menu open.
+    MenuPointChild(usize),
+    /// A click on an entry of a menu.
     MenuRun(Command),
+    /// A key went down or up in this window; a tap on Alt alone shows and
+    /// hides the menu bar.
+    Key(window::Id, iced::keyboard::Event),
     GalleryInput(String),
     /// Show only this group of examples, or all.
     GalleryGroup(Option<crate::gallery::Group>),
@@ -458,8 +466,12 @@ pub enum Command {
     /// A step of the play.
     PlayAsk(paper::Ask),
     StopPlay,
-    /// Enter in the context menu: the entry the highlight is on.
+    /// Enter in a menu: the entry the highlight is on.
     Choose,
+    /// The menu bar shows or hides; the session keeps it.
+    ToggleMenuBar,
+    /// This menu of the bar opens (F10: File).
+    OpenMenu(table::Menu),
 }
 
 /// Images larger than this are not searched for a diagram.
@@ -475,8 +487,8 @@ pub enum Mode {
     Gallery,
     /// A play runs in the focused diagram: digits take its options.
     Playing,
-    /// A context menu is open: the arrows move in it, Enter chooses, any
-    /// other key closes it.
+    /// A menu is open: the arrows move in it, Enter chooses, any other
+    /// key closes it.
     Menu,
 }
 
@@ -487,7 +499,10 @@ fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
         return Some(match key.as_ref() {
             Key::Named(Named::ArrowUp) => Command::Up,
             Key::Named(Named::ArrowDown) => Command::Down,
+            Key::Named(Named::ArrowLeft) => Command::Left,
+            Key::Named(Named::ArrowRight) => Command::Right,
             Key::Named(Named::Enter) => Command::Choose,
+            Key::Named(Named::F10) => Command::Cancel,
             Key::Named(
                 Named::Shift
                 | Named::Control
@@ -539,6 +554,9 @@ fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
         }
         Key::Named(Named::Home) if playing => Some(Command::PlayAsk(paper::Ask::Restart)),
         Key::Named(Named::Escape) if mode != Mode::Editing => Some(Command::Cancel),
+        Key::Named(Named::F10) if plain && mode == Mode::Editing => {
+            Some(Command::OpenMenu(table::Menu::File))
+        }
         Key::Named(Named::ArrowUp) if plain && (mode == Mode::Picker || gallery) => {
             Some(Command::Up)
         }
@@ -776,8 +794,13 @@ struct App {
     /// The editor window's size, which sets how many tiles fit in a row.
     main_size: Size,
     detached_size: Size,
-    /// The context menu open in one of the windows (docs/adr/0025).
-    context: Option<menu::Context>,
+    /// The menu open in one of the windows (docs/adr/0025).
+    menu: Option<menu::Open>,
+    /// The menu bar is shown; the session keeps it.
+    bar_shown: bool,
+    /// Alt went down and no other key since: letting it go shows or hides
+    /// the bar.
+    alt_armed: bool,
     /// An example opened to be played: its tab plays once it is drawn.
     play_when_drawn: Option<u64>,
     /// The diagram takes the active Omarchy colors at render time. The
@@ -880,7 +903,9 @@ impl App {
             thumbs: gallery::Thumbs::default(),
             main_size: window::Settings::default().size,
             detached_size: window::Settings::default().size,
-            context: None,
+            menu: None,
+            bar_shown: session.menu_bar,
+            alt_armed: false,
             play_when_drawn: None,
             follow_theme: session.follow_theme,
             pending: HashMap::new(),
@@ -989,7 +1014,7 @@ impl App {
     fn mode(&self, window: window::Id) -> Mode {
         if self.gallery.is_some() && window == self.main {
             Mode::Gallery
-        } else if self.context.as_ref().is_some_and(|c| c.on == window) {
+        } else if self.menu.as_ref().is_some_and(|m| m.on == window) {
             Mode::Menu
         } else if self.picker.is_some() && self.picker_on == Some(window) {
             Mode::Picker
@@ -1001,6 +1026,25 @@ impl App {
             Mode::Playing
         } else {
             Mode::Editing
+        }
+    }
+
+    /// A tap on Alt alone, down and up with no other key between, shows
+    /// or hides the menu bar; Alt with a key (Alt+F fits) does not.
+    fn alt_tap(&mut self, event: &iced::keyboard::Event) {
+        use iced::keyboard::Event;
+        match event {
+            Event::KeyPressed {
+                key: Key::Named(Named::Alt),
+                modifiers,
+                ..
+            } => self.alt_armed = (*modifiers - Modifiers::ALT).is_empty(),
+            Event::KeyPressed { .. } => self.alt_armed = false,
+            Event::KeyReleased {
+                key: Key::Named(Named::Alt),
+                ..
+            } if std::mem::take(&mut self.alt_armed) => self.toggle_menu_bar(),
+            _ => {}
         }
     }
 
@@ -1052,6 +1096,10 @@ impl App {
                 .subscription()
                 .with(doc.key)
                 .map(|(key, event)| Message::Editor(key, event)),
+            iced::event::listen_with(|event, _, window| match event {
+                iced::Event::Keyboard(event) => Some(Message::Key(window, event)),
+                _ => None,
+            }),
             window::events().filter_map(|(id, event)| match event {
                 window::Event::Rescaled(factor) => Some(Message::ScaleFactor(id, factor)),
                 window::Event::Resized(size) => Some(Message::WindowSized(id, size)),
@@ -1099,19 +1147,30 @@ impl App {
                 self.context_in_diagram(key, at, in_window)
             }
             Message::ContextAt(spot, at) => {
-                let main = self.main;
-                self.open_context(main, spot, at);
+                self.context_at(spot, at);
+                Task::none()
+            }
+            Message::OpenMenu(menu) => {
+                self.open_bar_menu(menu);
                 Task::none()
             }
             Message::MenuPoint(i) => {
-                if let Some(context) = &mut self.context {
-                    context.pointed = Some(i);
-                }
+                self.menu_point(i);
+                Task::none()
+            }
+            Message::MenuPointChild(i) => {
+                self.menu_point_child(i);
                 Task::none()
             }
             Message::MenuRun(command) => {
-                self.close_context();
+                self.close_menu();
                 self.run(command)
+            }
+            Message::Key(window, event) => {
+                if window == self.main {
+                    self.alt_tap(&event);
+                }
+                Task::none()
             }
             Message::Paper(key, message) => {
                 if let paper::Message::Viewport(size) = message {
@@ -1942,11 +2001,19 @@ impl App {
                 None => self.detach(),
             },
             Command::Quit => self.quit(),
-            Command::Cancel if self.context.is_some() => {
-                self.close_context();
+            Command::Cancel if self.menu.is_some() => {
+                self.close_menu();
                 Task::none()
             }
-            Command::Choose => self.context_choose(),
+            Command::Choose => self.menu_choose(),
+            Command::ToggleMenuBar => {
+                self.toggle_menu_bar();
+                Task::none()
+            }
+            Command::OpenMenu(menu) => {
+                self.open_bar_menu(menu);
+                Task::none()
+            }
             Command::Cancel => {
                 self.prompt = None;
                 self.renaming = None;
@@ -1954,8 +2021,12 @@ impl App {
                 self.close_picker();
                 self.focus_editor()
             }
-            Command::Up | Command::Down if self.context.is_some() => {
-                self.context_move(if command == Command::Up { -1 } else { 1 });
+            Command::Up | Command::Down if self.menu.is_some() => {
+                self.menu_move(if command == Command::Up { -1 } else { 1 });
+                Task::none()
+            }
+            Command::Left | Command::Right if self.menu.is_some() => {
+                self.menu_side(command == Command::Right);
                 Task::none()
             }
             Command::Up | Command::Down if self.gallery.is_some() => {

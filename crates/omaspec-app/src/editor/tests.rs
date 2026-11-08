@@ -4757,65 +4757,41 @@ fn the_right_button_opens_a_menu_at_the_box_and_the_keys_run_it() {
     let in_window = iced::Point::new(700.0, 300.0);
     let _ = app.update(Message::Paper(key, paper::Message::Context(at, in_window)));
     assert_eq!(app.mode(app.main), Mode::Menu);
-    let context = app.context.clone().expect("a menu");
+    let open = app.menu.clone().expect("a menu");
+    let context = menu::Kind::Context {
+        spot: table::Spot::Diagram,
+        at: in_window,
+    };
     assert_eq!(
-        (context.spot, context.at, context.on),
-        (table::Spot::Diagram, in_window, app.main)
+        (open.kind, open.on, open.pointed),
+        (context, app.main, None)
     );
-    assert_eq!(context.pointed, None);
-    // The caret is on `state Brewing {`.
-    eprintln!(
-        "DEBUG cursor {:?} label {:?} wire {:?} tile {:?}",
-        app.doc().editor.cursor(),
-        app.doc().paper.label_at(at).map(|(l, _)| l),
-        app.doc().paper.wire_at(at).map(|w| w.line),
-        app.doc().paper.tile_line_at(at)
-    );
-    let (_, src) = app.doc().paper.label_at(at).unwrap();
-    eprintln!(
-        "DEBUG column_of {:?} shown_source_eq {}",
-        omaspec_core::locate::column_of(&src, "Brewing", 0),
-        *src == app.doc().shown_source()
-    );
-    let _ = app.jump_to_at(3, 6);
-    eprintln!("DEBUG after jump {:?}", app.doc().editor.cursor());
-    let _ = app.update(Message::Paper(key, paper::Message::Context(at, in_window)));
-    eprintln!("DEBUG after context {:?}", app.doc().editor.cursor());
-    assert_eq!(app.doc().editor.cursor().row, 3);
+    // The caret is on the name in `state Brewing {`.
+    let caret = app.doc().editor.cursor();
+    assert_eq!((caret.row, caret.col), (3, 6));
 
     // The keys of the menu, and nothing else while it is open.
     let plain = Modifiers::empty();
-    assert_eq!(
-        shortcut(&Key::Named(Named::ArrowDown), plain, Mode::Menu),
-        Some(Command::Down)
-    );
-    assert_eq!(
-        shortcut(&Key::Named(Named::ArrowUp), plain, Mode::Menu),
-        Some(Command::Up)
-    );
-    assert_eq!(
-        shortcut(&Key::Named(Named::Enter), plain, Mode::Menu),
-        Some(Command::Choose)
-    );
-    assert_eq!(
-        shortcut(&Key::Named(Named::Escape), plain, Mode::Menu),
-        Some(Command::Cancel)
-    );
+    let key_of = |named: Named| shortcut(&Key::Named(named), plain, Mode::Menu);
+    assert_eq!(key_of(Named::ArrowDown), Some(Command::Down));
+    assert_eq!(key_of(Named::ArrowUp), Some(Command::Up));
+    assert_eq!(key_of(Named::ArrowLeft), Some(Command::Left));
+    assert_eq!(key_of(Named::ArrowRight), Some(Command::Right));
+    assert_eq!(key_of(Named::Enter), Some(Command::Choose));
+    assert_eq!(key_of(Named::Escape), Some(Command::Cancel));
+    assert_eq!(key_of(Named::Shift), None);
     assert_eq!(
         shortcut(&Key::Character("s".into()), Modifiers::CTRL, Mode::Menu),
         Some(Command::Cancel)
     );
-    assert_eq!(shortcut(&Key::Named(Named::Shift), plain, Mode::Menu), None);
 
     // Down from nowhere is the first entry, Up from there the last.
-    let entries = context.entries();
+    let entries: Vec<_> = table::context(table::Spot::Diagram).collect();
+    assert_eq!(open.rows().len(), entries.len());
     press(&mut app, Command::Down);
-    assert_eq!(app.context.as_ref().unwrap().pointed, Some(0));
+    assert_eq!(app.menu.as_ref().unwrap().pointed, Some(0));
     press(&mut app, Command::Up);
-    assert_eq!(
-        app.context.as_ref().unwrap().pointed,
-        Some(entries.len() - 1)
-    );
+    assert_eq!(app.menu.as_ref().unwrap().pointed, Some(entries.len() - 1));
     // Enter on "fold this container" folds Brewing, where the caret landed.
     let fold = entries
         .iter()
@@ -4824,9 +4800,9 @@ fn the_right_button_opens_a_menu_at_the_box_and_the_keys_run_it() {
     for _ in 0..=fold {
         press(&mut app, Command::Down);
     }
-    assert_eq!(app.context.as_ref().unwrap().pointed, Some(fold));
+    assert_eq!(app.menu.as_ref().unwrap().pointed, Some(fold));
     press(&mut app, Command::Choose);
-    assert!(app.context.is_none());
+    assert!(app.menu.is_none());
     assert_eq!(app.mode(app.main), Mode::Editing);
     assert_eq!(app.notice.as_deref(), Some("Brewing folded"));
 
@@ -4834,12 +4810,12 @@ fn the_right_button_opens_a_menu_at_the_box_and_the_keys_run_it() {
     let _ = app.update(Message::Paper(key, paper::Message::Context(at, in_window)));
     assert_eq!(app.mode(app.main), Mode::Menu);
     press(&mut app, Command::Cancel);
-    assert!(app.context.is_none());
+    assert!(app.menu.is_none());
     let _ = app.update(Message::Paper(key, paper::Message::Context(at, in_window)));
     let _ = app.update(Message::MenuPoint(2));
-    assert_eq!(app.context.as_ref().unwrap().pointed, Some(2));
+    assert_eq!(app.menu.as_ref().unwrap().pointed, Some(2));
     let _ = app.update(Message::MenuRun(Command::Fit));
-    assert!(app.context.is_none());
+    assert!(app.menu.is_none());
 }
 
 /// The editor's menu holds the commands for the caret, and runs them.
@@ -4852,18 +4828,143 @@ fn the_editor_menu_holds_the_commands_for_the_caret() {
         iced::Point::new(120.0, 80.0),
     ));
     assert_eq!(app.mode(app.main), Mode::Menu);
-    let context = app.context.clone().unwrap();
-    assert_eq!(context.spot, table::Spot::Editor);
-    let commands: Vec<Command> = context.entries().iter().map(|e| e.command).collect();
+    let open = app.menu.clone().unwrap();
+    assert!(matches!(
+        open.kind,
+        menu::Kind::Context {
+            spot: table::Spot::Editor,
+            ..
+        }
+    ));
+    let commands: Vec<Command> = table::context(table::Spot::Editor)
+        .map(|e| e.command)
+        .collect();
     assert!(commands.contains(&Command::Format));
     assert!(commands.contains(&Command::FoldBox), "both menus fold");
     assert!(!commands.contains(&Command::CopyPng), "the diagram's only");
     let _ = app.update(Message::MenuRun(Command::Format));
-    assert!(app.context.is_none());
+    assert!(app.menu.is_none());
     assert_eq!(
         app.doc().text(),
         "@startuml\nalt ok\n  A -> B\nend\n@enduml\n"
     );
+}
+
+/// The menu bar: hidden until a tap on Alt or F10, kept by the session;
+/// F10 opens File, Left and Right walk the menus, Right opens a child
+/// menu whose entry Enter runs.
+#[test]
+fn the_menu_bar_shows_on_alt_and_its_menus_walk_with_the_arrows() {
+    use iced::keyboard::{Event, Location};
+    let mut app = open(&[]);
+    assert!(!app.bar_shown, "hidden by default on Omarchy");
+    let main = app.main;
+    let press_key = |key: Key, modifiers: Modifiers| Event::KeyPressed {
+        key: key.clone(),
+        modified_key: key.clone(),
+        physical_key: iced::keyboard::key::Physical::Unidentified(
+            iced::keyboard::key::NativeCode::Unidentified,
+        ),
+        location: Location::Standard,
+        modifiers,
+        text: None,
+        repeat: false,
+    };
+    let release_key = |key: Key, modifiers: Modifiers| Event::KeyReleased {
+        key: key.clone(),
+        modified_key: key.clone(),
+        physical_key: iced::keyboard::key::Physical::Unidentified(
+            iced::keyboard::key::NativeCode::Unidentified,
+        ),
+        location: Location::Standard,
+        modifiers,
+    };
+    let alt = Key::Named(Named::Alt);
+    // A tap on Alt alone shows the bar, and the session keeps that.
+    let _ = app.update(Message::Key(main, press_key(alt.clone(), Modifiers::ALT)));
+    let _ = app.update(Message::Key(
+        main,
+        release_key(alt.clone(), Modifiers::empty()),
+    ));
+    assert!(app.bar_shown);
+    assert!(app.session().menu_bar);
+    // Alt+F is a shortcut, not a tap.
+    let _ = app.update(Message::Key(main, press_key(alt.clone(), Modifiers::ALT)));
+    let _ = app.update(Message::Key(
+        main,
+        press_key(Key::Character("f".into()), Modifiers::ALT),
+    ));
+    let _ = app.update(Message::Key(
+        main,
+        release_key(alt.clone(), Modifiers::empty()),
+    ));
+    assert!(app.bar_shown);
+    // Another tap hides it; the View entry shows it again.
+    let _ = app.update(Message::Key(main, press_key(alt.clone(), Modifiers::ALT)));
+    let _ = app.update(Message::Key(main, release_key(alt, Modifiers::empty())));
+    assert!(!app.bar_shown);
+    press(&mut app, Command::ToggleMenuBar);
+    assert!(app.bar_shown);
+
+    // F10 opens File; Right and Left walk the bar.
+    assert_eq!(
+        shortcut(&Key::Named(Named::F10), Modifiers::empty(), Mode::Editing),
+        Some(Command::OpenMenu(table::Menu::File))
+    );
+    press(&mut app, Command::OpenMenu(table::Menu::File));
+    assert_eq!(app.mode(main), Mode::Menu);
+    assert_eq!(app.menu.as_ref().unwrap().bar(), Some(table::Menu::File));
+    press(&mut app, Command::Right);
+    assert_eq!(app.menu.as_ref().unwrap().bar(), Some(table::Menu::Edit));
+    press(&mut app, Command::Left);
+    press(&mut app, Command::Left);
+    assert_eq!(app.menu.as_ref().unwrap().bar(), Some(table::Menu::Help));
+    // The same root again closes the menu.
+    let _ = app.update(Message::OpenMenu(table::Menu::Help));
+    assert!(app.menu.is_none());
+
+    // Edit › Language › PlantUML, by the keys: Down to the heading, Right
+    // into the child, Down to its second entry, Enter.
+    let _ = app.update(Message::OpenMenu(table::Menu::Edit));
+    let rows = table::rows(table::Menu::Edit);
+    let heading = rows
+        .iter()
+        .position(|r| {
+            matches!(
+                r,
+                table::Row::Child {
+                    name: "Language",
+                    ..
+                }
+            )
+        })
+        .unwrap();
+    for _ in 0..=heading {
+        press(&mut app, Command::Down);
+    }
+    assert_eq!(app.menu.as_ref().unwrap().pointed, Some(heading));
+    assert!(app.menu.as_ref().unwrap().child.is_none());
+    press(&mut app, Command::Right);
+    let child = app.menu.as_ref().unwrap().child.expect("the child opened");
+    assert_eq!((child.row, child.pointed), (heading, Some(0)));
+    press(&mut app, Command::Down);
+    assert_eq!(app.menu.as_ref().unwrap().child.unwrap().pointed, Some(1));
+    press(&mut app, Command::Choose);
+    assert!(app.menu.is_none());
+    assert_eq!(app.doc().forced, Some(Language::PlantUml));
+    // Left out of a child menu keeps the parent open.
+    let _ = app.update(Message::OpenMenu(table::Menu::Edit));
+    let _ = app.update(Message::MenuPoint(heading));
+    assert!(app.menu.as_ref().unwrap().child.is_some());
+    press(&mut app, Command::Left);
+    let open = app.menu.as_ref().unwrap();
+    assert!(open.child.is_none());
+    assert_eq!(open.bar(), Some(table::Menu::Edit));
+    // Hiding the bar closes its menu.
+    press(&mut app, Command::Cancel);
+    let _ = app.update(Message::OpenMenu(table::Menu::View));
+    app.toggle_menu_bar();
+    assert!(app.menu.is_none());
 }
 
 /// Writes a headless screenshot of the diagram's context menu when
@@ -4887,4 +4988,28 @@ fn snapshot_context_menu() {
     ));
     let _ = app.update(Message::MenuPoint(3));
     shoot(&mut app, &dir, "context-menu");
+}
+
+/// Writes a headless screenshot of the menu bar with Edit › Skin open
+/// when OMASPEC_SNAPSHOT_DIR is set.
+#[test]
+fn snapshot_menu() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let mut app = open(&[]);
+    let main = app.main;
+    let _ = app.update(Message::WindowSized(main, Size::new(1200.0, 640.0)));
+    select_all_and_paste(&mut app, BREWER);
+    show(&mut app, BREWER, Language::PlantUml);
+    let _ = app.update(Message::JumpTo(0));
+    let _ = app.update(Message::OpenMenu(table::Menu::Edit));
+    let skin = table::rows(table::Menu::Edit)
+        .iter()
+        .position(|r| matches!(r, table::Row::Child { name: "Skin", .. }))
+        .unwrap();
+    let _ = app.update(Message::MenuPoint(skin));
+    let _ = app.update(Message::MenuPointChild(4));
+    shoot(&mut app, &dir, "menu");
 }

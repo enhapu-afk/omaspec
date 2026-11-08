@@ -49,6 +49,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | click, Alt+Left | into a linked state or a tile of a map, and back out |
 | Shift+click | focus on a box and its neighbors; on paper, end it |
 | right click | a menu of the actions for what is under the pointer: in the diagram the box or the line there, in the text the caret; the arrows and Enter work in it |
+| Alt, F10 | a tap on Alt shows or hides the menu bar (File, Edit, View, Diagram, Project, Help, every entry with its keys); F10 opens File; Left and Right walk the menus |
 | Ctrl+F, Ctrl+H, Ctrl+/, Ctrl+D | in the text: find, replace, comment, next occurrence |
 | Super+F | fullscreen (Omarchy's chord for every window) |
 

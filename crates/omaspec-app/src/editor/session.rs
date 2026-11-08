@@ -39,6 +39,10 @@ pub struct Session {
     /// The file picker has been used once.
     #[serde(default)]
     pub picked: bool,
+    /// The menu bar is shown (docs/adr/0025); hidden by default on Omarchy,
+    /// a tap on Alt or the View menu shows it.
+    #[serde(default)]
+    pub menu_bar: bool,
     #[serde(default)]
     pub docs: Vec<SavedDoc>,
 }
@@ -51,6 +55,7 @@ impl Default for Session {
             sidebar: true,
             follow_theme: true,
             picked: false,
+            menu_bar: false,
             docs: Vec::new(),
         }
     }
@@ -214,6 +219,7 @@ impl App {
             sidebar: self.sidebar_open(),
             follow_theme: self.follow_theme,
             picked: self.picked,
+            menu_bar: self.bar_shown,
             docs: self
                 .docs
                 .iter()
@@ -284,6 +290,7 @@ mod tests {
             sidebar: false,
             follow_theme: true,
             picked: true,
+            menu_bar: true,
             docs: vec![SavedDoc {
                 path: None,
                 text: Some("@startuml\n@enduml\n".into()),

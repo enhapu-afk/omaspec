@@ -1752,5 +1752,11 @@ window grows the menus a desktop user looks for.
         any other key closes it, so does a click beside it; the menu moves
         up or left to stay inside the window, in the diagram's own window
         too. `editor/menu.rs`; the snapshot `context-menu`.
-  - [ ] The bar, with Alt and the session setting.
+  - [x] The bar (2026-11-08): File, Edit, View, Diagram, Project and Help
+        over the tabs, each entry with its keys, a child menu (File ›
+        Export, Edit › Skin, Edit › Language) beside its row. Hidden by
+        default on Omarchy; a tap on Alt alone or the View entry shows and
+        hides it, and the session keeps it. F10 opens File, Left and Right
+        walk the menus and go into a child and out of it; the mouse coming
+        onto another root switches. The snapshot `menu`.
   - [ ] The toolbar over the diagram pane.

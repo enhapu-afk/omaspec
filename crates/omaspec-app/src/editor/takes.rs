@@ -72,6 +72,8 @@ impl Command {
             // The window, the project and the lists, whatever the tab holds.
             Command::Palette
             | Command::Choose
+            | Command::ToggleMenuBar
+            | Command::OpenMenu(_)
             | Command::StartFrom(_)
             | Command::Open
             | Command::NewProject

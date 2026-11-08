@@ -123,7 +123,7 @@ impl App {
         let mode = id.map(|window| self.mode(window)).unwrap_or(Mode::Editing);
         let window = self.with_picker(id, column![self.diagram(), ui::bar(bar.into(), p)].into());
         let window = match id {
-            Some(id) => self.with_context(id, window),
+            Some(id) => self.with_menu(id, window),
             None => window,
         };
         keys::Guard::new(window, move |key, mods| {
@@ -185,8 +185,13 @@ impl App {
         let mode = self.mode(self.main);
         let on_diagram = mode == Mode::Editing && self.focus == Pane::Diagram;
         let window_id = self.main;
-        let window = self.with_picker(Some(window_id), column![self.tabs(), grid, bottom].into());
-        let window = self.with_context(window_id, window);
+        let mut body = column![];
+        if self.bar_shown {
+            body = body.push(self.bar_view());
+        }
+        let body = body.push(self.tabs()).push(grid).push(bottom);
+        let window = self.with_picker(Some(window_id), body.into());
+        let window = self.with_menu(window_id, window);
         // A stack either way, as for the picker.
         let window = match self.gallery {
             Some(_) => stack![window, self.gallery_view()],
