@@ -4919,8 +4919,19 @@ fn the_menu_bar_shows_on_alt_and_its_menus_walk_with_the_arrows() {
     press(&mut app, Command::Left);
     press(&mut app, Command::Left);
     assert_eq!(app.menu.as_ref().unwrap().bar(), Some(table::Menu::Help));
-    // The same root again closes the menu.
-    let _ = app.update(Message::OpenMenu(table::Menu::Help));
+    // The mouse onto another root switches; onto the same root, as the
+    // bar drawn over the menu meets the pointer, it changes nothing.
+    let _ = app.update(Message::HoverMenu(table::Menu::Help));
+    assert_eq!(app.menu.as_ref().unwrap().bar(), Some(table::Menu::Help));
+    let _ = app.update(Message::HoverMenu(table::Menu::View));
+    assert_eq!(app.menu.as_ref().unwrap().bar(), Some(table::Menu::View));
+    let _ = app.update(Message::HoverMenu(table::Menu::View));
+    assert_eq!(app.menu.as_ref().unwrap().bar(), Some(table::Menu::View));
+    // The same root clicked again closes the menu; a hover with none
+    // open opens nothing.
+    let _ = app.update(Message::OpenMenu(table::Menu::View));
+    assert!(app.menu.is_none());
+    let _ = app.update(Message::HoverMenu(table::Menu::Help));
     assert!(app.menu.is_none());
 
     // Edit › Language › PlantUML, by the keys: Down to the heading, Right

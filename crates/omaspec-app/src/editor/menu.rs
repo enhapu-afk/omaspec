@@ -198,6 +198,22 @@ impl App {
         self.open_menu(main, Kind::Bar(menu));
     }
 
+    /// The mouse came onto the root of `menu` while another menu of the
+    /// bar is open: that one opens. The same root, or no menu open,
+    /// changes nothing; the bar drawn over an open menu meets the pointer
+    /// the moment it appears, and that must not close what was just
+    /// clicked open.
+    pub(super) fn switch_bar_menu(&mut self, menu: Menu) {
+        if self
+            .menu
+            .as_ref()
+            .and_then(Open::bar)
+            .is_some_and(|open| open != menu)
+        {
+            self.open_bar_menu(menu);
+        }
+    }
+
     fn open_menu(&mut self, on: window::Id, kind: Kind) {
         self.close_picker();
         self.gallery = None;
@@ -363,7 +379,7 @@ impl App {
             // While a menu is open, the mouse coming onto another root
             // opens that one.
             match open {
-                Some(_) => mouse_area(root).on_enter(Message::OpenMenu(menu)).into(),
+                Some(_) => mouse_area(root).on_enter(Message::HoverMenu(menu)).into(),
                 None => root.into(),
             }
         });

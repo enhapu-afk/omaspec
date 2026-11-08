@@ -330,9 +330,12 @@ pub enum Message {
     /// The right mouse button at this point of the main window, over the
     /// editor: its context menu opens there (docs/adr/0025).
     ContextAt(table::Spot, iced::Point),
-    /// A click on a root of the menu bar, or the mouse coming onto one
-    /// while a menu is open.
+    /// A click on a root of the menu bar: its menu opens, or closes when
+    /// it is the one open.
     OpenMenu(table::Menu),
+    /// The mouse came onto a root while another menu of the bar is open:
+    /// that one opens instead.
+    HoverMenu(table::Menu),
     /// The mouse came onto this row of the open menu.
     MenuPoint(usize),
     /// The mouse came onto this entry of the child menu open.
@@ -1159,6 +1162,10 @@ impl App {
             }
             Message::OpenMenu(menu) => {
                 self.open_bar_menu(menu);
+                Task::none()
+            }
+            Message::HoverMenu(menu) => {
+                self.switch_bar_menu(menu);
                 Task::none()
             }
             Message::MenuPoint(i) => {
