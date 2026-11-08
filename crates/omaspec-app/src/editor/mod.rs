@@ -962,10 +962,7 @@ impl App {
         let session = store.as_ref().and_then(Store::load).unwrap_or_default();
         let (main, open) = window::open(window::Settings {
             icon: crate::logo::icon(),
-            platform_specific: window::settings::PlatformSpecific {
-                application_id: "omaspec".into(),
-                ..Default::default()
-            },
+            platform_specific: ui::app_id("omaspec"),
             exit_on_close_request: false,
             ..Default::default()
         });

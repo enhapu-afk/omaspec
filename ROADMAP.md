@@ -1705,3 +1705,33 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       picture, so the way back zooms out over it; the veil stays up until that
       diagram has a picture, and a pan, a zoom or a picture that could not be drawn
       ends the wait.
+
+## Other desktops, and a face for the mouse (2026-11-08)
+
+Omaspec's engine is plain Rust; what ties the program to Linux is at the
+edges of the window. A Windows build is the next release after 0.9, and the
+window grows the menus a desktop user looks for.
+
+- [x] The engine and the binary type-check for Windows (2026-11-08): `cargo check
+      --target x86_64-pc-windows-gnu` passes for `omaspec-core`, `omaspec-uml`,
+      `omaspec-model`, `omaspec-render` and `omaspec-app`. The Linux parts sit
+      behind `cfg`: the Landlock sandbox of the Java PlantUML (`sandbox.rs`, the
+      crate, `__sandbox`) is Linux-only and `render_config` asks for it only
+      there; Unix modes (the scratch folder, the session file, a hook file) are
+      set on Unix and not elsewhere (`files::only_owner`); the Wayland app id is
+      `ui::app_id`. The benches do not check for Windows: criterion's `alloca`
+      wants a C compiler for that target.
+- [ ] Omaspec on Windows: the clipboard without `wl-copy` (iced's clipboard or
+      `arboard`), the UI font without `fc-match` (Cascadia Mono, then Consolas),
+      no notifications, and a palette without Omarchy: light or dark from the
+      system, and the bundled themes to choose from (`omaspec-theme` already
+      has `Palette::fallback`). Paths that are joined with `/`, if any. A
+      `windows-latest` job in the release workflow that builds and zips the
+      binary; a run on a real Windows, since nothing here has been seen there.
+- [ ] A context menu, a menu bar and a small toolbar
+      ([0025](docs/adr/0025-menus-for-the-mouse.md), proposed): the right mouse
+      button over the diagram and the editor with the actions of what is under
+      the pointer; a bar of File, Edit, View, Diagram, Project and Help with
+      the shortcuts beside the entries, hidden by default on Omarchy and shown
+      with Alt; at most ten tools over the diagram pane. All from the command
+      list's one table; the list stays the whole.

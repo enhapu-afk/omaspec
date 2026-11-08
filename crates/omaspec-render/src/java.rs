@@ -16,7 +16,6 @@
 
 use std::env;
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
@@ -161,12 +160,9 @@ impl JavaPlantUml {
             Some(launcher) => {
                 let scratch = env::temp_dir()
                     .join(format!("omaspec-plantuml-{}-{nonce:x}", std::process::id()));
-                std::fs::DirBuilder::new()
-                    .mode(0o700)
-                    .create(&scratch)
-                    .map_err(|e| {
-                        engine_error(&format!("cannot create {}: {e}", scratch.display()))
-                    })?;
+                private_dir(&scratch).map_err(|e| {
+                    engine_error(&format!("cannot create {}: {e}", scratch.display()))
+                })?;
                 let mut command = kept_env(Command::new(launcher));
                 command
                     .arg("__sandbox")
@@ -248,9 +244,31 @@ fn engine_error(message: &str) -> RenderError {
     }
 }
 
+/// Creates `path` as a folder only its owner may enter.
+#[cfg(unix)]
+fn private_dir(path: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    std::fs::DirBuilder::new().mode(0o700).create(path)
+}
+
+/// Creates `path` as a folder. Windows has no mode bits; the temporary
+/// folder is the user's own already.
+#[cfg(not(unix))]
+fn private_dir(path: &Path) -> std::io::Result<()> {
+    std::fs::DirBuilder::new().create(path)
+}
+
+#[cfg(unix)]
 fn is_executable(path: &Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
     path.metadata()
         .is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+}
+
+/// Windows has no execute bit: a file that is there runs.
+#[cfg(not(unix))]
+fn is_executable(path: &Path) -> bool {
+    path.metadata().is_ok_and(|m| m.is_file())
 }
 
 /// The first `@start…`/`@end…` block of `source` with a trailing newline,

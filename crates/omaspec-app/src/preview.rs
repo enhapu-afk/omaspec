@@ -44,10 +44,7 @@ pub fn run(path: PathBuf, forced: Option<Language>) -> iced::Result {
     .subscription(Preview::subscription)
     .default_font(ui::mono_font())
     .window(window::Settings {
-        platform_specific: window::settings::PlatformSpecific {
-            application_id: "omaspec-preview".into(),
-            ..Default::default()
-        },
+        platform_specific: ui::app_id("omaspec-preview"),
         ..Default::default()
     })
     .run()

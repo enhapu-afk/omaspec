@@ -588,11 +588,13 @@ pub(crate) fn inspection<'a>(
 }
 
 /// Renderer settings; `$OMASPEC_PLANTUML` names the `plantuml` command,
-/// `none` turns the Java fallback off. The Java PlantUML runs confined
-/// through `omaspec __sandbox` unless `$OMASPEC_SANDBOX` is `off`.
+/// `none` turns the Java fallback off. On Linux the Java PlantUML runs
+/// confined through `omaspec __sandbox` unless `$OMASPEC_SANDBOX` is
+/// `off`; elsewhere there is no Landlock, and PlantUML's own SANDBOX
+/// profile is the only fence.
 pub(crate) fn render_config() -> Config {
     let mut config = Config::default();
-    if std::env::var_os("OMASPEC_SANDBOX").is_none_or(|v| v != "off") {
+    if cfg!(target_os = "linux") && std::env::var_os("OMASPEC_SANDBOX").is_none_or(|v| v != "off") {
         config.sandbox = std::env::current_exe().ok();
     }
     match std::env::var_os("OMASPEC_PLANTUML") {

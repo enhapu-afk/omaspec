@@ -73,6 +73,20 @@ pub fn read_input(path: Option<&Path>) -> Result<Input> {
 /// Replaces `path` with `contents` atomically: a temporary file in the same
 /// directory, flushed, then renamed over the original. Keeps the
 /// original's permissions.
+/// Lets only the owner at `path`: `mode` is the Unix permission to set,
+/// such as `0o700` for a folder or `0o600` for a file. Windows has no mode
+/// bits; a file in the user's own folders is theirs already.
+#[cfg(unix)]
+pub fn only_owner(path: &Path, mode: u32) -> io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, fs::Permissions::from_mode(mode))
+}
+
+#[cfg(not(unix))]
+pub fn only_owner(_path: &Path, _mode: u32) -> io::Result<()> {
+    Ok(())
+}
+
 pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     let dir = path
         .parent()

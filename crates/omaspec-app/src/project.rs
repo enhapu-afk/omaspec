@@ -189,6 +189,7 @@ fn install_hook(root: &Path) -> Hook {
 }
 
 /// A new hook file, executable.
+#[cfg(unix)]
 fn open_hook(path: &Path) -> std::io::Result<std::fs::File> {
     use std::os::unix::fs::OpenOptionsExt;
     OpenOptions::new()
@@ -196,6 +197,13 @@ fn open_hook(path: &Path) -> std::io::Result<std::fs::File> {
         .create_new(true)
         .mode(0o755)
         .open(path)
+}
+
+/// A new hook file. Windows has no execute bit; git runs the hook through
+/// its own shell.
+#[cfg(not(unix))]
+fn open_hook(path: &Path) -> std::io::Result<std::fs::File> {
+    OpenOptions::new().write(true).create_new(true).open(path)
 }
 
 /// What `omaspec-project.toml` in `root` says; `None` when there is none.

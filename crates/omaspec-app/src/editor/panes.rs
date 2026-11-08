@@ -21,10 +21,7 @@ impl App {
     pub(super) fn detach(&mut self) -> Task<Message> {
         let (id, open) = window::open(window::Settings {
             icon: crate::logo::icon(),
-            platform_specific: window::settings::PlatformSpecific {
-                application_id: "omaspec-preview".into(),
-                ..Default::default()
-            },
+            platform_specific: crate::ui::app_id("omaspec-preview"),
             exit_on_close_request: false,
             ..Default::default()
         });

@@ -36,6 +36,7 @@ OMASPEC_SNAPSHOT_DIR=/tmp cargo test -p omaspec-app snapshot   # headless screen
 OMASPEC_SNAPSHOT_DIR=/tmp cargo test --release -p omaspec-app snapshot_   # README pictures, every bundled theme
 docs/images/update.sh                      # the README's and the guide's pictures into docs/images (ImageMagick)
 cargo bench -p omaspec-render              # render and export timings
+cargo check --target x86_64-pc-windows-gnu -p omaspec-app -p omaspec-render -p omaspec-core -p omaspec-uml -p omaspec-model   # the engine and the binary stay buildable for Windows
 cargo run --release -p spike-editor          # editor spike window
 cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
 ```
@@ -52,6 +53,9 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
   an SVG points to.
 - `omaspec-core`, `omaspec-uml` and `omaspec-model` do no I/O and have no GUI
   dependency.
+- The engine crates have no platform code. What only Linux has (Landlock, the
+  Wayland app id, Unix modes) sits behind `cfg` in `omaspec-app`, with a plain
+  path for the other desktops; the Windows check above has to pass.
 - Spikes are throwaway; crates never depend on them.
 - `vendor/` holds third-party crates with our changes (scrive); keep its diff
   to the original small and listed in `vendor/README.md`.

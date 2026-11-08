@@ -4,6 +4,7 @@
 use std::sync::LazyLock;
 
 use iced::widget::container;
+use iced::window;
 use iced::{Color, Element, Font, Length, Theme};
 use omaspec_theme::{Palette, Rgb};
 
@@ -191,4 +192,20 @@ pub fn notify(headline: &str, body: &str) {
                 .status();
         }
     });
+}
+
+/// The window settings that name the window to the desktop: on Linux its
+/// app id (`omaspec`, `omaspec-preview`), which Hyprland's rules match.
+/// Other desktops have no such id, and take their defaults.
+#[cfg(target_os = "linux")]
+pub fn app_id(id: &str) -> window::settings::PlatformSpecific {
+    window::settings::PlatformSpecific {
+        application_id: id.into(),
+        ..Default::default()
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn app_id(_id: &str) -> window::settings::PlatformSpecific {
+    Default::default()
 }

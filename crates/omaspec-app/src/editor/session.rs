@@ -6,7 +6,6 @@
 //! One window owns the session at a time; a second one works without.
 
 use std::fs::{self, File, TryLockError};
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -95,8 +94,7 @@ impl Store {
     pub fn at(dir: &Path) -> Result<Option<Self>> {
         fs::create_dir_all(dir).with_context(|| dir.display().to_string())?;
         // Only the user may look inside, even while a new file is written.
-        fs::set_permissions(dir, fs::Permissions::from_mode(0o700))
-            .with_context(|| dir.display().to_string())?;
+        crate::files::only_owner(dir, 0o700).with_context(|| dir.display().to_string())?;
         let lock = File::options()
             .create(true)
             .truncate(false)
@@ -128,8 +126,7 @@ impl Store {
         let path = self.dir.join(FILE);
         let json = serde_json::to_string_pretty(session)?;
         crate::files::write_atomic(&path, json.as_bytes())?;
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
-            .with_context(|| path.display().to_string())
+        crate::files::only_owner(&path, 0o600).with_context(|| path.display().to_string())
     }
 }
 
@@ -297,8 +294,12 @@ mod tests {
         };
         store.save(&session).unwrap();
         assert_eq!(store.load(), Some(session));
-        let mode = fs::metadata(dir.join(FILE)).unwrap().permissions().mode();
-        assert_eq!(mode & 0o777, 0o600);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = fs::metadata(dir.join(FILE)).unwrap().permissions().mode();
+            assert_eq!(mode & 0o777, 0o600);
+        }
 
         // A broken file counts as no session; missing fields take defaults.
         fs::write(dir.join(FILE), "{ not json").unwrap();

@@ -20,7 +20,6 @@ clap.workspace = true
 iced = { workspace = true, features = ["canvas", "image-without-codecs"] }
 # `image::allocate`; iced only re-exports it with all image codecs.
 iced_runtime = "0.14"
-landlock = "0.4"
 notify = "8"
 regex = "1"
 # `render --check` reads the SVGs it holds the new ones against.
@@ -43,3 +42,7 @@ workspace = true
 
 [dev-dependencies]
 iced_test = "0.14"
+
+# The Java PlantUML runs confined with Landlock, which only Linux has.
+[target.'cfg(target_os = "linux")'.dependencies]
+landlock = "0.4"

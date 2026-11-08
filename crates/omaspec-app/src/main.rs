@@ -19,6 +19,7 @@ mod preview;
 mod project;
 mod project_export;
 mod render_command;
+#[cfg(target_os = "linux")]
 mod sandbox;
 #[cfg(test)]
 mod scale;
@@ -669,7 +670,12 @@ fn main() -> ExitCode {
             force,
         }) => commands::extract(&image, output.as_deref(), force),
         Some(Command::Theme { file }) => commands::theme(file),
+        #[cfg(target_os = "linux")]
         Some(Command::Sandbox { scratch, command }) => sandbox::run(&scratch, &command),
+        #[cfg(not(target_os = "linux"))]
+        Some(Command::Sandbox { .. }) => Err(anyhow::anyhow!(
+            "the sandbox needs Landlock, which only Linux has"
+        )),
         None => editor::run(editor::Start::new(cli.files, cli.lang.get()))
             .map(|()| ExitCode::SUCCESS)
             .map_err(|e| anyhow::anyhow!("the editor window failed: {e}")),
