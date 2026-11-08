@@ -38,6 +38,7 @@ docs/images/update.sh                      # the README's and the guide's pictur
 cargo bench -p omaspec-render              # render and export timings
 cargo check --target x86_64-pc-windows-gnu -p omaspec-app -p omaspec-render -p omaspec-core -p omaspec-uml -p omaspec-model   # the engine and the binary stay buildable for Windows
 cargo run --release -p spike-editor          # editor spike window
+cargo run --release -p spike-menu            # menu bar, context menus and toolbar: iced_aw against an overlay of our own (docs/adr/0025); --snapshot DIR
 cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
 ```
 

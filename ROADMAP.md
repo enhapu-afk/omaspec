@@ -1729,9 +1729,18 @@ window grows the menus a desktop user looks for.
       `windows-latest` job in the release workflow that builds and zips the
       binary; a run on a real Windows, since nothing here has been seen there.
 - [ ] A context menu, a menu bar and a small toolbar
-      ([0025](docs/adr/0025-menus-for-the-mouse.md), proposed): the right mouse
+      ([0025](docs/adr/0025-menus-for-the-mouse.md)): the right mouse
       button over the diagram and the editor with the actions of what is under
       the pointer; a bar of File, Edit, View, Diagram, Project and Help with
       the shortcuts beside the entries, hidden by default on Omarchy and shown
       with Alt; at most ten tools over the diagram pane. All from the command
       list's one table; the list stays the whole.
+  - [x] The spike (2026-11-08): `spikes/menu` draws the three from one
+        table with `iced_aw` and with an overlay of our own, F9 between
+        them. The own overlay is chosen: keys, closing on a click, the
+        window's own widgets, no dependency; the spike's pictures come from
+        `--snapshot DIR`.
+  - [ ] The command table gains menu, toolbar and context per command.
+  - [ ] The context menus, in the diagram and the editor.
+  - [ ] The bar, with Alt and the session setting.
+  - [ ] The toolbar over the diagram pane.

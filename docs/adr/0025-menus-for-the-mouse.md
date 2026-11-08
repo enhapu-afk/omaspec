@@ -1,8 +1,9 @@
 # 0025: A context menu, a menu bar and a small toolbar
 
-Status: proposed, 2026-11-08. Builds on [0001](0001-gui-iced.md); the
-first step toward Omaspec on other desktops in the
-[roadmap](../../ROADMAP.md), *other desktops, and a face for the mouse*.
+Status: accepted, 2026-11-08; the engine chosen after the spike
+`spikes/menu` the same day. Builds on [0001](0001-gui-iced.md); the first
+step toward Omaspec on other desktops in the [roadmap](../../ROADMAP.md),
+*other desktops, and a face for the mouse*.
 
 ## Context
 
@@ -54,10 +55,20 @@ the lines by hand) is in its canvases.
 4. **The command list stays the whole.** Every command is in it, and it
    stays the fastest way; the menus and the toolbar are doors to the same
    rooms, not new rooms. A key the guide lists keeps working everywhere.
-5. **Drawn by iced.** iced has no menu bar; the bar and the context menu
-   are an overlay widget of Omaspec's own, or `iced_aw`'s menu, decided
-   after a spike. A native menu is not an option: iced draws the whole
-   window, on every desktop.
+5. **Drawn by iced, as an overlay of Omaspec's own.** iced has no menu
+   bar. The spike `spikes/menu` drew the same bar, context menus and
+   toolbar twice, from one command table: with `iced_aw` 0.14's `MenuBar`
+   and `ContextMenu`, and with `stack`, `mouse_area` and padding. The own
+   overlay won: it takes the keys (arrows between menus and entries,
+   Enter, Escape, F10, a tap on Alt for the bar) where `iced_aw`'s menus
+   take none, it closes on a click like every desktop's menus where
+   `iced_aw` closes when the pointer leaves a margin, it is the same
+   widgets as the rest of the window so it looks like it, and it adds no
+   dependency. What it lacks, `iced_aw` has: child menus (File › Export)
+   and placement from the layout; the app gets both from an overlay
+   widget of its own, as `TabWheel` in `editor/view.rs` already is. A
+   native menu is not an option: iced draws the whole window, on every
+   desktop.
 
 ## Why
 
@@ -75,9 +86,13 @@ would throw away the pane, and iced runs where Omaspec is going anyway.
 - The command list's table grows a menu, a toolbar place and a context
   (diagram, editor, both) per command; the guide's key table gains the
   menu beside each key.
-- `editor/menu.rs` for the bar and the context menu, `paper/tools.rs`
-  for the toolbar; headless snapshots `menu`, `context-menu` and
-  `toolbar`, in the bundled themes.
+- `editor/menu.rs` for the bar and the context menu (an overlay widget
+  placed by the layout, a child menu as a second level, the keys as in
+  the spike), `paper/tools.rs` for the toolbar; headless snapshots
+  `menu`, `context-menu` and `toolbar`, in the bundled themes.
+- A context menu that would leave the window opens upward or leftward;
+  a tap on Alt alone shows the bar, Alt with a key stays a shortcut
+  (Alt+F fits).
 - Omarchy's look is kept: hidden by default there, the bar and the
   toolbar take the theme's colors when shown.
 - Not now: a ribbon, a sidebar of icons, a native menu bar, and menus in
