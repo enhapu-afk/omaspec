@@ -8,7 +8,8 @@ use iced::Task;
 
 use super::compare::Target;
 use super::doc::Doc;
-use super::{App, Command, FLASH, Message, PALETTE, PICKER, folder, home_relative};
+use super::table::TABLE;
+use super::{App, Command, FLASH, Message, PICKER, folder, home_relative};
 use crate::worker::{Alarm, blocking};
 
 /// Rows on screen at once.
@@ -278,11 +279,14 @@ impl App {
         self.recent.truncate(RECENT);
     }
 
-    /// Every command for the palette, named for the state it is in.
+    /// Every command for the palette, named for the state it is in; the
+    /// palette itself is not in its own list.
     pub(super) fn palette_items(&self) -> Vec<Item> {
-        PALETTE
+        TABLE
             .iter()
-            .map(|&(label, keys, command)| {
+            .filter(|e| e.command != Command::Palette)
+            .map(|e| {
+                let (label, keys, command) = (e.label, e.keys, e.command);
                 let (label, command) = match command {
                     Command::FollowTheme if self.follow_theme => {
                         ("Diagram theme: following Omarchy".to_owned(), command)

@@ -1740,7 +1740,11 @@ window grows the menus a desktop user looks for.
         them. The own overlay is chosen: keys, closing on a click, the
         window's own widgets, no dependency; the spike's pictures come from
         `--snapshot DIR`.
-  - [ ] The command table gains menu, toolbar and context per command.
+  - [x] The command table (2026-11-08): `editor/table.rs` holds every
+        command with its label, its keys, the menu it sits in (and a short
+        label for it, a child menu, a line above), its place on the toolbar
+        and the context menus it shows in; the list reads it as before, the
+        palette itself is in the Help menu and not in its own list.
   - [ ] The context menus, in the diagram and the editor.
   - [ ] The bar, with Alt and the session setting.
   - [ ] The toolbar over the diagram pane.

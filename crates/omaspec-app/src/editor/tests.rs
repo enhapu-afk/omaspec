@@ -710,8 +710,9 @@ fn the_palette_runs_commands() {
         "@startuml\nalt ok\n  A -> B\nend\n@enduml\n"
     );
 
-    // Every command in the palette has its keys right.
-    for &(label, keys, command) in PALETTE {
+    // Every command in the table has its keys right.
+    for e in table::TABLE {
+        let (label, keys, command) = (e.label, e.keys, e.command);
         if keys.is_empty() {
             continue;
         }
