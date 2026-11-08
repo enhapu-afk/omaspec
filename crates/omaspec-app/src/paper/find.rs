@@ -2,6 +2,8 @@
 //! it shows, and the one chosen lit as the caret's name is, the view
 //! gliding to it when it is out of sight.
 
+use std::sync::Arc;
+
 use iced::{Point, Rectangle, Size, Task};
 use omaspec_core::locate;
 use omaspec_render::pick;
@@ -62,5 +64,14 @@ impl Paper {
         };
         let middle = Point::new(self.viewport.width / 2.0, self.viewport.height / 2.0);
         self.glide_to(to, middle)
+    }
+
+    /// The label drawn at `at` (a point of the pane), with the source the
+    /// picture was drawn from.
+    pub fn label_at(&self, at: Point) -> Option<(pick::Label, Arc<str>)> {
+        let diagram = self.diagram.as_ref()?;
+        let point = self.view.to_diagram(at, self.viewport);
+        let label = pick::label_at(self.shown_tree()?, point.x, point.y)?;
+        Some((label, Arc::clone(&diagram.source)))
     }
 }

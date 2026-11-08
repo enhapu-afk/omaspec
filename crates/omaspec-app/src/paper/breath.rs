@@ -5,10 +5,15 @@
 //! box takes the light over its shape. Words, a message or a label on a
 //! line, take a quiet wash.
 
+use std::hash::{Hash, Hasher};
 use std::time::Duration;
 
 use iced::time::Instant;
-use iced::{Point, Rectangle};
+use iced::{Point, Rectangle, Size};
+use omaspec_core::locate;
+use omaspec_render::pick;
+
+use super::{AimMemo, Paper};
 
 /// How long a light takes to shrink, travel and spread.
 pub(super) const MOVE: Duration = Duration::from_millis(420);
@@ -311,6 +316,117 @@ fn mix_point(a: Point, b: Point, t: f32) -> Point {
 fn same_place(a: Rectangle, b: Rectangle) -> bool {
     let close = |p: f32, q: f32| (p - q).abs() < 0.5;
     close(a.x, b.x) && close(a.y, b.y) && close(a.width, b.width) && close(a.height, b.height)
+}
+
+impl Paper {
+    /// Lights the place on the sheet that the label at `row`/`col` draws,
+    /// or lets the light go out. `row` is a zero-based line and `col` a
+    /// byte on that line. Nothing lights while a play runs.
+    pub fn follow_source(&mut self, source: &str, row: u32, col: u32) {
+        if self.playing() {
+            self.set_breath(None);
+            return;
+        }
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        source.hash(&mut hasher);
+        let source_hash = hasher.finish();
+        if let Some(memo) = &self.aim
+            && memo.source == source_hash
+            && memo.shown == self.shown
+            && memo.row == row
+            && memo.col == col
+        {
+            if !self.found {
+                self.set_breath(memo.place);
+            }
+            return;
+        }
+        self.found = false;
+        let place = self.aim_at(
+            source,
+            usize::try_from(row).unwrap_or(usize::MAX),
+            usize::try_from(col).unwrap_or(usize::MAX),
+        );
+        self.aim = Some(AimMemo {
+            source: source_hash,
+            shown: self.shown,
+            row,
+            col,
+            place,
+        });
+        self.set_breath(place);
+    }
+
+    /// Whether the light on the caret's name is still on its way.
+    pub fn breath_moving(&self, now: Instant) -> bool {
+        self.breath.is_some_and(|breath| !breath.settled(now))
+    }
+
+    /// The rectangle the light is spreading toward, in diagram units, while
+    /// it is coming in or holding.
+    #[cfg(test)]
+    pub fn breath_target(&self) -> Option<Rectangle> {
+        self.breath.and_then(|breath| breath.target())
+    }
+
+    /// The box of the label at `row`/`col`: the smallest shape around that
+    /// occurrence. A comment line draws nothing. When the sheet draws fewer
+    /// copies than the source mentions (a lifeline's head and its foot), the
+    /// later mention keeps the last copy.
+    #[cfg(test)]
+    pub(super) fn place_of(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
+        let tree = self.shown_tree()?;
+        let texts = pick::texts(tree);
+        let (text, nth) = locate::aimed(source, row, col, texts.iter().map(String::as_str))?;
+        let copies = texts.iter().filter(|drawn| drawn.as_str() == text).count();
+        if copies == 0 {
+            return None;
+        }
+        let nth = nth.min(copies - 1);
+        let (x, y, w, h) = pick::spot(tree, &text, nth)?;
+        if w <= 0.0 || h <= 0.0 {
+            return None;
+        }
+        Some(Rectangle::new(Point::new(x, y), Size::new(w, h)))
+    }
+
+    /// The drawn label at `row`/`col`, and where it sits: on the box it
+    /// names, or as words of their own.
+    pub(super) fn seat_at(
+        &self,
+        source: &str,
+        row: usize,
+        col: usize,
+    ) -> Option<(String, pick::Seat)> {
+        let tree = self.shown_tree()?;
+        let texts = pick::texts(tree);
+        let (text, nth) = locate::aimed(source, row, col, texts.iter().map(String::as_str))?;
+        let copies = texts.iter().filter(|drawn| drawn.as_str() == text).count();
+        if copies == 0 {
+            return None;
+        }
+        let nth = nth.min(copies - 1);
+        let seat = pick::seat(tree, &text, nth)?;
+        let (_, _, w, h) = seat.bounds();
+        (w > 0.0 && h > 0.0).then_some((text, seat))
+    }
+
+    /// The light for the label at `row`/`col`: the box around it, or the
+    /// words themselves when they sit on a line.
+    pub(super) fn aim_at(&self, source: &str, row: usize, col: usize) -> Option<Aim> {
+        let (_, seat) = self.seat_at(source, row, col)?;
+        let (x, y, w, h) = seat.bounds();
+        let rect = Rectangle::new(Point::new(x, y), Size::new(w, h));
+        Some(match seat {
+            pick::Seat::Shape { .. } => Aim::shape(rect),
+            pick::Seat::Words { ink, ground, .. } => Aim::words(rect, ink, ground),
+        })
+    }
+
+    /// Moves the light to `target`, or lets it go out.
+    pub(super) fn set_breath(&mut self, target: Option<Aim>) {
+        self.breath = Breath::go(self.breath, target, Instant::now());
+    }
 }
 
 #[cfg(test)]

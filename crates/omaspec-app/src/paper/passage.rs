@@ -6,14 +6,18 @@
 //! not show. On the way back the diagram shrinks into its box as the
 //! picture around it comes back.
 
-use iced::mouse::Cursor;
-use iced::widget::canvas::{self, Frame, Geometry};
-use iced::{Color, Point, Rectangle, Renderer, Size, Theme, Vector};
+use std::time::Duration;
 
-use super::Message;
+use iced::mouse::Cursor;
+use iced::time::Instant;
+use iced::widget::canvas::{self, Frame, Geometry};
+use iced::{Color, Point, Rectangle, Renderer, Size, Task, Theme, Vector};
+use omaspec_render::Link;
+
 use super::canvas::{Grid, RADIUS, rounded, shadow};
 use super::raster::Raster;
 use super::view::{Glide, View};
+use super::{Message, Paper, link_under};
 
 /// A diagram as its pane shows it: what a zoom into a link to it ends on,
 /// or a zoom out of it starts from.
@@ -158,6 +162,223 @@ impl canvas::Program<Message> for PassageLayer<'_> {
             }
         }
         vec![frame.into_geometry()]
+    }
+}
+
+impl Paper {
+    /// The tiles and states of the picture that open other diagrams.
+    pub fn links(&self) -> &[Link] {
+        self.diagram.as_ref().map_or(&[], |d| &d.drawn.links)
+    }
+
+    /// The link at `at`, a point of the pane: the smallest one there.
+    pub fn link_at(&self, at: Point) -> Option<&Link> {
+        let p = self.view.to_diagram(at, self.viewport);
+        link_under(self.followable(), p)
+    }
+
+    /// The line of the map's box whose tile is at `at`, a point of the
+    /// pane.
+    pub fn tile_line_at(&self, at: Point) -> Option<usize> {
+        let map = &self.diagram.as_ref()?.drawn.map;
+        let p = self.view.to_diagram(at, self.viewport);
+        map.tiles
+            .iter()
+            .find(|t| {
+                let r = t.frame;
+                p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h
+            })
+            .and_then(|t| t.line)
+    }
+
+    /// The links a click follows: none while a play runs.
+    pub(super) fn followable(&self) -> &[Link] {
+        if self.play.is_some() {
+            &[]
+        } else {
+            self.links()
+        }
+    }
+
+    /// Zooms into `area` of the diagram (in diagram units), on the way into
+    /// the diagram it links to; how long that takes. With `landing`, the
+    /// zoom ends where the area holds that diagram as it will show;
+    /// without, with the area filling most of the pane until
+    /// [`Self::arriving`] says where.
+    pub fn zoom_into(
+        &mut self,
+        area: Rectangle,
+        landing: Option<Showing>,
+    ) -> (Task<Message>, Duration) {
+        if self.viewport == Size::ZERO {
+            return (Task::none(), Duration::ZERO);
+        }
+        let to = match &landing {
+            Some(linked) => view_holding(area, linked.size, linked.place, self.viewport),
+            None => View::showing(area, self.viewport),
+        };
+        self.passage = Some(Passage {
+            area,
+            linked: landing,
+            inward: true,
+            goal: None,
+        });
+        let task = self.dive(to);
+        (task, self.glide.map_or(Duration::ZERO, |g| g.duration()))
+    }
+
+    /// The diagram the zoom into a link leads to, drawn: the zoom now ends
+    /// where that diagram will show, in the time it had left, and its
+    /// picture grows out of the link's box on the way.
+    pub fn arriving(&mut self, linked: Showing) {
+        let Some(passage) = self.passage.as_mut().filter(|p| p.inward) else {
+            return;
+        };
+        let moved = passage
+            .linked
+            .as_ref()
+            .is_none_or(|old| old.size != linked.size || old.place != linked.place);
+        let area = passage.area;
+        let to = view_holding(area, linked.size, linked.place, self.viewport);
+        passage.linked = Some(linked);
+        if !moved {
+            return;
+        }
+        let now = Instant::now();
+        match self.glide.filter(|g| !g.done(now)) {
+            Some(glide) => {
+                let left = glide.duration().saturating_sub(Duration::from_secs_f32(
+                    glide.progress(now) * glide.duration().as_secs_f32(),
+                ));
+                self.glide = Some(Glide::dive(glide.at(now), to, self.viewport, now).taking(left));
+            }
+            None => self.glide = None,
+        }
+        self.view = to;
+        self.note_view();
+    }
+
+    /// Ends a zoom into a link at `view`: the diagram it leads to is shown
+    /// in its own tab now, and this one keeps `view` for a click back.
+    pub fn land(&mut self, view: View) {
+        self.glide = None;
+        self.passage = None;
+        self.view = view;
+        self.note_view();
+        let _ = self.show_held();
+    }
+
+    /// The diagram as the pane shows it, for a zoom into a link to it or
+    /// out of it.
+    pub fn showing(&self) -> Option<Showing> {
+        let diagram = self.diagram.as_ref()?;
+        if self.viewport == Size::ZERO {
+            return None;
+        }
+        Some(Showing {
+            size: diagram.size,
+            place: self
+                .view
+                .diagram_rect(diagram.size, Rectangle::with_size(self.viewport)),
+            picture: self.overview.shown.clone(),
+        })
+    }
+
+    /// Starts in `area` of the diagram and zooms out to `to`: back from
+    /// the diagram it links to, which shrinks into the area as `from`
+    /// showed it. A fitted `to` fits the diagram.
+    pub fn zoom_out_of(
+        &mut self,
+        area: Rectangle,
+        to: View,
+        from: Option<Showing>,
+    ) -> Task<Message> {
+        if self.viewport == Size::ZERO || self.diagram.is_none() {
+            return Task::none();
+        }
+        let to = if to.fit {
+            View::fitted(self.diagram_size(), self.viewport)
+        } else {
+            to
+        };
+        self.settle();
+        let start = match &from {
+            Some(linked) => view_holding(area, linked.size, linked.place, self.viewport),
+            None => View::showing(area, self.viewport),
+        };
+        // No picture yet: the veil stays up, and the zoom starts when it
+        // arrives. An empty pane under a falling veil is a black frame.
+        // `goal` set means that wait.
+        let goal = (from.is_some() && self.overview.shown.is_none()).then_some(to);
+        self.view = start;
+        self.note_view();
+        self.passage = from.map(|linked| Passage {
+            area,
+            linked: Some(linked),
+            inward: false,
+            goal,
+        });
+        if goal.is_some() {
+            self.glide = None;
+            return self.rasterize(Duration::ZERO);
+        }
+        self.dive(to)
+    }
+
+    fn dive(&mut self, to: View) -> Task<Message> {
+        let now = Instant::now();
+        let from = self.glide.map_or(self.view, |g| g.at(now));
+        self.view = to;
+        self.glide = Some(Glide::dive(from, to, self.viewport, now));
+        // Into a link, the end lies under the veil: no sharp pixels for
+        // it, which would come in mid-way and cost a frame. Out of one,
+        // the picture already on screen stays until the glide ends
+        // ([`Self::holds`]), and the end's pixels are asked for at once.
+        if self.inward() {
+            return Task::none();
+        }
+        self.rasterize(Duration::ZERO)
+    }
+
+    /// Whether a zoom into a link runs, or has arrived.
+    pub(super) fn inward(&self) -> bool {
+        self.passage.as_ref().is_some_and(|p| p.inward)
+    }
+
+    /// A zoom out of a link that waits for this diagram's picture gives
+    /// up: it ends where it was going, and the veil lifts. A pan or a zoom
+    /// asks for that too; under the veil it would move nothing in sight.
+    pub(super) fn stop_waiting(&mut self) {
+        let waiting = self
+            .passage
+            .as_ref()
+            .is_some_and(|passage| !passage.inward && passage.goal.is_some());
+        if !waiting {
+            return;
+        }
+        if let Some(goal) = self.passage.take().and_then(|passage| passage.goal) {
+            self.view = goal;
+            self.glide = None;
+        }
+    }
+
+    /// A zoom out that waited for this diagram's picture can leave now.
+    pub(super) fn resume_outward(&mut self) -> Task<Message> {
+        let waiting = self
+            .passage
+            .as_ref()
+            .is_some_and(|passage| passage.goal.is_some() && !passage.inward);
+        if !waiting || self.overview.shown.is_none() {
+            return Task::none();
+        }
+        let Some(to) = self
+            .passage
+            .as_mut()
+            .and_then(|passage| passage.goal.take())
+        else {
+            return Task::none();
+        };
+        self.dive(to)
     }
 }
 
