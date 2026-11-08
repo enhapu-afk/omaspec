@@ -47,6 +47,7 @@ mod session;
 mod syntax;
 pub mod table;
 mod takes;
+mod tools;
 mod view;
 
 use std::collections::{HashMap, HashSet};
@@ -470,6 +471,8 @@ pub enum Command {
     Choose,
     /// The menu bar shows or hides; the session keeps it.
     ToggleMenuBar,
+    /// The toolbar over the diagram shows or hides; the session keeps it.
+    ToggleToolbar,
     /// This menu of the bar opens (F10: File).
     OpenMenu(table::Menu),
 }
@@ -798,6 +801,9 @@ struct App {
     menu: Option<menu::Open>,
     /// The menu bar is shown; the session keeps it.
     bar_shown: bool,
+    /// The toolbar over the diagram is shown with the bar; the session
+    /// keeps it.
+    toolbar: bool,
     /// Alt went down and no other key since: letting it go shows or hides
     /// the bar.
     alt_armed: bool,
@@ -905,6 +911,7 @@ impl App {
             detached_size: window::Settings::default().size,
             menu: None,
             bar_shown: session.menu_bar,
+            toolbar: session.toolbar,
             alt_armed: false,
             play_when_drawn: None,
             follow_theme: session.follow_theme,
@@ -2010,6 +2017,10 @@ impl App {
                 self.toggle_menu_bar();
                 Task::none()
             }
+            Command::ToggleToolbar => {
+                self.toggle_toolbar();
+                Task::none()
+            }
             Command::OpenMenu(menu) => {
                 self.open_bar_menu(menu);
                 Task::none()
@@ -2484,7 +2495,7 @@ fn blur() -> Task<Message> {
 /// Without the sidebar, source and diagram share it.
 /// The icons in the colors the window draws them in, at its `scale`.
 fn icons_for(p: &Palette, scale: f32) -> Icons {
-    Icons::new(&[p.accent, p.magenta, ui::quiet(p)], scale)
+    Icons::new(&[p.accent, p.magenta, ui::quiet(p), p.foreground], scale)
 }
 
 fn layout(sidebar: bool, diagram: bool) -> pane_grid::State<Pane> {

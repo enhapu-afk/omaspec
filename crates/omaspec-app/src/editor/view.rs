@@ -252,6 +252,12 @@ impl App {
             Some(trail) => stack![a, trail].into(),
             None => stack![a].into(),
         };
+        // The toolbar over the picture, with the menu bar (docs/adr/0025).
+        let a: Element<'_, Message> = if self.toolbar_shown() {
+            column![self.toolbar(), a].into()
+        } else {
+            a
+        };
         let Some(c) = self.compare.as_ref().filter(|c| c.a == key) else {
             return a;
         };

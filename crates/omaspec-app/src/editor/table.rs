@@ -75,8 +75,8 @@ pub struct Entry {
     pub child: Option<&'static str>,
     /// A line above this entry in its menu.
     pub gap: bool,
-    /// On the toolbar over the diagram pane, in the table's order.
-    pub tool: bool,
+    /// Its place on the toolbar over the diagram pane, from the left.
+    pub tool: Option<u8>,
     /// In the context menu opened here.
     pub context: Option<Spot>,
 }
@@ -97,7 +97,7 @@ const fn cmd(label: &'static str, keys: &'static str, command: Command) -> Entry
         short: None,
         child: None,
         gap: false,
-        tool: false,
+        tool: None,
         context: None,
     }
 }
@@ -124,8 +124,11 @@ impl Entry {
     const fn gap(self) -> Self {
         Entry { gap: true, ..self }
     }
-    const fn tool(self) -> Self {
-        Entry { tool: true, ..self }
+    const fn tool(self, place: u8) -> Self {
+        Entry {
+            tool: Some(place),
+            ..self
+        }
     }
     const fn at(self, spot: Spot) -> Self {
         Entry {
@@ -198,7 +201,7 @@ pub const TABLE: &[Entry] = &[
     )
     .menu(Diagram)
     .short("Play")
-    .tool()
+    .tool(5)
     .at(Spot::Diagram),
     cmd("Play a recorded trace", "", Command::PlayTrace)
         .menu(Diagram)
@@ -278,7 +281,7 @@ pub const TABLE: &[Entry] = &[
     .at(Spot::Both),
     cmd("Unfold every container", "", Command::UnfoldAll)
         .menu(Diagram)
-        .tool()
+        .tool(6)
         .at(Spot::Diagram),
     cmd("Diagram theme: follow Omarchy", "", Command::FollowTheme)
         .menu(View)
@@ -339,7 +342,7 @@ pub const TABLE: &[Entry] = &[
         .menu(Diagram)
         .gap()
         .short("Copy as PNG")
-        .tool()
+        .tool(7)
         .at(Spot::Diagram),
     cmd("Copy the diagram as SVG", "", Command::CopySvg)
         .menu(Diagram)
@@ -350,7 +353,7 @@ pub const TABLE: &[Entry] = &[
         .gap()
         .child("Export")
         .short("SVG…")
-        .tool()
+        .tool(8)
         .at(Spot::Diagram),
     cmd("Export the diagram as PNG", "", Command::ExportPng)
         .menu(File)
@@ -406,6 +409,13 @@ pub const TABLE: &[Entry] = &[
     .menu(View)
     .short("Menu bar on/off"),
     cmd(
+        "Toolbar over the diagram on/off",
+        "",
+        Command::ToggleToolbar,
+    )
+    .menu(View)
+    .short("Toolbar on/off"),
+    cmd(
         "Focus the area to the left",
         "Ctrl+Alt+Left",
         Command::Focus(pane_grid::Direction::Left),
@@ -437,20 +447,20 @@ pub const TABLE: &[Entry] = &[
         .menu(View)
         .gap()
         .short("Zoom in")
-        .tool(),
+        .tool(2),
     cmd("Zoom out of the diagram", "Alt+-", Command::ZoomOut)
         .menu(View)
         .short("Zoom out")
-        .tool(),
+        .tool(3),
     cmd("Diagram at 100 %", "Alt+0", Command::ActualSize)
         .menu(View)
         .short("100 %")
-        .tool()
+        .tool(4)
         .at(Spot::Diagram),
     cmd("Fit the diagram", "Alt+F", Command::Fit)
         .menu(View)
         .short("Fit")
-        .tool()
+        .tool(1)
         .at(Spot::Diagram),
     cmd("Every command, as a list", "Ctrl+Shift+P", Command::Palette)
         .menu(Help)
@@ -521,16 +531,15 @@ pub fn context(at: Spot) -> impl Iterator<Item = &'static Entry> {
     placed(Spot::Both).chain(placed(at))
 }
 
-/// The toolbar's entries, in the table's order.
-// The toolbar over the diagram pane (docs/adr/0025) is the next step.
-#[allow(dead_code)]
+/// The toolbar's entries, from the left.
 pub fn tools() -> impl Iterator<Item = &'static Entry> {
-    TABLE.iter().filter(|e| e.tool)
+    let mut tools: Vec<&'static Entry> = TABLE.iter().filter(|e| e.tool.is_some()).collect();
+    tools.sort_by_key(|e| e.tool);
+    tools.into_iter()
 }
 
 /// The entry of `command`, if the table has it.
-// The toolbar's tooltips (docs/adr/0025) are the next step.
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn entry(command: Command) -> Option<&'static Entry> {
     TABLE.iter().find(|e| e.command == command)
 }
@@ -574,9 +583,12 @@ mod tests {
     }
 
     #[test]
-    fn the_toolbar_is_short() {
-        let n = tools().count();
-        assert!((5..=10).contains(&n), "{n} tools");
+    fn the_toolbar_is_short_and_in_order() {
+        let tools: Vec<_> = tools().collect();
+        assert!((5..=10).contains(&tools.len()), "{} tools", tools.len());
+        assert_eq!(tools[0].command, Command::Fit, "the view first");
+        let places: Vec<u8> = tools.iter().filter_map(|e| e.tool).collect();
+        assert!(places.windows(2).all(|w| w[0] < w[1]), "each place once");
     }
 
     #[test]

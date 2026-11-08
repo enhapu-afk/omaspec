@@ -73,6 +73,7 @@ impl Command {
             Command::Palette
             | Command::Choose
             | Command::ToggleMenuBar
+            | Command::ToggleToolbar
             | Command::OpenMenu(_)
             | Command::StartFrom(_)
             | Command::Open

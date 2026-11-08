@@ -88,8 +88,9 @@ would throw away the pane, and iced runs where Omaspec is going anyway.
   menu beside each key.
 - `editor/menu.rs` for the bar and the context menu (an overlay widget
   placed by the layout, a child menu as a second level, the keys as in
-  the spike), `paper/tools.rs` for the toolbar; headless snapshots
-  `menu`, `context-menu` and `toolbar`, in the bundled themes.
+  the spike), `editor/tools.rs` for the toolbar, which the pane carries
+  into the diagram's own window too; headless snapshots `menu`,
+  `context-menu` and `toolbar`, in the bundled themes.
 - A context menu that would leave the window opens upward or leftward;
   a tap on Alt alone shows the bar, Alt with a key stays a shortcut
   (Alt+F fits).

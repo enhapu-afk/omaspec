@@ -5013,3 +5013,41 @@ fn snapshot_menu() {
     let _ = app.update(Message::MenuPointChild(4));
     shoot(&mut app, &dir, "menu");
 }
+
+/// The toolbar shows with the menu bar, has a setting of its own, and
+/// its tools are the table's.
+#[test]
+fn the_toolbar_shows_with_the_bar_and_has_a_setting_of_its_own() {
+    let mut app = open(&[]);
+    assert!(app.toolbar, "on by default");
+    assert!(!app.toolbar_shown(), "hidden with the bar");
+    press(&mut app, Command::ToggleMenuBar);
+    assert!(app.toolbar_shown());
+    press(&mut app, Command::ToggleToolbar);
+    assert!(!app.toolbar_shown());
+    assert!(!app.session().toolbar);
+    press(&mut app, Command::ToggleToolbar);
+    assert!(app.toolbar_shown());
+    assert!(app.session().toolbar);
+    let tools: Vec<Command> = table::tools().map(|e| e.command).collect();
+    assert!(tools.contains(&Command::Fit) && tools.contains(&Command::Play));
+    assert!(tools.len() <= 10);
+}
+
+/// Writes a headless screenshot of the toolbar over the diagram when
+/// OMASPEC_SNAPSHOT_DIR is set.
+#[test]
+fn snapshot_toolbar() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let mut app = open(&[]);
+    let main = app.main;
+    let _ = app.update(Message::WindowSized(main, Size::new(1200.0, 640.0)));
+    select_all_and_paste(&mut app, BREWER);
+    show(&mut app, BREWER, Language::PlantUml);
+    let _ = app.update(Message::JumpTo(0));
+    press(&mut app, Command::ToggleMenuBar);
+    shoot(&mut app, &dir, "toolbar");
+}

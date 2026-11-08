@@ -24,10 +24,19 @@ pub enum Icon {
     Search,
     /// The gallery of examples.
     Gallery,
+    // The toolbar's tools (docs/adr/0025).
+    Fit,
+    ZoomIn,
+    ZoomOut,
+    ActualSize,
+    Play,
+    Unfold,
+    Copy,
+    Export,
 }
 
 impl Icon {
-    const ALL: [Icon; 9] = [
+    const ALL: [Icon; 17] = [
         Icon::State,
         Icon::Sequence,
         Icon::Flow,
@@ -37,6 +46,14 @@ impl Icon {
         Icon::Folder,
         Icon::Search,
         Icon::Gallery,
+        Icon::Fit,
+        Icon::ZoomIn,
+        Icon::ZoomOut,
+        Icon::ActualSize,
+        Icon::Play,
+        Icon::Unfold,
+        Icon::Copy,
+        Icon::Export,
     ];
 
     /// The icon of a kind of diagram; a document not read yet has
@@ -81,6 +98,26 @@ impl Icon {
             }
             Icon::Folder => {
                 r#"<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>"#
+            }
+            Icon::Fit => {
+                r#"<path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/>"#
+            }
+            Icon::ZoomIn => {
+                r#"<circle cx="11" cy="11" r="7"/><path d="m20 20-4.2-4.2M11 8v6M8 11h6"/>"#
+            }
+            Icon::ZoomOut => r#"<circle cx="11" cy="11" r="7"/><path d="m20 20-4.2-4.2M8 11h6"/>"#,
+            Icon::ActualSize => {
+                r#"<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M7 10l1.5-1v6M15.5 10l1.5-1v6M12 10.5v.5M12 13.5v.5"/>"#
+            }
+            Icon::Play => r#"<path d="M7 4.5v15l12-7.5z"/>"#,
+            Icon::Unfold => {
+                r#"<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M12 8v8M8 12h8"/>"#
+            }
+            Icon::Copy => {
+                r#"<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>"#
+            }
+            Icon::Export => {
+                r#"<path d="M12 3v12M7 10l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>"#
             }
         }
     }

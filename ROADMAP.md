@@ -1728,8 +1728,8 @@ window grows the menus a desktop user looks for.
       has `Palette::fallback`). Paths that are joined with `/`, if any. A
       `windows-latest` job in the release workflow that builds and zips the
       binary; a run on a real Windows, since nothing here has been seen there.
-- [ ] A context menu, a menu bar and a small toolbar
-      ([0025](docs/adr/0025-menus-for-the-mouse.md)): the right mouse
+- [x] A context menu, a menu bar and a small toolbar (2026-11-08,
+      [0025](docs/adr/0025-menus-for-the-mouse.md)): the right mouse
       button over the diagram and the editor with the actions of what is under
       the pointer; a bar of File, Edit, View, Diagram, Project and Help with
       the shortcuts beside the entries, hidden by default on Omarchy and shown
@@ -1759,4 +1759,10 @@ window grows the menus a desktop user looks for.
         hides it, and the session keeps it. F10 opens File, Left and Right
         walk the menus and go into a child and out of it; the mouse coming
         onto another root switches. The snapshot `menu`.
-  - [ ] The toolbar over the diagram pane.
+  - [x] The toolbar (2026-11-08): eight tools over the diagram pane, as
+        line icons with a tooltip naming the command and its key: fit,
+        zoom in and out, 100 %, play (lit while one runs), unfold every
+        container, copy as PNG, export as SVG. It shows with the menu bar
+        and has a setting of its own in View, kept by the session; the
+        diagram's own window carries it too. `editor/tools.rs`; the
+        snapshot `toolbar`.

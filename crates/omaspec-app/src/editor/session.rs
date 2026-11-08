@@ -43,6 +43,9 @@ pub struct Session {
     /// a tap on Alt or the View menu shows it.
     #[serde(default)]
     pub menu_bar: bool,
+    /// The toolbar over the diagram is shown, with the menu bar.
+    #[serde(default = "shown")]
+    pub toolbar: bool,
     #[serde(default)]
     pub docs: Vec<SavedDoc>,
 }
@@ -56,6 +59,7 @@ impl Default for Session {
             follow_theme: true,
             picked: false,
             menu_bar: false,
+            toolbar: true,
             docs: Vec::new(),
         }
     }
@@ -220,6 +224,7 @@ impl App {
             follow_theme: self.follow_theme,
             picked: self.picked,
             menu_bar: self.bar_shown,
+            toolbar: self.toolbar,
             docs: self
                 .docs
                 .iter()
@@ -291,6 +296,7 @@ mod tests {
             follow_theme: true,
             picked: true,
             menu_bar: true,
+            toolbar: false,
             docs: vec![SavedDoc {
                 path: None,
                 text: Some("@startuml\n@enduml\n".into()),
