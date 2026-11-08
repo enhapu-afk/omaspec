@@ -26,7 +26,7 @@ use super::hand::Gesture;
 use super::play::{self, Look, Play, Viewer};
 use super::raster::Raster;
 use super::view::{Glide, View};
-use super::{Fade, Message, link_rect, link_under};
+use super::{Fade, Message, Previous, link_rect, link_under};
 
 const DOUBLE_CLICK: Duration = Duration::from_millis(350);
 /// A press that moves less than this far is a click, not a drag.
@@ -45,6 +45,9 @@ pub struct DiagramCanvas<'a> {
     pub detail: Option<&'a Raster>,
     /// The pictures before, while the new one fades in over them.
     pub fade: Option<&'a Fade>,
+    /// The pictures still on screen, where they were drawn, until the new
+    /// raster arrives and the fade starts.
+    pub previous: Option<&'a Previous>,
     pub view: View,
     /// The way the picture glides to `view`, while it does.
     pub glide: Option<Glide>,
@@ -71,6 +74,120 @@ impl DiagramCanvas<'_> {
     /// The link at `at`, a point of the pane.
     fn link_at(&self, at: Point, viewport: Size) -> Option<&Link> {
         link_under(self.links, self.view.to_diagram(at, viewport))
+    }
+
+    /// The boxes gliding across this frame, through the last one. The
+    /// picture they travel to was taken when the glide started, so a newer
+    /// render cannot swap it in before this one has landed.
+    fn paint_morph(
+        &self,
+        frame: &mut Frame,
+        grid: Grid,
+        local: Rectangle,
+        now: iced::time::Instant,
+    ) -> bool {
+        let Some(fade) = self.fade else {
+            return false;
+        };
+        let Some(morph) = fade.morph.as_ref() else {
+            return false;
+        };
+        let Some(old) = fade.old.first() else {
+            return false;
+        };
+        let Some(new) = fade.next.as_ref() else {
+            return false;
+        };
+        let t = fade.shown.interpolate(0.0, 1.0, now).clamp(0.0, 1.0);
+        let new_view = self.glide.map_or(fade.new_view, |glide| glide.at(now));
+        super::morph::paint(
+            frame,
+            grid,
+            local,
+            &super::morph::Paint {
+                t,
+                morph,
+                old_view: fade.old_view,
+                old_size: fade.old_size,
+                old,
+                new_view,
+                new_size: fade.new_size,
+                new,
+                background: self.background,
+            },
+        );
+        true
+    }
+
+    /// The sheets to draw at `now`. Alpha is read here, when the frame is
+    /// drawn, so a crossfade keeps moving between updates of the pane.
+    ///
+    /// A hold is the picture still on screen, at the view it was drawn in.
+    /// A fold, or any change of view or size, is two sheets. An edit that
+    /// keeps the view is one sheet, the old rasters under the new ones.
+    /// With nothing to fade out, the new picture comes in on its own.
+    fn sheets(&self, view: View, now: iced::time::Instant) -> Option<Vec<Sheet<'_>>> {
+        let size = self.diagram?;
+        let overview = self.overview?;
+        let shown = self
+            .fade
+            .map_or(1.0, |fade| fade.shown.interpolate(0.0, 1.0, now));
+        let at = |opacity: f32| -> Vec<(&Raster, f32)> {
+            [Some(overview), self.detail]
+                .into_iter()
+                .flatten()
+                .map(|raster| (raster, opacity))
+                .collect()
+        };
+        if let Some(previous) = self.previous {
+            return Some(vec![Sheet {
+                view: previous.view_at(view),
+                size: previous.size,
+                pictures: previous
+                    .pictures
+                    .iter()
+                    .map(|raster| (raster, 1.0))
+                    .collect(),
+                alpha: 1.0,
+            }]);
+        }
+        if let Some(fade) = self.fade.filter(|fade| shown < 1.0 && !fade.old.is_empty()) {
+            if fade.old_view != view || fade.old_size != size {
+                return Some(vec![
+                    Sheet {
+                        view: fade.old_view,
+                        size: fade.old_size,
+                        pictures: fade.old.iter().map(|raster| (raster, 1.0)).collect(),
+                        alpha: 1.0 - shown,
+                    },
+                    Sheet {
+                        view,
+                        size,
+                        pictures: at(1.0),
+                        alpha: shown,
+                    },
+                ]);
+            }
+            let under = fade.old.iter().map(|raster| (raster, 1.0 - shown));
+            return Some(vec![Sheet {
+                view,
+                size,
+                pictures: under.chain(at(shown)).collect(),
+                alpha: 1.0,
+            }]);
+        }
+        // Nothing old to cover: the new raster fades in, it does not pop.
+        let opacity = if self.fade.is_some() && shown < 1.0 {
+            shown
+        } else {
+            1.0
+        };
+        Some(vec![Sheet {
+            view,
+            size,
+            pictures: at(opacity),
+            alpha: 1.0,
+        }])
     }
 }
 
@@ -310,34 +427,19 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
         frame.fill_rectangle(Point::ORIGIN, bounds.size(), self.background);
         let local = Rectangle::new(Point::ORIGIN, bounds.size());
         let grid = Grid::of(bounds, self.scale);
-        let view = self
-            .glide
-            .map_or(self.view, |g| g.at(iced::time::Instant::now()));
-        match (self.diagram, self.overview) {
-            (Some(size), Some(overview)) => {
-                let paper = grid.snap(view.diagram_rect(size, local));
-                shadow(&mut frame, paper, self.background, grid.scale, 1.0);
-                frame.fill(&rounded(paper, RADIUS), overview.paper);
-                // Each raster at the place it shows, which after an edit may
-                // differ from the new diagram until the next raster is in.
-                let shown = self.fade.map_or(1.0, |fade| {
-                    fade.shown.interpolate(0.0, 1.0, iced::time::Instant::now())
-                });
-                let old = self
-                    .fade
-                    .filter(|_| shown < 1.0)
-                    .map_or(&[][..], |f| &f.old);
-                let new = [Some(overview), self.detail].into_iter().flatten();
-                let layers = old
-                    .iter()
-                    .map(|raster| (raster, 1.0 - shown))
-                    .chain(new.map(|raster| (raster, shown)))
-                    .map(|(raster, opacity)| {
-                        (view.on_screen(raster.region, local), raster, opacity)
-                    });
-                grid.draw(&mut frame, paper, RADIUS, layers);
+        let now = iced::time::Instant::now();
+        let view = self.glide.map_or(self.view, |g| g.at(now));
+        if self.paint_morph(&mut frame, grid, local, now) {
+            return vec![frame.into_geometry()];
+        }
+        match self.sheets(view, now) {
+            Some(sheets) => {
+                ground_under(&mut frame, grid, local, &sheets);
+                for sheet in sheets {
+                    draw_sheet(&mut frame, grid, self.background, local, sheet);
+                }
             }
-            _ => frame.fill_text(Text {
+            None => frame.fill_text(Text {
                 content: self.placeholder.to_owned(),
                 position: local.center(),
                 color: self.text,
@@ -379,6 +481,79 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
             mouse::Interaction::default()
         }
     }
+}
+
+/// One sheet of paper: where it sits, the pictures on it, and how present it is.
+struct Sheet<'a> {
+    view: View,
+    size: Size,
+    pictures: Vec<(&'a Raster, f32)>,
+    alpha: f32,
+}
+
+/// Where two sheets cross while one fades into the other, solid paper
+/// under both. Each is only partly there, the old at `1 - t` and the new at
+/// `t`, so without it the pane's background would show through by
+/// `t (1 - t)`, a quarter halfway: a dark flash on a dark theme. With it
+/// the crossing fades as a single sheet does, over its own paper.
+fn ground_under(frame: &mut Frame, grid: Grid, local: Rectangle, sheets: &[Sheet<'_>]) {
+    let [old, new] = sheets else {
+        return;
+    };
+    if old.alpha <= 0.01 || new.alpha <= 0.01 {
+        return;
+    }
+    let Some((first, _)) = new.pictures.first().or(old.pictures.first()) else {
+        return;
+    };
+    let a = grid.snap(old.view.diagram_rect(old.size, local));
+    let b = grid.snap(new.view.diagram_rect(new.size, local));
+    if let Some(both) = a.intersection(&b) {
+        frame.fill(&rounded(both, RADIUS), first.paper);
+    }
+}
+
+/// Draws one sheet: its shadow, its ground and its pictures.
+/// A fold draws the old sheet and the new one, each in its own view.
+fn draw_sheet(
+    frame: &mut Frame,
+    grid: Grid,
+    background: Color,
+    local: Rectangle,
+    sheet: Sheet<'_>,
+) {
+    if sheet.alpha <= 0.01 {
+        return;
+    }
+    let paper = grid.snap(sheet.view.diagram_rect(sheet.size, local));
+    shadow(frame, paper, background, grid.scale, sheet.alpha);
+    if let Some((first, _)) = sheet.pictures.first() {
+        frame.fill(
+            &rounded(paper, RADIUS),
+            Color {
+                a: sheet.alpha,
+                ..first.paper
+            },
+        );
+    }
+    let Sheet {
+        view,
+        pictures,
+        alpha,
+        ..
+    } = sheet;
+    grid.draw(
+        frame,
+        paper,
+        RADIUS,
+        pictures.into_iter().map(|(raster, opacity)| {
+            (
+                view.on_screen(raster.region, local),
+                raster,
+                opacity * alpha,
+            )
+        }),
+    );
 }
 
 /// The caret's name, lit in a layer of its own. In one layer iced draws
@@ -501,8 +676,11 @@ impl canvas::Program<Message> for LinkMarks<'_> {
 pub struct BreathLight {
     pub view: View,
     pub glide: Option<Glide>,
-    pub breath: super::Breath,
+    pub breath: super::breath::Breath,
     pub color: Color,
+    /// The paper behind the diagram, so the rim stays visible when the
+    /// accent is close to a box.
+    pub paper: Color,
     pub scale: f32,
 }
 
@@ -532,36 +710,120 @@ impl canvas::Program<Message> for BreathLight {
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(renderer, bounds.size());
         let now = iced::time::Instant::now();
-        let (rect, alpha) = self.breath.at(now);
-        if alpha < 0.01 || rect.width <= 0.0 || rect.height <= 0.0 {
+        let shown = self.breath.at(now);
+        if shown.alpha < 0.01 {
             return vec![frame.into_geometry()];
         }
         let grid = Grid::of(bounds, self.scale);
         let view = self.glide.map_or(self.view, |glide| glide.at(now));
-        let on_screen = grid.snap(view.on_screen(rect, Rectangle::with_size(bounds.size())));
-        if on_screen.width <= 0.0 || on_screen.height <= 0.0 {
-            return vec![frame.into_geometry()];
+        let on_screen = view.on_screen(shown.rect, Rectangle::with_size(bounds.size()));
+        let opened = open_from_center(on_screen, shown.spread);
+        let tiny = opened.width < 6.0 && opened.height < 6.0;
+        if tiny {
+            draw_point(
+                &mut frame,
+                opened.center(),
+                shown.alpha,
+                self.color,
+                self.paper,
+            );
+        } else {
+            let opened = grid.snap(opened);
+            match shown.mark {
+                super::breath::Mark::Words => {
+                    let plate = super::wash::plate(self.color, self.paper, shown.ink, shown.ground);
+                    draw_words(&mut frame, opened, shown.alpha, plate);
+                }
+                super::breath::Mark::Shape => {
+                    draw_shape(&mut frame, opened, shown.alpha, self.color, self.paper);
+                }
+            }
         }
-        let radius = RADIUS.min(on_screen.width.min(on_screen.height) * 0.5);
-        let path = rounded(on_screen, radius);
-        frame.fill(
-            &path,
-            Color {
-                a: 0.14 * alpha,
-                ..self.color
-            },
-        );
-        frame.stroke(
-            &path,
-            Stroke::default()
-                .with_color(Color {
-                    a: 0.9 * alpha,
-                    ..self.color
-                })
-                .with_width(1.5),
-        );
         vec![frame.into_geometry()]
     }
+}
+
+/// The accent pulled toward white, so a muted theme color still reads as light.
+fn lit(color: Color) -> Color {
+    Color {
+        r: 1.0 - (1.0 - color.r) * 0.4,
+        g: 1.0 - (1.0 - color.g) * 0.4,
+        b: 1.0 - (1.0 - color.b) * 0.4,
+        a: 1.0,
+    }
+}
+
+fn with_a(color: Color, alpha: f32) -> Color {
+    Color { a: alpha, ..color }
+}
+
+/// `rect` scaled about its center. `spread` 0 is the point it travels as.
+fn open_from_center(rect: Rectangle, spread: f32) -> Rectangle {
+    let spread = spread.clamp(0.0, 1.0);
+    let center = rect.center();
+    let size = Size::new(rect.width * spread, rect.height * spread);
+    Rectangle::new(
+        Point::new(center.x - size.width * 0.5, center.y - size.height * 0.5),
+        size,
+    )
+}
+
+fn outset(rect: Rectangle, by: f32) -> Rectangle {
+    Rectangle::new(
+        Point::new(rect.x - by, rect.y - by),
+        Size::new(rect.width + by * 2.0, rect.height + by * 2.0),
+    )
+}
+
+/// The travelling point: a bright core with a halo, rimmed in the paper
+/// so it shows on a box of the accent's own color.
+fn draw_point(frame: &mut Frame, at: Point, alpha: f32, accent: Color, paper: Color) {
+    let glow = lit(accent);
+    for (radius, a) in [(16.0, 0.10), (10.0, 0.20), (6.0, 0.38)] {
+        frame.fill(&Path::circle(at, radius), with_a(glow, a * alpha));
+    }
+    frame.stroke(
+        &Path::circle(at, 5.0),
+        Stroke::default()
+            .with_color(with_a(paper, 0.95 * alpha))
+            .with_width(2.5),
+    );
+    frame.fill(&Path::circle(at, 4.2), with_a(glow, alpha));
+}
+
+/// A box: a luminous wash, a paper-colored gap, and a bright rim. The gap
+/// keeps the rim readable when the accent is close to the box.
+fn draw_shape(frame: &mut Frame, rect: Rectangle, alpha: f32, accent: Color, paper: Color) {
+    let glow = lit(accent);
+    let radius = RADIUS.min(rect.width.min(rect.height) * 0.5);
+    for (grow, a) in [(14.0, 0.10), (8.0, 0.16), (3.0, 0.24)] {
+        let grown = outset(rect, grow);
+        frame.fill(&rounded(grown, radius + grow), with_a(glow, a * alpha));
+    }
+    let path = rounded(rect, radius);
+    frame.fill(&path, with_a(glow, 0.28 * alpha));
+    frame.stroke(
+        &path,
+        Stroke::default()
+            .with_color(with_a(paper, 0.95 * alpha))
+            .with_width(4.0),
+    );
+    frame.stroke(
+        &path,
+        Stroke::default()
+            .with_color(with_a(glow, alpha))
+            .with_width(2.0),
+    );
+}
+
+/// Words on a line: a quiet wash a little wider than the letters. The
+/// letters stay readable through it.
+fn draw_words(frame: &mut Frame, letters: Rectangle, alpha: f32, plate: super::wash::Plate) {
+    let rect = super::wash::bounds(letters);
+    frame.fill(
+        &Path::rectangle(rect.position(), rect.size()),
+        with_a(plate.color, plate.fill * alpha),
+    );
 }
 
 /// While the text does not draw, a red edge round the last good picture:

@@ -2115,7 +2115,16 @@ impl App {
             return Task::none();
         }
         if index != self.active {
-            self.docs[self.active].paper.release();
+            // A diagram still on the trail keeps its picture: the way back
+            // out of a link zooms over it. Dropping it here is the black
+            // frame, then the picture popping in.
+            let keep = self.docs[self.active]
+                .path
+                .as_ref()
+                .is_some_and(|path| self.trail.iter().any(|step| &step.path == path));
+            if !keep {
+                self.docs[self.active].paper.release();
+            }
             self.left_tab = Some(self.docs[self.active].key);
             self.tab_fade = Animation::new(false)
                 .duration(TAB_FADE)
@@ -2139,6 +2148,28 @@ impl App {
             self.focus_editor(),
             self.reveal_tab(),
         ])
+    }
+
+    /// Drops the pictures of diagrams that fell off the trail. The one on
+    /// screen stays, and so does each step still on it.
+    fn release_off_trail(&mut self) {
+        let active = self.active;
+        let drop: Vec<usize> = self
+            .docs
+            .iter()
+            .enumerate()
+            .filter(|(index, doc)| {
+                *index != active
+                    && !doc
+                        .path
+                        .as_ref()
+                        .is_some_and(|path| self.trail.iter().any(|step| &step.path == path))
+            })
+            .map(|(index, _)| index)
+            .collect();
+        for index in drop {
+            self.docs[index].paper.release();
+        }
     }
 
     /// Brings the active tab into the bar, scrolling only as far as it

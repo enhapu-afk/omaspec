@@ -9,12 +9,17 @@ use iced::mouse::{self, Cursor};
 use iced::widget::canvas::{self, Action, Event, Frame, Geometry, Path, Stroke};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme, window};
 
+use omaspec_render::pick;
+
 use super::canvas::{Grid, RADIUS, rounded};
 use super::view::{Glide, View};
 use super::{Message, Paper};
 
 /// The fold button's side, in screen pixels.
 const BUTTON: f32 = 16.0;
+/// How far, edges summed, a drawn box may lie from its place in the map
+/// and still be that place. A sketch's stroke bows.
+const SAME_BOX: f32 = 48.0;
 
 /// A container the pane may fold, or one it folded.
 #[derive(Debug, Clone, PartialEq)]
@@ -95,6 +100,10 @@ impl Paper {
             self.folds.retain(|n| n != name);
             self.unfolding = Some(name.to_owned());
         }
+        self.change = super::Change::Fold {
+            anchor: Some(name.to_owned()),
+            since: self.requested,
+        };
         self.refold = true;
     }
 
@@ -105,6 +114,10 @@ impl Paper {
         }
         self.folds.clear();
         self.unfolding = None;
+        self.change = super::Change::Fold {
+            anchor: None,
+            since: self.requested,
+        };
         self.refold = true;
         true
     }
@@ -112,6 +125,11 @@ impl Paper {
     /// The containers of the picture and the boxes folded in it.
     pub(super) fn fold_spots(&self) -> Vec<Spot> {
         if !self.folding || self.document || self.play.is_some() {
+            return Vec::new();
+        }
+        // The buttons sit on the finished boxes. While they glide, a button
+        // would land where a box has not arrived yet.
+        if self.fade.as_ref().is_some_and(|fade| fade.morph.is_some()) {
             return Vec::new();
         }
         let Some(diagram) = &self.diagram else {
@@ -136,12 +154,35 @@ impl Paper {
             .collect()
     }
 
-    /// The box whose name the caret is on, in a picture of boxes: the
-    /// smallest around the words the caret names.
+    /// The box whose name the caret is on, in a picture of boxes. A name
+    /// that names a box picks that box: by the name, else by the box drawn
+    /// where the name's shape is. The middle of a container lies in what it
+    /// holds, so it is never asked. Words that name no box pick the
+    /// smallest box around them.
     pub fn box_at_caret(&self, source: &str, row: usize, col: usize) -> Option<String> {
-        let words = self.place_of(source, row, col)?;
+        let (text, seat) = self.seat_at(source, row, col)?;
         let map = &self.diagram.as_ref()?.drawn.map;
-        let middle = words.center();
+        let (x, y, w, h) = seat.bounds();
+        if let pick::Seat::Shape { .. } = seat {
+            if let Some(place) = map.places.iter().find(|p| p.name == text) {
+                return Some(place.name.clone());
+            }
+            let off = |p: &&omaspec_uml::map::Place| {
+                (p.rect.x - x).abs()
+                    + (p.rect.y - y).abs()
+                    + (p.rect.w - w).abs()
+                    + (p.rect.h - h).abs()
+            };
+            if let Some(place) = map
+                .places
+                .iter()
+                .filter(|p| off(p) <= SAME_BOX)
+                .min_by(|a, b| off(a).total_cmp(&off(b)))
+            {
+                return Some(place.name.clone());
+            }
+        }
+        let middle = Point::new(x + w / 2.0, y + h / 2.0);
         map.places
             .iter()
             .filter(|p| {
@@ -323,16 +364,14 @@ impl canvas::Program<Message> for FoldMarks {
 
     fn mouse_interaction(
         &self,
-        state: &MarkState,
+        _state: &MarkState,
         _bounds: Rectangle,
         _cursor: Cursor,
     ) -> mouse::Interaction {
-        match state.over {
-            Some((index, on_button)) if on_button || self.spots[index].folded => {
-                mouse::Interaction::Pointer
-            }
-            _ => mouse::Interaction::default(),
-        }
+        // A Pointer here levitates the cursor in the stack, and the diagram
+        // canvas under this layer is what publishes the fold. It already
+        // shows the hand where a click would fold or unfold.
+        mouse::Interaction::None
     }
 }
 

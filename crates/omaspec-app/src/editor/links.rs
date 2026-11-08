@@ -323,7 +323,9 @@ impl App {
             from: Some((f.rect, f.view)),
         });
         self.notice = None;
-        self.select(index)
+        let task = self.select(index);
+        self.release_off_trail();
+        task
     }
 
     /// Where the active diagram is on the trail, past its first step.
@@ -364,6 +366,7 @@ impl App {
         };
         self.trail.truncate(index + 1);
         let shown = self.select(opened);
+        self.release_off_trail();
         let key = self.doc().key;
         let out = match from {
             Some((rect, view)) => self

@@ -4166,8 +4166,10 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     // project's name.
     assert_eq!(names(&app), ["shop", "Orders"]);
     assert!(app.trail_view().is_some());
-    // The map keeps the view it had, for a click on its tab.
+    // The map keeps the view it had, for a click on its tab, and the
+    // picture the way back zooms out over.
     assert_eq!(app.docs[0].paper.view, before);
+    assert!(app.docs[0].paper.overview_shown());
 
     // In Orders, the state Checkout leads on.
     show_linked(&mut app);
@@ -4208,8 +4210,10 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     let _ = app.update(Message::BackTo(0));
     assert_eq!(app.doc().path, Some(root.join("system.puml")));
     assert!(app.trail_view().is_none());
-    // Back on the map, it zooms out of Orders to where it was.
+    // Back on the map, it zooms out of Orders to where it was, over the
+    // picture that was kept.
     assert_eq!(app.doc().paper.view, before);
+    assert!(app.doc().paper.overview_shown());
     let _ = std::fs::remove_dir_all(&root);
 }
 

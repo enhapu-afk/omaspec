@@ -3,13 +3,19 @@
 //! whose color tells whether the picture is up to date.
 //!
 //! The last good picture stays while a newer source fails to render. A
-//! new picture fades in over the one before. A state machine or a scenario
+//! new picture fades in over the one before. When the same boxes stand
+//! somewhere else, they glide there and the lines fade out and come back
+//! on the new routes ([`morph`]). A glide already running finishes first.
+//! A state machine or a scenario
 //! can be played in it ([`play`]). The name under the caret lights on the
-//! sheet, in the theme accent, and glides there the way a zoom does. With
-//! Alt, a line can be drawn by hand ([`hand`]), and a box held in place
+//! sheet. The light shrinks to a point, travels, and spreads over the next
+//! place: a box takes it over its shape, and words take a quiet wash
+//! ([`breath`], [`wash`]). With Alt, a line
+//! can be drawn by hand ([`hand`]), and a box held in place
 //! ([`held`]). A container folds to its box ([`fold`]), and the focus on
 //! one box veils all but it and its neighbors ([`focus`]).
 
+mod breath;
 mod canvas;
 mod cards;
 mod find;
@@ -18,10 +24,13 @@ mod fold;
 pub(crate) mod frames;
 mod hand;
 mod held;
+mod light;
+mod morph;
 mod passage;
 mod play;
 mod raster;
 pub(crate) mod view;
+mod wash;
 
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
@@ -56,6 +65,10 @@ pub use view::{Glide, View};
 const RASTER_DELAY: Duration = Duration::from_millis(120);
 /// How long a new picture takes to fade in over the one before.
 const DIAGRAM_FADE: Duration = Duration::from_millis(180);
+/// A fold fades longer, and eases both ways: the picture changes shape.
+const FOLD_FADE: Duration = Duration::from_millis(320);
+/// The same boxes glide to where the new picture put them.
+const MORPH: Duration = Duration::from_millis(400);
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -104,11 +117,61 @@ pub enum Message {
     FocusAt(Point),
 }
 
+/// What a new picture is. A fold eases longer, and a named box stays put
+/// when the view is zoomed. Only renders asked for after the fold, after
+/// request `since`, draw it: the anchor is spent on the first of them,
+/// and the kind stays until the fade of one of them starts.
+enum Change {
+    Edit,
+    Fold { anchor: Option<String>, since: u64 },
+}
+
+/// The pictures on screen when a new diagram arrived, and where they sat.
+struct Previous {
+    /// Where they sat while the new diagram's view was `then`. They move
+    /// as that view does ([`Self::view_at`]).
+    view: View,
+    then: View,
+    size: Size,
+    pictures: Vec<Raster>,
+    /// The named boxes of the picture still on screen.
+    boxes: Vec<morph::Side>,
+    /// Its links and folds, whose marks stay on it.
+    links: Vec<Link>,
+    spots: Vec<fold::Spot>,
+}
+
+impl Previous {
+    /// Where the old pictures sit while the new diagram is seen at `now`:
+    /// a pan, a zoom, a glide or a new pane size moves them as it moves
+    /// the new diagram, so they never stand still under the pointer.
+    fn view_at(&self, now: View) -> View {
+        let ratio = self.then.zoom / self.view.zoom.max(f32::EPSILON);
+        View {
+            zoom: now.zoom / ratio.max(f32::EPSILON),
+            center: self.view.center + (now.center - self.then.center) * ratio,
+            fit: self.view.fit,
+        }
+    }
+}
+
 /// The pictures of the diagram before, fading out under the new one.
 pub struct Fade {
     old: Vec<Raster>,
     /// Goes to `true` as the new picture comes in.
     shown: Animation<bool>,
+    /// Where `old` was on screen, and how big that diagram was.
+    old_view: View,
+    old_size: Size,
+    /// The boxes gliding across, when the new picture moved them.
+    morph: Option<morph::Morph>,
+    /// The picture this glide travels to, taken when the glide starts.
+    /// A later render must not swap it under the boxes.
+    next: Option<Raster>,
+    /// Where that picture sits. A pan or a zoom follows; the fit of a
+    /// newer diagram waits until this glide has ended.
+    new_view: View,
+    new_size: Size,
 }
 
 /// The diagram on screen.
@@ -147,11 +210,16 @@ pub struct Paper {
     detail: Layer,
     /// A new diagram came; its first overview raster starts the fade.
     fresh: bool,
+    /// That overview is in. A glide still on screen finishes before the
+    /// next one starts from it.
+    landed: bool,
     /// Whether the layers' plans are of a map with its pictures
     /// ([`Diagram::pictures`]); a change rasterizes them again.
     on_pictures: bool,
-    /// The pictures on screen when the new diagram came.
-    before: Vec<Raster>,
+    /// The pictures on screen when the new diagram came, until they fade.
+    previous: Option<Previous>,
+    /// The fold waiting to fade. An ordinary edit is [`Change::Edit`].
+    change: Change,
     fade: Option<Fade>,
     /// A state machine or scenario being played.
     play: Option<Play>,
@@ -161,7 +229,7 @@ pub struct Paper {
     /// draws each frame at its own moment.
     clock: Option<Instant>,
     /// The name under the caret, gliding to its place on the sheet.
-    breath: Option<Breath>,
+    breath: Option<breath::Breath>,
     /// The last caret lookup. A highlight sweep that does not move the
     /// caret must not search the sheet again.
     aim: Option<AimMemo>,
@@ -220,8 +288,10 @@ impl Default for Paper {
             overview: Layer::default(),
             detail: Layer::default(),
             fresh: false,
+            landed: false,
             on_pictures: false,
-            before: Vec::new(),
+            previous: None,
+            change: Change::Edit,
             fade: None,
             play: None,
             leaving: None,
@@ -247,44 +317,13 @@ impl Default for Paper {
     }
 }
 
-/// Inputs of the last [`Paper::place_of`], and what it returned.
+/// Inputs of the last caret lookup, and what it returned.
 struct AimMemo {
     source: u64,
     shown: u64,
     row: u32,
     col: u32,
-    place: Option<Rectangle>,
-}
-
-/// The light on the caret's name, on its way from one place and strength
-/// to another. It takes as long as a zoom glide.
-#[derive(Clone, Copy)]
-struct Breath {
-    from: Rectangle,
-    to: Rectangle,
-    start: Instant,
-    from_a: f32,
-    to_a: f32,
-}
-
-impl Breath {
-    /// Where it shows at `now`, and how strongly (0 to 1).
-    fn at(self, now: Instant) -> (Rectangle, f32) {
-        let t = now.saturating_duration_since(self.start).as_secs_f32() / view::GLIDE.as_secs_f32();
-        if t >= 1.0 {
-            return (self.to, self.to_a);
-        }
-        // Quick at first, settling at the end, as a zoom glide.
-        let t = 1.0 - (1.0 - t).powi(3);
-        (
-            mix_rect(self.from, self.to, t),
-            self.from_a + (self.to_a - self.from_a) * t,
-        )
-    }
-
-    fn settled(self, now: Instant) -> bool {
-        now.saturating_duration_since(self.start) >= view::GLIDE
-    }
+    place: Option<breath::Aim>,
 }
 
 /// New pixels of a layer on screen, for [`frames::note`].
@@ -317,22 +356,6 @@ pub fn link_rect(link: &Link) -> Rectangle {
         Point::new(link.rect.x, link.rect.y),
         Size::new(link.rect.w, link.rect.h),
     )
-}
-
-fn mix_rect(from: Rectangle, to: Rectangle, t: f32) -> Rectangle {
-    let mix = |a: f32, b: f32| a + (b - a) * t;
-    Rectangle {
-        x: mix(from.x, to.x),
-        y: mix(from.y, to.y),
-        width: mix(from.width, to.width),
-        height: mix(from.height, to.height),
-    }
-}
-
-/// The same place, within half a pixel: not worth a new glide.
-fn same_place(a: Rectangle, b: Rectangle) -> bool {
-    let close = |p: f32, q: f32| (p - q).abs() < 0.5;
-    close(a.x, b.x) && close(a.y, b.y) && close(a.width, b.width) && close(a.height, b.height)
 }
 
 impl Paper {
@@ -437,11 +460,31 @@ impl Paper {
                         self.play = None;
                     }
                 }
+                let now = Instant::now();
+                let running = self.glide.filter(|glide| !glide.done(now));
+                let on_screen = running.map_or(self.view, |glide| glide.at(now));
+                let old_size = self.diagram.as_ref().map(|d| d.size);
+                let anchor = self.take_anchor(id);
+                let old_center = anchor.as_deref().and_then(|name| self.box_center(name));
+                // Where the picture on screen sits now. It stays there until
+                // the new one is rasterized: fitting at once would jump it.
+                let held_at = match &self.previous {
+                    Some(previous) if self.fresh => previous.view_at(on_screen),
+                    _ => on_screen,
+                };
                 if !self.fresh {
-                    self.before = [self.overview.shown.clone(), self.detail.shown.clone()]
-                        .into_iter()
-                        .flatten()
-                        .collect();
+                    self.previous = Some(Previous {
+                        view: on_screen,
+                        then: on_screen,
+                        size: old_size.unwrap_or(Size::new(1.0, 1.0)),
+                        pictures: [self.overview.shown.clone(), self.detail.shown.clone()]
+                            .into_iter()
+                            .flatten()
+                            .collect(),
+                        boxes: self.diagram.as_ref().map(morph::sides).unwrap_or_default(),
+                        links: self.followable().to_vec(),
+                        spots: self.fold_spots(),
+                    });
                     self.fresh = true;
                 }
                 let size = drawn.tree.size();
@@ -455,13 +498,41 @@ impl Paper {
                 if latest {
                     self.status = Status::InSync;
                 }
-                if self.view.fit {
-                    self.view = View::fitted(self.diagram_size(), self.viewport);
+                // A zoom into a link, or out of it, owns the view.
+                if self.passage.is_none() {
+                    // Where the view was going. A zoom still gliding goes on
+                    // there, to the same place in the new picture.
+                    let mut view = self.view;
+                    if view.fit {
+                        view = View::fitted(self.diagram_size(), self.viewport);
+                    } else if let Some(old_center) = old_center
+                        && let Some(name) = anchor.as_deref()
+                        && let Some(new_center) = self.box_center(name)
+                    {
+                        // The box stays where it was on screen.
+                        view.center += new_center - old_center;
+                    }
+                    self.glide = match running {
+                        Some(glide) if view != self.view => {
+                            Some(glide.toward(view, self.viewport, now))
+                        }
+                        other => other,
+                    };
+                    self.view = view;
                 }
-                // Same plans, new pixels.
+                if let Some(previous) = self.previous.as_mut().filter(|_| self.fresh) {
+                    previous.view = held_at;
+                    previous.then = self.glide.map_or(self.view, |glide| glide.at(now));
+                }
+                // Same plans, new pixels. The overview now on its way is
+                // not the one a glide in flight is travelling to.
                 self.overview.forget();
                 self.detail.forget();
+                self.landed = false;
                 let pixels = self.rasterize(Duration::ZERO);
+                if self.passage.is_some() {
+                    return pixels;
+                }
                 // A container unfolded out of sight: the view glides to it.
                 match self.view_for_unfold() {
                     Some(to) => {
@@ -500,10 +571,7 @@ impl Paper {
                 self.held_detail = Some((seq, raster));
                 Task::none()
             }
-            Message::Overview(seq, raster) => {
-                self.show_overview(seq, raster);
-                Task::none()
-            }
+            Message::Overview(seq, raster) => self.show_overview(seq, raster),
             Message::Pictures(id, tree) => self.pictures_came(id, tree),
             Message::Detail(seq, raster) => {
                 self.show_detail(seq, raster);
@@ -511,6 +579,11 @@ impl Paper {
             }
             Message::Faded => {
                 self.fade = None;
+                if self.fresh && self.landed {
+                    self.fresh = false;
+                    self.landed = false;
+                    self.start_fade(Instant::now());
+                }
                 Task::none()
             }
             Message::Viewport(size) => {
@@ -548,46 +621,56 @@ impl Paper {
                         let middle = Point::new(size.width / 2.0, size.height / 2.0);
                         return self.glide_to(to, middle);
                     }
+                    self.note_view();
                     return self.rasterize(RASTER_DELAY);
                 }
                 self.settle();
                 if self.view.fit {
                     self.refit()
                 } else {
+                    self.note_view();
                     self.rasterize(RASTER_DELAY)
                 }
             }
             Message::ZoomAt(factor, at) => {
+                self.stop_waiting();
                 self.settle();
                 self.view = self.view.zoom_at(factor, at, self.viewport);
+                self.note_view();
                 self.rasterize(RASTER_DELAY)
             }
             Message::ZoomStep(factor, at) => {
+                self.stop_waiting();
                 let to = self.view.zoom_at(factor, at, self.viewport);
                 self.glide_to(to, at)
             }
             Message::Glided => match self.glide {
                 Some(glide) if glide.done(Instant::now()) => {
                     self.glide = None;
-                    self.show_held();
+                    self.note_view();
+                    let held = self.show_held();
                     // Out of a link, the diagram it leads to has gone; into
                     // one, the veil covers this diagram until its tab shows.
                     if self.inward() {
-                        return Task::none();
+                        return held;
                     }
                     self.passage = None;
-                    self.rasterize(Duration::ZERO)
+                    Task::batch([held, self.rasterize(Duration::ZERO)])
                 }
                 _ => Task::none(),
             },
             Message::Pan(delta) => {
+                self.stop_waiting();
                 self.settle();
                 self.view = self.view.pan(delta);
+                self.note_view();
                 self.rasterize(RASTER_DELAY)
             }
             Message::Pinch { factor, at, pan } => {
+                self.stop_waiting();
                 self.settle();
                 self.view = self.view.pinch(factor, at, pan, self.viewport);
+                self.note_view();
                 self.rasterize(RASTER_DELAY)
             }
             Message::Fit => self.fit(),
@@ -858,7 +941,7 @@ impl Paper {
             return;
         }
         self.found = false;
-        let place = self.place_of(
+        let place = self.aim_at(
             source,
             usize::try_from(row).unwrap_or(usize::MAX),
             usize::try_from(col).unwrap_or(usize::MAX),
@@ -878,19 +961,18 @@ impl Paper {
         self.breath.is_some_and(|breath| !breath.settled(now))
     }
 
-    /// The rectangle the light is gliding toward, in diagram units, while
+    /// The rectangle the light is spreading toward, in diagram units, while
     /// it is coming in or holding.
     #[cfg(test)]
     pub fn breath_target(&self) -> Option<Rectangle> {
-        self.breath
-            .filter(|breath| breath.to_a > 0.0)
-            .map(|breath| breath.to)
+        self.breath.and_then(|breath| breath.target())
     }
 
     /// The box of the label at `row`/`col`: the smallest shape around that
     /// occurrence. A comment line draws nothing. When the sheet draws fewer
     /// copies than the source mentions (a lifeline's head and its foot), the
     /// later mention keeps the last copy.
+    #[cfg(test)]
     fn place_of(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
         let tree = self.shown_tree()?;
         let texts = pick::texts(tree);
@@ -907,69 +989,42 @@ impl Paper {
         Some(Rectangle::new(Point::new(x, y), Size::new(w, h)))
     }
 
-    /// Moves the light to `target`, or fades it out. The same place does
-    /// not restart the glide. From nothing it fades in where it is going;
-    /// from a light already showing it glides across.
-    fn set_breath(&mut self, target: Option<Rectangle>) {
-        let now = Instant::now();
-        match target {
-            Some(to) => {
-                let Some(breath) = self.breath else {
-                    self.breath = Some(Breath {
-                        from: to,
-                        to,
-                        start: now,
-                        from_a: 0.0,
-                        to_a: 1.0,
-                    });
-                    return;
-                };
-                if breath.to_a == 1.0 && same_place(breath.to, to) {
-                    return;
-                }
-                let (shown, alpha) = breath.at(now);
-                if alpha > 0.05 {
-                    self.breath = Some(Breath {
-                        from: shown,
-                        to,
-                        start: now,
-                        from_a: alpha,
-                        to_a: 1.0,
-                    });
-                } else {
-                    self.breath = Some(Breath {
-                        from: to,
-                        to,
-                        start: now,
-                        from_a: 0.0,
-                        to_a: 1.0,
-                    });
-                }
-            }
-            None => {
-                let Some(breath) = self.breath else {
-                    return;
-                };
-                if breath.to_a == 0.0 {
-                    if breath.settled(now) {
-                        self.breath = None;
-                    }
-                    return;
-                }
-                let (shown, alpha) = breath.at(now);
-                if alpha <= 0.01 {
-                    self.breath = None;
-                    return;
-                }
-                self.breath = Some(Breath {
-                    from: shown,
-                    to: shown,
-                    start: now,
-                    from_a: alpha,
-                    to_a: 0.0,
-                });
-            }
+    /// The drawn label at `row`/`col`, and where it sits: on the box it
+    /// names, or as words of their own.
+    pub(super) fn seat_at(
+        &self,
+        source: &str,
+        row: usize,
+        col: usize,
+    ) -> Option<(String, pick::Seat)> {
+        let tree = self.shown_tree()?;
+        let texts = pick::texts(tree);
+        let (text, nth) = locate::aimed(source, row, col, texts.iter().map(String::as_str))?;
+        let copies = texts.iter().filter(|drawn| drawn.as_str() == text).count();
+        if copies == 0 {
+            return None;
         }
+        let nth = nth.min(copies - 1);
+        let seat = pick::seat(tree, &text, nth)?;
+        let (_, _, w, h) = seat.bounds();
+        (w > 0.0 && h > 0.0).then_some((text, seat))
+    }
+
+    /// The light for the label at `row`/`col`: the box around it, or the
+    /// words themselves when they sit on a line.
+    fn aim_at(&self, source: &str, row: usize, col: usize) -> Option<breath::Aim> {
+        let (_, seat) = self.seat_at(source, row, col)?;
+        let (x, y, w, h) = seat.bounds();
+        let rect = Rectangle::new(Point::new(x, y), Size::new(w, h));
+        Some(match seat {
+            pick::Seat::Shape { .. } => breath::Aim::shape(rect),
+            pick::Seat::Words { ink, ground, .. } => breath::Aim::words(rect, ink, ground),
+        })
+    }
+
+    /// Moves the light to `target`, or lets it go out.
+    fn set_breath(&mut self, target: Option<breath::Aim>) {
+        self.breath = breath::Breath::go(self.breath, target, Instant::now());
     }
 
     /// The source line of the play's step whose light set off last by
@@ -987,26 +1042,100 @@ impl Paper {
         self.playing() && self.play.as_ref().is_some_and(Play::line_waiting)
     }
 
+    /// The box a fold should keep on screen, once, for the answer to
+    /// request `id`. A render asked for before the fold does not draw it,
+    /// and leaves the anchor to the one that does. The fold itself stays
+    /// until [`Self::start_fade`] reads it.
+    fn take_anchor(&mut self, id: u64) -> Option<String> {
+        match &mut self.change {
+            Change::Fold { anchor, since } if id > *since => anchor.take(),
+            _ => None,
+        }
+    }
+
     /// Fades from the pictures before to the new diagram's overview. A
     /// detail of the diagram before goes with them; the new one comes sharp
-    /// once it is rasterized.
+    /// once it is rasterized. When a box moved, the boxes glide for
+    /// [`MORPH`]. Otherwise a fold eases longer than an edit.
     fn start_fade(&mut self, now: Instant) {
-        let old = std::mem::take(&mut self.before);
-        if self
-            .detail
-            .shown
-            .as_ref()
-            .is_some_and(|detail| old.iter().any(|o| o.handle.id() == detail.handle.id()))
-        {
+        // A picture asked for before the fold leaves it to the one after.
+        let fold = match self.change {
+            Change::Fold { since, .. } if self.shown <= since => None,
+            Change::Fold { .. } => Some(true),
+            Change::Edit => Some(false),
+        };
+        if fold.is_some() {
+            self.change = Change::Edit;
+        }
+        let fold = fold.unwrap_or(false);
+        let previous = self.previous.take();
+        let seen = self.glide.map_or(self.view, |glide| glide.at(now));
+        let (old, old_view, old_size, old_boxes) = match previous {
+            Some(previous) => {
+                let view = previous.view_at(seen);
+                (previous.pictures, view, previous.size, previous.boxes)
+            }
+            None => (Vec::new(), self.view, self.diagram_size(), Vec::new()),
+        };
+        if self.detail.shown.as_ref().is_some_and(|detail| {
+            old.iter()
+                .any(|picture| picture.handle.id() == detail.handle.id())
+        }) {
             self.detail.shown = None;
         }
+        let morph = self.morph_of(&old, &old_boxes, old_size);
+        let (duration, easing) = if morph.is_some() {
+            (MORPH, Easing::EaseInOut)
+        } else if fold {
+            (FOLD_FADE, Easing::EaseInOut)
+        } else {
+            (DIAGRAM_FADE, Easing::EaseOut)
+        };
         self.fade = Some(Fade {
             old,
+            old_view,
+            old_size,
+            morph,
+            next: self.overview.shown.clone(),
+            new_view: self.view,
+            new_size: self.diagram_size(),
             shown: Animation::new(false)
-                .duration(DIAGRAM_FADE)
-                .easing(Easing::EaseOut)
+                .duration(duration)
+                .easing(easing)
                 .go(true, now),
         });
+    }
+
+    /// A pan or a zoom while a glide runs follows the pointer. A stepped
+    /// zoom still on its way is sampled from that glide, so it is left
+    /// alone until it arrives.
+    fn note_view(&mut self) {
+        if self.glide.is_some() {
+            return;
+        }
+        self.pin_morph(self.view);
+    }
+
+    fn pin_morph(&mut self, view: View) {
+        if let Some(fade) = self.fade.as_mut().filter(|fade| fade.morph.is_some()) {
+            fade.new_view = view;
+        }
+    }
+
+    /// The glide when the new picture moved a box that was already there.
+    /// A passage, a box held by the pointer, or a picture with nothing on
+    /// screen before it keeps the short fade.
+    fn morph_of(
+        &self,
+        old: &[Raster],
+        old_boxes: &[morph::Side],
+        old_size: Size,
+    ) -> Option<morph::Morph> {
+        if old.is_empty() || self.passage.is_some() || self.grab.is_some() {
+            return None;
+        }
+        let diagram = self.diagram.as_ref()?;
+        morph::plan(old_boxes, &morph::sides(diagram), old_size, diagram.size)
     }
 
     /// The label drawn at `at` (a point of the pane), with the source the
@@ -1073,6 +1202,7 @@ impl Paper {
             area,
             linked: landing,
             inward: true,
+            goal: None,
         });
         let task = self.dive(to);
         (task, self.glide.map_or(Duration::ZERO, |g| g.duration()))
@@ -1106,6 +1236,7 @@ impl Paper {
             None => self.glide = None,
         }
         self.view = to;
+        self.note_view();
     }
 
     /// Ends a zoom into a link at `view`: the diagram it leads to is shown
@@ -1114,7 +1245,8 @@ impl Paper {
         self.glide = None;
         self.passage = None;
         self.view = view;
-        self.show_held();
+        self.note_view();
+        let _ = self.show_held();
     }
 
     /// The diagram as the pane shows it, for a zoom into a link to it or
@@ -1151,15 +1283,26 @@ impl Paper {
             to
         };
         self.settle();
-        self.view = match &from {
+        let start = match &from {
             Some(linked) => passage::view_holding(area, linked.size, linked.place, self.viewport),
             None => View::showing(area, self.viewport),
         };
+        // No picture yet: the veil stays up, and the zoom starts when it
+        // arrives. An empty pane under a falling veil is a black frame.
+        // `goal` set means that wait.
+        let goal = (from.is_some() && self.overview.shown.is_none()).then_some(to);
+        self.view = start;
+        self.note_view();
         self.passage = from.map(|linked| Passage {
             area,
             linked: Some(linked),
             inward: false,
+            goal,
         });
+        if goal.is_some() {
+            self.glide = None;
+            return self.rasterize(Duration::ZERO);
+        }
         self.dive(to)
     }
 
@@ -1169,11 +1312,13 @@ impl Paper {
         self.view = to;
         self.glide = Some(Glide::dive(from, to, self.viewport, now));
         // Into a link, the end lies under the veil: no sharp pixels for
-        // it, which would come in mid-way and cost a frame.
+        // it, which would come in mid-way and cost a frame. Out of one,
+        // the picture already on screen stays until the glide ends
+        // ([`Self::holds`]), and the end's pixels are asked for at once.
         if self.inward() {
             return Task::none();
         }
-        self.rasterize(RASTER_DELAY)
+        self.rasterize(Duration::ZERO)
     }
 
     /// Whether a zoom into a link runs, or has arrived.
@@ -1222,7 +1367,7 @@ impl Paper {
                 self.passage = None;
             }
         }
-        self.show_held();
+        let _ = self.show_held();
     }
 
     /// Whether pixels that come now wait: the view glides, and a picture
@@ -1232,23 +1377,88 @@ impl Paper {
     }
 
     /// Shows the pixels that came while the view glided.
-    fn show_held(&mut self) {
-        if let Some((seq, raster)) = self.held_overview.take() {
-            self.show_overview(seq, raster);
-        }
+    fn show_held(&mut self) -> Task<Message> {
+        let overview = self
+            .held_overview
+            .take()
+            .map(|(seq, raster)| self.show_overview(seq, raster));
         if let Some((seq, raster)) = self.held_detail.take() {
             self.show_detail(seq, raster);
         }
+        overview.unwrap_or_else(Task::none)
     }
 
-    fn show_overview(&mut self, seq: u64, raster: Option<Raster>) {
+    fn show_overview(&mut self, seq: u64, raster: Option<Raster>) -> Task<Message> {
+        let failed = raster.is_none() && self.overview.is_latest(seq);
         let shown = self.overview.receive(seq, raster);
         if shown {
             frames::note(|| pixels("overview", self.overview.asked));
         }
-        if shown && std::mem::take(&mut self.fresh) {
-            self.start_fade(Instant::now());
+        if failed {
+            return self.no_overview();
         }
+        if shown && self.fresh {
+            self.landed = true;
+            // A glide keeps its own picture until it ends. A short fade
+            // still gives way at once, as it always has.
+            let morphing = self.fade.as_ref().is_some_and(|fade| fade.morph.is_some());
+            if !morphing {
+                self.fresh = false;
+                self.landed = false;
+                self.start_fade(Instant::now());
+            }
+        }
+        self.resume_outward()
+    }
+
+    /// The overview asked for last could not be drawn. What waited for it
+    /// waits no longer: the picture still on screen gives way to the new
+    /// diagram's view, and a zoom out of a link lifts its veil where it was
+    /// going.
+    fn no_overview(&mut self) -> Task<Message> {
+        if self.fresh {
+            self.fresh = false;
+            self.landed = false;
+            self.previous = None;
+        }
+        self.stop_waiting();
+        Task::none()
+    }
+
+    /// A zoom out of a link that waits for this diagram's picture gives
+    /// up: it ends where it was going, and the veil lifts. A pan or a zoom
+    /// asks for that too; under the veil it would move nothing in sight.
+    fn stop_waiting(&mut self) {
+        let waiting = self
+            .passage
+            .as_ref()
+            .is_some_and(|passage| !passage.inward && passage.goal.is_some());
+        if !waiting {
+            return;
+        }
+        if let Some(goal) = self.passage.take().and_then(|passage| passage.goal) {
+            self.view = goal;
+            self.glide = None;
+        }
+    }
+
+    /// A zoom out that waited for this diagram's picture can leave now.
+    fn resume_outward(&mut self) -> Task<Message> {
+        let waiting = self
+            .passage
+            .as_ref()
+            .is_some_and(|passage| passage.goal.is_some() && !passage.inward);
+        if !waiting || self.overview.shown.is_none() {
+            return Task::none();
+        }
+        let Some(to) = self
+            .passage
+            .as_mut()
+            .and_then(|passage| passage.goal.take())
+        else {
+            return Task::none();
+        };
+        self.dive(to)
     }
 
     fn show_detail(&mut self, seq: u64, raster: Option<Raster>) {
@@ -1265,6 +1475,7 @@ impl Paper {
             return self.refit();
         }
         self.view = view;
+        self.note_view();
         self.rasterize(RASTER_DELAY)
     }
 
@@ -1299,6 +1510,7 @@ impl Paper {
             return Task::none();
         }
         self.view = View::fitted(self.diagram_size(), self.viewport);
+        self.note_view();
         self.rasterize(Duration::ZERO)
     }
 
@@ -1312,14 +1524,44 @@ impl Paper {
         self.overview.clear();
         self.detail.clear();
         self.fresh = false;
-        self.before.clear();
+        self.landed = false;
+        self.previous = None;
         self.fade = None;
+        self.change = Change::Edit;
     }
 
     fn diagram_size(&self) -> Size {
         self.diagram
             .as_ref()
             .map_or(Size::new(1.0, 1.0), |d| d.size)
+    }
+
+    /// The middle of the box `name`, in the diagram's units.
+    fn box_center(&self, name: &str) -> Option<Point> {
+        let place = self
+            .diagram
+            .as_ref()?
+            .drawn
+            .map
+            .places
+            .iter()
+            .find(|place| place.name == name)?;
+        Some(Point::new(
+            place.rect.x + place.rect.w / 2.0,
+            place.rect.y + place.rect.h / 2.0,
+        ))
+    }
+
+    /// The view the picture on screen is still drawn at, while a new
+    /// diagram waits for its first raster. Fitting has already moved
+    /// [`Self::view`]; drawing with that would jump the old picture.
+    fn held_picture(&self) -> Option<&Previous> {
+        if !self.fresh || self.fade.is_some() || self.passage.is_some() {
+            return None;
+        }
+        self.previous
+            .as_ref()
+            .filter(|previous| !previous.pictures.is_empty())
     }
 
     /// Rasterizes what the view needs sharp, after `delay` (see
@@ -1442,10 +1684,27 @@ impl Paper {
             (None, _, Some(_)) => Some(Motion::Fade),
             (None, _, None) => None,
         };
-        let spots = if self.overview.shown.is_some() {
-            self.fold_spots()
+        // While the new raster is on its way, the marks of the picture still
+        // on screen stay on it, and move with it. Nothing there is a click:
+        // the boxes a click would find are the new diagram's.
+        let held = self.held_picture();
+        let (links, spots, mark_view, mark_glide) = match held {
+            Some(previous) => (
+                previous.links.as_slice(),
+                previous.spots.clone(),
+                previous.view_at(self.view),
+                self.glide
+                    .map(|glide| glide.mapped(|view| previous.view_at(view))),
+            ),
+            None if self.overview.shown.is_some() => {
+                (self.followable(), self.fold_spots(), self.view, self.glide)
+            }
+            None => (self.followable(), Vec::new(), self.view, self.glide),
+        };
+        let (click_links, click_folds) = if held.is_some() {
+            (&[][..], Vec::new())
         } else {
-            Vec::new()
+            (links, spots.clone())
         };
         let canvas: Element<'_, Message> = Canvas::new(
             Timed::new(canvas::DiagramCanvas {
@@ -1453,6 +1712,7 @@ impl Paper {
                 overview: self.overview.shown.as_ref(),
                 detail: self.detail.shown.as_ref(),
                 fade: self.fade.as_ref(),
+                previous: held,
                 view: self.view,
                 glide: self.glide,
                 background: ui::color(p.background),
@@ -1466,8 +1726,8 @@ impl Paper {
                     .as_ref()
                     .map(hand::Hand::cursor)
                     .or(self.grab.as_ref().map(held::Grab::cursor)),
-                links: self.followable(),
-                folds: spots.clone(),
+                links: click_links,
+                folds: click_folds,
                 focusing: self.folding && !self.document && self.play.is_none(),
             })
             .driving(motion),
@@ -1475,11 +1735,11 @@ impl Paper {
         .width(Length::Fill)
         .height(Length::Fill)
         .into();
-        let marks = (!self.followable().is_empty() && self.overview.shown.is_some()).then(|| {
+        let marks = (!links.is_empty() && self.overview.shown.is_some()).then(|| {
             Canvas::new(Timed::new(canvas::LinkMarks {
-                links: self.followable(),
-                view: self.view,
-                glide: self.glide,
+                links,
+                view: mark_view,
+                glide: mark_glide,
                 color: ui::color(p.accent),
                 scale: self.scale_factor,
             }))
@@ -1490,8 +1750,8 @@ impl Paper {
         let folds = (!spots.is_empty()).then(|| {
             Canvas::new(Timed::new(fold::FoldMarks {
                 spots,
-                view: self.view,
-                glide: self.glide,
+                view: mark_view,
+                glide: mark_glide,
                 color: ui::color(p.accent),
                 paper: ui::color(p.background),
                 scale: self.scale_factor,
@@ -1562,6 +1822,7 @@ impl Paper {
                 glide: self.glide,
                 breath,
                 color: ui::color(p.accent),
+                paper: ui::color(p.background),
                 scale: self.scale_factor,
             }))
             .width(Length::Fill)
@@ -2392,6 +2653,27 @@ end
         assert_ne!((web.x, web.y), (user.x, user.y));
         let message = same(&paper, sequence, 4, "open", "page");
         assert_ne!((message.x, message.y), (user.x, user.y));
+        assert_eq!(
+            paper
+                .aim_at(sequence, 2, at(sequence, 2, "Web"))
+                .map(|aim| aim.mark),
+            Some(super::breath::Mark::Shape),
+            "a participant is a box"
+        );
+        assert_eq!(
+            paper
+                .aim_at(sequence, 3, at(sequence, 3, "User"))
+                .map(|aim| aim.mark),
+            Some(super::breath::Mark::Words),
+            "an actor's name sits under the figure"
+        );
+        assert_eq!(
+            paper
+                .aim_at(sequence, 4, at(sequence, 4, "open"))
+                .map(|aim| aim.mark),
+            Some(super::breath::Mark::Words),
+            "a message glows as words"
+        );
         // The alias on the message still names the participant.
         let mention = paper.place_of(sequence, 4, at(sequence, 4, "Web")).unwrap();
         assert!(mention.y >= web.y);
@@ -2424,6 +2706,56 @@ Request --> Pick : next track
         assert_ne!((pick.x, pick.y), (request.x, request.y));
         let track = same(&paper, state, 3, "next", "track");
         assert_ne!((track.x, track.y), (request.x, request.y));
+        assert_eq!(
+            paper
+                .aim_at(state, 1, at(state, 1, "Request"))
+                .map(|aim| aim.mark),
+            Some(super::breath::Mark::Shape),
+            "a state is a box"
+        );
+        assert_eq!(
+            paper
+                .aim_at(state, 3, at(state, 3, "next"))
+                .map(|aim| aim.mark),
+            Some(super::breath::Mark::Words),
+            "a label on a line glows as words"
+        );
+
+        // A transition inside a composite sits in that box. The light stays
+        // on the words.
+        let nested = "\
+@startuml
+left to right direction
+state One
+state Two
+state Three
+state Four
+state Playing {
+  [*] --> Buffering
+  Buffering --> Streaming : buffer full
+  Streaming --> Buffering : network slow
+}
+@enduml
+";
+        show_source(&mut paper, nested, Language::PlantUml);
+        let playing = paper
+            .aim_at(nested, 6, at(nested, 6, "Playing"))
+            .expect("Playing");
+        assert_eq!(playing.mark, super::breath::Mark::Shape);
+        let full = paper
+            .aim_at(nested, 8, at(nested, 8, "buffer"))
+            .expect("buffer full");
+        assert_eq!(
+            full.mark,
+            super::breath::Mark::Words,
+            "buffer full glows, it does not take Playing"
+        );
+        assert!(full.rect.width < playing.rect.width * 0.8);
+        assert!(full.rect.height < playing.rect.height * 0.5);
+        let slow = paper
+            .aim_at(nested, 9, at(nested, 9, "network"))
+            .expect("network slow");
+        assert_eq!(slow.mark, super::breath::Mark::Words);
 
         let activity = "\
 @startuml
@@ -2450,6 +2782,20 @@ stop
         assert_ne!((guard.x, guard.y), (yes.x, yes.y));
         let publish = same(&paper, activity, 4, "Publish", "packages");
         assert_ne!((publish.x, publish.y), (merge.x, merge.y));
+        assert_eq!(
+            paper
+                .aim_at(activity, 2, at(activity, 2, "Merge"))
+                .map(|aim| aim.mark),
+            Some(super::breath::Mark::Shape),
+            "an activity is a box"
+        );
+        assert_eq!(
+            paper
+                .aim_at(activity, 3, at(activity, 3, "yes"))
+                .map(|aim| aim.mark),
+            Some(super::breath::Mark::Words),
+            "a branch label glows as words"
+        );
 
         let structure = "\
 @startuml
@@ -2533,29 +2879,34 @@ block Filter \"Low pass\" {
         let mut paper = Paper::default();
         let here = Rectangle::new(Point::new(10.0, 20.0), Size::new(30.0, 40.0));
         let there = Rectangle::new(Point::new(80.0, 20.0), Size::new(30.0, 40.0));
-        paper.set_breath(Some(here));
+        paper.set_breath(Some(super::breath::Aim::shape(here)));
         assert_eq!(paper.breath_target(), Some(here));
         let started = paper.breath.unwrap().start;
-        paper.set_breath(Some(here));
+        paper.set_breath(Some(super::breath::Aim::shape(here)));
         assert_eq!(paper.breath.unwrap().start, started);
 
-        // Still invisible, so a new place fades in where it is going.
-        paper.set_breath(Some(there));
+        // Still invisible, so a new place spreads where it is going.
+        paper.set_breath(Some(super::breath::Aim::shape(there)));
         let breath = paper.breath.unwrap();
+        assert!(!breath.travels);
         assert_eq!(breath.from, there);
         assert_eq!(breath.to, there);
         assert_eq!(breath.from_a, 0.0);
 
         let now = Instant::now();
         paper.breath.as_mut().unwrap().start = now - std::time::Duration::from_millis(80);
-        let (_, alpha) = paper.breath.unwrap().at(now);
-        // Halfway, eased: 1 - (1 - 0.5)³.
-        assert!((alpha - 0.875).abs() < 0.02, "{alpha}");
+        let shown = paper.breath.unwrap().at(now);
+        // 80 ms of a 220 ms arrival: quick at first, 1 - (1 - 80/220)³.
+        assert!(
+            (shown.alpha - 0.74).abs() < 0.05 && (shown.spread - 0.74).abs() < 0.05,
+            "{shown:?}"
+        );
 
         paper.breath.as_mut().unwrap().start =
-            now - (super::view::GLIDE + std::time::Duration::from_millis(20));
-        paper.set_breath(Some(here));
+            now - (super::breath::ARRIVE + std::time::Duration::from_millis(20));
+        paper.set_breath(Some(super::breath::Aim::shape(here)));
         let breath = paper.breath.unwrap();
+        assert!(breath.travels);
         assert!((breath.from.x - there.x).abs() < 0.5, "{:?}", breath.from);
         assert_eq!(breath.to, here);
         assert!(breath.from_a > 0.9, "{}", breath.from_a);
@@ -2563,13 +2914,12 @@ block Filter \"Low pass\" {
         paper.set_breath(None);
         assert!(paper.breath_target().is_none());
         let leaving = paper.breath.unwrap();
-        assert_eq!(leaving.to_a, 0.0);
         assert!(paper.breath_moving(Instant::now()));
         paper.set_breath(None);
         assert_eq!(paper.breath.unwrap().start, leaving.start);
 
         paper.breath.as_mut().unwrap().start =
-            Instant::now() - (super::view::GLIDE + std::time::Duration::from_millis(20));
+            Instant::now() - (super::breath::LEAVE + std::time::Duration::from_millis(20));
         paper.set_breath(None);
         assert!(paper.breath.is_none());
     }
@@ -2675,6 +3025,350 @@ block Filter \"Low pass\" {
         // The same size again changes nothing.
         let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
         assert_eq!(paper.glide, Some(glide));
+    }
+
+    #[test]
+    fn a_new_picture_stays_where_it_was_until_it_fades() {
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+        show_source(
+            &mut paper,
+            "@startuml\n[*] --> A\n@enduml\n",
+            Language::PlantUml,
+        );
+        paper.deliver_overview();
+        let _ = paper.update(Message::Faded);
+        let kept = paper.view;
+        show_source(
+            &mut paper,
+            "@startuml\n[*] --> A\nA --> B\nB --> C\nC --> D\nD --> E\n@enduml\n",
+            Language::PlantUml,
+        );
+        // Fitted already, and the old picture is still drawn at `kept`.
+        assert_eq!(
+            paper.held_picture().map(|held| held.view_at(paper.view)),
+            Some(kept)
+        );
+        assert!(paper.fading().is_none());
+        paper.deliver_overview();
+        let fade = paper.fade.as_ref().expect("the new picture fades in");
+        assert_eq!(fade.old_view, kept);
+        assert!(fade.morph.is_some(), "the boxes moved, so they glide");
+        let left = fade.shown.remaining(Instant::now());
+        assert!(
+            left > Duration::from_millis(350) && left < Duration::from_millis(450),
+            "the boxes glide in {left:?}"
+        );
+        assert!(paper.held_picture().is_none());
+    }
+
+    #[test]
+    fn the_same_layout_keeps_the_short_fade() {
+        let source = "@startuml\n[*] --> A\nA --> B\n@enduml\n";
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+        show_source(&mut paper, source, Language::PlantUml);
+        paper.deliver_overview();
+        let _ = paper.update(Message::Faded);
+        show_source(&mut paper, source, Language::PlantUml);
+        paper.deliver_overview();
+        let fade = paper.fade.as_ref().expect("a new raster still fades");
+        assert!(fade.morph.is_none(), "the boxes did not move");
+        let left = fade.shown.remaining(Instant::now());
+        assert!(
+            left < Duration::from_millis(200),
+            "the same layout fades in {left:?}"
+        );
+    }
+
+    #[test]
+    fn the_caret_on_a_containers_name_is_the_container() {
+        let at = |source: &str, row: usize, word: &str| {
+            let line = source.split('\n').nth(row).unwrap();
+            line.find(word).unwrap()
+        };
+        let cases = [
+            (
+                "@startuml\npackage Shop {\n  class Cart\n}\n@enduml\n",
+                Language::PlantUml,
+                1,
+                "Shop",
+            ),
+            (
+                "@startuml\nstate Playing {\n  state Buffering\n}\n@enduml\n",
+                Language::PlantUml,
+                1,
+                "Playing",
+            ),
+            (
+                "flowchart LR\n  subgraph Shop\n    Cart\n  end\n",
+                Language::Mermaid,
+                1,
+                "Shop",
+            ),
+        ];
+        for (source, language, row, name) in cases {
+            let mut paper = Paper::default();
+            show_source(&mut paper, source, language);
+            let col = at(source, row, name);
+            assert_eq!(
+                paper.box_at_caret(source, row, col).as_deref(),
+                Some(name),
+                "{source}"
+            );
+        }
+        // What the container holds is still its own box.
+        let source = "@startuml\npackage Shop {\n  class Cart\n}\n@enduml\n";
+        let mut paper = Paper::default();
+        show_source(&mut paper, source, Language::PlantUml);
+        assert_eq!(
+            paper
+                .box_at_caret(source, 2, at(source, 2, "Cart"))
+                .as_deref(),
+            Some("Cart")
+        );
+    }
+
+    #[test]
+    fn a_fold_fades_and_a_zoomed_box_stays_put() {
+        let open = "@startuml\nstate Idle\nstate Brewing {\n  state Grind\n  state Pour\n}\nIdle --> Brewing\n@enduml\n";
+        let folded = "@startuml\nstate Idle\nstate Brewing {\n  state Grind\n  state Pour\n}\nIdle --> Brewing\n' fold (Omaspec) Brewing\n@enduml\n";
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+        show_source(&mut paper, open, Language::PlantUml);
+        paper.deliver_overview();
+        let _ = paper.update(Message::Faded);
+        let _ = paper.update(Message::ZoomAt(2.0, Point::new(400.0, 300.0)));
+        let before = paper.screen_of_box("Brewing");
+        let open_box = paper.box_center("Brewing").expect("Brewing");
+        paper.set_fold("Brewing", true);
+        show_source(&mut paper, folded, Language::PlantUml);
+        let folded_box = paper.box_center("Brewing").expect("Brewing folded");
+        assert!(
+            folded_box.distance(open_box) > 1.0
+                || paper.diagram_size().height + 1.0
+                    < paper
+                        .previous
+                        .as_ref()
+                        .map(|p| p.size.height)
+                        .unwrap_or(1.0),
+            "folding Brewing changed nothing"
+        );
+        let after = paper.screen_of_box("Brewing");
+        assert!(
+            (after.x - before.x).abs() < 1.5 && (after.y - before.y).abs() < 1.5,
+            "the box left the screen: {before:?} -> {after:?}"
+        );
+        assert!(!paper.view.fit);
+        paper.deliver_overview();
+        let fade = paper.fade.as_ref().expect("the fold fades");
+        assert!(!fade.old.is_empty());
+        assert!(fade.morph.is_some(), "folding moves the boxes");
+        let left = fade.shown.remaining(Instant::now());
+        assert!(
+            left > Duration::from_millis(280),
+            "a fold fades longer, {left:?}"
+        );
+    }
+
+    #[test]
+    fn a_glide_finishes_before_the_next_one_starts() {
+        let first = "@startuml\n[*] --> A\n@enduml\n";
+        let mid = "@startuml\n[*] --> A\nA --> B\nB --> C\nC --> D\nD --> E\n@enduml\n";
+        let last =
+            "@startuml\n[*] --> A\nA --> B\nB --> C\nC --> D\nD --> E\nE --> F\nF --> G\n@enduml\n";
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+        show_source(&mut paper, first, Language::PlantUml);
+        paper.deliver_overview();
+        let _ = paper.update(Message::Faded);
+
+        show_source(&mut paper, mid, Language::PlantUml);
+        let mid_size = paper.diagram_size();
+        paper.deliver_overview();
+        let fade = paper.fade.as_ref().expect("the first glide");
+        assert!(fade.morph.is_some());
+        let first_size = fade.old_size;
+        let pinned = fade.new_size;
+        assert_eq!(pinned, mid_size);
+
+        // A newer diagram arrives while that glide is still going.
+        show_source(&mut paper, last, Language::PlantUml);
+        paper.deliver_overview();
+        let fade = paper.fade.as_ref().expect("the glide in flight");
+        assert_eq!(fade.old_size, first_size);
+        assert_eq!(fade.new_size, pinned);
+
+        let _ = paper.update(Message::Faded);
+        let fade = paper
+            .fade
+            .as_ref()
+            .expect("the next glide starts where the last one landed");
+        assert_eq!(fade.old_size, mid_size);
+        assert_eq!(fade.new_size, paper.diagram_size());
+    }
+
+    #[test]
+    fn the_way_back_waits_until_the_diagram_has_a_picture() {
+        let door =
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+        show_source(&mut paper, door, Language::PlantUml);
+        assert!(paper.overview.shown.is_none());
+        let area = Rectangle::new(Point::new(10.0, 10.0), Size::new(40.0, 20.0));
+        let back = paper.view;
+        let from = Showing {
+            size: Size::new(200.0, 100.0),
+            place: Rectangle::new(Point::new(40.0, 30.0), Size::new(80.0, 40.0)),
+            picture: None,
+        };
+        let _ = paper.zoom_out_of(area, back, Some(from));
+        assert!(paper.glide.is_none(), "no glide over an empty pane");
+        let passage = paper.passage.as_ref().expect("waiting to leave");
+        assert!(passage.goal.is_some());
+        assert_eq!(passage.shown(0.2), 1.0);
+        paper.deliver_overview();
+        let glide = paper
+            .glide
+            .expect("the way back starts once the picture is in");
+        assert!(paper.passage.as_ref().unwrap().goal.is_none());
+        assert_eq!(glide.at(Instant::now() + glide.duration()), back);
+    }
+
+    #[test]
+    fn the_way_back_stops_waiting_for_a_pan_or_a_picture_that_failed() {
+        let door = "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n";
+        let area = Rectangle::new(Point::new(10.0, 10.0), Size::new(40.0, 20.0));
+        let from = || Showing {
+            size: Size::new(200.0, 100.0),
+            place: Rectangle::new(Point::new(40.0, 30.0), Size::new(80.0, 40.0)),
+            picture: None,
+        };
+        let waiting = || {
+            let mut paper = Paper::default();
+            let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+            show_source(&mut paper, door, Language::PlantUml);
+            let back = paper.view;
+            let _ = paper.zoom_out_of(area, back, Some(from()));
+            assert!(paper.passage.as_ref().unwrap().goal.is_some());
+            (paper, back)
+        };
+        // A pan lifts the veil where the way back was going.
+        let (mut paper, back) = waiting();
+        let _ = paper.update(Message::Pan(Vector::new(5.0, 0.0)));
+        assert!(paper.passage.is_none());
+        assert!((paper.view.zoom - back.zoom).abs() < 1e-4);
+        // A picture that could not be drawn does too.
+        let (mut paper, back) = waiting();
+        let seq = paper.overview.seq();
+        let _ = paper.update(Message::Overview(seq, None));
+        assert!(paper.passage.is_none(), "the veil stays up for nothing");
+        assert_eq!(paper.view, back);
+    }
+
+    #[test]
+    fn the_picture_held_for_the_next_one_moves_with_the_view() {
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+        show_source(
+            &mut paper,
+            "@startuml\n[*] --> A\n@enduml\n",
+            Language::PlantUml,
+        );
+        paper.deliver_overview();
+        let _ = paper.update(Message::Faded);
+        let kept = paper.view;
+        show_source(
+            &mut paper,
+            "@startuml\n[*] --> A\nA --> B\nB --> C\nC --> D\n@enduml\n",
+            Language::PlantUml,
+        );
+        let held = |paper: &Paper| {
+            paper
+                .held_picture()
+                .map(|held| held.view_at(paper.view))
+                .expect("the old picture is held")
+        };
+        assert_eq!(held(&paper), kept);
+        // A pan moves it as it moves the new diagram, by the same pixels.
+        let _ = paper.update(Message::Pan(Vector::new(30.0, -10.0)));
+        let moved = held(&paper);
+        let panned = kept.pan(Vector::new(30.0, -10.0));
+        assert!((moved.zoom - panned.zoom).abs() < 1e-4, "{moved:?}");
+        assert!(moved.center.distance(panned.center) < 1e-3, "{moved:?}");
+        // So does a zoom, around the pointer.
+        let at = Point::new(100.0, 80.0);
+        let _ = paper.update(Message::ZoomAt(1.5, at));
+        let zoomed = held(&paper);
+        let expected = panned.zoom_at(1.5, at, paper.viewport);
+        assert!((zoomed.zoom - expected.zoom).abs() < 1e-3, "{zoomed:?}");
+        assert!(zoomed.center.distance(expected.center) < 1e-2, "{zoomed:?}");
+        // A raster that cannot be drawn lets it go.
+        let seq = paper.overview.seq();
+        let _ = paper.update(Message::Overview(seq, None));
+        assert!(paper.held_picture().is_none());
+    }
+
+    #[test]
+    fn a_zoom_gliding_when_a_picture_comes_goes_on_to_its_end() {
+        let source = "@startuml\n[*] --> A\nA --> B\n@enduml\n";
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+        show_source(&mut paper, source, Language::PlantUml);
+        paper.deliver_overview();
+        let _ = paper.update(Message::Faded);
+        let _ = paper.update(Message::ZoomStep(2.0, Point::new(200.0, 150.0)));
+        let asked = paper.view;
+        assert!(paper.glide.is_some());
+        show_source(&mut paper, source, Language::PlantUml);
+        let glide = paper.glide.expect("the zoom glides on");
+        assert_eq!(paper.view, asked);
+        assert_eq!(glide.at(Instant::now() + glide.duration()), asked);
+    }
+
+    #[test]
+    fn a_render_asked_before_a_fold_leaves_the_fold_to_the_next() {
+        let open = "@startuml\nstate Idle\nstate Brewing {\n  state Grind\n  state Pour\n}\nIdle --> Brewing\n@enduml\n";
+        let folded = "@startuml\nstate Idle\nstate Brewing {\n  state Grind\n  state Pour\n}\nIdle --> Brewing\n' fold (Omaspec) Brewing\n@enduml\n";
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+        show_source(&mut paper, open, Language::PlantUml);
+        paper.deliver_overview();
+        let _ = paper.update(Message::Faded);
+        let _ = paper.update(Message::ZoomAt(2.0, Point::new(400.0, 300.0)));
+        // An edit is on its way when the fold is asked for.
+        let edit = paper.pretend_next();
+        paper.set_fold("Brewing", true);
+        let before = paper.screen_of_box("Brewing");
+        let mut reply = answer(1, edit, Ok(drawn(open, Language::PlantUml)));
+        reply.source = open.into();
+        reply.language = Language::PlantUml;
+        let _ = paper.rendered(reply);
+        assert!(
+            matches!(&paper.change, Change::Fold { anchor: Some(name), .. } if name == "Brewing"),
+            "the edit took the fold's anchor"
+        );
+        paper.deliver_overview();
+        assert!(
+            matches!(paper.change, Change::Fold { .. }),
+            "the edit's fade took the fold"
+        );
+        let _ = paper.update(Message::Faded);
+        show_source(&mut paper, folded, Language::PlantUml);
+        let after = paper.screen_of_box("Brewing");
+        assert!(
+            (after.x - before.x).abs() < 1.5 && (after.y - before.y).abs() < 1.5,
+            "the box left the screen: {before:?} -> {after:?}"
+        );
+        paper.deliver_overview();
+        assert!(matches!(paper.change, Change::Edit));
+        let fade = paper.fade.as_ref().expect("the fold fades");
+        let left = fade.shown.remaining(Instant::now());
+        assert!(
+            left > Duration::from_millis(280),
+            "a fold fades longer, {left:?}"
+        );
     }
 
     /// Puts `source` on the sheet, as a render would.

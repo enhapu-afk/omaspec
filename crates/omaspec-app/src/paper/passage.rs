@@ -37,6 +37,10 @@ pub struct Passage {
     /// In: the linked diagram comes as the zoom arrives. Out: it goes as
     /// the zoom leaves.
     pub inward: bool,
+    /// Where an outward zoom runs to, once this diagram has a picture.
+    /// Set means the veil stays up until then: an empty pane under a
+    /// falling veil is a black frame.
+    pub goal: Option<View>,
 }
 
 impl Passage {
@@ -44,6 +48,9 @@ impl Passage {
     /// `progress` of the way (0 to 1): the last half of the way in, the
     /// first half of the way out.
     pub fn shown(&self, progress: f32) -> f32 {
+        if self.goal.is_some() {
+            return 1.0;
+        }
         let smooth = |t: f32| {
             let t = t.clamp(0.0, 1.0);
             t * t * (3.0 - 2.0 * t)
@@ -183,6 +190,7 @@ mod tests {
             area: Rectangle::new(Point::ORIGIN, Size::new(10.0, 10.0)),
             linked: None,
             inward,
+            goal: None,
         };
         let (into, out) = (passage(true), passage(false));
         assert_eq!(into.shown(0.0), 0.0);

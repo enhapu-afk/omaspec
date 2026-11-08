@@ -8,7 +8,9 @@
 //! veil, the states the machine is in lit through it with a soft glow, a
 //! light running along a transition's own route with a fading trail, a
 //! ripple where it arrives. A scenario lifts the veil message by message
-//! while a light runs along each arrow.
+//! while a light runs along each arrow. The light is one stroke: the part
+//! it has passed is already as bright as it will rest, and the head eases
+//! into that, so the joins of the highlight never show.
 
 use std::time::Duration;
 
@@ -25,6 +27,9 @@ use omaspec_uml::graph::Rect;
 use omaspec_uml::map::{Shape, Spot, Step};
 
 use super::canvas::fill_paper_band;
+use super::light::{
+    LINGER, Light, MACHINE, REVEAL, SCENARIO, appearance, draw_run, ease_out, fraction, soft_band,
+};
 
 /// How long the veil takes to fall over the diagram, or lift off it.
 const VEIL_FADE: Duration = Duration::from_millis(320);
@@ -36,12 +41,6 @@ const LIGHT_FADE: Duration = Duration::from_millis(420);
 const STEP_GAP: Duration = Duration::from_millis(70);
 /// How long the ripple of an arrival spreads.
 const RIPPLE: Duration = Duration::from_millis(620);
-/// How long a travelled route stays lit after its light arrived.
-const LINGER: Duration = Duration::from_millis(520);
-/// How far behind its head a light's trail reaches, on screen.
-const TRAIL: f32 = 150.0;
-/// How long the veil takes to lift off the next message.
-const REVEAL: Duration = Duration::from_millis(460);
 /// Steps a machine remembers for going back.
 const MAX_BACK: usize = 500;
 
@@ -94,6 +93,8 @@ impl Play {
             from_y: map.messages[0].top,
             begun: now,
             jump: None,
+            onward: true,
+            leave: None,
         }))
     }
 
@@ -751,20 +752,9 @@ impl MachinePlay {
         let arrived = t.start + t.took;
         if let Some(route) = &t.route {
             let screen: Vec<Point> = route.iter().map(|&p| view.point(p)).collect();
-            let length = polyline_length(&screen);
-            if now < arrived {
-                let p = ease_in_out(fraction(now - t.start, t.took));
-                comet(frame, &screen, length * p, look);
-            } else {
-                // The route stays lit a while and fades.
-                let k = 1.0 - ease_out(fraction(now - arrived, LINGER));
-                if k > 0.0 {
-                    frame.stroke(
-                        &polyline(screen.iter().copied()),
-                        soft(look.accent, 2.5, 0.75 * k),
-                    );
-                }
-            }
+            let since = now.saturating_duration_since(t.start);
+            let light = appearance(since, t.took, true, 1.0, MACHINE);
+            draw_run(frame, &screen, look.accent, look.light, light);
         }
         // A ripple spreads from each state it arrives in.
         if now >= arrived && now < arrived + RIPPLE {
@@ -787,6 +777,20 @@ pub struct ScenarioPlay {
     from_y: f32,
     begun: Instant,
     jump: Option<usize>,
+    /// The step just taken runs the light. Going back shows the line as it rests.
+    onward: bool,
+    /// The message the highlight just left, so it can fade instead of vanishing.
+    leave: Option<Leaving>,
+}
+
+/// A message the highlight is leaving: the light as it stood, and the band
+/// on screen at that moment. The fade starts from that light, so a line
+/// that has already dimmed does not jump back to full brightness.
+struct Leaving {
+    index: usize,
+    light: Light,
+    top: f32,
+    bottom: f32,
 }
 
 impl ScenarioPlay {
@@ -800,10 +804,62 @@ impl ScenarioPlay {
         if to == self.at {
             return;
         }
+        // Sample the light before the clocks move, so the fade starts from
+        // the brightness on screen.
+        self.leave = self.leaving(now);
         self.from_y = self.edge(now);
+        self.onward = matches!(ask, Ask::Next | Ask::Take(_));
         self.moved = now;
         self.at = to;
         self.jump = to.checked_sub(1).map(|i| self.steps[i].line);
+    }
+
+    /// The highlight as it stands at `now`, kept so the next step can fade it.
+    fn leaving(&self, now: Instant) -> Option<Leaving> {
+        let index = self.at.checked_sub(1)?;
+        let k = ease_out(fraction(now.saturating_duration_since(self.moved), REVEAL));
+        let (top, bottom) = self
+            .band_span(k)
+            .unwrap_or((self.steps[index].top, self.steps[index].bottom));
+        Some(Leaving {
+            index,
+            light: self.light_now(now)?,
+            top,
+            bottom,
+        })
+    }
+
+    /// The light of the message on screen at `now`.
+    fn light_now(&self, now: Instant) -> Option<Light> {
+        let index = self.at.checked_sub(1)?;
+        let since = now.saturating_duration_since(self.moved);
+        let took = travel_time(&self.steps[index].points);
+        let presence = ease_out(fraction(since, REVEAL));
+        Some(appearance(since, took, self.onward, presence, SCENARIO))
+    }
+
+    /// Where the highlight band sits at reveal progress `k`.
+    fn band_span(&self, k: f32) -> Option<(f32, f32)> {
+        let to = self
+            .at
+            .checked_sub(1)
+            .map(|i| (self.steps[i].top, self.steps[i].bottom));
+        let from = self.leave.as_ref().map(|left| (left.top, left.bottom));
+        match (from, to) {
+            (Some((a, b)), Some((c, d))) => Some((lerp(a, c, k), lerp(b, d, k))),
+            (None, Some(span)) | (Some(span), None) => Some(span),
+            (None, None) => None,
+        }
+    }
+
+    fn band_alpha(&self, k: f32) -> f32 {
+        if self.at == 0 {
+            1.0 - k
+        } else if self.leave.is_none() {
+            k
+        } else {
+            1.0
+        }
     }
 
     /// Where the veil's upper edge is at `now`, in diagram units.
@@ -841,16 +897,19 @@ impl ScenarioPlay {
         let veil = ramp(now, self.begun, VEIL_FADE);
         let edge = view.point((0.0, self.edge(now))).y;
         let paper = view.paper;
-        // A soft edge, then the veil over what is still to come.
-        const SOFT: f32 = 30.0;
+        // A long smooth edge, then the veil over what is still to come.
+        // A short shelf read as a stripe travelling down the diagram.
+        const SOFT: f32 = 56.0;
         let top = edge.max(paper.y);
         let soft_end = (top + SOFT).min(paper.y + paper.height);
         if soft_end > top {
             let full = with_alpha(look.veil, VEIL * veil);
-            let fade = Linear::new(Point::new(paper.x, top), Point::new(paper.x, top + SOFT))
-                .add_stop(0.0, with_alpha(full, 0.0))
-                .add_stop(0.45, with_alpha(full, 0.3))
-                .add_stop(1.0, full);
+            let mut fade = Linear::new(Point::new(paper.x, top), Point::new(paper.x, top + SOFT));
+            for i in 0..=8 {
+                let t = i as f32 / 8.0;
+                let s = t * t * (3.0 - 2.0 * t);
+                fade = fade.add_stop(t, with_alpha(full, s));
+            }
             fill_paper_band(frame, paper, view.scale, top, soft_end, fade);
         }
         let below = top + SOFT;
@@ -867,41 +926,83 @@ impl ScenarioPlay {
     }
 
     fn draw_over(&self, frame: &mut Frame, look: &Look, view: &Viewer, now: Instant) {
-        let paper = view.paper;
-        let Some(current) = self.at.checked_sub(1).map(|i| &self.steps[i]) else {
+        let k = ease_out(fraction(now.saturating_duration_since(self.moved), REVEAL));
+        self.draw_band(frame, look, view, k);
+        if k < 1.0
+            && let Some(left) = &self.leave
+        {
+            self.draw_left(frame, look, view, left, 1.0 - k);
+        }
+        if let Some(index) = self.at.checked_sub(1) {
+            self.draw_step(frame, look, view, index, now);
+        }
+    }
+
+    /// The row of the message, sliding from the one before. Its edges fade,
+    /// so the highlight has no hard line of its own.
+    fn draw_band(&self, frame: &mut Frame, look: &Look, view: &Viewer, k: f32) {
+        let Some((top, bottom)) = self.band_span(k) else {
             return;
         };
-        let since = now.saturating_duration_since(self.moved);
-        // The message's band glows faintly, its arrow brightly.
-        let band_top = view.point((0.0, current.top)).y;
-        let band_bottom = view.point((0.0, current.bottom)).y;
-        let glow = 1.0 - 0.5 * ease_out(fraction(since.saturating_sub(REVEAL), LINGER));
-        fill_paper_band(
+        let alpha = self.band_alpha(k);
+        if alpha <= 0.01 {
+            return;
+        }
+        soft_band(
             frame,
-            paper,
+            view.paper,
             view.scale,
-            band_top,
-            band_bottom,
-            with_alpha(look.accent, 0.07 * glow),
+            view.point((0.0, top)).y,
+            view.point((0.0, bottom)).y,
+            with_alpha(look.accent, 0.07 * alpha),
         );
-        let screen: Vec<Point> = current.points.iter().map(|&p| view.point(p)).collect();
-        let length = polyline_length(&screen);
-        let took = travel_time(&current.points);
-        if since < took {
-            let p = ease_in_out(fraction(since, took));
-            comet(frame, &screen, length * p, look);
-        } else {
-            frame.stroke(
-                &polyline(screen.iter().copied()),
-                soft(look.accent, 2.5, 0.9 * glow),
-            );
-            let k = ease_out(fraction(since - took, RIPPLE));
-            if k < 1.0
+    }
+
+    /// The message being left, held where its light was and fading out.
+    fn draw_left(
+        &self,
+        frame: &mut Frame,
+        look: &Look,
+        view: &Viewer,
+        left: &Leaving,
+        presence: f32,
+    ) {
+        let Some(step) = self.steps.get(left.index) else {
+            return;
+        };
+        let screen: Vec<Point> = step.points.iter().map(|&p| view.point(p)).collect();
+        // The line fades from the brightness it had, head included.
+        draw_run(
+            frame,
+            &screen,
+            look.accent,
+            look.light,
+            Light {
+                head: left.light.head,
+                rest: left.light.rest * presence,
+                extra: left.light.extra * presence,
+            },
+        );
+    }
+
+    /// The message just shown. Going forward runs the light along it;
+    /// going back shows the line as it rests.
+    fn draw_step(&self, frame: &mut Frame, look: &Look, view: &Viewer, index: usize, now: Instant) {
+        let step = &self.steps[index];
+        let screen: Vec<Point> = step.points.iter().map(|&p| view.point(p)).collect();
+        let since = now.saturating_duration_since(self.moved);
+        let took = travel_time(&step.points);
+        let presence = ease_out(fraction(since, REVEAL));
+        let light = appearance(since, took, self.onward, presence, SCENARIO);
+        draw_run(frame, &screen, look.accent, look.light, light);
+        if self.onward && since >= took && since < took + RIPPLE {
+            let ripple = ease_out(fraction(since - took, RIPPLE));
+            if ripple < 1.0
                 && let Some(&tip) = screen.last()
             {
                 frame.stroke(
-                    &Path::circle(tip, 4.0 + 16.0 * k),
-                    soft(look.accent, 2.0, 0.6 * (1.0 - k)),
+                    &Path::circle(tip, 4.0 + 16.0 * ripple),
+                    soft(look.accent, 2.0, 0.6 * (1.0 - ripple) * presence),
                 );
             }
         }
@@ -991,28 +1092,8 @@ fn travel_time(points: &[(f32, f32)]) -> Duration {
     Duration::from_millis((280.0 + length * 1.1).clamp(380.0, 980.0) as u64)
 }
 
-fn fraction(elapsed: Duration, of: Duration) -> f32 {
-    if of.is_zero() {
-        1.0
-    } else {
-        (elapsed.as_secs_f32() / of.as_secs_f32()).clamp(0.0, 1.0)
-    }
-}
-
 fn ramp(now: Instant, since: Instant, over: Duration) -> f32 {
     ease_out(fraction(now.saturating_duration_since(since), over))
-}
-
-fn ease_out(t: f32) -> f32 {
-    1.0 - (1.0 - t).powi(3)
-}
-
-fn ease_in_out(t: f32) -> f32 {
-    if t < 0.5 {
-        4.0 * t * t * t
-    } else {
-        1.0 - (-2.0 * t + 2.0).powi(3) / 2.0
-    }
 }
 
 pub(super) fn with_alpha(c: Color, a: f32) -> Color {
@@ -1068,62 +1149,8 @@ fn polyline(points: impl IntoIterator<Item = Point>) -> Path {
     })
 }
 
-fn polyline_length(points: &[Point]) -> f32 {
-    points.windows(2).map(|w| w[0].distance(w[1])).sum()
-}
-
-/// The part of `points` from `from` to `to` along it (screen lengths).
-fn stretch(points: &[Point], from: f32, to: f32) -> Vec<Point> {
-    let mut out = Vec::new();
-    let mut walked = 0.0;
-    for w in points.windows(2) {
-        let len = w[0].distance(w[1]);
-        let (a, b) = (walked, walked + len);
-        walked = b;
-        if b < from || a > to || len == 0.0 {
-            continue;
-        }
-        let at = |d: f32| {
-            let k = ((d - a) / len).clamp(0.0, 1.0);
-            Point::new(
-                w[0].x + (w[1].x - w[0].x) * k,
-                w[0].y + (w[1].y - w[0].y) * k,
-            )
-        };
-        if out.is_empty() {
-            out.push(at(from.max(a)));
-        }
-        out.push(at(to.min(b)));
-    }
-    out
-}
-
-/// A light at `head` along `points` (screen lengths), with a trail that
-/// fades behind it.
-fn comet(frame: &mut Frame, points: &[Point], head: f32, look: &Look) {
-    // A faint line shows the way it has come.
-    frame.stroke(
-        &polyline(stretch(points, 0.0, head)),
-        soft(look.accent, 2.0, 0.28),
-    );
-    const PIECES: usize = 14;
-    let tail = (head - TRAIL).max(0.0);
-    for piece in 0..PIECES {
-        let a = tail + (head - tail) * piece as f32 / PIECES as f32;
-        let b = tail + (head - tail) * (piece + 1) as f32 / PIECES as f32;
-        let k = (piece + 1) as f32 / PIECES as f32;
-        frame.stroke(
-            &polyline(stretch(points, a, b)),
-            soft(look.accent, 1.5 + 2.5 * k, 0.9 * k * k),
-        );
-    }
-    let Some(&at) = stretch(points, head, head).last() else {
-        return;
-    };
-    for (radius, alpha) in [(18.0, 0.06), (12.0, 0.13), (7.5, 0.28), (4.6, 0.7)] {
-        frame.fill(&Path::circle(at, radius), with_alpha(look.accent, alpha));
-    }
-    frame.fill(&Path::circle(at, 2.6), look.light);
+fn lerp(a: f32, b: f32, k: f32) -> f32 {
+    a + (b - a) * k
 }
 
 /// How much bigger the diagram is on screen than in its own units.
@@ -1526,25 +1553,38 @@ mod tests {
     }
 
     #[test]
-    fn a_stretch_follows_the_route() {
-        let points = [
-            Point::new(0.0, 0.0),
-            Point::new(10.0, 0.0),
-            Point::new(10.0, 10.0),
-        ];
-        let part = stretch(&points, 5.0, 15.0);
-        assert_eq!(
-            part,
-            [
-                Point::new(5.0, 0.0),
-                Point::new(10.0, 0.0),
-                Point::new(10.0, 5.0)
-            ]
+    fn the_next_message_fades_the_line_it_leaves() {
+        let source = "@startuml\nA -> B : one\nB -> A : two\n@enduml\n";
+        let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+        let t0 = Instant::now();
+        let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+        play.ask(Ask::Next, t0);
+        let later = t0 + Duration::from_secs(2);
+        play.ask(Ask::Next, later);
+        let Play::Scenario(scenario) = &play else {
+            panic!("scenario");
+        };
+        let left = scenario
+            .leave
+            .as_ref()
+            .expect("the first message fades out");
+        assert_eq!(left.index, 0);
+        assert!(
+            (left.light.head - 1.0).abs() < 0.01,
+            "the light had arrived, {}",
+            left.light.head
         );
-        // A head past the end rests on the last point.
-        assert_eq!(
-            stretch(&points, 20.0, 20.0).last(),
-            Some(&Point::new(10.0, 10.0))
+        // Two seconds later the line has lingered down to half. The fade
+        // starts there, not back at the full resting brightness.
+        assert!(
+            (left.light.rest - 0.45).abs() < 0.01,
+            "the fade starts from the dimmed line, {}",
+            left.light.rest
+        );
+        assert!(
+            left.light.extra < 0.01,
+            "the head had dissolved, {}",
+            left.light.extra
         );
     }
 }

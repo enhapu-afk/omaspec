@@ -1630,7 +1630,12 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       editor the focus follows the caret onto another box. A play unfolds first and
       starts once that picture is in. `tests/fold.rs` folds in each drawer; headless
       snapshots `focus` and `folded`. Every golden and `tests/lines.txt` stayed as
-      they were.
+      they were. Then (2026-11-08): a fold fades longer than an edit and eases both
+      ways; when the new picture moved boxes that were there before, they glide to
+      their places as their own pixels, a nested box not baked into its container,
+      while the lines leave and come back on their new routes (`paper::morph`). The
+      box folded or unfolded stays where it was on screen when the diagram is
+      zoomed. Only a render asked for after the fold carries its anchor and its fade.
 - [x] A sketch look (2026-11-06, [0023](docs/adr/0023-sketch-look.md)): PlantUML's
       `skinparam handwritten true` and Mermaid's `look: handDrawn` (in the init or the
       front matter's `config`), declined until now, with a seed from each element's
@@ -1684,3 +1689,19 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       lie on their own ground are words, not a box; only a shape that reaches every
       edge of the page is its background, so a container that fills most of it is
       still a box, and a click in its empty part names it.
+- [x] The pane, smoother (2026-11-08): the light on the name under the caret
+      shrinks to a point, travels and spreads over the next place; a box takes it
+      over its shape (a wash, a gap of paper and a bright rim, so it reads on a box
+      of the accent's own color), and words, a message or a label on a line, a
+      quiet wash that stays faint over light letters (`paper::breath`,
+      `paper::wash`). A play's light runs along each arrow as one stroke whose head
+      eases into the brightness the line rests at; the message it leaves fades from
+      where it stood, and the band over the row slides with soft edges
+      (`paper::light`). A new diagram's picture waits for its raster with the old
+      one still on screen, moving with a pan, a zoom or a new pane size, its marks
+      on it and no clicks on them; a zoom under way goes on to its end. Where two
+      sheets cross in a fade, solid paper lies under both, so a dark theme no
+      longer flashes through. A diagram still on the trail of links keeps its
+      picture, so the way back zooms out over it; the veil stays up until that
+      diagram has a picture, and a pan, a zoom or a picture that could not be drawn
+      ends the wait.

@@ -217,6 +217,17 @@ impl Glide {
         Self { duration, ..self }
     }
 
+    /// The same glide with both ends moved by `f`: the way a picture held in
+    /// step with this one goes, when `f` keeps a zoom's ratio and moves the
+    /// center in proportion.
+    pub fn mapped(self, f: impl Fn(View) -> View) -> Self {
+        Self {
+            from: f(self.from),
+            to: f(self.to),
+            ..self
+        }
+    }
+
     /// From where it is at `now` on its way to `to` instead, in a
     /// `viewport` of another size, in the time it had left.
     pub fn toward(self, to: View, viewport: Size, now: Instant) -> Self {

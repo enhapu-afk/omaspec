@@ -192,6 +192,11 @@ impl Layer {
         false
     }
 
+    /// Whether `seq` is the raster asked for last.
+    pub fn is_latest(&self, seq: u64) -> bool {
+        seq == self.latest.load(Ordering::Relaxed)
+    }
+
     /// Forgets what was asked, so the next request renders again: the
     /// diagram changed.
     pub fn forget(&mut self) {

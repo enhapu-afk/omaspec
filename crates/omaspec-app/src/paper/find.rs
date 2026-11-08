@@ -33,14 +33,19 @@ impl Paper {
     /// Lights the `nth` label that reads `text`, and glides the view to it
     /// when it is not in sight.
     pub fn light_label(&mut self, text: &str, nth: usize) -> Task<Message> {
-        let Some((x, y, w, h)) = self
+        let Some(seat) = self
             .shown_tree()
-            .and_then(|tree| pick::spot(tree, text, nth))
+            .and_then(|tree| pick::seat(tree, text, nth))
         else {
             return Task::none();
         };
+        let (x, y, w, h) = seat.bounds();
         let place = Rectangle::new(Point::new(x, y), Size::new(w, h));
-        self.set_breath(Some(place));
+        let aim = match seat {
+            pick::Seat::Shape { .. } => super::breath::Aim::shape(place),
+            pick::Seat::Words { ink, ground, .. } => super::breath::Aim::words(place, ink, ground),
+        };
+        self.set_breath(Some(aim));
         self.found = true;
         let visible = self.view.visible(self.viewport);
         let inside = visible.x <= place.x
