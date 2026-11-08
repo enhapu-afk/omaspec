@@ -43,11 +43,6 @@ pub(super) fn read(line: &str, strip: bool) -> Option<Norm> {
     Some(if strip { strip_markup(norm) } else { norm })
 }
 
-/// [`read`] as the string a search compares. A comment is empty.
-pub(super) fn visible(line: &str, strip: bool) -> String {
-    read(line, strip).map(|norm| norm.text).unwrap_or_default()
-}
-
 /// A line a drawing skips: `'` or `%%` after indentation.
 pub(super) fn comment(line: &str) -> bool {
     let trimmed = line.trim_start();

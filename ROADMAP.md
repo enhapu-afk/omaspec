@@ -1672,3 +1672,15 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
 - [x] A Mermaid subgraph's own `direction` documented: Omaspec keeps it also when the
       subgraph's nodes have lines to the outside, where Mermaid drops it (its issue
       6438); held by `tests/layered/flow-subgraph-direction.mmd`.
+- [x] Ctrl+click on the word (2026-11-07): a Ctrl+click in the editor's diagram puts
+      the caret on the first letter of the label it found, not at the start of its
+      line, so `On --> Updating` clicked on Updating lands on `Updating`
+      (`omaspec_core::locate::column_of`); a whole word outranks a part of one, and
+      the written case any case. The other way, the caret's light knows a label the
+      drawing wraps over several lines (an activity's `:…;`) from any of them, and a
+      note from any column of it, the participants it stands over included; `end
+      note` lights nothing, and a wrapped label or a note is one copy however many of
+      its lines match. In the picture (`omaspec_render::pick`), words on a line that
+      lie on their own ground are words, not a box; only a shape that reaches every
+      edge of the page is its background, so a container that fills most of it is
+      still a box, and a click in its empty part names it.

@@ -2150,7 +2150,7 @@ impl App {
         iced::advanced::widget::operate(Reveal::new(TABS.into(), tab_id(doc.key), false))
     }
 
-    /// Ctrl+click in the diagram: to the line that draws what is there.
+    /// Ctrl+click in the diagram: to the word that draws what is there.
     fn pick_in_diagram(&mut self, key: u64, at: iced::Point) -> Task<Message> {
         if key != self.doc().key {
             return Task::none();
@@ -2169,10 +2169,10 @@ impl App {
             self.notice = Some("no label there to find in the source".into());
             return Task::none();
         };
-        match omaspec_core::locate::line_of(&source, &label.text, label.nth) {
-            Some(line) => {
+        match omaspec_core::locate::column_of(&source, &label.text, label.nth) {
+            Some((line, column)) => {
                 self.notice = None;
-                self.jump_to(line)
+                self.jump_to_at(line, column)
             }
             None => {
                 self.notice = Some(format!("“{}” is not in the source", label.text));
@@ -2182,9 +2182,15 @@ impl App {
     }
 
     fn jump_to(&mut self, line: usize) -> Task<Message> {
+        self.jump_to_at(line, 0)
+    }
+
+    /// `column` is a byte on `line`. Zero stays at the indentation, which is
+    /// where a tile or a wire lands; a label lands on its own first letter.
+    fn jump_to_at(&mut self, line: usize, column: usize) -> Task<Message> {
         let key = {
             let doc = self.doc_mut();
-            doc.jump_to_line(line);
+            doc.jump_to_line_at(line, column);
             doc.key
         };
         self.after(Alarm::Flash(key), FLASH);

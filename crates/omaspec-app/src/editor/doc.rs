@@ -474,13 +474,26 @@ impl Doc {
     /// indentation), scrolls it to the middle and lights it up until
     /// [`unflash`](Self::unflash).
     pub fn jump_to_line(&mut self, line: usize) {
+        self.jump_to_line_at(line, 0);
+    }
+
+    /// Puts the caret on `line` (zero-based) at `column`, a byte on that
+    /// line. A column that falls in the indentation lands just after it,
+    /// where [`jump_to_line`](Self::jump_to_line) does. Scrolls the caret
+    /// to the middle and lights the line until [`unflash`](Self::unflash).
+    pub fn jump_to_line_at(&mut self, line: usize, column: usize) {
         let buffer = self.editor.document().buffer();
         let row = u32::try_from(line)
             .unwrap_or(u32::MAX)
             .min(buffer.line_count().saturating_sub(1));
         let text = buffer.line(row);
-        let indent = (text.len() - text.trim_start().len()) as u32;
-        let offset = buffer.point_to_offset(scrive_core::Point::new(row, indent));
+        let indent = text.len() - text.trim_start().len();
+        let mut column = column.max(indent).min(text.len());
+        while column > indent && !text.is_char_boundary(column) {
+            column -= 1;
+        }
+        let column = u32::try_from(column).unwrap_or(u32::MAX);
+        let offset = buffer.point_to_offset(scrive_core::Point::new(row, column));
         self.editor.jump_to(offset..offset);
         self.flash = Some(row);
         self.flash_fade = None;

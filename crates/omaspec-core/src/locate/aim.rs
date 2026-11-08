@@ -177,12 +177,39 @@ pub fn aimed<'a>(
     }
     let col = super::floor_char(line, col.min(line.len()));
     let prep = Prep::build(texts);
-    let occs = line_occs(line, &prep);
     let aliases = alias_map(source, &prep);
-    let chosen = best_covering(&occs, col)
+    // A label wrapped over several lines (an action, a note's body) is one
+    // copy, however many of its lines match on their own.
+    let wrapped = super::wrap::runs(source, &prep.labels);
+    match super::note::aim(source, row, col, &prep.labels) {
+        super::note::Aim::Blank => return None,
+        super::note::Aim::Text {
+            label,
+            row: at,
+            start,
+        } => {
+            let nth = count_before(source, at, &label, start, &aliases, &prep, &wrapped);
+            return Some((label, nth));
+        }
+        super::note::Aim::Outside => {}
+    }
+    let occs = line_occs(line, &prep);
+    let on_line = best_covering(&occs, col)
         .or_else(|| alias_use(line, col, &aliases))
-        .or_else(|| nearest_bracket(line, col, &occs))?;
-    let nth = count_before(source, row, chosen.text, chosen.start, &aliases, &prep);
+        .or_else(|| nearest_bracket(line, col, &occs));
+    let run_here = wrapped.iter().find(|run| run.rows.contains(&row));
+    let chosen = on_line.or_else(|| {
+        run_here.map(|run| Chosen {
+            text: run.label,
+            start: 0,
+        })
+    })?;
+    // Any line of a wrap is that wrap, counted where it begins.
+    let (at, start) = match run_here {
+        Some(run) if run.label == chosen.text => (run.rows[0], 0),
+        _ => (row, chosen.start),
+    };
+    let nth = count_before(source, at, chosen.text, start, &aliases, &prep, &wrapped);
     Some((chosen.text.to_owned(), nth))
 }
 
@@ -207,7 +234,8 @@ fn alias_map<'a>(source: &str, prep: &Prep<'a>) -> Vec<(String, &'a str)> {
     aliases
 }
 
-/// Copies of `label` before `start` on `row`, alias uses included.
+/// Copies of `label` before `start` on `row`, alias uses included. A run of
+/// `wrapped` that draws `label` is one copy, at the start of its first line.
 fn count_before(
     source: &str,
     row: usize,
@@ -215,6 +243,7 @@ fn count_before(
     start: usize,
     aliases: &[(String, &str)],
     prep: &Prep<'_>,
+    wrapped: &[super::wrap::Run<'_>],
 ) -> usize {
     let Some(index) = prep.labels.iter().position(|text| *text == label) else {
         return 0;
@@ -227,6 +256,18 @@ fn count_before(
     for (at_row, line) in source.split('\n').enumerate() {
         if at_row > row {
             break;
+        }
+        if let Some(run) = wrapped
+            .iter()
+            .find(|run| run.label == label && run.rows.contains(&at_row))
+        {
+            if run.rows[0] == at_row {
+                if at_row == row && start == 0 {
+                    return seen;
+                }
+                seen += 1;
+            }
+            continue;
         }
         let holds = worth(line, index, prep);
         let alias_here = alias.is_some_and(|name| line.contains(name));
@@ -1061,19 +1102,168 @@ A -> B : a rather long message text
     }
 
     #[test]
+    fn a_wrapped_action_aims_from_either_line() {
+        let source = "\
+start
+:Fold the nested state at the caret
+  to its box, or unfold it;
+stop
+";
+        let label = "Fold the nested state at the caret to its box, or unfold it";
+        assert_eq!(aim(source, 1, "Fold", 0, &[label]), Some((label.into(), 0)));
+        assert_eq!(
+            aim(source, 1, "caret", 0, &[label]),
+            Some((label.into(), 0))
+        );
+        assert_eq!(aim(source, 2, "box", 0, &[label]), Some((label.into(), 0)));
+        assert_eq!(
+            aim(source, 2, "unfold", 0, &[label]),
+            Some((label.into(), 0))
+        );
+        assert_eq!(aim(source, 0, "start", 0, &[label]), None);
+        assert_eq!(aim(source, 3, "stop", 0, &[label]), None);
+
+        let longer = "\
+:Fold the nested
+  state at the
+  caret now;
+";
+        let three = "Fold the nested state at the caret now";
+        assert_eq!(
+            aim(longer, 1, "state", 0, &[three]),
+            Some((three.into(), 0))
+        );
+
+        let twice = "\
+:one two
+  three;
+:one two
+  three;
+";
+        let phrase = "one two three";
+        assert_eq!(aim(twice, 0, "one", 0, &[phrase]), Some((phrase.into(), 0)));
+        assert_eq!(aim(twice, 2, "one", 0, &[phrase]), Some((phrase.into(), 1)));
+        assert_eq!(
+            aim(twice, 3, "three", 0, &[phrase]),
+            Some((phrase.into(), 1))
+        );
+    }
+
+    #[test]
     fn a_note_split_over_lines_still_aims() {
         let source = "note over Gate\n  spanning\n  note\nend note\n";
         let texts = ["spanning note", "Gate"];
+        assert_eq!(
+            aim(source, 0, "Gate", 0, &texts),
+            Some(("spanning note".into(), 0))
+        );
+        assert_eq!(
+            aim(source, 0, "over", 0, &texts),
+            Some(("spanning note".into(), 0))
+        );
         assert_eq!(
             aim(source, 1, "spanning", 0, &texts),
             Some(("spanning note".into(), 0))
         );
         assert_eq!(
             aim(source, 2, "note", 0, &texts),
-            Some(("spanning note".into(), 1))
+            Some(("spanning note".into(), 0))
         );
         assert_eq!(aim(source, 3, "note", 0, &texts), None);
-        assert_eq!(aim(source, 0, "Gate", 0, &texts), Some(("Gate".into(), 0)));
+        // The name in `note over` is still an earlier mention of the participant.
+        let later = "note over Gate\n  spanning\n  note\nend note\nGate -> On : go\n";
+        assert_eq!(aim(later, 4, "Gate", 0, &texts), Some(("Gate".into(), 1)));
+    }
+
+    #[test]
+    fn a_wrapped_note_or_action_is_one_copy() {
+        let notes = "\
+note over A
+  spanning
+  note
+end note
+note over A
+  spanning
+  note
+end note
+note over A
+  spanning
+  note
+end note
+";
+        let texts = ["spanning note", "A"];
+        assert_eq!(
+            aim(notes, 5, "spanning", 0, &texts),
+            Some(("spanning note".into(), 1))
+        );
+        assert_eq!(
+            aim(notes, 10, "note", 0, &texts),
+            Some(("spanning note".into(), 2))
+        );
+
+        let actions = "\
+:one two
+  three;
+:one two three;
+";
+        let phrase = "one two three";
+        assert_eq!(
+            aim(actions, 2, "three", 0, &[phrase]),
+            Some((phrase.into(), 1))
+        );
+        assert_eq!(
+            aim(actions, 1, "three", 0, &[phrase]),
+            Some((phrase.into(), 0))
+        );
+    }
+
+    #[test]
+    fn a_note_line_lights_where_the_caret_is() {
+        let source = "note over A\n  first line\n  second line here\nend note\n";
+        let texts = ["A", "first line", "second line here"];
+        assert_eq!(
+            aim(source, 2, "here", 0, &texts),
+            Some(("second line here".into(), 0))
+        );
+        assert_eq!(
+            aim(source, 1, "line", 0, &texts),
+            Some(("first line".into(), 0))
+        );
+    }
+
+    #[test]
+    fn a_note_over_stays_on_the_note() {
+        let source = "\
+participant App
+participant Courier
+note over App,Courier: Dies st ein Kommentar\\nein längerer Kommentar mit vielen Zeilen
+App -> Courier : go
+";
+        let first = "Dies st ein Kommentar";
+        let second = "ein längerer Kommentar mit vielen Zeilen";
+        let texts = ["App", "Courier", first, second, "go"];
+        assert_eq!(aim(source, 2, "note", 0, &texts), Some((first.into(), 0)));
+        assert_eq!(aim(source, 2, "App", 0, &texts), Some((first.into(), 0)));
+        assert_eq!(
+            aim(source, 2, "Courier", 0, &texts),
+            Some((first.into(), 0))
+        );
+        assert_eq!(aim(source, 2, "Dies", 0, &texts), Some((first.into(), 0)));
+        assert_eq!(
+            aim(source, 2, "Kommentar", 0, &texts),
+            Some((first.into(), 0))
+        );
+        assert_eq!(
+            aim(source, 2, "längerer", 0, &texts),
+            Some((second.into(), 0))
+        );
+        assert_eq!(
+            aim(source, 2, "Zeilen", 0, &texts),
+            Some((second.into(), 0))
+        );
+        assert_eq!(aim(source, 0, "App", 0, &texts), Some(("App".into(), 0)));
+        assert_eq!(aim(source, 3, "App", 0, &texts), Some(("App".into(), 2)));
+        assert_eq!(aim(source, 3, "go", 0, &texts), Some(("go".into(), 0)));
     }
 
     #[test]

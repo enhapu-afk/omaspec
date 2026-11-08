@@ -1,7 +1,9 @@
 //! From a label of the drawing back to the source line that made it, for
-//! Ctrl+click in the preview. The other way, [`aimed`] is the drawn label
-//! the caret stands in, so the sheet can light that shape. [`word_at`] is
-//! the single word at a column.
+//! Ctrl+click in the preview. The caret goes to the first character of that
+//! label on the line, [`column_of`], so an earlier word on the same line is
+//! not what lights up. The other way, [`aimed`] is the drawn label the caret
+//! stands in, so the sheet can light that shape. [`word_at`] is the single
+//! word at a column.
 //!
 //! The drawing only has the label's text. The line is the one holding that
 //! text, the n-th such line for the n-th such label; whole words count
@@ -10,23 +12,35 @@
 //! Brackets an engine draws around a label (a loop's `[three times]`) are
 //! dropped when the label is not found with them. A line whose PlantUML
 //! markup (`**bold**`, `<i>`, `<color:red>`) splits the label finds it
-//! once the markup is gone.
+//! once the markup is gone. A label wrapped over several lines, such as an
+//! activity written `:…` and ended with `;`, is that label from any of its lines.
+//! A `note` is that note from any column of it, including the participants
+//! it is placed over.
 
 mod aim;
+mod note;
 mod text;
+mod wrap;
 
 pub use aim::aimed;
 
 /// The zero-based line that draws `label`, the `nth` (from 0) label with
 /// that text in the drawing.
 pub fn line_of(code: &str, label: &str, nth: usize) -> Option<usize> {
-    let lines: Vec<String> = code
+    column_of(code, label, nth).map(|(line, _)| line)
+}
+
+/// The line [`line_of`] returns, and the byte on that line where the matched
+/// text starts. A caret there stands on the label. `On --> Updating` clicked
+/// as Updating lands on `Updating`, not on `On`.
+pub fn column_of(code: &str, label: &str, nth: usize) -> Option<(usize, usize)> {
+    let shown: Vec<Option<text::Norm>> = code
         .split('\n')
-        .map(|line| text::visible(line, false))
+        .map(|line| text::read(line, false))
         .collect();
-    let plain: Vec<String> = code
+    let plain: Vec<Option<text::Norm>> = code
         .split('\n')
-        .map(|line| text::visible(line, true))
+        .map(|line| text::read(line, true))
         .collect();
     let bare = label
         .strip_prefix(['[', '(', '"', '«', '<'])
@@ -34,10 +48,15 @@ pub fn line_of(code: &str, label: &str, nth: usize) -> Option<usize> {
         .filter(|l| !l.trim().is_empty());
     std::iter::once(label)
         .chain(bare)
-        .find_map(|label| by_words(&lines, &plain, label, nth))
+        .find_map(|label| by_words(&shown, &plain, label, nth))
 }
 
-fn by_words(lines: &[String], plain: &[String], label: &str, nth: usize) -> Option<usize> {
+fn by_words(
+    lines: &[Option<text::Norm>],
+    plain: &[Option<text::Norm>],
+    label: &str,
+    nth: usize,
+) -> Option<(usize, usize)> {
     let words: Vec<&str> = label.split_whitespace().collect();
     // A label too long for its box may be cut or wrapped differently than
     // written; fewer words still find the line.
@@ -50,29 +69,81 @@ fn by_words(lines: &[String], plain: &[String], label: &str, nth: usize) -> Opti
     })
 }
 
-fn find(lines: &[String], wanted: &str, nth: usize) -> Option<usize> {
+/// How a line is allowed to hold the label. A whole word outranks a part of
+/// one, and the written case outranks any case. The first tier that hits a
+/// line wins, for every line, so a later exact word beats an earlier guess.
+#[derive(Clone, Copy)]
+enum Tier {
+    Word,
+    Part,
+    WordAnyCase,
+    PartAnyCase,
+}
+
+const TIERS: [Tier; 4] = [Tier::Word, Tier::Part, Tier::WordAnyCase, Tier::PartAnyCase];
+
+fn find(lines: &[Option<text::Norm>], wanted: &str, nth: usize) -> Option<(usize, usize)> {
     let lower = wanted.to_lowercase();
-    let tiers: [&dyn Fn(&str) -> bool; 4] = [
-        &|line| has_word(line, wanted),
-        &|line| line.contains(wanted),
-        &|line| has_word(&line.to_lowercase(), &lower),
-        &|line| line.to_lowercase().contains(&lower),
-    ];
-    tiers.iter().find_map(|matches| {
-        let hits: Vec<usize> = lines
+    TIERS.iter().find_map(|tier| {
+        let hits: Vec<(usize, usize, usize)> = lines
             .iter()
             .enumerate()
-            .filter(|(_, line)| matches(line))
-            .map(|(i, _)| i)
+            .filter_map(|(index, norm)| {
+                // A comment is `None` and draws nothing, so it never matches.
+                let (from, to) = span_in(&norm.as_ref()?.text, wanted, &lower, *tier)?;
+                Some((index, from, to))
+            })
             .collect();
-        hits.get(nth).or(hits.last()).copied()
+        let (index, from, to) = hits.get(nth).copied().or_else(|| hits.last().copied())?;
+        let (start, _) = lines.get(index)?.as_ref()?.map(from, to)?;
+        Some((index, start))
     })
 }
 
-/// Whether `wanted` stands in `line` on its own: no letter or digit glued
-/// to its ends (where its ends are letters or digits).
-fn has_word(line: &str, wanted: &str) -> bool {
-    !text::locate_in(line, wanted, false).is_empty()
+/// Where `wanted` sits in the normalized `line`, in that line's own bytes.
+/// A case-folded hit is carried back onto `line`, since lowercasing can
+/// change how many bytes a character takes.
+fn span_in(line: &str, wanted: &str, lower: &str, tier: Tier) -> Option<(usize, usize)> {
+    if wanted.is_empty() {
+        return None;
+    }
+    match tier {
+        Tier::Word => text::locate_in(line, wanted, false).into_iter().next(),
+        Tier::Part => line.find(wanted).map(|at| (at, at + wanted.len())),
+        Tier::WordAnyCase => {
+            let folded = line.to_lowercase();
+            let (from, to) = text::locate_in(&folded, lower, false).into_iter().next()?;
+            unfold(line, from, to)
+        }
+        Tier::PartAnyCase => {
+            let folded = line.to_lowercase();
+            let at = folded.find(lower)?;
+            unfold(line, at, at + lower.len())
+        }
+    }
+}
+
+/// `folded[from..to]` of `text.to_lowercase()`, as bytes of `text`.
+fn unfold(text: &str, lower_from: usize, lower_to: usize) -> Option<(usize, usize)> {
+    if lower_from >= lower_to {
+        return None;
+    }
+    let mut at = 0;
+    let mut start = None;
+    let mut end = None;
+    for (index, ch) in text.char_indices() {
+        let piece: String = ch.to_lowercase().collect();
+        let next = at + piece.len();
+        if start.is_none() && lower_from < next && lower_to > at {
+            start = Some(index);
+        }
+        if start.is_some() && lower_to <= next {
+            end = Some(index + ch.len_utf8());
+            break;
+        }
+        at = next;
+    }
+    Some((start?, end.unwrap_or(text.len())))
 }
 
 /// The word the caret is on in `line`. `col` is a byte offset: the caret
@@ -209,5 +280,87 @@ mod tests {
         assert_eq!(line_of("abc def\nxyz", "abc zzz", 0), Some(0));
         // A cut down to one or two letters is no evidence.
         assert_eq!(line_of("x\ny", "y z", 0), None);
+    }
+
+    #[test]
+    fn the_caret_lands_on_the_clicked_word() {
+        let code = "\
+stateDiagram-v2
+  [*] --> Off
+  Off --> On : power
+  state On {
+    [*] --> Stopped
+    Stopped --> Playing : play
+    state Playing {
+      [*] --> Buffering
+      Buffering --> Streaming : buffer full
+      Streaming --> Buffering : network slow
+    }
+  }
+  On --> Off : power
+  On --> Updating : update ready
+  Updating --> On : done
+  Updating --> Off : failed
+";
+        let (line, col) = column_of(code, "Updating", 0).unwrap();
+        let row = code.split('\n').nth(line).unwrap();
+        assert!(row[col..].starts_with("Updating"), "{row}");
+        assert_eq!(word_at(row, col), Some("Updating"));
+        // The first word of that line is a different state.
+        let indent = row.len() - row.trim_start().len();
+        assert_eq!(word_at(row, indent), Some("On"));
+        let labels = [
+            "Off",
+            "On",
+            "power",
+            "Stopped",
+            "Playing",
+            "play",
+            "Buffering",
+            "Streaming",
+            "buffer full",
+            "network slow",
+            "Updating",
+            "update ready",
+            "done",
+            "failed",
+        ];
+        assert_eq!(
+            aimed(code, line, col, labels),
+            Some(("Updating".to_owned(), 0))
+        );
+        assert_eq!(
+            aimed(code, line, indent, labels).map(|(label, _)| label),
+            Some("On".to_owned())
+        );
+
+        let (line, col) = column_of(code, "buffer full", 0).unwrap();
+        let row = code.split('\n').nth(line).unwrap();
+        assert!(row[col..].starts_with("buffer full"), "{row}");
+
+        let code = "sequenceDiagram\n  Alice->>Bob: hi\n  Bob->>Alice: hi\n";
+        let (line, col) = column_of(code, "hi", 1).unwrap();
+        assert_eq!(line, 2);
+        assert!(code.split('\n').nth(line).unwrap()[col..].starts_with("hi"));
+
+        let code = "flowchart LR\n  A[First<br>Second] --> B[\"a &lt; b\"]\n";
+        let (line, col) = column_of(code, "First Second", 0).unwrap();
+        assert!(code.split('\n').nth(line).unwrap()[col..].starts_with("First"));
+        let (line, col) = column_of(code, "a < b", 0).unwrap();
+        assert!(code.split('\n').nth(line).unwrap()[col..].starts_with("a "));
+
+        let code = "*** in **bold** and //italic//";
+        let (line, col) = column_of(code, "in bold and italic", 0).unwrap();
+        assert_eq!(line, 0);
+        assert!(code[col..].starts_with("in "));
+
+        let code = "state Ähre";
+        let (line, col) = column_of(code, "ÄHRE", 0).unwrap();
+        assert_eq!(line, 0);
+        assert!(code[col..].starts_with("Ähre"));
+
+        let code = "sequenceDiagram\n  loop three times\n  end";
+        let (_, col) = column_of(code, "[three times]", 0).unwrap();
+        assert!(code.split('\n').nth(1).unwrap()[col..].starts_with("three"));
     }
 }
