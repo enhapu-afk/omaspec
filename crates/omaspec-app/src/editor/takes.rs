@@ -71,6 +71,7 @@ impl Command {
             | Command::Back => Ok(()),
             // The window, the project and the lists, whatever the tab holds.
             Command::Palette
+            | Command::Choose
             | Command::StartFrom(_)
             | Command::Open
             | Command::NewProject

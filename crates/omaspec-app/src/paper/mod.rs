@@ -111,6 +111,10 @@ pub enum Message {
     /// Shift and a click at this point of the pane: the box there comes
     /// into focus, or the focus ends.
     FocusAt(Point),
+    /// The right mouse button at this point of the pane, which is at the
+    /// second point of its window: the window opens its context menu
+    /// there (docs/adr/0025).
+    Context(Point, Point),
 }
 
 /// What a new picture is. A fold eases longer, and a named box stays put
@@ -524,7 +528,7 @@ impl Paper {
                 self.rasterize(RASTER_DELAY)
             }
             Message::Fit => self.fit(),
-            Message::Pick(_) | Message::Follow(_) => Task::none(),
+            Message::Pick(_) | Message::Follow(_) | Message::Context(..) => Task::none(),
             Message::Fold(name) => {
                 self.set_fold(&name, true);
                 Task::none()

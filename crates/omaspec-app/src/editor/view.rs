@@ -17,6 +17,7 @@ use omaspec_model::{Change, ChangeKind};
 
 use super::compare::{self, Compare, Row};
 use super::picker::Kind;
+use super::table;
 use super::{
     App, Asking, Command, ExportLook, Message, Mode, PICKER, PROMPT, Pane, Prompt, REPLACE, TABS,
     keys, plural, shortcut,
@@ -121,6 +122,10 @@ impl App {
         let id = self.detached;
         let mode = id.map(|window| self.mode(window)).unwrap_or(Mode::Editing);
         let window = self.with_picker(id, column![self.diagram(), ui::bar(bar.into(), p)].into());
+        let window = match id {
+            Some(id) => self.with_context(id, window),
+            None => window,
+        };
         keys::Guard::new(window, move |key, mods| {
             detached_key(key, mods, mode).map(|command| match id {
                 Some(window) => Message::Keyed(window, command),
@@ -143,7 +148,10 @@ impl App {
                     self.palette.dark_background,
                 ),
                 Pane::Source => (
-                    self.sources(),
+                    // The right mouse button opens the editor's menu.
+                    keys::Guard::new(self.sources(), |_, _| None)
+                        .on_right_click(|at| Message::ContextAt(table::Spot::Editor, at))
+                        .into(),
                     self.palette.background,
                     self.palette.background,
                 ),
@@ -178,6 +186,7 @@ impl App {
         let on_diagram = mode == Mode::Editing && self.focus == Pane::Diagram;
         let window_id = self.main;
         let window = self.with_picker(Some(window_id), column![self.tabs(), grid, bottom].into());
+        let window = self.with_context(window_id, window);
         // A stack either way, as for the picker.
         let window = match self.gallery {
             Some(_) => stack![window, self.gallery_view()],
@@ -506,7 +515,7 @@ impl App {
 
     /// A row of the sidebar, a pill: `active` stands out, a click sends
     /// `message`.
-    fn entry<'a>(
+    pub(super) fn entry<'a>(
         &self,
         content: impl Into<Element<'a, Message>>,
         depth: usize,

@@ -37,6 +37,7 @@ mod gallery;
 mod help;
 mod keys;
 mod links;
+mod menu;
 mod panes;
 mod picker;
 mod play;
@@ -325,6 +326,13 @@ pub enum Message {
     ScrollTabs(f32),
     /// The window has this size now.
     WindowSized(window::Id, Size),
+    /// The right mouse button at this point of the main window, over the
+    /// editor: its context menu opens there (docs/adr/0025).
+    ContextAt(table::Spot, iced::Point),
+    /// The mouse came onto this entry of the context menu.
+    MenuPoint(usize),
+    /// A click on an entry of the context menu.
+    MenuRun(Command),
     GalleryInput(String),
     /// Show only this group of examples, or all.
     GalleryGroup(Option<crate::gallery::Group>),
@@ -450,6 +458,8 @@ pub enum Command {
     /// A step of the play.
     PlayAsk(paper::Ask),
     StopPlay,
+    /// Enter in the context menu: the entry the highlight is on.
+    Choose,
 }
 
 /// Images larger than this are not searched for a diagram.
@@ -465,11 +475,30 @@ pub enum Mode {
     Gallery,
     /// A play runs in the focused diagram: digits take its options.
     Playing,
+    /// A context menu is open: the arrows move in it, Enter chooses, any
+    /// other key closes it.
+    Menu,
 }
 
 /// The window's keys; Escape closes the prompt or the picker, the arrows
 /// move in the picker.
 fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
+    if mode == Mode::Menu {
+        return Some(match key.as_ref() {
+            Key::Named(Named::ArrowUp) => Command::Up,
+            Key::Named(Named::ArrowDown) => Command::Down,
+            Key::Named(Named::Enter) => Command::Choose,
+            Key::Named(
+                Named::Shift
+                | Named::Control
+                | Named::Alt
+                | Named::AltGraph
+                | Named::Super
+                | Named::CapsLock,
+            ) => return None,
+            _ => Command::Cancel,
+        });
+    }
     let ctrl = mods.control() && !mods.alt();
     let alt = mods.alt() && !mods.control();
     let plain = !mods.control() && !mods.alt() && !mods.logo();
@@ -746,6 +775,9 @@ struct App {
     thumbs: gallery::Thumbs,
     /// The editor window's size, which sets how many tiles fit in a row.
     main_size: Size,
+    detached_size: Size,
+    /// The context menu open in one of the windows (docs/adr/0025).
+    context: Option<menu::Context>,
     /// An example opened to be played: its tab plays once it is drawn.
     play_when_drawn: Option<u64>,
     /// The diagram takes the active Omarchy colors at render time. The
@@ -847,6 +879,8 @@ impl App {
             gallery: None,
             thumbs: gallery::Thumbs::default(),
             main_size: window::Settings::default().size,
+            detached_size: window::Settings::default().size,
+            context: None,
             play_when_drawn: None,
             follow_theme: session.follow_theme,
             pending: HashMap::new(),
@@ -955,6 +989,8 @@ impl App {
     fn mode(&self, window: window::Id) -> Mode {
         if self.gallery.is_some() && window == self.main {
             Mode::Gallery
+        } else if self.context.as_ref().is_some_and(|c| c.on == window) {
+            Mode::Menu
         } else if self.picker.is_some() && self.picker_on == Some(window) {
             Mode::Picker
         } else if self.prompt.is_some() && window == self.main {
@@ -1059,6 +1095,24 @@ impl App {
             Message::Paper(compare::KEY, message) => self.compare_paper(message),
             Message::Paper(key, paper::Message::Pick(at)) => self.pick_in_diagram(key, at),
             Message::Paper(key, paper::Message::Follow(at)) => self.follow_link(key, at),
+            Message::Paper(key, paper::Message::Context(at, in_window)) => {
+                self.context_in_diagram(key, at, in_window)
+            }
+            Message::ContextAt(spot, at) => {
+                let main = self.main;
+                self.open_context(main, spot, at);
+                Task::none()
+            }
+            Message::MenuPoint(i) => {
+                if let Some(context) = &mut self.context {
+                    context.pointed = Some(i);
+                }
+                Task::none()
+            }
+            Message::MenuRun(command) => {
+                self.close_context();
+                self.run(command)
+            }
             Message::Paper(key, message) => {
                 if let paper::Message::Viewport(size) = message {
                     self.paper_size = size;
@@ -1184,6 +1238,9 @@ impl App {
                 iced::widget::operation::AbsoluteOffset { x, y: 0.0 },
             ),
             Message::WindowSized(window, size) => {
+                if Some(window) == self.detached {
+                    self.detached_size = size;
+                }
                 if window == self.main {
                     self.main_size = size;
                     self.gallery_resized();
@@ -1885,12 +1942,21 @@ impl App {
                 None => self.detach(),
             },
             Command::Quit => self.quit(),
+            Command::Cancel if self.context.is_some() => {
+                self.close_context();
+                Task::none()
+            }
+            Command::Choose => self.context_choose(),
             Command::Cancel => {
                 self.prompt = None;
                 self.renaming = None;
                 self.gallery = None;
                 self.close_picker();
                 self.focus_editor()
+            }
+            Command::Up | Command::Down if self.context.is_some() => {
+                self.context_move(if command == Command::Up { -1 } else { 1 });
+                Task::none()
             }
             Command::Up | Command::Down if self.gallery.is_some() => {
                 self.gallery_row(command == Command::Down)
@@ -2021,29 +2087,35 @@ impl App {
         if key != self.doc().key {
             return Task::none();
         }
+        match self.land_on(at) {
+            Ok(task) => {
+                self.notice = None;
+                task
+            }
+            Err(why) => {
+                self.notice = Some(why);
+                Task::none()
+            }
+        }
+    }
+
+    /// The caret lands on what is at `at` of the active tab's diagram, or
+    /// `Err` says why it cannot.
+    pub(super) fn land_on(&mut self, at: iced::Point) -> Result<Task<Message>, String> {
         // On a tile of a map: its box, not the words in its picture.
         if let Some(line) = self.doc().paper.tile_line_at(at) {
-            self.notice = None;
-            return self.jump_to(line);
+            return Ok(self.jump_to(line));
         }
         // Right on a line: the line that draws it.
         if let Some(line) = self.doc().paper.wire_at(at).and_then(|w| w.line) {
-            self.notice = None;
-            return self.jump_to(line);
+            return Ok(self.jump_to(line));
         }
         let Some((label, source)) = self.doc().paper.label_at(at) else {
-            self.notice = Some("no label there to find in the source".into());
-            return Task::none();
+            return Err("no label there to find in the source".into());
         };
         match omaspec_core::locate::column_of(&source, &label.text, label.nth) {
-            Some((line, column)) => {
-                self.notice = None;
-                self.jump_to_at(line, column)
-            }
-            None => {
-                self.notice = Some(format!("“{}” is not in the source", label.text));
-                Task::none()
-            }
+            Some((line, column)) => Ok(self.jump_to_at(line, column)),
+            None => Err(format!("“{}” is not in the source", label.text)),
         }
     }
 

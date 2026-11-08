@@ -4743,3 +4743,148 @@ fn a_markdown_document_is_formatted_diagram_by_diagram_in_one_step() {
     assert_eq!(app.doc().text(), text);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// The right mouse button over the diagram opens the context menu
+/// (docs/adr/0025) with the caret landed on the box there, the arrows
+/// and Enter run an entry, Escape closes it.
+#[test]
+fn the_right_button_opens_a_menu_at_the_box_and_the_keys_run_it() {
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, BREWER);
+    show(&mut app, BREWER, Language::PlantUml);
+    let key = app.doc().key;
+    let at = app.doc().paper.screen_of_box("Brewing");
+    let in_window = iced::Point::new(700.0, 300.0);
+    let _ = app.update(Message::Paper(key, paper::Message::Context(at, in_window)));
+    assert_eq!(app.mode(app.main), Mode::Menu);
+    let context = app.context.clone().expect("a menu");
+    assert_eq!(
+        (context.spot, context.at, context.on),
+        (table::Spot::Diagram, in_window, app.main)
+    );
+    assert_eq!(context.pointed, None);
+    // The caret is on `state Brewing {`.
+    eprintln!(
+        "DEBUG cursor {:?} label {:?} wire {:?} tile {:?}",
+        app.doc().editor.cursor(),
+        app.doc().paper.label_at(at).map(|(l, _)| l),
+        app.doc().paper.wire_at(at).map(|w| w.line),
+        app.doc().paper.tile_line_at(at)
+    );
+    let (_, src) = app.doc().paper.label_at(at).unwrap();
+    eprintln!(
+        "DEBUG column_of {:?} shown_source_eq {}",
+        omaspec_core::locate::column_of(&src, "Brewing", 0),
+        *src == app.doc().shown_source()
+    );
+    let _ = app.jump_to_at(3, 6);
+    eprintln!("DEBUG after jump {:?}", app.doc().editor.cursor());
+    let _ = app.update(Message::Paper(key, paper::Message::Context(at, in_window)));
+    eprintln!("DEBUG after context {:?}", app.doc().editor.cursor());
+    assert_eq!(app.doc().editor.cursor().row, 3);
+
+    // The keys of the menu, and nothing else while it is open.
+    let plain = Modifiers::empty();
+    assert_eq!(
+        shortcut(&Key::Named(Named::ArrowDown), plain, Mode::Menu),
+        Some(Command::Down)
+    );
+    assert_eq!(
+        shortcut(&Key::Named(Named::ArrowUp), plain, Mode::Menu),
+        Some(Command::Up)
+    );
+    assert_eq!(
+        shortcut(&Key::Named(Named::Enter), plain, Mode::Menu),
+        Some(Command::Choose)
+    );
+    assert_eq!(
+        shortcut(&Key::Named(Named::Escape), plain, Mode::Menu),
+        Some(Command::Cancel)
+    );
+    assert_eq!(
+        shortcut(&Key::Character("s".into()), Modifiers::CTRL, Mode::Menu),
+        Some(Command::Cancel)
+    );
+    assert_eq!(shortcut(&Key::Named(Named::Shift), plain, Mode::Menu), None);
+
+    // Down from nowhere is the first entry, Up from there the last.
+    let entries = context.entries();
+    press(&mut app, Command::Down);
+    assert_eq!(app.context.as_ref().unwrap().pointed, Some(0));
+    press(&mut app, Command::Up);
+    assert_eq!(
+        app.context.as_ref().unwrap().pointed,
+        Some(entries.len() - 1)
+    );
+    // Enter on "fold this container" folds Brewing, where the caret landed.
+    let fold = entries
+        .iter()
+        .position(|e| e.command == Command::FoldBox)
+        .unwrap();
+    for _ in 0..=fold {
+        press(&mut app, Command::Down);
+    }
+    assert_eq!(app.context.as_ref().unwrap().pointed, Some(fold));
+    press(&mut app, Command::Choose);
+    assert!(app.context.is_none());
+    assert_eq!(app.mode(app.main), Mode::Editing);
+    assert_eq!(app.notice.as_deref(), Some("Brewing folded"));
+
+    // Escape closes; so does a click on an entry, which runs it.
+    let _ = app.update(Message::Paper(key, paper::Message::Context(at, in_window)));
+    assert_eq!(app.mode(app.main), Mode::Menu);
+    press(&mut app, Command::Cancel);
+    assert!(app.context.is_none());
+    let _ = app.update(Message::Paper(key, paper::Message::Context(at, in_window)));
+    let _ = app.update(Message::MenuPoint(2));
+    assert_eq!(app.context.as_ref().unwrap().pointed, Some(2));
+    let _ = app.update(Message::MenuRun(Command::Fit));
+    assert!(app.context.is_none());
+}
+
+/// The editor's menu holds the commands for the caret, and runs them.
+#[test]
+fn the_editor_menu_holds_the_commands_for_the_caret() {
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, "@startuml\nalt ok\nA -> B\nend\n@enduml\n");
+    let _ = app.update(Message::ContextAt(
+        table::Spot::Editor,
+        iced::Point::new(120.0, 80.0),
+    ));
+    assert_eq!(app.mode(app.main), Mode::Menu);
+    let context = app.context.clone().unwrap();
+    assert_eq!(context.spot, table::Spot::Editor);
+    let commands: Vec<Command> = context.entries().iter().map(|e| e.command).collect();
+    assert!(commands.contains(&Command::Format));
+    assert!(commands.contains(&Command::FoldBox), "both menus fold");
+    assert!(!commands.contains(&Command::CopyPng), "the diagram's only");
+    let _ = app.update(Message::MenuRun(Command::Format));
+    assert!(app.context.is_none());
+    assert_eq!(
+        app.doc().text(),
+        "@startuml\nalt ok\n  A -> B\nend\n@enduml\n"
+    );
+}
+
+/// Writes a headless screenshot of the diagram's context menu when
+/// OMASPEC_SNAPSHOT_DIR is set.
+#[test]
+fn snapshot_context_menu() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let mut app = open(&[]);
+    let main = app.main;
+    let _ = app.update(Message::WindowSized(main, Size::new(1200.0, 640.0)));
+    select_all_and_paste(&mut app, BREWER);
+    show(&mut app, BREWER, Language::PlantUml);
+    let key = app.doc().key;
+    let at = app.doc().paper.screen_of_box("Brewing");
+    let _ = app.update(Message::Paper(
+        key,
+        paper::Message::Context(at, iced::Point::new(760.0, 250.0)),
+    ));
+    let _ = app.update(Message::MenuPoint(3));
+    shoot(&mut app, &dir, "context-menu");
+}

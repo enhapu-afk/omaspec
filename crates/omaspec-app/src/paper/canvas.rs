@@ -379,6 +379,11 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
                 state.press = Some((at, false));
                 Some(Action::request_redraw().and_capture())
             }
+            Event::Mouse(mouse::Event::ButtonPressed(Button::Right)) => {
+                let at = cursor.position_in(bounds)?;
+                let in_window = cursor.position()?;
+                Some(Action::publish(Message::Context(at, in_window)).and_capture())
+            }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 let from = state.drag?;
                 let to = cursor.position_from(bounds.position())?;

@@ -258,11 +258,11 @@ pub const TABLE: &[Entry] = &[
     )
     .menu(Diagram)
     .gap()
-    .short("Reset this line or box drawn by hand")
+    .short("Reset this line or box by hand")
     .at(Spot::Both),
     cmd("By hand: reset every line and box", "", Command::ResetLines)
         .menu(Diagram)
-        .short("Reset every line and box drawn by hand"),
+        .short("Reset every line and box by hand"),
     cmd(
         "Focus on the box at the caret and its neighbors, or end it (Shift+click there)",
         "",
@@ -270,7 +270,7 @@ pub const TABLE: &[Entry] = &[
     )
     .menu(Diagram)
     .gap()
-    .short("Focus on this box, or end the focus")
+    .short("Focus on this box, or end it")
     .at(Spot::Both),
     cmd(
         "Fold the container at the caret to its box, or unfold it",
@@ -428,6 +428,7 @@ pub const TABLE: &[Entry] = &[
         Command::Detach,
     )
     .menu(View)
+    .short("Diagram in its own window")
     .at(Spot::Diagram),
     cmd("Zoom in on the diagram", "Alt+=", Command::ZoomIn)
         .menu(View)
@@ -460,11 +461,16 @@ pub fn entries(menu: Menu) -> impl Iterator<Item = &'static Entry> {
     TABLE.iter().filter(move |e| e.menu == Some(menu))
 }
 
-/// The entries of the context menu opened at `at`.
+/// The entries of the context menu opened at `at`: first those placed in
+/// both menus, which act on what is under the pointer (the box, the
+/// line), then the rest in the table's order.
 pub fn context(at: Spot) -> impl Iterator<Item = &'static Entry> {
-    TABLE
-        .iter()
-        .filter(move |e| e.context.is_some_and(|spot| spot.covers(at)))
+    let placed = move |spot: Spot| {
+        TABLE
+            .iter()
+            .filter(move |e| e.context == Some(spot) && spot.covers(at))
+    };
+    placed(Spot::Both).chain(placed(at))
 }
 
 /// The toolbar's entries, in the table's order.
@@ -528,6 +534,12 @@ mod tests {
         }
         assert!(context(Spot::Diagram).count() >= 8);
         assert!(context(Spot::Editor).count() >= 5);
+        // What acts under the pointer comes first, in both menus.
+        for at in [Spot::Diagram, Spot::Editor] {
+            let first = context(at).next().unwrap();
+            assert_eq!(first.context, Some(Spot::Both), "{at:?}");
+            assert!(context(at).all(|e| e.context.is_some_and(|s| s.covers(at))));
+        }
     }
 
     #[test]

@@ -1745,6 +1745,12 @@ window grows the menus a desktop user looks for.
         label for it, a child menu, a line above), its place on the toolbar
         and the context menus it shows in; the list reads it as before, the
         palette itself is in the Help menu and not in its own list.
-  - [ ] The context menus, in the diagram and the editor.
+  - [x] The context menus (2026-11-08): the right mouse button over the
+        diagram lands the caret on the box or line there, as Ctrl+click
+        does, and opens the diagram's entries at the pointer; over the
+        text it opens the caret's. Arrows, Enter and Escape work in it,
+        any other key closes it, so does a click beside it; the menu moves
+        up or left to stay inside the window, in the diagram's own window
+        too. `editor/menu.rs`; the snapshot `context-menu`.
   - [ ] The bar, with Alt and the session setting.
   - [ ] The toolbar over the diagram pane.

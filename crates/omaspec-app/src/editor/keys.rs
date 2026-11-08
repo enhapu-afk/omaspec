@@ -1,19 +1,26 @@
 //! Window shortcuts that win over the widgets inside: the editor widget
-//! binds Ctrl+Enter itself (new line below), but here it renders.
+//! binds Ctrl+Enter itself (new line below), but here it renders. The
+//! right mouse button too, where a wrapper asks for it: the editor's
+//! context menu (docs/adr/0025).
 
 use iced::advanced::widget::{Operation, Tree};
 use iced::advanced::{Clipboard, Layout, Shell, Widget, layout, mouse, overlay, renderer};
 use iced::keyboard::{self, Key, Modifiers};
-use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, Vector};
+use iced::{Element, Event, Length, Point, Rectangle, Renderer, Size, Theme, Vector};
 
 /// The message for a key press, if it is a shortcut.
 type Shortcuts<'a, M> = Box<dyn Fn(&Key, Modifiers) -> Option<M> + 'a>;
 
+/// The message for the right mouse button at this point of the window.
+type RightClick<'a, M> = Box<dyn Fn(Point) -> M + 'a>;
+
 /// Wraps `content`; key presses for which `shortcut` returns a message
-/// publish it and go no further.
+/// publish it and go no further, and so does the right mouse button over
+/// the content when [`Guard::on_right_click`] is set.
 pub struct Guard<'a, M> {
     content: Element<'a, M>,
     shortcut: Shortcuts<'a, M>,
+    right_click: Option<RightClick<'a, M>>,
 }
 
 impl<'a, M> Guard<'a, M> {
@@ -24,7 +31,15 @@ impl<'a, M> Guard<'a, M> {
         Self {
             content: content.into(),
             shortcut: Box::new(shortcut),
+            right_click: None,
         }
+    }
+
+    /// The right mouse button over the content publishes `message` with
+    /// the pointer's place in the window, and the content never sees it.
+    pub fn on_right_click(mut self, message: impl Fn(Point) -> M + 'a) -> Self {
+        self.right_click = Some(Box::new(message));
+        self
     }
 }
 
@@ -79,6 +94,14 @@ impl<M> Widget<M, Theme, Renderer> for Guard<'_, M> {
             && let Some(message) = (self.shortcut)(key, *modifiers)
         {
             shell.publish(message);
+            shell.capture_event();
+            return;
+        }
+        if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) = event
+            && let Some(right_click) = &self.right_click
+            && let Some(at) = cursor.position_over(layout.bounds())
+        {
+            shell.publish(right_click(at));
             shell.capture_event();
             return;
         }
