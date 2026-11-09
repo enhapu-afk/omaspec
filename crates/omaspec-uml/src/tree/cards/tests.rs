@@ -266,3 +266,233 @@ fn the_cards_take_the_colors_of_the_skin() {
     assert!(svg.contains(r##"fill="#FFFFFF""##));
     assert!(svg.contains(r##"fill="#3D6FD6""##));
 }
+
+/// The corners of each arrow of a map, read from its drawing.
+fn arrow_lines(svg: &str) -> Vec<Vec<(f32, f32)>> {
+    svg.split("<path d=\"")
+        .skip(1)
+        .filter_map(|rest| {
+            let (d, attrs) = rest.split_once('"')?;
+            let attrs = attrs.split('>').next()?;
+            attrs.contains("stroke-linejoin").then(|| {
+                d.split(|c: char| c.is_ascii_alphabetic() || c == ' ')
+                    .filter_map(|pair| {
+                        let (x, y) = pair.split_once(',')?;
+                        Some((x.parse().ok()?, y.parse().ok()?))
+                    })
+                    .collect()
+            })
+        })
+        .collect()
+}
+
+/// The pills of words on a map, read from its drawing.
+fn pills(svg: &str) -> Vec<Rect> {
+    svg.split("<rect ")
+        .skip(1)
+        .filter_map(|rest| {
+            let tag = rest.split('>').next()?;
+            let attr = |name: &str| -> Option<f32> {
+                let at = tag.find(&format!("{name}=\""))? + name.len() + 2;
+                tag[at..].split('"').next()?.parse().ok()
+            };
+            tag.contains(r#"rx="11""#).then_some(Rect {
+                x: attr("x")?,
+                y: attr("y")?,
+                w: attr("width")?,
+                h: attr("height")?,
+            })
+        })
+        .collect()
+}
+
+fn plays(from: &str, to: &str) -> Relation {
+    Relation {
+        from: from.into(),
+        to: to.into(),
+        kind: RelationKind::Plays,
+    }
+}
+
+/// How many arrowheads a map draws.
+fn heads(svg: &str) -> usize {
+    svg.matches(r##"Z" fill="#"##).count()
+}
+
+#[test]
+fn arrows_into_one_card_share_a_lane_below_the_cards_between() {
+    // Three scenarios in a row play the machine at its start: a card or
+    // two lie between each of them and it.
+    let source = "@startwbs\n* Shop\n** Orders\n** Payment\n** Checkout\n** Refund\n@endwbs\n";
+    let relations = [
+        plays("payment", "orders"),
+        plays("checkout", "orders"),
+        plays("refund", "orders"),
+    ];
+    let (svg, map) =
+        crate::render_tiled(source, None, Some(&tiles(&[], &relations, None))).unwrap();
+    let page = size(&svg);
+    let lines = arrow_lines(&svg);
+    // A line from each scenario, one head, the words once.
+    assert_eq!(lines.len(), 3, "{svg}");
+    assert_eq!(heads(&svg), 1);
+    assert_eq!(svg.matches(">plays<").count(), 1);
+    let lowest = map
+        .tiles
+        .iter()
+        .map(|t| t.frame.y + t.frame.h)
+        .fold(0.0, f32::max);
+    for line in &lines {
+        for run in line.windows(2) {
+            for tile in &map.tiles {
+                assert!(
+                    !crate::graph::route::cuts(tile.frame, run[0], run[1]),
+                    "{run:?} under {}",
+                    tile.key
+                );
+            }
+        }
+        for &(x, y) in line {
+            assert!(x > 0.0 && y > 0.0 && x < page.w && y < page.h, "{x} {y}");
+        }
+        // Down to one lane below every card of the row.
+        let lane = line.iter().map(|p| p.1).fold(0.0, f32::max);
+        let first = lines[0].iter().map(|p| p.1).fold(0.0, f32::max);
+        assert!(lane > lowest + 10.0 && lane == first, "{lane} {lowest}");
+    }
+    // Each starts below its own card; the first ends below the machine.
+    let below = |key: &str, (x, y): (f32, f32)| {
+        let frame = map.tiles.iter().find(|t| t.key == key).unwrap().frame;
+        (y - frame.y - frame.h).abs() < 0.01 && x > frame.x && x < frame.x + frame.w
+    };
+    let mut starts: Vec<&str> = ["payment", "checkout", "refund"]
+        .into_iter()
+        .filter(|key| lines.iter().any(|line| below(key, line[0])))
+        .collect();
+    starts.dedup();
+    assert_eq!(starts.len(), 3, "{lines:?}");
+    assert!(below("orders", *lines[0].last().unwrap()), "{:?}", lines[0]);
+    // The words lie on the page and on no card.
+    let pills = pills(&svg);
+    let [pill] = pills.as_slice() else {
+        panic!("{svg}");
+    };
+    assert!(within(*pill, page), "{pill:?}");
+    for tile in &map.tiles {
+        assert!(!overlap(*pill, tile.frame), "{pill:?} on {}", tile.key);
+    }
+}
+
+#[test]
+fn the_lanes_of_a_row_have_room_above_the_next_one() {
+    let relations = [plays("checkout", "orders"), plays("payment", "checkout")];
+    let draw = |relations: &[Relation]| {
+        let source = "@startwbs\n* Shop\n** Orders\n*** Refund\n** Notes\n** Payment\n** Checkout\n@endwbs\n";
+        crate::render_tiled(source, None, Some(&tiles(&[], relations, None))).unwrap()
+    };
+    let (svg, map) = draw(&relations);
+    let (_, plain) = draw(&[]);
+    let at =
+        |map: &crate::map::Map, key: &str| map.tiles.iter().find(|t| t.key == key).unwrap().frame;
+    // Checkout plays Orders past a label and a card: on a lane. Payment
+    // plays Checkout next to it: straight across.
+    let lines = arrow_lines(&svg);
+    assert_eq!(lines.len(), 2, "{svg}");
+    assert_eq!(heads(&svg), 2);
+    let lane = lines.iter().flatten().map(|p| p.1).fold(0.0, f32::max);
+    let row = ["orders", "payment", "checkout"]
+        .iter()
+        .map(|key| at(&map, key).y + at(&map, key).h)
+        .fold(0.0, f32::max);
+    assert!(lane > row + 10.0, "{lane} {row}");
+    // The card below moved down by the lane and keeps its distance.
+    let refund = at(&map, "refund");
+    assert!(refund.y > at(&plain, "refund").y + 10.0);
+    assert!(refund.y - lane > 40.0, "{} {lane}", refund.y);
+    for line in &lines {
+        for run in line.windows(2) {
+            for tile in &map.tiles {
+                assert!(!crate::graph::route::cuts(tile.frame, run[0], run[1]));
+            }
+        }
+    }
+}
+
+#[test]
+fn an_arrow_between_rows_runs_around_the_cards() {
+    // From a card of the third row up to one of the second that is not
+    // above it, and to the root.
+    let source = "@startwbs\n* Shop\n** Orders\n*** Refund\n** Payment\n** Checkout\n@endwbs\n";
+    let relations = [plays("refund", "checkout"), plays("refund", "shop")];
+    let (svg, map) =
+        crate::render_tiled(source, None, Some(&tiles(&[], &relations, None))).unwrap();
+    let page = size(&svg);
+    let lines = arrow_lines(&svg);
+    assert_eq!(lines.len(), 2, "{svg}");
+    assert_eq!(heads(&svg), 2);
+    for line in &lines {
+        for run in line.windows(2) {
+            for tile in &map.tiles {
+                assert!(
+                    !crate::graph::route::cuts(tile.frame, run[0], run[1]),
+                    "{run:?} under {}",
+                    tile.key
+                );
+            }
+        }
+    }
+    let pills = pills(&svg);
+    assert_eq!(pills.len(), 2);
+    assert!(!overlap(pills[0], pills[1]));
+    for pill in &pills {
+        assert!(within(*pill, page), "{pill:?}");
+    }
+}
+
+#[test]
+fn the_words_of_a_short_arrow_leave_its_ends_to_see() {
+    // Two cards next to each other: the arrow between them is shorter
+    // than its words are wide.
+    let source = "@startwbs\n* Shop\n** Orders\n** Payment\n@endwbs\n";
+    let relations = [plays("payment", "orders")];
+    let (svg, map) =
+        crate::render_tiled(source, None, Some(&tiles(&[], &relations, None))).unwrap();
+    let lines = arrow_lines(&svg);
+    let [line] = lines.as_slice() else {
+        panic!("{svg}");
+    };
+    let (orders, payment) = (map.tiles[1].frame, map.tiles[2].frame);
+    // Straight across the room between the two.
+    assert_eq!(line.len(), 2, "{line:?}");
+    assert!((line[0].0 - payment.x).abs() < 0.01, "{line:?}");
+    assert!((line[1].0 - orders.x - orders.w).abs() < 0.01, "{line:?}");
+    assert_eq!(line[0].1, line[1].1);
+    let pills = pills(&svg);
+    let [pill] = pills.as_slice() else {
+        panic!("{svg}");
+    };
+    assert!(
+        !crate::graph::route::cuts(*pill, line[0], line[1]),
+        "{pill:?} on {line:?}"
+    );
+}
+
+#[test]
+fn the_map_grows_by_the_arrows_around_its_cards() {
+    let source = "@startwbs\n* Shop\n** Orders\n** Payment\n** Checkout\n@endwbs\n";
+    let plain = crate::render_tiled(source, None, Some(&tiles(&[], &[], None))).unwrap();
+    let relations = [plays("checkout", "orders")];
+    let (svg, map) =
+        crate::render_tiled(source, None, Some(&tiles(&[], &relations, None))).unwrap();
+    // The cards stay where they are without the arrow, or move together.
+    let moved = map.tiles[0].frame.x - plain.1.tiles[0].frame.x;
+    for (with, without) in map.tiles.iter().zip(&plain.1.tiles) {
+        assert!((with.frame.x - without.frame.x - moved).abs() < 0.01);
+        assert_eq!(with.frame.y, without.frame.y);
+        assert!(within(with.picture, with.frame));
+    }
+    let page = size(&svg);
+    for pill in pills(&svg) {
+        assert!(within(pill, page), "{pill:?} {page:?}");
+    }
+}

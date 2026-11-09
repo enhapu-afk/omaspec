@@ -1760,6 +1760,27 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       diagram has a picture, and a pan, a zoom or a picture that could not be drawn
       ends the wait.
 
+### Since 0.9.0
+
+- [x] The map's arrows around its cards (2026-11-09): seen on a project's map
+      with a machine, a use case diagram and three scenarios in one row. Each
+      arrow was one curve from the side of its card to the side of the other,
+      under every card between them, which hid most of it, and its words lay in
+      the middle of that curve, on a card or on other words; between two cards
+      next to each other the words covered the whole arrow. Now
+      (`tree::cards::arrows`) an arrow between cards of one row runs on a lane
+      below the row, 14 units from the next, and the rows further down make room
+      for the lanes. The arrows that arrive alike at one card share a lane, a
+      head and their words, as lines into one box share a trunk
+      ([0022](docs/adr/0022-lines-bundled.md)); the shortest take the lanes next
+      to the cards. Between two cards next to each other an arrow runs straight
+      across, its words beside it. An arrow from one row to another, or to a
+      diagram on no box, is routed around the cards by `graph::route`. Routing
+      every arrow that way was tried first and left for the rows: on the
+      generated area map of 49 cards and 18 arrows it took 180 ms where the map
+      took 31 ms before, and laid lines 4 units apart. With the lanes that map
+      takes 33 ms (`OMASPEC_SCALE=1`, cold, 2,001 diagrams).
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 Omaspec's engine is plain Rust; what ties the program to Linux is at the

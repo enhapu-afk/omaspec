@@ -3,9 +3,10 @@
 
 use std::fmt::Write as _;
 
+use super::arrows::{ROUND, chip_rect};
 use super::{
-    CAPTION, Font, Heading, Icon, Layout, PAD, PICTURE_ROUND, Placed, RelationKind, SMALL, TEXT_X,
-    TITLE, Tiles, fitted,
+    CAPTION, Font, Heading, Icon, LOOSE_WORDS, Layout, PAD, PICTURE_ROUND, Placed, RelationKind,
+    SMALL, TEXT_X, TITLE, fitted,
 };
 use crate::color::Color;
 use crate::graph::Rect;
@@ -76,7 +77,7 @@ fn colorful(c: Color) -> bool {
     high > 60.0 && low < 235.0 && (high - low) / high.max(1.0) > 0.3
 }
 
-pub(super) fn svg(layout: &Layout, skin: &Skin, tiles: &Tiles, family: Family) -> String {
+pub(super) fn svg(layout: &Layout, skin: &Skin, family: Family) -> String {
     let p = palette(skin);
     let (width, height) = layout.size;
     let mut out = String::with_capacity(4096 + layout.nodes.len() * 1024);
@@ -120,9 +121,9 @@ pub(super) fn svg(layout: &Layout, skin: &Skin, tiles: &Tiles, family: Family) -
             );
         }
     }
-    relations(&mut curves, &mut top, layout, tiles, &p);
+    relations(&mut curves, &mut top, layout, &p);
     if let Some((x, y)) = layout.loose_label {
-        chip(&mut top, (x, y), "not on the map yet", &p);
+        chip(&mut top, (x, y), LOOSE_WORDS, &p);
     }
     if let Some(h) = &layout.heading {
         heading(&mut top, h, layout, &p);
@@ -190,9 +191,7 @@ fn rounded(r: Rect, radius: f32) -> String {
 /// The curve from the bottom of `from` to the top of `to`; dashed to a
 /// diagram on no box.
 fn curve(out: &mut String, from: &Placed, to: &Placed, p: &Palette) {
-    let (x0, y0) = (from.rect.x + from.rect.w / 2.0, from.rect.y + from.rect.h);
-    let (x1, y1) = (to.rect.x + to.rect.w / 2.0, to.rect.y);
-    let k = (y1 - y0).abs().max(40.0) * 0.5;
+    let [start, c1, c2, end] = super::hang(from.rect, to.rect);
     let dash = if to.loose {
         r#" stroke-dasharray="5,5""#
     } else {
@@ -201,14 +200,14 @@ fn curve(out: &mut String, from: &Placed, to: &Placed, p: &Palette) {
     let _ = write!(
         out,
         r#"<path d="M{} {} C{} {} {} {} {} {}" fill="none" stroke="{}" stroke-width="1.5" stroke-linecap="round"{dash}/>"#,
-        n(x0),
-        n(y0),
-        n(x0),
-        n(y0 + k),
-        n(x1),
-        n(y1 - k),
-        n(x1),
-        n(y1),
+        n(start.0),
+        n(start.1),
+        n(c1.0),
+        n(c1.1),
+        n(c2.0),
+        n(c2.1),
+        n(end.0),
+        n(end.1),
         p.curve
     );
 }
@@ -394,13 +393,15 @@ fn icon(out: &mut String, icon: Icon, (x, y): (f32, f32), color: Color) {
 
 /// A pill with `words` centered at `(x, y)`, over the curves.
 fn chip(out: &mut String, (x, y): (f32, f32), words: &str, p: &Palette) {
-    let w = words.chars().count() as f32 * 6.2 + 28.0;
+    let pill = chip_rect(words, (x, y));
     let _ = write!(
         out,
-        r#"<rect x="{}" y="{}" width="{}" height="22" rx="11" fill="{}" stroke="{}" stroke-width="1"/>"#,
-        n(x - w / 2.0),
-        n(y - 11.0),
-        n(w),
+        r#"<rect x="{}" y="{}" width="{}" height="{}" rx="{}" fill="{}" stroke="{}" stroke-width="1"/>"#,
+        n(pill.x),
+        n(pill.y),
+        n(pill.w),
+        n(pill.h),
+        n(pill.h / 2.0),
         p.page,
         p.edge
     );
@@ -455,51 +456,29 @@ fn heading(out: &mut String, h: &Heading, layout: &Layout, p: &Palette) {
     }
 }
 
-/// The arrows between cards: where a scenario plays against a machine, a
-/// state opens a diagram, a diagram includes another. One arrow for a
-/// pair, naming each relation; under the cards, their words over them.
-fn relations(curves: &mut String, top: &mut String, layout: &Layout, tiles: &Tiles, p: &Palette) {
-    let at = |key: &str| layout.nodes.iter().find(|n| n.key.as_deref() == Some(key));
-    let mut pairs: Vec<(&str, &str, Vec<RelationKind>)> = Vec::new();
-    for r in tiles.relations {
-        if r.from == r.to {
-            continue;
-        }
-        match pairs
-            .iter_mut()
-            .find(|(f, t, _)| *f == r.from && *t == r.to)
-        {
-            Some((_, _, kinds)) if !kinds.contains(&r.kind) => kinds.push(r.kind),
-            Some(_) => {}
-            None => pairs.push((&r.from, &r.to, vec![r.kind])),
-        }
-    }
-    for (from, to, mut kinds) in pairs {
-        let (Some(a), Some(b)) = (at(from), at(to)) else {
+/// The arrows between cards, as [`super::arrows`] laid them around the
+/// cards: their lines under the cards, their words over them.
+fn relations(curves: &mut String, top: &mut String, layout: &Layout, p: &Palette) {
+    for arrow in &layout.arrows {
+        let Some([.., before, end]) = arrow.lines.first().map(Vec::as_slice) else {
             continue;
         };
-        kinds.sort();
-        let (start, c1, c2, end) = arc(a.rect, b.rect);
-        let (color, dash, width) = match kinds[0] {
+        let (before, end) = (*before, *end);
+        let (color, dash, width) = match arrow.kinds[0] {
             RelationKind::Plays => (p.accent, "", 1.6),
             RelationKind::Opens => (p.accent, r#" stroke-dasharray="5,4""#, 1.4),
             RelationKind::Includes => (p.quiet, r#" stroke-dasharray="1.5,3.5""#, 1.4),
         };
-        let _ = write!(
-            curves,
-            r#"<path d="M{} {} C{} {} {} {} {} {}" fill="none" stroke="{color}" stroke-width="{}" stroke-linecap="round"{dash}/>"#,
-            n(start.0),
-            n(start.1),
-            n(c1.0),
-            n(c1.1),
-            n(c2.0),
-            n(c2.1),
-            n(end.0),
-            n(end.1),
-            n(width)
-        );
-        // The head along the curve's last direction.
-        let (dx, dy) = (end.0 - c2.0, end.1 - c2.1);
+        for line in &arrow.lines {
+            let _ = write!(
+                curves,
+                r#"<path d="{}" fill="none" stroke="{color}" stroke-width="{}" stroke-linecap="round" stroke-linejoin="round"{dash}/>"#,
+                crate::curve::path(line, ROUND),
+                n(width)
+            );
+        }
+        // The head along the last run of the first line.
+        let (dx, dy) = (end.0 - before.0, end.1 - before.1);
         let len = dx.hypot(dy).max(f32::EPSILON);
         let (ux, uy) = (dx / len, dy / len);
         let back = (end.0 - ux * 9.0, end.1 - uy * 9.0);
@@ -513,35 +492,6 @@ fn relations(curves: &mut String, top: &mut String, layout: &Layout, tiles: &Til
             n(back.0 + uy * 4.5),
             n(back.1 - ux * 4.5)
         );
-        let mid = (
-            (start.0 + 3.0 * c1.0 + 3.0 * c2.0 + end.0) / 8.0,
-            (start.1 + 3.0 * c1.1 + 3.0 * c2.1 + end.1) / 8.0,
-        );
-        let words: Vec<&str> = kinds.iter().map(|k| k.word()).collect();
-        chip(top, mid, &words.join(" · "), p);
-    }
-}
-
-/// Where an arrow from `a` to `b` leaves and arrives, with its control
-/// points: down or up between cards above one another, else sideways.
-#[allow(clippy::type_complexity)]
-fn arc(a: Rect, b: Rect) -> ((f32, f32), (f32, f32), (f32, f32), (f32, f32)) {
-    let (ac, bc) = ((a.x + a.w / 2.0), (b.x + b.w / 2.0));
-    if b.y >= a.y + a.h {
-        let (s, e) = ((ac, a.y + a.h), (bc, b.y));
-        let k = (e.1 - s.1).max(40.0) * 0.5;
-        (s, (s.0, s.1 + k), (e.0, e.1 - k), e)
-    } else if b.y + b.h <= a.y {
-        let (s, e) = ((ac, a.y), (bc, b.y + b.h));
-        let k = (s.1 - e.1).max(40.0) * 0.5;
-        (s, (s.0, s.1 - k), (e.0, e.1 + k), e)
-    } else if bc > ac {
-        let (s, e) = ((a.x + a.w, a.y + a.h / 2.0), (b.x, b.y + b.h / 2.0));
-        let k = (e.0 - s.0).max(40.0) * 0.5;
-        (s, (s.0 + k, s.1), (e.0 - k, e.1), e)
-    } else {
-        let (s, e) = ((a.x, a.y + a.h / 2.0), (b.x + b.w, b.y + b.h / 2.0));
-        let k = (s.0 - e.0).max(40.0) * 0.5;
-        (s, (s.0 - k, s.1), (e.0 + k, e.1), e)
+        chip(top, arrow.chip, &arrow.words, p);
     }
 }

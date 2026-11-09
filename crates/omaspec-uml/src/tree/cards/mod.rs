@@ -4,14 +4,15 @@
 //! it the box's words, the diagram's kind and a few facts. The root's card
 //! stands out; curves hang the cards below one another; the diagrams on no
 //! box hang from the root, dashed; arrows show where one diagram plays
-//! against, opens or includes another. A box that names nothing is a
-//! label between the cards.
+//! against, opens or includes another, around the cards between them. A
+//! box that names nothing is a label between the cards.
 //!
 //! The tree comes from a WBS or a mind map, of either language, and is
 //! laid out from the top down whatever way the source grows. The colors
 //! come from its skin, so the map takes the Omarchy colors with the
 //! diagrams it shows.
 
+mod arrows;
 mod paint;
 
 use super::skin::{Skin, TreeKind};
@@ -19,6 +20,7 @@ use super::{Element, Idea, MindMap, NodeShape, Tiles, Wbs};
 use crate::Declined;
 use crate::common::Text;
 use crate::graph::Rect;
+use crate::graph::route::Point;
 use crate::map::{self, Tile};
 use crate::text::{self, Family, Font};
 
@@ -105,6 +107,9 @@ const HEADING: f32 = 84.0;
 const MARGIN: f32 = 40.0;
 /// A label's height.
 const LABEL_H: f32 = 32.0;
+/// How far left of the cards an arrow may run around them; half of it
+/// above them.
+const ARROW_ROOM: f32 = 24.0;
 
 /// A picture grows to fill its room up to this much.
 const MOST_GROWTH: f32 = 1.25;
@@ -218,6 +223,20 @@ struct Layout {
     heading: Option<Heading>,
     /// Where the label over the diagrams on no box goes.
     loose_label: Option<(f32, f32)>,
+    /// The arrows between the cards.
+    arrows: Vec<arrows::Arrow>,
+}
+
+/// The words over the diagrams on no box.
+const LOOSE_WORDS: &str = "not on the map yet";
+
+/// The curve a box hangs by, as the four points of a cubic: from the
+/// middle below `from` to the middle above `to`.
+fn hang(from: Rect, to: Rect) -> [Point; 4] {
+    let (x0, y0) = (from.x + from.w / 2.0, from.y + from.h);
+    let (x1, y1) = (to.x + to.w / 2.0, to.y);
+    let k = (y1 - y0).abs().max(40.0) * 0.5;
+    [(x0, y0), (x0, y0 + k), (x1, y1 - k), (x1, y1)]
 }
 
 fn draw(
@@ -248,7 +267,7 @@ fn draw(
         return Err(Declined::at(0, "a map needs a root"));
     }
     let layout = lay_out(&mut roots, loose, heading, tiles, family);
-    let svg = paint::svg(&layout, skin, tiles, family);
+    let svg = paint::svg(&layout, skin, family);
     let placed = layout
         .nodes
         .iter()
@@ -480,19 +499,32 @@ fn lay_out(
         place(top, left + span[top] / 2.0, &span, &children, &mut x);
         left += span[top] + SIBLING_GAP * 2.0;
     }
-    // Each level below the tallest box of the one above.
+    for (at, n) in nodes.iter_mut().enumerate() {
+        n.rect.x = x[at] - n.rect.w / 2.0;
+    }
+    // The arrows between cards of one row run on lanes below it.
+    let plan = arrows::plan(&nodes, &depth, tiles.relations);
+    // Each level below the tallest box of the one above and its lanes,
+    // which run below the cards: the room of the diagrams on no box
+    // stands beside those, unless a lane leads under it.
     let levels = depth.iter().copied().max().unwrap_or(0) + 1;
     let mut tallest = vec![0.0f32; levels];
+    let mut over_lanes = vec![0.0f32; levels];
     for (at, n) in nodes.iter().enumerate() {
-        tallest[depth[at]] = tallest[depth[at]].max(n.rect.h);
+        let d = depth[at];
+        tallest[d] = tallest[d].max(n.rect.h);
+        if !n.block || plan.under(d, n.rect) {
+            over_lanes[d] = over_lanes[d].max(n.rect.h);
+        }
     }
     let top = MARGIN + if heading.is_some() { HEADING } else { 0.0 };
     let mut level_top = vec![top; levels];
     for d in 1..levels {
-        level_top[d] = level_top[d - 1] + tallest[d - 1] + LEVEL_GAP;
+        let above = tallest[d - 1].max(over_lanes[d - 1] + plan.room(d - 1));
+        level_top[d] = level_top[d - 1] + above + LEVEL_GAP;
     }
+    let lane_base: Vec<f32> = (0..levels).map(|d| level_top[d] + over_lanes[d]).collect();
     for (at, n) in nodes.iter_mut().enumerate() {
-        n.rect.x = x[at] - n.rect.w / 2.0;
         // A label sits in the middle of its level.
         n.rect.y = level_top[depth[at]]
             + if n.key.is_none() && !n.block {
@@ -541,9 +573,26 @@ fn lay_out(
         }
     }
 
-    // Everything moved right of the margin; the pictures into their cards.
+    // The arrows between the cards: they may run left of, right of and
+    // below the cards, and the map grows by that.
     let leftmost = nodes.iter().map(|n| n.rect.x).fold(f32::MAX, f32::min);
+    let pills: Vec<Rect> = loose_label
+        .map(|at| arrows::chip_rect(LOOSE_WORDS, at))
+        .into_iter()
+        .collect();
+    let origin = (leftmost - ARROW_ROOM, top - ARROW_ROOM / 2.0);
+    let mut arrows = arrows::lay(&nodes, &plan, &lane_base, origin, &pills);
+    let reach = arrows::extent(&arrows);
+
+    // Everything moved right of the margin; the pictures into their cards.
+    let leftmost = reach.map_or(leftmost, |r| leftmost.min(r.x));
     let shift = MARGIN - leftmost;
+    for arrow in &mut arrows {
+        for p in arrow.lines.iter_mut().flatten() {
+            p.0 += shift;
+        }
+        arrow.chip.0 += shift;
+    }
     for n in &mut nodes {
         n.rect.x += shift;
         if let Some(p) = &mut n.picture {
@@ -555,11 +604,11 @@ fn lay_out(
     let right = nodes
         .iter()
         .map(|n| n.rect.x + n.rect.w)
-        .fold(0.0, f32::max);
+        .fold(reach.map_or(0.0, |r| r.x + r.w + shift), f32::max);
     let bottom = nodes
         .iter()
         .map(|n| n.rect.y + n.rect.h)
-        .fold(0.0, f32::max);
+        .fold(reach.map_or(0.0, |r| r.y + r.h), f32::max);
     let heading_width = heading.as_ref().map_or(0.0, |h| {
         let ink = crate::Color::BLACK;
         MARGIN
@@ -582,6 +631,7 @@ fn lay_out(
         ),
         heading,
         loose_label,
+        arrows,
     }
 }
 
