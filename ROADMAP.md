@@ -1811,6 +1811,46 @@ its cards, and the zoom into a tile as one picture.
       (after the pause a render waits) and when a tab closes without saving.
       Names and links are still read from the files.
 
+### Since 0.9.1
+
+- [x] Several self-loops on one box, each on its own (2026-11-09): a state
+      with two transitions to itself, `Ready --> Ready` twice, had both loops
+      leave and arrive at the same two places, one reaching 12 units further,
+      so they ended in one head; their words were laid at one height and then
+      moved where there was room, which with three loops, or in a nested
+      state, was on a line. Now (`graph::loops`) the loops of a box lie around
+      one another in the order they are written: each leaves and arrives 10
+      units further from the middle of the side than the one before, so each
+      has its head, and each reaches out past the words of the one before,
+      which lie in the ring between the two; a loop is wide enough for the
+      curve it turns in to pass those words. A box grows along that side
+      until every loop ends on it: a state with two is 46 units high, with
+      three 66. One loop is where it was, so of the goldens only
+      `state-loops.mmd` changed; `tests/lines` counts no line near another
+      there any more (2 before). Seen in state diagrams of both languages,
+      down and sideways, and in a Mermaid flowchart. Found on the way: PlantUML's SCXML
+      export keeps only the first line of a transition's label
+      (`pay\nnow [ok]` is the event `pay`), which the oracle's random changes
+      had not hit until the new golden moved them on; a machine is held
+      against the first lines now.
+- [ ] A zoom into a state as one picture: a state that has a diagram of its
+      own shows no picture of it, so that diagram still comes with the veil
+      on the last half of the way. To weigh: a small picture of it in the
+      state while the zoom starts, or the state's box growing into the
+      diagram's paper.
+- [ ] The map around a tile, sharp on the way in: what lies around the tile
+      is the map's overview drawn up to five times larger until the veil
+      covers it. To measure first: what a sharper raster of the part in
+      sight costs a frame while the zoom runs (`OMASPEC_FRAMES=1`).
+- [ ] A zoom that waits for a slow diagram: one that takes over 160 ms to
+      draw starts the zoom without its picture, and the way turns once it
+      comes. To weigh: waiting longer with a sign that it is coming, against
+      a click that seems to do nothing.
+- [ ] The map's arrows between rows: one routed from one row to another, or
+      to a diagram on no box, may cross a lane and may end next to a card's
+      corner (`graph::route` takes the shortest way). To try: lanes between
+      the rows for those too, and ends away from the corners.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 Omaspec's engine is plain Rust; what ties the program to Linux is at the

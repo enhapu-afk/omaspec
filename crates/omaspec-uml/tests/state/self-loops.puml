@@ -1,0 +1,15 @@
+@startuml
+' Several transitions from a state to itself lie around one another, each
+' with its own head, the words of each between it and the next.
+[*] --> Idle
+Idle --> Idle : poll
+Idle --> Idle : heartbeat [alive]
+Idle --> Idle : retry
+Idle --> Done : stop
+state Outer {
+  Inner --> Inner : a
+  Inner --> Inner : b
+}
+Done --> Outer : again
+Done --> Done : rest
+@enduml

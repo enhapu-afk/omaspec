@@ -23,11 +23,6 @@ use crate::text::Block;
 
 type Point = (f32, f32);
 
-/// How far a self-loop reaches out from its box, and how much further
-/// each next one on the same box.
-const LOOP_REACH: f32 = 16.0;
-const LOOP_STEP: f32 = 12.0;
-
 /// One container after layout: its boxes in the order of its members, its
 /// lines in the order the drawer gave them, and its notes. `width` and
 /// `height` are the graph's, notes excluded, which is what a box around it
@@ -564,7 +559,7 @@ impl<C: Nested> Flat<C> {
         let count = cx.members(container);
         let child = |path: &[usize], index: usize| [path, &[index]].concat();
         let mut level = Vec::new();
-        let mut loops = vec![0usize; count];
+        let mut loops = vec![super::Loops::default(); count];
         for (index, line) in cx.lines(container).into_iter().enumerate() {
             let (label, look) = cx.line(container, index)?;
             let (ends, drawn, ends_at, paths) = if line.direct() {
@@ -590,14 +585,19 @@ impl<C: Nested> Flat<C> {
                 && from < self.nodes.len()
                 && member < count
             {
-                let reach = LOOP_REACH + loops[member] as f32 * LOOP_STEP;
-                loops[member] += 1;
-                let extra = match axis {
-                    Direction::Down => reach + 4.0 + label.width,
-                    Direction::Right => reach + 4.0 + label.height,
-                };
+                // Each loop lies around the ones before and their words;
+                // a box grows along its free side until all of them end
+                // on it, each at a place of its own.
+                let _ = loops[member].next((label.width, label.height), axis);
                 let node = &mut self.nodes[from];
-                node.loop_extra = node.loop_extra.max(extra);
+                node.loop_extra = node.loop_extra.max(loops[member].room());
+                if node.flat {
+                    let side = loops[member].side();
+                    match axis {
+                        Direction::Down => node.height = node.height.max(side),
+                        Direction::Right => node.width = node.width.max(side),
+                    }
+                }
             }
             self.edges.push(Edge {
                 from,

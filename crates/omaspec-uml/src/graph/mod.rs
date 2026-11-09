@@ -45,11 +45,14 @@ mod bundle;
 pub mod by_hand;
 mod doubled;
 pub mod hold;
+mod loops;
 mod nest;
 pub mod open;
 mod order;
 pub mod route;
 mod straight;
+
+use loops::{LOOP_WORDS, Loops, self_loop};
 
 /// A box the layout places, with empty room kept on either side across
 /// the flow: `before` it (left when the flow runs down) for a note there,
@@ -394,7 +397,7 @@ pub fn framed(
         .collect();
     let valid = |end: usize| end < n + frames.len();
     let mut routes = Vec::with_capacity(edges.len());
-    let mut self_seen = vec![0usize; n];
+    let mut loops = vec![Loops::default(); n];
     for (index, edge) in edges.iter().enumerate() {
         let looped = edge.from == edge.to;
         if edge.hidden || !valid(edge.from) || !valid(edge.to) || looped && edge.from >= n {
@@ -407,9 +410,12 @@ pub fn framed(
             continue;
         }
         let (points, label_at) = if looped {
-            let channel = self_seen[edge.from];
-            self_seen[edge.from] += 1;
-            let points = orthogonal(&self_loop(rects[edge.from], channel, direction), direction);
+            let (half, reach) =
+                loops[edge.from].next((edge.label_width, edge.label_height), direction);
+            let points = orthogonal(
+                &self_loop(rects[edge.from], half, reach, direction),
+                direction,
+            );
             let label_at = loop_label(&points, edge, direction);
             (points, label_at)
         } else {
@@ -1576,32 +1582,6 @@ fn entry_point(rect: Rect, direction: Direction) -> (f32, f32) {
     }
 }
 
-fn self_loop(rect: Rect, channel: usize, direction: Direction) -> Vec<(f32, f32)> {
-    let reach = 16.0 + channel as f32 * 12.0;
-    match direction {
-        Direction::Down => {
-            let x = rect.right();
-            let y = rect.cy();
-            vec![
-                (x, y - 7.0),
-                (x + reach, y - 7.0),
-                (x + reach, y + 7.0),
-                (x, y + 7.0),
-            ]
-        }
-        Direction::Right => {
-            let x = rect.cx();
-            let y = rect.bottom();
-            vec![
-                (x - 7.0, y),
-                (x - 7.0, y + reach),
-                (x + 7.0, y + reach),
-                (x + 7.0, y),
-            ]
-        }
-    }
-}
-
 fn orthogonal(points: &[(f32, f32)], direction: Direction) -> Vec<(f32, f32)> {
     let mut out = Vec::with_capacity(points.len() * 2);
     for (index, &point) in points.iter().enumerate() {
@@ -1667,8 +1647,8 @@ fn loop_label(points: &[(f32, f32)], edge: &Edge, direction: Direction) -> (f32,
     let far_x = points.iter().map(|p| p.0).fold(f32::NEG_INFINITY, f32::max);
     let far_y = points.iter().map(|p| p.1).fold(f32::NEG_INFINITY, f32::max);
     match direction {
-        Direction::Down => (far_x + 4.0, mid_y - edge.label_height / 2.0),
-        Direction::Right => (mid_x - edge.label_width / 2.0, far_y + 4.0),
+        Direction::Down => (far_x + LOOP_WORDS, mid_y - edge.label_height / 2.0),
+        Direction::Right => (mid_x - edge.label_width / 2.0, far_y + LOOP_WORDS),
     }
 }
 
@@ -1884,6 +1864,83 @@ mod tests {
             .map(|p| p.0)
             .fold(f32::NEG_INFINITY, f32::max);
         assert!(far > laid.nodes[0].right());
+    }
+
+    #[test]
+    fn the_self_loops_of_a_box_lie_around_one_another_each_with_its_own_end() {
+        use super::loops::{LOOP_RING, LOOP_STEP};
+        // Words on the first, none on the second, tall ones on the third.
+        let labels = [(30.0, 14.0), (0.0, 0.0), (80.0, 28.0), (24.0, 14.0)];
+        for direction in [Direction::Down, Direction::Right] {
+            let nodes = [node(160.0, 160.0)];
+            let edges: Vec<Edge> = labels
+                .iter()
+                .map(|&(label_width, label_height)| Edge {
+                    label_width,
+                    label_height,
+                    ..edge(0, 0)
+                })
+                .collect();
+            let laid = layout(&nodes, &edges, direction);
+            let rect = laid.nodes[0];
+            // Along the free side, and out from it.
+            let on_side = |p: (f32, f32)| match direction {
+                Direction::Down => (p.1, p.0 - rect.right()),
+                Direction::Right => (p.0, p.1 - rect.bottom()),
+            };
+            let mut ends: Vec<f32> = Vec::new();
+            let mut reach = 0.0;
+            for route in &laid.routes {
+                let (first, last) = (route.points[0], *route.points.last().unwrap());
+                // It leaves and arrives on the free side, between its
+                // corners, at places no other loop has.
+                for end in [first, last] {
+                    let (along, out) = on_side(end);
+                    assert!(out.abs() < 0.01, "{direction:?} {end:?}");
+                    for other in &ends {
+                        assert!(
+                            (along - other).abs() >= LOOP_STEP - 0.01,
+                            "{ends:?} {along}"
+                        );
+                    }
+                    ends.push(along);
+                }
+                // And reaches further out than the one before.
+                let far = route
+                    .points
+                    .iter()
+                    .map(|&p| on_side(p).1)
+                    .fold(0.0, f32::max);
+                assert!(far >= reach + LOOP_RING - 0.01, "{far} {reach}");
+                reach = far;
+            }
+            // No words on a line, nor on other words.
+            let words: Vec<Rect> = laid
+                .routes
+                .iter()
+                .filter(|r| r.label_width > 0.0)
+                .map(|r| Rect {
+                    x: r.label_at.0,
+                    y: r.label_at.1,
+                    w: r.label_width,
+                    h: r.label_height,
+                })
+                .collect();
+            assert_eq!(words.len(), 3);
+            for (i, word) in words.iter().enumerate() {
+                for route in &laid.routes {
+                    for run in route.points.windows(2) {
+                        assert!(
+                            !route::cuts(*word, run[0], run[1]),
+                            "{direction:?}: {run:?} through {word:?}"
+                        );
+                    }
+                }
+                for other in &words[i + 1..] {
+                    assert!(!overlaps(*word, *other), "{word:?} on {other:?}");
+                }
+            }
+        }
     }
 
     /// Two lines across one gap run on two tracks, and the gap grows for

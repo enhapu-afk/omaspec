@@ -14,7 +14,7 @@ crates/omaspec-render/tests/layered/state-basic.mmd 6 0 0 0 0 0 2 448 0 25.0
 crates/omaspec-render/tests/layered/state-by-hand.mmd 4 0 0 0 0 0 2 279 0 23.8
 crates/omaspec-render/tests/layered/state-deep.mmd 11 0 0 0 0 0 0 506 0 0.0
 crates/omaspec-render/tests/layered/state-direction.mmd 8 0 0 0 0 0 0 337 0 17.9
-crates/omaspec-render/tests/layered/state-loops.mmd 7 0 0 1 2 0 10 523 0 23.2
+crates/omaspec-render/tests/layered/state-loops.mmd 7 0 0 1 0 0 10 606 0 23.2
 crates/omaspec-render/tests/layered/state-nested.mmd 8 0 0 0 0 0 8 729 0 12.7
 crates/omaspec-render/tests/layered/state-notes.mmd 4 0 0 0 0 0 0 161 0 19.4
 crates/omaspec-render/tests/layered/state-open.mmd 6 0 0 0 0 0 6 1044 0 0.0
@@ -28,6 +28,7 @@ crates/omaspec-uml/tests/state/history.puml 8 0 0 0 0 0 12 969 0 46.1
 crates/omaspec-uml/tests/state/legend-dark.puml 3 0 0 0 0 0 0 124 0 29.8
 crates/omaspec-uml/tests/state/nested.puml 23 0 0 0 0 0 25 4189 0 4.7
 crates/omaspec-uml/tests/state/regions.puml 12 0 0 0 0 0 0 468 0 44.0
+crates/omaspec-uml/tests/state/self-loops.puml 9 0 0 0 0 0 12 819 0 20.2
 crates/omaspec-uml/tests/state/sideways.puml 4 0 0 0 0 0 0 209 0 28.2
 crates/omaspec-uml/tests/state/states.puml 13 0 0 0 1 0 22 1981 0 13.3
 crates/omaspec-uml/tests/state/stereotypes.puml 8 0 0 0 0 0 2 515 0 23.6
@@ -56,4 +57,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 14.7
 examples/platform.mmd 17 3 0 0 4 0 38 6123 6 43.2
 examples/player.puml 8 0 0 0 0 0 14 1086 0 15.1
 examples/shop.mmd 6 0 0 0 0 0 4 619 0 17.1
-total 507 8 0 1 15 0 458 70321 21 986.3
+total 516 8 0 1 13 0 470 71223 21 1006.5

@@ -86,6 +86,25 @@ fn plantuml_reads_changed_diagrams_as_omaspec_does() {
     assert!(held.wrong.is_empty(), "\n{}", held.wrong.join("\n\n"));
 }
 
+/// `block` with each transition's label cut after its first line. Of a
+/// label over several lines (`pay\nnow [ok]`), PlantUML's SCXML export
+/// keeps the first alone, the guard and the action on the others gone.
+/// Omaspec reads every line of it, which that export cannot be asked
+/// about; so a machine is held against the first lines.
+fn first_lines(block: &str) -> String {
+    block
+        .lines()
+        .map(|line| match line.split_once(':') {
+            Some((arrow, label)) if arrow.contains("->") => match label.split_once("\\n") {
+                Some((first, _)) => format!("{arrow}:{first}"),
+                None => line.to_owned(),
+            },
+            _ => line.to_owned(),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// The configured `plantuml`, or the one in `PATH`; `none` is none. Without
 /// one a test is skipped, unless `OMASPEC_REQUIRE_PLANTUML` is set.
 fn plantuml() -> Option<PathBuf> {
@@ -124,7 +143,10 @@ fn hold(plantuml: &Path, cases: Vec<(String, String)>) -> Held {
     let mut scenarios = Vec::new();
     for (name, block) in cases {
         if let Some(machine) = Machine::read(&block, Language::PlantUml) {
-            machines.push((name, block, from_machine(&machine)));
+            // Held against what the export keeps of each label.
+            let kept = Machine::read(&first_lines(&block), Language::PlantUml);
+            let ours = from_machine(kept.as_ref().unwrap_or(&machine));
+            machines.push((name, block, ours));
         } else if let Ok(omaspec_uml::Diagram::Sequence(d)) = omaspec_uml::parse(&block)
             // Without a participant Omaspec does not draw it.
             && !d.participants.is_empty()
