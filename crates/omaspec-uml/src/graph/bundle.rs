@@ -334,7 +334,7 @@ fn cuts(one: &[Point], other: &[Point]) -> usize {
 
 /// The two segments meet properly, each with its ends on opposite sides of
 /// the other. A corner that only touches, and a shared run, do not.
-fn crossed(a: Point, b: Point, c: Point, d: Point) -> bool {
+pub(super) fn crossed(a: Point, b: Point, c: Point, d: Point) -> bool {
     let side = |p: Point, q: Point, r: Point| (q.0 - p.0) * (r.1 - p.1) - (q.1 - p.1) * (r.0 - p.0);
     let (d1, d2) = (side(c, d, a), side(c, d, b));
     let (d3, d4) = (side(a, b, c), side(a, b, d));

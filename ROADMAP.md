@@ -973,6 +973,18 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         keeps off every other box and other line. Jogs 39 → 1, bends
         479 → 403; 2 PlantUML and 8 Mermaid goldens changed, looked at
         side by side.
+  - [x] One step where there were several (2026-11-09): a line through
+        several ranks stepped aside in every gap, as far as the point it
+        passed through there sat off the one before, three small steps
+        the same way where one would do. `straight::merge` moves the run
+        between two steps onto the far side of the longer one, a step the
+        other way too when nothing or a step as large as the layout's is
+        left, where the run keeps off every box, frame name and label,
+        enters no frame the line kept out of, crosses nothing new and
+        keeps 10 units from the lines beside it; its label keeps 4 off
+        other words. Bends 530 → 458, crossings, jogs and words
+        unchanged, near lines 17 → 15; 4 PlantUML and 7 Mermaid goldens
+        changed, looked at side by side.
   - [x] Fewer crossings, as Graphviz orders ranks (`graph::order`): the
         crossings between neighboring ranks are counted after every sweep,
         two neighbors in the same frames swap where that crosses less, and

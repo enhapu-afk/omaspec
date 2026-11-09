@@ -7,7 +7,7 @@
 <rect x="241.03" y="0" width="83.14" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <path d="M72.68,28.3 L72.68,28.3 C72.68,34.92 78.05,40.3 84.68,40.3 L106.88,40.3 C125.76,40.3 141.08,55.61 141.08,74.5 L141.08,110.26" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="153.08,28.3 153.08,110.26" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M253.03,28.3 L253.03,28.3 C253.03,40.45 243.18,50.3 231.03,50.3 L216.72,50.3 C202.93,50.3 191.74,61.48 191.74,75.28 L191.74,94.64 C191.74,97.74 189.22,100.26 186.11,100.26 L186.11,100.26 C183.01,100.26 180.49,102.78 180.49,105.89 L180.49,110.26" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M253.03,28.3 L253.03,28.3 C253.03,40.45 243.18,50.3 231.03,50.3 L216.76,50.3 C196.73,50.3 180.49,66.53 180.49,86.57 L180.49,110.26" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
 <text font-family="sans-serif" xml:space="preserve">
@@ -29,7 +29,7 @@
 <tspan x="159.08" y="65.43" font-size="12" fill="#000000" textLength="20.66" lengthAdjust="spacing">bills</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="197.74" y="65.43" font-size="12" fill="#000000" textLength="41.34" lengthAdjust="spacing">delivers</tspan>
+<tspan x="186.49" y="65.43" font-size="12" fill="#000000" textLength="41.34" lengthAdjust="spacing">delivers</tspan>
 </text>
 <polygon points="137.08,110.26 141.08,120.26 145.08,110.26 141.08,114.76" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="149.08,110.26 153.08,120.26 157.08,110.26 153.08,114.76" fill="#181818" stroke="#181818" stroke-width="1"/>

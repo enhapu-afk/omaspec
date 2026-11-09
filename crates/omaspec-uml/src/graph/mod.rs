@@ -521,6 +521,33 @@ pub fn framed(
     };
     let mut lines: Vec<Vec<(f32, f32)>> = routes.iter().map(|r| r.points.clone()).collect();
     straight::unjog(&mut lines, &ends, &rects, &label_rect);
+    // Then one step where there were several: a run moved keeps off the
+    // boxes and the names of the frames, and out of frames it was not in.
+    let names = frames.iter().zip(&frame_rects).filter_map(|(frame, rect)| {
+        let name = frame.name;
+        (name.width > 0.0).then_some(match direction {
+            Direction::Down => Rect {
+                x: rect.x + name.share * rect.w + name.offset,
+                y: rect.y,
+                w: name.width,
+                h: name.height,
+            },
+            Direction::Right => Rect {
+                x: rect.x,
+                y: rect.y + name.share * rect.h + name.offset,
+                w: name.height,
+                h: name.width,
+            },
+        })
+    });
+    let solids: Vec<Rect> = rects.iter().copied().chain(names).collect();
+    straight::merge(
+        &mut lines,
+        &solids,
+        &frame_rects,
+        &label_rect,
+        direction == Direction::Down,
+    );
     bundle::share(&mut bundle::Drawn {
         routes: &mut lines,
         edges,
