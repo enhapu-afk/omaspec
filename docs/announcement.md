@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.9.0: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.9.1: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -59,6 +59,10 @@ diagram as a scenario, in PlantUML and Mermaid alike:
 - **Smoother to use.** Ctrl+click in the diagram puts the caret on the word, the light
   on the name under the caret travels to its next place, and a play's light runs along
   each arrow as one stroke.
+- **A calmer map (0.9.1).** On a project's map the arrows run around the cards, and
+  those into one diagram share a line. A click on a card zooms into its diagram as one
+  sharp picture that grows, and back; a diagram changed in its tab shows that way on
+  the map before it is saved.
 
 ## The editor
 
