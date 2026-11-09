@@ -1510,6 +1510,52 @@ fn compare_with_another_tab_follows_both() {
 }
 
 #[test]
+fn the_change_since_b_glides_from_b_to_a() {
+    let mut app = open(&[]);
+    let old = "@startuml\n[*] --> Idle\nIdle --> Busy : go\n@enduml\n";
+    // Done beside Busy moves Busy aside: the boxes glide.
+    let new = "@startuml\n[*] --> Idle\nIdle --> Busy : go\nIdle --> Done : end\n@enduml\n";
+    select_all_and_paste(&mut app, old);
+    show(&mut app, old, Language::PlantUml);
+    press(&mut app, Command::NewTab);
+    select_all_and_paste(&mut app, new);
+    show(&mut app, new, Language::PlantUml);
+    // Without a comparison there is nothing to glide from.
+    press(&mut app, Command::CompareGlide);
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("compare with a tab or a git commit first")
+    );
+    press(&mut app, Command::Compare);
+    let _ = app.update(Message::PickerSubmit);
+    let c = app.compare.as_mut().expect("comparing");
+    let _ = c
+        .paper
+        .update(paper::Message::Viewport(Size::new(600.0, 560.0)));
+    let id = c.paper.pretend_next();
+    let mut reply = answer(compare::KEY, id, Ok(drawn(old, Language::PlantUml)));
+    reply.language = Language::PlantUml;
+    reply.source = old.into();
+    let _ = c.paper.rendered(reply);
+    // A has faded in; the glide starts from B as it stands.
+    let paper = &mut app.doc_mut().paper;
+    paper.deliver_overview();
+    let _ = paper.update(paper::Message::Faded);
+    press(&mut app, Command::CompareGlide);
+    assert!(app.notice.is_none());
+    let paper = &mut app.doc_mut().paper;
+    assert_eq!(paper.drawn_now().unwrap().1.as_ref(), old);
+    paper.deliver_overview();
+    // B is on screen; A came back and glides from it, its boxes and
+    // lines on their way, Done fading in.
+    assert_eq!(paper.drawn_now().unwrap().1.as_ref(), new);
+    // B's short fade-in ends: the glide to A begins.
+    let _ = paper.update(paper::Message::Faded);
+    paper.deliver_overview();
+    assert!(paper.fading_lines(), "the way from B to A glides");
+}
+
+#[test]
 fn compare_with_a_commit() {
     let mut app = open(&[]);
     select_all_and_paste(&mut app, "flowchart LR\n  A --> C\n");

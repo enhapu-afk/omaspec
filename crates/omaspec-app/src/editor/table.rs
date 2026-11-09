@@ -320,6 +320,7 @@ pub const TABLE: &[Entry] = &[
     )
     .menu(Project),
     cmd("Compare: zoom together on/off", "", Command::CompareSync).menu(Project),
+    cmd("Compare: glide from B to A", "", Command::CompareGlide).menu(Project),
     cmd("Stop comparing", "", Command::StopCompare).menu(Project),
     cmd("Language: detect", "", Command::LanguageDetected)
         .menu(Edit)

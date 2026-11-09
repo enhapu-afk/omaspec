@@ -154,7 +154,9 @@ Ctrl+Shift+D compares the tab (A) with another tab or with the file in a git com
 (`HEAD` and the last 30 commits that changed it) as B: both diagrams side by side, zoomed
 and panned together, or B as the source lines that changed from B to A (blank lines and
 indentation aside; a click goes to the line). Meanwhile the marks beside the lines show
-the difference to B.
+the difference to B. *Compare: glide from B to A* in the palette shows the change as a
+glide in A's pane: B stands as it was, then its boxes and lines glide to their places in
+A, what came fades in and what went fades out.
 
 The same list offers *the project since* `HEAD`, its five newest tags and the commits that
 changed it: what changed in the behavior of every diagram of the project since then, the

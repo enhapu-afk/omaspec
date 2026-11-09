@@ -233,6 +233,10 @@ pub struct Paper {
     no_bare: bool,
     /// A new diagram came; its first overview raster starts the fade.
     fresh: bool,
+    /// The diagram to come back to once the one that just came is shown:
+    /// the way from an older drawing of it, shown as a glide
+    /// ([`Paper::glide_from`]).
+    back: Option<crate::worker::Answer>,
     /// That overview is in. A glide still on screen finishes before the
     /// next one starts from it.
     landed: bool,
@@ -314,6 +318,7 @@ impl Default for Paper {
             bare_new: Layer::default(),
             no_bare: false,
             fresh: false,
+            back: None,
             landed: false,
             on_pictures: false,
             previous: None,

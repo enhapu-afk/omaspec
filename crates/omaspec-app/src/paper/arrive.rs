@@ -362,6 +362,7 @@ impl Paper {
             frames::note(|| pixels("overview", self.overview.asked));
         }
         if failed {
+            self.back = None;
             return self.no_overview();
         }
         if shown && self.fresh {
@@ -371,10 +372,64 @@ impl Paper {
             let morphing = self.fade.as_ref().is_some_and(|fade| fade.morph.is_some());
             if !morphing {
                 let fade = self.start_fade(Instant::now());
-                return Task::batch([fade, self.resume_outward()]);
+                // The older drawing is on screen: now the way to the one
+                // it was shown for.
+                let back = match self.back.take() {
+                    Some(mut back) => {
+                        self.requested += 1;
+                        back.ticket.id = self.requested;
+                        self.rendered(back)
+                    }
+                    None => Task::none(),
+                };
+                return Task::batch([fade, self.resume_outward(), back]);
             }
         }
         self.resume_outward()
+    }
+
+    /// Shows the way from `old`, an older drawing of this diagram (as B of
+    /// a comparison), to the diagram on screen: the old one stands as it
+    /// is, then its boxes and lines glide to their new places, what came
+    /// fades in and what went fades out, as a changed layout glides after
+    /// an edit.
+    pub fn glide_from(
+        &mut self,
+        old: crate::worker::Drawn,
+        source: Arc<str>,
+        language: omaspec_core::Language,
+    ) -> Task<Message> {
+        let Some(now) = &self.diagram else {
+            return Task::none();
+        };
+        let ticket = |id: u64| crate::worker::Ticket { doc: 0, id };
+        self.back = Some(Answer {
+            ticket: ticket(0),
+            source: Arc::clone(&now.source),
+            language: now.language,
+            result: Ok(now.drawn.clone()),
+        });
+        self.requested += 1;
+        let task = self.rendered(Answer {
+            ticket: ticket(self.requested),
+            source,
+            language,
+            result: Ok(old),
+        });
+        // Nothing glides to the old one: it is where the way starts.
+        self.previous = None;
+        task
+    }
+
+    /// The diagram on screen as it was drawn, with its source, for
+    /// [`Self::glide_from`] on another pane.
+    pub fn drawn_now(&self) -> Option<(crate::worker::Drawn, Arc<str>, omaspec_core::Language)> {
+        let diagram = self.diagram.as_ref()?;
+        Some((
+            diagram.drawn.clone(),
+            Arc::clone(&diagram.source),
+            diagram.language,
+        ))
     }
 
     /// The overview asked for last could not be drawn. What waited for it

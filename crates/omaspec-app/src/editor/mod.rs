@@ -386,6 +386,8 @@ pub enum Command {
     Convert,
     /// Zoom and pan A and B together or apart.
     CompareSync,
+    /// The way from B to A as a glide.
+    CompareGlide,
     /// Between the search and the replacement.
     SwitchField,
     /// The export prompt's next look.
@@ -1919,6 +1921,19 @@ impl App {
                 Task::none()
             }
             Command::Convert => self.convert(),
+            Command::CompareGlide => {
+                let old = self.compare.as_ref().and_then(|c| c.paper.drawn_now());
+                let Some((drawn, source, language)) = old else {
+                    self.notice = Some("compare with a tab or a git commit first".into());
+                    return Task::none();
+                };
+                let key = self.doc().key;
+                self.notice = None;
+                self.doc_mut()
+                    .paper
+                    .glide_from(drawn, source, language)
+                    .map(move |m| Message::Paper(key, m))
+            }
             Command::CompareSync => {
                 if let Some(c) = &mut self.compare {
                     c.sync = !c.sync;

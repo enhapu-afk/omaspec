@@ -36,6 +36,7 @@ impl Command {
             | Command::StopCompare
             | Command::CompareDiff
             | Command::CompareSync
+            | Command::CompareGlide
             | Command::Format
             | Command::Collapse
             | Command::Expand

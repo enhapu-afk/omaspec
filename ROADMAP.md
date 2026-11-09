@@ -1950,11 +1950,12 @@ Named when 0.9 was done; none is decided, and each needs its own look at
 what it costs and whom it serves ([0006](docs/adr/0006-goals-and-scope.md))
 before it becomes a step.
 
-- [ ] A diff as a glide: `omaspec diff` tells what changed in the behavior
-      as text. The glide of a changed layout (boxes and lines to their new
-      places) could show it: the old version glides into the new one, the
-      states that came fade in, those that went fade out. For the review of
-      a state machine, beside Compare.
+- [x] A diff as a glide (2026-11-09): *Compare: glide from B to A* shows
+      the change in A's pane: B stands as it was, then its boxes and lines
+      glide to their places in A, what came fades in and what went fades
+      out, on the glide a changed layout has after an edit
+      (`Paper::glide_from`: B is shown as if it had just been drawn, with
+      nothing gliding to it, and A comes back once B's picture is in).
 - [ ] A glide or a play as a picture that moves: a fold, a dive or a play
       written as a GIF or an APNG, for a presentation or a pull request.
       The frames are drawn headless already (`snapshot_dive`, `frames_`);
