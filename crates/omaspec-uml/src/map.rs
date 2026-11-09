@@ -191,8 +191,6 @@ pub struct Tile {
     pub key: String,
     /// What the tile is called.
     pub name: String,
-    /// The key of the nearest tile above it in the tree.
-    pub parent: Option<String>,
     /// The whole tile.
     pub frame: Rect,
     /// The room in it for the picture.

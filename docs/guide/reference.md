@@ -125,7 +125,11 @@ shows it beside the file. Each diagram file of the project is a tile with that d
 picture, drawn by Omaspec's engines in the map's colors, sharp at any zoom; none has to
 be listed, and a new file is on the map as soon as it is there. An arrow joins two tiles
 where a scenario *plays* against a state machine, a state *opens* the diagram of its
-name, or a diagram *includes* a file. A folder is a label over its diagrams; in a project
+name, or a diagram *includes* a file, and the map is laid out by these arrows: a diagram
+stands above the one it leads to. Arrows that arrive alike at one tile meet in their
+words and share one head; more than four tiles that lead to the same diagrams stand in a
+block with one line. What no arrow joins stands beside one another, the diagrams no arrow
+reaches in a block. A folder is a frame around its diagrams; in a project
 of more than 36 diagrams a folder is a tile that shows how much it holds, a small box for
 each diagram, and a click on it opens the folder's map in the same tab, the trail naming
 the way back. A large map shows its cards first, each with its diagram's name and kind,

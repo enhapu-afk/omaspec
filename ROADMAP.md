@@ -1833,7 +1833,7 @@ its cards, and the zoom into a tile as one picture.
       (`pay\nnow [ok]` is the event `pay`), which the oracle's random changes
       had not hit until the new golden moved them on; a machine is held
       against the first lines now.
-- [ ] The map, made ([0026](docs/adr/0026-the-map-is-made.md), 2026-11-09):
+- [x] The map, made ([0026](docs/adr/0026-the-map-is-made.md), 2026-11-09):
       a project's map is made from its diagrams and written nowhere, and a
       mind map or a WBS is a diagram like any other. Seen with the gallery's
       *A garden year* and *Moving house*: every mind map and every WBS that
@@ -1875,12 +1875,25 @@ its cards, and the zoom into a tile as one picture.
         window does not follow a folder's tile; what a diagram inside a
         folder's tile *opens* is not on the map, since it is read and not
         drawn there.
-  - [ ] Laid out by its arrows: a scenario beside the machine it plays, a
-        diagram below the state that opens it, a folder a frame around a
-        block of cards, the diagrams no arrow reaches in a block by kind;
-        no tree, so no curves to lead arrows around, and a folder of a
-        hundred diagrams a block and no row. The lanes and the router of
-        0.9.1 stay for what is left to route.
+  - [x] Laid out by its arrows, on the layout of every diagram of boxes
+        and lines (`graph::open`; `tree/cards/layout.rs`): a diagram stands
+        above the one it plays against, opens or includes; a folder is a
+        frame around its cards, laid out with what is around it when a
+        line runs into it. The words of an arrow are a pill that is a box
+        of the layout: arrows that arrive alike at one card meet in it and
+        share one head, and so do those that leave one card alike. More
+        than four cards that lead to the same diagrams are a block with
+        one line; what no arrow joins is packed beside one another, about
+        1.6 times as wide as high, the cards no arrow reaches in a block
+        by kind, folders first. The tree, its curves, the lanes below a
+        row and the map's own routing are gone. A scenario stands above
+        its machine, not beside it: all arrows lead down, so they can
+        share a head. Generated projects (release): 2,000 diagrams in 40
+        folders, the map in 42 ms, again in 21 ms; a folder's map of 50
+        diagrams in 33 ms. Open: a scenario stands in the top row however
+        deep the machine it plays lies, so its line is long (the layout
+        ranks a box nothing leads to at the top); a chain of diagrams is a
+        column, however wide the window.
 - [ ] A zoom into a state as one picture: a state that has a diagram of its
       own shows no picture of it, so that diagram still comes with the veil
       on the last half of the way. To weigh: a small picture of it in the

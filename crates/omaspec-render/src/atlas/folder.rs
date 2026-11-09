@@ -6,8 +6,8 @@
 //! or a WBS is a diagram like any other.
 //!
 //! A folder inside the project groups its diagrams. In a project of up to
-//! [`WHOLE`] diagrams the map shows all of them: a folder is a label over
-//! its diagrams. In a larger one a folder is a tile that shows how many
+//! [`WHOLE`] diagrams the map shows all of them: a folder is a frame
+//! around its diagrams. In a larger one a folder is a tile that shows how many
 //! diagrams it holds and opens its own map ([`super::Link::folder`]), and
 //! an arrow to or from the folder stands for those of the diagrams in it. So a map shows
 //! one level of a large project, and what a level holds stays in sight.
@@ -126,8 +126,8 @@ fn folder_key(path: &str) -> String {
     format!("{path}/")
 }
 
-/// The boxes of `dir`'s map below its root: a tile for each diagram, and
-/// for each folder a label over its own (`whole`) or a tile.
+/// The boxes of `dir`'s map: a tile for each diagram, and for each folder
+/// a frame around its own (`whole`) or a tile.
 fn branches(dir: &Dir, atlas: &Atlas, whole: bool) -> Vec<Branch> {
     let mut out: Vec<Branch> = dir
         .diagrams
@@ -205,11 +205,7 @@ pub(crate) fn render(
     } else {
         top.name.clone()
     };
-    let roots = [Branch {
-        words: title.clone(),
-        key: None,
-        below: branches(&top, atlas, whole),
-    }];
+    let roots = branches(&top, atlas, whole);
 
     // The diagrams with a tile of their own, and the folders with one.
     fn tiles_of<'d>(dir: &'d Dir, whole: bool, shown: &mut Vec<usize>, folded: &mut Vec<&'d Dir>) {
@@ -287,7 +283,6 @@ pub(crate) fn render(
         } else {
             format!("{folder} · {}", counted(top.count(), "diagram"))
         },
-        main: folder.is_empty(),
     };
     let by_file: HashMap<&str, usize> = shown
         .iter()
@@ -529,23 +524,21 @@ mod tests {
         );
         assert!(drawn.links.iter().all(|l| l.tile && l.room.is_some()));
         // The project's name heads it, with what it holds; the folder is a
-        // label over its scenarios, which hang below it.
+        // frame around its scenarios.
         assert!(drawn.svg.contains(">First Console<"));
         assert!(drawn.svg.contains("System map · 4 diagrams"));
         assert!(drawn.svg.contains(">scenarios<"));
         let place = |key: &str| drawn.map.tiles.iter().find(|t| t.key == key).unwrap();
-        assert!(place("scenarios/boot.puml").frame.y > place("console.puml").frame.y);
-        // Nothing is "not on the map", and nothing to write to place one.
-        assert!(!drawn.svg.contains("not on the map"));
-        assert!(!drawn.svg.contains("to place it"));
-        // Each scenario plays the console: an arrow each.
-        assert_eq!(drawn.svg.matches(">plays<").count(), 2, "{}", drawn.svg);
+        // The scenarios play the console and stand above it: their lines
+        // share the words and the head.
+        assert!(place("scenarios/boot.puml").frame.y < place("console.puml").frame.y);
+        assert_eq!(drawn.svg.matches(">plays<").count(), 1);
         // The plan is a WBS like any other: a tile with its own picture,
         // and its boxes place nothing and open nothing.
         assert!(drawn.svg.contains("WBS · PlantUML"));
         assert!(!drawn.svg.contains(">opens<"));
         // The pictures nested, and the cards without them.
-        assert_eq!(drawn.svg.matches("<svg").count(), 5, "{}", drawn.svg);
+        assert_eq!(drawn.svg.matches("<svg").count(), 5);
         let cards = drawn.cards.as_deref().expect("a map's cards");
         assert_eq!(cards.matches("<svg").count(), 1);
         assert!(crate::export::parse(&drawn.svg).is_ok());
@@ -578,8 +571,9 @@ mod tests {
             name: None,
         };
         let drawn = renderer().render_map(&atlas, "", SKIN).unwrap();
-        // An arrow from each of the two, and one for the file included.
-        assert_eq!(drawn.svg.matches(">opens<").count(), 2, "{}", drawn.svg);
+        // The two that open Checkout share their words and their head;
+        // and an arrow for the file included.
+        assert_eq!(drawn.svg.matches(">opens<").count(), 1);
         assert_eq!(drawn.svg.matches(">includes<").count(), 1);
         // Without a name of its own the project's map is called Map.
         assert!(drawn.svg.contains(">Map<"));
@@ -637,7 +631,7 @@ mod tests {
         assert!(drawn.svg.contains(">20 diagrams<") && drawn.svg.contains(">21 diagrams<"));
         assert!(drawn.svg.contains("System map · 42 diagrams"));
         // The scenario's arrow, from its folder's tile to the other's.
-        assert_eq!(drawn.svg.matches(">plays<").count(), 1, "{}", drawn.svg);
+        assert_eq!(drawn.svg.matches(">plays<").count(), 1);
         // One level: only the diagram beside the folders was drawn.
         assert_eq!(renderer.pictures.drawn.len(), 1);
         // A folder's own map holds its diagrams, small enough for one.
