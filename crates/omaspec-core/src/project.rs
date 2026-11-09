@@ -58,16 +58,22 @@ pub enum LookPack {
     Dark,
     /// The light palette, and the dark one under a dark scheme (SVG only).
     Auto,
+    /// Drawn by hand, in pastel colors on warm paper.
+    Sketch,
+    /// A palette by kind on white.
+    Vivid,
 }
 
 impl LookPack {
-    pub const ALL: [LookPack; 6] = [
+    pub const ALL: [LookPack; 8] = [
         LookPack::Plain,
         LookPack::Spec,
         LookPack::Presentation,
         LookPack::Light,
         LookPack::Dark,
         LookPack::Auto,
+        LookPack::Sketch,
+        LookPack::Vivid,
     ];
 
     pub fn name(self) -> &'static str {
@@ -78,6 +84,8 @@ impl LookPack {
             LookPack::Light => "light",
             LookPack::Dark => "dark",
             LookPack::Auto => "auto",
+            LookPack::Sketch => "sketch",
+            LookPack::Vivid => "vivid",
         }
     }
 }
@@ -171,7 +179,9 @@ impl Project {
         {
             let why = match look.pack {
                 LookPack::Plain | LookPack::Spec => "draws in black and white",
-                LookPack::Presentation => "keeps the colors of the file",
+                LookPack::Presentation | LookPack::Sketch | LookPack::Vivid => {
+                    "has a palette of its own"
+                }
                 LookPack::Auto => "takes Omaspec's two palettes",
                 LookPack::Light | LookPack::Dark => "",
             };

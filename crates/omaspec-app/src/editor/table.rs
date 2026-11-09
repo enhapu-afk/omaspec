@@ -246,6 +246,10 @@ pub const TABLE: &[Entry] = &[
         .menu(Edit)
         .child("Skin")
         .short("Sketch"),
+    cmd("Skin: vivid", "", Command::Skin(Some(Pack::Vivid)))
+        .menu(Edit)
+        .child("Skin")
+        .short("Vivid"),
     cmd("Skin: remove", "", Command::Skin(None))
         .menu(Edit)
         .child("Skin")

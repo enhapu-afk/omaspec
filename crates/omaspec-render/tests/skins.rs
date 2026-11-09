@@ -55,10 +55,8 @@ fn plantuml_packs_draw_natively() {
     for pack in Pack::ALL {
         let (range, text) = skin::edit(code, Language::PlantUml, Some(pack), &COLORS).unwrap();
         let skinned = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
-        assert!(
-            lint::lint(&skinned, Language::PlantUml).is_empty(),
-            "{pack:?}"
-        );
+        let findings = lint::lint(&skinned, Language::PlantUml);
+        assert!(findings.is_empty(), "{pack:?}: {findings:?}");
         let svg = renderer.render(&skinned, Language::PlantUml).unwrap().svg;
         assert_ne!(svg, bare.svg, "{pack:?} changes nothing");
         if pack == Pack::Omarchy {
@@ -86,10 +84,8 @@ fn plantuml_packs_draw_trees_natively() {
         for pack in Pack::ALL {
             let (range, text) = skin::edit(code, Language::PlantUml, Some(pack), &COLORS).unwrap();
             let skinned = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
-            assert!(
-                lint::lint(&skinned, Language::PlantUml).is_empty(),
-                "{pack:?}"
-            );
+            let findings = lint::lint(&skinned, Language::PlantUml);
+            assert!(findings.is_empty(), "{pack:?}: {findings:?}");
             let svg = renderer.render(&skinned, Language::PlantUml).unwrap().svg;
             assert_ne!(svg, bare.svg, "{pack:?} changes nothing");
             if pack == Pack::Omarchy {
@@ -115,10 +111,8 @@ fn plantuml_packs_draw_activity_natively() {
     for pack in Pack::ALL {
         let (range, text) = skin::edit(code, Language::PlantUml, Some(pack), &COLORS).unwrap();
         let skinned = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
-        assert!(
-            lint::lint(&skinned, Language::PlantUml).is_empty(),
-            "{pack:?}"
-        );
+        let findings = lint::lint(&skinned, Language::PlantUml);
+        assert!(findings.is_empty(), "{pack:?}: {findings:?}");
         let svg = renderer.render(&skinned, Language::PlantUml).unwrap().svg;
         assert_ne!(svg, bare.svg, "{pack:?} changes nothing");
         if pack == Pack::Omarchy {
@@ -143,10 +137,8 @@ fn plantuml_packs_draw_state_natively() {
     for pack in Pack::ALL {
         let (range, text) = skin::edit(code, Language::PlantUml, Some(pack), &COLORS).unwrap();
         let skinned = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
-        assert!(
-            lint::lint(&skinned, Language::PlantUml).is_empty(),
-            "{pack:?}"
-        );
+        let findings = lint::lint(&skinned, Language::PlantUml);
+        assert!(findings.is_empty(), "{pack:?}: {findings:?}");
         let svg = renderer.render(&skinned, Language::PlantUml).unwrap().svg;
         assert_ne!(svg, bare.svg, "{pack:?} changes nothing");
         if pack == Pack::Omarchy {
@@ -170,10 +162,8 @@ fn plantuml_packs_draw_structure_natively() {
     for pack in Pack::ALL {
         let (range, text) = skin::edit(code, Language::PlantUml, Some(pack), &COLORS).unwrap();
         let skinned = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
-        assert!(
-            lint::lint(&skinned, Language::PlantUml).is_empty(),
-            "{pack:?}"
-        );
+        let findings = lint::lint(&skinned, Language::PlantUml);
+        assert!(findings.is_empty(), "{pack:?}: {findings:?}");
         let svg = renderer.render(&skinned, Language::PlantUml).unwrap().svg;
         assert_ne!(svg, bare.svg, "{pack:?} changes nothing");
         if pack == Pack::Omarchy {
@@ -200,10 +190,8 @@ fn plantuml_packs_draw_timing_natively() {
     for pack in Pack::ALL {
         let (range, text) = skin::edit(code, Language::PlantUml, Some(pack), &COLORS).unwrap();
         let skinned = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
-        assert!(
-            lint::lint(&skinned, Language::PlantUml).is_empty(),
-            "{pack:?}"
-        );
+        let findings = lint::lint(&skinned, Language::PlantUml);
+        assert!(findings.is_empty(), "{pack:?}: {findings:?}");
         let svg = renderer.render(&skinned, Language::PlantUml).unwrap().svg;
         assert_ne!(svg, bare.svg, "{pack:?} changes nothing");
         if pack == Pack::Omarchy {
@@ -228,10 +216,8 @@ fn plantuml_packs_draw_gantt_natively() {
     for pack in Pack::ALL {
         let (range, text) = skin::edit(code, Language::PlantUml, Some(pack), &COLORS).unwrap();
         let skinned = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
-        assert!(
-            lint::lint(&skinned, Language::PlantUml).is_empty(),
-            "{pack:?}"
-        );
+        let findings = lint::lint(&skinned, Language::PlantUml);
+        assert!(findings.is_empty(), "{pack:?}: {findings:?}");
         let svg = renderer.render(&skinned, Language::PlantUml).unwrap().svg;
         assert_ne!(svg, bare.svg, "{pack:?} changes nothing");
         if pack == Pack::Omarchy {

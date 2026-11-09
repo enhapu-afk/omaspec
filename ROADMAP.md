@@ -973,6 +973,17 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         keeps off every other box and other line. Jogs 39 → 1, bends
         479 → 403; 2 PlantUML and 8 Mermaid goldens changed, looked at
         side by side.
+  - [x] Skins with colors (2026-11-09): the sketch pack drew in PlantUML's
+        own pale yellow and black, presentation in the file's colors, and the
+        only colored pack took the Omarchy theme, dull on a dark theme. The
+        sketch pack now draws in pastel colors on warm paper (light blue boxes,
+        orange actors, green stores, yellow notes, dark ink), presentation in
+        its one blue in PlantUML as it did in Mermaid, and a new `vivid` pack
+        has a palette by kind: blue boxes, violet interfaces, pink choices,
+        green stores, amber people, yellow notes, slate lines, on white
+        (`skin::Swatch`, one list of skinparams and one of Mermaid's theme
+        variables for all three). Every color keeps 3:1 against the paper,
+        as lint asks. A project may pin `sketch` or `vivid` too.
   - [x] Words off the curves (2026-11-09): a label sat at the top of its
         rank beside the straight run of its line, where the curve of the
         corner above, up to 48 units long, cut its first letter. `tests/lines`

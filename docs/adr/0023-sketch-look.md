@@ -111,3 +111,14 @@ and the places a click finds stay where they were.
   `omaspec-project.toml`), rough.js's hatched fills, and the maps of
   [0018](0018-diagrams-that-link.md), which draw their cards in
   Omaspec's own look.
+
+## Addendum (2026-11-09): colors of its own
+
+The sketch pack set only `handwritten`, so a sketch drew in PlantUML's
+pale yellow and black, and in Mermaid's default theme: not what a sketch on
+a whiteboard looks like. The pack now carries a palette (`skin::SKETCH`):
+pastel fills in dark ink on warm paper, light blue boxes, orange actors and
+participants, green databases and queues, yellow notes, written as the
+skinparams the native engine colors and as Mermaid's theme variables
+beside `look: handDrawn`. A diagram that asks for `handwritten` or
+`handDrawn` itself keeps its own colors, as before.

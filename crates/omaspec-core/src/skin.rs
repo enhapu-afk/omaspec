@@ -20,17 +20,21 @@ pub enum Pack {
     /// The colors of the active Omarchy theme, written out.
     Omarchy,
     /// Shapes drawn by hand: PlantUML's `handwritten`, Mermaid's
-    /// `handDrawn` look (docs/adr/0023).
+    /// `handDrawn` look (docs/adr/0023), in pastel colors on warm paper.
     Sketch,
+    /// A palette by kind: blue boxes, violet interfaces, green stores,
+    /// amber actors, yellow notes, on white.
+    Vivid,
 }
 
 impl Pack {
-    pub const ALL: [Pack; 5] = [
+    pub const ALL: [Pack; 6] = [
         Pack::Plain,
         Pack::Spec,
         Pack::Presentation,
         Pack::Omarchy,
         Pack::Sketch,
+        Pack::Vivid,
     ];
 
     pub fn name(self) -> &'static str {
@@ -40,8 +44,172 @@ impl Pack {
             Pack::Presentation => "presentation",
             Pack::Omarchy => "omarchy",
             Pack::Sketch => "sketch",
+            Pack::Vivid => "vivid",
         }
     }
+}
+
+/// The colors of a pack with a palette of its own, by the kind of element.
+struct Swatch {
+    paper: &'static str,
+    text: &'static str,
+    /// Lines, arrows and the bars of an activity.
+    line: &'static str,
+    /// Lifelines, frames of groups, partitions.
+    muted: &'static str,
+    /// Fill and border of boxes: states, classes, activities, components…
+    boxes: (&'static str, &'static str),
+    interface: (&'static str, &'static str),
+    diamond: (&'static str, &'static str),
+    /// Containers: packages, nodes, frames, folders.
+    containers: (&'static str, &'static str),
+    /// People and participants of a sequence.
+    people: (&'static str, &'static str),
+    /// Databases, queues, collections.
+    stores: (&'static str, &'static str),
+    note: (&'static str, &'static str),
+    /// Start and end marks.
+    marks: &'static str,
+}
+
+/// Pastel fills in dark ink on warm paper, as a sketch on a whiteboard.
+const SKETCH: Swatch = Swatch {
+    paper: "#FFFDF6",
+    text: "#1E1E1E",
+    line: "#1E1E1E",
+    muted: "#6C757D",
+    boxes: ("#D0EBFF", "#1E1E1E"),
+    interface: ("#E5DBFF", "#1E1E1E"),
+    diamond: ("#FFE8CC", "#1E1E1E"),
+    containers: ("#F8F9FA", "#1E1E1E"),
+    people: ("#FFE8CC", "#1E1E1E"),
+    stores: ("#D3F9D8", "#1E1E1E"),
+    note: ("#FFF3BF", "#1E1E1E"),
+    marks: "#1E1E1E",
+};
+
+/// Clear colors by kind on white: blue boxes, violet interfaces, pink
+/// diamonds, green stores, amber people, yellow notes, slate lines.
+const VIVID: Swatch = Swatch {
+    paper: "#FFFFFF",
+    text: "#1F2328",
+    line: "#475569",
+    muted: "#64748B",
+    boxes: ("#DBEAFE", "#2563EB"),
+    interface: ("#EDE9FE", "#7C3AED"),
+    diamond: ("#FCE7F3", "#DB2777"),
+    containers: ("#F8FAFC", "#64748B"),
+    people: ("#FEF3C7", "#B45309"),
+    stores: ("#DCFCE7", "#16A34A"),
+    note: ("#FEF9C3", "#A16207"),
+    marks: "#1F2328",
+};
+
+/// One blue on white, as the presentation pack draws in Mermaid.
+const PRESENTATION: Swatch = Swatch {
+    paper: "#FFFFFF",
+    text: "#1F2328",
+    line: "#3367D6",
+    muted: "#5B7FC7",
+    boxes: ("#E8F0FE", "#3367D6"),
+    interface: ("#E8F0FE", "#3367D6"),
+    diamond: ("#E8F0FE", "#3367D6"),
+    containers: ("#F5F8FD", "#5B7FC7"),
+    people: ("#E8F0FE", "#3367D6"),
+    stores: ("#E8F0FE", "#3367D6"),
+    note: ("#FFF8DC", "#A17C0F"),
+    marks: "#1F2328",
+};
+
+/// The skinparam lines that paint a swatch, every element kind the native
+/// engine colors.
+fn painted(s: &Swatch) -> Vec<String> {
+    let mut lines = vec![
+        format!("skinparam backgroundColor {}", s.paper),
+        format!("skinparam defaultFontColor {}", s.text),
+        format!("skinparam ArrowColor {}", s.line),
+        format!("skinparam ArrowFontColor {}", s.text),
+    ];
+    let kinds: [(&[&str], (&str, &str)); 6] = [
+        (
+            &[
+                "Activity",
+                "State",
+                "Class",
+                "Object",
+                "Component",
+                "Usecase",
+                "Rectangle",
+                "Legend",
+            ],
+            s.boxes,
+        ),
+        (&["Interface"], s.interface),
+        (&["ActivityDiamond"], s.diamond),
+        (
+            &["Node", "Package", "Artifact", "Cloud", "Folder", "Frame"],
+            s.containers,
+        ),
+        (
+            &["Participant", "Actor", "Boundary", "Control", "Entity"],
+            s.people,
+        ),
+        (&["Database", "Collections", "Queue"], s.stores),
+    ];
+    for (names, (fill, border)) in kinds {
+        for name in names {
+            lines.push(format!("skinparam {name}BackgroundColor {fill}"));
+            lines.push(format!("skinparam {name}BorderColor {border}"));
+        }
+    }
+    lines.extend([
+        format!("skinparam NoteBackgroundColor {}", s.note.0),
+        format!("skinparam NoteBorderColor {}", s.note.1),
+        format!("skinparam SequenceLifeLineBorderColor {}", s.muted),
+        format!("skinparam SequenceLifeLineBackgroundColor {}", s.boxes.0),
+        format!("skinparam SequenceGroupBorderColor {}", s.muted),
+        format!("skinparam SequenceGroupBackgroundColor {}", s.paper),
+        format!(
+            "skinparam SequenceDividerBackgroundColor {}",
+            s.containers.0
+        ),
+        format!("skinparam SequenceDividerBorderColor {}", s.muted),
+        format!("skinparam SequenceReferenceBackgroundColor {}", s.paper),
+        format!(
+            "skinparam SequenceReferenceHeaderBackgroundColor {}",
+            s.containers.0
+        ),
+        format!("skinparam SequenceReferenceBorderColor {}", s.muted),
+        format!("skinparam SequenceBoxBackgroundColor {}", s.containers.0),
+        format!("skinparam SequenceBoxBorderColor {}", s.muted),
+        format!("skinparam PartitionBorderColor {}", s.muted),
+        format!("skinparam SwimlaneBorderColor {}", s.muted),
+        format!("skinparam ActivityStartColor {}", s.marks),
+        format!("skinparam ActivityEndColor {}", s.marks),
+        format!("skinparam ActivityBarColor {}", s.line),
+    ]);
+    lines
+}
+
+/// The Mermaid theme variables that paint a swatch.
+fn mermaid_painted(s: &Swatch) -> String {
+    format!(
+        r#""theme": "base", "themeVariables": {{"background": "{paper}", "primaryColor": "{fill}", "primaryTextColor": "{text}", "primaryBorderColor": "{border}", "lineColor": "{line}", "secondaryColor": "{interface}", "tertiaryColor": "{stores}", "textColor": "{text}", "clusterBkg": "{cluster}", "clusterBorder": "{cluster_border}", "edgeLabelBackground": "{paper}", "actorBkg": "{people}", "actorBorder": "{people_border}", "actorLine": "{muted}", "noteBkg": "{note}", "noteBorderColor": "{note_border}"}}"#,
+        paper = s.paper,
+        fill = s.boxes.0,
+        text = s.text,
+        border = s.boxes.1,
+        line = s.line,
+        interface = s.interface.0,
+        stores = s.stores.0,
+        cluster = s.containers.0,
+        cluster_border = s.containers.1,
+        people = s.people.0,
+        people_border = s.people.1,
+        muted = s.muted,
+        note = s.note.0,
+        note_border = s.note.1,
+    )
 }
 
 /// The colors the Omarchy pack writes in, as `#rrggbb`.
@@ -195,16 +363,29 @@ fn plantuml(pack: Pack, c: &Colors, font: Option<&str>) -> String {
             "skinparam roundCorner 0".into(),
             "skinparam defaultFontName serif".into(),
         ],
-        Pack::Presentation => vec![
-            "skinparam defaultFontSize 16".into(),
-            "skinparam roundCorner 12".into(),
-            "skinparam shadowing false".into(),
-            "skinparam ArrowThickness 1.5".into(),
-        ],
-        Pack::Sketch => vec![
-            "skinparam handwritten true".into(),
-            "skinparam shadowing false".into(),
-        ],
+        Pack::Presentation => {
+            let mut lines = vec![
+                "skinparam defaultFontSize 16".into(),
+                "skinparam roundCorner 12".into(),
+                "skinparam shadowing false".into(),
+                "skinparam ArrowThickness 1.5".into(),
+            ];
+            lines.extend(painted(&PRESENTATION));
+            lines
+        }
+        Pack::Sketch => {
+            let mut lines = vec![
+                "skinparam handwritten true".into(),
+                "skinparam shadowing false".into(),
+            ];
+            lines.extend(painted(&SKETCH));
+            lines
+        }
+        Pack::Vivid => {
+            let mut lines = vec!["skinparam shadowing false".into()];
+            lines.extend(painted(&VIVID));
+            lines
+        }
         Pack::Omarchy => {
             let mut lines = vec![
                 format!("skinparam backgroundColor {}", c.background),
@@ -313,8 +494,15 @@ fn mermaid(pack: Pack, c: &Colors, font: Option<&str>) -> String {
     let mut init = match pack {
         Pack::Plain => r##"{"theme": "base", "themeVariables": {"background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#000000", "primaryBorderColor": "#000000", "lineColor": "#000000", "secondaryColor": "#ffffff", "tertiaryColor": "#ffffff", "textColor": "#000000", "clusterBkg": "#ffffff", "clusterBorder": "#000000", "edgeLabelBackground": "#ffffff", "actorBkg": "#ffffff", "actorBorder": "#000000", "noteBkg": "#ffffff", "noteBorderColor": "#000000"}}"##.to_owned(),
         Pack::Spec => r#"{"theme": "neutral", "themeVariables": {"fontFamily": "serif"}}"#.to_owned(),
-        Pack::Presentation => r##"{"themeVariables": {"fontSize": "18px", "primaryColor": "#e8f0fe", "primaryBorderColor": "#3367d6", "lineColor": "#3367d6", "clusterBkg": "#f5f8fd"}}"##.to_owned(),
-        Pack::Sketch => r#"{"look": "handDrawn"}"#.to_owned(),
+        Pack::Presentation => format!(
+            r#"{{{}, "themeVariables": {{"fontSize": "18px", {}}}}}"#,
+            r#""theme": "base""#,
+            mermaid_painted(&PRESENTATION)
+                .trim_start_matches(r#""theme": "base", "themeVariables": {"#)
+                .trim_end_matches('}')
+        ),
+        Pack::Sketch => format!(r#"{{"look": "handDrawn", {}}}"#, mermaid_painted(&SKETCH)),
+        Pack::Vivid => format!("{{{}}}", mermaid_painted(&VIVID)),
         Pack::Omarchy => format!(
             r#"{{"theme": "base", "themeVariables": {{"background": "{bg}", "primaryColor": "{surface}", "primaryTextColor": "{text}", "primaryBorderColor": "{accent}", "lineColor": "{accent}", "secondaryColor": "{surface}", "tertiaryColor": "{bg}", "textColor": "{text}", "clusterBkg": "{bg}", "clusterBorder": "{muted}", "edgeLabelBackground": "{bg}", "actorBkg": "{surface}", "actorBorder": "{accent}", "actorLine": "{muted}", "noteBkg": "{note}", "noteBorderColor": "{muted}"}}}}"#,
             bg = c.background,
@@ -397,9 +585,7 @@ mod tests {
         )
         .unwrap();
         assert!(
-            sketch.contains(
-                r#"{"look": "handDrawn", "themeVariables": {"fontFamily": "IBM Plex Sans"}}"#
-            ),
+            sketch.contains(r##"{"look": "handDrawn", "theme": "base", "themeVariables": {"fontFamily": "IBM Plex Sans", "background": "#FFFDF6""##),
             "{sketch}"
         );
         // A name that would break out of its line or its string is left out.
@@ -482,6 +668,42 @@ mod tests {
         assert!(!text.contains("skinparam"));
         assert_eq!(current(&text), Some(Pack::Omarchy));
         assert_eq!(apply(&text, Language::PlantUml, None), code);
+    }
+
+    #[test]
+    fn the_sketch_the_vivid_and_the_presentation_pack_carry_colors() {
+        let code = "@startuml\n@enduml\n";
+        let sketch = apply(code, Language::PlantUml, Some(Pack::Sketch));
+        assert!(sketch.contains("skinparam handwritten true\n"));
+        assert!(
+            sketch.contains("skinparam backgroundColor #FFFDF6\n"),
+            "{sketch}"
+        );
+        assert!(sketch.contains("skinparam StateBackgroundColor #D0EBFF\n"));
+        assert!(sketch.contains("skinparam NoteBackgroundColor #FFF3BF\n"));
+        let vivid = apply(code, Language::PlantUml, Some(Pack::Vivid));
+        assert!(vivid.contains("skinparam ClassBorderColor #2563EB\n"));
+        assert!(vivid.contains("skinparam InterfaceBackgroundColor #EDE9FE\n"));
+        assert!(vivid.contains("skinparam DatabaseBackgroundColor #DCFCE7\n"));
+        assert!(!vivid.contains("handwritten"));
+        let slides = apply(code, Language::PlantUml, Some(Pack::Presentation));
+        assert!(slides.contains("skinparam roundCorner 12\n"));
+        assert!(slides.contains("skinparam StateBackgroundColor #E8F0FE\n"));
+        // Mermaid: the same colors as theme variables, the sketch keeps its look.
+        let sketch = apply("pie\n", Language::Mermaid, Some(Pack::Sketch));
+        assert!(sketch.contains(r##"{"look": "handDrawn", "theme": "base", "themeVariables": {"background": "#FFFDF6""##), "{sketch}");
+        let vivid = apply("pie\n", Language::Mermaid, Some(Pack::Vivid));
+        assert!(
+            vivid.contains(r##""primaryBorderColor": "#2563EB""##)
+                && vivid.ends_with("}}%%\npie\n"),
+            "{vivid}"
+        );
+        let slides = apply("pie\n", Language::Mermaid, Some(Pack::Presentation));
+        assert!(
+            slides.contains(r##""fontSize": "18px", "background": "#FFFFFF""##)
+                && slides.contains(r##""lineColor": "#3367D6""##),
+            "{slides}"
+        );
     }
 
     #[test]

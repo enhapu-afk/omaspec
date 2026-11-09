@@ -96,7 +96,7 @@ and CI alike. The file and the source stored in an image stay as written.
 
 ```toml
 [look]
-pack = "light"        # plain, spec, presentation, light, dark, or auto (light, and dark under a dark scheme)
+pack = "light"        # plain, spec, presentation, sketch, vivid, light, dark, or auto (light, and dark under a dark scheme)
 accent = "#d73a49"    # with light or dark: background, surface, text, accent, muted, note
 font = "Inter"        # skinparam defaultFontName, Mermaid's fontFamily
 ```
@@ -172,12 +172,17 @@ brings the diagram back.
 
 ### Skin packs
 
-Skin packs (in the palette: plain, spec, presentation, Omarchy colors, sketch) put a
-look into the source itself, so it stays with the file, exports and copies: `skinparam`
-lines after `@startuml`, or an `%%{init}%%` line in Mermaid, marked so that the next pack
-replaces it. The Omarchy pack writes the active theme's colors in.
+Skin packs (in the palette: plain, spec, presentation, Omarchy colors, sketch, vivid)
+put a look into the source itself, so it stays with the file, exports and copies:
+`skinparam` lines after `@startuml`, or an `%%{init}%%` line in Mermaid, marked so that
+the next pack replaces it. Plain and spec draw in black and white. Presentation draws
+larger, with round corners, in one blue on white. Vivid has a palette by kind: blue boxes,
+violet interfaces, pink choices, green databases and queues, amber actors and
+participants, yellow notes, slate lines. The Omarchy pack writes the active theme's
+colors in.
 
-The sketch pack draws the diagram by hand: `skinparam handwritten true` in PlantUML,
+The sketch pack draws the diagram by hand, in pastel colors on warm paper (light blue
+boxes, orange actors, green stores, yellow notes, dark ink): `skinparam handwritten true` in PlantUML,
 `look: handDrawn` in Mermaid (in `%%{init}%%`, or in the front matter's `config`), the
 way both languages already ask for it. Every line, border and fill is drawn by hand, a
 little bowed, and a card that had no border gains a light rim. A label's ground and a
@@ -459,7 +464,7 @@ omaspec render flow.mmd             # flow.svg next to it, with the source insid
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
 omaspec render door.puml -o -  --format text   # its behavior, one fact a line, for an agent or a terminal; or -o door.txt
-omaspec render flow.mmd --look auto # plain, omarchy, light or dark; auto: one SVG, dark under a dark scheme
+omaspec render flow.mmd --look auto # plain, sketch, vivid, omarchy, light or dark; auto: one SVG, dark under a dark scheme
 omaspec render .                    # every diagram of the folder, each beside its own, in the project's look
 omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1
 omaspec check ~/specs/shop          # lint, the machines, the links and render --check; --strict, --json, --github

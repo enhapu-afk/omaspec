@@ -6,9 +6,10 @@
 //! as a line of the file ([`LineShift`]).
 //!
 //! `render --look` exports in one: `plain` (black lines, no fills),
-//! `omarchy` (the active theme), `light` and `dark` (Omaspec's own two
-//! palettes, the same on every machine), and `auto`, one SVG with both of
-//! those, the dark one under `prefers-color-scheme: dark`. A project may
+//! `sketch` and `vivid` (the packs with palettes of their own), `omarchy`
+//! (the active theme), `light` and `dark` (Omaspec's own two palettes, the
+//! same on every machine), and `auto`, one SVG with both of those, the
+//! dark one under `prefers-color-scheme: dark`. A project may
 //! pin a look in `omaspec-project.toml` (`[look]`); without `--look` its
 //! diagrams are drawn in that, and `--look file` keeps the file's colors.
 //! Either is a [`Skin`].
@@ -30,6 +31,10 @@ use crate::specs::Maps;
 pub enum Look {
     /// Black lines, no fills.
     Plain,
+    /// Drawn by hand, in pastel colors on warm paper.
+    Sketch,
+    /// A palette by kind on white.
+    Vivid,
     /// The colors of the active Omarchy theme.
     Omarchy,
     /// Omaspec's light palette.
@@ -44,8 +49,10 @@ pub enum Look {
 }
 
 impl Look {
-    pub const ALL: [Look; 6] = [
+    pub const ALL: [Look; 8] = [
         Look::Plain,
+        Look::Sketch,
+        Look::Vivid,
         Look::Omarchy,
         Look::Light,
         Look::Dark,
@@ -56,6 +63,8 @@ impl Look {
     pub fn name(self) -> &'static str {
         match self {
             Look::Plain => "plain",
+            Look::Sketch => "sketch",
+            Look::Vivid => "vivid",
             Look::Omarchy => "omarchy",
             Look::Light => "light",
             Look::Dark => "dark",
@@ -72,6 +81,8 @@ impl Look {
     pub fn skin(self) -> Option<Skin> {
         let kind = match self {
             Look::Plain => Kind::Pack(Pack::Plain),
+            Look::Sketch => Kind::Pack(Pack::Sketch),
+            Look::Vivid => Kind::Pack(Pack::Vivid),
             Look::Omarchy => Kind::Colors(Hex::of_omarchy()),
             Look::Light => Kind::Colors(Hex::from(&LIGHT)),
             Look::Dark => Kind::Colors(Hex::from(&DARK)),
@@ -92,7 +103,8 @@ pub struct Skin {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Kind {
-    /// A pack that keeps its own colors: plain, spec, presentation.
+    /// A pack that keeps its own colors: plain, spec, presentation,
+    /// sketch, vivid.
     Pack(Pack),
     /// The color pack in these colors.
     Colors(Hex),
@@ -115,6 +127,8 @@ impl Skin {
             LookPack::Plain => Kind::Pack(Pack::Plain),
             LookPack::Spec => Kind::Pack(Pack::Spec),
             LookPack::Presentation => Kind::Pack(Pack::Presentation),
+            LookPack::Sketch => Kind::Pack(Pack::Sketch),
+            LookPack::Vivid => Kind::Pack(Pack::Vivid),
             LookPack::Light => Kind::Colors(colors(&LIGHT)),
             LookPack::Dark => Kind::Colors(colors(&DARK)),
             LookPack::Auto => Kind::Auto(Hex::from(&LIGHT), Hex::from(&DARK)),
