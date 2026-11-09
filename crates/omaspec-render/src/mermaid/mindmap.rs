@@ -13,17 +13,16 @@ use super::{font_name, plain_number};
 use mermaid_rs_renderer::Theme;
 use omaspec_uml::Color;
 use omaspec_uml::map::Map;
-use omaspec_uml::tree::{Idea, MindMap, Skinparam, Tiles, draw_mindmap_tiled, from_mermaid};
+use omaspec_uml::tree::{Idea, MindMap, Skinparam, draw_mindmap_mapped, from_mermaid};
 
-/// The SVG, or `None` when this drawer leaves the diagram to mmdr. The
-/// map holds the boxes `tiles` picks as tiles, nothing else: a mind-map
-/// box is not a message to jump to.
-pub fn try_draw(theme: &Theme, source: &str, tiles: Option<&Tiles>) -> Option<(String, Map)> {
+/// The SVG, or `None` when this drawer leaves the diagram to mmdr. Its
+/// map is empty: a mind-map box is not a message to jump to.
+pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
     diagram.frame.skinparams.extend(super::sketch_param(source));
     paint(&mut diagram, theme)?;
-    draw_mindmap_tiled(&diagram, tiles).ok()
+    draw_mindmap_mapped(&diagram).ok()
 }
 
 fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
@@ -171,7 +170,7 @@ mod tests {
     #[test]
     fn draws_a_mind_map_in_the_theme_colors() {
         let theme = Theme::mermaid_default();
-        let (svg, map) = try_draw(&theme, "mindmap\n  ((Root))\n    Branch\n", None).unwrap();
+        let (svg, map) = try_draw(&theme, "mindmap\n  ((Root))\n    Branch\n").unwrap();
         assert!(svg.contains("Root") && svg.contains("Branch"), "{svg}");
         assert!(svg.contains("#ECECFF") && svg.contains("#FFFFDE"), "{svg}");
         assert!(svg.contains("<ellipse"), "{svg}");
@@ -188,9 +187,9 @@ mod tests {
     #[test]
     fn draws_a_cloud_and_leaves_the_other_cloud() {
         let theme = Theme::mermaid_default();
-        let svg = try_draw(&theme, "mindmap\n  )cloud(\n", None).unwrap().0;
+        let svg = try_draw(&theme, "mindmap\n  )cloud(\n").unwrap().0;
         assert!(svg.contains("cloud") && svg.contains("<path"), "{svg}");
-        let burst = try_draw(&theme, "mindmap\n  ))bang((\n", None).unwrap().0;
+        let burst = try_draw(&theme, "mindmap\n  ))bang((\n").unwrap().0;
         assert!(
             burst.contains("bang") && burst.contains("<polygon"),
             "{burst}"
@@ -202,7 +201,7 @@ mod tests {
         );
         let mut bad = Theme::mermaid_default();
         bad.primary_color = "nope".into();
-        assert!(try_draw(&bad, "mindmap\n  Root\n", None).is_none());
+        assert!(try_draw(&bad, "mindmap\n  Root\n").is_none());
     }
 
     #[test]
@@ -216,13 +215,9 @@ mod tests {
         theme.line_color = "#e68e0d".into();
         theme.primary_text_color = "#bebebe".into();
         theme.text_color = "#bebebe".into();
-        let svg = try_draw(
-            &theme,
-            "mindmap\n  ((Root))\n    One\n    Two\n    Three\n",
-            None,
-        )
-        .unwrap()
-        .0;
+        let svg = try_draw(&theme, "mindmap\n  ((Root))\n    One\n    Two\n    Three\n")
+            .unwrap()
+            .0;
         let primary = Color::hex(0x1E1E1E);
         let bases = [primary, primary, Color::hex(0x121212)];
         let accent = Color::hex(0xE68E0D);
@@ -257,7 +252,7 @@ mod tests {
         pale.primary_text_color = "#f4f4f4".into();
         pale.primary_border_color = "#111111".into();
         pale.line_color = "#111111".into();
-        let washed = try_draw(&pale, "mindmap\n  ((Root))\n", None).unwrap().0;
+        let washed = try_draw(&pale, "mindmap\n  ((Root))\n").unwrap().0;
         assert!(
             washed.contains("#F4F4F4") && washed.contains("#000000"),
             "{washed}"

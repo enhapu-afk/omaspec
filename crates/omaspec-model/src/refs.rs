@@ -5,10 +5,8 @@
 use std::collections::BTreeSet;
 use std::ops::Range;
 
-use omaspec_core::lang::strip_mermaid_fence;
 use omaspec_core::{Language, markdown, project};
 use omaspec_uml::sequence::{self, End, Item};
-use omaspec_uml::tree;
 
 use crate::across::{event_of, key, read_sequence};
 use crate::{Kind, Machine, Specs};
@@ -48,8 +46,6 @@ pub struct Ref {
 pub enum RefKind {
     /// Where a diagram says its name: `@start…`, its title, else its file.
     Diagram,
-    /// A map's box that opens the diagram.
-    Box,
     /// A scenario's participant that plays the state machine.
     Participant,
     /// A state of another machine that opens the diagram of its name.
@@ -69,7 +65,6 @@ impl RefKind {
     pub fn name(self) -> &'static str {
         match self {
             RefKind::Diagram => "diagram",
-            RefKind::Box => "box",
             RefKind::Participant => "participant",
             RefKind::Link => "link",
             RefKind::State => "state",
@@ -124,11 +119,6 @@ pub fn refs(
         }
         for line in lines {
             push(out, diagram, line, RefKind::Diagram, None);
-        }
-        for map in &project.pieces {
-            for (_, line) in map.boxes.iter().filter(|(text, _)| key(text) == wanted) {
-                push(out, map, *line, RefKind::Box, None);
-            }
         }
         if diagram.machine.is_some() {
             for scenario in &project.pieces {
@@ -250,8 +240,6 @@ pub(crate) struct Piece<'a> {
     pub(crate) names: Vec<String>,
     pub(crate) machine: Option<Machine>,
     pub(crate) sequence: Option<(sequence::Diagram, usize)>,
-    /// A map's boxes: their words and lines.
-    pub(crate) boxes: Vec<(String, usize)>,
     /// A scenario's participants, each with the machine it plays.
     players: Vec<Option<usize>>,
 }
@@ -405,7 +393,6 @@ impl<'a> Piece<'a> {
             .is_none()
             .then(|| read_sequence(&code, language))
             .flatten();
-        let boxes = boxes(&code, language);
         Piece {
             file: file.path,
             file_text: file.text,
@@ -415,7 +402,6 @@ impl<'a> Piece<'a> {
             names,
             machine,
             sequence,
-            boxes,
             players: Vec::new(),
         }
     }
@@ -565,63 +551,6 @@ pub(crate) fn event_lines(m: &Machine, wanted: &str) -> Vec<usize> {
     lines.sort_unstable();
     lines.dedup();
     lines
-}
-
-/// The words and lines of a mind map's or a WBS's boxes.
-fn boxes(code: &str, language: Language) -> Vec<(String, usize)> {
-    fn ideas(list: &[tree::Idea], out: &mut Vec<String>) {
-        for idea in list {
-            out.push(idea.node.text.value.clone());
-            ideas(&idea.children, out);
-        }
-    }
-    fn elements(e: &tree::Element, out: &mut Vec<String>) {
-        out.push(e.node.text.value.clone());
-        for child in e.left.iter().chain(&e.right) {
-            elements(child, out);
-        }
-    }
-    let mind = |m: &tree::MindMap, out: &mut Vec<String>| {
-        for map in &m.maps {
-            out.push(map.root.text.value.clone());
-            ideas(&map.right, out);
-            ideas(&map.left, out);
-        }
-    };
-    let mut words = Vec::new();
-    match language {
-        Language::Mermaid => {
-            let body = strip_mermaid_fence(code);
-            let header = body
-                .lines()
-                .map(str::trim)
-                .find(|l| !l.is_empty() && !l.starts_with("%%") && !l.starts_with("---"));
-            if header.is_some_and(|h| h.starts_with("mindmap"))
-                && let Some(m) = tree::from_mermaid(body)
-            {
-                mind(&m, &mut words);
-            }
-        }
-        Language::PlantUml => {
-            let lower = code.trim_start().to_ascii_lowercase();
-            if lower.starts_with("@startmindmap") || lower.starts_with("@startwbs") {
-                match omaspec_uml::parse(code) {
-                    Ok(omaspec_uml::Diagram::MindMap(m)) => mind(&m, &mut words),
-                    Ok(omaspec_uml::Diagram::Wbs(w)) => elements(&w.root, &mut words),
-                    _ => {}
-                }
-            }
-        }
-    }
-    let mut seen: Vec<&str> = Vec::new();
-    words
-        .iter()
-        .filter_map(|text| {
-            let nth = seen.iter().filter(|s| **s == text.as_str()).count();
-            seen.push(text);
-            omaspec_core::locate::line_of(code, text, nth).map(|line| (text.clone(), line))
-        })
-        .collect()
 }
 
 /// The byte ranges of `line` that spell a name of key `wanted`: its words

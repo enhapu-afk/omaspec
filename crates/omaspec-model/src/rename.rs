@@ -226,12 +226,6 @@ pub fn named_at(
             return Some(found(span, None, Thing::Diagram));
         }
     }
-    // A map's box.
-    for (words, _) in piece.boxes.iter().filter(|(_, l)| *l == code_line) {
-        if let Some(span) = at(&key(words), whole.clone()) {
-            return Some(found(span, None, Thing::Diagram));
-        }
-    }
     // A state left of a label, an event right of it.
     if let Some(m) = &piece.machine {
         for state in &m.states {
@@ -290,8 +284,8 @@ fn describe(thing: Thing, name: &str, file: &str) -> String {
     }
 }
 
-/// The diagram of piece `d`: where it says its name, the boxes, the
-/// participants that play it, the states that open it.
+/// The diagram of piece `d`: where it says its name, the participants
+/// that play it, the states that open it.
 fn diagram(
     project: &Project,
     d: usize,
@@ -341,19 +335,6 @@ fn diagram(
             "{} still goes by {stem}, its file name; `git mv {} {moved}` drops it",
             piece.file, piece.file
         ));
-    }
-    for map in pieces {
-        for (_, line) in map.boxes.iter().filter(|(text, _)| key(text) == k) {
-            replace(
-                plan,
-                map,
-                map.doc_line(*line),
-                k,
-                new,
-                |_| Some(0..usize::MAX),
-                true,
-            );
-        }
     }
     if piece.machine.is_some() {
         for scenario in pieces {

@@ -3,7 +3,10 @@
 Status: accepted, 2026-11-01. Comes before "Diagrams that link" in the
 roadmap's [Next](../../ROADMAP.md#next), which needs it. Decision 5 is
 replaced by [0018](0018-diagrams-that-link.md): the first diagram is now
-a map of the project, beside the first state machine.
+a map of the project, beside the first state machine. `main` and the map
+that is written are gone with [0026](0026-the-map-is-made.md): the map is
+made from the project's diagrams, the file names the project (and its
+look), and a `main` line is an error that says so.
 
 ## Context
 

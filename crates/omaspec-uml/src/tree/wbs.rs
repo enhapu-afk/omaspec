@@ -6,7 +6,7 @@
 //! to the right, each with a short line from the spine.
 
 use super::skin::{Skin, TreeKind};
-use super::{Annotations, Element, Label, MARGIN, NodeShape, Tiles, Wbs, cards};
+use super::{Annotations, Element, Label, MARGIN, NodeShape, Wbs};
 use crate::Declined;
 use crate::map::Map;
 use crate::svg::{Canvas, Layer};
@@ -20,15 +20,11 @@ const SPINE_GAP: f32 = 10.0;
 const ROW_DROP: f32 = 40.0;
 
 pub fn draw(d: &Wbs) -> Result<String, Declined> {
-    draw_tiled(d, None).map(|(svg, _)| svg)
+    draw_mapped(d).map(|(svg, _)| svg)
 }
 
-/// Draws `d`; with `tiles`, as the map of a project, in cards
-/// ([`cards`]), and says where they are.
-pub fn draw_tiled(d: &Wbs, tiles: Option<&Tiles>) -> Result<(String, Map), Declined> {
-    if let Some(tiles) = tiles {
-        return cards::draw_wbs(d, tiles);
-    }
+/// Draws `d`, and says where its boxes are.
+pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&d.frame.skinparams, TreeKind::Wbs)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);

@@ -32,10 +32,8 @@ pub fn map_by_cards() -> Drawn {
         let language = Language::from_file_name(file).unwrap();
         omaspec_render::Entry::new(file, source.into(), language, None)
     };
-    let map = "@startwbs\n* Shop\n** Orders\n** Payment\n@endwbs\n";
     let atlas = omaspec_render::Atlas {
         diagrams: vec![
-            entry("system.puml", map),
             entry(
                 "orders.puml",
                 "@startuml\ntitle Orders\n[*] --> Open\nOpen --> Paid : pay\n@enduml\n",
@@ -45,15 +43,14 @@ pub fn map_by_cards() -> Drawn {
                 "@startuml\ntitle Payment\n[*] --> Waiting\nWaiting --> Done : ok\n@enduml\n",
             ),
         ],
-        main: Some("system.puml".into()),
-        name: None,
+        name: Some("Shop".into()),
     };
     let mut renderer = Renderer::new(&Config {
         java_fallback: false,
         ..Config::default()
     });
     let out = renderer
-        .render_linked(map, Language::PlantUml, None, Some("system.puml"), &atlas)
+        .render_map(&atlas, "", crate::look::MAP_SKIN)
         .unwrap();
     Drawn::parsed(out, 0).unwrap()
 }

@@ -1,7 +1,9 @@
 # 0019: Where a name is used, and renaming it everywhere
 
 Status: accepted, 2026-11-05. Builds on [0007](0007-behavior-specifications.md),
-[0017](0017-projects.md) and [0018](0018-diagrams-that-link.md).
+[0017](0017-projects.md) and [0018](0018-diagrams-that-link.md). Since
+[0026](0026-the-map-is-made.md) a map is made and has no boxes to list or
+rename (*box* is gone): the boxes of a mind map or a WBS are its own words.
 
 ## Context
 

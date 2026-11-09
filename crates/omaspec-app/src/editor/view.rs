@@ -921,6 +921,8 @@ impl App {
                 format!("Markdown · {}", doc.language.name())
             }
             _ if doc.is_document() => "Markdown".to_owned(),
+            // A project's file, with the project's map beside it.
+            _ if doc.is_project() => "Project".to_owned(),
             Some(_) => format!("{} •", doc.language.name()),
             None => doc.language.name().to_owned(),
         };

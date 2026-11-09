@@ -283,20 +283,6 @@ impl Paper {
         link_under(self.followable(), p)
     }
 
-    /// The line of the map's box whose tile is at `at`, a point of the
-    /// pane.
-    pub fn tile_line_at(&self, at: Point) -> Option<usize> {
-        let map = &self.diagram.as_ref()?.drawn.map;
-        let p = self.view.to_diagram(at, self.viewport);
-        map.tiles
-            .iter()
-            .find(|t| {
-                let r = t.frame;
-                p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h
-            })
-            .and_then(|t| t.line)
-    }
-
     /// Whether `area` of the diagram is the room of a tile's picture,
     /// which shows the diagram that tile opens.
     fn pictures(&self, area: Rectangle) -> bool {

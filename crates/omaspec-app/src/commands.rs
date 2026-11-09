@@ -650,8 +650,6 @@ pub fn new_project(dir: &Path, language: Language, git: bool, json: bool) -> Res
             "root": made.root,
             "name": made.name,
             "file": omaspec_core::project::FILE,
-            "main": made.main,
-            "wrote_main": made.wrote_main,
             "machine": made.machine,
             "wrote_machine": made.wrote_machine,
         });
@@ -671,19 +669,18 @@ pub fn new_project(dir: &Path, language: Language, git: bool, json: bool) -> Res
         };
         writeln!(out, "{}", serde_json::to_string_pretty(&value)?)?;
     } else {
-        for (file, wrote, what) in [
-            (&made.machine, made.wrote_machine, "the first state machine"),
-            (&made.main, made.wrote_main, "the map"),
-        ] {
-            let path = dir.join(file);
-            if wrote {
-                writeln!(out, "created {}, {what}", path.display())?;
-            } else {
-                writeln!(out, "kept {}", path.display())?;
-            }
+        let path = dir.join(&made.machine);
+        if made.wrote_machine {
+            writeln!(out, "created {}, the first state machine", path.display())?;
+        } else {
+            writeln!(out, "kept {}", path.display())?;
         }
         let file = dir.join(omaspec_core::project::FILE);
-        writeln!(out, "created {}", file.display())?;
+        writeln!(
+            out,
+            "created {}; beside it stands the project's map, made from its diagrams",
+            file.display()
+        )?;
         match &made.git {
             Git::No | Git::Failed(_) => {}
             Git::Initialized => {

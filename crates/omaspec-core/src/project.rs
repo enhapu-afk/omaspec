@@ -1,17 +1,16 @@
 //! A project: a folder of diagrams with `omaspec-project.toml` in its root
 //! (see `docs/adr/0017-projects.md`). The file marks the root, so a diagram
-//! anywhere below it finds its project; it names the project and the
-//! diagram that describes the whole system.
+//! anywhere below it finds its project; it names the project. The
+//! project's map is made from its diagrams and written nowhere
+//! (`docs/adr/0026-the-map-is-made.md`).
 //!
-//! The file is a small part of TOML: comments, `name` and `main` as
-//! strings, and a `[look]` table ([`Look`]) of strings. Anything else is an
-//! error that names its line, so a typo does not go unnoticed.
+//! The file is a small part of TOML: comments, `name` as a string, and a
+//! `[look]` table ([`Look`]) of strings. Anything else is an error that
+//! names its line, so a typo does not go unnoticed.
 //!
 //! The diagrams of a project find each other by name ([`names`], [`key`]):
-//! a participant its state machine, a state or a box of a map the diagram
-//! it links to (`docs/adr/0018-diagrams-that-link.md`).
-
-use std::path::{Component, Path};
+//! a participant its state machine, a state the diagram it opens
+//! (`docs/adr/0018-diagrams-that-link.md`).
 
 use crate::Language;
 
@@ -23,8 +22,6 @@ pub const FILE: &str = "omaspec-project.toml";
 pub struct Project {
     /// What the project is called; the folder's name when not set.
     pub name: Option<String>,
-    /// The diagram that describes the whole system, relative to the root.
-    pub main: Option<String>,
     /// `[look]`: what every diagram of the project is drawn in.
     pub look: Option<Look>,
 }
@@ -154,10 +151,17 @@ impl Project {
             }
             let slot = match key {
                 "name" => &mut project.name,
-                "main" => &mut project.main,
+                // What named the map a writer kept, before maps were made.
+                "main" => {
+                    return Err(fail(
+                        "`main` is no key any more: the project's map is made from its \
+                         diagrams, so this line and the map it names can go"
+                            .to_owned(),
+                    ));
+                }
                 _ => {
                     return Err(fail(format!(
-                        "unknown key `{key}`; a project file knows `name` and `main`"
+                        "unknown key `{key}`; a project file knows `name`"
                     )));
                 }
             };
@@ -166,11 +170,6 @@ impl Project {
             }
             if value.trim().is_empty() {
                 return Err(fail(format!("`{key}` is empty")));
-            }
-            if key == "main" && !inside(&value) {
-                return Err(fail(format!(
-                    "`main = \"{value}\"` leaves the project; name a diagram in this folder or below it"
-                )));
             }
             *slot = Some(value);
         }
@@ -219,9 +218,6 @@ impl Project {
         if let Some(name) = &self.name {
             out.push_str(&format!("name = {}\n", quoted(name)));
         }
-        if let Some(main) = &self.main {
-            out.push_str(&format!("main = {}\n", quoted(main)));
-        }
         out
     }
 }
@@ -266,7 +262,7 @@ impl Look {
                 self.colors
                     .push((name.to_owned(), value.to_ascii_lowercase()));
             }
-            "name" | "main" => {
+            "name" => {
                 return Err(format!("`{key}` belongs above `[look]`"));
             }
             _ => {
@@ -295,13 +291,8 @@ fn is_hex_color(value: &str) -> bool {
         .is_some_and(|hex| matches!(hex.len(), 3 | 6) && hex.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
-/// The file name of a new project's map, its main diagram.
-pub fn main_file(language: Language) -> String {
-    format!("system.{}", language.extension())
-}
-
 /// The file name of a new project's first state machine: the project's
-/// name, unless that is the map's.
+/// name.
 pub fn machine_file(language: Language, name: &str) -> String {
     let stem: String = name
         .trim()
@@ -315,41 +306,10 @@ pub fn machine_file(language: Language, name: &str) -> String {
         })
         .collect();
     let file = format!("{stem}.{}", language.extension());
-    if stem.is_empty() || stem.starts_with('.') || file.eq_ignore_ascii_case(&main_file(language)) {
+    if stem.is_empty() || stem.starts_with('.') {
         format!("machine.{}", language.extension())
     } else {
         file
-    }
-}
-
-/// A new project's map: a WBS (a mind map in Mermaid) whose root names
-/// the project, so its tile shows the first state machine. The writer
-/// adds a box for each part, and each box that names a diagram shows it.
-pub fn map_starter(language: Language, name: &str) -> String {
-    match language {
-        Language::PlantUml => format!(
-            "@startwbs\n' A box that names a diagram of the project shows it; a click opens it.\n* {}\n@endwbs\n",
-            name.trim()
-        ),
-        Language::Mermaid => {
-            // Brackets and parentheses would give the box a shape.
-            let plain: String = name
-                .trim()
-                .chars()
-                .map(|c| {
-                    if "()[]{}".contains(c) || c.is_control() {
-                        ' '
-                    } else {
-                        c
-                    }
-                })
-                .collect();
-            let plain = plain.split_whitespace().collect::<Vec<_>>().join(" ");
-            format!(
-                "%% A box that names a diagram of the project shows it; a click opens it.\nmindmap\n  root(({}))\n",
-                if plain.is_empty() { "system" } else { &plain }
-            )
-        }
     }
 }
 
@@ -431,13 +391,6 @@ pub fn title(code: &str, language: Language) -> Option<String> {
         }
     }
     None
-}
-
-/// A relative path that stays inside the folder it starts in.
-fn inside(path: &str) -> bool {
-    let path = Path::new(path);
-    path.components()
-        .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
 }
 
 /// A TOML string: basic (`"…"`, with escapes) or literal (`'…'`), and
@@ -536,12 +489,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reads_name_and_main_with_comments() {
-        let text = "# a project\n\nname = \"Shop\"  # its name\nmain = 'states/system.puml'\n";
+    fn reads_its_name_with_comments() {
+        let text = "# a project\n\nname = \"Shop\"  # its name\n";
         let project = Project::parse(text).unwrap();
         assert_eq!(project.name.as_deref(), Some("Shop"));
-        assert_eq!(project.main.as_deref(), Some("states/system.puml"));
         assert_eq!(Project::parse("").unwrap(), Project::default());
+        // The map is made, so no line names one; one that still does is
+        // told what to do with it.
+        let err = Project::parse("name = \"Shop\"\nmain = \"system.puml\"\n").unwrap_err();
+        assert_eq!(err.line, 2);
+        assert!(err.message.contains("is made from its diagrams"), "{err}");
     }
 
     #[test]
@@ -549,7 +506,6 @@ mod tests {
         for name in ["Shop", "say \"hi\"", "back\\slash", "tab\there", "Café ☕"] {
             let project = Project {
                 name: Some(name.into()),
-                main: Some("system.mmd".into()),
                 look: None,
             };
             assert_eq!(
@@ -617,8 +573,6 @@ mod tests {
             ("name", 1, "is no `key"),
             ("name = \"\"", 1, "empty"),
             ("name = \"\\q\"", 1, "no escape"),
-            ("main = \"../other.puml\"", 1, "leaves the project"),
-            ("main = \"/etc/system.puml\"", 1, "leaves the project"),
         ];
         for (text, line, message) in cases {
             let err = Project::parse(text).unwrap_err();
@@ -632,37 +586,30 @@ mod tests {
     #[test]
     fn the_starter_is_formatted_and_clean() {
         for language in [Language::PlantUml, Language::Mermaid] {
-            for text in [starter(language, "Shop"), map_starter(language, "Shop")] {
-                assert_eq!(crate::format::format(&text, language), text, "{text}");
-                assert!(crate::lint::lint(&text, language).is_empty(), "{text}");
-                assert_eq!(crate::lang::detect(&text, None), language, "{text}");
-            }
+            let text = starter(language, "Shop");
+            assert_eq!(crate::format::format(&text, language), text, "{text}");
+            assert!(crate::lint::lint(&text, language).is_empty(), "{text}");
+            assert_eq!(crate::lang::detect(&text, None), language, "{text}");
         }
     }
 
     #[test]
-    fn the_maps_root_names_the_first_machine() {
+    fn the_first_machine_is_called_as_the_project() {
         for language in [Language::PlantUml, Language::Mermaid] {
             for name in ["Shop", "my shop (2)", "system"] {
                 let machine = machine_file(language, name);
-                assert_ne!(machine, main_file(language), "{name}");
                 let titled = names(&starter(language, name), language, &machine);
-                let map = map_starter(language, name);
-                let root = map
-                    .lines()
-                    .filter(|l| !l.starts_with(['\'', '%', '@']))
-                    .nth(if language == Language::Mermaid { 1 } else { 0 });
-                let root = root.unwrap().trim().trim_start_matches("* ");
-                let root = root.trim_start_matches("root((").trim_end_matches("))");
                 assert!(
-                    titled.iter().any(|n| key(n) == key(root)),
-                    "{name}: {titled:?} {root}"
+                    titled.iter().any(|n| key(n) == key(name)),
+                    "{name}: {titled:?}"
                 );
             }
         }
         assert_eq!(machine_file(Language::PlantUml, "Shop"), "Shop.puml");
-        assert_eq!(machine_file(Language::Mermaid, "System"), "machine.mmd");
+        // A name is free now that no map is written beside the machine.
+        assert_eq!(machine_file(Language::Mermaid, "System"), "System.mmd");
         assert_eq!(machine_file(Language::PlantUml, "a/b"), "a-b.puml");
+        assert_eq!(machine_file(Language::PlantUml, " "), "machine.puml");
     }
 
     #[test]
@@ -699,6 +646,5 @@ mod tests {
         );
         let odd = starter(Language::Mermaid, "a: \"b\"");
         assert!(odd.contains("title: \"a: \\\"b\\\"\"\n"), "{odd}");
-        assert_eq!(main_file(Language::Mermaid), "system.mmd");
     }
 }

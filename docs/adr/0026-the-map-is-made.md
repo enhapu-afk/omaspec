@@ -4,7 +4,8 @@ Status: accepted, 2026-11-09. Replaces decision 2 of
 [0018](0018-diagrams-that-link.md) and its amendments *a map in a look of
 its own* and *maps within maps*: a mind map or a WBS is no map any more.
 Built in steps; what is built is marked in the
-[roadmap](../../ROADMAP.md), *the map, made*.
+[roadmap](../../ROADMAP.md), *the map, made*: the map is made and shown
+everywhere and the written one is gone; its layout is still a tree.
 
 ## Context
 
@@ -57,9 +58,15 @@ No project has to be kept as it is: those there are, are examples.
    diagram inside a folder's tile they are read from its text without
    drawing it, which tells the first and the last of the three.
 5. **The project's file stands for its map.** `omaspec render
-   omaspec-project.toml` draws it; the editor will show it beside that
-   file, which names the project and may come to say what the map cannot
-   find out by itself (an order, a group that is no folder).
+   omaspec-project.toml` draws it, as the MCP server does for that path;
+   the editor and the preview show it beside that file, which names the
+   project and may come to say what the map cannot find out by itself (an
+   order, a group that is no folder). A folder's tile opens the folder's
+   map in the same tab, the trail naming the way back. `omaspec render
+   DIR` writes the map as `omaspec-project.svg`, which `render --check`
+   and `check` hold against the project; an export writes it as
+   `index.svg`, and the map of each folder that is a tile as `index.svg`
+   in that folder.
 6. **The drawer takes boxes, not files** (`omaspec_uml::tree::Branch`,
    `render_branches`): words, a key, the boxes below. The project feeds
    it folders and diagram files. A tool for another language, whose one
@@ -83,7 +90,10 @@ No project has to be kept as it is: those there are, are examples.
   around a tree.
 - `main` in `omaspec-project.toml`, the map `omaspec new` writes, the
   hint *not on the map yet*, and the drawing of a mind map or a WBS as a
-  map go, with the editor's change to the made map.
+  map are gone. A project file that still has `main` is told so, with its
+  line. No diagram may be `index.svg` in an export.
+- A tile has no line in a source: Ctrl+click on one opens its diagram, as
+  a click does, and `refs` and `rename` know no *box*.
 - A folder's tile does not show its map small: drawn for 40 folders of 50
   diagrams, those made the map 4.8 MB and took it 250 ms. With a box for
   each diagram the map of 2,000 diagrams is 0.3 MB and drawn in 40 ms

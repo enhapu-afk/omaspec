@@ -29,6 +29,10 @@ struct Job {
     linked: Option<(Arc<Atlas>, Option<String>)>,
     /// A Markdown document: all its diagrams ([`Renderer::render_document`]).
     document: bool,
+    /// The map of this folder of the project in `linked`, made from its
+    /// diagrams ([`Renderer::render_map`]); `source` is the look it is
+    /// drawn in.
+    map: Option<String>,
 }
 
 /// The result of one request.
@@ -119,6 +123,31 @@ impl RenderService {
             place,
             linked,
             document: false,
+            map: None,
+        });
+        generation
+    }
+
+    /// Queues the map of `folder`, a folder of the project in `atlas` by
+    /// its path there, in the look of `skin` ([`Renderer::render_map`]).
+    pub fn submit_map(
+        &mut self,
+        slot: u64,
+        skin: String,
+        atlas: Arc<Atlas>,
+        folder: String,
+    ) -> Generation {
+        let generation = self.next;
+        self.next += 1;
+        let _ = self.jobs.send(Job {
+            generation,
+            slot,
+            source: skin,
+            language: Language::PlantUml,
+            place: None,
+            linked: Some((atlas, None)),
+            document: false,
+            map: Some(folder),
         });
         generation
     }
@@ -141,6 +170,7 @@ impl RenderService {
             place,
             linked: None,
             document: true,
+            map: None,
         });
         generation
     }
@@ -154,16 +184,17 @@ fn render_guarded(
     config: &Config,
     job: &Job,
 ) -> Result<Rendered, RenderError> {
-    let result = catch_unwind(AssertUnwindSafe(|| match &job.linked {
+    let result = catch_unwind(AssertUnwindSafe(|| match (&job.linked, &job.map) {
         _ if job.document => renderer.render_document(&job.source, job.place.as_ref()),
-        Some((atlas, own)) => renderer.render_linked(
+        (Some((atlas, _)), Some(folder)) => renderer.render_map(atlas, folder, &job.source),
+        (Some((atlas, own)), None) => renderer.render_linked(
             &job.source,
             job.language,
             job.place.as_ref(),
             own.as_deref(),
             atlas,
         ),
-        None => renderer.render_at(&job.source, job.language, job.place.as_ref()),
+        (None, _) => renderer.render_at(&job.source, job.language, job.place.as_ref()),
     }));
     result.unwrap_or_else(|_| {
         *renderer = Renderer::new(config);

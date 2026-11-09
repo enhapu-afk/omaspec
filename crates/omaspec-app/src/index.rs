@@ -131,12 +131,8 @@ impl Index {
         self.files = files;
 
         let project = crate::project::read(&self.root).and_then(Result::ok);
-        let main = project
-            .as_ref()
-            .and_then(|p| p.main.as_deref())
-            .map(|m| m.replace('\\', "/").trim_start_matches("./").to_owned());
         let name = project.and_then(|p| p.name);
-        let heads = main != self.atlas.main || name != self.atlas.name;
+        let heads = name != self.atlas.name;
         if changed.is_empty() && !heads && self.read {
             return changed;
         }
@@ -155,7 +151,6 @@ impl Index {
                 .values()
                 .filter_map(|f| f.entry.clone())
                 .collect(),
-            main,
             name,
         });
         let documents: Vec<(String, String)> = self
@@ -266,10 +261,7 @@ mod tests {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(path, text).unwrap();
         };
-        write(
-            "omaspec-project.toml",
-            "name = \"house\"\nmain = \"house.puml\"\n",
-        );
+        write("omaspec-project.toml", "name = \"house\"\n");
         write("house.puml", "@startwbs\n* House\n** Door\n@endwbs\n");
         write("rooms/door.puml", DOOR);
         write(
@@ -289,7 +281,6 @@ mod tests {
         assert_eq!(names, ["notes.md", "rooms/door.puml"]);
         let files: Vec<&str> = atlas.diagrams.iter().map(|e| e.file.as_str()).collect();
         assert_eq!(files, ["house.puml", "rooms/door.puml"]);
-        assert_eq!(atlas.main.as_deref(), Some("house.puml"));
         assert_eq!(*index.dirs(), [root.clone(), root.join("rooms")]);
         assert_eq!(atlas.name.as_deref(), Some("house"));
 
@@ -315,12 +306,9 @@ mod tests {
         assert_eq!(index.specs().len(), 2);
         assert_eq!(index.atlas().diagrams.len(), 3);
 
-        // The project file names another main diagram: the same machines.
+        // The project goes by another name: the same machines.
         let specs = index.specs();
-        write(
-            "omaspec-project.toml",
-            "name = \"home\"\nmain = \"house.puml\"\n",
-        );
+        write("omaspec-project.toml", "name = \"home\"\n");
         assert!(index.refresh().is_empty());
         assert_eq!(index.atlas().name.as_deref(), Some("home"));
         assert!(Arc::ptr_eq(&specs, &index.specs()));

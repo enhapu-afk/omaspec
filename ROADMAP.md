@@ -1853,12 +1853,28 @@ its cards, and the zoom into a tile as one picture.
         look. Still in the tree of the written map. A project of 2,000
         diagrams in 40 folders: 40 ms and 0.3 MB (release; a folder's own
         map small in each tile was tried first, 250 ms and 4.8 MB).
-  - [ ] The editor shows it: the project's file opens beside its map; a
-        tile opens its diagram as now, a folder's tile its map. With that
-        the written map goes: `main`, the `system.puml` of `omaspec new`,
-        *not on the map yet*, and a mind map or a WBS drawn as a map,
-        which ends the fault above; `render DIR`, `check`, `export` and
-        the MCP server take the made map.
+  - [x] The editor shows it: the project's file opens beside its map
+        (*New project* opens it); a tile zooms into its diagram as before,
+        a folder's tile opens the folder's map in the same tab, the trail
+        (`shop › orders`) leading back; a diagram changed in its tab shows
+        that way on the map. The preview window shows it for the project's
+        file. The written map is gone: `main` (a line that still has it is
+        told so), the `system.puml` of `omaspec new`, *not on the map
+        yet*, a mind map or a WBS drawn as a map (the fault above), the
+        *box* of `refs` and `rename`, a tile's line in a source (Ctrl+click
+        on a tile opens its diagram). `render DIR` writes the map as
+        `omaspec-project.svg`, `render --check` and `check` hold it against
+        the project, `export` writes it as `index.svg` (a folder's as
+        `index.svg` in the folder), the MCP server draws it for the
+        project's file. Generated projects (`OMASPEC_SCALE=1`, release):
+        2,000 diagrams in 40 folders, the map in 35 ms, again in 19 ms,
+        0.3 MB; a folder's map of 50 diagrams in 32 ms. Open: the map of a
+        folder can be drawn only in the editor and by an export
+        (`render` and the MCP server draw the project's); a folder's map
+        opens with a fade, not with the zoom a diagram has; the preview
+        window does not follow a folder's tile; what a diagram inside a
+        folder's tile *opens* is not on the map, since it is read and not
+        drawn there.
   - [ ] Laid out by its arrows: a scenario beside the machine it plays, a
         diagram below the state that opens it, a folder a frame around a
         block of cards, the diagrams no arrow reaches in a block by kind;

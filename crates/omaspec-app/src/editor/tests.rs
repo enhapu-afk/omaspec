@@ -1135,6 +1135,7 @@ fn an_export_takes_a_look_and_keeps_the_file_s_source() {
         place: None,
         file: "door.puml",
         own: None,
+        map: None,
     };
     let svg = String::from_utf8(
         drawn
@@ -1157,13 +1158,9 @@ fn an_export_takes_a_look_and_keeps_the_file_s_source() {
 #[test]
 fn the_palette_exports_the_project_into_a_folder_it_names() {
     let dir = temp_dir("export-project");
-    std::fs::write(
-        dir.join("omaspec-project.toml"),
-        "name = \"shop\"\nmain = \"system.puml\"\n",
-    )
-    .unwrap();
-    let src = dir.join("system.puml");
-    std::fs::write(&src, "@startwbs\n* Shop\n@endwbs\n").unwrap();
+    std::fs::write(dir.join("omaspec-project.toml"), "name = \"shop\"\n").unwrap();
+    let src = dir.join("shop.puml");
+    std::fs::write(&src, "@startuml\n[*] --> Open\n@enduml\n").unwrap();
     let mut app = open(std::slice::from_ref(&src));
 
     press(&mut app, Command::ExportProject);
@@ -3786,13 +3783,15 @@ fn a_new_project_is_made_shown_and_its_first_diagram_opened() {
     let root = std::fs::canonicalize(&shop).unwrap();
     assert_eq!(app.folder.as_deref(), Some(root.as_path()));
     assert_eq!(app.project_name.as_deref(), Some("shop"));
-    // The untouched new tab gave way to the first diagram.
     assert_eq!(app.docs.len(), 1);
-    assert_eq!(app.doc().path, Some(root.join("system.mmd")));
-    assert_eq!(app.doc().language, Language::Mermaid);
+    // The untouched new tab gave way to the project's file, which shows
+    // the map made from its first diagram.
+    assert_eq!(app.doc().path, Some(root.join(omaspec_core::project::FILE)));
+    assert!(app.doc().is_project());
+    assert!(root.join("shop.mmd").exists() && !root.join("system.mmd").exists());
     let notice = app.notice.clone().unwrap();
     assert!(
-        notice.starts_with("new project shop: omaspec-project.toml, system.mmd"),
+        notice.starts_with("new project shop: omaspec-project.toml, shop.mmd"),
         "{notice}"
     );
 
@@ -4101,11 +4100,7 @@ fn link_on_screen(app: &App, name: &str) -> iced::Point {
 fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     let root = temp_dir("links");
     let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
-    write(
-        "omaspec-project.toml",
-        "name = \"shop\"\nmain = \"system.puml\"\n",
-    );
-    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    write("omaspec-project.toml", "name = \"shop\"\n");
     write(
         "shop.puml",
         "@startuml\ntitle Shop\n[*] --> Open\n@enduml\n",
@@ -4123,7 +4118,7 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
         "@startuml\ntitle Refund\n[*] --> Asked\n@enduml\n",
     );
     let root = std::fs::canonicalize(&root).unwrap();
-    let mut app = open(&[root.join("system.puml")]);
+    let mut app = open(&[root.join("omaspec-project.toml")]);
     let (specs, atlas) = specs::read_project(&root);
     let _ = app.update(Message::Specs(
         root.clone(),
@@ -4131,8 +4126,8 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
         Arc::new(atlas),
     ));
 
-    // The map: Orders and the root on it, Checkout and Refund on no box.
-    show_linked(&mut app);
+    // The project's map, made from its diagrams: each of them a tile.
+    show_map(&mut app);
     let tiles: Vec<(&str, bool)> = app
         .doc()
         .paper
@@ -4143,15 +4138,13 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     assert_eq!(
         tiles,
         [
-            ("Shop", true),
-            ("Orders", true),
             ("Checkout", true),
-            ("Refund", true)
+            ("Orders", true),
+            ("Refund", true),
+            ("Shop", true)
         ]
     );
-    // Ctrl+click on a tile finds its box in the source.
     let orders = link_on_screen(&app, "Orders");
-    assert_eq!(app.doc().paper.tile_line_at(orders), Some(2));
 
     // A click zooms into Orders; once there, Orders opens.
     let map = app.doc().key;
@@ -4221,8 +4214,7 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     due(&mut app, Alarm::Follow);
     assert_eq!(app.doc().path, Some(root.join("orders.puml")));
     let names = |app: &App| -> Vec<String> { app.trail.iter().map(|s| s.name.clone()).collect() };
-    // The map is the project's main diagram: the trail calls it by the
-    // project's name.
+    // The trail starts at the project's map, called by the project's name.
     assert_eq!(names(&app), ["shop", "Orders"]);
     assert!(app.trail_view().is_some());
     // The map keeps the view it had, for a click on its tab, and the
@@ -4270,7 +4262,7 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
         leaving.place
     ));
     let _ = app.update(Message::BackTo(0));
-    assert_eq!(app.doc().path, Some(root.join("system.puml")));
+    assert_eq!(app.doc().path, Some(root.join("omaspec-project.toml")));
     assert!(app.trail_view().is_none());
     // Back on the map, it zooms out of Orders to where it was, over the
     // picture that was kept.
@@ -4291,14 +4283,7 @@ fn frames_headless() {
     }
     let root = temp_dir("frames");
     let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
-    write(
-        "omaspec-project.toml",
-        "name = \"shop\"\nmain = \"system.puml\"\n",
-    );
-    write(
-        "system.puml",
-        "@startwbs\n* Shop\n** Orders\n*** Checkout\n** Payment\n** Door\n@endwbs\n",
-    );
+    write("omaspec-project.toml", "name = \"shop\"\n");
     write(
         "orders.puml",
         "@startuml\ntitle Orders\n[*] --> New\nNew --> Checkout : pay\nCheckout --> Shipped : paid\nShipped --> [*]\n@enduml\n",
@@ -4316,14 +4301,14 @@ fn frames_headless() {
         "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Opening : open [unlocked]\nClosed --> Locked : lock\nLocked --> Closed : unlock\nOpening --> Open : end position\nOpen --> Closing : close\nClosing --> Closed : end position\nClosing --> Opening : obstacle\n@enduml\n",
     );
     let root = std::fs::canonicalize(&root).unwrap();
-    let mut app = open(&[root.join("system.puml")]);
+    let mut app = open(&[root.join("omaspec-project.toml")]);
     let (specs, atlas) = specs::read_project(&root);
     let _ = app.update(Message::Specs(
         root.clone(),
         Arc::new(specs),
         Arc::new(atlas),
     ));
-    show_linked(&mut app);
+    show_map(&mut app);
     settle(&mut app);
     let mut screen = Screen::new(&app, 1.0);
     screen.size = Size::new(2560.0, 1440.0);
@@ -4377,14 +4362,7 @@ fn snapshot_links() {
     let dir = PathBuf::from(dir);
     let root = temp_dir("snapshot-links");
     let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
-    write(
-        "omaspec-project.toml",
-        "name = \"shop\"\nmain = \"system.puml\"\n",
-    );
-    write(
-        "system.puml",
-        "@startwbs\n* Shop\n** Orders\n*** Checkout\n** Payment\n** Ideas\n@endwbs\n",
-    );
+    write("omaspec-project.toml", "name = \"shop\"\n");
     write(
         "shop.puml",
         "@startuml\ntitle Shop\n[*] --> Open\nOpen --> Closed : night\nClosed --> Open : morning\n@enduml\n",
@@ -4406,14 +4384,14 @@ fn snapshot_links() {
         "@startuml\ntitle Refund\n[*] --> Asked\nAsked --> Paid : pay\n@enduml\n",
     );
     let root = std::fs::canonicalize(&root).unwrap();
-    let mut app = open(&[root.join("system.puml")]);
+    let mut app = open(&[root.join("omaspec-project.toml")]);
     let (specs, atlas) = specs::read_project(&root);
     let _ = app.update(Message::Specs(
         root.clone(),
         Arc::new(specs),
         Arc::new(atlas),
     ));
-    show_linked(&mut app);
+    show_map(&mut app);
     shoot(&mut app, &dir, "links-map");
     let map = app.doc().key;
     let orders = link_on_screen(&app, "Orders");
@@ -4434,14 +4412,10 @@ fn snapshot_links() {
 #[test]
 fn ctrl_click_on_a_link_finds_its_line_in_the_theme_colors_too() {
     // The Omarchy colors lay a skin over the text before it is drawn; the
-    // line of a map's box comes back onto the file like every other line.
+    // line of a linked state comes back onto the file like every other line.
     let root = temp_dir("links-pick");
     let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
-    write(
-        "omaspec-project.toml",
-        "name = \"shop\"\nmain = \"system.puml\"\n",
-    );
-    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    write("omaspec-project.toml", "name = \"shop\"\n");
     write(
         "orders.puml",
         "@startuml\ntitle Orders\n[*] --> New\nNew --> Checkout : pay\nCheckout --> Shipped : paid\n@enduml\n",
@@ -4451,28 +4425,43 @@ fn ctrl_click_on_a_link_finds_its_line_in_the_theme_colors_too() {
         "@startuml\ntitle Checkout\nstart\n:Pay;\nstop\n@enduml\n",
     );
     let root = std::fs::canonicalize(&root).unwrap();
+    let read = |app: &mut App| {
+        let (specs, atlas) = specs::read_project(&root);
+        let _ = app.update(Message::Specs(
+            root.clone(),
+            Arc::new(specs),
+            Arc::new(atlas),
+        ));
+    };
     for follow in [false, true] {
-        for (file, link, row) in [("system.puml", "Orders", 2), ("orders.puml", "Checkout", 3)] {
-            let mut app = open(&[root.join(file)]);
-            follow_theme(&mut app, follow);
-            let (specs, atlas) = specs::read_project(&root);
-            let _ = app.update(Message::Specs(
-                root.clone(),
-                Arc::new(specs),
-                Arc::new(atlas),
-            ));
-            show_linked(&mut app);
-            let key = app.doc().key;
-            let at = link_on_screen(&app, link);
-            let _ = app.update(Message::Paper(key, paper::Message::Pick(at)));
-            assert_eq!(
-                app.doc().editor.cursor().row,
-                row,
-                "{link} in {file}, following the theme: {follow}; {:?}",
-                app.notice
-            );
-        }
+        let mut app = open(&[root.join("orders.puml")]);
+        follow_theme(&mut app, follow);
+        read(&mut app);
+        show_linked(&mut app);
+        let key = app.doc().key;
+        let at = link_on_screen(&app, "Checkout");
+        let _ = app.update(Message::Paper(key, paper::Message::Pick(at)));
+        assert_eq!(
+            app.doc().editor.cursor().row,
+            3,
+            "following the theme: {follow}; {:?}",
+            app.notice
+        );
     }
+    // A map is made and has no line to find: Ctrl+click on a tile opens
+    // its diagram, as a click does.
+    let mut app = open(&[root.join("omaspec-project.toml")]);
+    read(&mut app);
+    show_map(&mut app);
+    let key = app.doc().key;
+    let at = link_on_screen(&app, "Orders");
+    let _ = app.update(Message::Paper(key, paper::Message::Pick(at)));
+    assert_eq!(
+        app.docs.last().unwrap().path,
+        Some(root.join("orders.puml")),
+        "{:?}",
+        app.notice
+    );
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -4480,14 +4469,7 @@ fn ctrl_click_on_a_link_finds_its_line_in_the_theme_colors_too() {
 fn a_change_in_the_project_draws_again_only_the_documents_it_touches() {
     let root = temp_dir("touched");
     let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
-    write(
-        "omaspec-project.toml",
-        "name = \"house\"\nmain = \"system.puml\"\n",
-    );
-    write(
-        "system.puml",
-        "@startwbs\n* House\n** Door\n** Lamp\n@endwbs\n",
-    );
+    write("omaspec-project.toml", "name = \"house\"\n");
     write(
         "door.puml",
         "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Lamp : open\n@enduml\n",
@@ -4506,7 +4488,7 @@ fn a_change_in_the_project_draws_again_only_the_documents_it_touches() {
     );
     let root = std::fs::canonicalize(&root).unwrap();
     let mut app = open(&[
-        root.join("system.puml"),
+        root.join("omaspec-project.toml"),
         root.join("door.puml"),
         root.join("hall.puml"),
     ]);
@@ -4580,11 +4562,8 @@ fn a_change_in_the_project_draws_again_only_the_documents_it_touches() {
 fn rename_everywhere_renames_open_tabs_as_one_step_and_writes_the_rest() {
     let root = temp_dir("rename-everywhere");
     let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
-    write(
-        "omaspec-project.toml",
-        "name = \"house\"\nmain = \"system.puml\"\n",
-    );
-    write("system.puml", "@startwbs\n* House\n** Door\n@endwbs\n");
+    write("omaspec-project.toml", "name = \"house\"\n");
+    write("plan.puml", "@startuml\n[*] --> Door\n@enduml\n");
     let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
     write("door.puml", door);
     write(
@@ -4610,7 +4589,7 @@ fn rename_everywhere_renames_open_tabs_as_one_step_and_writes_the_rest() {
     };
 
     // The diagram, from its title: both tabs, as one step each, unsaved;
-    // the map, not open, written.
+    // the plan, whose state opens it and which is not open, written.
     rename_at(&mut app, "Door", 0, "Front gate");
     let notice = app.notice.clone().unwrap();
     assert!(
@@ -4620,8 +4599,8 @@ fn rename_everywhere_renames_open_tabs_as_one_step_and_writes_the_rest() {
     assert!(app.docs[0].text().contains("title Front gate\n") && app.docs[0].modified);
     assert!(app.docs[1].text().contains("Guest -> FrontGate : open\n") && app.docs[1].modified);
     assert_eq!(
-        std::fs::read_to_string(root.join("system.puml")).unwrap(),
-        "@startwbs\n* House\n** Front gate\n@endwbs\n"
+        std::fs::read_to_string(root.join("plan.puml")).unwrap(),
+        "@startuml\n[*] --> FrontGate\n@enduml\n"
     );
     assert_eq!(
         std::fs::read_to_string(root.join("door.puml")).unwrap(),
@@ -5158,18 +5137,14 @@ fn snapshot_dive() {
     }
     copy(Path::new(&project), &root);
     let root = std::fs::canonicalize(&root).unwrap();
-    let main = crate::project::read(&root)
-        .and_then(Result::ok)
-        .and_then(|project| project.main)
-        .expect("a project with a main diagram");
-    let mut app = open(&[root.join(main)]);
+    let mut app = open(&[root.join(omaspec_core::project::FILE)]);
     let (specs, atlas) = specs::read_project(&root);
     let _ = app.update(Message::Specs(
         root.clone(),
         Arc::new(specs),
         Arc::new(atlas),
     ));
-    show_linked(&mut app);
+    show_map(&mut app);
     settle(&mut app);
     let mut screen = Screen::new(&app, 1.0);
     screen.size = Size::new(1600.0, 1000.0);
@@ -5259,15 +5234,11 @@ fn snapshot_dive() {
 fn a_map_shows_a_diagram_as_its_tab_holds_it() {
     let root = temp_dir("tab-on-map");
     let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
-    write(
-        "omaspec-project.toml",
-        "name = \"shop\"\nmain = \"system.puml\"\n",
-    );
-    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    write("omaspec-project.toml", "name = \"shop\"\n");
     let saved = "@startuml\ntitle Orders\n[*] --> New\n@enduml\n";
     write("orders.puml", saved);
     let root = std::fs::canonicalize(&root).unwrap();
-    let mut app = open(&[root.join("system.puml")]);
+    let mut app = open(&[root.join("omaspec-project.toml")]);
     follow_theme(&mut app, false);
     let (specs, atlas) = specs::read_project(&root);
     let _ = app.update(Message::Specs(
@@ -5316,5 +5287,208 @@ fn a_map_shows_a_diagram_as_its_tab_holds_it() {
     let _ = app.close(index);
     assert!(app.docs.iter().all(|d| d.key != orders));
     assert_eq!(on_map(&mut app), saved);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// Draws the map beside the project's file in the active tab, of the
+/// folder it shows, as `dispatch_map` asks the worker for it.
+fn show_map(app: &mut App) {
+    let key = app.doc().key;
+    // About the pane of a screenshot's window, as in `show`.
+    let _ = app.update(Message::Paper(
+        key,
+        paper::Message::Viewport(Size::new(600.0, 560.0)),
+    ));
+    let (atlas, _) = app.linked_of(key).expect("a project");
+    let (skin, _) = app.diagram_source(crate::look::MAP_SKIN, Language::PlantUml);
+    let mut renderer = omaspec_render::Renderer::new(&omaspec_render::Config {
+        java_fallback: false,
+        ..Default::default()
+    });
+    let out = renderer
+        .render_map(&atlas, &app.doc().folder, &skin)
+        .unwrap();
+    let drawn = crate::worker::Drawn::of(out).unwrap();
+    let id = app.doc_mut().paper.pretend_next();
+    let mut reply = answer(key, id, Ok(drawn));
+    reply.language = Language::PlantUml;
+    reply.source = skin;
+    let paper = &mut app.doc_mut().paper;
+    let _ = paper.rendered(reply);
+    paper.finish_rasters();
+}
+
+/// A project of a machine, the diagram one of its states opens, a plan and
+/// a scenario in a folder; no map is written in it.
+fn shop_without_a_map(name: &str) -> PathBuf {
+    let root = temp_dir(name);
+    std::fs::create_dir_all(root.join("scenarios")).unwrap();
+    let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
+    write(omaspec_core::project::FILE, "name = \"shop\"\n");
+    write(
+        "orders.puml",
+        "@startuml\ntitle Orders\n[*] --> New\nNew --> Checkout : pay\n@enduml\n",
+    );
+    write(
+        "checkout.puml",
+        "@startuml\ntitle Checkout\nstart\n:Pay;\nstop\n@enduml\n",
+    );
+    write("plan.puml", "@startwbs\n* Plan\n** Orders\n@endwbs\n");
+    write(
+        "scenarios/buy.puml",
+        "@startuml\ntitle Buy\nparticipant User\nparticipant Orders\nUser -> Orders : pay\n@enduml\n",
+    );
+    std::fs::canonicalize(&root).unwrap()
+}
+
+#[test]
+fn a_project_s_file_shows_the_map_made_from_its_diagrams() {
+    let root = shop_without_a_map("made-map");
+    let mut app = open(&[root.join(omaspec_core::project::FILE)]);
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
+    let map = app.doc().key;
+    assert!(app.doc().is_project());
+    due(&mut app, Alarm::Lint(map));
+    assert!(app.doc().findings.is_empty(), "{:?}", app.doc().findings);
+
+    // Beside the file, its map: every diagram of the project a tile, by
+    // its file; nobody listed them, and the plan is one of them.
+    show_map(&mut app);
+    let tiles: Vec<(&str, &[String])> = app
+        .doc()
+        .paper
+        .links()
+        .iter()
+        .map(|l| (l.name.as_str(), l.files.as_slice()))
+        .collect();
+    assert_eq!(
+        tiles,
+        [
+            ("Checkout", &["checkout.puml".to_owned()][..]),
+            ("Orders", &["orders.puml".to_owned()][..]),
+            ("plan", &["plan.puml".to_owned()][..]),
+            ("Buy", &["scenarios/buy.puml".to_owned()][..]),
+        ]
+    );
+    // A change of any diagram draws the map again.
+    assert!(app.docs[0].is_project());
+
+    // A click on a tile zooms into it and opens its diagram; the trail
+    // starts at the project, and Alt+Left leads back to its map.
+    let orders = link_on_screen(&app, "Orders");
+    let _ = app.update(Message::Paper(map, paper::Message::Follow(orders)));
+    let target = app
+        .docs
+        .iter()
+        .find(|d| d.path == Some(root.join("orders.puml")))
+        .expect("Orders open")
+        .key;
+    deliver_linked(&mut app, target);
+    app.docs
+        .iter_mut()
+        .find(|d| d.key == target)
+        .unwrap()
+        .paper
+        .finish_rasters();
+    let _ = app.arrive();
+    assert!(app.doc().paper.glide().is_some(), "the zoom runs");
+    due(&mut app, Alarm::Follow);
+    assert_eq!(app.doc().path, Some(root.join("orders.puml")));
+    let names: Vec<String> = app.trail.iter().map(|s| s.name.clone()).collect();
+    assert_eq!(names, ["shop", "Orders"]);
+    press(&mut app, Command::Back);
+    assert!(app.doc().is_project());
+
+    // What does not read in the file is a finding on its line; the map
+    // stays, as it is made from the diagrams.
+    select_all_and_paste(&mut app, "name = \"shop\"\ncolor = \"red\"\n");
+    due(&mut app, Alarm::Lint(map));
+    let findings: Vec<usize> = app.doc().findings.iter().map(|f| f.line).collect();
+    assert_eq!(findings, [1], "{:?}", app.doc().findings);
+    assert_eq!(app.doc().paper.links().len(), 4);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_folder_s_tile_opens_its_map_in_the_same_tab() {
+    // Two folders of twenty machines: over what one map holds.
+    let root = temp_dir("made-map-folders");
+    std::fs::write(root.join(omaspec_core::project::FILE), "name = \"plant\"\n").unwrap();
+    for area in ["east", "west"] {
+        std::fs::create_dir_all(root.join(area)).unwrap();
+        for n in 0..20 {
+            std::fs::write(
+                root.join(format!("{area}/{area}{n}.puml")),
+                format!("@startuml\ntitle {area}{n}\n[*] --> Idle\n@enduml\n"),
+            )
+            .unwrap();
+        }
+    }
+    let root = std::fs::canonicalize(&root).unwrap();
+    let mut app = open(&[root.join(omaspec_core::project::FILE)]);
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
+    let map = app.doc().key;
+    show_map(&mut app);
+    let folders: Vec<Option<&str>> = app
+        .doc()
+        .paper
+        .links()
+        .iter()
+        .map(|l| l.folder.as_deref())
+        .collect();
+    assert_eq!(folders, [Some("east"), Some("west")]);
+    assert!(app.trail_view().is_none(), "the project's own map");
+
+    // A click on a folder's tile: that folder's map, in this tab.
+    let west = link_on_screen(&app, "west");
+    let _ = app.update(Message::Paper(map, paper::Message::Follow(west)));
+    assert_eq!(app.doc().key, map);
+    assert_eq!(app.doc().folder, "west");
+    assert!(app.following.is_none(), "no other tab opens");
+    show_map(&mut app);
+    assert_eq!(app.doc().paper.links().len(), 20);
+    assert!(app.doc().paper.links().iter().all(|l| l.folder.is_none()));
+    // The trail names the way, and leads back: by a click or Alt+Left.
+    assert!(app.trail_view().is_some());
+    let _ = app.update(Message::MapFolder(String::new()));
+    assert_eq!(app.doc().folder, "");
+    let _ = app.update(Message::MapFolder("west".into()));
+    press(&mut app, Command::Back);
+    assert_eq!(app.doc().folder, "");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// Writes `map-made` and `map-made-plain` when OMASPEC_SNAPSHOT_DIR is
+/// set: a project's file beside the map made from its diagrams, in the
+/// theme's colors and in the files' own.
+#[test]
+fn snapshot_made_map() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let root = shop_without_a_map("snapshot-made-map");
+    let mut app = open(&[root.join(omaspec_core::project::FILE)]);
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
+    show_map(&mut app);
+    shoot(&mut app, &dir, "map-made");
+    follow_theme(&mut app, false);
+    show_map(&mut app);
+    shoot(&mut app, &dir, "map-made-plain");
     let _ = std::fs::remove_dir_all(&root);
 }

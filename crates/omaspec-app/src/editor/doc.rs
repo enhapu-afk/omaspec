@@ -165,6 +165,9 @@ pub struct Doc {
     /// A Markdown document's diagrams as of a revision of its text, read
     /// again only when the text changed.
     blocks: RefCell<Option<(Revision, Arc<Vec<Block>>)>>,
+    /// A project's file ([`Self::is_project`]): the folder of the project
+    /// whose map it shows, by its path there; empty for the project's own.
+    pub folder: String,
 }
 
 impl Doc {
@@ -278,6 +281,7 @@ impl Doc {
             flash_fade: None,
             shown: None,
             blocks: RefCell::new(None),
+            folder: String::new(),
         };
         doc.analyze();
         doc
@@ -286,6 +290,13 @@ impl Doc {
     /// Whether this is a Markdown document of diagrams.
     pub fn is_document(&self) -> bool {
         markdown::is_markdown(&self.name())
+    }
+
+    /// Whether this is a project's file, `omaspec-project.toml`: beside
+    /// it stands the project's map, which is made from the project's
+    /// diagrams (docs/adr/0026), not drawn from this text.
+    pub fn is_project(&self) -> bool {
+        self.name() == omaspec_core::project::FILE
     }
 
     /// A Markdown document's diagrams; none for a diagram file. Read once
@@ -604,6 +615,9 @@ impl Doc {
         if self.is_document() {
             return self.analyze_document();
         }
+        if self.is_project() {
+            return self.analyze_project();
+        }
         let text = self.text();
         let revision = self.editor.document().revision();
         let language = self.language_of(&text);
@@ -623,6 +637,28 @@ impl Doc {
         self.outline = entries;
         self.sync_fold_regions(&text, folds);
         changed
+    }
+
+    /// [`Self::analyze`] for a project's file: what does not read in it,
+    /// on its line. It is no diagram, so it has no kind and no outline.
+    fn analyze_project(&mut self) -> bool {
+        let text = self.text();
+        let revision = self.editor.document().revision();
+        self.findings = match omaspec_core::project::Project::parse(&text) {
+            Ok(_) => Vec::new(),
+            Err(err) => vec![Finding {
+                line: err.line.saturating_sub(1),
+                severity: Severity::Error,
+                message: err.message,
+            }],
+        };
+        self.kind = None;
+        let _ = self
+            .editor
+            .set_diagnostics(revision, syntax::diagnostics(&text, &self.findings));
+        self.outline = Vec::new();
+        self.sync_fold_regions(&text, Vec::new());
+        false
     }
 
     /// [`Self::analyze`] for a document: each diagram on the document's

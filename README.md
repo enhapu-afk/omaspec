@@ -86,8 +86,8 @@ checked for legible colors, the gallery's diagrams in each of them too.
   first diagram and `omaspec-project.toml`. Every diagram below it is checked against
   the whole project, however it was opened.
 - **Diagrams that link.** A state links to the diagram of its name: click it and the
-  view zooms in, Alt+Left zooms back out. A mind map or WBS in a project is its map,
-  each box that names a diagram a tile with that diagram's picture.
+  view zooms in, Alt+Left zooms back out. A project's map is made from its diagrams:
+  each a tile with its picture, with arrows for what plays, opens and includes what.
 - **Fold and focus.** Fold a nested state, a package or a subgraph to its box, and
   Shift+click a box to see only it, its neighbors and the lines between them.
 - **A layout you can steer.** Drag a line or a box with Alt; the shape goes into the
@@ -140,7 +140,7 @@ Salt and more), `wl-clipboard` to copy diagrams, `git` to compare with commits.
 
 ```bash
 omaspec ~/diagrams          # the editor, with that folder in the sidebar
-omaspec new ~/specs/shop    # or start a project: a map and a first diagram
+omaspec new ~/specs/shop    # or start a project: a first diagram, and a map made of all of them
 ```
 
 1. **Ctrl+Shift+E** opens the examples. Pick *A coffee machine* and press **F5**: it

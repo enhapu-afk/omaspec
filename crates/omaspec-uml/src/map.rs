@@ -186,12 +186,11 @@ pub enum Shape {
 /// the project (`docs/adr/0018-diagrams-that-link.md`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tile {
-    /// The key of the name it shows ([`crate::tree::Tiles::pick`]).
+    /// The key of what it shows: a diagram's file or a folder, as the
+    /// map's maker gave it ([`crate::tree::Branch`]).
     pub key: String,
-    /// What the box says.
+    /// What the tile is called.
     pub name: String,
-    /// Zero-based line of its box; `None` for a diagram that is on no box.
-    pub line: Option<usize>,
     /// The key of the nearest tile above it in the tree.
     pub parent: Option<String>,
     /// The whole tile.
@@ -341,9 +340,6 @@ impl Map {
         }
         for (line, _) in &mut self.misses {
             *line += lines;
-        }
-        for tile in &mut self.tiles {
-            tile.line = tile.line.map(|l| l + lines);
         }
         self
     }

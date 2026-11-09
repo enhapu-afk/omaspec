@@ -21,25 +21,19 @@ pub use cards::{
 };
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use mindmap::draw as draw_mindmap;
-pub use mindmap::draw_tiled as draw_mindmap_tiled;
+pub use mindmap::draw_mapped as draw_mindmap_mapped;
 pub use parse::{parse_mindmap, parse_wbs};
 pub use wbs::draw as draw_wbs;
-pub use wbs::draw_tiled as draw_wbs_tiled;
+pub use wbs::draw_mapped as draw_wbs_mapped;
 
-/// A mind map or a WBS drawn as the map of a project
-/// (`docs/adr/0018-diagrams-that-link.md`): each box that names a diagram
-/// is a card with room for that diagram's picture, which the caller puts
-/// in the room [`crate::map::Map::tiles`] gives.
+/// What the map of a project says beside its boxes
+/// (`docs/adr/0026-the-map-is-made.md`): each box with a key is a card
+/// with room for its diagram's picture, which the caller puts in the room
+/// [`crate::map::Map::tiles`] gives.
 pub struct Tiles<'a> {
-    /// The key of the diagram a box's words name; `None` leaves the box a
-    /// label.
-    pub pick: &'a dyn Fn(&str) -> Option<String>,
     /// What the card of a diagram says, by its key; `None` before the
     /// caller knows.
     pub card: &'a dyn Fn(&str) -> Option<Card>,
-    /// Diagrams that are on no box, by name and key: cards that hang from
-    /// the root, dashed.
-    pub loose: &'a [(String, String)],
     /// Arrows from card to card.
     pub relations: &'a [Relation],
     pub heading: Option<&'a Heading>,

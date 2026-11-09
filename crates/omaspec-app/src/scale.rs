@@ -10,31 +10,28 @@ use std::time::{Duration, Instant};
 
 use omaspec_core::lint::Severity;
 use omaspec_core::{Language, detect};
-use omaspec_render::{Config, Place, Rendered, Renderer};
+use omaspec_render::{Config, Rendered, Renderer};
 
 use crate::editor::folder::scan;
 use crate::specs::{self, Maps};
 
 /// State machines in each area of a generated project.
 const MACHINES: usize = 40;
-/// Scenarios in each area; with the machines and the area's map, an area
-/// holds 50 diagrams.
-const SCENARIOS: usize = 9;
+/// Scenarios in each area; with the machines an area holds 50 diagrams.
+const SCENARIOS: usize = 10;
 
 /// A generated project.
 struct Project {
     root: PathBuf,
-    /// Every diagram, the maps included.
+    /// Every diagram.
     files: Vec<PathBuf>,
-    /// The main map, which also shows every diagram on no map's box.
-    main: PathBuf,
-    /// The map of the first area, whose boxes name its diagrams.
-    area: PathBuf,
+    /// The folder of the first area, which has a map of its own.
+    area: String,
 }
 
-/// A project of `areas` areas under `root`: each with machines (every
-/// third in Mermaid), scenarios between them in PlantUML, and a map; the
-/// main map names the areas.
+/// A project of `areas` areas under `root`, each a folder with machines
+/// (every third in Mermaid) and scenarios between them in PlantUML. No
+/// map is written: the project's and each area's are made.
 fn generate(root: &Path, areas: usize) -> Project {
     let _ = std::fs::remove_dir_all(root);
     std::fs::create_dir_all(root).unwrap();
@@ -44,15 +41,10 @@ fn generate(root: &Path, areas: usize) -> Project {
         std::fs::write(&path, text).unwrap();
         path
     };
-    write(
-        omaspec_core::project::FILE,
-        "name = \"scale\"\nmain = \"system.puml\"\n",
-    );
+    write(omaspec_core::project::FILE, "name = \"scale\"\n");
     let mut files = Vec::new();
-    let mut main = String::from("@startwbs\n* System\n");
     for area in 1..=areas {
         let dir = format!("area-{area:02}");
-        let mut map = format!("@startwbs\n* Area {area:02}\n");
         let first = (area - 1) * MACHINES + 1;
         for unit in first..first + MACHINES {
             let mermaid = unit % 3 == 0;
@@ -61,7 +53,6 @@ fn generate(root: &Path, areas: usize) -> Project {
                 &format!("{dir}/unit-{unit:04}.{ext}"),
                 &machine(unit, mermaid),
             ));
-            map.push_str(&format!("** Unit {unit:04}\n"));
         }
         for run in 0..SCENARIOS {
             let number = (area - 1) * SCENARIOS + run + 1;
@@ -70,20 +61,12 @@ fn generate(root: &Path, areas: usize) -> Project {
                 &format!("{dir}/run-{number:04}.puml"),
                 &scenario(number, unit, unit + 1),
             ));
-            map.push_str(&format!("** Run {number:04}\n"));
         }
-        map.push_str("@endwbs\n");
-        files.push(write(&format!("{dir}/{dir}.puml"), &map));
-        main.push_str(&format!("** Area {area:02}\n"));
     }
-    main.push_str("@endwbs\n");
-    let main = write("system.puml", &main);
-    files.push(main.clone());
     Project {
         root: root.to_path_buf(),
         files,
-        main,
-        area: root.join("area-01/area-01.puml"),
+        area: "area-01".to_owned(),
     }
 }
 
@@ -223,39 +206,25 @@ fn measure(project: &Project) -> Measured {
         errors,
         diff,
         git,
-        main: draw_map(&project.main),
-        area: draw_map(&project.area),
+        main: draw_map(&project.root, ""),
+        area: draw_map(&project.root, &project.area),
     }
 }
 
-/// Draws the map at `path` as `omaspec render` does, twice with one
-/// renderer, and parses and rasterizes what the diagram pane shows first.
-fn draw_map(path: &Path) -> Drawn {
-    let text = std::fs::read_to_string(path).unwrap();
-    let place = Place::of(path, None);
+/// Draws the map of `folder` of the project at `root` as `omaspec render`
+/// does, twice with one renderer, and parses and rasterizes what the
+/// diagram pane shows first.
+fn draw_map(root: &Path, folder: &str) -> Drawn {
     let mut maps = Maps::default();
     // The project is read here, so the drawing is timed on its own.
-    assert!(
-        maps.of(&text, Language::PlantUml, Some(path), place.as_ref())
-            .is_some(),
-        "{} is a map",
-        path.display()
-    );
+    assert!(!maps.project(root).diagrams.is_empty());
     let mut renderer = Renderer::new(&Config {
         java_fallback: false,
         ..Config::default()
     });
     let mut render = || -> (Rendered, Duration) {
         let start = Instant::now();
-        let drawn = maps
-            .render(
-                &mut renderer,
-                &text,
-                Language::PlantUml,
-                Some(path),
-                place.as_ref(),
-            )
-            .unwrap();
+        let drawn = crate::look::render_map(&mut maps, &mut renderer, root, folder, None).unwrap();
         (drawn, start.elapsed())
     };
     let (drawn, cold) = render();
@@ -308,11 +277,11 @@ fn ms(d: Duration) -> String {
 fn a_generated_project_reads_lints_and_maps_cleanly() {
     let project = generate(&scratch("small"), 1);
     let measured = measure(&project);
-    assert_eq!(measured.diagrams, 51);
+    assert_eq!(measured.diagrams, MACHINES + SCENARIOS);
     assert_eq!(measured.machines, MACHINES);
     assert_eq!(measured.errors, 0, "the generated diagrams hold together");
-    // The area's map has a tile for each of its diagrams; the main map
-    // shows the area, whose map shows them.
+    // The area's map has a tile for each of its diagrams; the project's
+    // shows the area as one tile, whose map shows them.
     assert_eq!(measured.area.tiles, MACHINES + SCENARIOS);
     assert_eq!(measured.main.tiles, 1);
     let _ = std::fs::remove_dir_all(&project.root);

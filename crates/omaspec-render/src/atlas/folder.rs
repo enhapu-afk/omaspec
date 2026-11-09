@@ -288,7 +288,6 @@ pub(crate) fn render(
             format!("{folder} · {}", counted(top.count(), "diagram"))
         },
         main: folder.is_empty(),
-        place: None,
     };
     let by_file: HashMap<&str, usize> = shown
         .iter()
@@ -305,9 +304,7 @@ pub(crate) fn render(
         skin,
         &roots,
         &Tiles {
-            pick: &|_| None,
             card: &card,
-            loose: &[],
             relations: &relations,
             heading: Some(&heading),
         },
@@ -506,7 +503,6 @@ mod tests {
                 entry("scenarios/boot.puml", &scenario("Boot", "Console")),
                 entry("scenarios/play.puml", &scenario("Play", "Console")),
             ],
-            main: None,
             name: Some("First Console".into()),
         }
     }
@@ -556,6 +552,40 @@ mod tests {
     }
 
     #[test]
+    fn a_state_that_names_a_diagram_opens_it_on_the_map() {
+        // Orders has a state called Checkout, and so has Payment; Checkout
+        // is a diagram of its own, a folder down.
+        let atlas = Atlas {
+            diagrams: vec![
+                entry(
+                    "orders.puml",
+                    "@startuml\ntitle Orders\n[*] --> Open\nOpen --> Checkout : pay\n@enduml\n",
+                ),
+                entry(
+                    "orders/checkout.puml",
+                    "@startuml\ntitle Checkout\nstart\n:Pay;\nstop\n@enduml\n",
+                ),
+                entry(
+                    "payment.puml",
+                    "@startuml\ntitle Payment\n[*] --> Checkout\nCheckout --> Paid : ok\n@enduml\n",
+                ),
+                entry("common.puml", &machine("Common")),
+                entry(
+                    "uses.puml",
+                    "@startuml\ntitle Uses\n!include common.puml\n[*] --> Here\n@enduml\n",
+                ),
+            ],
+            name: None,
+        };
+        let drawn = renderer().render_map(&atlas, "", SKIN).unwrap();
+        // An arrow from each of the two, and one for the file included.
+        assert_eq!(drawn.svg.matches(">opens<").count(), 2, "{}", drawn.svg);
+        assert_eq!(drawn.svg.matches(">includes<").count(), 1);
+        // Without a name of its own the project's map is called Map.
+        assert!(drawn.svg.contains(">Map<"));
+    }
+
+    #[test]
     fn a_folder_has_a_map_of_its_own() {
         let atlas = console();
         let drawn = renderer().render_map(&atlas, "scenarios", SKIN).unwrap();
@@ -585,7 +615,6 @@ mod tests {
         assert!(diagrams.len() > WHOLE);
         let atlas = Atlas {
             diagrams,
-            main: None,
             name: None,
         };
         let mut renderer = renderer();

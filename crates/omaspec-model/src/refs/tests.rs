@@ -30,6 +30,8 @@ fn a_name_is_found_however_it_is_spelled() {
     assert_eq!(found("Tür --> Tor", "TÜR"), ["Tür"]);
 }
 
+/// A plan: its boxes are its own words, no uses of the diagrams they
+/// happen to name.
 const MAP: &str = "@startwbs\n* House\n** Door\n** Lamp\n@endwbs\n";
 const DOOR: &str = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
 const LAMP: &str =
@@ -98,12 +100,11 @@ fn at(
 }
 
 #[test]
-fn a_diagram_is_used_by_boxes_participants_links_and_traces() {
+fn a_diagram_is_used_by_participants_links_and_traces() {
     assert_eq!(
         listed("door", None),
         [
             at("door.puml:2", "diagram", None),
-            at("house.puml:3", "box", None),
             at("lamp.puml:4", "link", Some("lamp.puml")),
             at("lamp.puml:5", "link", Some("lamp.puml")),
             at("notes.md:4", "participant", None),

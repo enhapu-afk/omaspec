@@ -421,6 +421,25 @@ impl Paper {
         self.status = Status::Rendering;
     }
 
+    /// Asks `worker` for the map of `folder` of the project in `atlas`,
+    /// made from its diagrams, in the look of `skin` (docs/adr/0026).
+    pub fn request_map(
+        &mut self,
+        worker: &Worker,
+        doc: u64,
+        skin: Arc<str>,
+        atlas: Arc<omaspec_render::Atlas>,
+        folder: String,
+    ) {
+        self.requested += 1;
+        let ticket = Ticket {
+            doc,
+            id: self.requested,
+        };
+        worker.render_map(ticket, skin, atlas, folder);
+        self.status = Status::Rendering;
+    }
+
     /// Asks `worker` to render every diagram of the Markdown document
     /// `source`, one under another, as the preview window shows it.
     pub fn request_document(

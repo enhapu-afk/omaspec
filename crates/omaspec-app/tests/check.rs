@@ -49,8 +49,10 @@ fn check_runs_lint_the_links_and_the_pictures() {
     );
     assert!(out.contains("door.svg: not there"), "{out}");
     assert!(out.contains("visit.svg: not there"), "{out}");
+    // The project's map is one of its pictures, beside the project's file.
+    assert!(out.contains("omaspec-project.svg: not there"), "{out}");
     assert!(
-        err.contains("1 warning") && err.contains("2 of 2 SVGs differ"),
+        err.contains("1 warning") && err.contains("3 of 3 SVGs differ"),
         "{err}"
     );
 
@@ -62,13 +64,20 @@ fn check_runs_lint_the_links_and_the_pictures() {
     assert_eq!(code, Some(0), "{err}\n{out}");
     assert!(out.contains("visit.puml:3: warning:"), "{out}");
     assert!(!out.contains("not there"), "{out}");
-    assert!(err.contains("1 warning; 2 SVGs drawn as they are"), "{err}");
+    assert!(err.contains("1 warning; 3 SVGs drawn as they are"), "{err}");
     assert_eq!(omaspec(&["check", "--strict", root]).0, Some(1));
 
     // The same bytes `render --check` holds against.
     let (render_code, render_out, render_err) = omaspec(&["render", "--check", root]);
     assert_eq!(render_code, Some(0), "{render_err}");
     assert_eq!(render_out, "");
+    // A diagram more is a tile more: the map's picture is no longer the
+    // project's.
+    fs::write(dir.join("lamp.puml"), "@startuml\n[*] --> Off\n@enduml\n").unwrap();
+    let (code, out, _) = omaspec(&["render", "--check", root]);
+    assert_eq!(code, Some(1));
+    assert!(out.contains("omaspec-project.svg"), "{out}");
+    fs::remove_file(dir.join("lamp.puml")).unwrap();
 
     fs::write(
         dir.join("door.puml"),
@@ -127,7 +136,7 @@ fn new_git_writes_a_pre_commit_hook_that_runs_check() {
     let (code, out, _) = omaspec(&["check", shop.to_str().unwrap()]);
     assert_eq!(code, Some(1), "{out}");
     assert!(
-        out.contains("system.svg: not there") && out.contains("shop.svg: not there"),
+        out.contains("omaspec-project.svg: not there") && out.contains("shop.svg: not there"),
         "{out}"
     );
 

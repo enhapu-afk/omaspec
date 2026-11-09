@@ -57,10 +57,11 @@ enum Command {
     ///
     /// The file marks the project's root. A diagram anywhere below it is
     /// checked against the state machines of the whole project, and its
-    /// `!include`s reach into all of it. The file names the project and its
-    /// main diagram, `system.puml` or `system.mmd`: the whole system as a
-    /// small state machine to start from. A folder that is there keeps its
-    /// files; one that is a project already is refused. With --git, a git
+    /// `!include`s reach into all of it. The file names the project, and
+    /// beside it stands the project's map, made from its diagrams: the
+    /// editor shows it for that file, `omaspec render` draws it. The first
+    /// diagram is a small state machine named after the project. A folder
+    /// that is there keeps its files; one that is a project already is refused. With --git, a git
     /// repository starts in it, unless it is inside one, and a pre-commit
     /// hook runs `omaspec check` unless a hook is there already. Exits
     /// with 1 when git could not start one.
@@ -146,7 +147,7 @@ enum Command {
     },
     /// List every place in the project that uses a name.
     ///
-    /// A diagram of that name: where it says its name, the maps' boxes, the
+    /// A diagram of that name: where it says its name, the
     /// scenarios' participants that play it, the states of other machines
     /// that open it, the traces of it. A state or an event of a state
     /// machine: the transitions, the messages sent to its participants, the
@@ -169,7 +170,7 @@ enum Command {
     },
     /// Rename a diagram, a state or an event everywhere it is used.
     ///
-    /// A diagram: its title or `@start…` name, the maps' boxes, the
+    /// A diagram: its title or `@start…` name, the
     /// participants that play it, the states of other machines that open
     /// it. A state: its machine's lines, left of their labels. An event:
     /// its machine's triggers and the messages sent to its participants.
@@ -387,8 +388,8 @@ enum Command {
     /// with its source, linked to one another, and a ZIP of it.
     ///
     /// The SVGs lie beside one another as the diagrams do, in the project's
-    /// `export` folder unless --output names another; the main diagram is
-    /// `index.svg` too. Each tile of a map and each state that opens a
+    /// `export` folder unless --output names another; the project's map,
+    /// made from its diagrams, is `index.svg`. Each tile of it and each state that opens a
     /// diagram links to that diagram's SVG, so a browser is enough to
     /// follow them. `<project>.zip` in the folder holds all of it. Nothing
     /// is written outside the folder.

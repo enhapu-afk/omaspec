@@ -18,6 +18,7 @@ fn a_new_name_is_spelled_as_the_old_one_was() {
     assert_eq!(spell("open", "Swing", false), "swing");
 }
 
+/// A plan: its boxes are its own words, which a rename leaves.
 const MAP: &str = "@startwbs\n* House\n** Door\n** Lamp\n@endwbs\n";
 const DOOR: &str = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nnote left of Open\n  Open stays open.\nend note\n@enduml\n";
 const LAMP: &str =
@@ -90,19 +91,9 @@ fn a_diagram_is_renamed_where_it_is_named_shown_played_and_opened() {
     assert_eq!(plan.what, "the diagram Door (door.puml)");
     let after = renamed(&plan);
     let changed: Vec<&str> = after.iter().map(|(f, _)| f.as_str()).collect();
-    assert_eq!(
-        changed,
-        [
-            "door.puml",
-            "house.puml",
-            "lamp.puml",
-            "notes.md",
-            "run.puml"
-        ]
-    );
+    assert_eq!(changed, ["door.puml", "lamp.puml", "notes.md", "run.puml"]);
     let text = |file: &str| after.iter().find(|(f, _)| f == file).unwrap().1.clone();
     assert!(text("door.puml").contains("title Front gate\n"));
-    assert!(text("house.puml").contains("** Front gate\n"));
     assert!(text("lamp.puml").contains("Idle --> FrontGate : lead\nFrontGate --> Idle : open\n"));
     assert_eq!(
         text("run.puml"),
@@ -145,7 +136,6 @@ fn a_diagram_is_renamed_where_it_is_named_shown_played_and_opened() {
         uses,
         [
             ("door.puml:2".to_owned(), RefKind::Diagram),
-            ("house.puml:3".to_owned(), RefKind::Box),
             ("lamp.puml:4".to_owned(), RefKind::Link),
             ("lamp.puml:5".to_owned(), RefKind::Link),
             ("notes.md:4".to_owned(), RefKind::Participant),
@@ -279,11 +269,9 @@ fn the_name_at_a_place_is_what_a_rename_there_renames() {
         at("door.puml", 3, "open"),
         named("open", Some("door.puml"), Thing::Event)
     );
-    // A box; a participant; a message's event; a linked state.
-    assert_eq!(
-        at("house.puml", 2, "Door"),
-        named("Door", None, Thing::Diagram)
-    );
+    // A plan's box is no name of the project; a participant; a message's
+    // event; a linked state.
+    assert_eq!(at("house.puml", 2, "Door"), None);
     assert_eq!(
         at("run.puml", 3, "Door"),
         named("Door", Some("door.puml"), Thing::Diagram)

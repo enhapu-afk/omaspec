@@ -137,7 +137,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "refs",
             "title": "Find where a name is used",
-            "description": "Lists every place in a project that uses a name, compared as the project's links compare names (letters and digits, case aside, so `Door control` is `DoorControl`). For a diagram of that name: where it says its name (`diagram`), the maps' boxes (`box`), the scenarios' participants that play its state machine (`participant`), the states of other machines that open it (`link`), the traces of it (`trace`). For a state or an event of a state machine: the lines that declare the state or lead into or out of it (`state`), the transitions the event fires (`event`), the messages that send it to a participant playing the machine (`message`), the traces (`trace`). Each use has its file, line (one-based), kind, the machine a state or event belongs to, and the line's text. Use it before renaming or removing a diagram, a state or an event.",
+            "description": "Lists every place in a project that uses a name, compared as the project's links compare names (letters and digits, case aside, so `Door control` is `DoorControl`). For a diagram of that name: where it says its name (`diagram`), the scenarios' participants that play its state machine (`participant`), the states of other machines that open it (`link`), the traces of it (`trace`). For a state or an event of a state machine: the lines that declare the state or lead into or out of it (`state`), the transitions the event fires (`event`), the messages that send it to a participant playing the machine (`message`), the traces (`trace`). Each use has its file, line (one-based), kind, the machine a state or event belongs to, and the line's text. Use it before renaming or removing a diagram, a state or an event.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -249,7 +249,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "render",
             "title": "Render a diagram",
-            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip, txt); SVG and PNG files carry the diagram's source. As text (`format: text`, or a .txt output), a state machine or a sequence diagram comes back as its behavior, one fact a line: states, transitions and findings sorted, messages in order. A mind map or WBS in a project is its map: each box that names a diagram of the project shows that diagram in a tile. A diagram with an error comes back as an error with its line. In a Markdown document, `diagram` picks one of its `plantuml` and `mermaid` blocks; an image written stores that diagram's source.",
+            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip, txt); SVG and PNG files carry the diagram's source. As text (`format: text`, or a .txt output), a state machine or a sequence diagram comes back as its behavior, one fact a line: states, transitions and findings sorted, messages in order. A project's `omaspec-project.toml` as `path` draws the project's map, which is made from its diagrams: each a tile with its picture, and arrows for what plays, opens and includes what. A diagram with an error comes back as an error with its line. In a Markdown document, `diagram` picks one of its `plantuml` and `mermaid` blocks; an image written stores that diagram's source.",
             "inputSchema": schema(&[
                 ("path", path),
                 ("code", code),
@@ -441,17 +441,21 @@ impl Tools {
                     skin.without_schemes()
                 }
             });
-        // A map shows the diagrams of its project in tiles (docs/adr/0018),
-        // read no further than its includes are.
-        let drawn = crate::look::render(
-            &mut crate::specs::Maps::default(),
-            renderer,
-            &piece.code,
-            lang,
-            input.path.as_deref(),
-            place.as_ref(),
-            skin.as_ref(),
-        );
+        // A project's file is drawn as the project's map, which is made
+        // from its diagrams (docs/adr/0026).
+        let mut maps = crate::specs::Maps::default();
+        let drawn = match input.path.as_deref().and_then(crate::look::map_root) {
+            Some(root) => crate::look::render_map(&mut maps, renderer, &root, "", skin.as_ref()),
+            None => crate::look::render(
+                &mut maps,
+                renderer,
+                &piece.code,
+                lang,
+                input.path.as_deref(),
+                place.as_ref(),
+                skin.as_ref(),
+            ),
+        };
         let rendered = match drawn {
             Ok(rendered) => rendered,
             Err(err) => {
@@ -523,7 +527,7 @@ impl Tools {
             .and_then(|(place, path)| crate::specs::path_in(&place.root, path));
         let up = own.as_deref().map_or(0, crate::specs::depth);
         let links = own.map_or_else(Vec::new, |own| {
-            crate::specs::export_links(&rendered.links, &own)
+            crate::specs::export_links(&rendered.links, &own, false)
         });
         let source_name = piece.source_name();
         let options = export::Options {
@@ -1432,6 +1436,46 @@ mod tests {
         assert_eq!(png["isError"], true, "{png}");
         let none = call("render", json!({"code": code, "look": "sepia"}));
         assert_eq!(none["isError"], true, "{none}");
+    }
+
+    #[test]
+    fn render_draws_a_project_s_map_for_its_file() {
+        let dir = scratch("map");
+        std::fs::write(dir.join("omaspec-project.toml"), "name = \"house\"\n").unwrap();
+        std::fs::write(
+            dir.join("door.puml"),
+            "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\n@enduml\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("visit.puml"),
+            "@startuml\ntitle Visit\nparticipant Guest\nparticipant Door\nGuest -> Door : open\n@enduml\n",
+        )
+        .unwrap();
+        let path = dir.join("omaspec-project.toml");
+        let svg = call(
+            "render",
+            json!({"path": path.to_str().unwrap(), "format": "svg"}),
+        );
+        let text = svg["content"][0]["text"].as_str().unwrap_or_default();
+        assert!(
+            text.contains(">house<") && text.contains(">Door<") && text.contains(">Visit<"),
+            "{svg}"
+        );
+        assert!(text.contains(">plays<"), "{text}");
+        // Written, each tile links to the picture of its diagram.
+        let out = dir.join("map.svg");
+        let written = call(
+            "render",
+            json!({"path": path.to_str().unwrap(), "output": out.to_str().unwrap()}),
+        );
+        assert!(written.get("isError").is_none(), "{written}");
+        let file = std::fs::read_to_string(&out).unwrap();
+        assert!(
+            file.contains(r#"<a href="door.svg"><title>Door</title>"#),
+            "{file}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

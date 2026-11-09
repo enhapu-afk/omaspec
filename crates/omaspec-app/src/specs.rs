@@ -34,32 +34,13 @@ pub fn path_in(root: &Path, path: &Path) -> Option<String> {
     path.strip_prefix(root).ok().map(file_name)
 }
 
-/// The projects' diagrams that maps show (`docs/adr/0018`), each project
-/// read once: `omaspec render` and the MCP server keep one for all their
+/// The projects' diagrams, which a project's map is made from and its
+/// states link to (`docs/adr/0018`, `0026`), each project read once: `omaspec render` and the MCP server keep one for all their
 /// diagrams.
 #[derive(Default)]
 pub struct Maps(HashMap<PathBuf, Arc<Atlas>>);
 
 impl Maps {
-    /// The project a diagram at `place` (its file at `path`) is the map of,
-    /// with its own path there: `None` unless it is a mind map or a WBS
-    /// with a place.
-    pub fn of(
-        &mut self,
-        text: &str,
-        language: Language,
-        path: Option<&Path>,
-        place: Option<&Place>,
-    ) -> Option<(Arc<Atlas>, Option<String>)> {
-        let place = place.filter(|_| omaspec_render::is_map(text, language))?;
-        let atlas = self
-            .0
-            .entry(place.root.clone())
-            .or_insert_with(|| Arc::new(read_project(&place.root).1));
-        let own = path.and_then(|p| path_in(&place.root, p));
-        Some((Arc::clone(atlas), own))
-    }
-
     /// The diagrams of the project at `root`, read once.
     pub fn project(&mut self, root: &Path) -> Arc<Atlas> {
         Arc::clone(
@@ -74,19 +55,13 @@ impl Maps {
         Maps(HashMap::from([(root, atlas)]))
     }
 
-    /// The project a diagram links into, with its own path there: a map
-    /// always ([`Self::of`]); anything else only in a project, where a
-    /// state that names a diagram links to it.
+    /// The project a diagram links into, with its own path there: only in
+    /// a project, where a state that names a diagram links to it.
     fn linked(
         &mut self,
-        text: &str,
-        language: Language,
         path: Option<&Path>,
         place: Option<&Place>,
     ) -> Option<(Arc<Atlas>, Option<String>)> {
-        if omaspec_render::is_map(text, language) {
-            return self.of(text, language, path, place);
-        }
         let place = place?;
         let root = omaspec_render::project_root(&place.dir).filter(|root| *root == place.root)?;
         let atlas = self
@@ -97,31 +72,9 @@ impl Maps {
         Some((Arc::clone(atlas), own))
     }
 
-    /// [`Self::render`], with each tile's diagram as `paint` writes it:
-    /// a map in a look shows its tiles in that look.
-    pub fn render_painted(
-        &mut self,
-        renderer: &mut Renderer,
-        text: &str,
-        language: Language,
-        path: Option<&Path>,
-        place: Option<&Place>,
-        paint: &dyn Fn(&str, Language) -> String,
-    ) -> Result<Rendered, RenderError> {
-        match self.linked(text, language, path, place) {
-            Some((atlas, own)) => {
-                let mut painted = Atlas::clone(&atlas);
-                for entry in &mut painted.diagrams {
-                    entry.source = paint(&entry.source, entry.language);
-                }
-                renderer.render_linked(text, language, place, own.as_deref(), &painted)
-            }
-            None => renderer.render_at(text, language, place),
-        }
-    }
-
-    /// Draws a diagram at `place` as its project shows it: a map with its
-    /// tiles, anything else as it is.
+    /// Draws a diagram at `place` as its project shows it: a state that
+    /// names a diagram of the project links to it; anything else as it
+    /// is. The project's map is made ([`crate::look::render_map`]).
     pub fn render(
         &mut self,
         renderer: &mut Renderer,
@@ -130,7 +83,7 @@ impl Maps {
         path: Option<&Path>,
         place: Option<&Place>,
     ) -> Result<Rendered, RenderError> {
-        match self.linked(text, language, path, place) {
+        match self.linked(path, place) {
             Some((atlas, own)) => {
                 renderer.render_linked(text, language, place, own.as_deref(), &atlas)
             }
@@ -138,6 +91,10 @@ impl Maps {
         }
     }
 }
+
+/// What the map of a folder is called in an export of its project, in
+/// that folder: the map is made, so it has no file to be named after.
+pub const MAP_OF_A_FOLDER: &str = "index.svg";
 
 /// The SVG of the diagram at `file`, a path in the project, beside it:
 /// `orders/orders.puml` is drawn into `orders/orders.svg`.
@@ -160,15 +117,23 @@ pub fn depth(own: &str) -> usize {
 /// The tiles and states of a drawn diagram as links between exports: each
 /// that opens one diagram of the project links to that diagram's SVG
 /// beside its file, relative to `own`, this diagram's path in the project
-/// (as `omaspec render` writes them, and `omaspec export`).
-pub fn export_links(links: &[omaspec_render::Link], own: &str) -> Vec<Anchor> {
+/// (as `omaspec render` writes them, and `omaspec export`). With
+/// `folders`, a tile that stands for a folder links to that folder's map,
+/// [`MAP_OF_A_FOLDER`] in it, which only an export of the project writes.
+pub fn export_links(links: &[omaspec_render::Link], own: &str, folders: bool) -> Vec<Anchor> {
     let from: Vec<&str> = own.split('/').collect();
     let dir = &from[..from.len().saturating_sub(1)];
     links
         .iter()
         .filter_map(|link| {
-            let [target] = link.files.as_slice() else {
-                return None;
+            let map;
+            let target = match (link.files.as_slice(), &link.folder) {
+                ([target], _) => target.as_str(),
+                ([], Some(folder)) if folders => {
+                    map = format!("{folder}/{MAP_OF_A_FOLDER}");
+                    map.as_str()
+                }
+                _ => return None,
             };
             let to: Vec<&str> = target.split('/').collect();
             let (folders, file) = to.split_at(to.len().checked_sub(1)?);
@@ -295,7 +260,7 @@ mod tests {
             link("Twice", &["a.puml", "b.puml"]),
         ];
         let hrefs = |own: &str| -> Vec<String> {
-            export_links(&links, own)
+            export_links(&links, own, false)
                 .into_iter()
                 .map(|a| a.href)
                 .collect()
@@ -310,7 +275,9 @@ mod tests {
         );
         assert_eq!(hrefs("maps/deep/map.puml")[1], "../../shop.svg");
         assert_eq!(
-            export_links(&links, "system.puml")[0].title.as_deref(),
+            export_links(&links, "system.puml", false)[0]
+                .title
+                .as_deref(),
             Some("Orders")
         );
     }
@@ -363,26 +330,15 @@ mod tests {
         assert_eq!(projects.of(Some(&root.join("login.puml")), None).len(), 2);
         assert!(projects.of(None, None).is_empty());
 
-        // Every diagram is in the atlas, by its path in the project; a map
-        // finds it there, anything else draws as it is.
+        // Every diagram is in the atlas, by its path in the project: what
+        // the project's map is made from, read once.
         let atlas = read_project(&root).1;
         let files: Vec<&str> = atlas.diagrams.iter().map(|e| e.file.as_str()).collect();
         assert_eq!(files, ["lamp.mmd", "login.puml", "states/door.puml"]);
-        let map_file = root.join("states/map.puml");
-        let map = "@startwbs\n* door\n@endwbs\n";
-        let place = Place::of(&map_file, Some(&root));
         let mut maps = Maps::default();
-        let (found, own) = maps
-            .of(map, Language::PlantUml, Some(&map_file), place.as_ref())
-            .unwrap();
+        let found = maps.project(&root);
         assert_eq!(found.diagrams.len(), 3);
-        assert_eq!(own.as_deref(), Some("states/map.puml"));
-        let flow = "@startuml\nA -> B\n@enduml\n";
-        assert!(
-            maps.of(flow, Language::PlantUml, Some(&map_file), place.as_ref())
-                .is_none()
-        );
-        assert!(maps.of(map, Language::PlantUml, None, None).is_none());
+        assert!(Arc::ptr_eq(&found, &maps.project(&root)));
         let _ = std::fs::remove_dir_all(&root);
     }
 }

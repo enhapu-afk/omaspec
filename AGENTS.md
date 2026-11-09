@@ -8,7 +8,7 @@ cargo test --workspace
 cargo clippy --workspace --all-targets
 cargo fmt --all
 cargo run -p omaspec-app -- theme          # palette of the active Omarchy theme
-cargo run -p omaspec-app -- new DIR        # a project: omaspec-project.toml, its map and a first machine (docs/adr/0017, 0018)
+cargo run -p omaspec-app -- new DIR        # a project: omaspec-project.toml and a first machine; its map is made (docs/adr/0017, 0026)
 cargo run -p omaspec-app -- lint FILE      # --project DIR for the state machines; also fmt, outline, inspect, extract
 cargo run -p omaspec-app -- trace FILE     # a JSON Lines trace against the state machines of its project
 cargo run -p omaspec-app -- refs NAME      # where a diagram, state or event is used in the project (docs/adr/0019)

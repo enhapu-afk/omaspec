@@ -365,9 +365,9 @@ pub fn apply(text: &str, language: Language, skin: &Skin) -> (String, Option<Lin
     }
 }
 
-/// `text` drawn in `skin` as `maps` draws it, a map with its tiles in the
-/// skin too; a line the engine names is a line of the file. `auto` draws
-/// the light and the dark one and makes one SVG of them.
+/// `text` drawn in `skin` as `maps` draws it; a line the engine names is
+/// a line of the file. `auto` draws the light and the dark one and makes
+/// one SVG of them.
 pub fn render(
     maps: &mut Maps,
     renderer: &mut Renderer,
@@ -414,8 +414,7 @@ pub fn render(
         });
     }
     let (shown, shift) = apply(text, language, skin);
-    let paint = |text: &str, language: Language| apply(text, language, skin).0;
-    maps.render_painted(renderer, &shown, language, path, place, &paint)
+    maps.render(renderer, &shown, language, path, place)
         .map_err(|mut err| {
             if let Some(shift) = shift {
                 shift.remap(&mut err);
@@ -426,7 +425,16 @@ pub fn render(
 
 /// The look a map that is made takes its colors from: a WBS of one box,
 /// which a skin is laid over as over any diagram.
-const MAP_SKIN: &str = "@startwbs\n* map\n@endwbs\n";
+pub const MAP_SKIN: &str = "@startwbs\n* map\n@endwbs\n";
+
+/// The project whose map stands beside `path`: the folder of a project's
+/// file, which is drawn as that map.
+pub fn map_root(path: &Path) -> Option<std::path::PathBuf> {
+    if path.file_name()? != omaspec_core::project::FILE {
+        return None;
+    }
+    Some(std::path::absolute(path).ok()?.parent()?.to_path_buf())
+}
 
 /// The map of `folder`, a folder of the project at `root` by its path
 /// there (the empty one: the project itself), drawn in `skin` with its

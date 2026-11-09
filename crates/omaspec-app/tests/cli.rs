@@ -106,13 +106,10 @@ fn trace_holds_a_recording_against_the_machines_of_its_folder() {
 #[test]
 fn refs_lists_the_uses_of_a_name_across_the_project() {
     let dir = scratch("refs");
+    fs::write(dir.join("omaspec-project.toml"), "name = \"house\"\n").unwrap();
+    // A plan's boxes are its own words: no use of the diagram they name.
     fs::write(
-        dir.join("omaspec-project.toml"),
-        "name = \"house\"\nmain = \"system.puml\"\n",
-    )
-    .unwrap();
-    fs::write(
-        dir.join("system.puml"),
+        dir.join("plan.puml"),
         "@startwbs\n* House\n** Door control\n@endwbs\n",
     )
     .unwrap();
@@ -132,7 +129,6 @@ fn refs_lists_the_uses_of_a_name_across_the_project() {
     assert_eq!(
         stdout(&out),
         "door.puml:2: diagram: title Door control\n\
-         system.puml:3: box: ** Door control\n\
          visit.puml:3: participant: participant DoorControl\n"
     );
     let out = omaspec(&["refs", "open", "--json", "--project", project]);
@@ -594,11 +590,7 @@ fn an_exported_map_and_a_linked_state_link_to_the_diagrams_they_open() {
     let dir = scratch("export-links");
     fs::create_dir_all(dir.join("orders")).unwrap();
     let write = |file: &str, text: &str| fs::write(dir.join(file), text).unwrap();
-    write(
-        "omaspec-project.toml",
-        "name = \"shop\"\nmain = \"system.puml\"\n",
-    );
-    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    write("omaspec-project.toml", "name = \"shop\"\n");
     write(
         "orders/orders.puml",
         "@startuml\ntitle Orders\n[*] --> New\nNew --> Payment : pay\n@enduml\n",
@@ -608,14 +600,18 @@ fn an_exported_map_and_a_linked_state_link_to_the_diagrams_they_open() {
         "@startuml\ntitle Payment\n[*] --> Waiting\n@enduml\n",
     );
     let path = |file: &str| dir.join(file).to_str().unwrap().to_owned();
-    let out = omaspec(&["render", &path("system.puml"), &path("orders/orders.puml")]);
+    let out = omaspec(&[
+        "render",
+        &path("omaspec-project.toml"),
+        &path("orders/orders.puml"),
+    ]);
     assert_eq!(
         out.status.code(),
         Some(0),
         "{}",
         String::from_utf8_lossy(&out.stderr)
     );
-    let map = fs::read_to_string(dir.join("system.svg")).unwrap();
+    let map = fs::read_to_string(dir.join("omaspec-project.svg")).unwrap();
     assert!(
         map.contains(r#"<a href="orders/orders.svg"><title>Orders</title>"#),
         "{map}"
@@ -783,11 +779,7 @@ fn a_project_exports_as_svgs_linked_to_one_another_and_a_zip() {
     let dir = scratch("export-project");
     fs::create_dir_all(dir.join("orders")).unwrap();
     let write = |file: &str, text: &str| fs::write(dir.join(file), text).unwrap();
-    write(
-        "omaspec-project.toml",
-        "name = \"shop\"\nmain = \"system.puml\"\n",
-    );
-    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    write("omaspec-project.toml", "name = \"shop\"\n");
     write(
         "orders/orders.puml",
         "@startuml\ntitle Orders\n[*] --> New\nNew --> Payment : pay\n@enduml\n",
@@ -810,15 +802,16 @@ fn a_project_exports_as_svgs_linked_to_one_another_and_a_zip() {
     );
     let export = dir.join("export");
     let read = |file: &str| fs::read_to_string(export.join(file)).unwrap();
-    // The map at the top, twice: as itself and as the page to start at.
-    for map in ["index.svg", "system.svg"] {
-        let svg = read(map);
-        assert!(
-            svg.contains(r#"<a href="orders/orders.svg"><title>Orders</title>"#),
-            "{svg}"
-        );
-        assert!(svg.contains("prefers-color-scheme: dark"));
+    // The project's map, made from its diagrams, is the page to start at.
+    let svg = read("index.svg");
+    for tile in [
+        r#"<a href="orders/orders.svg"><title>Orders</title>"#,
+        r#"<a href="payment.svg"><title>payment</title>"#,
+    ] {
+        assert!(svg.contains(tile), "{tile}: {svg}");
     }
+    assert!(svg.contains("prefers-color-scheme: dark"));
+    assert!(!export.join("omaspec-project.svg").exists());
     assert!(
         read("orders/orders.svg").contains(r#"<a href="../payment.svg"><title>Payment</title>"#)
     );
@@ -830,7 +823,6 @@ fn a_project_exports_as_svgs_linked_to_one_another_and_a_zip() {
     assert!(zip.starts_with(b"PK"));
     for entry in [
         "shop/index.svg",
-        "shop/system.svg",
         "shop/orders/orders.svg",
         "shop/payment.svg",
     ] {
@@ -847,13 +839,7 @@ fn a_project_exports_as_svgs_linked_to_one_another_and_a_zip() {
     top.sort();
     assert_eq!(
         top,
-        [
-            "export",
-            "omaspec-project.toml",
-            "orders",
-            "payment.mmd",
-            "system.puml"
-        ]
+        ["export", "omaspec-project.toml", "orders", "payment.mmd"]
     );
 
     // A diagram that does not draw is reported; the rest is written.
@@ -876,8 +862,10 @@ fn a_project_exports_as_svgs_linked_to_one_another_and_a_zip() {
     let report: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(report["failed"][0]["file"], "broken.puml", "{report}");
     assert_eq!(report["failed"][0]["line"], 2, "{report}");
-    assert_eq!(report["written"].as_array().unwrap().len(), 3, "{report}");
+    assert_eq!(report["written"].as_array().unwrap().len(), 2, "{report}");
+    // The map shows the diagram that does not draw as a tile that says so.
     assert_eq!(report["index"], true);
+    assert!(dir.join("out/index.svg").is_file());
     assert!(dir.join("out/orders/orders.svg").is_file());
 
     // Two diagrams that would be one SVG stop it before anything is written.
@@ -1047,9 +1035,11 @@ fn render_check_holds_a_project_against_its_committed_svgs() {
     // A folder: every diagram in it, each beside its own.
     assert_eq!(run(&[root]).0, Some(0));
     assert!(dir.join("states/door.svg").is_file() && dir.join("flow.svg").is_file());
+    // And the project's map, beside the project's file.
+    assert!(dir.join("omaspec-project.svg").is_file());
     let (code, out, err) = run(&["--check", root]);
     assert_eq!((code, out.as_str()), (Some(0), ""), "{err}");
-    assert!(err.contains("2 SVGs drawn as they are"), "{err}");
+    assert!(err.contains("3 SVGs drawn as they are"), "{err}");
     // A diagram changed without its SVG.
     fs::write(&door, "@startuml\ntitle Door\n[*] --> Closed\n@enduml\n").unwrap();
     let (code, out, _) = run(&["--check", root]);
@@ -1689,15 +1679,17 @@ fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
     assert_eq!(
         stdout(&out),
         format!(
-            "created {0}/shop.puml, the first state machine\ncreated {0}/system.puml, the map\ncreated {0}/omaspec-project.toml\n",
+            "created {0}/shop.puml, the first state machine\ncreated {0}/omaspec-project.toml; beside it stands the project's map, made from its diagrams\n",
             shop.display()
         )
     );
     let toml = fs::read_to_string(shop.join("omaspec-project.toml")).unwrap();
     assert!(
-        toml.contains("name = \"shop\"\nmain = \"system.puml\"\n"),
+        toml.ends_with("\nname = \"shop\"\n") && !toml.contains("main"),
         "{toml}"
     );
+    // No map is written: it is made from the project's diagrams.
+    assert!(!shop.join("system.puml").exists());
 
     // The first diagram is clean in both languages and drawn by Omaspec.
     let out = omaspec(&[
@@ -1708,10 +1700,8 @@ fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
         dir.join("lager").to_str().unwrap(),
     ]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!(
-        (json["name"].as_str(), json["main"].as_str()),
-        (Some("lager"), Some("system.mmd"))
-    );
+    assert_eq!(json["name"], "lager");
+    assert_eq!(json["main"], serde_json::Value::Null);
     assert_eq!(json["git"], serde_json::Value::Null);
     assert_eq!(json["machine"], "lager.mmd");
     for main in [shop.join("shop.puml"), dir.join("lager/lager.mmd")] {
@@ -1730,20 +1720,14 @@ fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
         let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
         assert_eq!(json["native"], "understood", "{main}");
     }
-    for map in [shop.join("system.puml"), dir.join("lager/system.mmd")] {
-        let map = map.to_str().unwrap();
-        for check in [&["lint", "--strict", map][..], &["fmt", "--check", map]] {
-            assert_eq!(omaspec(check).status.code(), Some(0), "{check:?}");
-        }
-    }
 
-    // The map shows its project's diagrams: the first machine at its
-    // root, and a new diagram once a box names it.
+    // The map shows its project's diagrams: the first machine, and a new
+    // diagram as soon as its file is there.
     let svg = dir.join("map.svg");
     let render = |svg: &Path| {
         let out = omaspec(&[
             "render",
-            shop.join("system.puml").to_str().unwrap(),
+            shop.join("omaspec-project.toml").to_str().unwrap(),
             "-o",
             svg.to_str().unwrap(),
         ]);
@@ -1756,15 +1740,9 @@ fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
         "@startuml\ntitle Orders\n[*] --> Open\nOpen --> Shop : buy\n@enduml\n",
     )
     .unwrap();
-    let map = fs::read_to_string(shop.join("system.puml")).unwrap();
-    fs::write(
-        shop.join("system.puml"),
-        map.replace("* shop\n", "* shop\n** Orders\n"),
-    )
-    .unwrap();
     let drawn = render(&svg);
     assert_eq!(drawn.matches("<svg").count(), 3, "{drawn}");
-    assert!(!drawn.contains("Not on the map"));
+    assert!(drawn.contains(">opens<"), "{drawn}");
 
     // A scenario deep in the project is held against the machine at its
     // root, as a scenario beside it would be.

@@ -10,22 +10,18 @@
 //! grows (right, or down when vertical), and the thickness across it.
 
 use super::skin::{Skin, TreeKind};
-use super::{Annotations, Idea, Label, MARGIN, Map, MindMap, Node, Tiles, cards};
+use super::{Annotations, Idea, Label, MARGIN, Map, MindMap, Node};
 use crate::Declined;
 use crate::map;
 use crate::svg::{Canvas, Layer, n};
 use crate::text::Family;
 
 pub fn draw(d: &MindMap) -> Result<String, Declined> {
-    draw_tiled(d, None).map(|(svg, _)| svg)
+    draw_mapped(d).map(|(svg, _)| svg)
 }
 
-/// Draws `d`; with `tiles`, as the map of a project, in cards
-/// ([`cards`]), and says where they are.
-pub fn draw_tiled(d: &MindMap, tiles: Option<&Tiles>) -> Result<(String, map::Map), Declined> {
-    if let Some(tiles) = tiles {
-        return cards::draw_mindmap(d, tiles);
-    }
+/// Draws `d`, and says where its boxes are.
+pub fn draw_mapped(d: &MindMap) -> Result<(String, map::Map), Declined> {
     let skin = Skin::from_params(&d.frame.skinparams, TreeKind::MindMap)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);

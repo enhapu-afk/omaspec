@@ -515,15 +515,15 @@ impl App {
         ]
         .into_iter()
         .map(|(language, git)| {
-            let main = omaspec_core::project::main_file(language);
+            let first = format!("a first state machine, .{}", language.extension());
             Item {
                 label: match git {
                     false => language.name().to_owned(),
                     true => format!("{}, with git", language.name()),
                 },
                 hint: match git {
-                    false => main,
-                    true => format!("{main} · git init, pre-commit hook"),
+                    false => first,
+                    true => format!("{first} · git init, pre-commit hook"),
                 },
                 choice: Choice::NewProject { language, git },
             }
@@ -534,7 +534,8 @@ impl App {
     }
 
     /// Makes the folder in the prompt a project, shows it in the sidebar
-    /// and opens its first diagram. What went wrong keeps the prompt open.
+    /// and opens its file, beside which its map stands. What went wrong
+    /// keeps the prompt open.
     pub(super) fn new_project_submitted(
         &mut self,
         language: omaspec_core::Language,
@@ -555,10 +556,11 @@ impl App {
         let mut notice = made.summary();
         // Its state machines are read with the folder's.
         let scan = self.set_folder(Some(made.root.clone()));
-        let shown = match self.open_doc(&made.root.join(&made.main)) {
+        let file = omaspec_core::project::FILE;
+        let shown = match self.open_doc(&made.root.join(file)) {
             Ok(index) => self.select(index),
             Err(err) => {
-                notice = format!("{notice}; {} did not open: {err:#}", made.main);
+                notice = format!("{notice}; {file} did not open: {err:#}");
                 Task::none()
             }
         };
@@ -650,6 +652,8 @@ fn export_in(
         .shown_diagram()
         .unwrap_or_else(|| (doc.text(), doc.language, doc.name()));
     let path = doc.path.clone();
+    // A project's file: the map of the folder it shows.
+    let map = doc.is_project().then(|| doc.folder.clone());
     Task::perform(
         crate::worker::blocking(move || -> Result<String, String> {
             let own = place
@@ -663,6 +667,7 @@ fn export_in(
                 place: place.as_ref(),
                 file: &file,
                 own: own.as_deref(),
+                map: map.as_deref(),
             };
             let bytes = drawn.export(look, format)?;
             crate::files::write_atomic(&out, &bytes).map_err(|e| format!("{e:#}"))?;
@@ -683,6 +688,9 @@ pub(super) struct Drawn<'a> {
     /// Its path in its project: its tiles and states link to the exports
     /// of the diagrams they open.
     pub own: Option<&'a str>,
+    /// A project's file: the folder whose map is exported, which is made
+    /// from the project and has no source of its own (docs/adr/0026).
+    pub map: Option<&'a str>,
 }
 
 impl Drawn<'_> {
@@ -695,26 +703,39 @@ impl Drawn<'_> {
     ) -> Result<Vec<u8>, String> {
         let mut renderer = omaspec_render::Renderer::new(&crate::commands::render_config());
         let skin = look.and_then(crate::look::Look::skin);
-        let rendered = crate::look::render(
-            &mut crate::specs::Maps::default(),
-            &mut renderer,
-            self.text,
-            self.language,
-            self.path,
-            self.place,
-            skin.as_ref(),
-        )
+        let mut maps = crate::specs::Maps::default();
+        let rendered = match (self.map, self.place) {
+            (Some(folder), Some(place)) => crate::look::render_map(
+                &mut maps,
+                &mut renderer,
+                &place.root,
+                folder,
+                skin.as_ref(),
+            ),
+            _ => crate::look::render(
+                &mut maps,
+                &mut renderer,
+                self.text,
+                self.language,
+                self.path,
+                self.place,
+                skin.as_ref(),
+            ),
+        }
         .map_err(|e| e.to_string())?;
         let links = self.own.map_or_else(Vec::new, |own| {
-            crate::specs::export_links(&rendered.links, own)
+            crate::specs::export_links(&rendered.links, own, false)
         });
         let options = omaspec_render::export::Options {
             scale: 2.0,
-            source: Some(omaspec_render::export::Source {
-                code: self.text,
-                language: self.language,
-                file: Some(self.file),
-            }),
+            source: self
+                .map
+                .is_none()
+                .then_some(omaspec_render::export::Source {
+                    code: self.text,
+                    language: self.language,
+                    file: Some(self.file),
+                }),
             links: &links,
             up: self.own.map_or(0, crate::specs::depth),
         };

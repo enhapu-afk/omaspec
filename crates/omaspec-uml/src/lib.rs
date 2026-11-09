@@ -261,17 +261,6 @@ pub fn render_mapped(
     source: &str,
     includes: Option<&dyn Includes>,
 ) -> Result<(String, map::Map), Declined> {
-    render_tiled(source, includes, None)
-}
-
-/// [`render_mapped`], with the boxes of a mind map or a WBS that `tiles`
-/// picks drawn as tiles (`docs/adr/0018-diagrams-that-link.md`); the map
-/// says where they are.
-pub fn render_tiled(
-    source: &str,
-    includes: Option<&dyn Includes>,
-    tiles: Option<&tree::Tiles>,
-) -> Result<(String, map::Map), Declined> {
     let unmapped = |svg: Result<String, Declined>| svg.map(|svg| (svg, map::Map::default()));
     match parse_with(source, includes)? {
         Diagram::Sequence(d) => sequence::draw_mapped(&d),
@@ -280,8 +269,8 @@ pub fn render_tiled(
             state::draw_mapped(&d)
         }
         Diagram::Activity(d) => unmapped(activity::draw(&d)),
-        Diagram::MindMap(d) => tree::draw_mindmap_tiled(&d, tiles),
-        Diagram::Wbs(d) => tree::draw_wbs_tiled(&d, tiles),
+        Diagram::MindMap(d) => tree::draw_mindmap_mapped(&d),
+        Diagram::Wbs(d) => tree::draw_wbs_mapped(&d),
         Diagram::Structure(mut d) => {
             d.fold(&fold::read(source));
             structure::draw_mapped(&d)

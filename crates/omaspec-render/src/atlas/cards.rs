@@ -1,15 +1,12 @@
-//! What a map's cards say about their diagrams, and how the diagrams use
-//! each other: the arrows between the cards and the words above them
-//! (`docs/adr/0018-diagrams-that-link.md`, amended).
-
-use std::collections::{HashMap, HashSet};
+//! What a map's cards say about their diagrams, and what a diagram's
+//! text tells of the diagrams it uses (`docs/adr/0026-the-map-is-made.md`).
 
 use omaspec_core::project::key;
 use omaspec_core::{Kind, Language};
 use omaspec_uml::map::{Map, Shape};
-use omaspec_uml::tree::{Card, Heading, Icon, Relation, RelationKind};
+use omaspec_uml::tree::{Card, Icon};
 
-use super::{Atlas, Entry, Picture, parts};
+use super::{Entry, parts};
 
 /// What the card of `entry` says: its kind, a few facts, its shape.
 pub(super) fn card_of(
@@ -147,121 +144,4 @@ pub(super) fn resolve(file: &str, written: &str) -> Option<String> {
         }
     }
     Some(parts.join("/"))
-}
-
-/// The arrows between the tiles: where a state or a box opens another
-/// diagram (beyond the tree), where a scenario plays against the state
-/// machine of a participant, and where a diagram includes another one.
-pub(super) fn relations(
-    atlas: &Atlas,
-    tile_of: &HashMap<String, usize>,
-    drawn: &HashMap<usize, Picture>,
-    parents: &HashMap<&str, Option<&str>>,
-    tile_keys: &HashSet<&str>,
-    called: &HashMap<String, Vec<usize>>,
-) -> Vec<Relation> {
-    let key_of: HashMap<usize, &str> = tile_of.iter().map(|(k, &i)| (i, k.as_str())).collect();
-    let mut out: Vec<Relation> = Vec::new();
-    let mut add = |from: &str, to: &str, kind: RelationKind| {
-        let relation = Relation {
-            from: from.to_owned(),
-            to: to.to_owned(),
-            kind,
-        };
-        if from != to && tile_keys.contains(to) && !out.contains(&relation) {
-            out.push(relation);
-        }
-    };
-    let mut by_entry: Vec<(&String, &usize)> = tile_of.iter().collect();
-    by_entry.sort();
-    for (from, index) in by_entry {
-        let Some(picture) = drawn.get(index) else {
-            continue;
-        };
-        let entry = &atlas.diagrams[*index];
-        for name in &picture.names {
-            let to = key(name);
-            // A diagram's own name, or a link the map's own line shows.
-            if parents.get(to.as_str()) == Some(&Some(from.as_str()))
-                || parents.get(from.as_str()) == Some(&Some(to.as_str()))
-                || entry.names.iter().any(|n| key(n) == to)
-            {
-                continue;
-            }
-            add(from, &to, RelationKind::Opens);
-        }
-        for player in &picture.players {
-            let machines: Vec<usize> = called
-                .get(player)
-                .map(|found| {
-                    found
-                        .iter()
-                        .copied()
-                        .filter(|i| drawn.get(i).is_some_and(|p| p.card.icon == Icon::State))
-                        .collect()
-                })
-                .unwrap_or_default();
-            // Two machines of one name leave the participant unchecked.
-            if let [machine] = machines.as_slice()
-                && let Some(to) = key_of.get(machine)
-            {
-                add(from, to, RelationKind::Plays);
-            }
-        }
-        for written in &picture.includes {
-            let Some(file) = resolve(&entry.file, written) else {
-                continue;
-            };
-            if let Some(to) = atlas
-                .diagrams
-                .iter()
-                .position(|e| e.file == file)
-                .and_then(|i| key_of.get(&i))
-            {
-                add(from, to, RelationKind::Includes);
-            }
-        }
-    }
-    out
-}
-
-/// What stands above the map in `own`: the project's name over its main
-/// map, else the map's own; how many diagrams it shows; and the line that
-/// puts the first diagram on no box on it.
-pub(super) fn heading(
-    atlas: &Atlas,
-    own: Option<&str>,
-    loose: &[(String, String)],
-    on_map: usize,
-) -> Heading {
-    let entry = own.and_then(|f| atlas.diagrams.iter().find(|e| e.file == f));
-    let main = own.is_some() && atlas.main.as_deref() == own;
-    let own_name = entry.and_then(|e| e.names.first().cloned());
-    let title = if main {
-        atlas.name.clone().or(own_name)
-    } else {
-        own_name
-    }
-    .unwrap_or_else(|| "Map".to_owned());
-    let others = atlas.diagrams.len() - usize::from(entry.is_some());
-    let summary = if main {
-        format!(
-            "System map · {} · {on_map} on the map",
-            counted(others, "diagram")
-        )
-    } else {
-        format!("Map · {} on it", counted(on_map, "diagram"))
-    };
-    let place = loose
-        .first()
-        .map(|(name, _)| match entry.map(|e| e.language) {
-            Some(Language::Mermaid) => format!("    {name}"),
-            _ => format!("** {name}"),
-        });
-    Heading {
-        title,
-        summary,
-        main,
-        place,
-    }
 }

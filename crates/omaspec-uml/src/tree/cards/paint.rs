@@ -126,7 +126,7 @@ pub(super) fn svg(layout: &Layout, skin: &Skin, family: Family) -> String {
         chip(&mut top, (x, y), LOOSE_WORDS, &p);
     }
     if let Some(h) = &layout.heading {
-        heading(&mut top, h, layout, &p);
+        heading(&mut top, h, &p);
     }
     for part in [back, curves, front, top] {
         out.push_str(&part);
@@ -417,8 +417,8 @@ fn chip(out: &mut String, (x, y): (f32, f32), words: &str, p: &Palette) {
     );
 }
 
-/// The map's title, what it holds, and how to place a diagram on no box.
-fn heading(out: &mut String, h: &Heading, layout: &Layout, p: &Palette) {
+/// The map's title and what it holds.
+fn heading(out: &mut String, h: &Heading, p: &Palette) {
     let left = super::MARGIN;
     let top = super::MARGIN;
     text(
@@ -441,19 +441,6 @@ fn heading(out: &mut String, h: &Heading, layout: &Layout, p: &Palette) {
         &p.font,
         "start",
     );
-    if let (Some(place), Some(_)) = (&h.place, layout.loose_label) {
-        let (width, height) = layout.size;
-        let _ = write!(
-            out,
-            r#"<text x="{}" y="{}" text-anchor="middle" font-family="{}" font-size="12" fill="{}">Write a diagram's name in the map to place it: <tspan font-family="monospace" fill="{}">{}</tspan></text>"#,
-            n(width / 2.0),
-            n(height - super::MARGIN - 8.0),
-            escape(&p.font),
-            p.quiet,
-            p.accent,
-            escape(place)
-        );
-    }
 }
 
 /// The arrows between cards, as [`super::arrows`] laid them around the

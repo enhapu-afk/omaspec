@@ -285,6 +285,9 @@ pub enum Message {
     Indexed(PathBuf, crate::index::Snapshot),
     /// A click on the trail over the diagram: back to that step.
     BackTo(usize),
+    /// A click on a folder in the trail over a project's map: that
+    /// folder's map, by its path in the project.
+    MapFolder(String),
     PromptInput(String),
     PromptSubmit,
     /// A click on a look of the export prompt.
@@ -1385,6 +1388,10 @@ impl App {
                 self.found_atlas(root, atlas)
             }
             Message::BackTo(index) => self.back_to(index),
+            Message::MapFolder(folder) => {
+                let key = self.doc().key;
+                self.show_folder(key, folder)
+            }
             Message::PromptInput(input) => {
                 if let Some(prompt) = &mut self.prompt {
                     prompt.input = input;
@@ -1686,6 +1693,10 @@ impl App {
         let Some(worker) = self.worker.clone() else {
             return;
         };
+        // A project's file: its map, which is made from the project.
+        if doc != compare::KEY && self.docs.iter().any(|d| d.key == doc && d.is_project()) {
+            return self.dispatch_map(doc, &worker);
+        }
         let place = self.place_of(doc);
         let (source, pending) =
             self.diagram_source_in(place.as_ref().map(|p| p.root.as_path()), text, language);
@@ -1694,15 +1705,6 @@ impl App {
         } else {
             self.linked_of(doc)
         };
-        // A map waits for its project's diagrams, which are being read:
-        // drawn without them it would show as a plain tree first, and then
-        // again. Once read, they draw it.
-        if linked.is_none()
-            && doc != compare::KEY
-            && self.waits_for_its_project(doc, text, language)
-        {
-            return;
-        }
         let id = {
             let paper = if doc == compare::KEY {
                 let Some(compare) = &mut self.compare else {
@@ -1720,6 +1722,23 @@ impl App {
         };
         if let Some(pending) = pending {
             self.pending.insert((doc, id), pending);
+        }
+    }
+
+    /// Asks for the map beside the project's file in document `doc`: of
+    /// the folder that document shows, from the project's diagrams as
+    /// their tabs hold them, in the pane's colors (docs/adr/0026). Before
+    /// the project is read nothing is asked; it is drawn when it is.
+    fn dispatch_map(&mut self, doc: u64, worker: &Worker) {
+        let Some((atlas, _)) = self.linked_of(doc) else {
+            return;
+        };
+        let root = self.place_of(doc).map(|p| p.root);
+        let (skin, _) =
+            self.diagram_source_in(root.as_deref(), crate::look::MAP_SKIN, Language::PlantUml);
+        if let Some(found) = self.find(doc) {
+            let folder = found.folder.clone();
+            found.paper.request_map(worker, doc, skin, atlas, folder);
         }
     }
 
@@ -2179,6 +2198,10 @@ impl App {
         if key != self.doc().key {
             return Task::none();
         }
+        // A map is made and has no source: its tile opens as by a click.
+        if self.doc().is_project() {
+            return self.follow_link(key, at);
+        }
         match self.land_on(at) {
             Ok(task) => {
                 self.notice = None;
@@ -2194,10 +2217,6 @@ impl App {
     /// The caret lands on what is at `at` of the active tab's diagram, or
     /// `Err` says why it cannot.
     pub(super) fn land_on(&mut self, at: iced::Point) -> Result<Task<Message>, String> {
-        // On a tile of a map: its box, not the words in its picture.
-        if let Some(line) = self.doc().paper.tile_line_at(at) {
-            return Ok(self.jump_to(line));
-        }
         // Right on a line: the line that draws it.
         if let Some(line) = self.doc().paper.wire_at(at).and_then(|w| w.line) {
             return Ok(self.jump_to(line));
@@ -2467,9 +2486,9 @@ struct Pending {
     shift: LineShift,
 }
 
-/// Moves the lines a drawn diagram's states, transitions, messages, lines
-/// and a map's boxes come from back to the file, where a play and a
-/// Ctrl+click look for them.
+/// Moves the lines a drawn diagram's states, transitions, messages and
+/// lines come from back to the file, where a play and a Ctrl+click look
+/// for them.
 fn remap_map(map: &Map, shift: LineShift) -> Map {
     let mut map = map.clone();
     let lines = map
@@ -2479,7 +2498,6 @@ fn remap_map(map: &Map, shift: LineShift) -> Map {
         .chain(map.transitions.iter_mut().map(|route| &mut route.line))
         .chain(map.messages.iter_mut().map(|step| &mut step.line))
         .chain(map.misses.iter_mut().map(|(line, _)| line))
-        .chain(map.tiles.iter_mut().filter_map(|tile| tile.line.as_mut()))
         .chain(
             map.wires
                 .iter_mut()

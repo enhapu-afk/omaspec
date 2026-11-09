@@ -54,46 +54,65 @@ fn card(key: &str) -> Option<Card> {
     })
 }
 
-fn tiles<'a>(
-    loose: &'a [(String, String)],
-    relations: &'a [Relation],
-    heading: Option<&'a Heading>,
-) -> Tiles<'a> {
-    Tiles {
-        pick: &known,
-        card: &card,
-        loose,
-        relations,
-        heading,
+/// The boxes of the WBS in `source` as the boxes of a made map: each
+/// with the key of the diagram its words name, or none.
+fn branches(source: &str) -> Vec<Branch> {
+    fn of(element: &crate::tree::Element) -> Branch {
+        let mut below: Vec<&crate::tree::Element> =
+            element.left.iter().chain(&element.right).collect();
+        below.sort_by_key(|e| e.node.text.line);
+        Branch {
+            words: element.node.text.value.clone(),
+            key: known(&element.node.text.value),
+            below: below.into_iter().map(of).collect(),
+        }
+    }
+    match crate::parse(source).unwrap() {
+        crate::Diagram::Wbs(d) => vec![of(&d.root)],
+        _ => panic!("a WBS"),
     }
 }
 
+/// The map made from the boxes of `source`, in its look.
+fn drawn(
+    source: &str,
+    relations: &[Relation],
+    heading: Option<&Heading>,
+) -> (String, crate::map::Map) {
+    crate::render_branches(
+        source,
+        &branches(source),
+        &Tiles {
+            card: &card,
+            relations,
+            heading,
+        },
+    )
+    .unwrap()
+}
+
 #[test]
-fn a_wbs_map_draws_its_diagrams_as_cards_from_the_top_down() {
+fn a_map_draws_its_diagrams_as_cards_from_the_top_down() {
     let source =
         "@startwbs\n* Shop\n** Orders\n*** Checkout\n*** Notes\n** Payment\n** Ideas\n@endwbs\n";
-    let loose = [("Refund".to_owned(), "refund".to_owned())];
     let heading = Heading {
         title: "shop".into(),
-        summary: "System map · 5 diagrams · 4 on the map".into(),
+        summary: "System map · 4 diagrams".into(),
         main: true,
-        place: Some("** Refund".into()),
     };
-    let (svg, map) =
-        crate::render_tiled(source, None, Some(&tiles(&loose, &[], Some(&heading)))).unwrap();
-    let keys: Vec<(&str, Option<usize>, Option<&str>)> = map
+    let (svg, map) = drawn(source, &[], Some(&heading));
+    let keys: Vec<(&str, Option<&str>)> = map
         .tiles
         .iter()
-        .map(|t| (t.key.as_str(), t.line, t.parent.as_deref()))
+        .map(|t| (t.key.as_str(), t.parent.as_deref()))
         .collect();
     assert_eq!(
         keys,
         [
-            ("shop", Some(1), None),
-            ("orders", Some(2), Some("shop")),
-            ("checkout", Some(3), Some("orders")),
-            ("payment", Some(5), Some("shop")),
-            ("refund", None, Some("shop")),
+            ("shop", None),
+            ("orders", Some("shop")),
+            ("checkout", Some("orders")),
+            ("payment", Some("shop")),
         ]
     );
     let page = size(&svg);
@@ -112,29 +131,23 @@ fn a_wbs_map_draws_its_diagrams_as_cards_from_the_top_down() {
     assert!(at("checkout").frame.y > at("orders").frame.y + at("orders").frame.h);
     assert!(at("checkout").picture.h > at("checkout").picture.w);
     assert!(at("payment").picture.w > 2.0 * at("payment").picture.h);
-    // The root's card is larger; the diagram on no box hangs from it
-    // beside its children.
+    // The root's card is larger.
     assert!(
         at("shop").picture.w * at("shop").picture.h
             > at("orders").picture.w * at("orders").picture.h
     );
-    assert_eq!(at("refund").frame.y, at("orders").frame.y);
-    assert!(at("refund").frame.x > at("payment").frame.x + at("payment").frame.w);
-    // Labels for boxes that name nothing, the heading, the way to place
-    // the loose one, a dashed curve to it and its dashed card.
+    // Labels for boxes without a key, and the heading.
     for words in [
         ">Notes<",
         ">Ideas<",
         ">shop<",
-        "4 on the map",
-        "** Refund",
-        "not on the map yet",
+        "System map · 4 diagrams",
         ">MAIN<",
     ] {
         assert!(svg.contains(words), "{words}");
     }
-    assert_eq!(svg.matches(r#"stroke-dasharray="5,5""#).count(), 1);
-    assert_eq!(svg.matches(r#"stroke-dasharray="5,4""#).count(), 1);
+    // No box hangs loose, and nothing is to be written to place one.
+    assert!(!svg.contains("stroke-dasharray") && !svg.contains("to place it"));
     // No line of PlantUML's own WBS look.
     assert!(!svg.contains("<line"));
 }
@@ -153,19 +166,13 @@ fn a_small_diagram_grows_a_little_at_most() {
             },
         })
     };
+    let source = "@startwbs\n* Shop\n** Orders\n@endwbs\n";
     let tiles = Tiles {
-        pick: &known,
         card: &small,
-        loose: &[],
         relations: &[],
         heading: None,
     };
-    let (_, map) = crate::render_tiled(
-        "@startwbs\n* Shop\n** Orders\n@endwbs\n",
-        None,
-        Some(&tiles),
-    )
-    .unwrap();
+    let (_, map) = crate::render_branches(source, &branches(source), &tiles).unwrap();
     let shop = map.tiles[0].picture;
     assert!(
         (shop.w - 125.0).abs() < 0.01 && (shop.h - 250.0).abs() < 0.01,
@@ -179,7 +186,7 @@ fn a_map_with_only_its_root_draws_no_stem() {
     let stems = |svg: &str| svg.matches("<line").count();
     // PlantUML draws a stem under a lone root; a map has no use for it.
     assert_eq!(stems(&crate::render(source).unwrap()), 1);
-    let (svg, map) = crate::render_tiled(source, None, Some(&tiles(&[], &[], None))).unwrap();
+    let (svg, map) = drawn(source, &[], None);
     assert_eq!(stems(&svg), 0, "{svg}");
     // No curve from a lone root, and no anchor for one.
     assert!(!svg.contains(" C") && !svg.contains("<circle"), "{svg}");
@@ -212,7 +219,7 @@ fn relations_are_arrows_with_their_words() {
             kind: RelationKind::Plays,
         },
     ];
-    let (svg, _) = crate::render_tiled(source, None, Some(&tiles(&[], &relations, None))).unwrap();
+    let (svg, _) = drawn(source, &relations, None);
     // One arrow for a pair, naming both relations, solid as the first.
     assert!(svg.contains(">plays · opens<"), "{svg}");
     assert!(svg.contains(">includes<"));
@@ -220,49 +227,14 @@ fn relations_are_arrows_with_their_words() {
 }
 
 #[test]
-fn a_mind_map_map_hangs_both_sides_below_its_root() {
-    let source = "@startmindmap\n* Shop\n** Orders\n*** Checkout\n-- Payment\n@endmindmap\n";
-    let (svg, map) = crate::render_tiled(source, None, Some(&tiles(&[], &[], None))).unwrap();
-    let keys: Vec<(&str, Option<&str>)> = map
-        .tiles
-        .iter()
-        .map(|t| (t.key.as_str(), t.parent.as_deref()))
-        .collect();
-    assert_eq!(
-        keys,
-        [
-            ("shop", None),
-            ("orders", Some("shop")),
-            ("checkout", Some("orders")),
-            ("payment", Some("shop")),
-        ]
-    );
-    let page = size(&svg);
-    let (shop, payment) = (map.tiles[0].frame, map.tiles[3].frame);
-    assert!(payment.y > shop.y + shop.h);
-    for tile in &map.tiles {
-        assert!(
-            within(tile.picture, tile.frame) && within(tile.frame, page),
-            "{tile:?}"
-        );
-    }
-    assert!(!svg.contains("stroke-dasharray"));
-}
-
-#[test]
 fn the_cards_take_the_colors_of_the_skin() {
     let source = "@startwbs\nskinparam backgroundColor #1a1b26\nskinparam defaultFontColor #a9b1d6\nskinparam nodeBackgroundColor #24283b\nskinparam arrowColor #7aa2f7\n* Shop\n** Orders\n@endwbs\n";
-    let (svg, _) = crate::render_tiled(source, None, Some(&tiles(&[], &[], None))).unwrap();
+    let (svg, _) = drawn(source, &[], None);
     assert!(svg.contains(r##"fill="#1A1B26""##), "the page");
     assert!(svg.contains(r##"fill="#7AA2F7""##), "the accent");
     assert!(svg.contains(r##"fill="#A9B1D6">Shop<"##), "the words");
     // Plain, a light page with a blue accent.
-    let (svg, _) = crate::render_tiled(
-        "@startwbs\n* Shop\n** Orders\n@endwbs\n",
-        None,
-        Some(&tiles(&[], &[], None)),
-    )
-    .unwrap();
+    let (svg, _) = drawn("@startwbs\n* Shop\n** Orders\n@endwbs\n", &[], None);
     assert!(svg.contains(r##"fill="#FFFFFF""##));
     assert!(svg.contains(r##"fill="#3D6FD6""##));
 }
@@ -329,8 +301,7 @@ fn arrows_into_one_card_share_a_lane_below_the_cards_between() {
         plays("checkout", "orders"),
         plays("refund", "orders"),
     ];
-    let (svg, map) =
-        crate::render_tiled(source, None, Some(&tiles(&[], &relations, None))).unwrap();
+    let (svg, map) = drawn(source, &relations, None);
     let page = size(&svg);
     let lines = arrow_lines(&svg);
     // A line from each scenario, one head, the words once.
@@ -388,7 +359,7 @@ fn the_lanes_of_a_row_have_room_above_the_next_one() {
     let relations = [plays("checkout", "orders"), plays("payment", "checkout")];
     let draw = |relations: &[Relation]| {
         let source = "@startwbs\n* Shop\n** Orders\n*** Refund\n** Notes\n** Payment\n** Checkout\n@endwbs\n";
-        crate::render_tiled(source, None, Some(&tiles(&[], relations, None))).unwrap()
+        drawn(source, relations, None)
     };
     let (svg, map) = draw(&relations);
     let (_, plain) = draw(&[]);
@@ -424,8 +395,7 @@ fn an_arrow_between_rows_runs_around_the_cards() {
     // above it, and to the root.
     let source = "@startwbs\n* Shop\n** Orders\n*** Refund\n** Payment\n** Checkout\n@endwbs\n";
     let relations = [plays("refund", "checkout"), plays("refund", "shop")];
-    let (svg, map) =
-        crate::render_tiled(source, None, Some(&tiles(&[], &relations, None))).unwrap();
+    let (svg, map) = drawn(source, &relations, None);
     let page = size(&svg);
     let lines = arrow_lines(&svg);
     assert_eq!(lines.len(), 2, "{svg}");
@@ -455,8 +425,7 @@ fn the_words_of_a_short_arrow_leave_its_ends_to_see() {
     // than its words are wide.
     let source = "@startwbs\n* Shop\n** Orders\n** Payment\n@endwbs\n";
     let relations = [plays("payment", "orders")];
-    let (svg, map) =
-        crate::render_tiled(source, None, Some(&tiles(&[], &relations, None))).unwrap();
+    let (svg, map) = drawn(source, &relations, None);
     let lines = arrow_lines(&svg);
     let [line] = lines.as_slice() else {
         panic!("{svg}");
@@ -480,10 +449,9 @@ fn the_words_of_a_short_arrow_leave_its_ends_to_see() {
 #[test]
 fn the_map_grows_by_the_arrows_around_its_cards() {
     let source = "@startwbs\n* Shop\n** Orders\n** Payment\n** Checkout\n@endwbs\n";
-    let plain = crate::render_tiled(source, None, Some(&tiles(&[], &[], None))).unwrap();
+    let plain = drawn(source, &[], None);
     let relations = [plays("checkout", "orders")];
-    let (svg, map) =
-        crate::render_tiled(source, None, Some(&tiles(&[], &relations, None))).unwrap();
+    let (svg, map) = drawn(source, &relations, None);
     // The cards stay where they are without the arrow, or move together.
     let moved = map.tiles[0].frame.x - plain.1.tiles[0].frame.x;
     for (with, without) in map.tiles.iter().zip(&plain.1.tiles) {

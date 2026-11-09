@@ -1,22 +1,20 @@
-//! A project's map (`docs/adr/0018-diagrams-that-link.md`) in a look of
-//! its own. Each box that names a diagram of the project is a card: the
-//! diagram's picture on its own paper, shaped like the diagram, and below
-//! it the box's words, the diagram's kind and a few facts. The root's card
-//! stands out; curves hang the cards below one another; the diagrams on no
-//! box hang from the root, dashed; arrows show where one diagram plays
-//! against, opens or includes another, around the cards between them. A
-//! box that names nothing is a label between the cards.
+//! A project's map (`docs/adr/0026-the-map-is-made.md`): a tree of boxes
+//! that is made from the project ([`Branch`]). Each box with a key is a
+//! card: its diagram's picture on its own paper, shaped like the diagram,
+//! and below it the box's words, the diagram's kind and a few facts.
+//! Curves hang the cards below one another; arrows show where one diagram
+//! plays against, opens or includes another, around the cards between
+//! them. A box without a key is a label between the cards, as a folder's
+//! name over its diagrams.
 //!
-//! The tree comes from a WBS or a mind map, of either language, and is
-//! laid out from the top down whatever way the source grows. The colors
-//! come from its skin, so the map takes the Omarchy colors with the
-//! diagrams it shows.
+//! The colors come from a skin, so the map takes the Omarchy colors with
+//! the diagrams it shows.
 
 mod arrows;
 mod paint;
 
+use super::Tiles;
 use super::skin::{Skin, TreeKind};
-use super::{Element, Idea, MindMap, NodeShape, Tiles, Wbs};
 use crate::Declined;
 use crate::common::Text;
 use crate::graph::Rect;
@@ -81,10 +79,8 @@ pub struct Heading {
     pub title: String,
     /// "System map · 3 diagrams · 1 on the map".
     pub summary: String,
-    /// The project's main map: its root's card says so.
+    /// The project's own map, not a folder's: its root's card says so.
     pub main: bool,
-    /// The line that puts the first diagram on no box on the map.
-    pub place: Option<String>,
 }
 
 /// The room for a picture, the cards' sizes and the space between them.
@@ -122,29 +118,6 @@ const TITLE: f32 = 15.0;
 const SMALL: f32 = 11.5;
 const LABEL: f32 = 13.0;
 
-/// A WBS as a map of cards.
-pub fn draw_wbs(d: &Wbs, tiles: &Tiles) -> Result<(String, map::Map), Declined> {
-    let skin = Skin::from_params(&d.frame.skinparams, TreeKind::Wbs)?;
-    let roots = vec![element(&d.root, tiles)];
-    draw(roots, &skin, d.frame.title.as_ref(), tiles)
-}
-
-/// A mind map as a map of cards; each root starts a tree of its own.
-pub fn draw_mindmap(d: &MindMap, tiles: &Tiles) -> Result<(String, map::Map), Declined> {
-    let skin = Skin::from_params(&d.frame.skinparams, TreeKind::MindMap)?;
-    let roots = d
-        .maps
-        .iter()
-        .map(|m| {
-            let mut ideas: Vec<&Idea> = m.right.iter().chain(&m.left).collect();
-            ideas.sort_by_key(|i| i.node.text.line);
-            let children = ideas.into_iter().flat_map(|i| idea(i, tiles)).collect();
-            item(&m.root.text, children, tiles)
-        })
-        .collect();
-    draw(roots, &skin, d.frame.title.as_ref(), tiles)
-}
-
 /// A box of a map that is made, not written, as the map of a project's
 /// folder is (`docs/adr/0026-the-map-is-made.md`): its words, the diagram
 /// it shows by its key (`None` for a label, as a folder's name over its
@@ -166,7 +139,6 @@ pub fn draw_branches(
     fn item(branch: &Branch) -> Item {
         Item {
             text: branch.words.clone(),
-            line: None,
             key: branch.key.clone(),
             loose: false,
             children: branch.below.iter().map(item).collect(),
@@ -180,57 +152,16 @@ pub fn draw_branches(
 #[derive(Debug)]
 struct Item {
     text: String,
-    line: Option<usize>,
     key: Option<String>,
     /// On no box: it hangs from the root, dashed.
     loose: bool,
     children: Vec<Item>,
 }
 
-fn item(text: &Text, children: Vec<Item>, tiles: &Tiles) -> Item {
-    Item {
-        key: (tiles.pick)(&text.value),
-        text: text.value.clone(),
-        line: Some(text.line),
-        loose: false,
-        children,
-    }
-}
-
-/// A WBS box and those below it, in the order they are written.
-fn element(e: &Element, tiles: &Tiles) -> Item {
-    let mut below: Vec<&Element> = e.left.iter().chain(&e.right).collect();
-    below.sort_by_key(|c| c.node.text.line);
-    let children = below
-        .into_iter()
-        .flat_map(|c| {
-            let child = element(c, tiles);
-            // A box without a box hands its children up.
-            if c.node.shape == NodeShape::Pseudo {
-                child.children
-            } else {
-                vec![child]
-            }
-        })
-        .collect();
-    item(&e.node.text, children, tiles)
-}
-
-fn idea(i: &Idea, tiles: &Tiles) -> Vec<Item> {
-    let children = i.children.iter().flat_map(|c| idea(c, tiles)).collect();
-    let it = item(&i.node.text, children, tiles);
-    if i.node.shape == NodeShape::Pseudo {
-        it.children
-    } else {
-        vec![it]
-    }
-}
-
 /// A card or a label, measured and placed.
 #[derive(Debug, Clone)]
 struct Placed {
     text: String,
-    line: Option<usize>,
     key: Option<String>,
     loose: bool,
     root: bool,
@@ -277,17 +208,10 @@ fn draw(
     tiles: &Tiles,
 ) -> Result<(String, map::Map), Declined> {
     let family = Family::of(&skin.font_name);
-    let loose: Vec<Item> = tiles
-        .loose
-        .iter()
-        .map(|(name, key)| Item {
-            text: name.clone(),
-            line: None,
-            key: Some(key.clone()),
-            loose: true,
-            children: Vec::new(),
-        })
-        .collect();
+    // No box hangs loose from a map that is made: every diagram has its
+    // place. The room for such boxes goes with the tree, when the map is
+    // laid out by its arrows (docs/adr/0026).
+    let loose: Vec<Item> = Vec::new();
     let heading = tiles.heading.cloned().map(|mut h| {
         if let Some(title) = title {
             h.title = title.value.clone();
@@ -307,7 +231,6 @@ fn draw(
             Some(Tile {
                 key,
                 name: n.text.clone(),
-                line: n.line,
                 parent: card_above(&layout.nodes, n.parent),
                 frame: n.rect,
                 picture: n.picture?,
@@ -426,7 +349,6 @@ fn lay_out(
         let at = out.0.len();
         out.0.push(Placed {
             text: it.text.clone(),
-            line: it.line,
             key: it.key.clone(),
             loose: it.loose,
             root,
@@ -485,7 +407,6 @@ fn lay_out(
         let at = nodes.len();
         nodes.push(Placed {
             text: String::new(),
-            line: None,
             key: None,
             loose: true,
             root: false,
@@ -578,7 +499,6 @@ fn lay_out(
             for (it, (card, (w, h), picture)) in row.iter() {
                 nodes.push(Placed {
                     text: it.text.clone(),
-                    line: None,
                     key: it.key.clone(),
                     loose: true,
                     root: false,
@@ -649,16 +569,11 @@ fn lay_out(
                 family,
             ))
     });
-    let hint = if loose_label.is_some() && heading.as_ref().is_some_and(|h| h.place.is_some()) {
-        48.0
-    } else {
-        0.0
-    };
     Layout {
         nodes,
         size: (
             (right + MARGIN).max(heading_width + MARGIN),
-            bottom + hint + MARGIN,
+            bottom + MARGIN,
         ),
         heading,
         loose_label,

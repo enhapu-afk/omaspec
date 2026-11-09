@@ -28,7 +28,7 @@ use omaspec_core::Language;
 use omaspec_core::kind;
 pub use omaspec_uml::map::Map;
 
-pub use atlas::{Atlas, Entry, Link, is_map};
+pub use atlas::{Atlas, Entry, Link};
 pub use include::{Place, project_root};
 pub use java::JavaPlantUml;
 pub use mermaid::{MermaidDeclined, coverage as mermaid_coverage};
@@ -297,10 +297,10 @@ impl Renderer {
 
     /// Renders a diagram of a project, the one in `own`, that links to the
     /// project's diagrams in `atlas`
-    /// (`docs/adr/0018-diagrams-that-link.md`): a mind map or a WBS with
-    /// its boxes that name diagrams as tiles that show them, a state
-    /// machine with the states that do. Either says where they are in
-    /// [`Rendered::links`].
+    /// (`docs/adr/0018-diagrams-that-link.md`): a state machine with the
+    /// states that name one, which [`Rendered::links`] says the places
+    /// of. Any other diagram draws as it is, a mind map and a WBS too;
+    /// the project's map is made ([`Self::render_map`]).
     pub fn render_linked(
         &mut self,
         source: &str,
@@ -309,12 +309,6 @@ impl Renderer {
         own: Option<&str>,
         atlas: &Atlas,
     ) -> Result<Rendered, RenderError> {
-        if atlas::is_map(source, language) {
-            let mut draw = atlas::drawer(source, language, place);
-            if let Ok(rendered) = atlas::render(own, atlas, &mut self.pictures, &mut draw) {
-                return Ok(rendered);
-            }
-        }
         let mut rendered = self.render_at(source, language, place)?;
         rendered.links = atlas::state_links(&rendered.map, atlas, own);
         Ok(rendered)

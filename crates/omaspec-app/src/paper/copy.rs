@@ -70,8 +70,9 @@ impl Paper {
                 };
                 // Each tile or state that opens a diagram links to its export.
                 let up = own.as_deref().map_or(0, crate::specs::depth);
-                let links =
-                    own.map_or_else(Vec::new, |own| crate::specs::export_links(&links, &own));
+                let links = own.map_or_else(Vec::new, |own| {
+                    crate::specs::export_links(&links, &own, false)
+                });
                 let options = export::Options {
                     scale: 2.0,
                     source: Some(export::Source {

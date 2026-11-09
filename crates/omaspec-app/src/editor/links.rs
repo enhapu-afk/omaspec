@@ -61,18 +61,6 @@ impl App {
         Some((atlas, own))
     }
 
-    /// Whether document `doc`, written as `text`, is a map whose project's
-    /// diagrams are still being read.
-    pub(super) fn waits_for_its_project(&self, doc: u64, text: &str, language: Language) -> bool {
-        omaspec_render::is_map(text, language)
-            && self
-                .docs
-                .iter()
-                .find(|d| d.key == doc)
-                .and_then(|d| self.project_of(d))
-                .is_some_and(|root| !self.atlases.contains_key(&root))
-    }
-
     /// The diagrams of the project at `root` as the diagram pane draws
     /// them: each as its tab holds it, saved or not, so a map's tile shows
     /// what the tab it opens shows; and in the Omarchy colors when the
@@ -282,6 +270,10 @@ impl App {
         let Some(link) = doc.paper.link_at(at).cloned() else {
             return Task::none();
         };
+        // A folder's tile: its map, in this tab.
+        if let Some(folder) = link.folder.clone() {
+            return self.show_folder(key, folder);
+        }
         let Some(root) = self.project_of(doc) else {
             return Task::none();
         };
@@ -459,12 +451,38 @@ impl App {
             .filter(|&at| at > 0)
     }
 
-    /// Back to the diagram one step up the trail.
+    /// Back to the diagram one step up the trail; from the map of a
+    /// folder, to the map of the folder around it.
     pub(super) fn back(&mut self) -> Task<Message> {
-        match self.on_trail() {
-            Some(at) => self.back_to(at - 1),
-            None => Task::none(),
+        if let Some(at) = self.on_trail() {
+            return self.back_to(at - 1);
         }
+        let doc = self.doc();
+        if doc.is_project() && !doc.folder.is_empty() {
+            let around = doc
+                .folder
+                .rsplit_once('/')
+                .map_or(String::new(), |(around, _)| around.to_owned());
+            let key = doc.key;
+            return self.show_folder(key, around);
+        }
+        Task::none()
+    }
+
+    /// Shows the map of `folder`, a folder of the project by its path
+    /// there, beside the project's file in document `key`: the map of
+    /// another level of the project, fitted to the pane.
+    pub(super) fn show_folder(&mut self, key: u64, folder: String) -> Task<Message> {
+        let Some(doc) = self.find(key).filter(|d| d.is_project()) else {
+            return Task::none();
+        };
+        if doc.folder == folder {
+            return Task::none();
+        }
+        doc.folder = folder;
+        doc.paper.view.fit = true;
+        self.notice = None;
+        self.render(key, true)
     }
 
     /// Back to the diagram at `index` on the trail, zooming out of the
@@ -504,25 +522,64 @@ impl App {
     /// The trail over the diagram, up to the diagram on screen; `None`
     /// when it is not on one.
     pub(super) fn trail_view(&self) -> Option<Element<'_, Message>> {
-        let here = self.on_trail()?;
         let p = &self.palette;
         let mut crumbs = row![].spacing(4).align_y(Alignment::Center);
-        for (index, step) in self.trail[..=here].iter().enumerate() {
+        // Each crumb: its words, and where a click on it leads; the last
+        // is where one is.
+        let steps: Vec<(String, Option<Message>)> = match self.on_trail() {
+            Some(here) => self.trail[..=here]
+                .iter()
+                .enumerate()
+                .map(|(index, step)| {
+                    (
+                        step.name.clone(),
+                        (index < here).then_some(Message::BackTo(index)),
+                    )
+                })
+                .collect(),
+            // The map of a folder: the project, then the folders down to it.
+            None => {
+                let doc = self.doc();
+                if !doc.is_project() || doc.folder.is_empty() {
+                    return None;
+                }
+                let mut steps = vec![(self.trail_name_of_project(doc), Some(String::new()))];
+                let mut path = String::new();
+                for part in doc.folder.split('/') {
+                    if !path.is_empty() {
+                        path.push('/');
+                    }
+                    path.push_str(part);
+                    steps.push((part.to_owned(), Some(path.clone())));
+                }
+                let last = steps.len() - 1;
+                steps
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, (name, folder))| {
+                        (
+                            name,
+                            folder.filter(|_| index < last).map(Message::MapFolder),
+                        )
+                    })
+                    .collect()
+            }
+        };
+        for (index, (name, leads)) in steps.into_iter().enumerate() {
             if index > 0 {
                 crumbs = crumbs.push(self.label("›", p.dark_foreground));
             }
-            let color = if index == here {
-                p.foreground
-            } else {
+            let color = if leads.is_some() {
                 p.accent
+            } else {
+                p.foreground
             };
-            let crumb = button(self.label(step.name.clone(), color))
+            let crumb = button(self.label(name, color))
                 .padding([1, 4])
                 .style(|_: &Theme, _| button::Style::default());
-            crumbs = crumbs.push(if index == here {
-                crumb
-            } else {
-                crumb.on_press(Message::BackTo(index))
+            crumbs = crumbs.push(match leads {
+                Some(message) => crumb.on_press(message),
+                None => crumb,
             });
         }
         let back = crate::ui::color(p.dark_background);
@@ -544,17 +601,34 @@ impl App {
 }
 
 impl App {
-    /// What the trail calls a diagram it starts from: the project's name
-    /// for its main diagram, else the diagram's title or file name.
+    /// What the trail calls a diagram it starts from: its title or file
+    /// name; a project's map by the project or the folder it shows.
     fn trail_name(&self, doc: &Doc) -> String {
-        let main = self.project_of(doc).and_then(|root| {
-            let atlas = self.atlases.get(&root)?;
-            let own = crate::specs::path_in(&root, doc.path.as_deref()?)?;
-            (atlas.main.as_deref() == Some(own.as_str()))
-                .then(|| crate::project::read(&root)?.ok()?.name)
-                .flatten()
-        });
-        main.unwrap_or_else(|| diagram_name(doc))
+        // A project's map: the folder it shows, else the project.
+        if doc.is_project() {
+            return match doc.folder.rsplit('/').next() {
+                Some(folder) if !folder.is_empty() => folder.to_owned(),
+                _ => self.trail_name_of_project(doc),
+            };
+        }
+        diagram_name(doc)
+    }
+}
+
+impl App {
+    /// What the trail calls the map of the project whose file `doc` is:
+    /// the project's name, else its folder's.
+    fn trail_name_of_project(&self, doc: &Doc) -> String {
+        let root = self.project_of(doc);
+        root.as_deref()
+            .and_then(crate::project::read)
+            .and_then(Result::ok)
+            .and_then(|project| project.name)
+            .or_else(|| {
+                let name = root.as_deref()?.file_name()?;
+                Some(name.to_string_lossy().into_owned())
+            })
+            .unwrap_or_else(|| "project".to_owned())
     }
 }
 
@@ -593,8 +667,7 @@ impl Change {
         let same = |a: &omaspec_render::Entry, b: &omaspec_render::Entry| {
             a.file == b.file && a.names == b.names
         };
-        let names = before.main != after.main
-            || before.name != after.name
+        let names = before.name != after.name
             || before.diagrams.len() != after.diagrams.len()
             || !before
                 .diagrams
@@ -611,15 +684,15 @@ impl Change {
         Change { names, files }
     }
 
-    /// Whether `doc` is drawn otherwise now: a map shows every diagram, a
-    /// Markdown document may hold one; any other diagram only links to
-    /// diagrams by their names and includes files.
+    /// Whether `doc` is drawn otherwise now: a project's map shows every
+    /// diagram, a Markdown document may hold one; any other diagram only
+    /// links to diagrams by their names and includes files.
     fn touches(&self, doc: &Doc) -> bool {
-        if self.names || doc.is_document() {
+        // A project's map is made from every diagram of the project.
+        if self.names || doc.is_document() || doc.is_project() {
             return true;
         }
         let text = doc.text();
-        omaspec_render::is_map(&text, doc.language)
-            || self.files.iter().any(|file| text.contains(file.as_str()))
+        self.files.iter().any(|file| text.contains(file.as_str()))
     }
 }

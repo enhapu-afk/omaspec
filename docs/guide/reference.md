@@ -77,15 +77,13 @@ A folder with `omaspec-project.toml` is a project: a diagram anywhere below it i
 checked against the state machines of the whole project, its `!include`s may reach into
 all of it, and it is the same project whether the diagram came from the sidebar, from
 Ctrl+O or from the command line. *New project* in the palette asks for PlantUML or
-Mermaid, with git or without, then for the folder; it writes the project file, the map
-`system.puml` (a WBS; `system.mmd`, a mind map, in Mermaid) and a first state machine
-named after the project, shows the folder and opens the map. A folder that is there
-keeps its files. The file names the project, which heads the sidebar, and its main
-diagram:
+Mermaid, with git or without, then for the folder; it writes the project file and a
+first state machine named after the project, shows the folder and opens the project's
+map. A folder that is there keeps its files. The file names the project, which heads the
+sidebar:
 
 ```toml
 name = "shop"
-main = "system.puml"
 ```
 
 ### A look the project pins
@@ -121,26 +119,24 @@ a trail over the diagram names the way, `shop › Orders › Checkout`. A click 
 names, or Alt+Left, zooms back out. A drag still pans and Ctrl+click still jumps to the
 source.
 
-A mind map or a WBS in a project is a map: each box that names a diagram is a tile with
-that diagram's picture, drawn by Omaspec's engines in the map's colors, sharp at any
-zoom. A box that names none stays a box. A dashed arrow joins two tiles where one diagram
-links to the other and the map's tree does not; the project's main diagram also shows the
-diagrams no box of any map names, under *Not on the map*. A box may name another map, so
-a large project is maps within maps: the main map names its areas, each area's map its
-diagrams. A large map shows its cards first, each with its diagram's name and kind, and
-the pictures once the tiles are large enough to read. A click on a tile opens its
-diagram, Ctrl+click finds its box in the source. Tiles show the files as saved.
-`omaspec render` and exports draw the tiles too; the preview window follows a click, and
-Backspace goes back.
-
-```plantuml
-@startwbs
-* shop
-** Orders
-*** Checkout
-** Payment
-@endwbs
-```
+A project's map is made from its diagrams, and written nowhere
+([ADR 0026](../adr/0026-the-map-is-made.md)): `omaspec-project.toml` opened in the editor
+shows it beside the file. Each diagram file of the project is a tile with that diagram's
+picture, drawn by Omaspec's engines in the map's colors, sharp at any zoom; none has to
+be listed, and a new file is on the map as soon as it is there. An arrow joins two tiles
+where a scenario *plays* against a state machine, a state *opens* the diagram of its
+name, or a diagram *includes* a file. A folder is a label over its diagrams; in a project
+of more than 36 diagrams a folder is a tile that shows how much it holds, a small box for
+each diagram, and a click on it opens the folder's map in the same tab, the trail naming
+the way back. A large map shows its cards first, each with its diagram's name and kind,
+and the pictures once the tiles are large enough to read. A click on a tile zooms into
+its diagram. A diagram open in a tab shows on the map as the tab holds it, saved or not.
+A mind map and a WBS are diagrams like any other: they draw as PlantUML and Mermaid draw
+them, and on the map each is one tile. `omaspec render DIR/omaspec-project.toml` draws
+the map (`omaspec render DIR` writes it as `omaspec-project.svg` beside the diagrams'
+SVGs, and `render --check` holds it against the project); the preview window shows it for
+the project's file. Ctrl+click on a tile opens its diagram too: a map has no source to
+jump to.
 
 The palette also opens the *Help Omaspec* folder: diagrams of the menu, editing, the
 window and export. The line under its heading, or *Leave Help Omaspec* in the palette,
@@ -353,8 +349,9 @@ and `diff` take a diagram file and say so for a document.
 
 *Export the project* in the command list, or `omaspec export DIR`, writes every diagram
 of the project as an SVG with its source into its `export` folder (or the one `-o`
-names), beside one another as the diagrams are, the main diagram once more as
-`index.svg`, and all of it as `<project>.zip` in that folder. Each tile of a map and each
+names), beside one another as the diagrams are, the project's map as `index.svg` (and
+the map of a folder that is a tile on it as `index.svg` in that folder), and all of it as
+`<project>.zip` in that folder. Each tile of a map and each
 state that opens a diagram links to that diagram's SVG, so a browser is enough to follow
 them; the look is the export's (`--look auto` follows the viewer's dark scheme). Links
 written in a diagram stay links in an SVG: PlantUML's `[[url]]`, `[[url label]]` and
@@ -449,7 +446,7 @@ and only when the result means the same ([ADR 0009](../adr/0009-diff-and-convert
 ## Command line
 
 ```bash
-omaspec new ~/specs/shop            # a project: omaspec-project.toml, the map system.puml, shop.puml; --lang mermaid, --git (a pre-commit hook)
+omaspec new ~/specs/shop            # a project: omaspec-project.toml and shop.puml, its map made from them; --lang mermaid, --git (a pre-commit hook)
 omaspec lint diagrams/*.puml        # syntax, likely typos, specification checks; exit 1 on errors
 omaspec lint --project specs a.puml # sequences checked against the state machines in specs/, not the project
 omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
@@ -492,7 +489,7 @@ SVGs with `omaspec render` once, so the hook has something to hold them against.
 **Where a name is used** ([ADR 0019](../adr/0019-where-a-name-is-used.md)). `omaspec refs
 NAME` lists every place in the project that uses a name, compared as links compare names
 (letters and digits, case aside, so `Door control` is `DoorControl`): for a diagram, where
-it says its name, the maps' boxes, the participants that play it, the states of other
+it says its name, the participants that play it, the states of other
 machines that open it and the traces of it; for a state or an event of a state machine,
 its transitions, the messages sent to its participants and the traces. Each use is
 `file:line: kind: text`; `--machine Door` keeps to one machine's name, states and events.

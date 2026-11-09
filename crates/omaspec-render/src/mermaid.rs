@@ -24,7 +24,6 @@ use mermaid_rs_renderer::{
     DiagramKind, ParseError, RenderOptions, Theme, compute_layout, parse_mermaid_strict, render_svg,
 };
 use omaspec_core::lang::mermaid_body;
-use omaspec_uml::tree::Tiles;
 
 use crate::{Engine, Map, RenderError};
 
@@ -77,24 +76,7 @@ pub fn render_mapped(source: &str) -> Result<(String, Engine, Map), RenderError>
 /// program.
 const MAX_NESTING: usize = 100;
 
-/// A Mermaid mind map with the boxes `tiles` picks drawn as tiles, its
-/// engine and where the tiles are; the other diagrams as [`render_mapped`]
-/// draws them.
-pub fn render_tiled(source: &str, tiles: &Tiles) -> Result<(String, Engine, Map), RenderError> {
-    draw_with(source, Some(tiles)).map(|drawn| {
-        let engine = match drawn.declined {
-            None => Engine::NativeMermaid,
-            Some(_) => Engine::Mermaid,
-        };
-        (drawn.svg, engine, drawn.map)
-    })
-}
-
 fn draw(source: &str) -> Result<Drawn, RenderError> {
-    draw_with(source, None)
-}
-
-fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> {
     // Lines before the body belong to the fence.
     let (fenced, offset) = mermaid_body(source);
     if let Some(line) = too_deep(fenced) {
@@ -136,7 +118,6 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
             theme: &options.theme,
             body,
             fenced,
-            tiles,
         };
         if let Some(native) = native(body)
             && let Some((svg, map)) = (native.draw)(&input)
@@ -185,14 +166,12 @@ fn draw_with(source: &str, tiles: Option<&Tiles>) -> Result<Drawn, RenderError> 
 }
 
 /// What a drawer gets: the theme, the text as mmdr would read it (a
-/// `%%{init}%%` on one line, a note over several lines on one), the same
-/// text on its own lines inside the fence, and the tiles for a mind map
-/// that is a project's map.
+/// `%%{init}%%` on one line, a note over several lines on one), and the
+/// same text on its own lines inside the fence.
 struct Input<'a> {
     theme: &'a Theme,
     body: &'a str,
     fenced: &'a str,
-    tiles: Option<&'a Tiles<'a>>,
 }
 
 /// A drawer's function: the SVG and where its parts are, or `None` to leave
@@ -241,7 +220,7 @@ const NATIVE: &[Native] = &[
         kind: DiagramKind::Mindmap,
         headers: &["mindmap"],
         noun: "mind map",
-        draw: |i| mindmap::try_draw(i.theme, i.body, i.tiles),
+        draw: |i| mindmap::try_draw(i.theme, i.body),
         refusal: omaspec_uml::tree::mermaid_refusal,
     },
     Native {

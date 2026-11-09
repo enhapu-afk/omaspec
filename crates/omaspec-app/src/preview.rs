@@ -22,7 +22,7 @@ use omaspec_theme::{Palette, Rgb, Theme as Omarchy};
 use crate::index::Index;
 use crate::paper::{self, Ask, Paper, Status};
 use crate::ui;
-use crate::worker::{self, Alarm, Linked, Worker};
+use crate::worker::{self, Alarm, Worker};
 
 /// Editors write a file in several steps; read it once they are done.
 const FILE_SETTLE: Duration = Duration::from_millis(50);
@@ -228,38 +228,44 @@ impl Preview {
                 self.paper
                     .request_document(&worker, 0, source.into(), place);
             }
+            // A project's file: the project's map, in the files' colors.
+            Ok(_) if self.name == omaspec_core::project::FILE => {
+                if let Some(atlas) = self.project() {
+                    self.paper.request_map(
+                        &worker,
+                        0,
+                        crate::look::MAP_SKIN.into(),
+                        atlas,
+                        String::new(),
+                    );
+                }
+            }
             Ok(source) => {
+                self.index = None;
                 let hint = Language::from_file_name(&self.name);
                 let language = self.forced.unwrap_or_else(|| detect(&source, hint));
                 let place = Place::of(&self.path, None);
-                let linked = self.map_of(&source, language, place.as_ref());
                 self.paper
-                    .request_linked(&worker, 0, source.into(), language, place, linked);
+                    .request_linked(&worker, 0, source.into(), language, place, None);
             }
             // Mid-save the file can be briefly missing; the next event retries.
             Err(err) => self.paper.status = Status::Unreadable(err.to_string()),
         }
     }
 
-    /// The project the map in `source` shows in tiles (docs/adr/0018),
-    /// brought up to date: `None` for anything but a map with a place.
-    fn map_of(
-        &mut self,
-        source: &str,
-        language: Language,
-        place: Option<&Place>,
-    ) -> Option<Linked> {
-        let Some(place) = place.filter(|_| omaspec_render::is_map(source, language)) else {
-            self.index = None;
-            return None;
-        };
+    /// The diagrams of the project whose file this window follows,
+    /// brought up to date: its map is made from them (docs/adr/0026).
+    fn project(&mut self) -> Option<std::sync::Arc<omaspec_render::Atlas>> {
+        let root = std::path::absolute(&self.path)
+            .ok()?
+            .parent()?
+            .to_path_buf();
         let index = match &mut self.index {
-            Some(index) if index.root() == place.root => index,
-            _ => self.index.insert(Index::new(&place.root)),
+            Some(index) if index.root() == root => index,
+            _ => self.index.insert(Index::new(&root)),
         };
         index.refresh();
-        let own = crate::specs::path_in(&place.root, &self.path);
-        Some((index.atlas(), own))
+        Some(index.atlas())
     }
 
     /// A click on a tile of a map or a state with a diagram of its own:

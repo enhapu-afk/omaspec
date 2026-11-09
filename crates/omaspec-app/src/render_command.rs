@@ -601,15 +601,7 @@ fn export_piece(
     };
     // A project's file is drawn as the project's map, which is made from
     // its diagrams (docs/adr/0026).
-    let project = input
-        .path
-        .as_deref()
-        .filter(|path| {
-            path.file_name()
-                .is_some_and(|n| n == omaspec_core::project::FILE)
-        })
-        .and_then(|path| std::path::absolute(path).ok())
-        .and_then(|path| path.parent().map(Path::to_path_buf));
+    let project = input.path.as_deref().and_then(crate::look::map_root);
     let drawn = match &project {
         Some(root) => crate::look::render_map(maps, renderer, root, "", skin.as_ref()),
         None => crate::look::render(
@@ -633,7 +625,7 @@ fn export_piece(
         .and_then(|(place, path)| crate::specs::path_in(&place.root, path));
     let up = own.as_deref().map_or(0, crate::specs::depth);
     let links = own.map_or_else(Vec::new, |own| {
-        crate::specs::export_links(&rendered.links, &own)
+        crate::specs::export_links(&rendered.links, &own, false)
     });
     let source_name = piece.source_name();
     let bytes = export::export(
@@ -659,7 +651,7 @@ fn export_piece(
 }
 
 /// `files`, each folder among them as the diagrams and Markdown documents
-/// in it.
+/// in it, and its project's file, which is drawn as the project's map.
 fn with_folders(files: &[PathBuf]) -> Result<Vec<PathBuf>> {
     let mut out = Vec::with_capacity(files.len());
     for file in files {
@@ -670,6 +662,11 @@ fn with_folders(files: &[PathBuf]) -> Result<Vec<PathBuf>> {
         let found = crate::editor::folder::scan(file);
         anyhow::ensure!(!found.is_empty(), "{}: no diagrams in it", file.display());
         out.extend(found.into_iter().map(|relative| file.join(relative)));
+        // A project: its map too, which stands beside its file.
+        let project = file.join(omaspec_core::project::FILE);
+        if project.is_file() {
+            out.push(project);
+        }
     }
     Ok(out)
 }

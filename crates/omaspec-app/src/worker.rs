@@ -203,6 +203,22 @@ impl Worker {
             linked,
             document: false,
             folds,
+            map: None,
+        });
+    }
+
+    /// Asks for the map of `folder` of the project in `atlas`, made from
+    /// its diagrams, in the look of `skin` (docs/adr/0026).
+    pub fn render_map(&self, ticket: Ticket, skin: Arc<str>, atlas: Arc<Atlas>, folder: String) {
+        let _ = self.input.unbounded_send(Input::Render {
+            ticket,
+            source: skin,
+            language: Language::PlantUml,
+            place: None,
+            linked: Some((atlas, None)),
+            document: false,
+            folds: Vec::new(),
+            map: Some(folder),
         });
     }
 
@@ -217,6 +233,7 @@ impl Worker {
             linked: None,
             document: true,
             folds: Vec::new(),
+            map: None,
         });
     }
 
@@ -241,6 +258,8 @@ enum Input {
         document: bool,
         /// Containers folded to their box.
         folds: Vec<String>,
+        /// The folder of the project in `linked` whose map is asked for.
+        map: Option<String>,
     },
     Done(Generation, Result<Drawn, RenderError>),
     Forward(Event),
@@ -300,8 +319,16 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     linked,
                     document,
                     folds,
+                    map,
                 } => {
-                    let generation = if document {
+                    let generation = if let (Some(folder), Some((atlas, _))) = (map, &linked) {
+                        service.submit_map(
+                            ticket.doc,
+                            source.to_string(),
+                            Arc::clone(atlas),
+                            folder,
+                        )
+                    } else if document {
                         service.submit_document(ticket.doc, source.to_string(), place)
                     } else {
                         service.submit_linked(

@@ -1,8 +1,9 @@
 //! A project as files anyone can open (`omaspec export`, and the
 //! palette's *Export the project*): every diagram as an SVG with its source,
-//! beside one another as the diagrams are, the main diagram also as
-//! `index.svg`, each tile and linked state a link to the SVG of the diagram
-//! it opens, and all of it once more as one ZIP. A browser is enough to
+//! beside one another as the diagrams are, the project's map as
+//! `index.svg` (and the map of a folder that is a tile on a map as the
+//! `index.svg` in that folder), each tile and linked state a link to the
+//! SVG it opens, and all of it once more as one ZIP. A browser is enough to
 //! follow the links; dropping any of the pictures on Omaspec opens its
 //! source.
 //!
@@ -28,9 +29,9 @@ use crate::specs::{Maps, export_links, path_in, read_project, svg_of};
 /// The export's folder in the project unless another is named.
 pub const FOLDER: &str = "export";
 
-/// The main diagram once more, at the top of the folder, for a browser to
-/// start at.
-pub const INDEX: &str = "index.svg";
+/// The project's map, at the top of the folder, for a browser to start
+/// at.
+pub const INDEX: &str = crate::specs::MAP_OF_A_FOLDER;
 
 /// What an export wrote.
 #[derive(Debug, Serialize)]
@@ -41,7 +42,7 @@ pub struct Exported {
     /// folder.
     #[serde(serialize_with = "pairs")]
     pub written: Vec<(String, String)>,
-    /// Whether the main diagram is `index.svg` too.
+    /// Whether the project's map is there, as `index.svg`.
     pub index: bool,
     /// The diagrams that did not draw; a tile or a state that opens one
     /// links to nothing.
@@ -138,8 +139,8 @@ fn pairs<S: serde::Serializer>(pairs: &[(String, String)], s: S) -> Result<S::Ok
 /// drawn in `look`, else in the look the project pins, else in the files'
 /// own colors. A diagram that does
 /// not draw is reported and left out; two diagrams that would be one SVG
-/// (`a.puml` and `a.mmd`), or one that would be the main diagram's
-/// `index.svg`, stop the export before anything is written.
+/// (`a.puml` and `a.mmd`), or one that would be the map's `index.svg`,
+/// stop the export before anything is written.
 pub fn export(
     root: &Path,
     out: Option<&Path>,
@@ -162,12 +163,8 @@ pub fn export(
         "{} holds no diagrams",
         root.display()
     );
-    let main = atlas
-        .main
-        .clone()
-        .filter(|main| atlas.diagrams.iter().any(|entry| entry.file == *main));
     let files: Vec<&str> = atlas.diagrams.iter().map(|e| e.file.as_str()).collect();
-    let targets = targets(&files, main.as_deref())?;
+    let targets = targets(&files)?;
     let name = zip_name(atlas.name.as_deref(), &root);
     // `look`, else the one the project pins.
     let skin = crate::look::skin_for(look, Some(&root))?;
@@ -215,7 +212,7 @@ pub fn export(
             .unwrap_or_else(|| entry.file.clone());
         let file = entry.file.rsplit('/').next().unwrap_or(&entry.file);
         let svg = |own: &str| -> Result<Vec<u8>> {
-            let links = export_links(&rendered.links, own);
+            let links = export_links(&rendered.links, own, false);
             let options = Options {
                 scale: 1.0,
                 source: Some(Source {
@@ -228,11 +225,6 @@ pub fn export(
             };
             Ok(export::export(&rendered.svg, Format::Svg, &options)?)
         };
-        let is_main = main.as_deref() == Some(entry.file.as_str());
-        if is_main && target != INDEX {
-            pictures.push((INDEX.to_owned(), svg(INDEX)?));
-        }
-        exported.index |= is_main;
         pictures.push((target.clone(), svg(&own)?));
         exported.written.push((entry.file.clone(), target));
     }
@@ -241,6 +233,42 @@ pub fn export(
         "no diagram of {} drew",
         root.display()
     );
+
+    // The project's map, and the map of each folder that is a tile on one:
+    // made from the diagrams, so they carry no source.
+    let mut folders = vec![String::new()];
+    let mut at = 0;
+    while at < folders.len() {
+        let folder = folders[at].clone();
+        at += 1;
+        let own = if folder.is_empty() {
+            INDEX.to_owned()
+        } else {
+            format!("{folder}/{INDEX}")
+        };
+        anyhow::ensure!(
+            !pictures.iter().any(|(target, _)| *target == own),
+            "a diagram would be {own}, which is the map of its folder; rename it"
+        );
+        let map = crate::look::render_map(&mut maps, renderer, &root, &folder, skin.as_ref())
+            .map_err(|err| anyhow::anyhow!("the map of {} did not draw: {err}", root.display()))?;
+        let links = export_links(&map.links, &own, true);
+        let options = Options {
+            scale: 1.0,
+            source: None,
+            links: &links,
+            up: crate::specs::depth(&own),
+        };
+        pictures.push((own, export::export(&map.svg, Format::Svg, &options)?));
+        for link in &map.links {
+            if let Some(below) = &link.folder
+                && !folders.contains(below)
+            {
+                folders.push(below.clone());
+            }
+        }
+    }
+    exported.index = true;
 
     for (target, bytes) in &pictures {
         let dest = exported.folder.join(target);
@@ -261,22 +289,17 @@ pub fn export(
 }
 
 /// Each diagram's SVG in the folder, as [`svg_of`] names it. Two diagrams
-/// that would be one SVG, or one that would be `index.svg` while another
-/// is the main diagram, are refused.
-fn targets(files: &[&str], main: Option<&str>) -> Result<Vec<String>> {
+/// that would be one SVG, or one that would be `index.svg`, the project's
+/// map, are refused.
+fn targets(files: &[&str]) -> Result<Vec<String>> {
     let mut taken: HashMap<String, &str> = HashMap::new();
-    if let Some(main) = main {
-        taken.insert(INDEX.to_owned(), main);
-    }
     let mut targets = Vec::with_capacity(files.len());
     for &file in files {
         let target = svg_of(file);
+        if target == INDEX {
+            anyhow::bail!("{file} would be {INDEX}, which is the project's map; rename it");
+        }
         if let Some(other) = taken.get(&target).filter(|other| **other != file) {
-            if target == INDEX {
-                anyhow::bail!(
-                    "{file} would be {INDEX}, which is the main diagram {other}; rename one of them"
-                );
-            }
             anyhow::bail!("{other} and {file} would both be {target}; rename one of them");
         }
         taken.insert(target.clone(), file);
@@ -316,27 +339,24 @@ mod tests {
     #[test]
     fn each_diagram_has_an_svg_of_its_own() {
         assert_eq!(
-            targets(
-                &["system.puml", "orders/orders.puml", "a.puml.txt"],
-                Some("system.puml")
-            )
-            .unwrap(),
+            targets(&["system.puml", "orders/orders.puml", "a.puml.txt"]).unwrap(),
             ["system.svg", "orders/orders.svg", "a.puml.svg"]
         );
-        let twice = targets(&["orders/a.puml", "orders/a.mmd"], None).unwrap_err();
+        let twice = targets(&["orders/a.puml", "orders/a.mmd"]).unwrap_err();
         assert!(
             twice
                 .to_string()
                 .contains("orders/a.puml and orders/a.mmd would both be orders/a.svg"),
             "{twice}"
         );
-        // The main diagram may be called index; another may not.
-        assert!(targets(&["index.puml", "b.mmd"], Some("index.puml")).is_ok());
-        let index = targets(&["index.mmd", "map.puml"], Some("map.puml")).unwrap_err();
+        // No diagram may be called index: that is the project's map.
+        let index = targets(&["index.mmd", "map.puml"]).unwrap_err();
         assert!(
             index.to_string().contains("index.mmd would be index.svg"),
             "{index}"
         );
+        // A folder down the name is free, unless that folder is a tile.
+        assert!(targets(&["orders/index.puml"]).is_ok());
     }
 
     #[test]
