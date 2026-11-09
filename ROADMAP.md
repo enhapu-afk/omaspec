@@ -1944,11 +1944,11 @@ its cards, and the zoom into a tile as one picture.
 - [x] A picture of a project's map in the README and the guide
       (`docs/images/map.png`, `snapshot_readme_map`, `docs/images/update.sh`).
 
-### Ideas after 0.9 (2026-11-09), not weighed yet
+### Ideas after 0.9 (2026-11-09)
 
-Named when 0.9 was done; none is decided, and each needs its own look at
-what it costs and whom it serves ([0006](docs/adr/0006-goals-and-scope.md))
-before it becomes a step.
+Named when 0.9 was done, and weighed the same evening ([0006](docs/adr/0006-goals-and-scope.md)):
+two are built, two are declined, four are steps still to take, each with
+what it costs.
 
 - [x] A diff as a glide (2026-11-09): *Compare: glide from B to A* shows
       the change in A's pane: B stands as it was, then its boxes and lines
@@ -1960,19 +1960,36 @@ before it becomes a step.
       written as a GIF or an APNG, for a presentation or a pull request.
       The frames are drawn headless already (`snapshot_dive`, `frames_`);
       `docs/images/play.gif` is still cut from a screen recording by hand.
+      Weighed: a step of its own. The frames come from the window's
+      renderer, which the command line has not; an `omaspec play FILE -o
+      play.gif` would have to draw the diagram and its light on the CPU
+      (`tiny-skia` has it) and encode the frames (the `gif` or `png` crate
+      with APNG), with a dependency or two to weigh.
 - [ ] A color for one box: the skins color by kind, so every state of a
       state machine is one color. A color the writer gives one state or
       class with a click, kept in the source as its `#color`, as a line by
-      hand is kept.
+      hand is kept. Weighed: a step of its own, for both languages. The
+      engine draws `#color` on a state and a class already; what is
+      missing is the pick (a row of the skin's colors in the context menu)
+      and the write: onto the declaration, or a declaration added for a
+      state that has none; Mermaid's `style Name fill:#…` for a state, a
+      `classDef` for a class.
 - [ ] A label moved to the other side of its line with the mouse, kept in
       the block of lines by hand; and the label of the line the caret is on
-      lit.
+      lit. Weighed: a step of its own in the layout. The block of lines by
+      hand knows corners, holds and `apart`, not a label's side; the
+      layout would read a side there and keep the label's room on that
+      side of its line ([0020](docs/adr/0020-room-for-labels.md)).
 - [ ] The skins shown before one is chosen: the diagram at hand in each
-      pack, small, in the menu.
-- [ ] PlantUML's themes: `!theme` other than `plain` is declined (`the
-      preprocessor's !theme is not supported yet`). A few of the common
-      ones as swatches (`skin::Swatch`). Mermaid's `forest`, `dark` and
-      `neutral` are taken already.
+      pack, small, in the menu. Weighed: a step of its own in the menus. The
+      pictures are cheap (a few milliseconds each), the menu overlay of
+      0025 draws text only, so it would learn to hold a row of pictures.
+- [x] PlantUML's themes, weighed and declined for now: `!theme` other than
+      `plain` stays declined (`the preprocessor's !theme is not supported
+      yet`). Omaspec does not ship PlantUML's theme files and reads nothing
+      at run time; a swatch made up for a theme would draw it in colors
+      that are not the theme's, and a diagram with `!theme` is drawn by the
+      Java PlantUML where that is installed, as it is.
 - [x] A folded container says what it holds (2026-11-09): a folded state
       *4 states · 6 transitions* under its name, a folded package *3
       elements · 2 lines* where its stereotype stands (`fold::counted`).
@@ -1981,11 +1998,13 @@ before it becomes a step.
       window wider than tall; the areas are laid out again only when the
       window's shape crosses over, so a split dragged by hand holds
       (`App::restack`).
-- [ ] Words spelled wrong: lint hints at a name close to another name of
-      the diagram already; a dictionary would find a misspelled word in a
-      label or a note. `hunspell` was installed on the Omarchy this was
-      looked at on, with no dictionary beside it, so one would have to be
-      asked for. Offline, and silent in a language without a dictionary.
+- [x] Words spelled wrong, weighed and declined for now: lint hints at a
+      name close to another name of the diagram already; a dictionary would
+      find a misspelled word in a label or a note. `hunspell` was installed
+      on the Omarchy this was looked at on, with no dictionary beside it, so
+      one would have to be asked for, and read at run time from a path that
+      differs by machine; Omaspec reads nothing it does not ship. Left until
+      a dictionary comes with Omarchy.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 
