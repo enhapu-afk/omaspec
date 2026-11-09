@@ -25,7 +25,10 @@ const RANK: f32 = 72.0;
 const STACK: f32 = 48.0;
 /// Added to a label so the chip, the jog and both crow's feet stay out of the boxes.
 const LABEL_PAD: f32 = 100.0;
+/// A self-loop's first run past its box, its marks included; and how
+/// much further each loop around it runs.
 const LOOP: f32 = 36.0;
+const LOOP_STEP: f32 = 10.0;
 
 /// An ER diagram.
 #[derive(Debug, Clone, PartialEq)]
@@ -984,7 +987,7 @@ fn loop_extra(
     if count == 0.0 {
         Ok(0.0)
     } else {
-        Ok(LOOP + count * 8.0 + label)
+        Ok(LOOP + count * LOOP_STEP + label)
     }
 }
 
@@ -1599,8 +1602,8 @@ fn paint_loop(
     label: Option<&Block>,
 ) {
     let away = loop_outward(diagram.axis, diagram.flip);
-    let out = 14.0 + slot as f32 * 10.0;
-    let (start_port, end_port) = loop_ports(rect, away);
+    let out = LOOP_OUT + slot as f32 * LOOP_STEP;
+    let (start_port, end_port) = loop_ports(rect, away, slot);
     let outer_start = (start_port.0 + away.0 * out, start_port.1 + away.1 * out);
     let outer_end = (end_port.0 + away.0 * out, end_port.1 + away.1 * out);
     canvas.line(Layer::Lifelines, outer_start, outer_end, stroke);
@@ -1613,17 +1616,35 @@ fn paint_loop(
     paint_foot(canvas, start_port, away, relation.from_card, stroke);
     paint_foot(canvas, end_port, away, relation.to_card, stroke);
     if let Some(block) = label {
+        // The words of every loop of the box stand past the outermost
+        // one, beside one another across the flow, in the loops' order.
+        let loops = diagram
+            .relations
+            .iter()
+            .filter(|other| other.from == relation.from && other.to == relation.to)
+            .count();
+        let outermost = LOOP_OUT + (loops as f32 - 1.0) * LOOP_STEP;
+        let across = (-away.1, away.0);
+        let (along, wide) = if away.0.abs() >= away.1.abs() {
+            (block.width, block.height)
+        } else {
+            (block.height, block.width)
+        };
         let mid = (
             (outer_start.0 + outer_end.0) / 2.0,
             (outer_start.1 + outer_end.1) / 2.0,
         );
+        let shift = (slot as f32 - (loops as f32 - 1.0) / 2.0) * (wide + 6.0);
         let at = (
-            mid.0 + away.0 * (block.width / 2.0 + 6.0),
-            mid.1 + away.1 * (block.height / 2.0 + 6.0),
+            mid.0 + away.0 * (outermost - out + along / 2.0 + 6.0) + across.0 * shift,
+            mid.1 + away.1 * (outermost - out + along / 2.0 + 6.0) + across.1 * shift,
         );
         paint_chip(canvas, diagram, block, at);
     }
 }
+
+/// How far a self-loop's first run lies from its box.
+const LOOP_OUT: f32 = 14.0;
 
 /// The side of a box where its self-loop was given room: toward the next
 /// rank, which is the low side after `RL` or `BT` mirrors the picture.
@@ -1636,7 +1657,10 @@ fn loop_outward(axis: Axis, flip: bool) -> (f32, f32) {
     }
 }
 
-fn loop_ports(rect: Rect, away: (f32, f32)) -> ((f32, f32), (f32, f32)) {
+/// Where the self-loop in `slot` meets its box: on the side toward the
+/// next rank, off the middle where the lines to other boxes leave, each
+/// loop around the one before it.
+fn loop_ports(rect: Rect, away: (f32, f32), slot: usize) -> ((f32, f32), (f32, f32)) {
     let across = (-away.1, away.0);
     let origin = (
         rect.cx() + away.0 * rect.w / 2.0,
@@ -1647,17 +1671,19 @@ fn loop_ports(rect: Rect, away: (f32, f32)) -> ((f32, f32), (f32, f32)) {
     } else {
         rect.w
     };
-    let delta = span * 0.15;
+    let middle = span * 0.3;
+    let half = (span * 0.06 + slot as f32 * LOOP_STEP).min(span / 2.0 - middle - 2.0);
+    let (near, far) = (middle - half, middle + half);
     (
-        (origin.0 - across.0 * delta, origin.1 - across.1 * delta),
-        (origin.0 + across.0 * delta, origin.1 + across.1 * delta),
+        (origin.0 + across.0 * near, origin.1 + across.1 * near),
+        (origin.0 + across.0 * far, origin.1 + across.1 * far),
     )
 }
 
 /// How far a self-loop's mark reaches past the box, not counting its label.
 #[cfg(test)]
 fn loop_reach(slot: usize, from: Option<Card>, to: Option<Card>) -> f32 {
-    let out = 14.0 + slot as f32 * 10.0;
+    let out = LOOP_OUT + slot as f32 * LOOP_STEP;
     let foot = |card: Option<Card>| match card {
         None => 0.0,
         Some(Card::One) => 7.0,
@@ -1796,6 +1822,36 @@ mod tests {
         check("erDiagram\n  direction RL\n  A ||--o{ A : parent\n  A ||--|| B : owns\n");
         check("erDiagram\n  direction TB\n  A ||--o{ A : parent\n  A ||--|| B : owns\n");
         check("erDiagram\n  direction BT\n  A ||--o{ A : parent\n  A ||--|| B : owns\n");
+    }
+
+    #[test]
+    fn two_self_loops_lie_around_one_another_with_their_words_apart() {
+        let svg = draw(&diagram(
+            "erDiagram\n  A ||--o{ A : manages\n  A ||--o{ A : mentors\n  A }o--|| B : in\n",
+        ))
+        .unwrap();
+        // Each word once, and the chips of the two at different heights.
+        let chip_y = |word: &str| -> f32 {
+            let at = svg
+                .find(&format!(">{word}<"))
+                .unwrap_or_else(|| panic!("{word}: {svg}"));
+            let tag = svg[..at].rsplit('<').next().unwrap();
+            let y = tag.split(" y=\"").nth(1).unwrap();
+            y.split('"').next().unwrap().parse().unwrap()
+        };
+        let (manages, mentors) = (chip_y("manages"), chip_y("mentors"));
+        assert!((manages - mentors).abs() > 12.0, "{manages} {mentors}");
+        // The loops leave the box below its middle, where the line to B
+        // leaves, and lie around one another.
+        let d = diagram("erDiagram\n  A ||--o{ A : manages\n  A ||--o{ A : mentors\n");
+        let laid = super::lay(&d, crate::text::Family::Sans).unwrap();
+        let a = laid.boxes[0];
+        let away = super::loop_outward(d.axis, d.flip);
+        let (inner_start, inner_end) = super::loop_ports(a, away, 0);
+        let (outer_start, outer_end) = super::loop_ports(a, away, 1);
+        assert!(inner_start.1 > a.cy() && inner_end.1 > inner_start.1);
+        assert!(outer_start.1 < inner_start.1 && outer_end.1 > inner_end.1);
+        assert!(outer_end.1 <= a.bottom());
     }
 
     #[test]

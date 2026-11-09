@@ -90,6 +90,9 @@ fn marks_structure(text: &str) -> bool {
     if let Some((shape, _, rest)) = leading_shape(&lead)
         && !rest.is_empty()
         && !matches!(shape, Shape::Actor | Shape::Database)
+        // An entity is a participant of a sequence diagram too; one with
+        // a body is a class.
+        && (shape != Shape::Entity || rest.ends_with('{'))
     {
         return true;
     }
@@ -945,11 +948,17 @@ fn rejected(text: &str) -> Option<&'static str> {
         "queue",
         "boundary",
         "control",
-        "entity",
         "collections",
     ]
     .into_iter()
-    .find(|word| keyword(text, word).is_some())
+    .find(|word| keyword(text, word).is_some() && !names_an_end(text, word))
+}
+
+/// Whether `text` starts with a line from something called `word`:
+/// `Node --> Node : parent` is a line from a class called Node, not a
+/// node called `-->`.
+fn names_an_end(text: &str, word: &str) -> bool {
+    find_arrow(text).is_some_and(|(arrow, _)| text[..arrow].trim().len() == word.len())
 }
 
 fn leading_shape(text: &str) -> Option<(Shape, Open, &str)> {
@@ -983,13 +992,14 @@ fn leading_shape(text: &str) -> Option<(Shape, Open, &str)> {
         ("agent", Shape::Agent, Open::Group),
         ("stack", Shape::Stack, Open::Group),
         ("node", Shape::Node, Open::Group),
+        ("entity", Shape::Entity, Open::Members),
         ("enum", Shape::Enum, Open::Members),
         ("card", Shape::Card, Open::Group),
         ("file", Shape::File, Open::Group),
     ];
     for &(word, shape, open) in PHRASES {
         if let Some(rest) = phrase(text, word) {
-            return Some((shape, open, rest));
+            return (!names_an_end(text, word)).then_some((shape, open, rest));
         }
     }
     None
@@ -1029,6 +1039,7 @@ fn open_of(shape: Shape) -> Open {
         | Shape::Abstract
         | Shape::Interface
         | Shape::Enum
+        | Shape::Entity
         | Shape::Annotation
         | Shape::Object => Open::Members,
         Shape::UseCase | Shape::Actor | Shape::Note => Open::None,
@@ -1040,6 +1051,7 @@ fn default_stereo(shape: Shape) -> Option<&'static str> {
     match shape {
         Shape::Interface => Some("interface"),
         Shape::Enum => Some("enum"),
+        Shape::Entity => Some("entity"),
         Shape::Annotation => Some("annotation"),
         _ => None,
     }
@@ -1050,6 +1062,7 @@ fn shape_word(shape: Shape) -> &'static str {
         Shape::Class | Shape::Abstract => "class",
         Shape::Interface => "interface",
         Shape::Enum => "enum",
+        Shape::Entity => "entity",
         Shape::Annotation => "annotation",
         Shape::Component => "component",
         Shape::UseCase => "use case",
@@ -2088,6 +2101,41 @@ mod tests {
         assert!(matches!(
             crate::parse("@startuml\nobject order\n@enduml"),
             Ok(crate::Diagram::Structure(_))
+        ));
+    }
+
+    #[test]
+    fn a_class_called_like_a_keyword_may_start_a_line() {
+        // `node`, `person`, `queue`: keywords, and the names of classes.
+        let diagram = diagram(
+            "@startuml\nclass Node\nclass Person\nclass Queue\nNode --> Node : parent\nPerson --> Queue : waits in\nQueue --> Node : holds\n@enduml\n",
+        );
+        assert_eq!(diagram.root.nodes.len(), 3);
+        assert_eq!(diagram.root.edges.len(), 3);
+        // Still a node when it declares one.
+        let nodes = self::tests::diagram(
+            "@startuml\nnode Server\nnode Client\nClient --> Server\n@enduml\n",
+        );
+        assert!(nodes.root.nodes.iter().all(|n| n.shape == Shape::Node));
+    }
+
+    #[test]
+    fn an_entity_with_a_body_is_a_class_of_a_data_model() {
+        let source = "@startuml\nentity Person {\n  id\n}\nentity Team {\n  name\n}\nPerson --> Team : in\nPerson --> Person : manages\n@enduml\n";
+        assert!(matches!(
+            crate::parse(source),
+            Ok(crate::Diagram::Structure(_))
+        ));
+        let diagram = diagram(source);
+        let person = element(&diagram.root, "Person");
+        assert_eq!(person.shape, Shape::Entity);
+        assert_eq!(person.stereotypes[0].value, "entity");
+        assert_eq!(person.members.len(), 1);
+        assert_eq!(diagram.root.edges.len(), 2);
+        // Without a body an entity is a participant, as in PlantUML.
+        assert!(matches!(
+            crate::parse("@startuml\nentity Person\nPerson -> Team : join\n@enduml\n"),
+            Ok(crate::Diagram::Sequence(_))
         ));
     }
 

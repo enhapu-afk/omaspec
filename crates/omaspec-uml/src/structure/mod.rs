@@ -253,6 +253,8 @@ pub enum Shape {
     Abstract,
     Interface,
     Enum,
+    /// `entity`, a class by another name: a table of a data model.
+    Entity,
     Annotation,
     Component,
     UseCase,

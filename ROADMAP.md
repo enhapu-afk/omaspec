@@ -1907,29 +1907,26 @@ its cards, and the zoom into a tile as one picture.
       draw starts the zoom without its picture, and the way turns once it
       comes. To weigh: waiting longer with a sign that it is coming, against
       a click that seems to do nothing.
-- [ ] The map's arrows between rows: one routed from one row to another, or
-      to a diagram on no box, may cross a lane and may end next to a card's
-      corner (`graph::route` takes the shortest way). To try: lanes between
-      the rows for those too, and ends away from the corners.
-- [ ] The map's dashed curves around its cards: with more diagrams on no box
-      than one row holds (five and more), the curves from the root to the
-      cards of the second row run under the cards of the first, as the
-      arrows did (seen with seven diagrams, six of them on no box). To try:
-      the second row hangs from the first, or its curves run down between
-      the cards.
-- [ ] The words of an arrow between two cards next to each other: the pill
-      is wider (59 units for *plays*) than the room between the cards (40),
-      so it lies over both their edges. To weigh: more room between two
-      cards an arrow joins, or the words over the arrow's line only.
-- [ ] Several self-relations in an entity relationship diagram: Mermaid's
+- [x] The map's arrows between rows, the dashed curves under the cards of
+      a second row, and the pill of a short arrow over both cards' edges:
+      gone with the map laid out by its arrows (*the map, made*), which has
+      no rows to route between, no curves and a pill that is a box of the
+      layout with room of its own.
+- [x] Several self-relations in an entity relationship diagram: Mermaid's
       `PERSON ||--o{ PERSON : manages` with a second one on the same entity
-      draws both loops and their words on one another (`omaspec-uml/src/er.rs`
-      lays its own loops; `graph::loops` does not reach it).
-- [ ] A class diagram whose only lines lead back to their own class:
-      `class Node` with `Node --> Node : parent` is read as a sequence
-      diagram and not drawn (`--> Node : parent is not a name this diagram
-      draws`); with a second class and a line to it, it draws. The same for
-      PlantUML's `entity Person { … }` with only self-relations.
+      drew both loops and their words on one another, and a line to another
+      entity through them. Now each loop has ports of its own, off the
+      middle of the side where the lines leave, the loops lie around one
+      another, and their words stand past the outermost, beside one another
+      (`omaspec-uml/src/er.rs`, `loop_ports`).
+- [x] A class called like a keyword: `class Node` with `Node --> Node :
+      parent` was read as a node called `-->` (`is not a name this diagram
+      draws`), and so was any line from a class called Person, Actor, Queue
+      or File. A keyword followed by a line is a name now
+      (`structure/parse.rs`, `names_an_end`). PlantUML's `entity Person {
+      … }` was declined (`entity is not supported yet`); it is a class of a
+      data model now, drawn with «entity», while an entity without a body
+      stays a participant, as in PlantUML.
 - [ ] Self-loops beside one another: several loops around one another make a
       box under which they sit as wide as their words (`left to right
       direction`, three loops, one saying *refresh the cache*: a state of 70

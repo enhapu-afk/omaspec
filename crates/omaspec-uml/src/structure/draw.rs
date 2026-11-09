@@ -544,6 +544,7 @@ fn min_width(shape: Shape, skin: &Skin) -> f32 {
             | Shape::Abstract
             | Shape::Interface
             | Shape::Enum
+            | Shape::Entity
             | Shape::Annotation
             | Shape::Object
     );
@@ -1055,6 +1056,7 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
         | Shape::Abstract
         | Shape::Interface
         | Shape::Enum
+        | Shape::Entity
         | Shape::Annotation
         | Shape::Object
         | Shape::Component

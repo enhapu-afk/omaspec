@@ -68,7 +68,9 @@ impl Skin {
     /// on top of it.
     pub fn of(&self, shape: Shape) -> &Look {
         match shape {
-            Shape::Class | Shape::Abstract | Shape::Enum | Shape::Annotation => &self.class_box,
+            Shape::Class | Shape::Abstract | Shape::Enum | Shape::Entity | Shape::Annotation => {
+                &self.class_box
+            }
             Shape::Interface => &self.interface_box,
             Shape::Component => &self.component,
             Shape::UseCase => &self.usecase,
