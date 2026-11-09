@@ -634,6 +634,50 @@ fn a_fold_fades_and_a_zoomed_box_stays_put() {
         left > Duration::from_millis(280),
         "a fold fades longer, {left:?}"
     );
+    // The line into Brewing glides along, over pictures without lines.
+    assert!(fade.bare.is_some(), "both pictures without their lines");
+    let lines = fade.lines.as_ref().expect("the lines glide");
+    assert_eq!(lines.lines.len(), 1);
+    assert!(lines.lines[0].from.is_some() && lines.lines[0].to.is_some());
+}
+
+/// The glide waits for the pictures without lines; a picture that has
+/// none, or one that could not be drawn, lets it start without them.
+#[test]
+fn a_glide_waits_for_the_pictures_without_lines_unless_one_fails() {
+    let first = "@startuml
+[*] --> A
+@enduml
+";
+    let next = "@startuml
+[*] --> A
+A --> B
+B --> C
+C --> D
+D --> E
+@enduml
+";
+    let mut paper = Paper::default();
+    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    show_source(&mut paper, first, Language::PlantUml);
+    paper.deliver_overview();
+    let _ = paper.update(Message::Faded);
+    show_source(&mut paper, next, Language::PlantUml);
+    // The overview alone: the fade waits for the pictures without lines.
+    let tree = Arc::clone(paper.shown_tree().unwrap());
+    let raster = raster::render(&tree, paper.overview.asked.unwrap());
+    let _ = paper.update(Message::Overview(paper.overview.seq(), raster));
+    assert!(paper.fade.is_none(), "waits for the bare pictures");
+    assert!(paper.bare_old.asked.is_some() && paper.bare_new.asked.is_some());
+    assert!(
+        paper.held_picture().is_some(),
+        "the old picture stays meanwhile"
+    );
+    // One of them fails: the glide starts, the lines in the pictures.
+    let _ = paper.update(Message::BareOld(paper.bare_old.seq(), None));
+    let fade = paper.fade.as_ref().expect("the glide starts without them");
+    assert!(fade.morph.is_some());
+    assert!(fade.lines.is_none() && fade.bare.is_none());
 }
 
 #[test]
@@ -665,12 +709,16 @@ fn a_glide_finishes_before_the_next_one_starts() {
     assert_eq!(fade.new_size, pinned);
 
     let _ = paper.update(Message::Faded);
+    // The next glide asks for the pictures without lines first.
+    assert!(paper.fade.is_none());
+    paper.deliver_bare();
     let fade = paper
         .fade
         .as_ref()
         .expect("the next glide starts where the last one landed");
     assert_eq!(fade.old_size, mid_size);
     assert_eq!(fade.new_size, paper.diagram_size());
+    assert!(fade.lines.is_some(), "with its lines gliding");
 }
 
 #[test]

@@ -92,11 +92,14 @@ impl DiagramCanvas<'_> {
         let Some(morph) = fade.morph.as_ref() else {
             return false;
         };
-        let Some(old) = fade.old.first() else {
-            return false;
-        };
-        let Some(new) = fade.next.as_ref() else {
-            return false;
+        // With the lines gliding on their own, the pictures under them
+        // have none.
+        let (old, new) = match &fade.bare {
+            Some((old, new)) => (old, new),
+            None => match (fade.old.first(), fade.next.as_ref()) {
+                (Some(old), Some(new)) => (old, new),
+                _ => return false,
+            },
         };
         let t = fade.shown.interpolate(0.0, 1.0, now).clamp(0.0, 1.0);
         let new_view = self.glide.map_or(fade.new_view, |glide| glide.at(now));
@@ -188,6 +191,77 @@ impl DiagramCanvas<'_> {
             pictures: at(opacity),
             alpha: 1.0,
         }])
+    }
+}
+
+/// The lines of a glide ([`super::wires`]), over the pictures and the
+/// boxes on their way: in the picture's layer the rasters would cover them.
+pub struct GlideLines<'a> {
+    pub fade: &'a Fade,
+    pub glide: Option<Glide>,
+    pub background: Color,
+    /// The window's scale.
+    pub scale: f32,
+}
+
+impl canvas::Program<Message> for GlideLines<'_> {
+    type State = ();
+
+    fn update(
+        &self,
+        _state: &mut (),
+        event: &Event,
+        _bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Option<Action<Message>> {
+        // The picture's layer ends the fade; this one only keeps up.
+        match event {
+            Event::Window(window::Event::RedrawRequested(now))
+                if self.fade.shown.is_animating(*now) =>
+            {
+                Some(Action::request_redraw())
+            }
+            _ => None,
+        }
+    }
+
+    fn draw(
+        &self,
+        _state: &(),
+        renderer: &Renderer,
+        _theme: &Theme,
+        bounds: Rectangle,
+        _cursor: Cursor,
+    ) -> Vec<Geometry> {
+        let fade = self.fade;
+        let (Some(morph), Some(lines), Some((old, new))) =
+            (fade.morph.as_ref(), fade.lines.as_ref(), fade.bare.as_ref())
+        else {
+            return Vec::new();
+        };
+        let now = iced::time::Instant::now();
+        let t = fade.shown.interpolate(0.0, 1.0, now).clamp(0.0, 1.0);
+        let new_view = self.glide.map_or(fade.new_view, |glide| glide.at(now));
+        let grid = Grid::of(bounds, self.scale);
+        let local = Rectangle::new(Point::ORIGIN, bounds.size());
+        let sheets = super::morph::sheets(
+            grid,
+            local,
+            &super::morph::Paint {
+                t,
+                morph,
+                old_view: fade.old_view,
+                old_size: fade.old_size,
+                old,
+                new_view,
+                new_size: fade.new_size,
+                new,
+                background: self.background,
+            },
+        );
+        let mut frame = Frame::new(renderer, bounds.size());
+        super::wires::paint(&mut frame, lines, &sheets);
+        vec![frame.into_geometry()]
     }
 }
 

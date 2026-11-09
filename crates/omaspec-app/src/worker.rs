@@ -38,6 +38,9 @@ pub struct Drawn {
     /// (`Rendered::cards`); `svg` has them, for the pane to parse when it
     /// shows them.
     pub cards: bool,
+    /// The picture without its lines, for a glide that draws them itself
+    /// (`paper::wires`); a graph diagram has one.
+    pub bare: Option<Arc<usvg::Tree>>,
 }
 
 /// A map's SVG up to this size is parsed whole at once, as quick to parse
@@ -67,6 +70,11 @@ impl Drawn {
                 message: e.to_string(),
             })?;
         let cards = cards.is_some();
+        let bare = (!cards && !rendered.map.wires.is_empty())
+            .then(|| omaspec_uml::without_lines(&rendered.svg))
+            .flatten()
+            .and_then(|svg| export::parse(&svg).ok())
+            .map(Arc::new);
         Ok(Drawn {
             svg: rendered.svg.into(),
             tree: Arc::new(tree),
@@ -75,6 +83,7 @@ impl Drawn {
             map: Arc::new(rendered.map),
             links: Arc::new(rendered.links),
             cards,
+            bare,
         })
     }
 }

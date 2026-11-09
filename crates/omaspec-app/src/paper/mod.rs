@@ -39,6 +39,7 @@ mod play;
 mod raster;
 pub(crate) mod view;
 mod wash;
+mod wires;
 mod zoom;
 
 use std::sync::Arc;
@@ -70,6 +71,10 @@ const RASTER_DELAY: Duration = Duration::from_millis(120);
 pub enum Message {
     Overview(u64, Option<Raster>),
     Detail(u64, Option<Raster>),
+    /// The old picture and the new one without their lines, for a glide
+    /// that draws the lines itself ([`wires`]).
+    BareOld(u64, Option<Raster>),
+    BareNew(u64, Option<Raster>),
     Viewport(Size),
     ZoomAt(f32, Point),
     Pan(Vector),
@@ -139,6 +144,11 @@ struct Previous {
     /// Its links and folds, whose marks stay on it.
     links: Vec<Link>,
     spots: Vec<fold::Spot>,
+    /// Its picture without lines and the plan its overview was drawn to,
+    /// and its map: the lines glide from these ([`wires`]).
+    bare: Option<Arc<usvg::Tree>>,
+    plan: Option<raster::Plan>,
+    map: Arc<omaspec_render::Map>,
 }
 
 impl Previous {
@@ -172,6 +182,10 @@ pub struct Fade {
     /// newer diagram waits until this glide has ended.
     new_view: View,
     new_size: Size,
+    /// The lines gliding along, over the old and the new picture without
+    /// their lines ([`wires`]); none when the pictures keep their lines.
+    lines: Option<wires::Glide>,
+    bare: Option<(Raster, Raster)>,
 }
 
 /// The diagram on screen.
@@ -208,6 +222,11 @@ pub struct Paper {
     scale_factor: f32,
     overview: Layer,
     detail: Layer,
+    /// The old and the new picture without their lines, for a glide
+    /// ([`wires`]); `no_bare` once one of them could not be drawn.
+    bare_old: Layer,
+    bare_new: Layer,
+    no_bare: bool,
     /// A new diagram came; its first overview raster starts the fade.
     fresh: bool,
     /// That overview is in. A glide still on screen finishes before the
@@ -287,6 +306,9 @@ impl Default for Paper {
             scale_factor: 1.0,
             overview: Layer::default(),
             detail: Layer::default(),
+            bare_old: Layer::default(),
+            bare_new: Layer::default(),
+            no_bare: false,
             fresh: false,
             landed: false,
             on_pictures: false,
@@ -431,12 +453,12 @@ impl Paper {
                 self.show_detail(seq, raster);
                 Task::none()
             }
+            Message::BareOld(seq, raster) => self.bare_came(seq, raster, true),
+            Message::BareNew(seq, raster) => self.bare_came(seq, raster, false),
             Message::Faded => {
                 self.fade = None;
                 if self.fresh && self.landed {
-                    self.fresh = false;
-                    self.landed = false;
-                    self.start_fade(Instant::now());
+                    return self.start_fade(Instant::now());
                 }
                 Task::none()
             }

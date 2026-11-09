@@ -2202,6 +2202,49 @@ fn snapshot_fold_and_focus() {
     shoot(&mut app, &dir, "folded");
 }
 
+/// Writes headless screenshots of a fold's glide when OMASPEC_SNAPSHOT_DIR
+/// is set (docs/adr/0024, addendum): as it starts, with the lines drawn
+/// over the pictures without them, and half way, the lines on their way
+/// with the boxes.
+#[test]
+fn snapshot_glide() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("glide-shots");
+    let file = work.join("coffee.puml");
+    std::fs::write(&file, BREWER).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, BREWER, Language::PlantUml);
+    let key = app.doc().key;
+    // The first picture has faded in: the next one glides from it.
+    let paper = &mut app.doc_mut().paper;
+    paper.deliver_overview();
+    let _ = paper.update(paper::Message::Faded);
+    let _ = app.update(Message::Paper(key, paper::Message::Fold("Brewing".into())));
+    // Drawn in the theme, as the first picture was.
+    let (styled, _) = app.diagram_source(BREWER, Language::PlantUml);
+    let mut text = styled.to_string();
+    text.push_str(&omaspec_uml::fold::line("Brewing", false));
+    let id = app.doc_mut().paper.pretend_next();
+    let mut reply = answer(key, id, Ok(drawn(&text, Language::PlantUml)));
+    reply.language = Language::PlantUml;
+    reply.source = BREWER.into();
+    let paper = &mut app.doc_mut().paper;
+    let _ = paper.rendered(reply);
+    paper.deliver_overview();
+    assert!(
+        paper.fading_lines(),
+        "the lines glide over pictures without them"
+    );
+    // Stretched, so the pictures are taken on the way, not at the end.
+    paper.stretch_fade(Duration::from_secs(20));
+    shoot(&mut app, &dir, "glide-start");
+    std::thread::sleep(Duration::from_secs(6));
+    shoot(&mut app, &dir, "glide");
+}
+
 /// Writes headless screenshots of a play when OMASPEC_SNAPSHOT_DIR
 /// is set: a state machine at rest, a light on its way and arriving,
 /// a scenario half unfolded.

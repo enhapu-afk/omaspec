@@ -13,7 +13,7 @@ use std::collections::{HashMap, HashSet};
 
 use mermaid_rs_renderer::{DiagramKind, Direction as Flow, Edge, EdgeDecoration, Graph, Theme};
 use omaspec_uml::graph::across::{Drawn, meeting};
-use omaspec_uml::graph::by_hand::{self, Arrow, Laid, LineMut};
+use omaspec_uml::graph::by_hand::{self, Arrow, Dress, Laid, LineMut};
 use omaspec_uml::graph::{self, Rect};
 use omaspec_uml::hand::{self, Key};
 use omaspec_uml::map::Map;
@@ -99,9 +99,28 @@ pub fn try_draw(
         tree: &tree,
         scene: &mut scene,
     };
-    map.wires = by_hand::wires(&top, &arrows, &laying, hands, |points| {
-        omaspec_uml::curve::flatten(points, curve)
-    });
+    map.wires = by_hand::wires(
+        &top,
+        &arrows,
+        &laying,
+        hands,
+        |points| omaspec_uml::curve::flatten(points, curve),
+        |_, slot, drawn| {
+            let Some(edge) = edge_in(laying.scene, slot) else {
+                return Dress {
+                    stroke: Stroke::new(omaspec_uml::Color::BLACK, 1.0),
+                    heads: Vec::new(),
+                };
+            };
+            let (start, end) = edge.look.caps;
+            let mut heads = paint::cap_shape(drawn, true, start);
+            heads.extend(paint::cap_shape(drawn, false, end));
+            Dress {
+                stroke: edge.look.stroke,
+                heads,
+            }
+        },
+    );
     map.places = places(&tree, &top, held);
     map.misses = misses;
     map.misses

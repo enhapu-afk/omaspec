@@ -6,6 +6,7 @@
 
 use crate::graph::Rect;
 use crate::hand::{self, Corner, End, Key};
+use crate::svg::Stroke;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Map {
@@ -46,6 +47,31 @@ pub struct Wire {
     /// Where its words are: its label, and in a class diagram the
     /// multiplicities at its ends.
     pub labels: Vec<Rect>,
+    /// How it is drawn: its color, width and dash.
+    pub stroke: Stroke,
+    /// The marks at its ends, as drawn.
+    pub heads: Vec<Head>,
+}
+
+/// A mark at the end of a line: an arrowhead, a triangle, a diamond, a
+/// dot, drawn as a polygon of the picture.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Head {
+    pub points: Vec<(f32, f32)>,
+    /// Whether the last point joins the first.
+    pub closed: bool,
+    pub fill: HeadFill,
+}
+
+/// What a mark is filled with.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HeadFill {
+    /// The color of its line.
+    Ink,
+    /// The paper's color: an empty diamond hides the line under it.
+    Paper,
+    /// Nothing: an outline.
+    None,
 }
 
 impl Wire {
@@ -274,6 +300,14 @@ impl Map {
             for rect in &mut wire.labels {
                 *rect = fit.rect(*rect);
             }
+            for point in wire.heads.iter_mut().flat_map(|head| &mut head.points) {
+                *point = fit.point(*point);
+            }
+            wire.stroke.width *= fit.sx;
+            wire.stroke.dash = wire
+                .stroke
+                .dash
+                .map(|(on, off)| (on * fit.sx, off * fit.sx));
         }
         for place in &mut self.places {
             place.rect = fit.rect(place.rect);

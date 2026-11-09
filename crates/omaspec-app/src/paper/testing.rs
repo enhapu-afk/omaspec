@@ -69,6 +69,7 @@ pub fn tall() -> Drawn {
         map: Arc::default(),
         links: Arc::default(),
         cards: false,
+        bare: None,
     }
 }
 
@@ -132,11 +133,52 @@ impl Paper {
         let tree = Arc::clone(self.shown_tree().unwrap());
         let raster = raster::render(&tree, self.overview.asked.unwrap());
         let _ = self.update(Message::Overview(self.overview.seq(), raster));
+        self.deliver_bare();
+    }
+
+    /// The pictures without lines a glide asked for, rasterized here.
+    pub fn deliver_bare(&mut self) {
+        let old = self
+            .previous
+            .as_ref()
+            .and_then(|previous| previous.bare.clone())
+            .zip(self.bare_old.asked);
+        let new = self
+            .diagram
+            .as_ref()
+            .and_then(|diagram| diagram.drawn.bare.clone())
+            .zip(self.bare_new.asked);
+        if let Some((tree, plan)) = old {
+            let raster = raster::render(&tree, plan);
+            let _ = self.update(Message::BareOld(self.bare_old.seq(), raster));
+        }
+        if let Some((tree, plan)) = new {
+            let raster = raster::render(&tree, plan);
+            let _ = self.update(Message::BareNew(self.bare_new.seq(), raster));
+        }
     }
 
     /// How many pictures of the diagram before fade out, if a fade runs.
     pub fn fading(&self) -> Option<usize> {
         self.fade.as_ref().map(|fade| fade.old.len())
+    }
+
+    /// The fade that runs takes `duration` from now: for a picture of it
+    /// half way.
+    pub fn stretch_fade(&mut self, duration: Duration) {
+        if let Some(fade) = self.fade.as_mut() {
+            fade.shown = Animation::new(false)
+                .duration(duration)
+                .easing(iced::animation::Easing::Linear)
+                .go(true, Instant::now());
+        }
+    }
+
+    /// Whether a glide runs with its lines drawn on their own.
+    pub fn fading_lines(&self) -> bool {
+        self.fade
+            .as_ref()
+            .is_some_and(|fade| fade.lines.is_some() && fade.bare.is_some())
     }
 
     /// Rasterizes what the view asked for, as the background tasks would.

@@ -10,6 +10,8 @@
 <rect x="88.36" y="393.42" width="59.11" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <ellipse cx="46.01" cy="267" rx="16.15" ry="16.15" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <ellipse cx="188.3" cy="267" rx="16.15" ry="16.15" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
 <polyline points="176.93,48.3 176.93,70.3" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M180.97,112.59 L180.97,126.9 C180.97,131.15 184.41,134.59 188.66,134.59 L188.66,134.59 C192.91,134.59 196.35,138.04 196.35,142.28 L196.35,174.51 C196.35,180.06 200.85,184.56 206.4,184.56 L206.4,184.56 C211.95,184.56 216.45,189.06 216.45,194.61 L216.45,204.56" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M247.03,214.56 L247.03,153.59 C247.03,137.57 234.05,124.59 218.03,124.59 L191.04,124.59 C189.93,124.59 189.04,123.7 189.04,122.59 L189.04,122.59" fill="none" stroke="#181818" stroke-width="1"/>
@@ -18,6 +20,14 @@
 <polyline points="117.16,278 117.16,305.15" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="109.91,347.45 109.91,383.42" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="125.91,393.42 125.91,357.45" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="172.93,70.3 176.93,80.3 180.93,70.3 176.93,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="212.45,204.56 216.45,214.56 220.45,204.56 216.45,208.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="193.04,122.59 189.04,112.59 185.04,122.59 189.04,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="42.01,240.86 46.01,250.86 50.01,240.86 46.01,244.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="184.3,240.86 188.3,250.86 192.3,240.86 188.3,244.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="113.16,305.15 117.16,315.15 121.16,305.15 117.16,309.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="105.91,383.42 109.91,393.42 113.91,383.42 109.91,387.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="129.91,357.45 125.91,347.45 121.91,357.45 125.91,353.45" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
 <text font-family="sans-serif" xml:space="preserve">
@@ -56,14 +66,6 @@
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="129.01" y="169.73" font-size="12" fill="#000000" textLength="55.34" lengthAdjust="spacing">resume all</tspan>
 </text>
-<polygon points="172.93,70.3 176.93,80.3 180.93,70.3 176.93,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="212.45,204.56 216.45,214.56 220.45,204.56 216.45,208.56" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="193.04,122.59 189.04,112.59 185.04,122.59 189.04,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="42.01,240.86 46.01,250.86 50.01,240.86 46.01,244.86" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="184.3,240.86 188.3,250.86 192.3,240.86 188.3,244.86" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="113.16,305.15 117.16,315.15 121.16,305.15 117.16,309.15" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="105.91,383.42 109.91,393.42 113.91,383.42 109.91,387.42" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="129.91,357.45 125.91,347.45 121.91,357.45 125.91,353.45" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="121.07" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="43.57" lengthAdjust="spacing">Heater</tspan>
 </text>

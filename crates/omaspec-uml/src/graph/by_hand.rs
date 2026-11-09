@@ -11,7 +11,8 @@ use super::Rect;
 use super::across::{self, Drawn, Link, Placement};
 use super::route::Point;
 use crate::hand::{self, Key};
-use crate::map::Wire;
+use crate::map::{Head, Wire};
+use crate::svg::Stroke;
 
 /// A line as a drawer laid it: the container that holds it (the path of
 /// child indices from the top), its slot among that container's lines,
@@ -209,14 +210,22 @@ fn end(place: &Placement) -> hand::End {
     }
 }
 
+/// How a line is drawn: its stroke, and the marks at its ends.
+pub struct Dress {
+    pub stroke: Stroke,
+    pub heads: Vec<Head>,
+}
+
 /// Every line drawn, as a [`Wire`] for the map; `drawn` turns a line's
-/// points into the way it is drawn (its curves).
+/// points into the way it is drawn (its curves), `dress` tells how the
+/// line at a slot of a container is drawn, given those points.
 pub fn wires(
     top: &[Placement],
     arrows: &[(Arrow, Key)],
     laid: &impl Laid,
     hands: &[(usize, hand::Line)],
     drawn: impl Fn(&[Point]) -> Vec<Point>,
+    dress: impl Fn(&[usize], usize, &[Point]) -> Dress,
 ) -> Vec<Wire> {
     arrows
         .iter()
@@ -228,16 +237,20 @@ pub fn wires(
                 return None;
             }
             let hand = hands.iter().find(|(_, line)| line.key == *key);
+            let drawn = drawn(points);
+            let Dress { stroke, heads } = dress(&arrow.path, arrow.slot, &drawn);
             Some(Wire {
                 key: key.clone(),
                 line: arrow.line,
-                points: drawn(points),
+                points: drawn,
                 // Without the short runs beside its corners.
                 path: hand::straighten(points.to_vec()),
                 from: end(from),
                 to: end(to),
                 entry: hand.map(|&(entry, _)| entry),
                 labels: laid.labels(&arrow.path, arrow.slot),
+                stroke,
+                heads,
             })
         })
         .collect()

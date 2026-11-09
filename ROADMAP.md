@@ -1654,6 +1654,12 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       while the lines leave and come back on their new routes (`paper::morph`). The
       box folded or unfolded stays where it was on screen when the diagram is
       zoomed. Only a render asked for after the fold carries its anchor and its fade.
+      Then (2026-11-09, addendum to 0024): the lines glide with the boxes
+      (`paper::wires`), each from its old route to its new one with the marks at
+      its ends, over the two pictures without their lines, which the engine keeps
+      in an SVG group of their own (`Layer::Lines`) and the worker parses out; a
+      line into a container that folds travels onto its box, and back out when it
+      unfolds. The words on the lines still fade with the pictures.
 - [x] A sketch look (2026-11-06, [0023](docs/adr/0023-sketch-look.md)): PlantUML's
       `skinparam handwritten true` and Mermaid's `look: handDrawn` (in the init or the
       front matter's `config`), declined until now, with a seed from each element's

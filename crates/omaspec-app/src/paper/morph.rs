@@ -4,10 +4,12 @@
 //! moves a box waits until the new picture is drawn, then the sheet eases
 //! from the old size to the new one and each box travels, as its own
 //! pixels, from where it was to where it is. A box inside another is not
-//! carried along baked into it. The lines leave with the old picture and
-//! come back on the new routes once the boxes are nearly there. The first
-//! frame is the old picture and the last frame is the new one, so nothing
-//! pops at either end.
+//! carried along baked into it. The lines glide along ([`super::wires`]),
+//! drawn over the two pictures without their lines; where a picture has
+//! no such twin, the lines leave with the old picture and come back on the
+//! new routes once the boxes are nearly there. The first frame is the old
+//! picture and the last frame is the new one, so nothing pops at either
+//! end.
 
 use iced::widget::canvas::{self, Frame};
 use iced::widget::image;
@@ -352,14 +354,14 @@ struct Placed {
     inn: f32,
 }
 
-/// Draws the glide at `t` (0 is the picture before, 1 the new one).
-pub fn paint(frame: &mut Frame, grid: Grid, local: Rectangle, paint: &Paint<'_>) {
+/// Where the sheet and its pictures are at `paint.t`.
+fn placed(grid: Grid, local: Rectangle, paint: &Paint<'_>) -> Placed {
     let t = paint.t.clamp(0.0, 1.0);
     let old_paper = grid.snap(paint.old_view.diagram_rect(paint.old_size, local));
     let new_paper = grid.snap(paint.new_view.diagram_rect(paint.new_size, local));
     // Lerped once. Snapping again would step the sheet by a pixel.
     let paper = lerp_rect(old_paper, new_paper, t);
-    let placed = Placed {
+    Placed {
         t,
         paper,
         old_paper,
@@ -367,7 +369,29 @@ pub fn paint(frame: &mut Frame, grid: Grid, local: Rectangle, paint: &Paint<'_>)
         visible: inset_px(paper, 1.0 / grid.scale),
         out: line_out(t),
         inn: line_in(t),
-    };
+    }
+}
+
+/// Where the lines of the glide go ([`super::wires`]), for the layer that
+/// draws them over the pictures: iced draws the pictures of a layer over
+/// its shapes, so they cannot share one.
+pub fn sheets(grid: Grid, local: Rectangle, paint: &Paint<'_>) -> super::wires::Sheets {
+    let placed = placed(grid, local, paint);
+    super::wires::Sheets {
+        t: placed.t,
+        out: placed.out,
+        inn: placed.inn,
+        old: (placed.old_paper, paint.old_size),
+        new: (placed.new_paper, paint.new_size),
+        paper: placed.paper,
+        paper_color: sheet_color(paint.old, paint.new, placed.t).unwrap_or(paint.background),
+    }
+}
+
+/// Draws the glide at `t` (0 is the picture before, 1 the new one).
+pub fn paint(frame: &mut Frame, grid: Grid, local: Rectangle, paint: &Paint<'_>) {
+    let placed = placed(grid, local, paint);
+    let (t, paper) = (placed.t, placed.paper);
     draw::shadow(frame, paper, paint.background, grid.scale, 1.0);
     if let Some(fill) = sheet_color(paint.old, paint.new, t) {
         frame.fill(&draw::rounded(paper, draw::RADIUS), fill);

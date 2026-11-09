@@ -523,6 +523,8 @@ mod tests {
                 },
                 entry: None,
                 labels: Vec::new(),
+                stroke: omaspec_uml::Stroke::new(omaspec_uml::Color::BLACK, 1.0),
+                heads: Vec::new(),
             }],
             ..Map::default()
         }

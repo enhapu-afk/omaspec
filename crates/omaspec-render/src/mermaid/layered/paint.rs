@@ -1,5 +1,6 @@
 //! Frames, boxes, lines and labels.
 
+use omaspec_uml::map::{Head, HeadFill};
 use omaspec_uml::{Align, Block, Canvas, Family, Font, Layer, Paint, Stroke};
 
 use super::shape::{RING, SUBROUTINE, Shape, cap};
@@ -160,7 +161,7 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
             continue;
         }
         canvas.curve(
-            Layer::Frames,
+            Layer::Lines,
             &shortened(&edge.points, edge.look.caps),
             curve,
             edge.look.stroke,
@@ -297,8 +298,51 @@ fn retract(line: &mut [(f32, f32)], start: bool, by: f32) {
 }
 
 fn paint_cap(canvas: &mut Canvas, points: &[(f32, f32)], start: bool, cap: Cap, stroke: Stroke) {
-    if points.len() < 2 || cap == Cap::None {
+    let solid = Stroke {
+        dash: None,
+        width: stroke.width.min(1.5),
+        ..stroke
+    };
+    if cap == Cap::Circle && points.len() >= 2 {
+        // A true circle in the picture; the map has it as a polygon.
+        let (tip, from) = if start {
+            (points[0], points[1])
+        } else {
+            (points[points.len() - 1], points[points.len() - 2])
+        };
+        let (vx, vy) = (tip.0 - from.0, tip.1 - from.1);
+        let len = (vx * vx + vy * vy).sqrt();
+        if len < 0.01 {
+            return;
+        }
+        let center = (tip.0 - vx / len * DOT, tip.1 - vy / len * DOT);
+        canvas.ellipse(
+            Layer::Lines,
+            center,
+            (DOT, DOT),
+            Some(stroke.color),
+            Some(solid),
+        );
         return;
+    }
+    for head in cap_shape(points, start, cap) {
+        if head.closed {
+            canvas.polygon(Layer::Lines, &head.points, Some(stroke.color), Some(solid));
+        } else {
+            let arm = Stroke {
+                width: solid.width.max(1.5),
+                ..solid
+            };
+            canvas.polyline(Layer::Lines, &head.points, arm);
+        }
+    }
+}
+
+/// The mark `cap` at the `start` or the end of `points`, as the picture
+/// draws it: an arrowhead, a dot as a polygon, a cross as two strokes.
+pub(super) fn cap_shape(points: &[(f32, f32)], start: bool, cap: Cap) -> Vec<Head> {
+    if points.len() < 2 || cap == Cap::None {
+        return Vec::new();
     }
     let (tip, from) = if start {
         (points[0], points[1])
@@ -308,56 +352,55 @@ fn paint_cap(canvas: &mut Canvas, points: &[(f32, f32)], start: bool, cap: Cap, 
     let (vx, vy) = (tip.0 - from.0, tip.1 - from.1);
     let len = (vx * vx + vy * vy).sqrt();
     if len < 0.01 {
-        return;
+        return Vec::new();
     }
     let (ux, uy) = (vx / len, vy / len);
-    let solid = Stroke {
-        dash: None,
-        width: stroke.width.min(1.5),
-        ..stroke
-    };
     match cap {
-        Cap::None => {}
+        Cap::None => Vec::new(),
         Cap::Arrow => {
             let back = (tip.0 - ux * HEAD_LENGTH, tip.1 - uy * HEAD_LENGTH);
             let side = (-uy * HEAD_HALF, ux * HEAD_HALF);
-            canvas.polygon(
-                Layer::Front,
-                &[
+            vec![Head {
+                points: vec![
                     (back.0 + side.0, back.1 + side.1),
                     tip,
                     (back.0 - side.0, back.1 - side.1),
                     (tip.0 - ux * 6.0, tip.1 - uy * 6.0),
                 ],
-                Some(stroke.color),
-                Some(solid),
-            );
+                closed: true,
+                fill: HeadFill::Ink,
+            }]
         }
         Cap::Circle => {
             let center = (tip.0 - ux * DOT, tip.1 - uy * DOT);
-            canvas.ellipse(
-                Layer::Front,
-                center,
-                (DOT, DOT),
-                Some(stroke.color),
-                Some(solid),
-            );
+            let points = (0..16)
+                .map(|i| {
+                    let angle = std::f32::consts::TAU * i as f32 / 16.0;
+                    (center.0 + DOT * angle.cos(), center.1 + DOT * angle.sin())
+                })
+                .collect();
+            vec![Head {
+                points,
+                closed: true,
+                fill: HeadFill::Ink,
+            }]
         }
         Cap::Cross => {
             let center = (tip.0 - ux * CROSS_AT, tip.1 - uy * CROSS_AT);
-            let arm = Stroke {
-                width: solid.width.max(1.5),
-                ..solid
-            };
-            for (dx, dy) in [(1.0, 1.0), (1.0, -1.0)] {
-                let (ax, ay) = (dx * CROSS_ARM, dy * CROSS_ARM);
-                canvas.line(
-                    Layer::Front,
-                    (center.0 - ax, center.1 - ay),
-                    (center.0 + ax, center.1 + ay),
-                    arm,
-                );
-            }
+            [(1.0, 1.0), (1.0, -1.0)]
+                .into_iter()
+                .map(|(dx, dy)| {
+                    let (ax, ay) = (dx * CROSS_ARM, dy * CROSS_ARM);
+                    Head {
+                        points: vec![
+                            (center.0 - ax, center.1 - ay),
+                            (center.0 + ax, center.1 + ay),
+                        ],
+                        closed: false,
+                        fill: HeadFill::None,
+                    }
+                })
+                .collect()
         }
     }
 }

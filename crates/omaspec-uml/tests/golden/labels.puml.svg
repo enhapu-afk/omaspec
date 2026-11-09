@@ -5,9 +5,14 @@
 <rect x="0" y="0" width="84.68" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="128.68" y="0" width="68.35" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 <rect x="241.03" y="0" width="83.14" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
 <path d="M72.68,28.3 L72.68,28.3 C72.68,34.92 78.05,40.3 84.68,40.3 L106.88,40.3 C125.76,40.3 141.08,55.61 141.08,74.5 L141.08,110.26" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="153.08,28.3 153.08,110.26" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M253.03,28.3 L253.03,28.3 C253.03,40.45 243.18,50.3 231.03,50.3 L216.76,50.3 C196.73,50.3 180.49,66.53 180.49,86.57 L180.49,110.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="137.08,110.26 141.08,120.26 145.08,110.26 141.08,114.76" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="149.08,110.26 153.08,120.26 157.08,110.26 153.08,114.76" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="176.49,110.26 180.49,120.26 184.49,110.26 180.49,114.76" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
 <text font-family="sans-serif" xml:space="preserve">
@@ -31,9 +36,6 @@
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="186.49" y="65.43" font-size="12" fill="#000000" textLength="41.34" lengthAdjust="spacing">delivers</tspan>
 </text>
-<polygon points="137.08,110.26 141.08,120.26 145.08,110.26 141.08,114.76" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="149.08,110.26 153.08,120.26 157.08,110.26 153.08,114.76" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="176.49,110.26 180.49,120.26 184.49,110.26 180.49,114.76" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 </g>
 </svg>

@@ -6,11 +6,12 @@ use super::{
     layout_container,
 };
 use crate::Declined;
+use crate::color::Color;
 use crate::graph::Rect;
 use crate::graph::across::{self, Drawn, Link, Placement};
-use crate::graph::by_hand::{self, Arrow, Laid, LineMut};
+use crate::graph::by_hand::{self, Arrow, Dress, Laid, LineMut};
 use crate::hand::{self, Key};
-use crate::map::Wire;
+use crate::map::{Head, HeadFill, Wire};
 use crate::svg::Stroke;
 use crate::text::{Block, Family};
 
@@ -343,17 +344,42 @@ pub(super) fn places(
 }
 
 /// Every transition drawn, as a [`Wire`] for the map. `curve` is how far
-/// the lines curve.
+/// the lines curve, `strict` whether the heads are plain triangles.
 pub(super) fn wires(
     arrows: &[(Arrow, Key)],
     scene: &Scene,
     hands: &[(usize, hand::Line)],
     curve: f32,
+    strict: bool,
 ) -> Vec<Wire> {
     let top = placements(&scene.nodes);
-    by_hand::wires(&top, arrows, scene, hands, |points| {
-        drawn_route(points, curve)
-    })
+    by_hand::wires(
+        &top,
+        arrows,
+        scene,
+        hands,
+        |points| drawn_route(points, curve),
+        |path, slot, drawn| Dress {
+            stroke: edge_at(scene, path, slot).map_or(Stroke::new(Color::BLACK, 1.0), |e| e.look),
+            heads: super::head_shape(drawn, strict)
+                .map(|points| Head {
+                    points,
+                    closed: true,
+                    fill: HeadFill::Ink,
+                })
+                .into_iter()
+                .collect(),
+        },
+    )
+}
+
+/// The line at `slot` of the container at `path`.
+fn edge_at<'a>(scene: &'a Scene, path: &[usize], slot: usize) -> Option<&'a PlacedEdge> {
+    let mut here = scene;
+    for &index in path {
+        here = &here.nodes.get(index)?.children;
+    }
+    here.edges.get(slot)
 }
 
 impl Laid for Scene {

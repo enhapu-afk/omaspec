@@ -5,11 +5,16 @@
 <ellipse cx="31.11" cy="39.3" rx="11" ry="11" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
 <rect x="5.05" y="82.3" width="52.12" height="32.3" rx="8" ry="8" fill="#313244" stroke="#89B4FA" stroke-width="1"/>
 <rect x="0" y="160.56" width="62.23" height="32.3" rx="8" ry="8" fill="#313244" stroke="#89B4FA" stroke-width="1"/>
+<rect x="-10" y="0" width="91.8" height="202.86" fill="none" stroke="#CDD6F4" stroke-width="1"/>
+<polygon points="-10,0 64.81,0 64.81,14.3 58.81,20.3 -10,20.3" fill="none" stroke="#CDD6F4" stroke-width="1"/>
+</g>
+<g id="lines">
 <polyline points="31.11,50.3 31.11,72.3" fill="none" stroke="#89B4FA" stroke-width="1"/>
 <polyline points="23.11,114.59 23.11,150.56" fill="none" stroke="#89B4FA" stroke-width="1"/>
 <polyline points="39.11,160.56 39.11,124.59" fill="none" stroke="#89B4FA" stroke-width="1"/>
-<rect x="-10" y="0" width="91.8" height="202.86" fill="none" stroke="#CDD6F4" stroke-width="1"/>
-<polygon points="-10,0 64.81,0 64.81,14.3 58.81,20.3 -10,20.3" fill="none" stroke="#CDD6F4" stroke-width="1"/>
+<polygon points="27.11,72.3 31.11,82.3 35.11,72.3 31.11,76.3" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
+<polygon points="19.11,150.56 23.11,160.56 27.11,150.56 23.11,154.56" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
+<polygon points="43.11,124.59 39.11,114.59 35.11,124.59 39.11,120.59" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
 </g>
 <g>
 <text font-family="sans-serif" xml:space="preserve">
@@ -24,9 +29,6 @@
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="45.11" y="141.73" font-size="12" fill="#CDD6F4" textLength="26.69" lengthAdjust="spacing">done</tspan>
 </text>
-<polygon points="27.11,72.3 31.11,82.3 35.11,72.3 31.11,76.3" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
-<polygon points="19.11,150.56 23.11,160.56 27.11,150.56 23.11,154.56" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
-<polygon points="43.11,124.59 39.11,114.59 35.11,124.59 39.11,120.59" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="-4" y="14.99" font-size="14" fill="#CDD6F4" textLength="56.81" lengthAdjust="spacing">state Job</tspan>
 </text>

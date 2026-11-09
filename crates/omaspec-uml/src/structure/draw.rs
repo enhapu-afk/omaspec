@@ -13,10 +13,10 @@ use crate::Declined;
 use crate::annotations::Annotations;
 use crate::color::{self, Color, Paint};
 use crate::graph::across::{self, Drawn, Placement};
-use crate::graph::by_hand::{self, Arrow, Laid, LineMut};
+use crate::graph::by_hand::{self, Arrow, Dress, Laid, LineMut};
 use crate::graph::{self, Rect};
 use crate::hand::Key;
-use crate::map::Map;
+use crate::map::{self, HeadFill, Map};
 use crate::svg::{Align, Canvas, Layer, Stroke, n};
 use crate::text::{self, Block, Family, Font, Style};
 
@@ -91,9 +91,14 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
         let top = placements(&scene.nodes);
         Map {
             places: places(&diagram.root, &top, &diagram.frame.held),
-            wires: by_hand::wires(&top, &arrows, &scene, hands, |points| {
-                crate::curve::flatten(points, skin.curve)
-            }),
+            wires: by_hand::wires(
+                &top,
+                &arrows,
+                &scene,
+                hands,
+                |points| crate::curve::flatten(points, skin.curve),
+                |path, slot, drawn| dress(&scene, path, slot, drawn, skin.strict),
+            ),
             misses: {
                 let mut misses = misses;
                 misses.extend(crate::hand::said(
@@ -1587,7 +1592,7 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
             continue;
         }
         canvas.curve(
-            Layer::Frames,
+            Layer::Lines,
             &shortened(&edge.points, edge.look.from_head, edge.look.to_head),
             curve,
             edge.look.stroke,
@@ -1710,13 +1715,37 @@ fn draw_head(
     head: Head,
     stroke: Stroke,
 ) {
-    if head == Head::None {
+    let Some(shape) = head_shape(tip, from, head, skin.strict) else {
         return;
+    };
+    let solid = Stroke {
+        dash: None,
+        width: stroke.width.min(1.5),
+        ..stroke
+    };
+    if !shape.closed {
+        canvas.polyline(Layer::Lines, &shape.points, solid);
+        return;
+    }
+    let fill = match shape.fill {
+        HeadFill::Ink => Some(stroke.color),
+        // An empty diamond hides the line under it in the page's color.
+        HeadFill::Paper => Some(skin.background.unwrap_or(Color::WHITE)),
+        HeadFill::None => None,
+    };
+    canvas.polygon(Layer::Lines, &shape.points, fill, Some(solid));
+}
+
+/// The mark `head` at `tip`, on a line coming from `from`; `strict` draws
+/// an arrowhead as two strokes.
+fn head_shape(tip: (f32, f32), from: (f32, f32), head: Head, strict: bool) -> Option<map::Head> {
+    if head == Head::None {
+        return None;
     }
     let (vx, vy) = (tip.0 - from.0, tip.1 - from.1);
     let len = (vx * vx + vy * vy).sqrt();
     if len < 0.01 {
-        return;
+        return None;
     }
     let (ux, uy) = (vx / len, vy / len);
     let length = head_span(head);
@@ -1739,43 +1768,48 @@ fn draw_head(
             (base.0 - side.0, base.1 - side.1),
         )
     };
-    let solid = Stroke {
-        dash: None,
-        width: stroke.width.min(1.5),
-        ..stroke
-    };
-    match head {
-        Head::None => {}
-        Head::Arrow if skin.strict => {
-            canvas.line(Layer::Front, left, tip, solid);
-            canvas.line(Layer::Front, right, tip, solid);
-        }
+    let (points, closed, fill) = match head {
+        Head::None => return None,
+        Head::Arrow if strict => (vec![left, tip, right], false, HeadFill::None),
         Head::Arrow => {
             let inset = (tip.0 - ux * length * 0.55, tip.1 - uy * length * 0.55);
-            canvas.polygon(
-                Layer::Front,
-                &[left, tip, right, inset],
-                Some(stroke.color),
-                Some(solid),
-            );
+            (vec![left, tip, right, inset], true, HeadFill::Ink)
         }
-        Head::Triangle => {
-            canvas.polygon(Layer::Front, &[left, tip, right], None, Some(solid));
+        Head::Triangle => (vec![left, tip, right], true, HeadFill::None),
+        Head::Diamond => (vec![tip, left, base, right], true, HeadFill::Paper),
+        Head::DiamondFilled => (vec![tip, left, base, right], true, HeadFill::Ink),
+    };
+    Some(map::Head {
+        points,
+        closed,
+        fill,
+    })
+}
+
+/// How the line at `slot` of the container at `path` is drawn, with the
+/// marks at both ends of `drawn`, its points as drawn.
+fn dress(scene: &Scene, path: &[usize], slot: usize, drawn: &[(f32, f32)], strict: bool) -> Dress {
+    let mut here = scene;
+    for &index in path {
+        match here.nodes.get(index) {
+            Some(node) => here = &node.children,
+            None => break,
         }
-        Head::Diamond | Head::DiamondFilled => {
-            // An empty diamond hides the line under it in the page's color.
-            let fill = if head == Head::DiamondFilled {
-                stroke.color
-            } else {
-                skin.background.unwrap_or(Color::WHITE)
-            };
-            canvas.polygon(
-                Layer::Front,
-                &[tip, left, base, right],
-                Some(fill),
-                Some(solid),
-            );
-        }
+    }
+    let Some(edge) = here.edges.get(slot).filter(|_| drawn.len() >= 2) else {
+        return Dress {
+            stroke: Stroke::new(Color::BLACK, 1.0),
+            heads: Vec::new(),
+        };
+    };
+    let last = drawn.len() - 1;
+    let heads = [
+        head_shape(drawn[0], drawn[1], edge.look.from_head, strict),
+        head_shape(drawn[last], drawn[last - 1], edge.look.to_head, strict),
+    ];
+    Dress {
+        stroke: edge.look.stroke,
+        heads: heads.into_iter().flatten().collect(),
     }
 }
 

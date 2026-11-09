@@ -7,6 +7,8 @@
 <rect x="128.77" y="168.56" width="77.8" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="250.57" y="168.56" width="84" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="136.04" y="242.86" width="63" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
 <polyline points="167.54,48.3 167.54,70.3" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M153.48,112.59 L153.48,112.59 C153.48,124.74 143.63,134.59 131.48,134.59 L66.35,134.59 C53.12,134.59 42.38,145.32 42.38,158.56 L42.38,158.56" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="167.54,112.59 167.54,158.56" fill="none" stroke="#181818" stroke-width="1"/>
@@ -14,6 +16,13 @@
 <path d="M72.77,200.86 L72.77,200.86 C72.77,207.48 78.14,212.86 84.77,212.86 L139.04,212.86 C144.01,212.86 148.04,216.89 148.04,221.86 L148.04,221.86 C148.04,226.83 152.07,230.86 157.04,230.86 L165.6,230.86 C166.71,230.86 167.6,231.75 167.6,232.86 L167.6,232.86" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="167.6,200.86 167.6,232.86" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M262.57,200.86 L262.57,200.86 C262.57,213.01 252.72,222.86 240.57,222.86 L191.04,222.86 C188.83,222.86 187.04,224.65 187.04,226.86 L187.04,226.86 C187.04,229.07 185.25,230.86 183.04,230.86 L169.6,230.86 C168.5,230.86 167.6,231.75 167.6,232.86 L167.6,232.86" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="163.54,70.3 167.54,80.3 171.54,70.3 167.54,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="38.38,158.56 42.38,168.56 46.38,158.56 42.38,162.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="163.54,158.56 167.54,168.56 171.54,158.56 167.54,162.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="288.57,158.56 292.57,168.56 296.57,158.56 292.57,162.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="163.6,232.86 167.6,242.86 171.6,232.86 167.6,236.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="163.6,232.86 167.6,242.86 171.6,232.86 167.6,236.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="163.6,232.86 167.6,242.86 171.6,232.86 167.6,236.86" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
 <text font-family="sans-serif" xml:space="preserve">
@@ -40,13 +49,6 @@
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="298.57" y="149.73" font-size="12" fill="#000000" textLength="19.34" lengthAdjust="spacing">halt</tspan>
 </text>
-<polygon points="163.54,70.3 167.54,80.3 171.54,70.3 167.54,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="38.38,158.56 42.38,168.56 46.38,158.56 42.38,162.56" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="163.54,158.56 167.54,168.56 171.54,158.56 167.54,162.56" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="288.57,158.56 292.57,168.56 296.57,158.56 292.57,162.56" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="163.6,232.86 167.6,242.86 171.6,232.86 167.6,236.86" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="163.6,232.86 167.6,242.86 171.6,232.86 167.6,236.86" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="163.6,232.86 167.6,242.86 171.6,232.86 167.6,236.86" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="119.83" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="94.91" lengthAdjust="spacing">Lines bundled</tspan>
 </text>

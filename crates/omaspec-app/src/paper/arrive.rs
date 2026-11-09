@@ -3,6 +3,7 @@
 //! one fades in over it, or its boxes glide to their new places
 //! ([`super::morph`]). A fold keeps the box it folded where it was.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use iced::animation::Easing;
@@ -11,7 +12,7 @@ use iced::{Animation, Point, Size, Task};
 
 use super::raster::{Plan, Raster};
 use super::view::View;
-use super::{Change, Diagram, Fade, Message, Paper, Previous, Status, cards, frames, morph};
+use super::{Change, Diagram, Fade, Message, Paper, Previous, Status, cards, frames, morph, wires};
 use crate::worker::Answer;
 
 /// How long a new picture takes to fade in over the one before.
@@ -81,6 +82,13 @@ impl Paper {
                         boxes: self.diagram.as_ref().map(morph::sides).unwrap_or_default(),
                         links: self.followable().to_vec(),
                         spots: self.fold_spots(),
+                        bare: self.diagram.as_ref().and_then(|d| d.drawn.bare.clone()),
+                        plan: self.overview.asked,
+                        map: self
+                            .diagram
+                            .as_ref()
+                            .map(|d| Arc::clone(&d.drawn.map))
+                            .unwrap_or_default(),
                     });
                     self.fresh = true;
                 }
@@ -125,6 +133,10 @@ impl Paper {
                 // not the one a glide in flight is travelling to.
                 self.overview.forget();
                 self.detail.forget();
+                // Pictures without lines belong to one pair of diagrams.
+                self.bare_old.clear();
+                self.bare_new.clear();
+                self.no_bare = false;
                 self.landed = false;
                 let pixels = self.rasterize(Duration::ZERO);
                 if self.passage.is_some() {
@@ -170,8 +182,21 @@ impl Paper {
     /// Fades from the pictures before to the new diagram's overview. A
     /// detail of the diagram before goes with them; the new one comes sharp
     /// once it is rasterized. When a box moved, the boxes glide for
-    /// [`MORPH`]. Otherwise a fold eases longer than an edit.
-    pub(super) fn start_fade(&mut self, now: Instant) {
+    /// [`MORPH`], and the lines with them once the pictures without lines
+    /// are drawn: until then the old picture stays, and this is called
+    /// again when they come. Otherwise a fold eases longer than an edit.
+    pub(super) fn start_fade(&mut self, now: Instant) -> Task<Message> {
+        let morph = match &self.previous {
+            Some(previous) => self.morph_of(&previous.pictures, &previous.boxes, previous.size),
+            None => None,
+        };
+        if morph.is_some()
+            && !self.no_bare
+            && (self.bare_old.shown.is_none() || self.bare_new.shown.is_none())
+            && let Some(asked) = self.ask_bare()
+        {
+            return asked;
+        }
         // A picture asked for before the fold leaves it to the one after.
         let fold = match self.change {
             Change::Fold { since, .. } if self.shown <= since => None,
@@ -182,14 +207,16 @@ impl Paper {
             self.change = Change::Edit;
         }
         let fold = fold.unwrap_or(false);
+        self.fresh = false;
+        self.landed = false;
         let previous = self.previous.take();
         let seen = self.glide.map_or(self.view, |glide| glide.at(now));
-        let (old, old_view, old_size, old_boxes) = match previous {
+        let (old, old_view, old_size, old_map) = match previous {
             Some(previous) => {
                 let view = previous.view_at(seen);
-                (previous.pictures, view, previous.size, previous.boxes)
+                (previous.pictures, view, previous.size, Some(previous.map))
             }
-            None => (Vec::new(), self.view, self.diagram_size(), Vec::new()),
+            None => (Vec::new(), self.view, self.diagram_size(), None),
         };
         if self.detail.shown.as_ref().is_some_and(|detail| {
             old.iter()
@@ -197,7 +224,6 @@ impl Paper {
         }) {
             self.detail.shown = None;
         }
-        let morph = self.morph_of(&old, &old_boxes, old_size);
         let (duration, easing) = if morph.is_some() {
             (MORPH, Easing::EaseInOut)
         } else if fold {
@@ -205,6 +231,22 @@ impl Paper {
         } else {
             (DIAGRAM_FADE, Easing::EaseOut)
         };
+        let bare = match (
+            &morph,
+            self.bare_old.shown.take(),
+            self.bare_new.shown.take(),
+        ) {
+            (Some(_), Some(old), Some(new)) => Some((old, new)),
+            _ => None,
+        };
+        let lines = match (&morph, &bare, old_map, &self.diagram) {
+            (Some(morph), Some(_), Some(old_map), Some(diagram)) => {
+                Some(wires::plan(&old_map, &diagram.drawn.map, &morph.moves))
+            }
+            _ => None,
+        };
+        self.bare_old.clear();
+        self.bare_new.clear();
         self.fade = Some(Fade {
             old,
             old_view,
@@ -213,11 +255,54 @@ impl Paper {
             next: self.overview.shown.clone(),
             new_view: self.view,
             new_size: self.diagram_size(),
+            lines,
+            bare,
             shown: Animation::new(false)
                 .duration(duration)
                 .easing(easing)
                 .go(true, now),
         });
+        Task::none()
+    }
+
+    /// Asks for the old picture and the new one without their lines, at
+    /// the plans their overviews were drawn to; `None` when one of them
+    /// has no such picture, so the lines fade with the pictures.
+    fn ask_bare(&mut self) -> Option<Task<Message>> {
+        let previous = self.previous.as_ref()?;
+        let (old_tree, old_plan) = (previous.bare.clone()?, previous.plan?);
+        let new_tree = self.diagram.as_ref()?.drawn.bare.clone()?;
+        let new_plan = self.overview.asked?;
+        Some(Task::batch([
+            self.bare_old
+                .ask(Some(old_plan), &old_tree, Duration::ZERO, Message::BareOld),
+            self.bare_new
+                .ask(Some(new_plan), &new_tree, Duration::ZERO, Message::BareNew),
+        ]))
+    }
+
+    /// A picture without lines came, or could not be drawn: with both in,
+    /// or one failed, the fade that waited for them starts.
+    pub(super) fn bare_came(
+        &mut self,
+        seq: u64,
+        raster: Option<Raster>,
+        old: bool,
+    ) -> Task<Message> {
+        let layer = if old {
+            &mut self.bare_old
+        } else {
+            &mut self.bare_new
+        };
+        if raster.is_none() && layer.is_latest(seq) {
+            self.no_bare = true;
+        }
+        layer.receive(seq, raster);
+        let both = self.bare_old.shown.is_some() && self.bare_new.shown.is_some();
+        if self.fresh && self.landed && self.fade.is_none() && (both || self.no_bare) {
+            return self.start_fade(Instant::now());
+        }
+        Task::none()
     }
 
     /// A pan or a zoom while a glide runs follows the pointer. A stepped
@@ -285,9 +370,8 @@ impl Paper {
             // still gives way at once, as it always has.
             let morphing = self.fade.as_ref().is_some_and(|fade| fade.morph.is_some());
             if !morphing {
-                self.fresh = false;
-                self.landed = false;
-                self.start_fade(Instant::now());
+                let fade = self.start_fade(Instant::now());
+                return Task::batch([fade, self.resume_outward()]);
             }
         }
         self.resume_outward()

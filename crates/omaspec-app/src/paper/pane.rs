@@ -84,6 +84,22 @@ impl Paper {
         .width(Length::Fill)
         .height(Length::Fill)
         .into();
+        // The lines of a glide, over the pictures and the boxes on their way.
+        let lines = self
+            .fade
+            .as_ref()
+            .filter(|fade| fade.lines.is_some())
+            .map(|fade| {
+                Canvas::new(Timed::new(canvas::GlideLines {
+                    fade,
+                    glide: self.glide,
+                    background: ui::color(p.background),
+                    scale: self.scale_factor,
+                }))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
+            });
         let marks = (!links.is_empty() && self.overview.shown.is_some()).then(|| {
             Canvas::new(Timed::new(canvas::LinkMarks {
                 links,
@@ -214,6 +230,7 @@ impl Paper {
             return container(Stack::with_children(
                 [
                     Some(canvas),
+                    lines,
                     veil,
                     glow,
                     marks,
@@ -260,6 +277,7 @@ impl Paper {
         let diagram: Element<'_, Message> = container(Stack::with_children(
             [
                 Some(canvas),
+                lines,
                 light,
                 Some(layer(false)),
                 Some(layer(true)),

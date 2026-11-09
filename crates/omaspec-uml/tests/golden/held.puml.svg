@@ -8,6 +8,8 @@
 <rect x="180.28" y="80.3" width="63" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <ellipse cx="287.7" cy="300.71" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
 <ellipse cx="287.7" cy="300.71" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
 <polyline points="101.47,48.3 101.47,70.3" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M106.16,112.59 L106.16,119.98 C106.16,139.1 121.65,154.59 140.77,154.59 L140.77,154.59 C159.88,154.59 175.38,170.09 175.38,189.2 L175.38,274.56" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M187.38,284.56 L187.38,180.52 C187.38,160.68 171.3,144.59 151.45,144.59 L137.53,144.59 C125.38,144.59 115.53,134.74 115.53,122.59 L115.53,122.59" fill="none" stroke="#181818" stroke-width="1"/>
@@ -16,6 +18,14 @@
 <path d="M218.7,284.56 L218.7,284.56 C218.7,273.51 227.65,264.56 238.7,264.56 L240.38,264.56 C252.36,264.56 262.07,254.85 262.07,242.87 L262.07,157.99 C262.07,145.07 251.59,134.59 238.67,134.59 L227.28,134.59 C220.65,134.59 215.28,129.22 215.28,122.59 L215.28,122.59" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M89.76,284.56 L89.76,254.03 C89.76,248.8 94,244.56 99.23,244.56 L99.23,244.56 C104.46,244.56 108.7,240.32 108.7,235.09 L108.7,214.58 C108.7,198.02 122.12,184.59 138.68,184.59 L150.49,184.59 C173.57,184.59 192.28,165.88 192.28,142.8 L192.28,122.59" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M231.28,112.59 L231.28,112.59 C231.28,119.22 236.65,124.59 243.28,124.59 L259.49,124.59 C275.07,124.59 287.7,137.22 287.7,152.8 L287.7,277.71" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="97.47,70.3 101.47,80.3 105.47,70.3 101.47,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="171.38,274.56 175.38,284.56 179.38,274.56 175.38,278.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="119.53,122.59 115.53,112.59 111.53,122.59 115.53,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="34.69,274.56 38.69,284.56 42.69,274.56 38.69,278.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="100.78,122.59 96.78,112.59 92.78,122.59 96.78,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="219.28,122.59 215.28,112.59 211.28,122.59 215.28,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="196.28,122.59 192.28,112.59 188.28,122.59 192.28,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="283.7,277.71 287.7,287.71 291.7,277.71 287.7,281.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
 <text font-family="sans-serif" xml:space="preserve">
@@ -48,14 +58,6 @@
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="114.7" y="199.73" font-size="12" fill="#000000" textLength="19.34" lengthAdjust="spacing">quit</tspan>
 </text>
-<polygon points="97.47,70.3 101.47,80.3 105.47,70.3 101.47,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="171.38,274.56 175.38,284.56 179.38,274.56 175.38,278.56" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="119.53,122.59 115.53,112.59 111.53,122.59 115.53,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="34.69,274.56 38.69,284.56 42.69,274.56 38.69,278.56" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="100.78,122.59 96.78,112.59 92.78,122.59 96.78,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="219.28,122.59 215.28,112.59 211.28,122.59 215.28,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="196.28,122.59 192.28,112.59 188.28,122.59 192.28,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="283.7,277.71 287.7,287.71 291.7,277.71 287.7,281.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="107.17" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="86.37" lengthAdjust="spacing">Held in place</tspan>
 </text>

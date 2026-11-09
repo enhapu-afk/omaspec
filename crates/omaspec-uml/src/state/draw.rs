@@ -86,7 +86,13 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         (skin.round, skin.curve),
         &mut map,
     );
-    map.wires = wires(&arrows, &scene, &diagram.frame.by_hand, skin.curve);
+    map.wires = wires(
+        &arrows,
+        &scene,
+        &diagram.frame.by_hand,
+        skin.curve,
+        skin.strict,
+    );
     map.places = nest::places(&diagram.root, &scene, &diagram.frame.held);
     map.misses = misses;
     map.misses.extend(crate::hand::said(
@@ -788,7 +794,7 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
         if edge.points.len() < 2 {
             continue;
         }
-        canvas.curve(Layer::Frames, &shortened(&edge.points), curve, edge.look);
+        canvas.curve(Layer::Lines, &shortened(&edge.points), curve, edge.look);
     }
     for node in &scene.nodes {
         paint_edges(canvas, &node.children, curve);
@@ -949,33 +955,42 @@ fn shortened(points: &[(f32, f32)]) -> Vec<(f32, f32)> {
 }
 
 fn arrow_head(canvas: &mut Canvas, skin: &Skin, points: &[(f32, f32)], stroke: Stroke) {
-    if points.len() < 2 {
+    let Some(head) = head_shape(points, skin.strict) else {
         return;
+    };
+    let solid = Stroke {
+        dash: None,
+        width: stroke.width.min(1.5),
+        ..stroke
+    };
+    canvas.polygon(Layer::Lines, &head, Some(stroke.color), Some(solid));
+}
+
+/// The arrowhead at the end of `points`: a filled triangle, with a notch
+/// in its base unless `strict`.
+fn head_shape(points: &[(f32, f32)], strict: bool) -> Option<Vec<(f32, f32)>> {
+    if points.len() < 2 {
+        return None;
     }
     let tip = points[points.len() - 1];
     let from = points[points.len() - 2];
     let (vx, vy) = (tip.0 - from.0, tip.1 - from.1);
     let len = (vx * vx + vy * vy).sqrt();
     if len < 0.01 {
-        return;
+        return None;
     }
     let (ux, uy) = (vx / len, vy / len);
     let back = (tip.0 - ux * HEAD_LENGTH, tip.1 - uy * HEAD_LENGTH);
     let side = (-uy * HEAD_HALF, ux * HEAD_HALF);
-    let solid = Stroke {
-        dash: None,
-        width: stroke.width.min(1.5),
-        ..stroke
-    };
     let mut head = vec![
         (back.0 + side.0, back.1 + side.1),
         tip,
         (back.0 - side.0, back.1 - side.1),
     ];
-    if !skin.strict {
+    if !strict {
         head.push((tip.0 - ux * 6.0, tip.1 - uy * 6.0));
     }
-    canvas.polygon(Layer::Front, &head, Some(stroke.color), Some(solid));
+    Some(head)
 }
 
 #[cfg(test)]

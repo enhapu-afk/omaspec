@@ -8,10 +8,16 @@
 <rect x="114.33" y="215.18" width="83.23" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <ellipse cx="155.95" cy="292.48" rx="13" ry="13" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
 <ellipse cx="155.95" cy="292.48" rx="5.46" ry="5.46" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g id="lines">
 <polyline points="155.95,22 155.95,44" fill="none" stroke="#64748B" stroke-width="1"/>
 <polyline points="155.95,86.3 155.95,124.59" fill="none" stroke="#64748B" stroke-width="1"/>
 <polyline points="155.95,166.89 155.95,205.18" fill="none" stroke="#64748B" stroke-width="1"/>
 <polyline points="155.95,247.48 155.95,269.48" fill="none" stroke="#64748B" stroke-width="1"/>
+<polygon points="151.95,44 155.95,54 159.95,44 155.95,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="151.95,124.59 155.95,134.59 159.95,124.59 155.95,128.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="151.95,205.18 155.95,215.18 159.95,205.18 155.95,209.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="151.95,269.48 155.95,279.48 159.95,269.48 155.95,273.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 <g>
 <path d="M205.23,54 L205.23,82.3 L366.74,82.3 L366.74,64 L356.74,54 Z" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
@@ -40,10 +46,6 @@
 <tspan x="6" y="153.58" font-size="14" fill="#0F172A" textLength="101.16" lengthAdjust="spacing">checked against</tspan>
 <tspan x="6" y="169.88" font-size="14" fill="#0F172A" textLength="53.7" lengthAdjust="spacing">the bank</tspan>
 </text>
-<polygon points="151.95,44 155.95,54 159.95,44 155.95,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="151.95,124.59 155.95,134.59 159.95,124.59 155.95,128.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="151.95,205.18 155.95,215.18 159.95,205.18 155.95,209.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="151.95,269.48 155.95,279.48 159.95,269.48 155.95,273.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 </g>
 </svg>

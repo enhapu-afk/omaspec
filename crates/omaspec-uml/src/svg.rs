@@ -15,11 +15,19 @@ pub enum Layer {
     Background,
     Lifelines,
     Frames,
+    /// The lines of a graph diagram with the marks at their ends, in a
+    /// group of their own ([`LINES`]): a pane that glides the boxes to a
+    /// new layout draws the lines itself meanwhile, over a picture without
+    /// them ([`without_lines`]).
+    Lines,
     Bars,
     Front,
 }
 
-const LAYERS: usize = 5;
+const LAYERS: usize = 6;
+
+/// The id of the group that holds the [`Layer::Lines`].
+pub const LINES: &str = "lines";
 
 /// The id of the group that holds a chart's grid: lines that only guide
 /// the eye, drawn faint on purpose, as PlantUML draws them. A check of
@@ -698,9 +706,13 @@ impl Canvas {
             );
         }
         let _ = write!(out, r#"<g transform="translate({},{})">"#, n(dx), n(dy));
-        for layer in &self.layers {
+        for (index, layer) in self.layers.iter().enumerate() {
             if !layer.is_empty() {
-                out.push_str("<g>");
+                if index == Layer::Lines as usize {
+                    let _ = write!(out, r#"<g id="{LINES}">"#);
+                } else {
+                    out.push_str("<g>");
+                }
                 out.push_str(layer);
                 out.push_str("</g>");
             }
@@ -708,6 +720,35 @@ impl Canvas {
         out.push_str("</g></svg>");
         out
     }
+}
+
+/// `svg` without its [`Layer::Lines`] group; `None` when it has none.
+pub fn without_lines(svg: &str) -> Option<String> {
+    let open = format!(r#"<g id="{LINES}">"#);
+    let start = svg.find(&open)?;
+    let mut depth = 0usize;
+    let mut at = start;
+    let rest = &svg[start..];
+    // Groups open and close in pairs; the one that brings the depth back
+    // to zero closes the layer.
+    let mut index = 0;
+    while index < rest.len() {
+        let here = &rest[index..];
+        if here.starts_with("</g>") {
+            depth -= 1;
+            index += "</g>".len();
+            if depth == 0 {
+                at = start + index;
+                break;
+            }
+        } else if here.starts_with("<g>") || here.starts_with("<g ") {
+            depth += 1;
+            index += 2;
+        } else {
+            index += here.chars().next().map_or(1, char::len_utf8);
+        }
+    }
+    (at > start).then(|| format!("{}{}", &svg[..start], &svg[at..]))
 }
 
 /// A number with at most two decimals, without trailing zeros.
@@ -756,6 +797,54 @@ fn rim(fill: Color) -> Color {
 mod tests {
     use super::*;
     use crate::text::{Font, block};
+
+    #[test]
+    fn the_lines_layer_is_a_group_of_its_own_that_can_be_left_out() {
+        let mut c = Canvas::new("sans-serif", false);
+        c.rect(
+            Layer::Frames,
+            (0.0, 0.0, 20.0, 10.0),
+            0.0,
+            Some(Color::WHITE),
+            None,
+        );
+        c.begin_group(Layer::Lines, "wire");
+        c.polyline(
+            Layer::Lines,
+            &[(0.0, 5.0), (30.0, 5.0)],
+            Stroke::new(Color::BLACK, 1.0),
+        );
+        c.end_group(Layer::Lines);
+        c.polygon(
+            Layer::Lines,
+            &[(30.0, 5.0), (26.0, 2.0), (26.0, 8.0)],
+            Some(Color::BLACK),
+            None,
+        );
+        c.rect(
+            Layer::Front,
+            (40.0, 0.0, 5.0, 5.0),
+            0.0,
+            Some(Color::BLACK),
+            None,
+        );
+        let svg = c.finish(0.0, None);
+        assert!(
+            svg.contains(r#"<g id="lines"><g id="wire"><polyline"#),
+            "{svg}"
+        );
+        let bare = without_lines(&svg).expect("has lines");
+        assert!(
+            !bare.contains("<polyline") && !bare.contains("<polygon"),
+            "{bare}"
+        );
+        assert!(
+            bare.contains("<rect x=\"0\"") && bare.contains("<rect x=\"40\""),
+            "{bare}"
+        );
+        assert_eq!(bare.matches("<g").count(), bare.matches("</g>").count());
+        assert!(without_lines("<svg><g><rect/></g></svg>").is_none());
+    }
 
     #[test]
     fn numbers_are_short() {

@@ -21,6 +21,8 @@
 <rect x="155.64" y="700.24" width="70.01" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <ellipse cx="137.37" cy="789.54" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
 <ellipse cx="137.37" cy="789.54" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
 <polyline points="137.37,48.3 137.37,70.3" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="137.37,485.71 137.37,521.68" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="137.37,744.54 137.37,766.54" fill="none" stroke="#181818" stroke-width="1"/>
@@ -33,6 +35,18 @@
 <polyline points="78.26,589.98 78.26,611.98" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="190.65,589.98 190.65,611.98" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="190.65,654.27 190.65,690.24" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="133.37,70.3 137.37,80.3 141.37,70.3 137.37,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="133.37,521.68 137.37,531.68 141.37,521.68 137.37,525.68" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="133.37,766.54 137.37,776.54 141.37,766.54 137.37,770.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="130.7,160.59 134.7,170.59 138.7,160.59 134.7,164.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="122.7,238.86 126.7,248.86 130.7,238.86 126.7,242.86" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="146.7,212.89 142.7,202.89 138.7,212.89 142.7,208.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="133.37,353.15 137.37,363.15 141.37,353.15 137.37,357.15" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="125.37,431.42 129.37,441.42 133.37,431.42 129.37,435.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="149.37,405.45 145.37,395.45 141.37,405.45 145.37,401.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="74.26,611.98 78.26,621.98 82.26,611.98 78.26,615.98" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="186.65,611.98 190.65,621.98 194.65,611.98 190.65,615.98" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="186.65,690.24 190.65,700.24 194.65,690.24 190.65,694.24" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
 <text font-family="sans-serif" xml:space="preserve">
@@ -80,18 +94,6 @@
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="143.37" y="512.85" font-size="12" fill="#000000" textLength="32.69" lengthAdjust="spacing">pause</tspan>
 </text>
-<polygon points="133.37,70.3 137.37,80.3 141.37,70.3 137.37,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="133.37,521.68 137.37,531.68 141.37,521.68 137.37,525.68" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="133.37,766.54 137.37,776.54 141.37,766.54 137.37,770.54" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="130.7,160.59 134.7,170.59 138.7,160.59 134.7,164.59" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="122.7,238.86 126.7,248.86 130.7,238.86 126.7,242.86" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="146.7,212.89 142.7,202.89 138.7,212.89 142.7,208.89" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="133.37,353.15 137.37,363.15 141.37,353.15 137.37,357.15" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="125.37,431.42 129.37,441.42 133.37,431.42 129.37,435.42" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="149.37,405.45 145.37,395.45 141.37,405.45 145.37,401.45" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="74.26,611.98 78.26,621.98 82.26,611.98 78.26,615.98" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="186.65,611.98 190.65,621.98 194.65,611.98 190.65,615.98" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="186.65,690.24 190.65,700.24 194.65,690.24 190.65,694.24" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="85.24" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="104.26" lengthAdjust="spacing">Keyboard locks</tspan>
 </text>

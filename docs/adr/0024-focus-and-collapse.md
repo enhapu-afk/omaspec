@@ -91,3 +91,31 @@ drawing, and comes and goes at once.
   a mind map's branch; a fold that the layout keeps in place (the boxes
   around close up); a focus that reaches further than one line; folds kept
   in the session.
+
+## Addendum (2026-11-09): the lines glide too
+
+When the boxes of a new picture glide to their places (`paper::morph`,
+2026-11-08), the lines left with the old picture and came back on their new
+routes once the boxes were nearly there: for a moment the diagram had no
+lines, and a fold read as two pictures rather than one that changes shape.
+
+Now the lines glide with the boxes. The engine draws the lines of a graph
+diagram, with the marks at their ends, in an SVG group of their own
+(`Layer::Lines`, `id="lines"`), and each `Wire` of the map carries its
+stroke and its marks as polygons. The worker parses a graph diagram twice,
+once as it is and once without that group (`omaspec_uml::without_lines`).
+A glide waits until both the old and the new picture without lines are
+rasterized (the old picture stays on screen meanwhile, as it does until the
+first raster), draws the boxes as before over those, and draws each line
+itself (`paper::wires`): a line in both pictures travels from its old route
+to its new one, resampled to the same number of points, its marks with it;
+a line that goes fades with the old picture, one that comes fades in with
+the new. A line is matched by its key, the names of its boxes; where a
+container folded, a box that left stands as the smallest box that stayed
+and held it, so the lines into what it held travel onto the folded box, and
+back out of it when it unfolds. A picture without lines that cannot be drawn
+lets the glide start as before, with the lines in the pictures. Headless
+snapshots `glide-start` and `glide` show a fold on its way.
+
+Not now: the words on the lines, which fade with the pictures; the sketch
+look, whose lines are drawn straight while they glide.
