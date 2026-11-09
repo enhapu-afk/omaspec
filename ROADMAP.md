@@ -1833,6 +1833,24 @@ its cards, and the zoom into a tile as one picture.
       (`pay\nnow [ok]` is the event `pay`), which the oracle's random changes
       had not hit until the new golden moved them on; a machine is held
       against the first lines now.
+- [ ] A mind map and a WBS drawn as themselves; the project's map a diagram
+      of its own (seen 2026-11-09 with the gallery's *A garden year* and
+      *Moving house*): every mind map and every WBS that is a file is drawn
+      in the map's look, *Map · 0 diagrams on it*, its boxes as labels from
+      the top down, also a lone file in no project (`Maps::of` takes any
+      place for a project), and an example opened in a window whose folder
+      is a project. The mind map loses its two sides, the WBS its boxes.
+      Only text without a place, from standard input, draws as PlantUML
+      draws it, which is what *a WBS or a mind map outside a project draws
+      as before* above promised. Wanted: a mind map and a WBS always draw
+      as themselves, and the map of a project is a diagram of its own that
+      only Omaspec builds, and only for a project made with `omaspec new`:
+      its context, to find one's way through its diagrams. To decide: what
+      tells that diagram from a WBS (the `main` of `omaspec-project.toml`,
+      or a block of its own); whether another tool should still draw the
+      file, as it draws `system.puml` as a WBS today; the maps inside maps
+      of a large project ([0018](docs/adr/0018-diagrams-that-link.md)); and
+      what becomes of the `system.puml` of the projects there are.
 - [ ] A zoom into a state as one picture: a state that has a diagram of its
       own shows no picture of it, so that diagram still comes with the veil
       on the last half of the way. To weigh: a small picture of it in the
@@ -1850,6 +1868,77 @@ its cards, and the zoom into a tile as one picture.
       to a diagram on no box, may cross a lane and may end next to a card's
       corner (`graph::route` takes the shortest way). To try: lanes between
       the rows for those too, and ends away from the corners.
+- [ ] The map's dashed curves around its cards: with more diagrams on no box
+      than one row holds (five and more), the curves from the root to the
+      cards of the second row run under the cards of the first, as the
+      arrows did (seen with seven diagrams, six of them on no box). To try:
+      the second row hangs from the first, or its curves run down between
+      the cards.
+- [ ] The words of an arrow between two cards next to each other: the pill
+      is wider (59 units for *plays*) than the room between the cards (40),
+      so it lies over both their edges. To weigh: more room between two
+      cards an arrow joins, or the words over the arrow's line only.
+- [ ] Several self-relations in an entity relationship diagram: Mermaid's
+      `PERSON ||--o{ PERSON : manages` with a second one on the same entity
+      draws both loops and their words on one another (`omaspec-uml/src/er.rs`
+      lays its own loops; `graph::loops` does not reach it).
+- [ ] A class diagram whose only lines lead back to their own class:
+      `class Node` with `Node --> Node : parent` is read as a sequence
+      diagram and not drawn (`--> Node : parent is not a name this diagram
+      draws`); with a second class and a line to it, it draws. The same for
+      PlantUML's `entity Person { … }` with only self-relations.
+- [ ] Self-loops beside one another: several loops around one another make a
+      box under which they sit as wide as their words (`left to right
+      direction`, three loops, one saying *refresh the cache*: a state of 70
+      units grew to 154). To
+      weigh for that direction: the loops in a row along the side, each with
+      its words below it.
+- [ ] Lines routed around boxes keep apart (belongs to *Even cleaner lines*):
+      `graph::route` knows the channels beside the boxes and the middle
+      between two of them, so several lines through one corridor lie 4 units
+      apart or on one another. Seen when all of a map's arrows were routed
+      that way; the lines between containers that open are routed so too.
+- [ ] A picture of a project's map in the README and the guide: none of them
+      shows one, while the announcement names the map (`docs/images/update.sh`).
+
+### Ideas after 0.9 (2026-11-09), not weighed yet
+
+Named when 0.9 was done; none is decided, and each needs its own look at
+what it costs and whom it serves ([0006](docs/adr/0006-goals-and-scope.md))
+before it becomes a step.
+
+- [ ] A diff as a glide: `omaspec diff` tells what changed in the behavior
+      as text. The glide of a changed layout (boxes and lines to their new
+      places) could show it: the old version glides into the new one, the
+      states that came fade in, those that went fade out. For the review of
+      a state machine, beside Compare.
+- [ ] A glide or a play as a picture that moves: a fold, a dive or a play
+      written as a GIF or an APNG, for a presentation or a pull request.
+      The frames are drawn headless already (`snapshot_dive`, `frames_`);
+      `docs/images/play.gif` is still cut from a screen recording by hand.
+- [ ] A color for one box: the skins color by kind, so every state of a
+      state machine is one color. A color the writer gives one state or
+      class with a click, kept in the source as its `#color`, as a line by
+      hand is kept.
+- [ ] A label moved to the other side of its line with the mouse, kept in
+      the block of lines by hand; and the label of the line the caret is on
+      lit.
+- [ ] The skins shown before one is chosen: the diagram at hand in each
+      pack, small, in the menu.
+- [ ] PlantUML's themes: `!theme` other than `plain` is declined (`the
+      preprocessor's !theme is not supported yet`). A few of the common
+      ones as swatches (`skin::Swatch`). Mermaid's `forest`, `dark` and
+      `neutral` are taken already.
+- [ ] A folded container that says what it holds: the lines into it
+      counted on its box (*3 transitions*), so a folded picture loses less.
+- [ ] The source over the diagram in a narrow window: the two panes stand
+      side by side whatever the window's width; under a tiling compositor a
+      window is often taller than wide.
+- [ ] Words spelled wrong: lint hints at a name close to another name of
+      the diagram already; a dictionary would find a misspelled word in a
+      label or a note. `hunspell` was installed on the Omarchy this was
+      looked at on, with no dictionary beside it, so one would have to be
+      asked for. Offline, and silent in a language without a dictionary.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 
