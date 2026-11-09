@@ -55,8 +55,14 @@ and neither PlantUML nor Mermaid has a way to write one down.
    same way. Two corners out of line get a corner between them. Its label
    is placed along it, clear of the boxes and the labels already there.
    Curves ([0011](0011-curved-lines.md)) and `linetype ortho` hold as
-   before, but a corner of a line by hand is rounded by at most 8 units, so
-   the line turns where the writer put the corner.
+   before: a corner of a line by hand curves like any corner the layout
+   laid, up to 48 units and no further than half of either run, so a line
+   dragged out of the layout keeps the look of the lines around it. The
+   handle marks where its two runs would meet; the curve passes inside
+   that corner. (Until 2026-11-08 a corner by hand was rounded by at most
+   16 units, so the line turned close by the handle; dragging a run then
+   turned a wide curve into a near right angle, which was not what a
+   writer moving a line wanted.)
 5. **What does not fit is said.** A corner inside one of the line's own
    boxes, or more than 1000 units off the diagram, is left out; a line by
    hand that runs through another box is drawn so, and said. The drawing

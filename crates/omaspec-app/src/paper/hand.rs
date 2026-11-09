@@ -448,8 +448,11 @@ impl canvas::Program<Message> for HandLayer<'_> {
                 return vec![frame.into_geometry()];
             }
             let path = wire.shaped(&self.hand.corners, self.map.fit);
+            // Curved as the picture will curve it, in the picture's units.
+            let curved =
+                omaspec_uml::curve::flatten(&path, omaspec_uml::curve::RADIUS * self.map.fit.sx);
             frame.stroke(
-                &line(&path),
+                &line(&curved),
                 Stroke::default().with_color(self.accent).with_width(2.0),
             );
             path

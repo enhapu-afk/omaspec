@@ -1039,6 +1039,12 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         `dot` does, so placement leaves room and a pair bends around its
         labels. A change to ranking, order and placement that moves most
         goldens with labels; its own ADR first.
+  - [x] Lines by hand curve like the layout's (2026-11-08): a corner the
+        writer placed was rounded by at most 16 units, so a run dragged
+        out of the layout turned a wide curve into a near right angle; now
+        it curves as any corner does ([0016](docs/adr/0016-lines-by-hand.md)
+        point 4), and the drag preview in the pane curves the same way
+        instead of drawing the runs straight. Two Mermaid goldens changed.
 
 ### After the code review (2026-11-01)
 
