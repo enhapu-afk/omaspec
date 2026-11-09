@@ -973,6 +973,15 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         keeps off every other box and other line. Jogs 39 → 1, bends
         479 → 403; 2 PlantUML and 8 Mermaid goldens changed, looked at
         side by side.
+  - [x] Words off the curves (2026-11-09): a label sat at the top of its
+        rank beside the straight run of its line, where the curve of the
+        corner above, up to 48 units long, cut its first letter. `tests/lines`
+        now measures words against the lines as drawn (5 cut, 0 before, since
+        it measured the straight runs); `label_beside` moves the label along
+        the run until the curve stays its gap off, and on a run too short for
+        that sets it in the middle, off the line by what the curve reaches.
+        5 cut → 0; 5 PlantUML and 1 Mermaid goldens changed, looked at side
+        by side.
   - [x] One step where there were several (2026-11-09): a line through
         several ranks stepped aside in every gap, as far as the point it
         passed through there sat off the one before, three small steps

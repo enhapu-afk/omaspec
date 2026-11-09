@@ -28,13 +28,13 @@
 <tspan x="253.03" y="18.99" font-size="14" fill="#000000" textLength="59.14" lengthAdjust="spacing">Shipment</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="100.4" y="65.43" font-size="12" fill="#000000" textLength="34.68" lengthAdjust="spacing">places</tspan>
+<tspan x="100.4" y="67.83" font-size="12" fill="#000000" textLength="34.68" lengthAdjust="spacing">places</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="159.08" y="65.43" font-size="12" fill="#000000" textLength="20.66" lengthAdjust="spacing">bills</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="186.49" y="65.43" font-size="12" fill="#000000" textLength="41.34" lengthAdjust="spacing">delivers</tspan>
+<tspan x="186.49" y="79.33" font-size="12" fill="#000000" textLength="41.34" lengthAdjust="spacing">delivers</tspan>
 </text>
 </g>
 </g>

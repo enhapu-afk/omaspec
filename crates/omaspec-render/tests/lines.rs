@@ -185,10 +185,11 @@ fn measure(wires: &[Wire]) -> Count {
             }
         }
     }
-    // Words a line runs through, its own too: no drawer measured here sets
-    // them on a background. Or words on other words or on a box the lines
-    // join, but for one around an end of their line (a nested state, a
-    // package) that holds them whole.
+    // Words a line runs through, its own too, as the line is drawn: a
+    // curve at a corner reaches where the straight run did not. No drawer
+    // measured here sets words on a background. Or words on other words or
+    // on a box the lines join, but for one around an end of their line (a
+    // nested state, a package) that holds them whole.
     let mut ends: Vec<Rect> = Vec::new();
     for wire in wires {
         for rect in [wire.from.rect, wire.to.rect] {
@@ -210,7 +211,7 @@ fn measure(wires: &[Wire]) -> Count {
         };
         let cut = wires
             .iter()
-            .any(|other| other.path.windows(2).any(|s| through(s[0], s[1], shrunk)));
+            .any(|other| other.points.windows(2).any(|s| through(s[0], s[1], shrunk)));
         let around = |r: Rect| {
             contains(r, label)
                 && [wire.from.rect, wire.to.rect]

@@ -95,7 +95,13 @@ pub(super) fn label_sides(
 }
 
 /// Where a label lies in the room its line took in a rank: beside the run
-/// of the line through that rank, on its side.
+/// of the line through that rank, on its side, and along the straight part
+/// of that run. Drawn, the run's corners turn in curves of up to
+/// [`crate::curve::RADIUS`], and a curve that turns toward the label's side
+/// reaches into the rank: the label moves along the run until the curve
+/// stays [`LABEL_GAP`] off it, as far as the run allows; where the run is
+/// too short for that, the label sits in the run's middle and moves off
+/// the line by what the curve still reaches.
 pub(super) fn label_beside(
     points: &[(f32, f32)],
     slot: &Slot,
@@ -103,27 +109,132 @@ pub(super) fn label_beside(
     flip: bool,
     direction: Direction,
 ) -> (f32, f32) {
+    let along = |p: (f32, f32)| match direction {
+        Direction::Down => p.1,
+        Direction::Right => p.0,
+    };
+    let across = |p: (f32, f32)| match direction {
+        Direction::Down => p.0,
+        Direction::Right => p.1,
+    };
+    let (label_across, label_along) = match direction {
+        Direction::Down => (edge.label_width, edge.label_height),
+        Direction::Right => (edge.label_height, edge.label_width),
+    };
+    // The label's side of the line, across the flow.
+    let side = match (direction, flip) {
+        (Direction::Down, false) | (Direction::Right, true) => 1.0,
+        (Direction::Down, true) | (Direction::Right, false) => -1.0,
+    };
+    let gap = match direction {
+        Direction::Down => LABEL_GAP[0],
+        Direction::Right => LABEL_GAP[1],
+    };
     let middle = slot.primary + slot.box_along / 2.0;
-    // Across the flow, where the line runs through the rank.
-    let run = points.windows(2).find_map(|pair| {
+    // The run through the rank, by its first point.
+    let run = points.windows(2).position(|pair| {
         let (a, b) = (pair[0], pair[1]);
-        match direction {
-            Direction::Down => {
-                ((a.0 - b.0).abs() < 0.01 && a.1.min(b.1) <= middle && middle <= a.1.max(b.1))
-                    .then_some(a.0)
-            }
-            Direction::Right => {
-                ((a.1 - b.1).abs() < 0.01 && a.0.min(b.0) <= middle && middle <= a.0.max(b.0))
-                    .then_some(a.1)
-            }
-        }
+        (across(a) - across(b)).abs() < 0.01
+            && along(a).min(along(b)) <= middle
+            && middle <= along(a).max(along(b))
     });
-    let line = run.unwrap_or_else(|| center(slot));
-    match (direction, flip) {
-        (Direction::Down, false) => (line + LABEL_GAP[0], slot.primary),
-        (Direction::Down, true) => (line - LABEL_GAP[0] - edge.label_width, slot.primary),
-        (Direction::Right, false) => (slot.primary, line - LABEL_GAP[1] - edge.label_height),
-        (Direction::Right, true) => (slot.primary, line + LABEL_GAP[1]),
+    let Some(k) = run else {
+        return put(
+            center(slot),
+            slot.primary,
+            side,
+            gap,
+            label_across,
+            direction,
+        );
+    };
+    let line = across(points[k]);
+    // The run's ends in the flow's order, and the point past each corner.
+    let (near, far, past_near, past_far) = if along(points[k]) <= along(points[k + 1]) {
+        (
+            k,
+            k + 1,
+            k.checked_sub(1),
+            (k + 2 < points.len()).then_some(k + 2),
+        )
+    } else {
+        (
+            k + 1,
+            k,
+            (k + 2 < points.len()).then_some(k + 2),
+            k.checked_sub(1),
+        )
+    };
+    // How far the label keeps from a corner so the curve there stays
+    // `gap` off it: nothing where the line turns away from the label's
+    // side, or where the run ends on a box.
+    let keeps = |corner: usize, past: Option<usize>| -> (f32, f32) {
+        let Some(past) = past else {
+            return (0.0, 0.0);
+        };
+        let turn = across(points[past]) - line;
+        if turn * side <= 0.01 {
+            return (0.0, 0.0);
+        }
+        let r = crate::curve::radius_at(points, corner);
+        let clear = (gap - 1.0).max(0.0);
+        if r <= clear {
+            return (0.0, r);
+        }
+        (r - (2.0 * r * clear - clear * clear).sqrt(), r)
+    };
+    let (keep_near, r_near) = keeps(near, past_near);
+    let (keep_far, r_far) = keeps(far, past_far);
+    if keep_near <= 0.0 && keep_far <= 0.0 {
+        return put(line, slot.primary, side, gap, label_across, direction);
+    }
+    let (start, end) = (along(points[near]), along(points[far]));
+    let (lo, hi) = (start + keep_near, end - keep_far - label_along);
+    if lo <= hi {
+        return put(
+            line,
+            slot.primary.clamp(lo, hi),
+            side,
+            gap,
+            label_across,
+            direction,
+        );
+    }
+    // Too short a run: in its middle, off the line by what the curves
+    // reach at the label's nearest rows.
+    let at = ((start + end) / 2.0 - label_along / 2.0).max(start);
+    let reach = |r: f32, d: f32| {
+        if d >= r || r <= 0.0 {
+            0.0
+        } else {
+            r - (r * r - (r - d) * (r - d)).sqrt()
+        }
+    };
+    let into = reach(r_near, (at - start).max(0.0))
+        .max(reach(r_far, (end - at - label_along).max(0.0)))
+        .min(r_near.max(r_far));
+    let off = (into - (gap - 1.0)).max(0.0);
+    put(line, at, side, gap + off, label_across, direction)
+}
+
+/// The top left of a label `gap` off a line at `line` across the flow, on
+/// `side` of it, at `at` along the flow.
+fn put(
+    line: f32,
+    at: f32,
+    side: f32,
+    gap: f32,
+    label_across: f32,
+    direction: Direction,
+) -> (f32, f32) {
+    let across = if side > 0.0 {
+        line + gap
+    } else {
+        line - gap - label_across
+    };
+    match direction {
+        Direction::Down => (across, at),
+        Direction::Right => (at, across),
     }
 }
 
@@ -362,4 +473,84 @@ pub(super) fn rank_gaps(counts: &[usize], into_box: &[bool]) -> Vec<f32> {
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn slot(primary: f32, box_along: f32) -> Slot {
+        Slot {
+            real: None,
+            box_cross: 0.0,
+            box_along,
+            before: 0.0,
+            pack_cross: 0.0,
+            preds: Vec::new(),
+            succs: Vec::new(),
+            cross: 100.0,
+            primary,
+            anchor: None,
+            meets: None,
+        }
+    }
+
+    fn edge(label_height: f32) -> Edge {
+        Edge {
+            from: 0,
+            to: 1,
+            label_width: 40.0,
+            label_height,
+            hidden: false,
+            apart: false,
+            marked: false,
+            arrival: 0,
+        }
+    }
+
+    /// Down from a box, left to the run through the rank, down into the
+    /// next box: the curve of the corner above the run lies on its right,
+    /// between the run and where the line came from.
+    const LINE: [(f32, f32); 4] = [(160.0, 0.0), (160.0, 88.0), (100.0, 88.0), (100.0, 200.0)];
+
+    #[test]
+    fn a_label_moves_along_its_run_out_of_the_curve() {
+        // The label's rank starts 12 under the corner, where the curve
+        // still bulges to the right; on the left the line turns away.
+        let rank = slot(100.0, 14.0);
+        let left = label_beside(&LINE, &rank, &edge(14.0), true, Direction::Down);
+        assert_eq!(left, (100.0 - LABEL_GAP[0] - 40.0, 100.0));
+        let right = label_beside(&LINE, &rank, &edge(14.0), false, Direction::Down);
+        assert_eq!(right.0, 100.0 + LABEL_GAP[0]);
+        assert!(right.1 > 100.0 && right.1 < 140.0, "{right:?}");
+        // Down there the curve is `LABEL_GAP` off the label's edge.
+        let r = crate::curve::radius_at(&LINE, 2);
+        let d = right.1 - 88.0;
+        let reach = r - (r * r - (r - d) * (r - d)).sqrt();
+        assert!((reach - (LABEL_GAP[0] - 1.0)).abs() < 0.01, "{reach}");
+    }
+
+    #[test]
+    fn a_short_run_puts_the_label_at_its_start_off_the_line() {
+        // A run of 24 between two corners whose curves both lie on the
+        // right, and a label taller than the run.
+        let line = [
+            (160.0, 0.0),
+            (160.0, 60.0),
+            (100.0, 60.0),
+            (100.0, 84.0),
+            (160.0, 84.0),
+            (160.0, 200.0),
+        ];
+        let rank = slot(62.0, 30.0);
+        let right = label_beside(&line, &rank, &edge(30.0), false, Direction::Down);
+        assert!((right.1 - 60.0).abs() < 0.01, "{right:?}");
+        assert!(
+            right.0 > 100.0 + LABEL_GAP[0] + 5.0,
+            "off the line by what the curve reaches: {right:?}"
+        );
+        // Turning away on the left: where it was.
+        let left = label_beside(&line, &rank, &edge(30.0), true, Direction::Down);
+        assert_eq!(left, (100.0 - LABEL_GAP[0] - 40.0, 62.0));
+    }
 }

@@ -174,3 +174,14 @@ after.
 - Open: the labels of lines between containers laid out on their own,
   which `graph::across` routes after placement; the jog in
   `state-loops.mmd`; the length of `flow-subgraph-direction.mmd`.
+
+
+## Addendum (2026-11-09): off the curves
+
+Drawn, a line's corners turn in curves of up to 48 units (`curve::RADIUS`),
+and a label at the top of its rank sat where the curve of the corner above
+still reached: its first letter was cut. `doubled::label_beside` now moves
+the label along the straight run through its rank until the curve on its
+side stays the label's gap off it, and on a run too short for that sets it
+in the run's middle, off the line by what the curve reaches there.
+`tests/lines` measures words against the lines as drawn since.

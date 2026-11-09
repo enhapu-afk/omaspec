@@ -129,7 +129,7 @@
 <tspan x="372.34" y="810.25" font-size="14" fill="#0F172A" textLength="31.14" lengthAdjust="spacing">done</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="416.66" y="810.25" font-size="14" fill="#0F172A" textLength="33.46" lengthAdjust="spacing">failed</tspan>
+<tspan x="416.66" y="824.74" font-size="14" fill="#0F172A" textLength="33.46" lengthAdjust="spacing">failed</tspan>
 </text>
 </g>
 </g>

@@ -40,6 +40,29 @@ struct Bend {
     to: Point,
 }
 
+/// How far the curve of the corner at `points[i]` reaches along each of
+/// its runs, drawn with [`RADIUS`]: a run between two corners is shared,
+/// the first and the last belong to one corner each; zero at an end and
+/// where the line runs straight on.
+pub fn radius_at(points: &[Point], i: usize) -> f32 {
+    let last = points.len().saturating_sub(1);
+    if i == 0 || i >= last {
+        return 0.0;
+    }
+    let (a, p, b) = (points[i - 1], points[i], points[i + 1]);
+    let (before, after) = (dist(a, p), dist(p, b));
+    if before < 0.01 || after < 0.01 {
+        return 0.0;
+    }
+    let (u, v) = (unit(a, p), unit(p, b));
+    if (u.0 * v.0 + u.1 * v.1) > 0.999 {
+        return 0.0;
+    }
+    let room_before = if i == 1 { before } else { before / 2.0 };
+    let room_after = if i + 1 == last { after } else { after / 2.0 };
+    RADIUS.min(room_before).min(room_after)
+}
+
 /// The corners of `points` rounded by up to `radius`. Straight joins and
 /// corners too short to round are left out.
 fn bends(points: &[Point], radius: f32) -> Vec<Option<Bend>> {
