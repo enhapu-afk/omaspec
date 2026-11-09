@@ -1175,7 +1175,8 @@ diagram ends close up and then jumps out. So the goals gain one, **Scales**
 plain files that carry their source: no server, no account, no format of Omaspec's
 own ([0005](docs/adr/0005-offline-no-telemetry.md)). Each step says how it is
 checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
-0.8.0 on 2026-11-05.
+0.8.0 on 2026-11-05, 0.9 as 0.9.0 on 2026-11-09 with everything under *Since
+0.8.0*, the menus, the colored skins and the cleaner lines of that week.
 
 ### Step 0: the yardstick
 

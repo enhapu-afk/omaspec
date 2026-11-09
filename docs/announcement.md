@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.5.0: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.9.0: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -27,36 +27,49 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   The editor plays the trace in the diagram, line by line.
 - **What changed in the behavior.** `omaspec diff` compares two versions, or a file
   with its last commit, by states, transitions and messages, not by lines; layout and
-  colors do not count.
+  colors do not count. `omaspec render --format text` writes a diagram as its behavior,
+  one fact a line, for an agent or a terminal that shows no pictures.
 - **Write it in the other language.** `omaspec convert` turns a PlantUML machine or
   scenario into Mermaid and back, and only when the result means the same.
 - **For AI agents.** `omaspec mcp` is an MCP server with the command line's tools:
   lint, trace, diff, convert, format, render and more.
 
-## New in 0.5
+## New in 0.9: a layout you can steer
 
-- **Projects.** `omaspec new shop`, or *New project* in the editor, makes a folder with
-  `omaspec-project.toml`, a map of the project and a first state machine; git if you
-  like. Every diagram below the file is checked against the whole project, however it
-  was opened.
-- **Diagrams that link.** A state links to the diagram of its name: click it and the
-  view zooms in, Alt+Left zooms back out, and a trail over the diagram shows the way.
-  A specification reads from the whole system down to a single step.
-- **The project's map.** A mind map or WBS in a project shows each diagram it names as
-  a tile with that diagram's picture, dashed arrows where diagrams link to each other,
-  and below it the diagrams not on the map yet. A click on a tile opens the diagram.
-- **Lines by hand.** With Alt, drag a line of a state, class, component or flowchart
-  diagram to shape it yourself; the shape is kept in the file as a comment every other tool
-  ignores, and stretches with the diagram when it changes.
+- **Lines by hand.** Hold Alt and drag a line of a state, class, component or flowchart
+  diagram, or a bend in it, to route it yourself. The shape is kept in the file as a
+  comment every other tool ignores, stretches with the diagram when it changes, and
+  curves as wide as the layout's own lines.
+- **Boxes held in place.** Drag a box to where it should stay, beside another; the layout
+  keeps it there, in the file the same way.
+- **Fold and focus.** A composite state, a package or a subgraph folds to its box with a
+  click; the boxes glide to their new places and the lines glide with them. Shift and a
+  click puts a box in focus: a veil over the rest, the box, its neighbors and their lines
+  come through.
+- **Cleaner lines.** A line through several ranks steps aside once instead of in every
+  gap, labels keep clear of the curves, and lines that end at one box share a trunk,
+  as Graphviz's `concentrate` does.
+- **Skins with color.** The sketch pack draws by hand in pastel colors on warm paper, the
+  new vivid pack colors by kind (blue boxes, violet interfaces, pink decisions, green
+  stores, amber actors, yellow notes), presentation draws in one blue, plain in black on
+  white. A pack is a few lines in the file, so the look travels with it.
+- **Menus for the mouse.** The right mouse button opens a context menu over the diagram
+  and the editor, a tap on Alt shows a menu bar, and a small toolbar sits over the
+  diagram; every entry shows its shortcut.
+- **Smoother to use.** Ctrl+click in the diagram puts the caret on the word, the light
+  on the name under the caret travels to its next place, and a play's light runs along
+  each arrow as one stroke.
 
 ## The editor
 
-- Lint findings while you type; outline; Ctrl+click in the diagram jumps to the line.
-- Compare a diagram with another tab or with any git commit, as pictures or changed lines.
+- Lint findings while you type; outline; Ctrl+click in the diagram jumps to the word.
+- Compare a diagram with another tab or with any git commit, as pictures or changed lines;
+  a project's history by what changed in the behavior.
 - The diagram in its own window for a second monitor; a preview window for Neovim users.
 - Follows `omarchy theme` and `omarchy font set` live; a Hyprland binding, a menu entry
   and themed colors included.
-- Exports SVG, PNG and PDF with the source inside, so an image opens as a diagram again.
+- Exports SVG, PNG and PDF with the source inside, so an image opens as a diagram again;
+  a whole project as linked SVGs and a ZIP anyone can open in a browser.
 - 24 examples to start from (Ctrl+Shift+E), and every command in a palette
   (Ctrl+Shift+P).
 
@@ -98,17 +111,15 @@ walks you through a state machine, a scenario and a recorded trace in ten minute
 
 ## What's next
 
-- **Lines by hand.** Drag a line in the diagram, or a bend in it, to route it yourself;
-  the diagram keeps your route.
-- **Diagrams that link.** Click a state and the view zooms into it: inside is the
-  activity diagram that says what the state does. A specification you can read from the
-  whole system down to a single step.
-- **Even cleaner lines.** Fewer crossings and detours, lines that keep clear of frames and
-  labels, closer to what Graphviz draws.
+- **Windows.** The engine and the binary already build for it; the clipboard, the font
+  and the palette without Omarchy come next.
+- **Even cleaner lines.** Labels of lines between closed containers, fewer crossings where
+  frames set the order.
+- **The AUR**, as soon as it takes new accounts.
 
 ## Status
 
 Omaspec is young: well tested (unit and golden tests, a comparison with the Java
-PlantUML, fuzzing), but little used outside its tests so far, so you will find rough
-edges. Issues, diagrams it draws wrong, and wishes are very welcome:
-https://github.com/enhapu-afk/omaspec/issues
+PlantUML, fuzzing, a measure of how clean the lines are), but little used outside its
+tests so far, so you will find rough edges. Issues, diagrams it draws wrong, and wishes
+are very welcome: https://github.com/enhapu-afk/omaspec/issues
