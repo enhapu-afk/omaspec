@@ -71,7 +71,7 @@ pub fn try_draw(
     // Boxes held in place, by the container that holds both.
     let mut unplaced = hold_boxes(&mut tree, held);
     unplaced.extend(part_boxes(&mut tree, &hand::apart(source)));
-    let palette = palette(theme)?;
+    let palette = palette(theme, source)?;
     let family = Family::of(&theme.font_family);
     let mut scene = layout_spot(&tree, Spot::Root, &palette, family)?;
     nest::link_crossings(&tree, &mut scene, &palette, family)?;
@@ -843,7 +843,11 @@ fn measure_leaf(tree: &Tree, id: &str, palette: &Palette, family: Family) -> Opt
     let node = tree.graph.nodes.get(id)?;
     let kind = *tree.kinds.get(id)?;
     let style = styled_node(tree.graph, id);
-    let look = look_for(&style, palette.fill, palette.border, palette.text)?;
+    let (fill, border) = match kind {
+        Kind::Node(shape) => palette.of(shape),
+        Kind::Cluster => (palette.fill, palette.border),
+    };
+    let look = look_for(&style, fill, border, palette.text)?;
     let (title, description, width, height) = match kind {
         Kind::Node(shape) => {
             let font = Font::new(palette.size, look.text);

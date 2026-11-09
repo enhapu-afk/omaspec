@@ -5,6 +5,8 @@ use mermaid_rs_renderer::ir::{EdgeStyleOverride, NodeStyle};
 use mermaid_rs_renderer::{EdgeStyle, Graph, Theme};
 use omaspec_uml::{Color, Paint, Stroke, parse_color};
 
+use super::shape::Shape;
+
 pub(super) struct Palette {
     pub size: f32,
     pub fill: Paint,
@@ -14,14 +16,51 @@ pub(super) struct Palette {
     pub background: Color,
     pub cluster_fill: Paint,
     pub cluster_border: Color,
+    /// Fill and border of the decisions (diamonds, hexagons), the
+    /// terminals (stadiums, circles) and the stores (cylinders), when a
+    /// skin pack colors the shapes by kind; else they take the nodes'.
+    pub decision: Option<(Paint, Color)>,
+    pub terminal: Option<(Paint, Color)>,
+    pub store: Option<(Paint, Color)>,
 }
 
-pub(super) fn palette(theme: &Theme) -> Option<Palette> {
+/// The colors of `theme`, and, with a skin pack in `source`, the colors
+/// of its shapes by kind: Mermaid's own theme knows one color for every
+/// node, so a pack's `secondaryColor` is the decisions', `tertiaryColor`
+/// the stores' and `actorBkg` the terminals', with their borders.
+pub(super) fn palette(theme: &Theme, source: &str) -> Option<Palette> {
     let fill = must_color(&theme.primary_color)?;
     let text = must_color(&theme.primary_text_color)?;
     let border = must_color(&theme.primary_border_color)?;
     let line = must_color(&theme.line_color)?;
     let background = must_color(&theme.background)?;
+    let packed = omaspec_core::skin::current(source).is_some();
+    let init = packed
+        .then(|| super::super::head::init(source).ok().flatten())
+        .flatten();
+    let variable = |name: &str| {
+        init.as_ref()?
+            .get("themeVariables")?
+            .get(name)?
+            .as_str()
+            .and_then(must_color)
+    };
+    let kind = |fill: &str, border_of: Option<Color>| {
+        let fill = must_color(fill)?;
+        Some((Some(fill), border_of.unwrap_or(border)))
+    };
+    let (decision, terminal, store) = if packed {
+        (
+            kind(&theme.secondary_color, variable("secondaryBorderColor")),
+            kind(
+                &theme.sequence_actor_fill,
+                must_color(&theme.sequence_actor_border),
+            ),
+            kind(&theme.tertiary_color, variable("tertiaryBorderColor")),
+        )
+    } else {
+        (None, None, None)
+    };
     // A cluster color mmdr stores as `rgba(...)` cannot be read. The frame
     // then uses the state colors; the diagram is still drawn.
     Some(Palette {
@@ -33,7 +72,23 @@ pub(super) fn palette(theme: &Theme) -> Option<Palette> {
         background,
         cluster_fill: Some(must_color(&theme.cluster_background).unwrap_or(fill)),
         cluster_border: must_color(&theme.cluster_border).unwrap_or(border),
+        decision,
+        terminal,
+        store,
     })
+}
+
+impl Palette {
+    /// The fill and the border of a node of `shape`.
+    pub fn of(&self, shape: Shape) -> (Paint, Color) {
+        let own = match shape {
+            Shape::Diamond | Shape::Hexagon => self.decision,
+            Shape::Stadium | Shape::Circle | Shape::DoubleCircle => self.terminal,
+            Shape::Cylinder => self.store,
+            _ => None,
+        };
+        own.unwrap_or((self.fill, self.border))
+    }
 }
 
 enum Ink {

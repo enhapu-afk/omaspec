@@ -15,7 +15,7 @@ pub(super) fn laid(source: &str) -> Scene {
     let (graph, fix) = super::flowchart::apply(&graph, source, &mut repaired).unwrap();
     let theme = RenderOptions::default().theme;
     let tree = prepare(graph, source, &fix).unwrap();
-    let palette = palette(&theme).unwrap();
+    let palette = palette(&theme, source).unwrap();
     let family = Family::of(&theme.font_family);
     let mut scene = layout_spot(&tree, Spot::Root, &palette, family).unwrap();
     nest::link_crossings(&tree, &mut scene, &palette, family).unwrap();

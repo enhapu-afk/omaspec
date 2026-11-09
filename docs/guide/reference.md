@@ -182,8 +182,11 @@ violet interfaces, pink choices, green databases and queues, amber actors and
 participants, yellow notes, slate lines. The Omarchy pack writes the active theme's
 colors in.
 
+In a Mermaid flowchart the packs color the shapes by kind too: decisions, terminals
+(stadiums and circles) and cylinders apart from the boxes, which Mermaid itself does not.
+
 The sketch pack draws the diagram by hand, in pastel colors on warm paper (light blue
-boxes, orange actors, green stores, yellow notes, dark ink): `skinparam handwritten true` in PlantUML,
+boxes, orange actors, rose decisions, green stores, yellow notes, dark ink): `skinparam handwritten true` in PlantUML,
 `look: handDrawn` in Mermaid (in `%%{init}%%`, or in the front matter's `config`), the
 way both languages already ask for it. Every line, border and fill is drawn by hand, a
 little bowed, and a card that had no border gains a light rim. A label's ground and a

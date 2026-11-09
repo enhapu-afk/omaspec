@@ -196,6 +196,50 @@ fn a_line_may_end_on_a_subgraph() {
     );
 }
 
+/// Mermaid colors every node alike; a skin pack colors the shapes by
+/// kind: decisions, terminals and stores apart from the boxes, from the
+/// theme's secondary, actor and tertiary colors with their borders.
+#[test]
+fn a_skin_pack_colors_the_shapes_by_kind() {
+    use super::super::look::palette;
+    let mut theme = RenderOptions::default().theme;
+    theme.primary_color = "#dbeafe".into();
+    theme.primary_border_color = "#2563eb".into();
+    theme.secondary_color = "#fce7f3".into();
+    theme.tertiary_color = "#dcfce7".into();
+    theme.sequence_actor_fill = "#fef3c7".into();
+    theme.sequence_actor_border = "#b45309".into();
+    let code = "flowchart TD\n  A([Start]) --> B{Choice?}\n  C[Work] --> D[(Store)]\n";
+    // Without a pack: one color, as Mermaid draws.
+    let plain = palette(&theme, code).unwrap();
+    for shape in [Shape::Stadium, Shape::Diamond, Shape::Cylinder, Shape::Rect] {
+        assert_eq!(plain.of(shape), (plain.fill, plain.border));
+    }
+    // With a pack: by kind, the borders from the init where it has them.
+    let packed = format!(
+        "%% skin: vivid (Omaspec)\n%%{{init: {{\"themeVariables\": {{\"secondaryBorderColor\": \"#db2777\", \"tertiaryBorderColor\": \"#16a34a\"}}}}}}%%\n{code}"
+    );
+    let vivid = palette(&theme, &packed).unwrap();
+    let hex = |paint: omaspec_uml::Paint| format!("{}", paint.unwrap()).to_ascii_lowercase();
+    let (fill, border) = vivid.of(Shape::Diamond);
+    assert_eq!(
+        (hex(fill), format!("{border}").to_ascii_lowercase()),
+        ("#fce7f3".into(), "#db2777".into())
+    );
+    let (fill, border) = vivid.of(Shape::Cylinder);
+    assert_eq!(
+        (hex(fill), format!("{border}").to_ascii_lowercase()),
+        ("#dcfce7".into(), "#16a34a".into())
+    );
+    let (fill, border) = vivid.of(Shape::Stadium);
+    assert_eq!(
+        (hex(fill), format!("{border}").to_ascii_lowercase()),
+        ("#fef3c7".into(), "#b45309".into())
+    );
+    assert_eq!(vivid.of(Shape::Rect), (vivid.fill, vivid.border));
+    assert_eq!(vivid.of(Shape::Hexagon), vivid.of(Shape::Diamond));
+}
+
 #[test]
 fn ends_are_arrows_circles_crosses_or_nothing() {
     let scene = laid("flowchart LR\nA --> B\nB --o C\nC --x D\nD --- E\nE <--> F\n");

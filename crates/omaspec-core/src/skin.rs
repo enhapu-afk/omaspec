@@ -97,7 +97,7 @@ const SKETCH: Swatch = Swatch {
     muted: "#6C757D",
     boxes: ("#D0EBFF", "#1E1E1E"),
     interface: ("#E5DBFF", "#1E1E1E"),
-    diamond: ("#FFE8CC", "#1E1E1E"),
+    diamond: ("#FFD6E7", "#1E1E1E"),
     containers: ("#F8F9FA", "#1E1E1E"),
     people: ("#FFE8CC", "#1E1E1E"),
     stores: ("#D3F9D8", "#1E1E1E"),
@@ -208,17 +208,22 @@ fn painted(s: &Swatch) -> Vec<String> {
     lines
 }
 
-/// The Mermaid theme variables that paint a swatch.
+/// The Mermaid theme variables that paint a swatch. Mermaid colors every
+/// node of a flowchart alike; Omaspec's drawer takes `secondaryColor` for
+/// the decisions, `tertiaryColor` for the stores and `actorBkg` for the
+/// terminals when a pack is in the file.
 fn mermaid_painted(s: &Swatch) -> String {
     format!(
-        r#""theme": "base", "themeVariables": {{"background": "{paper}", "primaryColor": "{fill}", "primaryTextColor": "{text}", "primaryBorderColor": "{border}", "lineColor": "{line}", "secondaryColor": "{interface}", "tertiaryColor": "{stores}", "textColor": "{text}", "clusterBkg": "{cluster}", "clusterBorder": "{cluster_border}", "edgeLabelBackground": "{paper}", "actorBkg": "{people}", "actorBorder": "{people_border}", "actorLine": "{muted}", "noteBkg": "{note}", "noteBorderColor": "{note_border}"}}"#,
+        r#""theme": "base", "themeVariables": {{"background": "{paper}", "primaryColor": "{fill}", "primaryTextColor": "{text}", "primaryBorderColor": "{border}", "lineColor": "{line}", "secondaryColor": "{decision}", "secondaryBorderColor": "{decision_border}", "tertiaryColor": "{stores}", "tertiaryBorderColor": "{stores_border}", "textColor": "{text}", "clusterBkg": "{cluster}", "clusterBorder": "{cluster_border}", "edgeLabelBackground": "{paper}", "actorBkg": "{people}", "actorBorder": "{people_border}", "actorLine": "{muted}", "noteBkg": "{note}", "noteBorderColor": "{note_border}"}}"#,
         paper = s.paper,
         fill = s.boxes.0,
         text = s.text,
         border = s.boxes.1,
         line = s.line,
-        interface = s.interface.0,
+        decision = s.diamond.0,
+        decision_border = s.diamond.1,
         stores = s.stores.0,
+        stores_border = s.stores.1,
         cluster = s.containers.0,
         cluster_border = s.containers.1,
         people = s.people.0,
