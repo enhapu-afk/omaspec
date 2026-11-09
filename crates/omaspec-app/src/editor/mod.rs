@@ -801,8 +801,11 @@ struct App {
     gallery: Option<gallery::Gallery>,
     /// The pictures of its tiles, kept for the next time.
     thumbs: gallery::Thumbs,
-    /// The editor window's size, which sets how many tiles fit in a row.
+    /// The editor window's size, which sets how many tiles fit in a row,
+    /// and whether the diagram stands below the source rather than beside
+    /// it ([`stacked`]).
     main_size: Size,
+    stacked: bool,
     detached_size: Size,
     /// The menu open in one of the windows (docs/adr/0025).
     menu: Option<menu::Open>,
@@ -901,7 +904,8 @@ impl App {
             palette,
             look,
             font,
-            panes: layout(session.sidebar, true),
+            panes: layout(session.sidebar, true, false),
+            stacked: false,
             focus: Pane::Source,
             paper_size: Size::ZERO,
             main,
@@ -1321,6 +1325,7 @@ impl App {
                 if window == self.main {
                     self.main_size = size;
                     self.gallery_resized();
+                    self.restack();
                 }
                 Task::none()
             }
@@ -2518,15 +2523,16 @@ fn blur() -> Task<Message> {
     iced::advanced::widget::operate(iced::advanced::widget::operation::focusable::unfocus())
 }
 
-/// The project tree left of the source, the diagram on the right. Without
-/// the diagram (in its own window) the other areas take the whole width.
-/// Without the sidebar, source and diagram share it.
+/// The project tree left of the source, the diagram on the right, or
+/// below the source when `stacked`. Without the diagram (in its own
+/// window) the other areas take the whole width. Without the sidebar,
+/// source and diagram share it.
 /// The icons in the colors the window draws them in, at its `scale`.
 fn icons_for(p: &Palette, scale: f32) -> Icons {
     Icons::new(&[p.accent, p.magenta, ui::quiet(p), p.foreground], scale)
 }
 
-fn layout(sidebar: bool, diagram: bool) -> pane_grid::State<Pane> {
+fn layout(sidebar: bool, diagram: bool, stacked: bool) -> pane_grid::State<Pane> {
     use pane_grid::Configuration;
     let source = Configuration::Pane(Pane::Source);
     let left = if sidebar {
@@ -2547,11 +2553,21 @@ fn layout(sidebar: bool, diagram: bool) -> pane_grid::State<Pane> {
         return pane_grid::State::with_configuration(left);
     }
     pane_grid::State::with_configuration(Configuration::Split {
-        axis: pane_grid::Axis::Vertical,
+        axis: if stacked {
+            pane_grid::Axis::Horizontal
+        } else {
+            pane_grid::Axis::Vertical
+        },
         ratio: 0.5,
         a: Box::new(left),
         b: Box::new(Configuration::Pane(Pane::Diagram)),
     })
+}
+
+/// Whether a window of `size` is one for the diagram below the source: a
+/// window taller than wide, as a tiling compositor often gives.
+fn stacked(size: Size) -> bool {
+    size.height > size.width
 }
 
 /// The working directory as the folder, unless it is the home folder or

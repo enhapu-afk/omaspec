@@ -2732,6 +2732,34 @@ fn retype(app: &mut App, text: &str, language: Language) {
 
 /// Moves the line between the source and the diagram to `ratio` of the
 /// window, as dragging it would.
+#[test]
+fn a_window_taller_than_wide_puts_the_diagram_below_the_source() {
+    let mut app = open(&[]);
+    let main = app.main;
+    let axis = |app: &App| match app.panes.layout() {
+        iced::widget::pane_grid::Node::Split { axis, .. } => Some(*axis),
+        iced::widget::pane_grid::Node::Pane(_) => None,
+    };
+    use iced::widget::pane_grid::Axis;
+    assert_eq!(axis(&app), Some(Axis::Vertical));
+    let _ = app.update(Message::WindowSized(main, Size::new(900.0, 1400.0)));
+    assert_eq!(axis(&app), Some(Axis::Horizontal));
+    // A split dragged by hand holds while the shape stays.
+    split_at(&mut app, 0.3);
+    let _ = app.update(Message::WindowSized(main, Size::new(950.0, 1400.0)));
+    let ratio = match app.panes.layout() {
+        iced::widget::pane_grid::Node::Split { ratio, .. } => *ratio,
+        iced::widget::pane_grid::Node::Pane(_) => 0.0,
+    };
+    assert!((ratio - 0.3).abs() < 0.01, "{ratio}");
+    let _ = app.update(Message::WindowSized(main, Size::new(1600.0, 900.0)));
+    assert_eq!(axis(&app), Some(Axis::Vertical));
+    // The diagram in its own window: the source alone, whatever the shape.
+    let _ = app.update(Message::Command(Command::Detach));
+    let _ = app.update(Message::WindowSized(main, Size::new(900.0, 1400.0)));
+    assert!(app.pane(Pane::Diagram).is_none());
+}
+
 fn split_at(app: &mut App, ratio: f32) {
     if let iced::widget::pane_grid::Node::Split { id, .. } = app.panes.layout() {
         let split = *id;
@@ -4183,7 +4211,11 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
         .key;
     assert_ne!(target, map);
     deliver_linked(&mut app, target);
-    let dive = app.doc().paper.glide().expect("the zoom runs on the size alone");
+    let dive = app
+        .doc()
+        .paper
+        .glide()
+        .expect("the zoom runs on the size alone");
     assert!(app.doc().paper.view.zoom > before.zoom);
     app.docs
         .iter_mut()

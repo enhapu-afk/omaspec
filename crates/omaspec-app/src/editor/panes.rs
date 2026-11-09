@@ -6,7 +6,7 @@ use iced::time::Instant;
 use iced::widget::pane_grid;
 use iced::{Animation, Task, window};
 
-use super::{App, Message, PICKER, Pane, SIDEBAR_SHARE, TAB_FADE, blur, compare, layout};
+use super::{App, Message, PICKER, Pane, SIDEBAR_SHARE, TAB_FADE, blur, compare, layout, stacked};
 
 impl App {
     pub(super) fn pane(&self, wanted: Pane) -> Option<pane_grid::Pane> {
@@ -29,7 +29,7 @@ impl App {
         if self.focus == Pane::Diagram {
             self.set_focus(Pane::Source);
         }
-        self.panes = layout(self.sidebar_open(), false);
+        self.panes = layout(self.sidebar_open(), false, self.stacked);
         let scale =
             open.then(|id| window::scale_factor(id).map(move |f| Message::ScaleFactor(id, f)));
         // The compositor often gives this window less room once the diagram
@@ -52,7 +52,7 @@ impl App {
         } else {
             Task::none()
         };
-        self.panes = layout(self.sidebar_open(), true);
+        self.panes = layout(self.sidebar_open(), true, self.stacked);
         let factor = self.main_scale;
         let key = self.doc().key;
         let a = self
@@ -74,6 +74,19 @@ impl App {
             self.apply_keyboard_focus(),
             picker_back,
         ])
+    }
+
+    /// The diagram below the source in a window taller than wide, beside
+    /// it in one wider than tall: laid out again when the window's shape
+    /// crosses over, and not for every size it takes, so a split dragged
+    /// by hand holds.
+    pub(super) fn restack(&mut self) {
+        let wanted = stacked(self.main_size);
+        if wanted == self.stacked {
+            return;
+        }
+        self.stacked = wanted;
+        self.panes = layout(self.sidebar_open(), self.detached.is_none(), wanted);
     }
 
     /// Hides the project tree, or shows it again left of the source.

@@ -292,7 +292,8 @@ entries with the rest of the block. Why it works this way:
 A large diagram can be read a part at a time. Over a nested state, a package or a
 subgraph the pointer shows a small button in its top right corner: a click folds it to a
 box of its own, its lines ending on the box, and the box carries the two small squares of
-a state with a diagram inside. The picture fades into the folded one, and when
+a state with a diagram inside and says what it holds (*4 states · 6 transitions*; a
+package *3 elements · 2 lines*). The picture fades into the folded one, and when
 the diagram is zoomed the box stays where it was. A click on the folded box unfolds
 it. The palette folds or
 unfolds the container whose name the caret is on, and unfolds every container. Folds are

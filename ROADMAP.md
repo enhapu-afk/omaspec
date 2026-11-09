@@ -1972,11 +1972,14 @@ before it becomes a step.
       preprocessor's !theme is not supported yet`). A few of the common
       ones as swatches (`skin::Swatch`). Mermaid's `forest`, `dark` and
       `neutral` are taken already.
-- [ ] A folded container that says what it holds: the lines into it
-      counted on its box (*3 transitions*), so a folded picture loses less.
-- [ ] The source over the diagram in a narrow window: the two panes stand
-      side by side whatever the window's width; under a tiling compositor a
-      window is often taller than wide.
+- [x] A folded container says what it holds (2026-11-09): a folded state
+      *4 states · 6 transitions* under its name, a folded package *3
+      elements · 2 lines* where its stereotype stands (`fold::counted`).
+- [x] The source over the diagram in a window taller than wide
+      (2026-11-09): the diagram stands below the source then, beside it in a
+      window wider than tall; the areas are laid out again only when the
+      window's shape crosses over, so a split dragged by hand holds
+      (`App::restack`).
 - [ ] Words spelled wrong: lint hints at a name close to another name of
       the diagram already; a dictionary would find a misspelled word in a
       label or a note. `hunspell` was installed on the Omarchy this was

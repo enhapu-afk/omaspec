@@ -2,6 +2,9 @@
 //! package or a subgraph drawn as a box of its own, without what it
 //! holds, a line into it or out of it ending on its border.
 //!
+//! A folded box says what it holds, *4 states · 6 transitions*, so a
+//! folded picture loses less ([`counted`]).
+//!
 //! The pane folds; the file never says so. The pane hands the names to the
 //! engine as lines it adds after the diagram, `' fold (Omaspec) Name` in
 //! PlantUML and `%% fold (Omaspec) Name` in Mermaid, which every other
@@ -39,6 +42,15 @@ pub fn read(source: &str) -> Vec<String> {
 pub fn line(name: &str, mermaid: bool) -> String {
     let mark = if mermaid { "%%" } else { "'" };
     format!("{mark} {MARK} {}\n", name.trim())
+}
+
+/// "1 state", "4 states".
+pub(crate) fn counted(n: usize, word: &str) -> String {
+    if n == 1 {
+        format!("1 {word}")
+    } else {
+        format!("{n} {word}s")
+    }
 }
 
 /// A container of a graph diagram whose members may hold more: a state
@@ -157,5 +169,17 @@ mod tests {
         assert_eq!(read(source), ["A", "Long name"]);
         assert_eq!(line("A", false), "' fold (Omaspec) A\n");
         assert_eq!(read(&line("B c", true)), ["B c"]);
+    }
+
+    #[test]
+    fn a_folded_box_says_what_it_holds() {
+        let source = "@startuml\nstate Running {\n  state Warm\n  state Hot {\n    state Core\n  }\n  [*] --> Warm\n  Warm --> Hot : heat\n  Hot --> Warm : cool\n}\n[*] --> Running\n@enduml\n' fold (Omaspec) Running\n";
+        let svg = crate::render(source).unwrap();
+        assert!(svg.contains("3 states · 3 transitions"), "{svg}");
+        assert!(!svg.contains(">Warm<"), "folded away");
+        // One of each, in a package of a class diagram.
+        let source = "@startuml\npackage Shop {\n  class Order\n  class Line\n  Order --> Line\n}\nclass Customer\nCustomer --> Order\n@enduml\n' fold (Omaspec) Shop\n";
+        let svg = crate::render(source).unwrap();
+        assert!(svg.contains("2 elements · 1 line"), "{svg}");
     }
 }

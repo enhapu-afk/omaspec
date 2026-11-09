@@ -80,6 +80,23 @@ impl Diagram {
     }
 }
 
+impl Container {
+    /// How many states and how many transitions it holds, at any depth.
+    fn counts(&self) -> (usize, usize) {
+        let mut states = 0;
+        let mut transitions = self.edges.len() + self.crossings.len();
+        for node in &self.nodes {
+            if node.kind == Kind::State {
+                states += 1;
+            }
+            let (s, t) = node.children.counts();
+            states += s;
+            transitions += t;
+        }
+        (states, transitions)
+    }
+}
+
 impl crate::fold::Folds for Container {
     fn count(&self) -> usize {
         self.nodes.len()
@@ -103,8 +120,18 @@ impl crate::fold::Folds for Container {
 
     fn close(&mut self, index: usize) {
         let node = &mut self.nodes[index];
+        let (states, transitions) = node.children.counts();
         node.composite = false;
         node.children = Container::default();
+        // What the box holds, as a line under its name.
+        node.description.push(crate::common::text_at(
+            &format!(
+                "{} · {}",
+                crate::fold::counted(states, "state"),
+                crate::fold::counted(transitions, "transition")
+            ),
+            node.line,
+        ));
     }
 
     fn crossings(&mut self) -> Vec<(&mut Vec<usize>, &mut Vec<usize>)> {

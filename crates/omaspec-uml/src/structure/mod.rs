@@ -51,6 +51,24 @@ impl Diagram {
     }
 }
 
+impl Group {
+    /// How many elements and how many lines it holds, at any depth; a
+    /// note of its own is no element.
+    fn counts(&self) -> (usize, usize) {
+        let mut elements = 0;
+        let mut lines = self.edges.len() + self.crossings.len();
+        for node in &self.nodes {
+            if node.shape != Shape::Note {
+                elements += 1;
+            }
+            let (e, l) = node.children.counts();
+            elements += e;
+            lines += l;
+        }
+        (elements, lines)
+    }
+}
+
 impl crate::fold::Folds for Group {
     fn count(&self) -> usize {
         self.nodes.len()
@@ -74,11 +92,21 @@ impl crate::fold::Folds for Group {
 
     fn close(&mut self, index: usize) {
         let node = &mut self.nodes[index];
+        let (elements, lines) = node.children.counts();
         node.composite = false;
         node.children = Group {
             direction: node.children.direction,
             ..Group::default()
         };
+        // What the box holds, where its stereotype would stand.
+        node.stereotypes.push(crate::common::text_at(
+            &format!(
+                "{} · {}",
+                crate::fold::counted(elements, "element"),
+                crate::fold::counted(lines, "line")
+            ),
+            node.line,
+        ));
     }
 
     fn crossings(&mut self) -> Vec<(&mut Vec<usize>, &mut Vec<usize>)> {
