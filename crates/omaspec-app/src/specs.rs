@@ -275,6 +275,7 @@ mod tests {
             name: name.to_owned(),
             files: files.iter().map(|f| (*f).to_owned()).collect(),
             tile: true,
+            room: None,
         };
         let links = [
             link("Orders", &["orders/orders.puml"]),

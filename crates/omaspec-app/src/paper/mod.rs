@@ -75,6 +75,10 @@ pub enum Message {
     /// that draws the lines itself ([`wires`]).
     BareOld(u64, Option<Raster>),
     BareNew(u64, Option<Raster>),
+    /// A smaller copy of the picture with this id, which a zoom into a
+    /// tile or out of it shows, and its place among the copies
+    /// ([`raster::halves`]).
+    Half(iced::advanced::image::Id, usize, Option<Raster>),
     Viewport(Size),
     ZoomAt(f32, Point),
     Pan(Vector),
@@ -368,6 +372,16 @@ pub fn link_rect(link: &Link) -> Rectangle {
     )
 }
 
+/// Where the diagram a link opens grows out of, in diagram units: the
+/// room of a tile's picture, which shows that diagram already; a state's
+/// whole box.
+pub fn link_room(link: &Link) -> Rectangle {
+    link.room.map_or_else(
+        || link_rect(link),
+        |room| Rectangle::new(Point::new(room.x, room.y), Size::new(room.w, room.h)),
+    )
+}
+
 impl Paper {
     /// Asks `worker` to render `source` for document `doc`, whose file is
     /// at `place`.
@@ -451,6 +465,10 @@ impl Paper {
             Message::Pictures(id, tree) => self.pictures_came(id, tree),
             Message::Detail(seq, raster) => {
                 self.show_detail(seq, raster);
+                Task::none()
+            }
+            Message::Half(of, at, copy) => {
+                self.half_came(of, at, copy);
                 Task::none()
             }
             Message::BareOld(seq, raster) => self.bare_came(seq, raster, true),

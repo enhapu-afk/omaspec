@@ -110,6 +110,107 @@ pub struct Raster {
     _allocation: Option<Allocation>,
 }
 
+impl Raster {
+    /// A white picture of `width` by `height` pixels, of a diagram as
+    /// large in its own units.
+    #[cfg(test)]
+    pub fn blank(width: u32, height: u32) -> Raster {
+        Raster {
+            handle: image::Handle::from_rgba(
+                width,
+                height,
+                vec![255u8; width as usize * height as usize * 4],
+            ),
+            region: Rectangle::with_size(Size::new(width as f32, height as f32)),
+            paper: Color::WHITE,
+            _allocation: None,
+        }
+    }
+
+    /// How many pixels it has, across and down; `None` unless they are
+    /// held in memory.
+    pub fn pixels(&self) -> Option<(u32, u32)> {
+        match &self.handle {
+            image::Handle::Rgba { width, height, .. } => Some((*width, *height)),
+            _ => None,
+        }
+    }
+}
+
+/// A copy is made while both of its sides have this many pixels.
+const SMALLEST: usize = 48;
+/// At most this many copies: the last shows a picture at a 64th.
+const HALVES: usize = 6;
+
+/// Copies of `raster` for showing it small: each half as wide and as high
+/// as the one before. The GPU fills a pixel from the four texels around
+/// one point, so a picture drawn at less than half its size loses its
+/// thin lines, a few with every step of a zoom; a copy near the size it
+/// is shown at keeps them. None for pixels that are not held in memory.
+pub fn halves(raster: &Raster) -> Vec<Raster> {
+    let image::Handle::Rgba {
+        width,
+        height,
+        pixels,
+        ..
+    } = &raster.handle
+    else {
+        return Vec::new();
+    };
+    let (mut w, mut h) = (*width as usize, *height as usize);
+    let mut out: Vec<Raster> = Vec::new();
+    let mut last: Option<Vec<u8>> = None;
+    while out.len() < HALVES && w >= 2 * SMALLEST && h >= 2 * SMALLEST {
+        let from: &[u8] = last.as_deref().unwrap_or(pixels);
+        if from.len() < w * h * 4 {
+            break;
+        }
+        let (nw, nh) = (w.div_ceil(2), h.div_ceil(2));
+        let mut half = vec![0u8; nw * nh * 4];
+        for y in 0..nh {
+            let (top, bottom) = (2 * y * w, (2 * y + 1).min(h - 1) * w);
+            for x in 0..nw {
+                let (left, right) = (2 * x, (2 * x + 1).min(w - 1));
+                let texels = [top + left, top + right, bottom + left, bottom + right];
+                let at = (y * nw + x) * 4;
+                for channel in 0..4 {
+                    let sum: u32 = texels
+                        .iter()
+                        .map(|&texel| u32::from(from[texel * 4 + channel]))
+                        .sum();
+                    half[at + channel] = ((sum + 2) / 4) as u8;
+                }
+            }
+        }
+        out.push(Raster {
+            handle: image::Handle::from_rgba(nw as u32, nh as u32, half.clone()),
+            region: raster.region,
+            paper: raster.paper,
+            _allocation: None,
+        });
+        last = Some(half);
+        (w, h) = (nw, nh);
+    }
+    out
+}
+
+/// Makes the [`halves`] of `raster` in the background and uploads them;
+/// `done` makes the message for each, with its place among them.
+pub fn ask_halves(
+    raster: Raster,
+    done: impl Fn(usize, Option<Raster>) -> Message + Clone + Send + 'static,
+) -> Task<Message> {
+    Task::perform(blocking(move || halves(&raster)), Option::unwrap_or_default).then(
+        move |copies: Vec<Raster>| {
+            let done = done.clone();
+            Task::batch(copies.into_iter().enumerate().map(move |(at, copy)| {
+                let done = done.clone();
+                upload(copy).map(move |copy| done(at, copy))
+            }))
+        },
+    )
+}
+
 pub fn render(tree: &usvg::Tree, plan: Plan) -> Option<Raster> {
     let pixmap = export::rasterize_part(tree, plan.scale, plan.part).ok()?;
     // Opaque, on white.
@@ -282,6 +383,39 @@ mod tests {
         let corner = Plan::detail(TALL, 2.0, visible(-400.0, -300.0), None).unwrap();
         assert_eq!(corner.region().position(), Point::ORIGIN);
         assert_eq!(Plan::detail(TALL, 2.0, visible(-5000.0, 0.0), None), None);
+    }
+
+    #[test]
+    fn a_picture_is_halved_for_showing_it_small() {
+        // A picture of 800 by 400 pixels, white but for a black column.
+        let (w, h) = (800usize, 400usize);
+        let mut pixels = vec![255u8; w * h * 4];
+        for y in 0..h {
+            for channel in 0..3 {
+                pixels[(y * w + 10) * 4 + channel] = 0;
+            }
+        }
+        let picture = Raster {
+            handle: image::Handle::from_rgba(w as u32, h as u32, pixels),
+            region: Rectangle::with_size(Size::new(400.0, 200.0)),
+            paper: Color::WHITE,
+            _allocation: None,
+        };
+        let copies = halves(&picture);
+        let sizes: Vec<(u32, u32)> = copies.iter().filter_map(Raster::pixels).collect();
+        // Down to the last whose sides are both 48 pixels or more.
+        assert_eq!(sizes, [(400, 200), (200, 100), (100, 50)]);
+        for copy in &copies {
+            assert_eq!(copy.region, picture.region);
+        }
+        // The thin line is still there, fainter: half of one pixel in two.
+        let image::Handle::Rgba { pixels, .. } = &copies[0].handle else {
+            panic!("pixels in memory");
+        };
+        assert_eq!(&pixels[5 * 4..5 * 4 + 4], [128, 128, 128, 255]);
+        assert_eq!(&pixels[4 * 4..4 * 4 + 4], [255, 255, 255, 255]);
+        // A picture too small to halve has no copies.
+        assert!(halves(&copies[2]).is_empty());
     }
 
     #[test]

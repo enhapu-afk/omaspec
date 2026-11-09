@@ -4156,13 +4156,24 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     // A click zooms into Orders; once there, Orders opens.
     let map = app.doc().key;
     let before = app.doc().paper.view;
-    let orders_box = paper::link_rect(
-        app.doc()
-            .paper
-            .links()
-            .iter()
-            .find(|l| l.name == "Orders")
-            .unwrap(),
+    // Orders grows out of the room of its tile's picture, which lies in
+    // the tile above its words.
+    let orders_tile = app
+        .doc()
+        .paper
+        .links()
+        .iter()
+        .find(|l| l.name == "Orders")
+        .unwrap()
+        .clone();
+    let orders_box = paper::link_room(&orders_tile);
+    let orders_card = paper::link_rect(&orders_tile);
+    assert!(
+        orders_box.x >= orders_card.x
+            && orders_box.y >= orders_card.y
+            && orders_box.x + orders_box.width <= orders_card.x + orders_card.width
+            && orders_box.y + orders_box.height < orders_card.y + orders_card.height - 20.0,
+        "{orders_box:?} in {orders_card:?}"
     );
     let _ = app.update(Message::Paper(map, paper::Message::Follow(orders)));
     assert!(app.following.is_some());
@@ -4188,6 +4199,10 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     let _ = app.arrive();
     let dive = app.doc().paper.glide().expect("the zoom runs");
     assert!(app.doc().paper.view.zoom > before.zoom);
+    // Its picture lies on the tile's from the start, so it is asked for in
+    // smaller copies too.
+    app.doc_mut().paper.finish_small();
+    assert!(app.doc().paper.small_copies() > 0);
     let _ = app.arrive();
     assert_eq!(app.doc().paper.glide(), Some(dive), "one way, not turned");
     let landing = app
@@ -4229,6 +4244,9 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     let checkout = link_on_screen(&app, "Checkout");
     let checkout_box = paper::link_rect(&app.doc().paper.links()[0]);
     let _ = app.update(Message::Paper(orders_key, paper::Message::Follow(checkout)));
+    // A state shows no picture of its diagram: none to lay on it small.
+    app.doc_mut().paper.finish_small();
+    assert_eq!(app.doc().paper.small_copies(), 0);
     due(&mut app, Alarm::Follow);
     assert_eq!(app.doc().path, Some(root.join("checkout.puml")));
     assert_eq!(names(&app), ["shop", "Orders", "Checkout"]);
@@ -5104,4 +5122,199 @@ fn snapshot_toolbar() {
     let _ = app.update(Message::JumpTo(0));
     press(&mut app, Command::ToggleMenuBar);
     shoot(&mut app, &dir, "toolbar");
+}
+
+/// Writes every frame of the zoom into each tile of a project's map and
+/// back out, drawn on the GPU at 60 frames a second in a 1600×1000
+/// window, when OMASPEC_DIVE_DIR is set: for the project at
+/// OMASPEC_DIVE_PROJECT (a copy of it), its tiles or those OMASPEC_DIVE_TILES
+/// names, with commas between. A jump on the way shows between two of
+/// these pictures. `1in` is the way in, `2tab` the linked diagram's tab,
+/// `3out` the way back, `4map` the map again.
+#[test]
+fn snapshot_dive() {
+    let (Some(out), Some(project)) = (
+        std::env::var_os("OMASPEC_DIVE_DIR"),
+        std::env::var_os("OMASPEC_DIVE_PROJECT"),
+    ) else {
+        return;
+    };
+    let out = PathBuf::from(out);
+    std::fs::create_dir_all(&out).unwrap();
+    let root = temp_dir("dive");
+    fn copy(from: &Path, to: &Path) {
+        std::fs::create_dir_all(to).unwrap();
+        for entry in std::fs::read_dir(from).unwrap().flatten() {
+            let (path, target) = (entry.path(), to.join(entry.file_name()));
+            if path.is_dir() {
+                copy(&path, &target);
+            } else if path
+                .extension()
+                .is_some_and(|e| ["puml", "mmd", "toml"].iter().any(|known| e == *known))
+            {
+                std::fs::copy(&path, &target).unwrap();
+            }
+        }
+    }
+    copy(Path::new(&project), &root);
+    let root = std::fs::canonicalize(&root).unwrap();
+    let main = crate::project::read(&root)
+        .and_then(Result::ok)
+        .and_then(|project| project.main)
+        .expect("a project with a main diagram");
+    let mut app = open(&[root.join(main)]);
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
+    show_linked(&mut app);
+    settle(&mut app);
+    let mut screen = Screen::new(&app, 1.0);
+    screen.size = Size::new(1600.0, 1000.0);
+    // The first redraws tell the pane its size; the map is fitted to it.
+    screen.run(&mut app, 2, |_| false);
+    app.doc_mut().paper.finish_rasters();
+    screen.run(&mut app, 2, |_| false);
+
+    let map = app.doc().key;
+    let names: Vec<String> = match std::env::var("OMASPEC_DIVE_TILES") {
+        Ok(names) => names.split(',').map(str::to_owned).collect(),
+        Err(_) => app
+            .doc()
+            .paper
+            .links()
+            .iter()
+            .filter(|l| l.tile && l.files.len() == 1)
+            .map(|l| l.name.clone())
+            .collect(),
+    };
+    // Redraws at 60 Hz and keeps each frame; with `gliding`, until the
+    // glide ends.
+    let frames = |app: &mut App, screen: &mut Screen, name: &str, most: usize, gliding: bool| {
+        let tick = Duration::from_micros(16_667);
+        for i in 0..most {
+            let start = Instant::now();
+            let (shot, messages) = screen.redraw(app);
+            for message in messages {
+                let _ = app.update(message);
+            }
+            shot.save(&out.join(format!("{name}-{i:03}.png")));
+            if gliding && app.doc().paper.glide().is_none() {
+                break;
+            }
+            if let Some(wait) = (start + tick).checked_duration_since(Instant::now()) {
+                std::thread::sleep(wait);
+            }
+        }
+    };
+    for name in &names {
+        let slug = name.to_lowercase().replace(' ', "-");
+        let at = link_on_screen(&app, name);
+        let _ = app.update(Message::Paper(map, paper::Message::Follow(at)));
+        let Some(target) = app.docs.iter().map(|d| d.key).find(|k| app.is_arriving(*k)) else {
+            // The map's own tile, or a diagram that does not open.
+            continue;
+        };
+        {
+            // As `dispatch` sends it: in the pane's colors.
+            let (atlas, own) = app.linked_of(target).expect("a project");
+            let doc = app.docs.iter().find(|d| d.key == target).unwrap();
+            let (text, language) = (doc.text(), doc.language);
+            let (shown, pending) = app.diagram_source(&text, language);
+            let drawn = linked_drawing(&shown, language, own.as_deref(), &atlas);
+            let doc = app.docs.iter_mut().find(|d| d.key == target).unwrap();
+            let id = doc.paper.pretend_next();
+            let mut reply = answer(target, id, Ok(drawn));
+            reply.language = language;
+            reply.source = shown;
+            if let Some(pending) = pending {
+                app.pending.insert((target, id), pending);
+            }
+            let _ = app.update(Message::Worker(worker::Event::Rendered(Box::new(reply))));
+        }
+        app.docs
+            .iter_mut()
+            .find(|d| d.key == target)
+            .unwrap()
+            .paper
+            .finish_rasters();
+        let _ = app.arrive();
+        app.doc_mut().paper.finish_small();
+        frames(&mut app, &mut screen, &format!("{slug}-1in"), 200, true);
+        due(&mut app, Alarm::Follow);
+        frames(&mut app, &mut screen, &format!("{slug}-2tab"), 3, false);
+        app.doc_mut().paper.finish_rasters();
+        press(&mut app, Command::Back);
+        app.doc_mut().paper.finish_small();
+        frames(&mut app, &mut screen, &format!("{slug}-3out"), 200, true);
+        app.doc_mut().paper.finish_rasters();
+        frames(&mut app, &mut screen, &format!("{slug}-4map"), 3, false);
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_map_shows_a_diagram_as_its_tab_holds_it() {
+    let root = temp_dir("tab-on-map");
+    let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
+    write(
+        "omaspec-project.toml",
+        "name = \"shop\"\nmain = \"system.puml\"\n",
+    );
+    write("system.puml", "@startwbs\n* Shop\n** Orders\n@endwbs\n");
+    let saved = "@startuml\ntitle Orders\n[*] --> New\n@enduml\n";
+    write("orders.puml", saved);
+    let root = std::fs::canonicalize(&root).unwrap();
+    let mut app = open(&[root.join("system.puml")]);
+    follow_theme(&mut app, false);
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
+    let map = app.doc().key;
+    let on_map = |app: &mut App| {
+        let (atlas, _) = app.linked_of(map).expect("a project");
+        let entry = atlas.diagrams.iter().find(|e| e.file == "orders.puml");
+        entry.expect("Orders in the project").source.clone()
+    };
+    assert_eq!(on_map(&mut app), saved);
+
+    // Orders in a tab, changed and not saved: the map's tile shows the
+    // tab's text, as a zoom into the tile ends on that tab.
+    let index = app.open_doc(&root.join("orders.puml")).unwrap();
+    let _ = app.select(index);
+    let orders = app.doc().key;
+    let unsaved = "@startuml\ntitle Orders\n[*] --> New\nNew --> Paid : pay\n@enduml\n";
+    select_all_and_paste(&mut app, unsaved);
+    let _ = app.retile(orders);
+    assert_eq!(on_map(&mut app), unsaved);
+    // The file is as it was: its names and links are still read from it.
+    assert_eq!(
+        app.atlases[&root]
+            .diagrams
+            .iter()
+            .find(|e| e.file == "orders.puml")
+            .unwrap()
+            .source,
+        saved
+    );
+    // Drawn in the Omarchy colors, the tile is too, over the tab's text.
+    follow_theme(&mut app, true);
+    let themed = on_map(&mut app);
+    assert!(
+        themed.contains("New --> Paid") && themed != unsaved,
+        "{themed}"
+    );
+    follow_theme(&mut app, false);
+
+    // The tab closed without saving: the file again.
+    let _ = app.close(index);
+    let _ = app.close(index);
+    assert!(app.docs.iter().all(|d| d.key != orders));
+    assert_eq!(on_map(&mut app), saved);
+    let _ = std::fs::remove_dir_all(&root);
 }

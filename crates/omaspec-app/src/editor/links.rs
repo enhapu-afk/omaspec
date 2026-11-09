@@ -74,19 +74,32 @@ impl App {
     }
 
     /// The diagrams of the project at `root` as the diagram pane draws
-    /// them: in the Omarchy colors when the diagram follows them.
+    /// them: each as its tab holds it, saved or not, so a map's tile shows
+    /// what the tab it opens shows; and in the Omarchy colors when the
+    /// diagram follows them.
     fn themed_atlas(&mut self, root: &PathBuf) -> Option<Arc<Atlas>> {
         if let Some(found) = self.themed_atlases.get(root) {
             return Some(Arc::clone(found));
         }
         let raw = self.atlases.get(root)?;
-        let themed = if self.follow_theme || self.pinned_look(Some(root)).is_some() {
+        let open: Vec<(String, String, Language)> = self
+            .docs
+            .iter()
+            .filter(|d| !d.is_document() && self.project_of(d).as_ref() == Some(root))
+            .filter_map(|d| {
+                let own = crate::specs::path_in(root, d.path.as_deref()?)?;
+                Some((own, d.text(), d.language))
+            })
+            .collect();
+        let themed = if !open.is_empty() || self.pane_skin(Some(root)).is_some() {
             let mut atlas = Atlas::clone(raw);
             for entry in &mut atlas.diagrams {
-                entry.source = self
-                    .diagram_source_in(Some(root), &entry.source, entry.language)
-                    .0
-                    .to_string();
+                let tab = open.iter().find(|(file, ..)| *file == entry.file);
+                *entry = self.themed_entry(
+                    root,
+                    entry,
+                    tab.map(|(_, text, language)| (text.as_str(), *language)),
+                );
             }
             Arc::new(atlas)
         } else {
@@ -95,6 +108,112 @@ impl App {
         self.themed_atlases
             .insert(root.clone(), Arc::clone(&themed));
         Some(themed)
+    }
+
+    /// `entry`, a diagram of the project at `root` as its file holds it,
+    /// as the pane draws it: with the text of its `tab` when one is open,
+    /// in the pane's colors.
+    fn themed_entry(
+        &self,
+        root: &std::path::Path,
+        entry: &omaspec_render::Entry,
+        tab: Option<(&str, Language)>,
+    ) -> omaspec_render::Entry {
+        let mut themed = match tab {
+            Some((text, language)) if text != entry.source || language != entry.language => {
+                omaspec_render::Entry::new(
+                    &entry.file,
+                    text.to_owned(),
+                    language,
+                    entry.place.clone(),
+                )
+            }
+            _ => entry.clone(),
+        };
+        themed.source = self
+            .diagram_source_in(Some(root), &themed.source, themed.language)
+            .0
+            .to_string();
+        themed
+    }
+
+    /// The text of document `key` is another now: its project's maps show
+    /// its diagram as its tab does, so they, and what else that touches,
+    /// are drawn again.
+    pub(super) fn retile(&mut self, key: u64) -> Task<Message> {
+        let Some(doc) = self.docs.iter().find(|d| d.key == key) else {
+            return Task::none();
+        };
+        if doc.is_document() {
+            return Task::none();
+        }
+        let Some(root) = self.project_of(doc) else {
+            return Task::none();
+        };
+        let Some(own) = doc
+            .path
+            .as_deref()
+            .and_then(|p| crate::specs::path_in(&root, p))
+        else {
+            return Task::none();
+        };
+        // Not asked for yet: built with the tabs' texts when it is.
+        let (Some(before), Some(raw)) = (
+            self.themed_atlases.get(&root).cloned(),
+            self.atlases.get(&root).cloned(),
+        ) else {
+            return Task::none();
+        };
+        let (Some(at), Some(on_disk)) = (
+            before.diagrams.iter().position(|e| e.file == own),
+            raw.diagrams.iter().find(|e| e.file == own),
+        ) else {
+            return Task::none();
+        };
+        let entry = self.themed_entry(&root, on_disk, Some((&doc.text(), doc.language)));
+        if entry == before.diagrams[at] {
+            return Task::none();
+        }
+        let mut after = Atlas::clone(&before);
+        after.diagrams[at] = entry;
+        let change = Change::between(&before, &after);
+        self.themed_atlases.insert(root.clone(), Arc::new(after));
+        self.draw_touched(&root, &change, Some(key))
+    }
+
+    /// A tab of the project at `root` closed without its changes saved:
+    /// the maps show its diagram as its file holds it again.
+    pub(super) fn untile(&mut self, root: &PathBuf) -> Task<Message> {
+        let Some(before) = self.themed_atlases.remove(root) else {
+            return Task::none();
+        };
+        let Some(after) = self.themed_atlas(root) else {
+            return Task::none();
+        };
+        if *before == *after {
+            return Task::none();
+        }
+        let change = Change::between(&before, &after);
+        self.draw_touched(root, &change, None)
+    }
+
+    /// Draws the documents of the project at `root` that `change` touches
+    /// again, all but `except`.
+    fn draw_touched(
+        &mut self,
+        root: &PathBuf,
+        change: &Change,
+        except: Option<u64>,
+    ) -> Task<Message> {
+        let keys: Vec<u64> = self
+            .docs
+            .iter()
+            .filter(|d| Some(d.key) != except)
+            .filter(|d| self.project_of(d).as_ref() == Some(root))
+            .filter(|d| change.touches(d))
+            .map(|d| d.key)
+            .collect();
+        Task::batch(keys.into_iter().map(|key| self.render(key, true)))
     }
 
     /// Takes the diagrams read for `root`; the documents of that project
@@ -182,7 +301,7 @@ impl App {
                 return Task::none();
             }
         };
-        let rect = paper::link_rect(&link);
+        let rect = paper::link_room(&link);
         let to = root.join(file);
         let view = doc.paper.view;
         // The linked diagram opens now and is drawn in the pane's size, so
@@ -232,7 +351,10 @@ impl App {
         let linked = self.find(target).and_then(|d| d.paper.showing());
         if started {
             if let (Some(linked), Some(doc)) = (linked, self.find(from)) {
-                doc.paper.arriving(linked);
+                return doc
+                    .paper
+                    .arriving(linked)
+                    .map(move |m| Message::Paper(from, m));
             }
             return Task::none();
         }

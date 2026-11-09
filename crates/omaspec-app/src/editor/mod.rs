@@ -1673,8 +1673,10 @@ impl App {
         };
         let language = doc.language;
         doc.paper.document = doc.is_document();
+        // The maps of its project show it as this tab does.
+        let maps = self.retile(key);
         self.dispatch(key, &source, language);
-        Task::none()
+        maps
     }
 
     /// Sends `text` for document `doc` (or the compare diagram). When the

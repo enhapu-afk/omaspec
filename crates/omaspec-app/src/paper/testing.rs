@@ -181,6 +181,27 @@ impl Paper {
             .is_some_and(|fade| fade.lines.is_some() && fade.bare.is_some())
     }
 
+    /// Makes the smaller copies a zoom into a tile or out of it asked
+    /// for, as the background task would.
+    pub fn finish_small(&mut self) {
+        if let Some(passage) = self.passage.as_mut().filter(|p| p.small_of.is_some()) {
+            let picture = passage.linked.as_ref().and_then(|l| l.picture.as_ref());
+            passage.small = picture
+                .map(raster::halves)
+                .unwrap_or_default()
+                .into_iter()
+                .map(Some)
+                .collect();
+        }
+    }
+
+    /// How many smaller copies of its picture a zoom into a link has.
+    pub fn small_copies(&self) -> usize {
+        self.passage
+            .as_ref()
+            .map_or(0, |p| p.small.iter().flatten().count())
+    }
+
     /// Rasterizes what the view asked for, as the background tasks would.
     pub fn finish_rasters(&mut self) {
         let tree = Arc::clone(self.shown_tree().unwrap());

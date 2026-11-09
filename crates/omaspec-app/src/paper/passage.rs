@@ -5,6 +5,12 @@
 //! where that diagram shows in its own tab, so the switch to the tab does
 //! not show. On the way back the diagram shrinks into its box as the
 //! picture around it comes back.
+//!
+//! A map's tile shows the diagram it opens already, small. There the
+//! diagram's own picture lies on the tile's from the first step of the
+//! way to the last, sharp and whole, exactly where the tile holds its
+//! own ([`Passage::pictured`]): the eye follows one picture that grows,
+//! not a blurred one that gives way to a sharp one beside it.
 
 use std::time::Duration;
 
@@ -41,6 +47,15 @@ pub struct Passage {
     /// In: the linked diagram comes as the zoom arrives. Out: it goes as
     /// the zoom leaves.
     pub inward: bool,
+    /// The area shows the linked diagram already, as the room of a map's
+    /// tile does: its picture stays on it the whole way.
+    pub pictured: bool,
+    /// Smaller copies of the linked diagram's picture, each half the one
+    /// before, as far as they have come ([`super::raster::halves`]): small
+    /// in its tile, the picture is drawn from the one nearest its size.
+    pub small: Vec<Option<Raster>>,
+    /// The picture those are copies of, or were asked for.
+    pub small_of: Option<iced::advanced::image::Id>,
     /// Where an outward zoom runs to, once this diagram has a picture.
     /// Set means the veil stays up until then: an empty pane under a
     /// falling veil is a black frame.
@@ -63,6 +78,78 @@ impl Passage {
             smooth((progress - 0.5) / 0.5)
         } else {
             1.0 - smooth(progress / 0.5)
+        }
+    }
+
+    /// How much of the linked diagram's picture shows at `progress` of the
+    /// way. Where the area shows that diagram already, all of it but for
+    /// the first steps of the way in and the last of the way out, which
+    /// it takes to lie on the area's own picture, or on an area still too
+    /// small to show one; elsewhere it comes and goes with the veil.
+    pub fn picture(&self, progress: f32) -> f32 {
+        if !self.pictured || self.goal.is_some() {
+            return self.shown(progress);
+        }
+        let smooth = |t: f32| {
+            let t = t.clamp(0.0, 1.0);
+            t * t * (3.0 - 2.0 * t)
+        };
+        if self.inward {
+            smooth(progress / SETTLE)
+        } else {
+            1.0 - smooth((progress - (1.0 - SETTLE)) / SETTLE)
+        }
+    }
+}
+
+/// The part of the way a picture takes to settle on the area that shows
+/// its diagram already.
+const SETTLE: f32 = 0.12;
+
+/// A picture is drawn no smaller than this share of its pixels: below
+/// half, the GPU skips texels and thin lines break up.
+const LEAST: f32 = 0.45;
+
+impl Passage {
+    /// What to draw of `picture`, the linked diagram's, `width` pixels
+    /// wide at `opacity`: the copy nearest that size, and under it the
+    /// next smaller one, the more the nearer the picture is to its size,
+    /// so the step from one copy to the next does not show. Nothing while
+    /// the picture would be drawn far smaller than the smallest copy
+    /// there is.
+    fn copies<'a>(
+        &'a self,
+        picture: &'a Raster,
+        width: f32,
+        opacity: f32,
+    ) -> Vec<(&'a Raster, f32)> {
+        let Some((full, _)) = picture.pixels() else {
+            return vec![(picture, opacity)];
+        };
+        let copy = |level: usize| match level {
+            0 => Some(picture),
+            n => self.small.get(n - 1).and_then(Option::as_ref),
+        };
+        let share = (width / full as f32).max(f32::EPSILON);
+        // How many times halved the picture is this size.
+        let halved = (-share.log2()).max(0.0);
+        let level = halved.floor() as usize;
+        let Some(near) = copy(level) else {
+            // Its copy has not come: the nearest larger one, if that is
+            // not drawn too small.
+            return (0..level)
+                .rev()
+                .find_map(|l| Some((l, copy(l)?)))
+                .filter(|&(l, _)| share * (1u32 << l.min(30)) as f32 >= LEAST)
+                .map(|(_, copy)| vec![(copy, opacity)])
+                .unwrap_or_default();
+        };
+        let toward = halved - level as f32;
+        match copy(level + 1) {
+            Some(smaller) if toward > 0.02 => {
+                vec![(smaller, opacity), (near, opacity * (1.0 - toward))]
+            }
+            _ => vec![(near, opacity)],
         }
     }
 }
@@ -125,31 +212,29 @@ impl canvas::Program<Message> for PassageLayer<'_> {
             .glide
             .map_or((self.view, 1.0), |g| (g.at(now), g.progress(now)));
         let shown = self.passage.shown(progress);
-        if shown <= 0.0 {
+        let pictured = self.passage.picture(progress);
+        if shown <= 0.0 && pictured <= 0.0 {
             return vec![frame.into_geometry()];
         }
         let local = Rectangle::new(Point::ORIGIN, bounds.size());
-        frame.fill_rectangle(
-            Point::ORIGIN,
-            bounds.size(),
-            Color {
-                a: shown,
-                ..self.veil
-            },
-        );
+        if shown > 0.0 {
+            frame.fill_rectangle(
+                Point::ORIGIN,
+                bounds.size(),
+                Color {
+                    a: shown,
+                    ..self.veil
+                },
+            );
+        }
         if let Some(linked) = &self.passage.linked {
             let grid = Grid::of(bounds, self.scale);
             let room = view.on_screen(self.passage.area, local);
             let paper = grid.snap(fitted_in(linked.size, room));
-            shadow(&mut frame, paper, self.veil, self.scale, shown);
-            if let Some(picture) = &linked.picture {
-                frame.fill(
-                    &rounded(paper, RADIUS),
-                    Color {
-                        a: shown,
-                        ..picture.paper
-                    },
-                );
+            if shown > 0.0 {
+                shadow(&mut frame, paper, self.veil, self.scale, shown);
+            }
+            if let Some(picture) = linked.picture.as_ref().filter(|_| pictured > 0.0) {
                 // The picture's region, in the linked diagram's units, on
                 // its paper.
                 let k = paper.width / linked.size.width.max(f32::EPSILON);
@@ -158,7 +243,28 @@ impl canvas::Program<Message> for PassageLayer<'_> {
                     paper.position() + Vector::new(r.x * k, r.y * k),
                     r.size() * k,
                 );
-                grid.draw(&mut frame, paper, RADIUS, [(at, picture, shown)]);
+                let copies = self
+                    .passage
+                    .copies(picture, at.width * self.scale, pictured);
+                // Too small for the copies there are: the tile shows its
+                // own picture until they come.
+                if !copies.is_empty() {
+                    frame.fill(
+                        &rounded(paper, RADIUS),
+                        Color {
+                            a: pictured,
+                            ..picture.paper
+                        },
+                    );
+                    grid.draw(
+                        &mut frame,
+                        paper,
+                        RADIUS,
+                        copies
+                            .into_iter()
+                            .map(|(copy, opacity)| (at, copy, opacity)),
+                    );
+                }
             }
         }
         vec![frame.into_geometry()]
@@ -191,6 +297,20 @@ impl Paper {
             .and_then(|t| t.line)
     }
 
+    /// Whether `area` of the diagram is the room of a tile's picture,
+    /// which shows the diagram that tile opens.
+    fn pictures(&self, area: Rectangle) -> bool {
+        self.links().iter().any(|link| {
+            link.room.is_some() && {
+                let room = super::link_room(link);
+                (room.x - area.x).abs() < 0.01
+                    && (room.y - area.y).abs() < 0.01
+                    && (room.width - area.width).abs() < 0.01
+                    && (room.height - area.height).abs() < 0.01
+            }
+        })
+    }
+
     /// The links a click follows: none while a play runs.
     pub(super) fn followable(&self) -> &[Link] {
         if self.play.is_some() {
@@ -221,18 +341,56 @@ impl Paper {
             area,
             linked: landing,
             inward: true,
+            pictured: self.pictures(area),
+            small: Vec::new(),
+            small_of: None,
             goal: None,
         });
-        let task = self.dive(to);
+        let task = Task::batch([self.dive(to), self.ask_small()]);
         (task, self.glide.map_or(Duration::ZERO, |g| g.duration()))
+    }
+
+    /// Asks for the smaller copies of the picture a passage shows in a
+    /// tile, once for each picture.
+    fn ask_small(&mut self) -> Task<Message> {
+        let Some(passage) = self.passage.as_mut().filter(|p| p.pictured) else {
+            return Task::none();
+        };
+        let Some(picture) = passage.linked.as_ref().and_then(|l| l.picture.clone()) else {
+            return Task::none();
+        };
+        let id = picture.handle.id();
+        if passage.small_of == Some(id) {
+            return Task::none();
+        }
+        passage.small_of = Some(id);
+        passage.small.clear();
+        super::raster::ask_halves(picture, move |at, copy| Message::Half(id, at, copy))
+    }
+
+    /// A smaller copy of the picture `of` came, the one at `at` among
+    /// them.
+    pub(super) fn half_came(
+        &mut self,
+        of: iced::advanced::image::Id,
+        at: usize,
+        copy: Option<Raster>,
+    ) {
+        let Some(passage) = self.passage.as_mut().filter(|p| p.small_of == Some(of)) else {
+            return;
+        };
+        if passage.small.len() <= at {
+            passage.small.resize(at + 1, None);
+        }
+        passage.small[at] = copy;
     }
 
     /// The diagram the zoom into a link leads to, drawn: the zoom now ends
     /// where that diagram will show, in the time it had left, and its
     /// picture grows out of the link's box on the way.
-    pub fn arriving(&mut self, linked: Showing) {
+    pub fn arriving(&mut self, linked: Showing) -> Task<Message> {
         let Some(passage) = self.passage.as_mut().filter(|p| p.inward) else {
-            return;
+            return Task::none();
         };
         let moved = passage
             .linked
@@ -241,8 +399,9 @@ impl Paper {
         let area = passage.area;
         let to = view_holding(area, linked.size, linked.place, self.viewport);
         passage.linked = Some(linked);
+        let small = self.ask_small();
         if !moved {
-            return;
+            return small;
         }
         let now = Instant::now();
         match self.glide.filter(|g| !g.done(now)) {
@@ -256,6 +415,7 @@ impl Paper {
         }
         self.view = to;
         self.note_view();
+        small
     }
 
     /// Ends a zoom into a link at `view`: the diagram it leads to is shown
@@ -312,17 +472,22 @@ impl Paper {
         let goal = (from.is_some() && self.overview.shown.is_none()).then_some(to);
         self.view = start;
         self.note_view();
+        let pictured = self.pictures(area);
         self.passage = from.map(|linked| Passage {
             area,
             linked: Some(linked),
             inward: false,
+            pictured,
+            small: Vec::new(),
+            small_of: None,
             goal,
         });
+        let small = self.ask_small();
         if goal.is_some() {
             self.glide = None;
-            return self.rasterize(Duration::ZERO);
+            return Task::batch([small, self.rasterize(Duration::ZERO)]);
         }
-        self.dive(to)
+        Task::batch([small, self.dive(to)])
     }
 
     fn dive(&mut self, to: View) -> Task<Message> {
@@ -406,11 +571,82 @@ mod tests {
     }
 
     #[test]
+    fn a_tile_s_picture_lies_on_it_the_whole_way() {
+        let passage = |inward, pictured| Passage {
+            area: Rectangle::new(Point::ORIGIN, Size::new(10.0, 10.0)),
+            linked: None,
+            inward,
+            pictured,
+            small: Vec::new(),
+            small_of: None,
+            goal: None,
+        };
+        // Into a tile: the picture is there after the first steps, long
+        // before the veil; out of it, until the last ones.
+        let (into, out) = (passage(true, true), passage(false, true));
+        assert_eq!(into.picture(0.0), 0.0);
+        assert_eq!(into.picture(SETTLE), 1.0);
+        assert_eq!((into.picture(0.5), into.shown(0.5)), (1.0, 0.0));
+        assert_eq!(into.picture(1.0), 1.0);
+        assert_eq!(out.picture(0.0), 1.0);
+        assert_eq!((out.picture(0.5), out.shown(0.5)), (1.0, 0.0));
+        assert_eq!(out.picture(1.0 - SETTLE), 1.0);
+        assert_eq!(out.picture(1.0), 0.0);
+        // A state shows no picture of its diagram: that comes with the veil.
+        let state = passage(true, false);
+        for progress in [0.0, 0.3, 0.6, 0.9, 1.0] {
+            assert_eq!(state.picture(progress), state.shown(progress));
+        }
+    }
+
+    #[test]
+    fn a_picture_shown_small_is_drawn_from_the_copy_near_its_size() {
+        let picture = Raster::blank(800, 400);
+        let mut passage = Passage {
+            area: Rectangle::new(Point::ORIGIN, Size::new(10.0, 10.0)),
+            linked: None,
+            inward: true,
+            pictured: true,
+            small: Vec::new(),
+            small_of: None,
+            goal: None,
+        };
+        let widths = |passage: &Passage, width: f32| -> Vec<(u32, f32)> {
+            passage
+                .copies(&picture, width, 1.0)
+                .into_iter()
+                .map(|(copy, opacity)| (copy.pixels().unwrap().0, opacity))
+                .collect()
+        };
+        // Its copies have not come: the picture itself down to about
+        // half its size, then nothing, and the tile shows its own.
+        assert_eq!(widths(&passage, 800.0), [(800, 1.0)]);
+        assert_eq!(widths(&passage, 400.0), [(800, 1.0)]);
+        assert_eq!(widths(&passage, 300.0), []);
+        // With them: the copy next above the size it is shown at, and
+        // under it the next smaller one, so the step between does not show.
+        passage.small = super::super::raster::halves(&picture)
+            .into_iter()
+            .map(Some)
+            .collect();
+        assert_eq!(widths(&passage, 800.0), [(800, 1.0)]);
+        assert_eq!(widths(&passage, 400.0), [(400, 1.0)]);
+        let between = widths(&passage, 300.0);
+        assert_eq!((between[0].0, between[1].0), (200, 400));
+        assert!(between[0].1 == 1.0 && between[1].1 > 0.5 && between[1].1 < 0.7);
+        // Smaller than the smallest copy: that one.
+        assert_eq!(widths(&passage, 60.0), [(100, 1.0)]);
+    }
+
+    #[test]
     fn it_comes_late_on_the_way_in_and_goes_early_on_the_way_out() {
         let passage = |inward| Passage {
             area: Rectangle::new(Point::ORIGIN, Size::new(10.0, 10.0)),
             linked: None,
             inward,
+            pictured: false,
+            small: Vec::new(),
+            small_of: None,
             goal: None,
         };
         let (into, out) = (passage(true), passage(false));

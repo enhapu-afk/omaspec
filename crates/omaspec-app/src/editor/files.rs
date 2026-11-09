@@ -167,11 +167,20 @@ impl App {
         {
             self.stop_compare();
         }
+        // Its unsaved changes go with it: the maps show its file again.
+        let closed = &self.docs[index];
+        let unsaved = (closed.modified && !closed.is_document())
+            .then(|| self.project_of(closed))
+            .flatten();
         self.docs.remove(index);
         if self.docs.is_empty() {
             let key = self.take_key();
             self.docs.push(Doc::untitled(key, self.forced, &self.look));
         }
+        let maps = match unsaved {
+            Some(root) => self.untile(&root),
+            None => Task::none(),
+        };
         // The tab that took the closed one's place, or the new last one.
         let next = if index < self.active || self.active >= self.docs.len() {
             self.active.saturating_sub(1)
@@ -180,7 +189,7 @@ impl App {
         };
         self.active = next.min(self.docs.len() - 1);
         self.keep_session();
-        self.select(self.active)
+        Task::batch([maps, self.select(self.active)])
     }
 
     pub(super) fn save(&mut self, path: &Path) {

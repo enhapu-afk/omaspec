@@ -88,6 +88,9 @@ pub struct Link {
     pub files: Vec<String>,
     /// A tile of a map; else a state.
     pub tile: bool,
+    /// A tile's: the room in it where the picture of its diagram lies,
+    /// which a zoom into the tile grows that diagram out of.
+    pub room: Option<omaspec_uml::graph::Rect>,
 }
 
 impl Atlas {
@@ -331,6 +334,7 @@ pub(crate) fn state_links(map: &Map, atlas: &Atlas, own: Option<&str>) -> Vec<Li
                 name: state.name.clone(),
                 files,
                 tile: false,
+                room: None,
             })
         })
         .collect()
@@ -497,11 +501,13 @@ pub(crate) fn render(
                     })
                     .unwrap_or_default(),
             };
+            let (x, y, w, h) = back(map.fit, tile.picture);
             Link {
                 rect: tile.frame,
                 name: tile.name.clone(),
                 files,
                 tile: true,
+                room: Some(omaspec_uml::graph::Rect { x, y, w, h }),
             }
         })
         .collect();

@@ -1780,6 +1780,34 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
       generated area map of 49 cards and 18 arrows it took 180 ms where the map
       took 31 ms before, and laid lines 4 units apart. With the lanes that map
       takes 33 ms (`OMASPEC_SCALE=1`, cold, 2,001 diagrams).
+- [x] A zoom into a tile as one picture (2026-11-09): seen in a real window,
+      the zoom into a tile of a map and back still jumped. Every frame of it
+      was written out (`snapshot_dive`, with `OMASPEC_DIVE_DIR` and
+      `OMASPEC_DIVE_PROJECT`), which showed three things. The linked diagram
+      grew out of the whole card, fitted into its frame, while the tile's own
+      picture of that diagram lies in the room above the card's words: half
+      way, the same diagram stood twice, one beside and larger than the
+      other. A tile's link names that room now (`Link::room`), and the
+      diagram grows out of it. The tile's picture was the map's overview
+      drawn up to five times larger, blurred, until the sharp one faded in
+      over it on the last half of the way. Now the linked diagram's picture
+      lies on the tile's from the first steps of the way in to the last of
+      the way out (`Passage::picture`), so one sharp picture grows and
+      shrinks; a state, which shows no picture of its diagram, has it come
+      with the veil as before. And that picture, made for its tab, is small
+      in its tile: drawn at less than half its size the GPU skips texels and
+      thin lines break up, a few with every frame. It is drawn from copies
+      halved down to its tile's size (`raster::halves`, made in the
+      background and uploaded before they show), the one next above the size
+      shown and the next smaller one under it. A frame's work stays at 0.2
+      to 0.3 ms (`OMASPEC_FRAMES=1`, headless).
+- [x] A map shows a diagram as its tab holds it (2026-11-09): a diagram
+      changed in its tab and not saved, in another skin say, stood on the
+      map as its file has it, so the zoom into its tile ended on another
+      picture. The diagrams a map draws are the open tabs' texts now, each
+      in the pane's colors; the map is drawn again when one of them changes
+      (after the pause a render waits) and when a tab closes without saving.
+      Names and links are still read from the files.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 
