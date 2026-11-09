@@ -599,15 +599,30 @@ fn export_piece(
             skin
         }
     };
-    let rendered = match crate::look::render(
-        maps,
-        renderer,
-        &piece.code,
-        piece.language,
-        input.path.as_deref(),
-        place.as_ref(),
-        skin.as_ref(),
-    ) {
+    // A project's file is drawn as the project's map, which is made from
+    // its diagrams (docs/adr/0026).
+    let project = input
+        .path
+        .as_deref()
+        .filter(|path| {
+            path.file_name()
+                .is_some_and(|n| n == omaspec_core::project::FILE)
+        })
+        .and_then(|path| std::path::absolute(path).ok())
+        .and_then(|path| path.parent().map(Path::to_path_buf));
+    let drawn = match &project {
+        Some(root) => crate::look::render_map(maps, renderer, root, "", skin.as_ref()),
+        None => crate::look::render(
+            maps,
+            renderer,
+            &piece.code,
+            piece.language,
+            input.path.as_deref(),
+            place.as_ref(),
+            skin.as_ref(),
+        ),
+    };
+    let rendered = match drawn {
         Ok(rendered) => rendered,
         Err(err) => return Ok(Err(err)),
     };
@@ -626,7 +641,8 @@ fn export_piece(
         draw.format,
         &export::Options {
             scale: draw.scale,
-            source: draw.source.then(|| export::Source {
+            // A map has no source of its own: it is made from the project.
+            source: (draw.source && project.is_none()).then(|| export::Source {
                 code: &piece.code,
                 language: piece.language,
                 file: source_name.as_deref(),

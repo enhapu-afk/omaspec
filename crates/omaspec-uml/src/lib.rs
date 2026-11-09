@@ -294,6 +294,21 @@ pub fn render_tiled(
     }
 }
 
+/// A map of cards made from `branches`
+/// (`docs/adr/0026-the-map-is-made.md`), in the look of `skin`: a WBS
+/// whose `skinparam` lines color it, its own boxes left aside. The map
+/// says where the cards are.
+pub fn render_branches(
+    skin: &str,
+    branches: &[tree::Branch],
+    tiles: &tree::Tiles,
+) -> Result<(String, map::Map), Declined> {
+    match parse_with(skin, None)? {
+        Diagram::Wbs(d) => tree::draw_branches(branches, &d.frame.skinparams, tiles),
+        _ => Err(Declined::at(0, "a map takes its look from a WBS")),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

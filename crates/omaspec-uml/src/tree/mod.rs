@@ -16,7 +16,9 @@ use crate::color::{self, Paint};
 pub use crate::common::{Frame, Skinparam, Text};
 use crate::svg::{Align, Canvas, Layer, Stroke};
 use crate::text::{self, Block, Family};
-pub use cards::{Card, Heading, Icon, PICTURE_ROUND, Relation, RelationKind};
+pub use cards::{
+    Branch, Card, Heading, Icon, PICTURE_ROUND, Relation, RelationKind, draw_branches,
+};
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use mindmap::draw as draw_mindmap;
 pub use mindmap::draw_tiled as draw_mindmap_tiled;

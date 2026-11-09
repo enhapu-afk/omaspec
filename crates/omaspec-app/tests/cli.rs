@@ -636,6 +636,66 @@ fn an_exported_map_and_a_linked_state_link_to_the_diagrams_they_open() {
 }
 
 #[test]
+fn the_project_s_file_is_drawn_as_the_map_made_from_its_diagrams() {
+    let dir = scratch("made-map");
+    fs::create_dir_all(dir.join("scenarios")).unwrap();
+    let write = |file: &str, text: &str| fs::write(dir.join(file), text).unwrap();
+    write("omaspec-project.toml", "name = \"shop\"\n");
+    write(
+        "orders.puml",
+        "@startuml\ntitle Orders\n[*] --> New\nNew --> Paid : pay\n@enduml\n",
+    );
+    // A plan beside it: a diagram like any other, not the map.
+    write("plan.puml", "@startwbs\n* Plan\n** Orders\n@endwbs\n");
+    write(
+        "scenarios/buy.puml",
+        "@startuml\ntitle Buy\nparticipant User\nparticipant Orders\nUser -> Orders : pay\n@enduml\n",
+    );
+    let path = |file: &str| dir.join(file).to_str().unwrap().to_owned();
+    let out = omaspec(&["render", &path("omaspec-project.toml")]);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let map = fs::read_to_string(dir.join("omaspec-project.svg")).unwrap();
+    // Every diagram of the folder, each a link to its own picture, also
+    // the one a folder down; nobody listed them.
+    for (file, name) in [
+        ("orders.svg", "Orders"),
+        ("plan.svg", "plan"),
+        ("scenarios/buy.svg", "Buy"),
+    ] {
+        assert!(
+            map.contains(&format!(r#"<a href="{file}"><title>{name}</title>"#)),
+            "{file}: {map}"
+        );
+    }
+    assert!(map.contains(">shop<") && map.contains("System map · 3 diagrams"));
+    assert!(map.contains(">plays<") && !map.contains("not on the map"));
+    // The map is made, so it carries no source to open it from.
+    assert!(!map.contains("urn:omaspec:source"), "{map}");
+    // As a picture, and in a look.
+    let png = path("map.png");
+    let out = omaspec(&[
+        "render",
+        &path("omaspec-project.toml"),
+        "--look",
+        "dark",
+        "-o",
+        &png,
+    ]);
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(fs::metadata(&png).unwrap().len() > 1000);
+}
+
+#[test]
 fn a_creole_link_is_kept_and_a_script_is_not() {
     let dir = scratch("creole-links");
     let src = dir.join("seq.puml");

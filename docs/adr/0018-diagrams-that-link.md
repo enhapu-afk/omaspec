@@ -3,7 +3,9 @@
 Status: accepted, 2026-11-01. Builds on [0017](0017-projects.md) and
 replaces its decision 5: a new project's main diagram is a map. Its
 decision 2 is amended on 2026-11-03: a map has a look of its own, and on
-2026-11-05: maps within maps (see *Amended* below).
+2026-11-05: maps within maps (see *Amended* below). Decision 2 and both
+amendments are replaced by [0026](0026-the-map-is-made.md): a project's
+map is made from its diagrams, and a mind map or a WBS is no map.
 
 ## Context
 

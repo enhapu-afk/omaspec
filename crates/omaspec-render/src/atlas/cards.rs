@@ -9,7 +9,7 @@ use omaspec_core::{Kind, Language};
 use omaspec_uml::map::{Map, Shape};
 use omaspec_uml::tree::{Card, Heading, Icon, Relation, RelationKind};
 
-use super::{Atlas, Entry, Picture, is_map, parts};
+use super::{Atlas, Entry, Picture, parts};
 
 /// What the card of `entry` says: its kind, a few facts, its shape.
 pub(super) fn card_of(
@@ -22,7 +22,6 @@ pub(super) fn card_of(
         Kind::Sequence => ("Scenario".to_owned(), Icon::Scenario),
         Kind::Activity => ("Activity".to_owned(), Icon::Activity),
         Kind::Structure => (kind.name.to_string(), Icon::Structure),
-        _ if is_map(&entry.source, entry.language) => ("Map".to_owned(), Icon::Map),
         _ => (kind.name.to_string(), Icon::Other),
     };
     let language = match entry.language {
@@ -56,7 +55,7 @@ pub(super) fn card_of(
 }
 
 /// "1 state", "7 states".
-fn counted(n: usize, word: &str) -> String {
+pub(super) fn counted(n: usize, word: &str) -> String {
     if n == 1 {
         format!("1 {word}")
     } else {
@@ -65,7 +64,7 @@ fn counted(n: usize, word: &str) -> String {
 }
 
 /// The width and height of a drawn SVG.
-fn size_of(svg: &str) -> Option<(f32, f32)> {
+pub(super) fn size_of(svg: &str) -> Option<(f32, f32)> {
     let (view_box, _) = parts(svg)?;
     let numbers: Vec<f32> = view_box
         .split([' ', ','])
@@ -135,7 +134,7 @@ pub(super) fn includes(source: &str, language: Language) -> Vec<String> {
 
 /// `written`, a path from the folder of the diagram at `file`, as a path
 /// in the project; `None` past its root.
-fn resolve(file: &str, written: &str) -> Option<String> {
+pub(super) fn resolve(file: &str, written: &str) -> Option<String> {
     let mut parts: Vec<&str> = file.split('/').collect();
     parts.pop();
     for part in written.split(['/', '\\']) {

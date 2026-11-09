@@ -424,6 +424,49 @@ pub fn render(
         })
 }
 
+/// The look a map that is made takes its colors from: a WBS of one box,
+/// which a skin is laid over as over any diagram.
+const MAP_SKIN: &str = "@startwbs\n* map\n@endwbs\n";
+
+/// The map of `folder`, a folder of the project at `root` by its path
+/// there (the empty one: the project itself), drawn in `skin` with its
+/// tiles in the skin too (`docs/adr/0026-the-map-is-made.md`). `auto`
+/// draws the light and the dark one and makes one SVG of them.
+pub fn render_map(
+    maps: &mut Maps,
+    renderer: &mut Renderer,
+    root: &Path,
+    folder: &str,
+    skin: Option<&Skin>,
+) -> Result<Rendered, RenderError> {
+    let atlas = maps.project(root);
+    let Some(skin) = skin else {
+        return renderer.render_map(&atlas, folder, MAP_SKIN);
+    };
+    if skin.is_auto() {
+        let light = render_map(maps, renderer, root, folder, Some(&skin.without_schemes()))?;
+        let dark = render_map(maps, renderer, root, folder, Some(&skin.dark()))?;
+        let svg = omaspec_render::schemes::both(&light.svg, &dark.svg).map_err(|err| {
+            RenderError::Engine {
+                engine: light.engine,
+                message: format!("the look auto does not draw here: {err}; take light or dark"),
+            }
+        })?;
+        return Ok(Rendered {
+            svg,
+            elapsed: light.elapsed + dark.elapsed,
+            cards: None,
+            ..light
+        });
+    }
+    let mut painted = omaspec_render::Atlas::clone(&atlas);
+    for entry in &mut painted.diagrams {
+        entry.source = apply(&entry.source, entry.language, skin).0;
+    }
+    let look = apply(MAP_SKIN, Language::PlantUml, skin).0;
+    renderer.render_map(&painted, folder, &look)
+}
+
 /// Where a laid-over pack sits in the rendered source, so a reported line
 /// can be read as a line of the file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

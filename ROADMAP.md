@@ -1833,24 +1833,38 @@ its cards, and the zoom into a tile as one picture.
       (`pay\nnow [ok]` is the event `pay`), which the oracle's random changes
       had not hit until the new golden moved them on; a machine is held
       against the first lines now.
-- [ ] A mind map and a WBS drawn as themselves; the project's map a diagram
-      of its own (seen 2026-11-09 with the gallery's *A garden year* and
-      *Moving house*): every mind map and every WBS that is a file is drawn
-      in the map's look, *Map · 0 diagrams on it*, its boxes as labels from
-      the top down, also a lone file in no project (`Maps::of` takes any
-      place for a project), and an example opened in a window whose folder
-      is a project. The mind map loses its two sides, the WBS its boxes.
-      Only text without a place, from standard input, draws as PlantUML
-      draws it, which is what *a WBS or a mind map outside a project draws
-      as before* above promised. Wanted: a mind map and a WBS always draw
-      as themselves, and the map of a project is a diagram of its own that
-      only Omaspec builds, and only for a project made with `omaspec new`:
-      its context, to find one's way through its diagrams. To decide: what
-      tells that diagram from a WBS (the `main` of `omaspec-project.toml`,
-      or a block of its own); whether another tool should still draw the
-      file, as it draws `system.puml` as a WBS today; the maps inside maps
-      of a large project ([0018](docs/adr/0018-diagrams-that-link.md)); and
-      what becomes of the `system.puml` of the projects there are.
+- [ ] The map, made ([0026](docs/adr/0026-the-map-is-made.md), 2026-11-09):
+      a project's map is made from its diagrams and written nowhere, and a
+      mind map or a WBS is a diagram like any other. Seen with the gallery's
+      *A garden year* and *Moving house*: every mind map and every WBS that
+      is a file is drawn in the map's look, *Map · 0 diagrams on it*, its
+      boxes as labels from the top down, also a lone file in no project
+      (`Maps::of` takes any place for a project) and an example opened in a
+      window whose folder is a project. A rule to tell a map from a plan
+      (the project's `main`, a comment line) was built and left for this.
+  - [x] The map made by the renderer (`omaspec_render::atlas::folder`,
+        `Renderer::render_map`; `omaspec_uml::tree::Branch` for a tree of
+        boxes that is made): a tile for each diagram of the folder by its
+        file, a folder a label over its diagrams, the arrows read from the
+        diagrams. Over 36 diagrams a folder is a tile that opens its map
+        and shows a small box for each diagram in it, with one arrow for
+        those of the diagrams in it, read from their text without drawing
+        them. `omaspec render DIR/omaspec-project.toml` draws it, in any
+        look. Still in the tree of the written map. A project of 2,000
+        diagrams in 40 folders: 40 ms and 0.3 MB (release; a folder's own
+        map small in each tile was tried first, 250 ms and 4.8 MB).
+  - [ ] The editor shows it: the project's file opens beside its map; a
+        tile opens its diagram as now, a folder's tile its map. With that
+        the written map goes: `main`, the `system.puml` of `omaspec new`,
+        *not on the map yet*, and a mind map or a WBS drawn as a map,
+        which ends the fault above; `render DIR`, `check`, `export` and
+        the MCP server take the made map.
+  - [ ] Laid out by its arrows: a scenario beside the machine it plays, a
+        diagram below the state that opens it, a folder a frame around a
+        block of cards, the diagrams no arrow reaches in a block by kind;
+        no tree, so no curves to lead arrows around, and a folder of a
+        hundred diagrams a block and no row. The lanes and the router of
+        0.9.1 stay for what is left to route.
 - [ ] A zoom into a state as one picture: a state that has a diagram of its
       own shows no picture of it, so that diagram still comes with the veil
       on the last half of the way. To weigh: a small picture of it in the

@@ -60,6 +60,15 @@ impl Maps {
         Some((Arc::clone(atlas), own))
     }
 
+    /// The diagrams of the project at `root`, read once.
+    pub fn project(&mut self, root: &Path) -> Arc<Atlas> {
+        Arc::clone(
+            self.0
+                .entry(root.to_path_buf())
+                .or_insert_with(|| Arc::new(read_project(root).1)),
+        )
+    }
+
     /// Maps that know the project at `root` already.
     pub fn with(root: PathBuf, atlas: Arc<Atlas>) -> Maps {
         Maps(HashMap::from([(root, atlas)]))
@@ -276,6 +285,7 @@ mod tests {
             files: files.iter().map(|f| (*f).to_owned()).collect(),
             tile: true,
             room: None,
+            folder: None,
         };
         let links = [
             link("Orders", &["orders/orders.puml"]),

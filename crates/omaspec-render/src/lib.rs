@@ -320,6 +320,22 @@ impl Renderer {
         Ok(rendered)
     }
 
+    /// Draws the map of `folder`, a folder of the project `atlas` holds by
+    /// its path there (the empty one: the project itself), in the look of
+    /// `skin` ([`atlas::folder`], `docs/adr/0026-the-map-is-made.md`): its
+    /// diagrams as tiles that show them, its folders as labels over
+    /// theirs or, in a large project, as tiles that open their own maps.
+    /// No file is written for it; [`Rendered::links`] says where the
+    /// tiles lead.
+    pub fn render_map(
+        &mut self,
+        atlas: &Atlas,
+        folder: &str,
+        skin: &str,
+    ) -> Result<Rendered, RenderError> {
+        atlas::folder::render(atlas, folder, skin, &mut self.pictures)
+    }
+
     fn plantuml(
         &mut self,
         source: &str,

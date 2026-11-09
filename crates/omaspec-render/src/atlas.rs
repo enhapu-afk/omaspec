@@ -26,6 +26,7 @@ use omaspec_uml::tree::{self, Card, Tiles};
 use crate::{Engine, Place, RenderError, Rendered, include, mermaid, sanitize};
 
 mod cards;
+pub(crate) mod folder;
 use cards::{card_of, heading, includes, players, relations};
 
 /// Pictures drawn side by side when this many or more are missing.
@@ -91,6 +92,9 @@ pub struct Link {
     /// A tile's: the room in it where the picture of its diagram lies,
     /// which a zoom into the tile grows that diagram out of.
     pub room: Option<omaspec_uml::graph::Rect>,
+    /// A tile that stands for a folder of the project, by its path there:
+    /// it opens that folder's map ([`folder`]), and names no diagram.
+    pub folder: Option<String>,
 }
 
 impl Atlas {
@@ -131,10 +135,13 @@ pub(crate) struct Picture {
     includes: Vec<String>,
 }
 
-/// Pictures for tiles, each kept by its file until the file changes.
+/// Pictures for tiles, each kept by its file until the file changes; and
+/// what a diagram's text alone tells of where it leads ([`folder::Facts`]),
+/// kept the same way for the diagrams a map does not draw.
 #[derive(Default)]
 pub(crate) struct Pictures {
     drawn: HashMap<String, (u64, Picture)>,
+    facts: HashMap<String, (u64, std::sync::Arc<folder::Facts>)>,
 }
 
 /// What `entry` is drawn from: its source, language and place.
@@ -176,6 +183,22 @@ impl Pictures {
     fn keep_only(&mut self, atlas: &Atlas) {
         let files: HashSet<&str> = atlas.diagrams.iter().map(|e| e.file.as_str()).collect();
         self.drawn.retain(|file, _| files.contains(file.as_str()));
+        self.facts.retain(|file, _| files.contains(file.as_str()));
+    }
+
+    /// What the text of `entry` tells of where it leads, read once for the
+    /// file as it is now.
+    fn facts(&mut self, entry: &Entry) -> std::sync::Arc<folder::Facts> {
+        let id = fingerprint(entry);
+        match self.facts.get(&entry.file) {
+            Some((kept, facts)) if *kept == id => std::sync::Arc::clone(facts),
+            _ => {
+                let facts = std::sync::Arc::new(folder::Facts::of(entry));
+                self.facts
+                    .insert(entry.file.clone(), (id, std::sync::Arc::clone(&facts)));
+                facts
+            }
+        }
     }
 }
 
@@ -335,6 +358,7 @@ pub(crate) fn state_links(map: &Map, atlas: &Atlas, own: Option<&str>) -> Vec<Li
                 files,
                 tile: false,
                 room: None,
+                folder: None,
             })
         })
         .collect()
@@ -508,6 +532,7 @@ pub(crate) fn render(
                 files,
                 tile: true,
                 room: Some(omaspec_uml::graph::Rect { x, y, w, h }),
+                folder: None,
             }
         })
         .collect();

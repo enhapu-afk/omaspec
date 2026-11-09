@@ -145,6 +145,37 @@ pub fn draw_mindmap(d: &MindMap, tiles: &Tiles) -> Result<(String, map::Map), De
     draw(roots, &skin, d.frame.title.as_ref(), tiles)
 }
 
+/// A box of a map that is made, not written, as the map of a project's
+/// folder is (`docs/adr/0026-the-map-is-made.md`): its words, the diagram
+/// it shows by its key (`None` for a label, as a folder's name over its
+/// diagrams), and the boxes below it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Branch {
+    pub words: String,
+    pub key: Option<String>,
+    pub below: Vec<Branch>,
+}
+
+/// A map of cards made from `roots`, in the look `skinparams` give. The
+/// keys are the boxes' own: [`Tiles::pick`] is not asked.
+pub fn draw_branches(
+    roots: &[Branch],
+    skinparams: &[crate::common::Skinparam],
+    tiles: &Tiles,
+) -> Result<(String, map::Map), Declined> {
+    fn item(branch: &Branch) -> Item {
+        Item {
+            text: branch.words.clone(),
+            line: None,
+            key: branch.key.clone(),
+            loose: false,
+            children: branch.below.iter().map(item).collect(),
+        }
+    }
+    let skin = Skin::from_params(skinparams, TreeKind::Wbs)?;
+    draw(roots.iter().map(item).collect(), &skin, None, tiles)
+}
+
 /// A box of the tree: a card when its words name a diagram, else a label.
 #[derive(Debug)]
 struct Item {
