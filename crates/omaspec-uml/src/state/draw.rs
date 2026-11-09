@@ -49,6 +49,8 @@ const NOTE_GAP: f32 = 10.0;
 const NOTE_PAD: f32 = 6.0;
 /// Arrow heads, the same size as on an activity diagram.
 const HEAD_LENGTH: f32 = 10.0;
+/// How far a composite state's fill steps toward the paper.
+const FRAME_LIGHT: f32 = 0.7;
 const HEAD_HALF: f32 = 4.0;
 
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
@@ -222,6 +224,14 @@ fn measure_node(
     let skin = &*every.stereotyped(node.stereotype.as_deref());
     let (fill, border, mark) = paints(node, skin)?;
     if node.composite {
+        // A state that holds others is a frame around them: its fill
+        // steps toward the paper, so the states inside stand out on it. A
+        // color written on the state stays as written.
+        let fill = if node.fill.is_none() && !node.children.nodes.is_empty() {
+            fill.map(|color| color.mix(skin.background.unwrap_or(Color::WHITE), FRAME_LIGHT))
+        } else {
+            fill
+        };
         let children = if open {
             Scene::empty()
         } else {
@@ -1006,6 +1016,24 @@ mod tests {
         let canvas = Canvas::new(&skin.font_name, false);
         let scene = layout_container(&diagram.root, &skin, canvas.family()).unwrap();
         (diagram.root, scene)
+    }
+
+    /// A state that holds others is a frame: its fill steps toward the
+    /// paper, the states inside keep theirs; one colored by hand stays.
+    #[test]
+    fn a_composite_state_is_filled_lighter_than_the_states_in_it() {
+        let (root, scene) = laid(
+            "@startuml\nstate On {\n  state Idle\n}\nstate Off #lightblue {\n  state Dark\n}\nstate Alone\n@enduml\n",
+        );
+        let (on_node, on) = at(&root.nodes, &scene, "On");
+        let (_, idle) = at(&on_node.children.nodes, &on.children, "Idle");
+        let (_, alone) = at(&root.nodes, &scene, "Alone");
+        let fill = |placed: &Placed| placed.item.fill.expect("filled");
+        assert_eq!(fill(idle), fill(alone));
+        assert_eq!(fill(on), fill(alone).mix(Color::WHITE, FRAME_LIGHT));
+        assert_ne!(fill(on), fill(alone));
+        let (_, off) = at(&root.nodes, &scene, "Off");
+        assert_eq!(fill(off), color::parse("lightblue").unwrap().unwrap());
     }
 
     /// The model node and the box laid out for it. Same index in both.

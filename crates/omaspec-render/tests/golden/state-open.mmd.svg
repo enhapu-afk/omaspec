@@ -2,7 +2,7 @@
 <rect x="0" y="0" width="306" height="463" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
-<rect x="0" y="0" width="219.63" height="358.37" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="0" y="0" width="219.63" height="358.37" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
 <line x1="0" y1="28.3" x2="219.63" y2="28.3" fill="none" stroke="#94A3B8" stroke-width="1"/>
 <rect x="81.49" y="36.3" width="84.78" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <rect x="45.16" y="126.89" width="63.78" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>

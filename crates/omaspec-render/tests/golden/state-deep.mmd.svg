@@ -3,15 +3,15 @@
 <g transform="translate(10,10)">
 <g>
 <ellipse cx="148.12" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
-<rect x="0" y="54" width="202.98" height="590.96" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="0" y="54" width="202.98" height="590.96" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
 <line x1="0" y1="82.3" x2="202.98" y2="82.3" fill="none" stroke="#94A3B8" stroke-width="1"/>
 <ellipse cx="125.12" cy="101.3" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
 <rect x="80.16" y="144.3" width="91.78" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="12" y="234.89" width="134.74" height="398.07" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="12" y="234.89" width="134.74" height="398.07" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
 <line x1="12" y1="263.18" x2="146.74" y2="263.18" fill="none" stroke="#94A3B8" stroke-width="1"/>
 <ellipse cx="97.06" cy="282.18" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
 <rect x="64.71" y="325.18" width="69.23" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="24" y="405.78" width="110.74" height="215.18" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="24" y="405.78" width="110.74" height="215.18" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
 <line x1="24" y1="434.07" x2="134.74" y2="434.07" fill="none" stroke="#94A3B8" stroke-width="1"/>
 <ellipse cx="76.33" cy="453.07" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
 <rect x="37.17" y="496.07" width="84.01" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>

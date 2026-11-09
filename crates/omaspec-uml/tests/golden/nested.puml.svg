@@ -3,7 +3,7 @@
 <g>
 <ellipse cx="298.45" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 <rect x="256.83" y="54" width="83.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="36.67" y="162.26" width="238.45" height="304.82" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="36.67" y="162.26" width="238.45" height="304.82" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="36.67" y1="190.56" x2="275.12" y2="190.56" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="157.9" cy="209.56" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 <rect x="116.67" y="266.53" width="82.46" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
@@ -11,11 +11,11 @@
 <rect x="201.67" y="354.79" width="61.45" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <ellipse cx="101.55" cy="442.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
 <ellipse cx="101.55" cy="442.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="0" y="499.09" width="446.05" height="685.94" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="499.09" width="446.05" height="685.94" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="0" y1="527.38" x2="446.05" y2="527.38" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="165.97" cy="546.38" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 <rect x="139.91" y="603.35" width="52.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="12" y="767.62" width="155.53" height="405.42" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="12" y="767.62" width="155.53" height="405.42" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="12" y1="795.91" x2="167.53" y2="795.91" fill="none" stroke="#181818" stroke-width="1"/>
 <line x1="12" y1="982.47" x2="167.53" y2="982.47" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
 <ellipse cx="110.02" cy="814.91" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>

@@ -175,7 +175,8 @@ brings the diagram back.
 Skin packs (in the palette: plain, spec, presentation, Omarchy colors, sketch, vivid)
 put a look into the source itself, so it stays with the file, exports and copies:
 `skinparam` lines after `@startuml`, or an `%%{init}%%` line in Mermaid, marked so that
-the next pack replaces it. Plain and spec draw in black and white. Presentation draws
+the next pack replaces it. Plain draws black lines and frames on white and fills nothing;
+spec draws in black and white, strict UML, in a serif. Presentation draws
 larger, with round corners, in one blue on white. Vivid has a palette by kind: blue boxes,
 violet interfaces, pink choices, green databases and queues, amber actors and
 participants, yellow notes, slate lines. The Omarchy pack writes the active theme's

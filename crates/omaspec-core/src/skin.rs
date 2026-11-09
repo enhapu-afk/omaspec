@@ -72,6 +72,23 @@ struct Swatch {
     marks: &'static str,
 }
 
+/// Black lines and frames on white, nothing filled: for print and for
+/// documents, with `monochrome` for whatever else carries a color.
+const PLAIN: Swatch = Swatch {
+    paper: "#FFFFFF",
+    text: "#000000",
+    line: "#000000",
+    muted: "#000000",
+    boxes: ("#FFFFFF", "#000000"),
+    interface: ("#FFFFFF", "#000000"),
+    diamond: ("#FFFFFF", "#000000"),
+    containers: ("#FFFFFF", "#000000"),
+    people: ("#FFFFFF", "#000000"),
+    stores: ("#FFFFFF", "#000000"),
+    note: ("#FFFFFF", "#000000"),
+    marks: "#000000",
+};
+
 /// Pastel fills in dark ink on warm paper, as a sketch on a whiteboard.
 const SKETCH: Swatch = Swatch {
     paper: "#FFFDF6",
@@ -351,11 +368,15 @@ fn mermaid_spot(code: &str, lines: &[Range<usize>]) -> usize {
 
 fn plantuml(pack: Pack, c: &Colors, font: Option<&str>) -> String {
     let mut body: Vec<String> = match pack {
-        Pack::Plain => vec![
-            "skinparam monochrome true".into(),
-            "skinparam shadowing false".into(),
-            "skinparam defaultFontName sans-serif".into(),
-        ],
+        Pack::Plain => {
+            let mut lines = vec![
+                "skinparam monochrome true".into(),
+                "skinparam shadowing false".into(),
+                "skinparam defaultFontName sans-serif".into(),
+            ];
+            lines.extend(painted(&PLAIN));
+            lines
+        }
         Pack::Spec => vec![
             "skinparam style strictuml".into(),
             "skinparam monochrome true".into(),
@@ -492,8 +513,10 @@ fn json_omarchy(c: &Colors, font: Option<&str>) -> String {
 
 fn mermaid(pack: Pack, c: &Colors, font: Option<&str>) -> String {
     let mut init = match pack {
-        Pack::Plain => r##"{"theme": "base", "themeVariables": {"background": "#ffffff", "primaryColor": "#ffffff", "primaryTextColor": "#000000", "primaryBorderColor": "#000000", "lineColor": "#000000", "secondaryColor": "#ffffff", "tertiaryColor": "#ffffff", "textColor": "#000000", "clusterBkg": "#ffffff", "clusterBorder": "#000000", "edgeLabelBackground": "#ffffff", "actorBkg": "#ffffff", "actorBorder": "#000000", "noteBkg": "#ffffff", "noteBorderColor": "#000000"}}"##.to_owned(),
-        Pack::Spec => r#"{"theme": "neutral", "themeVariables": {"fontFamily": "serif"}}"#.to_owned(),
+        Pack::Plain => format!("{{{}}}", mermaid_painted(&PLAIN)),
+        Pack::Spec => {
+            r#"{"theme": "neutral", "themeVariables": {"fontFamily": "serif"}}"#.to_owned()
+        }
         Pack::Presentation => format!(
             r#"{{{}, "themeVariables": {{"fontSize": "18px", {}}}}}"#,
             r#""theme": "base""#,
@@ -673,6 +696,10 @@ mod tests {
     #[test]
     fn the_sketch_the_vivid_and_the_presentation_pack_carry_colors() {
         let code = "@startuml\n@enduml\n";
+        let plain = apply(code, Language::PlantUml, Some(Pack::Plain));
+        assert!(plain.contains("skinparam monochrome true\n"));
+        assert!(plain.contains("skinparam StateBackgroundColor #FFFFFF\n"));
+        assert!(plain.contains("skinparam NoteBorderColor #000000\n"));
         let sketch = apply(code, Language::PlantUml, Some(Pack::Sketch));
         assert!(sketch.contains("skinparam handwritten true\n"));
         assert!(

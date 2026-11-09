@@ -3,7 +3,7 @@
 <g>
 <ellipse cx="108.87" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 <rect x="84.76" y="54" width="48.22" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="0" y="152.26" width="109.65" height="236.82" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="152.26" width="109.65" height="236.82" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="0" y1="180.56" x2="109.65" y2="180.56" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="23" cy="199.56" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 <rect x="32.69" y="266.53" width="52.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>

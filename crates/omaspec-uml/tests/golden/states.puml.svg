@@ -7,7 +7,7 @@
 <ellipse cx="16.15" cy="491.78" rx="16.15" ry="16.15" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="31.86" y="319.24" width="80" height="8" rx="2" ry="2" fill="#181818"/>
 <rect x="104.36" y="640.21" width="80" height="8" rx="2" ry="2" fill="#181818"/>
-<rect x="76.3" y="385.35" width="102.55" height="212.86" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="76.3" y="385.35" width="102.55" height="212.86" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="76.3" y1="413.65" x2="178.85" y2="413.65" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="127.57" cy="432.65" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 <rect x="88.3" y="475.65" width="78.55" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>

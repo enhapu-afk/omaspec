@@ -983,7 +983,11 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         green stores, amber people, yellow notes, slate lines, on white
         (`skin::Swatch`, one list of skinparams and one of Mermaid's theme
         variables for all three). Every color keeps 3:1 against the paper,
-        as lint asks. A project may pin `sketch` or `vivid` too.
+        as lint asks. A project may pin `sketch` or `vivid` too. Then: plain
+        fills nothing, black lines and frames on white, where `monochrome`
+        alone left PlantUML's gray fills; and a state that holds others is a
+        frame around them, its fill seven tenths of the way to the paper, so
+        the states inside stand out instead of sitting blue on blue.
   - [x] Words off the curves (2026-11-09): a label sat at the top of its
         rank beside the straight run of its line, where the curve of the
         corner above, up to 48 units long, cut its first letter. `tests/lines`
