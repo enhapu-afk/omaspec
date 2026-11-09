@@ -1894,19 +1894,22 @@ its cards, and the zoom into a tile as one picture.
         deep the machine it plays lies, so its line is long (the layout
         ranks a box nothing leads to at the top); a chain of diagrams is a
         column, however wide the window.
-- [ ] A zoom into a state as one picture: a state that has a diagram of its
-      own shows no picture of it, so that diagram still comes with the veil
-      on the last half of the way. To weigh: a small picture of it in the
-      state while the zoom starts, or the state's box growing into the
-      diagram's paper.
-- [ ] The map around a tile, sharp on the way in: what lies around the tile
-      is the map's overview drawn up to five times larger until the veil
-      covers it. To measure first: what a sharper raster of the part in
-      sight costs a frame while the zoom runs (`OMASPEC_FRAMES=1`).
-- [ ] A zoom that waits for a slow diagram: one that takes over 160 ms to
-      draw starts the zoom without its picture, and the way turns once it
-      comes. To weigh: waiting longer with a sign that it is coming, against
-      a click that seems to do nothing.
+- [x] A zoom into a state as one picture: the linked diagram's picture
+      lies in the state's box from the first steps of the way, as it lies on
+      a tile, and grows out of it; it no longer comes with the veil on the
+      last half (`Passage::since`; `pictured` is gone).
+- [x] The map around a tile, sharp on the way in: the overview is drawn
+      twice as sharp as the view wherever that stays under 4 megapixels
+      (`SHARPER_PIXELS`), so a zoom of five times magnifies it two and a
+      half times, not five. Measured: a map's picture of 2.7 megapixels
+      takes about 30 ms in the background; a frame of the zoom still draws
+      in 0.3 ms (`OMASPEC_FRAMES=1`).
+- [x] A zoom that waits for a slow diagram: the zoom starts as soon as the
+      size of the diagram it leads to is known, which the layout gives in
+      a few milliseconds, and ends where that diagram will show; its
+      picture, rasterized later, fades in on the way from where the zoom
+      is by then. Only a diagram whose layout takes over 160 ms (the Java
+      PlantUML) still starts without knowing its end, and turns.
 - [x] The map's arrows between rows, the dashed curves under the cards of
       a second row, and the pill of a short arrow over both cards' edges:
       gone with the map laid out by its arrows (*the map, made*), which has

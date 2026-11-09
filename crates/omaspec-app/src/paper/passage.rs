@@ -6,11 +6,12 @@
 //! not show. On the way back the diagram shrinks into its box as the
 //! picture around it comes back.
 //!
-//! A map's tile shows the diagram it opens already, small. There the
-//! diagram's own picture lies on the tile's from the first step of the
-//! way to the last, sharp and whole, exactly where the tile holds its
-//! own ([`Passage::pictured`]): the eye follows one picture that grows,
-//! not a blurred one that gives way to a sharp one beside it.
+//! The diagram's own picture lies on the link's box from the first step
+//! of the way to the last, sharp and whole: on a map's tile exactly where
+//! the tile holds its own, on a state's box inside it, so the eye follows
+//! one picture that grows, not a blurred one that gives way to a sharp
+//! one beside it. A picture that comes while the zoom runs fades in from
+//! then ([`Passage::since`]).
 
 use std::time::Duration;
 
@@ -47,9 +48,9 @@ pub struct Passage {
     /// In: the linked diagram comes as the zoom arrives. Out: it goes as
     /// the zoom leaves.
     pub inward: bool,
-    /// The area shows the linked diagram already, as the room of a map's
-    /// tile does: its picture stays on it the whole way.
-    pub pictured: bool,
+    /// How far the way in was when the linked diagram's picture came: its
+    /// picture fades in from there. Zero when it was there from the start.
+    pub since: f32,
     /// Smaller copies of the linked diagram's picture, each half the one
     /// before, as far as they have come ([`super::raster::halves`]): small
     /// in its tile, the picture is drawn from the one nearest its size.
@@ -82,12 +83,11 @@ impl Passage {
     }
 
     /// How much of the linked diagram's picture shows at `progress` of the
-    /// way. Where the area shows that diagram already, all of it but for
-    /// the first steps of the way in and the last of the way out, which
-    /// it takes to lie on the area's own picture, or on an area still too
-    /// small to show one; elsewhere it comes and goes with the veil.
+    /// way: all of it but for the first steps of the way in from when it
+    /// came, and the last of the way out, which it takes to lie on the
+    /// box's own picture, or on a box still too small to show one.
     pub fn picture(&self, progress: f32) -> f32 {
-        if !self.pictured || self.goal.is_some() {
+        if self.goal.is_some() {
             return self.shown(progress);
         }
         let smooth = |t: f32| {
@@ -95,15 +95,15 @@ impl Passage {
             t * t * (3.0 - 2.0 * t)
         };
         if self.inward {
-            smooth(progress / SETTLE)
+            smooth((progress - self.since) / SETTLE)
         } else {
             1.0 - smooth((progress - (1.0 - SETTLE)) / SETTLE)
         }
     }
 }
 
-/// The part of the way a picture takes to settle on the area that shows
-/// its diagram already.
+/// The part of the way a picture takes to settle on the box it grows
+/// out of.
 const SETTLE: f32 = 0.12;
 
 /// A picture is drawn no smaller than this share of its pixels: below
@@ -283,20 +283,6 @@ impl Paper {
         link_under(self.followable(), p)
     }
 
-    /// Whether `area` of the diagram is the room of a tile's picture,
-    /// which shows the diagram that tile opens.
-    fn pictures(&self, area: Rectangle) -> bool {
-        self.links().iter().any(|link| {
-            link.room.is_some() && {
-                let room = super::link_room(link);
-                (room.x - area.x).abs() < 0.01
-                    && (room.y - area.y).abs() < 0.01
-                    && (room.width - area.width).abs() < 0.01
-                    && (room.height - area.height).abs() < 0.01
-            }
-        })
-    }
-
     /// The links a click follows: none while a play runs.
     pub(super) fn followable(&self) -> &[Link] {
         if self.play.is_some() {
@@ -327,7 +313,7 @@ impl Paper {
             area,
             linked: landing,
             inward: true,
-            pictured: self.pictures(area),
+            since: 0.0,
             small: Vec::new(),
             small_of: None,
             goal: None,
@@ -336,10 +322,10 @@ impl Paper {
         (task, self.glide.map_or(Duration::ZERO, |g| g.duration()))
     }
 
-    /// Asks for the smaller copies of the picture a passage shows in a
-    /// tile, once for each picture.
+    /// Asks for the smaller copies of the picture a passage shows in its
+    /// box, once for each picture.
     fn ask_small(&mut self) -> Task<Message> {
-        let Some(passage) = self.passage.as_mut().filter(|p| p.pictured) else {
+        let Some(passage) = self.passage.as_mut() else {
             return Task::none();
         };
         let Some(picture) = passage.linked.as_ref().and_then(|l| l.picture.clone()) else {
@@ -382,6 +368,16 @@ impl Paper {
             .linked
             .as_ref()
             .is_none_or(|old| old.size != linked.size || old.place != linked.place);
+        let now = Instant::now();
+        // A picture that comes on the way fades in from here.
+        let came = passage
+            .linked
+            .as_ref()
+            .is_none_or(|old| old.picture.is_none())
+            && linked.picture.is_some();
+        if came {
+            passage.since = self.glide.map_or(0.0, |g| g.progress(now));
+        }
         let area = passage.area;
         let to = view_holding(area, linked.size, linked.place, self.viewport);
         passage.linked = Some(linked);
@@ -389,7 +385,6 @@ impl Paper {
         if !moved {
             return small;
         }
-        let now = Instant::now();
         match self.glide.filter(|g| !g.done(now)) {
             Some(glide) => {
                 let left = glide.duration().saturating_sub(Duration::from_secs_f32(
@@ -458,12 +453,11 @@ impl Paper {
         let goal = (from.is_some() && self.overview.shown.is_none()).then_some(to);
         self.view = start;
         self.note_view();
-        let pictured = self.pictures(area);
         self.passage = from.map(|linked| Passage {
             area,
             linked: Some(linked),
             inward: false,
-            pictured,
+            since: 0.0,
             small: Vec::new(),
             small_of: None,
             goal,
@@ -557,19 +551,19 @@ mod tests {
     }
 
     #[test]
-    fn a_tile_s_picture_lies_on_it_the_whole_way() {
-        let passage = |inward, pictured| Passage {
+    fn the_picture_lies_on_its_box_the_whole_way() {
+        let passage = |inward, since| Passage {
             area: Rectangle::new(Point::ORIGIN, Size::new(10.0, 10.0)),
             linked: None,
             inward,
-            pictured,
+            since,
             small: Vec::new(),
             small_of: None,
             goal: None,
         };
-        // Into a tile: the picture is there after the first steps, long
+        // Into a box: the picture is there after the first steps, long
         // before the veil; out of it, until the last ones.
-        let (into, out) = (passage(true, true), passage(false, true));
+        let (into, out) = (passage(true, 0.0), passage(false, 0.0));
         assert_eq!(into.picture(0.0), 0.0);
         assert_eq!(into.picture(SETTLE), 1.0);
         assert_eq!((into.picture(0.5), into.shown(0.5)), (1.0, 0.0));
@@ -578,11 +572,12 @@ mod tests {
         assert_eq!((out.picture(0.5), out.shown(0.5)), (1.0, 0.0));
         assert_eq!(out.picture(1.0 - SETTLE), 1.0);
         assert_eq!(out.picture(1.0), 0.0);
-        // A state shows no picture of its diagram: that comes with the veil.
-        let state = passage(true, false);
-        for progress in [0.0, 0.3, 0.6, 0.9, 1.0] {
-            assert_eq!(state.picture(progress), state.shown(progress));
-        }
+        // A picture that came on the way fades in from then.
+        let late = passage(true, 0.4);
+        assert_eq!(late.picture(0.3), 0.0);
+        assert_eq!(late.picture(0.4), 0.0);
+        assert!(late.picture(0.46) > 0.0 && late.picture(0.46) < 1.0);
+        assert_eq!(late.picture(0.4 + SETTLE), 1.0);
     }
 
     #[test]
@@ -592,7 +587,7 @@ mod tests {
             area: Rectangle::new(Point::ORIGIN, Size::new(10.0, 10.0)),
             linked: None,
             inward: true,
-            pictured: true,
+            since: 0.0,
             small: Vec::new(),
             small_of: None,
             goal: None,
@@ -630,7 +625,7 @@ mod tests {
             area: Rectangle::new(Point::ORIGIN, Size::new(10.0, 10.0)),
             linked: None,
             inward,
-            pictured: false,
+            since: 0.0,
             small: Vec::new(),
             small_of: None,
             goal: None,

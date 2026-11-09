@@ -4171,8 +4171,9 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     let _ = app.update(Message::Paper(map, paper::Message::Follow(orders)));
     assert!(app.following.is_some());
     // Orders opens at once, in the background; the zoom waits for its
-    // picture, then runs on one way to where Orders shows in its tab: no
-    // jump when it opens, and no turn on the way.
+    // size, then runs on one way to where Orders shows in its tab: no
+    // jump when it opens, and no turn on the way. Its picture, coming
+    // later, fades in where the zoom is by then.
     assert_eq!(app.doc().paper.view, before);
     let target = app
         .docs
@@ -4182,7 +4183,8 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
         .key;
     assert_ne!(target, map);
     deliver_linked(&mut app, target);
-    assert!(app.doc().paper.glide().is_none(), "no picture yet");
+    let dive = app.doc().paper.glide().expect("the zoom runs on the size alone");
+    assert!(app.doc().paper.view.zoom > before.zoom);
     app.docs
         .iter_mut()
         .find(|d| d.key == target)
@@ -4190,10 +4192,9 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
         .paper
         .finish_rasters();
     let _ = app.arrive();
-    let dive = app.doc().paper.glide().expect("the zoom runs");
-    assert!(app.doc().paper.view.zoom > before.zoom);
-    // Its picture lies on the tile's from the start, so it is asked for in
-    // smaller copies too.
+    assert_eq!(app.doc().paper.glide(), Some(dive), "one way, not turned");
+    // Its picture lies on the tile's, so it is asked for in smaller
+    // copies too.
     app.doc_mut().paper.finish_small();
     assert!(app.doc().paper.small_copies() > 0);
     let _ = app.arrive();

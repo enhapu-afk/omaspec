@@ -17,7 +17,8 @@ use super::{App, Message};
 use crate::paper::{self, Showing, View};
 
 /// How long a zoom into a link waits at most for the diagram it leads to
-/// to be drawn, so that it runs on one way.
+/// to be drawn, so that it runs on one way. Its size is enough for that:
+/// its picture fades in on the way when it comes later.
 const DIVE_WAIT: std::time::Duration = std::time::Duration::from_millis(160);
 use crate::worker::{Alarm, Linked};
 
@@ -351,8 +352,8 @@ impl App {
             return Task::none();
         }
         match linked {
-            Some(linked) if linked.picture.is_some() => self.dive(from, rect, Some(linked)),
-            _ => Task::none(),
+            Some(linked) => self.dive(from, rect, Some(linked)),
+            None => Task::none(),
         }
     }
 

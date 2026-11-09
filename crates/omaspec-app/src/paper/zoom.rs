@@ -10,6 +10,10 @@ use super::raster::Plan;
 use super::view::{Glide, View};
 use super::{Change, Message, Paper, RASTER_DELAY, frames};
 
+/// An overview twice as sharp as the view is drawn up to this many pixels
+/// (4 megapixels: about 30 ms in the background, 16 MB on the GPU).
+const SHARPER_PIXELS: f32 = 4_000_000.0;
+
 impl Paper {
     pub fn set_scale_factor(&mut self, factor: f32) -> Task<Message> {
         self.scale_factor = factor;
@@ -137,7 +141,20 @@ impl Paper {
         };
         let scale = self.view.zoom * self.scale_factor;
         let visible = self.view.visible(self.viewport);
-        let overview = Plan::overview(diagram.size, scale);
+        // Twice as sharp as the view while that is cheap: a zoom into a
+        // link magnifies what lies around it up to five times before the
+        // veil covers it, and a glide shows it sharp before the detail
+        // comes.
+        let sharper = scale * 2.0;
+        let pixels = diagram.size.width * diagram.size.height * sharper * sharper;
+        let overview = Plan::overview(
+            diagram.size,
+            if pixels <= SHARPER_PIXELS {
+                sharper
+            } else {
+                scale
+            },
+        );
         let detail = Plan::detail(diagram.size, scale, visible, self.detail.asked);
         Task::batch([
             parse,
