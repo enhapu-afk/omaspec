@@ -87,7 +87,11 @@ checked for legible colors, the gallery's diagrams in each of them too.
   the whole project, however it was opened.
 - **Diagrams that link.** A state links to the diagram of its name: click it and the
   view zooms in, Alt+Left zooms back out. A project's map is made from its diagrams:
-  each a tile with its picture, with arrows for what plays, opens and includes what.
+  each a tile with its picture, a folder a frame, and arrows for what plays, opens and
+  includes what; a diagram stands above the one it leads to.
+
+![The map of a shop: three scenarios in a folder play the orders, which open the checkout](docs/images/map.png)
+
 - **Fold and focus.** Fold a nested state, a package or a subgraph to its box, and
   Shift+click a box to see only it, its neighbors and the lines between them.
 - **A layout you can steer.** Drag a line or a box with Alt; the shape goes into the

@@ -1927,19 +1927,19 @@ its cards, and the zoom into a tile as one picture.
       … }` was declined (`entity is not supported yet`); it is a class of a
       data model now, drawn with «entity», while an entity without a body
       stays a participant, as in PlantUML.
-- [ ] Self-loops beside one another: several loops around one another make a
-      box under which they sit as wide as their words (`left to right
-      direction`, three loops, one saying *refresh the cache*: a state of 70
-      units grew to 154). To
-      weigh for that direction: the loops in a row along the side, each with
-      its words below it.
-- [ ] Lines routed around boxes keep apart (belongs to *Even cleaner lines*):
-      `graph::route` knows the channels beside the boxes and the middle
-      between two of them, so several lines through one corridor lie 4 units
-      apart or on one another. Seen when all of a map's arrows were routed
-      that way; the lines between containers that open are routed so too.
-- [ ] A picture of a project's map in the README and the guide: none of them
-      shows one, while the announcement names the map (`docs/images/update.sh`).
+- [x] Self-loops beside one another, weighed and left as they are: with
+      `left to right direction` several loops lie around one another below
+      the box, which grows as wide as the widest words (three loops, one
+      saying *refresh the cache*: 70 units to 154). In a row along the side,
+      each with its words below it, the box would grow to the sum of the
+      words (about 200 for the same three), so the loops stay around one
+      another.
+- [x] Lines routed around boxes keep apart: the lines seen 4 units apart
+      were the map's, which is laid out by its arrows now and routes
+      nothing. Four lines from one box into a container that does not open,
+      two on each side, run 12 units apart (`CLEARANCE`), as they should.
+- [x] A picture of a project's map in the README and the guide
+      (`docs/images/map.png`, `snapshot_readme_map`, `docs/images/update.sh`).
 
 ### Ideas after 0.9 (2026-11-09), not weighed yet
 

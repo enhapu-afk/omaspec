@@ -5471,6 +5471,83 @@ fn a_folder_s_tile_opens_its_map_in_the_same_tab() {
 /// Writes `map-made` and `map-made-plain` when OMASPEC_SNAPSHOT_DIR is
 /// set: a project's file beside the map made from its diagrams, in the
 /// theme's colors and in the files' own.
+/// Writes `readme-map` when OMASPEC_SNAPSHOT_DIR is set: the map of a
+/// shop, made from its diagrams, in the Tokyo Night colors.
+#[test]
+fn snapshot_readme_map() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let root = temp_dir("readme-map");
+    std::fs::create_dir_all(root.join("scenarios")).unwrap();
+    let write = |file: &str, text: &str| std::fs::write(root.join(file), text).unwrap();
+    write(omaspec_core::project::FILE, "name = \"shop\"\n");
+    write(
+        "shop.puml",
+        "@startuml\ntitle Shop\n[*] --> Closed\nClosed --> Orders : open\nOrders --> Payment : checkout\nPayment --> Closed : night\n@enduml\n",
+    );
+    write(
+        "orders.puml",
+        "@startuml\ntitle Orders\n[*] --> New\nNew --> Picked : pick\nPicked --> Checkout : pay\nCheckout --> Shipped : paid\nShipped --> [*]\n@enduml\n",
+    );
+    write(
+        "payment.puml",
+        "@startuml\ntitle Payment\n[*] --> Waiting\nWaiting --> Charged : charge\nCharged --> Settled : settle\nCharged --> Refunded : refund\n@enduml\n",
+    );
+    write(
+        "checkout.puml",
+        "@startuml\ntitle Checkout\nstart\n:Enter the address;\n:Choose the shipping;\n:Pay;\nstop\n@enduml\n",
+    );
+    write(
+        "scenarios/buy.puml",
+        "@startuml\ntitle Buy a book\nparticipant Customer\nparticipant Orders\nCustomer -> Orders : pick\nCustomer -> Orders : pay\nOrders -> Customer : paid\n@enduml\n",
+    );
+    write(
+        "scenarios/return.puml",
+        "@startuml\ntitle Return a book\nparticipant Customer\nparticipant Orders\nCustomer -> Orders : pick\nCustomer -> Orders : pay\nCustomer -> Orders : return\n@enduml\n",
+    );
+    write(
+        "scenarios/refund.puml",
+        "@startuml\ntitle Refund\nparticipant Customer\nparticipant Payment\nCustomer -> Payment : charge\nCustomer -> Payment : refund\n@enduml\n",
+    );
+    write(
+        "plan.puml",
+        "@startwbs\n* Shop 2.0\n** Orders\n*** Picking\n*** Shipping\n** Payment\n@endwbs\n",
+    );
+    let root = std::fs::canonicalize(&root).unwrap();
+    let start = Start {
+        files: vec![root.join(omaspec_core::project::FILE)],
+        folder: Some(root.clone()),
+        forced: None,
+    };
+    let theme = theme_named("tokyo-night", omaspec_theme::Palette::fallback());
+    let mut app = App::themed(start, None, theme).0;
+    let main = app.main;
+    let _ = app.update(Message::ScaleFactor(main, 2.0));
+    follow_theme(&mut app, true);
+    let (specs, atlas) = specs::read_project(&root);
+    let _ = app.update(Message::Specs(
+        root.clone(),
+        Arc::new(specs),
+        Arc::new(atlas),
+    ));
+    if app.sidebar_open() {
+        press(&mut app, Command::ToggleSidebar);
+    }
+    split_at(&mut app, 0.2);
+    show_map(&mut app);
+    let key = app.doc().key;
+    let _ = app.update(Message::Paper(
+        key,
+        paper::Message::Viewport(Size::new(760.0, 560.0)),
+    ));
+    app.doc_mut().paper.finish_rasters();
+    app.notice = None;
+    shoot(&mut app, &dir, "readme-map");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 #[test]
 fn snapshot_made_map() {
     let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {

@@ -142,6 +142,8 @@ SVGs, and `render --check` holds it against the project); the preview window sho
 the project's file. Ctrl+click on a tile opens its diagram too: a map has no source to
 jump to.
 
+![The map of a shop, made from its diagrams: the scenarios in their folder above the orders they play](../images/map.png)
+
 The palette also opens the *Help Omaspec* folder: diagrams of the menu, editing, the
 window and export. The line under its heading, or *Leave Help Omaspec* in the palette,
 brings the project folder back and closes the help pages.
