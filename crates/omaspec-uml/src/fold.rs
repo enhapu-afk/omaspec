@@ -204,7 +204,17 @@ mod tests {
         assert!(map.places.iter().all(|p| p.fixed));
         let (svg, map) =
             crate::render_mapped(&format!("{wbs}' fold (Omaspec) Build\n"), None).unwrap();
-        assert!(svg.contains("3 nodes") && !svg.contains(">Docs<"), "{svg}");
+        // The box stays as it was; what hung below it is gone.
+        assert!(svg.contains(">Build<") && !svg.contains(">Docs<"), "{svg}");
+        // Each link is a line of the map, which a pane glides.
+        assert!(
+            map.wires
+                .iter()
+                .any(|w| w.key.from == "Launch" && w.key.to == "Build"),
+            "{:?}",
+            map.wires.iter().map(|w| &w.key).collect::<Vec<_>>()
+        );
+        assert!(svg.contains(r#"<g id="lines">"#), "{svg}");
         let build = map.places.iter().find(|p| p.name == "Build").unwrap();
         assert!(!build.frame, "folded, it holds nothing");
         // The other box of the same words keeps its name.
@@ -213,7 +223,7 @@ mod tests {
         // A mind map, on both sides of its root.
         let mind = "@startmindmap\n* Root\n** Right\n*** A\n-- Left\n--- B\n@endmindmap\n' fold (Omaspec) Root\n";
         let (svg, map) = crate::render_mapped(mind, None).unwrap();
-        assert!(svg.contains("4 nodes") && !svg.contains(">Left<"), "{svg}");
+        assert!(svg.contains(">Root<") && !svg.contains(">Left<"), "{svg}");
         assert_eq!(map.places.len(), 1);
     }
 }

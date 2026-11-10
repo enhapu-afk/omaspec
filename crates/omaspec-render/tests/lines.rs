@@ -453,7 +453,8 @@ fn reversed_runs(code: &str) -> String {
 fn measure_file(renderer: &mut Renderer, code: &str, language: Language) -> Option<Count> {
     let drawn = renderer.render(code, language).ok()?;
     let wires = &drawn.map.wires;
-    if wires.is_empty() {
+    // A tree's links are no lines a layout routes.
+    if wires.is_empty() || wires.iter().all(|wire| wire.fixed) {
         return None;
     }
     let mut count = measure(wires);

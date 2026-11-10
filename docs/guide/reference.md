@@ -342,7 +342,9 @@ diagram, and a play unfolds everything before it starts. An export draws what th
 shows.
 
 A mind map and a WBS fold the same way, in PlantUML and in Mermaid: a box with boxes
-below it folds to itself and says how many it held (*3 nodes*).
+below it folds to itself: the boxes below glide into it with their links, and come out
+of it again when it unfolds. The box keeps its size and its words; the two small squares
+mark it.
 
 Shift and a click on a box puts it in focus: the rest of the diagram goes quiet behind a
 veil, and the box, the boxes its lines lead to or come from, those lines and their words

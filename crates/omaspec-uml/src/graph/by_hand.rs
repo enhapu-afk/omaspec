@@ -252,6 +252,7 @@ pub fn wires(
                 labels: laid.labels(&arrow.path, arrow.slot),
                 stroke,
                 heads,
+                fixed: false,
             })
         })
         .collect()

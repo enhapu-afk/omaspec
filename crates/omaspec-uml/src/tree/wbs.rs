@@ -9,7 +9,7 @@ use super::skin::{Skin, TreeKind};
 use super::{Annotations, Element, Label, MARGIN, NodeShape, Wbs};
 use crate::Declined;
 use crate::graph::Rect;
-use crate::map::{Map, Place};
+use crate::map::{Map, Place, Wire};
 use crate::svg::{Canvas, Layer};
 use crate::text::Family;
 
@@ -63,12 +63,14 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
         skin: &skin,
         canvas: &mut canvas,
         places: Vec::new(),
+        wires: Vec::new(),
     };
     drawer.root(&root, &row, annotations.top());
-    let places = drawer.places;
+    let (places, wires) = (drawer.places, drawer.wires);
     annotations.draw(&mut canvas);
     let map = Map {
         places,
+        wires,
         ..Map::default()
     }
     .placed(canvas.fit(MARGIN));
@@ -151,11 +153,33 @@ struct Drawer<'a> {
     canvas: &'a mut Canvas,
     /// Where each box is, for the map.
     places: Vec<Place>,
+    /// The way from each box to each box below it, for the map.
+    wires: Vec<Wire>,
 }
 
 impl Drawer<'_> {
     fn line(&mut self, from: (f32, f32), to: (f32, f32)) {
-        self.canvas.line(Layer::Lifelines, from, to, self.skin.link);
+        self.canvas.line(Layer::Lines, from, to, self.skin.link);
+    }
+
+    /// The box of `b`, whose branch has its top left corner at `(x, y)`.
+    fn rect(b: &Branch, (x, y): (f32, f32)) -> Rect {
+        Rect {
+            x: x + b.middle - b.main.0 / 2.0,
+            y,
+            w: b.main.0,
+            h: b.main.1,
+        }
+    }
+
+    /// Notes the way from `from` to `to` through `points`.
+    fn wire(&mut self, from: (&Branch, Rect), to: (&Branch, Rect), points: Vec<(f32, f32)>) {
+        self.wires.extend(super::wire(
+            (&from.0.key, from.1),
+            (&to.0.key, to.1),
+            points,
+            self.skin.link,
+        ));
     }
 
     /// Draws the box of `b`.
@@ -199,7 +223,21 @@ impl Drawer<'_> {
             at
         };
         self.label(root, (at, top));
-        self.line((at + main_w / 2.0, y0), (at + main_w / 2.0, y1));
+        let middle = at + main_w / 2.0;
+        self.line((middle, y0), (middle, y1));
+        let root_rect = Rect {
+            x: at,
+            y: top,
+            w: main_w,
+            h: main_h,
+        };
+        let mut x = 0.0;
+        for b in row {
+            let down = x + b.middle;
+            let points = vec![(middle, y0), (middle, y1), (down, y1), (down, y2)];
+            self.wire((root, root_rect), (b, Self::rect(b, (x, y2))), points);
+            x += b.width + ROW_GAP;
+        }
     }
 
     /// `b` with its top left corner at `(x, y)`.
@@ -210,6 +248,7 @@ impl Drawer<'_> {
         }
         let spine = x + b.middle;
         let below = y + b.main.1;
+        let own = Self::rect(b, (x, y));
         let mut bottom = below;
         let mut cy = below;
         for c in &b.left {
@@ -217,6 +256,8 @@ impl Drawer<'_> {
             let (_, right, mid) = c.sides();
             let cx = spine - c.width - SPINE_GAP;
             self.line((cx + right, cy + mid), (spine, cy + mid));
+            let points = vec![(spine, below), (spine, cy + mid), (cx + right, cy + mid)];
+            self.wire((b, own), (c, Self::rect(c, (cx, cy))), points);
             bottom = bottom.max(cy + mid);
             self.branch(c, (cx, cy));
             cy += c.height;
@@ -226,6 +267,16 @@ impl Drawer<'_> {
             cy += b.margin;
             let (left, _, mid) = c.sides();
             self.line((spine, cy + mid), (spine + SPINE_GAP + left, cy + mid));
+            let points = vec![
+                (spine, below),
+                (spine, cy + mid),
+                (spine + SPINE_GAP + left, cy + mid),
+            ];
+            self.wire(
+                (b, own),
+                (c, Self::rect(c, (spine + SPINE_GAP, cy))),
+                points,
+            );
             bottom = bottom.max(cy + mid);
             self.branch(c, (spine + SPINE_GAP, cy));
             cy += c.height;

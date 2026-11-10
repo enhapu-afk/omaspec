@@ -340,9 +340,11 @@ fn hover(map: &Map, p: At, reach: f32, now: Option<&Hand>) -> Option<Hand> {
         .map(|h| h.wire)
         .filter(|&i| map.wires.get(i).is_some_and(near_corner))
         .or_else(|| {
+            // A link of a tree is the layout's alone, as its boxes are.
             map.wires
                 .iter()
                 .enumerate()
+                .filter(|(_, wire)| !wire.fixed)
                 .map(|(i, wire)| (i, off(&wire.points, p).min(off(&wire.path, p))))
                 .min_by(|a, b| a.1.total_cmp(&b.1))
                 .filter(|&(_, off)| off < reach)
@@ -525,6 +527,7 @@ mod tests {
                 labels: Vec::new(),
                 stroke: omaspec_uml::Stroke::new(omaspec_uml::Color::BLACK, 1.0),
                 heads: Vec::new(),
+                fixed: false,
             }],
             ..Map::default()
         }

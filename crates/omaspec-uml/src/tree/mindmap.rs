@@ -43,16 +43,12 @@ pub fn draw_mapped(d: &MindMap) -> Result<(String, map::Map), Declined> {
         vertical: d.vertical,
     };
     let mut top = annotations.top();
-    let mut places = Vec::new();
+    let mut found = map::Map::default();
     for map in &d.maps {
-        top += geometry.draw_map(&mut canvas, map, family, top, &mut places)?;
+        top += geometry.draw_map(&mut canvas, map, family, top, &mut found)?;
     }
     annotations.draw(&mut canvas);
-    let map = map::Map {
-        places,
-        ..map::Map::default()
-    }
-    .placed(canvas.fit(MARGIN));
+    let map = found.placed(canvas.fit(MARGIN));
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
@@ -171,7 +167,7 @@ impl Geometry<'_> {
         map: &Map,
         family: Family,
         top: f32,
-        places: &mut Vec<map::Place>,
+        found: &mut map::Map,
     ) -> Result<f32, Declined> {
         let (x1, x2) = self.gaps();
         // The root's box belongs to the right side; the left side draws
@@ -181,12 +177,17 @@ impl Geometry<'_> {
         let right = (!left_alone)
             .then(|| self.finger(Some(&map.root), &map.right, true, family, root))
             .transpose()?;
-        let left = (!map.left.is_empty())
+        let mut left = (!map.left.is_empty())
             .then(|| {
                 let node = left_alone.then_some(&map.root);
                 self.finger(node, &map.left, false, family, root)
             })
             .transpose()?;
+        // The root's box is the right side's: the left side's links
+        // still leave it.
+        if let Some(left) = &mut left {
+            left.key.clone_from(&map.root.key);
+        }
         let half = [&right, &left]
             .into_iter()
             .flatten()
@@ -204,11 +205,11 @@ impl Geometry<'_> {
         };
         for (finger, dir) in [(&right, 1.0), (&left, -1.0)] {
             if let Some(finger) = finger {
-                self.draw_finger(canvas, finger, origin, dir, places);
+                self.draw_finger(canvas, finger, origin, dir, found);
             }
         }
         // The root holds the ideas of both of its sides.
-        if let Some(root) = places.iter_mut().find(|p| p.name == map.root.key) {
+        if let Some(root) = found.places.iter_mut().find(|p| p.name == map.root.key) {
             root.frame = !map.right.is_empty() || !map.left.is_empty();
         }
         Ok(if self.vertical {
@@ -235,7 +236,7 @@ impl Geometry<'_> {
         finger: &Finger,
         start: (f32, f32),
         dir: f32,
-        places: &mut Vec<map::Place>,
+        found: &mut map::Map,
     ) {
         let skin = self.skin;
         if let Some(label) = &finger.label {
@@ -256,20 +257,45 @@ impl Geometry<'_> {
                 w,
                 h,
             };
-            places.extend(super::place(&finger.key, rect, !finger.children.is_empty()));
+            found
+                .places
+                .extend(super::place(&finger.key, rect, !finger.children.is_empty()));
         }
+        let rect_of = |found: &map::Map, key: &str| {
+            found
+                .places
+                .iter()
+                .rev()
+                .find(|p| p.name == key)
+                .map(|p| p.rect)
+        };
+        let own = rect_of(found, &finger.key);
         let (x1, x2) = self.gaps();
         let p1 = self.at(start, dir * finger.elongation, 0.0);
         for (child, &offset) in finger.children.iter().zip(&finger.offsets) {
             let p2 = self.at(start, dir * (finger.elongation + x1 + x2), offset);
-            self.draw_finger(canvas, child, p2, dir, places);
-            self.link(canvas, p1, p2, dir);
+            self.draw_finger(canvas, child, p2, dir, found);
+            let points = self.link(canvas, p1, p2, dir);
+            if let (Some(own), Some(to)) = (own, rect_of(found, &child.key)) {
+                found.wires.extend(super::wire(
+                    (&finger.key, own),
+                    (&child.key, to),
+                    points,
+                    skin.link,
+                ));
+            }
         }
     }
 
     /// PlantUML's link: a short straight piece out of each box and a
     /// cubic curve between them.
-    fn link(&self, canvas: &mut Canvas, p1: (f32, f32), p2: (f32, f32), dir: f32) {
+    fn link(
+        &self,
+        canvas: &mut Canvas,
+        p1: (f32, f32),
+        p2: (f32, f32),
+        dir: f32,
+    ) -> Vec<(f32, f32)> {
         let (near, far) = if self.vertical {
             (3.0 * dir, 10.0 * dir)
         } else {
@@ -309,7 +335,24 @@ impl Geometry<'_> {
             ),
             |(l, t, r, b), &(x, y)| (l.min(x), t.min(y), r.max(x), b.max(y)),
         );
-        canvas.path(Layer::Lifelines, &d, bounds, None, Some(self.skin.link));
+        canvas.path(Layer::Lines, &d, bounds, None, Some(self.skin.link));
+        // As drawn: the straight piece, the curve in steps, the straight
+        // piece.
+        let mut drawn = vec![points[0]];
+        let [a, b, c, e] = [points[1], points[2], points[3], points[4]];
+        for step in 0..=16 {
+            let t = step as f32 / 16.0;
+            let u = 1.0 - t;
+            let at = |p: fn(&(f32, f32)) -> f32| {
+                u * u * u * p(&a)
+                    + 3.0 * u * u * t * p(&b)
+                    + 3.0 * u * t * t * p(&c)
+                    + t * t * t * p(&e)
+            };
+            drawn.push((at(|p| p.0), at(|p| p.1)));
+        }
+        drawn.push(points[5]);
+        drawn
     }
 }
 

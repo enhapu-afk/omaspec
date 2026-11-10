@@ -53,7 +53,7 @@ fn entries_for_no_line_change_no_gallery_picture() {
             "{name}"
         );
         // A drawer that knows its lines says the entry names none of them.
-        if !bare.map.wires.is_empty() {
+        if bare.map.wires.iter().any(|wire| !wire.fixed) {
             assert!(
                 drawn
                     .map
@@ -98,7 +98,8 @@ fn a_line_by_hand_is_drawn_as_the_pane_shows_it_in_every_graph_drawer() {
         let code = std::fs::read_to_string(&path).unwrap();
         let bare = renderer.render(&code, language).unwrap();
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
-        let Some(wire) = bare.map.wires.first() else {
+        // A link of a tree is the layout's alone.
+        let Some(wire) = bare.map.wires.iter().find(|wire| !wire.fixed) else {
             continue;
         };
         // Around the outside of its two boxes: left of them when they lie

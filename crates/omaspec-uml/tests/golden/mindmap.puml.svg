@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="713" height="628" viewBox="0 0 713 628">
 <g transform="translate(10,10)">
-<g>
+<g id="lines">
 <path d="M518.65,115.53 L528.65,115.53 C543.65,115.53 543.65,87.38 558.65,87.38 L568.65,87.38" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M518.65,115.53 L528.65,115.53 C543.65,115.53 543.65,143.68 558.65,143.68 L568.65,143.68" fill="none" stroke="#181818" stroke-width="1"/>
 <path d="M409.75,261.71 L419.75,261.71 C434.75,261.71 434.75,115.53 449.75,115.53 L459.75,115.53" fill="none" stroke="#181818" stroke-width="1"/>

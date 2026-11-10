@@ -184,10 +184,17 @@ mod tests {
             .map(|p| (p.name.as_str(), p.frame))
             .collect();
         assert_eq!(names, [("Root", true), ("Branch", false)]);
+        // The link between them is a line of the map, which glides.
+        assert_eq!(map.wires.len(), 1);
+        assert_eq!(
+            (map.wires[0].key.from.as_str(), map.wires[0].key.to.as_str()),
+            ("Root", "Branch")
+        );
         assert_eq!(
             Map {
                 fit: Map::default().fit,
                 places: Vec::new(),
+                wires: Vec::new(),
                 ..map
             },
             Map::default()

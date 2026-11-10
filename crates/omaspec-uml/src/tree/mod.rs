@@ -15,7 +15,7 @@ use crate::annotations::Annotations;
 use crate::color::{self, Paint};
 pub use crate::common::{Frame, Skinparam, Text};
 use crate::svg::{Align, Canvas, Layer, Stroke};
-use crate::text::{self, Block, Family, Font};
+use crate::text::{self, Block, Family};
 pub use cards::{
     Branch, Card, Heading, Icon, PICTURE_ROUND, Relation, RelationKind, draw_branches,
 };
@@ -57,6 +57,8 @@ pub struct Node {
     /// same. Empty for a box without a label.
     pub key: String,
     /// How many boxes were folded away below it; 0 when it is not folded.
+    /// The box is drawn as it was, so it glides as it is; the pane marks
+    /// it.
     pub folded: usize,
 }
 
@@ -185,6 +187,35 @@ impl Wbs {
     }
 }
 
+/// The link from the box `from` to the box `to` below it, drawn through
+/// `points`, for the map: a pane glides it with its boxes (docs/adr/0024).
+/// None when one of the two has no name.
+fn wire(
+    (from, from_rect): (&str, crate::graph::Rect),
+    (to, to_rect): (&str, crate::graph::Rect),
+    points: Vec<(f32, f32)>,
+    stroke: Stroke,
+) -> Option<crate::map::Wire> {
+    let end = |rect| crate::hand::End { rect, flat: false };
+    (!from.is_empty() && !to.is_empty()).then(|| crate::map::Wire {
+        key: crate::hand::Key {
+            from: from.to_owned(),
+            to: to.to_owned(),
+            nth: 0,
+        },
+        line: None,
+        path: points.clone(),
+        points,
+        from: end(from_rect),
+        to: end(to_rect),
+        entry: None,
+        labels: Vec::new(),
+        stroke,
+        heads: Vec::new(),
+        fixed: true,
+    })
+}
+
 /// The box of the node called `key` at `rect`, for the map; none for a
 /// box without a name.
 fn place(key: &str, rect: crate::graph::Rect, frame: bool) -> Option<crate::map::Place> {
@@ -281,8 +312,6 @@ struct Label {
     /// its place, its stereotype and its depth.
     look: skin::Look,
     block: Block,
-    /// Under the label of a folded box: how many it holds.
-    more: Option<Block>,
     shape: NodeShape,
     fill: Paint,
 }
@@ -318,42 +347,22 @@ impl Label {
             Some(c) => color::parse(c).map_err(|e| Declined::at(line, e))?,
             None => look.fill,
         };
-        // A folded box says what it holds, as a folded state does.
-        let more = (node.folded > 0)
-            .then(|| {
-                let small = Font {
-                    size: (font.size * 0.8).round(),
-                    bold: false,
-                    italic: true,
-                    ..font
-                };
-                text::block(&crate::fold::counted(node.folded, "node"), small, family)
-                    .map_err(|e| Declined::at(line, e))
-            })
-            .transpose()?;
         Ok(Label {
             look,
             block,
-            more,
             shape: node.shape,
             fill,
         })
     }
 
+    /// The width and the height of what is written in the box.
+    fn content(&self) -> (f32, f32) {
+        (self.block.width, self.block.height)
+    }
+
     /// The size of the box, or of the text with its margin when there is
     /// no box: `before` and `after` are the text's margins on the left and
     /// the right.
-    /// The width and the height of what is written in the box.
-    fn content(&self) -> (f32, f32) {
-        match &self.more {
-            Some(more) => (
-                self.block.width.max(more.width),
-                self.block.height + more.height,
-            ),
-            None => (self.block.width, self.block.height),
-        }
-    }
-
     fn size(&self, skin: &skin::Skin, before: f32, after: f32) -> (f32, f32) {
         let b = self.content();
         let pad = skin.padding;
@@ -455,10 +464,6 @@ impl Label {
             Align::Right => left + width,
         };
         canvas.text(Layer::Front, &self.block, (anchor, top), skin.align);
-        if let Some(more) = &self.more {
-            let below = (anchor, top + self.block.height);
-            canvas.text(Layer::Front, more, below, skin.align);
-        }
     }
 }
 

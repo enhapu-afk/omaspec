@@ -51,6 +51,9 @@ pub struct Wire {
     pub stroke: Stroke,
     /// The marks at its ends, as drawn.
     pub heads: Vec<Head>,
+    /// The layout alone lays it: a link of a mind map or a WBS, which a
+    /// pane glides with its boxes and no writer shapes by hand.
+    pub fixed: bool,
 }
 
 /// A mark at the end of a line: an arrowhead, a triangle, a diamond, a

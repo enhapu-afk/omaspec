@@ -2086,8 +2086,12 @@ what it costs.
       slot: in starship `yellow` is a peach and `green` the accent, in
       lupine `yellow` is a blue.
 - [x] A branch of a mind map or a WBS folds (2026-11-10), in PlantUML and
-      Mermaid: the box stays, with *3 nodes* under its name, by the same
-      button, click and command as a container (0024). The trees' maps
+      Mermaid: the box stays as it is, by the same button, click and
+      command as a container (0024). The boxes below glide into it and
+      come out of it again (`morph::gather`), and the links glide along:
+      each is a line of the map (`Map::wires`) in the picture's group
+      of lines, so the pane draws it between its old route and its new
+      one. No link of a tree is shaped by hand. The trees' maps
       name their boxes now (`Place::fixed`: none is held beside another),
       two with the same words as `Tests` and `Tests (2)`.
 - [x] `<style>` in mind maps and WBS diagrams (2026-11-10), which

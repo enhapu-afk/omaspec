@@ -187,7 +187,14 @@ impl Paper {
     /// again when they come. Otherwise a fold eases longer than an edit.
     pub(super) fn start_fade(&mut self, now: Instant) -> Task<Message> {
         let morph = match &self.previous {
-            Some(previous) => self.morph_of(&previous.pictures, &previous.boxes, previous.size),
+            Some(previous) => self
+                .morph_of(&previous.pictures, &previous.boxes, previous.size)
+                .map(|mut morph| {
+                    if let Some(diagram) = &self.diagram {
+                        morph::gather(&mut morph, &previous.map, &diagram.drawn.map);
+                    }
+                    morph
+                }),
             None => None,
         };
         if morph.is_some()

@@ -50,6 +50,10 @@ pub struct Move {
     /// box: nothing sits inside it.
     pub from_header: f32,
     pub role: Role,
+    /// The box of a tree it hangs below, which stays: where that one was
+    /// and where it is. A box that leaves glides into it, one that
+    /// arrives comes out of it ([`gather`]).
+    pub into: Option<(Rectangle, Rectangle)>,
 }
 
 /// The boxes of one glide.
@@ -186,6 +190,7 @@ pub fn plan(old: &[Side], new: &[Side], old_size: Size, new_size: Size) -> Optio
             to_fill: to.fill,
             from_header: new_header[index],
             role: Role::Arrive,
+            into: None,
         });
     }
     let moved = moves
@@ -202,6 +207,42 @@ pub fn plan(old: &[Side], new: &[Side], old_size: Size, new_size: Size) -> Optio
     Some(Morph { moves })
 }
 
+/// Lets the boxes of a tree that leave glide into the box they hung below,
+/// and those that arrive come out of it: a branch folds into its box and
+/// unfolds out of it. The links of `old` and `new` say what hung where; a
+/// box whose own parent went too takes the nearest one above that stays.
+pub fn gather(morph: &mut Morph, old: &omaspec_uml::map::Map, new: &omaspec_uml::map::Map) {
+    let stays: Vec<(String, Rectangle, Rectangle)> = morph
+        .moves
+        .iter()
+        .filter(|step| step.role == Role::Stay)
+        .map(|step| (step.name.clone(), step.from, step.to))
+        .collect();
+    for step in &mut morph.moves {
+        let map = match step.role {
+            Role::Leave => old,
+            Role::Arrive => new,
+            Role::Stay => continue,
+        };
+        let fixed = |name: &str| map.places.iter().any(|p| p.fixed && p.name == name);
+        if !fixed(&step.name) {
+            continue;
+        }
+        let mut name = step.name.as_str();
+        // No tree is deeper than its boxes are many.
+        for _ in 0..map.wires.len() {
+            let Some(wire) = map.wires.iter().find(|w| w.fixed && w.key.to == name) else {
+                break;
+            };
+            name = wire.key.from.as_str();
+            if let Some((_, from, to)) = stays.iter().find(|(stay, ..)| stay == name) {
+                step.into = Some((*from, *to));
+                break;
+            }
+        }
+    }
+}
+
 fn stay(from: &Side, to: &Side, from_header: f32) -> Move {
     Move {
         name: from.name.clone(),
@@ -211,6 +252,7 @@ fn stay(from: &Side, to: &Side, from_header: f32) -> Move {
         to_fill: to.fill,
         from_header,
         role: Role::Stay,
+        into: None,
     }
 }
 
@@ -224,6 +266,7 @@ fn stay_move(from: &Move, to: &Side) -> Move {
         to_fill: to.fill,
         from_header: from.from_header,
         role: Role::Stay,
+        into: None,
     }
 }
 
@@ -274,6 +317,7 @@ fn leave(from: &Side, header: f32) -> Move {
         to_fill: from.fill,
         from_header: header,
         role: Role::Leave,
+        into: None,
     }
 }
 
@@ -650,9 +694,40 @@ fn sprite_dest(step: &Move, paint: &Paint<'_>, placed: &Placed) -> Rectangle {
             onto(grow(step.to), paint.new_size, placed.new_paper),
             placed.t,
         ),
-        Role::Leave => onto(grow(step.from), paint.old_size, placed.paper),
-        Role::Arrive => onto(grow(step.to), paint.new_size, placed.paper),
+        Role::Leave => {
+            let own = onto(grow(step.from), paint.old_size, placed.paper);
+            // Into its box, while it fades.
+            match parent_dest(step, paint, placed) {
+                Some(parent) => {
+                    let gone = (placed.t / LINE_OUT).clamp(0.0, 1.0);
+                    lerp_rect(own, parent, smooth(gone))
+                }
+                None => own,
+            }
+        }
+        Role::Arrive => {
+            let own = onto(grow(step.to), paint.new_size, placed.paper);
+            // Out of its box, while it comes.
+            match parent_dest(step, paint, placed) {
+                Some(parent) => {
+                    let come = ((placed.t - LINE_IN) / (1.0 - LINE_IN)).clamp(0.0, 1.0);
+                    lerp_rect(parent, own, smooth(come))
+                }
+                None => own,
+            }
+        }
     }
+}
+
+/// Where the box `step` hangs below is drawn now, if it is a box of a
+/// tree ([`gather`]).
+fn parent_dest(step: &Move, paint: &Paint<'_>, placed: &Placed) -> Option<Rectangle> {
+    let (from, to) = step.into?;
+    Some(lerp_rect(
+        onto(grow(from), paint.old_size, placed.old_paper),
+        onto(grow(to), paint.new_size, placed.new_paper),
+        placed.t,
+    ))
 }
 
 fn blit_box(

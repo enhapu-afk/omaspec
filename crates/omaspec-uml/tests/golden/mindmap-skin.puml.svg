@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="304" height="139" viewBox="0 0 304 139">
 <rect x="0" y="0" width="304" height="139" fill="#121212"/>
 <g transform="translate(10,10)">
-<g>
+<g id="lines">
 <path d="M147.58,64.44 L157.58,64.44 C172.58,64.44 172.58,36.3 187.58,36.3 L197.58,36.3" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="7,7"/>
 <path d="M147.58,64.44 L157.58,64.44 C172.58,64.44 172.58,100.74 187.58,100.74 L197.58,100.74" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="7,7"/>
 <path d="M77,64.44 L67,64.44 C52,64.44 52,64.44 37,64.44 L27,64.44" fill="none" stroke="#E68E0D" stroke-width="1" stroke-dasharray="7,7"/>

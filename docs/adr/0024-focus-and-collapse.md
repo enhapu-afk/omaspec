@@ -59,8 +59,9 @@ play does for the states it is in, without the play.
    by `graph`, whose map names each box. The map says which boxes hold
    others (`Place::frame`). Other kinds neither fold nor focus.
    Since 2026-11-10 the trees fold too: a box of a mind map or a WBS
-   (PlantUML's and Mermaid's) that has boxes below it folds to itself and
-   says how many it held. Their boxes have no name in the source, so the
+   (PlantUML's and Mermaid's) that has boxes below it folds to itself,
+   as it was (a line with its count would change its size, and a box
+   that changes does not glide as it is); the boxes below glide into it. Their boxes have no name in the source, so the
    map calls each by its words, the second of the same words `Tests (2)`
    (`Place::fixed`: the layout alone places them, none is held).
 

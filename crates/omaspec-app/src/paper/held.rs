@@ -498,6 +498,7 @@ mod tests {
             labels: Vec::new(),
             stroke: omaspec_uml::Stroke::new(omaspec_uml::Color::BLACK, 1.0),
             heads: Vec::new(),
+            fixed: false,
         });
         assert_eq!(target(&map, 1, (190.0, 10.0)), None);
     }

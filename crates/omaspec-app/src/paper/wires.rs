@@ -430,6 +430,7 @@ mod tests {
             labels: Vec::new(),
             stroke: omaspec_uml::Stroke::new(omaspec_uml::Color::BLACK, 1.0),
             heads: Vec::new(),
+            fixed: false,
         }
     }
 
@@ -449,6 +450,7 @@ mod tests {
             to_fill: [0.9; 3],
             from_header: 1.0,
             role,
+            into: None,
         }
     }
 
