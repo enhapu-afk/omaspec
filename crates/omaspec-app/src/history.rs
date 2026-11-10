@@ -136,17 +136,13 @@ fn summary(diagrams: &[DiagramChanges], since: &str) -> String {
     }
 }
 
-/// `omaspec log FILE`: for each commit that changed the diagram file or
-/// Markdown document `file`, newest first, what changed in its behavior;
-/// at most `count` commits. A sequence diagram is checked against the
-/// state machines of its project (`project`, else the one it is in) as
-/// each commit had them.
-pub fn log(
+/// The commits that changed `file`, newest first and at most `count`,
+/// each with what it changed in the behavior of its diagrams.
+fn entries(
     file: &Path,
     count: Option<usize>,
     project: Option<&Path>,
-    json: bool,
-) -> Result<ExitCode> {
+) -> Result<Vec<(crate::git::FileCommit, Vec<omaspec_model::DiagramChanges>)>> {
     let commits = crate::git::file_log(file, count, MAX_FILE)?;
     let mut projects = Projects::new(crate::specs::root_of(Some(file), project));
     let mut entries = Vec::new();
@@ -162,6 +158,52 @@ pub fn log(
         };
         entries.push((commit, diagrams));
     }
+    Ok(entries)
+}
+
+/// One commit of a file's history, for the editor's list.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Past {
+    /// The revision to compare with.
+    pub rev: String,
+    /// `1a2b3c4 2026-11-05 the subject`.
+    pub label: String,
+    /// `3 changes in behavior`, `no change in behavior`.
+    pub changed: String,
+}
+
+/// The history of `file` for the editor: its last `count` commits, each
+/// with how much it changed in the behavior, as `omaspec log` tells it.
+pub fn past(file: &Path, count: usize) -> Result<Vec<Past>> {
+    Ok(entries(file, Some(count), None)?
+        .into_iter()
+        .map(|(commit, diagrams)| {
+            let changes: usize = diagrams.iter().map(|d| d.changes.len()).sum();
+            Past {
+                rev: commit.hash,
+                label: format!("{} {} {}", commit.short, commit.date, commit.subject),
+                changed: match changes {
+                    0 => "no change in behavior".to_owned(),
+                    1 => "1 change in behavior".to_owned(),
+                    n => format!("{n} changes in behavior"),
+                },
+            }
+        })
+        .collect())
+}
+
+/// `omaspec log FILE`: for each commit that changed the diagram file or
+/// Markdown document `file`, newest first, what changed in its behavior;
+/// at most `count` commits. A sequence diagram is checked against the
+/// state machines of its project (`project`, else the one it is in) as
+/// each commit had them.
+pub fn log(
+    file: &Path,
+    count: Option<usize>,
+    project: Option<&Path>,
+    json: bool,
+) -> Result<ExitCode> {
+    let entries = entries(file, count, project)?;
     let mut out = stdout();
     if json {
         let report: Vec<serde_json::Value> = entries

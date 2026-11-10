@@ -83,6 +83,7 @@ impl App {
             .iter()
             .position(|d| d.path.as_deref() == Some(&path))
         {
+            self.opened(&path);
             return Ok(index);
         }
         let key = self.take_key();
@@ -91,6 +92,7 @@ impl App {
         } else {
             Doc::open(key, &path, self.forced, &self.look)?
         };
+        self.opened(&path);
         match self.docs.get(self.active) {
             Some(current) if current.is_blank() => {
                 self.docs[self.active] = doc;

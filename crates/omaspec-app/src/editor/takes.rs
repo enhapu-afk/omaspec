@@ -75,6 +75,8 @@ impl Command {
             | Command::SaveAs
             | Command::Revert
             | Command::FindAll
+            | Command::Find
+            | Command::History
             | Command::ReplaceAll
             | Command::Compare
             | Command::StopCompare
@@ -135,6 +137,7 @@ impl Command {
             | Command::NextLook
             | Command::ExportProject
             | Command::CheckProject
+            | Command::OpenRecent
             | Command::NewTab
             | Command::NextTab
             | Command::PreviousTab

@@ -116,6 +116,8 @@ pub struct Picker {
     pub placeholder: &'static str,
     /// The replacement, when the search replaces too.
     pub replace: Option<String>,
+    /// The search goes through the tab's own text only.
+    pub here: bool,
     /// Whether the replacement has the keyboard.
     pub on_replace: bool,
     items: Vec<Item>,
@@ -133,6 +135,7 @@ impl Picker {
             query: String::new(),
             placeholder,
             replace: None,
+            here: false,
             on_replace: false,
             items,
             recent: 0,

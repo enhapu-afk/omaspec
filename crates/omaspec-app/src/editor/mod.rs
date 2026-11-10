@@ -217,6 +217,9 @@ pub enum Message {
     PickerInput(String),
     /// The clipboard's text, for *Paste* of the Edit menu.
     Pasted(Option<String>),
+    /// The commits of the file in a tab with what each changed, for its
+    /// history.
+    Past(u64, Result<Vec<crate::history::Past>, String>),
     PickerSubmit,
     ReplaceInput(String),
     /// Replace every match in every tab.
@@ -343,6 +346,12 @@ pub enum Command {
     CheckProject,
     /// Lists where the name at the caret is used in the project.
     ShowUses,
+    /// Lists the commits of the tab's file and what each changed.
+    History,
+    /// Lists the files opened last.
+    OpenRecent,
+    /// The search in the tab's own text.
+    Find,
     Undo,
     Redo,
     Cut,
@@ -497,6 +506,7 @@ fn window_key(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
             "s" if mods.shift() => Some(Command::SaveAs),
             "p" if mods.shift() => Some(Command::Palette),
             "f" if mods.shift() => Some(Command::FindAll),
+            "f" => Some(Command::Find),
             "h" if mods.shift() => Some(Command::ReplaceAll),
             "d" if mods.shift() => Some(Command::Compare),
             "e" if mods.shift() => Some(Command::Gallery),
@@ -643,6 +653,8 @@ struct App {
     /// The tab whose pane shows the skin the menu points at, before it is
     /// chosen; its own picture comes back when the menu leaves it.
     previewing: Option<u64>,
+    /// The files opened last, the newest first; the session keeps them.
+    recent_files: Vec<std::path::PathBuf>,
     /// The menu bar is shown; the session keeps it.
     bar_shown: bool,
     /// The toolbar over the diagram is shown with the bar; the session
@@ -756,6 +768,7 @@ impl App {
             detached_size: window::Settings::default().size,
             menu: None,
             previewing: None,
+            recent_files: session.recent.clone(),
             bar_shown: session.menu_bar,
             toolbar: session.toolbar,
             alt_armed: false,
@@ -1256,6 +1269,7 @@ impl App {
                 Some(Asking::Rename) => self.rename_submitted(),
                 None => Task::none(),
             },
+            Message::Past(key, found) => self.past(key, found),
             Message::Pasted(text) => match text {
                 Some(text) if !text.is_empty() => self.edit(scrive_iced::Action::Paste {
                     text,
@@ -1268,8 +1282,8 @@ impl App {
                     .picker
                     .as_ref()
                     .filter(|p| p.kind == Kind::Search)
-                    .map(|p| p.replace.is_none());
-                let hits = search.map(|project| self.search_items(&query, project));
+                    .map(|p| (p.replace.is_none() && !p.here, p.here));
+                let hits = search.map(|(project, here)| self.search_items(&query, project, here));
                 if let Some(picker) = &mut self.picker {
                     picker.set_query(query);
                     if let Some(hits) = hits {
@@ -1800,8 +1814,11 @@ impl App {
                 }
                 Task::none()
             }
-            Command::FindAll => self.open_search(false),
-            Command::ReplaceAll => self.open_search(true),
+            Command::Find => self.open_search(false, true),
+            Command::FindAll => self.open_search(false, false),
+            Command::ReplaceAll => self.open_search(true, false),
+            Command::History => self.history(),
+            Command::OpenRecent => self.open_recent(),
             Command::RenameEverywhere => self.start_rename(),
             Command::CheckProject => self.check_project(),
             Command::ShowUses => self.show_uses(),

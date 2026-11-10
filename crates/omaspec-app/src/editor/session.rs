@@ -48,6 +48,9 @@ pub struct Session {
     pub toolbar: bool,
     #[serde(default)]
     pub docs: Vec<SavedDoc>,
+    /// The files opened last, the newest first.
+    #[serde(default)]
+    pub recent: Vec<PathBuf>,
 }
 
 impl Default for Session {
@@ -61,6 +64,7 @@ impl Default for Session {
             menu_bar: false,
             toolbar: true,
             docs: Vec::new(),
+            recent: Vec::new(),
         }
     }
 }
@@ -225,6 +229,7 @@ impl App {
             picked: self.picked,
             menu_bar: self.bar_shown,
             toolbar: self.toolbar,
+            recent: self.recent_files.clone(),
             docs: self
                 .docs
                 .iter()
@@ -304,6 +309,7 @@ mod tests {
                 line: 1,
                 column: 0,
             }],
+            recent: vec!["/work/door.puml".into()],
         };
         store.save(&session).unwrap();
         assert_eq!(store.load(), Some(session));

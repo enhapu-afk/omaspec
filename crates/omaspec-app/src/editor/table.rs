@@ -148,6 +148,9 @@ pub const TABLE: &[Entry] = &[
     cmd("Open a file, folder or image", "Ctrl+O", Command::Open)
         .menu(File)
         .short("Open a file, folder or image…"),
+    cmd("Recent files, the newest first", "", Command::OpenRecent)
+        .menu(File)
+        .short("Open recent…"),
     cmd("New project", "", Command::NewProject)
         .menu(Project)
         .short("New project…"),
@@ -172,13 +175,17 @@ pub const TABLE: &[Entry] = &[
         .menu(Edit)
         .at(Spot::Editor),
     cmd("Select all", "Ctrl+A", Command::SelectAll).menu(Edit),
+    cmd("Find in this file", "Ctrl+F", Command::Find)
+        .menu(Edit)
+        .gap()
+        .short("Find in this file…")
+        .at(Spot::Editor),
     cmd(
         "Find in the project and all tabs",
         "Ctrl+Shift+F",
         Command::FindAll,
     )
     .menu(Edit)
-    .gap()
     .short("Find in the project and all tabs…")
     .at(Spot::Editor),
     cmd("Replace in all tabs", "Ctrl+Shift+H", Command::ReplaceAll)
@@ -426,6 +433,13 @@ pub const TABLE: &[Entry] = &[
     .menu(Project)
     .gap()
     .short("Check the project"),
+    cmd(
+        "History of the diagram: its commits and what each changed in its behavior",
+        "",
+        Command::History,
+    )
+    .menu(Project)
+    .short("History of the diagram…"),
     cmd(
         "Where the diagram, state or event at the caret is used",
         "",

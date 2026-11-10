@@ -2481,6 +2481,81 @@ fn the_project_is_checked_and_a_name_s_uses_are_listed() {
 }
 
 #[test]
+fn find_in_this_file_leaves_the_other_tabs_out() {
+    let work = temp_dir("find-here");
+    let (door, lamp) = (work.join("door.puml"), work.join("lamp.puml"));
+    std::fs::write(&door, "@startuml\n[*] --> Closed\n@enduml\n").unwrap();
+    std::fs::write(&lamp, "@startuml\n[*] --> Closed\nClosed --> On\n@enduml\n").unwrap();
+    let mut app = open(&[door.clone(), lamp]);
+    let index = app.open_doc(&door).unwrap();
+    app.active = index;
+    assert_eq!(
+        shortcut(&Key::Character("f".into()), Modifiers::CTRL, Mode::Editing),
+        Some(Command::Find)
+    );
+    press(&mut app, Command::Find);
+    let _ = app.update(Message::PickerInput("Closed".into()));
+    let hits = app.picker.as_ref().unwrap().visible().count();
+    assert_eq!(hits, 1, "this file's alone");
+    let _ = app.update(Message::Command(Command::Cancel));
+    press(&mut app, Command::FindAll);
+    let _ = app.update(Message::PickerInput("Closed".into()));
+    assert_eq!(app.picker.as_ref().unwrap().visible().count(), 3);
+}
+
+#[test]
+fn the_files_opened_last_are_offered_again() {
+    let work = temp_dir("recent");
+    let (door, lamp) = (work.join("door.puml"), work.join("lamp.puml"));
+    for file in [&door, &lamp] {
+        std::fs::write(file, "@startuml\n[*] --> Closed\n@enduml\n").unwrap();
+    }
+    let mut app = open(std::slice::from_ref(&door));
+    app.open_doc(&lamp).unwrap();
+    // The newest first; the session keeps them.
+    assert_eq!(app.session().recent, [lamp.clone(), door.clone()]);
+    // One that is gone is not offered.
+    std::fs::remove_file(&lamp).unwrap();
+    press(&mut app, Command::OpenRecent);
+    let picker = app.picker.as_ref().expect("the files");
+    let labels: Vec<String> = picker.visible().map(|(_, i)| i.label.clone()).collect();
+    assert_eq!(labels, ["door.puml"]);
+}
+
+#[test]
+fn the_history_lists_the_commits_with_what_each_changed() {
+    let found = vec![
+        crate::history::Past {
+            rev: "1a2b3c4d5e6f".into(),
+            label: "1a2b3c4 2026-11-05 a door that locks".into(),
+            changed: "2 changes in behavior".into(),
+        },
+        crate::history::Past {
+            rev: "0f0f0f0f0f0f".into(),
+            label: "0f0f0f0 2026-11-01 first".into(),
+            changed: "no change in behavior".into(),
+        },
+    ];
+    let mut app = open(&[]);
+    let key = app.doc().key;
+    // An unsaved tab has none.
+    press(&mut app, Command::History);
+    assert!(app.notice.as_deref().unwrap().contains("once it is saved"));
+    let _ = app.update(Message::Past(key, Ok(found)));
+    let picker = app.picker.as_ref().expect("the commits");
+    let rows: Vec<(String, String)> = picker
+        .visible()
+        .map(|(_, i)| (i.label.clone(), i.hint.clone()))
+        .collect();
+    assert_eq!(rows[0].1, "2 changes in behavior");
+    assert!(rows[1].0.ends_with("first"));
+    let _ = app.update(Message::Command(Command::Cancel));
+    let _ = app.update(Message::Past(key, Ok(Vec::new())));
+    assert!(app.picker.is_none());
+    assert!(app.notice.as_deref().unwrap().starts_with("no commit"));
+}
+
+#[test]
 fn a_container_folds_from_the_caret_and_unfolds_with_a_click() {
     let work = temp_dir("fold");
     let file = work.join("coffee.puml");

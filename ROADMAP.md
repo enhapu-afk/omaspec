@@ -2120,8 +2120,12 @@ what it costs.
       *Check the project* (lint of every saved diagram, the findings a
       list of lines to go to, as `omaspec check` without the pictures)
       and *Where it is used* (`omaspec refs` for the name at the caret).
-      Open: no entry for a diagram's history (`omaspec log`) or the
-      files opened last; find in one file is the search of all tabs.
+      Then the three that were left: *Find in this file* (Ctrl+F in
+      the source; in the diagram it still finds a label), *History of
+      the diagram* (the file's last 50 commits, each with how much it
+      changed in the behavior, as `omaspec log`; Enter compares the tab
+      with it) and *Open recent* (the last 20 files, kept by the
+      session).
 - [x] Shadows (2026-11-10): `skinparam shadowing true` and a style's
       `root { Shadowing 3 }` declined the whole diagram. Now every box
       casts one, in all PlantUML types: a filled shape with a border, 3

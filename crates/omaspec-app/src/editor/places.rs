@@ -150,4 +150,98 @@ impl App {
     pub(super) fn paste(&mut self) -> Task<Message> {
         iced::clipboard::read().map(Message::Pasted)
     }
+
+    /// Asks git for the commits that changed the tab's file and what each
+    /// changed in its behavior; [`Message::Past`] lists them.
+    pub(super) fn history(&mut self) -> Task<Message> {
+        let doc = self.doc();
+        let key = doc.key;
+        let Some(path) = doc.path.clone().filter(|_| doc.on_disk()) else {
+            self.notice = Some("a file has a history once it is saved".into());
+            return Task::none();
+        };
+        self.notice = Some("reading the history…".into());
+        Task::perform(
+            crate::worker::blocking(move || {
+                crate::history::past(&path, HISTORY).map_err(|err| format!("{err:#}"))
+            }),
+            move |found| Message::Past(key, found.unwrap_or_else(|| Err("no answer".into()))),
+        )
+    }
+
+    /// Lists the commits of the tab `key`; Enter compares the tab with
+    /// the file as of that commit.
+    pub(super) fn past(
+        &mut self,
+        key: u64,
+        found: Result<Vec<crate::history::Past>, String>,
+    ) -> Task<Message> {
+        if self.doc().key != key {
+            return Task::none();
+        }
+        let found = match found {
+            Ok(found) if !found.is_empty() => found,
+            Ok(_) => {
+                self.notice = Some("no commit of a git repository changed this file".into());
+                return Task::none();
+            }
+            Err(why) => {
+                self.notice = Some(format!("no history: {why}"));
+                return Task::none();
+            }
+        };
+        self.notice = None;
+        let items = found
+            .into_iter()
+            .map(|past| Item {
+                label: past.label,
+                hint: past.changed,
+                choice: Choice::Compare(super::compare::Target::Commit {
+                    label: format!("git {}", past.rev.chars().take(7).collect::<String>()),
+                    rev: past.rev,
+                }),
+            })
+            .collect();
+        self.place_picker(Picker::new(Kind::Places, "history of the diagram", items));
+        iced::widget::operation::focus(PICKER)
+    }
+
+    /// Notes `path` as the file opened last.
+    pub(super) fn opened(&mut self, path: &std::path::Path) {
+        self.recent_files.retain(|have| have != path);
+        self.recent_files.insert(0, path.to_owned());
+        self.recent_files.truncate(RECENT);
+    }
+
+    /// Lists the files opened last, the newest first, that are still
+    /// there; Enter opens one.
+    pub(super) fn open_recent(&mut self) -> Task<Message> {
+        let items: Vec<Item> = self
+            .recent_files
+            .iter()
+            .filter(|path| path.is_file())
+            .map(|path| Item {
+                label: path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+                hint: path
+                    .parent()
+                    .map(|dir| dir.display().to_string())
+                    .unwrap_or_default(),
+                choice: Choice::Open(path.clone()),
+            })
+            .collect();
+        if items.is_empty() {
+            self.notice = Some("no file opened lately is still there".into());
+            return Task::none();
+        }
+        self.place_picker(Picker::new(Kind::Places, "open recent", items));
+        iced::widget::operation::focus(PICKER)
+    }
 }
+
+/// How many commits the history lists.
+const HISTORY: usize = 50;
+/// How many files opened last are kept.
+const RECENT: usize = 20;

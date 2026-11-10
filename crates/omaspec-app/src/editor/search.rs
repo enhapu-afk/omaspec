@@ -67,7 +67,7 @@ pub fn replacements(text: &str, matcher: &Regex, with: &str) -> Vec<(Range<usize
 impl App {
     /// The search over all tabs, starting from the selected text; with
     /// `replace` also the replacement.
-    pub(super) fn open_search(&mut self, replace: bool) -> Task<Message> {
+    pub(super) fn open_search(&mut self, replace: bool, here: bool) -> Task<Message> {
         let selection = self.doc().editor.selection();
         let query = self
             .doc()
@@ -81,14 +81,17 @@ impl App {
         } else {
             query
         };
-        let title = if replace || self.search_root().is_none() {
+        let title = if here {
+            "find in this file"
+        } else if replace || self.search_root().is_none() {
             "find in all tabs"
         } else {
             "find in the project"
         };
         let mut picker = Picker::new(Kind::Search, title, Vec::new());
         picker.replace = replace.then(String::new);
-        picker.set_items(self.search_items(&query, !replace));
+        picker.here = here;
+        picker.set_items(self.search_items(&query, !replace && !here, here));
         picker.query = query;
         self.place_picker(picker);
         iced::widget::operation::focus(PICKER)
@@ -103,12 +106,13 @@ impl App {
 
     /// The hits of `query` in every tab, this one first; with `project`,
     /// then in every file of the project not open, as saved.
-    pub(super) fn search_items(&self, query: &str, project: bool) -> Vec<Item> {
+    /// With `here`, only in this tab.
+    pub(super) fn search_items(&self, query: &str, project: bool, here: bool) -> Vec<Item> {
         let Some(matcher) = matcher(query) else {
             return Vec::new();
         };
-        let order =
-            std::iter::once(self.active).chain((0..self.docs.len()).filter(|&i| i != self.active));
+        let others = (0..self.docs.len()).filter(|&i| i != self.active && !here);
+        let order = std::iter::once(self.active).chain(others);
         let mut items = Vec::new();
         for doc in order.map(|i| &self.docs[i]) {
             let left = MAX_HITS.saturating_sub(items.len());
