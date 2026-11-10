@@ -23,6 +23,7 @@ use crate::text::{self, Block, Family, Font};
 mod nest;
 mod open;
 
+pub use nest::label_by_hand;
 use nest::{arrows, fill_regions, lay_by_hand, layout_regions, link_crossings, separators, wires};
 use open::layout_open;
 
@@ -1127,6 +1128,37 @@ mod tests {
             .find(|w| w.key.to_string() == key)
             .unwrap_or_else(|| panic!("no line {key}"))
             .clone()
+    }
+
+    #[test]
+    fn a_label_takes_the_side_the_writer_chose() {
+        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\n@enduml\n";
+        let (_, plain) = crate::render_mapped(source, None).unwrap();
+        let go = wire(&plain, "Idle -> Busy");
+        let label = go.labels[0];
+        let line_x = go.path[0].0;
+        // Right of a line running down, as the layout has it.
+        assert!(label.x > line_x, "{label:?} right of {line_x}");
+        let left = format!("{source}' lines by hand (Omaspec)\n' Idle -> Busy label left\n");
+        let (_, plain) = crate::render_mapped(&left, None).unwrap();
+        let go = wire(&plain, "Idle -> Busy");
+        let label = go.labels[0];
+        let line_x = go.path[0].0;
+        assert!(label.x + label.w < line_x, "{label:?} left of {line_x}");
+        // Across the flow: above or below the line.
+        let across =
+            "@startuml\nleft to right direction\n[*] --> Idle\nIdle --> Busy : go\n@enduml\n";
+        let (_, plain) = crate::render_mapped(across, None).unwrap();
+        let above = wire(&plain, "Idle -> Busy").labels[0];
+        let below = format!("{across}' lines by hand (Omaspec)\n' Idle -> Busy label below\n");
+        let (_, plain) = crate::render_mapped(&below, None).unwrap();
+        let moved = wire(&plain, "Idle -> Busy").labels[0];
+        assert!(moved.y > above.y, "{moved:?} below {above:?}");
+        // The entry reads back as written.
+        let labels = crate::hand::labels(&below);
+        assert_eq!(labels.len(), 1);
+        assert_eq!(labels[0].to_string(), "Idle -> Busy label below");
+        assert!(!labels[0].side.before());
     }
 
     #[test]

@@ -128,6 +128,19 @@ impl<'a> Nested for States<'a> {
         graph::arrival((), stroke)
     }
 
+    fn label_before(&self, container: &'a Container, index: usize) -> Option<bool> {
+        match container.edges.get(index) {
+            Some(edge) => edge.label_before,
+            None => {
+                container
+                    .crossings
+                    .get(index - container.edges.len())?
+                    .arrow
+                    .label_before
+            }
+        }
+    }
+
     fn line(&self, container: &'a Container, index: usize) -> Result<(Block, Stroke), Declined> {
         let arrow = match container.edges.get(index) {
             Some(edge) => edge,

@@ -13,7 +13,7 @@ mod parse;
 mod skin;
 
 pub use crate::common::{Frame, Skinparam, Text};
-pub use draw::{draw, draw_mapped};
+pub use draw::{draw, draw_mapped, label_by_hand};
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use parse::{is_structure, parse};
 
@@ -343,6 +343,9 @@ pub struct Link {
     pub dash: Dash,
     pub bold: bool,
     pub line: usize,
+    /// The side of the line its label takes, where the writer chose one
+    /// by hand ([`crate::hand::Label`]).
+    pub label_before: Option<bool>,
 }
 
 /// A line whose ends lie in different boxes of one group. The paths lead

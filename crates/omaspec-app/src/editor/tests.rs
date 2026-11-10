@@ -2183,6 +2183,52 @@ fn show_folded(app: &mut App, source: &str, folds: &[&str]) {
 }
 
 #[test]
+fn a_label_moves_to_the_other_side_of_its_line_from_the_caret() {
+    let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\n@enduml\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, source);
+    show(&mut app, source, Language::PlantUml);
+    // On no line: told so.
+    act(&mut app, Action::PlaceCaret(2));
+    press(&mut app, Command::LabelSide);
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("no line of the diagram at the caret")
+    );
+    // On the transition: its label, right of the line, goes left.
+    let at = source.find("Idle --> Busy").unwrap() + 3;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::LabelSide);
+    let moved = app.doc().text();
+    assert!(
+        moved.contains("' lines by hand (Omaspec)\n' Idle -> Busy label left\n@enduml"),
+        "{moved}"
+    );
+    assert!(app.notice.as_deref().unwrap().contains("goes left"));
+    // Drawn so, the next press sends it right; a reset gives the side
+    // back to the layout.
+    show(&mut app, &moved, Language::PlantUml);
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::LabelSide);
+    assert!(
+        app.doc()
+            .text()
+            .contains("' Idle -> Busy label right\n@enduml"),
+        "{}",
+        app.doc().text()
+    );
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::ResetLine);
+    assert_eq!(app.doc().text(), source);
+    assert!(
+        app.notice
+            .as_deref()
+            .unwrap()
+            .contains("from the layout again")
+    );
+}
+
+#[test]
 fn a_box_takes_a_color_of_the_window_from_the_caret() {
     let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\n@enduml\n";
     let mut app = open(&[]);

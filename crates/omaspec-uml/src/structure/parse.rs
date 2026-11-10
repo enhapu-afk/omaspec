@@ -711,6 +711,7 @@ impl Parser {
             dash: item.dash,
             bold: item.bold,
             line: item.line,
+            label_before: None,
         };
         if from == to {
             let index = *from.last().expect("a path");

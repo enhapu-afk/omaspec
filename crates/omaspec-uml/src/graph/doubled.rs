@@ -30,11 +30,13 @@ pub(super) fn label_room(edge: &Edge, direction: Direction) -> (f32, f32) {
 /// side, outside the pair (docs/adr/0012, rule 4); unless a neighbor there
 /// shares a box as narrow or narrower, where the two lines run closer
 /// still. Decided once the ranks are ordered, before anything is placed.
+/// A side the writer chose ([`Edge::label_before`]) stands.
 pub(super) fn label_sides(
     slots: &mut [Slot],
     rows: &[Vec<usize>],
     chains: &[Vec<usize>],
     labels: &[Option<usize>],
+    edges: &[Edge],
     direction: Direction,
 ) -> Vec<bool> {
     let mut flips = vec![false; chains.len()];
@@ -80,7 +82,12 @@ pub(super) fn label_sides(
                 Direction::Right => (before, after),
             };
             let paired = |n: Option<usize>| n.map_or(f32::INFINITY, |n| together(point, n));
-            flips[index] = paired(usual) < paired(other);
+            flips[index] = match edges.get(index).and_then(|edge| edge.label_before) {
+                // The usual side lies after a line running down, before
+                // one running across.
+                Some(before) => before == (direction == Direction::Down),
+                None => paired(usual) < paired(other),
+            };
         }
     }
     for (index, at) in labels.iter().enumerate() {
@@ -505,6 +512,7 @@ mod tests {
             apart: false,
             marked: false,
             arrival: 0,
+            label_before: None,
         }
     }
 

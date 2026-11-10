@@ -414,6 +414,7 @@ fn by_hand(piece: &Piece, k: &str, new: &str, plan: &mut Plan) {
             Hand::Line(line) => renamed(&mut line.key.from) | renamed(&mut line.key.to),
             Hand::Hold(hold) => renamed(&mut hold.name) | renamed(&mut hold.beside),
             Hand::Apart(apart) => apart.at.as_mut().is_some_and(renamed),
+            Hand::Label(label) => renamed(&mut label.key.from) | renamed(&mut label.key.to),
         };
         if !hit {
             continue;

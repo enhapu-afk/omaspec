@@ -128,6 +128,7 @@ fn lines_by_hand(code: &str, findings: &mut Vec<Finding>) {
     };
     let mut seen = HashSet::new();
     let mut held = HashSet::new();
+    let mut labelled = HashSet::new();
     let mut whole = false;
     let mut boxes = HashSet::new();
     for entry in &block.entries {
@@ -140,6 +141,10 @@ fn lines_by_hand(code: &str, findings: &mut Vec<Finding>) {
             Ok(Hand::Hold(hold)) if !held.insert(hold.name.clone()) => Some(format!(
                 "{} is held in place above already; this entry is left out",
                 hold.name
+            )),
+            Ok(Hand::Label(label)) if !labelled.insert(label.key.clone()) => Some(format!(
+                "the label of {} has its side above already; this entry is left out",
+                label.key
             )),
             Ok(Hand::Apart(apart)) => match &apart.at {
                 None if whole => {

@@ -17,7 +17,7 @@ mod parse;
 mod skin;
 
 pub use crate::common::{Frame, Skinparam, Text};
-pub use draw::{draw, draw_mapped};
+pub use draw::{draw, draw_mapped, label_by_hand};
 pub use lower::from_mermaid;
 pub use parse::{is_state, parse};
 
@@ -296,6 +296,10 @@ pub struct Transition {
     pub dash: Dash,
     pub bold: bool,
     pub line: usize,
+    /// The side of the line its label takes, where the writer chose one
+    /// by hand ([`crate::hand::Label`]): before the line across the flow,
+    /// or after it.
+    pub label_before: Option<bool>,
 }
 
 /// A transition whose ends lie in different boxes of one container. The

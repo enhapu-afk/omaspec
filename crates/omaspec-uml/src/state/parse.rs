@@ -376,6 +376,7 @@ impl Parser {
                 dash: raw.dash,
                 bold: raw.bold,
                 line,
+                label_before: None,
             },
         ));
         Ok(())

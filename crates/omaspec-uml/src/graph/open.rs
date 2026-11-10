@@ -161,6 +161,12 @@ pub trait Nested {
     fn marked(&self, _container: Self::Container, _index: usize) -> bool {
         false
     }
+    /// The side of line `index` its label takes, where the writer chose
+    /// one: before the line across the flow, or after it
+    /// ([`Edge::label_before`]).
+    fn label_before(&self, _container: Self::Container, _index: usize) -> Option<bool> {
+        None
+    }
     /// How a line drawn as `look` arrives at the box it ends at
     /// ([`super::arrival`]): lines share a trunk only when this is the
     /// same, so the heads that stack on it are one kind.
@@ -608,6 +614,7 @@ impl<C: Nested> Flat<C> {
                 apart: apart.contains(&from) || apart.contains(&to),
                 marked: cx.marked(container, index),
                 arrival: cx.arrival(&look),
+                label_before: cx.label_before(container, index),
             });
             level.push(Pending {
                 at: self.edges.len() - 1,

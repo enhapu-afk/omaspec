@@ -20,7 +20,9 @@
 //! the flow ([`Hold`]). And it keeps lines apart
 //! ([0022](../../../../docs/adr/0022-lines-bundled.md)): `apart` draws every
 //! line on its own, and `apart at Name` does that for the lines of one box
-//! ([`Apart`]).
+//! ([`Apart`]). And it puts a label on the side of its line the writer
+//! chose: `Idle -> Busy label left` ([`Label`]; `right`, `above` and
+//! `below` too).
 
 use std::fmt;
 
@@ -91,13 +93,64 @@ pub struct Apart {
     pub at: Option<String>,
 }
 
-/// What an entry says: the shape of a line, where a box stands, or which
-/// lines stay apart.
+/// The side of its line a label takes: `left` or `above` is before the
+/// line across the flow, `right` or `below` after it. The word is the
+/// writer's; a line running down reads `above` as `left`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Side {
+    Left,
+    Right,
+    Above,
+    Below,
+}
+
+impl Side {
+    /// Whether the label lies before its line across the flow.
+    pub fn before(self) -> bool {
+        matches!(self, Side::Left | Side::Above)
+    }
+
+    pub fn word(self) -> &'static str {
+        match self {
+            Side::Left => "left",
+            Side::Right => "right",
+            Side::Above => "above",
+            Side::Below => "below",
+        }
+    }
+
+    fn read(word: &str) -> Option<Side> {
+        match word {
+            "left" => Some(Side::Left),
+            "right" => Some(Side::Right),
+            "above" => Some(Side::Above),
+            "below" => Some(Side::Below),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for Side {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.word())
+    }
+}
+
+/// A line's label on the side the writer chose.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Label {
+    pub key: Key,
+    pub side: Side,
+}
+
+/// What an entry says: the shape of a line, where a box stands, which
+/// lines stay apart, or the side a label takes.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Hand {
     Line(Line),
     Hold(Hold),
     Apart(Apart),
+    Label(Label),
 }
 
 /// A box a line leaves or enters: where it is, and whether the line may
@@ -446,7 +499,15 @@ impl fmt::Display for Hand {
             Hand::Line(line) => line.fmt(f),
             Hand::Hold(hold) => hold.fmt(f),
             Hand::Apart(apart) => apart.fmt(f),
+            Hand::Label(label) => label.fmt(f),
         }
+    }
+}
+
+/// An entry as written, without the comment mark.
+impl fmt::Display for Label {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} label {}", self.key, self.side.word())
     }
 }
 
@@ -542,6 +603,7 @@ fn tokens(text: &str) -> Result<Vec<Token<'_>>, String> {
 const SHAPE: &str = "a line by hand reads `From -> To at 0.5 -0.4`";
 const HELD: &str = "a box held in place reads `Box after Neighbor` or `Box before Neighbor`";
 const APART: &str = "lines stay apart as `apart`, or as `apart at Name`";
+const LABEL: &str = "a label's side reads `From -> To label left` (or right, above, below)";
 
 /// The name of one end of a line, from its token.
 fn end_name(token: Option<&Token>, what: &str) -> Result<String, String> {
@@ -583,8 +645,22 @@ fn parse(text: &str) -> Result<Hand, String> {
     }
     match tokens.get(1) {
         Some(t) if t.is("after") || t.is("before") => hold(&tokens).map(Hand::Hold),
-        _ => line(&tokens).map(Hand::Line),
+        _ => line(&tokens),
     }
+}
+
+/// The labels by hand in `code`: each entry that reads, the first for a
+/// key.
+pub fn labels(code: &str) -> Vec<Label> {
+    let mut out: Vec<Label> = Vec::new();
+    for entry in read(code).map(|b| b.entries).unwrap_or_default() {
+        if let Ok(Hand::Label(label)) = entry.read
+            && !out.iter().any(|l| l.key == label.key)
+        {
+            out.push(label);
+        }
+    }
+    out
 }
 
 /// Lines kept apart: `apart`, or `apart at Name`.
@@ -627,7 +703,7 @@ fn hold(tokens: &[Token]) -> Result<Hold, String> {
 }
 
 /// A line by hand, from its tokens.
-fn line(tokens: &[Token]) -> Result<Line, String> {
+fn line(tokens: &[Token]) -> Result<Hand, String> {
     let mut it = tokens.iter().peekable();
     let from = end_name(it.next(), "start")?;
     if !it.next().is_some_and(|t| t.is("->")) {
@@ -646,6 +722,22 @@ fn line(tokens: &[Token]) -> Result<Line, String> {
             .filter(|&n| n >= 1)
             .ok_or_else(|| format!("`#{count}` is no count of lines, as `#2` is"))?;
         it.next();
+    }
+    // `label left`: the side of the line its label takes.
+    if it.peek().is_some_and(|t| t.is("label")) {
+        it.next();
+        let side = it
+            .next()
+            .filter(|t| !t.quoted)
+            .and_then(|t| Side::read(t.text))
+            .ok_or_else(|| LABEL.to_owned())?;
+        if it.next().is_some() {
+            return Err(LABEL.to_owned());
+        }
+        return Ok(Hand::Label(Label {
+            key: Key { from, to, nth },
+            side,
+        }));
     }
     if !it.next().is_some_and(|t| t.is("at")) {
         return Err(SHAPE.to_owned());
@@ -669,10 +761,10 @@ fn line(tokens: &[Token]) -> Result<Line, String> {
             }
         }
     }
-    Ok(Line {
+    Ok(Hand::Line(Line {
         key: Key { from, to, nth },
         corners,
-    })
+    }))
 }
 
 #[cfg(test)]

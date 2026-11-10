@@ -8,7 +8,7 @@
 
 use std::ops::Range;
 
-use omaspec_uml::hand::{self, Hand, Hold, Line, MARK};
+use omaspec_uml::hand::{self, Hand, Hold, Key, Label, Line, MARK, Side};
 
 use crate::lang::Language;
 use crate::text::line_ranges;
@@ -41,6 +41,28 @@ pub fn hold(
         language,
         |hand| matches!(hand, Hand::Hold(h) if h.name == name),
         hold.cloned().map(Hand::Hold),
+    )
+}
+
+/// The edit that puts the label of the line `key` on `side`, in place of
+/// what the block says for it, or leaves the side to the layout again
+/// when `side` is `None`. `None` when nothing changes.
+pub fn label(
+    code: &str,
+    language: Language,
+    key: &Key,
+    side: Option<Side>,
+) -> Option<(Range<usize>, String)> {
+    put(
+        code,
+        language,
+        |hand| matches!(hand, Hand::Label(l) if l.key == *key),
+        side.map(|side| {
+            Hand::Label(Label {
+                key: key.clone(),
+                side,
+            })
+        }),
     )
 }
 

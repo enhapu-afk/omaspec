@@ -114,6 +114,19 @@ impl<'a> Nested for Elements<'a> {
         frame_of(&item.item, self.skin)
     }
 
+    fn label_before(&self, group: &'a Group, index: usize) -> Option<bool> {
+        match group.edges.get(index) {
+            Some(edge) => edge.label_before,
+            None => {
+                group
+                    .crossings
+                    .get(index - group.edges.len())?
+                    .arrow
+                    .label_before
+            }
+        }
+    }
+
     fn line(&self, group: &'a Group, index: usize) -> Result<(Block, Look), Declined> {
         let arrow = match group.edges.get(index) {
             Some(edge) => edge,

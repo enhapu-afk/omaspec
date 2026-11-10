@@ -248,6 +248,7 @@ mod tests {
             apart: false,
             marked: false,
             arrival: 0,
+            label_before: None,
         }
     }
 

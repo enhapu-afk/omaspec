@@ -3,7 +3,11 @@
 Status: accepted, 2026-10-31; revised the same day, after a check in a real
 window: the line keeps the shape the writer gives it (see
 [Earlier](#earlier)). Takes up "Lines by hand" from the roadmap's
-[Next](../../ROADMAP.md#next).
+[Next](../../ROADMAP.md#next). Amended 2026-11-10: the block also holds
+the side a label takes (`Idle -> Busy label left`; `right`, `above`,
+`below`), which the layout keeps where the writer put it
+([0020](0020-room-for-labels.md), `graph::Edge::label_before`); the
+editor writes it with *Label to the other side*.
 
 ## Context
 

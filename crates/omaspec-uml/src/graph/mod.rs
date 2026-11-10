@@ -90,6 +90,11 @@ pub struct Edge {
     /// shared only by lines of one key, so it never stacks two kinds of
     /// head, or a dashed line under a solid one.
     pub arrival: u64,
+    /// The side of the line its label takes, where the writer chose one:
+    /// before the line across the flow (left of a line running down,
+    /// above one running across) or after it. `None` lets the layout
+    /// choose ([`doubled::label_sides`]).
+    pub label_before: Option<bool>,
 }
 
 /// The key of a line's arrival ([`Edge::arrival`]): the head it ends in,
@@ -290,7 +295,7 @@ pub fn framed(
         .map(|slot| slot.real.is_some_and(|real| nodes[real].flat))
         .collect();
     doubled::order_ranks(&mut rows, &mut slots, framing, &holds);
-    let flips = doubled::label_sides(&mut slots, &rows, &chains, &labels, direction);
+    let flips = doubled::label_sides(&mut slots, &rows, &chains, &labels, edges, direction);
     match &mut tree {
         Some(tree) => {
             // A frame too narrow for the lines to pass its name grows, once.
@@ -1741,6 +1746,7 @@ mod tests {
             apart: false,
             marked: false,
             arrival: 0,
+            label_before: None,
         }
     }
 

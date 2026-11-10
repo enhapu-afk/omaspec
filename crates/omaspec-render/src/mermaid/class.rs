@@ -25,6 +25,7 @@ pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
         .frame
         .unplaced
         .extend(diagram.root.part(&omaspec_uml::hand::apart(source)));
+    omaspec_uml::structure::label_by_hand(&mut diagram.root, &omaspec_uml::hand::labels(source));
     diagram.fold(&omaspec_uml::fold::read(source));
     draw_mapped(&diagram).ok()
 }

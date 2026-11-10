@@ -284,6 +284,14 @@ pub const TABLE: &[Entry] = &[
     .short("Fold this container, or unfold it")
     .at(Spot::Both),
     cmd(
+        "Label of the line at the caret to the other side",
+        "",
+        Command::LabelSide,
+    )
+    .menu(Diagram)
+    .short("Label to the other side")
+    .at(Spot::Both),
+    cmd(
         "Color the box at the caret, kept in the source",
         "",
         Command::ColorBox,

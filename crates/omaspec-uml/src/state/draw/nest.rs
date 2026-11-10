@@ -243,6 +243,33 @@ fn gather<'a>(
     }
 }
 
+/// Puts each label whose side the writer chose by hand on that side of
+/// its transition ([`crate::hand::Label`]); the entries that name no
+/// transition, by their key.
+pub fn label_by_hand(root: &mut Container, labels: &[crate::hand::Label]) -> Vec<Key> {
+    if labels.is_empty() {
+        return Vec::new();
+    }
+    let keyed = arrows(root);
+    let mut missed = Vec::new();
+    for label in labels {
+        let Some((arrow, _)) = keyed.iter().find(|(_, key)| *key == label.key) else {
+            missed.push(label.key.clone());
+            continue;
+        };
+        let mut container = &mut *root;
+        for &index in &arrow.path {
+            container = &mut container.nodes[index].children;
+        }
+        let transition = match container.edges.get_mut(arrow.slot) {
+            Some(edge) => edge,
+            None => &mut container.crossings[arrow.slot - container.edges.len()].arrow,
+        };
+        transition.label_before = Some(label.side.before());
+    }
+    missed
+}
+
 /// Every transition of the diagram, with what the block of lines by hand
 /// calls it ([`by_hand`]).
 pub(super) fn arrows(root: &Container) -> Vec<(Arrow, Key)> {

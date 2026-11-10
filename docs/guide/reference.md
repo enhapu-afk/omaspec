@@ -244,6 +244,12 @@ line takes up to 32 corners. A corner inside one of its boxes, or a line that is
 left out and shows among the findings, and so does a line that runs through a box. Lines
 by hand work in state, class, component, use case, deployment and object diagrams and in
 Mermaid flowcharts; the preview window shows them but leaves the dragging to the editor.
+
+The block also holds the side a label takes. **Label to the other side** in the palette
+puts the label of the line at the caret on the side it is not on, as `Idle -> Busy label
+left` (`right`, `above`, `below`); pressed again it goes back, and *Line: the layout's
+way again* on a line that runs its own way already gives the label's side back to the
+layout. Works in state and class diagrams, PlantUML and Mermaid.
 Why it works this way: [ADR 0016](../adr/0016-lines-by-hand.md).
 
 ### Boxes held in place

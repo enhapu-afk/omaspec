@@ -1974,12 +1974,15 @@ what it costs.
       first line that names a box without one; Mermaid's `style Name
       fill:#…` line, its other properties kept, the line gone when the
       fill was all it held.
-- [ ] A label moved to the other side of its line with the mouse, kept in
-      the block of lines by hand; and the label of the line the caret is on
-      lit. Weighed: a step of its own in the layout. The block of lines by
-      hand knows corners, holds and `apart`, not a label's side; the
-      layout would read a side there and keep the label's room on that
-      side of its line ([0020](docs/adr/0020-room-for-labels.md)).
+- [x] A label moved to the other side of its line (2026-11-10): *Label
+      to the other side* puts the label of the line at the caret on the
+      side it is not on, as `Idle -> Busy label left` in the block of
+      lines by hand (`hand::Label`, `right`, `above`, `below`); the layout
+      keeps a chosen side (`Edge::label_before`, `doubled::label_sides`),
+      in state and class diagrams of both languages; *Line: the layout's
+      way again* takes it back. From the caret and the menus, not by
+      dragging the label: the light on the caret's word already shows
+      which label is meant.
 - [ ] The skins shown before one is chosen: the diagram at hand in each
       pack, small, in the menu. Weighed: a step of its own in the menus. The
       pictures are cheap (a few milliseconds each), the menu overlay of

@@ -120,6 +120,29 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
 
 /// Every line of the diagram, with what the block of lines by hand calls
 /// it: the names lines use for its ends.
+/// Puts each label whose side the writer chose by hand on that side of
+/// its line ([`crate::hand::Label`]).
+pub fn label_by_hand(root: &mut Group, labels: &[crate::hand::Label]) {
+    if labels.is_empty() {
+        return;
+    }
+    let keyed = arrows(root);
+    for label in labels {
+        let Some((arrow, _)) = keyed.iter().find(|(_, key)| *key == label.key) else {
+            continue;
+        };
+        let mut group = &mut *root;
+        for &index in &arrow.path {
+            group = &mut group.nodes[index].children;
+        }
+        let link = match group.edges.get_mut(arrow.slot) {
+            Some(edge) => edge,
+            None => &mut group.crossings[arrow.slot - group.edges.len()].arrow,
+        };
+        link.label_before = Some(label.side.before());
+    }
+}
+
 fn arrows(root: &Group) -> Vec<(Arrow, Key)> {
     fn collect(group: &Group, path: &mut Vec<usize>, out: &mut Vec<Arrow>) {
         let within = |end: &[usize]| [path.as_slice(), end].concat();

@@ -980,6 +980,7 @@ impl Parser {
             dash: rel.dash,
             bold: false,
             line: rel.line,
+            label_before: None,
         };
         let from = &rel.from;
         let to = &rel.to;
