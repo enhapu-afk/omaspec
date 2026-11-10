@@ -312,7 +312,6 @@ impl Layer {
     }
 
     /// The number the newest request carries.
-    #[cfg(test)]
     pub fn seq(&self) -> u64 {
         self.latest.load(Ordering::Relaxed)
     }

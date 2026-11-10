@@ -367,7 +367,7 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
 
 /// `source` with a line for each container `folds` names after it, which
 /// the drawers fold (`omaspec_uml::fold`); the file never holds them.
-fn folded(source: &str, language: Language, folds: &[String]) -> String {
+pub fn folded(source: &str, language: Language, folds: &[String]) -> String {
     let mut text = source.to_owned();
     if folds.is_empty() {
         return text;

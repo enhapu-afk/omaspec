@@ -686,6 +686,73 @@ fn a_play_is_written_as_a_gif_that_moves() {
 }
 
 #[test]
+fn a_fold_and_a_zoom_into_a_map_are_written_as_gifs() {
+    let dir = scratch("fold-dive-gif");
+    fs::write(dir.join("omaspec-project.toml"), "name = \"shop\"\n").unwrap();
+    let orders = dir.join("orders.puml");
+    fs::write(
+        &orders,
+        "@startuml\ntitle Orders\n[*] --> New\nstate Paying {\n  [*] --> Card\n  Card --> Paid : ok\n}\nNew --> Paying : pay\n@enduml\n",
+    )
+    .unwrap();
+    let gif = dir.join("moves.gif");
+    let play = |args: &[&str]| {
+        let mut all = vec!["play"];
+        all.extend_from_slice(args);
+        all.extend_from_slice(&["-o", gif.to_str().unwrap(), "--theme", "built-in"]);
+        all.extend_from_slice(&["--width", "400", "--fps", "10"]);
+        let out = omaspec(&all);
+        (
+            out.status.code(),
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+        )
+    };
+    let (code, err) = play(&[orders.to_str().unwrap(), "--fold", "Paying"]);
+    if err.contains("no GPU") {
+        eprintln!("skipped: {err}");
+        return;
+    }
+    assert_eq!(code, Some(0), "{err}");
+    assert!(err.contains("Paying folded and unfolded"), "{err}");
+    assert!(fs::read(&gif).unwrap().starts_with(b"GIF89a"));
+    // What is no container is named, with those the diagram has.
+    let (code, err) = play(&[orders.to_str().unwrap(), "--fold", "New"]);
+    assert_ne!(code, Some(0));
+    assert!(
+        err.contains("New is no container") && err.contains("Paying"),
+        "{err}"
+    );
+
+    let project = dir.join("omaspec-project.toml");
+    let (code, err) = play(&[project.to_str().unwrap(), "--dive", "Orders"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(err.contains("into Orders and back"), "{err}");
+    assert!(fs::read(&gif).unwrap().starts_with(b"GIF89a"));
+    let (code, err) = play(&[project.to_str().unwrap(), "--dive", "Nowhere"]);
+    assert_ne!(code, Some(0));
+    assert!(
+        err.contains("Nowhere is no tile") && err.contains("Orders"),
+        "{err}"
+    );
+    // A dive wants the project's file, and the project's file a dive.
+    let (code, err) = play(&[orders.to_str().unwrap(), "--dive", "Orders"]);
+    assert_ne!(code, Some(0));
+    assert!(err.contains("omaspec-project.toml"), "{err}");
+    let (code, err) = play(&[project.to_str().unwrap()]);
+    assert_ne!(code, Some(0));
+    assert!(err.contains("--dive TILE"), "{err}");
+    // The project is as it was: the command writes its GIF and nothing else.
+    let mut left: Vec<_> = fs::read_dir(&dir)
+        .unwrap()
+        .flatten()
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    left.sort();
+    assert_eq!(left, ["moves.gif", "omaspec-project.toml", "orders.puml"]);
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn the_project_s_file_is_drawn_as_the_map_made_from_its_diagrams() {
     let dir = scratch("made-map");
     fs::create_dir_all(dir.join("scenarios")).unwrap();

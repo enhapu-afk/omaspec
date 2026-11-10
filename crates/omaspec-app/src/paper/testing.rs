@@ -91,15 +91,6 @@ impl Paper {
         self.play.as_ref()?.arrived()
     }
 
-    pub fn viewport(&self) -> Size {
-        self.viewport
-    }
-
-    /// The glide under way, a dive too.
-    pub fn glide(&self) -> Option<Glide> {
-        self.glide
-    }
-
     /// What the detail layer asked for, and whether one is shown.
     pub fn detail(&self) -> (Option<Plan>, bool) {
         (self.detail.asked, self.detail.shown.is_some())
@@ -109,46 +100,10 @@ impl Paper {
         self.overview.shown.is_some()
     }
 
-    /// Rasterizes the overview the view asked for and hands it in as
-    /// the background task's message would.
-    pub fn deliver_overview(&mut self) {
-        let tree = Arc::clone(self.shown_tree().unwrap());
-        let raster = raster::render(&tree, self.overview.asked.unwrap());
-        let _ = self.update(Message::Overview(self.overview.seq(), raster));
-        self.deliver_bare();
-    }
-
-    /// The pictures without lines a glide asked for, rasterized here.
-    pub fn deliver_bare(&mut self) {
-        let old = self
-            .previous
-            .as_ref()
-            .and_then(|previous| previous.bare.clone())
-            .zip(self.bare_old.asked);
-        let new = self
-            .diagram
-            .as_ref()
-            .and_then(|diagram| diagram.drawn.bare.clone())
-            .zip(self.bare_new.asked);
-        if let Some((tree, plan)) = old {
-            let raster = raster::render(&tree, plan);
-            let _ = self.update(Message::BareOld(self.bare_old.seq(), raster));
-        }
-        if let Some((tree, plan)) = new {
-            let raster = raster::render(&tree, plan);
-            let _ = self.update(Message::BareNew(self.bare_new.seq(), raster));
-        }
-    }
-
     /// Whether a glide from an older drawing waits to come back to the
     /// diagram it was shown for.
     pub fn glides_back(&self) -> bool {
         self.back.is_some()
-    }
-
-    /// How many pictures of the diagram before fade out, if a fade runs.
-    pub fn fading(&self) -> Option<usize> {
-        self.fade.as_ref().map(|fade| fade.old.len())
     }
 
     /// The fade that runs takes `duration` from now: for a picture of it
@@ -167,20 +122,6 @@ impl Paper {
         self.fade
             .as_ref()
             .is_some_and(|fade| fade.lines.is_some() && fade.bare.is_some())
-    }
-
-    /// Makes the smaller copies a zoom into a tile or out of it asked
-    /// for, as the background task would.
-    pub fn finish_small(&mut self) {
-        if let Some(passage) = self.passage.as_mut().filter(|p| p.small_of.is_some()) {
-            let picture = passage.linked.as_ref().and_then(|l| l.picture.as_ref());
-            passage.small = picture
-                .map(raster::halves)
-                .unwrap_or_default()
-                .into_iter()
-                .map(Some)
-                .collect();
-        }
     }
 
     /// How many smaller copies of its picture a zoom into a link has.
@@ -232,11 +173,6 @@ impl Paper {
         self.view
             .on_screen(iced::Rectangle::new(middle, Size::ZERO), pane)
             .position()
-    }
-
-    /// The containers folded, by name.
-    pub fn folded(&self) -> &[String] {
-        &self.folds
     }
 
     pub fn screen_of_line(&self, key: &str) -> (Point, Vector) {

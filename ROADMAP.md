@@ -1973,8 +1973,22 @@ what it costs.
       1200×1020, 1.2 MB, 17 s (9.4 MB with a table and a whole picture
       per frame); it is the README's `play.gif` now, written by
       `docs/images/update.sh`, where a screen recording cut by hand was
-      (5 MB). Without a GPU the command says so. Open: a fold or a dive
-      as a GIF the same way.
+      (5 MB). Without a GPU the command says so.
+- [x] A fold and a dive as pictures that move (2026-11-10), by the same
+      command. `--fold Brewing` folds the container as a click on its
+      button does, the diagram glides to its new layout, and it unfolds
+      again; several fold one after another and unfold the other way
+      round. `--dive Orders` on a project's `omaspec-project.toml` zooms
+      from its map into that tile, the diagram stands in its tab under
+      its trail, and the way leads back out; several tiles one after
+      another. Each ends on the picture it began with, to the pixel, so
+      the loop has no seam. What the tests used to draw a glide without
+      a render thread (`deliver_overview`, `finish_small`) is in
+      `paper/headless.rs` now. The coffee machine's `Brewing`: 23 frames,
+      1200×930, 1 MB, 3 s; a map of three tiles, two dives: 44 frames,
+      3 MB, 6 s (a glide moves every pixel, so a frame is all of it).
+      The project is read and not written. Open: a dive into a linked
+      state of a diagram, which is no tile; a fold of a map's folder.
 - [x] A color for one box (2026-11-10): *Color this box…* in the palette
       and the menus offers the window's colors for the state or class the
       caret is on, and none. It goes into the source as the language

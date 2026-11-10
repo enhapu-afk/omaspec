@@ -34,7 +34,7 @@ cargo run -p omaspec-app -- check DIR      # lint, the machines, the links and r
 cargo run -p omaspec-app -- export DIR     # the project as SVGs linked to one another, index.svg and a ZIP, in DIR/export
 cargo run -p omaspec-app -- [FILE...]      # editor window
 cargo run -p omaspec-app -- preview FILE   # preview window that follows the file
-cargo run -p omaspec-app -- play FILE -o play.gif   # a play as a GIF, drawn headless on the GPU; --events, --steps, --width, --fps, --theme
+cargo run -p omaspec-app -- play FILE -o play.gif   # a play as a GIF, drawn headless on the GPU; --events, --steps, --width, --fps, --theme; --fold NAME a fold, --dive TILE (on omaspec-project.toml) a zoom into the map
 OMASPEC_SNAPSHOT_DIR=/tmp cargo test -p omaspec-app snapshot   # headless screenshots of the editor, the preview and the gallery
 OMASPEC_SNAPSHOT_DIR=/tmp cargo test --release -p omaspec-app snapshot_   # README pictures, every bundled theme
 docs/images/update.sh                      # the README's and the guide's pictures into docs/images (ImageMagick)

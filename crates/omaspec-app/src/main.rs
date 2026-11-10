@@ -329,7 +329,8 @@ enum Command {
         #[command(flatten)]
         lang: LangArg,
     },
-    /// Write a play of a state machine or a scenario as a GIF that moves.
+    /// Write a play of a state machine or a scenario, a fold or a zoom into
+    /// a project's map as a GIF that moves.
     ///
     /// The diagram's pane is drawn as the window draws it, on the GPU
     /// without a window, in the active theme: the light runs along each
@@ -354,6 +355,15 @@ enum Command {
         /// Frames per second.
         #[arg(long, default_value_t = 20)]
         fps: u32,
+        /// Instead of a play: these containers fold to their boxes, one
+        /// after another, and unfold again, the diagram gliding to each
+        /// layout.
+        #[arg(long, value_delimiter = ',', value_name = "NAME", conflicts_with_all = ["events", "steps"])]
+        fold: Vec<String>,
+        /// On a project's omaspec-project.toml: its map zooms into
+        /// these tiles, one after another, and back out.
+        #[arg(long, value_delimiter = ',', value_name = "TILE", conflicts_with_all = ["events", "steps", "fold"])]
+        dive: Vec<String>,
         /// The colors: `built-in` for the palette Omaspec ships, or a
         /// theme's colors.toml; the active Omarchy theme without it.
         #[arg(long, value_name = "built-in|FILE")]
@@ -672,6 +682,8 @@ fn main() -> ExitCode {
             steps,
             width,
             fps,
+            fold,
+            dive,
             theme,
             lang,
         }) => editor::moving::play(&editor::moving::Moving {
@@ -681,6 +693,8 @@ fn main() -> ExitCode {
             steps,
             width,
             fps,
+            folds: fold,
+            dives: dive,
             theme,
             forced: lang.get(),
         })
