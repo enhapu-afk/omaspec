@@ -41,6 +41,10 @@ pub struct Line {
     /// Its width and dash, in the picture's units.
     pub width: f32,
     pub dash: Option<(f32, f32)>,
+    /// A link of a tree that goes with its box into the box above, or
+    /// comes out of it: it has both routes, one of them a point on that
+    /// box, and fades as a line that goes or comes does.
+    pub fold: Option<Role>,
 }
 
 /// A line's route and the marks at its ends, in its picture's units.
@@ -72,7 +76,41 @@ impl Line {
             colors: (ink(wire), ink(wire)),
             width: wire.stroke.width,
             dash: wire.stroke.dash,
+            fold: None,
         }
+    }
+
+    /// A link of a tree whose lower box goes into the box above it
+    /// ([`super::morph::gather`]), or comes out of it: the link shrinks
+    /// to where it leaves that box, or grows from there.
+    fn folding(wire: &Wire, moves: &[Move]) -> Option<Line> {
+        let step = moves.iter().find(|step| step.name == wire.key.to)?;
+        let (was, is) = step.into.filter(|_| wire.fixed)?;
+        let first = *wire.points.first()?;
+        // Where the link leaves the box above, in the other picture.
+        let onto = |from: Rectangle, to: Rectangle| {
+            let share = |at: f32, lo: f32, size: f32| ((at - lo) / size.max(1e-3)).clamp(0.0, 1.0);
+            (
+                to.x + share(first.0, from.x, from.width) * to.width,
+                to.y + share(first.1, from.y, from.height) * to.height,
+            )
+        };
+        let shape = Shape::of(wire);
+        let point = |at: (f32, f32)| Shape {
+            points: vec![at; shape.points.len()],
+            heads: Vec::new(),
+        };
+        let (from, to) = match step.role {
+            Role::Leave => (shape.clone(), point(onto(was, is))),
+            Role::Arrive => (point(onto(is, was)), shape.clone()),
+            Role::Stay => return None,
+        };
+        Some(Line {
+            from: Some(from),
+            to: Some(to),
+            fold: Some(step.role),
+            ..Line::dressed(wire)
+        })
     }
 
     fn between(old: &Wire, new: &Wire) -> Line {
@@ -116,7 +154,7 @@ pub fn plan(old: &Map, new: &Map, moves: &[Move]) -> Glide {
                 used[at] = true;
                 Line::between(wire, &new.wires[at])
             }
-            None => Line::leaving(wire),
+            None => Line::folding(wire, moves).unwrap_or_else(|| Line::leaving(wire)),
         });
     }
     for (at, wire) in new.wires.iter().enumerate() {
@@ -127,7 +165,7 @@ pub fn plan(old: &Map, new: &Map, moves: &[Move]) -> Glide {
         let was = old.wires.iter().find(|w| alike(w, wire));
         lines.push(match was {
             Some(w) => Line::between(w, wire),
-            None => Line::arriving(wire),
+            None => Line::folding(wire, moves).unwrap_or_else(|| Line::arriving(wire)),
         });
     }
     Glide { lines }
@@ -247,14 +285,22 @@ fn paint_line(frame: &mut Frame, line: &Line, s: &Sheets) {
         (Some(from), Some(to)) => {
             let a = onto_all(&from.points, s.old);
             let b = onto_all(&to.points, s.new);
+            // A link that folds away is there while the old picture is,
+            // and has shrunk when that is gone; one that unfolds grows
+            // as the new picture comes.
+            let (way, alpha) = match line.fold {
+                Some(Role::Leave) => (1.0 - s.out, s.out),
+                Some(Role::Arrive) => (s.inn, s.inn),
+                _ => (s.t, 1.0),
+            };
             let points = a
                 .iter()
                 .zip(&b)
-                .map(|(&p, &q)| lerp_point(p, q, s.t))
+                .map(|(&p, &q)| lerp_point(p, q, way))
                 .collect();
             let marks = marks_between(from, to, s);
             let k = lerp(scale(s.old), scale(s.new), s.t);
-            (points, marks, 1.0, k)
+            (points, marks, alpha, k)
         }
         (Some(from), None) => {
             let sheet = (s.paper, s.old.1);
@@ -547,5 +593,38 @@ mod tests {
         assert_eq!(points[4], (10.0, 10.0));
         assert!((points[2].0 - 10.0).abs() < 1e-4 && points[2].1.abs() < 1e-4);
         assert!((points[1].0 - 5.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn a_link_of_a_tree_shrinks_into_the_box_above_when_its_box_folds_away() {
+        let rect = |x: f32, y: f32| Rectangle::new(Point::new(x, y), Size::new(60.0, 30.0));
+        let mut link = wire("Docs", "API", &[(30.0, 30.0), (30.0, 60.0), (50.0, 60.0)]);
+        link.fixed = true;
+        let old = Map {
+            wires: vec![link],
+            ..Map::default()
+        };
+        // Docs stays and moves 100 to the right; API goes into it.
+        let moves = [
+            step("Docs", rect(0.0, 0.0), rect(100.0, 0.0), Role::Stay),
+            Move {
+                into: Some((rect(0.0, 0.0), rect(100.0, 0.0))),
+                ..step("API", rect(50.0, 45.0), rect(50.0, 45.0), Role::Leave)
+            },
+        ];
+        let glide = plan(&old, &Map::default(), &moves);
+        let line = &glide.lines[0];
+        assert_eq!(line.fold, Some(Role::Leave));
+        // Every point ends where the link left Docs, in the new picture.
+        let to = line.to.as_ref().unwrap();
+        assert!(
+            to.points.iter().all(|&p| p == (130.0, 30.0)),
+            "{:?}",
+            to.points
+        );
+        // A line of a graph diagram that goes fades where it is.
+        let mut old = old;
+        old.wires[0].fixed = false;
+        assert_eq!(plan(&old, &Map::default(), &moves).lines[0].fold, None);
     }
 }

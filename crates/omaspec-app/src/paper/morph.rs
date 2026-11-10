@@ -146,7 +146,21 @@ fn push_marks(
 
 /// The glide from `old` to `new`, when a box changed place. `None` when
 /// the layout is the same one, so a recolor keeps the short fade.
+#[cfg(test)]
 pub fn plan(old: &[Side], new: &[Side], old_size: Size, new_size: Size) -> Option<Morph> {
+    plan_with(old, new, old_size, new_size, false)
+}
+
+/// [`plan`]; with `folding`, a glide also when boxes only went or came
+/// and none of the others moved: a branch of a tree folded on the side,
+/// whose boxes still go into the box above them ([`gather`]).
+pub fn plan_with(
+    old: &[Side],
+    new: &[Side],
+    old_size: Size,
+    new_size: Size,
+    folding: bool,
+) -> Option<Morph> {
     let old_header = headers(old);
     let new_header = headers(new);
     let mut stays = Vec::new();
@@ -196,7 +210,8 @@ pub fn plan(old: &[Side], new: &[Side], old_size: Size, new_size: Size) -> Optio
     let moved = moves
         .iter()
         .any(|step| step.role == Role::Stay && shifted(step.from, step.to, old_size, new_size));
-    if !moved {
+    let changed = folding && moves.iter().any(|step| step.role != Role::Stay);
+    if !moved && !changed {
         return None;
     }
     moves.sort_by(|a, b| {

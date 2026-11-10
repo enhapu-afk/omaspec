@@ -341,7 +341,17 @@ impl Paper {
             return None;
         }
         let diagram = self.diagram.as_ref()?;
-        morph::plan(old_boxes, &morph::sides(diagram), old_size, diagram.size)
+        // A fold of a tree glides whatever else moved: its boxes go into
+        // the box above them.
+        let folding = matches!(self.change, Change::Fold { .. })
+            && diagram.drawn.map.places.iter().any(|place| place.fixed);
+        morph::plan_with(
+            old_boxes,
+            &morph::sides(diagram),
+            old_size,
+            diagram.size,
+            folding,
+        )
     }
 
     /// Whether pixels that come now wait: the view glides, and a picture

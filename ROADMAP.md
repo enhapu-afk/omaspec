@@ -2091,7 +2091,10 @@ what it costs.
       come out of it again (`morph::gather`), and the links glide along:
       each is a line of the map (`Map::wires`) in the picture's group
       of lines, so the pane draws it between its old route and its new
-      one. No link of a tree is shaped by hand. The trees' maps
+      one. No link of a tree is shaped by hand. A link whose box folds
+      away shrinks with it to where it left the box above
+      (`wires::Line::folding`), and a fold glides also when no other
+      box moved: a branch on the side only faded before. The trees' maps
       name their boxes now (`Place::fixed`: none is held beside another),
       two with the same words as `Tests` and `Tests (2)`.
 - [x] `<style>` in mind maps and WBS diagrams (2026-11-10), which
