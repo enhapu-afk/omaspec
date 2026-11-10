@@ -2553,7 +2553,7 @@ dependencies = [
 
 [[package]]
 name = "omaspec-app"
-version = "0.9.1"
+version = "0.9.3"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2581,7 +2581,7 @@ dependencies = [
 
 [[package]]
 name = "omaspec-core"
-version = "0.9.1"
+version = "0.9.3"
 dependencies = [
  "miniz_oxide 0.9.1",
  "omaspec-uml",
@@ -2592,7 +2592,7 @@ dependencies = [
 
 [[package]]
 name = "omaspec-model"
-version = "0.9.1"
+version = "0.9.3"
 dependencies = [
  "omaspec-core",
  "omaspec-uml",
@@ -2602,7 +2602,7 @@ dependencies = [
 
 [[package]]
 name = "omaspec-render"
-version = "0.9.1"
+version = "0.9.3"
 dependencies = [
  "criterion",
  "jpeg-encoder",
@@ -2621,14 +2621,14 @@ dependencies = [
 
 [[package]]
 name = "omaspec-theme"
-version = "0.9.1"
+version = "0.9.3"
 dependencies = [
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "omaspec-uml"
-version = "0.9.1"
+version = "0.9.3"
 
 [[package]]
 name = "once_cell"
@@ -3481,7 +3481,7 @@ dependencies = [
 
 [[package]]
 name = "spike-editor"
-version = "0.9.1"
+version = "0.9.3"
 dependencies = [
  "anyhow",
  "iced",
@@ -3493,7 +3493,7 @@ dependencies = [
 
 [[package]]
 name = "spike-menu"
-version = "0.9.1"
+version = "0.9.3"
 dependencies = [
  "anyhow",
  "iced",
@@ -3504,7 +3504,7 @@ dependencies = [
 
 [[package]]
 name = "spike-mermaid"
-version = "0.9.1"
+version = "0.9.3"
 dependencies = [
  "anyhow",
  "mermaid-rs-renderer",

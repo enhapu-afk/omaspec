@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.9.1: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.9.3: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -63,6 +63,26 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   those into one diagram share a line. A click on a card zooms into its diagram as one
   sharp picture that grows, and back; a diagram changed in its tab shows that way on
   the map before it is saved.
+
+## New in 0.9.2 and 0.9.3
+
+- **The map is made, not written.** A project's map comes from its diagrams: a tile for
+  each, an arrow where a state of one opens another, laid out by those arrows.
+  `omaspec new DIR` starts a project, `omaspec render DIR/omaspec-project.toml` draws
+  its map; nothing has to be kept in step by hand.
+- **A picture that moves.** `omaspec play door.puml -o door.gif --events open,close`
+  writes a play as a GIF, `--fold Brewing` a container folding and unfolding, and
+  `--dive Orders` on a project the zoom from its map into a diagram and back: drawn as
+  the window draws them, for a pull request or a talk.
+- **Small things for the layout.** A color for one box and a label on the other side of
+  its line, both from the caret and kept in the source; the skin the menu points at
+  shows in the diagram before it is chosen; a folded container says what it holds.
+- **What changed, as a glide.** Compare shows the change since another version as the
+  boxes and lines gliding from there to here.
+- **Cleaner lines.** A line through several ranks changes sides as a whole where that
+  crosses less: on 300 random graphs 28 % fewer crossings.
+- **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
+  matter, and a component's name keeps clear of its icon.
 
 ## The editor
 

@@ -1237,7 +1237,15 @@ checked; numbers are measured, not assumed. 0.6 to 0.8 were released together as
 0.8.0 on 2026-11-05, 0.9 as 0.9.0 on 2026-11-09 with everything under *Since
 0.8.0*, the menus, the colored skins and the cleaner lines of that week. 0.9.1
 followed the same day with what is under *Since 0.9.0*: the map's arrows around
-its cards, and the zoom into a tile as one picture.
+its cards, and the zoom into a tile as one picture. 0.9.2 followed on 2026-11-10
+with what is under *Since 0.9.1* and what was built of *Ideas after 0.9*: the map
+made from the project's diagrams, a color for one box, a label's side, the skins
+shown before one is chosen, a play, a fold and a dive as a GIF, and long lines
+that change sides as a whole. Its tag was set before the version was: the
+program in it calls itself 0.9.1. 0.9.3 followed the same day with the version
+right, a sequence diagram's front matter title
+([#4](https://github.com/enhapu-afk/omaspec/issues/4)) and a component's name
+off its icon ([#2](https://github.com/enhapu-afk/omaspec/issues/2)).
 
 ### Step 0: the yardstick
 
