@@ -1080,6 +1080,32 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         `dot` does, so placement leaves room and a pair bends around its
         labels. A change to ranking, order and placement that moves most
         goldens with labels; its own ADR first.
+  - [x] A long line changes sides as a whole (2026-11-10): the order of
+        a rank swapped two neighbors where that crossed less, so a line
+        through several ranks that came down on the wrong side of a box
+        stayed there: each of its points alone crosses as much on the
+        other side, only all of them cross less. `order::reroute` lays
+        such a line again, one pass down its ranks for the places that
+        cross the fewest other lines, each point among the neighbors of
+        its own frames; the other slots stay, so only the line's own
+        crossings change. On 300 random graphs 3058 crossings became
+        2203. In `examples/platform.mmd` the report builder's line to the
+        replica passes the queue on its far side (3 crossings → 1), and
+        the drone's outer layout changed with it, Emergency and
+        Maintenance beside Monitoring instead of under it (a quarter less
+        high; 18.3 → 6.8 units moved when a box is added). There a line
+        routed afterwards then ran 4 units under `motors armed`, its
+        corner's curve through the words: `graph::route` now counts a run
+        within 6 units of words as under them (`WORD_AIR`). Crossings
+        8 → 4, two of them the writer's own in `held.puml`; no word in
+        the way; 1 Mermaid golden changed, looked at side by side.
+        `tests/lines` lists the words in the way now (`words`). Left:
+        `Auth -> Db` over `Search -> Index` in the platform, where every
+        order of the data tier crosses once, and in the drone
+        `Maintenance -> Docked` over `SensorFault -> Maintenance`, both
+        routed after placement: the second leaves Maintenance by its left
+        side though its bottom, beside the first, would cross nothing.
+        The README's picture of the drone is from before.
   - [x] Lines by hand curve like the layout's (2026-11-08): a corner the
         writer placed was rounded by at most 16 units, so a run dragged
         out of the layout turned a wide curve into a near right angle; now

@@ -896,6 +896,7 @@ fn sweep(rows: &mut [Vec<usize>], slots: &[Slot]) {
     }
     order::keep_best(rows, slots, best);
     order::transpose(rows, slots, |_, _| true);
+    order::reroute(rows, slots, |_, _| true);
 }
 
 /// The same with frames: each rank keeps the slots of a frame together,
@@ -938,6 +939,7 @@ fn sweep_framed(rows: &mut [Vec<usize>], slots: &[Slot], frames: &[Vec<usize>], 
     // frames swap where that crosses less ([`order`]).
     order::keep_best(rows, slots, best);
     order::transpose(rows, slots, |a, b| frames[a] == frames[b]);
+    order::reroute(rows, slots, |a, b| frames[a] == frames[b]);
 }
 
 fn positions(rows: &[Vec<usize>], n: usize) -> Vec<f32> {

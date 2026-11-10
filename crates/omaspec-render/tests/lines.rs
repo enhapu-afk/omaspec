@@ -185,11 +185,37 @@ fn measure(wires: &[Wire]) -> Count {
             }
         }
     }
-    // Words a line runs through, its own too, as the line is drawn: a
-    // curve at a corner reaches where the straight run did not. No drawer
-    // measured here sets words on a background. Or words on other words or
-    // on a box the lines join, but for one around an end of their line (a
-    // nested state, a package) that holds them whole.
+    count.labels = words_in_the_way(wires).len();
+    // The boxes the lines join; a box around one of a line's ends (a
+    // nested state, a package) is one it may run through.
+    let mut boxes: Vec<Rect> = Vec::new();
+    for wire in wires {
+        for rect in [wire.from.rect, wire.to.rect] {
+            if !boxes.contains(&rect) {
+                boxes.push(rect);
+            }
+        }
+    }
+    for wire in wires {
+        for &rect in &boxes {
+            if contains(rect, wire.from.rect) || contains(rect, wire.to.rect) {
+                continue;
+            }
+            if wire.path.windows(2).any(|s| through(s[0], s[1], rect)) {
+                count.through += 1;
+            }
+        }
+    }
+    count
+}
+
+/// Words a line runs through, its own too, as the line is drawn: a
+/// curve at a corner reaches where the straight run did not. No drawer
+/// measured here sets words on a background. Or words on other words or
+/// on a box the lines join, but for one around an end of their line (a
+/// nested state, a package) that holds them whole.
+fn words_in_the_way(wires: &[Wire]) -> Vec<(&Wire, Rect)> {
+    let mut found = Vec::new();
     let mut ends: Vec<Rect> = Vec::new();
     for wire in wires {
         for rect in [wire.from.rect, wire.to.rect] {
@@ -224,30 +250,10 @@ fn measure(wires: &[Wire]) -> Count {
             .chain(ends.iter().copied().filter(|&r| !around(r)))
             .any(|other| overlap(shrunk, other));
         if cut || covers {
-            count.labels += 1;
+            found.push((wire, label));
         }
     }
-    // The boxes the lines join; a box around one of a line's ends (a
-    // nested state, a package) is one it may run through.
-    let mut boxes: Vec<Rect> = Vec::new();
-    for wire in wires {
-        for rect in [wire.from.rect, wire.to.rect] {
-            if !boxes.contains(&rect) {
-                boxes.push(rect);
-            }
-        }
-    }
-    for wire in wires {
-        for &rect in &boxes {
-            if contains(rect, wire.from.rect) || contains(rect, wire.to.rect) {
-                continue;
-            }
-            if wire.path.windows(2).any(|s| through(s[0], s[1], rect)) {
-                count.through += 1;
-            }
-        }
-    }
-    count
+    found
 }
 
 fn corpus(root: &Path) -> Vec<PathBuf> {
@@ -592,6 +598,37 @@ fn crossings() {
                     }
                 }
             }
+        }
+    }
+}
+
+/// Lists every word in the way, by its line and where it lies:
+/// `cargo test -p omaspec-render --test lines words -- --ignored --nocapture`.
+#[test]
+#[ignore]
+fn words() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    for file in corpus(root) {
+        let code = fs::read_to_string(&file).unwrap();
+        let language = Language::from_file_name(&file.to_string_lossy()).unwrap();
+        let Ok(drawn) = renderer.render(&code, language) else {
+            continue;
+        };
+        for (wire, word) in words_in_the_way(&drawn.map.wires) {
+            println!(
+                "{}: {} -> {} at ({:.0}, {:.0}), {:.0} by {:.0}",
+                name(root, &file),
+                wire.key.from,
+                wire.key.to,
+                word.x,
+                word.y,
+                word.w,
+                word.h
+            );
         }
     }
 }

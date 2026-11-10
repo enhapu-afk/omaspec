@@ -1,87 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="850" height="1170" viewBox="0 0 850 1170">
-<rect x="0" y="0" width="850" height="1170" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="857" height="1120" viewBox="0 0 857 1120">
+<rect x="0" y="0" width="857" height="1120" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
-<rect x="287.27" y="0" width="101.49" height="36.3" rx="18.15" ry="18.15" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="0" y="78.3" width="829.77" height="1070.77" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
-<rect x="24.18" y="114.59" width="228.72" height="169.18" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
-<rect x="36.18" y="150.89" width="204.72" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="48.89" y="235.48" width="179.04" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="12" y="315.78" width="805.77" height="469.37" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+<rect x="290.9" y="0" width="101.49" height="36.3" rx="18.15" ry="18.15" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="0" y="78.3" width="836.98" height="1020.77" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+<rect x="24.21" y="114.59" width="228.72" height="169.18" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+<rect x="36.21" y="150.89" width="204.72" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="48.92" y="235.48" width="179.04" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="12" y="315.78" width="812.98" height="439.37" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
 <rect x="24" y="352.07" width="227.16" height="290.78" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
 <rect x="36" y="405.37" width="203.16" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <rect x="53.86" y="578.26" width="185.3" height="52.59" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="295.16" y="541.96" width="308.6" height="231.18" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+<rect x="295.16" y="541.96" width="308.6" height="201.18" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
 <rect x="475.75" y="586.4" width="116.01" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="351.16" y="724.85" width="117.57" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="351.16" y="694.85" width="117.57" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 <rect x="307.16" y="586.4" width="124.58" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="513.5" y="369.07" width="292.27" height="84.59" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
-<rect x="525.5" y="405.37" width="104.35" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="673.85" y="405.37" width="119.92" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="188.43" y="887.14" width="559.02" height="249.92" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
-<path d="M358.13,973.72 A70.85,13.28 0 0 1 499.83,973.72 L499.83,1010.02 A70.85,13.28 0 0 1 358.13,1010.02 Z" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<path d="M358.13,973.72 A70.85,13.28 0 0 0 499.83,973.72" fill="none" stroke="#94A3B8" stroke-width="1"/>
-<path d="M452.18,1077.04 A55.29,11.73 0 0 1 562.76,1077.04 L562.76,1113.33 A55.29,11.73 0 0 1 452.18,1113.33 Z" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<path d="M452.18,1077.04 A55.29,11.73 0 0 0 562.76,1077.04" fill="none" stroke="#94A3B8" stroke-width="1"/>
-<rect x="587.83" y="973.72" width="147.61" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<line x1="595.83" y1="973.72" x2="595.83" y2="1010.02" fill="none" stroke="#94A3B8" stroke-width="1"/>
-<line x1="727.44" y1="973.72" x2="727.44" y2="1010.02" fill="none" stroke="#94A3B8" stroke-width="1"/>
-<rect x="200.43" y="973.72" width="113.7" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="520.71" y="369.07" width="292.27" height="84.59" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+<rect x="532.71" y="405.37" width="104.35" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="681.06" y="405.37" width="119.92" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="153.21" y="837.14" width="559.02" height="249.92" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+<path d="M322.91,923.72 A70.85,13.28 0 0 1 464.62,923.72 L464.62,960.02 A70.85,13.28 0 0 1 322.91,960.02 Z" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<path d="M322.91,923.72 A70.85,13.28 0 0 0 464.62,923.72" fill="none" stroke="#94A3B8" stroke-width="1"/>
+<path d="M514.78,1027.04 A55.29,11.73 0 0 1 625.37,1027.04 L625.37,1063.33 A55.29,11.73 0 0 1 514.78,1063.33 Z" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<path d="M514.78,1027.04 A55.29,11.73 0 0 0 625.37,1027.04" fill="none" stroke="#94A3B8" stroke-width="1"/>
+<rect x="508.62" y="923.72" width="147.61" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<line x1="516.62" y1="923.72" x2="516.62" y2="960.02" fill="none" stroke="#94A3B8" stroke-width="1"/>
+<line x1="648.23" y1="923.72" x2="648.23" y2="960.02" fill="none" stroke="#94A3B8" stroke-width="1"/>
+<rect x="165.21" y="923.72" width="113.7" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
 </g>
 <g id="lines">
-<path d="M338.02,36.3 L338.02,36.3 C338.02,48.45 328.17,58.3 316.02,58.3 L276.9,58.3 C250.39,58.3 228.9,79.79 228.9,106.3 L228.9,140.89" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M537.5,405.37 L537.5,96.3 C537.5,69.79 516.01,48.3 489.5,48.3 L340.02,48.3 C338.91,48.3 338.02,47.4 338.02,46.3 L338.02,46.3" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="1.5,3"/>
-<path d="M138,271.78 L138,274.78 C138,286.38 147.39,295.78 158.99,295.78 L158.99,295.78 C170.58,295.78 179.98,305.17 179.98,316.77 L179.98,366.38 C179.98,377.97 170.58,387.37 158.99,387.37 L146,387.37 C141.58,387.37 138,390.95 138,395.37 L138,395.37" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M512.73,622.7 L512.73,805.27 C512.73,828.4 493.98,847.14 470.86,847.14 L470.86,847.14 C447.73,847.14 428.98,865.89 428.98,889.02 L428.98,950.44" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M428.98,761.14 L428.98,828.39 C428.98,833.23 425.06,837.14 420.23,837.14 L420.23,837.14 C415.4,837.14 411.48,841.06 411.48,845.89 L411.48,923.69 C411.48,928.52 415.4,932.44 420.23,932.44 L420.23,932.44 C425.06,932.44 428.98,936.36 428.98,941.19 L428.98,950.44" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M227.16,630.85 L227.16,894.44 C227.16,920.95 248.65,942.44 275.16,942.44 L420.98,942.44 C425.4,942.44 428.98,946.02 428.98,950.44 L428.98,950.44" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M319.16,622.7 L319.16,798.91 C319.16,814.5 306.52,827.14 290.93,827.14 L290.93,827.14 C275.34,827.14 262.7,839.78 262.7,855.38 L262.7,963.72" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M579.76,622.7 L579.76,787.14 C579.76,798.19 588.71,807.14 599.76,807.14 L599.76,807.14 C610.81,807.14 619.76,816.1 619.76,827.14 L619.76,963.72" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="1.5,3"/>
-<path d="M657.76,973.72 L657.76,674.8 C657.76,663.78 648.83,654.85 637.8,654.85 L637.8,654.85 C626.78,654.85 617.85,645.91 617.85,634.89 L617.85,451.66" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M673.76,973.72 L673.76,519.71 C673.76,511.95 680.05,505.66 687.8,505.66 L687.8,505.66 C695.56,505.66 701.85,499.38 701.85,491.62 L701.85,451.66" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M685.85,441.66 L685.85,476.62 C685.85,487.14 677.32,495.66 666.8,495.66 L666.8,495.66 C656.29,495.66 647.76,504.19 647.76,514.71 L647.76,809.14 C647.76,835.65 626.27,857.14 599.76,857.14 L591.83,857.14 C565.32,857.14 543.83,878.63 543.83,905.14 L543.83,1027.12 C543.83,1037.16 535.69,1045.3 525.65,1045.3 L517.47,1045.3 C511.95,1045.3 507.47,1049.78 507.47,1055.3 L507.47,1055.3" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="138.47,187.18 138.47,225.48" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M341.64,36.3 L341.64,36.3 C341.64,48.45 331.79,58.3 319.64,58.3 L276.93,58.3 C250.42,58.3 228.93,79.79 228.93,106.3 L228.93,140.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M544.71,405.37 L544.71,96.3 C544.71,69.79 523.22,48.3 496.71,48.3 L343.64,48.3 C342.53,48.3 341.64,47.4 341.64,46.3 L341.64,46.3" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="1.5,3"/>
+<path d="M138.01,271.78 L138.01,274.79 C138.01,286.38 147.41,295.78 159,295.78 L159,295.78 C170.59,295.78 179.98,305.17 179.98,316.76 L179.98,366.38 C179.98,377.97 170.59,387.37 159,387.37 L146.01,387.37 C141.59,387.37 138.01,390.95 138.01,395.37 L138.01,395.37" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M512.73,622.7 L512.73,749.14 C512.73,775.65 491.24,797.14 464.73,797.14 L441.77,797.14 C415.26,797.14 393.77,818.63 393.77,845.14 L393.77,900.44" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M393.77,731.14 L393.77,778.39 C393.77,783.23 389.85,787.14 385.02,787.14 L385.02,787.14 C380.18,787.14 376.27,791.06 376.27,795.89 L376.27,873.69 C376.27,878.52 380.18,882.44 385.02,882.44 L385.02,882.44 C389.85,882.44 393.77,886.36 393.77,891.19 L393.77,900.44" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M227.16,630.85 L227.16,844.44 C227.16,870.95 248.65,892.44 275.16,892.44 L385.77,892.44 C390.18,892.44 393.77,896.02 393.77,900.44 L393.77,900.44" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M319.16,622.7 L319.16,748.91 C319.16,764.5 306.52,777.14 290.93,777.14 L290.93,777.14 C275.34,777.14 262.7,789.78 262.7,805.38 L262.7,913.72" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="569.14,622.7 569.14,913.72" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="1.5,3"/>
+<path d="M628.23,923.72 L628.23,816.91 C628.23,811.52 632.6,807.14 637.99,807.14 L637.99,807.14 C643.39,807.14 647.76,802.77 647.76,797.38 L647.76,477.01 C647.76,470.75 642.68,465.66 636.41,465.66 L636.41,465.66 C630.14,465.66 625.06,460.58 625.06,454.31 L625.06,451.66" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M644.23,923.72 L644.23,824.91 C644.23,820.62 647.71,817.14 651.99,817.14 L651.99,817.14 C656.28,817.14 659.76,813.67 659.76,809.38 L659.76,512.31 C659.76,503.12 667.21,495.66 676.41,495.66 L676.41,495.66 C685.6,495.66 693.06,488.21 693.06,479.01 L693.06,451.66" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M709.06,441.66 L709.06,947.3 C709.06,973.81 687.57,995.3 661.06,995.3 L580.08,995.3 C574.55,995.3 570.08,999.78 570.08,1005.3 L570.08,1005.3" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="138.51,187.18 138.51,225.48" fill="none" stroke="#64748B" stroke-width="1"/>
 <path d="M227.16,441.66 L227.16,441.66 C227.16,460.44 242.39,475.66 261.16,475.66 L485.75,475.66 C512.26,475.66 533.75,497.15 533.75,523.66 L533.75,576.4" fill="none" stroke="#64748B" stroke-width="1"/>
 <path d="M211.16,441.66 L211.16,441.66 C211.16,465.96 230.86,485.66 255.16,485.66 L321.46,485.66 C347.96,485.66 369.46,507.15 369.46,533.66 L369.46,576.4" fill="none" stroke="#64748B" stroke-width="1"/>
 <polyline points="142.05,441.66 142.05,568.26" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M487.75,622.7 L487.75,679.34 C487.75,687.91 480.8,694.85 472.24,694.85 L472.24,694.85 C463.67,694.85 456.73,701.79 456.73,710.36 L456.73,714.85" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M428.98,1023.3 L428.98,1023.3 C428.98,1029.93 434.35,1035.3 440.98,1035.3 L487.47,1035.3 C498.52,1035.3 507.47,1044.26 507.47,1055.3 L507.47,1055.3" fill="none" stroke="#64748B" stroke-width="2"/>
-<polygon points="224.9,140.89 228.9,150.89 232.9,140.89 228.9,144.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="342.02,46.3 338.02,36.3 334.02,46.3 338.02,42.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="134,395.37 138,405.37 142,395.37 138,399.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="424.98,950.44 428.98,960.44 432.98,950.44 428.98,954.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="424.98,950.44 428.98,960.44 432.98,950.44 428.98,954.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="424.98,950.44 428.98,960.44 432.98,950.44 428.98,954.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="258.7,963.72 262.7,973.72 266.7,963.72 262.7,967.72" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="615.76,963.72 619.76,973.72 623.76,963.72 619.76,967.72" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="621.85,451.66 617.85,441.66 613.85,451.66 617.85,447.66" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="705.85,451.66 701.85,441.66 697.85,451.66 701.85,447.66" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="503.47,1055.3 507.47,1065.3 511.47,1055.3 507.47,1059.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="134.47,225.48 138.47,235.48 142.47,225.48 138.47,229.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<path d="M487.75,622.7 L487.75,659.34 C487.75,667.91 480.8,674.85 472.24,674.85 L466.73,674.85 C461.21,674.85 456.73,679.33 456.73,684.85 L456.73,684.85" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M393.77,973.3 L393.77,973.3 C393.77,979.93 399.14,985.3 405.77,985.3 L550.08,985.3 C561.12,985.3 570.08,994.26 570.08,1005.3 L570.08,1005.3" fill="none" stroke="#64748B" stroke-width="2"/>
+<polygon points="224.93,140.89 228.93,150.89 232.93,140.89 228.93,144.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="345.64,46.3 341.64,36.3 337.64,46.3 341.64,42.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="134.01,395.37 138.01,405.37 142.01,395.37 138.01,399.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="389.77,900.44 393.77,910.44 397.77,900.44 393.77,904.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="389.77,900.44 393.77,910.44 397.77,900.44 393.77,904.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="389.77,900.44 393.77,910.44 397.77,900.44 393.77,904.44" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="258.7,913.72 262.7,923.72 266.7,913.72 262.7,917.72" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="565.14,913.72 569.14,923.72 573.14,913.72 569.14,917.72" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="629.06,451.66 625.06,441.66 621.06,451.66 625.06,447.66" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="697.06,451.66 693.06,441.66 689.06,451.66 693.06,447.66" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="566.08,1005.3 570.08,1015.3 574.08,1005.3 570.08,1009.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="134.51,225.48 138.51,235.48 142.51,225.48 138.51,229.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="529.75,576.4 533.75,586.4 537.75,576.4 533.75,580.4" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="365.46,576.4 369.46,586.4 373.46,576.4 369.46,580.4" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 <polygon points="138.05,568.26 142.05,578.26 146.05,568.26 142.05,572.26" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="452.73,714.85 456.73,724.85 460.73,714.85 456.73,718.85" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="503.47,1055.3 507.47,1065.3 511.47,1055.3 507.47,1059.3" fill="#64748B" stroke="#64748B" stroke-width="1.5"/>
+<polygon points="452.73,684.85 456.73,694.85 460.73,684.85 456.73,688.85" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="566.08,1005.3 570.08,1015.3 574.08,1005.3 570.08,1009.3" fill="#64748B" stroke="#64748B" stroke-width="1.5"/>
 </g>
 <g>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="312.35" y="22.99" font-size="14" fill="#0F172A" textLength="51.34" lengthAdjust="spacing">Browser</tspan>
+<tspan x="315.97" y="22.99" font-size="14" fill="#0F172A" textLength="51.34" lengthAdjust="spacing">Browser</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="373.26" y="103.29" font-size="14" fill="#0F172A" textLength="83.24" lengthAdjust="spacing">Web platform</tspan>
+<tspan x="376.87" y="103.29" font-size="14" fill="#0F172A" textLength="83.24" lengthAdjust="spacing">Web platform</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="122.19" y="139.58" font-size="14" fill="#0F172A" textLength="32.69" lengthAdjust="spacing">Edge</tspan>
+<tspan x="122.23" y="139.58" font-size="14" fill="#0F172A" textLength="32.69" lengthAdjust="spacing">Edge</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="52.18" y="173.88" font-size="14" fill="#0F172A" textLength="172.72" lengthAdjust="spacing">CDN cache for static assets</tspan>
+<tspan x="52.21" y="173.88" font-size="14" fill="#0F172A" textLength="172.72" lengthAdjust="spacing">CDN cache for static assets</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="64.89" y="258.47" font-size="14" fill="#0F172A" textLength="147.04" lengthAdjust="spacing">Web application firewall</tspan>
+<tspan x="64.92" y="258.47" font-size="14" fill="#0F172A" textLength="147.04" lengthAdjust="spacing">Web application firewall</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="368.98" y="340.77" font-size="14" fill="#0F172A" textLength="91.81" lengthAdjust="spacing">Application tier</tspan>
+<tspan x="372.58" y="340.77" font-size="14" fill="#0F172A" textLength="91.81" lengthAdjust="spacing">Application tier</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="109.18" y="377.06" font-size="14" fill="#0F172A" textLength="56.8" lengthAdjust="spacing">API layer</tspan>
@@ -100,19 +100,19 @@
 <tspan x="491.75" y="609.4" font-size="14" fill="#0F172A" textLength="84.01" lengthAdjust="spacing">Order service</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="367.16" y="747.84" font-size="14" fill="#0F172A" textLength="85.57" lengthAdjust="spacing">Billing service</tspan>
+<tspan x="367.16" y="717.84" font-size="14" fill="#0F172A" textLength="85.57" lengthAdjust="spacing">Billing service</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="323.16" y="609.4" font-size="14" fill="#0F172A" textLength="92.58" lengthAdjust="spacing">Search service</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="595.83" y="394.06" font-size="14" fill="#0F172A" textLength="127.6" lengthAdjust="spacing">Background workers</tspan>
+<tspan x="603.04" y="394.06" font-size="14" fill="#0F172A" textLength="127.6" lengthAdjust="spacing">Background workers</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="541.5" y="428.36" font-size="14" fill="#0F172A" textLength="72.35" lengthAdjust="spacing">Mail sender</tspan>
+<tspan x="548.71" y="428.36" font-size="14" fill="#0F172A" textLength="72.35" lengthAdjust="spacing">Mail sender</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="689.85" y="428.36" font-size="14" fill="#0F172A" textLength="87.92" lengthAdjust="spacing">Report builder</tspan>
+<tspan x="697.06" y="428.36" font-size="14" fill="#0F172A" textLength="87.92" lengthAdjust="spacing">Report builder</tspan>
 </text>
 <rect x="537.75" y="507.66" width="43.68" height="20.3" rx="2" ry="2" fill="#F1F5F9"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
@@ -123,23 +123,23 @@
 <tspan x="375.46" y="522.66" font-size="14" fill="#0F172A" textLength="45.91" lengthAdjust="spacing">queries</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="441.48" y="912.14" font-size="14" fill="#0F172A" textLength="52.91" lengthAdjust="spacing">Data tier</tspan>
+<tspan x="406.27" y="862.14" font-size="14" fill="#0F172A" textLength="52.91" lengthAdjust="spacing">Data tier</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="374.13" y="1010" font-size="14" fill="#0F172A" textLength="109.7" lengthAdjust="spacing">Primary database</tspan>
+<tspan x="338.91" y="960" font-size="14" fill="#0F172A" textLength="109.7" lengthAdjust="spacing">Primary database</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="468.18" y="1111.76" font-size="14" fill="#0F172A" textLength="78.58" lengthAdjust="spacing">Read replica</tspan>
+<tspan x="530.78" y="1061.76" font-size="14" fill="#0F172A" textLength="78.58" lengthAdjust="spacing">Read replica</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="611.83" y="996.71" font-size="14" fill="#0F172A" textLength="99.61" lengthAdjust="spacing">Message queue</tspan>
+<tspan x="532.62" y="946.71" font-size="14" fill="#0F172A" textLength="99.61" lengthAdjust="spacing">Message queue</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="216.43" y="996.71" font-size="14" fill="#0F172A" textLength="81.7" lengthAdjust="spacing">Search index</tspan>
+<tspan x="181.21" y="946.71" font-size="14" fill="#0F172A" textLength="81.7" lengthAdjust="spacing">Search index</tspan>
 </text>
-<rect x="541.5" y="201.18" width="46.01" height="20.3" rx="2" ry="2" fill="#F1F5F9"/>
+<rect x="548.71" y="201.18" width="46.01" height="20.3" rx="2" ry="2" fill="#F1F5F9"/>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
-<tspan x="543.5" y="216.18" font-size="14" fill="#0F172A" textLength="42.01" lengthAdjust="spacing">receipt</tspan>
+<tspan x="550.71" y="216.18" font-size="14" fill="#0F172A" textLength="42.01" lengthAdjust="spacing">receipt</tspan>
 </text>
 </g>
 </g>

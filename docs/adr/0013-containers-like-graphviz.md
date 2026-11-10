@@ -64,4 +64,7 @@ constraint solving keeps the existing straightening), and free splines
 - Golden SVGs of diagrams with lines between containers changed.
 - Open: a line that passes a rank beside a frame can still cross it where
   the order of a rank puts it on the other side; small steps remain where a
-  box beside a long line needs the room.
+  box beside a long line needs the room. Since 2026-11-10 a line through
+  several ranks is laid again as a whole where that crosses less
+  (`order::reroute`), among the neighbors of its own frames; it still does
+  not pass a frame it is not in.

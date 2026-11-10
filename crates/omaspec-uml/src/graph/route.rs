@@ -27,6 +27,9 @@ const CROSSING: f32 = 60.0;
 const THROUGH: f32 = 3.0 * BEND;
 /// Cost per unit of running under a label.
 const UNDER_LABEL: f32 = 3.0;
+/// A run this near words counts as under them: the curve at its corner
+/// reaches further than the run, and words want a little air.
+const WORD_AIR: f32 = 6.0;
 /// Cost per unit of running on top of another line.
 const SHARED: f32 = 6.0;
 /// Extra cost per unit of running right along a box, falling to nothing
@@ -485,7 +488,11 @@ impl Scene {
             obstacles: around.obstacles.iter().map(|r| Bounds::of(*r)).collect(),
             frames: around.frames.iter().map(|r| Bounds::of(*r)).collect(),
             lines: around.lines.clone(),
-            labels: around.labels.iter().map(|r| Bounds::of(*r)).collect(),
+            labels: around
+                .labels
+                .iter()
+                .map(|r| Bounds::of(*r).grow(WORD_AIR))
+                .collect(),
             used: around.used.clone(),
             origin: around.origin,
         }
