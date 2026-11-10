@@ -122,7 +122,7 @@ impl Paper {
         self.change = Change::Edit;
     }
 
-    pub(super) fn diagram_size(&self) -> Size {
+    pub fn diagram_size(&self) -> Size {
         self.diagram
             .as_ref()
             .map_or(Size::new(1.0, 1.0), |d| d.size)

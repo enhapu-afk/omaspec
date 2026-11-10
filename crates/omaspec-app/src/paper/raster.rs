@@ -318,7 +318,6 @@ impl Layer {
     }
 
     /// Rasterizes what was asked right here, as the background would.
-    #[cfg(test)]
     pub fn finish(&mut self, tree: &usvg::Tree) {
         if let Some(plan) = self.asked {
             let seq = self.latest.load(Ordering::Relaxed);

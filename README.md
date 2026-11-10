@@ -59,7 +59,8 @@ event its receiver can take, in the order the scenario sends them.
 
 F5 runs the diagram on screen. The states the machine is in light up, you pick what
 happens next, and a light runs along each transition. A scenario unfolds message by
-message.
+message. `omaspec play door.puml -o door.gif --events open,close` writes such a play as
+a GIF, for a presentation or a pull request.
 
 ![A state machine playing: a light runs along the transition to the next state](docs/images/play.gif)
 

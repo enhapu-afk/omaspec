@@ -632,6 +632,58 @@ fn an_exported_map_and_a_linked_state_link_to_the_diagrams_they_open() {
 }
 
 #[test]
+fn a_play_is_written_as_a_gif_that_moves() {
+    let dir = scratch("play-gif");
+    let door = dir.join("door.puml");
+    fs::write(
+        &door,
+        "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+    )
+    .unwrap();
+    let gif = dir.join("door.gif");
+    let out = omaspec(&[
+        "play",
+        door.to_str().unwrap(),
+        "-o",
+        gif.to_str().unwrap(),
+        "--events",
+        "open,close",
+        "--width",
+        "400",
+        "--fps",
+        "10",
+    ]);
+    let err = String::from_utf8_lossy(&out.stderr);
+    if err.contains("no GPU") {
+        eprintln!("skipped: {err}");
+        return;
+    }
+    assert_eq!(out.status.code(), Some(0), "{err}");
+    assert!(
+        err.contains("open, close") && err.contains("frames"),
+        "{err}"
+    );
+    let bytes = fs::read(&gif).unwrap();
+    assert!(bytes.starts_with(b"GIF89a"), "a GIF");
+    // An event the machine does not offer is named, with what it does.
+    let out = omaspec(&[
+        "play",
+        door.to_str().unwrap(),
+        "-o",
+        gif.to_str().unwrap(),
+        "--events",
+        "fly",
+    ]);
+    assert_ne!(out.status.code(), Some(0));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("fly is not offered") && err.contains("open"),
+        "{err}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn the_project_s_file_is_drawn_as_the_map_made_from_its_diagrams() {
     let dir = scratch("made-map");
     fs::create_dir_all(dir.join("scenarios")).unwrap();

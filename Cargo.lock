@@ -2558,6 +2558,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "clap",
+ "gif",
  "iced",
  "iced_runtime",
  "iced_test",

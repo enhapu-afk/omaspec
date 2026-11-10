@@ -135,6 +135,19 @@ impl App {
         .into()
     }
 
+    /// The diagram's pane alone, on the window's background: what
+    /// `omaspec play` draws its frames from.
+    pub(super) fn diagram_view(&self) -> Element<'_, Message> {
+        container(self.diagram())
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .style(|_| container::Style {
+                background: Some(ui::color(self.palette.background).into()),
+                ..container::Style::default()
+            })
+            .into()
+    }
+
     pub(super) fn main_view(&self) -> Element<'_, Message> {
         // The focused area's frame fades in as the one before fades out.
         let lit = self

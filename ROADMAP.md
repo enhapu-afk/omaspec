@@ -1956,22 +1956,19 @@ what it costs.
       out, on the glide a changed layout has after an edit
       (`Paper::glide_from`: B is shown as if it had just been drawn, with
       nothing gliding to it, and A comes back once B's picture is in).
-- [ ] A glide or a play as a picture that moves: a fold, a dive or a play
-      written as a GIF or an APNG, for a presentation or a pull request.
-      The frames are drawn headless already (`snapshot_dive`, `frames_`);
-      `docs/images/play.gif` is still cut from a screen recording by hand.
-      Weighed twice (2026-11-10) and left for a release of its own: the
-      frames come from the window's renderer (iced on wgpu), which the
-      command line has not. Two ways, neither small: `omaspec play FILE -o
-      play.gif` draws the diagram and its light itself on the CPU
-      (`tiny-skia` draws the SVG already; the light along a transition,
-      the fade of a fold and the growth of a dive would be drawn a second
-      time, apart from the pane's), or the headless screen the snapshot
-      tests use (`Screen`, wgpu without a window) moves into the binary,
-      which then needs a GPU for a command. Either way an encoder comes
-      in (`gif`, or `png` with APNG). To take up when a presentation or a
-      pull request asks for it; until then `docs/images/play.gif` is cut
-      from a recording.
+- [x] A play as a picture that moves (2026-11-10): `omaspec play FILE -o
+      play.gif` draws the diagram's pane headless on the GPU, as the
+      window draws it (the snapshot tests' `Screen`, now
+      `editor/screen.rs`), runs the play (`--events open,close`, else the
+      first the machine offers, `--steps`; a scenario its messages) and
+      writes the frames with the `gif` crate; frames alike are one that
+      stays longer. The pane is twice the diagram's size up to `--width`,
+      the height follows the diagram, and the picture stays in its place
+      when the bar takes a second line; it ends on the state the play
+      reached. A door of three states: 83 frames, 552×654, 2 MB, 11 s.
+      Without a GPU the command says so. Open: a fold
+      or a dive as a GIF the same way; APNG for sharper colors; the
+      README's `play.gif` is still a recording.
 - [x] A color for one box (2026-11-10): *Color this box…* in the palette
       and the menus offers the window's colors for the state or class the
       caret is on, and none. It goes into the source as the language

@@ -3,9 +3,9 @@
 use omaspec_render::export;
 use omaspec_render::{Config, Engine, Renderer};
 
+pub use super::headless::answer;
 use super::raster::Plan;
 use super::*;
-use crate::worker::Answer;
 
 pub fn drawn(source: &str, language: Language) -> Drawn {
     let mut renderer = Renderer::new(&Config {
@@ -70,15 +70,6 @@ pub fn tall() -> Drawn {
     }
 }
 
-pub fn answer(doc: u64, id: u64, result: Result<Drawn, RenderError>) -> Answer {
-    Answer {
-        ticket: Ticket { doc, id },
-        source: "".into(),
-        language: Language::Mermaid,
-        result,
-    }
-}
-
 impl Paper {
     /// Pretends `id` requests went out.
     pub fn pretend_requested(&mut self, id: u64) {
@@ -98,12 +89,6 @@ impl Paper {
     /// When the lights of the play's steps so far have all arrived.
     pub fn play_arrived(&self) -> Option<Instant> {
         self.play.as_ref()?.arrived()
-    }
-
-    /// Pretends one more request went out; its number.
-    pub fn pretend_next(&mut self) -> u64 {
-        self.requested += 1;
-        self.requested
     }
 
     pub fn viewport(&self) -> Size {
@@ -206,12 +191,6 @@ impl Paper {
     }
 
     /// Rasterizes what the view asked for, as the background tasks would.
-    pub fn finish_rasters(&mut self) {
-        let tree = Arc::clone(self.shown_tree().unwrap());
-        self.overview.finish(&tree);
-        self.detail.finish(&tree);
-    }
-
     /// Where the first label reading `text` is in the pane.
     pub fn screen_of(&self, text: &str) -> Point {
         fn find(group: &export::usvg::Group, text: &str) -> Option<export::usvg::Rect> {

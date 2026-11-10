@@ -3560,205 +3560,7 @@ fn shoot_at(app: &mut App, dir: &Path, name: &str, size: Size) {
     ui::snapshot(&mut ui, &app.theme, dir, name);
 }
 
-/// The editor window drawn headless at any scale; iced_test's simulator
-/// draws at 2 only.
-struct Screen {
-    renderer: iced::Renderer,
-    scale: f32,
-    size: Size,
-    warm: bool,
-    /// The widgets' state between the redraws of [`Self::run`], as a
-    /// window keeps it.
-    cache: Option<iced_runtime::user_interface::Cache>,
-    /// How long the view and its layout took, and the pixels, in each
-    /// redraw of [`Self::run`].
-    spent: Vec<(Duration, Duration)>,
-}
-
-/// A screenshot, as RGBA rows.
-struct Shot {
-    width: usize,
-    height: usize,
-    rgba: Vec<u8>,
-}
-
-impl Screen {
-    const SIZE: Size = Size::new(1200.0, 640.0);
-
-    fn new(app: &App, scale: f32) -> Screen {
-        use iced::advanced::graphics::text::font_system;
-        use iced::advanced::renderer::Headless;
-        for font in scrive_iced::required_fonts() {
-            font_system()
-                .write()
-                .unwrap()
-                .load_font(std::borrow::Cow::Borrowed(*font));
-        }
-        let backend = std::env::var("ICED_TEST_BACKEND").ok();
-        let renderer = iced::futures::executor::block_on(iced::Renderer::new(
-            app.font,
-            iced::Pixels(16.0),
-            backend.as_deref(),
-        ))
-        .expect("a headless renderer");
-        Screen {
-            renderer,
-            scale,
-            size: Self::SIZE,
-            warm: false,
-            cache: None,
-            spent: Vec::new(),
-        }
-    }
-
-    fn shoot(&mut self, app: &App) -> Shot {
-        // The first frame starts uploading the pictures in the background.
-        if !self.warm {
-            let _ = self.frame(app);
-            std::thread::sleep(Duration::from_millis(300));
-            self.warm = true;
-        }
-        self.frame(app)
-    }
-
-    fn frame(&mut self, app: &App) -> Shot {
-        self.cache = None;
-        self.redraw(app).0
-    }
-
-    /// A redraw, as a window's: the layers update and draw, and the GPU
-    /// makes the pixels; with what the layers published.
-    fn redraw(&mut self, app: &App) -> (Shot, Vec<Message>) {
-        use iced::advanced::renderer::{Headless, Style};
-        use iced::theme::Base;
-        let start = Instant::now();
-        let mut ui = iced_runtime::UserInterface::build(
-            app.main_view(),
-            self.size,
-            self.cache.take().unwrap_or_default(),
-            &mut self.renderer,
-        );
-        let built = start.elapsed();
-        let redraw = iced::Event::Window(iced::window::Event::RedrawRequested(
-            iced::time::Instant::now(),
-        ));
-        let cursor = iced::mouse::Cursor::Unavailable;
-        let mut published = Vec::new();
-        let _ = ui.update(
-            &[redraw],
-            cursor,
-            &mut self.renderer,
-            &mut iced::advanced::clipboard::Null,
-            &mut published,
-        );
-        let base = app.theme.base();
-        let style = Style {
-            text_color: base.text_color,
-        };
-        ui.draw(&mut self.renderer, &app.theme, &style, cursor);
-        let (width, height) = (
-            (self.size.width * self.scale).round() as u32,
-            (self.size.height * self.scale).round() as u32,
-        );
-        // The interface lives on until the screenshot: the renderer holds
-        // its text only weakly.
-        let drawn = Instant::now();
-        let rgba = self.renderer.screenshot(
-            iced::Size::new(width, height),
-            self.scale,
-            base.background_color,
-        );
-        self.spent.push((built, drawn.elapsed()));
-        self.cache = Some(ui.into_cache());
-        let shot = Shot {
-            width: width as usize,
-            height: height as usize,
-            rgba,
-        };
-        (shot, published)
-    }
-
-    /// Redraws at 60 Hz, as a window does, until `done` or `most` frames;
-    /// what the layers publish goes to the app. `paper::frames` logs it.
-    fn run(&mut self, app: &mut App, most: usize, done: impl Fn(&App) -> bool) {
-        let tick = Duration::from_micros(16_667);
-        self.spent.clear();
-        for _ in 0..most {
-            if done(app) {
-                break;
-            }
-            let start = Instant::now();
-            for message in self.redraw(app).1 {
-                let _ = app.update(message);
-            }
-            if let Some(wait) = (start + tick).checked_duration_since(Instant::now()) {
-                std::thread::sleep(wait);
-            }
-        }
-        let median = |mut d: Vec<Duration>| {
-            d.sort_unstable();
-            d.get(d.len() / 2).map_or(0.0, |d| d.as_secs_f64() * 1000.0)
-        };
-        eprintln!(
-            "frames: headless, {} redraws: the view and its layout {:.1} ms, the pixels made and read back {:.1} ms (medians)",
-            self.spent.len(),
-            median(self.spent.iter().map(|s| s.0).collect()),
-            median(self.spent.iter().map(|s| s.1).collect()),
-        );
-    }
-}
-
-impl Shot {
-    fn red(&self, (x, y): (usize, usize)) -> u8 {
-        self.rgba[(y * self.width + x) * 4]
-    }
-
-    fn green(&self, (x, y): (usize, usize)) -> u8 {
-        self.rgba[(y * self.width + x) * 4 + 1]
-    }
-
-    /// Whether the pixel is Tokyo Night's accent, as the crisp line round a
-    /// lit state is.
-    fn accent(&self, (x, y): (usize, usize)) -> bool {
-        self.red((x, y)) <= 0x90 && self.rgba[(y * self.width + x) * 4 + 2] >= 0xE8
-    }
-
-    /// The first pixel from `from`, in steps of `step`, redder than `above`.
-    fn first(&self, from: (usize, usize), step: (usize, usize), above: u8) -> (usize, usize) {
-        let mut at = from;
-        while self.red(at) <= above {
-            at = (at.0 + step.0, at.1 + step.1);
-            assert!(
-                at.0 < self.width && at.1 < self.height,
-                "nothing from {from:?}"
-            );
-        }
-        at
-    }
-
-    /// The red of the pixels across an edge found by [`Self::first`]: ten
-    /// before it, three after.
-    fn across(&self, edge: (usize, usize), step: (usize, usize)) -> Vec<u8> {
-        (0..13)
-            .map(|i| {
-                self.red((
-                    edge.0 + i * step.0 - 10 * step.0,
-                    edge.1 + i * step.1 - 10 * step.1,
-                ))
-            })
-            .collect()
-    }
-
-    fn save(&self, path: &Path) {
-        use omaspec_render::export::tiny_skia::{IntSize, Pixmap};
-        let size = IntSize::from_wh(self.width as u32, self.height as u32).unwrap();
-        let png = Pixmap::from_vec(self.rgba.clone(), size)
-            .unwrap()
-            .encode_png()
-            .unwrap();
-        std::fs::write(path, png).unwrap();
-    }
-}
+use super::screen::{Screen, Shot};
 
 /// At a fractional scale, as on a 1.5 screen, when OMASPEC_SNAPSHOT_DIR
 /// is set: the paper's edge and glow keep their pixels wherever a pan
@@ -3792,7 +3594,7 @@ fn snapshot_fractional_scale() {
     settle(&mut app);
     let scale = 1.5;
     let px = |logical: f32| (logical * scale).round() as usize;
-    let mut screen = Screen::new(&app, scale);
+    let mut screen = Screen::new(&app, scale).unwrap();
 
     // The white paper on Tokyo Night: from the middle of the pane up, and
     // from its left side across.
@@ -4527,7 +4329,7 @@ fn frames_headless() {
     ));
     show_map(&mut app);
     settle(&mut app);
-    let mut screen = Screen::new(&app, 1.0);
+    let mut screen = Screen::new(&app, 1.0).unwrap();
     screen.size = Size::new(2560.0, 1440.0);
     // The first redraw tells the pane its size; the map is fitted to it.
     screen.run(&mut app, 2, |_| false);
@@ -5399,7 +5201,7 @@ fn snapshot_dive() {
     ));
     show_map(&mut app);
     settle(&mut app);
-    let mut screen = Screen::new(&app, 1.0);
+    let mut screen = Screen::new(&app, 1.0).unwrap();
     screen.size = Size::new(1600.0, 1000.0);
     // The first redraws tell the pane its size; the map is fitted to it.
     screen.run(&mut app, 2, |_| false);

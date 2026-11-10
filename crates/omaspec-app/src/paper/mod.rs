@@ -59,7 +59,7 @@ use crate::worker::{Drawn, Linked, Ticket, Worker};
 pub use hand::Gesture;
 use passage::Passage;
 pub use passage::Showing;
-pub use play::{Ask, Play};
+pub use play::{Ask, Offer, Play};
 use raster::{Layer, Raster};
 pub use view::{Glide, View};
 
@@ -935,6 +935,7 @@ impl Paper {
     }
 }
 
+pub mod headless;
 #[cfg(test)]
 pub mod testing;
 

@@ -329,6 +329,34 @@ enum Command {
         #[command(flatten)]
         lang: LangArg,
     },
+    /// Write a play of a state machine or a scenario as a GIF that moves.
+    ///
+    /// The diagram's pane is drawn as the window draws it, on the GPU
+    /// without a window, in the active theme: the light runs along each
+    /// transition, the states the machine is in shine. The events are
+    /// taken by name (`--events open,close`), else the first the machine
+    /// offers at each state, for `--steps` steps; a scenario plays its
+    /// messages in order. For a presentation or a pull request.
+    Play {
+        file: PathBuf,
+        /// The GIF to write.
+        #[arg(short, long)]
+        output: PathBuf,
+        /// The events to take, in order, with commas between them.
+        #[arg(long, value_delimiter = ',')]
+        events: Vec<String>,
+        /// How many steps at most.
+        #[arg(long, default_value_t = 8)]
+        steps: usize,
+        /// The picture's width in pixels; its height follows the diagram.
+        #[arg(long, default_value_t = 1200)]
+        width: u32,
+        /// Frames per second.
+        #[arg(long, default_value_t = 20)]
+        fps: u32,
+        #[command(flatten)]
+        lang: LangArg,
+    },
     /// Render diagrams to SVG, PNG or PDF.
     ///
     /// Each image is written next to its diagram unless --output says
@@ -633,6 +661,27 @@ fn main() -> ExitCode {
             project,
         }) => commands::inspect(file, lang.get(), project.as_deref()),
         Some(Command::Preview { file, lang }) => preview(&file, lang.get()),
+        Some(Command::Play {
+            file,
+            output,
+            events,
+            steps,
+            width,
+            fps,
+            lang,
+        }) => editor::moving::play(&editor::moving::Moving {
+            file,
+            output,
+            events,
+            steps,
+            width,
+            fps,
+            forced: lang.get(),
+        })
+        .map(|wrote| {
+            eprintln!("{wrote}");
+            ExitCode::SUCCESS
+        }),
         Some(Command::Render {
             files,
             output,
