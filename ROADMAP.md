@@ -1207,9 +1207,17 @@ dispatch spread over two lists. The rules it set for the next change are in
         the same: before the old function went, a test held it against
         the new one for 102 keys with every set of modifiers in all six
         modes.
-  - [ ] `App` along the same lines: what each mode keeps and does beside
-        it, as the prompt's types (`Prompt`, `Asking`, `ExportLook`),
-        which are in `editor/mod.rs` while its code is in `files.rs`.
+  - [x] What the window's main module held for others (2026-11-10),
+        moved as it was: the prompt is `editor/prompt.rs` (what it asks,
+        its key, what Enter does with the answer, the paths typed into
+        it), out of `mod.rs` and `files.rs`, which keeps opening, saving
+        and closing; lines and boxes placed by hand are `editor/hand.rs`;
+        the scroll that shows a tab or a tile whole is `editor/reveal.rs`;
+        the help's state is in `help.rs`. `mod.rs` 2,806 → 2,418 lines,
+        `files.rs` 744 → 376.
+  - [ ] Still in `mod.rs`: `update` and `run`, about 370 and 280 lines,
+        one arm for each message and command, and the window's start
+        (`themed`, 150). To cut when one of them is next touched.
 - [ ] Large files cut along the phases they already have, when they are
       next touched: `formula.rs` (parse, symbols, layout, paint); `c4.rs`,
       `block.rs`, `er.rs`, `architecture.rs` (read, measure, paint).

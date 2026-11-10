@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use iced::Task;
 
-use super::{App, Help, Message};
+use super::{App, Message};
 
 pub const DIR_NAME: &str = "Help Omaspec";
 
@@ -79,6 +79,13 @@ fn data_dir() -> Option<PathBuf> {
         Some(dir) => Some(PathBuf::from(dir)),
         None => Some(PathBuf::from(std::env::var_os("HOME")?).join(".local/share")),
     }
+}
+
+/// Help Omaspec in the sidebar, in place of the project folder.
+pub(super) struct Help {
+    pub(super) dir: PathBuf,
+    /// The folder before it, which leaving brings back.
+    pub(super) back: Option<PathBuf>,
 }
 
 impl App {

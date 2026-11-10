@@ -36,6 +36,7 @@ mod fold;
 pub(crate) mod folder;
 mod gallery;
 mod gifs;
+mod hand;
 mod help;
 mod keys;
 mod links;
@@ -44,7 +45,9 @@ pub mod moving;
 mod panes;
 mod picker;
 mod play;
+mod prompt;
 mod rename;
+mod reveal;
 mod screen;
 mod search;
 mod session;
@@ -78,7 +81,10 @@ use crate::ui;
 use crate::worker::{self, Alarm, Worker};
 use compare::{Compare, Target};
 use doc::{Doc, Look};
+use help::Help;
 use picker::{Choice, Item, Kind, Picker};
+use prompt::{Asking, ExportLook, Prompt};
+use reveal::Reveal;
 use session::Store;
 
 /// Lint this long after the last keystroke.
@@ -105,94 +111,6 @@ fn tab_id(key: u64) -> iced::widget::Id {
     iced::widget::Id::from(format!("tab-{key}"))
 }
 
-/// Finds a scrolling area and one item in it as they are laid out, then
-/// scrolls the area the least that shows the whole item: a tab in the tab
-/// bar, a tile in the gallery.
-struct Reveal {
-    scroller: iced::widget::Id,
-    item: iced::widget::Id,
-    /// Along the height; else along the width.
-    vertical: bool,
-    /// The area's bounds, its content's bounds and how far it is scrolled.
-    bar: Option<(iced::Rectangle, iced::Rectangle, f32)>,
-    found: Option<iced::Rectangle>,
-}
-
-impl Reveal {
-    fn new(scroller: iced::widget::Id, item: iced::widget::Id, vertical: bool) -> Self {
-        Self {
-            scroller,
-            item,
-            vertical,
-            bar: None,
-            found: None,
-        }
-    }
-}
-
-impl<T: Send + 'static> iced::advanced::widget::Operation<T> for Reveal {
-    fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn iced::advanced::widget::Operation<T>)) {
-        operate(self);
-    }
-
-    fn container(&mut self, id: Option<&iced::widget::Id>, bounds: iced::Rectangle) {
-        if id == Some(&self.item) {
-            self.found = Some(bounds);
-        }
-    }
-
-    fn scrollable(
-        &mut self,
-        id: Option<&iced::widget::Id>,
-        bounds: iced::Rectangle,
-        content_bounds: iced::Rectangle,
-        translation: iced::Vector,
-        _state: &mut dyn iced::advanced::widget::operation::Scrollable,
-    ) {
-        if id == Some(&self.scroller) {
-            let scrolled = if self.vertical {
-                translation.y
-            } else {
-                translation.x
-            };
-            self.bar = Some((bounds, content_bounds, scrolled));
-        }
-    }
-
-    fn finish(&self) -> iced::advanced::widget::operation::Outcome<T> {
-        use iced::advanced::widget::operation::{Outcome, scrollable};
-        let (Some((bar, content, scrolled)), Some(item)) = (self.bar, self.found) else {
-            return Outcome::None;
-        };
-        let (size, left, length) = if self.vertical {
-            (bar.height, item.y - content.y, item.height)
-        } else {
-            (bar.width, item.x - content.x, item.width)
-        };
-        match reveal_offset(size, scrolled, left, length) {
-            Some(at) => Outcome::Chain(Box::new(scrollable::scroll_to(
-                self.scroller.clone(),
-                scrollable::AbsoluteOffset {
-                    x: (!self.vertical).then_some(at),
-                    y: self.vertical.then_some(at),
-                },
-            ))),
-            None => Outcome::None,
-        }
-    }
-}
-
-/// Where a bar `width` wide, scrolled to `scrolled`, has to scroll to show
-/// a tab from `left` to `left + tab` whole; `None` if it already does.
-fn reveal_offset(width: f32, scrolled: f32, left: f32, tab: f32) -> Option<f32> {
-    if left < scrolled {
-        Some(left.max(0.0))
-    } else if left + tab > scrolled + width {
-        Some((left + tab - width).max(0.0))
-    } else {
-        None
-    }
-}
 /// The sidebar's share of the left half of the window (of all of it while
 /// the diagram has its own window: half that).
 const SIDEBAR_SHARE: f32 = 0.32;
@@ -493,9 +411,6 @@ pub enum Command {
     OpenMenu(table::Menu),
 }
 
-/// Images larger than this are not searched for a diagram.
-const MAX_IMAGE: u64 = 64 << 20;
-
 /// What the keyboard is busy with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
@@ -513,7 +428,7 @@ pub enum Mode {
 
 /// The window's keys: those of what the keyboard is busy with first,
 /// each beside its mode ([`gallery::key`], [`play::key`],
-/// [`files::prompt_key`], [`picker::key`], [`menu::key`]), then the
+/// [`prompt::key`], [`picker::key`], [`menu::key`]), then the
 /// window's own, which reach every mode but an open menu.
 fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
     let own = match mode {
@@ -521,7 +436,7 @@ fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
         Mode::Menu => return menu::key(key),
         Mode::Gallery => gallery::key(key, mods),
         Mode::Playing => play::key(key, mods),
-        Mode::Prompt => files::prompt_key(key, mods),
+        Mode::Prompt => prompt::key(key, mods),
         Mode::Picker => picker::key(key, mods),
         Mode::Editing => editing_key(key, mods),
     };
@@ -624,67 +539,8 @@ enum Pane {
     Diagram,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Asking {
-    SaveAs,
-    Open,
-    /// The folder of a new project, its first diagram in this language.
-    NewProject {
-        language: Language,
-        git: bool,
-    },
-    /// Where to write this export. Enter writes it; an existing file asks
-    /// once more.
-    Export(Format),
-    /// The folder to export the project into. A folder that is there asks
-    /// once more.
-    ExportProject,
-    /// The new name of what the caret names ([`App::renaming`]).
-    Rename,
-}
-
-/// A question in the bottom line.
-struct Prompt {
-    asking: Asking,
-    input: String,
-    /// The file named exists; Enter again overwrites it.
-    overwrite: bool,
-    /// The tab that opened the prompt. Enter saves that tab.
-    doc: u64,
-    /// What an export is drawn in; Tab takes the next.
-    look: ExportLook,
-}
-
-/// What an export is drawn in.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExportLook {
-    /// As the diagram pane shows it.
-    Shown,
-    /// In the file's own colors.
-    File,
-    /// In a look laid over the file's colors ([`crate::look`]).
-    Look(crate::look::Look),
-}
-
-impl ExportLook {
-    pub fn label(self) -> &'static str {
-        match self {
-            ExportLook::Shown => "as shown",
-            ExportLook::File => "file's colors",
-            ExportLook::Look(look) => look.name(),
-        }
-    }
-}
-
 /// How long the tab highlight and the area frame take to move over.
 const TAB_FADE: Duration = Duration::from_millis(160);
-
-/// Help Omaspec in the sidebar, in place of the project folder.
-struct Help {
-    dir: PathBuf,
-    /// The folder before it, which leaving brings back.
-    back: Option<PathBuf>,
-}
 
 struct App {
     docs: Vec<Doc>,
@@ -2370,143 +2226,6 @@ impl App {
         self.render(key, false)
     }
 
-    /// Writes the bends of a line drawn by hand in the diagram into the
-    /// source, as one undo step (docs/adr/0016).
-    fn draw_by_hand(&mut self, key: u64, line: &omaspec_uml::hand::Line) -> Task<Message> {
-        let Some(doc) = self.find(key) else {
-            return Task::none();
-        };
-        let language = doc.current_language();
-        let Some(edit) = omaspec_core::hand::edit(&doc.text(), language, line) else {
-            doc.paper.by_hand_unchanged();
-            return Task::none();
-        };
-        doc.replace(vec![edit]);
-        self.edited(key);
-        self.notice = Some(if line.corners.is_empty() {
-            format!("{} runs its own way again (Ctrl+Z undoes it)", line.key)
-        } else {
-            format!("{} drawn by hand (Ctrl+Z undoes it)", line.key)
-        });
-        self.render(key, false)
-    }
-
-    /// Holds the box `name` where `hold` says, or gives it back to the
-    /// layout, in the source, as one undo step (docs/adr/0021).
-    fn hold_box(
-        &mut self,
-        key: u64,
-        name: &str,
-        hold: Option<&omaspec_uml::hand::Hold>,
-    ) -> Task<Message> {
-        let Some(doc) = self.find(key) else {
-            return Task::none();
-        };
-        let language = doc.current_language();
-        let Some(edit) = omaspec_core::hand::hold(&doc.text(), language, name, hold) else {
-            doc.paper.held_unchanged();
-            return Task::none();
-        };
-        doc.replace(vec![edit]);
-        self.edited(key);
-        self.notice = Some(match hold {
-            Some(hold) => format!("{hold}: held in place (Ctrl+Z undoes it)"),
-            None => format!("{name} stands where the layout puts it again (Ctrl+Z undoes it)"),
-        });
-        self.render(key, false)
-    }
-
-    /// The line at the caret back to the way the layout gives it, or the
-    /// box whose entry is at the caret.
-    /// Puts the label of the line at the caret on the other side of its
-    /// line, in the source, as one undo step: the side it is not on now,
-    /// as drawn.
-    fn label_side(&mut self) -> Task<Message> {
-        let row = self.doc().editor.cursor().row as usize;
-        let Some(wire) = self.doc().paper.wire_on(row).cloned() else {
-            self.notice = Some("no line of the diagram at the caret".into());
-            return Task::none();
-        };
-        let Some(side) = other_side(&wire) else {
-            self.notice = Some(format!("{} has no label to move", wire.key));
-            return Task::none();
-        };
-        let key = self.doc().key;
-        let doc = self.doc();
-        let edit = omaspec_core::hand::label(&doc.text(), doc.language, &wire.key, Some(side));
-        let Some(edit) = edit else {
-            self.notice = Some(format!("the label of {} is there already", wire.key));
-            return Task::none();
-        };
-        self.doc_mut().replace(vec![edit]);
-        self.edited(key);
-        self.notice = Some(format!(
-            "the label of {} goes {side} (Ctrl+Z undoes it)",
-            wire.key
-        ));
-        self.render(key, true)
-    }
-
-    fn reset_line(&mut self) -> Task<Message> {
-        let row = self.doc().editor.cursor().row as usize;
-        if let Some(name) = self.doc().paper.place_on(row).map(|p| p.name.clone()) {
-            let doc = self.doc().key;
-            return self.hold_box(doc, &name, None);
-        }
-        let found = self
-            .doc()
-            .paper
-            .wire_on(row)
-            .map(|w| (w.key.clone(), w.entry));
-        match found {
-            Some((key, Some(_))) => {
-                let doc = self.doc().key;
-                let line = omaspec_uml::hand::Line {
-                    key,
-                    corners: Vec::new(),
-                };
-                self.draw_by_hand(doc, &line)
-            }
-            Some((key, None)) => {
-                // Its label's side by hand goes back to the layout too.
-                let doc = self.doc();
-                let edit = omaspec_core::hand::label(&doc.text(), doc.language, &key, None);
-                match edit {
-                    Some(edit) => {
-                        let at = doc.key;
-                        self.doc_mut().replace(vec![edit]);
-                        self.edited(at);
-                        self.notice = Some(format!(
-                            "the label of {key} takes its side from the layout again (Ctrl+Z undoes it)"
-                        ));
-                        self.render(at, true)
-                    }
-                    None => {
-                        self.notice = Some(format!("{key} runs its own way already"));
-                        Task::none()
-                    }
-                }
-            }
-            None => {
-                self.notice = Some("no line of the diagram at the caret".into());
-                Task::none()
-            }
-        }
-    }
-
-    /// Every line and every box back to the way the layout gives them.
-    fn reset_lines(&mut self) -> Task<Message> {
-        let key = self.doc().key;
-        let Some(edit) = omaspec_core::hand::clear(&self.doc().text()) else {
-            self.notice = Some("no line is drawn by hand and no box held".into());
-            return Task::none();
-        };
-        self.doc_mut().replace(vec![edit]);
-        self.edited(key);
-        self.notice = Some("every line and box goes back to the layout (Ctrl+Z undoes it)".into());
-        self.render(key, false)
-    }
-
     fn reload_theme(&mut self) {
         let omarchy = Omarchy::load_current();
         let palette = omarchy.palette.legible();
@@ -2572,40 +2291,6 @@ impl App {
 struct Pending {
     original: Arc<str>,
     shift: LineShift,
-}
-
-/// The side of its line the label of `wire` is not on, as drawn: left or
-/// right of a run that goes down, above or below one that goes across.
-/// `None` without a label.
-fn other_side(wire: &omaspec_uml::map::Wire) -> Option<omaspec_uml::hand::Side> {
-    use omaspec_uml::hand::Side;
-    let label = wire.labels.first()?;
-    let (cx, cy) = (label.x + label.w / 2.0, label.y + label.h / 2.0);
-    // The run of the line nearest the label's middle.
-    let nearest = wire.path.windows(2).min_by(|a, b| {
-        let gap = |run: &[(f32, f32)]| {
-            let (p, q) = (run[0], run[1]);
-            let (dx, dy) = (q.0 - p.0, q.1 - p.1);
-            let len = (dx * dx + dy * dy).max(f32::EPSILON);
-            let t = (((cx - p.0) * dx + (cy - p.1) * dy) / len).clamp(0.0, 1.0);
-            let (x, y) = (p.0 + dx * t, p.1 + dy * t);
-            (cx - x).hypot(cy - y)
-        };
-        gap(a).total_cmp(&gap(b))
-    })?;
-    let (p, q) = (nearest[0], nearest[1]);
-    Some(if (q.0 - p.0).abs() <= (q.1 - p.1).abs() {
-        // A run that goes down: the label lies left or right of it.
-        if cx < (p.0 + q.0) / 2.0 {
-            Side::Right
-        } else {
-            Side::Left
-        }
-    } else if cy < (p.1 + q.1) / 2.0 {
-        Side::Below
-    } else {
-        Side::Above
-    })
 }
 
 /// Moves the lines a drawn diagram's states, transitions, messages and
@@ -2695,15 +2380,6 @@ fn working_folder() -> Option<PathBuf> {
     (dir.parent().is_some() && Some(&dir) != home.as_ref()).then_some(dir)
 }
 
-fn is_image(path: &Path) -> bool {
-    path.extension().and_then(|e| e.to_str()).is_some_and(|e| {
-        matches!(
-            e.to_ascii_lowercase().as_str(),
-            "png" | "svg" | "jpg" | "jpeg"
-        )
-    })
-}
-
 /// `dir/stem.extension`, or with `-2`, `-3` … when a file or a tab has
 /// that name.
 fn free_name(dir: &Path, stem: &str, extension: &str, taken: &[&Path]) -> PathBuf {
@@ -2733,70 +2409,6 @@ fn plural(n: usize, word: &str) -> String {
         word.to_owned()
     } else {
         format!("{word}s")
-    }
-}
-
-/// Where an export starts: beside a saved diagram, or `untitled` in the
-/// folder. Never the source file itself.
-fn suggested_export(doc: &Doc, folder: &Path, kind: Format) -> String {
-    let path = match &doc.path {
-        Some(path) => {
-            let out = if doc.is_document() {
-                // A document's diagram by its number: README-2.svg.
-                let name = doc
-                    .shown_diagram()
-                    .map_or_else(|| doc.name(), |(_, _, name)| name);
-                let stem = name
-                    .rsplit_once('.')
-                    .map_or(name.as_str(), |(stem, _)| stem);
-                path.with_file_name(format!("{stem}.{}", kind.extension()))
-            } else {
-                path.with_extension(kind.extension())
-            };
-            if doc.path.as_deref() == Some(out.as_path()) {
-                let stem = path
-                    .file_stem()
-                    .map(|name| name.to_string_lossy().into_owned())
-                    .unwrap_or_else(|| "diagram".into());
-                path.with_file_name(format!("{stem}-export.{}", kind.extension()))
-            } else {
-                out
-            }
-        }
-        None => folder.join(format!("untitled.{}", kind.extension())),
-    };
-    path.display().to_string()
-}
-
-/// A path typed into the prompt: `~` is the home folder, a relative path
-/// starts in the working directory.
-fn expand(input: &str) -> Option<PathBuf> {
-    if input.is_empty() {
-        return None;
-    }
-    let path = match input.strip_prefix("~/") {
-        Some(rest) => PathBuf::from(std::env::var_os("HOME")?).join(rest),
-        None => PathBuf::from(input),
-    };
-    std::path::absolute(path).ok()
-}
-
-/// `typed` with the extension of `format`: kept when it names that format,
-/// swapped when it names another export format, added otherwise, so a dot
-/// in the name stays (`flow-1.2` → `flow-1.2.svg`).
-fn export_path(typed: PathBuf, format: Format) -> PathBuf {
-    let named = typed
-        .extension()
-        .and_then(|ext| Format::from_extension(&ext.to_string_lossy()));
-    match named {
-        Some(named) if named == format => typed,
-        Some(_) => typed.with_extension(format.extension()),
-        None => {
-            let mut name = typed.into_os_string();
-            name.push(".");
-            name.push(format.extension());
-            PathBuf::from(name)
-        }
     }
 }
 

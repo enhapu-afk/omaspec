@@ -365,11 +365,11 @@ fn tabs_stay_inside_a_narrow_window() {
     let first = place(&mut ui, app.docs[0].key);
     let left = last.x - content_bounds.x;
     assert_eq!(
-        reveal_offset(bounds.width, 0.0, left, last.width),
+        reveal::reveal_offset(bounds.width, 0.0, left, last.width),
         Some(left + last.width - bounds.width)
     );
     assert_eq!(
-        reveal_offset(bounds.width, 0.0, first.x - content_bounds.x, first.width),
+        reveal::reveal_offset(bounds.width, 0.0, first.x - content_bounds.x, first.width),
         None
     );
     // A downward notch brings the tabs on the right into view.
@@ -389,11 +389,14 @@ fn tabs_stay_inside_a_narrow_window() {
 #[test]
 fn revealing_a_tab_scrolls_the_least() {
     // Already whole in the bar: no scroll.
-    assert_eq!(reveal_offset(300.0, 100.0, 150.0, 80.0), None);
+    assert_eq!(reveal::reveal_offset(300.0, 100.0, 150.0, 80.0), None);
     // Cut off on the left: its left edge goes to the bar's.
-    assert_eq!(reveal_offset(300.0, 100.0, 60.0, 80.0), Some(60.0));
+    assert_eq!(reveal::reveal_offset(300.0, 100.0, 60.0, 80.0), Some(60.0));
     // Cut off on the right: its right edge goes to the bar's.
-    assert_eq!(reveal_offset(300.0, 100.0, 350.0, 80.0), Some(130.0));
+    assert_eq!(
+        reveal::reveal_offset(300.0, 100.0, 350.0, 80.0),
+        Some(130.0)
+    );
 }
 
 #[test]
@@ -1319,7 +1322,7 @@ fn export_asks_for_a_path_and_refuses_the_source() {
 
 #[test]
 fn export_names_keep_their_dots() {
-    let path = |typed: &str, format| export_path(PathBuf::from(typed), format);
+    let path = |typed: &str, format| prompt::export_path(PathBuf::from(typed), format);
     assert_eq!(path("flow-1.2", Format::Svg), PathBuf::from("flow-1.2.svg"));
     assert_eq!(path("api.v2", Format::Png), PathBuf::from("api.v2.png"));
     assert_eq!(path("flow.jpeg", Format::Jpeg), PathBuf::from("flow.jpeg"));
