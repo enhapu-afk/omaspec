@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Omaspec: a state diagram is a spec. So run it.</title>
+<meta name="description" content="Omaspec is a native PlantUML and Mermaid editor for Omarchy that reads your diagrams as behavior: it checks them, plays them and holds recorded traces against them. Pure Rust, one binary, offline.">
+<meta property="og:title" content="Omaspec: a state diagram is a spec. So run it.">
+<meta property="og:description" content="PlantUML and Mermaid, understood as behavior. Native, offline, open source.">
+<meta property="og:image" content="https://raw.githubusercontent.com/enhapu-afk/omaspec/main/docs/images/social.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a1b26'/%3E%3Cpath d='M11 19h12M11 34h14' fill='none' stroke='%23bb9af7' stroke-width='3.2' stroke-linecap='round'/%3E%3Crect x='37.5' y='13.5' width='17' height='11' rx='3.5' fill='%2324283b' stroke='%237aa2f7' stroke-width='2.4'/%3E%3Crect x='37.5' y='39.5' width='17' height='11' rx='3.5' fill='%2324283b' stroke='%237aa2f7' stroke-width='2.4'/%3E%3Cpath d='M46 24.5v11' stroke='%23a9b1d6' stroke-width='2.4'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #13141c; --panel: #1a1b26; --raised: #24283b; --line: #2f3449;
+  --fg: #c0caf5; --text: #a9b1d6; --dim: #7982a9;
+  --accent: #7aa2f7; --violet: #bb9af7; --green: #9ece6a; --orange: #ff9e64; --red: #f7768e;
+  --mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: var(--mono); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* The glow behind the page's top. */
+.sky { position: absolute; inset: 0 0 auto 0; height: 900px; z-index: -1; overflow: hidden; pointer-events: none; }
+.sky::before, .sky::after { content: ""; position: absolute; border-radius: 50%; filter: blur(90px); opacity: .35; }
+.sky::before { width: 620px; height: 620px; left: -140px; top: -260px; background: var(--accent); animation: drift 16s ease-in-out infinite alternate; }
+.sky::after { width: 520px; height: 520px; right: -120px; top: -120px; background: var(--violet); animation: drift 20s ease-in-out infinite alternate-reverse; }
+@keyframes drift { to { transform: translate(60px, 50px) scale(1.12); } }
+
+nav { display: flex; align-items: center; gap: 28px; padding: 22px 0; }
+nav .brand { display: flex; align-items: center; gap: 12px; color: var(--fg); font: 700 20px var(--mono); }
+nav .brand svg { width: 34px; height: 34px; }
+nav .links { margin-left: auto; display: flex; gap: 26px; font-size: 15px; }
+nav .links a { color: var(--text); }
+nav .links a:hover { color: var(--fg); text-decoration: none; }
+
+.hero { text-align: center; padding: 64px 0 36px; }
+.badge { display: inline-block; padding: 5px 14px; border: 1px solid var(--line); border-radius: 999px; background: rgba(36, 40, 59, .6); color: var(--dim); font: 13px var(--mono); }
+.badge b { color: var(--green); font-weight: 600; }
+h1 { margin: 26px 0 10px; color: var(--fg); font: 800 clamp(34px, 6.2vw, 68px)/1.08 var(--mono); letter-spacing: -.02em; }
+h1 .run { display: block; color: var(--accent); text-shadow: 0 0 34px rgba(122, 162, 247, .65); }
+.cursor { display: inline-block; width: .5ch; height: .95em; margin-left: 4px; background: var(--accent); vertical-align: -.1em; animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.lead { max-width: 760px; margin: 22px auto 0; font-size: clamp(17px, 2.1vw, 20px); }
+.lead b { color: var(--fg); font-weight: 600; }
+.cta { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin: 34px 0 0; }
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 22px; border-radius: 12px; font: 600 16px var(--mono); border: 1px solid var(--line); color: var(--fg); background: var(--raised); transition: transform .15s, box-shadow .15s, border-color .15s; }
+.btn:hover { transform: translateY(-2px); text-decoration: none; border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #10121a; box-shadow: 0 8px 34px rgba(122, 162, 247, .35); }
+.btn.primary:hover { box-shadow: 0 10px 44px rgba(122, 162, 247, .55); }
+
+/* A window around a picture or the film. */
+.window { margin: 56px auto 0; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); overflow: hidden; box-shadow: 0 30px 90px rgba(0, 0, 0, .55), 0 0 0 1px rgba(122, 162, 247, .06), 0 0 80px rgba(122, 162, 247, .12); }
+.window .bar { display: flex; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.window .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+.window video, .window img { display: block; width: 100%; height: auto; }
+
+.facts { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 44px 0 0; padding: 0; list-style: none; }
+.facts li { padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px; font: 14px var(--mono); color: var(--text); background: rgba(26, 27, 38, .7); }
+
+section { padding: 96px 0 0; }
+h2 { margin: 0 0 14px; color: var(--fg); font: 800 clamp(26px, 3.6vw, 40px)/1.15 var(--mono); letter-spacing: -.01em; text-align: center; }
+.sub { max-width: 700px; margin: 0 auto; text-align: center; color: var(--dim); }
+
+.feature { display: grid; grid-template-columns: 1fr 1.25fr; gap: 48px; align-items: center; margin-top: 84px; }
+.feature:nth-of-type(even) { grid-template-columns: 1.25fr 1fr; }
+.feature:nth-of-type(even) .words { order: 2; }
+.feature .kicker { font: 600 13px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--violet); }
+.feature h3 { margin: 10px 0 12px; color: var(--fg); font: 700 clamp(22px, 2.6vw, 30px)/1.2 var(--mono); }
+.feature p { margin: 0 0 12px; }
+.feature code { padding: 2px 7px; border-radius: 6px; background: var(--raised); color: var(--fg); font-size: .88em; }
+.shot { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); box-shadow: 0 20px 60px rgba(0, 0, 0, .45); transition: transform .3s, box-shadow .3s; }
+.shot:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 26px 70px rgba(0, 0, 0, .55), 0 0 50px rgba(122, 162, 247, .16); }
+.shot img { display: block; width: 100%; height: auto; }
+
+/* The command line. */
+.term { max-width: 900px; margin: 44px auto 0; border: 1px solid var(--line); border-radius: 14px; background: #0f1017; box-shadow: 0 20px 60px rgba(0, 0, 0, .45); overflow: hidden; }
+.term .bar { display: flex; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.term .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+.term pre { margin: 0; padding: 22px 24px; overflow-x: auto; font-size: 14.5px; line-height: 1.9; color: var(--text); }
+.term .p { color: var(--green); user-select: none; }
+.term .c { color: var(--dim); }
+.term .k { color: var(--accent); }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px; }
+.card { padding: 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); transition: border-color .2s, transform .2s; }
+.card:hover { border-color: var(--accent); transform: translateY(-3px); }
+.card h4 { margin: 0 0 8px; color: var(--fg); font: 700 17px var(--mono); }
+.card p { margin: 0; font-size: 15.5px; }
+.card code { color: var(--fg); font-size: .9em; }
+
+.install { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 44px; }
+.box { position: relative; border: 1px solid var(--line); border-radius: 14px; background: #0f1017; overflow: hidden; }
+.box h4 { margin: 0; padding: 14px 20px; border-bottom: 1px solid var(--line); color: var(--fg); font: 600 15px var(--mono); }
+.box pre { margin: 0; padding: 18px 20px; overflow-x: auto; font-size: 14px; line-height: 1.8; color: var(--fg); }
+.copy { position: absolute; top: 9px; right: 10px; padding: 5px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); color: var(--text); font: 12px var(--mono); cursor: pointer; }
+.copy:hover { border-color: var(--accent); color: var(--fg); }
+.note { margin: 18px auto 0; max-width: 760px; text-align: center; font-size: 15px; color: var(--dim); }
+
+footer { margin-top: 110px; padding: 34px 0 54px; border-top: 1px solid var(--line); color: var(--dim); font-size: 15px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; }
+footer .right { margin-left: auto; }
+
+/* What comes into view rises into place. */
+.rise { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s ease; }
+.rise.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .rise { opacity: 1; transform: none; transition: none; }
+  .sky::before, .sky::after, .cursor { animation: none; }
+  html { scroll-behavior: auto; }
+}
+@media (max-width: 860px) {
+  nav .links a:not(.keep) { display: none; }
+  .feature, .feature:nth-of-type(even) { grid-template-columns: 1fr; gap: 22px; margin-top: 64px; }
+  .feature:nth-of-type(even) .words { order: 0; }
+  .cards, .install { grid-template-columns: 1fr; }
+  section { padding-top: 72px; }
+}
+</style>
+</head>
+<body>
+<div class="sky"></div>
+
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#top" aria-label="Omaspec">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#1a1b26"/><path d="M11 19h12M11 26.5h7M11 34h14M11 41.5h6M11 49h10" fill="none" stroke-width="3.2" stroke-linecap="round" stroke="#565f89"/><path d="M11 19h12" fill="none" stroke="#bb9af7" stroke-width="3.2" stroke-linecap="round"/><path d="M11 34h14" fill="none" stroke="#ff9e64" stroke-width="3.2" stroke-linecap="round"/><path d="M31.5 13v38" fill="none" stroke="#414868" stroke-width="1.6" stroke-linecap="round"/><rect x="37.5" y="13.5" width="17" height="11" rx="3.5" fill="#24283b" stroke="#7aa2f7" stroke-width="2.4"/><rect x="37.5" y="39.5" width="17" height="11" rx="3.5" fill="#24283b" stroke="#7aa2f7" stroke-width="2.4"/><path d="M46 24.5v11" fill="none" stroke="#a9b1d6" stroke-width="2.4" stroke-linecap="round"/><path d="M42.6 32.6 46 36.2 49.4 32.6" fill="none" stroke="#a9b1d6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Omaspec
+    </a>
+    <div class="links">
+      <a href="#behavior">Behavior</a>
+      <a href="#cli">Command line</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/enhapu-afk/omaspec/blob/main/docs/guide/README.md">Guide</a>
+      <a class="keep" href="https://github.com/enhapu-afk/omaspec">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <span class="badge"><b>●</b> native · offline · open source · for Omarchy</span>
+    <h1>A state diagram is a spec.<span class="run">So run it.<span class="cursor"></span></span></h1>
+    <p class="lead">Omaspec is a native <b>PlantUML and Mermaid</b> editor that reads your diagrams as <b>behavior</b>: it checks them while you type, plays them, and holds what a running system logged against them.</p>
+    <div class="cta">
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn" href="https://github.com/enhapu-afk/omaspec">Star it on GitHub</a>
+    </div>
+    <div class="window">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <video autoplay muted loop playsinline preload="metadata" poster="images/hero.png">
+        <source src="images/omaspec.mp4" type="video/mp4">
+        <img src="images/hero.png" alt="Omaspec: the source beside the live diagram">
+      </video>
+    </div>
+    <ul class="facts">
+      <li>pure Rust, one binary</li>
+      <li>its own drawing engines</li>
+      <li>no Java, no browser</li>
+      <li>no network, no telemetry</li>
+      <li>MIT</li>
+    </ul>
+  </header>
+
+  <section id="behavior">
+    <h2>What PlantUML and Mermaid cannot do</h2>
+    <p class="sub">A state diagram is the state machine it specifies, a sequence diagram a scenario. Omaspec treats them that way, in both languages alike.</p>
+
+    <div class="feature rise">
+      <div class="words">
+        <span class="kicker">Play</span>
+        <h3>F5 runs the diagram on screen</h3>
+        <p>The states the machine is in light up, you pick what happens next, and a light runs along each transition. A scenario unfolds message by message.</p>
+        <p><code>omaspec play door.puml -o door.gif</code> writes a play as a GIF for a pull request.</p>
+      </div>
+      <div class="shot"><img src="images/play.gif" alt="A state machine playing: a light runs along the transition to the next state" loading="lazy"></div>
+    </div>
+
+    <div class="feature rise">
+      <div class="words">
+        <span class="kicker">Check</span>
+        <h3>Findings while you type</h3>
+        <p>A state no path reaches, a state nothing leaves, one event leading two ways with no guard to choose.</p>
+        <p>A sequence diagram is checked against the state machines of its project: every message must be an event its receiver can take, in the order the scenario sends them.</p>
+      </div>
+      <div class="shot"><img src="images/specs.png" alt="A warning in the editor: the door does not take lock while it is open" loading="lazy"></div>
+    </div>
+
+    <div class="feature rise">
+      <div class="words">
+        <span class="kicker">Trace</span>
+        <h3>Did production follow the spec?</h3>
+        <p><code>omaspec trace run.jsonl</code> plays what a running system logged through its state machines and says where it deviated, with the time.</p>
+        <p>The editor plays the trace in the diagram, line by line.</p>
+      </div>
+      <div class="shot"><img src="images/trace.png" alt="A recorded trace played in the diagram, with the line where the system deviated" loading="lazy"></div>
+    </div>
+
+    <div class="feature rise">
+      <div class="words">
+        <span class="kicker">Diff</span>
+        <h3>What changed in the behavior</h3>
+        <p><code>omaspec diff</code> compares two versions, or a file with its last commit, by states, transitions and messages. Layout and colors do not count.</p>
+        <p>In the editor, Compare shows the change as pictures, as lines, or as a glide from one version to the other.</p>
+      </div>
+      <div class="shot"><img src="images/compare.png" alt="Two versions of a diagram compared side by side" loading="lazy"></div>
+    </div>
+
+    <div class="feature rise">
+      <div class="words">
+        <span class="kicker">Project</span>
+        <h3>A whole project is one map</h3>
+        <p>The map is made from the project's diagrams: a tile for each, an arrow where a state of one opens another. Click a tile to dive in, Alt+Left leads back out.</p>
+        <p><code>omaspec check DIR</code> lints every diagram, the machines and the links, for CI.</p>
+      </div>
+      <div class="shot"><img src="images/map.png" alt="A project's map with a tile for each diagram" loading="lazy"></div>
+    </div>
+
+    <div class="feature rise">
+      <div class="words">
+        <span class="kicker">Omarchy</span>
+        <h3>It looks like your desktop</h3>
+        <p>The editor and the diagrams follow <code>omarchy theme</code> and <code>omarchy font set</code> live. A Hyprland binding, a menu entry and a preview window for Neovim users come with it.</p>
+      </div>
+      <div class="shot"><img src="images/themes.png" alt="Omaspec in four Omarchy themes" loading="lazy"></div>
+    </div>
+  </section>
+
+  <section id="cli">
+    <h2>The same on the command line</h2>
+    <p class="sub">Everything the editor understands is a command: for a terminal, a pre-commit hook, CI, or an agent.</p>
+    <div class="term rise">
+      <div class="bar"><i></i><i></i><i></i></div>
+<pre><span class="p">$</span> <span class="k">omaspec lint</span> door.puml              <span class="c"># findings, with their lines</span>
+<span class="p">$</span> <span class="k">omaspec trace</span> night.jsonl           <span class="c"># a recorded trace against the state machines</span>
+<span class="p">$</span> <span class="k">omaspec diff</span> door.puml              <span class="c"># what changed in the behavior since the last commit</span>
+<span class="p">$</span> <span class="k">omaspec convert</span> door.puml           <span class="c"># the machine in Mermaid, only if it means the same</span>
+<span class="p">$</span> <span class="k">omaspec render</span> door.puml -o door.png  <span class="c"># SVG, PNG or PDF, the source inside</span>
+<span class="p">$</span> <span class="k">omaspec play</span> door.puml -o door.gif  <span class="c"># a play as a GIF that moves</span>
+<span class="p">$</span> <span class="k">omaspec check</span> .                     <span class="c"># a whole project, for CI</span>
+<span class="p">$</span> <span class="k">omaspec mcp</span>                         <span class="c"># an MCP server for AI agents</span></pre>
+    </div>
+    <div class="cards">
+      <div class="card rise"><h4>For AI agents</h4><p><code>omaspec mcp</code> serves the command line's tools over MCP: lint, trace, diff, convert, format, render.</p></div>
+      <div class="card rise"><h4>For git</h4><p><code>omaspec git setup</code> lets <code>git diff</code> and <code>git log -p</code> tell diagrams by their behavior.</p></div>
+      <div class="card rise"><h4>For handing on</h4><p>Exports carry their source: an SVG, PNG or PDF opens as a diagram again. A project exports as linked SVGs anyone can open.</p></div>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p class="sub">On Omarchy or any Arch Linux, from the repository. Elsewhere, the binary of the latest release or a build with Rust.</p>
+    <div class="install">
+      <div class="box rise">
+        <h4>Omarchy / Arch Linux</h4>
+        <button class="copy" type="button">copy</button>
+<pre>git clone https://github.com/enhapu-afk/omaspec
+cd omaspec/packaging/aur/omaspec-bin
+makepkg -si</pre>
+      </div>
+      <div class="box rise">
+        <h4>From source</h4>
+        <button class="copy" type="button">copy</button>
+<pre>git clone https://github.com/enhapu-afk/omaspec
+cd omaspec
+cargo build --release -p omaspec-app</pre>
+      </div>
+    </div>
+    <p class="note">Or take the binary from the <a href="https://github.com/enhapu-afk/omaspec/releases/latest">latest release</a>. Then <span class="mono">omaspec door.puml</span> opens the editor and Ctrl+Shift+E the gallery of 24 examples.</p>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">Omaspec</span>
+    <a href="https://github.com/enhapu-afk/omaspec">GitHub</a>
+    <a href="https://github.com/enhapu-afk/omaspec/blob/main/docs/guide/README.md">Guide</a>
+    <a href="https://github.com/enhapu-afk/omaspec/blob/main/ROADMAP.md">Roadmap</a>
+    <a href="https://github.com/enhapu-afk/omaspec/releases">Releases</a>
+    <span class="right">MIT · sends nothing anywhere</span>
+  </div>
+</footer>
+
+<script>
+// What comes into view rises into place; the copy buttons copy.
+const seen = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting) { entry.target.classList.add('in'); seen.unobserve(entry.target); }
+  }
+}, { threshold: 0.12 });
+document.querySelectorAll('.rise').forEach((el) => seen.observe(el));
+document.querySelectorAll('.copy').forEach((button) => {
+  button.addEventListener('click', async () => {
+    const text = button.parentElement.querySelector('pre').innerText;
+    try { await navigator.clipboard.writeText(text); button.textContent = 'copied'; }
+    catch { button.textContent = 'select it'; }
+    setTimeout(() => { button.textContent = 'copy'; }, 1600);
+  });
+});
+</script>
+</body>
+</html>
