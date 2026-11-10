@@ -401,6 +401,10 @@ fn new_pixels_wait_until_the_view_stops_gliding() {
     assert!(before.is_some());
     let _ = paper.zoom(1.2);
     assert!(paper.glide.is_some());
+    // The glide outlasts the rasterizing here, however loaded the machine.
+    paper.glide = paper
+        .glide
+        .map(|g| g.taking(std::time::Duration::from_secs(60)));
     let asked = paper.overview.asked;
     paper.deliver_overview();
     assert!(paper.held_overview.is_some(), "held while it glides");
