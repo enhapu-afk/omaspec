@@ -351,7 +351,7 @@ fn measure_element(
     family: Family,
     open: bool,
 ) -> Result<Measured, Declined> {
-    let mut look = *skin.of(el.shape);
+    let mut look = skin.look(el.shape, el.stereotypes.iter().map(|s| s.value.as_str()));
     if let Some(value) = &el.text_color {
         let color = match color::parse(value).map_err(|err| Declined::at(el.line, err))? {
             Some(color) => color,

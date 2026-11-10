@@ -55,6 +55,8 @@ pub struct Skin {
     pub frame: Look,
     pub rectangle: Look,
     pub note: Look,
+    /// What the styles set for the boxes of a stereotype.
+    pub rules: Vec<Rule>,
     pub arrow: Stroke,
     /// How far a line's corners curve; none with `linetype ortho`.
     pub curve: f32,
@@ -65,7 +67,103 @@ pub struct Skin {
     pub caption_font: Font,
 }
 
+/// What a stereotype's style changes on a box.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Change {
+    Fill(Paint),
+    Border(Color),
+    Thickness(f32),
+    FontColor(Color),
+    FontSize(f32),
+    FontStyle { bold: bool, italic: bool },
+}
+
+/// One setting for the boxes of a stereotype: those of one kind
+/// (`class`, `node`), as the skinparams name the kinds.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Rule {
+    /// The stereotype, in lower case.
+    pub class: String,
+    pub kind: &'static str,
+    pub change: Change,
+}
+
+/// The kind a shape's look is kept under.
+fn kind_of(shape: Shape) -> &'static str {
+    match shape {
+        Shape::Class | Shape::Abstract | Shape::Enum | Shape::Entity | Shape::Annotation => "class",
+        Shape::Interface => "interface",
+        Shape::Component => "component",
+        Shape::UseCase => "usecase",
+        Shape::Actor | Shape::Agent => "actor",
+        Shape::Node | Shape::Stack | Shape::Hexagon | Shape::Card | Shape::File => "node",
+        Shape::Database | Shape::Storage => "database",
+        Shape::Object => "object",
+        Shape::Package => "package",
+        Shape::Artifact => "artifact",
+        Shape::Cloud => "cloud",
+        Shape::Folder => "folder",
+        Shape::Frame => "frame",
+        Shape::Rectangle => "rectangle",
+        Shape::Note => "note",
+    }
+}
+
+/// The kind a skinparam's element belongs to: `storage` is a database.
+fn kind_named(element: &str) -> Option<&'static str> {
+    Some(match element {
+        "class" | "enum" | "abstract" | "annotation" => "class",
+        "interface" => "interface",
+        "component" => "component",
+        "usecase" => "usecase",
+        "actor" | "agent" => "actor",
+        "node" | "stack" | "hexagon" | "card" | "file" => "node",
+        "database" | "storage" => "database",
+        "object" => "object",
+        "package" | "namespace" => "package",
+        "artifact" => "artifact",
+        "cloud" => "cloud",
+        "folder" => "folder",
+        "frame" => "frame",
+        "rectangle" => "rectangle",
+        "note" => "note",
+        _ => return None,
+    })
+}
+
 impl Skin {
+    /// The look of a box of `shape` with `stereotypes`: its kind's, and
+    /// over it what the styles set for its stereotypes, in their order.
+    pub fn look<'a>(
+        &self,
+        shape: Shape,
+        stereotypes: impl Iterator<Item = &'a str> + Clone,
+    ) -> Look {
+        let mut look = *self.of(shape);
+        let kind = kind_of(shape);
+        for rule in &self.rules {
+            if rule.kind != kind
+                || !stereotypes
+                    .clone()
+                    .any(|s| s.trim().eq_ignore_ascii_case(&rule.class))
+            {
+                continue;
+            }
+            match rule.change {
+                Change::Fill(fill) => look.fill = fill,
+                Change::Border(color) => look.border = color,
+                Change::Thickness(width) => look.thickness = width,
+                Change::FontColor(color) => look.font.color = color,
+                Change::FontSize(size) => look.font.size = size,
+                Change::FontStyle { bold, italic } => {
+                    look.font.bold = bold;
+                    look.font.italic = italic;
+                }
+            }
+        }
+        look
+    }
+
     /// The look of `shape`. Enums, annotations and abstract classes use
     /// the class look; the name of an abstract class is drawn italic
     /// on top of it.
@@ -144,6 +242,7 @@ impl Default for Skin {
                 member: Font::new(13.0, black),
                 stereo: Font::new(12.0, black).italic(),
             },
+            rules: Vec::new(),
             arrow: Stroke::new(dark, 1.0),
             curve: crate::curve::RADIUS,
             arrow_font: Font::new(12.0, black),
@@ -206,12 +305,13 @@ macro_rules! boxed {
             $prefix,
             BOX,
         )
+        .varied()
     };
 }
 
 /// What a `<style>` reaches in a structure diagram: each kind of box
-/// with its fill, its border and its font, and the lines. A stereotype's
-/// own style (`.important`) still declines.
+/// with its fill, its border and its font, and the lines; a box by its
+/// stereotype too (`.important`, `<<important>>` on the box).
 pub const STYLE: &[Element] = &[
     boxed!("class", "Class"),
     boxed!("interface", "Interface"),
@@ -300,6 +400,39 @@ impl Skin {
             let value = p.value.trim();
 
             if OTHER_TYPES.iter().any(|t| key.starts_with(t)) || NO_EFFECT.contains(&key.as_str()) {
+                continue;
+            }
+            // A style for a stereotype says so before the name:
+            // `class=hot|ClassBackgroundColor`.
+            if let Some((only, name)) = p.key.split_once('|') {
+                let key = normalize_key(name);
+                let class = only.strip_prefix("class=").filter(|c| !c.contains('&'));
+                let found = split_key(&key)
+                    .and_then(|(element, property)| Some((kind_named(element)?, property)));
+                let (Some(class), Some((kind, property))) = (class, found) else {
+                    return Err(p.unsupported());
+                };
+                let change = match property {
+                    "backgroundcolor" => Change::Fill(p.paint()?),
+                    "bordercolor" => Change::Border(p.solid()?),
+                    "borderthickness" => Change::Thickness(p.number(0.0, 20.0)?),
+                    "fontcolor" => Change::FontColor(p.solid()?),
+                    "fontsize" => Change::FontSize(p.number(4.0, 100.0)?),
+                    "fontstyle" => {
+                        let mut font = Font::new(1.0, Color::BLACK);
+                        set_style(&mut font, value).map_err(|()| p.unsupported())?;
+                        Change::FontStyle {
+                            bold: font.bold,
+                            italic: font.italic,
+                        }
+                    }
+                    _ => return Err(p.unsupported()),
+                };
+                skin.rules.push(Rule {
+                    class: class.to_owned(),
+                    kind,
+                    change,
+                });
                 continue;
             }
             // A style from further up (`root`, `document`) reaches the
@@ -674,14 +807,25 @@ mod tests {
             (skin.arrow.color, skin.arrow.width),
             (Color::hex(0xff0000), 2.0)
         );
-        // What a box does not take, and a stereotype's own style, decline
-        // on their line.
+        // A stereotype's style is for the boxes that carry it.
+        let hot = "@startuml\n<style>\n.hot { BackgroundColor #ff0000; FontStyle bold }\nclass { BackgroundColor #00ff00 }\n</style>\nclass A <<hot>>\nclass B\n[C] <<hot>>\n@enduml\n";
+        let Ok(crate::Diagram::Structure(diagram)) = crate::parse(hot) else {
+            panic!("a structure diagram");
+        };
+        let skin = Skin::from_params(&diagram.frame.skinparams).unwrap();
+        let a = skin.look(Shape::Class, ["hot"].into_iter());
+        assert!(a.fill == Some(Color::hex(0xff0000)) && a.font.bold);
+        let b = skin.look(Shape::Class, [].into_iter());
+        assert!(b.fill == Some(Color::hex(0x00ff00)) && !b.font.bold);
+        let c = skin.look(Shape::Component, ["Hot"].into_iter());
+        assert_eq!(c.fill, Some(Color::hex(0xff0000)));
+        // What a box does not take, and a depth, decline on their line.
         for (sheet, line) in [
             ("class { RoundCorner 9 }", 2),
-            (".hot { BackgroundColor red }", 2),
+            (":depth(1) { BackgroundColor red }", 2),
         ] {
             let source = format!("@startuml\n<style>\n{sheet}\n</style>\nclass A\n@enduml\n");
-            let err = crate::parse(&source).unwrap_err();
+            let err = crate::render(&source).unwrap_err();
             assert_eq!(err.line, Some(line), "{sheet}: {err:?}");
         }
     }
