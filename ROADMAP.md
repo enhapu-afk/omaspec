@@ -2097,8 +2097,13 @@ what it costs.
       setting counting over an earlier one whichever boxes each is for
       (`tree::skin::Rule`). Held against the Java PlantUML's picture.
       Open: `Padding`, `Margin`, `MaximumWidth`, `HorizontalAlignment`
-      and a font name on a box decline by name; class, component, use
-      case, timing and Gantt diagrams still decline a `<style>`.
+      and a font name on a box decline by name.
+- [x] `<style>` in class, component, use case, deployment and object
+      diagrams (2026-11-10): each kind of box with its fill, its border
+      and its font, and the lines (`structure::skin::STYLE`), as the
+      skinparams of the same names. Open: a stereotype's own style
+      (`.important`) and `RoundCorner` on one kind of box decline on
+      their line; timing and Gantt diagrams still decline a `<style>`.
 - [x] Shadows (2026-11-10): `skinparam shadowing true` and a style's
       `root { Shadowing 3 }` declined the whole diagram. Now every box
       casts one, in all PlantUML types: a filled shape with a border, 3

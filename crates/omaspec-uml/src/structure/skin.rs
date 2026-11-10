@@ -8,6 +8,7 @@ use super::{Shape, Skinparam};
 use crate::Declined;
 use crate::color::{Color, Paint};
 use crate::common::normalize_key;
+use crate::style::{Element, Prop};
 use crate::svg::Stroke;
 use crate::text::Font;
 
@@ -180,6 +181,78 @@ const OTHER_TYPES: [&str; 22] = [
     "legend",
 ];
 
+/// What a `<style>` sets on a box of a structure diagram.
+const BOX: &[Prop] = &[
+    Prop::BackGroundColor,
+    Prop::LineColor,
+    Prop::LineThickness,
+    Prop::FontColor,
+    Prop::FontSize,
+    Prop::FontStyle,
+];
+
+/// A box by its style name, under each of the diagrams PlantUML calls a
+/// structure diagram, with the start of its skinparams.
+macro_rules! boxed {
+    ($name:literal, $prefix:literal) => {
+        Element::new(
+            &[
+                "element",
+                "classDiagram",
+                "componentDiagram",
+                "objectDiagram",
+                $name,
+            ],
+            $prefix,
+            BOX,
+        )
+    };
+}
+
+/// What a `<style>` reaches in a structure diagram: each kind of box
+/// with its fill, its border and its font, and the lines. A stereotype's
+/// own style (`.important`) still declines.
+pub const STYLE: &[Element] = &[
+    boxed!("class", "Class"),
+    boxed!("interface", "Interface"),
+    boxed!("component", "Component"),
+    boxed!("usecase", "Usecase"),
+    boxed!("actor", "Actor"),
+    boxed!("node", "Node"),
+    boxed!("database", "Database"),
+    boxed!("object", "Object"),
+    boxed!("package", "Package"),
+    boxed!("artifact", "Artifact"),
+    boxed!("cloud", "Cloud"),
+    boxed!("folder", "Folder"),
+    boxed!("frame", "Frame"),
+    boxed!("rectangle", "Rectangle"),
+    boxed!("note", "Note"),
+    boxed!("storage", "Storage"),
+    boxed!("card", "Card"),
+    boxed!("file", "File"),
+    boxed!("stack", "Stack"),
+    boxed!("hexagon", "Hexagon"),
+    boxed!("agent", "Agent"),
+    Element::keys(
+        &[
+            "element",
+            "classDiagram",
+            "componentDiagram",
+            "objectDiagram",
+            "arrow",
+        ],
+        &[
+            (Prop::LineColor, "ArrowColor"),
+            (Prop::LineThickness, "ArrowThickness"),
+            (Prop::LineStyle, "ArrowStyle"),
+            (Prop::FontColor, "ArrowFontColor"),
+            (Prop::FontSize, "ArrowFontSize"),
+            (Prop::FontStyle, "ArrowFontStyle"),
+        ],
+    ),
+];
+
 /// These change nothing in the SVG.
 const NO_EFFECT: [&str; 4] = ["dpi", "nodesep", "ranksep", "svglinktarget"];
 
@@ -227,6 +300,11 @@ impl Skin {
             let value = p.value.trim();
 
             if OTHER_TYPES.iter().any(|t| key.starts_with(t)) || NO_EFFECT.contains(&key.as_str()) {
+                continue;
+            }
+            // A style from further up (`root`, `document`) reaches the
+            // main frame too, whose words this skin has no font for.
+            if p.declared.is_some() && key.starts_with("mainframe") {
                 continue;
             }
             match key.as_str() {
@@ -579,6 +657,32 @@ mod tests {
         ] {
             let err = skin(&[(key, value)]).unwrap_err();
             assert_eq!(err.line, Some(0), "{key}");
+        }
+    }
+
+    #[test]
+    fn a_style_colors_the_boxes_and_the_lines() {
+        let source = "@startuml\n<style>\nclassDiagram {\n  class { BackgroundColor #ddeeff; LineColor #000080 }\n  arrow { LineColor #ff0000; LineThickness 2 }\n}\ncomponentDiagram {\n  database { BackgroundColor #ffd700 }\n}\n</style>\nclass Order\nOrder --> Line\n@enduml\n";
+        let Ok(crate::Diagram::Structure(diagram)) = crate::parse(source) else {
+            panic!("a structure diagram");
+        };
+        let skin = Skin::from_params(&diagram.frame.skinparams).unwrap();
+        assert_eq!(skin.class_box.fill, Some(Color::hex(0xddeeff)));
+        assert_eq!(skin.class_box.border, Color::hex(0x000080));
+        assert_eq!(skin.database.fill, Some(Color::hex(0xffd700)));
+        assert_eq!(
+            (skin.arrow.color, skin.arrow.width),
+            (Color::hex(0xff0000), 2.0)
+        );
+        // What a box does not take, and a stereotype's own style, decline
+        // on their line.
+        for (sheet, line) in [
+            ("class { RoundCorner 9 }", 2),
+            (".hot { BackgroundColor red }", 2),
+        ] {
+            let source = format!("@startuml\n<style>\n{sheet}\n</style>\nclass A\n@enduml\n");
+            let err = crate::parse(&source).unwrap_err();
+            assert_eq!(err.line, Some(line), "{sheet}: {err:?}");
         }
     }
 }

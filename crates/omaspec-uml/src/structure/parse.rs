@@ -287,7 +287,7 @@ struct Parser {
 impl Default for Parser {
     fn default() -> Self {
         Self {
-            frame: Frame::default(),
+            frame: Frame::styled(super::skin::STYLE),
             root: Group::default(),
             open: Vec::new(),
             members: None,
@@ -399,9 +399,6 @@ impl Parser {
         }
         if text.contains("<$") {
             return Err(Declined::at(no, "sprites are not supported yet"));
-        }
-        if starts_with_ci(text, "<style") {
-            return Err(Declined::at(no, "`<style>` is not supported yet"));
         }
         if is_note_header(text) {
             return self.note(lines, at);

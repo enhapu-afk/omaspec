@@ -119,7 +119,7 @@ fn what_is_not_drawn_declines_at_its_line() {
         ),
         (
             "<style>\nroot { FontColor red }\n</style>",
-            "class A",
+            "concise \"Web\" as W\n@0\nW is Idle",
             1,
             "`<style>` is not supported yet",
         ),
