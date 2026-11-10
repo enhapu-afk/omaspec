@@ -354,6 +354,10 @@ enum Command {
         /// Frames per second.
         #[arg(long, default_value_t = 20)]
         fps: u32,
+        /// The colors: `built-in` for the palette Omaspec ships, or a
+        /// theme's colors.toml; the active Omarchy theme without it.
+        #[arg(long, value_name = "built-in|FILE")]
+        theme: Option<String>,
         #[command(flatten)]
         lang: LangArg,
     },
@@ -668,6 +672,7 @@ fn main() -> ExitCode {
             steps,
             width,
             fps,
+            theme,
             lang,
         }) => editor::moving::play(&editor::moving::Moving {
             file,
@@ -676,6 +681,7 @@ fn main() -> ExitCode {
             steps,
             width,
             fps,
+            theme,
             forced: lang.get(),
         })
         .map(|wrote| {

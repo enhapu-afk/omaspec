@@ -2,11 +2,8 @@
 # Takes the pictures of the README and the guide again: headless screenshots
 # from the snapshot tests (crates/omaspec-app/src/editor/tests.rs) and four
 # bundled Omarchy themes as one picture. Needs ImageMagick; the themes need
-# Omarchy's bundled themes.
-#
-# play.gif is a screen recording of Omaspec, not taken here. Cut a recording
-# to the play and turn it into the GIF with:
-#   ffmpeg -i recording.mp4 -vf "fps=20,scale=1200:-2:flags=lanczos,hqdn3d=0:0:4:4,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" docs/images/play.gif
+# Omarchy's bundled themes. play.gif is written by `omaspec play`, which
+# needs a GPU as the screenshots do.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 out=docs/images
@@ -28,6 +25,11 @@ shot gallery-omarchy gallery
 shot guide-machine guide/machine
 shot guide-finding guide/finding
 shot guide-play guide/play
+
+# The coffee machine brewing a cup, in the built-in palette (Tokyo Night).
+cargo run --release -q -p omaspec-app -- play examples/gallery/coffee-machine.puml \
+  -o "$out/play.gif" --theme built-in \
+  --events 'power on,touch,start,ground,hot,cup full' 2>/dev/null
 
 # Two dark themes and two light ones.
 magick montage "$shots"/theme-{tokyo-night,catppuccin-latte,gruvbox,rose-pine}-wgpu.png \

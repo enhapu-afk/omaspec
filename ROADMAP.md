@@ -1961,14 +1961,20 @@ what it costs.
       window draws it (the snapshot tests' `Screen`, now
       `editor/screen.rs`), runs the play (`--events open,close`, else the
       first the machine offers, `--steps`; a scenario its messages) and
-      writes the frames with the `gif` crate; frames alike are one that
-      stays longer. The pane is twice the diagram's size up to `--width`,
+      writes the frames as a GIF (`editor/gifs.rs`): one table of colors
+      for all of them and of each frame only the part that changed, so
+      frames alike are one that stays longer and a light that moves costs
+      its own few pixels. An event is named as its label says it (`power
+      on`; with its guard where two share a name); `--theme built-in` or a
+      `colors.toml` instead of the active theme. The pane is twice the diagram's size up to `--width`,
       the height follows the diagram, and the picture stays in its place
       when the bar takes a second line; it ends on the state the play
-      reached. A door of three states: 83 frames, 552×654, 2 MB, 11 s.
-      Without a GPU the command says so. Open: a fold
-      or a dive as a GIF the same way; APNG for sharper colors; the
-      README's `play.gif` is still a recording.
+      reached. The gallery's coffee machine, six events: 181 frames,
+      1200×1020, 1.2 MB, 17 s (9.4 MB with a table and a whole picture
+      per frame); it is the README's `play.gif` now, written by
+      `docs/images/update.sh`, where a screen recording cut by hand was
+      (5 MB). Without a GPU the command says so. Open: a fold or a dive
+      as a GIF the same way.
 - [x] A color for one box (2026-11-10): *Color this box…* in the palette
       and the menus offers the window's colors for the state or class the
       caret is on, and none. It goes into the source as the language

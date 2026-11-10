@@ -35,6 +35,7 @@ mod files;
 mod fold;
 pub(crate) mod folder;
 mod gallery;
+mod gifs;
 mod help;
 mod keys;
 mod links;

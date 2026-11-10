@@ -637,7 +637,7 @@ fn a_play_is_written_as_a_gif_that_moves() {
     let door = dir.join("door.puml");
     fs::write(
         &door,
-        "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Closed : knock twice [at night]\n@enduml\n",
     )
     .unwrap();
     let gif = dir.join("door.gif");
@@ -647,7 +647,9 @@ fn a_play_is_written_as_a_gif_that_moves() {
         "-o",
         gif.to_str().unwrap(),
         "--events",
-        "open,close",
+        "open,close,knock twice",
+        "--theme",
+        "built-in",
         "--width",
         "400",
         "--fps",
@@ -660,7 +662,7 @@ fn a_play_is_written_as_a_gif_that_moves() {
     }
     assert_eq!(out.status.code(), Some(0), "{err}");
     assert!(
-        err.contains("open, close") && err.contains("frames"),
+        err.contains("open, close, knock twice [at night]") && err.contains("frames"),
         "{err}"
     );
     let bytes = fs::read(&gif).unwrap();

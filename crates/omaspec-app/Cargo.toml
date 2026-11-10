@@ -23,6 +23,8 @@ iced_runtime = "0.14"
 notify = "8"
 # The frames of `omaspec play -o play.gif`.
 gif = "0.14"
+# One table of colors for all the frames of such a GIF.
+color_quant = "1"
 regex = "1"
 # `render --check` reads the SVGs it holds the new ones against.
 roxmltree = "0.21"
