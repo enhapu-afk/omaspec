@@ -2065,6 +2065,31 @@ what it costs.
       first line that names a box without one; Mermaid's `style Name
       fill:#…` line, its other properties kept, the line gone when the
       fill was all it held.
+- [x] A color for a box of every diagram (2026-11-10): the command found
+      a box only in the graph diagrams and wrote a color only for a state
+      or a class. Now the source tells the box at the caret
+      (`recolor::target`): a node of a mind map or a WBS
+      (`**[#f7768e] Tests`), an action or a swimlane (`#f7768e:Bake;`), a
+      participant (declared before its first message, the one the same
+      line names before it too, so its column stays), a Gantt task
+      (`is colored in`), a timing participant, an ER entity, a C4 element
+      (`UpdateElementStyle(…, $bgColor=…)`, whose quoted value the C4
+      drawer now reads); components, use cases and nodes take it in their
+      own form (`[Order] #ffcc00`), a Mermaid flowchart with a decision
+      too. The color stands where PlantUML reads it, after the stereotype
+      and before `extends`. Where a language has no way (Mermaid's
+      sequence diagram, mind map, Gantt, pie; a clock of a timing
+      diagram), the command says so. Open: a color of Omaspec's own for
+      those. The colors offered: nine fixed ones that are what they are
+      called (Yellow is a yellow in every theme), then the theme's, each
+      called what it looks like (`hue_name`, *Theme orange*), not by its
+      slot: in starship `yellow` is a peach and `green` the accent, in
+      lupine `yellow` is a blue.
+- [x] A branch of a mind map or a WBS folds (2026-11-10), in PlantUML and
+      Mermaid: the box stays, with *3 nodes* under its name, by the same
+      button, click and command as a container (0024). The trees' maps
+      name their boxes now (`Place::fixed`: none is held beside another),
+      two with the same words as `Tests` and `Tests (2)`.
 - [x] A label moved to the other side of its line (2026-11-10): *Label
       to the other side* puts the label of the line at the caret on the
       side it is not on, as `Idle -> Busy label left` in the block of

@@ -2249,12 +2249,11 @@ fn a_box_takes_a_color_of_the_window_from_the_caret() {
     let picker = app.picker.as_ref().expect("the colors");
     assert_eq!(picker.kind, Kind::Colors);
     let labels: Vec<String> = picker.visible().map(|(_, i)| i.label.clone()).collect();
-    for label in ["Busy: Accent", "Busy: Red", "Busy: no color of its own"] {
+    for label in ["Busy: Yellow", "Busy: no color of its own"] {
         assert!(labels.iter().any(|l| l == label), "{labels:?}");
     }
-    let red = app.palette.red.to_string();
-    let at_red = labels.iter().position(|l| l == "Busy: Red").unwrap();
-    let _ = app.update(Message::PickerClick(at_red));
+    let red = RED;
+    pick_red(&mut app, "Busy");
     assert!(app.picker.is_none());
     assert_eq!(
         app.doc().text(),
@@ -2279,6 +2278,117 @@ fn a_box_takes_a_color_of_the_window_from_the_caret() {
     assert_eq!(
         app.doc().text(),
         "@startuml\n[*] --> Idle\nstate Busy\nIdle --> Busy : go\n@enduml\n"
+    );
+}
+
+/// The fixed red, as the color picker writes it.
+const RED: &str = "#e5484d";
+
+/// Red in the color picker, picked for the box `name`.
+fn pick_red(app: &mut App, name: &str) {
+    let label = format!("{name}: Red");
+    let at = app
+        .picker
+        .as_ref()
+        .expect("the colors")
+        .visible()
+        .position(|(_, i)| i.label == label && i.hint == RED)
+        .unwrap();
+    let _ = app.update(Message::PickerClick(at));
+}
+
+#[test]
+fn a_box_of_any_diagram_takes_a_color() {
+    // A WBS: the node on the caret's line.
+    let wbs = "@startwbs\n* Launch\n** Build\n*** Tests\n** Budget\n*** Tests\n@endwbs\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, wbs);
+    show(&mut app, wbs, Language::PlantUml);
+    let at = wbs.rfind("Tests").unwrap() + 2;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::ColorBox);
+    pick_red(&mut app, "Tests");
+    let colored = format!(
+        "@startwbs\n* Launch\n** Build\n*** Tests\n** Budget\n***[{}] Tests\n@endwbs\n",
+        RED
+    );
+    assert_eq!(app.doc().text(), colored);
+    // A scenario: the participant the caret is on.
+    let scenario = "@startuml\nAlice -> Bob : hi\n@enduml\n";
+    select_all_and_paste(&mut app, scenario);
+    show(&mut app, scenario, Language::PlantUml);
+    let at = scenario.find("Bob").unwrap() + 1;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::ColorBox);
+    pick_red(&mut app, "Bob");
+    assert_eq!(
+        app.doc().text(),
+        format!(
+            "@startuml\nparticipant Alice\nparticipant Bob {}\nAlice -> Bob : hi\n@enduml\n",
+            RED
+        )
+    );
+    // A Mermaid flowchart with a decision.
+    let flow = "flowchart TD\n  A[Start] --> B{Ok?}\n";
+    let work = temp_dir("color-flow");
+    let file = work.join("flow.mmd");
+    std::fs::write(&file, flow).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, flow, Language::Mermaid);
+    let at = flow.find("Ok?").unwrap() + 1;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::ColorBox);
+    pick_red(&mut app, "B");
+    assert_eq!(app.doc().text(), format!("{flow}  style B fill:{}\n", RED));
+    // Where the language has no way to, it says so.
+    let mermaid = "sequenceDiagram\n  Alice->>Bob: hi\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, mermaid);
+    let key = app.doc().key;
+    due(&mut app, Alarm::Lint(key));
+    show(&mut app, mermaid, Language::Mermaid);
+    act(&mut app, Action::PlaceCaret(20));
+    press(&mut app, Command::ColorBox);
+    assert!(app.picker.is_none());
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("Mermaid writes no color for one box of a sequence diagram")
+    );
+}
+
+#[test]
+fn a_branch_of_a_tree_folds_from_the_caret() {
+    let wbs = "@startwbs\n* Launch\n** Build\n*** Tests\n** Budget\n*** Tests\n@endwbs\n";
+    let work = temp_dir("fold-tree");
+    let file = work.join("launch.puml");
+    std::fs::write(&file, wbs).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, wbs, Language::PlantUml);
+    let at = wbs.find("Budget").unwrap() + 2;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::FoldBox);
+    assert_eq!(app.notice.as_deref(), Some("Budget folded"));
+    assert_eq!(app.doc().paper.folded(), ["Budget"]);
+    show_folded(&mut app, wbs, &["Budget"]);
+    let map = &app.doc().paper.diagram.as_ref().unwrap().drawn.map;
+    let names: Vec<&str> = map.places.iter().map(|p| p.name.as_str()).collect();
+    assert_eq!(
+        names.iter().filter(|n| n.starts_with("Tests")).count(),
+        1,
+        "{names:?}"
+    );
+    assert_eq!(app.doc().text(), wbs);
+    // The same caret unfolds it; a box that holds nothing says so.
+    press(&mut app, Command::FoldBox);
+    assert_eq!(app.notice.as_deref(), Some("Budget unfolded"));
+    show(&mut app, wbs, Language::PlantUml);
+    // The second of two boxes with the same words is itself.
+    let at = wbs.rfind("Tests").unwrap() + 2;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::FoldBox);
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("Tests (2) holds nothing to fold")
     );
 }
 

@@ -17,6 +17,7 @@ mod words;
 pub use crate::common::{Frame, Skinparam, Text};
 pub use draw::draw;
 pub use parse::{is_activity, parse};
+pub use words::{action_end, action_start};
 
 /// A parsed activity diagram.
 #[derive(Debug, Clone, PartialEq)]

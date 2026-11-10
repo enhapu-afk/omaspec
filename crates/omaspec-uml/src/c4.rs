@@ -989,7 +989,8 @@ fn parse_args(args: &[String]) -> Args {
         if let Some((key, value)) = trimmed.split_once('=') {
             let key = key.trim().trim_start_matches('$');
             if !key.is_empty() {
-                kv.push((key.to_string(), value.trim().to_string()));
+                // `$bgColor="#f7768e"`: the quotes are around the value.
+                kv.push((key.to_string(), strip_quotes(value.trim()).to_string()));
                 continue;
             }
         }
@@ -2830,6 +2831,10 @@ BiRel(auditor, web, \"Reviews\")
         assert!(mermaid_refusal("sequenceDiagram\nA->B: hi\n").is_none());
         let styled = diagram("C4Context\nPerson(a, \"Admin\")\nUpdateElementStyle(a, #112233)\n");
         assert_eq!(styled.shapes[0].fill, Some(super::Color::hex(0x112233)));
+        let named = diagram(
+            "C4Context\nPerson(a, \"Admin\")\nUpdateElementStyle(a, $bgColor=\"#112233\")\n",
+        );
+        assert_eq!(named.shapes[0].fill, Some(super::Color::hex(0x112233)));
         let svg = draw(&styled).unwrap();
         assert!(svg.contains("#112233"), "{svg}");
     }

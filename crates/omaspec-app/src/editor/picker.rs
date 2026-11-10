@@ -66,9 +66,9 @@ pub enum Choice {
         path: PathBuf,
         object: String,
     },
-    /// Color the box `name` of the active tab, or take its color away.
+    /// Color the box `target` of the active tab, or take its color away.
     Color {
-        name: String,
+        target: omaspec_core::recolor::Target,
         color: Option<String>,
     },
     /// Ask where the new project goes.
@@ -186,9 +186,9 @@ impl Picker {
     fn refilter(&mut self) {
         self.selected = 0;
         // Commands keep their order (the recent ones first) until a letter
-        // is typed, and so do the ways to start a project.
-        let untyped =
-            matches!(self.kind, Kind::Commands | Kind::NewProject) && self.query.trim().is_empty();
+        // is typed, and so do the ways to start a project and the colors.
+        let untyped = matches!(self.kind, Kind::Commands | Kind::NewProject | Kind::Colors)
+            && self.query.trim().is_empty();
         if self.kind == Kind::Search || untyped {
             self.matches = (0..self.items.len()).collect();
             return;
@@ -409,8 +409,8 @@ impl App {
                 let played = self.play_trace(&path, &object);
                 Task::batch([self.apply_keyboard_focus(), played])
             }
-            Some(Choice::Color { name, color }) => {
-                let colored = self.colored(&name, color.as_deref());
+            Some(Choice::Color { target, color }) => {
+                let colored = self.colored(&target, color.as_deref());
                 Task::batch([self.apply_keyboard_focus(), colored])
             }
             Some(Choice::NewProject { language, git }) => {

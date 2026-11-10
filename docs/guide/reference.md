@@ -212,9 +212,29 @@ own `%%{init}%%` lines (theme, colors, font) are honored too.
 
 A skin colors by kind, so every state of a machine is one color. **Color this box…** in
 the palette, or in the menu of the right mouse button over a box, offers the window's
-colors for the state or class the caret is on, and *no color of its own*. The color goes
-into the source as the language writes it (`state Busy #f7768e`, `class Order #ffcc00`,
-Mermaid's `style Busy fill:#f7768e`), as one undo step, so every other tool draws it too.
+colors for the box the caret is on, and *no color of its own*. The color goes into the
+source as the language writes it, as one undo step, so every other tool draws it too:
+
+| Diagram | The box | Written as |
+| --- | --- | --- |
+| State, class, component, use case, deployment, object | a state or an element | `state Busy #f7768e`, `class Order #ffcc00`, `[Billing] #ffcc00` |
+| Sequence | a participant | `participant Bob #f7768e` |
+| Activity | an action, a swimlane | `#f7768e:Bake;`, `\|#f7768e\|Kitchen\|` |
+| Mind map, WBS | a node | `**[#f7768e] Tests` |
+| Gantt | a task | `[Design] is colored in #f7768e` |
+| Timing | a robust or concise participant | `concise "Web" as W #f7768e` |
+| Mermaid flowchart, state, class, ER, block | a node | `style Busy fill:#f7768e` |
+| Mermaid C4 | an element | `UpdateElementStyle(shop, $bgColor="#f7768e")` |
+
+The fixed colors come first (Red, Orange, Yellow, Green, Cyan, Blue, Purple, Pink, Gray):
+who picks Yellow gets a yellow in every theme. After them the theme's own, each called
+what it looks like (*Theme orange*; a theme names its colors by the slots of a terminal,
+and its `yellow` may be a peach or a blue), one the theme has twice once.
+
+A box that lines only name gets a declaration before the first of them; a participant
+keeps its column. Where a language has no way to color one box (Mermaid's sequence
+diagrams, mind maps, Gantt charts, pies, journeys and timelines; PlantUML's JSON), the
+command says so and writes nothing.
 
 ### Lines by hand
 
@@ -316,6 +336,9 @@ unfolds the container whose name the caret is on, and unfolds every container. F
 the pane's, not the file's: nothing is written, the checks and a play see the whole
 diagram, and a play unfolds everything before it starts. An export draws what the pane
 shows.
+
+A mind map and a WBS fold the same way, in PlantUML and in Mermaid: a box with boxes
+below it folds to itself and says how many it held (*3 nodes*).
 
 Shift and a click on a box puts it in focus: the rest of the diagram goes quiet behind a
 veil, and the box, the boxes its lines lead to or come from, those lines and their words
