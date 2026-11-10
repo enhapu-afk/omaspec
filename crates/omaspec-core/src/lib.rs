@@ -22,6 +22,7 @@ pub mod locate;
 pub mod markdown;
 pub mod outline;
 pub mod project;
+pub mod recolor;
 pub mod skin;
 
 pub use kind::{DiagramKind, Kind, classify};

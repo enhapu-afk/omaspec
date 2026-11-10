@@ -1965,15 +1965,15 @@ what it costs.
       play.gif` would have to draw the diagram and its light on the CPU
       (`tiny-skia` has it) and encode the frames (the `gif` or `png` crate
       with APNG), with a dependency or two to weigh.
-- [ ] A color for one box: the skins color by kind, so every state of a
-      state machine is one color. A color the writer gives one state or
-      class with a click, kept in the source as its `#color`, as a line by
-      hand is kept. Weighed: a step of its own, for both languages. The
-      engine draws `#color` on a state and a class already; what is
-      missing is the pick (a row of the skin's colors in the context menu)
-      and the write: onto the declaration, or a declaration added for a
-      state that has none; Mermaid's `style Name fill:#…` for a state, a
-      `classDef` for a class.
+- [x] A color for one box (2026-11-10): *Color this box…* in the palette
+      and the menus offers the window's colors for the state or class the
+      caret is on, and none. It goes into the source as the language
+      writes it, as one undo step (`omaspec_core::recolor`): onto the
+      PlantUML declaration (`state Busy #f7768e`, `class Order #ffcc00`,
+      the border's `##color` kept), or a declaration added before the
+      first line that names a box without one; Mermaid's `style Name
+      fill:#…` line, its other properties kept, the line gone when the
+      fill was all it held.
 - [ ] A label moved to the other side of its line with the mouse, kept in
       the block of lines by hand; and the label of the line the caret is on
       lit. Weighed: a step of its own in the layout. The block of lines by

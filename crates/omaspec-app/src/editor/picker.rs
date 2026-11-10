@@ -65,6 +65,11 @@ pub enum Choice {
         path: PathBuf,
         object: String,
     },
+    /// Color the box `name` of the active tab, or take its color away.
+    Color {
+        name: String,
+        color: Option<String>,
+    },
     /// Ask where the new project goes.
     NewProject {
         language: omaspec_core::Language,
@@ -80,6 +85,8 @@ pub enum Kind {
     Versions,
     /// Recorded traces to play.
     Traces,
+    /// The colors a box may take.
+    Colors,
     /// How a new project starts.
     NewProject,
     /// The owner lists the items for each query; no fuzzy filter.
@@ -389,6 +396,10 @@ impl App {
                 let played = self.play_trace(&path, &object);
                 Task::batch([self.apply_keyboard_focus(), played])
             }
+            Some(Choice::Color { name, color }) => {
+                let colored = self.colored(&name, color.as_deref());
+                Task::batch([self.apply_keyboard_focus(), colored])
+            }
             Some(Choice::NewProject { language, git }) => {
                 self.ask(super::Asking::NewProject { language, git })
             }
@@ -503,6 +514,7 @@ mod tests {
             | Choice::ProjectSince { .. }
             | Choice::Changed { .. }
             | Choice::Trace { .. }
+            | Choice::Color { .. }
             | Choice::NewProject { .. } => None,
         }
     }

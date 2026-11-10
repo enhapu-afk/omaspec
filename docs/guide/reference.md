@@ -208,6 +208,12 @@ and the file's own colors. Colors the file sets itself (`skinparam`, `classDef`,
 stay its own, and two of them that hardly differ, under 3:1, are a finding. Mermaid's
 own `%%{init}%%` lines (theme, colors, font) are honored too.
 
+A skin colors by kind, so every state of a machine is one color. **Color this box…** in
+the palette, or in the menu of the right mouse button over a box, offers the window's
+colors for the state or class the caret is on, and *no color of its own*. The color goes
+into the source as the language writes it (`state Busy #f7768e`, `class Order #ffcc00`,
+Mermaid's `style Busy fill:#f7768e`), as one undo step, so every other tool draws it too.
+
 ### Lines by hand
 
 The layout lays every line, and you can shape one yourself: hold **Alt** over the

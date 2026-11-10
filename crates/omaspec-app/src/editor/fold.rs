@@ -3,7 +3,8 @@
 
 use iced::Task;
 
-use super::{App, Message};
+use super::picker::{Choice, Item, Kind, Picker};
+use super::{App, Message, PICKER};
 
 impl App {
     /// The source on screen and where the caret is in it.
@@ -48,6 +49,70 @@ impl App {
                 Task::none()
             }
         }
+    }
+
+    /// Offers the colors of the window for the box at the caret.
+    pub(super) fn color_box(&mut self) -> Task<Message> {
+        let (text, row, col) = self.caret_in_source();
+        let Some(name) = self.doc().paper.box_at_caret(&text, row, col) else {
+            self.notice = Some("put the caret on the name of a box in the diagram".into());
+            return Task::none();
+        };
+        let p = &self.palette;
+        let colors = [
+            ("Accent", p.accent),
+            ("Red", p.red),
+            ("Orange", p.orange),
+            ("Yellow", p.yellow),
+            ("Green", p.green),
+            ("Cyan", p.cyan),
+            ("Blue", p.blue),
+            ("Magenta", p.magenta),
+        ];
+        let mut items: Vec<Item> = colors
+            .into_iter()
+            .map(|(label, rgb)| {
+                let color = rgb.to_string();
+                Item {
+                    label: format!("{name}: {label}"),
+                    hint: color.clone(),
+                    choice: Choice::Color {
+                        name: name.clone(),
+                        color: Some(color),
+                    },
+                }
+            })
+            .collect();
+        items.push(Item {
+            label: format!("{name}: no color of its own"),
+            hint: String::new(),
+            choice: Choice::Color {
+                name: name.clone(),
+                color: None,
+            },
+        });
+        self.place_picker(Picker::new(Kind::Colors, "color the box", items));
+        iced::widget::operation::focus(PICKER)
+    }
+
+    /// Colors the box `name` in the source, as one undo step, and draws
+    /// the diagram again.
+    pub(super) fn colored(&mut self, name: &str, color: Option<&str>) -> Task<Message> {
+        let key = self.doc().key;
+        let doc = self.doc();
+        let edit = omaspec_core::recolor::edit(&doc.text(), doc.language, name, color);
+        match edit {
+            Ok(edit) => {
+                self.doc_mut().replace(vec![edit]);
+                self.edited(key);
+                self.notice = Some(match color {
+                    Some(color) => format!("{name} colored {color} (Ctrl+Z undoes it)"),
+                    None => format!("{name} in the diagram's colors again (Ctrl+Z undoes it)"),
+                });
+            }
+            Err(why) => self.notice = Some(why),
+        }
+        Task::none()
     }
 
     /// Unfolds every container of the diagram on screen.

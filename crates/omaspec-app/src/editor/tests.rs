@@ -2183,6 +2183,57 @@ fn show_folded(app: &mut App, source: &str, folds: &[&str]) {
 }
 
 #[test]
+fn a_box_takes_a_color_of_the_window_from_the_caret() {
+    let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\n@enduml\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, source);
+    show(&mut app, source, Language::PlantUml);
+    // Nowhere near a box: told so.
+    act(&mut app, Action::PlaceCaret(2));
+    press(&mut app, Command::ColorBox);
+    assert!(app.picker.is_none());
+    assert!(app.notice.as_deref().unwrap().starts_with("put the caret"));
+    // On Busy: the window's colors, and none.
+    let at = source.find("Busy").unwrap() + 1;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::ColorBox);
+    let picker = app.picker.as_ref().expect("the colors");
+    assert_eq!(picker.kind, Kind::Colors);
+    let labels: Vec<String> = picker.visible().map(|(_, i)| i.label.clone()).collect();
+    for label in ["Busy: Accent", "Busy: Red", "Busy: no color of its own"] {
+        assert!(labels.iter().any(|l| l == label), "{labels:?}");
+    }
+    let red = app.palette.red.to_string();
+    let at_red = labels.iter().position(|l| l == "Busy: Red").unwrap();
+    let _ = app.update(Message::PickerClick(at_red));
+    assert!(app.picker.is_none());
+    assert_eq!(
+        app.doc().text(),
+        format!("@startuml\n[*] --> Idle\nstate Busy {red}\nIdle --> Busy : go\n@enduml\n")
+    );
+    assert!(app.notice.as_deref().unwrap().contains("Ctrl+Z undoes it"));
+    // One step back is the source as it was; done again, no color takes
+    // the declaration's color away.
+    act(&mut app, Action::Undo);
+    assert_eq!(app.doc().text(), source);
+    act(&mut app, Action::Redo);
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::ColorBox);
+    let none = app
+        .picker
+        .as_ref()
+        .unwrap()
+        .visible()
+        .position(|(_, i)| i.label.ends_with("no color of its own"))
+        .unwrap();
+    let _ = app.update(Message::PickerClick(none));
+    assert_eq!(
+        app.doc().text(),
+        "@startuml\n[*] --> Idle\nstate Busy\nIdle --> Busy : go\n@enduml\n"
+    );
+}
+
+#[test]
 fn a_container_folds_from_the_caret_and_unfolds_with_a_click() {
     let work = temp_dir("fold");
     let file = work.join("coffee.puml");

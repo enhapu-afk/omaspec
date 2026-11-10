@@ -1417,6 +1417,7 @@ impl App {
             (Kind::Commands, n) => format!("{n} {}", plural(n, "command")),
             (Kind::Versions, n) => format!("{n} {}", plural(n, "version")),
             (Kind::Traces, n) => format!("{n} {}", plural(n, "trace")),
+            (Kind::Colors, _) => "Enter colors the box; Ctrl+Z undoes it".to_owned(),
             (Kind::NewProject, _) => "Enter, then name its folder".to_owned(),
             (Kind::Search, n) if n >= super::search::MAX_HITS => format!("the first {n} hits"),
             (Kind::Search, n) => format!("{n} {}", plural(n, "hit")),

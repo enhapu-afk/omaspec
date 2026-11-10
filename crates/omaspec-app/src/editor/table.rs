@@ -283,6 +283,14 @@ pub const TABLE: &[Entry] = &[
     .menu(Diagram)
     .short("Fold this container, or unfold it")
     .at(Spot::Both),
+    cmd(
+        "Color the box at the caret, kept in the source",
+        "",
+        Command::ColorBox,
+    )
+    .menu(Diagram)
+    .short("Color this box…")
+    .at(Spot::Both),
     cmd("Unfold every container", "", Command::UnfoldAll)
         .menu(Diagram)
         .tool(6)

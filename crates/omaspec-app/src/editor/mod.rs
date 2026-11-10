@@ -441,6 +441,8 @@ pub enum Command {
     FocusBox,
     /// Folds the container at the caret to its box, or unfolds it.
     FoldBox,
+    /// A color for the box at the caret, kept in the source.
+    ColorBox,
     /// Unfolds every container of the diagram.
     UnfoldAll,
     /// Colors the diagram with the active Omarchy theme, without writing
@@ -2030,6 +2032,7 @@ impl App {
             Command::ResetLines => self.reset_lines(),
             Command::FocusBox => self.focus_box(),
             Command::FoldBox => self.fold_box(),
+            Command::ColorBox => self.color_box(),
             Command::UnfoldAll => self.unfold_all(),
             Command::StartFrom(language) => {
                 if !self.doc().text().trim().is_empty() {

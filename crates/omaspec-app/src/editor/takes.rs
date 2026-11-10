@@ -38,6 +38,7 @@ impl Command {
             | Command::StopPlay
             | Command::FocusBox
             | Command::FoldBox
+            | Command::ColorBox
             | Command::UnfoldAll => Err("a map is not played or folded; open a diagram of it"),
             _ => Ok(()),
         }
@@ -53,6 +54,9 @@ impl Command {
             ),
             Command::ResetLine | Command::ResetLines => {
                 Err("lines by hand are drawn in a diagram file, not in a Markdown document")
+            }
+            Command::ColorBox => {
+                Err("a box is colored in a diagram file, not in a Markdown document")
             }
             Command::LanguageDetected | Command::LanguagePlantUml | Command::LanguageMermaid => {
                 Err("in a Markdown document, each fence names its diagram's language")
