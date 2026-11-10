@@ -25,6 +25,8 @@ pub struct Skin {
     pub monochrome: bool,
     /// `skinparam handwritten true`: shapes drawn by hand (docs/adr/0023).
     pub sketch: bool,
+    /// `skinparam shadowing true`: the boxes cast a shadow.
+    pub shadow: bool,
     pub background: Paint,
     pub fill: Paint,
     pub border: Color,
@@ -59,6 +61,7 @@ impl Skin {
             font_name: "sans-serif".into(),
             monochrome: false,
             sketch: false,
+            shadow: false,
             background: None,
             fill: Some(Color::hex(0xF1F1F1)),
             border: dark,
@@ -98,11 +101,7 @@ impl Skin {
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
                 "handwritten" => skin.sketch = p.flag()?,
-                "shadowing" | "nodeshadowing" => {
-                    if p.flag()? {
-                        return Err(p.unsupported());
-                    }
-                }
+                "shadowing" | "nodeshadowing" => skin.shadow = p.flag()?,
                 "style" => {
                     if !value.eq_ignore_ascii_case("strictuml") {
                         return Err(p.unsupported());

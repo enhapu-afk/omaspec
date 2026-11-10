@@ -2090,6 +2090,13 @@ what it costs.
       button, click and command as a container (0024). The trees' maps
       name their boxes now (`Place::fixed`: none is held beside another),
       two with the same words as `Tests` and `Tests (2)`.
+- [x] Shadows (2026-11-10): `skinparam shadowing true` and a style's
+      `root { Shadowing 3 }` declined the whole diagram. Now every box
+      casts one, in all PlantUML types: a filled shape with a border, 3
+      down and to the right, under the shapes of its layer
+      (`Canvas::shadows`), without an SVG filter; a mark as small as an
+      arrowhead casts none, the sketch look neither. `Shadowing` on one
+      element alone still declines.
 - [x] No Mermaid setting passed over in silence (2026-11-10): `themeCSS`
       and every other setting no drawer carries out is a finding on its
       line (`omaspec_core::settings::unheeded`), in the editor, `lint`

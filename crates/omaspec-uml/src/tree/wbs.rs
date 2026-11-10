@@ -29,6 +29,7 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&d.frame.skinparams, TreeKind::Wbs)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
+    canvas.shadows(skin.shadow);
     let family = canvas.family();
     let annotations = Annotations::new(
         &d.frame,

@@ -65,6 +65,7 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
+    canvas.shadows(skin.shadow);
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,

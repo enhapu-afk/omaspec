@@ -82,7 +82,16 @@ pub struct Canvas {
     scale: Option<Scale>,
     /// The sketch look ([`crate::sketch`]), when the diagram asks for it.
     sketch: Option<Sketch>,
+    /// The boxes cast a shadow (`skinparam shadowing true`).
+    shadows: bool,
+    /// The shadows of each layer's shapes, drawn under that layer.
+    shades: [String; LAYERS],
 }
+
+/// How far a shadow lies to the right of its shape and below it.
+const SHADOW: f32 = 3.0;
+/// A shape smaller than this casts none: an arrowhead, a mark on a line.
+const SHADOW_FROM: f32 = 14.0;
 
 /// What the sketch look seeds the next shape with.
 #[derive(Debug, Clone, Copy, Default)]
@@ -118,6 +127,25 @@ impl Canvas {
             bottom: f32::NEG_INFINITY,
             scale: None,
             sketch: None,
+            shadows: false,
+            shades: Default::default(),
+        }
+    }
+
+    /// Lets every box drawn from here on cast a shadow when `on`, as
+    /// PlantUML's `skinparam shadowing true` does: a filled shape with a
+    /// border, down and to the right, under the shapes of its layer. The
+    /// sketch look has none.
+    pub fn shadows(&mut self, on: bool) {
+        self.shadows = on;
+    }
+
+    /// The shadow of `shape`, an element without its paint and its end,
+    /// `w` wide and `h` high.
+    fn shade(&mut self, layer: Layer, shape: &str, (w, h): (f32, f32), fill: Paint, stroke: bool) {
+        let boxed = fill.is_some() && stroke && w >= SHADOW_FROM && h >= SHADOW_FROM;
+        if self.shadows && boxed && !matches!(layer, Layer::Background | Layer::Lines) {
+            let _ = write!(self.shades[layer as usize], r##"{shape} fill="#000000"/>"##);
         }
     }
 
@@ -324,14 +352,15 @@ impl Canvas {
         } else {
             String::new()
         };
-        let _ = write!(
-            self.layers[layer as usize],
-            r#"<rect x="{}" y="{}" width="{}" height="{}"{round}{paint}/>"#,
+        let shape = format!(
+            r#"<rect x="{}" y="{}" width="{}" height="{}"{round}"#,
             n(x),
             n(y),
             n(w.max(0.0)),
             n(h.max(0.0))
         );
+        self.shade(layer, &shape, (w, h), fill, stroke.is_some());
+        let _ = write!(self.layers[layer as usize], "{shape}{paint}/>");
     }
 
     /// What is drawn into `layer` until [`Self::end_group`] lies in a group
@@ -415,15 +444,18 @@ impl Canvas {
             }
         }
         let paint = self.paint(fill, stroke);
+        let span = |of: fn(&(f32, f32)) -> f32| {
+            let all = points.iter().map(of);
+            all.clone().fold(f32::NEG_INFINITY, f32::max) - all.fold(f32::INFINITY, f32::min)
+        };
+        let size = (span(|p| p.0), span(|p| p.1));
         let points: Vec<String> = points
             .iter()
             .map(|&(x, y)| format!("{},{}", n(x), n(y)))
             .collect();
-        let _ = write!(
-            self.layers[layer as usize],
-            r#"<polygon points="{}"{paint}/>"#,
-            points.join(" ")
-        );
+        let shape = format!(r#"<polygon points="{}""#, points.join(" "));
+        self.shade(layer, &shape, size, fill, stroke.is_some());
+        let _ = write!(self.layers[layer as usize], "{shape}{paint}/>");
     }
 
     pub fn polyline(&mut self, layer: Layer, points: &[(f32, f32)], stroke: Stroke) {
@@ -496,7 +528,10 @@ impl Canvas {
             }
         }
         let paint = self.paint(fill, stroke);
-        let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
+        let shape = format!(r#"<path d="{d}""#);
+        let size = (bounds.2 - bounds.0, bounds.3 - bounds.1);
+        self.shade(layer, &shape, size, fill, stroke.is_some());
+        let _ = write!(self.layers[layer as usize], "{shape}{paint}/>");
     }
 
     pub fn ellipse(
@@ -523,14 +558,15 @@ impl Canvas {
             return;
         }
         let paint = self.paint(fill, stroke);
-        let _ = write!(
-            self.layers[layer as usize],
-            r#"<ellipse cx="{}" cy="{}" rx="{}" ry="{}"{paint}/>"#,
+        let shape = format!(
+            r#"<ellipse cx="{}" cy="{}" rx="{}" ry="{}""#,
             n(cx),
             n(cy),
             n(rx),
             n(ry)
         );
+        self.shade(layer, &shape, (2.0 * rx, 2.0 * ry), fill, stroke.is_some());
+        let _ = write!(self.layers[layer as usize], "{shape}{paint}/>");
     }
 
     /// `block` with its top at `y`; `x` is its left edge, middle or right
@@ -707,6 +743,15 @@ impl Canvas {
         }
         let _ = write!(out, r#"<g transform="translate({},{})">"#, n(dx), n(dy));
         for (index, layer) in self.layers.iter().enumerate() {
+            // One group, so shadows that overlap are no darker there.
+            let shade = &self.shades[index];
+            if !shade.is_empty() {
+                let _ = write!(
+                    out,
+                    r#"<g transform="translate({0},{0})" opacity="0.22">{shade}</g>"#,
+                    n(SHADOW)
+                );
+            }
             if !layer.is_empty() {
                 if index == Layer::Lines as usize {
                     let _ = write!(out, r#"<g id="{LINES}">"#);
@@ -852,6 +897,34 @@ mod tests {
         assert_eq!(n(1.256), "1.26");
         assert_eq!(n(-0.001), "0");
         assert_eq!(n(f32::NAN), "0");
+    }
+
+    #[test]
+    fn a_box_casts_a_shadow_under_its_layer_and_a_mark_none() {
+        let ink = Color(0, 0, 0);
+        let white = Some(Color(255, 255, 255));
+        let draw = |shadows: bool| {
+            let mut canvas = Canvas::new("sans-serif", false);
+            canvas.shadows(shadows);
+            let stroke = Some(Stroke::new(ink, 1.0));
+            canvas.rect(Layer::Front, (0.0, 0.0, 80.0, 30.0), 4.0, white, stroke);
+            canvas.ellipse(Layer::Front, (120.0, 15.0), (20.0, 15.0), white, stroke);
+            // An arrowhead, a line and a box without a border cast none.
+            canvas.polygon(
+                Layer::Front,
+                &[(0.0, 50.0), (8.0, 54.0), (0.0, 58.0)],
+                white,
+                stroke,
+            );
+            canvas.rect(Layer::Front, (0.0, 70.0, 80.0, 30.0), 0.0, white, None);
+            canvas.finish(10.0, None)
+        };
+        let plain = draw(false);
+        assert!(!plain.contains("opacity"), "{plain}");
+        let cast = draw(true);
+        let shade = cast.find(r#"opacity="0.22""#).expect("a shadow");
+        assert!(shade < cast.find(r##"fill="#FFFFFF""##).unwrap(), "{cast}");
+        assert_eq!(cast.matches(r##"fill="#000000"/>"##).count(), 2, "{cast}");
     }
 
     #[test]

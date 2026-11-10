@@ -19,6 +19,7 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
+    canvas.shadows(skin.shadow);
     let family = canvas.family();
     let notes = Annotations::new(
         &diagram.frame,

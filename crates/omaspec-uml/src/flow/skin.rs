@@ -15,6 +15,8 @@ pub struct Skin {
     pub monochrome: bool,
     /// `skinparam handwritten true`: shapes drawn by hand (docs/adr/0023).
     pub sketch: bool,
+    /// `skinparam shadowing true`: the boxes cast a shadow.
+    pub shadow: bool,
     /// `style strictuml`: an open arrow head.
     pub strict: bool,
     pub background: Paint,
@@ -39,6 +41,7 @@ impl Default for Skin {
             font_name: "sans-serif".into(),
             monochrome: false,
             sketch: false,
+            shadow: false,
             strict: false,
             background: None,
             round: 0.0,
@@ -137,11 +140,7 @@ impl Skin {
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
                 "handwritten" => skin.sketch = p.flag()?,
-                "shadowing" => {
-                    if p.flag()? {
-                        return Err(p.unsupported());
-                    }
-                }
+                "shadowing" => skin.shadow = p.flag()?,
                 "style" => {
                     if value.eq_ignore_ascii_case("strictuml") {
                         skin.strict = true;
@@ -297,10 +296,13 @@ mod tests {
     }
 
     #[test]
-    fn an_unknown_key_and_a_shadow_decline() {
+    fn an_unknown_key_declines_and_a_shadow_is_cast() {
         let err = Skin::from_params(&[param("FooColor", "red")]).unwrap_err();
         assert!(err.reason.contains("not supported"), "{}", err.reason);
-        let err = Skin::from_params(&[param("shadowing", "true")]).unwrap_err();
-        assert!(err.reason.contains("shadowing"), "{}", err.reason);
+        assert!(
+            Skin::from_params(&[param("shadowing", "true")])
+                .unwrap()
+                .shadow
+        );
     }
 }

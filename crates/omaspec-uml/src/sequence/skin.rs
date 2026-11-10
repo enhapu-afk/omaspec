@@ -32,6 +32,8 @@ pub struct Skin {
     pub monochrome: bool,
     /// `skinparam handwritten true`: shapes drawn by hand (docs/adr/0023).
     pub sketch: bool,
+    /// `skinparam shadowing true`: the boxes cast a shadow.
+    pub shadow: bool,
     /// `skinparam style strictuml`: plain triangles for arrow heads.
     pub strict: bool,
     /// Corner radius of boxes.
@@ -88,6 +90,7 @@ impl Default for Skin {
             font_name: "sans-serif".into(),
             monochrome: false,
             sketch: false,
+            shadow: false,
             strict: false,
             round: 2.5,
             background: None,
@@ -215,11 +218,7 @@ impl Skin {
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
                 "handwritten" => skin.sketch = p.flag()?,
-                "shadowing" => {
-                    if p.flag()? {
-                        return Err(p.unsupported());
-                    }
-                }
+                "shadowing" => skin.shadow = p.flag()?,
                 "responsemessagebelowarrow" => {
                     if p.flag()? {
                         return Err(p.unsupported());
@@ -631,7 +630,6 @@ mod tests {
     #[test]
     fn declines_what_it_does_not_draw() {
         for (key, value) in [
-            ("shadowing", "true"),
             ("monochrome", "reverse"),
             ("maxMessageSize", "100"),
             ("ParticipantFontName", "Courier"),

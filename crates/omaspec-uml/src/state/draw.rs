@@ -63,6 +63,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
+    canvas.shadows(skin.shadow);
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,

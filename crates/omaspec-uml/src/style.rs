@@ -436,8 +436,15 @@ pub fn skinparams(
         let root = d.names.iter().all(|n| n == "root");
         match d.prop {
             Prop::Shadowing if no_shadow(value) => continue,
+            Prop::Shadowing if root => {
+                out.push(param("shadowing", "true"));
+                continue;
+            }
             Prop::Shadowing => {
-                return Err(fail(format!("`{}`: shadows are not drawn yet", d.written)));
+                return Err(fail(format!(
+                    "`{}`: a shadow is drawn for `root` only so far",
+                    d.written
+                )));
             }
             Prop::FontName if root => {
                 out.push(param("defaultFontName", value));
@@ -1240,7 +1247,7 @@ mod tests {
             ),
             ("participant { Padding 4 }", "`participant { Padding 4 }`"),
             ("sequenceDiagram { FontName Courier }", "for `root` only"),
-            ("root { Shadowing 3 }", "shadows"),
+            ("participant { Shadowing 3 }", "for `root` only"),
             ("participant { .x { FontColor red } }", "stereotypes"),
         ] {
             let err = params(sheet).unwrap_err();
