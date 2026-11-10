@@ -88,6 +88,8 @@ pub enum Kind {
     Traces,
     /// The colors a box may take.
     Colors,
+    /// Lines of files to go to: findings, uses of a name.
+    Places,
     /// How a new project starts.
     NewProject,
     /// The owner lists the items for each query; no fuzzy filter.
@@ -187,8 +189,10 @@ impl Picker {
         self.selected = 0;
         // Commands keep their order (the recent ones first) until a letter
         // is typed, and so do the ways to start a project and the colors.
-        let untyped = matches!(self.kind, Kind::Commands | Kind::NewProject | Kind::Colors)
-            && self.query.trim().is_empty();
+        let untyped = matches!(
+            self.kind,
+            Kind::Commands | Kind::NewProject | Kind::Colors | Kind::Places
+        ) && self.query.trim().is_empty();
         if self.kind == Kind::Search || untyped {
             self.matches = (0..self.items.len()).collect();
             return;

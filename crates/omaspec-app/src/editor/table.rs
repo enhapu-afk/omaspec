@@ -159,6 +159,19 @@ pub const TABLE: &[Entry] = &[
         .menu(Diagram)
         .gap()
         .at(Spot::Diagram),
+    cmd("Undo", "Ctrl+Z", Command::Undo).menu(Edit),
+    cmd("Redo", "Ctrl+Shift+Z", Command::Redo).menu(Edit),
+    cmd("Cut", "Ctrl+X", Command::Cut)
+        .menu(Edit)
+        .gap()
+        .at(Spot::Editor),
+    cmd("Copy", "Ctrl+C", Command::Copy)
+        .menu(Edit)
+        .at(Spot::Editor),
+    cmd("Paste", "Ctrl+V", Command::Paste)
+        .menu(Edit)
+        .at(Spot::Editor),
+    cmd("Select all", "Ctrl+A", Command::SelectAll).menu(Edit),
     cmd(
         "Find in the project and all tabs",
         "Ctrl+Shift+F",
@@ -406,6 +419,22 @@ pub const TABLE: &[Entry] = &[
     .child("Export")
     .short("ZIP…"),
     cmd(
+        "Check the project: lint every diagram and list the findings",
+        "",
+        Command::CheckProject,
+    )
+    .menu(Project)
+    .gap()
+    .short("Check the project"),
+    cmd(
+        "Where the diagram, state or event at the caret is used",
+        "",
+        Command::ShowUses,
+    )
+    .menu(Project)
+    .short("Where it is used")
+    .at(Spot::Editor),
+    cmd(
         "Export the project (SVGs linked to one another, and a ZIP)",
         "",
         Command::ExportProject,
@@ -633,9 +662,13 @@ mod tests {
 
     #[test]
     fn every_menu_has_entries_and_none_too_many() {
+        // The rows a menu shows: a child menu is one of them.
         for menu in Menu::ALL {
-            let n = entries(menu).count();
-            assert!((2..=20).contains(&n), "{menu:?} has {n} entries");
+            let mut children = std::collections::HashSet::new();
+            let n = entries(menu)
+                .filter(|e| e.child.is_none_or(|child| children.insert(child)))
+                .count();
+            assert!((2..=20).contains(&n), "{menu:?} has {n} rows");
         }
         assert!(context(Spot::Diagram).count() >= 8);
         assert!(context(Spot::Editor).count() >= 5);

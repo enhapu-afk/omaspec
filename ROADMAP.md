@@ -2110,6 +2110,15 @@ what it costs.
       `structure::skin::Rule`), over its kind's look. Open:
       `RoundCorner` on one kind of box and a depth decline on their
       line; timing and Gantt diagrams still decline a `<style>`.
+- [x] The menus a mouse expects (2026-11-10): Edit has Undo, Redo, Cut,
+      Copy, Paste and Select all, with the editor's own keys beside them
+      (the field binds them, the window none; a paste from the menu puts
+      a copied line in as text, not as a line of its own). Project has
+      *Check the project* (lint of every saved diagram, the findings a
+      list of lines to go to, as `omaspec check` without the pictures)
+      and *Where it is used* (`omaspec refs` for the name at the caret).
+      Open: no entry for a diagram's history (`omaspec log`) or the
+      files opened last; find in one file is the search of all tabs.
 - [x] Shadows (2026-11-10): `skinparam shadowing true` and a style's
       `root { Shadowing 3 }` declined the whole diagram. Now every box
       casts one, in all PlantUML types: a filled shape with a border, 3

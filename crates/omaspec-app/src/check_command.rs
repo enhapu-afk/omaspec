@@ -32,6 +32,22 @@ struct Picture {
     message: Option<String>,
 }
 
+/// What lint finds in the diagrams of the folder `dir`, as saved: the
+/// file within it, the zero-based line, and the finding. The same as the
+/// first half of [`check`], for the editor's *Check the project*.
+pub fn findings(dir: &Path) -> Result<Vec<(String, omaspec_core::lint::Finding)>> {
+    let mut projects = Projects::default();
+    let mut out = Vec::new();
+    for relative in &crate::editor::folder::scan(dir) {
+        let input = read_input(Some(&dir.join(relative)))?;
+        let file = crate::specs::file_name(relative);
+        for finding in projects.findings(&input, None, Some(dir)) {
+            out.push((file.clone(), finding));
+        }
+    }
+    Ok(out)
+}
+
 pub fn check(dir: &Path, json: bool, strict: bool, github: bool) -> Result<ExitCode> {
     if !dir.exists() {
         anyhow::bail!("no folder `{}`", dir.display());

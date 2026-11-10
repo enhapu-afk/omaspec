@@ -22,7 +22,8 @@ impl Command {
             | Command::LanguageDetected
             | Command::LanguagePlantUml
             | Command::LanguageMermaid
-            | Command::RenameEverywhere => {
+            | Command::RenameEverywhere
+            | Command::ShowUses => {
                 Err("the project's file is no diagram; this works in a diagram file")
             }
             Command::Compare
@@ -87,7 +88,14 @@ impl Command {
             | Command::ExpandAll
             | Command::CloseOthers
             | Command::CloseTab
-            | Command::RenameEverywhere => Ok(()),
+            | Command::RenameEverywhere
+            | Command::ShowUses
+            | Command::Undo
+            | Command::Redo
+            | Command::Cut
+            | Command::Copy
+            | Command::Paste
+            | Command::SelectAll => Ok(()),
             // The diagram its pane shows, as of a diagram file.
             Command::CopyPng
             | Command::CopySvg
@@ -126,6 +134,7 @@ impl Command {
             | Command::SwitchField
             | Command::NextLook
             | Command::ExportProject
+            | Command::CheckProject
             | Command::NewTab
             | Command::NextTab
             | Command::PreviousTab

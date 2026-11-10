@@ -44,6 +44,7 @@ mod menu;
 pub mod moving;
 mod panes;
 mod picker;
+mod places;
 mod play;
 mod prompt;
 mod rename;
@@ -214,6 +215,8 @@ pub enum Message {
     /// A click on a look of the export prompt.
     PromptLook(ExportLook),
     PickerInput(String),
+    /// The clipboard's text, for *Paste* of the Edit menu.
+    Pasted(Option<String>),
     PickerSubmit,
     ReplaceInput(String),
     /// Replace every match in every tab.
@@ -336,6 +339,16 @@ pub enum Command {
     /// Asks where, then writes the project as SVGs linked to one another
     /// and a ZIP of them.
     ExportProject,
+    /// Lints every diagram of the project and lists the findings.
+    CheckProject,
+    /// Lists where the name at the caret is used in the project.
+    ShowUses,
+    Undo,
+    Redo,
+    Cut,
+    Copy,
+    Paste,
+    SelectAll,
     CloseOthers,
     RenderNow,
     NewTab,
@@ -1243,6 +1256,13 @@ impl App {
                 Some(Asking::Rename) => self.rename_submitted(),
                 None => Task::none(),
             },
+            Message::Pasted(text) => match text {
+                Some(text) if !text.is_empty() => self.edit(scrive_iced::Action::Paste {
+                    text,
+                    entire_line: false,
+                }),
+                _ => self.focus_editor(),
+            },
             Message::PickerInput(query) => {
                 let search = self
                     .picker
@@ -1783,6 +1803,14 @@ impl App {
             Command::FindAll => self.open_search(false),
             Command::ReplaceAll => self.open_search(true),
             Command::RenameEverywhere => self.start_rename(),
+            Command::CheckProject => self.check_project(),
+            Command::ShowUses => self.show_uses(),
+            Command::Undo => self.edit(scrive_iced::Action::Undo),
+            Command::Redo => self.edit(scrive_iced::Action::Redo),
+            Command::SelectAll => self.edit(scrive_iced::Action::SelectAll),
+            Command::Cut => self.copy(true),
+            Command::Copy => self.copy(false),
+            Command::Paste => self.paste(),
             Command::FindInDiagram => self.find_in_diagram(),
             Command::SwitchField => self.switch_field(),
             Command::NextLook => {

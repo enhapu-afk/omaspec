@@ -35,6 +35,8 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+Shift+H | replace in all tabs (each tab one undo step) |
 | Ctrl+F in the diagram | find a state, a message or any label; it lights up and comes into sight |
 | F2 | rename the diagram, state or event at the caret at every use in the project |
+| Project › Where it is used | every use of the name at the caret, each a line to go to |
+| Project › Check the project | lint every saved diagram of the project and list the findings |
 | Ctrl+S, Ctrl+Shift+S | save (atomic, keeps the line endings), save as |
 | Ctrl+Enter | render now |
 | F8 | jump to the next lint finding |

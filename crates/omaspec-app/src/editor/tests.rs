@@ -716,7 +716,18 @@ fn the_palette_runs_commands() {
     // Every command in the table has its keys right.
     for e in table::TABLE {
         let (label, keys, command) = (e.label, e.keys, e.command);
-        if keys.is_empty() {
+        // The keys of the text are the editor field's own: the menu shows
+        // them, the window binds none of them.
+        let of_the_field = matches!(
+            command,
+            Command::Undo
+                | Command::Redo
+                | Command::Cut
+                | Command::Copy
+                | Command::Paste
+                | Command::SelectAll
+        );
+        if keys.is_empty() || of_the_field {
             continue;
         }
         let mut mods = Modifiers::empty();
@@ -2389,6 +2400,83 @@ fn a_branch_of_a_tree_folds_from_the_caret() {
     assert_eq!(
         app.notice.as_deref(),
         Some("Tests (2) holds nothing to fold")
+    );
+}
+
+#[test]
+fn the_edit_menu_has_what_the_editor_has_on_its_keys() {
+    let source = "@startuml\n[*] --> Idle\n@enduml\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, source);
+    // Select all and cut empty the tab; undo brings the text back, redo
+    // takes it again.
+    press(&mut app, Command::SelectAll);
+    press(&mut app, Command::Cut);
+    assert_eq!(app.doc().text(), "");
+    press(&mut app, Command::Undo);
+    assert_eq!(app.doc().text(), source);
+    press(&mut app, Command::Redo);
+    assert_eq!(app.doc().text(), "");
+    // What the clipboard holds goes in at the caret.
+    let _ = app.update(Message::Pasted(Some("A -> B\n".into())));
+    assert_eq!(app.doc().text(), "A -> B\n");
+    let _ = app.update(Message::Pasted(None));
+    assert_eq!(app.doc().text(), "A -> B\n");
+    // Each has its place in the Edit menu, the three of the clipboard in
+    // the editor's own menu too.
+    for command in [
+        Command::Undo,
+        Command::Redo,
+        Command::Cut,
+        Command::Copy,
+        Command::Paste,
+        Command::SelectAll,
+    ] {
+        let entry = table::TABLE
+            .iter()
+            .find(|e| e.command == command)
+            .unwrap_or_else(|| panic!("{command:?}"));
+        assert_eq!(entry.menu, Some(table::Menu::Edit), "{command:?}");
+    }
+}
+
+#[test]
+fn the_project_is_checked_and_a_name_s_uses_are_listed() {
+    let work = temp_dir("places");
+    std::fs::write(work.join("omaspec-project.toml"), "").unwrap();
+    let machine = work.join("door.puml");
+    std::fs::write(
+        &machine,
+        "@startuml\n[*] --> Closed\nClosed --> Open : push\n@enduml\n",
+    )
+    .unwrap();
+    let broken = work.join("broken.puml");
+    std::fs::write(&broken, "@startuml\nalt ok\nA -> B\n@enduml\n").unwrap();
+    let mut app = open(std::slice::from_ref(&machine));
+    // The findings of every saved diagram, each a line to go to.
+    press(&mut app, Command::CheckProject);
+    let picker = app.picker.as_ref().expect("the findings");
+    assert_eq!(picker.kind, Kind::Places);
+    let labels: Vec<String> = picker.visible().map(|(_, i)| i.label.clone()).collect();
+    assert!(
+        labels.iter().any(|l| l.starts_with("broken.puml:2: ")),
+        "{labels:?}"
+    );
+    let _ = app.update(Message::PickerClick(0));
+    assert_eq!(app.doc().path.as_deref(), Some(broken.as_path()));
+    // Where a state is used: its own machine names it twice.
+    let index = app.open_doc(&machine).unwrap();
+    app.active = index;
+    let text = app.doc().text();
+    let at = text.find("Closed").unwrap() + 2;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::ShowUses);
+    let picker = app.picker.as_ref().expect("the uses");
+    let labels: Vec<String> = picker.visible().map(|(_, i)| i.label.clone()).collect();
+    assert_eq!(labels.len(), 2, "{labels:?}");
+    assert!(
+        labels.iter().all(|l| l.starts_with("door.puml:")),
+        "{labels:?}"
     );
 }
 

@@ -101,7 +101,7 @@ impl App {
     }
 
     /// The project's files, an open document's as its tab has it.
-    fn project_files(&self, root: &std::path::Path) -> Vec<Owned> {
+    pub(super) fn project_files(&self, root: &std::path::Path) -> Vec<Owned> {
         let mut files = names::project_files(root);
         for file in &mut files {
             let path = root.join(&file.path);
