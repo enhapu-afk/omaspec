@@ -184,7 +184,9 @@ spec draws in black and white, strict UML, in a serif. Presentation draws
 larger, with round corners, in one blue on white. Vivid has a palette by kind: blue boxes,
 violet interfaces, pink choices, green databases and queues, amber actors and
 participants, yellow notes, slate lines. The Omarchy pack writes the active theme's
-colors in.
+colors in. In the menu bar (Edit › Skin) the pane shows the diagram in the pack the
+pointer or the arrow keys are on, before it is chosen; the source stays as it is until
+Enter or a click.
 
 In a Mermaid flowchart the packs color the shapes by kind too: decisions, terminals
 (stadiums and circles) and cylinders apart from the boxes, which Mermaid itself does not.

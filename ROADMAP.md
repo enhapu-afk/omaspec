@@ -1983,10 +1983,13 @@ what it costs.
       way again* takes it back. From the caret and the menus, not by
       dragging the label: the light on the caret's word already shows
       which label is meant.
-- [ ] The skins shown before one is chosen: the diagram at hand in each
-      pack, small, in the menu. Weighed: a step of its own in the menus. The
-      pictures are cheap (a few milliseconds each), the menu overlay of
-      0025 draws text only, so it would learn to hold a row of pictures.
+- [x] The skins shown before one is chosen (2026-11-10): not as small
+      pictures in the menu, which draws text (0025), but in the pane
+      itself: pointing at a pack in Edit › Skin, with the mouse or the
+      arrow keys, draws the diagram at hand in that pack, the source as it
+      is; pointing elsewhere or closing the menu brings its own picture
+      back (`App::preview_pointed`). The picture is the real one, at full
+      size, instead of a thumbnail.
 - [x] PlantUML's themes, weighed and declined for now: `!theme` other than
       `plain` stays declined (`the preprocessor's !theme is not supported
       yet`). Omaspec does not ship PlantUML's theme files and reads nothing

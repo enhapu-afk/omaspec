@@ -815,6 +815,9 @@ struct App {
     detached_size: Size,
     /// The menu open in one of the windows (docs/adr/0025).
     menu: Option<menu::Open>,
+    /// The tab whose pane shows the skin the menu points at, before it is
+    /// chosen; its own picture comes back when the menu leaves it.
+    previewing: Option<u64>,
     /// The menu bar is shown; the session keeps it.
     bar_shown: bool,
     /// The toolbar over the diagram is shown with the bar; the session
@@ -927,6 +930,7 @@ impl App {
             main_size: window::Settings::default().size,
             detached_size: window::Settings::default().size,
             menu: None,
+            previewing: None,
             bar_shown: session.menu_bar,
             toolbar: session.toolbar,
             alt_armed: false,
@@ -1184,10 +1188,12 @@ impl App {
             }
             Message::MenuPoint(i) => {
                 self.menu_point(i);
+                self.preview_pointed();
                 Task::none()
             }
             Message::MenuPointChild(i) => {
                 self.menu_point_child(i);
+                self.preview_pointed();
                 Task::none()
             }
             Message::MenuRun(command) => {
@@ -2102,10 +2108,12 @@ impl App {
             }
             Command::Up | Command::Down if self.menu.is_some() => {
                 self.menu_move(if command == Command::Up { -1 } else { 1 });
+                self.preview_pointed();
                 Task::none()
             }
             Command::Left | Command::Right if self.menu.is_some() => {
                 self.menu_side(command == Command::Right);
+                self.preview_pointed();
                 Task::none()
             }
             Command::Up | Command::Down if self.gallery.is_some() => {
@@ -2341,6 +2349,46 @@ impl App {
             });
         }
         Task::none()
+    }
+
+    /// The skin the menu points at, shown in the pane before it is chosen:
+    /// the diagram at hand drawn with that pack, as the choice would have
+    /// it. Pointing elsewhere brings the diagram's own picture back.
+    pub(super) fn preview_pointed(&mut self) {
+        let pointed = self.menu.as_ref().and_then(menu::Open::chosen);
+        let Some(Command::Skin(pack)) = pointed else {
+            self.end_preview();
+            return;
+        };
+        if self.doc().is_project() || self.doc().is_document() {
+            return;
+        }
+        let hex = self.hex_colors();
+        let colors = hex.colors();
+        let doc = self.doc();
+        let (key, language) = (doc.key, doc.language);
+        let mut text = doc.text();
+        let Some((range, new)) = skin::edit(&text, language, pack, &colors) else {
+            // The pack is in already: the picture on screen is the preview.
+            self.end_preview();
+            return;
+        };
+        text.replace_range(range, &new);
+        self.previewing = Some(key);
+        self.dispatch(key, &text, language);
+    }
+
+    /// The pane shows its diagram's own picture again, if a skin was
+    /// previewed in it.
+    pub(super) fn end_preview(&mut self) {
+        let Some(key) = self.previewing.take() else {
+            return;
+        };
+        let Some(doc) = self.find(key) else {
+            return;
+        };
+        let (text, language) = (doc.text(), doc.language);
+        self.dispatch(key, &text, language);
     }
 
     /// Puts `pack` into the source (one undo step), replacing a pack

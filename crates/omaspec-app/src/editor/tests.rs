@@ -5282,6 +5282,42 @@ fn snapshot_menu() {
     shoot(&mut app, &dir, "menu");
 }
 
+/// The skin the menu points at shows in the pane before it is chosen,
+/// and the diagram's own picture comes back when the menu leaves it.
+#[test]
+fn the_skin_the_menu_points_at_is_shown_before_it_is_chosen() {
+    let mut app = open(&[]);
+    app.worker = Some(worker::Worker::detached());
+    let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\n@enduml\n";
+    select_all_and_paste(&mut app, source);
+    let asked = app.doc().paper.requested();
+    let _ = app.update(Message::OpenMenu(table::Menu::Edit));
+    let skin = table::rows(table::Menu::Edit)
+        .iter()
+        .position(|r| matches!(r, table::Row::Child { name: "Skin", .. }))
+        .unwrap();
+    // On the heading nothing changes; on a pack the pane asks for the
+    // diagram in it, the source as it is.
+    let _ = app.update(Message::MenuPoint(skin));
+    assert_eq!(app.doc().paper.requested(), asked);
+    let _ = app.update(Message::MenuPointChild(0));
+    assert_eq!(app.doc().paper.requested(), asked + 1);
+    assert_eq!(app.previewing, Some(app.doc().key));
+    assert_eq!(app.doc().text(), source);
+    // Another pack: asked again; the heading again: the own picture back.
+    let _ = app.update(Message::MenuPointChild(1));
+    assert_eq!(app.doc().paper.requested(), asked + 2);
+    let _ = app.update(Message::MenuPoint(skin));
+    assert_eq!(app.doc().paper.requested(), asked + 3);
+    assert_eq!(app.previewing, None);
+    // The menu closed over a pack: the own picture, then the chosen pack.
+    let _ = app.update(Message::MenuPointChild(0));
+    press(&mut app, Command::Cancel);
+    assert!(app.menu.is_none() && app.previewing.is_none());
+    assert_eq!(app.doc().paper.requested(), asked + 5);
+    assert_eq!(app.doc().text(), source);
+}
+
 /// The toolbar shows with the menu bar, has a setting of its own, and
 /// its tools are the table's.
 #[test]

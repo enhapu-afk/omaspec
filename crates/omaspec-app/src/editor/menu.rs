@@ -91,7 +91,7 @@ impl Open {
 
     /// The command Enter runs: the pointed entry of the child menu open,
     /// else of the menu; `None` on a child's heading or nowhere.
-    fn chosen(&self) -> Option<Command> {
+    pub(super) fn chosen(&self) -> Option<Command> {
         if let Some(child) = self.child {
             return child
                 .pointed
@@ -184,6 +184,7 @@ impl App {
 
     pub(super) fn close_menu(&mut self) {
         self.menu = None;
+        self.end_preview();
     }
 
     /// The bar shows or hides; the session keeps it.
