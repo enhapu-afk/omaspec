@@ -4,6 +4,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Context;
+use iced::keyboard::{Key, Modifiers, key::Named};
 use iced::{Task, window};
 use omaspec_core::embed;
 use omaspec_render::export::Format;
@@ -11,9 +12,15 @@ use omaspec_render::export::Format;
 use super::compare::Target;
 use super::doc::Doc;
 use super::{
-    App, Asking, ExportLook, MAX_IMAGE, Message, PROMPT, Prompt, expand, export_path, free_name,
-    is_image, plural, suggested_export,
+    App, Asking, Command, ExportLook, MAX_IMAGE, Message, PROMPT, Prompt, expand, export_path,
+    free_name, is_image, plural, suggested_export,
 };
+
+/// The prompt's key beside what its field takes: Tab is the next look
+/// an export is drawn in.
+pub(super) fn prompt_key(key: &Key, mods: Modifiers) -> Option<Command> {
+    matches!(key.as_ref(), Key::Named(Named::Tab) if !mods.control()).then_some(Command::NextLook)
+}
 
 impl App {
     /// Back to the saved file; undo brings the changes back.

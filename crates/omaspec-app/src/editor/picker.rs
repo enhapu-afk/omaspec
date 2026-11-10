@@ -5,6 +5,7 @@
 use std::path::PathBuf;
 
 use iced::Task;
+use iced::keyboard::{Key, Modifiers, key::Named};
 
 use super::compare::Target;
 use super::doc::Doc;
@@ -256,6 +257,18 @@ impl Picker {
             .skip(first)
             .take(SHOWN)
             .map(|(row, &i)| (row, &self.items[i]))
+    }
+}
+
+/// The picker's keys: the arrows move in its list, Tab goes to its other
+/// field.
+pub(super) fn key(key: &Key, mods: Modifiers) -> Option<Command> {
+    let plain = !mods.control() && !mods.alt() && !mods.logo();
+    match key.as_ref() {
+        Key::Named(Named::ArrowUp) if plain => Some(Command::Up),
+        Key::Named(Named::ArrowDown) if plain => Some(Command::Down),
+        Key::Named(Named::Tab) if !mods.control() => Some(Command::SwitchField),
+        _ => None,
     }
 }
 

@@ -511,93 +511,55 @@ pub enum Mode {
     Menu,
 }
 
-/// The window's keys; Escape closes the prompt or the picker, the arrows
-/// move in the picker.
+/// The window's keys: those of what the keyboard is busy with first,
+/// each beside its mode ([`gallery::key`], [`play::key`],
+/// [`files::prompt_key`], [`picker::key`], [`menu::key`]), then the
+/// window's own, which reach every mode but an open menu.
 fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
-    if mode == Mode::Menu {
-        return Some(match key.as_ref() {
-            Key::Named(Named::ArrowUp) => Command::Up,
-            Key::Named(Named::ArrowDown) => Command::Down,
-            Key::Named(Named::ArrowLeft) => Command::Left,
-            Key::Named(Named::ArrowRight) => Command::Right,
-            Key::Named(Named::Enter) => Command::Choose,
-            Key::Named(Named::F10) => Command::Cancel,
-            Key::Named(
-                Named::Shift
-                | Named::Control
-                | Named::Alt
-                | Named::AltGraph
-                | Named::Super
-                | Named::CapsLock,
-            ) => return None,
-            _ => Command::Cancel,
-        });
-    }
+    let own = match mode {
+        // An open menu takes every key.
+        Mode::Menu => return menu::key(key),
+        Mode::Gallery => gallery::key(key, mods),
+        Mode::Playing => play::key(key, mods),
+        Mode::Prompt => files::prompt_key(key, mods),
+        Mode::Picker => picker::key(key, mods),
+        Mode::Editing => editing_key(key, mods),
+    };
+    own.or_else(|| window_key(key, mods, mode))
+        .filter(|command| !(mode == Mode::Prompt && blocks_while_asking(*command)))
+}
+
+/// The keys of the window at rest: the name at the caret, the menu bar,
+/// the way back out of a link, and the areas.
+fn editing_key(key: &Key, mods: Modifiers) -> Option<Command> {
+    let plain = !mods.control() && !mods.alt() && !mods.logo();
+    let alt = mods.alt() && !mods.control();
+    let ctrl_alt = mods.control() && mods.alt() && !mods.shift();
+    let Key::Named(named) = key.as_ref() else {
+        return None;
+    };
+    Some(match named {
+        Named::F2 if plain => Command::RenameEverywhere,
+        Named::F10 if plain => Command::OpenMenu(table::Menu::File),
+        Named::ArrowLeft if alt && !mods.shift() => Command::Back,
+        Named::ArrowLeft if ctrl_alt => Command::Focus(pane_grid::Direction::Left),
+        Named::ArrowRight if ctrl_alt => Command::Focus(pane_grid::Direction::Right),
+        Named::ArrowUp if ctrl_alt => Command::Focus(pane_grid::Direction::Up),
+        Named::ArrowDown if ctrl_alt => Command::Focus(pane_grid::Direction::Down),
+        _ => return None,
+    })
+}
+
+/// The keys every mode shares: F5 plays unless a field has the keys,
+/// Escape leaves the mode, and the commands with Ctrl and Alt.
+fn window_key(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
     let ctrl = mods.control() && !mods.alt();
     let alt = mods.alt() && !mods.control();
-    let plain = !mods.control() && !mods.alt() && !mods.logo();
-    let ctrl_alt = mods.control() && mods.alt() && !mods.shift();
-    let playing = mode == Mode::Playing && plain;
-    let gallery = mode == Mode::Gallery;
-    let command = match key.as_ref() {
-        Key::Named(Named::F5) if gallery => Some(Command::OpenExample(true)),
-        Key::Named(Named::Enter) if gallery && !mods.control() => {
-            Some(Command::OpenExample(mods.shift()))
-        }
-        Key::Named(Named::ArrowLeft) if gallery && plain => Some(Command::Left),
-        Key::Named(Named::ArrowRight) if gallery && plain => Some(Command::Right),
-        Key::Named(Named::Tab) if gallery && !mods.control() => Some(if mods.shift() {
-            Command::PreviousGroup
-        } else {
-            Command::NextGroup
-        }),
-        Key::Named(Named::Tab) if mode == Mode::Prompt && !mods.control() => {
-            Some(Command::NextLook)
-        }
+    match key.as_ref() {
         Key::Named(Named::F5) if !matches!(mode, Mode::Prompt | Mode::Picker) => {
             Some(Command::Play)
         }
-        Key::Named(Named::F2) if plain && mode == Mode::Editing => Some(Command::RenameEverywhere),
-        Key::Named(Named::Escape) if mode == Mode::Playing => Some(Command::StopPlay),
-        Key::Character(c)
-            if playing && matches!(c, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9") =>
-        {
-            let n = c.parse::<usize>().unwrap_or(1);
-            Some(Command::PlayAsk(paper::Ask::Take(n - 1)))
-        }
-        Key::Named(Named::Space | Named::ArrowRight | Named::Enter) if playing => {
-            Some(Command::PlayAsk(paper::Ask::Next))
-        }
-        Key::Named(Named::ArrowLeft | Named::Backspace) if playing => {
-            Some(Command::PlayAsk(paper::Ask::Back))
-        }
-        Key::Named(Named::Home) if playing => Some(Command::PlayAsk(paper::Ask::Restart)),
         Key::Named(Named::Escape) if mode != Mode::Editing => Some(Command::Cancel),
-        Key::Named(Named::F10) if plain && mode == Mode::Editing => {
-            Some(Command::OpenMenu(table::Menu::File))
-        }
-        Key::Named(Named::ArrowUp) if plain && (mode == Mode::Picker || gallery) => {
-            Some(Command::Up)
-        }
-        Key::Named(Named::ArrowDown) if plain && (mode == Mode::Picker || gallery) => {
-            Some(Command::Down)
-        }
-        Key::Named(Named::ArrowLeft) if alt && !mods.shift() && mode == Mode::Editing => {
-            Some(Command::Back)
-        }
-        Key::Named(Named::ArrowLeft) if ctrl_alt => {
-            Some(Command::Focus(pane_grid::Direction::Left))
-        }
-        Key::Named(Named::ArrowRight) if ctrl_alt => {
-            Some(Command::Focus(pane_grid::Direction::Right))
-        }
-        Key::Named(Named::ArrowUp) if ctrl_alt => Some(Command::Focus(pane_grid::Direction::Up)),
-        Key::Named(Named::ArrowDown) if ctrl_alt => {
-            Some(Command::Focus(pane_grid::Direction::Down))
-        }
-        Key::Named(Named::Tab) if !mods.control() && mode == Mode::Picker => {
-            Some(Command::SwitchField)
-        }
         Key::Named(Named::Enter) if ctrl => Some(Command::RenderNow),
         Key::Named(Named::PageDown) if ctrl => Some(Command::NextTab),
         Key::Named(Named::PageUp) if ctrl => Some(Command::PreviousTab),
@@ -632,16 +594,7 @@ fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
             _ => None,
         },
         _ => None,
-    };
-    command.filter(|command| shortcut_reaches(*command, mode))
-}
-
-/// The prompt and the picker keep their own keys. Area keys belong to editing.
-fn shortcut_reaches(command: Command, mode: Mode) -> bool {
-    if mode == Mode::Prompt && blocks_while_asking(command) {
-        return false;
     }
-    mode == Mode::Editing || !matches!(command, Command::Focus(_))
 }
 
 /// Close, save, tab and quit keys stay out of the prompt, so Enter still

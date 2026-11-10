@@ -15,6 +15,7 @@
 //! layout of the root or the heading they belong to and kept inside the
 //! window.
 
+use iced::keyboard::{Key, key::Named};
 use iced::widget::{button, column, container, mouse_area, row, text};
 use iced::{Alignment, Element, Length, Padding, Point, Task, window};
 
@@ -110,6 +111,28 @@ impl Open {
                 .pointed
                 .is_some_and(|i| matches!(self.rows().get(i), Some(Row::Child { .. })))
     }
+}
+
+/// An open menu's keys: the arrows move the highlight, Enter runs the
+/// entry, and any other key closes the menu, F10 too; a modifier alone
+/// does nothing.
+pub(super) fn key(key: &Key) -> Option<Command> {
+    Some(match key.as_ref() {
+        Key::Named(Named::ArrowUp) => Command::Up,
+        Key::Named(Named::ArrowDown) => Command::Down,
+        Key::Named(Named::ArrowLeft) => Command::Left,
+        Key::Named(Named::ArrowRight) => Command::Right,
+        Key::Named(Named::Enter) => Command::Choose,
+        Key::Named(
+            Named::Shift
+            | Named::Control
+            | Named::Alt
+            | Named::AltGraph
+            | Named::Super
+            | Named::CapsLock,
+        ) => return None,
+        _ => Command::Cancel,
+    })
 }
 
 impl App {

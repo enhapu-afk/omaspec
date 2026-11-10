@@ -11,6 +11,7 @@ use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use iced::keyboard::{Key, Modifiers, key::Named};
 use iced::time::Instant;
 use iced::widget::{
     Image, Space, button, column, container, image, mouse_area, opaque, row, scrollable, stack,
@@ -25,7 +26,7 @@ use omaspec_render::export::{
 use omaspec_render::{Config, Renderer};
 
 use super::doc::Doc;
-use super::{App, Message, Reveal, free_name, home_relative, plural};
+use super::{App, Command, Message, Reveal, free_name, home_relative, plural};
 use crate::gallery::{EXAMPLES, Group};
 use crate::icons::{self, Icon};
 use crate::ui;
@@ -410,6 +411,27 @@ pub fn layout(width: f32) -> (usize, Size) {
 /// The id of example `index`'s tile, so the grid can scroll to it.
 fn tile_id(index: usize) -> iced::widget::Id {
     iced::widget::Id::from(format!("example-{index}"))
+}
+
+/// The gallery's keys: the arrows move between its tiles, Tab between
+/// its groups, Enter opens the example the highlight is on (with Shift it
+/// plays) and F5 plays it.
+pub(super) fn key(key: &Key, mods: Modifiers) -> Option<Command> {
+    let plain = !mods.control() && !mods.alt() && !mods.logo();
+    let Key::Named(named) = key.as_ref() else {
+        return None;
+    };
+    Some(match named {
+        Named::F5 => Command::OpenExample(true),
+        Named::Enter if !mods.control() => Command::OpenExample(mods.shift()),
+        Named::Tab if !mods.control() && mods.shift() => Command::PreviousGroup,
+        Named::Tab if !mods.control() => Command::NextGroup,
+        Named::ArrowLeft if plain => Command::Left,
+        Named::ArrowRight if plain => Command::Right,
+        Named::ArrowUp if plain => Command::Up,
+        Named::ArrowDown if plain => Command::Down,
+        _ => return None,
+    })
 }
 
 impl App {

@@ -1200,6 +1200,16 @@ dispatch spread over two lists. The rules it set for the next change are in
 - [ ] The keys beside their modes: the gallery's, the play's and the
       prompt's keys in their modules, `shortcut` only puts them together;
       then `App` handed out along the same lines.
+  - [x] The keys (2026-11-10): `gallery::key`, `play::key`,
+        `files::prompt_key`, `picker::key` and `menu::key` hold what each
+        mode takes; `shortcut` asks the mode first, then the window's own
+        (`editing_key` at rest, `window_key` in every mode). The keys are
+        the same: before the old function went, a test held it against
+        the new one for 102 keys with every set of modifiers in all six
+        modes.
+  - [ ] `App` along the same lines: what each mode keeps and does beside
+        it, as the prompt's types (`Prompt`, `Asking`, `ExportLook`),
+        which are in `editor/mod.rs` while its code is in `files.rs`.
 - [ ] Large files cut along the phases they already have, when they are
       next touched: `formula.rs` (parse, symbols, layout, paint); `c4.rs`,
       `block.rs`, `er.rs`, `architecture.rs` (read, measure, paint).

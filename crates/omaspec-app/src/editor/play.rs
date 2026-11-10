@@ -5,11 +5,31 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use iced::Task;
+use iced::keyboard::{Key, Modifiers, key::Named};
 
 use super::picker::{Choice, Item, Kind, Picker};
-use super::{App, FLASH, Message, PICKER, Pane};
+use super::{App, Command, FLASH, Message, PICKER, Pane};
 use crate::worker::{Alarm, blocking};
 use crate::{paper, specs};
+
+/// The play's keys: a digit takes that option, Space, Right or Enter the
+/// next step, Left or Backspace the one before, Home starts again, and
+/// Escape stops it. Without Ctrl, Alt or Super, but for Escape.
+pub(super) fn key(key: &Key, mods: Modifiers) -> Option<Command> {
+    let plain = !mods.control() && !mods.alt() && !mods.logo();
+    let ask = |ask: paper::Ask| Some(Command::PlayAsk(ask));
+    match key.as_ref() {
+        Key::Named(Named::Escape) => Some(Command::StopPlay),
+        _ if !plain => None,
+        Key::Character(c) if matches!(c, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9") => {
+            ask(paper::Ask::Take(c.parse::<usize>().unwrap_or(1) - 1))
+        }
+        Key::Named(Named::Space | Named::ArrowRight | Named::Enter) => ask(paper::Ask::Next),
+        Key::Named(Named::ArrowLeft | Named::Backspace) => ask(paper::Ask::Back),
+        Key::Named(Named::Home) => ask(paper::Ask::Restart),
+        _ => None,
+    }
+}
 
 /// The keys of the play that runs, a recorded trace or not, for the status
 /// bar.
