@@ -57,6 +57,26 @@ fn an_order_uses_the_alias_and_keeps_the_note_outside_the_alt() {
 }
 
 #[test]
+fn the_front_matter_s_title_is_the_diagram_s_unless_a_title_line_follows() {
+    let body = "sequenceDiagram\n    Alice->>Shop: order\n";
+    let front = built(&format!("---\ntitle: Checkout\n---\n{body}"));
+    let title = front.frame.title.expect("the front matter's title");
+    assert_eq!((title.value.as_str(), title.line), ("Checkout", 1));
+    let line = built(&format!(
+        "---\ntitle: Checkout\n---\n{body}    title Paying\n"
+    ));
+    assert_eq!(line.frame.title.expect("a title").value, "Paying");
+    let line_only = built(&format!("{body}    title Paying\n"));
+    assert_eq!(line_only.frame.title.expect("a title").value, "Paying");
+    assert!(built(body).frame.title.is_none());
+    // It is drawn, and a diagram without one is drawn as before.
+    let theme = mermaid_rs_renderer::Theme::modern();
+    let drawn = try_draw(&theme, &format!("---\ntitle: Checkout\n---\n{body}")).unwrap();
+    assert!(drawn.contains(">Checkout<"), "the title in the picture");
+    assert!(!try_draw(&theme, body).unwrap().contains("Checkout"));
+}
+
+#[test]
 fn arrows_keep_the_head_mermaid_gives_them() {
     let diagram = built(
         "sequenceDiagram\nA->B: plain\nA->>B: call\nB-->>A: back\nA-xB: lost\nA--)B: async\nA<<->>B: both\n",

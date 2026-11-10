@@ -7,4 +7,6 @@ package shop {
 component Billing <<service>>
 [Api] --> Billing : charge
 Front --> Sessions
+[Lamp]
+[Light switch] --> [Lamp]
 @enduml

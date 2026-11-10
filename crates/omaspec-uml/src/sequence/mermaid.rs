@@ -68,7 +68,11 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         boxes: Vec::new(),
         footbox: false,
         hide_unlinked: false,
-        frame: Frame::default(),
+        // The front matter's title, unless a `title` line follows.
+        frame: Frame {
+            title: crate::front_title(source).map(|(line, title)| words(line, title)),
+            ..Frame::default()
+        },
     };
     let mut index: HashMap<String, usize> = HashMap::new();
     let mut open: Vec<Open> = Vec::new();

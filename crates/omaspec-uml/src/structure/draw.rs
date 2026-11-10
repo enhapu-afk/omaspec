@@ -30,6 +30,11 @@ const PAD_Y: f32 = 6.0;
 const MIN_W: f32 = 54.0;
 const MIN_H: f32 = 28.0;
 const COMP_PAD: f32 = 12.0;
+/// A component's icon in its top right corner: its width, how far it
+/// sits from the box's edge, and the air its name keeps from it.
+const ICON_W: f32 = 14.0;
+const ICON_EDGE: f32 = 6.0;
+const ICON_AIR: f32 = 6.0;
 const COMP_GAP: f32 = 8.0;
 const NOTE_GAP: f32 = 10.0;
 const NOTE_PAD: f32 = 6.0;
@@ -470,8 +475,10 @@ fn measure_element(
                 (width, height, 0.0, 0.0)
             }
             _ => {
+                // The name is centered in the box, so the room the icon
+                // takes on the right is kept on the left as well.
                 let icon = if el.shape == Shape::Component {
-                    16.0
+                    (2.0 * (ICON_W + ICON_EDGE + ICON_AIR) - 2.0 * PAD_X).max(0.0)
                 } else {
                     0.0
                 };
@@ -1343,9 +1350,9 @@ fn paint_agent(canvas: &mut Canvas, rect: Rect, round: f32, fill: Paint, stroke:
 }
 
 fn component_icon(canvas: &mut Canvas, rect: Rect, stroke: Stroke) {
-    let w = 14.0;
+    let w = ICON_W;
     let h = 4.5;
-    let x = rect.x + rect.w - w - 6.0;
+    let x = rect.x + rect.w - w - ICON_EDGE;
     let y = rect.y + 5.0;
     canvas.rect(Layer::Frames, (x, y, w, h), 0.0, None, Some(stroke));
     canvas.rect(
