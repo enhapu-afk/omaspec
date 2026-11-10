@@ -164,7 +164,11 @@ impl Paper {
         let map = &self.diagram.as_ref()?.drawn.map;
         let (x, y, w, h) = seat.bounds();
         if let pick::Seat::Shape { .. } = seat {
-            if let Some(place) = map.places.iter().find(|p| p.name == text) {
+            // Two boxes of a tree may show the same words: there the box
+            // drawn where the words are counts before the name.
+            if let Some(place) = map.places.iter().find(|p| p.name == text)
+                && !place.fixed
+            {
                 return Some(place.name.clone());
             }
             let off = |p: &&omaspec_uml::map::Place| {
@@ -179,6 +183,9 @@ impl Paper {
                 .filter(|p| off(p) <= SAME_BOX)
                 .min_by(|a, b| off(a).total_cmp(&off(b)))
             {
+                return Some(place.name.clone());
+            }
+            if let Some(place) = map.places.iter().find(|p| p.name == text) {
                 return Some(place.name.clone());
             }
         }
@@ -205,7 +212,7 @@ impl Paper {
     ) -> Result<String, String> {
         let name = self
             .box_at_caret(source, row, col)
-            .ok_or("put the caret on the name of a nested state, a package or a subgraph")?;
+            .ok_or("put the caret on a box that holds others: a nested state, a package, a subgraph, a branch of a tree")?;
         let spots = self.fold_spots();
         match spots.iter().find(|s| s.name == name) {
             Some(spot) if spot.folded => {

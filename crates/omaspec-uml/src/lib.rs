@@ -271,8 +271,14 @@ pub fn render_mapped(
             state::draw_mapped(&d)
         }
         Diagram::Activity(d) => unmapped(activity::draw(&d)),
-        Diagram::MindMap(d) => tree::draw_mindmap_mapped(&d),
-        Diagram::Wbs(d) => tree::draw_wbs_mapped(&d),
+        Diagram::MindMap(mut d) => {
+            d.fold(&fold::read(source));
+            tree::draw_mindmap_mapped(&d)
+        }
+        Diagram::Wbs(mut d) => {
+            d.fold(&fold::read(source));
+            tree::draw_wbs_mapped(&d)
+        }
         Diagram::Structure(mut d) => {
             d.fold(&fold::read(source));
             structure::draw_mapped(&d)

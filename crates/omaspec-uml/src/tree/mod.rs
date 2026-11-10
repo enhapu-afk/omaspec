@@ -15,7 +15,7 @@ use crate::annotations::Annotations;
 use crate::color::{self, Paint};
 pub use crate::common::{Frame, Skinparam, Text};
 use crate::svg::{Align, Canvas, Layer, Stroke};
-use crate::text::{self, Block, Family};
+use crate::text::{self, Block, Family, Font};
 pub use cards::{
     Branch, Card, Heading, Icon, PICTURE_ROUND, Relation, RelationKind, draw_branches,
 };
@@ -49,6 +49,152 @@ pub struct Node {
     pub color: Option<String>,
     /// Mermaid: the ink on this box. `None` uses the skin's font.
     pub ink: Option<String>,
+    /// What the pane calls the box when it folds it
+    /// ([0024](../../../docs/adr/0024-focus-and-collapse.md)): its label
+    /// on one line, numbered (`Tests (2)`) when a box before it has the
+    /// same. Empty for a box without a label.
+    pub key: String,
+    /// How many boxes were folded away below it; 0 when it is not folded.
+    pub folded: usize,
+}
+
+/// Gives every box of a tree its [`Node::key`], in the order they are
+/// handed to it.
+#[derive(Default)]
+pub(crate) struct Names(std::collections::HashMap<String, usize>);
+
+impl Names {
+    pub(crate) fn name(&mut self, node: &mut Node) {
+        let label = node
+            .text
+            .value
+            .replace("\\n", " ")
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+        if label.is_empty() {
+            return;
+        }
+        let nth = self.0.entry(label.clone()).or_insert(0);
+        *nth += 1;
+        node.key = match *nth {
+            1 => label,
+            nth => format!("{label} ({nth})"),
+        };
+    }
+
+    fn ideas(&mut self, ideas: &mut [Idea]) {
+        for idea in ideas {
+            self.name(&mut idea.node);
+            self.ideas(&mut idea.children);
+        }
+    }
+
+    fn element(&mut self, element: &mut Element) {
+        self.name(&mut element.node);
+        for child in element.left.iter_mut().chain(&mut element.right) {
+            self.element(child);
+        }
+    }
+}
+
+impl Idea {
+    /// How many boxes hang below it.
+    fn below(&self) -> usize {
+        self.children.iter().map(|c| 1 + c.below()).sum()
+    }
+
+    fn fold(&mut self, names: &[String]) {
+        if !self.children.is_empty() && names.contains(&self.node.key) {
+            self.node.folded = self.below();
+            self.children.clear();
+        }
+        for child in &mut self.children {
+            child.fold(names);
+        }
+    }
+}
+
+impl MindMap {
+    /// Names every box ([`Node::key`]): once, after the map is read.
+    pub(crate) fn name(&mut self) {
+        let mut names = Names::default();
+        for map in &mut self.maps {
+            names.name(&mut map.root);
+            names.ideas(&mut map.right);
+            names.ideas(&mut map.left);
+        }
+    }
+
+    /// Folds the boxes named in `names` to themselves, without what hangs
+    /// below them (docs/adr/0024). A name of a box that holds nothing
+    /// folds nothing.
+    pub fn fold(&mut self, names: &[String]) {
+        for map in &mut self.maps {
+            let below: usize = map
+                .right
+                .iter()
+                .chain(&map.left)
+                .map(|i| 1 + i.below())
+                .sum();
+            if below > 0 && names.contains(&map.root.key) {
+                map.root.folded = below;
+                map.right.clear();
+                map.left.clear();
+            }
+            for idea in map.right.iter_mut().chain(&mut map.left) {
+                idea.fold(names);
+            }
+        }
+    }
+}
+
+impl Element {
+    fn below(&self) -> usize {
+        self.left
+            .iter()
+            .chain(&self.right)
+            .map(|c| 1 + c.below())
+            .sum()
+    }
+
+    fn fold(&mut self, names: &[String]) {
+        let below = self.below();
+        if below > 0 && names.contains(&self.node.key) {
+            self.node.folded = below;
+            self.left.clear();
+            self.right.clear();
+        }
+        for child in self.left.iter_mut().chain(&mut self.right) {
+            child.fold(names);
+        }
+    }
+}
+
+impl Wbs {
+    /// Names every box ([`Node::key`]): once, after the diagram is read.
+    pub(crate) fn name(&mut self) {
+        Names::default().element(&mut self.root);
+    }
+
+    /// Folds the boxes named in `names`, as [`MindMap::fold`] does.
+    pub fn fold(&mut self, names: &[String]) {
+        self.root.fold(names);
+    }
+}
+
+/// The box of the node called `key` at `rect`, for the map; none for a
+/// box without a name.
+fn place(key: &str, rect: crate::graph::Rect, frame: bool) -> Option<crate::map::Place> {
+    (!key.is_empty()).then(|| crate::map::Place {
+        name: key.to_owned(),
+        rect,
+        within: Vec::new(),
+        across: false,
+        entry: None,
+        frame,
+        fixed: true,
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -130,6 +276,8 @@ const MARGIN: f32 = 10.0;
 /// A node's label measured, with its fill.
 struct Label {
     block: Block,
+    /// Under the label of a folded box: how many it holds.
+    more: Option<Block>,
     shape: NodeShape,
     fill: Paint,
 }
@@ -152,8 +300,22 @@ impl Label {
             Some(c) => color::parse(c).map_err(|e| Declined::at(line, e))?,
             None => skin.fill,
         };
+        // A folded box says what it holds, as a folded state does.
+        let more = (node.folded > 0)
+            .then(|| {
+                let small = Font {
+                    size: (font.size * 0.8).round(),
+                    bold: false,
+                    italic: true,
+                    ..font
+                };
+                text::block(&crate::fold::counted(node.folded, "node"), small, family)
+                    .map_err(|e| Declined::at(line, e))
+            })
+            .transpose()?;
         Ok(Label {
             block,
+            more,
             shape: node.shape,
             fill,
         })
@@ -162,32 +324,40 @@ impl Label {
     /// The size of the box, or of the text with its margin when there is
     /// no box: `before` and `after` are the text's margins on the left and
     /// the right.
+    /// The width and the height of what is written in the box.
+    fn content(&self) -> (f32, f32) {
+        match &self.more {
+            Some(more) => (
+                self.block.width.max(more.width),
+                self.block.height + more.height,
+            ),
+            None => (self.block.width, self.block.height),
+        }
+    }
+
     fn size(&self, skin: &skin::Skin, before: f32, after: f32) -> (f32, f32) {
-        let b = &self.block;
+        let b = self.content();
         let pad = skin.padding;
         match self.shape {
-            NodeShape::Box | NodeShape::Square => (b.width + 2.0 * pad, b.height + 2.0 * pad),
+            NodeShape::Box | NodeShape::Square => (b.0 + 2.0 * pad, b.1 + 2.0 * pad),
             // Wide enough that the text's rectangle sits inside the circle.
             NodeShape::Circle => {
-                let d = b.width.hypot(b.height) + 2.0 * pad;
+                let d = b.0.hypot(b.1) + 2.0 * pad;
                 (d, d)
             }
             // The points eat into a box the text would fill, so the box is wider.
-            NodeShape::Hexagon => (b.width + 3.0 * pad, b.height + 2.0 * pad),
+            NodeShape::Hexagon => (b.0 + 3.0 * pad, b.1 + 2.0 * pad),
             // The bumps sit in a rim outside the text's padding.
             NodeShape::Cloud => {
                 let rim = CLOUD_RIM;
-                (
-                    b.width + 2.0 * pad + 2.0 * rim,
-                    b.height + 2.0 * pad + 2.0 * rim,
-                )
+                (b.0 + 2.0 * pad + 2.0 * rim, b.1 + 2.0 * pad + 2.0 * rim)
             }
             // The points stick out of the circle that holds the text.
             NodeShape::Bang => {
-                let d = (b.width.hypot(b.height) + 2.0 * pad) / BANG_INNER;
+                let d = (b.0.hypot(b.1) + 2.0 * pad) / BANG_INNER;
                 (d, d)
             }
-            NodeShape::Plain => (b.width + before + after, b.height + 2.0),
+            NodeShape::Plain => (b.0 + before + after, b.1 + 2.0),
             NodeShape::Pseudo => (0.0, 0.0),
         }
     }
@@ -196,6 +366,7 @@ impl Label {
     /// `(x, y)`; `before` as for [`Label::size`].
     fn draw(&self, canvas: &mut Canvas, skin: &skin::Skin, (x, y): (f32, f32), before: f32) {
         let (w, h) = self.size(skin, before, 0.0);
+        let content = self.content();
         let stroke = Stroke::new(skin.border, skin.thickness);
         let inner = match self.shape {
             NodeShape::Box | NodeShape::Square => {
@@ -215,9 +386,9 @@ impl Label {
                     self.fill,
                     Some(stroke),
                 );
-                let left = x + (w - self.block.width) / 2.0;
-                let top = y + (h - self.block.height) / 2.0;
-                (left, top, self.block.width)
+                let left = x + (w - content.0) / 2.0;
+                let top = y + (h - content.1) / 2.0;
+                (left, top, content.0)
             }
             NodeShape::Hexagon => {
                 let points = [
@@ -229,8 +400,8 @@ impl Label {
                     (x, y + h / 2.0),
                 ];
                 canvas.polygon(Layer::Front, &points, self.fill, Some(stroke));
-                let left = x + (w - self.block.width) / 2.0;
-                (left, y + skin.padding, self.block.width)
+                let left = x + (w - content.0) / 2.0;
+                (left, y + skin.padding, content.0)
             }
             NodeShape::Cloud => {
                 canvas.path(
@@ -240,9 +411,9 @@ impl Label {
                     self.fill,
                     Some(stroke),
                 );
-                let left = x + (w - self.block.width) / 2.0;
-                let top = y + (h - self.block.height) / 2.0;
-                (left, top, self.block.width)
+                let left = x + (w - content.0) / 2.0;
+                let top = y + (h - content.1) / 2.0;
+                (left, top, content.0)
             }
             NodeShape::Bang => {
                 canvas.polygon(
@@ -251,11 +422,11 @@ impl Label {
                     self.fill,
                     Some(stroke),
                 );
-                let left = x + (w - self.block.width) / 2.0;
-                let top = y + (h - self.block.height) / 2.0;
-                (left, top, self.block.width)
+                let left = x + (w - content.0) / 2.0;
+                let top = y + (h - content.1) / 2.0;
+                (left, top, content.0)
             }
-            NodeShape::Plain => (x + before, y + 1.0, self.block.width),
+            NodeShape::Plain => (x + before, y + 1.0, content.0),
             NodeShape::Pseudo => return,
         };
         let (left, top, width) = inner;
@@ -265,6 +436,10 @@ impl Label {
             Align::Right => left + width,
         };
         canvas.text(Layer::Front, &self.block, (anchor, top), skin.align);
+        if let Some(more) = &self.more {
+            let below = (anchor, top + self.block.height);
+            canvas.text(Layer::Front, more, below, skin.align);
+        }
     }
 }
 

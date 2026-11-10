@@ -27,11 +27,13 @@ pub fn parse_mindmap(lines: &[Line]) -> Result<MindMap, Declined> {
             None => p.line(lines, at)?,
         };
     }
-    Ok(MindMap {
+    let mut map = MindMap {
         maps: p.maps.into_iter().map(|m| m.map).collect(),
         vertical: p.vertical,
         frame,
-    })
+    };
+    map.name();
+    Ok(map)
 }
 
 /// Parses a WBS diagram from the lines [`crate::source::body`] gives.
@@ -50,7 +52,9 @@ pub fn parse_wbs(lines: &[Line]) -> Result<Wbs, Declined> {
         reason: "a WBS diagram needs a node".into(),
         refused: false,
     })?;
-    Ok(Wbs { root, frame })
+    let mut wbs = Wbs { root, frame };
+    wbs.name();
+    Ok(wbs)
 }
 
 #[derive(Default)]
@@ -318,6 +322,8 @@ fn node(label: String, shape: NodeShape, color: Option<String>, no: usize) -> No
         shape,
         color,
         ink: None,
+        key: String::new(),
+        folded: 0,
     }
 }
 

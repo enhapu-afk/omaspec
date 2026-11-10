@@ -195,7 +195,7 @@ pub fn place_at(map: &Map, p: At) -> Option<usize> {
     map.places
         .iter()
         .enumerate()
-        .filter(|(_, place)| inside(place.rect))
+        .filter(|(_, place)| !place.fixed && inside(place.rect))
         .min_by(|a, b| (a.1.rect.w * a.1.rect.h).total_cmp(&(b.1.rect.w * b.1.rect.h)))
         .map(|(index, _)| index)
 }
@@ -437,6 +437,7 @@ mod tests {
             across: false,
             entry: None,
             frame: false,
+            fixed: false,
         }
     }
 

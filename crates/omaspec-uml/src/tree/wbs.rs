@@ -8,7 +8,8 @@
 use super::skin::{Skin, TreeKind};
 use super::{Annotations, Element, Label, MARGIN, NodeShape, Wbs};
 use crate::Declined;
-use crate::map::Map;
+use crate::graph::Rect;
+use crate::map::{Map, Place};
 use crate::svg::{Canvas, Layer};
 use crate::text::Family;
 
@@ -45,7 +46,8 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
         left: Vec::new(),
         right: Vec::new(),
     };
-    let root = Branch::new(&alone, &skin, family)?;
+    let mut root = Branch::new(&alone, &skin, family)?;
+    root.frame = !d.root.right.is_empty() || !d.root.left.is_empty();
     let row = d
         .root
         .right
@@ -55,15 +57,25 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
     let mut drawer = Drawer {
         skin: &skin,
         canvas: &mut canvas,
+        places: Vec::new(),
     };
     drawer.root(&root, &row, annotations.top());
+    let places = drawer.places;
     annotations.draw(&mut canvas);
-    Ok((canvas.finish(MARGIN, skin.background), Map::default()))
+    let map = Map {
+        places,
+        ..Map::default()
+    }
+    .placed(canvas.fit(MARGIN));
+    Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
 /// A box with its children, measured.
 struct Branch {
     label: Label,
+    /// What the map calls the box, and whether boxes hang below it.
+    key: String,
+    frame: bool,
     /// The box (or the text without one).
     main: (f32, f32),
     left: Vec<Branch>,
@@ -105,6 +117,8 @@ impl Branch {
         };
         Ok(Branch {
             label,
+            key: e.node.key.clone(),
+            frame: !e.left.is_empty() || !e.right.is_empty(),
             main,
             left,
             right,
@@ -129,6 +143,8 @@ impl Branch {
 struct Drawer<'a> {
     skin: &'a Skin,
     canvas: &'a mut Canvas,
+    /// Where each box is, for the map.
+    places: Vec<Place>,
 }
 
 impl Drawer<'_> {
@@ -139,6 +155,13 @@ impl Drawer<'_> {
     /// Draws the box of `b`.
     fn label(&mut self, b: &Branch, (x, y): (f32, f32)) {
         b.label.draw(self.canvas, self.skin, (x, y), 0.0);
+        let rect = Rect {
+            x,
+            y,
+            w: b.main.0,
+            h: b.main.1,
+        };
+        self.places.extend(super::place(&b.key, rect, b.frame));
     }
 
     /// The root at `top`, its children in a row below it.

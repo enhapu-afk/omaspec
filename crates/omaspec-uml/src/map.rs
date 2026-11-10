@@ -154,6 +154,9 @@ pub struct Place {
     /// the pane may fold to its box
     /// ([0024](../../../docs/adr/0024-focus-and-collapse.md)).
     pub frame: bool,
+    /// The layout alone says where it stands: a box of a mind map or a
+    /// WBS, which folds and takes the focus and is held beside no other.
+    pub fixed: bool,
 }
 
 /// A state's box, or the mark of a pseudo state.

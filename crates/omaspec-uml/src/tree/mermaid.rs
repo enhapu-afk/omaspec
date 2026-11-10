@@ -201,14 +201,16 @@ impl Tree {
             })
             .into_iter()
             .collect();
-        MindMap {
+        let mut map = MindMap {
             maps,
             vertical: false,
             frame: Frame {
                 title: self.title,
                 ..Frame::default()
             },
-        }
+        };
+        map.name();
+        map
     }
 }
 
@@ -298,6 +300,8 @@ fn make_node(label: &str, shape: NodeShape, line: usize) -> Node {
         shape,
         color: None,
         ink: None,
+        key: String::new(),
+        folded: 0,
     }
 }
 

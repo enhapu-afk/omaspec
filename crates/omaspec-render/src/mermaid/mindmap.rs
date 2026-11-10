@@ -16,12 +16,14 @@ use omaspec_uml::map::Map;
 use omaspec_uml::tree::{Idea, MindMap, Skinparam, draw_mindmap_mapped, from_mermaid};
 
 /// The SVG, or `None` when this drawer leaves the diagram to mmdr. Its
-/// map is empty: a mind-map box is not a message to jump to.
+/// map names the boxes, which fold (docs/adr/0024).
 pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
     diagram.frame.skinparams.extend(super::sketch_param(source));
     paint(&mut diagram, theme)?;
+    // After the paint: a folded branch keeps the color it had.
+    diagram.fold(&omaspec_uml::fold::read(source));
     draw_mindmap_mapped(&diagram).ok()
 }
 
@@ -174,10 +176,18 @@ mod tests {
         assert!(svg.contains("Root") && svg.contains("Branch"), "{svg}");
         assert!(svg.contains("#ECECFF") && svg.contains("#FFFFDE"), "{svg}");
         assert!(svg.contains("<ellipse"), "{svg}");
-        // Nothing to jump to, and no tiles without a project.
+        // Its boxes by their words, which fold; nothing to jump to, and
+        // no tiles without a project.
+        let names: Vec<(&str, bool)> = map
+            .places
+            .iter()
+            .map(|p| (p.name.as_str(), p.frame))
+            .collect();
+        assert_eq!(names, [("Root", true), ("Branch", false)]);
         assert_eq!(
             Map {
                 fit: Map::default().fit,
+                places: Vec::new(),
                 ..map
             },
             Map::default()

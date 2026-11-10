@@ -12,6 +12,7 @@
 use super::skin::{Skin, TreeKind};
 use super::{Annotations, Idea, Label, MARGIN, Map, MindMap, Node};
 use crate::Declined;
+use crate::graph::Rect;
 use crate::map;
 use crate::svg::{Canvas, Layer, n};
 use crate::text::Family;
@@ -41,11 +42,17 @@ pub fn draw_mapped(d: &MindMap) -> Result<(String, map::Map), Declined> {
         vertical: d.vertical,
     };
     let mut top = annotations.top();
+    let mut places = Vec::new();
     for map in &d.maps {
-        top += geometry.draw_map(&mut canvas, map, family, top)?;
+        top += geometry.draw_map(&mut canvas, map, family, top, &mut places)?;
     }
     annotations.draw(&mut canvas);
-    Ok((canvas.finish(MARGIN, skin.background), map::Map::default()))
+    let map = map::Map {
+        places,
+        ..map::Map::default()
+    }
+    .placed(canvas.fit(MARGIN));
+    Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
 struct Geometry<'a> {
@@ -58,6 +65,8 @@ struct Finger {
     /// The idea's box, none for the root on its second side, where the
     /// first side draws it.
     label: Option<Label>,
+    /// What the map calls the box.
+    key: String,
     /// Elongation and thickness of the box with its margins.
     elongation: f32,
     thickness: f32,
@@ -123,6 +132,7 @@ impl Geometry<'_> {
         tetris.balance();
         Ok(Finger {
             label,
+            key: node.map_or_else(String::new, |node| node.key.clone()),
             elongation,
             thickness,
             nail_thickness: tetris.height(),
@@ -156,6 +166,7 @@ impl Geometry<'_> {
         map: &Map,
         family: Family,
         top: f32,
+        places: &mut Vec<map::Place>,
     ) -> Result<f32, Declined> {
         let (x1, x2) = self.gaps();
         // The root's box belongs to the right side; the left side draws
@@ -187,8 +198,12 @@ impl Geometry<'_> {
         };
         for (finger, dir) in [(&right, 1.0), (&left, -1.0)] {
             if let Some(finger) = finger {
-                self.draw_finger(canvas, finger, origin, dir);
+                self.draw_finger(canvas, finger, origin, dir, places);
             }
+        }
+        // The root holds the ideas of both of its sides.
+        if let Some(root) = places.iter_mut().find(|p| p.name == map.root.key) {
+            root.frame = !map.right.is_empty() || !map.left.is_empty();
         }
         Ok(if self.vertical {
             before + after
@@ -208,7 +223,14 @@ impl Geometry<'_> {
 
     /// Draws `finger` with its box starting at `start` on its center line,
     /// growing in `dir` (1 or -1).
-    fn draw_finger(&self, canvas: &mut Canvas, finger: &Finger, start: (f32, f32), dir: f32) {
+    fn draw_finger(
+        &self,
+        canvas: &mut Canvas,
+        finger: &Finger,
+        start: (f32, f32),
+        dir: f32,
+        places: &mut Vec<map::Place>,
+    ) {
         let skin = self.skin;
         if let Some(label) = &finger.label {
             // The box without its margins, which lie across the map.
@@ -221,12 +243,20 @@ impl Geometry<'_> {
             let corner = self.at(start, e0, margin - finger.thickness / 2.0);
             let before = if dir > 0.0 { 3.0 } else { 0.0 };
             label.draw(canvas, skin, corner, before);
+            let (w, h) = label.size(skin, before, 0.0);
+            let rect = Rect {
+                x: corner.0,
+                y: corner.1,
+                w,
+                h,
+            };
+            places.extend(super::place(&finger.key, rect, !finger.children.is_empty()));
         }
         let (x1, x2) = self.gaps();
         let p1 = self.at(start, dir * finger.elongation, 0.0);
         for (child, &offset) in finger.children.iter().zip(&finger.offsets) {
             let p2 = self.at(start, dir * (finger.elongation + x1 + x2), offset);
-            self.draw_finger(canvas, child, p2, dir);
+            self.draw_finger(canvas, child, p2, dir, places);
             self.link(canvas, p1, p2, dir);
         }
     }

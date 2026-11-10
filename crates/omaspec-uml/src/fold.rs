@@ -182,4 +182,38 @@ mod tests {
         let svg = crate::render(source).unwrap();
         assert!(svg.contains("2 elements · 1 line"), "{svg}");
     }
+
+    #[test]
+    fn a_branch_of_a_tree_folds_to_its_box() {
+        let wbs = "@startwbs\n* Launch\n** Build\n*** Tests\n*** Docs\n**** API\n** Budget\n*** Tests\n@endwbs\n";
+        let (_, map) = crate::render_mapped(wbs, None).unwrap();
+        let named: Vec<(&str, bool)> = map
+            .places
+            .iter()
+            .map(|p| (p.name.as_str(), p.frame))
+            .collect();
+        for expected in [
+            ("Launch", true),
+            ("Build", true),
+            ("Docs", true),
+            ("Tests", false),
+            ("Tests (2)", false),
+        ] {
+            assert!(named.contains(&expected), "{expected:?} in {named:?}");
+        }
+        assert!(map.places.iter().all(|p| p.fixed));
+        let (svg, map) =
+            crate::render_mapped(&format!("{wbs}' fold (Omaspec) Build\n"), None).unwrap();
+        assert!(svg.contains("3 nodes") && !svg.contains(">Docs<"), "{svg}");
+        let build = map.places.iter().find(|p| p.name == "Build").unwrap();
+        assert!(!build.frame, "folded, it holds nothing");
+        // The other box of the same words keeps its name.
+        assert!(map.places.iter().any(|p| p.name == "Tests (2)"));
+        assert!(!map.places.iter().any(|p| p.name == "Tests"));
+        // A mind map, on both sides of its root.
+        let mind = "@startmindmap\n* Root\n** Right\n*** A\n-- Left\n--- B\n@endmindmap\n' fold (Omaspec) Root\n";
+        let (svg, map) = crate::render_mapped(mind, None).unwrap();
+        assert!(svg.contains("4 nodes") && !svg.contains(">Left<"), "{svg}");
+        assert_eq!(map.places.len(), 1);
+    }
 }
