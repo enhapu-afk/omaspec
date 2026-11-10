@@ -103,10 +103,11 @@ impl Geometry<'_> {
         children: &[Idea],
         right: bool,
         family: Family,
+        (depth, leaf): (usize, bool),
     ) -> Result<Finger, Declined> {
         let (label, elongation, thickness) = match node {
             Some(node) => {
-                let label = Label::new(node, self.skin, family)?;
+                let label = Label::new(node, self.skin, family, (depth, leaf))?;
                 let (e, t) = self.phalanx(&label, right);
                 (Some(label), e, t)
             }
@@ -114,7 +115,10 @@ impl Geometry<'_> {
         };
         let children = children
             .iter()
-            .map(|idea| self.finger(Some(&idea.node), &idea.children, right, family))
+            .map(|idea| {
+                let spot = (depth + 1, idea.children.is_empty());
+                self.finger(Some(&idea.node), &idea.children, right, family, spot)
+            })
             .collect::<Result<Vec<_>, _>>()?;
         let (x1, x2) = self.gaps();
         let mut tetris = Tetris::default();
@@ -173,13 +177,14 @@ impl Geometry<'_> {
         // The root's box belongs to the right side; the left side draws
         // it only when it is alone.
         let left_alone = map.right.is_empty() && !map.left.is_empty();
+        let root = (0, map.right.is_empty() && map.left.is_empty());
         let right = (!left_alone)
-            .then(|| self.finger(Some(&map.root), &map.right, true, family))
+            .then(|| self.finger(Some(&map.root), &map.right, true, family, root))
             .transpose()?;
         let left = (!map.left.is_empty())
             .then(|| {
-                let root = left_alone.then_some(&map.root);
-                self.finger(root, &map.left, false, family)
+                let node = left_alone.then_some(&map.root);
+                self.finger(node, &map.left, false, family, root)
             })
             .transpose()?;
         let half = [&right, &left]

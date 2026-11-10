@@ -12,13 +12,13 @@ use crate::source::{Line, starts_with_ci};
 const MAX_DEPTH: usize = 100;
 
 /// Keywords every diagram type has that Omaspec does not draw yet.
-const NOT_YET: [&str; 8] = [
-    "skin", "sprite", "hide", "show", "newpage", "rotate", "page", "<style>",
+const NOT_YET: [&str; 7] = [
+    "skin", "sprite", "hide", "show", "newpage", "rotate", "page",
 ];
 
 /// Parses a mind map from the lines [`crate::source::body`] gives.
 pub fn parse_mindmap(lines: &[Line]) -> Result<MindMap, Declined> {
-    let mut frame = Frame::default();
+    let mut frame = Frame::styled(super::skin::MINDMAP_STYLE);
     let mut p = MindMapParser::default();
     let mut at = 0;
     while at < lines.len() {
@@ -38,7 +38,7 @@ pub fn parse_mindmap(lines: &[Line]) -> Result<MindMap, Declined> {
 
 /// Parses a WBS diagram from the lines [`crate::source::body`] gives.
 pub fn parse_wbs(lines: &[Line]) -> Result<Wbs, Declined> {
-    let mut frame = Frame::default();
+    let mut frame = Frame::styled(super::skin::WBS_STYLE);
     let mut p = WbsParser::default();
     let mut at = 0;
     while at < lines.len() {
@@ -97,6 +97,7 @@ impl MindMapParser {
             _ => {}
         }
         if let Some((mut node, level, next)) = multiline(lines, at) {
+            node.class = class_of(&node.text.value);
             node.text.value = label_mindmap(&node.text.value);
             self.add(node, level, !self.left_by_default, no)?;
             return Ok(next);
@@ -107,7 +108,8 @@ impl MindMapParser {
             let (color, shape, rest) = mindmap_decoration(rest);
             let typed = format!("{}{markers}", " ".repeat(line.indent));
             let level = self.smart_level(&typed, no)?;
-            let node = node(label_mindmap(rest.trim_start()), shape, color, no);
+            let mut node = node(label_mindmap(rest.trim_start()), shape, color, no);
+            node.class = class_of(rest);
             self.add(node, level, !self.left_by_default, no)?;
             return Ok(at + 1);
         }
@@ -126,7 +128,8 @@ impl MindMapParser {
             let count = text.len() - text.trim_start_matches(['+', '-']).len();
             let (markers, rest) = text.split_at(count);
             let (color, shape, rest) = mindmap_decoration(rest);
-            let node = node(label_mindmap(rest.trim_start()), shape, color, no);
+            let mut node = node(label_mindmap(rest.trim_start()), shape, color, no);
+            node.class = class_of(rest);
             self.add(node, count - 1, !markers.contains('-'), no)?;
             return Ok(at + 1);
         }
@@ -251,8 +254,10 @@ impl WbsParser {
             (None, _) => return Err(Declined::at(no, "a WBS node needs a label")),
             (Some(_), shape) => shape,
         };
+        let class = label.and_then(class_of);
         let label = label.map_or(String::new(), |l| label_wbs(l).to_owned());
-        let node = node(label, shape, d.color.map(str::to_owned), no);
+        let mut node = node(label, shape, d.color.map(str::to_owned), no);
+        node.class = class;
         self.add_node(typed, d.left, node, no)
     }
 
@@ -313,6 +318,15 @@ impl WbsParser {
     }
 }
 
+/// The stereotype that ends `label`, `<<name>>`, without its brackets.
+fn class_of(label: &str) -> Option<String> {
+    let last = label.rsplit(['\n']).next().unwrap_or(label);
+    let last = last.rsplit("\\n").next().unwrap_or(last);
+    let at = stereotype_at(last)?;
+    let name = last[at + 2..last.len() - 2].trim();
+    (!name.is_empty()).then(|| name.to_owned())
+}
+
 fn node(label: String, shape: NodeShape, color: Option<String>, no: usize) -> Node {
     Node {
         text: Text {
@@ -322,6 +336,7 @@ fn node(label: String, shape: NodeShape, color: Option<String>, no: usize) -> No
         shape,
         color,
         ink: None,
+        class: None,
         key: String::new(),
         folded: 0,
     }
@@ -759,7 +774,7 @@ mod tests {
             ("* a\n  * b\n   * c", 2, "multiple"),
             ("* a\n  ++ b", 1, "beginning of the line"),
             ("* a\nnewpage", 1, "newpage"),
-            ("* a\n<style>\n</style>", 1, "<style>"),
+            ("* a\n<style>\nnode { Padding 3 }\n</style>", 2, "Padding"),
             (deep.as_str(), 101, "levels"),
             ("* a\nfoo bar", 1, "foo bar"),
         ] {

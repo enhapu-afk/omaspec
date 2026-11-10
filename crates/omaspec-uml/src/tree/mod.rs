@@ -49,6 +49,8 @@ pub struct Node {
     pub color: Option<String>,
     /// Mermaid: the ink on this box. `None` uses the skin's font.
     pub ink: Option<String>,
+    /// `<<name>>` after its label: what a style's `.name` reaches.
+    pub class: Option<String>,
     /// What the pane calls the box when it folds it
     /// ([0024](../../../docs/adr/0024-focus-and-collapse.md)): its label
     /// on one line, numbered (`Tests (2)`) when a box before it has the
@@ -275,6 +277,9 @@ const MARGIN: f32 = 10.0;
 
 /// A node's label measured, with its fill.
 struct Label {
+    /// How this box looks: the skin's boxes, and what the styles set for
+    /// its place, its stereotype and its depth.
+    look: skin::Look,
     block: Block,
     /// Under the label of a folded box: how many it holds.
     more: Option<Block>,
@@ -283,9 +288,22 @@ struct Label {
 }
 
 impl Label {
-    fn new(node: &Node, skin: &skin::Skin, family: Family) -> Result<Label, Declined> {
+    /// The label of `node`, `depth` boxes below the root, a `leaf` when
+    /// none hangs below it.
+    fn new(
+        node: &Node,
+        skin: &skin::Skin,
+        family: Family,
+        (depth, leaf): (usize, bool),
+    ) -> Result<Label, Declined> {
         let line = node.text.line;
-        let mut font = skin.font;
+        let look = skin.look(skin::Spot {
+            depth,
+            leaf,
+            boxless: matches!(node.shape, NodeShape::Plain | NodeShape::Pseudo),
+            class: node.class.as_deref(),
+        });
+        let mut font = look.font;
         if let Some(value) = &node.ink {
             font.color = match color::parse(value).map_err(|e| Declined::at(line, e))? {
                 Some(color) => color,
@@ -298,7 +316,7 @@ impl Label {
             text::block(&node.text.value, font, family).map_err(|e| Declined::at(line, e))?;
         let fill = match &node.color {
             Some(c) => color::parse(c).map_err(|e| Declined::at(line, e))?,
-            None => skin.fill,
+            None => look.fill,
         };
         // A folded box says what it holds, as a folded state does.
         let more = (node.folded > 0)
@@ -314,6 +332,7 @@ impl Label {
             })
             .transpose()?;
         Ok(Label {
+            look,
             block,
             more,
             shape: node.shape,
@@ -367,13 +386,13 @@ impl Label {
     fn draw(&self, canvas: &mut Canvas, skin: &skin::Skin, (x, y): (f32, f32), before: f32) {
         let (w, h) = self.size(skin, before, 0.0);
         let content = self.content();
-        let stroke = Stroke::new(skin.border, skin.thickness);
+        let stroke = Stroke::new(self.look.border, self.look.thickness);
         let inner = match self.shape {
             NodeShape::Box | NodeShape::Square => {
                 let round = if self.shape == NodeShape::Square {
                     0.0
                 } else {
-                    skin.round
+                    self.look.round
                 };
                 canvas.rect(Layer::Front, (x, y, w, h), round, self.fill, Some(stroke));
                 (x + skin.padding, y + skin.padding, w - 2.0 * skin.padding)

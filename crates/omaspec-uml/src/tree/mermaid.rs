@@ -300,6 +300,7 @@ fn make_node(label: &str, shape: NodeShape, line: usize) -> Node {
         shape,
         color: None,
         ink: None,
+        class: None,
         key: String::new(),
         folded: 0,
     }

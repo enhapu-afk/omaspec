@@ -47,13 +47,17 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
         left: Vec::new(),
         right: Vec::new(),
     };
-    let mut root = Branch::new(&alone, &skin, family)?;
+    let mut root = Branch::new(&alone, &skin, family, 0)?;
+    // It was measured alone: with boxes below it, it is no leaf.
+    if !d.root.right.is_empty() || !d.root.left.is_empty() {
+        root.label = Label::new(&d.root.node, &skin, family, (0, false))?;
+    }
     root.frame = !d.root.right.is_empty() || !d.root.left.is_empty();
     let row = d
         .root
         .right
         .iter()
-        .map(|e| Branch::new(e, &skin, family))
+        .map(|e| Branch::new(e, &skin, family, 1))
         .collect::<Result<Vec<_>, _>>()?;
     let mut drawer = Drawer {
         skin: &skin,
@@ -91,12 +95,13 @@ struct Branch {
 }
 
 impl Branch {
-    fn new(e: &Element, skin: &Skin, family: Family) -> Result<Branch, Declined> {
-        let label = Label::new(&e.node, skin, family)?;
+    fn new(e: &Element, skin: &Skin, family: Family, depth: usize) -> Result<Branch, Declined> {
+        let leaf = e.left.is_empty() && e.right.is_empty();
+        let label = Label::new(&e.node, skin, family, (depth, leaf))?;
         let main = label.size(skin, 0.0, 3.0);
         let measure = |list: &[Element]| {
             list.iter()
-                .map(|c| Branch::new(c, skin, family))
+                .map(|c| Branch::new(c, skin, family, depth + 1))
                 .collect::<Result<Vec<_>, _>>()
         };
         let (left, right) = (measure(&e.left)?, measure(&e.right)?);

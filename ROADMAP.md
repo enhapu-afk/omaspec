@@ -2090,6 +2090,15 @@ what it costs.
       button, click and command as a container (0024). The trees' maps
       name their boxes now (`Place::fixed`: none is held beside another),
       two with the same words as `Tests` and `Tests (2)`.
+- [x] `<style>` in mind maps and WBS diagrams (2026-11-10), which
+      PlantUML styles by nothing else: `node`, `rootNode`, `leafNode`,
+      `boxless` and `arrow`, and each box by its stereotype (`.urgent`,
+      `<<urgent>>` after its label) and its depth (`:depth(1)`), a later
+      setting counting over an earlier one whichever boxes each is for
+      (`tree::skin::Rule`). Held against the Java PlantUML's picture.
+      Open: `Padding`, `Margin`, `MaximumWidth`, `HorizontalAlignment`
+      and a font name on a box decline by name; class, component, use
+      case, timing and Gantt diagrams still decline a `<style>`.
 - [x] Shadows (2026-11-10): `skinparam shadowing true` and a style's
       `root { Shadowing 3 }` declined the whole diagram. Now every box
       casts one, in all PlantUML types: a filled shape with a border, 3

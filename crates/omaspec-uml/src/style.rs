@@ -242,6 +242,10 @@ pub struct Element {
     props: &'static [Prop],
     /// What it draws under skinparams of their own.
     keys: &'static [(Prop, &'static str)],
+    /// It tells its boxes apart by stereotype and by depth: a style for
+    /// `.green` or `:depth(2)` becomes a skinparam with that before its
+    /// name, `class=green|NodeBackgroundColor`.
+    varied: bool,
 }
 
 impl Element {
@@ -255,6 +259,7 @@ impl Element {
             prefix,
             props,
             keys: &[],
+            varied: false,
         }
     }
 
@@ -267,6 +272,15 @@ impl Element {
             prefix: "",
             props: &[],
             keys,
+            varied: false,
+        }
+    }
+
+    /// The element, telling its boxes apart by stereotype and by depth.
+    pub const fn varied(self) -> Element {
+        Element {
+            varied: true,
+            ..self
         }
     }
 
@@ -355,6 +369,9 @@ pub struct Declaration {
     /// Why a selector on the way cannot be followed yet: a stereotype, a
     /// depth, a `*`.
     unsupported: Option<String>,
+    /// The stereotypes and depths on the way, when nothing else on it is
+    /// in the way: `class=green`, `depth=2`.
+    only: Vec<String>,
     prop: Prop,
     written: Declared,
     line: usize,
@@ -421,9 +438,22 @@ pub fn skinparams(
             continue;
         }
         let fail = |why: String| Declined::at(d.line, why);
-        if let Some(why) = &d.unsupported {
+        // A stereotype or a depth reaches only the elements that tell
+        // them apart; in a diagram without one it declines, as before.
+        let varied = !d.only.is_empty() && reached.iter().any(|e| e.varied);
+        let reached: Vec<&Element> = if varied {
+            reached.into_iter().filter(|e| e.varied).collect()
+        } else {
+            reached
+        };
+        if let Some(why) = d.unsupported.as_ref().filter(|_| !varied) {
             return Err(fail(why.clone()));
         }
+        let only = if varied {
+            format!("{}|", d.only.join("&"))
+        } else {
+            String::new()
+        };
         let value = d.written.value.as_str();
         let param = |key: &str, value: &str| Skinparam {
             key: key.to_owned(),
@@ -433,7 +463,7 @@ pub fn skinparams(
         };
         // `root` reaches everything; for these PlantUML's own skinparams
         // say the same.
-        let root = d.names.iter().all(|n| n == "root");
+        let root = d.names.iter().all(|n| n == "root") && !varied;
         match d.prop {
             Prop::Shadowing if no_shadow(value) => continue,
             Prop::Shadowing if root => {
@@ -466,7 +496,7 @@ pub fn skinparams(
         let mut taken = false;
         for e in &reached {
             if let Some(key) = e.key(d.prop) {
-                out.push(param(&key, &value));
+                out.push(param(&format!("{only}{key}"), &value));
                 taken = true;
             }
         }
@@ -520,6 +550,10 @@ struct Selector {
     raw: String,
     /// The style name in lower case, or why it cannot be followed yet.
     name: Result<String, String>,
+    /// What it asks of an element besides its name: a stereotype
+    /// (`class=green`) or a depth (`depth=2`), for the diagram types
+    /// whose elements tell them apart ([`Element::varied`]).
+    only: Option<String>,
 }
 
 /// One style value. `seen` is false when the property had nothing after
@@ -586,6 +620,13 @@ fn flatten(
                 return Err(Declined::at(p.line, "this `<style>` sets too much"));
             }
             let unsupported = path.iter().find_map(|s| s.name.as_ref().err()).cloned();
+            // Only stereotypes and depths stand in the way: a diagram
+            // whose elements tell them apart follows them.
+            let only: Vec<String> = if path.iter().all(|s| s.name.is_ok() || s.only.is_some()) {
+                path.iter().filter_map(|s| s.only.clone()).collect()
+            } else {
+                Vec::new()
+            };
             let selector = path.last().map_or("", |s| s.raw.as_str());
             out.push(Declaration {
                 names: path
@@ -594,6 +635,7 @@ fn flatten(
                     .cloned()
                     .collect(),
                 unsupported,
+                only,
                 prop: p.prop,
                 written: Declared {
                     selector: selector.to_owned(),
@@ -982,6 +1024,14 @@ impl Parser {
 
 /// What PlantUML makes of a selector word.
 fn classify(raw: String) -> Selector {
+    let only = match raw.strip_prefix('.') {
+        Some(class) if !class.is_empty() => Some(format!("class={}", class.to_ascii_lowercase())),
+        _ => raw
+            .strip_prefix("depth(")
+            .and_then(|rest| rest.strip_suffix(')'))
+            .and_then(|depth| depth.trim().parse::<usize>().ok())
+            .map(|depth| format!("depth={depth}")),
+    };
     let name = if raw.starts_with('.') {
         Err(format!(
             "styles for stereotypes (`{raw}`) are not supported yet"
@@ -996,7 +1046,7 @@ fn classify(raw: String) -> Selector {
              styles for stereotypes are not supported yet"
         ))
     };
-    Selector { raw, name }
+    Selector { raw, name, only }
 }
 
 #[cfg(test)]

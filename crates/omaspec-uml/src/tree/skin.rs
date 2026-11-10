@@ -10,8 +10,129 @@ use super::Skinparam;
 use crate::Declined;
 use crate::color::{Color, Paint};
 use crate::common::normalize_key;
+use crate::style::{Element, Prop};
 use crate::svg::{Align, Stroke};
 use crate::text::Font;
+
+/// What a `<style>` sets on a box.
+const BOX: &[Prop] = &[
+    Prop::BackGroundColor,
+    Prop::LineColor,
+    Prop::LineThickness,
+    Prop::FontColor,
+    Prop::FontSize,
+    Prop::FontStyle,
+    Prop::RoundCorner,
+];
+
+const ARROW: &[(Prop, &str)] = &[
+    (Prop::LineColor, "ArrowColor"),
+    (Prop::LineThickness, "ArrowThickness"),
+    (Prop::LineStyle, "ArrowStyle"),
+];
+
+/// What a `<style>` reaches in a mind map: every box (`node`), the root
+/// and the leaves among them, a label without a box, the links; each box
+/// by its stereotype (`.green`) and its depth (`:depth(2)`) too.
+pub const MINDMAP_STYLE: &[Element] = &[
+    Element::new(&["element", "mindmapDiagram", "node"], "Node", BOX).varied(),
+    Element::new(
+        &["element", "mindmapDiagram", "node", "rootNode"],
+        "RootNode",
+        BOX,
+    )
+    .varied(),
+    Element::new(
+        &["element", "mindmapDiagram", "node", "leafNode"],
+        "LeafNode",
+        BOX,
+    )
+    .varied(),
+    Element::new(
+        &["element", "mindmapDiagram", "node", "boxless"],
+        "Boxless",
+        crate::style::TEXT,
+    )
+    .varied(),
+    Element::keys(&["element", "mindmapDiagram", "arrow"], ARROW),
+];
+
+/// The same in a WBS.
+pub const WBS_STYLE: &[Element] = &[
+    Element::new(&["element", "wbsDiagram", "node"], "Node", BOX).varied(),
+    Element::new(
+        &["element", "wbsDiagram", "node", "rootNode"],
+        "RootNode",
+        BOX,
+    )
+    .varied(),
+    Element::new(
+        &["element", "wbsDiagram", "node", "leafNode"],
+        "LeafNode",
+        BOX,
+    )
+    .varied(),
+    Element::new(
+        &["element", "wbsDiagram", "node", "boxless"],
+        "Boxless",
+        crate::style::TEXT,
+    )
+    .varied(),
+    Element::keys(&["element", "wbsDiagram", "arrow"], ARROW),
+];
+
+/// Which boxes a setting is for.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum When {
+    Root,
+    /// A box with none below it.
+    Leaf,
+    /// A label without a box (`_`).
+    Boxless,
+    /// The root is 0.
+    Depth(usize),
+    /// A stereotype, in lower case.
+    Class(String),
+}
+
+/// What a setting changes on a box.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Change {
+    Fill(Paint),
+    Border(Color),
+    Thickness(f32),
+    Round(f32),
+    FontColor(Color),
+    FontSize(f32),
+    FontStyle { bold: bool, italic: bool },
+}
+
+/// One setting of the boxes: for those every [`When`] holds for, all of
+/// them when there is none.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Rule {
+    pub when: Vec<When>,
+    pub change: Change,
+}
+
+/// Where a box stands in its tree.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Spot<'a> {
+    pub depth: usize,
+    pub leaf: bool,
+    pub boxless: bool,
+    pub class: Option<&'a str>,
+}
+
+/// How one box looks.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Look {
+    pub fill: Paint,
+    pub border: Color,
+    pub thickness: f32,
+    pub round: f32,
+    pub font: Font,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TreeKind {
@@ -46,9 +167,79 @@ pub struct Skin {
     pub header_font: Font,
     pub footer_font: Font,
     pub caption_font: Font,
+    /// The settings of the boxes in the order written: a later one
+    /// counts over an earlier one, whichever boxes each is for.
+    pub rules: Vec<Rule>,
+}
+
+/// `value` as a font style: `bold`, `italic`, `plain`.
+fn font_style(p: &Skinparam) -> Result<(bool, bool), Declined> {
+    let v = p.value.trim().to_ascii_lowercase();
+    let words: Vec<&str> = v.split_whitespace().collect();
+    if words.is_empty()
+        || words
+            .iter()
+            .any(|w| !matches!(*w, "plain" | "bold" | "italic"))
+    {
+        return Err(p.unsupported());
+    }
+    Ok((words.contains(&"bold"), words.contains(&"italic")))
+}
+
+/// What the property `name` of a box, a skinparam's name without the
+/// box's (`backgroundcolor`), changes; `None` for one the boxes do not
+/// take.
+fn change(name: &str, p: &Skinparam) -> Result<Option<Change>, Declined> {
+    Ok(Some(match name {
+        "backgroundcolor" => Change::Fill(p.paint()?),
+        "bordercolor" => Change::Border(p.solid()?),
+        "borderthickness" => Change::Thickness(p.number(0.0, 20.0)?),
+        "roundcorner" => Change::Round(p.corner()?),
+        "fontcolor" => Change::FontColor(p.solid()?),
+        "fontsize" => Change::FontSize(p.number(4.0, 100.0)?),
+        "fontstyle" => {
+            let (bold, italic) = font_style(p)?;
+            Change::FontStyle { bold, italic }
+        }
+        _ => return Ok(None),
+    }))
 }
 
 impl Skin {
+    /// How the box at `spot` looks: the boxes' own look, then every
+    /// setting that is for it, in the order written.
+    pub fn look(&self, spot: Spot) -> Look {
+        let mut look = Look {
+            fill: self.fill,
+            border: self.border,
+            thickness: self.thickness,
+            round: self.round,
+            font: self.font,
+        };
+        let holds = |when: &When| match when {
+            When::Root => spot.depth == 0,
+            When::Leaf => spot.leaf,
+            When::Boxless => spot.boxless,
+            When::Depth(depth) => spot.depth == *depth,
+            When::Class(class) => spot.class.is_some_and(|c| c.eq_ignore_ascii_case(class)),
+        };
+        for rule in self.rules.iter().filter(|r| r.when.iter().all(holds)) {
+            match rule.change {
+                Change::Fill(fill) => look.fill = fill,
+                Change::Border(color) => look.border = color,
+                Change::Thickness(width) => look.thickness = width,
+                Change::Round(round) => look.round = round,
+                Change::FontColor(color) => look.font.color = color,
+                Change::FontSize(size) => look.font.size = size,
+                Change::FontStyle { bold, italic } => {
+                    look.font.bold = bold;
+                    look.font.italic = italic;
+                }
+            }
+        }
+        look
+    }
+
     fn defaults(kind: TreeKind) -> Skin {
         let black = Color::BLACK;
         let dark = Color::hex(0x181818);
@@ -76,26 +267,64 @@ impl Skin {
             header_font: Font::new(10.0, gray),
             footer_font: Font::new(10.0, gray),
             caption_font: Font::new(14.0, black),
+            rules: Vec::new(),
         }
     }
 
     pub fn from_params(params: &[Skinparam], kind: TreeKind) -> Result<Skin, Declined> {
         let mut skin = Skin::defaults(kind);
         for p in params {
-            let key = normalize_key(&p.key);
+            // A style for a stereotype or a depth says so before the
+            // name: `class=green&depth=2|NodeBackgroundColor`.
+            let (only, name) = match p.key.split_once('|') {
+                Some((only, name)) => (only, name),
+                None => ("", p.key.as_str()),
+            };
+            let key = normalize_key(name);
             let value = p.value.trim();
-            let style = |font: &mut Font| -> Result<(), Declined> {
-                let v = value.to_ascii_lowercase();
-                let words: Vec<&str> = v.split_whitespace().collect();
-                if words.is_empty()
-                    || words
-                        .iter()
-                        .any(|w| !matches!(*w, "plain" | "bold" | "italic"))
-                {
-                    return Err(p.unsupported());
+            let mut when: Vec<When> = only
+                .split('&')
+                .filter_map(|one| match one.split_once('=')? {
+                    ("class", class) => Some(When::Class(class.to_owned())),
+                    ("depth", depth) => depth.parse().ok().map(When::Depth),
+                    _ => None,
+                })
+                .collect();
+            let part = [
+                ("rootnode", Some(When::Root)),
+                ("leafnode", Some(When::Leaf)),
+                ("boxless", Some(When::Boxless)),
+                ("node", None),
+            ]
+            .into_iter()
+            .find_map(|(prefix, part)| Some((key.strip_prefix(prefix)?, part)));
+            // The boxes a setting is for, when it is not for all of them.
+            if let Some((property, part)) = part
+                && (part.is_some() || !when.is_empty())
+            {
+                when.extend(part);
+                match change(property, p)? {
+                    Some(change) => skin.rules.push(Rule { when, change }),
+                    None => return Err(p.unsupported()),
                 }
-                font.bold = words.contains(&"bold");
-                font.italic = words.contains(&"italic");
+                continue;
+            }
+            // For all of them: in its place among the others, so one
+            // written after a stereotype's counts over it.
+            let property = match key.as_str() {
+                "roundcorner" => Some("roundcorner"),
+                "defaultfontsize" => Some("fontsize"),
+                "defaultfontcolor" => Some("fontcolor"),
+                key => key.strip_prefix("node"),
+            };
+            if let Some(change) = property.map(|name| change(name, p)).transpose()?.flatten() {
+                skin.rules.push(Rule {
+                    when: Vec::new(),
+                    change,
+                });
+            }
+            let style = |font: &mut Font| -> Result<(), Declined> {
+                (font.bold, font.italic) = font_style(p)?;
                 Ok(())
             };
             match key.as_str() {
@@ -252,5 +481,61 @@ mod tests {
             let err = skin(TreeKind::Wbs, &[("roundCorner", "3"), (key, value)]).unwrap_err();
             assert_eq!(err.line, Some(1), "{key}");
         }
+    }
+
+    #[test]
+    fn a_style_reaches_a_box_by_its_place_its_stereotype_and_its_depth() {
+        let source = "@startmindmap\n<style>\nmindmapDiagram {\n  node { BackgroundColor #00ff00 }\n  :depth(1) { BackgroundColor #ffffff }\n  rootNode { FontStyle bold }\n  leafNode { FontColor #000080 }\n  .urgent { BackgroundColor #ff0000; RoundCorner 0 }\n  arrow { LineColor #0000ff }\n}\n</style>\n* Root\n** First\n*** Leaf <<urgent>>\n*** Other\n@endmindmap\n";
+        let Ok(crate::Diagram::MindMap(map)) = crate::parse(source) else {
+            panic!("a mind map");
+        };
+        let skin = Skin::from_params(&map.frame.skinparams, TreeKind::MindMap).unwrap();
+        assert_eq!(skin.link.color, Color::hex(0x0000ff));
+        let at = |depth, leaf, class| {
+            skin.look(Spot {
+                depth,
+                leaf,
+                boxless: false,
+                class,
+            })
+        };
+        let root = at(0, false, None);
+        assert!(root.font.bold && root.fill == Some(Color::hex(0x00ff00)));
+        assert_eq!(at(1, false, None).fill, Some(Color::hex(0xffffff)));
+        let other = at(2, true, None);
+        assert_eq!(other.fill, Some(Color::hex(0x00ff00)));
+        assert_eq!(other.font.color, Color::hex(0x000080));
+        let urgent = at(2, true, Some("urgent"));
+        assert_eq!(
+            (urgent.fill, urgent.round),
+            (Some(Color::hex(0xff0000)), 0.0)
+        );
+        // The stereotype is read off the label, which keeps its space
+        // before it, as PlantUML measures it.
+        let leaf = &map.maps[0].right[0].children[0].node;
+        assert_eq!(
+            (leaf.text.value.as_str(), leaf.class.as_deref()),
+            ("Leaf ", Some("urgent"))
+        );
+        // A setting for every box written later counts over the stereotype's.
+        let later = "@startwbs\n<style>\n.done { BackgroundColor #ff0000 }\nnode { BackgroundColor #00ff00 }\n</style>\n* A <<done>>\n@endwbs\n";
+        let Ok(crate::Diagram::Wbs(wbs)) = crate::parse(later) else {
+            panic!("a WBS");
+        };
+        let skin = Skin::from_params(&wbs.frame.skinparams, TreeKind::Wbs).unwrap();
+        assert_eq!(at_done(&skin).fill, Some(Color::hex(0x00ff00)));
+        // In a diagram whose boxes tell no stereotype apart it declines.
+        let scenario =
+            "@startuml\n<style>\n.done { BackgroundColor red }\n</style>\nA -> B\n@enduml\n";
+        assert!(crate::parse(scenario).is_err());
+    }
+
+    fn at_done(skin: &Skin) -> Look {
+        skin.look(Spot {
+            depth: 0,
+            leaf: true,
+            boxless: false,
+            class: Some("done"),
+        })
     }
 }
