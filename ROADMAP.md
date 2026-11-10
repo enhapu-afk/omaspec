@@ -1960,11 +1960,18 @@ what it costs.
       written as a GIF or an APNG, for a presentation or a pull request.
       The frames are drawn headless already (`snapshot_dive`, `frames_`);
       `docs/images/play.gif` is still cut from a screen recording by hand.
-      Weighed: a step of its own. The frames come from the window's
-      renderer, which the command line has not; an `omaspec play FILE -o
-      play.gif` would have to draw the diagram and its light on the CPU
-      (`tiny-skia` has it) and encode the frames (the `gif` or `png` crate
-      with APNG), with a dependency or two to weigh.
+      Weighed twice (2026-11-10) and left for a release of its own: the
+      frames come from the window's renderer (iced on wgpu), which the
+      command line has not. Two ways, neither small: `omaspec play FILE -o
+      play.gif` draws the diagram and its light itself on the CPU
+      (`tiny-skia` draws the SVG already; the light along a transition,
+      the fade of a fold and the growth of a dive would be drawn a second
+      time, apart from the pane's), or the headless screen the snapshot
+      tests use (`Screen`, wgpu without a window) moves into the binary,
+      which then needs a GPU for a command. Either way an encoder comes
+      in (`gif`, or `png` with APNG). To take up when a presentation or a
+      pull request asks for it; until then `docs/images/play.gif` is cut
+      from a recording.
 - [x] A color for one box (2026-11-10): *Color this box…* in the palette
       and the menus offers the window's colors for the state or class the
       caret is on, and none. It goes into the source as the language
