@@ -1119,7 +1119,8 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         container's border to its other end as it carries any line, and
         only the stretch inside is routed afterwards; a change to
         `graph::open` and `graph::across` with an ADR of its own.
-        The README's picture of the drone is from before.
+        The README's picture of the drone is taken again; the other
+        pictures show nothing that moved.
   - [x] Lines by hand curve like the layout's (2026-11-08): a corner the
         writer placed was rounded by at most 16 units, so a run dragged
         out of the layout turned a wide curve into a near right angle; now
