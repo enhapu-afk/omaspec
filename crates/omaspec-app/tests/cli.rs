@@ -1037,6 +1037,30 @@ fn render_check_holds_a_project_against_its_committed_svgs() {
     assert!(dir.join("states/door.svg").is_file() && dir.join("flow.svg").is_file());
     // And the project's map, beside the project's file.
     assert!(dir.join("omaspec-project.svg").is_file());
+    // As text, a project is its diagrams: its file is no diagram to read.
+    let (_, out, err) = run(&["--format", "text", root]);
+    assert!(err.contains("door.txt"), "{err}");
+    assert!(
+        !out.contains("omaspec-project") && !err.contains("omaspec-project"),
+        "{out}\n{err}"
+    );
+    // A project below a folder that is none: its map is drawn with its
+    // diagrams.
+    let around = scratch("render-around");
+    fs::create_dir_all(around.join("nested")).unwrap();
+    fs::write(
+        around.join("nested/omaspec-project.toml"),
+        "name = \"nested\"\n",
+    )
+    .unwrap();
+    fs::write(
+        around.join("nested/lamp.puml"),
+        "@startuml\n[*] --> Off\n@enduml\n",
+    )
+    .unwrap();
+    assert_eq!(run(&[around.to_str().unwrap()]).0, Some(0));
+    assert!(around.join("nested/omaspec-project.svg").is_file());
+    let _ = fs::remove_dir_all(&around);
     let (code, out, err) = run(&["--check", root]);
     assert_eq!((code, out.as_str()), (Some(0), ""), "{err}");
     assert!(err.contains("3 SVGs drawn as they are"), "{err}");

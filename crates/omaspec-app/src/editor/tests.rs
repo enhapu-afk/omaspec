@@ -1553,6 +1553,47 @@ fn the_change_since_b_glides_from_b_to_a() {
     let _ = paper.update(paper::Message::Faded);
     paper.deliver_overview();
     assert!(paper.fading_lines(), "the way from B to A glides");
+
+    // Asked for a new drawing while B stands, the pane shows that next,
+    // not A as it was.
+    app.worker = Some(worker::Worker::detached());
+    press(&mut app, Command::CompareGlide);
+    assert!(app.doc().paper.glides_back());
+    let key = app.doc().key;
+    let worker = app.worker.clone().unwrap();
+    app.doc_mut()
+        .paper
+        .request(&worker, key, new.into(), Language::PlantUml, None);
+    assert!(!app.doc().paper.glides_back());
+
+    // The glide goes into the compared tab's pane, not another's.
+    let _ = app.update(Message::Select(0));
+    press(&mut app, Command::CompareGlide);
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("the comparison is in another tab")
+    );
+}
+
+#[test]
+fn a_project_s_file_takes_no_command_meant_for_a_diagram() {
+    let root = shop_without_a_map("project-commands");
+    let mut app = open(&[root.join(omaspec_core::project::FILE)]);
+    let text = app.doc().text();
+    for command in [
+        Command::Format,
+        Command::Convert,
+        Command::Compare,
+        Command::Play,
+        Command::RenameEverywhere,
+    ] {
+        press(&mut app, command);
+        assert!(app.notice.is_some(), "{command:?}");
+        assert!(app.picker.is_none() && app.prompt.is_none(), "{command:?}");
+    }
+    assert_eq!(app.doc().text(), text);
+    assert!(!app.doc().modified);
+    let _ = std::fs::remove_dir_all(&root);
 }
 
 #[test]

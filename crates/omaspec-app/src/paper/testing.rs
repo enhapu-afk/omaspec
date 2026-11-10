@@ -155,6 +155,12 @@ impl Paper {
         }
     }
 
+    /// Whether a glide from an older drawing waits to come back to the
+    /// diagram it was shown for.
+    pub fn glides_back(&self) -> bool {
+        self.back.is_some()
+    }
+
     /// How many pictures of the diagram before fade out, if a fade runs.
     pub fn fading(&self) -> Option<usize> {
         self.fade.as_ref().map(|fade| fade.old.len())

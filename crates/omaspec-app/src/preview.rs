@@ -72,9 +72,13 @@ struct Preview {
 
     paper: Paper,
     notice: Option<String>,
-    /// The files shown before a click on a link brought this one, to go
-    /// back to with Backspace.
-    back: Vec<PathBuf>,
+    /// The folder of the project whose map is shown, by its path there:
+    /// the project itself when empty; a click on a folder's tile goes
+    /// into it.
+    folder: String,
+    /// The files shown before a click on a link brought this one, each
+    /// with the folder of its map, to go back to with Backspace.
+    back: Vec<(PathBuf, String)>,
     /// The index of the project whose map is shown: a change in it draws
     /// the map again, and only the files that changed are read.
     index: Option<Index>,
@@ -99,6 +103,7 @@ impl Preview {
             font: ui::mono_font(),
             paper: Paper::foldable(),
             notice: None,
+            folder: String::new(),
             back: Vec::new(),
             index: None,
         };
@@ -231,13 +236,9 @@ impl Preview {
             // A project's file: the project's map, in the files' colors.
             Ok(_) if self.name == omaspec_core::project::FILE => {
                 if let Some(atlas) = self.project() {
-                    self.paper.request_map(
-                        &worker,
-                        0,
-                        crate::look::MAP_SKIN.into(),
-                        atlas,
-                        String::new(),
-                    );
+                    let folder = self.folder.clone();
+                    self.paper
+                        .request_map(&worker, 0, crate::look::MAP_SKIN.into(), atlas, folder);
                 }
             }
             Ok(source) => {
@@ -269,7 +270,8 @@ impl Preview {
     }
 
     /// A click on a tile of a map or a state with a diagram of its own:
-    /// the window follows that diagram from now on.
+    /// the window follows that diagram from now on; on a folder's tile,
+    /// it shows the folder's map.
     fn follow(&mut self, at: iced::Point) -> Task<Message> {
         let Some(link) = self.paper.link_at(at).cloned() else {
             return Task::none();
@@ -277,11 +279,18 @@ impl Preview {
         let Some(root) = Place::of(&self.path, None).map(|p| p.root) else {
             return Task::none();
         };
+        if let Some(folder) = link.folder {
+            let was = std::mem::replace(&mut self.folder, folder);
+            self.back.push((self.path.clone(), was));
+            self.show_path();
+            return Task::none();
+        }
         match link.files.as_slice() {
             [file] => {
                 let to = root.join(file);
                 let from = std::mem::replace(&mut self.path, to);
-                self.back.push(from);
+                let folder = std::mem::take(&mut self.folder);
+                self.back.push((from, folder));
                 self.show_path();
                 Task::none()
             }
@@ -316,8 +325,9 @@ impl Preview {
         let back = matches!(key.as_ref(), Key::Named(Named::ArrowLeft)) && modifiers.alt()
             || matches!(key.as_ref(), Key::Named(Named::Backspace)) && !self.paper.playing();
         if back && !modifiers.control() {
-            if let Some(path) = self.back.pop() {
+            if let Some((path, folder)) = self.back.pop() {
                 self.path = path;
+                self.folder = folder;
                 self.show_path();
             }
             return Task::none();

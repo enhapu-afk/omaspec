@@ -246,10 +246,6 @@ pub fn export(
         } else {
             format!("{folder}/{INDEX}")
         };
-        anyhow::ensure!(
-            !pictures.iter().any(|(target, _)| *target == own),
-            "a diagram would be {own}, which is the map of its folder; rename it"
-        );
         let map = crate::look::render_map(&mut maps, renderer, &root, &folder, skin.as_ref())
             .map_err(|err| anyhow::anyhow!("the map of {} did not draw: {err}", root.display()))?;
         let links = export_links(&map.links, &own, true);
@@ -289,15 +285,17 @@ pub fn export(
 }
 
 /// Each diagram's SVG in the folder, as [`svg_of`] names it. Two diagrams
-/// that would be one SVG, or one that would be `index.svg`, the project's
-/// map, are refused.
+/// that would be one SVG are refused, and so is one that would be
+/// `index.svg` in any folder: that is the map's name, the project's at
+/// the top and a folder's in the folder, decided here before anything
+/// is drawn.
 fn targets(files: &[&str]) -> Result<Vec<String>> {
     let mut taken: HashMap<String, &str> = HashMap::new();
     let mut targets = Vec::with_capacity(files.len());
     for &file in files {
         let target = svg_of(file);
-        if target == INDEX {
-            anyhow::bail!("{file} would be {INDEX}, which is the project's map; rename it");
+        if target.rsplit('/').next() == Some(INDEX) {
+            anyhow::bail!("{file} would be {target}, which is the map of its folder; rename it");
         }
         if let Some(other) = taken.get(&target).filter(|other| **other != file) {
             anyhow::bail!("{other} and {file} would both be {target}; rename one of them");
@@ -355,8 +353,9 @@ mod tests {
             index.to_string().contains("index.mmd would be index.svg"),
             "{index}"
         );
-        // A folder down the name is free, unless that folder is a tile.
-        assert!(targets(&["orders/index.puml"]).is_ok());
+        // Nor in a folder, whose map is index.svg there once it is a tile.
+        let below = targets(&["orders/index.puml"]).unwrap_err();
+        assert!(below.to_string().contains("orders/index.svg"), "{below}");
     }
 
     #[test]

@@ -620,11 +620,12 @@ impl App {
     /// What the trail calls the map of the project whose file `doc` is:
     /// the project's name, else its folder's.
     fn trail_name_of_project(&self, doc: &Doc) -> String {
+        // From the project's atlas, read with the project: the view asks
+        // for this with every frame.
         let root = self.project_of(doc);
         root.as_deref()
-            .and_then(crate::project::read)
-            .and_then(Result::ok)
-            .and_then(|project| project.name)
+            .and_then(|root| self.atlases.get(root))
+            .and_then(|atlas| atlas.name.clone())
             .or_else(|| {
                 let name = root.as_deref()?.file_name()?;
                 Some(name.to_string_lossy().into_owned())

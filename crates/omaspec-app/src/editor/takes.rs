@@ -8,6 +8,41 @@ use super::Command;
 impl Command {
     /// `Err` with what to say when the command works on a diagram file
     /// only and the tab holds a Markdown document.
+    /// Whether a command may run with a project's file in the tab, whose
+    /// pane shows the map made from the project's diagrams
+    /// (docs/adr/0026): what reads or writes the text as a diagram, and
+    /// what plays or folds one, may not.
+    pub(super) fn in_a_project(self) -> Result<(), &'static str> {
+        match self {
+            Command::Skin(_)
+            | Command::Convert
+            | Command::Format
+            | Command::ResetLine
+            | Command::ResetLines
+            | Command::LanguageDetected
+            | Command::LanguagePlantUml
+            | Command::LanguageMermaid
+            | Command::RenameEverywhere => {
+                Err("the project's file is no diagram; this works in a diagram file")
+            }
+            Command::Compare
+            | Command::CompareDiff
+            | Command::CompareBehavior
+            | Command::CompareSync
+            | Command::CompareGlide => {
+                Err("a project's map is made from its diagrams; compare one of them")
+            }
+            Command::Play
+            | Command::PlayTrace
+            | Command::PlayAsk(_)
+            | Command::StopPlay
+            | Command::FocusBox
+            | Command::FoldBox
+            | Command::UnfoldAll => Err("a map is not played or folded; open a diagram of it"),
+            _ => Ok(()),
+        }
+    }
+
     pub(super) fn in_a_document(self) -> Result<(), &'static str> {
         match self {
             Command::Skin(_) => {

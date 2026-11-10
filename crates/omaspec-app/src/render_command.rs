@@ -43,7 +43,12 @@ pub struct RenderArgs<'a> {
 }
 
 pub fn render(args: &RenderArgs) -> Result<ExitCode> {
-    let inputs = read_inputs(&with_folders(args.files)?)?;
+    let txt = args
+        .output
+        .and_then(Path::extension)
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("txt"));
+    // A map is a picture: as text, a project is its diagrams.
+    let inputs = read_inputs(&with_folders(args.files, !(args.text || txt))?)?;
     // A Markdown document gives one image per diagram; one without any
     // is said so.
     let read: Vec<(&crate::files::Input, Vec<crate::document::Piece>)> = inputs
@@ -65,10 +70,6 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         args.scale > 0.0 && args.scale <= 16.0,
         "--scale must be between 0 and 16"
     );
-    let txt = args
-        .output
-        .and_then(Path::extension)
-        .is_some_and(|ext| ext.eq_ignore_ascii_case("txt"));
     if args.text || txt {
         anyhow::ensure!(
             !args.check,
@@ -414,7 +415,7 @@ pub(crate) struct Held {
 /// Draws the diagrams of `files` as `render --check` does and holds each
 /// SVG against the one beside its diagram. Writes nothing.
 pub(crate) fn hold_files(files: &[PathBuf]) -> Result<Vec<Held>> {
-    let inputs = read_inputs(&with_folders(files)?)?;
+    let inputs = read_inputs(&with_folders(files, true)?)?;
     let read: Vec<(&crate::files::Input, Vec<crate::document::Piece>)> = inputs
         .iter()
         .map(|input| (input, crate::document::pieces(input, None)))
@@ -651,8 +652,9 @@ fn export_piece(
 }
 
 /// `files`, each folder among them as the diagrams and Markdown documents
-/// in it, and its project's file, which is drawn as the project's map.
-fn with_folders(files: &[PathBuf]) -> Result<Vec<PathBuf>> {
+/// in it and, with `maps`, the file of every project in it, which is
+/// drawn as that project's map.
+fn with_folders(files: &[PathBuf], maps: bool) -> Result<Vec<PathBuf>> {
     let mut out = Vec::with_capacity(files.len());
     for file in files {
         if !file.is_dir() {
@@ -662,10 +664,10 @@ fn with_folders(files: &[PathBuf]) -> Result<Vec<PathBuf>> {
         let found = crate::editor::folder::scan(file);
         anyhow::ensure!(!found.is_empty(), "{}: no diagrams in it", file.display());
         out.extend(found.into_iter().map(|relative| file.join(relative)));
-        // A project: its map too, which stands beside its file.
-        let project = file.join(omaspec_core::project::FILE);
-        if project.is_file() {
-            out.push(project);
+        if maps {
+            let projects =
+                crate::editor::folder::scan_for(file, |name| name == omaspec_core::project::FILE);
+            out.extend(projects.into_iter().map(|relative| file.join(relative)));
         }
     }
     Ok(out)

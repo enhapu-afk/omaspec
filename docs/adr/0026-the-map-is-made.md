@@ -112,7 +112,9 @@ No project has to be kept as it is: those there are, are examples.
 - `main` in `omaspec-project.toml`, the map `omaspec new` writes, the
   hint *not on the map yet*, and the drawing of a mind map or a WBS as a
   map are gone. A project file that still has `main` is told so, with its
-  line. No diagram may be `index.svg` in an export.
+  line. No diagram may be `index.svg` in an export, in any folder: that
+  is the map's name there once the folder is a tile, decided before
+  anything is drawn.
 - A tile has no line in a source: Ctrl+click on one opens its diagram, as
   a click does, and `refs` and `rename` know no *box*.
 - A folder's tile does not show its map small: drawn for 40 folders of 50

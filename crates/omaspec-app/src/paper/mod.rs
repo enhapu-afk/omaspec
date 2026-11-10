@@ -231,6 +231,9 @@ pub struct Paper {
     bare_old: Layer,
     bare_new: Layer,
     no_bare: bool,
+    /// The picture is made from a project, not drawn from the text in the
+    /// tab (a map): an export of it carries no source.
+    made: bool,
     /// A new diagram came; its first overview raster starts the fade.
     fresh: bool,
     /// The diagram to come back to once the one that just came is shown:
@@ -317,6 +320,7 @@ impl Default for Paper {
             bare_old: Layer::default(),
             bare_new: Layer::default(),
             no_bare: false,
+            made: false,
             fresh: false,
             back: None,
             landed: false,
@@ -423,7 +427,15 @@ impl Paper {
             Vec::new()
         };
         worker.render_folded(ticket, source, language, place, linked, folds);
+        self.made = false;
+        self.asked();
+    }
+
+    /// A new drawing was asked for: it is what comes next, not a glide
+    /// back to the one before ([`Self::glide_from`]).
+    fn asked(&mut self) {
         self.status = Status::Rendering;
+        self.back = None;
     }
 
     /// Asks `worker` for the map of `folder` of the project in `atlas`,
@@ -442,7 +454,8 @@ impl Paper {
             id: self.requested,
         };
         worker.render_map(ticket, skin, atlas, folder);
-        self.status = Status::Rendering;
+        self.made = true;
+        self.asked();
     }
 
     /// Asks `worker` to render every diagram of the Markdown document
@@ -460,7 +473,8 @@ impl Paper {
             id: self.requested,
         };
         worker.render_document(ticket, source, place);
-        self.status = Status::Rendering;
+        self.made = false;
+        self.asked();
     }
 
     /// The id of the answer on screen; older ones are dropped.

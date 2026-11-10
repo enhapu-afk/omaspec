@@ -1867,6 +1867,12 @@ impl App {
             self.notice = Some(why.into());
             return Task::none();
         }
+        if self.doc().is_project()
+            && let Err(why) = command.in_a_project()
+        {
+            self.notice = Some(why.into());
+            return Task::none();
+        }
         let key = self.doc().key;
         let paper = |task: Task<paper::Message>| task.map(move |m| Message::Paper(key, m));
         match command {
@@ -1922,17 +1928,24 @@ impl App {
             }
             Command::Convert => self.convert(),
             Command::CompareGlide => {
-                let old = self.compare.as_ref().and_then(|c| c.paper.drawn_now());
-                let Some((drawn, source, language)) = old else {
+                let old = self
+                    .compare
+                    .as_ref()
+                    .and_then(|c| Some((c.a, c.paper.drawn_now()?)));
+                let Some((a, (drawn, source, language))) = old else {
                     self.notice = Some("compare with a tab or a git commit first".into());
                     return Task::none();
                 };
-                let key = self.doc().key;
+                // Into the pane of the tab that is compared, not any other.
+                if self.doc().key != a {
+                    self.notice = Some("the comparison is in another tab".into());
+                    return Task::none();
+                }
                 self.notice = None;
                 self.doc_mut()
                     .paper
                     .glide_from(drawn, source, language)
-                    .map(move |m| Message::Paper(key, m))
+                    .map(move |m| Message::Paper(a, m))
             }
             Command::CompareSync => {
                 if let Some(c) = &mut self.compare {

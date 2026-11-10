@@ -58,6 +58,9 @@ impl Paper {
         let links = Arc::clone(&diagram.drawn.links);
         let source = Arc::clone(&diagram.source);
         let document = self.document;
+        // A map is made from the project: it has no source to carry, and
+        // the skin it was drawn with is none.
+        let made = self.made;
         let language = diagram.language;
         let file = file.to_owned();
         Task::perform(
@@ -75,7 +78,7 @@ impl Paper {
                 });
                 let options = export::Options {
                     scale: 2.0,
-                    source: Some(export::Source {
+                    source: (!made).then_some(export::Source {
                         code: source,
                         language,
                         file: Some(&file),
