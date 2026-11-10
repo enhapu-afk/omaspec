@@ -73,6 +73,7 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     let kind = classify(&code, lang).kind;
     match lang {
         Language::Mermaid => {
+            findings.extend(crate::settings::unheeded(&code));
             let rows = mermaid_rows(&lines);
             match kind {
                 Kind::Sequence => sequence(&mermaid_parts(&rows), &mut findings),

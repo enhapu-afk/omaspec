@@ -2583,11 +2583,13 @@ dependencies = [
 name = "omaspec-core"
 version = "0.9.3"
 dependencies = [
+ "json5",
  "miniz_oxide 0.9.1",
  "omaspec-uml",
  "regex",
  "roxmltree 0.21.1",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

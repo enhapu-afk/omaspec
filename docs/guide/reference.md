@@ -208,7 +208,11 @@ Diagrams are drawn in the active theme's colors, without changing the file, and 
 a theme switch; **Diagram theme: follow Omarchy** in the palette switches between that
 and the file's own colors. Colors the file sets itself (`skinparam`, `classDef`, `style`)
 stay its own, and two of them that hardly differ, under 3:1, are a finding. Mermaid's
-own `%%{init}%%` lines (theme, colors, font) are honored too.
+own settings are honored too, in `%%{init}%%` lines and in the `config:` of the front
+matter, a directive counting over it: the theme, its colors, the font (`fontFamily`,
+`fontSize`), a flowchart's spacing and curve. A setting Omaspec does not carry out
+(`themeCSS`, `layout`, a kind's own section) is a finding on its line, so none is passed
+over in silence; so is a theme it does not know.
 
 A skin colors by kind, so every state of a machine is one color. **Color this box…** in
 the palette, or in the menu of the right mouse button over a box, offers the window's

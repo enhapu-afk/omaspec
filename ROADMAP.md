@@ -2090,6 +2090,15 @@ what it costs.
       button, click and command as a container (0024). The trees' maps
       name their boxes now (`Place::fixed`: none is held beside another),
       two with the same words as `Tests` and `Tests (2)`.
+- [x] No Mermaid setting passed over in silence (2026-11-10): `themeCSS`
+      and every other setting no drawer carries out is a finding on its
+      line (`omaspec_core::settings::unheeded`), in the editor, `lint`
+      and `check`; a theme no drawer knows too. The `config:` of the front
+      matter is read as the directive is, a directive counting over it
+      (it was skipped but for `look`), and `fontFamily` and `fontSize`
+      count where Mermaid's configuration names them, not only under
+      `themeVariables`. Open: a font the machine does not have is still
+      replaced without a word (the check does no I/O).
 - [x] A label moved to the other side of its line (2026-11-10): *Label
       to the other side* puts the label of the line at the caret on the
       side it is not on, as `Idle -> Busy label left` in the block of

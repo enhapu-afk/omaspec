@@ -106,7 +106,10 @@ fn draw(source: &str) -> Result<Drawn, RenderError> {
     // mmdr is young and has panicking code paths; a bad diagram must not
     // take the editor down with it.
     let result = catch_unwind(AssertUnwindSafe(|| -> Result<Drawn, ParseError> {
-        let init = head::init(body)?;
+        // A directive that is no JSON is the error; then the front
+        // matter's settings and the directives' over them.
+        head::init(body)?;
+        let init = omaspec_core::settings::merged(body);
         let mut options = RenderOptions::default();
         if let Some(init) = &init {
             apply_init(&mut options, init);
@@ -466,6 +469,14 @@ fn apply_init(options: &mut RenderOptions, init: &serde_json::Value) {
     {
         options.theme = theme;
     }
+    // The font, as Mermaid's own configuration names it; the theme's
+    // variables below count over it.
+    if let Some(family) = init.get("fontFamily").and_then(|v| v.as_str()) {
+        options.theme.font_family = family.to_owned();
+    }
+    if let Some(size) = font_size(init.get("fontSize")) {
+        options.theme.font_size = size;
+    }
     if let Some(vars) = init.get("themeVariables") {
         let theme = &mut options.theme;
         let colors: [(&str, &mut String); 18] = [
@@ -499,19 +510,8 @@ fn apply_init(options: &mut RenderOptions, init: &serde_json::Value) {
         if let Some(family) = vars.get("fontFamily").and_then(|v| v.as_str()) {
             theme.font_family = family.to_owned();
         }
-        // `16` or `"16px"`.
-        let size = vars.get("fontSize").and_then(|v| {
-            v.as_f64().or_else(|| {
-                v.as_str()?
-                    .trim()
-                    .trim_end_matches("px")
-                    .trim()
-                    .parse()
-                    .ok()
-            })
-        });
-        if let Some(size) = size.filter(|s| (4.0..=96.0).contains(s)) {
-            theme.font_size = size as f32;
+        if let Some(size) = font_size(vars.get("fontSize")) {
+            theme.font_size = size;
         }
         apply_pie_variables(theme, vars);
     }
@@ -523,6 +523,11 @@ fn apply_init(options: &mut RenderOptions, init: &serde_json::Value) {
             options.layout.rank_spacing = v as f32;
         }
     }
+}
+
+/// A font size: `16` or `"16px"`, from 4 to 96.
+fn font_size(value: Option<&serde_json::Value>) -> Option<f32> {
+    json_number(value).filter(|size| (4.0..=96.0).contains(size))
 }
 
 /// How far a flowchart's corners curve: Mermaid's own default curves them;
@@ -788,6 +793,29 @@ mod tests {
         )
         .unwrap();
         assert!(pie.to_ascii_lowercase().contains("#112233"), "{pie}");
+    }
+
+    #[test]
+    fn the_font_and_the_front_matter_s_settings_are_carried_out() {
+        // The font as Mermaid's configuration names it, not only as a
+        // variable of the theme.
+        let mono =
+            render("%%{init: {\"fontFamily\": \"DejaVu Sans Mono\"}}%%\nflowchart LR\n  A --> B\n")
+                .unwrap();
+        assert!(mono.contains("DejaVu Sans Mono"), "{mono}");
+        // The `config:` of the front matter, and a directive over it.
+        let front = "---\nconfig:\n  theme: forest\n  themeVariables:\n    primaryColor: \"#123456\"\n---\n";
+        let chart = "flowchart LR\n  A --> B\n";
+        let colored = render(&format!("{front}{chart}")).unwrap();
+        assert!(colored.contains("#123456"), "{colored}");
+        let over = render(&format!(
+            "{front}%%{{init: {{\"themeVariables\": {{\"primaryColor\": \"#654321\"}}}}}}%%\n{chart}"
+        ))
+        .unwrap();
+        assert!(
+            over.contains("#654321") && !over.contains("#123456"),
+            "{over}"
+        );
     }
 
     #[test]

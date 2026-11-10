@@ -23,6 +23,7 @@ pub mod markdown;
 pub mod outline;
 pub mod project;
 pub mod recolor;
+pub mod settings;
 pub mod skin;
 
 pub use kind::{DiagramKind, Kind, classify};
