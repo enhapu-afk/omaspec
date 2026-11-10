@@ -9,7 +9,7 @@ use std::ops::Range;
 use omaspec_uml::Diagram;
 use omaspec_uml::activity::{action_end, action_start};
 
-use super::{Edit, Target, indent_of, short, split_newline};
+use super::{Edit, Target, changed, indent_of, short, split_newline};
 use crate::text::{line_ranges, re};
 
 /// The lines that hold the diagram's elements, each with its zero-based
@@ -29,20 +29,6 @@ fn line_at(code: &str, no: usize) -> Result<(Range<usize>, &str, &str), String> 
         .ok_or("that line is not in the source")?;
     let (line, newline) = split_newline(&code[range.clone()]);
     Ok((range, line, newline))
-}
-
-fn done(
-    label: &str,
-    range: Range<usize>,
-    old: &str,
-    new: Option<String>,
-    newline: &str,
-) -> Result<Edit, String> {
-    match new {
-        Some(new) if new == old => Err(format!("{label} has that color already")),
-        Some(new) => Ok((range, format!("{new}{newline}"))),
-        None => Err(format!("{label} has no color of its own")),
-    }
 }
 
 /// How many bytes of markers a tree's line starts with: `**`, `++`, `--`,
@@ -176,7 +162,7 @@ pub(super) fn tree(
         )),
         (None, None) => None,
     };
-    done(label, range, line, new, newline)
+    changed(label, range, line, new, newline)
 }
 
 /// `|Name|`, `|#color|Name|` or `|Name| shown`: the color's range in the
@@ -264,7 +250,7 @@ pub(super) fn activity(
             (None, None) => None,
         }
     };
-    done(label, range, line, new, newline)
+    changed(label, range, line, new, newline)
 }
 
 /// The names in the brackets of `line`, each with its range, brackets
@@ -368,7 +354,7 @@ pub(super) fn task(code: &str, name: &str, color: Option<&str>) -> Result<Edit, 
                 }
             }
         };
-        return done(name, range.clone(), line, Some(new), newline);
+        return changed(name, range.clone(), line, Some(new), newline);
     }
     let color = color.ok_or_else(|| format!("{name} has no color of its own"))?;
     let (last, _) = about

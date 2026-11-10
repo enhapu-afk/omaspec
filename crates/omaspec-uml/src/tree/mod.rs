@@ -103,6 +103,11 @@ impl Names {
 }
 
 impl Idea {
+    /// Whether it and every box below it has a name.
+    fn named(&self) -> bool {
+        !self.node.key.is_empty() && self.children.iter().all(Idea::named)
+    }
+
     /// How many boxes hang below it.
     fn below(&self) -> usize {
         self.children.iter().map(|c| 1 + c.below()).sum()
@@ -154,6 +159,12 @@ impl MindMap {
 }
 
 impl Element {
+    /// Whether it and every box below it has a name: then each link is a
+    /// line of the map, which a pane glides.
+    fn named(&self) -> bool {
+        !self.node.key.is_empty() && self.left.iter().chain(&self.right).all(Element::named)
+    }
+
     fn below(&self) -> usize {
         self.left
             .iter()

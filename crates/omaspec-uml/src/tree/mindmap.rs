@@ -41,6 +41,9 @@ pub fn draw_mapped(d: &MindMap) -> Result<(String, map::Map), Declined> {
     let geometry = Geometry {
         skin: &skin,
         vertical: d.vertical,
+        glides: d.maps.iter().all(|map| {
+            !map.root.key.is_empty() && map.right.iter().chain(&map.left).all(Idea::named)
+        }),
     };
     let mut top = annotations.top();
     let mut found = map::Map::default();
@@ -55,6 +58,10 @@ pub fn draw_mapped(d: &MindMap) -> Result<(String, map::Map), Declined> {
 struct Geometry<'a> {
     skin: &'a Skin,
     vertical: bool,
+    /// Every box has a name, so every link is a line of the map and
+    /// stands in the picture's group of lines; else none is, and none
+    /// is gone while a pane glides.
+    glides: bool,
 }
 
 /// An idea with the ideas below it, measured and packed.
@@ -112,7 +119,8 @@ impl Geometry<'_> {
         let children = children
             .iter()
             .map(|idea| {
-                let spot = (depth + 1, idea.children.is_empty());
+                // A folded box is the box it was, no leaf.
+                let spot = (depth + 1, idea.children.is_empty() && idea.node.folded == 0);
                 self.finger(Some(&idea.node), &idea.children, right, family, spot)
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -173,7 +181,10 @@ impl Geometry<'_> {
         // The root's box belongs to the right side; the left side draws
         // it only when it is alone.
         let left_alone = map.right.is_empty() && !map.left.is_empty();
-        let root = (0, map.right.is_empty() && map.left.is_empty());
+        let root = (
+            0,
+            map.right.is_empty() && map.left.is_empty() && map.root.folded == 0,
+        );
         let right = (!left_alone)
             .then(|| self.finger(Some(&map.root), &map.right, true, family, root))
             .transpose()?;
@@ -276,7 +287,7 @@ impl Geometry<'_> {
             let p2 = self.at(start, dir * (finger.elongation + x1 + x2), offset);
             self.draw_finger(canvas, child, p2, dir, found);
             let points = self.link(canvas, p1, p2, dir);
-            if let (Some(own), Some(to)) = (own, rect_of(found, &child.key)) {
+            if let (true, Some(own), Some(to)) = (self.glides, own, rect_of(found, &child.key)) {
                 found.wires.extend(super::wire(
                     (&finger.key, own),
                     (&child.key, to),
@@ -335,7 +346,12 @@ impl Geometry<'_> {
             ),
             |(l, t, r, b), &(x, y)| (l.min(x), t.min(y), r.max(x), b.max(y)),
         );
-        canvas.path(Layer::Lines, &d, bounds, None, Some(self.skin.link));
+        let layer = if self.glides {
+            Layer::Lines
+        } else {
+            Layer::Lifelines
+        };
+        canvas.path(layer, &d, bounds, None, Some(self.skin.link));
         // As drawn: the straight piece, the curve in steps, the straight
         // piece.
         let mut drawn = vec![points[0]];

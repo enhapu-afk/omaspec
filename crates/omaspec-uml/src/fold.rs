@@ -226,4 +226,41 @@ mod tests {
         assert!(svg.contains(">Root<") && !svg.contains(">Left<"), "{svg}");
         assert_eq!(map.places.len(), 1);
     }
+
+    #[test]
+    fn a_folded_box_and_a_root_are_no_leaves() {
+        let rect = |source: &str, name: &str| {
+            let (_, map) = crate::render_mapped(source, None).unwrap();
+            map.places.iter().find(|p| p.name == name).unwrap().rect
+        };
+        let wbs = "@startwbs\n<style>\nleafNode { FontSize 30 }\n</style>\n* Launch\n** Build\n*** Tests\n@endwbs\n";
+        // The root holds boxes: it keeps its own size, and its trunk
+        // leaves its box's edge.
+        let plain = "@startwbs\n* Launch\n** Build\n*** Tests\n@endwbs\n";
+        assert_eq!(rect(wbs, "Launch").h, rect(plain, "Launch").h);
+        // Folded, a box is the box it was.
+        let folded = format!("{wbs}' fold (Omaspec) Build\n");
+        assert_eq!(rect(&folded, "Build").h, rect(wbs, "Build").h);
+        let mind = "@startmindmap\n<style>\nleafNode { FontSize 30 }\n</style>\n* Root\n** Right\n*** A\n@endmindmap\n";
+        let folded = format!("{mind}' fold (Omaspec) Right\n");
+        assert_eq!(rect(&folded, "Right").h, rect(mind, "Right").h);
+    }
+
+    #[test]
+    fn a_tree_with_a_box_without_a_name_keeps_its_links_in_the_picture() {
+        // `_` alone is a box without words: no link of the tree is a line
+        // of the map then, so none is gone while a pane glides.
+        let wbs = "@startwbs\n* Launch\n**_\n*** Tests\n** Budget\n@endwbs\n";
+        let (svg, map) = crate::render_mapped(wbs, None).unwrap();
+        assert!(
+            map.wires.is_empty() && !svg.contains(r#"<g id="lines">"#),
+            "{svg}"
+        );
+        let whole = "@startwbs\n* Launch\n** Budget\n@endwbs\n";
+        let (svg, map) = crate::render_mapped(whole, None).unwrap();
+        assert!(
+            map.wires.len() == 1 && svg.contains(r#"<g id="lines">"#),
+            "{svg}"
+        );
+    }
 }

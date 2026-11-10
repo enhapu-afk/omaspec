@@ -107,7 +107,7 @@ fn offered(palette: &Palette) -> Vec<(String, Rgb)> {
             Some(lighter) if lighter < -0.06 => format!("Theme dark {lower}"),
             Some(_) => format!("{name} 2"),
         };
-        let mut nth = 2;
+        let mut nth = 1;
         while out.iter().any(|(have, _)| *have == label) {
             nth += 1;
             label = format!("{name} {nth}");

@@ -39,6 +39,34 @@ fn scalar(text: &str) -> Value {
     }
 }
 
+/// `text` cut at every `mark` that stands outside its quotes.
+fn outside_quotes<'a>(text: &'a str, mark: &'a str) -> impl Iterator<Item = &'a str> {
+    let mut cuts = vec![0];
+    let mut quote = None;
+    for (at, c) in text.char_indices() {
+        match quote {
+            Some(q) if c == q => quote = None,
+            Some(_) => {}
+            None if c == '"' || c == '\'' => quote = Some(c),
+            None if text[at..].starts_with(mark) => cuts.push(at),
+            None => {}
+        }
+    }
+    cuts.push(text.len());
+    let mut first = true;
+    cuts.windows(2)
+        .map(move |pair| {
+            let from = if std::mem::take(&mut first) {
+                pair[0]
+            } else {
+                pair[0] + mark.len()
+            };
+            &text[from.min(pair[1])..pair[1]]
+        })
+        .collect::<Vec<_>>()
+        .into_iter()
+}
+
 /// The settings under `config:` in the front matter, the YAML between
 /// `---` lines before the diagram, in the order written.
 pub fn front(code: &str) -> Vec<Setting> {
@@ -75,7 +103,10 @@ pub fn front(code: &str) -> Vec<Setting> {
         };
         let key = key.trim().trim_matches(['"', '\'']).to_owned();
         // A comment after the value; a `#` inside quotes or a color stays.
-        let value = value.split(" #").next().unwrap_or_default().trim();
+        let value = outside_quotes(value, " #")
+            .next()
+            .unwrap_or_default()
+            .trim();
         if value.is_empty() {
             open.push((indent, key));
             continue;
@@ -88,7 +119,7 @@ pub fn front(code: &str) -> Vec<Setting> {
             .and_then(|inner| inner.strip_suffix('}'))
         {
             Some(inner) => {
-                for pair in inner.split(',') {
+                for pair in outside_quotes(inner, ",") {
                     if let Some((key, value)) = pair.split_once(':') {
                         let mut path = path.clone();
                         path.push(key.trim().trim_matches(['"', '\'']).to_owned());
@@ -124,6 +155,9 @@ fn leaves(value: &Value, path: &mut Vec<String>, visit: &mut impl FnMut(&[String
         other => visit(path, other),
     }
 }
+
+/// A directive runs over at most this many lines.
+const MAX_LINES: usize = 500;
 
 /// Values nested deeper than this are not read.
 const MAX_NESTING: usize = 100;
@@ -165,14 +199,26 @@ pub fn init(code: &str) -> Vec<Setting> {
         let Some(rest) = lines[start].trim().strip_prefix("%%{") else {
             continue;
         };
+        // Each line is looked at once: a directive still being typed,
+        // with no end, costs no more than its lines.
         let mut text = rest.to_owned();
         let mut end = start;
-        while !text.contains("}%%") && end + 1 < lines.len() {
+        let mut closed = rest.contains("}%%");
+        while !closed && end + 1 < lines.len() && end - start < MAX_LINES {
+            let line = lines[end + 1].trim();
+            // The next directive begins: this one has no end.
+            if line.starts_with("%%{") {
+                break;
+            }
             end += 1;
+            closed = line.contains("}%%");
             text.push(' ');
-            text.push_str(lines[end].trim());
+            text.push_str(line);
         }
-        let Some(inside) = text.split("}%%").next().filter(|_| text.contains("}%%")) else {
+        if !closed {
+            continue;
+        }
+        let Some(inside) = text.split("}%%").next() else {
             continue;
         };
         at = end + 1;
@@ -399,6 +445,15 @@ mod tests {
         assert_eq!(merged["themeVariables"]["primaryColor"], "#ff0000");
         assert_eq!(merged["flowchart"]["curve"], "linear");
         assert_eq!(super::merged("flowchart TD\n  A --> B\n"), None);
+        // A `#` and a comma inside quotes belong to the value.
+        let quoted = "---\nconfig:\n  fontFamily: \"Segoe UI #2\" # the second\n  flowchart: { curve: \"a, b\", nodeSpacing: 9 }\n---\nflowchart TD\n";
+        let read = front(quoted);
+        assert_eq!(read[0].value, Value::String("Segoe UI #2".into()));
+        assert_eq!(read[1].value, Value::String("a, b".into()));
+        assert_eq!(read[2].path.join("."), "flowchart.nodeSpacing");
+        // A directive with no end holds none, and the next one is read.
+        let open = "%%{init: {\n%%{init: {\"theme\": \"dark\"}}%%\nflowchart TD\n";
+        assert_eq!(paths(&init(open)), [("theme".to_owned(), 1)]);
     }
 
     #[test]

@@ -163,6 +163,22 @@ pub fn edit(
     }
 }
 
+/// The change to a line that was `old` and would be `new`, or why there
+/// is none: `label` has that color already, or none to take away.
+fn changed(
+    label: &str,
+    range: Range<usize>,
+    old: &str,
+    new: Option<String>,
+    newline: &str,
+) -> Result<Edit, String> {
+    match new {
+        Some(new) if new == old => Err(format!("{label} has that color already")),
+        Some(new) => Ok((range, format!("{new}{newline}"))),
+        None => Err(format!("{label} has no color of its own")),
+    }
+}
+
 /// `line` without its line break, and that break.
 fn split_newline(line: &str) -> (&str, &str) {
     let text = line.trim_end_matches(['\n', '\r']);
@@ -255,6 +271,12 @@ mod tests {
         assert!(edit(colored, Language::PlantUml, &named("Busy"), Some("#aabbcc")).is_err());
         assert!(edit(code, Language::PlantUml, &named("Idle"), None).is_err());
         assert!(edit(code, Language::PlantUml, &named("Nowhere"), Some("#000000")).is_err());
+        // A short name inside another word is not named there.
+        let nested = "@startuml\nstate Outer {\n  Connecting --> Done\n}\nOuter --> On\n@enduml\n";
+        assert_eq!(
+            applied(nested, Language::PlantUml, "On", Some("#f7768e")),
+            nested.replace("Outer --> On", "state On #f7768e\nOuter --> On")
+        );
     }
 
     #[test]

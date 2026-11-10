@@ -47,12 +47,10 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
         left: Vec::new(),
         right: Vec::new(),
     };
-    let mut root = Branch::new(&alone, &skin, family, 0)?;
-    // It was measured alone: with boxes below it, it is no leaf.
-    if !d.root.right.is_empty() || !d.root.left.is_empty() {
-        root.label = Label::new(&d.root.node, &skin, family, (0, false))?;
-    }
-    root.frame = !d.root.right.is_empty() || !d.root.left.is_empty();
+    let holds = !d.root.right.is_empty() || !d.root.left.is_empty();
+    // Measured alone, and still no leaf with boxes below it.
+    let mut root = Branch::with(&alone, &skin, family, 0, !holds && d.root.node.folded == 0)?;
+    root.frame = holds;
     let row = d
         .root
         .right
@@ -64,6 +62,7 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
         canvas: &mut canvas,
         places: Vec::new(),
         wires: Vec::new(),
+        glides: d.root.named(),
     };
     drawer.root(&root, &row, annotations.top());
     let (places, wires) = (drawer.places, drawer.wires);
@@ -98,7 +97,20 @@ struct Branch {
 
 impl Branch {
     fn new(e: &Element, skin: &Skin, family: Family, depth: usize) -> Result<Branch, Declined> {
-        let leaf = e.left.is_empty() && e.right.is_empty();
+        // A folded box is the box it was: no leaf, though nothing hangs
+        // below it now.
+        let leaf = e.left.is_empty() && e.right.is_empty() && e.node.folded == 0;
+        Branch::with(e, skin, family, depth, leaf)
+    }
+
+    /// `e` measured, a `leaf` or not whatever hangs below it here.
+    fn with(
+        e: &Element,
+        skin: &Skin,
+        family: Family,
+        depth: usize,
+        leaf: bool,
+    ) -> Result<Branch, Declined> {
         let label = Label::new(&e.node, skin, family, (depth, leaf))?;
         let main = label.size(skin, 0.0, 3.0);
         let measure = |list: &[Element]| {
@@ -155,11 +167,20 @@ struct Drawer<'a> {
     places: Vec<Place>,
     /// The way from each box to each box below it, for the map.
     wires: Vec<Wire>,
+    /// Every box has a name, so every link is a line of the map and
+    /// stands in the picture's group of lines. A link without its line in
+    /// the map would be gone while a pane glides.
+    glides: bool,
 }
 
 impl Drawer<'_> {
     fn line(&mut self, from: (f32, f32), to: (f32, f32)) {
-        self.canvas.line(Layer::Lines, from, to, self.skin.link);
+        let layer = if self.glides {
+            Layer::Lines
+        } else {
+            Layer::Lifelines
+        };
+        self.canvas.line(layer, from, to, self.skin.link);
     }
 
     /// The box of `b`, whose branch has its top left corner at `(x, y)`.
@@ -174,6 +195,9 @@ impl Drawer<'_> {
 
     /// Notes the way from `from` to `to` through `points`.
     fn wire(&mut self, from: (&Branch, Rect), to: (&Branch, Rect), points: Vec<(f32, f32)>) {
+        if !self.glides {
+            return;
+        }
         self.wires.extend(super::wire(
             (&from.0.key, from.1),
             (&to.0.key, to.1),
@@ -202,7 +226,13 @@ impl Drawer<'_> {
         let y2 = y0 + ROW_DROP;
         if row.is_empty() {
             self.label(root, (0.0, top));
-            self.line((main_w / 2.0, y0), (main_w / 2.0, y1));
+            // No link to a box: it stays in the picture.
+            self.canvas.line(
+                Layer::Lifelines,
+                (main_w / 2.0, y0),
+                (main_w / 2.0, y1),
+                self.skin.link,
+            );
             return;
         }
         let first = row[0].middle;

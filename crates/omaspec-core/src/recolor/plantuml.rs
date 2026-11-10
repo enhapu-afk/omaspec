@@ -10,7 +10,7 @@ use omaspec_uml::Diagram;
 use omaspec_uml::structure::{Group, Shape};
 use omaspec_uml::timing::RowKind;
 
-use super::{Edit, Target, covering, indent_of, split_newline};
+use super::{Edit, Target, changed, covering, indent_of, split_newline};
 use crate::project::key;
 use crate::text::line_ranges;
 
@@ -231,21 +231,6 @@ fn filled(line: &str, head: usize, color: Option<&str>) -> Option<String> {
     })
 }
 
-/// The change to a line that was `old` and would be `new`, or why none.
-fn changed(
-    name: &str,
-    range: Range<usize>,
-    old: &str,
-    new: Option<String>,
-    newline: &str,
-) -> Result<Edit, String> {
-    match new {
-        Some(new) if new == old => Err(format!("{name} has that color already")),
-        Some(new) => Ok((range, format!("{new}{newline}"))),
-        None => Err(format!("{name} has no color of its own")),
-    }
-}
-
 /// The line that declares the box of key `wanted`, as its range in `code`
 /// and where its names end.
 fn declaration(
@@ -285,18 +270,20 @@ fn on_declaration(
     ))
 }
 
-/// Whether `line` names the box of key `wanted`: as a word of its own, or
-/// a name of several words somewhere in it.
-fn mentions(line: &str, wanted: &str) -> bool {
+/// Whether `line` names the box of key `wanted`: as a word of its own, or,
+/// for a name of several words (`phrase`), somewhere in it. A short name
+/// inside another word (`On` in `Connecting`) is not named.
+fn mentions(line: &str, wanted: &str, phrase: bool) -> bool {
     line.split(|c: char| !(c.is_alphanumeric() || c == '_'))
         .any(|word| !word.is_empty() && key(word) == *wanted)
-        || key(line).contains(wanted)
+        || (phrase && key(line).contains(wanted))
 }
 
 /// The first line of `code` that names `name`, or the line `known`.
 fn first_line(code: &str, name: &str, known: Option<usize>) -> Result<Range<usize>, String> {
     let ranges = line_ranges(code);
     let wanted = key(name);
+    let phrase = name.chars().any(|c| !(c.is_alphanumeric() || c == '_'));
     known
         .and_then(|line| ranges.get(line).cloned())
         .or_else(|| {
@@ -304,7 +291,7 @@ fn first_line(code: &str, name: &str, known: Option<usize>) -> Result<Range<usiz
                 .iter()
                 .find(|range| {
                     let line = &code[(*range).clone()];
-                    !line.trim_start().starts_with(['@', '\'']) && mentions(line, &wanted)
+                    !line.trim_start().starts_with(['@', '\'']) && mentions(line, &wanted, phrase)
                 })
                 .cloned()
         })
