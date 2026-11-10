@@ -1102,9 +1102,23 @@ diagrams that link were released as 0.5.0 on 2026-11-01.
         `tests/lines` lists the words in the way now (`words`). Left:
         `Auth -> Db` over `Search -> Index` in the platform, where every
         order of the data tier crosses once, and in the drone
-        `Maintenance -> Docked` over `SensorFault -> Maintenance`, both
-        routed after placement: the second leaves Maintenance by its left
-        side though its bottom, beside the first, would cross nothing.
+        `Maintenance -> Docked` over `SensorFault -> Maintenance`. Looked
+        into the same day: only the second is routed after placement
+        (its start lies in Preflight, which has a direction of its own
+        and stays closed). The first is the layout's, a line back
+        through the ranks that runs under Flight and steps up 67 units
+        under Emergency; with Flight above, that step closes the way
+        from Preflight to Maintenance, so whatever the router does
+        crosses it. The layout does not know the second line when it
+        lays the first: a line into a closed container only ranks its
+        boxes. Tried and left: a line's point following the line's next
+        point before the box it ends at, as Graphviz weighs them, which
+        takes the step out but cost more elsewhere (crossings 4 → 5,
+        jogs 1 → 3, near lines 14 → 21, boxes moved 988 → 1100). What
+        would settle it: the layout carries such a line from the closed
+        container's border to its other end as it carries any line, and
+        only the stretch inside is routed afterwards; a change to
+        `graph::open` and `graph::across` with an ADR of its own.
         The README's picture of the drone is from before.
   - [x] Lines by hand curve like the layout's (2026-11-08): a corner the
         writer placed was rounded by at most 16 units, so a run dragged
