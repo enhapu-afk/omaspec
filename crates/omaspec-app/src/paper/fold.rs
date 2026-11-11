@@ -129,7 +129,13 @@ impl Paper {
         }
         // The buttons sit on the finished boxes. While they glide, a button
         // would land where a box has not arrived yet.
-        if self.fade.as_ref().is_some_and(|fade| fade.morph.is_some()) {
+        // The same while one picture fades into the other in a glide's
+        // place: the old boxes are still to be seen where no button is.
+        if self
+            .fade
+            .as_ref()
+            .is_some_and(|fade| fade.morph.is_some() || fade.stands_in)
+        {
             return Vec::new();
         }
         let Some(diagram) = &self.diagram else {

@@ -2307,7 +2307,10 @@ Seen in use, on a tree of 2,790 boxes (2026-11-11):
       each box. A diagram of more than 300 boxes fades from one layout
       to the next now, one picture into the other
       (`arrive::MOST_GLIDING`). A compromise: the branch no longer goes
-      into its box there. Open: the glide box by box made cheap enough
+      into its box there, and *Compare: glide from B to A* fades there
+      too instead of showing what moved; the limit is a count of boxes,
+      also where only a few of them are in sight, and 300 is reckoned
+      from the one measurement, not measured. Open: the glide box by box made cheap enough
       for such a tree (the holes of a box found once, not in every
       frame; fewer pictures cut to shape), and the fold answering at
       once while the new layout is still being made.

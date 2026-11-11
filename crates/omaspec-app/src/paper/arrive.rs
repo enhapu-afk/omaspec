@@ -24,7 +24,14 @@ const MORPH: Duration = Duration::from_millis(400);
 /// A diagram of more boxes than this fades from one layout to the next
 /// instead of gliding box by box. A frame's work grows faster than the
 /// boxes do, and has to stay well under the 16.7 ms of a 60 Hz screen.
+/// Counted in the places of its map, the same for the picture before and
+/// the one after ([`too_many`]).
 pub(super) const MOST_GLIDING: usize = 300;
+
+/// Whether the picture of `map` has more boxes than glide in time.
+pub(super) fn too_many(map: &omaspec_uml::map::Map) -> bool {
+    map.places.len() > MOST_GLIDING
+}
 
 impl Paper {
     /// Takes a render answer: shows the diagram, or keeps the last one and
@@ -83,7 +90,14 @@ impl Paper {
                             .into_iter()
                             .flatten()
                             .collect(),
-                        boxes: self.diagram.as_ref().map(morph::sides).unwrap_or_default(),
+                        // Nothing of a picture that will not glide is
+                        // read for a glide.
+                        boxes: self
+                            .diagram
+                            .as_ref()
+                            .filter(|diagram| !too_many(&diagram.drawn.map))
+                            .map(morph::sides)
+                            .unwrap_or_default(),
                         links: self.followable().to_vec(),
                         spots: self.fold_spots(),
                         bare: self.diagram.as_ref().and_then(|d| d.drawn.bare.clone()),
@@ -192,7 +206,12 @@ impl Paper {
     pub(super) fn start_fade(&mut self, now: Instant) -> Task<Message> {
         let morph = match &self.previous {
             Some(previous) => self
-                .morph_of(&previous.pictures, &previous.boxes, previous.size)
+                .morph_of(
+                    &previous.pictures,
+                    &previous.boxes,
+                    previous.size,
+                    &previous.map,
+                )
                 .map(|mut morph| {
                     if let Some(diagram) = &self.diagram {
                         morph::gather(&mut morph, &previous.map, &diagram.drawn.map);
@@ -218,6 +237,18 @@ impl Paper {
             self.change = Change::Edit;
         }
         let fold = fold.unwrap_or(false);
+        // A fold of too many boxes to glide: its fade stands in for the
+        // glide.
+        let stands_in = fold
+            && morph.is_none()
+            && (self
+                .previous
+                .as_ref()
+                .is_some_and(|previous| too_many(&previous.map))
+                || self
+                    .diagram
+                    .as_ref()
+                    .is_some_and(|diagram| too_many(&diagram.drawn.map)));
         self.fresh = false;
         self.landed = false;
         let previous = self.previous.take();
@@ -268,6 +299,7 @@ impl Paper {
             new_size: self.diagram_size(),
             lines,
             bare,
+            stands_in,
             shown: Animation::new(false)
                 .duration(duration)
                 .easing(easing)
@@ -340,6 +372,7 @@ impl Paper {
         old: &[Raster],
         old_boxes: &[morph::Side],
         old_size: Size,
+        old_map: &omaspec_uml::map::Map,
     ) -> Option<morph::Morph> {
         if old.is_empty() || self.passage.is_some() || self.grab.is_some() {
             return None;
@@ -348,8 +381,9 @@ impl Paper {
         // Each box of a glide is a picture of its own in every frame, cut
         // out of the two it travels between. A tree of 2,800 boxes took
         // 90 ms a frame that way, nine frames a second; one picture
-        // fading into the other stays at sixty.
-        if old_boxes.len().max(diagram.drawn.map.places.len()) > MOST_GLIDING {
+        // fading into the other stays at sixty. So does the way from an
+        // older drawing a comparison shows ([`Self::glide_from`]).
+        if too_many(old_map) || too_many(&diagram.drawn.map) {
             return None;
         }
         // A fold of a tree glides whatever else moved: its boxes go into
@@ -420,7 +454,9 @@ impl Paper {
     /// a comparison), to the diagram on screen: the old one stands as it
     /// is, then its boxes and lines glide to their new places, what came
     /// fades in and what went fades out, as a changed layout glides after
-    /// an edit.
+    /// an edit. A diagram of too many boxes to glide ([`MOST_GLIDING`])
+    /// fades from the old drawing to the new one, as it does after an
+    /// edit.
     pub fn glide_from(
         &mut self,
         old: crate::worker::Drawn,

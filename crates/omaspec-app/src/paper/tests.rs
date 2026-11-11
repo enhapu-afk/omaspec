@@ -684,36 +684,96 @@ D --> E
     assert!(fade.lines.is_none() && fade.bare.is_none());
 }
 
-/// A tree of more boxes than glide in time fades to its new layout: one
-/// picture into the other, with no picture for each box and none without
-/// lines to wait for.
-#[test]
-fn a_diagram_of_very_many_boxes_fades_to_its_new_layout() {
-    let tree = |branches: usize| {
-        let mut wbs = String::from("@startwbs\n* Life\n");
-        for branch in 0..branches {
-            wbs.push_str(&format!("** Branch {branch}\n"));
-            for leaf in 0..9 {
-                wbs.push_str(&format!("*** Leaf {branch}.{leaf}\n"));
-            }
+/// A tree of `branches` branches with `leaves` leaves each, and `more`
+/// boxes beside them: `1 + branches * (1 + leaves) + more` boxes.
+fn wide_tree(branches: usize, leaves: usize, more: usize) -> String {
+    let mut wbs = String::from("@startwbs\n* Life\n");
+    for branch in 0..branches {
+        wbs.push_str(&format!("** Branch {branch}\n"));
+        for leaf in 0..leaves {
+            wbs.push_str(&format!("*** Leaf {branch}.{leaf}\n"));
         }
-        wbs.push_str("@endwbs\n");
-        wbs
-    };
-    let branches = arrive::MOST_GLIDING / 10 + 2;
-    for (count, glides) in [(branches, false), (6, true)] {
-        let mut paper = Paper::default();
-        let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
-        show_source(&mut paper, &tree(count), Language::PlantUml);
-        paper.deliver_overview();
-        let _ = paper.update(Message::Faded);
-        // A branch less: the others move up.
-        show_source(&mut paper, &tree(count - 1), Language::PlantUml);
-        paper.deliver_overview();
-        let fade = paper.fade.as_ref().expect("the new layout comes");
-        assert_eq!(fade.morph.is_some(), glides, "{count} branches");
-        assert_eq!(fade.bare.is_some(), glides, "{count} branches");
     }
+    for extra in 0..more {
+        wbs.push_str(&format!("** Extra {extra}\n"));
+    }
+    wbs.push_str("@endwbs\n");
+    wbs
+}
+
+/// The pane after `first` was shown and `next` came: its fade.
+fn from_to(first: &str, next: &str) -> Paper {
+    let mut paper = Paper::default();
+    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    show_source(&mut paper, first, Language::PlantUml);
+    paper.deliver_overview();
+    let _ = paper.update(Message::Faded);
+    show_source(&mut paper, next, Language::PlantUml);
+    paper.deliver_overview();
+    paper
+}
+
+/// A diagram of more boxes than glide in time fades to its new layout:
+/// one picture into the other, with no picture for each box and none
+/// without lines to wait for. The most that glide still do, and one more
+/// on either side does not.
+#[test]
+fn a_diagram_of_too_many_boxes_fades_to_its_new_layout() {
+    // 13 branches of 22 leaves and the root are 300 boxes.
+    assert_eq!(1 + 13 * 23, arrive::MOST_GLIDING);
+    let most = wide_tree(13, 22, 0);
+    let one_more = wide_tree(13, 22, 1);
+    let small = wide_tree(3, 4, 0);
+    let less = wide_tree(12, 22, 0);
+    let boxes = |paper: &Paper| paper.diagram.as_ref().unwrap().drawn.map.places.len();
+    for (first, next, glides, what) in [
+        (&most, &less, true, "the most that glide"),
+        (&one_more, &less, false, "one more before"),
+        (&less, &one_more, false, "one more after"),
+        (&one_more, &small, false, "many to few"),
+        (&small, &most, true, "few to the most"),
+    ] {
+        let paper = from_to(first, next);
+        let fade = paper.fade.as_ref().expect("the new layout comes");
+        assert_eq!(fade.morph.is_some(), glides, "{what}");
+        assert_eq!(fade.bare.is_some(), glides, "{what}");
+        assert!(!fade.stands_in, "{what}: an edit, not a fold");
+    }
+    assert_eq!(boxes(&from_to(&small, &most)), arrive::MOST_GLIDING);
+    assert_eq!(boxes(&from_to(&small, &one_more)), arrive::MOST_GLIDING + 1);
+    // Nothing of a picture that will not glide is read for a glide.
+    let mut paper = from_to(&small, &one_more);
+    let _ = paper.update(Message::Faded);
+    show_source(&mut paper, &most, Language::PlantUml);
+    assert!(paper.previous.as_ref().unwrap().boxes.is_empty());
+}
+
+/// A fold in such a diagram fades as long as a fold does, and its
+/// buttons wait as they do while boxes glide: the old picture is still
+/// to be seen where no button is.
+#[test]
+fn a_fold_of_too_many_boxes_fades_and_its_buttons_wait() {
+    let open = wide_tree(13, 22, 1);
+    let folded = open.replace("@endwbs", "' fold (Omaspec) Branch 0\n@endwbs");
+    let mut paper = Paper {
+        folding: true,
+        ..Paper::default()
+    };
+    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    show_source(&mut paper, &open, Language::PlantUml);
+    paper.deliver_overview();
+    let _ = paper.update(Message::Faded);
+    assert!(!paper.fold_spots().is_empty(), "the branches fold");
+    paper.set_fold("Branch 0", true);
+    show_source(&mut paper, &folded, Language::PlantUml);
+    paper.deliver_overview();
+    let fade = paper.fade.as_ref().expect("the fold fades");
+    assert!(fade.morph.is_none() && fade.stands_in);
+    let left = fade.shown.remaining(Instant::now());
+    assert!(left > Duration::from_millis(280), "{left:?}");
+    assert!(paper.fold_spots().is_empty(), "the buttons wait");
+    let _ = paper.update(Message::Faded);
+    assert!(!paper.fold_spots().is_empty(), "and come with the picture");
 }
 
 #[test]

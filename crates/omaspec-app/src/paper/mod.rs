@@ -190,6 +190,9 @@ pub struct Fade {
     /// their lines ([`wires`]); none when the pictures keep their lines.
     lines: Option<wires::Glide>,
     bare: Option<(Raster, Raster)>,
+    /// The fade of a fold in a diagram of too many boxes to glide
+    /// ([`arrive::MOST_GLIDING`]): it stands in for the glide.
+    stands_in: bool,
 }
 
 /// The diagram on screen.
