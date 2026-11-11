@@ -9,7 +9,7 @@ _pkgname=omaspec
 pkgver=0.9.3
 pkgrel=1
 pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy (prebuilt)"
-arch=('x86_64')
+arch=('x86_64' 'aarch64')
 url="https://github.com/enhapu-afk/omaspec"
 license=('MIT' 'OFL-1.1-no-RFN')
 depends=('gcc-libs' 'glibc' 'fontconfig' 'libxkbcommon' 'wayland' 'vulkan-icd-loader')
@@ -24,9 +24,12 @@ conflicts=("$_pkgname")
 options=('!debug')
 source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-x86_64-linux.tar.gz")
 sha256sums_x86_64=('6ab40665a18588cb8c524325d9b29118293a5be876793486a5c8057477f63c21')
+# From the first release with an aarch64 archive on: `updpkgsums` sets it.
+source_aarch64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-aarch64-linux.tar.gz")
+sha256sums_aarch64=('SKIP')
 
 package() {
-  cd "$_pkgname-$pkgver-x86_64-linux"
+  cd "$_pkgname-$pkgver-$CARCH-linux"
   install -Dm755 omaspec "$pkgdir/usr/bin/omaspec"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   # The handwriting face of a sketch, built into the binary.

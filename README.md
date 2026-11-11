@@ -138,10 +138,10 @@ or build it with Rust 1.89 or newer:
 cargo build --release -p omaspec-app   # the binary is target/release/omaspec
 ```
 
-On ARM (aarch64) there is no prebuilt release yet, so `omaspec-bin` is x86_64 only. Build
-from source instead: with the command above, or on Arch Linux ARM with `makepkg -si` in
-`packaging/aur/omaspec`. The code compiles for aarch64, but it has not been run on ARM
-hardware yet; reports are welcome as issues.
+On ARM (aarch64) the prebuilt binary comes with the release after 0.9.3. Until then, build
+from source: with the command above, or on Arch Linux ARM with `makepkg -si` in
+`packaging/aur/omaspec`. ARM is best effort: Omaspec has not been run on ARM hardware yet,
+and reports are welcome as issues.
 
 Optional: `plantuml` for the few PlantUML types Omaspec does not draw itself yet (YAML,
 Salt and more), `wl-clipboard` to copy diagrams, `git` to compare with commits.

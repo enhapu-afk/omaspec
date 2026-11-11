@@ -7,8 +7,10 @@
    `git config gpg.format ssh`). Put the public key on the GitHub account so the tag
    shows as verified, and check it: `git tag -v vX.Y.Z`.
 3. **Push.** `git push origin main vX.Y.Z`. The release workflow
-   (`.github/workflows/release.yml`) tests, builds on Arch and attaches
-   `omaspec-X.Y.Z-x86_64-linux.tar.gz` with its checksum to the GitHub release.
+   (`.github/workflows/release.yml`) tests and builds for x86_64 (on Arch) and aarch64
+   (on Ubuntu) and attaches `omaspec-X.Y.Z-x86_64-linux.tar.gz` and
+   `omaspec-X.Y.Z-aarch64-linux.tar.gz` with their checksums to the GitHub release. When
+   one architecture fails, the release still gets the other's archive.
    If the workflow fails, fix it on `main` and build the tag again with it:
    `gh workflow run release.yml -f tag=vX.Y.Z`. The tag stays where it is.
 4. **AUR.** For each of `packaging/aur/omaspec`, `omaspec-bin` (and once
