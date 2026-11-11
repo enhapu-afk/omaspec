@@ -289,11 +289,8 @@ impl Play<'_> {
         if let Some(player) = self.players.get_mut(&to)
             && let Some(message) = receive(player, m, ordered)
         {
-            self.out.push(Finding {
-                line,
-                severity: Severity::Warning,
-                message,
-            });
+            self.out
+                .push(Finding::new(line, Severity::Warning, message));
         }
     }
 }

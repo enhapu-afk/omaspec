@@ -441,6 +441,12 @@ impl Doc {
         self.rewrite(omaspec_core::format::format)
     }
 
+    /// Writes a state machine or a scenario evenly, arrows and colons in
+    /// a column (one undo step); says whether anything changed.
+    pub fn prettify(&mut self) -> bool {
+        self.rewrite(omaspec_model::pretty)
+    }
+
     /// Writes what only Omaspec reads in a Mermaid flowchart the way
     /// mermaid.js reads it too (one undo step); says whether anything
     /// changed.
@@ -461,15 +467,45 @@ impl Doc {
         } else {
             rewritten(&text, self.language)
         };
-        if formatted == text {
+        self.put(&text, formatted)
+    }
+
+    /// Puts `new` in the place of `text`, the text as it is (one undo
+    /// step); says whether they differ. The caret stays on its line.
+    fn put(&mut self, text: &str, new: String) -> bool {
+        if new == text {
             return false;
         }
         let caret = self.editor.cursor();
         let len = self.editor.document().buffer().len();
         self.editor
-            .edit(vec![scrive_core::EditOp::new(0..len, formatted)]);
+            .edit(vec![scrive_core::EditOp::new(0..len, new)]);
         self.place_caret(caret.row as usize, caret.col as usize);
         true
+    }
+
+    /// Makes the fix a finding on the caret's line carries (one undo
+    /// step), and says what it did; `None` when no finding there has one.
+    /// The findings are read anew first, so a fix never goes by lines an
+    /// edit has moved.
+    pub fn fix_at_caret(&mut self) -> Option<String> {
+        self.analyze();
+        let row = self.editor.cursor().row as usize;
+        let fix = self
+            .findings
+            .iter()
+            .filter(|f| f.line == row)
+            .find_map(|f| f.fix.clone())?;
+        let text = self.text();
+        self.put(&text, fix.apply(&text)).then_some(fix.title)
+    }
+
+    /// Makes every fix the findings carry (one undo step); how many.
+    pub fn fix_all(&mut self) -> usize {
+        self.analyze();
+        let text = self.text();
+        let (fixed, done) = omaspec_core::lint::fix_all(&text, &self.findings);
+        if self.put(&text, fixed) { done } else { 0 }
     }
 
     /// After an edit: whether the text now differs from the saved one, and
@@ -699,11 +735,11 @@ impl Doc {
         let revision = self.editor.document().revision();
         self.findings = match omaspec_core::project::Project::parse(&text) {
             Ok(_) => Vec::new(),
-            Err(err) => vec![Finding {
-                line: err.line.saturating_sub(1),
-                severity: Severity::Error,
-                message: err.message,
-            }],
+            Err(err) => vec![Finding::new(
+                err.line.saturating_sub(1),
+                Severity::Error,
+                err.message,
+            )],
         };
         self.kind = None;
         let _ = self
@@ -725,11 +761,14 @@ impl Doc {
         let mut folds = Vec::new();
         for block in blocks.iter() {
             let masked = markdown::masked(&text, block);
-            findings.extend(omaspec_model::findings_with(
-                &masked,
-                block.language,
-                &self.specs,
-            ));
+            let mut found = omaspec_model::findings_with(&masked, block.language, &self.specs);
+            // A line a fix puts in at the diagram's end goes before the
+            // fence that closes the block, not to the document's end.
+            let last = block.lines.end - usize::from(block.closed);
+            for fix in found.iter_mut().filter_map(|f| f.fix.as_mut()) {
+                fix.line = fix.line.min(last);
+            }
+            findings.extend(found);
             findings.extend(self.gone_links(&masked, block.language));
             let (more, more_folds) = outline::outline_with_folds(&masked, block.language);
             entries.extend(more);

@@ -96,6 +96,10 @@ enum Command {
         /// Fail on warnings too.
         #[arg(long)]
         strict: bool,
+        /// Make every fix a finding carries in the files, then report
+        /// what is left.
+        #[arg(long)]
+        fix: bool,
         /// The folder whose state machines sequence diagrams are checked
         /// against; by default each file's project (the nearest folder
         /// above it with `omaspec-project.toml`), else its own folder.
@@ -303,6 +307,10 @@ enum Command {
         /// way mermaid.js (GitHub) reads it too.
         #[arg(long)]
         portable: bool,
+        /// Also write a state machine or a scenario evenly: one space
+        /// around arrows and colons, both in a column.
+        #[arg(long)]
+        pretty: bool,
     },
     /// Show the structure of a diagram.
     Outline {
@@ -597,8 +605,9 @@ fn main() -> ExitCode {
             lang,
             json,
             strict,
+            fix,
             project,
-        }) => commands::lint(&files, lang.get(), json, strict, project.as_deref()),
+        }) => commands::lint(&files, lang.get(), json, strict, fix, project.as_deref()),
         Some(Command::Check {
             dir,
             json,
@@ -672,7 +681,14 @@ fn main() -> ExitCode {
             write,
             check,
             portable,
-        }) => commands::fmt(&files, lang.get(), write, check, portable),
+            pretty,
+        }) => commands::fmt(
+            &files,
+            lang.get(),
+            write,
+            check,
+            commands::Also { portable, pretty },
+        ),
         Some(Command::Outline { file, lang, json }) => commands::outline(file, lang.get(), json),
         Some(Command::Inspect {
             file,

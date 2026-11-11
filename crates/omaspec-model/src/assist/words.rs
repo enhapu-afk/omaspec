@@ -298,7 +298,7 @@ const SAYS: &[&str] = &[
 ];
 
 /// Whether `line` starts with `word` as a word of its own.
-pub(super) fn starts_with_word(line: &str, word: &str) -> bool {
+pub(crate) fn starts_with_word(line: &str, word: &str) -> bool {
     line.strip_prefix(word)
         .is_some_and(|rest| !rest.starts_with(|c: char| c.is_alphanumeric() || c == '_'))
 }
@@ -378,7 +378,7 @@ pub(super) fn is_word(name: &str) -> bool {
 }
 
 /// Whether `mark` stands in `text` outside its quotes.
-pub(super) fn outside_quotes(text: &str, mark: char) -> bool {
+pub(crate) fn outside_quotes(text: &str, mark: char) -> bool {
     let mut quoted = false;
     text.chars().any(|c| {
         quoted ^= c == '"';

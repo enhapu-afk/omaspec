@@ -9,8 +9,8 @@
 //! the word being typed is not offered back. Where even the rest does not
 //! read, the words of the diagram are still offered.
 
-mod marks;
-mod words;
+pub(crate) mod marks;
+pub(crate) mod words;
 
 pub use marks::{Mark, Tone, marks};
 pub use words::block_texts;

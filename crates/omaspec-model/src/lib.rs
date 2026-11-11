@@ -19,6 +19,7 @@ mod diff;
 mod label;
 mod mermaid;
 mod plantuml;
+mod pretty;
 mod refs;
 mod rename;
 mod run;
@@ -34,6 +35,7 @@ pub use behavior::behavior;
 pub use convert::{Converted, Notice, Refused, convert};
 pub use diff::{Change, ChangeKind, DiagramChanges, diff, diff_project};
 pub use label::Trigger;
+pub use pretty::pretty;
 pub use refs::{File, FileKind, Ref, RefKind, gone_links, refs};
 pub use rename::{Edit, Named, Plan, Thing, named_at, rename};
 pub use run::{Run, Taken};
@@ -170,7 +172,23 @@ impl Machine {
 /// state diagram the readers do not take, why it goes unchecked.
 pub fn check(code: &str, lang: Language) -> Vec<Finding> {
     match Machine::read(code, lang) {
-        Some(m) => check::machine(&m),
+        Some(m) => {
+            let mut found = check::machine(&m);
+            // A line a fix puts in stands as deep as the line before it.
+            let lines: Vec<&str> = code.split('\n').collect();
+            for fix in found.iter_mut().filter_map(|f| f.fix.as_mut()) {
+                let Some(before) = fix.line.checked_sub(1).and_then(|at| lines.get(at)) else {
+                    continue;
+                };
+                let lead = &before[..before.len() - before.trim_start().len()];
+                if fix.remove == 0 {
+                    for line in &mut fix.insert {
+                        line.insert_str(0, lead);
+                    }
+                }
+            }
+            found
+        }
         None => unread(code, lang),
     }
 }
@@ -201,11 +219,7 @@ fn unread(code: &str, lang: Language) -> Vec<Finding> {
         ),
         _ => (None, Severity::Info, skipped(None)),
     };
-    let finding = Finding {
-        line: line.unwrap_or(0),
-        severity,
-        message,
-    };
+    let finding = Finding::new(line.unwrap_or(0), severity, message);
     vec![finding]
 }
 

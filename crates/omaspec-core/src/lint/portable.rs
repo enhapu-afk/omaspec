@@ -15,7 +15,7 @@
 
 use std::ops::Range;
 
-use super::{Finding, Row, Severity, mermaid_rows};
+use super::{Finding, Fix, Row, Severity, mermaid_rows};
 use crate::text::re;
 
 /// What mermaid.js stops at.
@@ -53,9 +53,17 @@ const SHAPES: &[(&str, &str)] = &[
 ];
 
 /// A hint on each line of a flowchart that mermaid.js would not read.
-pub(super) fn findings(rows: &[Row], findings: &mut Vec<Finding>) {
+pub(super) fn findings(lines: &[&str], rows: &[Row], findings: &mut Vec<Finding>) {
     for row in rows {
         let edits = edits(row.text);
+        if edits.is_empty() {
+            continue;
+        }
+        let fix = Fix::replace(
+            "Write it the way mermaid.js reads it too",
+            row.row,
+            in_its_line(lines[row.row], row.text, &edits),
+        );
         for why in [Why::Pipe, Why::Title, Why::Class] {
             let Some(first) = edits.iter().find(|e| e.why == why) else {
                 continue;
@@ -70,14 +78,17 @@ pub(super) fn findings(rows: &[Row], findings: &mut Vec<Finding>) {
                 Why::Pipe | Why::Title => first.with.clone(),
                 Why::Class => rewritten(row.text, &edits),
             };
-            findings.push(Finding::new(
-                row.row,
-                Severity::Info,
-                format!(
-                    "Omaspec draws this, mermaid.js (GitHub) stops at {what}. \
-                     Both read `{fixed}`: Rewrite for mermaid.js"
-                ),
-            ));
+            findings.push(
+                Finding::new(
+                    row.row,
+                    Severity::Info,
+                    format!(
+                        "Omaspec draws this, mermaid.js (GitHub) stops at {what}. \
+                         Both read `{fixed}`: Rewrite for mermaid.js"
+                    ),
+                )
+                .with(fix.clone()),
+            );
         }
     }
 }
@@ -95,12 +106,17 @@ pub fn portable(code: &str) -> String {
         if edits.is_empty() {
             continue;
         }
-        let raw = lines[row.row];
-        let lead = raw.len() - raw.trim_start().len();
-        let tail = &raw[lead + row.text.len()..];
-        out[row.row] = format!("{}{}{tail}", &raw[..lead], rewritten(row.text, &edits));
+        out[row.row] = in_its_line(lines[row.row], row.text, &edits);
     }
     out.join("\n")
+}
+
+/// The line `raw`, whose words are `text`, with the `edits` made in them:
+/// what stands before and after its words stays.
+fn in_its_line(raw: &str, text: &str, edits: &[Edit]) -> String {
+    let lead = raw.len() - raw.trim_start().len();
+    let tail = &raw[lead + text.len()..];
+    format!("{}{}{tail}", &raw[..lead], rewritten(text, edits))
 }
 
 /// Whether `code` is a Mermaid flowchart, by its header.

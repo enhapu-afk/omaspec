@@ -230,8 +230,21 @@ pub const TABLE: &[Entry] = &[
         .menu(Edit)
         .at(Spot::Editor),
     cmd("Suggest at the caret", "Ctrl+Space", Command::Suggest).menu(Edit),
+    cmd("Fix the finding at the caret", "Ctrl+.", Command::Fix)
+        .menu(Edit)
+        .child("Fix and tidy")
+        .short("The finding at the caret"),
+    cmd("Fix every finding that has a fix", "", Command::FixAll)
+        .menu(Edit)
+        .child("Fix and tidy")
+        .short("Every finding"),
+    cmd("Prettify the diagram", "", Command::Prettify)
+        .menu(Edit)
+        .child("Fix and tidy")
+        .short("Prettify"),
     cmd("Rewrite for mermaid.js (GitHub)", "", Command::Portable)
         .menu(Edit)
+        .child("Fix and tidy")
         .short("Rewrite for mermaid.js"),
     cmd(
         "Skin: plain (black lines)",

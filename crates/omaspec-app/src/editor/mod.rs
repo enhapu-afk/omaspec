@@ -321,10 +321,16 @@ pub enum Command {
     /// The export prompt's next look.
     NextLook,
     Format,
+    /// A state machine or a scenario written evenly.
+    Prettify,
     /// A Mermaid flowchart written the way mermaid.js reads it too.
     Portable,
     /// The list of what could be written at the caret.
     Suggest,
+    /// The fix a finding on the caret's line carries.
+    Fix,
+    /// Every fix the findings carry.
+    FixAll,
     /// Folds the block the caret is in.
     Collapse,
     /// Unfolds the block the caret is in.
@@ -517,6 +523,7 @@ fn window_key(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
             "d" if mods.shift() => Some(Command::Compare),
             "e" if mods.shift() => Some(Command::Gallery),
             "i" if mods.shift() => Some(Command::Format),
+            "." => Some(Command::Fix),
             "c" if mods.shift() => Some(Command::CopyPng),
             "s" => Some(Command::Save),
             "o" => Some(Command::Open),
@@ -1445,10 +1452,12 @@ impl App {
                             .map
                             .misses
                             .iter()
-                            .map(|(line, why)| omaspec_core::lint::Finding {
-                                line: *line,
-                                severity: omaspec_core::lint::Severity::Warning,
-                                message: why.clone(),
+                            .map(|(line, why)| {
+                                omaspec_core::lint::Finding::new(
+                                    *line,
+                                    omaspec_core::lint::Severity::Warning,
+                                    why.clone(),
+                                )
                             })
                             .collect(),
                         Err(_) => Vec::new(),
@@ -1848,6 +1857,14 @@ impl App {
                 }
                 Task::none()
             }
+            Command::Prettify => {
+                if self.doc_mut().prettify() {
+                    self.edited(key);
+                } else {
+                    self.notice = Some("already written evenly".into());
+                }
+                Task::none()
+            }
             Command::Portable => {
                 if self.doc_mut().portable() {
                     self.edited(key);
@@ -1858,6 +1875,29 @@ impl App {
             }
             Command::Suggest => {
                 self.doc_mut().editor.ask_completions();
+                Task::none()
+            }
+            Command::Fix => {
+                match self.doc_mut().fix_at_caret() {
+                    Some(title) => {
+                        self.edited(key);
+                        self.notice = Some(format!("fixed: {title}"));
+                    }
+                    None => self.notice = Some("no finding on this line has a fix".into()),
+                }
+                Task::none()
+            }
+            Command::FixAll => {
+                match self.doc_mut().fix_all() {
+                    0 => self.notice = Some("no finding has a fix".into()),
+                    done => {
+                        self.edited(key);
+                        self.notice = Some(match done {
+                            1 => "1 finding fixed".to_owned(),
+                            done => format!("{done} findings fixed"),
+                        });
+                    }
+                }
                 Task::none()
             }
             Command::Collapse => self.fold_at_caret(false),

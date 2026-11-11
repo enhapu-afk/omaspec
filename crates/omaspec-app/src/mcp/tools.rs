@@ -948,7 +948,8 @@ fn convert(args: &Args) -> Result<Answer> {
 
 fn format(args: &Args) -> Result<Answer> {
     let input = diagram(args)?;
-    let formatted = crate::document::formatted(&input, args.lang()?, false);
+    let formatted =
+        crate::document::formatted(&input, args.lang()?, crate::commands::Also::default());
     let changed = formatted != input.text;
     if !args.flag("write")?.unwrap_or(false) {
         return Ok(Answer::data(json!({

@@ -5151,6 +5151,44 @@ fn the_editor_offers_the_names_the_events_and_the_blocks_while_typing() {
 }
 
 #[test]
+fn a_finding_s_fix_is_made_at_the_caret_and_the_diagram_is_written_evenly() {
+    let dir = temp_dir("fix");
+    let path = dir.join("door.puml");
+    let text = "@startuml\n[*]-->Closed\nClosed-->Open : open\n@enduml\n";
+    std::fs::write(&path, text).unwrap();
+    let mut app = open(std::slice::from_ref(&path));
+
+    // No finding on the first line has a fix; the one on Open's line has.
+    press(&mut app, Command::Fix);
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("no finding on this line has a fix")
+    );
+    app.doc_mut().place_caret(2, 0);
+    press(&mut app, Command::Fix);
+    assert_eq!(app.notice.as_deref(), Some("fixed: Add Open --> [*]"));
+    assert_eq!(
+        app.doc().text(),
+        "@startuml\n[*]-->Closed\nClosed-->Open : open\nOpen --> [*]\n@enduml\n"
+    );
+    act(&mut app, Action::Undo);
+    assert_eq!(app.doc().text(), text);
+    press(&mut app, Command::FixAll);
+    assert_eq!(app.notice.as_deref(), Some("1 finding fixed"));
+    press(&mut app, Command::FixAll);
+    assert_eq!(app.notice.as_deref(), Some("no finding has a fix"));
+
+    press(&mut app, Command::Prettify);
+    assert_eq!(
+        app.doc().text(),
+        "@startuml\n[*]    --> Closed\nClosed --> Open : open\nOpen   --> [*]\n@enduml\n"
+    );
+    press(&mut app, Command::Prettify);
+    assert_eq!(app.notice.as_deref(), Some("already written evenly"));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn a_flowchart_is_rewritten_for_mermaid_js_in_one_step() {
     let dir = temp_dir("portable");
     let path = dir.join("flow.mmd");

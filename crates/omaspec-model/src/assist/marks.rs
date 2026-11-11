@@ -39,7 +39,7 @@ pub struct Mark {
 }
 
 /// Words a line of a scenario starts with when it is no message.
-const NO_MESSAGE: &[&str] = &[
+pub(crate) const NO_MESSAGE: &[&str] = &[
     "alt",
     "else",
     "opt",
@@ -194,7 +194,7 @@ fn unquoted(name: &str) -> &str {
 }
 
 /// Where the first `:` outside quotes stands.
-fn colon(text: &str) -> Option<usize> {
+pub(crate) fn colon(text: &str) -> Option<usize> {
     let mut quoted = false;
     text.char_indices().find_map(|(at, c)| {
         quoted ^= c == '"';
@@ -238,7 +238,7 @@ fn name_at_end(text: &str, pseudo: bool) -> usize {
 
 /// The two ends of the line `head` (`A --> B`) and the arrow between
 /// them; `None` when it is no line from one name to another.
-pub(super) fn ends(head: &str, pseudo: bool) -> Option<(Range<usize>, &str, Range<usize>)> {
+pub(crate) fn ends(head: &str, pseudo: bool) -> Option<(Range<usize>, &str, Range<usize>)> {
     let first = name_at_start(head, pseudo);
     let last = first + name_at_end(&head[first..], pseudo);
     let arrow = head[first..last].trim();
@@ -251,7 +251,7 @@ pub(super) fn ends(head: &str, pseudo: bool) -> Option<(Range<usize>, &str, Rang
 }
 
 /// The name a line declares as a participant, and what its head shows.
-fn declared(text: &str, lang: Language) -> Option<(Range<usize>, &str)> {
+pub(crate) fn declared(text: &str, lang: Language) -> Option<(Range<usize>, &str)> {
     let word = DECLARES.iter().find(|word| starts_with_word(text, word))?;
     let rest = text[word.len()..].trim_start();
     let at = text.len() - rest.len();
@@ -282,7 +282,7 @@ fn declared(text: &str, lang: Language) -> Option<(Range<usize>, &str)> {
 
 /// The name a line declares as a state: `state Name`, `state "Long" as
 /// Name`.
-fn state_declared(head: &str) -> Option<Range<usize>> {
+pub(crate) fn state_declared(head: &str) -> Option<Range<usize>> {
     if !starts_with_word(head, "state") {
         return None;
     }

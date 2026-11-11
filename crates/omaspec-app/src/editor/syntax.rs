@@ -66,7 +66,12 @@ pub fn diagnostics(text: &str, findings: &[Finding]) -> Vec<Diagnostic> {
                 lint::Severity::Warning => Severity::Warning,
                 lint::Severity::Info => Severity::Info,
             };
-            Some(Diagnostic::new(from..end, severity, f.message.clone()))
+            // The card under the pointer says how to make the fix.
+            let message = match &f.fix {
+                Some(fix) => format!("{}\n\nCtrl+. {}", f.message, fix.title),
+                None => f.message.clone(),
+            };
+            Some(Diagnostic::new(from..end, severity, message))
         })
         .collect()
 }

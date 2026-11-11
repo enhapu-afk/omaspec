@@ -542,11 +542,7 @@ fn can_be(m: &Machine, ways: &[Run]) -> Vec<bool> {
 }
 
 fn finding(line: usize, severity: Severity, message: impl Into<String>) -> Finding {
-    Finding {
-        line,
-        severity,
-        message: message.into(),
-    }
+    Finding::new(line, severity, message)
 }
 
 #[cfg(test)]

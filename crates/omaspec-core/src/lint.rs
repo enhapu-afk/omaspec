@@ -10,6 +10,7 @@
 //! ([`crate::faint`]), a line of a Mermaid flowchart that mermaid.js would
 //! not read ([`portable`]).
 
+mod fix;
 mod namesakes;
 mod portable;
 
@@ -44,17 +45,30 @@ pub struct Finding {
     pub line: usize,
     pub severity: Severity,
     pub message: String,
+    /// How to put it right, where that is sure.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fix: Option<Fix>,
 }
 
 impl Finding {
-    fn new(line: usize, severity: Severity, message: impl Into<String>) -> Self {
+    pub fn new(line: usize, severity: Severity, message: impl Into<String>) -> Self {
         Self {
             line,
             severity,
             message: message.into(),
+            fix: None,
         }
     }
+
+    /// The finding with the way to put it right.
+    #[must_use]
+    pub fn with(mut self, fix: Fix) -> Self {
+        self.fix = Some(fix);
+        self
+    }
 }
+
+pub use fix::{Fix, fix_all};
 
 /// All findings for `code`, in line order.
 pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
@@ -80,7 +94,7 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
             findings.extend(crate::settings::unheeded(&code));
             let rows = mermaid_rows(&lines);
             if portable::is_flowchart(&code) {
-                portable::findings(&rows, &mut findings);
+                portable::findings(&lines, &rows, &mut findings);
             }
             match kind {
                 Kind::Sequence => sequence(&mermaid_parts(&rows), &mut findings),
@@ -170,7 +184,10 @@ fn lines_by_hand(code: &str, findings: &mut Vec<Finding>) {
             Ok(_) => None,
         };
         if let Some(said) = said {
-            findings.push(Finding::new(entry.line, Severity::Warning, said));
+            findings.push(
+                Finding::new(entry.line, Severity::Warning, said)
+                    .with(Fix::remove("Take the entry out", entry.line)),
+            );
         }
     }
 }
@@ -298,12 +315,24 @@ fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
             close(&mut starts, |k| k == kind);
         }
     }
+    // After the last line; the empty end a final line break leaves is none.
+    let end = match lines.last() {
+        Some(last) if last.is_empty() && lines.len() > 1 => lines.len() - 1,
+        _ => lines.len(),
+    };
     for (row, kind) in starts {
-        findings.push(Finding::new(
-            row,
-            Severity::Error,
-            format!("@start{kind} without matching @end{kind}"),
-        ));
+        findings.push(
+            Finding::new(
+                row,
+                Severity::Error,
+                format!("@start{kind} without matching @end{kind}"),
+            )
+            .with(Fix::insert(
+                format!("Add @end{kind} at the end"),
+                end,
+                format!("@end{kind}"),
+            )),
+        );
     }
 
     let is_group = |k: &str| matches!(k, "alt" | "opt" | "loop" | "par" | "critical" | "group");

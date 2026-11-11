@@ -18,6 +18,9 @@ impl Command {
             | Command::Convert
             | Command::Format
             | Command::Portable
+            | Command::Prettify
+            | Command::Fix
+            | Command::FixAll
             | Command::ResetLine
             | Command::ResetLines
             | Command::LanguageDetected
@@ -86,6 +89,7 @@ impl Command {
             | Command::CompareGlide
             | Command::Format
             | Command::Portable
+            | Command::Prettify
             | Command::Collapse
             | Command::Expand
             | Command::CollapseAll
@@ -100,6 +104,8 @@ impl Command {
             | Command::Copy
             | Command::Paste
             | Command::Suggest
+            | Command::Fix
+            | Command::FixAll
             | Command::SelectAll => Ok(()),
             // The diagram its pane shows, as of a diagram file.
             Command::CopyPng

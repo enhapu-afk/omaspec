@@ -15,7 +15,7 @@
 
 use std::collections::HashMap;
 
-use omaspec_core::lint::{Finding, Severity};
+use omaspec_core::lint::{Finding, Fix, Severity};
 
 use crate::{Kind, Machine};
 
@@ -44,12 +44,13 @@ pub fn machine(m: &Machine) -> Vec<Finding> {
     out
 }
 
+/// Whether a line can name the state as it is: no space, no quote.
+fn word(name: &str) -> bool {
+    name.chars().all(|c| c.is_alphanumeric() || c == '_')
+}
+
 fn finding(line: usize, severity: Severity, message: impl Into<String>) -> Finding {
-    Finding {
-        line,
-        severity,
-        message: message.into(),
-    }
+    Finding::new(line, severity, message)
 }
 
 /// Which states a path from the top start reaches; `None` without a start.
@@ -146,14 +147,35 @@ fn dead_ends(m: &Machine, reached: Option<&[bool]>, out: &mut Vec<Finding>) {
         {
             continue;
         }
-        let message = match s.kind {
-            Kind::State => format!(
-                "Nothing leaves {0}. If the machine ends there, add {0} --> [*].",
-                s.name
+        let found = match s.kind {
+            Kind::State if word(&s.name) => finding(
+                s.line,
+                Severity::Warning,
+                format!(
+                    "Nothing leaves {0}. If the machine ends there, add {0} --> [*].",
+                    s.name
+                ),
+            )
+            .with(Fix::insert(
+                format!("Add {} --> [*]", s.name),
+                s.line + 1,
+                format!("{} --> [*]", s.name),
+            )),
+            Kind::State => finding(
+                s.line,
+                Severity::Warning,
+                format!(
+                    "Nothing leaves {0}. If the machine ends there, add {0} --> [*].",
+                    s.name
+                ),
             ),
-            _ => format!("Nothing leaves {}.", s.name),
+            _ => finding(
+                s.line,
+                Severity::Warning,
+                format!("Nothing leaves {}.", s.name),
+            ),
         };
-        out.push(finding(s.line, Severity::Warning, message));
+        out.push(found);
     }
 }
 

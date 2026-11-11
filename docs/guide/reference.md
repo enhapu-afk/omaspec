@@ -47,6 +47,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+Shift+N | the diagram in a window of its own |
 | Ctrl+Shift+I, Ctrl+Shift+C | format; copy the diagram as PNG |
 | Ctrl+Space | the list of what could be written at the caret |
+| Ctrl+. | make the fix of the finding on the caret's line |
 | Ctrl+N, Ctrl+W, Ctrl+PageDown/PageUp | new tab, close tab, switch tabs |
 | Ctrl+Shift+[, Ctrl+Shift+] | fold the block at the caret, unfold it |
 | Ctrl+B, Ctrl+Q | project tree on/off, quit |
@@ -429,6 +430,28 @@ line a state first stands on, how many transitions go in and out and which event
 takes; the transitions an event fires; what a participant sends and receives, and its
 state machine in the project.
 
+### Fixes and an even hand
+
+A finding that can be put right in one sure way carries its fix: a line mermaid.js would
+not read, `@startuml` without `@enduml`, an entry of the lines by hand that is left out, a
+state nothing leaves (`Error --> [*]`). The card under the pointer names it; Ctrl+. (*Fix
+the finding at the caret*) makes the fix of the caret's line, *Fix every finding that has
+a fix* makes all of them in one undo step, and `omaspec lint --fix` does that in the
+files. `lint --json` gives each fix as the lines it takes out and puts in.
+
+*Prettify the diagram* writes a state machine or a scenario evenly: one space around each
+arrow and colon, and the arrows and colons of lines that follow one another in a column.
+
+```
+[*]-->Closed                        [*]     --> Closed
+Closed -->   Opening:open           Closed  --> Opening : open
+Opening->Open :  end position       Opening ->  Open    : end position
+```
+
+Mermaid is written as its guide writes it (`A->>B: text`), nothing in a column. Only
+spaces change: a result that would read differently is dropped for the plain formatting.
+`omaspec fmt --pretty` does the same on the command line.
+
 ### Mermaid that GitHub draws too
 
 Omaspec reads some Mermaid that mermaid.js does not, so a flowchart that looks right here
@@ -551,6 +574,8 @@ omaspec refs Door                   # every use of a diagram, state or event in 
 omaspec rename Door Gate            # renamed at every use; --state, --event, --machine, --dry-run, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI
 omaspec fmt --portable --write a.mmd # also written the way mermaid.js (GitHub) reads a flowchart
+omaspec fmt --pretty --write a.puml # also arrows and colons in a column, one space around them
+omaspec lint --fix diagrams/*.puml  # make the fixes findings carry, then report what is left
 omaspec outline flow.puml           # structure: participants, groups, lanes, states, …
 omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it
 omaspec diff door.puml              # what changed in the behavior since the last commit; --rev, or two files

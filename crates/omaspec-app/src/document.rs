@@ -70,12 +70,20 @@ pub(crate) fn one_diagram(input: &Input, does: &str) -> anyhow::Result<()> {
 }
 
 /// `input` formatted: its diagram, or each diagram of a Markdown document
-/// in its place, the document's prose as it is. With `portable`, a Mermaid
-/// flowchart also the way mermaid.js reads it.
-pub(crate) fn formatted(input: &Input, forced: Option<Language>, portable: bool) -> String {
+/// in its place, the document's prose as it is; with what `also` asks
+/// for beside the indenting.
+pub(crate) fn formatted(
+    input: &Input,
+    forced: Option<Language>,
+    also: crate::commands::Also,
+) -> String {
     let format = |code: &str, language: Language| {
-        let formatted = omaspec_core::format::format(code, language);
-        if portable && language == Language::Mermaid {
+        let formatted = if also.pretty {
+            omaspec_model::pretty(code, language)
+        } else {
+            omaspec_core::format::format(code, language)
+        };
+        if also.portable && language == Language::Mermaid {
             omaspec_core::lint::portable(&formatted)
         } else {
             formatted
@@ -114,6 +122,9 @@ impl Piece<'_> {
         let mut found = findings_of(&self.code, self.language, specs);
         for finding in &mut found {
             finding.line = self.line(finding.line);
+            if let Some(fix) = &mut finding.fix {
+                fix.line = self.line(fix.line);
+            }
         }
         found
     }
@@ -152,11 +163,7 @@ pub(crate) fn findings_of(code: &str, language: Language, specs: &Specs) -> Vec<
     found.extend(
         omaspec_render::by_hand_misses(code, language)
             .into_iter()
-            .map(|(line, message)| Finding {
-                line,
-                severity: Severity::Warning,
-                message,
-            }),
+            .map(|(line, message)| Finding::new(line, Severity::Warning, message)),
     );
     found.sort_by_key(|f| f.line);
     found

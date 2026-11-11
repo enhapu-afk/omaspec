@@ -640,13 +640,13 @@ pub fn gone_links(
             if !(picture || diagram) || (picture && numbered) || has(stem) {
                 continue;
             }
-            out.push(omaspec_core::lint::Finding {
+            out.push(omaspec_core::lint::Finding::new(
                 line,
-                severity: omaspec_core::lint::Severity::Warning,
-                message: format!(
+                omaspec_core::lint::Severity::Warning,
+                format!(
                     "The link to {url} leads to no diagram of the project: there is none at {stem}."
                 ),
-            });
+            ));
         }
     }
     out

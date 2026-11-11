@@ -79,6 +79,9 @@ pub(crate) struct Reported<'a> {
     line: usize,
     severity: Severity,
     message: &'a str,
+    /// How to put it right, its line counted from 1 like the finding's.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fix: Option<omaspec_core::lint::Fix>,
 }
 
 /// The findings of the diagram `file` as the CLI reports them.
@@ -90,6 +93,10 @@ pub(crate) fn reported<'a>(file: &str, findings: &'a [Finding]) -> Vec<Reported<
             line: f.line + 1,
             severity: f.severity,
             message: &f.message,
+            fix: f.fix.clone().map(|mut fix| {
+                fix.line += 1;
+                fix
+            }),
         })
         .collect()
 }
@@ -99,12 +106,27 @@ pub fn lint(
     forced: Option<Language>,
     json: bool,
     strict: bool,
+    fix: bool,
     project: Option<&Path>,
 ) -> Result<ExitCode> {
     let mut all: Vec<(String, Vec<Finding>)> = Vec::new();
     let mut projects = Projects::default();
-    for input in read_inputs(files)? {
-        let findings = projects.findings(&input, forced, project);
+    for mut input in read_inputs(files)? {
+        let mut findings = projects.findings(&input, forced, project);
+        if fix {
+            let path = input
+                .path
+                .clone()
+                .context("--fix needs files, not standard input")?;
+            let (fixed, done) = omaspec_core::lint::fix_all(&input.text, &findings);
+            if done > 0 {
+                write_atomic(&path, fixed.as_bytes())?;
+                // Beside the findings on standard output, also as JSON.
+                eprintln!("fixed {done} in {}", path.display());
+                input.text = fixed;
+                findings = projects.findings(&input, forced, project);
+            }
+        }
         all.push((input.name(), findings));
     }
     report(&all, json, strict)
@@ -384,12 +406,21 @@ pub fn convert(
     }
 }
 
+/// What `fmt` does beside indenting.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Also {
+    /// A Mermaid flowchart the way mermaid.js reads it too.
+    pub portable: bool,
+    /// A state machine or a scenario written evenly.
+    pub pretty: bool,
+}
+
 pub fn fmt(
     files: &[PathBuf],
     forced: Option<Language>,
     write: bool,
     check: bool,
-    portable: bool,
+    also: Also,
 ) -> Result<ExitCode> {
     let inputs = read_inputs(files)?;
     anyhow::ensure!(
@@ -403,7 +434,7 @@ pub fn fmt(
     let mut unformatted = false;
     let mut out = stdout();
     for input in &inputs {
-        let formatted = crate::document::formatted(input, forced, portable);
+        let formatted = crate::document::formatted(input, forced, also);
         let changed = formatted != input.text;
         if check {
             if changed {

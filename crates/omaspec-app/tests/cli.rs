@@ -368,6 +368,46 @@ fn fmt_portable_writes_a_flowchart_the_way_mermaid_js_reads_it() {
 }
 
 #[test]
+fn lint_fix_makes_the_fixes_findings_carry_and_fmt_pretty_writes_evenly() {
+    let dir = scratch("lint-fix");
+    let file = dir.join("door.puml");
+    fs::write(
+        &file,
+        "@startuml\n[*]-->Closed\nClosed-->Open : open\n\n' lines by hand (Omaspec)\n' Open below Closed\n",
+    )
+    .unwrap();
+    let path = file.to_str().unwrap();
+
+    let out = omaspec(&["lint", "--json", path]);
+    let said = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(out.status.code(), Some(1), "an error: {said}");
+    assert!(
+        said.contains("\"title\": \"Add @enduml at the end\""),
+        "{said}"
+    );
+    assert!(said.contains("\"title\": \"Add Open --> [*]\""), "{said}");
+    // The fix's line is counted from 1, as the finding's is.
+    assert!(said.contains("\"line\": 4,\n      \"remove\": 0"), "{said}");
+
+    let out = omaspec(&["lint", "--fix", path]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    assert!(String::from_utf8_lossy(&out.stderr).contains("fixed 3 in"));
+    assert_eq!(
+        fs::read_to_string(&file).unwrap(),
+        "@startuml\n[*]-->Closed\nClosed-->Open : open\nOpen --> [*]\n\n' lines by hand (Omaspec)\n@enduml\n"
+    );
+    let out = omaspec(&["lint", "--fix"]);
+    assert_ne!(out.status.code(), Some(0), "standard input has no file");
+
+    let out = omaspec(&["fmt", "--pretty", "--write", path]);
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(
+        fs::read_to_string(&file).unwrap(),
+        "@startuml\n[*]    --> Closed\nClosed --> Open : open\nOpen   --> [*]\n\n' lines by hand (Omaspec)\n@enduml\n"
+    );
+}
+
+#[test]
 fn extract_reads_png_and_svg_and_never_overwrites_silently() {
     let dir = scratch("extract");
     let code = "@startuml\nBob -> Alice : hi\n@enduml\n";

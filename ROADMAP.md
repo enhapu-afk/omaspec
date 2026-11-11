@@ -2241,12 +2241,29 @@ Stage 1, the editor understands the diagram:
 
 Stage 2, a formatter and fixes at the finding:
 
-- [ ] *Prettify* above the indenting `fmt` does: arrows and colons in a
-      column, one space around them, declarations before their first
-      use; never a change in the behavior, held against `omaspec diff`.
-- [ ] A finding carries its fix, applied with one key at its line
-      (`Finding` grows, also in `--json` and over MCP). Today only
-      *Rewrite for mermaid.js* fixes, and all lines at once.
+- [x] *Prettify the diagram* and `omaspec fmt --pretty` (2026-11-11),
+      above the indenting `fmt` does: in a state machine and a scenario
+      each line from one name to another gets one space around its arrow
+      and its colon, the arrows and colons of lines that follow one
+      another stand in a column (not where the names differ by more than
+      12 letters), lines end without spaces. Mermaid is written as its
+      guide writes it (`A->>B: text`, `A --> B: text`), nothing in a
+      column. Only spaces change, and that is held to: a result that
+      differs in anything else, or whose behavior reads differently, is
+      dropped for what `fmt` gives (`omaspec_model::pretty`).
+      Declarations are not moved before their first use: in a scenario
+      their order is the order of the columns. Open: the other kinds of
+      diagram.
+- [x] A finding carries its fix (2026-11-11): `Finding::fix`, lines taken
+      out and lines put in, with what it does in a few words; in `lint
+      --json` and over MCP too. Ctrl+. (*Fix the finding at the caret*)
+      makes the one on the caret's line, *Fix every finding that has a
+      fix* and `omaspec lint --fix` make all, and the card under the
+      pointer names the key. Four findings carry one so far: a line
+      mermaid.js would not read, `@start…` without its `@end…`, an entry
+      of the lines by hand that is left out, and a state nothing leaves
+      (`X --> [*]`). Open: a name close to a declared one (*Did you mean
+      …?*), which needs the place of the name in its line.
 
 Stage 3, emoji and symbols:
 
