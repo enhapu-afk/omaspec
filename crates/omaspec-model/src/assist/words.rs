@@ -175,6 +175,7 @@ const MERMAID_HEADS: &[&str] = &[
     "pie",
     "mindmap",
     "timeline",
+    "gitGraph",
 ];
 
 const MERMAID_FLOWCHART: &[&str] = &[
@@ -244,6 +245,33 @@ const MERMAID_SEQUENCE_BLOCKS: &[Block] = &[
         "Note left of",
         "a note",
         "Note left of ${1:Name}: ${0:text}",
+    ),
+];
+
+const MERMAID_GIT: &[&str] = &[
+    "commit",
+    "branch",
+    "checkout",
+    "switch",
+    "merge",
+    "cherry-pick",
+];
+
+const MERMAID_GIT_BLOCKS: &[Block] = &[
+    (
+        "commit id",
+        "a commit with a name",
+        "commit id: \"${1:name}\"",
+    ),
+    (
+        "commit tag",
+        "a commit with a tag",
+        "commit id: \"${1:name}\" tag: \"${2:v1.0}\"",
+    ),
+    (
+        "merge tag",
+        "a merge with a tag",
+        "merge ${1:branch} tag: \"${2:v1.0}\"",
     ),
 ];
 
@@ -324,6 +352,7 @@ fn tables(lang: Language, kind: &DiagramKind) -> (Vec<&'static str>, &'static [B
         Language::Mermaid => {
             let (words, blocks): (&[&str], &[Block]) = match (kind.kind, &*kind.name) {
                 (_, "Flowchart") => (MERMAID_FLOWCHART, MERMAID_FLOWCHART_BLOCKS),
+                (_, "Git graph") => (MERMAID_GIT, MERMAID_GIT_BLOCKS),
                 (Kind::Sequence, _) => (MERMAID_SEQUENCE, MERMAID_SEQUENCE_BLOCKS),
                 (Kind::State, _) => (MERMAID_STATE, MERMAID_STATE_BLOCKS),
                 (Kind::Structure, "Class diagram") => (MERMAID_CLASS, MERMAID_CLASS_BLOCKS),
@@ -348,6 +377,7 @@ fn all() -> impl Iterator<Item = (&'static [&'static str], &'static [Block])> {
         (MERMAID_SEQUENCE, MERMAID_SEQUENCE_BLOCKS),
         (MERMAID_STATE, MERMAID_STATE_BLOCKS),
         (MERMAID_CLASS, MERMAID_CLASS_BLOCKS),
+        (MERMAID_GIT, MERMAID_GIT_BLOCKS),
     ]
     .into_iter()
 }

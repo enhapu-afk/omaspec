@@ -2315,14 +2315,28 @@ Seen in use, on a tree of 2,790 boxes (2026-11-11):
       frame; fewer pictures cut to shape), and the fold answering at
       once while the new layout is still being made.
 
-Stage 5, more diagrams drawn by Omaspec (each a step of its own; mmdr
-draws these Mermaid types today, without folding, lines by hand and
-plays, and the Java PlantUML the PlantUML ones):
+Stage 5, more diagrams drawn by Omaspec (each a step of its own). Set
+right on 2026-11-11: the list first written here named the ER diagram,
+journey, timeline, C4, architecture and block as mmdr's, which Omaspec
+draws itself already (`NATIVE` in `omaspec-render/src/mermaid.rs` has
+twelve kinds, and flowcharts beside them). What mmdr still draws,
+without folding, lines by hand and plays, and the Java PlantUML:
 
-- [ ] Mermaid: the ER diagram first (on the class drawer), then
-      gitGraph, timeline and journey (frequent in READMEs), then C4 and
-      architecture. After them: requirement, block, kanban, packet,
-      quadrant, sankey, radar, treemap, XY chart, ZenUML.
+- [x] Mermaid's git graph (2026-11-11): `commit`, `branch`, `checkout`
+      or `switch`, `merge` and `cherry-pick` run on a small repository
+      (`omaspec_uml::gitgraph`), each branch a lane in a color of its
+      own, the theme's accent turned round the color wheel; time runs
+      right (`LR`), down (`TB`) or up (`BT`). Ids, tags, the three
+      commit types, `order:` of a branch. What git would refuse (a
+      branch that is not there, a merge that brings nothing) is refused
+      by name and left to mmdr. An id Mermaid would make up is not
+      shown. Open: the settings of `gitGraph` in `%%{init}%%`
+      (`mainBranchName`, `showBranches`, `parallelCommits`), which are
+      passed over; a commit is no place of the map, so a click on one
+      does not lead to its line.
+- [ ] Mermaid: requirement diagrams and kanban boards next. After them
+      the charts of numbers: quadrant, sankey, radar, treemap, XY chart,
+      packet; and ZenUML.
 - [ ] PlantUML: YAML (close to the JSON drawer), then network diagrams
       (nwdiag). After them: Salt, Ditaa, Archimate, EBNF, regex,
       chronology.

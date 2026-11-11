@@ -7,6 +7,7 @@ mod c4;
 mod class;
 mod er;
 mod gantt;
+mod gitgraph;
 mod head;
 mod journey;
 mod layered;
@@ -239,6 +240,13 @@ const NATIVE: &[Native] = &[
         noun: "pie chart",
         draw: |i| pie::try_draw(i.theme, i.body),
         refusal: omaspec_uml::pie::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::GitGraph,
+        headers: &["gitgraph"],
+        noun: "git graph",
+        draw: |i| gitgraph::try_draw(i.theme, i.body),
+        refusal: omaspec_uml::gitgraph::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Journey,
@@ -1038,12 +1046,15 @@ mod tests {
             class.reason,
             "a class is not drawn by Omaspec; mmdr draws it"
         );
-        let git = coverage("gitGraph\n  commit\n").unwrap().unwrap();
-        assert!(git.line.is_none());
+        let board = coverage("kanban\n  todo[Todo]\n    a[Write]\n")
+            .unwrap()
+            .unwrap();
+        assert!(board.line.is_none());
         assert_eq!(
-            git.reason,
-            "Git graphs are not drawn by Omaspec; mmdr draws them"
+            board.reason,
+            "Kanban boards are not drawn by Omaspec; mmdr draws them"
         );
+        assert_eq!(coverage("gitGraph\n  commit\n").unwrap(), None);
 
         assert!(
             coverage("sequenceDiagram\nAlice->>Bob: hi\nrect rgb(0, 0, 0)\nend\n")

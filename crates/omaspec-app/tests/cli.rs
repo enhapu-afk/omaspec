@@ -537,9 +537,15 @@ fn inspect_reports_kind_and_outline() {
     fs::write(&file, "gitGraph\n  commit\n").unwrap();
     let out = omaspec(&["inspect", file.to_str().unwrap()]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["native"], "understood");
+
+    let file = dir.join("board.mmd");
+    fs::write(&file, "kanban\n  todo[Todo]\n    a[Write]\n").unwrap();
+    let out = omaspec(&["inspect", file.to_str().unwrap()]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(
         json["native"]["declined"]["reason"],
-        "Git graphs are not drawn by Omaspec; mmdr draws them"
+        "Kanban boards are not drawn by Omaspec; mmdr draws them"
     );
     assert!(json["native"]["declined"].get("line").is_none());
 

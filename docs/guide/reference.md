@@ -681,10 +681,13 @@ diagram window).
 
 Mermaid renders natively, and so do most PlantUML diagrams, with Omaspec's own engines:
 sequence, activity, state, class, component, use case, deployment, object, timing and
-Gantt diagrams, mind maps, WBS, JSON and formulas (`@startlatex`, `@startmath`), and
-Mermaid flowcharts, state and sequence diagrams. The other Mermaid types are drawn by
+Gantt diagrams, mind maps, WBS, JSON and formulas (`@startlatex`, `@startmath`), and of
+Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,
+mind maps, Gantt and pie charts, user journeys, timelines and git graphs. The other
+Mermaid types (requirement diagrams, kanban boards, the charts of numbers) are drawn by
 [mmdr](https://github.com/1jehuang/mermaid-rs-renderer), a Rust library, in the same
-process. The other PlantUML types (YAML, network diagrams, Salt and more) render through
+process. A git graph shows the ids its writer gave its commits; an id Mermaid would make
+up is left out, since it says nothing and differs with every drawing. The other PlantUML types (YAML, network diagrams, Salt and more) render through
 the optional `plantuml` package, confined with Landlock. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
 angles. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a
