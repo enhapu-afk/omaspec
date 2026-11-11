@@ -1,0 +1,9 @@
+# Lists Omaspec in the OmaStore (github.com/KitsuneForgering/OmaStore), which
+# installs the archives of the latest release (.github/workflows/release.yml).
+
+name = "Omaspec"
+summary = "Native PlantUML and Mermaid editor and live preview for Omarchy"
+# Without it the `hyprland` topic of the repository would say System.
+categories = ["Development"]
+icon = "packaging/omaspec.svg"
+screenshots = ["docs/images/gallery.png"]
