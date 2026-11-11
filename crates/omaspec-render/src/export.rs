@@ -241,9 +241,10 @@ fn fallback(
     let has = |id, c| {
         fonts
             .with_face_data(id, |data, index| {
-                ttf_parser::Face::parse(data, index)
+                use skrifa::MetadataProvider;
+                skrifa::FontRef::from_index(data, index)
                     .ok()
-                    .and_then(|face| face.glyph_index(c))
+                    .and_then(|face| face.charmap().map(c))
                     .is_some()
             })
             .unwrap_or(false)
