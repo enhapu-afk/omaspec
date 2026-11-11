@@ -30,6 +30,7 @@ pub mod graph;
 pub mod hand;
 pub mod journey;
 pub mod json;
+pub mod kanban;
 pub mod map;
 mod metrics;
 pub mod pie;

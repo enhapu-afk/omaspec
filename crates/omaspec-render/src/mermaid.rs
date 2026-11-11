@@ -10,6 +10,7 @@ mod gantt;
 mod gitgraph;
 mod head;
 mod journey;
+mod kanban;
 mod layered;
 mod mindmap;
 mod pie;
@@ -247,6 +248,13 @@ const NATIVE: &[Native] = &[
         noun: "git graph",
         draw: |i| gitgraph::try_draw(i.theme, i.body),
         refusal: omaspec_uml::gitgraph::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Kanban,
+        headers: &["kanban"],
+        noun: "kanban board",
+        draw: |i| kanban::try_draw(i.theme, i.fenced),
+        refusal: omaspec_uml::kanban::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Journey,
@@ -1046,13 +1054,15 @@ mod tests {
             class.reason,
             "a class is not drawn by Omaspec; mmdr draws it"
         );
-        let board = coverage("kanban\n  todo[Todo]\n    a[Write]\n")
-            .unwrap()
-            .unwrap();
-        assert!(board.line.is_none());
+        let flows = coverage("sankey-beta\n  a,b,1\n").unwrap().unwrap();
+        assert!(flows.line.is_none());
         assert_eq!(
-            board.reason,
-            "Kanban boards are not drawn by Omaspec; mmdr draws them"
+            flows.reason,
+            "Sankey diagrams are not drawn by Omaspec; mmdr draws them"
+        );
+        assert_eq!(
+            coverage("kanban\n  todo[Todo]\n    a[Write]\n").unwrap(),
+            None
         );
         assert_eq!(coverage("gitGraph\n  commit\n").unwrap(), None);
 

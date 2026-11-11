@@ -2334,9 +2334,17 @@ without folding, lines by hand and plays, and the Java PlantUML:
       (`mainBranchName`, `showBranches`, `parallelCommits`), which are
       passed over; a commit is no place of the map, so a click on one
       does not lead to its line.
-- [ ] Mermaid: requirement diagrams and kanban boards next. After them
-      the charts of numbers: quadrant, sankey, radar, treemap, XY chart,
-      packet; and ZenUML.
+- [x] Mermaid's kanban board (2026-11-11): an item at the first level
+      is a column, each one written deeper under it a card
+      (`omaspec_uml::kanban`). The columns stand beside one another, as
+      tall as the fullest; a card's words are broken to its width, its
+      ticket and its assignee stand under them, its priority is a bar
+      at its left edge. Open: `ticketBaseUrl`, which would make a ticket
+      a link, and settings written over several lines; both are refused
+      by name and left to mmdr.
+- [ ] Mermaid: requirement diagrams next. After them the charts of
+      numbers: quadrant, sankey, radar, treemap, XY chart, packet; and
+      ZenUML.
 - [ ] PlantUML: YAML (close to the JSON drawer), then network diagrams
       (nwdiag). After them: Salt, Ditaa, Archimate, EBNF, regex,
       chronology.

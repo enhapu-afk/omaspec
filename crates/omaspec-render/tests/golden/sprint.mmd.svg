@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="982" height="233" viewBox="0 0 982 233">
+<rect x="0" y="0" width="982" height="233" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<rect x="0" y="34.37" width="230" height="177.91" rx="8" ry="8" fill="#E9EAEC"/>
+<rect x="244" y="34.37" width="230" height="177.91" rx="8" ry="8" fill="#E9EAEC"/>
+<rect x="488" y="34.37" width="230" height="177.91" rx="8" ry="8" fill="#E9EAEC"/>
+<rect x="732" y="34.37" width="230" height="177.91" rx="8" ry="8" fill="#E9EAEC"/>
+</g>
+<g>
+<rect x="10" y="70.67" width="210" height="34.3" rx="5" ry="5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="10" y="112.96" width="210" height="86.25" rx="5" ry="5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="10" y="115.96" width="4" height="80.25" rx="2" ry="2" fill="#3E7BFA"/>
+<rect x="254" y="70.67" width="210" height="69.95" rx="5" ry="5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="254" y="73.67" width="4" height="63.95" rx="2" ry="2" fill="#D9363E"/>
+<rect x="254" y="148.62" width="210" height="53.66" rx="5" ry="5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="254" y="151.62" width="4" height="47.66" rx="2" ry="2" fill="#E8912D"/>
+<rect x="498" y="70.67" width="210" height="53.66" rx="5" ry="5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="742" y="70.67" width="210" height="69.95" rx="5" ry="5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="742" y="73.67" width="4" height="63.95" rx="2" ry="2" fill="#8AB4F8"/>
+<rect x="742" y="148.62" width="210" height="34.3" rx="5" ry="5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="10" y="57.36" font-size="14" fill="#000000" font-weight="bold" textLength="34.22" lengthAdjust="spacing">Todo</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="23" y="92.66" font-size="14" fill="#000000" textLength="177.42" lengthAdjust="spacing">Write the guide for the board</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="23" y="134.95" font-size="14" fill="#000000" textLength="154.04" lengthAdjust="spacing">Draw the cards with their</tspan>
+<tspan x="23" y="151.25" font-size="14" fill="#000000" textLength="186.76" lengthAdjust="spacing">words broken to the width of a</tspan>
+<tspan x="23" y="167.55" font-size="14" fill="#000000" textLength="27.23" lengthAdjust="spacing">card</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="23" y="187.5" font-size="11.48" fill="#575858" textLength="35.08" lengthAdjust="spacing">OM-31</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="254" y="57.36" font-size="14" fill="#000000" font-weight="bold" textLength="76.24" lengthAdjust="spacing">In progress</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="267" y="92.66" font-size="14" fill="#000000" textLength="145.5" lengthAdjust="spacing">A drawer of our own for</tspan>
+<tspan x="267" y="108.95" font-size="14" fill="#000000" textLength="92.61" lengthAdjust="spacing">kanban boards</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="267" y="128.91" font-size="11.48" fill="#575858" textLength="35.08" lengthAdjust="spacing">OM-28</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="437.15" y="128.91" font-size="11.48" fill="#575858" textLength="17.85" lengthAdjust="spacing">kim</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="267" y="170.61" font-size="14" fill="#000000" textLength="127.61" lengthAdjust="spacing">Review the git graph</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="435.85" y="190.57" font-size="11.48" fill="#575858" textLength="19.15" lengthAdjust="spacing">ada</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="498" y="57.36" font-size="14" fill="#000000" font-weight="bold" textLength="59.92" lengthAdjust="spacing">In review</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="511" y="92.66" font-size="14" fill="#000000" textLength="173.52" lengthAdjust="spacing">Colors that follow the theme</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="511" y="112.62" font-size="11.48" fill="#575858" textLength="35.08" lengthAdjust="spacing">OM-25</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="681.15" y="112.62" font-size="11.48" fill="#575858" textLength="17.85" lengthAdjust="spacing">kim</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="742" y="57.36" font-size="14" fill="#000000" font-weight="bold" textLength="35" lengthAdjust="spacing">Done</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="755" y="92.66" font-size="14" fill="#000000" textLength="163.42" lengthAdjust="spacing">Read the columns and the</tspan>
+<tspan x="755" y="108.95" font-size="14" fill="#000000" textLength="34.23" lengthAdjust="spacing">cards</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="755" y="128.91" font-size="11.48" fill="#575858" textLength="35.08" lengthAdjust="spacing">OM-20</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="755" y="170.61" font-size="14" fill="#000000" textLength="165.73" lengthAdjust="spacing">A title from the front matter</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="443.56" y="16.24" font-size="17.5" fill="#0F172A" font-weight="bold" textLength="74.88" lengthAdjust="spacing">Sprint 12</tspan>
+</text>
+</g>
+</g>
+</svg>

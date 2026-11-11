@@ -176,6 +176,7 @@ const MERMAID_HEADS: &[&str] = &[
     "mindmap",
     "timeline",
     "gitGraph",
+    "kanban",
 ];
 
 const MERMAID_FLOWCHART: &[&str] = &[

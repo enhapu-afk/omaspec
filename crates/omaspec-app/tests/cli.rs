@@ -543,9 +543,15 @@ fn inspect_reports_kind_and_outline() {
     fs::write(&file, "kanban\n  todo[Todo]\n    a[Write]\n").unwrap();
     let out = omaspec(&["inspect", file.to_str().unwrap()]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["native"], "understood");
+
+    let file = dir.join("flows.mmd");
+    fs::write(&file, "sankey-beta\n  a,b,1\n").unwrap();
+    let out = omaspec(&["inspect", file.to_str().unwrap()]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(
         json["native"]["declined"]["reason"],
-        "Kanban boards are not drawn by Omaspec; mmdr draws them"
+        "Sankey diagrams are not drawn by Omaspec; mmdr draws them"
     );
     assert!(json["native"]["declined"].get("line").is_none());
 
