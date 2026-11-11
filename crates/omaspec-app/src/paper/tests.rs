@@ -684,6 +684,38 @@ D --> E
     assert!(fade.lines.is_none() && fade.bare.is_none());
 }
 
+/// A tree of more boxes than glide in time fades to its new layout: one
+/// picture into the other, with no picture for each box and none without
+/// lines to wait for.
+#[test]
+fn a_diagram_of_very_many_boxes_fades_to_its_new_layout() {
+    let tree = |branches: usize| {
+        let mut wbs = String::from("@startwbs\n* Life\n");
+        for branch in 0..branches {
+            wbs.push_str(&format!("** Branch {branch}\n"));
+            for leaf in 0..9 {
+                wbs.push_str(&format!("*** Leaf {branch}.{leaf}\n"));
+            }
+        }
+        wbs.push_str("@endwbs\n");
+        wbs
+    };
+    let branches = arrive::MOST_GLIDING / 10 + 2;
+    for (count, glides) in [(branches, false), (6, true)] {
+        let mut paper = Paper::default();
+        let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+        show_source(&mut paper, &tree(count), Language::PlantUml);
+        paper.deliver_overview();
+        let _ = paper.update(Message::Faded);
+        // A branch less: the others move up.
+        show_source(&mut paper, &tree(count - 1), Language::PlantUml);
+        paper.deliver_overview();
+        let fade = paper.fade.as_ref().expect("the new layout comes");
+        assert_eq!(fade.morph.is_some(), glides, "{count} branches");
+        assert_eq!(fade.bare.is_some(), glides, "{count} branches");
+    }
+}
+
 #[test]
 fn a_glide_finishes_before_the_next_one_starts() {
     let first = "@startuml\n[*] --> A\n@enduml\n";

@@ -2296,6 +2296,22 @@ Stage 4, motion in the editor:
       click lands, so a place between two steps touches all of them; a
       touchpad already scrolls by pixels.
 
+Seen in use, on a tree of 2,790 boxes (2026-11-11):
+
+- [x] A fold waited 13 seconds before it moved: each line looked for
+      its partner by a walk through the other picture's lines. They are
+      looked up now (`wires::plan`).
+- [x] The glide itself came at nine frames a second, each frame 90 ms of
+      work (`OMASPEC_FRAMES=1` in the window): every box is a picture
+      of its own in every frame, cut out of two pictures with a hole for
+      each box. A diagram of more than 300 boxes fades from one layout
+      to the next now, one picture into the other
+      (`arrive::MOST_GLIDING`). A compromise: the branch no longer goes
+      into its box there. Open: the glide box by box made cheap enough
+      for such a tree (the holes of a box found once, not in every
+      frame; fewer pictures cut to shape), and the fold answering at
+      once while the new layout is still being made.
+
 Stage 5, more diagrams drawn by Omaspec (each a step of its own; mmdr
 draws these Mermaid types today, without folding, lines by hand and
 plays, and the Java PlantUML the PlantUML ones):

@@ -21,6 +21,10 @@ const DIAGRAM_FADE: Duration = Duration::from_millis(180);
 const FOLD_FADE: Duration = Duration::from_millis(320);
 /// The same boxes glide to where the new picture put them.
 const MORPH: Duration = Duration::from_millis(400);
+/// A diagram of more boxes than this fades from one layout to the next
+/// instead of gliding box by box. A frame's work grows faster than the
+/// boxes do, and has to stay well under the 16.7 ms of a 60 Hz screen.
+pub(super) const MOST_GLIDING: usize = 300;
 
 impl Paper {
     /// Takes a render answer: shows the diagram, or keeps the last one and
@@ -341,6 +345,13 @@ impl Paper {
             return None;
         }
         let diagram = self.diagram.as_ref()?;
+        // Each box of a glide is a picture of its own in every frame, cut
+        // out of the two it travels between. A tree of 2,800 boxes took
+        // 90 ms a frame that way, nine frames a second; one picture
+        // fading into the other stays at sixty.
+        if old_boxes.len().max(diagram.drawn.map.places.len()) > MOST_GLIDING {
+            return None;
+        }
         // A fold of a tree glides whatever else moved: its boxes go into
         // the box above them.
         let folding = matches!(self.change, Change::Fold { .. })
