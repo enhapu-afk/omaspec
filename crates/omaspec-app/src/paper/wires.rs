@@ -12,6 +12,8 @@
 //! and held it, the other way round when a container unfolds, and several
 //! lines that become one all travel to it.
 
+use std::collections::HashMap;
+
 use iced::widget::canvas::{Frame, LineDash, Path, Stroke};
 use iced::{Color, Point, Rectangle, Size};
 use omaspec_uml::map::{Head, HeadFill, Map, Wire};
@@ -138,7 +140,83 @@ impl Line {
 }
 
 /// The lines of the glide from `old` to `new`, whose boxes are `moves`.
+///
+/// Each line finds its partner by a lookup, not by a walk through the
+/// other picture's lines: a tree of some thousand boxes has as many
+/// lines, and a walk for each of them, asking for each pair which boxes
+/// stand for its ends, took a quarter of a minute where this takes
+/// milliseconds.
 pub fn plan(old: &Map, new: &Map, moves: &[Move]) -> Glide {
+    // The box each end stands as, asked once for a name.
+    let stood = |wires: &'_ [Wire], old: bool| {
+        let mut names: HashMap<String, String> = HashMap::new();
+        for name in wires.iter().flat_map(|w| [&w.key.from, &w.key.to]) {
+            if !names.contains_key(name) {
+                names.insert(name.clone(), stands_for(name, moves, old));
+            }
+        }
+        names
+    };
+    let (old_names, new_names) = (stood(&old.wires, true), stood(&new.wires, false));
+    let ends = |wire: &Wire, names: &HashMap<String, String>| {
+        (names[&wire.key.from].clone(), names[&wire.key.to].clone())
+    };
+    // The new picture's lines by their key and by the boxes their ends
+    // stand as, each list in the order of the lines.
+    let mut by_key: HashMap<&omaspec_uml::hand::Key, Vec<usize>> = HashMap::new();
+    let mut by_ends: HashMap<(String, String), Vec<usize>> = HashMap::new();
+    for (at, wire) in new.wires.iter().enumerate() {
+        by_key.entry(&wire.key).or_default().push(at);
+        by_ends.entry(ends(wire, &new_names)).or_default().push(at);
+    }
+    // The old picture's first line between two such boxes.
+    let mut was_by_ends: HashMap<(String, String), usize> = HashMap::new();
+    for (at, wire) in old.wires.iter().enumerate() {
+        was_by_ends.entry(ends(wire, &old_names)).or_insert(at);
+    }
+
+    let mut used = vec![false; new.wires.len()];
+    let mut lines = Vec::with_capacity(old.wires.len().max(new.wires.len()));
+    for wire in &old.wires {
+        let partner = pick(by_key.get(&wire.key), &used)
+            .or_else(|| pick(by_ends.get(&ends(wire, &old_names)), &used));
+        lines.push(match partner {
+            Some(at) => {
+                used[at] = true;
+                Line::between(wire, &new.wires[at])
+            }
+            None => Line::folding(wire, moves).unwrap_or_else(|| Line::leaving(wire)),
+        });
+    }
+    for (at, wire) in new.wires.iter().enumerate() {
+        if used[at] {
+            continue;
+        }
+        // One line became several: each comes from the one it was.
+        let was = was_by_ends.get(&ends(wire, &new_names));
+        lines.push(match was {
+            Some(&w) => Line::between(&old.wires[w], wire),
+            None => Line::folding(wire, moves).unwrap_or_else(|| Line::arriving(wire)),
+        });
+    }
+    Glide { lines }
+}
+
+/// The first of the lines `fitting` not taken yet, else the first of
+/// them, so several lines may travel to the one they become.
+fn pick(fitting: Option<&Vec<usize>>, used: &[bool]) -> Option<usize> {
+    let fitting = fitting?;
+    fitting
+        .iter()
+        .copied()
+        .find(|&at| !used[at])
+        .or_else(|| fitting.first().copied())
+}
+
+/// [`plan`] as it was first written, a walk for every line: what the
+/// lookups must give too.
+#[cfg(test)]
+fn plan_by_walking(old: &Map, new: &Map, moves: &[Move]) -> Glide {
     let old_name = |name: &str| stands_for(name, moves, true);
     let new_name = |name: &str| stands_for(name, moves, false);
     let alike = |a: &Wire, b: &Wire| {
@@ -147,8 +225,8 @@ pub fn plan(old: &Map, new: &Map, moves: &[Move]) -> Glide {
     let mut used = vec![false; new.wires.len()];
     let mut lines = Vec::with_capacity(old.wires.len().max(new.wires.len()));
     for wire in &old.wires {
-        let partner = pick(&new.wires, &used, |w| w.key == wire.key)
-            .or_else(|| pick(&new.wires, &used, |w| alike(wire, w)));
+        let partner = pick_by_walking(&new.wires, &used, |w| w.key == wire.key)
+            .or_else(|| pick_by_walking(&new.wires, &used, |w| alike(wire, w)));
         lines.push(match partner {
             Some(at) => {
                 used[at] = true;
@@ -173,7 +251,8 @@ pub fn plan(old: &Map, new: &Map, moves: &[Move]) -> Glide {
 
 /// The first of `wires` that `fits`: one not taken yet, else any, so
 /// several lines may travel to the one they become.
-fn pick(wires: &[Wire], used: &[bool], fits: impl Fn(&Wire) -> bool) -> Option<usize> {
+#[cfg(test)]
+fn pick_by_walking(wires: &[Wire], used: &[bool], fits: impl Fn(&Wire) -> bool) -> Option<usize> {
     let fitting = |(at, wire): (usize, &Wire)| fits(wire).then_some(at);
     wires
         .iter()
@@ -502,6 +581,110 @@ mod tests {
 
     fn rect(x: f32, y: f32, w: f32, h: f32) -> Rectangle {
         Rectangle::new(Point::new(x, y), Size::new(w, h))
+    }
+
+    /// A picture of containers `c0`, `c1`, … with boxes in them and lines
+    /// between the boxes, some twice; folding container `folded` takes
+    /// its boxes away and ends their lines on the container.
+    fn pictures(folded: usize) -> (Map, Map, Vec<Move>) {
+        let boxes = |c: usize| (0..4).map(move |b| format!("c{c}b{b}"));
+        let place =
+            |c: usize, b: usize| rect(c as f32 * 200.0 + 10.0, b as f32 * 40.0 + 30.0, 40.0, 20.0);
+        let around = |c: usize| rect(c as f32 * 200.0, 0.0, 180.0, 200.0);
+        let line = |from: &str, to: &str, nth: usize| {
+            let mut wire = wire(from, to, &[(0.0, 0.0), (nth as f32, 100.0)]);
+            wire.key.nth = nth;
+            wire
+        };
+        let mut old = Vec::new();
+        let mut new = Vec::new();
+        let mut moves = Vec::new();
+        for c in 0..6 {
+            moves.push(step(&format!("c{c}"), around(c), around(c), Role::Stay));
+            for (b, name) in boxes(c).enumerate() {
+                let role = if c == folded { Role::Leave } else { Role::Stay };
+                moves.push(step(&name, place(c, b), place(c, b), role));
+                // To the box below, twice from the first one, and across
+                // to the next container.
+                let below = format!("c{c}b{}", (b + 1) % 4);
+                let across = format!("c{}b{b}", (c + 1) % 6);
+                let twice = if b == 0 { 2 } else { 1 };
+                for nth in 0..twice {
+                    old.push(line(&name, &below, nth));
+                    old.push(line(&name, &across, nth));
+                }
+                let stands = |name: &str| match name.strip_prefix(&format!("c{folded}b")) {
+                    Some(_) => format!("c{folded}"),
+                    None => name.to_owned(),
+                };
+                let (from, to, far) = (stands(&name), stands(&below), stands(&across));
+                if from != to {
+                    new.push(line(&from, &to, 0));
+                }
+                if b != 2 {
+                    new.push(line(&from, &far, 0));
+                }
+            }
+        }
+        new.push(line("c1", "new", 0));
+        moves.push(step(
+            "new",
+            rect(0.0, 300.0, 40.0, 20.0),
+            rect(0.0, 300.0, 40.0, 20.0),
+            Role::Arrive,
+        ));
+        (map(old), map(new), moves)
+    }
+
+    #[test]
+    fn the_lookups_pair_the_lines_as_a_walk_through_them_did() {
+        for folded in [0, 3, 9] {
+            let (old, new, moves) = pictures(folded);
+            // Folding, and unfolding: the pictures and the roles the other
+            // way round.
+            let back: Vec<Move> = moves
+                .iter()
+                .map(|step| Move {
+                    role: match step.role {
+                        Role::Leave => Role::Arrive,
+                        Role::Arrive => Role::Leave,
+                        Role::Stay => Role::Stay,
+                    },
+                    ..step.clone()
+                })
+                .collect();
+            for (old, new, moves) in [(&old, &new, &moves), (&new, &old, &back)] {
+                let fast = plan(old, new, moves);
+                let slow = plan_by_walking(old, new, moves);
+                assert!(fast.lines.len() > 40);
+                assert_eq!(format!("{fast:?}"), format!("{slow:?}"), "folded {folded}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_tree_of_thousands_of_lines_is_planned_at_once() {
+        let n = 3000;
+        let name = |i: usize| format!("box{i}");
+        let at = |i: usize| rect(i as f32 * 50.0, 0.0, 40.0, 20.0);
+        let link = |i: usize| wire(&name(i / 2), &name(i), &[(0.0, 0.0), (i as f32, 60.0)]);
+        // The last third of the boxes folds away.
+        let kept = n * 2 / 3;
+        let old = map((1..n).map(link).collect());
+        let new = map((1..kept).map(link).collect());
+        let moves: Vec<Move> = (0..n)
+            .map(|i| {
+                let role = if i < kept { Role::Stay } else { Role::Leave };
+                step(&name(i), at(i), at(i), role)
+            })
+            .collect();
+        let start = std::time::Instant::now();
+        let glide = plan(&old, &new, &moves);
+        let took = start.elapsed();
+        assert_eq!(glide.lines.len(), n - 1);
+        // Walking took a quarter of a minute for this; a slow machine
+        // still plans it in a blink.
+        assert!(took < std::time::Duration::from_secs(2), "{took:?}");
     }
 
     #[test]

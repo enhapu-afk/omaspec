@@ -64,17 +64,26 @@ impl Drawn {
             .cards
             .as_deref()
             .filter(|_| rendered.svg.len() > whole);
-        let tree =
-            export::parse(cards.unwrap_or(&rendered.svg)).map_err(|e| RenderError::Engine {
-                engine: rendered.engine,
-                message: e.to_string(),
-            })?;
+        // The picture and the one without its lines are read side by
+        // side: each takes as long as the other, a quarter of a second
+        // for a tree of some thousand boxes.
+        let wanted = cards.is_none() && !rendered.map.wires.is_empty();
+        let (tree, bare) = std::thread::scope(|scope| {
+            let bare = scope.spawn(|| {
+                wanted
+                    .then(|| omaspec_uml::without_lines(&rendered.svg))
+                    .flatten()
+                    .and_then(|svg| export::parse(&svg).ok())
+                    .map(Arc::new)
+            });
+            let tree = export::parse(cards.unwrap_or(&rendered.svg));
+            (tree, bare.join().ok().flatten())
+        });
+        let tree = tree.map_err(|e| RenderError::Engine {
+            engine: rendered.engine,
+            message: e.to_string(),
+        })?;
         let cards = cards.is_some();
-        let bare = (!cards && !rendered.map.wires.is_empty())
-            .then(|| omaspec_uml::without_lines(&rendered.svg))
-            .flatten()
-            .and_then(|svg| export::parse(&svg).ok())
-            .map(Arc::new);
         Ok(Drawn {
             svg: rendered.svg.into(),
             tree: Arc::new(tree),
