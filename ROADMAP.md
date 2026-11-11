@@ -2267,11 +2267,20 @@ Stage 2, a formatter and fixes at the finding:
 
 Stage 3, emoji and symbols:
 
-- [ ] A window to choose an emoji or a symbol from, found by its name,
-      like the palette; arrows and UML's marks beside the emoji, which
-      Omarchy's own picker does not have. To look at first: whether an
-      emoji arrives in color in a PNG and a PDF. In a subgraph's title
-      it goes into quotes, as mermaid.js needs it.
+- [x] An emoji keeps its color and the label its face (2026-11-11): in
+      `finished ✅` the whole label was set in a monospace face, the
+      check mark a small black box, in the pane, a PNG and a PDF; `🚀`
+      and `🔴` were fine. usvg takes the first face that has a
+      character and sets the whole text in it when it has all of the
+      text's characters, and a text face with a check mark of its own
+      came before the emoji face. The face is chosen here now
+      (`export::fallback`): an emoji face first, then one of symbols
+      alone, which cannot take a label over, then one as wide or as
+      narrow as the text's own.
+- [x] A window of our own to choose an emoji from, weighed and declined
+      (2026-11-11): Omarchy has one for every window on Super+Ctrl+E,
+      and it writes into the source as into any text. Left open: a
+      window for arrows and UML's marks, if they are missed in use.
 
 Stage 4, motion in the editor:
 

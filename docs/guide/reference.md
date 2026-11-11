@@ -430,6 +430,11 @@ line a state first stands on, how many transitions go in and out and which event
 takes; the transitions an event fires; what a participant sends and receives, and its
 state machine in the project.
 
+An emoji is written with Omarchy's own picker, Super+Ctrl+E, as in any window. It is
+drawn in color in the pane and in every export, and the words beside it keep their face.
+In an unquoted title of a Mermaid subgraph mermaid.js does not read one; lint says so and
+puts the title in quotes.
+
 ### Fixes and an even hand
 
 A finding that can be put right in one sure way carries its fix: a line mermaid.js would

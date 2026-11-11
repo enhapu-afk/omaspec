@@ -5,9 +5,10 @@
 //! as attachments, plus a title. The ZIP holds the SVG, the source file and
 //! that PDF. JPEG is the picture only.
 
+use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Cursor, Write};
-use std::sync::{Arc, LazyLock};
+use std::sync::{Arc, LazyLock, Mutex, PoisonError};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use krilla::embed::{AssociationKind, EmbeddedFile, MimeType};
@@ -197,6 +198,10 @@ static SVG_OPTIONS: LazyLock<usvg::Options<'static>> = LazyLock::new(|| {
     generic_families(&mut fonts);
     usvg::Options {
         fontdb: Arc::new(fonts),
+        font_resolver: usvg::FontResolver {
+            select_font: usvg::FontResolver::default_font_selector(),
+            select_fallback: Box::new(|c, used, fonts| fallback(c, used, fonts)),
+        },
         // Only embedded images: an SVG naming a local file must not pull
         // that file into an export.
         image_href_resolver: usvg::ImageHrefResolver {
@@ -207,6 +212,81 @@ static SVG_OPTIONS: LazyLock<usvg::Options<'static>> = LazyLock::new(|| {
         ..Default::default()
     }
 });
+
+/// The face that draws `c`, which the faces `used` so far do not have: an
+/// emoji face first, then one of symbols alone, then one as wide or as
+/// narrow as the text's own, then any.
+///
+/// usvg takes the first face that has the character, and sets the whole
+/// text in it when it has all of the text's characters. A text face found
+/// first for an emoji (a monospace face with a check mark of its own) so
+/// took over a whole label, in black. A face without letters cannot: it
+/// draws the one character, and the label keeps its own.
+fn fallback(
+    c: char,
+    used: &[usvg::fontdb::ID],
+    fonts: &usvg::fontdb::Database,
+) -> Option<usvg::fontdb::ID> {
+    type Asked = (char, Vec<usvg::fontdb::ID>);
+    // Every face is opened to ask it, so an answer is kept.
+    static FOUND: LazyLock<Mutex<HashMap<Asked, Option<usvg::fontdb::ID>>>> =
+        LazyLock::new(Mutex::default);
+    let asked = (c, used.to_vec());
+    let kept = FOUND.lock().unwrap_or_else(PoisonError::into_inner);
+    if let Some(found) = kept.get(&asked) {
+        return *found;
+    }
+    drop(kept);
+
+    let has = |id, c| {
+        fonts
+            .with_face_data(id, |data, index| {
+                ttf_parser::Face::parse(data, index)
+                    .ok()
+                    .and_then(|face| face.glyph_index(c))
+                    .is_some()
+            })
+            .unwrap_or(false)
+    };
+    let emoji = |face: &usvg::fontdb::FaceInfo| {
+        face.families
+            .iter()
+            .any(|(name, _)| name.to_ascii_lowercase().contains("emoji"))
+    };
+    let own = used.first().and_then(|id| fonts.face(*id));
+    let free = |face: &&usvg::fontdb::FaceInfo| !used.contains(&face.id);
+    let mut found = fonts
+        .faces()
+        .filter(free)
+        .find(|face| emoji(face) && has(face.id, c))
+        .map(|face| (0, face.id));
+    if found.is_none() {
+        for face in fonts.faces().filter(free).filter(|face| !emoji(face)) {
+            if !has(face.id, c) {
+                continue;
+            }
+            let rank = if !has(face.id, 'a') {
+                1
+            } else if own.is_none_or(|own| own.monospaced == face.monospaced) {
+                2
+            } else {
+                3
+            };
+            if found.is_none_or(|(best, _)| rank < best) {
+                found = Some((rank, face.id));
+            }
+            if rank == 1 {
+                break;
+            }
+        }
+    }
+    let found = found.map(|(_, id)| id);
+    FOUND
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .insert(asked, found);
+    found
+}
 
 /// Points `sans-serif`, `serif` and `monospace` at installed fonts,
 /// those with Arial's, Times' and Courier's metrics first: Omaspec's
@@ -669,6 +749,34 @@ mod tests {
             let at = whole.pixel(50 + x, 20 + y).unwrap();
             assert_eq!(piece.pixel(x, y).unwrap(), at, "pixel {x},{y}");
         }
+    }
+
+    #[test]
+    fn an_emoji_is_drawn_by_a_face_that_cannot_take_the_label_over() {
+        let fonts = &SVG_OPTIONS.fontdb;
+        let face = |name: &str| {
+            fonts
+                .faces()
+                .find(|f| f.families.iter().any(|(n, _)| n == name))
+                .map(|f| f.id)
+        };
+        let family = |id| {
+            let face = fonts.face(id).expect("the face");
+            face.families[0].0.clone()
+        };
+        // Told only where the machine has a text face and an emoji face.
+        let (Some(sans), Some(_)) = (face("Liberation Sans"), face("Noto Color Emoji")) else {
+            return;
+        };
+        for emoji in ['\u{2705}', '\u{1f680}', '\u{1f534}'] {
+            let found = fallback(emoji, &[sans], fonts).expect("a face with it");
+            assert_eq!(family(found), "Noto Color Emoji", "{emoji}");
+        }
+        // A face used already is not taken again, and a letter no face
+        // has gives none.
+        let emoji = face("Noto Color Emoji").unwrap();
+        assert_ne!(fallback('\u{2705}', &[sans, emoji], fonts), Some(emoji));
+        assert_eq!(fallback('\u{10FFFF}', &[sans], fonts), None);
     }
 
     #[test]
