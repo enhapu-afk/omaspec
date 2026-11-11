@@ -746,6 +746,7 @@ fn the_palette_runs_commands() {
                 "Down" => key = Key::Named(Named::ArrowDown),
                 "F5" => key = Key::Named(Named::F5),
                 "F2" => key = Key::Named(Named::F2),
+                "Space" => key = Key::Named(Named::Space),
                 c => key = Key::Character(c.to_lowercase().into()),
             }
         }
@@ -2146,6 +2147,35 @@ fn snapshot_by_hand() {
     hand(&mut app, paper::Gesture::Press(at));
     hand(&mut app, paper::Gesture::Move(at + across * 70.0));
     shoot(&mut app, &dir, "hand-drag");
+}
+
+/// Writes headless screenshots of the list the editor offers when
+/// OMASPEC_SNAPSHOT_DIR is set: the events a message may send, and the
+/// names and blocks a line may start with.
+#[test]
+fn snapshot_assist() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("assist-shot");
+    let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Opening : open [unlocked]\nClosed --> Locked : lock\nLocked --> Closed : unlock\nOpening --> Open : end position\nOpen --> Closing : close\nClosing --> Closed : end position\n";
+    let file = work.join("door.puml");
+    std::fs::write(&file, door).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, door, Language::PlantUml);
+    act(
+        &mut app,
+        Action::Move {
+            motion: scrive_core::Motion::DocEnd,
+            extend: false,
+        },
+    );
+    type_in(&mut app, "Closing --> Opening : ");
+    shoot(&mut app, &dir, "assist-events");
+    type_in(&mut app, "obstacle\n");
+    press(&mut app, Command::Suggest);
+    shoot(&mut app, &dir, "assist-line");
 }
 
 /// Writes headless screenshots of a box held in place when
@@ -5055,6 +5085,69 @@ fn a_label_found_in_the_diagram_lights_up_and_comes_into_sight() {
     let at = source.find("Closed").unwrap() + 1;
     act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
     assert_ne!(app.doc().paper.breath_target(), Some(lit));
+}
+
+/// Types `text` a key at a time, as a writer does.
+fn type_in(app: &mut App, text: &str) {
+    for c in text.chars() {
+        act(
+            app,
+            match c {
+                '\n' => Action::Enter,
+                c => Action::Type(c),
+            },
+        );
+    }
+}
+
+#[test]
+fn the_editor_offers_the_names_the_events_and_the_blocks_while_typing() {
+    let dir = temp_dir("assist");
+    let path = dir.join("lamp.puml");
+    let text = "@startuml\n[*] --> Off\nOff --> Shining : switch\nShining --> Off : switch\n";
+    std::fs::write(&path, text).unwrap();
+    let mut app = open(std::slice::from_ref(&path));
+    act(
+        &mut app,
+        Action::Move {
+            motion: scrive_core::Motion::DocEnd,
+            extend: false,
+        },
+    );
+
+    // A name of the diagram, by its first letters.
+    type_in(&mut app, "Sh");
+    act(&mut app, Action::PopupAccept);
+    assert!(
+        app.doc().text().ends_with("\nShining"),
+        "{}",
+        app.doc().text()
+    );
+    // After the arrow a space is enough, and after the colon the events.
+    type_in(&mut app, " --> ");
+    act(&mut app, Action::PopupAccept);
+    assert!(app.doc().text().ends_with("\nShining --> Off"));
+    type_in(&mut app, " : ");
+    act(&mut app, Action::PopupAccept);
+    assert!(app.doc().text().ends_with("\nShining --> Off : switch"));
+
+    // A block comes with its places to fill in; Escape closes the list,
+    // and asking for it brings it back.
+    type_in(&mut app, "\nsta");
+    act(&mut app, Action::PopupDismiss);
+    act(&mut app, Action::PopupAccept);
+    assert!(
+        app.doc().text().ends_with("\nsta"),
+        "closed: nothing to accept"
+    );
+    press(&mut app, Command::Suggest);
+    act(&mut app, Action::PopupAccept);
+    assert!(
+        app.doc().text().ends_with("\nstate Name {\n  \n}"),
+        "{:?}",
+        app.doc().text()
+    );
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]

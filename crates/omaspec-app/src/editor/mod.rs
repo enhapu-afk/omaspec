@@ -29,6 +29,7 @@
 //! finding, Ctrl+Z undo.
 
 mod anchored;
+mod assist;
 pub(crate) mod compare;
 mod doc;
 mod files;
@@ -322,6 +323,8 @@ pub enum Command {
     Format,
     /// A Mermaid flowchart written the way mermaid.js reads it too.
     Portable,
+    /// The list of what could be written at the caret.
+    Suggest,
     /// Folds the block the caret is in.
     Collapse,
     /// Unfolds the block the caret is in.
@@ -500,6 +503,7 @@ fn window_key(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
         }
         Key::Named(Named::Escape) if mode != Mode::Editing => Some(Command::Cancel),
         Key::Named(Named::Enter) if ctrl => Some(Command::RenderNow),
+        Key::Named(Named::Space) if ctrl && mode == Mode::Editing => Some(Command::Suggest),
         Key::Named(Named::PageDown) if ctrl => Some(Command::NextTab),
         Key::Named(Named::PageUp) if ctrl => Some(Command::PreviousTab),
         Key::Named(Named::Tab) if ctrl && mods.shift() => Some(Command::PreviousTab),
@@ -1850,6 +1854,10 @@ impl App {
                 } else {
                     self.notice = Some("mermaid.js reads it as it is".into());
                 }
+                Task::none()
+            }
+            Command::Suggest => {
+                self.doc_mut().editor.ask_completions();
                 Task::none()
             }
             Command::Collapse => self.fold_at_caret(false),

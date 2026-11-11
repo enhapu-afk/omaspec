@@ -49,6 +49,10 @@ files keep their CRLF line endings.
   lights while the diagram holds the keys, and the wash marked the state
   the machine had just left.
 
+- `scrive-iced`: `CodeEditor::ask_completions()` asks for the completion
+  list at the caret, and Ctrl+Space types nothing, so the app can bind it
+  to that. scrive had no key for the list.
+
 To see the changes:
 
 ```bash

@@ -99,6 +99,7 @@ impl Command {
             | Command::Cut
             | Command::Copy
             | Command::Paste
+            | Command::Suggest
             | Command::SelectAll => Ok(()),
             // The diagram its pane shows, as of a diagram file.
             Command::CopyPng

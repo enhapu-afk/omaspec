@@ -575,6 +575,13 @@ impl CodeEditor {
         self.doc.set_diagnostics(revision, diags)
     }
 
+    /// Omaspec addition to scrive 0.3.0: ask for the completion list at the
+    /// caret, as a key of the host does (Ctrl+Space). It opens also where
+    /// nothing was typed and after Escape closed it.
+    pub fn ask_completions(&mut self) {
+        self.request_completions(CompletionTrigger::Manual);
+    }
+
     /// Take the pending async completion request, if any. A host with an
     /// off-thread / language-server provider (rather than a synchronous
     /// [`completions`](CodeEditor::completions) one) polls this after `update`,

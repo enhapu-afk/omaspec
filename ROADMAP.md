@@ -2195,6 +2195,83 @@ what it costs.
       differs by machine; Omaspec reads nothing it does not ship. Left until
       a dictionary comes with Omarchy.
 
+### An editor that knows the diagram, and more diagrams (2026-11-11)
+
+Asked for on 2026-11-11: a list of what could be written, highlighting
+that knows a state from an event, a formatter that does more than
+indent, a window to choose an emoji from, motion in the editor, and the
+diagrams Omaspec does not draw itself yet. In the order they are meant
+to be built; each stage stands on its own.
+
+Stage 1, the editor understands the diagram:
+
+- [x] The editor offers what could be written (2026-11-11): while a name
+      is typed, after an arrow and after the colon of a label a list
+      opens, and Ctrl+Space asks for it anywhere (*Suggest at the caret*).
+      It holds the diagram's states or participants, the events its state
+      machine takes, and for a message to a participant with a state
+      machine in the project the events that machine takes, before what
+      the scenario sent so far; at a line's first word also the words and
+      blocks of the language for this kind of diagram, a block with its
+      places to fill in by Tab (`alt … else … end`, `state Name { }`,
+      `subgraph`). In a Markdown document it goes by the fence the caret
+      is in. The pointer resting on a state, an event or a participant
+      says what it is: where it stands, what goes in and out, the state
+      machine behind a participant (`omaspec_model::assist`; the list,
+      its keys and the card are scrive's, which had them and no key to
+      ask). The line the caret is in is left out of what is read, so a
+      line half written does not empty the list.
+- [ ] Highlighting by what a word is: states, events, guards and
+      actions each in a color of their own, and a name the diagram does
+      not declare apart from one it does. scrive colors by its grammar
+      alone, so this needs colors laid over the grammar's, a change in
+      `vendor/`.
+- [ ] Still to come in the list: the names of the project's diagrams
+      where a link is written, and the members of a class. To watch in
+      use: one letter opens it, which may be too often.
+
+Stage 2, a formatter and fixes at the finding:
+
+- [ ] *Prettify* above the indenting `fmt` does: arrows and colons in a
+      column, one space around them, declarations before their first
+      use; never a change in the behavior, held against `omaspec diff`.
+- [ ] A finding carries its fix, applied with one key at its line
+      (`Finding` grows, also in `--json` and over MCP). Today only
+      *Rewrite for mermaid.js* fixes, and all lines at once.
+
+Stage 3, emoji and symbols:
+
+- [ ] A window to choose an emoji or a symbol from, found by its name,
+      like the palette; arrows and UML's marks beside the emoji, which
+      Omarchy's own picker does not have. To look at first: whether an
+      emoji arrives in color in a PNG and a PDF. In a subgraph's title
+      it goes into quotes, as mermaid.js needs it.
+
+Stage 4, motion in the editor:
+
+- [ ] A caret that glides, scrolling that eases, the list fading in, the
+      line jumped to lighting up; one setting turns all of it off.
+
+Stage 5, more diagrams drawn by Omaspec (each a step of its own; mmdr
+draws these Mermaid types today, without folding, lines by hand and
+plays, and the Java PlantUML the PlantUML ones):
+
+- [ ] Mermaid: the ER diagram first (on the class drawer), then
+      gitGraph, timeline and journey (frequent in READMEs), then C4 and
+      architecture. After them: requirement, block, kanban, packet,
+      quadrant, sankey, radar, treemap, XY chart, ZenUML.
+- [ ] PlantUML: YAML (close to the JSON drawer), then network diagrams
+      (nwdiag). After them: Salt, Ditaa, Archimate, EBNF, regex,
+      chronology.
+
+Beside the stages:
+
+- [ ] A box put into another rank than its neighbor's (`D below C`,
+      `right of`, `level with`); see the entry on boxes held in place
+      above.
+- [ ] An outline beside the source to jump from, and an example from
+      the gallery put in at the caret.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 Omaspec's engine is plain Rust; what ties the program to Linux is at the

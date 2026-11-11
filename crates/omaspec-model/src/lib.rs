@@ -11,6 +11,7 @@
 //! No I/O and no GUI, like `omaspec-core` and `omaspec-uml`.
 
 mod across;
+pub mod assist;
 mod behavior;
 mod check;
 mod convert;

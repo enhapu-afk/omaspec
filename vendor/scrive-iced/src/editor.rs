@@ -3561,6 +3561,9 @@ fn interpret_key(key: &Key, text: Option<&str>, mods: Modifiers) -> Option<Actio
         Key::Named(Named::Enter) => None,
         Key::Named(Named::Tab) if mods.shift() => Some(Action::Outdent),
         Key::Named(Named::Tab) => Some(Action::Tab),
+        // Omaspec addition to scrive 0.3.0: Ctrl+Space is the host's key for
+        // asking for the completion list, so it types nothing.
+        Key::Named(Named::Space) if mods.control() => None,
         Key::Named(Named::Space) => Some(Action::Type(' ')),
         Key::Named(Named::Escape) => Some(Action::Collapse),
         // F8 / Shift+F8 jump to the next/previous diagnostic.

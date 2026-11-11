@@ -46,6 +46,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+Shift+D | compare with another tab, a git commit, or the project since one |
 | Ctrl+Shift+N | the diagram in a window of its own |
 | Ctrl+Shift+I, Ctrl+Shift+C | format; copy the diagram as PNG |
+| Ctrl+Space | the list of what could be written at the caret |
 | Ctrl+N, Ctrl+W, Ctrl+PageDown/PageUp | new tab, close tab, switch tabs |
 | Ctrl+Shift+[, Ctrl+Shift+] | fold the block at the caret, unfold it |
 | Ctrl+B, Ctrl+Q | project tree on/off, quit |
@@ -401,6 +402,25 @@ machines belong to its project, named by `@startuml Name` or `title`. On the com
 and over MCP, `lint`, `inspect`, `render` and `outline` take a document's diagrams on its
 lines, and `fmt` formats each of them in its place, leaving the prose as it is; `convert`
 and `diff` take a diagram file and say so for a document.
+
+### What the editor offers
+
+While you type a name, a list opens with what could stand there: the states or the
+participants of the diagram, and the other names it has written. After an arrow a space
+is enough. After the colon of a transition it lists the events the state machine takes so
+far; after the colon of a message, the events the receiver's state machine in the project
+takes (a participant named like `door.puml` or `title Door`), then what the scenario sent
+before. At the first word of a line it also has the words of the language for this kind
+of diagram and its blocks, each with places to fill in: `alt` writes `alt … else … end`,
+*state block* a composite state, `subgraph` a subgraph; Tab goes from place to place.
+Arrow keys choose, Enter or Tab takes, Escape closes the list until the next word, and
+Ctrl+Space (*Suggest at the caret*) asks for it anywhere. In a Markdown document the list
+goes by the fence the caret is in.
+
+Rest the pointer on a state, an event or a participant, and a card says what it is: the
+line a state first stands on, how many transitions go in and out and which events it
+takes; the transitions an event fires; what a participant sends and receives, and its
+state machine in the project.
 
 ### Mermaid that GitHub draws too
 

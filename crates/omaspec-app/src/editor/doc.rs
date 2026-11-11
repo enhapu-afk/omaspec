@@ -121,6 +121,8 @@ pub struct Doc {
     /// Names the document for alarms and render answers; never reused.
     pub key: u64,
     pub editor: CodeEditor,
+    /// What the editor's list and its card under the pointer go by.
+    assist: super::assist::Shared,
     /// Absolute; `None` until the document is saved.
     pub path: Option<PathBuf>,
     /// The text as last loaded or saved, to tell whether it changed since.
@@ -252,7 +254,10 @@ impl Doc {
                 .language(syntax::grammar(language))
                 .line_comment(Some(syntax::line_comment(language)))
         };
+        let assist = super::assist::Shared::default();
         let editor = editor
+            .completions(assist.offers())
+            .hover(assist.says())
             .font(look.font)
             .text_size(14.0)
             .id(format!("editor-{key}"));
@@ -260,6 +265,7 @@ impl Doc {
         let mut doc = Self {
             key,
             editor,
+            assist,
             path,
             saved,
             modified: false,
@@ -285,6 +291,26 @@ impl Doc {
         };
         doc.analyze();
         doc
+    }
+
+    /// What the tab holds, for what the editor offers while it is written.
+    fn holds(&self) -> super::assist::Holds {
+        use super::assist::Holds;
+        if self.is_document() {
+            Holds::Document
+        } else if self.is_project() {
+            Holds::Other
+        } else {
+            Holds::Diagram(self.language)
+        }
+    }
+
+    /// Tells the editor's assistance the text, the language and the
+    /// project's state machines as they are now.
+    pub fn tell_assist(&mut self) {
+        let holds = self.holds();
+        let text = self.editor.document().text();
+        self.assist.tell(&text, holds, &self.specs);
     }
 
     /// Whether this is a Markdown document of diagrams.
@@ -439,7 +465,9 @@ impl Doc {
     /// After an edit: whether the text now differs from the saved one, and
     /// which lines.
     pub fn edited(&mut self) {
+        let holds = self.holds();
         let text = self.editor.document().text();
+        self.assist.tell(&text, holds, &self.specs);
         self.modified = *text != *self.saved;
         self.changes = match &self.baseline {
             Some(baseline) => match super::compare::marks(baseline, &text) {
@@ -626,6 +654,7 @@ impl Doc {
     /// outline. Detects the language again unless it is set by hand; says
     /// whether it changed.
     pub fn analyze(&mut self) -> bool {
+        self.tell_assist();
         if self.is_document() {
             return self.analyze_document();
         }
