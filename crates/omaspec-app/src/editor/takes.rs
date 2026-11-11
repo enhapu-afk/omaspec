@@ -103,6 +103,7 @@ impl Command {
             | Command::Cut
             | Command::Copy
             | Command::Paste
+            | Command::Motion
             | Command::Suggest
             | Command::Fix
             | Command::FixAll

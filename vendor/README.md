@@ -59,6 +59,12 @@ files keep their CRLF line endings.
   host knows about a word (a state, an event). A tint that does not fit
   its line is left out.
 
+- `scrive-iced`: motion (`src/motion.rs`, a file of ours): a single caret
+  glides to where it goes in 90 ms, and the completion list arrives in
+  110 ms, faint and a little low at first. `CodeEditor::set_motion` and
+  `Editor::motion` turn both off. The widget asks for frames while either
+  runs, from its `RedrawRequested`.
+
 To see the changes:
 
 ```bash

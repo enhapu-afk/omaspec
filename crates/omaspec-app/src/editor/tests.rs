@@ -5151,6 +5151,18 @@ fn the_editor_offers_the_names_the_events_and_the_blocks_while_typing() {
 }
 
 #[test]
+fn motion_in_the_editor_is_turned_off_and_the_session_keeps_it() {
+    let mut app = open(&[]);
+    assert!(app.look.motion);
+    press(&mut app, Command::Motion);
+    assert!(!app.look.motion);
+    assert_eq!(app.notice.as_deref(), Some("no motion in the editor"));
+    assert!(!app.session().motion);
+    press(&mut app, Command::Motion);
+    assert!(app.session().motion);
+}
+
+#[test]
 fn a_finding_s_fix_is_made_at_the_caret_and_the_diagram_is_written_evenly() {
     let dir = temp_dir("fix");
     let path = dir.join("door.puml");

@@ -52,6 +52,7 @@ pub mod editor;
 mod geo;
 mod highlight_pool;
 pub mod metrics;
+pub mod motion;
 pub mod popup;
 pub mod tint;
 

@@ -327,6 +327,8 @@ pub enum Command {
     Portable,
     /// The list of what could be written at the caret.
     Suggest,
+    /// The caret glides and the list arrives, or both stand at once.
+    Motion,
     /// The fix a finding on the caret's line carries.
     Fix,
     /// Every fix the findings carry.
@@ -761,7 +763,10 @@ impl App {
             theme: ui::iced_theme(&theme_name, &palette),
             theme_name,
             palette,
-            look,
+            look: Look {
+                motion: session.motion,
+                ..look
+            },
             font,
             panes: layout(session.sidebar, true, false),
             stacked: false,
@@ -1967,6 +1972,19 @@ impl App {
                 self.edited(key);
                 self.render(key, false)
             }
+            Command::Motion => {
+                self.look.motion = !self.look.motion;
+                for doc in &mut self.docs {
+                    doc.set_look(&self.look);
+                }
+                self.notice = Some(if self.look.motion {
+                    "the caret glides and the list arrives".into()
+                } else {
+                    "no motion in the editor".into()
+                });
+                self.keep_session();
+                Task::none()
+            }
             Command::FollowTheme => {
                 self.follow_theme = !self.follow_theme;
                 let root = self.place_of(key).map(|p| p.root);
@@ -2334,7 +2352,10 @@ impl App {
         let palette = omarchy.palette.legible();
         self.theme_name = omarchy.name.unwrap_or_else(|| "built-in".into());
         self.theme = ui::iced_theme(&self.theme_name, &palette);
-        self.look = Look::new(&palette, &omarchy.tweaks, self.font);
+        self.look = Look {
+            motion: self.look.motion,
+            ..Look::new(&palette, &omarchy.tweaks, self.font)
+        };
         self.icons = icons_for(&palette, self.main_scale);
         self.palette = palette;
         for doc in &mut self.docs {

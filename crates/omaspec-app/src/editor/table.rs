@@ -340,6 +340,9 @@ pub const TABLE: &[Entry] = &[
         .menu(Diagram)
         .tool(6)
         .at(Spot::Diagram),
+    cmd("Motion in the editor: on or off", "", Command::Motion)
+        .menu(View)
+        .short("Motion in the editor"),
     cmd("Diagram theme: follow Omarchy", "", Command::FollowTheme)
         .menu(View)
         .gap(),

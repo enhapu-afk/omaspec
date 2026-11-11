@@ -2284,8 +2284,17 @@ Stage 3, emoji and symbols:
 
 Stage 4, motion in the editor:
 
-- [ ] A caret that glides, scrolling that eases, the list fading in, the
-      line jumped to lighting up; one setting turns all of it off.
+- [x] The caret glides and the list arrives (2026-11-11): a single caret
+      goes to its new place in 90 ms, fast at first, and stands at once
+      where scrolling moved it; the list of what could be written comes
+      up in 110 ms, faint and a little low at first. *Motion in the
+      editor: on or off* (View) turns both off, and the session keeps it
+      (`scrive_iced::motion`, a file of ours in `vendor/`). The line a
+      jump lands on lit up already.
+- [ ] Scrolling that eases: left out. The wheel's steps go through the
+      widget's reckoning of rows, of what is in sight and of where a
+      click lands, so a place between two steps touches all of them; a
+      touchpad already scrolls by pixels.
 
 Stage 5, more diagrams drawn by Omaspec (each a step of its own; mmdr
 draws these Mermaid types today, without folding, lines by hand and

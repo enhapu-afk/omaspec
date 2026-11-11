@@ -425,6 +425,9 @@ where its receiver's state machine in the project takes it.
 The colors are the theme's; `name`, `event`, `guard` and `action` under `[syntax]` in
 `omaspec.toml` replace them.
 
+The caret glides to where it goes, and the list comes up rather than standing there at
+once; *Motion in the editor: on or off* in View turns both off, and stays off.
+
 Rest the pointer on a state, an event or a participant, and a card says what it is: the
 line a state first stands on, how many transitions go in and out and which events it
 takes; the transitions an event fires; what a participant sends and receives, and its

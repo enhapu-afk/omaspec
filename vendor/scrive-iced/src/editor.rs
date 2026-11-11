@@ -531,6 +531,11 @@ struct State {
     /// drives the immediate plain-hover expand highlight. Tracked so a move
     /// on/off a chip repaints exactly once; `None` when off any chip or Ctrl is held.
     hover_chip: Option<u32>,
+    /// Omaspec addition to scrive 0.3.0: the caret on its way and the
+    /// completion list arriving. `draw` moves them on, with the frame time
+    /// `RedrawRequested` brought.
+    caret_glide: std::cell::Cell<crate::motion::Glide>,
+    popup_arrive: std::cell::Cell<crate::motion::Arrive>,
 }
 
 impl Default for State {
@@ -559,6 +564,8 @@ impl Default for State {
             gutter_hover_row: None,
             fold_preview: None,
             hover_chip: None,
+            caret_glide: std::cell::Cell::default(),
+            popup_arrive: std::cell::Cell::default(),
         }
     }
 }
@@ -638,6 +645,9 @@ pub struct Editor<'a, Message> {
     markers: &'a [LineMarker],
     /// Omaspec addition to scrive 0.3.0: the host's colors over the grammar's.
     tints: &'a [crate::tint::Tint],
+    /// Omaspec addition to scrive 0.3.0: the caret glides and the completion
+    /// list arrives (see [`crate::motion`]).
+    motion: bool,
     doc: &'a Document,
     on_action: Box<dyn Fn(Action) -> Message + 'a>,
     /// The open completion popup to render over the editor, if any (app-supplied
@@ -665,6 +675,7 @@ impl<'a, Message> Editor<'a, Message> {
             id: None,
             markers: &[],
             tints: &[],
+            motion: true,
             doc,
             on_action: Box::new(on_action),
             popup: None,
@@ -691,6 +702,16 @@ impl<'a, Message> Editor<'a, Message> {
     #[must_use]
     pub fn snippet_active(mut self, active: bool) -> Self {
         self.snippet_active = active;
+        self
+    }
+
+    /// Whether the caret glides and the completion list arrives (see
+    /// [`crate::motion`]); on unless the host turns it off.
+    ///
+    /// Omaspec addition to scrive 0.3.0.
+    #[must_use]
+    pub fn motion(mut self, on: bool) -> Self {
+        self.motion = on;
         self
     }
 
@@ -1869,12 +1890,25 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Editor<'_, Messag
             // rest project off-screen and are culled by offset_xy anyway. Bounds
             // the per-frame cost of a document-scale multi-cursor set to O(visible).
             let sels = self.doc.selections().all();
+            // Omaspec addition: a single caret glides to where it goes.
+            let alone = sels.len() == 1;
+            let mut glide = state.caret_glide.get();
+            let mut drawn = false;
             for sel in &sels[visible_selection_span(sels, vis_start, vis_end)] {
                 if let Some((x, y)) = offset_xy(sel.head()) {
+                    let (x, y) = match state.focus {
+                        Some(focus) if alone => {
+                            drawn = true;
+                            glide.at((x, y), (state.scroll.rows(line_h), state.scroll_x), focus.now, self.motion)
+                        }
+                        _ => (x, y),
+                    };
                     let r = Rectangle { x: x - CARET_WIDTH / 2.0, y: y + 1.0, width: CARET_WIDTH, height: line_h - 2.0 };
                     fill(renderer, r, text_color);
                 }
             }
+            // A caret out of sight, or one of several, starts in its place.
+            state.caret_glide.set(if drawn { glide } else { crate::motion::Glide::default() });
         }
 
         // Close the horizontally-scrolled code-area clip layer.
@@ -2009,9 +2043,17 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Editor<'_, Messag
 
         // Completion popup — render it over everything, clipped to
         // the widget (it may legitimately cover the gutter).
-        if let Some(list) = self.popup.filter(|l| !l.filtered.is_empty()) {
-            self.draw_popup(renderer, list, &geo, text_color);
+        // Omaspec addition: the list arrives, faint and a little low at first.
+        let mut arrive = state.popup_arrive.get();
+        match (self.popup.filter(|l| !l.filtered.is_empty()), state.focus) {
+            (Some(list), Some(focus)) => {
+                let shown = arrive.shown(focus.now, self.motion);
+                self.draw_popup(renderer, list, &geo, text_color, shown);
+            }
+            (Some(list), None) => self.draw_popup(renderer, list, &geo, text_color, 1.0),
+            (None, _) => arrive.closed(),
         }
+        state.popup_arrive.set(arrive);
 
         // Close the overlay layer.
         renderer.end_layer();
@@ -2569,6 +2611,15 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Editor<'_, Messag
                     let elapsed = now.saturating_duration_since(focus.updated_at).as_millis();
                     let until = BLINK_MS - elapsed % BLINK_MS;
                     shell.request_redraw_at(*now + Duration::from_millis(until as u64));
+                    // Omaspec addition: frames while the caret is on its way
+                    // (it sets out in the draw after the key that moved it, so
+                    // the time since that key counts too) and while the
+                    // completion list arrives.
+                    let moved = now.saturating_duration_since(focus.updated_at) < crate::motion::CARET * 2;
+                    let arriving = self.popup.is_some_and(|l| !l.filtered.is_empty()) && !state.popup_arrive.get().done(*now);
+                    if self.motion && (moved || arriving || state.caret_glide.get().running(*now)) {
+                        shell.request_redraw();
+                    }
                 }
                 // Hover idle timer: a move armed a re-arm — stamp the target
                 // instant here (accurate `now`) and schedule a redraw for it. When
@@ -2874,17 +2925,28 @@ impl<Message> Editor<'_, Message> {
     /// left / detail right, the selected row highlighted), and the selected
     /// item's wrapped doc block below. Placement flips above the caret when
     /// there's no room below.
-    fn draw_popup(&self, renderer: &mut iced::Renderer, list: &PopupList, geo: &Geo, text_color: Color) {
+    ///
+    /// `shown` is how much of it is there, from 0 to 1 (Omaspec addition,
+    /// see [`crate::motion::Arrive`]): it comes up from a little below its
+    /// place while its colors come in.
+    fn draw_popup(&self, renderer: &mut iced::Renderer, list: &PopupList, geo: &Geo, text_color: Color, shown: f32) {
         let line_h = geo.line_h();
-        let (origin, size) = self.popup_layout(list, geo);
+        let (mut origin, size) = self.popup_layout(list, geo);
+        origin.y += (1.0 - shown) * crate::motion::RISE;
+        let faint = |color: Color| Color { a: color.a * shown, ..color };
 
-        let dim = Color { a: 0.6, ..text_color };
+        let dim = faint(Color { a: 0.6, ..text_color });
 
         // Elevated neutral surface (shared with the hover / signature box).
         // Opaque, so the editor text can't bleed through; drawn first, the rows +
         // selection paint on top.
         let rect = Rectangle { x: origin.x, y: origin.y, width: size.width, height: size.height };
-        fill_panel(renderer, rect, POPUP_SURFACE, POPUP_BORDER, 8.0);
+        if shown < 1.0 {
+            // Without the panel's shadow, which would stand there at once.
+            fill_rounded(renderer, rect, faint(POPUP_SURFACE), 8.0);
+        } else {
+            fill_panel(renderer, rect, POPUP_SURFACE, POPUP_BORDER, 8.0);
+        }
 
         let n = list.filtered.len();
         let visible = n.min(popup::POPUP_MAX_VISIBLE);
@@ -2895,9 +2957,9 @@ impl<Message> Editor<'_, Message> {
             let item = &list.items[fi as usize];
             let y = popup::row_y(origin.y, vis, line_h);
             if start + vis == list.selected as usize {
-                fill(renderer, Rectangle { x: origin.x, y, width: size.width, height: line_h }, POPUP_SELECT);
+                fill(renderer, Rectangle { x: origin.x, y, width: size.width, height: line_h }, faint(POPUP_SELECT));
             }
-            self.draw_line(renderer, item.label.clone(), Point::new(row_x, y), kind_color(item.kind), Alignment::Left, rect);
+            self.draw_line(renderer, item.label.clone(), Point::new(row_x, y), faint(kind_color(item.kind)), Alignment::Left, rect);
             if let Some(detail) = &item.detail {
                 self.draw_line(renderer, detail.clone(), Point::new(right, y), dim, Alignment::Right, rect);
             }
@@ -2908,7 +2970,7 @@ impl<Message> Editor<'_, Message> {
         if doc_lines > 0 {
             if let Some(doc) = popup::selected_doc(list) {
                 let y = popup::row_y(origin.y, visible, line_h); // one past the last row
-                fill(renderer, Rectangle { x: origin.x, y, width: size.width, height: 1.0 }, POPUP_BORDER);
+                fill(renderer, Rectangle { x: origin.x, y, width: size.width, height: 1.0 }, faint(POPUP_BORDER));
                 renderer.fill_text(
                     Text {
                         content: doc.to_string(),

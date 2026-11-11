@@ -46,6 +46,9 @@ pub struct Session {
     /// The toolbar over the diagram is shown, with the menu bar.
     #[serde(default = "shown")]
     pub toolbar: bool,
+    /// The caret glides and the list of what could be written arrives.
+    #[serde(default = "shown")]
+    pub motion: bool,
     #[serde(default)]
     pub docs: Vec<SavedDoc>,
     /// The files opened last, the newest first.
@@ -63,6 +66,7 @@ impl Default for Session {
             picked: false,
             menu_bar: false,
             toolbar: true,
+            motion: true,
             docs: Vec::new(),
             recent: Vec::new(),
         }
@@ -229,6 +233,7 @@ impl App {
             picked: self.picked,
             menu_bar: self.bar_shown,
             toolbar: self.toolbar,
+            motion: self.look.motion,
             recent: self.recent_files.clone(),
             docs: self
                 .docs
@@ -302,6 +307,7 @@ mod tests {
             picked: true,
             menu_bar: true,
             toolbar: false,
+            motion: false,
             docs: vec![SavedDoc {
                 path: None,
                 text: Some("@startuml\n@enduml\n".into()),

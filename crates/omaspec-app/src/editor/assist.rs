@@ -311,4 +311,65 @@ mod tests {
         assert_eq!(found[4].color, crate::ui::color(tones.guard));
         assert!(tints(text, Holds::Other, &Specs::default(), &tones).is_empty());
     }
+
+    // Motion in the editor (`scrive_iced::motion`, ours in `vendor/`).
+    use scrive_iced::motion::{ARRIVE, Arrive, CARET, Glide, ease};
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn the_caret_glides_to_where_it_goes_and_stands_after_a_scroll() {
+        let start = Instant::now();
+        let still = (0.0, 0.0);
+        let mut glide = Glide::default();
+        // It starts in its place, and stays while nothing moves it.
+        assert_eq!(glide.at((10.0, 20.0), still, start, true), (10.0, 20.0));
+        assert!(!glide.running(start));
+        // A new place: it sets out from where it was, is on its way, and
+        // arrives.
+        assert_eq!(glide.at((110.0, 20.0), still, start, true), (10.0, 20.0));
+        assert!(glide.running(start));
+        let half = glide.at((110.0, 20.0), still, start + CARET / 2, true);
+        assert!(half.0 > 60.0 && half.0 < 110.0, "{half:?}: fast at first");
+        assert_eq!(
+            glide.at((110.0, 20.0), still, start + CARET, true),
+            (110.0, 20.0)
+        );
+        assert!(!glide.running(start + CARET));
+        // Moved again on its way, it goes on from where it is.
+        let _ = glide.at((10.0, 20.0), still, start + CARET, true);
+        let on_its_way = glide.at((10.0, 20.0), still, start + CARET + CARET / 2, true);
+        assert_eq!(
+            glide.at((10.0, 60.0), still, start + CARET + CARET / 2, true),
+            on_its_way
+        );
+        // Scrolled text takes its caret along at once; so does no motion.
+        let later = start + CARET * 4;
+        assert_eq!(
+            glide.at((10.0, 90.0), (3.0, 0.0), later, true),
+            (10.0, 90.0)
+        );
+        assert_eq!(
+            glide.at((50.0, 90.0), (3.0, 0.0), later, false),
+            (50.0, 90.0)
+        );
+        assert!(!glide.running(later));
+    }
+
+    #[test]
+    fn the_list_arrives_once_and_anew_after_it_closed() {
+        let start = Instant::now();
+        let mut arrive = Arrive::default();
+        assert!(!arrive.done(start), "closed");
+        assert_eq!(arrive.shown(start, true), 0.0);
+        let half = arrive.shown(start + ARRIVE / 2, true);
+        assert!(half > 0.5 && half < 1.0, "{half}");
+        assert_eq!(arrive.shown(start + ARRIVE, true), 1.0);
+        assert!(arrive.done(start + ARRIVE));
+        arrive.closed();
+        assert_eq!(arrive.shown(start + ARRIVE * 2, true), 0.0);
+        arrive.closed();
+        assert_eq!(arrive.shown(start + ARRIVE * 3, false), 1.0, "no motion");
+        assert_eq!((ease(0.0), ease(1.0), ease(7.0)), (0.0, 1.0, 1.0));
+        assert!(ARRIVE > Duration::ZERO);
+    }
 }

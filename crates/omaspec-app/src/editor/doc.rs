@@ -43,6 +43,9 @@ pub struct Look {
     pub tones: tokens::Tones,
     pub font: Font,
     pub marks: MarkColors,
+    /// The caret glides and the list of what could be written arrives;
+    /// off, both stand in their place at once.
+    pub motion: bool,
 }
 
 impl Look {
@@ -53,6 +56,7 @@ impl Look {
             tones: tokens::tones(palette, &tweaks.syntax),
             font,
             marks: MarkColors::new(palette, tweaks),
+            motion: true,
         }
     }
 }
@@ -267,6 +271,8 @@ impl Doc {
             .text_size(14.0)
             .id(format!("editor-{key}"));
         let saved = editor.document().text().into_owned();
+        let mut editor = editor;
+        editor.set_motion(look.motion);
         let mut doc = Self {
             key,
             editor,
@@ -549,6 +555,7 @@ impl Doc {
     /// Takes the theme's colors.
     pub fn set_look(&mut self, look: &Look) {
         self.editor.set_theme(look.tokens.clone());
+        self.editor.set_motion(look.motion);
         self.tones = look.tones;
         self.marks = look.marks;
         self.edited();

@@ -205,6 +205,9 @@ pub struct CodeEditor {
     markers: Vec<LineMarker>,
     /// Omaspec addition to scrive 0.3.0: the host's colors over the grammar's.
     tints: Vec<crate::Tint>,
+    /// Omaspec addition to scrive 0.3.0: the caret glides and the completion
+    /// list arrives.
+    motion: bool,
     /// The off-thread parallel highlight sweep — `Some` for a large document
     /// (`PARALLEL_MIN_BYTES`), `None` for small ones (the synchronous path). Owned
     /// here so a batteries-included host gets large-document highlighting for free.
@@ -312,6 +315,7 @@ impl CodeEditor {
             pending_hover_request: None,
             markers: Vec::new(),
             tints: Vec::new(),
+            motion: true,
             hl_pool: None,
         }
     }
@@ -520,6 +524,14 @@ impl CodeEditor {
     /// Omaspec addition to scrive 0.3.0.
     pub fn set_tints(&mut self, tints: Vec<crate::Tint>) {
         self.tints = tints;
+    }
+
+    /// Whether the caret glides and the completion list arrives (see
+    /// [`crate::motion`]); on until turned off.
+    ///
+    /// Omaspec addition to scrive 0.3.0.
+    pub fn set_motion(&mut self, on: bool) {
+        self.motion = on;
     }
 
     /// The gutter marks set last.
@@ -989,6 +1001,7 @@ impl CodeEditor {
         let editor = Editor::new(&self.doc, Event::Editor)
             .line_markers(&self.markers)
             .tints(&self.tints)
+            .motion(self.motion)
             .popup(popup)
             .snippet_active(self.snippet.is_some())
             .signature(self.signature.as_ref())
