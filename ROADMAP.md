@@ -2221,11 +2221,20 @@ Stage 1, the editor understands the diagram:
       its keys and the card are scrive's, which had them and no key to
       ask). The line the caret is in is left out of what is read, so a
       line half written does not empty the list.
-- [ ] Highlighting by what a word is: states, events, guards and
-      actions each in a color of their own, and a name the diagram does
-      not declare apart from one it does. scrive colors by its grammar
-      alone, so this needs colors laid over the grammar's, a change in
-      `vendor/`.
+- [x] Highlighting by what a word is (2026-11-11): in a state machine
+      the states, and in a transition's label its event, its guard and
+      its action, each in a color of its own; in a scenario the
+      participants, and a message in the event's color where its
+      receiver's state machine in the project takes it. In both
+      languages and in the fences of a Markdown document, read line by
+      line, so a diagram half written keeps its colors
+      (`omaspec_model::assist::marks`). The colors are the theme's
+      (`tokens::tones`; `name`, `event`, `guard` and `action` under
+      `[syntax]` in `omaspec.toml` replace them). scrive colors by its
+      grammar alone, so it got runs of a line in a color of the host's,
+      laid over the grammar's spans (`scrive_iced::Tint`). Open: a name
+      the diagram does not declare apart from one it does, and the other
+      kinds of diagram.
 - [ ] Still to come in the list: the names of the project's diagrams
       where a link is written, and the members of a class. To watch in
       use: one letter opens it, which may be too often.

@@ -30,6 +30,11 @@ variable = "{{ bright_blue }}"
 section = "{{ yellow }}"
 stereotype = "{{ blue }}"
 note = "{{ light_foreground }}"
+# What a word is in a state machine or a scenario, over the colors above.
+name = "{{ bright_blue }}"
+event = "{{ green }}"
+guard = "{{ yellow }}"
+action = "{{ magenta }}"
 
 [marks]
 # Beside the line numbers: changed since the last save, different from the

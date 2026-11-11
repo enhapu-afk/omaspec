@@ -11,11 +11,13 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use omaspec_core::{Language, markdown};
 use omaspec_model::Specs;
-use omaspec_model::assist::{self, Suggestion, What};
+use omaspec_model::assist::{self, Suggestion, Tone, What};
+use omaspec_theme::tokens::Tones;
 use scrive_core::{
     CompletionCx, CompletionItem, CompletionKind, CompletionTrigger, Completions, Hover, HoverCx,
     HoverInfo, InsertText,
 };
+use scrive_iced::Tint;
 
 /// What a tab holds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,6 +90,40 @@ impl Shared {
             }
             Holds::Other => None,
         }
+    }
+}
+
+/// The colors of what the words of `text` are, for the editor to lay over
+/// the grammar's: in a diagram file, or in each fence of a document.
+pub(super) fn tints(text: &str, holds: Holds, specs: &Specs, tones: &Tones) -> Vec<Tint> {
+    let tint = |line: usize, mark: assist::Mark| {
+        let color = match mark.tone {
+            Tone::Name => tones.name,
+            Tone::Event => tones.event,
+            Tone::Guard => tones.guard,
+            Tone::Action => tones.action,
+        };
+        Some(Tint {
+            row: u32::try_from(line).ok()?,
+            range: u32::try_from(mark.range.start).ok()?..u32::try_from(mark.range.end).ok()?,
+            color: crate::ui::color(color),
+        })
+    };
+    match holds {
+        Holds::Diagram(language) => assist::marks(text, language, specs)
+            .into_iter()
+            .filter_map(|mark| tint(mark.line, mark))
+            .collect(),
+        Holds::Document => markdown::blocks(text)
+            .iter()
+            .flat_map(|block| {
+                assist::marks(&block.code, block.language, specs)
+                    .into_iter()
+                    .filter_map(|mark| tint(block.doc_line(mark.line), mark))
+                    .collect::<Vec<_>>()
+            })
+            .collect(),
+        Holds::Other => Vec::new(),
     }
 }
 
@@ -174,5 +210,105 @@ mod tests {
         assert!(shared.diagram_at(2).is_none(), "the fence itself");
         shared.tell(text, Holds::Other, &Arc::default());
         assert!(shared.diagram_at(4).is_none());
+    }
+
+    // The colors laid over the grammar's (`scrive_iced::tint`, ours in
+    // `vendor/`, which the workspace does not test).
+    use scrive_core::{HighlightSpan, Rgba, SpanStyle};
+    use scrive_iced::tint::{of_row, over};
+    use std::borrow::Cow;
+    use std::ops::Range;
+    type Color = iced::Color;
+
+    const RED: Color = Color::from_rgb(1.0, 0.0, 0.0);
+    const GRAY: Color = Color::from_rgb(0.5, 0.5, 0.5);
+
+    fn span(range: Range<u32>, bold: bool) -> HighlightSpan {
+        HighlightSpan {
+            range,
+            style: SpanStyle {
+                fg: Rgba {
+                    r: 9,
+                    g: 9,
+                    b: 9,
+                    a: 255,
+                },
+                bold,
+                italic: false,
+            },
+        }
+    }
+
+    fn tint(row: u32, range: Range<u32>) -> Tint {
+        Tint {
+            row,
+            range,
+            color: RED,
+        }
+    }
+
+    #[test]
+    fn a_tint_colors_its_part_and_keeps_the_rest() {
+        let spans = [span(0..4, false), span(4..10, true)];
+        let out = over("Idle --> X", Some(&spans), &[tint(0, 2..6)], GRAY).unwrap();
+        let got: Vec<(Range<u32>, u8, bool)> = out
+            .iter()
+            .map(|s| (s.range.clone(), s.style.fg.r, s.style.bold))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                (0..2, 9, false),
+                (2..4, 255, false),
+                (4..6, 255, true),
+                (6..10, 9, true)
+            ]
+        );
+    }
+
+    #[test]
+    fn a_line_without_spans_is_one_run_in_the_plain_color() {
+        let out = over("Idle", None, &[tint(0, 0..2)], GRAY).unwrap();
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0].style.fg.r, 255);
+        assert_eq!((out[1].range.clone(), out[1].style.fg.r), (2..4, 128));
+        assert!(over("Idle", None, &[], GRAY).is_none());
+    }
+
+    #[test]
+    fn a_tint_that_does_not_fit_the_line_is_left_out() {
+        let spans = [span(0..3, false)];
+        // Past the end, and through the middle of "é".
+        for stale in [tint(0, 2..9), tint(0, 1..2), tint(0, 2..2)] {
+            let out = over("é!", Some(&spans[..1]), &[stale], GRAY).unwrap();
+            assert!(matches!(out, Cow::Borrowed(_)));
+        }
+    }
+
+    #[test]
+    fn the_tints_of_a_row_are_found_among_all() {
+        let all = [tint(1, 0..1), tint(3, 0..1), tint(3, 2..3), tint(7, 0..1)];
+        assert_eq!(of_row(&all, 3).len(), 2);
+        assert_eq!(of_row(&all, 2).len(), 0);
+        assert_eq!(of_row(&all, 9).len(), 0);
+        assert_eq!(of_row(&[], 0).len(), 0);
+    }
+
+    #[test]
+    fn the_words_of_a_document_s_diagram_are_colored_on_its_lines() {
+        let tones = omaspec_theme::tokens::tones(
+            &omaspec_theme::Palette::fallback(),
+            &std::collections::HashMap::new(),
+        );
+        let text = "# Door\n\n```plantuml\n[*] --> Idle\nIdle --> Busy : start [ready]\n```\n";
+        let found = tints(text, Holds::Document, &Specs::default(), &tones);
+        let rows: Vec<(u32, Range<u32>)> = found.iter().map(|t| (t.row, t.range.clone())).collect();
+        assert_eq!(
+            rows,
+            [(3, 8..12), (4, 0..4), (4, 9..13), (4, 16..21), (4, 22..29)]
+        );
+        assert_eq!(found[3].color, crate::ui::color(tones.event));
+        assert_eq!(found[4].color, crate::ui::color(tones.guard));
+        assert!(tints(text, Holds::Other, &Specs::default(), &tones).is_empty());
     }
 }

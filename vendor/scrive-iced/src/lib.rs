@@ -53,10 +53,12 @@ mod geo;
 mod highlight_pool;
 pub mod metrics;
 pub mod popup;
+pub mod tint;
 
 pub use code_editor::{CodeEditor, Event};
 pub use editor::{default_autoscroll_margin, Action, Editor, LineMarker, SCROLLBAR_WIDTH};
 pub use metrics::Metrics;
+pub use tint::Tint;
 
 /// The bundled [Codicon](https://github.com/microsoft/vscode-codicons) icon font
 /// (v0.0.45) — VS Code's own UI glyph set. The host application **must** load

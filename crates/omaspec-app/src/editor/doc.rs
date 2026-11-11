@@ -21,7 +21,7 @@ use omaspec_core::markdown::{self, Block};
 use omaspec_core::outline::{self, Entry};
 use omaspec_core::{DiagramKind, Language, classify, detect};
 use omaspec_model::Specs;
-use omaspec_theme::{Palette, Tweaks};
+use omaspec_theme::{Palette, Tweaks, tokens};
 use scrive_core::{Revision, TokenTheme};
 use scrive_iced::{CodeEditor, LineMarker};
 
@@ -39,6 +39,8 @@ const FLASH_FADE: Duration = Duration::from_millis(450);
 /// How documents look: token colors, font, line marks. Follows the theme.
 pub struct Look {
     pub tokens: TokenTheme,
+    /// The colors of what a word is, over the grammar's.
+    pub tones: tokens::Tones,
     pub font: Font,
     pub marks: MarkColors,
 }
@@ -48,6 +50,7 @@ impl Look {
     pub fn new(palette: &Palette, tweaks: &Tweaks, font: Font) -> Self {
         Self {
             tokens: syntax::token_theme(palette, &tweaks.syntax),
+            tones: tokens::tones(palette, &tweaks.syntax),
             font,
             marks: MarkColors::new(palette, tweaks),
         }
@@ -123,6 +126,8 @@ pub struct Doc {
     pub editor: CodeEditor,
     /// What the editor's list and its card under the pointer go by.
     assist: super::assist::Shared,
+    /// The colors of what a word is.
+    tones: tokens::Tones,
     /// Absolute; `None` until the document is saved.
     pub path: Option<PathBuf>,
     /// The text as last loaded or saved, to tell whether it changed since.
@@ -266,6 +271,7 @@ impl Doc {
             key,
             editor,
             assist,
+            tones: look.tones,
             path,
             saved,
             modified: false,
@@ -306,11 +312,15 @@ impl Doc {
     }
 
     /// Tells the editor's assistance the text, the language and the
-    /// project's state machines as they are now.
+    /// project's state machines as they are now, and colors the words by
+    /// what they are.
     pub fn tell_assist(&mut self) {
         let holds = self.holds();
         let text = self.editor.document().text();
         self.assist.tell(&text, holds, &self.specs);
+        let tints = super::assist::tints(&text, holds, &self.specs, &self.tones);
+        drop(text);
+        self.editor.set_tints(tints);
     }
 
     /// Whether this is a Markdown document of diagrams.
@@ -465,9 +475,8 @@ impl Doc {
     /// After an edit: whether the text now differs from the saved one, and
     /// which lines.
     pub fn edited(&mut self) {
-        let holds = self.holds();
+        self.tell_assist();
         let text = self.editor.document().text();
-        self.assist.tell(&text, holds, &self.specs);
         self.modified = *text != *self.saved;
         self.changes = match &self.baseline {
             Some(baseline) => match super::compare::marks(baseline, &text) {
@@ -504,6 +513,7 @@ impl Doc {
     /// Takes the theme's colors.
     pub fn set_look(&mut self, look: &Look) {
         self.editor.set_theme(look.tokens.clone());
+        self.tones = look.tones;
         self.marks = look.marks;
         self.edited();
     }

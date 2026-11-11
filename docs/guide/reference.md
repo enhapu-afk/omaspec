@@ -417,6 +417,13 @@ Arrow keys choose, Enter or Tab takes, Escape closes the list until the next wor
 Ctrl+Space (*Suggest at the caret*) asks for it anywhere. In a Markdown document the list
 goes by the fence the caret is in.
 
+The source is colored by what a word is, over the colors of the language: in a state
+machine the states, and in a transition's label the event, the guard and the action each
+in a color of its own; in a scenario the participants, and a message in the event's color
+where its receiver's state machine in the project takes it.
+The colors are the theme's; `name`, `event`, `guard` and `action` under `[syntax]` in
+`omaspec.toml` replace them.
+
 Rest the pointer on a state, an event or a participant, and a card says what it is: the
 line a state first stands on, how many transitions go in and out and which events it
 takes; the transitions an event fires; what a participant sends and receives, and its

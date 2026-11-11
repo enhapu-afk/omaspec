@@ -95,6 +95,39 @@ pub fn tm_theme(palette: &Palette, tweaks: &HashMap<String, Rgb>) -> String {
     xml
 }
 
+/// The colors of what a word is in a state machine or a scenario, which
+/// the editor lays over the grammar's: no grammar tells a state from an
+/// event.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Tones {
+    /// A state or a participant.
+    pub name: Rgb,
+    /// What fires a transition, or a message a state machine takes.
+    pub event: Rgb,
+    /// A transition's condition.
+    pub guard: Rgb,
+    /// What a transition does.
+    pub action: Rgb,
+}
+
+/// The tones for `palette`; `tweaks` (from `omaspec.toml`'s `[syntax]`)
+/// replace them by name: `name`, `event`, `guard`, `action`.
+pub fn tones(palette: &Palette, tweaks: &HashMap<String, Rgb>) -> Tones {
+    let p = palette;
+    let tone = |name: &str, color: Rgb| {
+        tweaks
+            .get(name)
+            .copied()
+            .unwrap_or_else(|| color.legible_on(&[p.background], p.foreground, MIN_CONTRAST))
+    };
+    Tones {
+        name: tone("name", p.bright_blue),
+        event: tone("event", p.green),
+        guard: tone("guard", p.yellow),
+        action: tone("action", p.magenta),
+    }
+}
+
 fn rule(name: &'static str, scope: &'static str, color: Rgb, italic: bool) -> Rule {
     Rule {
         name,
@@ -150,6 +183,13 @@ mod tests {
         )));
         assert!(xml.contains("<string>keyword.other</string>"));
         assert!(xml.ends_with("</plist>\n"));
+
+        let plain = tones(&p, &HashMap::new());
+        assert_ne!(plain.name, plain.event);
+        assert_ne!(plain.guard, plain.action);
+        let tweaks = HashMap::from([("guard".to_owned(), Rgb::new(1, 2, 3))]);
+        assert_eq!(tones(&p, &tweaks).guard, Rgb::new(1, 2, 3));
+        assert_eq!(tones(&p, &tweaks).event, plain.event);
 
         let tweaks = HashMap::from([("keyword".to_owned(), Rgb::new(1, 2, 3))]);
         let xml = tm_theme(&p, &tweaks);

@@ -53,6 +53,12 @@ files keep their CRLF line endings.
   list at the caret, and Ctrl+Space types nothing, so the app can bind it
   to that. scrive had no key for the list.
 
+- `scrive-iced`: `Tint` and `CodeEditor::set_tints`, `Editor::tints`
+  (`src/tint.rs`, a file of ours): a run of a line in a color of the
+  host's, laid over the grammar's spans when a row is drawn, for what the
+  host knows about a word (a state, an event). A tint that does not fit
+  its line is left out.
+
 To see the changes:
 
 ```bash

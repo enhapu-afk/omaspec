@@ -636,6 +636,8 @@ pub struct Editor<'a, Message> {
     id: Option<widget::Id>,
     /// Gutter marks for runs of rows (Omaspec addition).
     markers: &'a [LineMarker],
+    /// Omaspec addition to scrive 0.3.0: the host's colors over the grammar's.
+    tints: &'a [crate::tint::Tint],
     doc: &'a Document,
     on_action: Box<dyn Fn(Action) -> Message + 'a>,
     /// The open completion popup to render over the editor, if any (app-supplied
@@ -662,6 +664,7 @@ impl<'a, Message> Editor<'a, Message> {
         Self {
             id: None,
             markers: &[],
+            tints: &[],
             doc,
             on_action: Box::new(on_action),
             popup: None,
@@ -688,6 +691,16 @@ impl<'a, Message> Editor<'a, Message> {
     #[must_use]
     pub fn snippet_active(mut self, active: bool) -> Self {
         self.snippet_active = active;
+        self
+    }
+
+    /// Supply colors laid over the grammar's (see [`crate::Tint`]), in the
+    /// order of their rows and, within a row, of their starts.
+    ///
+    /// Omaspec addition to scrive 0.3.0.
+    #[must_use]
+    pub fn tints(mut self, tints: &'a [crate::tint::Tint]) -> Self {
+        self.tints = tints;
         self
     }
 
@@ -1610,7 +1623,13 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Editor<'_, Messag
             let y = geo.row_y(vr.display_row);
             let line = buffer.line(row);
             let origin = Point::new(geo.cell_x(0.0), y);
-            let spans = self.doc.highlight_line_spans(row);
+            let spans = crate::tint::over(
+                &line,
+                self.doc.highlight_line_spans(row),
+                crate::tint::of_row(self.tints, row),
+                text_color,
+            );
+            let spans = spans.as_deref();
             // Rows with an inline (single-line) fold draw collapsed — the interior
             // between the brackets hides behind a `…` chip, the rest shifts left.
             let row_layout = fold_map.row_layout(buffer, BufferRow(row), TAB);

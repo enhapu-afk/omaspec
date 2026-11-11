@@ -298,7 +298,7 @@ const SAYS: &[&str] = &[
 ];
 
 /// Whether `line` starts with `word` as a word of its own.
-fn starts_with_word(line: &str, word: &str) -> bool {
+pub(super) fn starts_with_word(line: &str, word: &str) -> bool {
     line.strip_prefix(word)
         .is_some_and(|rest| !rest.starts_with(|c: char| c.is_alphanumeric() || c == '_'))
 }
