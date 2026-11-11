@@ -70,14 +70,21 @@ pub(crate) fn one_diagram(input: &Input, does: &str) -> anyhow::Result<()> {
 }
 
 /// `input` formatted: its diagram, or each diagram of a Markdown document
-/// in its place, the document's prose as it is.
-pub(crate) fn formatted(input: &Input, forced: Option<Language>) -> String {
+/// in its place, the document's prose as it is. With `portable`, a Mermaid
+/// flowchart also the way mermaid.js reads it.
+pub(crate) fn formatted(input: &Input, forced: Option<Language>, portable: bool) -> String {
+    let format = |code: &str, language: Language| {
+        let formatted = omaspec_core::format::format(code, language);
+        if portable && language == Language::Mermaid {
+            omaspec_core::lint::portable(&formatted)
+        } else {
+            formatted
+        }
+    };
     if is_document(input) {
-        return markdown::rewrite_blocks(&input.text, |block| {
-            omaspec_core::format::format(&block.code, block.language)
-        });
+        return markdown::rewrite_blocks(&input.text, |block| format(&block.code, block.language));
     }
-    omaspec_core::format::format(&input.text, language(input, forced))
+    format(&input.text, language(input, forced))
 }
 
 /// The outline of `input`'s diagrams, on its lines.

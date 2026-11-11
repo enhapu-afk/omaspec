@@ -341,6 +341,33 @@ fn fmt_check_and_write() {
 }
 
 #[test]
+fn fmt_portable_writes_a_flowchart_the_way_mermaid_js_reads_it() {
+    let dir = scratch("fmt-portable");
+    let file = dir.join("README.md");
+    let text = "# Flow\n\na | b :::c\n\n```mermaid\nflowchart TD\nsubgraph 🔴 Breaks\nA --> B[Low | High] :::hot\nend\n```\n";
+    fs::write(&file, text).unwrap();
+
+    let out = omaspec(&["lint", file.to_str().unwrap()]);
+    let said = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(out.status.code(), Some(0), "a hint is no error: {said}");
+    assert!(said.contains(":7: info: Omaspec draws this"), "{said}");
+    assert_eq!(said.matches("mermaid.js (GitHub)").count(), 3, "{said}");
+
+    // Formatting alone leaves the words as they are.
+    let out = omaspec(&["fmt", file.to_str().unwrap()]);
+    assert!(String::from_utf8_lossy(&out.stdout).contains("B[Low | High] :::hot"));
+
+    let out = omaspec(&["fmt", "--portable", "--write", file.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(
+        fs::read_to_string(&file).unwrap(),
+        "# Flow\n\na | b :::c\n\n```mermaid\nflowchart TD\nsubgraph \"🔴 Breaks\"\n  A --> B[\"Low | High\"]:::hot\nend\n```\n"
+    );
+    let out = omaspec(&["lint", file.to_str().unwrap()]);
+    assert!(!String::from_utf8_lossy(&out.stdout).contains("mermaid.js"));
+}
+
+#[test]
 fn extract_reads_png_and_svg_and_never_overwrites_silently() {
     let dir = scratch("extract");
     let code = "@startuml\nBob -> Alice : hi\n@enduml\n";

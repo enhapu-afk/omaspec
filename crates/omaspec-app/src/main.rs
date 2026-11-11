@@ -299,6 +299,10 @@ enum Command {
         /// Only report files that are not formatted (exit 1 if any).
         #[arg(long)]
         check: bool,
+        /// Also write what only Omaspec reads in a Mermaid flowchart the
+        /// way mermaid.js (GitHub) reads it too.
+        #[arg(long)]
+        portable: bool,
     },
     /// Show the structure of a diagram.
     Outline {
@@ -667,7 +671,8 @@ fn main() -> ExitCode {
             lang,
             write,
             check,
-        }) => commands::fmt(&files, lang.get(), write, check),
+            portable,
+        }) => commands::fmt(&files, lang.get(), write, check, portable),
         Some(Command::Outline { file, lang, json }) => commands::outline(file, lang.get(), json),
         Some(Command::Inspect {
             file,

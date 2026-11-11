@@ -17,6 +17,7 @@ impl Command {
             Command::Skin(_)
             | Command::Convert
             | Command::Format
+            | Command::Portable
             | Command::ResetLine
             | Command::ResetLines
             | Command::LanguageDetected
@@ -84,6 +85,7 @@ impl Command {
             | Command::CompareSync
             | Command::CompareGlide
             | Command::Format
+            | Command::Portable
             | Command::Collapse
             | Command::Expand
             | Command::CollapseAll

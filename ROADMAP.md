@@ -2158,6 +2158,21 @@ what it costs.
       is; pointing elsewhere or closing the menu brings its own picture
       back (`App::preview_pointed`). The picture is the real one, at full
       size, instead of a thumbnail.
+- [x] Mermaid that mermaid.js reads too (2026-11-11): Omaspec draws a
+      flowchart that mermaid.js 12.3.0 refuses, and the same file is a
+      parse error on GitHub: a `|` in a label without quotes
+      (mermaid-js/mermaid#8750), a symbol in a subgraph's title without
+      quotes (#8752), a space beside the `:::` of a class (#8753). Each
+      is a hint on its line now, with the way both read it
+      (`omaspec_core::lint::portable`), and *Rewrite for mermaid.js
+      (GitHub)* or `omaspec fmt --portable` writes it that way, in a
+      Markdown document too. When mermaid.js learns a case, it goes
+      from the list.
+- [x] `D below C` among the boxes held in place said how a line by hand
+      reads (2026-11-11); it says now that a box is held in its
+      neighbor's rank only. Open: a box put into another rank (`below`,
+      `right of`, `level with`), which needs a decision on how it meets
+      the ranks the layout gives.
 - [x] PlantUML's themes, weighed and declined for now: `!theme` other than
       `plain` stays declined (`the preprocessor's !theme is not supported
       yet`). Omaspec does not ship PlantUML's theme files and reads nothing

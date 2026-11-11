@@ -389,6 +389,7 @@ pub fn fmt(
     forced: Option<Language>,
     write: bool,
     check: bool,
+    portable: bool,
 ) -> Result<ExitCode> {
     let inputs = read_inputs(files)?;
     anyhow::ensure!(
@@ -402,7 +403,7 @@ pub fn fmt(
     let mut unformatted = false;
     let mut out = stdout();
     for input in &inputs {
-        let formatted = crate::document::formatted(input, forced);
+        let formatted = crate::document::formatted(input, forced, portable);
         let changed = formatted != input.text;
         if check {
             if changed {

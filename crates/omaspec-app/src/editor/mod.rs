@@ -320,6 +320,8 @@ pub enum Command {
     /// The export prompt's next look.
     NextLook,
     Format,
+    /// A Mermaid flowchart written the way mermaid.js reads it too.
+    Portable,
     /// Folds the block the caret is in.
     Collapse,
     /// Unfolds the block the caret is in.
@@ -1839,6 +1841,14 @@ impl App {
                     self.edited(key);
                 } else {
                     self.notice = Some("already formatted".into());
+                }
+                Task::none()
+            }
+            Command::Portable => {
+                if self.doc_mut().portable() {
+                    self.edited(key);
+                } else {
+                    self.notice = Some("mermaid.js reads it as it is".into());
                 }
                 Task::none()
             }

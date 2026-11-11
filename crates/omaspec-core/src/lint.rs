@@ -7,9 +7,13 @@
 //! swimlanes that differ only in case or spaces, a state name seen once next
 //! to a frequent one, an entry of the lines by hand that does not read or
 //! comes twice, two colors the writer set that hardly differ
-//! ([`crate::faint`]).
+//! ([`crate::faint`]), a line of a Mermaid flowchart that mermaid.js would
+//! not read ([`portable`]).
 
 mod namesakes;
+mod portable;
+
+pub use portable::portable;
 
 use std::collections::{HashMap, HashSet};
 
@@ -75,6 +79,9 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
         Language::Mermaid => {
             findings.extend(crate::settings::unheeded(&code));
             let rows = mermaid_rows(&lines);
+            if portable::is_flowchart(&code) {
+                portable::findings(&rows, &mut findings);
+            }
             match kind {
                 Kind::Sequence => sequence(&mermaid_parts(&rows), &mut findings),
                 Kind::State => state_names(

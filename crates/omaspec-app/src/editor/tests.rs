@@ -5058,6 +5058,32 @@ fn a_label_found_in_the_diagram_lights_up_and_comes_into_sight() {
 }
 
 #[test]
+fn a_flowchart_is_rewritten_for_mermaid_js_in_one_step() {
+    let dir = temp_dir("portable");
+    let path = dir.join("flow.mmd");
+    let text = "flowchart TD\n  A[Start] :::hot --> B[Low | High]\n";
+    std::fs::write(&path, text).unwrap();
+    let mut app = open(std::slice::from_ref(&path));
+    assert!(
+        app.doc()
+            .findings
+            .iter()
+            .any(|f| f.line == 1 && f.message.contains("mermaid.js")),
+    );
+
+    press(&mut app, Command::Portable);
+    assert_eq!(
+        app.doc().text(),
+        "flowchart TD\n  A[Start]:::hot --> B[\"Low | High\"]\n"
+    );
+    press(&mut app, Command::Portable);
+    assert_eq!(app.notice.as_deref(), Some("mermaid.js reads it as it is"));
+    act(&mut app, Action::Undo);
+    assert_eq!(app.doc().text(), text);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn a_markdown_document_is_formatted_diagram_by_diagram_in_one_step() {
     let dir = temp_dir("document-format");
     let path = dir.join("NOTES.md");

@@ -402,14 +402,28 @@ impl Doc {
     /// Re-indents the text (one undo step); says whether anything changed.
     /// The caret stays on its line.
     pub fn format(&mut self) -> bool {
+        self.rewrite(omaspec_core::format::format)
+    }
+
+    /// Writes what only Omaspec reads in a Mermaid flowchart the way
+    /// mermaid.js reads it too (one undo step); says whether anything
+    /// changed.
+    pub fn portable(&mut self) -> bool {
+        self.rewrite(|code, language| match language {
+            Language::Mermaid => omaspec_core::lint::portable(code),
+            Language::PlantUml => code.to_owned(),
+        })
+    }
+
+    /// Puts `rewritten` in the place of the text (one undo step); says
+    /// whether anything changed. The caret stays on its line.
+    fn rewrite(&mut self, rewritten: impl Fn(&str, Language) -> String) -> bool {
         let text = self.text();
         // A document's diagrams each in its place, its prose as it is.
         let formatted = if self.is_document() {
-            markdown::rewrite_blocks(&text, |block| {
-                omaspec_core::format::format(&block.code, block.language)
-            })
+            markdown::rewrite_blocks(&text, |block| rewritten(&block.code, block.language))
         } else {
-            omaspec_core::format::format(&text, self.language)
+            rewritten(&text, self.language)
         };
         if formatted == text {
             return false;

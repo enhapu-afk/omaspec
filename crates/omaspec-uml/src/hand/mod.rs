@@ -602,6 +602,8 @@ fn tokens(text: &str) -> Result<Vec<Token<'_>>, String> {
 
 const SHAPE: &str = "a line by hand reads `From -> To at 0.5 -0.4`";
 const HELD: &str = "a box held in place reads `Box after Neighbor` or `Box before Neighbor`";
+/// Words that would put a box in another rank than its neighbor's.
+const RANKS: [&str; 7] = ["below", "above", "under", "over", "left", "right", "level"];
 const APART: &str = "lines stay apart as `apart`, or as `apart at Name`";
 const LABEL: &str = "a label's side reads `From -> To label left` (or right, above, below)";
 
@@ -645,6 +647,11 @@ fn parse(text: &str) -> Result<Hand, String> {
     }
     match tokens.get(1) {
         Some(t) if t.is("after") || t.is("before") => hold(&tokens).map(Hand::Hold),
+        Some(t) if !t.quoted && RANKS.iter().any(|word| t.is(word)) => Err(format!(
+            "a box is held beside a neighbor in its rank, as `Box after Neighbor` or \
+             `Box before Neighbor`; `{}` moves no box to another rank",
+            t.text
+        )),
         _ => line(&tokens),
     }
 }

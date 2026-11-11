@@ -229,6 +229,9 @@ pub const TABLE: &[Entry] = &[
     cmd("Format the diagram", "Ctrl+Shift+I", Command::Format)
         .menu(Edit)
         .at(Spot::Editor),
+    cmd("Rewrite for mermaid.js (GitHub)", "", Command::Portable)
+        .menu(Edit)
+        .short("Rewrite for mermaid.js"),
     cmd(
         "Skin: plain (black lines)",
         "",

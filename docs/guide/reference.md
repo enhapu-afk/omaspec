@@ -402,6 +402,18 @@ and over MCP, `lint`, `inspect`, `render` and `outline` take a document's diagra
 lines, and `fmt` formats each of them in its place, leaving the prose as it is; `convert`
 and `diff` take a diagram file and say so for a document.
 
+### Mermaid that GitHub draws too
+
+Omaspec reads some Mermaid that mermaid.js does not, so a flowchart that looks right here
+can be a parse error in a README on GitHub. Lint hints at each such line, with the way
+both read it: a `|` in a label without quotes (`B[Low | High]`, both read
+`B["Low | High"]`), an emoji or another symbol in a subgraph's title without quotes
+(`subgraph 🔴 Breaks`, both read `subgraph "🔴 Breaks"`), a space beside the `:::` of a
+class (`A[Start] :::hot`, both read `A[Start]:::hot`). *Rewrite for mermaid.js (GitHub)*
+in the palette and in Edit writes every such line that way in one undo step, in a
+Markdown document too; `omaspec fmt --portable` does it on the command line. The cases
+are the ones mermaid.js 12.3.0 stops at.
+
 ### A project to hand on
 
 *Export the project* in the command list, or `omaspec export DIR`, writes every diagram
@@ -511,6 +523,7 @@ omaspec trace run.jsonl             # a recorded trace against the state machine
 omaspec refs Door                   # every use of a diagram, state or event in the project; --machine, --json
 omaspec rename Door Gate            # renamed at every use; --state, --event, --machine, --dry-run, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI
+omaspec fmt --portable --write a.mmd # also written the way mermaid.js (GitHub) reads a flowchart
 omaspec outline flow.puml           # structure: participants, groups, lanes, states, …
 omaspec inspect flow.puml           # language, kind, findings, outline, and whether Omaspec draws it
 omaspec diff door.puml              # what changed in the behavior since the last commit; --rev, or two files
