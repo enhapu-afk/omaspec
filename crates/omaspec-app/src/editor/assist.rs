@@ -34,6 +34,9 @@ struct Known {
     text: String,
     holds: Holds,
     specs: Arc<Specs>,
+    /// The tab's path in its project, and the project's diagrams by theirs.
+    own: String,
+    files: Arc<Vec<String>>,
 }
 
 /// What a tab knows, shared with the two askers its editor holds.
@@ -46,6 +49,8 @@ impl Default for Shared {
             text: String::new(),
             holds: Holds::Other,
             specs: Arc::default(),
+            own: String::new(),
+            files: Arc::default(),
         })))
     }
 }
@@ -59,6 +64,20 @@ impl Shared {
         }
         known.holds = holds;
         known.specs = specs.clone();
+    }
+
+    /// Where the tab's file is in its project, and the project's diagrams,
+    /// which a link it writes can lead to.
+    pub(super) fn tell_links(&self, own: &str, files: &Arc<Vec<String>>) {
+        let mut known = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+        own.clone_into(&mut known.own);
+        known.files = files.clone();
+    }
+
+    /// The tab's path in its project and the project's diagrams.
+    fn links(&self) -> (String, Arc<Vec<String>>) {
+        let known = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+        (known.own.clone(), known.files.clone())
     }
 
     /// Who offers what to write.
@@ -137,7 +156,12 @@ impl Completions for Offers {
         };
         let before = cx.lookback.rsplit('\n').next().unwrap_or_default();
         let asked = cx.trigger == CompletionTrigger::Manual;
-        assist::suggest(&code, language, line, before, asked, &specs)
+        let (own, files) = self.0.links();
+        let links = assist::Links {
+            own: &own,
+            files: &files,
+        };
+        assist::suggest(&code, language, line, before, asked, &specs, links)
             .into_iter()
             .enumerate()
             .map(|(at, s)| item(at, s))
@@ -151,6 +175,8 @@ fn item(at: usize, s: Suggestion) -> CompletionItem {
         What::Name => CompletionKind::Symbol,
         What::Event => CompletionKind::Event,
         What::Machine => CompletionKind::Type,
+        What::Diagram => CompletionKind::Value,
+        What::Member => CompletionKind::Field,
         What::Keyword => CompletionKind::Keyword,
         What::Block => CompletionKind::Construct,
     };

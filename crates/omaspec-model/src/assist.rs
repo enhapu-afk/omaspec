@@ -1,8 +1,9 @@
 //! What the editor offers while a diagram is written: the names it has so
 //! far, the events its state machine takes, the events a participant's
 //! state machine in the project takes, and the words and blocks of its
-//! language ([`suggest`]); and what a name under the pointer is
-//! ([`describe`]).
+//! language, where a link is written the project's diagrams, and after
+//! `Class::` that class's members ([`suggest`]); and what a name under
+//! the pointer is ([`describe`]).
 //!
 //! A line half written rarely reads as a diagram, so the line the caret
 //! is in is left out of what the readers get: the rest mostly reads, and
@@ -31,6 +32,10 @@ pub enum What {
     Event,
     /// A state machine of the project.
     Machine,
+    /// A diagram of the project, to link to.
+    Diagram,
+    /// A field or a method of a class.
+    Member,
     /// A word of the language.
     Keyword,
     /// A block of the language, with places to fill in.
@@ -76,6 +81,15 @@ enum Place<'a> {
     Other,
 }
 
+/// What a link can lead to: the file being written, by its path in its
+/// project, and the project's diagrams by theirs, `/` between folders.
+/// Outside a project both are empty.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Links<'a> {
+    pub own: &'a str,
+    pub files: &'a [String],
+}
+
 /// What to offer in `code` on its zero-based `line`, whose text up to the
 /// caret is `before`. `asked` is true when the writer asked for the list
 /// (Ctrl+Space): then it also comes where nothing was typed yet.
@@ -86,6 +100,7 @@ pub fn suggest(
     before: &str,
     asked: bool,
     specs: &Specs,
+    links: Links,
 ) -> Vec<Suggestion> {
     let comment = match lang {
         Language::PlantUml => "'",
@@ -100,8 +115,16 @@ pub fn suggest(
         .take_while(|(_, c)| c.is_alphanumeric() || *c == '_' || *c == '-')
         .last()
         .map_or(before.len(), |(at, _)| at);
+    if let Some(written) = address(before, lang) {
+        return unique(addresses(written, links));
+    }
     let (head, word) = (before[..typed].trim(), &before[typed..]);
     let rest = without_line(code, line);
+    if lang == Language::PlantUml
+        && let Some(class) = head.strip_suffix("::")
+    {
+        return unique(members(&rest, class));
+    }
     let kind = classify(&rest, lang);
     let labelled = matches!(kind.kind, DiagramKind::State | DiagramKind::Sequence);
 
@@ -147,6 +170,114 @@ pub fn suggest(
             .map(|w| Suggestion::new(w, What::Name, "", 4)),
     );
     unique(out)
+}
+
+/// What is written so far of the address of a link the caret stands in:
+/// after PlantUML's `[[`, or in the quotes of Mermaid's `click … href`.
+/// `None` anywhere else, and where the address ended and its label began.
+fn address(before: &str, lang: Language) -> Option<&str> {
+    let written = match lang {
+        Language::PlantUml => {
+            let open = before.rfind("[[")?;
+            &before[open + 2..]
+        }
+        Language::Mermaid => {
+            if !before.trim_start().starts_with("click ") || before.matches('"').count().is_multiple_of(2) {
+                return None;
+            }
+            &before[before.rfind('"')? + 1..]
+        }
+    };
+    (!written.contains([' ', '\t', ']', '{', '"'])).then_some(written)
+}
+
+/// The project's diagrams whose way from the file being written starts
+/// with `written`: each as what is still to write of it. The list's word
+/// starts after the last mark that is no letter, so that is what an
+/// entry replaces.
+fn addresses(written: &str, links: Links) -> Vec<Suggestion> {
+    let word = written
+        .char_indices()
+        .rev()
+        .take_while(|(_, c)| c.is_alphanumeric() || *c == '_' || *c == '-')
+        .last()
+        .map_or(written.len(), |(at, _)| at);
+    let mut folder: Vec<&str> = links.own.split('/').collect();
+    folder.pop();
+    links
+        .files
+        .iter()
+        .filter(|file| file.as_str() != links.own)
+        .filter_map(|file| {
+            let parts: Vec<&str> = file.split('/').collect();
+            let shared = folder
+                .iter()
+                .zip(&parts)
+                .take_while(|(a, b)| a == b)
+                .count();
+            let mut way = vec![".."; folder.len() - shared];
+            way.extend(&parts[shared..]);
+            let way = way.join("/");
+            let left = way.starts_with(written).then(|| way[word..].to_owned())?;
+            Some(Suggestion::new(left, What::Diagram, way, 0))
+        })
+        .collect()
+}
+
+/// The fields and methods of the class `class` in the PlantUML `code`,
+/// by their names, as a line or a note names one (`Order::total`).
+fn members(code: &str, class: &str) -> Vec<Suggestion> {
+    let class = class
+        .rsplit(|c: char| !(c.is_alphanumeric() || c == '_' || c == '.'))
+        .next()
+        .unwrap_or_default();
+    let Ok(omaspec_uml::Diagram::Structure(diagram)) = omaspec_uml::parse(code) else {
+        return Vec::new();
+    };
+    fn find<'a>(
+        group: &'a omaspec_uml::structure::Group,
+        key: &str,
+    ) -> Option<&'a omaspec_uml::structure::Element> {
+        group.nodes.iter().find_map(|node| {
+            if node.key == key {
+                Some(node)
+            } else {
+                find(&node.children, key)
+            }
+        })
+    }
+    let Some(element) = find(&diagram.root, class).filter(|_| !class.is_empty()) else {
+        return Vec::new();
+    };
+    element
+        .members
+        .iter()
+        .filter_map(|member| match member {
+            omaspec_uml::structure::Member::Text { text, slot, .. } => {
+                let name = member_name(&text.value)?;
+                let what = match slot {
+                    omaspec_uml::structure::Slot::Attribute => "field",
+                    omaspec_uml::structure::Slot::Method => "method",
+                };
+                let detail = format!("{what} · {}", text.value.trim());
+                Some(Suggestion::new(name, What::Member, detail, 0))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// The name in a member as it is written: `+ total(): Money`, `name :
+/// String`, `int count`, `{static} id`.
+fn member_name(written: &str) -> Option<String> {
+    let mut text = written.trim();
+    while let Some(rest) = text.strip_prefix('{') {
+        text = rest.split_once('}')?.1.trim_start();
+    }
+    let text = text.trim_start_matches(['+', '-', '#', '~']).trim_start();
+    let head = text.split(['(', ':', '=']).next()?.trim();
+    let name = head.rsplit(char::is_whitespace).next()?;
+    words::is_word(name).then(|| name.to_owned())
 }
 
 /// `code` with its line `line` empty.
@@ -448,7 +579,7 @@ mod tests {
     fn at_end(code: &str, lang: Language, specs: &Specs) -> Vec<Suggestion> {
         let line = code.split('\n').count() - 1;
         let before = code.rsplit('\n').next().unwrap();
-        suggest(code, lang, line, before, false, specs)
+        suggest(code, lang, line, before, false, specs, Links::default())
     }
 
     fn door() -> Specs {
@@ -488,7 +619,15 @@ mod tests {
     fn the_word_being_typed_is_not_offered_back() {
         let none = Specs::default();
         let code = "stateDiagram-v2\n  [*] --> Idle\n  Idle --> Runn\n  Idle --> Done\n";
-        let found = suggest(code, Language::Mermaid, 2, "  Idle --> Runn", false, &none);
+        let found = suggest(
+            code,
+            Language::Mermaid,
+            2,
+            "  Idle --> Runn",
+            false,
+            &none,
+            Links::default(),
+        );
         assert_eq!(labels(&found), ["Idle", "Done"]);
     }
 
@@ -544,8 +683,84 @@ mod tests {
         // Nothing in a comment, and nothing on an empty line unless asked.
         assert_eq!(at_end("@startuml\n' al", Language::PlantUml, &none), []);
         assert_eq!(at_end("@startuml\n", Language::PlantUml, &none), []);
-        let asked = suggest("@startuml\n", Language::PlantUml, 1, "", true, &none);
+        let asked = suggest(
+            "@startuml\n",
+            Language::PlantUml,
+            1,
+            "",
+            true,
+            &none,
+            Links::default(),
+        );
         assert!(labels(&asked).contains(&"participant"), "{asked:?}");
+    }
+
+    #[test]
+    fn where_a_link_is_written_the_project_s_diagrams_are_offered() {
+        let none = Specs::default();
+        let files: Vec<String> = [
+            "shop.puml",
+            "orders/checkout.puml",
+            "orders/payment.mmd",
+            "stock/shelf.puml",
+        ]
+        .map(String::from)
+        .to_vec();
+        let links = Links {
+            own: "orders/checkout.puml",
+            files: &files,
+        };
+        let offered = |code: &str, lang| {
+            let line = code.split('\n').count() - 1;
+            let before = code.rsplit('\n').next().unwrap();
+            suggest(code, lang, line, before, false, &none, links)
+        };
+        // From its own folder, itself left out; no letter typed yet.
+        let found = offered("@startuml\nstate Paying [[", Language::PlantUml);
+        assert_eq!(
+            labels(&found),
+            ["../shop.puml", "payment.mmd", "../stock/shelf.puml"]
+        );
+        assert!(found.iter().all(|s| s.what == What::Diagram));
+        // What is written so far is not written again.
+        let found = offered("@startuml\nstate Paying [[../st", Language::PlantUml);
+        assert_eq!(labels(&found), ["stock/shelf.puml"]);
+        assert_eq!(found[0].detail, "../stock/shelf.puml");
+        let found = offered("@startuml\nstate Paying [[pay", Language::PlantUml);
+        assert_eq!(labels(&found), ["payment.mmd"]);
+        // After the address comes its label, and after the link the rest.
+        assert_eq!(
+            offered(
+                "@startuml\nstate Paying [[payment.mmd the",
+                Language::PlantUml
+            ),
+            []
+        );
+        let mermaid = "stateDiagram-v2\n  [*] --> Paying\n  click Paying href \"";
+        assert_eq!(
+            labels(&offered(mermaid, Language::Mermaid)),
+            ["../shop.puml", "payment.mmd", "../stock/shelf.puml"]
+        );
+        let closed = "stateDiagram-v2\n  [*] --> Paying\n  click Paying href \"payment.mmd\" ";
+        assert_eq!(offered(closed, Language::Mermaid), []);
+    }
+
+    #[test]
+    fn after_a_class_and_two_colons_its_members_are_offered() {
+        let none = Specs::default();
+        let code = "@startuml\nclass Order {\n  - id : int\n  {static} count\n  + total(): Money\n  String note\n}\npackage shop {\n  class Cart {\n    + add(item)\n  }\n}\nclass Empty\nnote left of Order::";
+        let found = at_end(code, Language::PlantUml, &none);
+        assert_eq!(labels(&found), ["id", "count", "total", "note"]);
+        assert_eq!(found[0].detail, "field · - id : int");
+        assert_eq!(found[2].detail, "method · + total(): Money");
+        assert!(found.iter().all(|s| s.what == What::Member));
+        let nested = format!("{}Cart::a", &code[..code.len() - "Order::".len()]);
+        assert_eq!(labels(&at_end(&nested, Language::PlantUml, &none)), ["add"]);
+        let line = format!(
+            "{}Empty::",
+            &code[..code.len() - "note left of Order::".len()]
+        );
+        assert_eq!(at_end(&line, Language::PlantUml, &none), []);
     }
 
     #[test]

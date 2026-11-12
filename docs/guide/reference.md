@@ -414,6 +414,9 @@ takes (a participant named like `door.puml` or `title Door`), then what the scen
 before. At the first word of a line it also has the words of the language for this kind
 of diagram and its blocks, each with places to fill in: `alt` writes `alt … else … end`,
 *state block* a composite state, `subgraph` a subgraph; Tab goes from place to place.
+Where a link is written (after PlantUML's `[[`, in the quotes of Mermaid's `click … href`)
+it lists the project's diagrams, each as the way to it from this file; in PlantUML, after
+a class and `::` (`note left of Order::`), that class's fields and methods.
 Arrow keys choose, Enter or Tab takes, Escape closes the list until the next word, and
 Ctrl+Space (*Suggest at the caret*) asks for it anywhere. In a Markdown document the list
 goes by the fence the caret is in.

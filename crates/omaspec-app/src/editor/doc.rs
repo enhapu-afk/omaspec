@@ -317,6 +317,12 @@ impl Doc {
         }
     }
 
+    /// Tells the editor's assistance where this file is in its project and
+    /// which diagrams the project has, for the links it writes.
+    pub fn tell_links(&self, own: &str, files: &Arc<Vec<String>>) {
+        self.assist.tell_links(own, files);
+    }
+
     /// Tells the editor's assistance the text, the language and the
     /// project's state machines as they are now, and colors the words by
     /// what they are.

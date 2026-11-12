@@ -231,6 +231,8 @@ impl App {
     /// when they changed.
     fn hold_links(&mut self, root: &PathBuf, atlas: &Atlas) {
         let has = Arc::new(crate::document::diagrams_of(atlas));
+        let files: Arc<Vec<String>> =
+            Arc::new(atlas.diagrams.iter().map(|d| d.file.clone()).collect());
         for index in 0..self.docs.len() {
             if self.project_of(&self.docs[index]).as_ref() != Some(root) {
                 continue;
@@ -243,6 +245,7 @@ impl App {
             else {
                 continue;
             };
+            doc.tell_links(&own, &files);
             let same = doc
                 .links
                 .as_ref()

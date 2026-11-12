@@ -2243,9 +2243,14 @@ Stage 1, the editor understands the diagram:
       laid over the grammar's spans (`scrive_iced::Tint`). Open: a name
       the diagram does not declare apart from one it does, and the other
       kinds of diagram.
-- [ ] Still to come in the list: the names of the project's diagrams
-      where a link is written, and the members of a class. To watch in
-      use: one letter opens it, which may be too often.
+- [x] In the list too (2026-11-12): where a link is written
+      (PlantUML's `[[`, the quotes of Mermaid's `click … href`) the
+      project's diagrams, each as the way to it from the file being
+      written, without what stands there already; and in PlantUML after
+      a class and `::` that class's fields and methods by their names
+      (`note left of Order::total`). Mermaid has no way to name one
+      member, so nothing is offered there. To watch in use: one letter
+      opens the list, which may be too often.
 
 Stage 2, a formatter and fixes at the finding:
 
