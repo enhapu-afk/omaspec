@@ -1703,7 +1703,7 @@ fn mcp_serves_an_agent_over_standard_io() {
     assert_eq!(hello["result"]["protocolVersion"], "2025-06-18");
     ask(serde_json::json!({"jsonrpc": "2.0", "method": "notifications/initialized"}));
     let tools = ask(serde_json::json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}));
-    assert_eq!(tools["result"]["tools"].as_array().unwrap().len(), 10);
+    assert_eq!(tools["result"]["tools"].as_array().unwrap().len(), 11);
 
     // A relative path, from the folder the server runs in: the second
     // `open` finds the door open already.
@@ -2150,4 +2150,47 @@ fn diff_draws_a_state_machine_s_changes_over_its_new_version() {
     ]);
     assert_eq!(out.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&out.stderr).contains("only what changed in a state machine"));
+}
+
+#[test]
+fn matrix_tabulates_a_state_machine() {
+    let dir = scratch("matrix");
+    let file = dir.join("door.mmd");
+    fs::write(&file, "stateDiagram-v2\n  [*] --> Closed\n  Closed --> Open : open\n  Open --> Closed : close\n  Closed --> Locked : lock\n").unwrap();
+    let out = omaspec(&["matrix", file.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0));
+    let text = stdout(&out);
+    assert!(
+        text.starts_with("| state | open | close | lock |\n"),
+        "{text}"
+    );
+    assert!(text.contains("| Closed | → Open |  | → Locked |"), "{text}");
+    let out = omaspec(&["matrix", file.to_str().unwrap(), "--json"]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(
+        json["states"],
+        serde_json::json!(["Closed", "Open", "Locked"])
+    );
+    let cell = &json["cells"][0];
+    assert_eq!(
+        (cell["state"].as_str(), cell["event"].as_str()),
+        (Some("Closed"), Some("open"))
+    );
+    assert_eq!(cell["kind"], "transition");
+    assert_eq!(cell["transitions"][0]["line"], 3);
+    let md = dir.join("door.md");
+    let out = omaspec(&["matrix", file.to_str().unwrap(), "-o", md.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0));
+    assert!(
+        fs::read_to_string(&md)
+            .unwrap()
+            .contains("| Open |  | → Closed |  |")
+    );
+    let out = omaspec(&[
+        "matrix",
+        file.to_str().unwrap(),
+        "-o",
+        dir.join("door.svg").to_str().unwrap(),
+    ]);
+    assert_ne!(out.status.code(), Some(0));
 }

@@ -594,6 +594,7 @@ omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
 omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json
 omaspec coverage door.puml --traces a.jsonl,b.jsonl -o door-cov.svg   # what the traces take of the machine; --json, --min 80
 omaspec diff old.puml door.puml -o door-diff.svg   # a state machine's changes drawn over its new version
+omaspec matrix door.puml            # the machine as a table, states down, events across; -o door.md, --json
 omaspec refs Door                   # every use of a diagram, state or event in the project; --machine, --json
 omaspec rename Door Gate            # renamed at every use; --state, --event, --machine, --dry-run, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI

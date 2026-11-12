@@ -14,6 +14,7 @@ mod icons;
 mod index;
 mod logo;
 mod look;
+mod matrix_command;
 mod mcp;
 mod names;
 mod paper;
@@ -128,6 +129,24 @@ enum Command {
         /// Print GitHub Actions annotations instead of the report.
         #[arg(long, conflicts_with = "json")]
         github: bool,
+    },
+    /// A state machine as a table: a row for each state, a column for
+    /// each event.
+    ///
+    /// Each cell says what the event does in the state: the transitions it
+    /// fires, several with their guards (`→ Open [allowed]`); where the state
+    /// has none, those of the state around it (`↑ → Off (from On)`); `⚠`
+    /// where two ways have no guard to choose. An empty cell is no finding.
+    /// Markdown on standard output, or into the .md file -o names.
+    Matrix {
+        /// The state machine, PlantUML or Mermaid.
+        file: PathBuf,
+        /// A .md file to write the table to.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Print the states, the events and every cell as JSON.
+        #[arg(long)]
+        json: bool,
     },
     /// How much of a state machine recorded traces take.
     ///
@@ -646,6 +665,9 @@ fn main() -> ExitCode {
             strict,
             github,
         }) => check_command::check(&dir, json, strict, github),
+        Some(Command::Matrix { file, output, json }) => {
+            matrix_command::run(&file, output.as_deref(), json)
+        }
         Some(Command::Coverage {
             file,
             traces,

@@ -2540,13 +2540,19 @@ are built once, with coverage, and the others take them.
       `--json` gives the changes and the picture; the MCP tool `diff`
       takes `output` too. No `--view`: `-o` says it, as for coverage. A
       sequence diagram's changes are listed, not drawn.
-- [ ] The state-event matrix (REQ-032): `omaspec matrix door.puml`
-      with every state a row and every event a column, each cell the
-      transition it fires, several with their guards, one inherited from
-      an enclosing state, or none. An empty cell is no finding: most are
-      empty, and lint already says what conflicts and what no path
-      reaches. `--json` and Markdown first (for documents and reviews);
-      a picture, the editor and an MCP tool after.
+- [x] The state-event matrix (REQ-032, 2026-11-12): `omaspec matrix
+      door.puml` writes a state machine as a Markdown table, every state
+      a row, every event a column (`omaspec_model::matrix`); a cell says
+      what the event fires there (`→ Open [allowed] / beep`, several
+      apart by `;`), what it fires from the state around where the state
+      has nothing of its own (`↑ → Off (from On)`), `⚠` where two ways
+      have no guard to choose, or nothing. An empty cell is no finding.
+      `-o door.md` writes the table, `--json` gives the states, the
+      events and each cell with its kind and its transitions; the MCP
+      server has it as `matrix`. Transitions without an event have no
+      column. Open: the table as a picture and in the editor.
+- [ ] The state-event matrix as a picture (.svg, .png) and beside the
+      diagram in the editor.
 - [ ] A trace as a timeline (REQ-033): `omaspec trace run.jsonl --as
       timing` writes the states each object was in over time as a
       PlantUML timing diagram (a concise row per object, the deviations

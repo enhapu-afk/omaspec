@@ -26,9 +26,9 @@ use crate::specs::Projects;
 const MAX_LOOK_PIXELS: f64 = 25_000_000.0;
 
 /// The tools, in the order they are listed.
-const NAMES: [&str; 10] = [
-    "lint", "trace", "coverage", "refs", "inspect", "outline", "diff", "convert", "format",
-    "render",
+const NAMES: [&str; 11] = [
+    "lint", "trace", "coverage", "matrix", "refs", "inspect", "outline", "diff", "convert",
+    "format", "render",
 ];
 
 pub fn exists(name: &str) -> bool {
@@ -159,6 +159,20 @@ pub fn definitions() -> Vec<Value> {
                 })),
             ]),
             "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false },
+        }),
+        json!({
+            "name": "matrix",
+            "title": "Tabulate a state machine",
+            "description": "A state machine as a table: its states (rows), its events (columns), and every cell with what the event does in the state: `transition` (the transitions it fires, with their guards, actions and one-based lines), `inherited` (none of its own; those of the state around it, named in `from`), `conflict` (two ways with no guard to choose), or `empty`. An empty cell is no finding: most are. Also the table as Markdown, for a document or a review.",
+            "inputSchema": schema(&[
+                ("path", path.clone()),
+                ("code", json!({
+                    "type": "string",
+                    "description": "The state machine's text, instead of `path`.",
+                })),
+                ("lang", lang.clone()),
+            ]),
+            "annotations": reading,
         }),
         json!({
             "name": "refs",
@@ -379,6 +393,7 @@ impl Tools {
             "lint" => lint(&args),
             "trace" => trace(&args),
             "coverage" => coverage(&args),
+            "matrix" => matrix(&args),
             "refs" => refs(&args),
             "inspect" => inspect(&args),
             "outline" => outline(&args),
@@ -864,6 +879,17 @@ fn coverage(args: &Args) -> Result<Answer> {
         min,
     })?;
     Ok(Answer::data(serde_json::to_value(report)?))
+}
+
+fn matrix(args: &Args) -> Result<Answer> {
+    let input = diagram(args)?;
+    let lang = language(&input, args.lang()?);
+    let m = omaspec_model::Machine::read(&input.text, lang)
+        .context("this is no state machine Omaspec reads, so it has no table")?;
+    let table = omaspec_model::matrix(&m);
+    let mut data = crate::matrix_command::report(&m, &table);
+    data["markdown"] = json!(table.markdown(&m));
+    Ok(Answer::data(data))
 }
 
 fn refs(args: &Args) -> Result<Answer> {
