@@ -177,6 +177,7 @@ const MERMAID_HEADS: &[&str] = &[
     "timeline",
     "gitGraph",
     "kanban",
+    "requirementDiagram",
 ];
 
 const MERMAID_FLOWCHART: &[&str] = &[
@@ -276,6 +277,48 @@ const MERMAID_GIT_BLOCKS: &[Block] = &[
     ),
 ];
 
+const MERMAID_REQUIREMENT: &[&str] = &[
+    "requirement",
+    "functionalRequirement",
+    "interfaceRequirement",
+    "performanceRequirement",
+    "physicalRequirement",
+    "designConstraint",
+    "element",
+    "direction",
+    "classDef",
+    "class",
+    "style",
+];
+
+const MERMAID_REQUIREMENT_BLOCKS: &[Block] = &[
+    (
+        "requirement block",
+        "a requirement with its rows",
+        "requirement ${1:name} {\n  id: ${2:1}\n  text: ${3:what it asks for}\n  risk: ${4:medium}\n  verifymethod: ${5:test}\n}",
+    ),
+    (
+        "element block",
+        "what satisfies or verifies a requirement",
+        "element ${1:name} {\n  type: ${2:kind}\n  docref: ${3:where}\n}",
+    ),
+    (
+        "satisfies",
+        "an element satisfies a requirement",
+        "${1:element} - satisfies -> ${2:requirement}",
+    ),
+    (
+        "verifies",
+        "an element verifies a requirement",
+        "${1:element} - verifies -> ${2:requirement}",
+    ),
+    (
+        "contains",
+        "a requirement holds another",
+        "${1:requirement} - contains -> ${2:part}",
+    ),
+];
+
 const MERMAID_STATE: &[&str] = &["state", "direction", "classDef", "class"];
 
 const MERMAID_STATE_BLOCKS: &[Block] = &[
@@ -357,6 +400,7 @@ fn tables(lang: Language, kind: &DiagramKind) -> (Vec<&'static str>, &'static [B
                 (Kind::Sequence, _) => (MERMAID_SEQUENCE, MERMAID_SEQUENCE_BLOCKS),
                 (Kind::State, _) => (MERMAID_STATE, MERMAID_STATE_BLOCKS),
                 (Kind::Structure, "Class diagram") => (MERMAID_CLASS, MERMAID_CLASS_BLOCKS),
+                (_, "Requirement diagram") => (MERMAID_REQUIREMENT, MERMAID_REQUIREMENT_BLOCKS),
                 (Kind::Other, _) => (MERMAID_HEADS, &[]),
                 _ => (&[], &[]),
             };
@@ -379,6 +423,7 @@ fn all() -> impl Iterator<Item = (&'static [&'static str], &'static [Block])> {
         (MERMAID_STATE, MERMAID_STATE_BLOCKS),
         (MERMAID_CLASS, MERMAID_CLASS_BLOCKS),
         (MERMAID_GIT, MERMAID_GIT_BLOCKS),
+        (MERMAID_REQUIREMENT, MERMAID_REQUIREMENT_BLOCKS),
     ]
     .into_iter()
 }

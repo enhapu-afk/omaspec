@@ -906,7 +906,7 @@ Lint and outline move onto the syntax tree as each type lands.
 
 What comes after 0.4, announced in the README. Lines by hand, projects and
 diagrams that link were released as 0.5.0 on 2026-11-01. The diagram types
-that follow (2026-11-12: Mermaid's requirement diagrams and PlantUML's YAML
+that follow (2026-11-12: PlantUML's YAML and Mermaid's charts of numbers
 first) stand at the end of *An editor that knows the diagram, and more
 diagrams* below.
 
@@ -2350,9 +2350,22 @@ without folding, lines by hand and plays, and the Java PlantUML:
       at its left edge. Open: `ticketBaseUrl`, which would make a ticket
       a link, and settings written over several lines; both are refused
       by name and left to mmdr.
-- [ ] Mermaid: requirement diagrams next. After them the charts of
-      numbers: quadrant, sankey, radar, treemap, XY chart, packet; and
-      ZenUML.
+- [x] Mermaid's requirement diagram (2026-11-12): read into the tree
+      of the structure engine (`omaspec_uml::structure::requirement`),
+      so it is laid out and drawn as a class diagram is, with lines by
+      hand and boxes held in place. A requirement and an element are
+      boxes with what they are over their name and a row for each thing
+      said about them, a long text broken at its spaces; a relationship
+      is a dashed arrow that names its kind. `style`, `classDef`,
+      `class` and `:::` paint a box. The gallery has one
+      (`brakes.mmd`), and the editor offers its words. A compromise:
+      `contains` is a solid line with a filled diamond at the
+      requirement that holds the other, where Mermaid draws a circle
+      with a cross; the engine's line ends are polygons. Open:
+      `direction BT` and `RL`, refused by name and left to mmdr, as in
+      class diagrams, and Markdown in a quoted text, shown as written.
+- [ ] Mermaid: the charts of numbers next: quadrant, sankey, radar,
+      treemap, XY chart, packet; and ZenUML.
 - [ ] PlantUML: YAML (close to the JSON drawer), then network diagrams
       (nwdiag). After them: Salt, Ditaa, Archimate, EBNF, regex,
       chronology.

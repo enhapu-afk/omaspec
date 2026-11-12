@@ -224,6 +224,12 @@ pub static EXAMPLES: &[Example] = &[
         "A Mermaid entity relationship diagram."
     ),
     example!(
+        "brakes.mmd",
+        Structure,
+        "What the brakes have to do",
+        "A Mermaid requirement diagram: what satisfies and verifies what."
+    ),
+    example!(
         "library.puml",
         Structure,
         "A library system",

@@ -166,9 +166,8 @@ has every key and command.
 
 - **Even cleaner lines.** Fewer crossings and detours, lines that keep clear of frames and
   labels, closer to what Graphviz draws.
-- **More Mermaid diagrams drawn by Omaspec.** Requirement diagrams first, then the charts
-  of numbers (quadrant, sankey, radar, treemap, XY chart, packet) and ZenUML. Until then
-  mmdr draws them.
+- **More Mermaid diagrams drawn by Omaspec.** The charts of numbers (quadrant, sankey,
+  radar, treemap, XY chart, packet) and ZenUML. Until then mmdr draws them.
 - **More PlantUML diagrams without Java.** YAML first, then network diagrams (nwdiag);
   after them Salt, Ditaa, Archimate, EBNF, regex and chronology. Until then the optional
   `plantuml` draws them.

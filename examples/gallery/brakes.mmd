@@ -1,0 +1,43 @@
+---
+title: What the brakes have to do
+---
+requirementDiagram
+  direction LR
+
+  requirement stopping {
+    id: 1
+    text: The car stops from 100 km/h within 40 m.
+    risk: high
+    verifymethod: test
+  }
+
+  performanceRequirement wet_road {
+    id: 1.1
+    text: On a wet road it stops within 55 m.
+    risk: medium
+    verifymethod: test
+  }
+
+  designConstraint two_circuits {
+    id: 1.2
+    text: Two brake circuits, each able to stop the car alone.
+    risk: high
+    verifymethod: inspection
+  }
+
+  element brake_system {
+    type: assembly
+    docref: design/brakes.md
+  }
+
+  element track_day {
+    type: test run
+    docref: tests/track.md
+  }
+
+  stopping - contains -> wet_road
+  stopping - contains -> two_circuits
+  brake_system - satisfies -> stopping
+  brake_system - satisfies -> two_circuits
+  track_day - verifies -> stopping
+  track_day - verifies -> wet_road

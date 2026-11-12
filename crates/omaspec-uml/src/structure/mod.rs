@@ -10,6 +10,7 @@
 mod draw;
 mod mermaid;
 mod parse;
+pub mod requirement;
 mod skin;
 
 pub use crate::common::{Frame, Skinparam, Text};

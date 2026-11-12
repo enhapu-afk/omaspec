@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1033" height="342" viewBox="0 0 1033 342">
+<rect x="0" y="0" width="1033" height="342" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<rect x="300.98" y="116.2" width="315.77" height="117.45" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<line x1="300.98" y1="157.46" x2="616.75" y2="157.46" fill="none" stroke="#94A3B8" stroke-width="1"/>
+<rect x="732.68" y="204.04" width="273.77" height="117.45" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<line x1="732.68" y1="245.3" x2="1006.45" y2="245.3" fill="none" stroke="#94A3B8" stroke-width="1"/>
+<rect x="726.45" y="26.3" width="286.22" height="133.74" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<line x1="726.45" y1="67.56" x2="1012.67" y2="67.56" fill="none" stroke="#94A3B8" stroke-width="1"/>
+<rect x="0" y="67.98" width="192.84" height="84.86" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<line x1="0" y1="109.25" x2="192.84" y2="109.25" fill="none" stroke="#94A3B8" stroke-width="1"/>
+<rect x="11.68" y="197" width="169.49" height="84.86" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<line x1="11.68" y1="238.27" x2="181.16" y2="238.27" fill="none" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g id="lines">
+<polyline points="630.75,221.65 732.68,221.65" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="630.75,128.2 726.45,128.2" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="192.84,140.84 290.98,140.84" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="7,7"/>
+<polyline points="192.84,79.98 716.45,79.98" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="7,7"/>
+<polyline points="181.16,209 290.98,209" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="7,7"/>
+<polyline points="181.16,269.86 722.68,269.86" fill="none" stroke="#64748B" stroke-width="1" stroke-dasharray="7,7"/>
+<polygon points="616.75,221.65 623.75,215.65 630.75,221.65 623.75,227.65" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="616.75,128.2 623.75,122.2 630.75,128.2 623.75,134.2" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="290.98,144.84 300.98,140.84 290.98,136.84 295.48,140.84" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="716.45,83.98 726.45,79.98 716.45,75.98 720.95,79.98" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="290.98,213 300.98,209 290.98,205 295.48,209" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="722.68,273.86 732.68,269.86 722.68,265.86 727.18,269.86" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="417.85" y="133.33" font-size="12" fill="#0F172A" font-style="italic" textLength="82.03" lengthAdjust="spacing">«Requirement»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="432.4" y="149.16" font-size="14" fill="#0F172A" textLength="52.92" lengthAdjust="spacing">stopping</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="312.98" y="175.45" font-size="14" fill="#0F172A" textLength="29.57" lengthAdjust="spacing">ID: 1</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="312.98" y="191.75" font-size="14" fill="#0F172A" textLength="291.77" lengthAdjust="spacing">Text: The car stops from 100 km/h within 40 m.</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="312.98" y="208.05" font-size="14" fill="#0F172A" textLength="63.78" lengthAdjust="spacing">Risk: High</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="312.98" y="224.34" font-size="14" fill="#0F172A" textLength="104.26" lengthAdjust="spacing">Verification: Test</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="792.54" y="221.18" font-size="12" fill="#0F172A" font-style="italic" textLength="154.06" lengthAdjust="spacing">«Performance Requirement»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="840.77" y="237" font-size="14" fill="#0F172A" textLength="57.58" lengthAdjust="spacing">wet_road</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="744.68" y="263.3" font-size="14" fill="#0F172A" textLength="41.24" lengthAdjust="spacing">ID: 1.1</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="744.68" y="279.59" font-size="14" fill="#0F172A" textLength="249.77" lengthAdjust="spacing">Text: On a wet road it stops within 55 m.</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="744.68" y="295.89" font-size="14" fill="#0F172A" textLength="84.78" lengthAdjust="spacing">Risk: Medium</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="744.68" y="312.18" font-size="14" fill="#0F172A" textLength="104.26" lengthAdjust="spacing">Verification: Test</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="815.21" y="43.43" font-size="12" fill="#0F172A" font-style="italic" textLength="108.71" lengthAdjust="spacing">«Design Constraint»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="833" y="59.26" font-size="14" fill="#0F172A" textLength="73.12" lengthAdjust="spacing">two_circuits</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="738.45" y="85.55" font-size="14" fill="#0F172A" textLength="41.24" lengthAdjust="spacing">ID: 1.2</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="738.45" y="101.85" font-size="14" fill="#0F172A" textLength="262.22" lengthAdjust="spacing">Text: Two brake circuits, each able to stop</tspan>
+<tspan x="738.45" y="118.14" font-size="14" fill="#0F172A" textLength="84.83" lengthAdjust="spacing">the car alone.</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="738.45" y="134.44" font-size="14" fill="#0F172A" textLength="63.78" lengthAdjust="spacing">Risk: High</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="738.45" y="150.74" font-size="14" fill="#0F172A" textLength="140.84" lengthAdjust="spacing">Verification: Inspection</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="67.74" y="85.12" font-size="12" fill="#0F172A" font-style="italic" textLength="57.36" lengthAdjust="spacing">«Element»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="52.85" y="100.94" font-size="14" fill="#0F172A" textLength="87.14" lengthAdjust="spacing">brake_system</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="12" y="127.24" font-size="14" fill="#0F172A" textLength="98.03" lengthAdjust="spacing">Type: assembly</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="12" y="143.54" font-size="14" fill="#0F172A" textLength="168.84" lengthAdjust="spacing">Doc Ref: design/brakes.md</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="67.74" y="214.14" font-size="12" fill="#0F172A" font-style="italic" textLength="57.36" lengthAdjust="spacing">«Element»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="66.08" y="229.96" font-size="14" fill="#0F172A" textLength="60.69" lengthAdjust="spacing">track_day</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="23.68" y="256.26" font-size="14" fill="#0F172A" textLength="85.6" lengthAdjust="spacing">Type: test run</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="23.68" y="272.56" font-size="14" fill="#0F172A" textLength="145.49" lengthAdjust="spacing">Doc Ref: tests/track.md</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="642.75" y="214.34" font-size="14" fill="#0F172A" textLength="67.7" lengthAdjust="spacing">«contains»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="642.75" y="120.89" font-size="14" fill="#0F172A" textLength="67.7" lengthAdjust="spacing">«contains»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="218.84" y="157.83" font-size="14" fill="#0F172A" textLength="66.14" lengthAdjust="spacing">«satisfies»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="643.53" y="72.68" font-size="14" fill="#0F172A" textLength="66.14" lengthAdjust="spacing">«satisfies»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="221.96" y="201.7" font-size="14" fill="#0F172A" textLength="59.91" lengthAdjust="spacing">«verifies»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="646.65" y="286.85" font-size="14" fill="#0F172A" textLength="59.91" lengthAdjust="spacing">«verifies»</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="415.32" y="12.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="182.04" lengthAdjust="spacing">What the brakes have to do</tspan>
+</text>
+</g>
+</g>
+</svg>

@@ -37,9 +37,9 @@ pub fn mermaid_refusal(source: &str) -> Option<(usize, &'static str)> {
     }
 }
 
-struct Reason {
-    line: usize,
-    what: &'static str,
+pub(super) struct Reason {
+    pub(super) line: usize,
+    pub(super) what: &'static str,
 }
 
 enum Stop {
@@ -176,12 +176,12 @@ fn direction_of(token: &str, line: usize) -> Result<Direction, Reason> {
 }
 
 #[derive(Clone, Default)]
-struct PaintStyle {
-    fill: Option<String>,
-    stroke: Option<String>,
-    thickness: Option<f32>,
-    text: Option<String>,
-    dash: Option<(f32, f32)>,
+pub(super) struct PaintStyle {
+    pub(super) fill: Option<String>,
+    pub(super) stroke: Option<String>,
+    pub(super) thickness: Option<f32>,
+    pub(super) text: Option<String>,
+    pub(super) dash: Option<(f32, f32)>,
 }
 
 struct Rel {
@@ -1076,7 +1076,7 @@ fn note_box(key: String, text: String, line: usize) -> Element {
     }
 }
 
-fn lay(slot: &mut PaintStyle, style: &PaintStyle) {
+pub(super) fn lay(slot: &mut PaintStyle, style: &PaintStyle) {
     if style.fill.is_some() {
         slot.fill.clone_from(&style.fill);
     }
@@ -1307,7 +1307,7 @@ fn rank(shape: Shape) -> u8 {
     }
 }
 
-fn paint_style(text: &str, line: usize) -> Result<PaintStyle, Reason> {
+pub(super) fn paint_style(text: &str, line: usize) -> Result<PaintStyle, Reason> {
     let mut style = PaintStyle::default();
     let mut any = false;
     // A dash array is `5 5` or `5,5`. The comma is the style separator
@@ -1770,7 +1770,7 @@ fn quoted(text: &str) -> Option<(String, &str)> {
     ))
 }
 
-fn unquote(text: &str) -> String {
+pub(super) fn unquote(text: &str) -> String {
     let text = text.trim();
     if text.len() >= 2 {
         let bytes = text.as_bytes();
@@ -1782,7 +1782,7 @@ fn unquote(text: &str) -> String {
     text.to_owned()
 }
 
-fn breaks(text: &str) -> String {
+pub(super) fn breaks(text: &str) -> String {
     let lower = text.to_ascii_lowercase();
     let mut out = String::new();
     let mut at = 0;
@@ -1814,7 +1814,7 @@ fn breaks(text: &str) -> String {
     out
 }
 
-fn cut_comment(text: &str) -> String {
+pub(super) fn cut_comment(text: &str) -> String {
     let mut quote = None;
     let mut chars = text.chars().peekable();
     let mut out = String::new();

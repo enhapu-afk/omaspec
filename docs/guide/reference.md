@@ -683,8 +683,8 @@ Mermaid renders natively, and so do most PlantUML diagrams, with Omaspec's own e
 sequence, activity, state, class, component, use case, deployment, object, timing and
 Gantt diagrams, mind maps, WBS, JSON and formulas (`@startlatex`, `@startmath`), and of
 Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,
-mind maps, Gantt and pie charts, user journeys, timelines, git graphs and kanban boards.
-The other Mermaid types (requirement diagrams, the charts of numbers) are drawn by
+mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards and
+requirement diagrams. The other Mermaid types (the charts of numbers) are drawn by
 [mmdr](https://github.com/1jehuang/mermaid-rs-renderer), a Rust library, in the same
 process. A git graph shows the ids its writer gave its commits; an id Mermaid would make
 up is left out, since it says nothing and differs with every drawing. The other PlantUML types (YAML, network diagrams, Salt and more) render through

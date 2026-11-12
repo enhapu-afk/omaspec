@@ -30,7 +30,7 @@ pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     draw_mapped(&diagram).ok()
 }
 
-fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
+pub(super) fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
     let mut params = Vec::new();
     let mut add = |key: &str, value: &str| {
         params.push(Skinparam {

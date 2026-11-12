@@ -15,6 +15,7 @@ mod layered;
 mod mindmap;
 mod pie;
 mod repair;
+mod requirement;
 mod sequence;
 mod state;
 mod timeline;
@@ -255,6 +256,13 @@ const NATIVE: &[Native] = &[
         noun: "kanban board",
         draw: |i| kanban::try_draw(i.theme, i.fenced),
         refusal: omaspec_uml::kanban::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Requirement,
+        headers: &["requirementdiagram"],
+        noun: "requirement diagram",
+        draw: |i| requirement::try_draw(i.theme, i.fenced),
+        refusal: omaspec_uml::structure::requirement::mermaid_refusal,
     },
     Native {
         kind: DiagramKind::Journey,
