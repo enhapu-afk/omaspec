@@ -343,6 +343,13 @@ pub const TABLE: &[Entry] = &[
     cmd("Motion in the editor: on or off", "", Command::Motion)
         .menu(View)
         .short("Motion in the editor"),
+    cmd(
+        "JSON and YAML: as a tree or nested",
+        "",
+        Command::JsonLayout,
+    )
+    .menu(View)
+    .short("JSON and YAML nested"),
     cmd("Diagram theme: follow Omarchy", "", Command::FollowTheme)
         .menu(View)
         .gap(),

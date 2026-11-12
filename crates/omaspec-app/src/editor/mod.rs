@@ -329,6 +329,8 @@ pub enum Command {
     Suggest,
     /// The caret glides and the list arrives, or both stand at once.
     Motion,
+    /// JSON and YAML diagrams as a tree, or nested.
+    JsonLayout,
     /// The fix a finding on the caret's line carries.
     Fix,
     /// Every fix the findings carry.
@@ -765,6 +767,7 @@ impl App {
             palette,
             look: Look {
                 motion: session.motion,
+                nested: session.nested,
                 ..look
             },
             font,
@@ -1985,6 +1988,20 @@ impl App {
                 self.keep_session();
                 Task::none()
             }
+            Command::JsonLayout => {
+                self.look.nested = !self.look.nested;
+                for doc in &mut self.docs {
+                    doc.set_look(&self.look);
+                }
+                self.notice = Some(if self.look.nested {
+                    "JSON and YAML drawn nested, each value in its cell".into()
+                } else {
+                    "JSON and YAML drawn as a tree, as PlantUML draws them".into()
+                });
+                self.keep_session();
+                let keys: Vec<u64> = self.docs.iter().map(|doc| doc.key).collect();
+                Task::batch(keys.into_iter().map(|key| self.render(key, true)))
+            }
             Command::FollowTheme => {
                 self.follow_theme = !self.follow_theme;
                 let root = self.place_of(key).map(|p| p.root);
@@ -2354,6 +2371,7 @@ impl App {
         self.theme = ui::iced_theme(&self.theme_name, &palette);
         self.look = Look {
             motion: self.look.motion,
+            nested: self.look.nested,
             ..Look::new(&palette, &omarchy.tweaks, self.font)
         };
         self.icons = icons_for(&palette, self.main_scale);

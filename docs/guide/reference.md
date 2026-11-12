@@ -702,7 +702,13 @@ requirement diagrams. The other Mermaid types (the charts of numbers) are drawn 
 process. A git graph shows the ids its writer gave its commits; an id Mermaid would make
 up is left out, since it says nothing and differs with every drawing. A YAML diagram is drawn as the
 JSON it stands for; anchors, aliases and tags, and a text over several lines outside a `|`
-or `>` block, are not read yet and name their line. C4-PlantUML (`!include <C4/C4_Container>`,
+or `>` block, are not read yet and name their line. A JSON or YAML diagram is drawn as
+PlantUML draws it: what an object or an array holds stands in a card of its own to the
+right, reached by a dotted arrow; `true` and `false` stand behind a box ticked or not,
+`null` is `␀`, and a string's Creole is read (an address keeps its `//`). *JSON and YAML:
+as a tree or nested* (View) puts what they hold into their cells instead, as
+`skinparam jsonLayout nested` does in the file. An object or an array folds like a
+container, to what it holds: `{…} 4 keys`. C4-PlantUML (`!include <C4/C4_Container>`,
 from the standard library, its address or a copy) is drawn without the library: Omaspec
 knows its macros by name and reads nothing from the network. A person is PlantUML's
 `person`, a system or a container a box in the colors of C4, a database a cylinder, a queue

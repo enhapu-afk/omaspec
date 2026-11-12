@@ -190,11 +190,12 @@ impl Worker {
         place: Option<Place>,
         linked: Option<Linked>,
     ) {
-        self.render_folded(ticket, source, language, place, linked, Vec::new());
+        self.render_folded(ticket, source, language, place, linked, (Vec::new(), false));
     }
 
     /// [`Self::render`] with the containers named in `folds` folded to
-    /// their box (docs/adr/0024). The answer carries `source` as it is.
+    /// their box (docs/adr/0024), and a JSON or YAML diagram drawn nested
+    /// when `nested` says so. The answer carries `source` as it is.
     pub fn render_folded(
         &self,
         ticket: Ticket,
@@ -202,7 +203,7 @@ impl Worker {
         language: Language,
         place: Option<Place>,
         linked: Option<Linked>,
-        folds: Vec<String>,
+        (folds, nested): (Vec<String>, bool),
     ) {
         let _ = self.input.unbounded_send(Input::Render {
             ticket,
@@ -212,6 +213,7 @@ impl Worker {
             linked,
             document: false,
             folds,
+            nested,
             map: None,
         });
     }
@@ -227,6 +229,7 @@ impl Worker {
             linked: Some((atlas, None)),
             document: false,
             folds: Vec::new(),
+            nested: false,
             map: Some(folder),
         });
     }
@@ -242,6 +245,7 @@ impl Worker {
             linked: None,
             document: true,
             folds: Vec::new(),
+            nested: false,
             map: None,
         });
     }
@@ -267,6 +271,8 @@ enum Input {
         document: bool,
         /// Containers folded to their box.
         folds: Vec<String>,
+        /// A JSON or YAML diagram drawn nested.
+        nested: bool,
         /// The folder of the project in `linked` whose map is asked for.
         map: Option<String>,
     },
@@ -328,6 +334,7 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     linked,
                     document,
                     folds,
+                    nested,
                     map,
                 } => {
                     let generation = if let (Some(folder), Some((atlas, _))) = (map, &linked) {
@@ -342,7 +349,7 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     } else {
                         service.submit_linked(
                             ticket.doc,
-                            folded(&source, language, &folds),
+                            folded(&source, language, &folds, nested),
                             language,
                             place,
                             linked,
@@ -375,10 +382,11 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
 }
 
 /// `source` with a line for each container `folds` names after it, which
-/// the drawers fold (`omaspec_uml::fold`); the file never holds them.
-pub fn folded(source: &str, language: Language, folds: &[String]) -> String {
+/// the drawers fold (`omaspec_uml::fold`), and one asking for a JSON or a
+/// YAML diagram `nested`; the file never holds them.
+pub fn folded(source: &str, language: Language, folds: &[String], nested: bool) -> String {
     let mut text = source.to_owned();
-    if folds.is_empty() {
+    if folds.is_empty() && !nested {
         return text;
     }
     if !text.ends_with('\n') {
@@ -387,6 +395,11 @@ pub fn folded(source: &str, language: Language, folds: &[String]) -> String {
     for name in folds {
         text.push_str(&omaspec_uml::fold::line(
             name,
+            language == Language::Mermaid,
+        ));
+    }
+    if nested {
+        text.push_str(&omaspec_uml::fold::nested_line(
             language == Language::Mermaid,
         ));
     }

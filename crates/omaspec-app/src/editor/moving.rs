@@ -536,7 +536,12 @@ fn shown(
     let mut renderer = Renderer::new(&crate::commands::render_config());
     let rendered = renderer
         .render_at(
-            &crate::worker::folded(&source, language, app.doc().paper.folded()),
+            &crate::worker::folded(
+                &source,
+                language,
+                app.doc().paper.folded(),
+                app.doc().paper.nested,
+            ),
             language,
             place.as_ref(),
         )

@@ -49,6 +49,9 @@ pub struct Session {
     /// The caret glides and the list of what could be written arrives.
     #[serde(default = "shown")]
     pub motion: bool,
+    /// JSON and YAML diagrams drawn nested, not as a tree.
+    #[serde(default)]
+    pub nested: bool,
     #[serde(default)]
     pub docs: Vec<SavedDoc>,
     /// The files opened last, the newest first.
@@ -67,6 +70,7 @@ impl Default for Session {
             menu_bar: false,
             toolbar: true,
             motion: true,
+            nested: false,
             docs: Vec::new(),
             recent: Vec::new(),
         }
@@ -234,6 +238,7 @@ impl App {
             menu_bar: self.bar_shown,
             toolbar: self.toolbar,
             motion: self.look.motion,
+            nested: self.look.nested,
             recent: self.recent_files.clone(),
             docs: self
                 .docs
@@ -308,6 +313,7 @@ mod tests {
             menu_bar: true,
             toolbar: false,
             motion: false,
+            nested: false,
             docs: vec![SavedDoc {
                 path: None,
                 text: Some("@startuml\n@enduml\n".into()),

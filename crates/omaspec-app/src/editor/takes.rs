@@ -104,6 +104,7 @@ impl Command {
             | Command::Copy
             | Command::Paste
             | Command::Motion
+            | Command::JsonLayout
             | Command::Suggest
             | Command::Fix
             | Command::FixAll

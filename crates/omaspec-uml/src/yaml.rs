@@ -361,6 +361,7 @@ fn plain(kind: Kind) -> Value {
     Value {
         kind,
         highlight: false,
+        folded: false,
     }
 }
 

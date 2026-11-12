@@ -64,6 +64,10 @@ play does for the states it is in, without the play.
    that changes does not glide as it is); the boxes below glide into it. Their boxes have no name in the source, so the
    map calls each by its words, the second of the same words `Tests (2)`
    (`Place::fixed`: the layout alone places them, none is held).
+   Since 2026-11-12 the objects and arrays of a JSON or a YAML diagram
+   fold too, by their path as `#highlight` writes one (`JSON_Array/4`):
+   a folded one says what it holds in its row, `{…} 4 keys`, and its
+   cards are not drawn.
 
 ## Why
 

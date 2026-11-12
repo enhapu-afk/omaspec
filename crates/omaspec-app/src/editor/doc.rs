@@ -46,6 +46,8 @@ pub struct Look {
     /// The caret glides and the list of what could be written arrives;
     /// off, both stand in their place at once.
     pub motion: bool,
+    /// JSON and YAML diagrams drawn nested, not as a tree.
+    pub nested: bool,
 }
 
 impl Look {
@@ -57,6 +59,7 @@ impl Look {
             font,
             marks: MarkColors::new(palette, tweaks),
             motion: true,
+            nested: false,
         }
     }
 }
@@ -273,6 +276,7 @@ impl Doc {
         let saved = editor.document().text().into_owned();
         let mut editor = editor;
         editor.set_motion(look.motion);
+        let nested = look.nested;
         let mut doc = Self {
             key,
             editor,
@@ -301,6 +305,7 @@ impl Doc {
             blocks: RefCell::new(None),
             folder: String::new(),
         };
+        doc.paper.nested = nested;
         doc.analyze();
         doc
     }
@@ -562,6 +567,7 @@ impl Doc {
     pub fn set_look(&mut self, look: &Look) {
         self.editor.set_theme(look.tokens.clone());
         self.editor.set_motion(look.motion);
+        self.paper.nested = look.nested;
         self.tones = look.tones;
         self.marks = look.marks;
         self.edited();

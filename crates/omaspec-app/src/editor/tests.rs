@@ -2434,6 +2434,29 @@ fn a_branch_of_a_tree_folds_from_the_caret() {
 }
 
 #[test]
+fn an_object_of_a_json_diagram_folds_from_the_caret() {
+    let json = "@startjson\n{\n  \"name\": \"Omaspec\",\n  \"window\": {\"width\": 1280, \"height\": 800}\n}\n@endjson\n";
+    let work = temp_dir("fold-json");
+    let file = work.join("settings.puml");
+    std::fs::write(&file, json).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, json, Language::PlantUml);
+    let map = &app.doc().paper.diagram.as_ref().unwrap().drawn.map;
+    let window = map.places.iter().find(|p| p.name == "window").unwrap();
+    assert!(window.frame && window.fixed, "{window:?}");
+    let at = json.find("window").unwrap() + 2;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::FoldBox);
+    assert_eq!(app.notice.as_deref(), Some("window folded"));
+    assert_eq!(app.doc().paper.folded(), ["window"]);
+    show_folded(&mut app, json, &["window"]);
+    let map = &app.doc().paper.diagram.as_ref().unwrap().drawn.map;
+    let folded = map.places.iter().find(|p| p.name == "window").unwrap();
+    assert!(!folded.frame, "a folded object is no frame: {folded:?}");
+    assert_eq!(app.doc().text(), json, "the file never says so");
+}
+
+#[test]
 fn the_edit_menu_has_what_the_editor_has_on_its_keys() {
     let source = "@startuml\n[*] --> Idle\n@enduml\n";
     let mut app = open(&[]);
@@ -5160,6 +5183,32 @@ fn motion_in_the_editor_is_turned_off_and_the_session_keeps_it() {
     assert!(!app.session().motion);
     press(&mut app, Command::Motion);
     assert!(app.session().motion);
+}
+
+#[test]
+fn json_is_drawn_nested_from_the_view_menu_and_the_session_keeps_it() {
+    let mut app = open(&[]);
+    assert!(!app.look.nested && !app.doc().paper.nested);
+    press(&mut app, Command::JsonLayout);
+    assert!(app.look.nested && app.doc().paper.nested);
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("JSON and YAML drawn nested, each value in its cell")
+    );
+    assert!(app.session().nested);
+    // What the pane hands the engine asks for it; the file never does.
+    let source = "@startjson\n{\"a\": {\"b\": 1}}\n@endjson\n";
+    let asked = crate::worker::folded(source, Language::PlantUml, &[], true);
+    assert!(asked.ends_with("' layout (Omaspec) nested\n"), "{asked}");
+    let svg = omaspec_uml::render(&asked).unwrap();
+    assert!(!svg.contains("stroke-dasharray"), "nested, no arrow: {svg}");
+    assert!(
+        omaspec_uml::render(source)
+            .unwrap()
+            .contains("stroke-dasharray")
+    );
+    press(&mut app, Command::JsonLayout);
+    assert!(!app.session().nested && !app.doc().paper.nested);
 }
 
 #[test]

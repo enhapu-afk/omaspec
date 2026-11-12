@@ -44,6 +44,27 @@ pub fn line(name: &str, mermaid: bool) -> String {
     format!("{mark} {MARK} {}\n", name.trim())
 }
 
+/// The words of the line that asks for a JSON or a YAML diagram nested,
+/// after its comment mark: the pane's view, as a fold is.
+const NESTED: &str = "layout (Omaspec) nested";
+
+/// Whether the pane asked for `source`'s JSON nested
+/// (`' layout (Omaspec) nested`).
+pub fn nested(source: &str) -> bool {
+    source.lines().any(|line| {
+        let text = line.trim();
+        text.strip_prefix('\'')
+            .or_else(|| text.strip_prefix("%%"))
+            .is_some_and(|rest| rest.trim() == NESTED)
+    })
+}
+
+/// The line that asks for it.
+pub fn nested_line(mermaid: bool) -> String {
+    let mark = if mermaid { "%%" } else { "'" };
+    format!("{mark} {NESTED}\n")
+}
+
 /// "1 state", "4 states".
 pub(crate) fn counted(n: usize, word: &str) -> String {
     if n == 1 {

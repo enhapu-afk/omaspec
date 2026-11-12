@@ -2389,6 +2389,23 @@ without folding, lines by hand and plays, and the Java PlantUML:
       swimlane layout ranks its nodes by the browser's language
       (mermaid-js/mermaid #8759). Not held to it: what the Java
       PlantUML draws, which is given `LANG`.
+- [x] JSON and YAML as PlantUML draws them (2026-11-12): what an object
+      or an array holds stands in a card of its own in the next column,
+      reached by a dotted arrow from a dot in its row; an array has no
+      index; `true` and `false` stand behind a box ticked or not (drawn,
+      not a glyph a font may lack), `null` is `␀`; a string's Creole is
+      read, markup the engine does not draw is drawn as written, a tab
+      is four spaces and a line break breaks (PlantUML runs the lines
+      together). The cards of a column keep the order of their rows, each
+      as near as it can be to the row that reaches it
+      (`omaspec_uml::json::tree`). The nested drawing stays, the value in
+      its cell (`json::nested`): `skinparam jsonLayout nested` in the
+      file, *JSON and YAML: as a tree or nested* (View) in the editor,
+      which the session keeps and the pane hands the engine as a line of
+      its own (`' layout (Omaspec) nested`), as it hands its folds. An
+      object or an array folds in the pane by its path
+      ([0024](docs/adr/0024-focus-and-collapse.md)), and says what it
+      holds in its row.
 - [ ] PlantUML, in this order (2026-11-12), architecture first:
       C4-PlantUML (`!include <C4/C4_Container>`, see the next section);
       network diagrams (nwdiag); Archimate, once icons are drawn (its

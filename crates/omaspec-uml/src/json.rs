@@ -1,17 +1,25 @@
 //! JSON diagrams (`@startjson`).
 //!
-//! A value is one rounded card. An object is a table of keys and values. An
-//! array of plain values is a single column; an array that holds an object
-//! or an array numbers its rows. A nested object or array sits in the value
-//! cell, so the key stays next to what it holds.
+//! An object is a card of keys and values, an array a card of values. As
+//! PlantUML draws them, what an object or an array holds stands in a card
+//! of its own to the right, reached by a dotted arrow ([`tree`]);
+//! `skinparam jsonLayout nested` (Omaspec's own) puts it in the cell
+//! instead ([`nested`]). A string is drawn with its Creole, `true` and
+//! `false` behind a box ticked or not, `null` as `␀` ([`cells`]).
 //!
-//! Text is drawn as written: Creole in a string stays characters. A
-//! `#highlight` with a stereotype, and JSON this reader cannot read,
-//! decline and name the line. PlantUML draws a JSON diagram from its
-//! styles alone: a `<style>` colors the page, the texts around it, the
-//! cards (`jsonDiagram { node {…} }`) and the highlighted rows
+//! An object or an array folds in the pane, by its path as `#highlight`
+//! writes one (`JSON_Array/4`, docs/adr/0024): it then says what it holds,
+//! `{…} 4 keys`. A `#highlight` with a stereotype, and JSON this reader
+//! cannot read, decline and name the line. PlantUML draws a JSON diagram
+//! from its styles alone: a `<style>` colors the page, the texts around
+//! it, the cards (`jsonDiagram { node {…} }`) and the highlighted rows
 //! (`highlight`); skinparams change nothing, here as there, but for
-//! `handwritten`, which draws every diagram by hand (docs/adr/0023).
+//! `handwritten`, which draws every diagram by hand (docs/adr/0023), and
+//! the layout.
+
+mod cells;
+mod nested;
+mod tree;
 
 use crate::Declined;
 use crate::annotations::Annotations;
@@ -20,17 +28,10 @@ use crate::color::Paint;
 use crate::common::{self, Frame, Skinparam, normalize_key};
 use crate::source::Line;
 use crate::style::{Element, Prop};
-use crate::svg::{Align, Canvas, Layer, Stroke};
-use crate::text::{self, Block, Family, Font, Style};
+use crate::svg::Canvas;
+use crate::text::Font;
 
 const FONT: f32 = 14.0;
-const PAD_X: f32 = 8.0;
-const PAD_Y: f32 = 5.0;
-/// Space between a cell's rule and a nested card.
-const INSET: f32 = 6.0;
-const RX: f32 = 5.0;
-const STROKE: f32 = 1.5;
-const RULE: f32 = 1.0;
 /// How many objects and arrays may wrap each other. One more declines.
 pub(crate) const NEST_LIMIT: u32 = 100;
 const FILL: Color = Color::hex(0xF1F1F1);
@@ -57,6 +58,9 @@ const ELEMENTS: [Element; 2] = [
 
 /// How the diagram looks: PlantUML's JSON colors, changed by `<style>`.
 struct Look {
+    /// What an object or an array holds: in a card of its own to the
+    /// right, or nested in its cell.
+    nested: bool,
     page: Paint,
     fill: Paint,
     line: Color,
@@ -72,6 +76,7 @@ struct Look {
 impl Look {
     fn read(params: &[Skinparam]) -> Result<Look, Declined> {
         let mut look = Look {
+            nested: false,
             page: Some(Color::WHITE),
             fill: Some(FILL),
             line: Color::BLACK,
@@ -87,8 +92,16 @@ impl Look {
             sketch: false,
         };
         for p in params {
-            if normalize_key(&p.key) == "handwritten" {
-                look.sketch = p.flag()?;
+            match normalize_key(&p.key).as_str() {
+                "handwritten" => look.sketch = p.flag()?,
+                "jsonlayout" | "yamllayout" => {
+                    look.nested = match p.value.trim().to_ascii_lowercase().as_str() {
+                        "nested" => true,
+                        "tree" => false,
+                        _ => return Err(p.unsupported()),
+                    };
+                }
+                _ => {}
             }
         }
         let mut lit_ink = None;
@@ -142,11 +155,13 @@ pub struct Diagram {
     pub frame: Frame,
 }
 
-/// One JSON value. `highlight` is the row a `#highlight` path ends on.
+/// One JSON value. `highlight` is the row a `#highlight` path ends on;
+/// `folded` an object or an array the pane folded.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Value {
     pub kind: Kind,
     pub highlight: bool,
+    pub folded: bool,
 }
 
 /// JSON values. A number keeps the spelling from the source.
@@ -165,11 +180,45 @@ impl Value {
         Value {
             kind,
             highlight: false,
+            folded: false,
         }
     }
 
     fn composite(&self) -> bool {
         matches!(self.kind, Kind::Array(_) | Kind::Object(_))
+    }
+}
+
+impl Diagram {
+    /// Folds the objects and arrays at the paths `names`, written as
+    /// `#highlight` writes them (`JSON_Array/4`); a name that is no path
+    /// of the value folds nothing.
+    pub fn fold(&mut self, names: &[String]) {
+        for name in names {
+            if let Ok(path) = highlight_path(name, 0) {
+                fold_at(&mut self.value, &path);
+            }
+        }
+    }
+}
+
+fn fold_at(value: &mut Value, path: &[String]) {
+    let Some((head, rest)) = path.split_first() else {
+        value.folded = value.composite();
+        return;
+    };
+    match &mut value.kind {
+        Kind::Object(rows) => {
+            if let Some((_, child)) = rows.iter_mut().find(|(key, _)| key == head) {
+                fold_at(child, rest);
+            }
+        }
+        Kind::Array(items) => {
+            if let Some(child) = head.parse::<usize>().ok().and_then(|i| items.get_mut(i)) {
+                fold_at(child, rest);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -195,6 +244,12 @@ pub fn parse(lines: &[Line<'_>]) -> Result<Diagram, Declined> {
 /// The SVG. Cards keep the PlantUML JSON colors on a white page unless a
 /// `<style>` gives others.
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
+    draw_mapped(diagram).map(|(svg, _)| svg)
+}
+
+/// The SVG, and where its objects and arrays are, by their paths, for the
+/// pane to fold them.
+pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let look = Look::read(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new("sans-serif", false);
     canvas.sketch(look.sketch);
@@ -211,15 +266,28 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         Color::BLACK
     };
     let lit_ink = look.lit_ink.legible_on(lit_ground, far, LEGIBLE);
-    let card = lay(
+    let fonts = cells::Fonts::new(look.ink, ground(look.fill), FONT, LEGIBLE);
+    let lit = cells::Fonts::new(lit_ink, lit_ground, FONT, LEGIBLE);
+    let paint = if look.nested {
+        nested::paint
+    } else {
+        tree::paint
+    };
+    let places = paint(
+        &mut canvas,
+        &look,
         &diagram.value,
-        &Fonts::new(look.ink, ground(look.fill)),
-        &Fonts::new(lit_ink, lit_ground),
+        (&fonts, &lit),
+        notes.top(),
         family,
     );
-    paint(&mut canvas, &look, &card, 0.0, notes.top());
     notes.draw(&mut canvas);
-    Ok(canvas.finish(10.0, look.page))
+    let map = crate::map::Map {
+        places,
+        ..crate::map::Map::default()
+    }
+    .placed(canvas.fit(10.0));
+    Ok((canvas.finish(10.0, look.page), map))
 }
 
 struct Scan {
@@ -682,267 +750,6 @@ fn read_json(text: &str, marks: &[(usize, usize)]) -> Result<Value, Declined> {
     Ok(value)
 }
 
-struct Fonts {
-    key: Font,
-    value: Font,
-    null: Font,
-    index: Font,
-    empty: Font,
-}
-
-impl Fonts {
-    /// Keys and values in `ink`; `null`, indices and empty cards in gray,
-    /// darkened or lightened towards `ink` until it reads on `ground`.
-    fn new(ink: Color, ground: Color) -> Fonts {
-        let value = Font::new(FONT, ink);
-        let muted = MUTED.legible_on(ground, ink, LEGIBLE);
-        Fonts {
-            key: value.bold(),
-            value,
-            null: Font::new(FONT, muted).italic(),
-            index: Font::new(FONT, muted),
-            empty: Font::new(FONT, muted),
-        }
-    }
-}
-
-enum Node {
-    Text(Block),
-    Card(Card),
-}
-
-struct Card {
-    rows: Vec<Row>,
-    key_w: f32,
-    width: f32,
-    height: f32,
-    /// `{}` or `[]` when the card has no rows.
-    label: Option<Block>,
-}
-
-struct Row {
-    key: Option<Block>,
-    value: Node,
-    highlight: bool,
-    height: f32,
-}
-
-/// The cards of `value`; a highlighted row's text takes the `lit` fonts.
-fn lay(value: &Value, fonts: &Fonts, lit: &Fonts, family: Family) -> Node {
-    let fonts = if value.highlight { lit } else { fonts };
-    match &value.kind {
-        Kind::Object(rows) => Node::Card(lay_object(rows, fonts, lit, family)),
-        Kind::Array(items) => Node::Card(lay_array(items, fonts, lit, family)),
-        Kind::String(text) => Node::Text(words(text, fonts.value, family)),
-        Kind::Number(text) => Node::Text(words(text, fonts.value, family)),
-        Kind::Bool(true) => Node::Text(words("true", fonts.value, family)),
-        Kind::Bool(false) => Node::Text(words("false", fonts.value, family)),
-        Kind::Null => Node::Text(words("null", fonts.null, family)),
-    }
-}
-
-fn lay_object(rows: &[(String, Value)], fonts: &Fonts, lit: &Fonts, family: Family) -> Card {
-    if rows.is_empty() {
-        return empty_card("{}", fonts, family);
-    }
-    let laid = rows
-        .iter()
-        .map(|(key, value)| {
-            let highlight = value.highlight;
-            let key_font = if highlight { lit.key } else { fonts.key };
-            let key = words(key, key_font, family);
-            let value = lay(value, fonts, lit, family);
-            row(Some(key), value, highlight)
-        })
-        .collect();
-    card(laid)
-}
-
-fn lay_array(items: &[Value], fonts: &Fonts, lit: &Fonts, family: Family) -> Card {
-    if items.is_empty() {
-        return empty_card("[]", fonts, family);
-    }
-    let indexed = items.iter().any(Value::composite);
-    let laid = items
-        .iter()
-        .enumerate()
-        .map(|(index, value)| {
-            let key = indexed.then(|| words(&index.to_string(), fonts.index, family));
-            let highlight = value.highlight;
-            let value = lay(value, fonts, lit, family);
-            row(key, value, highlight)
-        })
-        .collect();
-    card(laid)
-}
-
-fn empty_card(label: &str, fonts: &Fonts, family: Family) -> Card {
-    let label = words(label, fonts.empty, family);
-    Card {
-        width: PAD_X + label.width + PAD_X,
-        height: PAD_Y + label.height + PAD_Y,
-        label: Some(label),
-        rows: Vec::new(),
-        key_w: 0.0,
-    }
-}
-
-fn row(key: Option<Block>, value: Node, highlight: bool) -> Row {
-    let key_h = key.as_ref().map(|b| b.height).unwrap_or(0.0);
-    let (value_pad, value_h) = match &value {
-        Node::Text(block) => (PAD_Y, block.height),
-        Node::Card(card) => (INSET, card.height),
-    };
-    let height = (PAD_Y + key_h + PAD_Y).max(value_pad + value_h + value_pad);
-    Row {
-        key,
-        value,
-        highlight,
-        height,
-    }
-}
-
-fn card(rows: Vec<Row>) -> Card {
-    let has_keys = rows.iter().any(|row| row.key.is_some());
-    let key_text = rows
-        .iter()
-        .filter_map(|row| row.key.as_ref())
-        .map(|block| block.width)
-        .fold(0.0, f32::max);
-    let key_w = if has_keys {
-        PAD_X + key_text + PAD_X
-    } else {
-        0.0
-    };
-    let value_w = rows
-        .iter()
-        .map(|row| match &row.value {
-            Node::Text(block) => PAD_X + block.width + PAD_X,
-            Node::Card(inner) => INSET + inner.width + INSET,
-        })
-        .fold(0.0, f32::max);
-    let height = rows.iter().map(|row| row.height).sum();
-    Card {
-        rows,
-        key_w,
-        width: key_w + value_w,
-        height,
-        label: None,
-    }
-}
-
-fn words(text: &str, font: Font, family: Family) -> Block {
-    let style = Style::from(font);
-    let lines = text
-        .split('\n')
-        .map(|line| {
-            if line.is_empty() {
-                Vec::new()
-            } else {
-                vec![(line.to_owned(), style)]
-            }
-        })
-        .collect();
-    text::styled(lines, font, family)
-}
-
-fn paint(canvas: &mut Canvas, look: &Look, node: &Node, x: f32, y: f32) {
-    if let Node::Card(card) = node {
-        paint_card(canvas, look, card, x, y);
-    }
-}
-
-fn paint_card(canvas: &mut Canvas, look: &Look, card: &Card, x: f32, y: f32) {
-    let border = Stroke::new(look.line, STROKE);
-    canvas.rect(
-        Layer::Background,
-        (x, y, card.width, card.height),
-        RX,
-        look.fill,
-        None,
-    );
-    if let Some(label) = &card.label {
-        let tx = x + (card.width - label.width) / 2.0;
-        let ty = y + (card.height - label.height) / 2.0;
-        canvas.text(Layer::Front, label, (tx, ty), Align::Left);
-        canvas.rect(
-            Layer::Frames,
-            (x, y, card.width, card.height),
-            RX,
-            None,
-            Some(border),
-        );
-        return;
-    }
-    let rule = Stroke::new(look.line, RULE);
-    let mut row_y = y;
-    for (index, row) in card.rows.iter().enumerate() {
-        if row.highlight {
-            let inset = 2.0;
-            canvas.plain(|canvas| {
-                canvas.rect(
-                    Layer::Background,
-                    (
-                        x + inset,
-                        row_y + inset,
-                        card.width - 2.0 * inset,
-                        row.height - 2.0 * inset,
-                    ),
-                    2.0,
-                    look.lit_fill,
-                    None,
-                );
-            });
-        }
-        let (key_y, value_y) = row_places(row_y, row);
-        if let Some(key) = &row.key {
-            canvas.text(Layer::Front, key, (x + PAD_X, key_y), Align::Left);
-        }
-        match &row.value {
-            Node::Text(block) => {
-                canvas.text(
-                    Layer::Front,
-                    block,
-                    (x + card.key_w + PAD_X, value_y),
-                    Align::Left,
-                );
-            }
-            Node::Card(inner) => {
-                paint_card(canvas, look, inner, x + card.key_w + INSET, value_y);
-            }
-        }
-        row_y += row.height;
-        if index + 1 != card.rows.len() {
-            canvas.line(Layer::Frames, (x, row_y), (x + card.width, row_y), rule);
-        }
-    }
-    if card.key_w > 0.0 {
-        canvas.line(
-            Layer::Frames,
-            (x + card.key_w, y),
-            (x + card.key_w, y + card.height),
-            rule,
-        );
-    }
-    canvas.rect(
-        Layer::Frames,
-        (x, y, card.width, card.height),
-        RX,
-        None,
-        Some(border),
-    );
-}
-
-/// The top of the key and of the value. Both sit at the top of the row:
-/// a tall nested card keeps its key beside the first line, not the middle.
-fn row_places(row_y: f32, row: &Row) -> (f32, f32) {
-    let value_y = match &row.value {
-        Node::Text(_) => row_y + PAD_Y,
-        Node::Card(_) => row_y + INSET,
-    };
-    (row_y + PAD_Y, value_y)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1039,21 +846,71 @@ mod tests {
     }
 
     #[test]
-    fn a_table_keeps_the_words_and_nests_the_array() {
-        let svg = drawn(r#"{"fruit": "Apple", "size": "Large", "color": ["Red", "Green"]}"#);
-        assert!(svg.contains(">fruit</tspan>"));
-        assert!(svg.contains(">Apple</tspan>"));
-        assert!(svg.contains(">Red</tspan>"));
-        assert!(svg.contains(">Green</tspan>"));
+    fn a_table_reaches_the_array_beside_it_by_a_dotted_arrow() {
+        let body = r#"{"fruit": "Apple", "size": "Large", "color": ["Red", "Green"]}"#;
+        let svg = drawn(body);
+        for words in [
+            ">fruit</tspan>",
+            ">Apple</tspan>",
+            ">Red</tspan>",
+            ">Green</tspan>",
+        ] {
+            assert!(svg.contains(words), "{words}: {svg}");
+        }
         assert!(svg.contains("fill=\"#F1F1F1\""));
         assert!(svg.contains("font-family=\"sans-serif\""));
+        assert!(svg.contains("stroke-dasharray=\"3,3\""), "{svg}");
+        assert!(!svg.contains(">0</tspan>"), "an array has no index");
+        // The array's card stands to the right of the table, apart.
+        let boxes = cards(&svg);
+        assert_eq!(boxes.len(), 2, "{boxes:?}");
+        assert!(boxes[1].0 > boxes[0].0 + boxes[0].2, "{boxes:?}");
+        // Nested, it sits in the cell.
+        let svg = drawn(&format!("skinparam jsonLayout nested\n{body}"));
         assert!(!svg.contains("stroke-dasharray"), "{svg}");
-        assert!(!svg.contains('☑'));
-        assert!(!svg.contains(">0</tspan>"), "a list of words has no index");
         let boxes = cards(&svg);
         assert_eq!(boxes.len(), 2, "{boxes:?}");
         assert!(inside(&boxes[0], &boxes[1]) || inside(&boxes[1], &boxes[0]));
         cards_only_nest(&svg);
+        let err =
+            crate::render(&source(&format!("skinparam jsonLayout sideways\n{body}"))).unwrap_err();
+        assert!(err.reason.contains("jsonLayout"), "{}", err.reason);
+    }
+
+    #[test]
+    fn an_object_or_an_array_folds_by_its_path_and_says_what_it_holds() {
+        let body = "{\"a\": {\"b\": [1, 2, {\"c\": 3}], \"d\": 4}, \"e\": []}\n' fold (Omaspec) a/b\n' fold (Omaspec) e\n' fold (Omaspec) nothing/here";
+        let mut diagram = parsed(body);
+        diagram.fold(&crate::fold::read(body));
+        let a = object(&diagram.value, "a");
+        assert!(!a.folded && object(a, "b").folded && object(&diagram.value, "e").folded);
+        for nested in [false, true] {
+            let source = if nested {
+                format!("skinparam jsonLayout nested\n{body}")
+            } else {
+                body.to_owned()
+            };
+            let (svg, map) = crate::render_mapped(&self::source(&source), None).unwrap();
+            assert!(svg.contains(">[…] 3 items</tspan>"), "{svg}");
+            assert!(svg.contains(">[…] 0 items</tspan>"), "{svg}");
+            assert!(
+                !svg.contains(">c</tspan>"),
+                "what a folded array holds is gone"
+            );
+            let told: Vec<(&str, bool)> = map
+                .places
+                .iter()
+                .map(|p| (p.name.as_str(), p.frame))
+                .collect();
+            assert!(told.contains(&("a", true)), "{nested}: {told:?}");
+            assert!(told.contains(&("a/b", false)), "{nested}: {told:?}");
+            assert!(told.contains(&("e", false)), "{nested}: {told:?}");
+            assert!(map.places.iter().all(|p| p.fixed && p.rect.w > 0.0));
+        }
+        // A key a path has to quote.
+        let body = "{\"a b\": {\"x\": 1}}\n' fold (Omaspec) \"a b\"";
+        let svg = crate::render(&source(body)).unwrap();
+        assert!(svg.contains(">{…} 1 key</tspan>"), "{svg}");
     }
 
     #[test]
@@ -1073,13 +930,13 @@ mod tests {
             Kind::Number(n) if n == "1.50"
         ));
         let svg = drawn(r#"{"on": true, "off": false, "none": null, "n": 1.50}"#);
+        // As PlantUML: a box ticked or not before the word, `␀` for null.
         assert!(svg.contains(">true</tspan>"));
         assert!(svg.contains(">false</tspan>"));
-        assert!(svg.contains(">null</tspan>"));
-        assert!(svg.contains("font-style=\"italic\""));
+        assert!(svg.contains(">\u{2400}</tspan>"), "{svg}");
+        assert!(!svg.contains(">null</tspan>"));
         assert!(svg.contains(">1.50</tspan>"));
-        assert!(!svg.contains('☑'));
-        assert!(!svg.contains('\u{2400}'));
+        assert_eq!(svg.matches("<polyline").count(), 1, "one tick: {svg}");
     }
 
     #[test]
@@ -1118,6 +975,10 @@ title People
         assert!(svg.contains(">People</tspan>"));
         assert!(svg.contains(">Smith</tspan>"));
         assert!(svg.contains(">New York</tspan>"));
+        assert_eq!(svg.matches("fill=\"#CCFF02\"").count(), 2, "{svg}");
+        // The root, the address, the numbers, each of them, the children.
+        assert_eq!(cards(&svg).len(), 6, "{:?}", cards(&svg));
+        let svg = crate::render(&source(&format!("skinparam jsonLayout nested\n{body}"))).unwrap();
         assert!(svg.contains(">[]</tspan>"));
         assert!(svg.contains(">0</tspan>"));
         assert!(svg.contains(">1</tspan>"));
@@ -1162,8 +1023,16 @@ title People
         assert!(matches!(diagram.value.kind, Kind::String(s) if s == "\u{10000}"));
         let err = declined(r#""\uD800""#);
         assert_eq!(err.reason, BAD);
-        let svg = drawn(r#"{"s": "**bold** <tag>"}"#);
-        assert!(svg.contains(">**bold** &lt;tag&gt;</tspan>"), "{svg}");
+        // Creole, as PlantUML reads it; markup the engine does not draw
+        // is drawn as written rather than not at all.
+        let svg = drawn(r#"{"s": "**bold** <tag> <color:green>g</color>"}"#);
+        assert!(svg.contains("font-weight=\"bold\""), "{svg}");
+        assert!(
+            svg.contains("&lt;tag&gt;") && svg.contains("fill=\"#008000\""),
+            "{svg}"
+        );
+        let svg = drawn(r#"{"s": "----"}"#);
+        assert!(svg.contains(">----</tspan>"), "{svg}");
     }
 
     #[test]

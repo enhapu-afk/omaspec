@@ -297,6 +297,8 @@ pub struct Paper {
     pub folding: bool,
     /// The containers folded to their box, by name (docs/adr/0024).
     folds: Vec<String>,
+    /// A JSON or YAML diagram is drawn nested, not as a tree (View menu).
+    pub nested: bool,
     /// The folds changed: the owner draws the diagram again.
     refold: bool,
     /// The container just folded or unfolded: the view glides to it once
@@ -348,6 +350,7 @@ impl Default for Paper {
             held_detail: None,
             folding: false,
             folds: Vec::new(),
+            nested: false,
             refold: false,
             unfolding: None,
             focus: None,
@@ -429,7 +432,14 @@ impl Paper {
         } else {
             Vec::new()
         };
-        worker.render_folded(ticket, source, language, place, linked, folds);
+        worker.render_folded(
+            ticket,
+            source,
+            language,
+            place,
+            linked,
+            (folds, self.nested),
+        );
         self.made = false;
         self.asked();
     }

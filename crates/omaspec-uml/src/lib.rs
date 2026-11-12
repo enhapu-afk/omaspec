@@ -330,7 +330,19 @@ pub fn render_mapped(
         Diagram::Timing(d) => unmapped(timing::draw(&d)),
         Diagram::Gantt(d) => unmapped(gantt::draw(&d)),
         Diagram::Flow(d) => unmapped(flow::draw(&d)),
-        Diagram::Json(d) => unmapped(json::draw(&d)),
+        Diagram::Json(mut d) => {
+            d.fold(&fold::read(source));
+            // The pane's view over the file's skinparam.
+            if fold::nested(source) {
+                d.frame.skinparams.push(common::Skinparam {
+                    key: "jsonLayout".to_owned(),
+                    value: "nested".to_owned(),
+                    line: 0,
+                    declared: None,
+                });
+            }
+            json::draw_mapped(&d)
+        }
         Diagram::Formula(d) => unmapped(formula::draw(&d)),
     }
 }
