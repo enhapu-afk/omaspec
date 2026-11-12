@@ -182,7 +182,9 @@ fn address(before: &str, lang: Language) -> Option<&str> {
             &before[open + 2..]
         }
         Language::Mermaid => {
-            if !before.trim_start().starts_with("click ") || before.matches('"').count().is_multiple_of(2) {
+            if !before.trim_start().starts_with("click ")
+                || before.matches('"').count().is_multiple_of(2)
+            {
                 return None;
             }
             &before[before.rfind('"')? + 1..]
