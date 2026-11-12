@@ -69,7 +69,9 @@ a GIF, for a presentation or a pull request.
 `omaspec trace run.jsonl` plays what a running system logged through its state machines
 and says where it deviated, with the time. The editor plays the trace in the diagram,
 line by line, and the bar turns red where the system did what the specification does
-not allow.
+not allow. `omaspec coverage door.puml --traces night.jsonl -o door-cov.svg` draws how
+much of the machine the traces took: what was taken in green with how often, what never
+was dashed in red; `--min 80` holds a share in CI.
 
 ![A recorded trace played in the diagram, stopped where the door took an event it cannot take](docs/images/trace.png)
 

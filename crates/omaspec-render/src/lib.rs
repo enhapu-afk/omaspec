@@ -165,6 +165,49 @@ pub fn by_hand_misses(source: &str, language: Language) -> Vec<(usize, String)> 
     map.map(|map| map.misses).unwrap_or_default()
 }
 
+/// The state machine `source`, drawn by Omaspec's own engines with
+/// `marks` over it: what a trace took and what it never took. Only a state
+/// diagram Omaspec draws itself takes marks; the Java PlantUML and mmdr
+/// do not. A diagram that lives at `place` reads its `!include`s there.
+pub fn render_marked(
+    source: &str,
+    language: Language,
+    place: Option<&Place>,
+    marks: &omaspec_uml::state::Marks,
+) -> Result<Rendered, RenderError> {
+    let start = Instant::now();
+    let (svg, engine, map) = match language {
+        Language::Mermaid => {
+            let (svg, map) = mermaid::render_marked(source, marks)?;
+            (svg, Engine::NativeMermaid, map)
+        }
+        Language::PlantUml => {
+            let folder = place.map(include::Folder::new);
+            let includes = folder.as_ref().map(|f| f as &dyn omaspec_uml::Includes);
+            let (svg, map) =
+                omaspec_uml::render_marked(source, includes, marks).map_err(|declined| {
+                    RenderError::Unavailable {
+                        line: declined.line,
+                        reason: declined.reason,
+                    }
+                })?;
+            (svg, Engine::NativePlantUml, map)
+        }
+    };
+    let svg = sanitize::sanitize(&svg).map_err(|e| RenderError::Engine {
+        engine,
+        message: format!("invalid SVG: {e}"),
+    })?;
+    Ok(Rendered {
+        svg,
+        engine,
+        elapsed: start.elapsed(),
+        map,
+        links: Vec::new(),
+        cards: None,
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     /// The `plantuml` command for the Java fallback; searched in `PATH` if

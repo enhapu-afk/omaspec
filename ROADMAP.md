@@ -2486,6 +2486,51 @@ Beside the stages:
 - [ ] An outline beside the source to jump from, and an example from
       the gallery put in at the caret.
 
+### Views derived from the behavior (2026-11-12)
+
+What PlantUML and Mermaid cannot draw, since they do not read a state
+machine as one: views of a machine made from the files that are there,
+with no syntax of their own (REQ-032 to REQ-035 of the requirements
+gathered for Omaspec). Three of them mark a drawn machine, so the marks
+are built once, with coverage, and the others take them.
+
+- [x] Coverage (REQ-034, 2026-11-12): `omaspec coverage door.puml
+      --traces night.jsonl` follows the traces as `trace` follows them,
+      object by object, through the machine their objects go by, and
+      counts how often each transition was taken and each state entered
+      (`omaspec_model::coverage`). Where a trace leaves open which way
+      the object went, every way it could have gone counts, as the
+      player lights them all. It prints the share taken and each
+      transition never taken as `file:line`; `--json` gives the hits of
+      each transition (line, from, to, trigger) and state with
+      `covered_transitions` and `total_transitions`; `--min 80` fails
+      below that share, for CI; `-o door-cov.svg` (or .png, .pdf) draws
+      the machine with what was taken bold in green, how often after its
+      label (`open ×12`), and what never was dashed in an orange red,
+      both colors read on any page (`omaspec_uml::state::Marks`, laid
+      over the tree before it is drawn, for PlantUML and Mermaid alike;
+      the source stays as it is). The MCP server has it as `coverage`.
+      Open: coverage in the editor, over the diagram while a trace
+      plays.
+- [ ] The diff as a picture (REQ-035): `omaspec diff --view old new -o
+      diff.svg` draws the new machine with what came in green and what
+      changed in amber, by the marks above. What went is no longer in
+      the new machine: drawn dashed where its two states still are, and
+      listed under the picture where one of them went too. `--json`
+      gives today's changes and the picture.
+- [ ] The state-event matrix (REQ-032): `omaspec matrix door.puml`
+      with every state a row and every event a column, each cell the
+      transition it fires, several with their guards, one inherited from
+      an enclosing state, or none. An empty cell is no finding: most are
+      empty, and lint already says what conflicts and what no path
+      reaches. `--json` and Markdown first (for documents and reviews);
+      a picture, the editor and an MCP tool after.
+- [ ] A trace as a timeline (REQ-033): `omaspec trace run.jsonl --as
+      timing` writes the states each object was in over time as a
+      PlantUML timing diagram (a concise row per object, the deviations
+      as notes), which Omaspec draws itself and the writer can edit;
+      rather than a drawer of its own.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 Omaspec's engine is plain Rust; what ties the program to Linux is at the

@@ -12,6 +12,7 @@
 
 mod draw;
 mod lower;
+mod marks;
 pub mod mermaid;
 mod parse;
 mod skin;
@@ -19,6 +20,7 @@ mod skin;
 pub use crate::common::{Frame, Skinparam, Text};
 pub use draw::{draw, draw_mapped, label_by_hand};
 pub use lower::from_mermaid;
+pub use marks::{MISSED, Mark, Marks, TAKEN};
 pub use parse::{is_state, parse};
 
 /// A parsed state diagram. The root is the diagram itself: it has no box.

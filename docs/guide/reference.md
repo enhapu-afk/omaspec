@@ -560,6 +560,14 @@ the diagram, line by line with Space: the bar shows the time and the event, the 
 light up, and where the trace deviates the bar turns red and says why.
 [examples/player.jsonl](../../examples/player.jsonl) is an evening of the media player.
 
+**Coverage.** `omaspec coverage player.puml --traces player.jsonl` follows the traces
+through the machine and says how much of it they take: how many transitions and states,
+and each transition never taken as `file:line`. `-o player-cov.svg` (or `.png`, `.pdf`)
+draws the machine with what was taken bold in green, how often after its label, and what
+never was dashed in red; the source stays as it is. `--json` gives the hits of every
+transition and state, and `--min 80` fails below that share of transitions, for CI.
+Where a trace leaves open which way an object went, every way it could have gone counts.
+
 **What changed, and in the other language.** `omaspec diff` compares two versions, or a
 file with its last commit, by states, transitions and messages, not by lines; layout and
 colors do not count. Given a folder, it does so for the whole project: every diagram that
@@ -581,6 +589,7 @@ omaspec lint diagrams/*.puml        # syntax, likely typos, specification checks
 omaspec lint --project specs a.puml # sequences checked against the state machines in specs/, not the project
 omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
 omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json
+omaspec coverage door.puml --traces a.jsonl,b.jsonl -o door-cov.svg   # what the traces take of the machine; --json, --min 80
 omaspec refs Door                   # every use of a diagram, state or event in the project; --machine, --json
 omaspec rename Door Gate            # renamed at every use; --state, --event, --machine, --dry-run, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI

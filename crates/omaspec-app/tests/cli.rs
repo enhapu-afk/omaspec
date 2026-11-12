@@ -1703,7 +1703,7 @@ fn mcp_serves_an_agent_over_standard_io() {
     assert_eq!(hello["result"]["protocolVersion"], "2025-06-18");
     ask(serde_json::json!({"jsonrpc": "2.0", "method": "notifications/initialized"}));
     let tools = ask(serde_json::json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}));
-    assert_eq!(tools["result"]["tools"].as_array().unwrap().len(), 9);
+    assert_eq!(tools["result"]["tools"].as_array().unwrap().len(), 10);
 
     // A relative path, from the folder the server runs in: the second
     // `open` finds the door open already.
@@ -1998,4 +1998,108 @@ fn new_makes_a_project_whose_diagrams_check_against_all_of_it() {
     assert_eq!(out.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&out.stderr).contains("is a project already"));
     let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn coverage_counts_what_traces_take_and_draws_it_over_the_machine() {
+    let dir = scratch("coverage");
+    let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
+    // The same machine in Mermaid, under a front matter: its lines move.
+    let gate = "---\ntitle: Gate\n---\nstateDiagram-v2\n  [*] --> Closed\n  Closed --> Open : open\n  Open --> Closed : close\n  Closed --> Locked : lock\n  Locked --> Closed : unlock\n";
+    fs::write(dir.join("door.puml"), door).unwrap();
+    fs::write(dir.join("gate.mmd"), gate).unwrap();
+    fs::write(
+        dir.join("night.jsonl"),
+        "{\"object\":\"Door\",\"event\":\"open\"}\n{\"object\":\"Door\",\"event\":\"close\"}\n{\"object\":\"Gate\",\"event\":\"open\"}\n",
+    )
+    .unwrap();
+    let door_path = dir.join("door.puml");
+    let night = dir.join("night.jsonl");
+    let out = omaspec(&[
+        "coverage",
+        door_path.to_str().unwrap(),
+        "--traces",
+        night.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(0));
+    let text = stdout(&out);
+    assert!(
+        text.contains("3 of 5 transitions taken (60 %), 2 of 3 states, by 1 object"),
+        "{text}"
+    );
+    assert!(
+        text.contains("door.puml:6: never taken: Closed --> Locked : lock"),
+        "{text}"
+    );
+    assert!(
+        text.contains("door.puml:7: never taken: Locked --> Closed : unlock"),
+        "{text}"
+    );
+
+    // Below what --min asks for: it fails, and says so.
+    let out = omaspec(&[
+        "coverage",
+        door_path.to_str().unwrap(),
+        "--traces",
+        night.to_str().unwrap(),
+        "--min",
+        "80",
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(stdout(&out).contains("below the 80 % asked for"));
+
+    // The gate is its own object: its start and its open, no close.
+    for (file, svg, taken) in [
+        ("door.puml", "door-cov.svg", 3),
+        ("gate.mmd", "gate-cov.svg", 2),
+    ] {
+        let path = dir.join(file);
+        let image = dir.join(svg);
+        let out = omaspec(&[
+            "coverage",
+            path.to_str().unwrap(),
+            "--traces",
+            night.to_str().unwrap(),
+            "--json",
+            "-o",
+            image.to_str().unwrap(),
+        ]);
+        assert_eq!(out.status.code(), Some(0), "{file}: {out:?}");
+        let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        assert_eq!(json["covered_transitions"], taken, "{file}");
+        assert_eq!(json["total_transitions"], 5, "{file}");
+        assert_eq!(json["covered_states"], 2, "{file}");
+        let lock = json["transitions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["trigger"] == "lock")
+            .unwrap();
+        assert_eq!(lock["hits"], 0, "{file}");
+        assert_eq!(json["image"], image.to_str().unwrap());
+        let drawn = fs::read_to_string(&image).unwrap();
+        assert!(
+            drawn.contains("open ×1") && drawn.contains("#2F9E44"),
+            "{file}: {drawn}"
+        );
+        assert!(drawn.contains("#D9480F"), "{file}: never taken drawn apart");
+        assert!(
+            drawn.contains(&format!("{taken} of 5 transitions taken")),
+            "{file}"
+        );
+    }
+    // The source stays as it was.
+    assert_eq!(fs::read_to_string(&door_path).unwrap(), door);
+
+    // Not a state machine: said, and no picture.
+    let scenario = dir.join("talk.puml");
+    fs::write(&scenario, "@startuml\nA -> B : hi\n@enduml\n").unwrap();
+    let out = omaspec(&[
+        "coverage",
+        scenario.to_str().unwrap(),
+        "--traces",
+        night.to_str().unwrap(),
+    ]);
+    assert_ne!(out.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("no state machine"));
 }

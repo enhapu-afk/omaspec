@@ -279,6 +279,27 @@ pub fn render_with(source: &str, includes: Option<&dyn Includes>) -> Result<Stri
     render_mapped(source, includes).map(|(svg, _)| svg)
 }
 
+/// Draws the state machine `source` with `marks` over it: what a trace
+/// took, and what it never took. Any other diagram declines.
+pub fn render_marked(
+    source: &str,
+    includes: Option<&dyn Includes>,
+    marks: &state::Marks,
+) -> Result<(String, map::Map), Declined> {
+    match parse_with(source, includes)? {
+        Diagram::State(mut d) => {
+            d.fold(&fold::read(source));
+            d.mark(marks);
+            state::draw_mapped(&d)
+        }
+        _ => Err(Declined {
+            line: None,
+            reason: "only a state diagram has transitions to mark".to_owned(),
+            refused: false,
+        }),
+    }
+}
+
 /// Draws `source` as SVG, reading its `!include`s through `includes`, and
 /// says where its states, transitions and messages are in it. The map of
 /// the other types is empty.

@@ -80,6 +80,39 @@ pub fn render_mapped(source: &str) -> Result<(String, Engine, Map), RenderError>
 const MAX_NESTING: usize = 100;
 
 fn draw(source: &str) -> Result<Drawn, RenderError> {
+    draw_with(source, None)
+}
+
+/// The state machine `source` with `marks` over it, on the lines of the
+/// source; only Omaspec's own drawer draws marks, so a diagram mmdr
+/// would draw is an error.
+pub fn render_marked(
+    source: &str,
+    marks: &omaspec_uml::state::Marks,
+) -> Result<(String, Map), RenderError> {
+    let (_, offset) = mermaid_body(source);
+    let shifted = omaspec_uml::state::Marks {
+        transitions: marks
+            .transitions
+            .iter()
+            .filter_map(|(&line, &mark)| Some((line.checked_sub(offset)?, mark)))
+            .collect(),
+        ..marks.clone()
+    };
+    let drawn = draw_with(source, Some(&shifted))?;
+    match drawn.declined {
+        None => Ok((drawn.svg, drawn.map)),
+        Some(_) => Err(RenderError::Unavailable {
+            line: None,
+            reason: "only a state diagram Omaspec draws itself has transitions to mark".into(),
+        }),
+    }
+}
+
+fn draw_with(
+    source: &str,
+    marks: Option<&omaspec_uml::state::Marks>,
+) -> Result<Drawn, RenderError> {
     // Lines before the body belong to the fence.
     let (fenced, offset) = mermaid_body(source);
     if let Some(line) = too_deep(fenced) {
@@ -124,6 +157,7 @@ fn draw(source: &str) -> Result<Drawn, RenderError> {
             theme: &options.theme,
             body,
             fenced,
+            marks,
         };
         if let Some(native) = native(body)
             && let Some((svg, map)) = (native.draw)(&input)
@@ -178,6 +212,8 @@ struct Input<'a> {
     theme: &'a Theme,
     body: &'a str,
     fenced: &'a str,
+    /// Marks over a state machine, on the lines of `fenced`.
+    marks: Option<&'a omaspec_uml::state::Marks>,
 }
 
 /// A drawer's function: the SVG and where its parts are, or `None` to leave
@@ -219,7 +255,7 @@ const NATIVE: &[Native] = &[
         kind: DiagramKind::State,
         headers: &["statediagram"],
         noun: "state diagram",
-        draw: |i| state::try_draw(i.theme, i.fenced),
+        draw: |i| state::try_draw(i.theme, i.fenced, i.marks),
         refusal: |_| None,
     },
     Native {

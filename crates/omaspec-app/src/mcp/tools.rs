@@ -26,8 +26,9 @@ use crate::specs::Projects;
 const MAX_LOOK_PIXELS: f64 = 25_000_000.0;
 
 /// The tools, in the order they are listed.
-const NAMES: [&str; 9] = [
-    "lint", "trace", "refs", "inspect", "outline", "diff", "convert", "format", "render",
+const NAMES: [&str; 10] = [
+    "lint", "trace", "coverage", "refs", "inspect", "outline", "diff", "convert", "format",
+    "render",
 ];
 
 pub fn exists(name: &str) -> bool {
@@ -133,6 +134,31 @@ pub fn definitions() -> Vec<Value> {
                 ("project", project.clone()),
             ]),
             "annotations": reading,
+        }),
+        json!({
+            "name": "coverage",
+            "title": "Measure what recorded traces cover",
+            "description": "How much of a state machine recorded traces take: each transition and each state, how often. The traces are followed as `trace` follows them, object by object, through the machine their objects go by (named like it, or by `machine`). Answers `covered_transitions`, `total_transitions`, `covered_states`, `total_states`, the hits of each transition (one-based line, from, to, trigger) and each state, the objects, and how many lines the machine cannot take (`trace` says which). With `output`, writes the diagram with what was taken drawn bold in green, how often after its label, and what never was dashed in red (.svg, .png or .pdf); the source stays as it is. `passed` is false when fewer transitions than `min` percent were taken.",
+            "inputSchema": schema(&[
+                ("path", json!({
+                    "type": "string",
+                    "description": "The state machine, PlantUML or Mermaid, relative to the folder the server was started in.",
+                })),
+                ("traces", json!({
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Trace files (.jsonl), relative to the folder the server was started in.",
+                })),
+                ("output", json!({
+                    "type": "string",
+                    "description": "Where to write the diagram with the coverage drawn over it.",
+                })),
+                ("min", json!({
+                    "type": "number",
+                    "description": "The share of transitions in percent below which `passed` is false.",
+                })),
+            ]),
+            "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false },
         }),
         json!({
             "name": "refs",
@@ -348,6 +374,7 @@ impl Tools {
         match name {
             "lint" => lint(&args),
             "trace" => trace(&args),
+            "coverage" => coverage(&args),
             "refs" => refs(&args),
             "inspect" => inspect(&args),
             "outline" => outline(&args),
@@ -805,6 +832,36 @@ fn trace(args: &Args) -> Result<Answer> {
     Ok(Answer::data(data))
 }
 
+fn coverage(args: &Args) -> Result<Answer> {
+    let file = args
+        .path("path")?
+        .context("give the state machine's `path`")?;
+    let traces: Vec<PathBuf> = match args.map.get("traces") {
+        Some(Value::Array(items)) => items
+            .iter()
+            .map(|item| match item {
+                Value::String(text) => confine(args.root, Path::new(text)),
+                _ => bail!("`traces` must be a list of paths"),
+            })
+            .collect::<Result<_>>()?,
+        _ => bail!("give the `traces`, a list of paths"),
+    };
+    let min = match args.map.get("min") {
+        None | Some(Value::Null) => None,
+        Some(Value::Number(n)) => n.as_f64().map(|n| n as f32),
+        Some(_) => bail!("`min` must be a number"),
+    };
+    let output = args.path("output")?;
+    let report = crate::coverage_command::measure(&crate::coverage_command::Args {
+        file: &file,
+        traces: &traces,
+        output: output.as_deref(),
+        json: true,
+        min,
+    })?;
+    Ok(Answer::data(serde_json::to_value(report)?))
+}
+
 fn refs(args: &Args) -> Result<Answer> {
     let name = args.text("name")?.context("give the `name` to look for")?;
     let here = server_folder(args.root)?;
@@ -1111,6 +1168,38 @@ mod tests {
         assert_eq!(data["machines"], 1, "{result}");
         assert_eq!(data["errors"], 1, "{data}");
         assert_eq!(data["findings"][0]["line"], 2);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn coverage_answers_the_hits_and_draws_them_when_asked() {
+        let dir = scratch("coverage");
+        std::fs::write(
+            dir.join("door.puml"),
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("night.jsonl"),
+            "{\"object\":\"door\",\"event\":\"open\"}\n",
+        )
+        .unwrap();
+        let image = dir.join("door-cov.svg");
+        let result = call(
+            "coverage",
+            json!({
+                "path": dir.join("door.puml").to_str().unwrap(),
+                "traces": [dir.join("night.jsonl").to_str().unwrap()],
+                "output": image.to_str().unwrap(),
+                "min": 90,
+            }),
+        );
+        let data = &result["structuredContent"];
+        assert_eq!(data["covered_transitions"], 2, "{result}");
+        assert_eq!(data["total_transitions"], 3, "{data}");
+        assert_eq!(data["passed"], false, "{data}");
+        assert_eq!(data["transitions"][2]["hits"], 0, "{data}");
+        assert!(std::fs::read_to_string(&image).unwrap().contains("open ×1"));
         let _ = std::fs::remove_dir_all(&dir);
     }
 

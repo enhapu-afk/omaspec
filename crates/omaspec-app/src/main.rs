@@ -1,6 +1,7 @@
 mod check;
 mod check_command;
 mod commands;
+mod coverage_command;
 mod document;
 mod editor;
 mod files;
@@ -126,6 +127,31 @@ enum Command {
         /// Print GitHub Actions annotations instead of the report.
         #[arg(long, conflicts_with = "json")]
         github: bool,
+    },
+    /// How much of a state machine recorded traces take.
+    ///
+    /// The traces are followed as `trace` follows them, object by object,
+    /// through the machine their objects go by (named like it, or by
+    /// `machine`). Prints how many transitions and states were taken and
+    /// each transition never taken, as `file:line`; with -o the diagram
+    /// with what was taken drawn bold in green, how often after its label,
+    /// and what never was dashed in red. The source stays as it is. Exits
+    /// with 1 when fewer transitions were taken than --min asks for.
+    Coverage {
+        /// The state machine, PlantUML or Mermaid.
+        file: PathBuf,
+        /// Traces, JSON Lines as `trace` reads them.
+        #[arg(long, required = true, num_args = 1.., value_delimiter = ',')]
+        traces: Vec<PathBuf>,
+        /// The diagram with the coverage drawn over it: .svg, .png or .pdf.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Print the report as JSON: the hits of each transition and state.
+        #[arg(long)]
+        json: bool,
+        /// Fail when fewer than this many percent of the transitions are taken.
+        #[arg(long, value_name = "PERCENT")]
+        min: Option<f32>,
     },
     /// Hold recorded traces against the state machines of their project.
     ///
@@ -614,6 +640,19 @@ fn main() -> ExitCode {
             strict,
             github,
         }) => check_command::check(&dir, json, strict, github),
+        Some(Command::Coverage {
+            file,
+            traces,
+            output,
+            json,
+            min,
+        }) => coverage_command::run(&coverage_command::Args {
+            file: &file,
+            traces: &traces,
+            output: output.as_deref(),
+            json,
+            min,
+        }),
         Some(Command::Trace {
             files,
             json,
