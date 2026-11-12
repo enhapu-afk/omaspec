@@ -34,7 +34,7 @@ pub enum Mark {
 /// A transition or a state taken.
 pub const TAKEN: &str = "#2F9E44";
 /// One never taken.
-pub const MISSED: &str = "#D9480F";
+pub const MISSED: &str = "#E8590C";
 
 impl Diagram {
     /// Draws what `marks` say over the diagram.

@@ -2082,7 +2082,7 @@ fn coverage_counts_what_traces_take_and_draws_it_over_the_machine() {
             drawn.contains("open ×1") && drawn.contains("#2F9E44"),
             "{file}: {drawn}"
         );
-        assert!(drawn.contains("#D9480F"), "{file}: never taken drawn apart");
+        assert!(drawn.contains("#E8590C"), "{file}: never taken drawn apart");
         assert!(
             drawn.contains(&format!("{taken} of 5 transitions taken")),
             "{file}"
