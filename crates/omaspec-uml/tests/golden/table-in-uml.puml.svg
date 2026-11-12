@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="136" height="86" viewBox="0 0 136 86">
+<g transform="translate(10,10)">
+<g>
+<rect x="0" y="0" width="115.8" height="65.4" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="0" y1="22.63" x2="115.8" y2="22.63" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="0" y1="42.76" x2="115.8" y2="42.76" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="50.67" y1="0" x2="50.67" y2="65.4" fill="none" stroke="#000000" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="8" y="17.06" font-size="13" fill="#000000" textLength="34.67" lengthAdjust="spacing">Name</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="58.67" y="17.06" font-size="13" fill="#000000" textLength="26.73" lengthAdjust="spacing">Role</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="8" y="37.2" font-size="13" fill="#000000" textLength="23.13" lengthAdjust="spacing">Ada</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="58.67" y="37.2" font-size="13" fill="#000000" textLength="39.03" lengthAdjust="spacing">engine</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="8" y="57.33" font-size="13" fill="#000000" textLength="26.01" lengthAdjust="spacing">Alan</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="58.67" y="57.33" font-size="13" fill="#000000" textLength="49.13" lengthAdjust="spacing">machine</tspan>
+</text>
+</g>
+</g>
+</svg>

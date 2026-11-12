@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="237" height="360" viewBox="0 0 237 360">
+<g transform="translate(10,10)">
+<g>
+<rect x="0" y="7.57" width="154.48" height="56.83" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="6" y="0" width="52.97" height="15.13" fill="#FFFFFF"/>
+<line x1="48.67" y1="37.26" x2="139.44" y2="37.26" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="48.67" y1="33.26" x2="48.67" y2="37.26" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="48.67" y="41.26" width="48.23" height="19.13" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<line x1="80.9" y1="41.26" x2="80.9" y2="60.4" fill="none" stroke="#000000" stroke-width="1"/>
+<polygon points="84.9,48.33 92.9,48.33 88.9,53.83" fill="#000000"/>
+<rect x="0" y="69.46" width="11" height="11" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<polyline points="2,74.96 4.5,77.96 9,71.96" fill="none" stroke="#000000" stroke-width="1.8"/>
+<rect x="0" y="87.59" width="11" height="11" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<ellipse cx="5.5" cy="111.23" rx="5.5" ry="5.5" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<ellipse cx="5.5" cy="111.23" rx="2.5" ry="2.5" fill="#000000"/>
+<ellipse cx="167.98" cy="111.23" rx="5.5" ry="5.5" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<line x1="0" y1="125.29" x2="216.32" y2="125.29" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="0" y="131.79" width="154.48" height="65.4" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="0" y1="154.42" x2="154.48" y2="154.42" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="0" y1="174.56" x2="154.48" y2="174.56" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="45.63" y1="131.79" x2="45.63" y2="197.19" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="0" y1="202.19" x2="216.32" y2="202.19" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="0" y1="205.19" x2="216.32" y2="205.19" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="0" y="210.19" width="60.41" height="19.13" fill="none" stroke="#000000" stroke-width="1.6"/>
+<rect x="60.41" y="210.19" width="44.51" height="19.13" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="104.93" y="210.19" width="49.56" height="19.13" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="0" y1="230.82" x2="154.48" y2="230.82" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="0" y="234.32" width="154.48" height="17.13" fill="#DBDBDB" stroke="#000000" stroke-width="1"/>
+<ellipse cx="8" cy="262.02" rx="2" ry="2" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="18" y1="268.58" x2="18" y2="277.15" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="18" y1="277.15" x2="26" y2="277.15" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="32" y1="283.72" x2="32" y2="292.28" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="32" y1="292.28" x2="40" y2="292.28" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="18" y1="268.58" x2="18" y2="307.41" fill="none" stroke="#000000" stroke-width="1"/>
+<line x1="18" y1="307.41" x2="26" y2="307.41" fill="none" stroke="#000000" stroke-width="1"/>
+<rect x="0" y="317.98" width="49.63" height="21.13" rx="6" ry="6" fill="#FFFFFF" stroke="#000000" stroke-width="1.6"/>
+<rect x="162.48" y="317.98" width="53.23" height="21.13" rx="6" ry="6" fill="#FFFFFF" stroke="#000000" stroke-width="1.6"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="9" y="12.06" font-size="13" fill="#000000" textLength="46.97" lengthAdjust="spacing">Account</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="6" y="33.2" font-size="13" fill="#000000" textLength="34.67" lengthAdjust="spacing">Name</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="54.67" y="33.2" font-size="13" fill="#000000" textLength="78.77" lengthAdjust="spacing">Ada Lovelace</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="6" y="55.33" font-size="13" fill="#000000" textLength="26.01" lengthAdjust="spacing">Plan</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="54.67" y="55.33" font-size="13" fill="#000000" textLength="20.23" lengthAdjust="spacing">Pro</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="17" y="79.46" font-size="13" fill="#000000" textLength="85.96" lengthAdjust="spacing">Remember me</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="17" y="97.59" font-size="13" fill="#000000" textLength="61.4" lengthAdjust="spacing">Newsletter</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="17" y="115.72" font-size="13" fill="#000000" textLength="45.51" lengthAdjust="spacing">Monthly</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="179.48" y="115.72" font-size="13" fill="#000000" textLength="36.84" lengthAdjust="spacing">Yearly</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="8" y="148.86" font-size="13" fill="#000000" textLength="25.28" lengthAdjust="spacing">Item</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="53.63" y="148.86" font-size="13" fill="#000000" textLength="29.61" lengthAdjust="spacing">Price</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="8" y="168.99" font-size="13" fill="#000000" textLength="29.63" lengthAdjust="spacing">Book</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="53.63" y="168.99" font-size="13" fill="#000000" textLength="14.46" lengthAdjust="spacing">12</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="8" y="189.12" font-size="13" fill="#000000" textLength="23.13" lengthAdjust="spacing">Pen</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="53.63" y="189.12" font-size="13" fill="#000000" textLength="7.23" lengthAdjust="spacing">2</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="6" y="224.25" font-size="13" fill="#000000" font-weight="bold" textLength="48.41" lengthAdjust="spacing">General</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="66.41" y="224.25" font-size="13" fill="#000000" textLength="32.51" lengthAdjust="spacing">Fonts</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="110.93" y="224.25" font-size="13" fill="#000000" textLength="37.56" lengthAdjust="spacing">Colors</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="6" y="247.38" font-size="13" fill="#000000" textLength="20.94" lengthAdjust="spacing">File</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="38.94" y="247.38" font-size="13" fill="#000000" textLength="22.4" lengthAdjust="spacing">Edit</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="73.34" y="247.38" font-size="13" fill="#000000" textLength="28.17" lengthAdjust="spacing">View</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="14" y="266.52" font-size="13" fill="#000000" textLength="46.96" lengthAdjust="spacing">Projects</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="28" y="281.65" font-size="13" fill="#000000" textLength="52.74" lengthAdjust="spacing">omaspec</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="42" y="296.78" font-size="13" fill="#000000" textLength="17.33" lengthAdjust="spacing">src</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="28" y="311.91" font-size="13" fill="#000000" textLength="31.8" lengthAdjust="spacing">notes</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="10" y="333.04" font-size="13" fill="#000000" textLength="29.63" lengthAdjust="spacing">Save</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="172.48" y="333.04" font-size="13" fill="#000000" textLength="33.23" lengthAdjust="spacing">Close</tspan>
+</text>
+</g>
+</g>
+</svg>

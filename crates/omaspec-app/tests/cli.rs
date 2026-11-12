@@ -1517,14 +1517,14 @@ fn render_plantuml_falls_back_to_java_or_says_why_not() {
             .contains(">hi</tspan>")
     );
 
-    let file = dir.join("salt.puml");
-    fs::write(&file, "@startsalt\n{+\n}\n@endsalt\n").unwrap();
+    let file = dir.join("boxes.puml");
+    fs::write(&file, "@startditaa\n+---+\n| A |\n+---+\n@endditaa\n").unwrap();
     let path = file.to_str().unwrap();
 
     let out = omaspec_with(("OMASPEC_PLANTUML", "none"), &["render", path]);
     assert_eq!(out.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("Salt UIs are not drawn"), "{stderr}");
+    assert!(stderr.contains("Ditaas are not drawn"), "{stderr}");
     assert!(
         stderr.contains("install the `plantuml` package"),
         "{stderr}"
@@ -1537,7 +1537,7 @@ fn render_plantuml_falls_back_to_java_or_says_why_not() {
     assert!(json[0].get("line").is_none());
     assert!(json[0].get("engine").is_none());
     let message = json[0]["message"].as_str().unwrap();
-    assert!(message.contains("Salt UIs are not drawn"), "{message}");
+    assert!(message.contains("Ditaas are not drawn"), "{message}");
     assert!(
         message.contains("install the `plantuml` package"),
         "{message}"
@@ -1551,7 +1551,7 @@ fn render_plantuml_falls_back_to_java_or_says_why_not() {
     assert_eq!(out.status.code(), Some(0));
     assert!(String::from_utf8_lossy(&out.stderr).contains("(Java PlantUML,"));
     assert!(
-        fs::read_to_string(dir.join("salt.svg"))
+        fs::read_to_string(dir.join("boxes.svg"))
             .unwrap()
             .contains("diagram 1")
     );
@@ -1644,11 +1644,11 @@ fn the_java_plantuml_runs_confined() {
     let escaped = dir.join("escaped");
     let secret = dir.join("secret");
     fs::write(&secret, "key\n").unwrap();
-    // A salt diagram: the engine draws sequence, state, structure, timing and gantt itself.
+    // A ditaa diagram: the engine draws the others itself.
     fs::write(
         &diagram,
         format!(
-            "@startsalt\n' try {} {port} {}\n{{+\n}}\n@endsalt\n",
+            "@startditaa\n' try {} {port} {}\n+---+\n@endditaa\n",
             escaped.display(),
             secret.display()
         ),

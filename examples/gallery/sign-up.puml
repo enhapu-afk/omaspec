@@ -1,0 +1,26 @@
+@startsalt
+' A wireframe in Salt: a grid of widgets, drawn as PlantUML draws them.
+title Sign up
+{+
+  {* <&home> Home | Plans | <&question-mark> Help }
+  {/ <b>Account | Billing | Privacy }
+  {^"Who you are"
+    Name     | "Ada Lovelace     "
+    E-mail   | "ada@example.org  "
+    Password | "********         "
+    Plan     | ^Team^
+  }
+  [X] Send me the newsletter
+  [] Share what I use, to improve it
+  (X) Pay monthly | () Pay yearly
+  ==
+  {T
+   + Workspaces
+   ++ Engines
+   +++ Analytical
+   ++ Notes
+  }
+  --
+  [ <&x> Cancel ] | [ <&check> Create account ]
+}
+@endsalt

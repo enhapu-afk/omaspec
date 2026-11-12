@@ -1,0 +1,25 @@
+@startsalt
+{
+  {^"Account"
+    Name | "Ada Lovelace  "
+    Plan | ^Pro^
+  }
+  [X] Remember me
+  [] Newsletter
+  (X) Monthly | () Yearly
+  --
+  {# Item | Price
+     Book | 12
+     Pen  | 2 }
+  ==
+  {/ <b>General | Fonts | Colors }
+  {* File | Edit | View }
+  {T
+   + Projects
+   ++ omaspec
+   +++ src
+   ++ notes
+  }
+  [ Save ] | [ Close ]
+}
+@endsalt

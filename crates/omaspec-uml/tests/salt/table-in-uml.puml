@@ -1,0 +1,8 @@
+@startuml
+salt
+{#
+  Name | Role
+  Ada  | engine
+  Alan | machine
+}
+@enduml

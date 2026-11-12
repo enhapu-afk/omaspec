@@ -906,8 +906,8 @@ Lint and outline move onto the syntax tree as each type lands.
 
 What comes after 0.4, announced in the README. Lines by hand, projects and
 diagrams that link were released as 0.5.0 on 2026-11-01. The diagram types
-that follow (2026-11-12: Mermaid's charts of numbers and PlantUML's Salt
-next) stand at the end of *An editor that knows the diagram, and more
+that follow (2026-11-13: Mermaid's charts of numbers and PlantUML's EBNF
+and regex next) stand at the end of *An editor that knows the diagram, and more
 diagrams* below.
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it
@@ -2446,8 +2446,18 @@ without folding, lines by hand and plays, and the Java PlantUML:
       (`.up.|>`, `<.left.>`). Open: junctions, and the library's themes.
       The editor names it *ArchiMate diagram* and offers its macros; the
       gallery handles a claim.
-- [ ] PlantUML, in this order (2026-11-12): Salt (wireframes); EBNF and
-      regex, which share one railroad drawer. Ditaa and chronology last:
+- [x] Salt (2026-11-13), `@startsalt` or `salt` in an `@startuml`
+      (`omaspec_uml::salt`): grids with each kind of line (`{`, `{+`,
+      `{#`, `{!`, `{-`), buttons, text fields (their words as written,
+      so `****` stays a password), check boxes, radio buttons, drop-down
+      lists, words with Creole and icons, empty cells, rules (`--`, `==`,
+      `..`, `~~`), a group box with its title in its top line, tabs, a
+      menu bar and a tree with its lines, laid out as PlantUML lays them:
+      a column as wide as its widest cell. A pack's page and ink reach
+      it; the gallery has a sign-up form. Open: scroll panes (`{S`), a
+      block inside a row's cell, menus that open.
+- [ ] PlantUML, in this order (2026-11-12): EBNF and regex, which share
+      one railroad drawer. Ditaa and chronology last:
       little written, and Gantt charts and timelines say the same as
       chronology; until then the Java PlantUML draws them.
 

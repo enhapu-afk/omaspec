@@ -236,6 +236,12 @@ pub static EXAMPLES: &[Example] = &[
         "C4-PlantUML: people, containers, a boundary and a legend."
     ),
     example!(
+        "sign-up.puml",
+        Structure,
+        "A sign-up form",
+        "Salt: a wireframe of fields, check boxes, tabs, a menu and a tree."
+    ),
+    example!(
         "insurance.puml",
         Structure,
         "Handling a claim",

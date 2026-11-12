@@ -172,6 +172,7 @@ fn plantuml_kind(code: &str, lines: &[&str]) -> DiagramKind {
         Some(UmlType::Structure) => DiagramKind::new(Kind::Structure, structure_name(code)),
         Some(UmlType::Sequence) => DiagramKind::new(Kind::Sequence, "Sequence diagram"),
         Some(UmlType::Network) => DiagramKind::new(Kind::Other, "Network diagram"),
+        Some(UmlType::Salt) => DiagramKind::new(Kind::Other, "Salt UI"),
         _ => DiagramKind {
             kind: Kind::Other,
             name: Cow::Borrowed(""),

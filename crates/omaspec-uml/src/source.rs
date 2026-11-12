@@ -23,6 +23,8 @@ pub enum Kind {
     Yaml,
     /// `@startnwdiag`: a network diagram.
     Network,
+    /// `@startsalt`: a wireframe.
+    Salt,
     /// `@startlatex`.
     Latex,
     /// `@startmath`.
@@ -69,6 +71,7 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
                 "startjson" => Kind::Json,
                 "startyaml" => Kind::Yaml,
                 "startnwdiag" => Kind::Network,
+                "startsalt" => Kind::Salt,
                 "startlatex" => Kind::Latex,
                 "startmath" => Kind::Math,
                 _ => {
@@ -401,9 +404,9 @@ mod tests {
 
     #[test]
     fn declines_other_blocks_and_keeps_directives() {
-        let err = body("@startsalt\n{+\n}\n@endsalt\n").unwrap_err();
+        let err = body("@startditaa\n+---+\n@endditaa\n").unwrap_err();
         assert_eq!(err.line, Some(0));
-        assert!(err.reason.contains("@startsalt"), "{}", err.reason);
+        assert!(err.reason.contains("@startditaa"), "{}", err.reason);
         assert_eq!(
             body("@startgantt\n[a] lasts 1 day\n@endgantt\n").unwrap().0,
             Kind::Gantt
