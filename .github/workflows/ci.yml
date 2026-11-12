@@ -16,7 +16,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -41,12 +41,12 @@ jobs:
     steps:
       - name: Rust, PlantUML, Java, Graphviz and a font
         run: pacman -Syu --noconfirm rust plantuml jre-openjdk graphviz ttf-liberation
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: plantuml -version
       - run: cargo test --locked -p omaspec-model --test oracle
 
   deny:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: EmbarkStudios/cargo-deny-action@v2
