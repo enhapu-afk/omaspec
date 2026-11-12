@@ -236,6 +236,18 @@ pub static EXAMPLES: &[Example] = &[
         "C4-PlantUML: people, containers, a boundary and a legend."
     ),
     example!(
+        "json-grammar.puml",
+        Data,
+        "JSON, rule by rule",
+        "EBNF as railroads: a track for each rule, its choices and repetitions."
+    ),
+    example!(
+        "date-regex.puml",
+        Data,
+        "A date, as ISO writes it",
+        "A regular expression as a railroad: groups, classes and counts."
+    ),
+    example!(
         "sign-up.puml",
         Structure,
         "A sign-up form",

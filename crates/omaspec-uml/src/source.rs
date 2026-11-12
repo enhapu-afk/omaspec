@@ -25,6 +25,10 @@ pub enum Kind {
     Network,
     /// `@startsalt`: a wireframe.
     Salt,
+    /// `@startebnf`: a grammar as railroads.
+    Ebnf,
+    /// `@startregex`: a regular expression as a railroad.
+    Regex,
     /// `@startlatex`.
     Latex,
     /// `@startmath`.
@@ -72,6 +76,8 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
                 "startyaml" => Kind::Yaml,
                 "startnwdiag" => Kind::Network,
                 "startsalt" => Kind::Salt,
+                "startebnf" => Kind::Ebnf,
+                "startregex" => Kind::Regex,
                 "startlatex" => Kind::Latex,
                 "startmath" => Kind::Math,
                 _ => {

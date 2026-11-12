@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="321" height="522" viewBox="0 0 321 522">
+<g transform="translate(10,10)">
+<g>
+<line x1="8" y1="54.92" x2="22" y2="54.92" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="62" y1="54.92" x2="74" y2="54.92" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="74" y1="54.92" x2="269.01" y2="54.92" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M74 54.92Q81 54.92 81 61.92L81 76.9Q81 83.9 88 83.9L94 83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M249.01 83.9L255.01 83.9Q262.01 83.9 262.01 76.9L262.01 61.92Q262.01 54.92 269.01 54.92" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="94" y1="83.9" x2="114" y2="83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="229.01" y1="83.9" x2="249.01" y2="83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="114" y1="83.9" x2="134" y2="83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="157.01" y1="83.9" x2="177.01" y2="83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M114 83.9Q121 83.9 121 90.9L121 107.87Q121 114.87 128 114.87L134 114.87" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M154 114.87L163.01 114.87Q170.01 114.87 170.01 107.87L170.01 90.9Q170.01 83.9 177.01 83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="177.01" y1="83.9" x2="189.01" y2="83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M229.01 83.9Q238.01 83.9 238.01 76.9L238.01 70.92Q238.01 63.92 231.01 63.92L112 63.92Q105 63.92 105 70.92L105 76.9Q105 83.9 114 83.9" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="269.01" y1="54.92" x2="283.01" y2="54.92" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="8" y1="178.81" x2="22" y2="178.81" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="68.01" y1="178.81" x2="80.01" y2="178.81" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="80.01" y1="178.81" x2="278.69" y2="178.81" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M80.01 178.81Q87.01 178.81 87.01 185.81L87.01 200.79Q87.01 207.79 94.01 207.79L100.01 207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M258.69 207.79L264.69 207.79Q271.69 207.79 271.69 200.79L271.69 185.81Q271.69 178.81 278.69 178.81" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="100.01" y1="207.79" x2="120.01" y2="207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="238.69" y1="207.79" x2="258.69" y2="207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="120.01" y1="207.79" x2="140.01" y2="207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="160.68" y1="207.79" x2="180.68" y2="207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M120.01 207.79Q127.01 207.79 127.01 214.79L127.01 231.76Q127.01 238.76 134.01 238.76L140.01 238.76" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M159.35 238.76L166.68 238.76Q173.68 238.76 173.68 231.76L173.68 214.79Q173.68 207.79 180.68 207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="180.68" y1="207.79" x2="192.68" y2="207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M238.69 207.79Q247.69 207.79 247.69 200.79L247.69 194.81Q247.69 187.81 240.69 187.81L118.01 187.81Q111.01 187.81 111.01 194.81L111.01 200.79Q111.01 207.79 120.01 207.79" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="278.69" y1="178.81" x2="292.69" y2="178.81" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="8" y1="302.7" x2="22" y2="302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="22" y1="302.7" x2="82" y2="302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M22 302.7Q29 302.7 29 309.7L29 315.68Q29 322.68 36 322.68L42 322.68" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M62 322.68L68 322.68Q75 322.68 75 315.68L75 309.7Q75 302.7 82 302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="82" y1="302.7" x2="94" y2="302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="94" y1="302.7" x2="114" y2="302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="170.68" y1="302.7" x2="272.01" y2="302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M94 302.7Q101 302.7 101 309.7L101 326.66Q101 333.66 108 333.66L114 333.66" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M252.01 333.66L258.01 333.66Q265.01 333.66 265.01 326.66L265.01 309.7Q265.01 302.7 272.01 302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="133.99" y1="333.66" x2="145.99" y2="333.66" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="220.01" y1="333.66" x2="232.01" y2="333.66" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="272.01" y1="302.7" x2="286.01" y2="302.7" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="8" y1="397.6" x2="22" y2="397.6" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="60.01" y1="397.6" x2="72.01" y2="397.6" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="72.01" y1="397.6" x2="190.02" y2="397.6" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M72.01 397.6Q79.01 397.6 79.01 404.6L79.01 419.58Q79.01 426.58 86.01 426.58L92.01 426.58" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M170.02 426.58L176.02 426.58Q183.02 426.58 183.02 419.58L183.02 404.6Q183.02 397.6 190.02 397.6" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="92.01" y1="426.58" x2="112.01" y2="426.58" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="150.02" y1="426.58" x2="170.02" y2="426.58" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M150.02 426.58Q159.02 426.58 159.02 419.58L159.02 413.6Q159.02 406.6 152.02 406.6L110.01 406.6Q103.01 406.6 103.01 413.6L103.01 419.58Q103.01 426.58 112.01 426.58" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="190.02" y1="397.6" x2="204.02" y2="397.6" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="8" y1="490.52" x2="22" y2="490.52" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="68.02" y1="490.52" x2="82.02" y2="490.52" fill="none" stroke="#000000" stroke-width="1.2"/>
+</g>
+<g>
+<ellipse cx="4" cy="54.92" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
+<rect x="22" y="43.94" width="40" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
+<rect x="134" y="72.92" width="23.01" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="134" y="103.89" width="20" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="189.01" y="72.92" width="40" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
+<ellipse cx="287.01" cy="54.92" rx="4" ry="4" fill="#000000"/>
+<ellipse cx="4" cy="178.81" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
+<rect x="22" y="167.82" width="46.01" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
+<rect x="140.01" y="196.81" width="20.67" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="140.01" y="227.78" width="19.34" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="192.68" y="196.81" width="46.01" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
+<ellipse cx="296.69" cy="178.81" rx="4" ry="4" fill="#000000"/>
+<ellipse cx="4" cy="302.7" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
+<rect x="42" y="311.7" width="20" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="114" y="291.71" width="56.68" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
+<rect x="114" y="322.68" width="20" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="145.99" y="322.68" width="74.02" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
+<rect x="232.01" y="322.68" width="20" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<ellipse cx="290.01" cy="302.7" rx="4" ry="4" fill="#000000"/>
+<ellipse cx="4" cy="397.6" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
+<rect x="22" y="386.62" width="38.01" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
+<rect x="112.01" y="415.6" width="38.01" height="21.97" rx="6" ry="6" fill="#F1F1F1" stroke="#000000" stroke-width="1"/>
+<ellipse cx="208.02" cy="397.6" rx="4" ry="4" fill="#000000"/>
+<ellipse cx="4" cy="490.52" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
+<rect x="22" y="479.54" width="46.02" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1" stroke-dasharray="3,2"/>
+<ellipse cx="86.02" cy="490.52" rx="4" ry="4" fill="#000000"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="35.1" font-size="12" fill="#000000" font-weight="bold" textLength="63.36" lengthAdjust="spacing">expression</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="30" y="59.07" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">term</tspan>
+</text>
+<polygon points="175,54.92 168.5,51.92 168.5,57.92" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="142" y="88.06" font-size="12" fill="#000000" textLength="7.01" lengthAdjust="spacing">+</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="142" y="119.02" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">-</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="197.01" y="88.06" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">term</tspan>
+</text>
+<polygon points="168,63.92 174.5,60.92 174.5,66.92" fill="#000000"/>
+<polygon points="282.51,54.92 276.01,51.92 276.01,57.92" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="158.99" font-size="12" fill="#000000" font-weight="bold" textLength="26" lengthAdjust="spacing">term</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="30" y="182.96" font-size="12" fill="#000000" textLength="30.01" lengthAdjust="spacing">factor</tspan>
+</text>
+<polygon points="182.85,178.81 176.35,175.81 176.35,181.81" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="148.01" y="211.94" font-size="12" fill="#000000" textLength="4.67" lengthAdjust="spacing">*</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="148.01" y="242.91" font-size="12" fill="#000000" textLength="3.34" lengthAdjust="spacing">/</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="200.68" y="211.94" font-size="12" fill="#000000" textLength="30.01" lengthAdjust="spacing">factor</tspan>
+</text>
+<polygon points="175.85,187.81 182.35,184.81 182.35,190.81" fill="#000000"/>
+<polygon points="292.19,178.81 285.69,175.81 285.69,181.81" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="282.88" font-size="12" fill="#000000" font-weight="bold" textLength="33.34" lengthAdjust="spacing">factor</tspan>
+</text>
+<polygon points="55.5,302.7 49,299.7 49,305.7" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="50" y="326.83" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">-</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="122" y="306.85" font-size="12" fill="#000000" textLength="40.68" lengthAdjust="spacing">number</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="122" y="337.82" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">(</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="153.99" y="337.82" font-size="12" fill="#000000" textLength="58.02" lengthAdjust="spacing">expression</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="240.01" y="337.82" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">)</tspan>
+</text>
+<polygon points="285.51,302.7 279.01,299.7 279.01,305.7" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="377.78" font-size="12" fill="#000000" font-weight="bold" textLength="44" lengthAdjust="spacing">number</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="30" y="401.75" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">digit</tspan>
+</text>
+<polygon points="134.51,397.6 128.01,394.6 128.01,400.6" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="120.01" y="430.74" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">digit</tspan>
+</text>
+<polygon points="127.51,406.6 134.01,403.6 134.01,409.6" fill="#000000"/>
+<polygon points="203.52,397.6 197.02,394.6 197.02,400.6" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="470.7" font-size="12" fill="#000000" font-weight="bold" textLength="25.33" lengthAdjust="spacing">digit</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="30" y="494.67" font-size="12" fill="#000000" textLength="30.02" lengthAdjust="spacing">0 to 9</tspan>
+</text>
+<polygon points="81.52,490.52 75.02,487.52 75.02,493.52" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="120.68" y="11.14" font-size="12" fill="#000000" font-weight="bold" textLength="59.34" lengthAdjust="spacing">Arithmetic</tspan>
+</text>
+</g>
+</g>
+</svg>

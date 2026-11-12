@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="379" height="159" viewBox="0 0 379 159">
+<g transform="translate(10,10)">
+<g>
+<line x1="8" y1="85.86" x2="22" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="22" y1="85.86" x2="42" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="75.34" y1="85.86" x2="95.34" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M75.34 85.86Q84.34 85.86 84.34 78.86L84.34 30.97Q84.34 23.97 77.34 23.97L40 23.97Q33 23.97 33 30.97L33 78.86Q33 85.86 42 85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="95.34" y1="85.86" x2="107.34" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="135.52" y1="85.86" x2="147.52" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="147.52" y1="85.86" x2="167.52" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="200.86" y1="85.86" x2="220.86" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M200.86 85.86Q209.86 85.86 209.86 78.86L209.86 51.92Q209.86 44.92 202.86 44.92L165.52 44.92Q158.52 44.92 158.52 51.92L158.52 78.86Q158.52 85.86 167.52 85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="220.86" y1="85.86" x2="232.86" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="252.2" y1="85.86" x2="264.2" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="264.2" y1="85.86" x2="284.2" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="316.86" y1="85.86" x2="336.86" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<path d="M316.86 85.86Q325.86 85.86 325.86 78.86L325.86 72.87Q325.86 65.87 318.86 65.87L282.2 65.87Q275.2 65.87 275.2 72.87L275.2 78.86Q275.2 85.86 284.2 85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="336.86" y1="85.86" x2="350.86" y2="85.86" fill="none" stroke="#000000" stroke-width="1.2"/>
+</g>
+<g>
+<ellipse cx="4" cy="85.86" rx="4" ry="4" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
+<rect x="42" y="32.97" width="33.34" height="105.78" fill="#FFFFFF" stroke="#000000" stroke-width="1" stroke-dasharray="3,2"/>
+<line x1="45" y1="50.94" x2="72.34" y2="50.94" fill="none" stroke="#000000" stroke-width="0.5"/>
+<line x1="45" y1="64.9" x2="72.34" y2="64.9" fill="none" stroke="#000000" stroke-width="0.5"/>
+<line x1="45" y1="78.87" x2="72.34" y2="78.87" fill="none" stroke="#000000" stroke-width="0.5"/>
+<line x1="45" y1="92.84" x2="72.34" y2="92.84" fill="none" stroke="#000000" stroke-width="0.5"/>
+<line x1="45" y1="106.81" x2="72.34" y2="106.81" fill="none" stroke="#000000" stroke-width="0.5"/>
+<line x1="45" y1="120.78" x2="72.34" y2="120.78" fill="none" stroke="#000000" stroke-width="0.5"/>
+<rect x="107.34" y="74.87" width="28.18" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="167.52" y="53.92" width="33.34" height="63.87" fill="#FFFFFF" stroke="#000000" stroke-width="1" stroke-dasharray="3,2"/>
+<line x1="170.52" y1="71.89" x2="197.86" y2="71.89" fill="none" stroke="#000000" stroke-width="0.5"/>
+<line x1="170.52" y1="85.86" x2="197.86" y2="85.86" fill="none" stroke="#000000" stroke-width="0.5"/>
+<line x1="170.52" y1="99.82" x2="197.86" y2="99.82" fill="none" stroke="#000000" stroke-width="0.5"/>
+<rect x="232.86" y="74.87" width="19.34" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1"/>
+<rect x="284.2" y="74.87" width="32.67" height="21.97" fill="#FFFFFF" stroke="#000000" stroke-width="1" stroke-dasharray="3,2"/>
+<ellipse cx="354.86" cy="85.86" rx="4" ry="4" fill="#000000"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="50.34" y="48.1" font-size="12" fill="#000000" textLength="16.67" lengthAdjust="spacing">a-z</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="50" y="62.07" font-size="12" fill="#000000" textLength="17.34" lengthAdjust="spacing">0-9</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="57" y="76.04" font-size="12" fill="#000000" textLength="3.34" lengthAdjust="spacing">.</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="55.33" y="90.01" font-size="12" fill="#000000" textLength="6.67" lengthAdjust="spacing">_</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="53.34" y="103.98" font-size="12" fill="#000000" textLength="10.67" lengthAdjust="spacing">%</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="55.17" y="117.94" font-size="12" fill="#000000" textLength="7.01" lengthAdjust="spacing">+</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="56.67" y="131.91" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">-</tspan>
+</text>
+<polygon points="55.17,23.97 61.67,20.97 61.67,26.97" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="115.34" y="90.01" font-size="12" fill="#000000" textLength="12.18" lengthAdjust="spacing">@</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="175.86" y="69.06" font-size="12" fill="#000000" textLength="16.67" lengthAdjust="spacing">a-z</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="175.52" y="83.02" font-size="12" fill="#000000" textLength="17.34" lengthAdjust="spacing">0-9</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="182.52" y="96.99" font-size="12" fill="#000000" textLength="3.34" lengthAdjust="spacing">.</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="182.19" y="110.96" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">-</tspan>
+</text>
+<polygon points="180.69,44.92 187.19,41.92 187.19,47.92" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="240.86" y="90.01" font-size="12" fill="#000000" textLength="3.34" lengthAdjust="spacing">.</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="292.2" y="90.01" font-size="12" fill="#000000" textLength="16.67" lengthAdjust="spacing">a-z</tspan>
+</text>
+<polygon points="297.03,65.87 303.53,62.87 303.53,68.87" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="293.02" y="61.51" font-size="10" fill="#000000" textLength="15.02" lengthAdjust="spacing">{2,}</tspan>
+</text>
+<polygon points="350.36,85.86 343.86,82.86 343.86,88.86" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="127.75" y="11.14" font-size="12" fill="#000000" font-weight="bold" textLength="103.37" lengthAdjust="spacing">An e-mail address</tspan>
+</text>
+</g>
+</g>
+</svg>

@@ -37,6 +37,7 @@ mod metrics;
 pub mod network;
 pub mod pie;
 mod preprocess;
+pub mod railroad;
 pub mod salt;
 pub mod sequence;
 mod sketch;
@@ -108,6 +109,8 @@ pub enum Diagram {
     Formula(formula::Diagram),
     Network(network::Diagram),
     Salt(salt::Diagram),
+    /// EBNF and regular expressions.
+    Railroad(railroad::Diagram),
 }
 
 pub use preprocess::{Included, Includes};
@@ -174,6 +177,8 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
         source::Kind::Json => Diagram::Json(json::parse(&lines)?),
         source::Kind::Network => Diagram::Network(network::parse(&lines)?),
         source::Kind::Salt => Diagram::Salt(salt::parse(&lines)?),
+        source::Kind::Ebnf => Diagram::Railroad(railroad::ebnf::parse(&lines)?),
+        source::Kind::Regex => Diagram::Railroad(railroad::regex::parse(&lines)?),
         source::Kind::Yaml => Diagram::Json(yaml::parse(&lines)?),
         source::Kind::Latex => Diagram::Formula(formula::parse(&lines, formula::Notation::Latex)?),
         source::Kind::Math => Diagram::Formula(formula::parse(&lines, formula::Notation::Ascii)?),
@@ -408,6 +413,7 @@ pub fn render_mapped(
         Diagram::Formula(d) => unmapped(formula::draw(&d)),
         Diagram::Network(d) => unmapped(network::draw(&d)),
         Diagram::Salt(d) => unmapped(salt::draw(&d)),
+        Diagram::Railroad(d) => unmapped(railroad::draw(&d)),
     }
 }
 

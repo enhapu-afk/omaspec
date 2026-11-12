@@ -113,10 +113,10 @@ diagram as a scenario, in PlantUML and Mermaid alike:
 
 Omaspec draws most diagrams with its own engines, in a few milliseconds: PlantUML
 sequence, activity, state, class, component, use case, deployment, object, timing and
-Gantt diagrams, mind maps, WBS, JSON, YAML, network diagrams, Salt wireframes and formulas, and Mermaid flowcharts, state and
+Gantt diagrams, mind maps, WBS, JSON, YAML, network diagrams, Salt wireframes, EBNF and regex railroads and formulas, and Mermaid flowcharts, state and
 sequence diagrams (state diagrams of both languages by the same engine). The other
 Mermaid types are drawn by mmdr, a Rust library, in the same
-process. A few PlantUML types (Ditaa, EBNF and more) it does not draw yet and says so; if you
+process. A few PlantUML types (Ditaa, chronology and more) it does not draw yet and says so; if you
 install the optional `plantuml` package (Java), Omaspec hands just those to it,
 confined with Landlock. Omaspec reads state and sequence diagrams as PlantUML 1.2026.8
 does; a test holds the two readings against each other.
@@ -153,7 +153,7 @@ walks you through a state machine, a scenario and a recorded trace in ten minute
   frames set the order.
 - **More Mermaid diagrams drawn by Omaspec.** The charts of numbers (quadrant, sankey,
   radar, treemap, XY chart, packet) and ZenUML.
-- **More PlantUML diagrams without Java.** EBNF and regex, Ditaa and chronology.
+- **More PlantUML diagrams without Java.** Ditaa and chronology.
 - **The AUR**, as soon as it takes new accounts.
 
 ## Status

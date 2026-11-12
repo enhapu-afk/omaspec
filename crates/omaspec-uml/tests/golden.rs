@@ -1,6 +1,6 @@
 //! Golden tests: every diagram in `tests/sequence`, `tests/activity`,
 //! `tests/state`, `tests/structure`, `tests/timing`, `tests/gantt`,
-//! `tests/mindmap`, `tests/wbs`, `tests/flow`, `tests/network` and `tests/salt` (and the PlantUML examples
+//! `tests/mindmap`, `tests/wbs`, `tests/flow`, `tests/network`, `tests/salt` and `tests/railroad` (and the PlantUML examples
 //! the engine draws) against its SVG in `tests/golden`, one element per
 //! line. After
 //! an intended change, regenerate them with `UPDATE_GOLDEN=1 cargo test
@@ -32,6 +32,7 @@ fn diagrams_match_golden_svgs() {
         "flow",
         "network",
         "salt",
+        "railroad",
     ]
     .iter()
     .flat_map(|dir| fs::read_dir(root.join("tests").join(dir)).unwrap())

@@ -733,7 +733,7 @@ diagram window).
 
 Mermaid renders natively, and so do most PlantUML diagrams, with Omaspec's own engines:
 sequence, activity, state, class, component, use case, deployment, object, timing and
-Gantt diagrams, C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, mind maps, WBS, JSON, YAML and formulas (`@startlatex`,
+Gantt diagrams, C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, EBNF and regex railroads, mind maps, WBS, JSON, YAML and formulas (`@startlatex`,
 `@startmath`), and of
 Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,
 mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards and
@@ -765,7 +765,9 @@ over its name; the icons serve any text too (`<$archimate/technology-node>`). A 
 their addresses on the lines, a server on no network (`internet -- router`) above the
 topmost bar, and a group as a colored field. A Salt wireframe (`@startsalt`) is a grid of
 buttons, fields, check boxes, radio buttons, lists, tabs, a menu bar and a tree, as
-PlantUML draws it. The other PlantUML types (Ditaa, EBNF and more) render through
+PlantUML draws it. A grammar in EBNF (`@startebnf`) and a regular expression
+(`@startregex`) are railroads: a track for each rule, a choice branching below it, a
+repetition looping back over itself. The other PlantUML types (Ditaa, chronology and more) render through
 the optional `plantuml` package, confined with Landlock. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
 angles. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a

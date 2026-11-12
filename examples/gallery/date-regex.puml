@@ -1,0 +1,6 @@
+@startregex
+' A regular expression as a railroad: a class of characters in a dashed
+' box, a count over the loop that repeats it.
+title A date, as ISO writes it
+/(19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])/
+@endregex

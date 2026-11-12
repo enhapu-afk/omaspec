@@ -70,6 +70,8 @@ fn block_name(block: &str) -> Option<&'static str> {
         "dot" => "Graphviz",
         "tree" => "Tree",
         "nwdiag" => "Network diagram",
+        "ebnf" => "EBNF",
+        "regex" => "Regex",
         _ => return None,
     })
 }

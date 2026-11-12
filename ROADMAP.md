@@ -906,8 +906,7 @@ Lint and outline move onto the syntax tree as each type lands.
 
 What comes after 0.4, announced in the README. Lines by hand, projects and
 diagrams that link were released as 0.5.0 on 2026-11-01. The diagram types
-that follow (2026-11-13: Mermaid's charts of numbers and PlantUML's EBNF
-and regex next) stand at the end of *An editor that knows the diagram, and more
+that follow (2026-11-13: Mermaid's charts of numbers next) stand at the end of *An editor that knows the diagram, and more
 diagrams* below.
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it
@@ -2456,10 +2455,22 @@ without folding, lines by hand and plays, and the Java PlantUML:
       a column as wide as its widest cell. A pack's page and ink reach
       it; the gallery has a sign-up form. Open: scroll panes (`{S`), a
       block inside a row's cell, menus that open.
-- [ ] PlantUML, in this order (2026-11-12): EBNF and regex, which share
-      one railroad drawer. Ditaa and chronology last:
-      little written, and Gantt charts and timelines say the same as
-      chronology; until then the Java PlantUML draws them.
+- [x] EBNF and regular expressions (2026-11-13), `@startebnf` and
+      `@startregex`, as railroads by one drawer (`omaspec_uml::railroad`):
+      a rule a track from an open circle to a dot, its name over it; a
+      name in a gray box, a word as written in a white one, a special
+      sequence and a class of characters in a dashed one; ways branch
+      below the first, what may be left out runs below a straight track,
+      a repetition loops back over itself with an arrow, a count
+      (`{2,}`) over the loop. EBNF as ISO writes it (`,` or a space, `|`,
+      `[ ]`, `{ }`, `{ }-`, `( )`, `"…"`, `'…'`, `? … ?`, `(* … *)`);
+      regular expressions with groups, classes, `.`, anchors, `\d \w \s
+      \b` and the quantifiers, characters in a row one word. Open: an
+      EBNF exception (`a - b`), look-arounds. The gallery has JSON's
+      grammar and an ISO date.
+- [ ] PlantUML: Ditaa and chronology last: little written, and Gantt
+      charts and timelines say the same as chronology; until then the
+      Java PlantUML draws them.
 
 ### Architecture diagrams, elegant and playful (2026-11-12)
 

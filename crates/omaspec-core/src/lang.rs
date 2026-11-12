@@ -66,13 +66,13 @@ impl Language {
 
 pub(crate) fn puml_start() -> &'static Regex {
     re!(
-        r"(?i)^@start(uml|mindmap|json|latex|math|wbs|salt|tree|chronology|gantt|ditaa|dot|yaml|flow|nwdiag)\b"
+        r"(?i)^@start(uml|mindmap|json|latex|math|wbs|salt|tree|chronology|gantt|ditaa|dot|yaml|flow|nwdiag|ebnf|regex)\b"
     )
 }
 
 pub(crate) fn puml_end() -> &'static Regex {
     re!(
-        r"(?i)^@end(uml|mindmap|json|latex|math|wbs|salt|tree|chronology|gantt|ditaa|dot|yaml|flow|nwdiag)\b"
+        r"(?i)^@end(uml|mindmap|json|latex|math|wbs|salt|tree|chronology|gantt|ditaa|dot|yaml|flow|nwdiag|ebnf|regex)\b"
     )
 }
 
