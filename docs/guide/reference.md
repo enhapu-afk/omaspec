@@ -572,7 +572,10 @@ Where a trace leaves open which way an object went, every way it could have gone
 file with its last commit, by states, transitions and messages, not by lines; layout and
 colors do not count. Given a folder, it does so for the whole project: every diagram that
 changed in its behavior, came, went or moved, and every scenario that a changed machine
-no longer plays, as a changelog of the specification. `omaspec log` tells it for one
+no longer plays, as a changelog of the specification. With `-o door-diff.svg` a state
+machine's changes are drawn over its new version, for a review: what came in green, what
+changed in amber, a transition that went dashed in red with its label struck through.
+`omaspec log` tells it for one
 diagram, commit by commit, following it where it was renamed. After `omaspec git setup`,
 git itself does: `git diff`, `git log -p` and `git show` compare a state machine's sorted
 states, transitions and findings and a scenario's messages, not its lines
@@ -590,6 +593,7 @@ omaspec lint --project specs a.puml # sequences checked against the state machin
 omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
 omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json
 omaspec coverage door.puml --traces a.jsonl,b.jsonl -o door-cov.svg   # what the traces take of the machine; --json, --min 80
+omaspec diff old.puml door.puml -o door-diff.svg   # a state machine's changes drawn over its new version
 omaspec refs Door                   # every use of a diagram, state or event in the project; --machine, --json
 omaspec rename Door Gate            # renamed at every use; --state, --event, --machine, --dry-run, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI

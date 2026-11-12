@@ -241,6 +241,7 @@ fn draw(
     let marks = Marks {
         transitions,
         states,
+        ghosts: Vec::new(),
         caption: Some(format!(
             "{covered} of {total} transitions taken ({:.0} %)",
             percent(covered, total)

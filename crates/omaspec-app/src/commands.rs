@@ -253,10 +253,14 @@ pub fn diff(
     files: &[PathBuf],
     rev: Option<&str>,
     forced: Option<Language>,
-    json: bool,
+    (json, output): (bool, Option<&Path>),
     project: Option<&Path>,
 ) -> Result<ExitCode> {
     if files.iter().any(|f| f.is_dir()) {
+        anyhow::ensure!(
+            output.is_none(),
+            "-o draws one state machine's changes; a folder's are listed"
+        );
         anyhow::ensure!(
             files.iter().all(|f| f.is_dir()),
             "diff compares two files or two folders"
@@ -288,9 +292,25 @@ pub fn diff(
     )
     .map_err(|reason| anyhow::anyhow!(reason))?;
     let new_name = new.name();
+    if let Some(output) = output {
+        crate::diff_picture::draw(
+            (&old.text, language(&old, forced)),
+            (&new.text, language(&new, forced)),
+            new.path.as_deref(),
+            &changes,
+            output,
+        )?;
+    }
     let mut out = stdout();
     if json {
-        serde_json::to_writer_pretty(&mut out, &reported_changes(&old_name, &new_name, &changes))?;
+        let reported = reported_changes(&old_name, &new_name, &changes);
+        match output {
+            Some(output) => serde_json::to_writer_pretty(
+                &mut out,
+                &serde_json::json!({ "changes": reported, "image": output.display().to_string() }),
+            )?,
+            None => serde_json::to_writer_pretty(&mut out, &reported)?,
+        }
         writeln!(out)?;
     } else {
         for c in &changes {

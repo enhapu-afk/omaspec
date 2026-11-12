@@ -211,7 +211,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "diff",
             "title": "Compare two versions",
-            "description": "Tells what changed in the behavior between two versions of a diagram, also between PlantUML and Mermaid: for a state machine its states (new, removed, moved, of another kind) and transitions (new, removed, another target, other events, guard or action); for a sequence diagram its participants, messages and blocks; then what the specification checks find now, or no longer. Layout, colors and notes do not count. The new version is `path` or `code`; the old one `old_path`, `old_code`, or `rev`, a git revision of `path` (HEAD when nothing else is given). Lines are one-based, each in its own version.",
+            "description": "Tells what changed in the behavior between two versions of a diagram, also between PlantUML and Mermaid: for a state machine its states (new, removed, moved, of another kind) and transitions (new, removed, another target, other events, guard or action); for a sequence diagram its participants, messages and blocks; then what the specification checks find now, or no longer. Layout, colors and notes do not count. The new version is `path` or `code`; the old one `old_path`, `old_code`, or `rev`, a git revision of `path` (HEAD when nothing else is given). Lines are one-based, each in its own version. With `output`, a state machine's changes are also drawn over its new version (.svg, .png or .pdf): what came in green, what changed in amber, a transition that went dashed in red, its label struck through.",
             "inputSchema": schema(&[
                 ("path", json!({
                     "type": "string",
@@ -233,10 +233,14 @@ pub fn definitions() -> Vec<Value> {
                     "type": "string",
                     "description": "The git revision of `path` that is the old version, such as HEAD or HEAD~2.",
                 })),
+                ("output", json!({
+                    "type": "string",
+                    "description": "Where to write the new state machine with its changes drawn over it.",
+                })),
                 ("lang", lang.clone()),
                 ("project", project.clone()),
             ]),
-            "annotations": reading,
+            "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false },
         }),
         json!({
             "name": "convert",
@@ -953,10 +957,24 @@ fn diff(args: &Args) -> Result<Answer> {
         &specs,
     )
     .map_err(|reason| anyhow::anyhow!(reason))?;
-    Ok(Answer::data(json!({
+    let output = args.path("output")?;
+    if let Some(output) = &output {
+        crate::diff_picture::draw(
+            (&old.text, language(&old, lang)),
+            (&new.text, language(&new, lang)),
+            new.path.as_deref(),
+            &changes,
+            output,
+        )?;
+    }
+    let mut data = json!({
         "same": changes.is_empty(),
         "changes": serde_json::to_value(reported_changes(&old_name, &name(&new), &changes))?,
-    })))
+    });
+    if let Some(output) = output {
+        data["image"] = json!(output.display().to_string());
+    }
+    Ok(Answer::data(data))
 }
 
 fn convert(args: &Args) -> Result<Answer> {

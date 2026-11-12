@@ -1,25 +1,31 @@
-//! Marks laid over a state machine before it is drawn: a transition or a
-//! state taken, and how often, or never taken. The coverage of recorded
-//! traces is drawn this way (`omaspec coverage`); the source stays as it
-//! is.
+//! Marks laid over a state machine before it is drawn; the source stays
+//! as it is. The coverage of recorded traces (`omaspec coverage`): a
+//! transition or a state taken, and how often, or never taken. What
+//! changed since another version (`omaspec diff -o`): what came, what
+//! changed, and what went, drawn where its two states still are.
 //!
 //! A transition is found by the line it is written on, a state by its
 //! name. A taken one is drawn bold in green with how often after its
-//! label (`open ×12`), one never taken dashed in an orange red. Both
-//! colors are middle tones that read on a light page and on a dark one.
+//! label (`open ×12`), one never taken dashed in an orange red; one that
+//! came bold in green, one that changed bold in amber, one that went
+//! dashed in the orange red, its label struck through. The colors are
+//! middle tones that read on a light page and on a dark one.
 
 use std::collections::HashMap;
 
 use super::{Container, Dash, Diagram, Kind, Transition};
 use crate::common::text_at;
 
-/// What was taken.
+/// What was taken, or what changed.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Marks {
     /// By the zero-based line of the transition.
     pub transitions: HashMap<usize, Mark>,
     /// By the state's name.
     pub states: HashMap<String, Mark>,
+    /// Transitions that went, drawn between their states where both are
+    /// still there.
+    pub ghosts: Vec<Ghost>,
     /// Said under the diagram when it has no caption of its own.
     pub caption: Option<String>,
 }
@@ -29,17 +35,35 @@ pub enum Mark {
     /// Taken this many times.
     Taken(u32),
     Missed,
+    /// Came since the version compared with.
+    Added,
+    /// Changed since then.
+    Changed,
 }
 
-/// A transition or a state taken.
+/// A transition that went: from the state `from` to the state `to`, by
+/// their names, with the label it had.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ghost {
+    pub from: String,
+    pub to: String,
+    pub label: Option<String>,
+}
+
+/// A transition or a state taken, or one that came.
 pub const TAKEN: &str = "#2F9E44";
-/// One never taken.
+/// One never taken, or one that went.
 pub const MISSED: &str = "#E8590C";
+/// One that changed.
+pub const CHANGED: &str = "#C77700";
 
 impl Diagram {
     /// Draws what `marks` say over the diagram.
     pub fn mark(&mut self, marks: &Marks) {
         mark_container(&mut self.root, marks);
+        for ghost in &marks.ghosts {
+            self.ghost(ghost);
+        }
         if self.frame.caption.is_none()
             && let Some(caption) = &marks.caption
         {
@@ -70,6 +94,12 @@ fn mark_container(container: &mut Container, marks: &Marks) {
                 node.border_dash = Dash::Dashed;
                 node.border_bold = false;
             }
+            Some(mark @ (Mark::Added | Mark::Changed)) => {
+                let color = if *mark == Mark::Added { TAKEN } else { CHANGED };
+                node.line_color = Some(color.to_owned());
+                node.border_bold = true;
+                node.border_dash = Dash::Solid;
+            }
             None => {}
         }
         mark_container(&mut node.children, marks);
@@ -93,7 +123,77 @@ fn mark_transition(edge: &mut Transition, marks: &Marks) {
             edge.dash = Dash::Dashed;
             edge.bold = false;
         }
+        Some(mark @ (Mark::Added | Mark::Changed)) => {
+            let color = if *mark == Mark::Added { TAKEN } else { CHANGED };
+            edge.color = Some(color.to_owned());
+            edge.bold = true;
+            edge.dash = Dash::Solid;
+        }
         None => {}
+    }
+}
+
+impl Diagram {
+    /// Draws `ghost` between its two states, dashed in red, its label
+    /// struck through; nothing where one of them is no state of the
+    /// diagram any more. It goes by no line of the source.
+    fn ghost(&mut self, ghost: &Ghost) {
+        let (Some(from), Some(to)) = (
+            path_of(&self.root, &ghost.from),
+            path_of(&self.root, &ghost.to),
+        ) else {
+            return;
+        };
+        let arrow = |from: usize, to: usize| Transition {
+            from,
+            to,
+            label: ghost
+                .label
+                .as_ref()
+                .filter(|label| !label.is_empty())
+                .map(|label| text_at(&format!("--{label}--"), usize::MAX)),
+            color: Some(MISSED.to_owned()),
+            dash: Dash::Dashed,
+            bold: false,
+            line: usize::MAX,
+            label_before: None,
+        };
+        let home = &from[..from.len() - 1];
+        if to.len() == from.len() && to.starts_with(home) {
+            let (a, b) = (from[from.len() - 1], to[to.len() - 1]);
+            container_at(&mut self.root, home).edges.push(arrow(a, b));
+            return;
+        }
+        if let Some((depth, a, b)) = crate::graph::across::meeting(&from, &to) {
+            container_at(&mut self.root, &from[..depth])
+                .crossings
+                .push(super::Crossing {
+                    from: from[depth..].to_vec(),
+                    to: to[depth..].to_vec(),
+                    arrow: arrow(a, b),
+                });
+        }
+    }
+}
+
+/// The path to the state called `name`, by the indices of its containers.
+fn path_of(container: &Container, name: &str) -> Option<Vec<usize>> {
+    for (index, node) in container.nodes.iter().enumerate() {
+        if node.key == name && !matches!(node.kind, Kind::Start | Kind::End | Kind::Region) {
+            return Some(vec![index]);
+        }
+        if let Some(mut inner) = path_of(&node.children, name) {
+            inner.insert(0, index);
+            return Some(inner);
+        }
+    }
+    None
+}
+
+fn container_at<'a>(container: &'a mut Container, path: &[usize]) -> &'a mut Container {
+    match path.split_first() {
+        Some((&index, rest)) => container_at(&mut container.nodes[index].children, rest),
+        None => container,
     }
 }
 
@@ -119,6 +219,7 @@ mod tests {
                 ("Open".to_owned(), Mark::Taken(3)),
                 ("Locked".to_owned(), Mark::Missed),
             ]),
+            ghosts: Vec::new(),
             caption: Some("3 of 5 transitions taken".to_owned()),
         };
         let (svg, _) = crate::render_marked(DOOR, None, &marks).unwrap();

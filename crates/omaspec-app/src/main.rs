@@ -2,6 +2,7 @@ mod check;
 mod check_command;
 mod commands;
 mod coverage_command;
+mod diff_picture;
 mod document;
 mod editor;
 mod files;
@@ -268,6 +269,11 @@ enum Command {
         /// against; by default the new file's project, else its own folder.
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
+        /// Also draw a state machine's changes over its new version: what
+        /// came in green, what changed in amber, a transition that went
+        /// dashed in red; .svg, .png or .pdf.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
         #[command(flatten)]
         lang: LangArg,
     },
@@ -706,8 +712,15 @@ fn main() -> ExitCode {
             rev,
             json,
             project,
+            output,
             lang,
-        }) => commands::diff(&files, rev.as_deref(), lang.get(), json, project.as_deref()),
+        }) => commands::diff(
+            &files,
+            rev.as_deref(),
+            lang.get(),
+            (json, output.as_deref()),
+            project.as_deref(),
+        ),
         Some(Command::Convert {
             file,
             output,

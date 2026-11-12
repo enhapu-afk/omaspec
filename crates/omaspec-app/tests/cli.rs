@@ -2103,3 +2103,51 @@ fn coverage_counts_what_traces_take_and_draws_it_over_the_machine() {
     assert_ne!(out.status.code(), Some(0));
     assert!(String::from_utf8_lossy(&out.stderr).contains("no state machine"));
 }
+
+#[test]
+fn diff_draws_a_state_machine_s_changes_over_its_new_version() {
+    let dir = scratch("diff-picture");
+    let old = dir.join("door-old.puml");
+    let new = dir.join("door.puml");
+    fs::write(&old, "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n").unwrap();
+    let text = "@startuml\n[*] --> Closed\nClosed --> Open : open [allowed]\nOpen --> Closed : close\nClosed --> Locked : lock\nOpen --> Jammed : force\nJammed --> Closed : repair\n@enduml\n";
+    fs::write(&new, text).unwrap();
+    let image = dir.join("door-diff.svg");
+    let out = omaspec(&[
+        "diff",
+        old.to_str().unwrap(),
+        new.to_str().unwrap(),
+        "-o",
+        image.to_str().unwrap(),
+        "--json",
+    ]);
+    assert_eq!(out.status.code(), Some(1), "the behavior changed");
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["image"], image.to_str().unwrap());
+    assert!(json["changes"].as_array().unwrap().len() >= 4, "{json}");
+    let svg = fs::read_to_string(&image).unwrap();
+    for part in [
+        "#2F9E44",
+        "#C77700",
+        "#E8590C",
+        "line-through",
+        "3 came · 1 changed · 1 went",
+    ] {
+        assert!(svg.contains(part), "{part}: {svg}");
+    }
+    assert_eq!(fs::read_to_string(&new).unwrap(), text, "the source stays");
+    // A sequence diagram's changes are listed, not drawn.
+    let a = dir.join("a.puml");
+    let b = dir.join("b.puml");
+    fs::write(&a, "@startuml\nA -> B : hi\n@enduml\n").unwrap();
+    fs::write(&b, "@startuml\nA -> B : hello\n@enduml\n").unwrap();
+    let out = omaspec(&[
+        "diff",
+        a.to_str().unwrap(),
+        b.to_str().unwrap(),
+        "-o",
+        image.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("only what changed in a state machine"));
+}

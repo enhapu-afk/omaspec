@@ -2529,12 +2529,17 @@ are built once, with coverage, and the others take them.
       the source stays as it is). The MCP server has it as `coverage`.
       Open: coverage in the editor, over the diagram while a trace
       plays.
-- [ ] The diff as a picture (REQ-035): `omaspec diff --view old new -o
-      diff.svg` draws the new machine with what came in green and what
-      changed in amber, by the marks above. What went is no longer in
-      the new machine: drawn dashed where its two states still are, and
-      listed under the picture where one of them went too. `--json`
-      gives today's changes and the picture.
+- [x] The diff as a picture (REQ-035, 2026-11-12): `omaspec diff old new
+      -o diff.svg` (or with `--rev`, or .png, .pdf) draws the new state
+      machine with what came bold in green and what changed bold in
+      amber, by the marks above. A transition that went is drawn dashed
+      in red between its two states where both are still there, its
+      label struck through (`Marks::ghosts`, laid into the tree before
+      the layout); a state that went, and a transition from it, is said
+      under the picture with the counts (`3 came · 1 changed · 1 went`).
+      `--json` gives the changes and the picture; the MCP tool `diff`
+      takes `output` too. No `--view`: `-o` says it, as for coverage. A
+      sequence diagram's changes are listed, not drawn.
 - [ ] The state-event matrix (REQ-032): `omaspec matrix door.puml`
       with every state a row and every event a column, each cell the
       transition it fires, several with their guards, one inherited from
