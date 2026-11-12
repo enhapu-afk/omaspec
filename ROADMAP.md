@@ -2389,8 +2389,14 @@ without folding, lines by hand and plays, and the Java PlantUML:
       swimlane layout ranks its nodes by the browser's language
       (mermaid-js/mermaid #8759). Not held to it: what the Java
       PlantUML draws, which is given `LANG`.
-- [ ] PlantUML: network diagrams (nwdiag) next. After them: Salt,
-      Ditaa, Archimate, EBNF, regex, chronology.
+- [ ] PlantUML, in this order (2026-11-12), architecture first:
+      C4-PlantUML (`!include <C4/C4_Container>`, see the next section);
+      network diagrams (nwdiag); Archimate, once icons are drawn (its
+      elements are boxes with the icons of a library); Salt
+      (wireframes); EBNF and regex, which share one railroad drawer.
+      Ditaa and chronology last: little written, and Gantt charts and
+      timelines say the same as chronology; until then the Java
+      PlantUML draws them.
 
 ### Architecture diagrams, elegant and playful (2026-11-12)
 
@@ -2437,6 +2443,35 @@ skin draws them by hand.
       written. The gallery's architecture puts its gateway beside the
       user, its router beside the orchestrator. Structure diagrams
       only; a state diagram's `-right->` stays declined.
+- [x] C4-PlantUML (2026-11-12), read into the structure engine
+      (`omaspec_uml::structure::c4`), so it is laid out by its ranks as
+      PlantUML lays it out. The library is not read: the include
+      (`<C4/C4_Container>`, its address, or a copy named `C4_*.puml`) is
+      taken out, and each macro is written as the PlantUML it stands
+      for, on its own line: a person a `person`, systems, containers
+      and components boxes in the colors of C4 (a container's blue a
+      shade darker, so white reads on it; black on the light ones; the
+      borders middle tones that read on any page), `…Db` a `database`,
+      `…Queue` a `queue`, boundaries dashed frames, deployment nodes
+      plain ones. `Rel_D` runs along the flow, `Rel_R` within a rank
+      ([0027](docs/adr/0027-a-line-within-a-rank.md)), `Rel_Back` from
+      its second element to its first, `BiRel` both ways, `Lay_R` is a
+      hidden line; a direction across the flow between elements of two
+      boundaries is dropped, since no rank holds them both.
+      `LAYOUT_LEFT_RIGHT()` turns the flow, `LAYOUT_AS_SKETCH()` draws by
+      hand, `LAYOUT_WITH_LEGEND()` adds a legend: a dotted frame with a
+      box of each kind drawn. Lines that are no macro are read as
+      written. On the way PlantUML's `person` became its own shape, a
+      round box under a round head (it was an actor), and `queue` is
+      drawn. The gallery has one (`bike-rental.puml`), the editor names
+      it *C4 diagram* and offers its macros. Open, declined by name:
+      dynamic and sequence diagrams of the library, sprites (with the
+      icons below), tags and the styles set by tag or by element
+      (`AddElementTag`, `UpdateElementStyle`), a link on a
+      relationship; the legend stands where the layout puts a frame
+      without lines, not at the bottom right.
+- [ ] Icons: PlantUML's sprites and `<&icon>`, drawn in the hand of the
+      lines; then the icons of C4 and Archimate.
 - [ ] Still apart from the picture: an icon drawn in the hand of the
       lines instead of an emoji's colors (sprites and `<&icon>` are
       declined); a title at the left with a subtitle;

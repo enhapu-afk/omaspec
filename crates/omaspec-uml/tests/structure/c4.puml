@@ -1,0 +1,30 @@
+@startuml
+' C4-PlantUML: Omaspec knows the library's macros by name and reads
+' nothing from the network.
+!include <C4/C4_Container>
+LAYOUT_WITH_LEGEND()
+title Bike rental: containers
+
+Person(rider, "Rider", "Rents a bike with the app")
+Person(mechanic, "Mechanic", "Keeps the bikes on the road")
+
+System_Boundary(rental, "Bike rental") {
+  Container(app, "Rider app", "Kotlin, Swift", "Finds a bike, unlocks it, pays")
+  Container(api, "Rental API", "Rust, axum", "Rentals, prices, bikes")
+  ContainerDb(db, "Rentals", "PostgreSQL", "Riders, rentals, invoices")
+  ContainerQueue(events, "Bike events", "NATS", "Where each bike is, its lock")
+  Container(workshop, "Workshop", "Web app", "Repairs and spare parts")
+}
+
+System_Ext(payments, "Payment provider", "Cards and wallets")
+System_Ext(locks, "Smart locks", "A lock on every bike")
+
+Rel(rider, app, "Uses")
+Rel(app, api, "Calls", "JSON/HTTPS")
+Rel_R(api, db, "Reads and writes", "SQL")
+Rel(api, events, "Listens to")
+Rel(locks, events, "Reports", "MQTT")
+Rel_R(api, payments, "Charges", "HTTPS")
+Rel(mechanic, workshop, "Uses")
+Rel_Back(workshop, events, "Low battery, flat tyre")
+@enduml

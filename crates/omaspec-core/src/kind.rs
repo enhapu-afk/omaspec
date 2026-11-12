@@ -162,6 +162,9 @@ fn plantuml_kind(code: &str, lines: &[&str]) -> DiagramKind {
         Some(UmlType::Timing) => DiagramKind::new(Kind::Timing, "Timing diagram"),
         Some(UmlType::Activity) => DiagramKind::new(Kind::Activity, "Activity diagram"),
         Some(UmlType::State) => DiagramKind::new(Kind::State, "State diagram"),
+        Some(UmlType::Structure) if omaspec_uml::is_c4(code) => {
+            DiagramKind::new(Kind::Structure, "C4 diagram")
+        }
         Some(UmlType::Structure) => DiagramKind::new(Kind::Structure, structure_name(code)),
         Some(UmlType::Sequence) => DiagramKind::new(Kind::Sequence, "Sequence diagram"),
         _ => DiagramKind {

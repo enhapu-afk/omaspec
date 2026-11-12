@@ -371,6 +371,8 @@ fn element_line(shape: Shape, name: &str) -> Option<String> {
         Shape::Stack => "stack",
         Shape::Hexagon => "hexagon",
         Shape::Agent => "agent",
+        Shape::Person => "person",
+        Shape::Queue => "queue",
     };
     Some(format!("{word} {}", written(name)))
 }

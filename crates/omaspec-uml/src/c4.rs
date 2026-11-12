@@ -976,12 +976,12 @@ fn is_layout_config(name: &str) -> bool {
     name == "updatelayoutconfig" || name == "update_layout_config"
 }
 
-struct Args {
-    positional: Vec<String>,
-    kv: Vec<(String, String)>,
+pub(crate) struct Args {
+    pub(crate) positional: Vec<String>,
+    pub(crate) kv: Vec<(String, String)>,
 }
 
-fn parse_args(args: &[String]) -> Args {
+pub(crate) fn parse_args(args: &[String]) -> Args {
     let mut positional = Vec::new();
     let mut kv = Vec::new();
     for arg in args {
@@ -1001,7 +1001,7 @@ fn parse_args(args: &[String]) -> Args {
     Args { positional, kv }
 }
 
-fn get<'a>(args: &'a Args, key: &str) -> Option<&'a str> {
+pub(crate) fn get<'a>(args: &'a Args, key: &str) -> Option<&'a str> {
     let want = normalize_key(key);
     args.kv
         .iter()
@@ -1009,7 +1009,7 @@ fn get<'a>(args: &'a Args, key: &str) -> Option<&'a str> {
         .map(|(_, value)| value.as_str())
 }
 
-fn split_args(input: &str) -> Vec<String> {
+pub(crate) fn split_args(input: &str) -> Vec<String> {
     let mut args = Vec::new();
     let mut current = String::new();
     let mut quote: Option<char> = None;
@@ -1139,7 +1139,7 @@ fn closes_block(line: &str) -> bool {
     split_trailing_close(line).1 || line.contains('}')
 }
 
-fn norm_name(name: &str) -> String {
+pub(crate) fn norm_name(name: &str) -> String {
     name.trim()
         .chars()
         .map(|ch| match ch {

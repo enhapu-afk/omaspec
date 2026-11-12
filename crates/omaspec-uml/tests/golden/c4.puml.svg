@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1103" height="777" viewBox="0 0 1103 777">
+<g transform="translate(10,10)">
+<g>
+<ellipse cx="310.24" cy="92.28" rx="13" ry="13" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="219.26" y="101.28" width="181.96" height="69.22" rx="24" ry="24" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="623.15" cy="92.28" rx="13" ry="13" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="524.21" y="101.28" width="197.88" height="69.22" rx="24" ry="24" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="203.15" y="269.45" width="631.29" height="487" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,5"/>
+<rect x="215.15" y="322.04" width="190.18" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="215.15" y="470.49" width="150.05" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="584.89" cy="550" rx="80.99" ry="9" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="503.9" y="470.49" width="161.98" height="79.51" fill="#2C76BF"/>
+<line x1="503.9" y1="470.49" x2="503.9" y2="550" fill="none" stroke="#4A8BCB" stroke-width="1"/>
+<line x1="665.88" y1="470.49" x2="665.88" y2="550" fill="none" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="584.89" cy="470.49" rx="80.99" ry="9" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="500.52" cy="704.69" rx="10" ry="39.76" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="500.52" y="664.94" width="191.5" height="79.51" fill="#2C76BF"/>
+<line x1="500.52" y1="664.94" x2="692.01" y2="664.94" fill="none" stroke="#4A8BCB" stroke-width="1"/>
+<line x1="500.52" y1="744.45" x2="692.01" y2="744.45" fill="none" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="692.01" cy="704.69" rx="10" ry="39.76" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="585.76" y="322.04" width="162.72" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="0" y="673.08" width="159.15" height="63.22" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
+<rect x="766.09" y="93.28" width="140.32" height="63.22" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
+<rect x="950.41" y="26.3" width="132.02" height="197.18" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,4"/>
+<rect x="986.08" y="62.59" width="60.68" height="28.3" rx="8" ry="8" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="962.41" y="122.89" width="108.02" height="28.3" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
+<rect x="979.75" y="183.18" width="73.36" height="28.3" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+</g>
+<g id="lines">
+<polyline points="310.24,170.5 310.24,312.04" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M792.48,156.5 L792.48,596.94 C792.48,623.45 770.99,644.94 744.48,644.94 L700.01,644.94 C694.49,644.94 690.01,649.41 690.01,654.94 L690.01,654.94" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M227.15,550 L227.15,550 C227.15,567.12 213.27,581 196.15,581 L127.58,581 C101.07,581 79.58,602.49 79.58,629 L79.58,663.08" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="667.12,170.5 667.12,312.04" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="290.18,401.55 290.18,460.49" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="365.2,510.24 493.9,510.24" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M353.2,550 L353.2,550 C353.2,561.6 362.6,571 374.2,571 L486.04,571 C512.55,571 534.04,592.49 534.04,619 L534.04,654.94" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M709.88,411.55 L709.88,543 C709.88,569.51 688.39,591 661.88,591 L656.71,591 C630.2,591 608.71,612.49 608.71,639 L608.71,664.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="306.24,312.04 310.24,322.04 314.24,312.04 310.24,316.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="686.01,654.94 690.01,664.94 694.01,654.94 690.01,659.44" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="75.58,663.08 79.58,673.08 83.58,663.08 79.58,667.58" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="663.12,312.04 667.12,322.04 671.12,312.04 667.12,316.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="286.18,460.49 290.18,470.49 294.18,460.49 290.18,464.99" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="493.9,514.24 503.9,510.24 493.9,506.24 498.4,510.24" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="530.04,654.94 534.04,664.94 538.04,654.94 534.04,659.44" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="713.88,411.55 709.88,401.55 705.88,411.55 709.88,407.05" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="289.79" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="40.9" lengthAdjust="spacing">Rider</tspan>
+<tspan x="237.26" y="158.19" font-size="13" fill="#FFFFFF" textLength="145.96" lengthAdjust="spacing">Rents a bike with the app</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="586.7" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="72.91" lengthAdjust="spacing">Mechanic</tspan>
+<tspan x="542.21" y="158.19" font-size="13" fill="#FFFFFF" textLength="161.88" lengthAdjust="spacing">Keeps the bikes on the road</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="483" y="288.44" font-size="14" fill="#000000" font-weight="bold" textLength="71.58" lengthAdjust="spacing">Bike rental</tspan>
+<tspan x="495.45" y="304.74" font-size="12" fill="#000000" textLength="46.68" lengthAdjust="spacing">[System]</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="273.35" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="73.79" lengthAdjust="spacing">Rider app</tspan>
+<tspan x="246.22" y="359.66" font-size="12" fill="#FFFFFF" textLength="128.05" lengthAdjust="spacing">[Container: Kotlin, Swift]</tspan>
+<tspan x="227.15" y="392.25" font-size="13" fill="#FFFFFF" textLength="166.18" lengthAdjust="spacing">Finds a bike, unlocks it, pays</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="250.17" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="80.02" lengthAdjust="spacing">Rental API</tspan>
+<tspan x="227.15" y="508.1" font-size="12" fill="#FFFFFF" textLength="126.05" lengthAdjust="spacing">[Container: Rust, axum]</tspan>
+<tspan x="228.41" y="540.7" font-size="13" fill="#FFFFFF" textLength="123.54" lengthAdjust="spacing">Rentals, prices, bikes</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="555.99" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="57.79" lengthAdjust="spacing">Rentals</tspan>
+<tspan x="519.53" y="508.1" font-size="12" fill="#FFFFFF" textLength="130.73" lengthAdjust="spacing">[Container: PostgreSQL]</tspan>
+<tspan x="515.9" y="540.7" font-size="13" fill="#FFFFFF" textLength="137.98" lengthAdjust="spacing">Riders, rentals, invoices</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="546.8" y="685.78" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="88.93" lengthAdjust="spacing">Bike events</tspan>
+<tspan x="542.58" y="702.55" font-size="12" fill="#FFFFFF" textLength="97.37" lengthAdjust="spacing">[Container: NATS]</tspan>
+<tspan x="512.52" y="735.14" font-size="13" fill="#FFFFFF" textLength="157.49" lengthAdjust="spacing">Where each bike is, its lock</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="628.01" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="78.22" lengthAdjust="spacing">Workshop</tspan>
+<tspan x="610.43" y="359.66" font-size="12" fill="#FFFFFF" textLength="113.39" lengthAdjust="spacing">[Container: Web app]</tspan>
+<tspan x="597.76" y="392.25" font-size="13" fill="#FFFFFF" textLength="138.72" lengthAdjust="spacing">Repairs and spare parts</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="12" y="693.93" font-size="16" fill="#000000" font-weight="bold" textLength="135.15" lengthAdjust="spacing">Payment provider</tspan>
+<tspan x="27.92" y="727" font-size="13" fill="#000000" textLength="103.31" lengthAdjust="spacing">Cards and wallets</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="790.9" y="114.13" font-size="16" fill="#000000" font-weight="bold" textLength="90.7" lengthAdjust="spacing">Smart locks</tspan>
+<tspan x="778.09" y="147.19" font-size="13" fill="#000000" textLength="116.32" lengthAdjust="spacing">A lock on every bike</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="991.53" y="45.29" font-size="14" fill="#000000" font-weight="bold" textLength="49.78" lengthAdjust="spacing">Legend</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="998.08" y="81.58" font-size="12" fill="#FFFFFF" textLength="36.68" lengthAdjust="spacing">person</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="974.41" y="141.88" font-size="12" fill="#000000" textLength="84.02" lengthAdjust="spacing">external system</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="991.75" y="202.18" font-size="12" fill="#FFFFFF" textLength="49.36" lengthAdjust="spacing">container</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="316.24" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="28.68" lengthAdjust="spacing">Uses</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="744.15" y="458.94" font-size="12" fill="#000000" font-weight="bold" textLength="45.34" lengthAdjust="spacing">Reports</tspan>
+<tspan x="744.15" y="472.91" font-size="12" fill="#000000" font-style="italic" textLength="40.67" lengthAdjust="spacing">[MQTT]</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="25.56" y="616.14" font-size="12" fill="#000000" font-weight="bold" textLength="48.01" lengthAdjust="spacing">Charges</tspan>
+<tspan x="25.56" y="630.1" font-size="12" fill="#000000" font-style="italic" textLength="46.01" lengthAdjust="spacing">[HTTPS]</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="673.12" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="28.68" lengthAdjust="spacing">Uses</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="296.18" y="428.69" font-size="12" fill="#000000" font-weight="bold" textLength="28.68" lengthAdjust="spacing">Calls</tspan>
+<tspan x="296.18" y="442.66" font-size="12" fill="#000000" font-style="italic" textLength="81.35" lengthAdjust="spacing">[JSON/HTTPS]</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="385.2" y="489.44" font-size="12" fill="#000000" font-weight="bold" textLength="98.7" lengthAdjust="spacing">Reads and writes</tspan>
+<tspan x="385.2" y="503.41" font-size="12" fill="#000000" font-style="italic" textLength="30.68" lengthAdjust="spacing">[SQL]</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="540.04" y="623.12" font-size="12" fill="#000000" font-weight="bold" textLength="56.68" lengthAdjust="spacing">Listens to</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="614.71" y="628.81" font-size="12" fill="#000000" font-weight="bold" textLength="117.36" lengthAdjust="spacing">Low battery, flat tyre</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="465.75" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="150.93" lengthAdjust="spacing">Bike rental: containers</tspan>
+</text>
+</g>
+</g>
+</svg>

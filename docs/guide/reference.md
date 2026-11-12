@@ -684,7 +684,8 @@ diagram window).
 
 Mermaid renders natively, and so do most PlantUML diagrams, with Omaspec's own engines:
 sequence, activity, state, class, component, use case, deployment, object, timing and
-Gantt diagrams, mind maps, WBS, JSON, YAML and formulas (`@startlatex`, `@startmath`), and of
+Gantt diagrams, C4-PlantUML, mind maps, WBS, JSON, YAML and formulas (`@startlatex`,
+`@startmath`), and of
 Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,
 mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards and
 requirement diagrams. The other Mermaid types (the charts of numbers) are drawn by
@@ -692,7 +693,15 @@ requirement diagrams. The other Mermaid types (the charts of numbers) are drawn 
 process. A git graph shows the ids its writer gave its commits; an id Mermaid would make
 up is left out, since it says nothing and differs with every drawing. A YAML diagram is drawn as the
 JSON it stands for; anchors, aliases and tags, and a text over several lines outside a `|`
-or `>` block, are not read yet and name their line. The other PlantUML types (network diagrams, Salt and more) render through
+or `>` block, are not read yet and name their line. C4-PlantUML (`!include <C4/C4_Container>`,
+from the standard library, its address or a copy) is drawn without the library: Omaspec
+knows its macros by name and reads nothing from the network. A person is PlantUML's
+`person`, a system or a container a box in the colors of C4, a database a cylinder, a queue
+a cylinder on its side, a boundary a dashed frame; the layout follows the arrows as
+PlantUML's does, `Rel_R` puts the second element beside the first, `Rel_Back` above it, and
+`Lay_R` places it without a line. `LAYOUT_WITH_LEGEND()` adds a legend of the kinds drawn.
+Dynamic and sequence diagrams of the library, sprites, tags and the styles set by tag go
+to the Java PlantUML. The other PlantUML types (network diagrams, Salt and more) render through
 the optional `plantuml` package, confined with Landlock. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
 angles. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a

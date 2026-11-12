@@ -7,6 +7,7 @@
 //! keeps that line as a [`Crossing`]; the packages it runs into are laid
 //! out with that one, and it runs through their ranks like any other.
 
+pub(crate) mod c4;
 mod draw;
 mod mermaid;
 mod parse;
@@ -288,6 +289,10 @@ pub enum Shape {
     Component,
     UseCase,
     Actor,
+    /// `person`: a round box under a round head, as C4 draws a person.
+    Person,
+    /// `queue`: a cylinder lying on its side.
+    Queue,
     Node,
     Artifact,
     Cloud,

@@ -33,8 +33,8 @@ no browser, no network, and it sends nothing anywhere.
 ### It draws as you type
 
 Omaspec draws with its own engines, in a few milliseconds: PlantUML sequence, activity,
-state, class, component, use case, deployment, object, timing and Gantt diagrams, mind
-maps, WBS, JSON, YAML and formulas, and Mermaid flowcharts, state and sequence diagrams. The
+state, class, component, use case, deployment, object, timing and Gantt diagrams,
+C4-PlantUML, mind maps, WBS, JSON, YAML and formulas, and Mermaid flowcharts, state and sequence diagrams. The
 other Mermaid types are drawn by mmdr, a Rust library, in the same process. Lint findings
 are underlined while you type, and a Ctrl+click in the diagram jumps to its line in the
 source.
@@ -112,7 +112,7 @@ checked for legible colors, the gallery's diagrams in each of them too.
   with the same tools.
 - **The same picture everywhere.** A diagram is drawn byte for byte the same whatever
   language the system is set to; a test draws every example under five locales.
-- **27 examples** to start from, as tiles drawn on the spot (Ctrl+Shift+E).
+- **28 examples** to start from, as tiles drawn on the spot (Ctrl+Shift+E).
 
 ![The gallery of examples](docs/images/gallery.png)
 

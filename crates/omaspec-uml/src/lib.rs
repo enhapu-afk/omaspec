@@ -115,14 +115,21 @@ pub fn parse(source: &str) -> Result<Diagram, Declined> {
 
 /// Parses `source`, reading its `!include`s through `includes`.
 pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagram, Declined> {
-    let (kind, raw) = source::body(source)?;
+    let (kind, mut raw) = source::body(source)?;
+    // C4-PlantUML is known by name, its include taken out before the
+    // others are read.
+    let c4 = kind == source::Kind::Uml && structure::c4::take(&mut raw)?;
     let expanded = preprocess::run(&raw, includes)?;
     let lines = match &expanded {
         Some(expanded) => expanded.iter().map(preprocess::Owned::line).collect(),
         None => raw,
     };
     Ok(match kind {
-        source::Kind::Uml => match uml(&lines)? {
+        source::Kind::Uml => match if c4 {
+            Diagram::Structure(structure::c4::parse(&lines)?)
+        } else {
+            uml(&lines)?
+        } {
             Diagram::State(mut d) => {
                 d.frame.by_hand = hand::numbered(source);
                 d.frame.held = hand::held(source);
@@ -166,15 +173,27 @@ pub enum UmlType {
     Empty,
 }
 
+/// Whether `source` is a C4-PlantUML diagram: an `@startuml` that
+/// includes the library (`!include <C4/C4_Container>`).
+pub fn is_c4(source: &str) -> bool {
+    match source::body(source) {
+        Ok((source::Kind::Uml, mut raw)) => structure::c4::take(&mut raw).unwrap_or(true),
+        _ => false,
+    }
+}
+
 /// The type the engine parses `source` as; `None` if it is no `@startuml`
 /// diagram or its body cannot be read. Lint, outline and the state
 /// machines go by this, so they never read a diagram as another type than
 /// the picture shows. If the preprocessor declines, the lines as written
 /// decide, so a diagram left to the Java PlantUML still has a type.
 pub fn uml_type(source: &str) -> Option<UmlType> {
-    let (source::Kind::Uml, raw) = source::body(source).ok()? else {
+    let (source::Kind::Uml, mut raw) = source::body(source).ok()? else {
         return None;
     };
+    if structure::c4::take(&mut raw).unwrap_or(true) {
+        return Some(UmlType::Structure);
+    }
     Some(match preprocess::run(&raw, None) {
         Ok(Some(expanded)) => decide(
             &expanded

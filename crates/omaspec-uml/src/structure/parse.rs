@@ -1005,7 +1005,6 @@ fn rejected(text: &str) -> Option<&'static str> {
         "portout",
         "circle",
         "diamond",
-        "queue",
         "boundary",
         "control",
         "collections",
@@ -1047,7 +1046,8 @@ fn leading_shape(text: &str) -> Option<(Shape, Open, &str)> {
         ("class", Shape::Class, Open::Members),
         ("cloud", Shape::Cloud, Open::Group),
         ("frame", Shape::Frame, Open::Group),
-        ("person", Shape::Actor, Open::None),
+        ("person", Shape::Person, Open::None),
+        ("queue", Shape::Queue, Open::None),
         ("actor", Shape::Actor, Open::None),
         ("agent", Shape::Agent, Open::Group),
         ("stack", Shape::Stack, Open::Group),
@@ -1142,6 +1142,8 @@ fn shape_word(shape: Shape) -> &'static str {
         Shape::Stack => "stack",
         Shape::Hexagon => "hexagon",
         Shape::Agent => "agent",
+        Shape::Person => "person",
+        Shape::Queue => "queue",
         Shape::Note => "note",
     }
 }

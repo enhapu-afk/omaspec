@@ -21,6 +21,7 @@ use crate::svg::{Align, Canvas, Layer, Stroke, n};
 use crate::text::{self, Block, Family, Font, Style};
 
 mod open;
+mod shapes;
 
 use open::layout_group;
 
@@ -508,6 +509,16 @@ fn measure_element(
             Shape::Agent => {
                 let width = (all_w + PAD_X * 2.0).max(min_w);
                 let height = (all_h + PAD_Y * 2.0).max(MIN_H) + 12.0;
+                (width, height, 0.0, 0.0)
+            }
+            Shape::Person => {
+                let width = (all_w + PAD_X * 3.0).max(min_w.max(shapes::HEAD * 2.5));
+                let height = (all_h + PAD_Y * 3.0).max(MIN_H) + shapes::head_room();
+                (width, height, 0.0, 0.0)
+            }
+            Shape::Queue => {
+                let width = (all_w + PAD_X * 2.0).max(min_w) + 3.0 * shapes::BOW;
+                let height = (all_h + PAD_Y * 2.0).max(MIN_H);
                 (width, height, 0.0, 0.0)
             }
             Shape::Package | Shape::Folder => {
@@ -1136,6 +1147,8 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
         }
         Shape::Stack => paint_stack(canvas, rect, round, node.item.fill, node.item.border),
         Shape::Agent => paint_agent(canvas, rect, round, node.item.fill, node.item.border),
+        Shape::Person => shapes::paint_person(canvas, rect, node.item.fill, node.item.border),
+        Shape::Queue => shapes::paint_queue(canvas, rect, node.item.fill, node.item.border),
         Shape::Note | Shape::Artifact | Shape::File => {
             dog_ear(canvas, rect, node.item.fill, node.item.border);
         }
@@ -1621,6 +1634,8 @@ fn text_area(node: &Placed) -> (Rect, Place) {
             | Shape::Database
             | Shape::Storage
             | Shape::Note
+            | Shape::Person
+            | Shape::Queue
             | Shape::Actor => Place::Center,
             _ => Place::Top,
         }
@@ -1647,6 +1662,8 @@ fn text_area(node: &Placed) -> (Rect, Place) {
             w: rect.w,
             h: (rect.h - ACTOR_H).max(1.0),
         },
+        Shape::Person => shapes::body_of(rect),
+        Shape::Queue => shapes::queue_area(rect),
         Shape::Agent if !node.item.composite => Rect {
             x: rect.x,
             y: rect.y + 12.0,

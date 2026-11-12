@@ -34,6 +34,7 @@ crates/omaspec-uml/tests/state/states.puml 13 0 0 0 1 0 22 1981 0 13.3
 crates/omaspec-uml/tests/state/stereotypes.puml 8 0 0 0 0 0 2 515 0 23.6
 crates/omaspec-uml/tests/state/styled-states.puml 4 0 0 0 0 0 0 156 0 19.9
 crates/omaspec-uml/tests/state/top-regions.puml 10 0 0 0 0 0 0 404 0 -
+crates/omaspec-uml/tests/structure/c4.puml 8 0 0 0 0 0 8 2053 0 10.6
 crates/omaspec-uml/tests/structure/class.puml 5 0 0 0 0 0 8 864 0 0.0
 crates/omaspec-uml/tests/structure/component.puml 3 0 0 0 0 0 2 269 0 28.8
 crates/omaspec-uml/tests/structure/deploy.puml 3 0 0 0 0 0 0 110 0 18.9
@@ -43,6 +44,7 @@ crates/omaspec-uml/tests/structure/usecase.puml 2 0 0 0 0 0 0 87 0 14.8
 examples/door/door.puml 7 0 0 0 0 0 8 587 0 19.2
 examples/drone/delivery-drone.puml 72 1 0 0 3 0 54 16764 3 6.8
 examples/gallery/agent-platform.puml 17 4 0 0 0 0 18 2471 4 11.1
+examples/gallery/bike-rental.puml 8 0 0 0 0 0 8 2053 0 10.6
 examples/gallery/bookshop.puml 6 0 0 0 0 0 0 279 0 8.6
 examples/gallery/brakes.mmd 6 0 0 0 0 0 0 1539 0 0.0
 examples/gallery/coffee-machine.puml 15 0 0 0 0 0 6 1572 0 12.8
@@ -59,4 +61,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 14.7
 examples/platform.mmd 17 1 0 0 4 0 36 5771 6 35.8
 examples/player.puml 8 0 0 0 0 0 14 1086 0 15.1
 examples/shop.mmd 6 0 0 0 0 0 4 619 0 17.1
-total 540 8 0 1 14 0 491 74708 22 1022.6
+total 556 8 0 1 14 0 507 78813 22 1043.8

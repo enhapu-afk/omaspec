@@ -164,6 +164,56 @@ const PUML_STRUCTURE_BLOCKS: &[Block] = &[
     ("package block", "a package", "package ${1:Name} {\n  $0\n}"),
 ];
 
+const PUML_C4: &[&str] = &[
+    "Person",
+    "Person_Ext",
+    "System",
+    "System_Ext",
+    "SystemDb",
+    "Container",
+    "ContainerDb",
+    "ContainerQueue",
+    "Component",
+    "Rel",
+    "Rel_D",
+    "Rel_R",
+    "Rel_Back",
+    "BiRel",
+    "Lay_R",
+    "Lay_D",
+    "LAYOUT_LEFT_RIGHT()",
+    "LAYOUT_WITH_LEGEND()",
+    "LAYOUT_AS_SKETCH()",
+];
+
+const PUML_C4_BLOCKS: &[Block] = &[
+    (
+        "Person",
+        "someone who uses the system",
+        "Person(${1:alias}, \"${2:Label}\", \"${3:what they do}\")",
+    ),
+    (
+        "System",
+        "a software system",
+        "System(${1:alias}, \"${2:Label}\", \"${3:what it does}\")",
+    ),
+    (
+        "Container",
+        "an application or a data store",
+        "Container(${1:alias}, \"${2:Label}\", \"${3:technology}\", \"${4:what it does}\")",
+    ),
+    (
+        "System_Boundary",
+        "what belongs to one system",
+        "System_Boundary(${1:alias}, \"${2:Label}\") {\n  $0\n}",
+    ),
+    (
+        "Rel",
+        "one uses the other",
+        "Rel(${1:from}, ${2:to}, \"${3:Uses}\", \"${4:technology}\")",
+    ),
+];
+
 const MERMAID_HEADS: &[&str] = &[
     "flowchart TD",
     "flowchart LR",
@@ -383,6 +433,7 @@ fn tables(lang: Language, kind: &DiagramKind) -> (Vec<&'static str>, &'static [B
                 Kind::Sequence => (PUML_SEQUENCE, PUML_SEQUENCE_BLOCKS),
                 Kind::State => (PUML_STATE, PUML_STATE_BLOCKS),
                 Kind::Activity => (PUML_ACTIVITY, PUML_ACTIVITY_BLOCKS),
+                Kind::Structure if kind.name == "C4 diagram" => (PUML_C4, PUML_C4_BLOCKS),
                 Kind::Structure => (PUML_STRUCTURE, PUML_STRUCTURE_BLOCKS),
                 // Nothing says yet what it will be: a scenario's words,
                 // the most written.
@@ -417,6 +468,7 @@ fn all() -> impl Iterator<Item = (&'static [&'static str], &'static [Block])> {
         (PUML_STATE, PUML_STATE_BLOCKS),
         (PUML_ACTIVITY, PUML_ACTIVITY_BLOCKS),
         (PUML_STRUCTURE, PUML_STRUCTURE_BLOCKS),
+        (PUML_C4, PUML_C4_BLOCKS),
         (MERMAID_HEADS, &[][..]),
         (MERMAID_FLOWCHART, MERMAID_FLOWCHART_BLOCKS),
         (MERMAID_SEQUENCE, MERMAID_SEQUENCE_BLOCKS),
