@@ -297,8 +297,8 @@ pub struct Paper {
     pub folding: bool,
     /// The containers folded to their box, by name (docs/adr/0024).
     folds: Vec<String>,
-    /// A JSON or YAML diagram is drawn nested, not as a tree (View menu).
-    pub nested: bool,
+    /// How the diagram is asked drawn besides its file (View menu).
+    pub views: crate::worker::Views,
     /// The folds changed: the owner draws the diagram again.
     refold: bool,
     /// The container just folded or unfolded: the view glides to it once
@@ -350,7 +350,7 @@ impl Default for Paper {
             held_detail: None,
             folding: false,
             folds: Vec::new(),
-            nested: false,
+            views: crate::worker::Views::default(),
             refold: false,
             unfolding: None,
             focus: None,
@@ -369,6 +369,16 @@ struct AimMemo {
 
 /// The smallest of `links` around `p` (diagram units): a state inside a
 /// tile's picture is not a link of the map.
+/// A play lights the states and lines of a diagram: a state machine shown
+/// as its table has none.
+fn tabled(diagram: &Diagram) -> Result<(), String> {
+    if diagram.drawn.map.cells.is_empty() {
+        Ok(())
+    } else {
+        Err("a play runs in the diagram: View → State machines: as a diagram or a table".into())
+    }
+}
+
 fn link_under(links: &[Link], p: Point) -> Option<&Link> {
     links
         .iter()
@@ -432,14 +442,7 @@ impl Paper {
         } else {
             Vec::new()
         };
-        worker.render_folded(
-            ticket,
-            source,
-            language,
-            place,
-            linked,
-            (folds, self.nested),
-        );
+        worker.render_folded(ticket, source, language, place, linked, (folds, self.views));
         self.made = false;
         self.asked();
     }
@@ -485,7 +488,7 @@ impl Paper {
             doc,
             id: self.requested,
         };
-        worker.render_document(ticket, source, place, self.nested);
+        worker.render_document(ticket, source, place, self.views);
         self.made = false;
         self.asked();
     }
@@ -760,6 +763,20 @@ impl Paper {
         map.wires.get(index)
     }
 
+    /// The line of the source that the line of a table's cell at `at` says
+    /// (a state machine shown as its table).
+    pub fn cell_at(&self, at: Point) -> Option<usize> {
+        let map = &self.diagram.as_ref()?.drawn.map;
+        let p = self.view.to_diagram(at, self.viewport);
+        map.cells
+            .iter()
+            .find(|cell| {
+                let r = cell.rect;
+                r.x <= p.x && p.x <= r.x + r.w && r.y <= p.y && p.y <= r.y + r.h
+            })
+            .map(|cell| cell.line)
+    }
+
     /// The line that `row` of the source draws, or whose bends it writes.
     pub fn wire_on(&self, row: usize) -> Option<&omaspec_uml::map::Wire> {
         let map = &self.diagram.as_ref()?.drawn.map;
@@ -807,6 +824,7 @@ impl Paper {
     /// Says why not, if it cannot.
     pub fn start_play(&mut self) -> Result<(), String> {
         let diagram = self.diagram.as_ref().ok_or("no diagram yet")?;
+        tabled(diagram)?;
         let play = Play::new(
             &diagram.source,
             diagram.language,
@@ -830,6 +848,7 @@ impl Paper {
         file: &str,
     ) -> Result<(), String> {
         let diagram = self.diagram.as_ref().ok_or("no diagram yet")?;
+        tabled(diagram)?;
         let play = Play::trace(
             &diagram.source,
             diagram.language,

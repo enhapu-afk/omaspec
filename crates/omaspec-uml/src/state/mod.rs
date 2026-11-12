@@ -16,12 +16,14 @@ mod marks;
 pub mod mermaid;
 mod parse;
 mod skin;
+mod table;
 
 pub use crate::common::{Frame, Skinparam, Text};
 pub use draw::{draw, draw_mapped, label_by_hand};
 pub use lower::from_mermaid;
 pub use marks::{CHANGED, Ghost, MISSED, Mark, Marks, TAKEN};
 pub use parse::{is_state, parse};
+pub use table::draw_table;
 
 /// A parsed state diagram. The root is the diagram itself: it has no box.
 #[derive(Debug, Clone, PartialEq)]

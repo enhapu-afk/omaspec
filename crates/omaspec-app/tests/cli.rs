@@ -2226,11 +2226,22 @@ fn matrix_tabulates_a_state_machine() {
             .unwrap()
             .contains("| Open |  | → Closed |  |")
     );
+    // A picture, in the look of the machine.
+    let picture = dir.join("door.svg");
     let out = omaspec(&[
         "matrix",
         file.to_str().unwrap(),
         "-o",
-        dir.join("door.svg").to_str().unwrap(),
+        picture.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    let svg = fs::read_to_string(&picture).unwrap();
+    assert!(svg.contains(">Locked<") && svg.contains("→ Open"), "{svg}");
+    let out = omaspec(&[
+        "matrix",
+        file.to_str().unwrap(),
+        "-o",
+        dir.join("door.gif").to_str().unwrap(),
     ]);
     assert_ne!(out.status.code(), Some(0));
 }

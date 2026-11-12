@@ -350,6 +350,13 @@ pub const TABLE: &[Entry] = &[
     )
     .menu(View)
     .short("JSON and YAML nested"),
+    cmd(
+        "State machines: as a diagram or a table",
+        "",
+        Command::StateTable,
+    )
+    .menu(View)
+    .short("State machines as tables"),
     cmd("Diagram theme: follow Omarchy", "", Command::FollowTheme)
         .menu(View)
         .gap(),

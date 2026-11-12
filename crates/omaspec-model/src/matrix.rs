@@ -125,25 +125,7 @@ impl Matrix {
     /// from, `↑ Off (from On)`, a conflict marked.
     pub fn said(&self, m: &Machine, row: usize, column: usize) -> String {
         let cell = &self.cells[row][column];
-        let ways: Vec<String> = cell
-            .ways
-            .iter()
-            .map(|&t| {
-                let t = &m.transitions[t];
-                let target = match m.states[t.to].name.as_str() {
-                    "" => "[*]",
-                    name => name,
-                };
-                let mut text = format!("→ {target}");
-                if let Some(guard) = &t.trigger.guard {
-                    text.push_str(&format!(" [{guard}]"));
-                }
-                if let Some(action) = &t.trigger.action {
-                    text.push_str(&format!(" / {action}"));
-                }
-                text
-            })
-            .collect();
+        let ways: Vec<String> = cell.ways.iter().map(|&t| way(m, t)).collect();
         let ways = ways.join("; ");
         match cell.kind {
             CellKind::Empty => String::new(),
@@ -153,6 +135,56 @@ impl Matrix {
                 let from = cell.from.map_or("", |s| m.states[s].name.as_str());
                 format!("↑ {ways} (from {from})")
             }
+        }
+    }
+
+    /// The table to draw ([`omaspec_uml::table`]): a line for each way of
+    /// a cell, which stands for its transition's line; an inherited cell
+    /// in italics with the state it comes from under it, a conflict framed.
+    pub fn table(&self, m: &Machine) -> omaspec_uml::table::Table {
+        use omaspec_uml::table::{Cell as Drawn, Row, Table, Tone};
+        let rows = self
+            .states
+            .iter()
+            .enumerate()
+            .map(|(row, &state)| Row {
+                head: m.states[state].name.clone(),
+                depth: m
+                    .ancestors(state)
+                    .filter(|&up| !m.states[up].name.is_empty())
+                    .count(),
+                cells: self.cells[row]
+                    .iter()
+                    .map(|cell| {
+                        let mut lines: Vec<(String, Option<usize>)> = cell
+                            .ways
+                            .iter()
+                            .map(|&t| (way(m, t), Some(m.transitions[t].line)))
+                            .collect();
+                        if cell.kind == CellKind::Conflict
+                            && let Some((first, _)) = lines.first_mut()
+                        {
+                            *first = format!("⚠ {first}");
+                        }
+                        Drawn {
+                            tone: match cell.kind {
+                                CellKind::Conflict => Tone::Warned,
+                                CellKind::Inherited => Tone::Borrowed,
+                                _ => Tone::Plain,
+                            },
+                            lines,
+                            from: (cell.kind == CellKind::Inherited)
+                                .then(|| cell.from.map(|s| format!("from {}", m.states[s].name)))
+                                .flatten(),
+                        }
+                    })
+                    .collect(),
+            })
+            .collect();
+        Table {
+            corner: "state".into(),
+            columns: self.events.clone(),
+            rows,
         }
     }
 
@@ -177,6 +209,23 @@ impl Matrix {
         }
         out
     }
+}
+
+/// What the transition `t` does: `→ Open [allowed] / beep`.
+fn way(m: &Machine, t: usize) -> String {
+    let t = &m.transitions[t];
+    let target = match m.states[t.to].name.as_str() {
+        "" => "[*]",
+        name => name,
+    };
+    let mut text = format!("→ {target}");
+    if let Some(guard) = &t.trigger.guard {
+        text.push_str(&format!(" [{guard}]"));
+    }
+    if let Some(action) = &t.trigger.action {
+        text.push_str(&format!(" / {action}"));
+    }
+    text
 }
 
 #[cfg(test)]
@@ -218,6 +267,24 @@ mod tests {
         );
         assert_eq!(cell("Brewing", "cancel").0, CellKind::Conflict);
         assert!(cell("Brewing", "cancel").1.starts_with("⚠ → Idle; → Empty"));
+        // To draw: a line for each way, on the line of its transition.
+        let drawn = table.table(&m);
+        assert_eq!(drawn.columns, ["power", "brew", "done", "cancel"]);
+        let idle = &drawn.rows[2];
+        assert_eq!((idle.head.as_str(), idle.depth), ("Idle", 1));
+        assert_eq!(
+            idle.cells[1].lines,
+            [
+                ("→ Brewing [water]".to_owned(), Some(5)),
+                ("→ Empty [no water]".to_owned(), Some(6))
+            ]
+        );
+        assert_eq!(idle.cells[0].tone, omaspec_uml::table::Tone::Borrowed);
+        assert_eq!(idle.cells[0].from.as_deref(), Some("from On"));
+        let brewing = &drawn.rows[3];
+        assert_eq!(brewing.cells[3].tone, omaspec_uml::table::Tone::Warned);
+        assert!(brewing.cells[3].lines[0].0.starts_with("⚠ → Idle"));
+        assert!(drawn.rows[0].cells[1].lines.is_empty());
         let md = table.markdown(&m);
         assert!(
             md.starts_with("| state | power | brew | done | cancel |\n|---|---|---|---|---|\n"),

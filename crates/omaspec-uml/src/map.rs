@@ -18,6 +18,9 @@ pub struct Map {
     pub places: Vec<Place>,
     /// The boxes of a map drawn as tiles that show other diagrams.
     pub tiles: Vec<Tile>,
+    /// The lines of a table's cells that say a line of the source
+    /// ([`crate::table`]).
+    pub cells: Vec<Cell>,
     /// Entries of the block of lines by hand that did not hold: the
     /// zero-based line of each, and why.
     pub misses: Vec<(usize, String)>,
@@ -203,6 +206,14 @@ pub struct Tile {
     pub picture: Rect,
 }
 
+/// A line of a table's cell, and the line of the source it says.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Cell {
+    pub rect: Rect,
+    /// Zero-based.
+    pub line: usize,
+}
+
 /// The line a transition takes, from its source to the tip of its head.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Route {
@@ -287,6 +298,9 @@ impl Map {
                 *point = fit.point(*point);
             }
         }
+        for cell in &mut self.cells {
+            cell.rect = fit.rect(cell.rect);
+        }
         for step in &mut self.messages {
             for point in &mut step.points {
                 *point = fit.point(*point);
@@ -334,6 +348,9 @@ impl Map {
         }
         for step in &mut self.messages {
             step.line += lines;
+        }
+        for cell in &mut self.cells {
+            cell.line += lines;
         }
         for wire in &mut self.wires {
             wire.line = wire.line.map(|l| l + lines);

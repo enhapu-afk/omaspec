@@ -65,6 +65,28 @@ pub fn nested_line(mermaid: bool) -> String {
     format!("{mark} {NESTED}\n")
 }
 
+/// The words of the line that asks for a state machine as its table of
+/// states and events, after its comment mark: the pane's view, as a fold
+/// is.
+const TABLE: &str = "view (Omaspec) table";
+
+/// Whether the pane asked for `source` as its table
+/// (`' view (Omaspec) table`).
+pub fn table(source: &str) -> bool {
+    source.lines().any(|line| {
+        let text = line.trim();
+        text.strip_prefix('\'')
+            .or_else(|| text.strip_prefix("%%"))
+            .is_some_and(|rest| rest.trim() == TABLE)
+    })
+}
+
+/// The line that asks for it.
+pub fn table_line(mermaid: bool) -> String {
+    let mark = if mermaid { "%%" } else { "'" };
+    format!("{mark} {TABLE}\n")
+}
+
 /// "1 state", "4 states".
 pub(crate) fn counted(n: usize, word: &str) -> String {
     if n == 1 {

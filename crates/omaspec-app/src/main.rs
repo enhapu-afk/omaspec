@@ -142,7 +142,8 @@ enum Command {
     Matrix {
         /// The state machine, PlantUML or Mermaid.
         file: PathBuf,
-        /// A .md file to write the table to.
+        /// A .md file to write the table to, or a picture of it in the
+        /// look of the machine: .svg, .png or .pdf.
         #[arg(short, long)]
         output: Option<PathBuf>,
         /// Print the states, the events and every cell as JSON.

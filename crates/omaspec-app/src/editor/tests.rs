@@ -2473,12 +2473,34 @@ fn a_key_deeper_down_folds_what_it_holds_not_the_card_around_it() {
 fn only_a_json_or_yaml_diagram_is_asked_for_nested() {
     let json = "@startjson\n{\"a\": 1}\n@endjson\n";
     let state = "@startuml\n[*] --> A\n@enduml\n";
+    let nested = crate::worker::Views {
+        nested: true,
+        table: false,
+    };
     assert!(
-        crate::worker::folded(json, Language::PlantUml, &[], true).contains("layout (Omaspec)")
+        crate::worker::folded(json, Language::PlantUml, &[], nested).contains("layout (Omaspec)")
     );
     assert_eq!(
-        crate::worker::folded(state, Language::PlantUml, &[], true),
+        crate::worker::folded(state, Language::PlantUml, &[], nested),
         state
+    );
+    // Only a state machine is asked for its table.
+    let table = crate::worker::Views {
+        nested: false,
+        table: true,
+    };
+    assert_eq!(
+        crate::worker::folded(json, Language::PlantUml, &[], table),
+        json
+    );
+    assert!(
+        crate::worker::folded(
+            "stateDiagram-v2\n[*] --> A\n",
+            Language::Mermaid,
+            &[],
+            table
+        )
+        .ends_with("%% view (Omaspec) table\n")
     );
     // A document's JSON is drawn nested too.
     let doc = "# Notes\n\n```plantuml\n@startjson\n{\"a\": {\"b\": 1}}\n@endjson\n```\n";
@@ -5224,9 +5246,9 @@ fn motion_in_the_editor_is_turned_off_and_the_session_keeps_it() {
 #[test]
 fn json_is_drawn_nested_from_the_view_menu_and_the_session_keeps_it() {
     let mut app = open(&[]);
-    assert!(!app.look.nested && !app.doc().paper.nested);
+    assert!(!app.look.views.nested && !app.doc().paper.views.nested);
     press(&mut app, Command::JsonLayout);
-    assert!(app.look.nested && app.doc().paper.nested);
+    assert!(app.look.views.nested && app.doc().paper.views.nested);
     assert_eq!(
         app.notice.as_deref(),
         Some("JSON and YAML drawn nested, each value in its cell")
@@ -5234,7 +5256,11 @@ fn json_is_drawn_nested_from_the_view_menu_and_the_session_keeps_it() {
     assert!(app.session().nested);
     // What the pane hands the engine asks for it; the file never does.
     let source = "@startjson\n{\"a\": {\"b\": 1}}\n@endjson\n";
-    let asked = crate::worker::folded(source, Language::PlantUml, &[], true);
+    let views = crate::worker::Views {
+        nested: true,
+        table: false,
+    };
+    let asked = crate::worker::folded(source, Language::PlantUml, &[], views);
     assert!(asked.ends_with("' layout (Omaspec) nested\n"), "{asked}");
     let svg = omaspec_uml::render(&asked).unwrap();
     assert!(!svg.contains("stroke-dasharray"), "nested, no arrow: {svg}");
@@ -5244,7 +5270,62 @@ fn json_is_drawn_nested_from_the_view_menu_and_the_session_keeps_it() {
             .contains("stroke-dasharray")
     );
     press(&mut app, Command::JsonLayout);
-    assert!(!app.session().nested && !app.doc().paper.nested);
+    assert!(!app.session().nested && !app.doc().paper.views.nested);
+}
+
+#[test]
+fn a_state_machine_is_shown_as_its_table_and_a_cell_lands_on_its_line() {
+    let source = "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\n@enduml\n";
+    for follow in [false, true] {
+        let mut app = open(&[]);
+        follow_theme(&mut app, follow);
+        select_all_and_paste(&mut app, source);
+        press(&mut app, Command::StateTable);
+        assert!(app.look.views.table && app.doc().paper.views.table);
+        assert!(app.session().table);
+        assert!(
+            app.notice
+                .as_deref()
+                .unwrap()
+                .starts_with("state machines shown as tables"),
+            "{:?}",
+            app.notice
+        );
+        // What the pane hands the engine asks for the table; a diagram of
+        // another kind is drawn as it is.
+        let asked = crate::worker::folded(source, Language::PlantUml, &[], app.doc().paper.views);
+        assert!(asked.ends_with("' view (Omaspec) table\n"), "{asked}");
+        let sequence = "@startuml\nA -> B\n@enduml\n";
+        assert_eq!(
+            crate::worker::folded(sequence, Language::PlantUml, &[], app.doc().paper.views),
+            sequence
+        );
+        show(&mut app, &asked, Language::PlantUml);
+        let key = app.doc().key;
+        for (label, line) in [("→ Locked", 4), ("→ Closed", 3), ("→ Open", 2)] {
+            let at = app.doc().paper.screen_of(label);
+            let _ = app.update(Message::Paper(key, paper::Message::Pick(at)));
+            assert_eq!(
+                app.doc().editor.cursor().row,
+                line,
+                "{label}, following the theme: {follow}; {:?}",
+                app.notice
+            );
+        }
+        // A play lights the diagram, which the table is not.
+        press(&mut app, Command::Play);
+        assert!(!app.doc().paper.playing());
+        assert!(
+            app.notice
+                .as_deref()
+                .unwrap()
+                .starts_with("a play runs in the diagram"),
+            "{:?}",
+            app.notice
+        );
+        press(&mut app, Command::StateTable);
+        assert!(!app.session().table && !app.doc().paper.views.table);
+    }
 }
 
 #[test]

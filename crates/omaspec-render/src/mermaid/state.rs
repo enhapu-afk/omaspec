@@ -12,11 +12,7 @@ use super::{font_name, plain_number};
 
 /// The SVG and its map, or `None` when mmdr draws the diagram. `fenced`
 /// is the text inside a Markdown fence, on its own lines.
-pub fn try_draw(
-    theme: &Theme,
-    fenced: &str,
-    marks: Option<&omaspec_uml::state::Marks>,
-) -> Option<(String, Map)> {
+pub fn try_draw(theme: &Theme, fenced: &str, over: super::Over) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(fenced)?;
     // The theme first; the states' own colors over it.
     let mut params = skin_of(theme)?;
@@ -32,8 +28,10 @@ pub fn try_draw(
         .extend(diagram.root.part(&omaspec_uml::hand::apart(fenced)));
     omaspec_uml::state::label_by_hand(&mut diagram.root, &omaspec_uml::hand::labels(fenced));
     diagram.fold(&omaspec_uml::fold::read(fenced));
-    if let Some(marks) = marks {
-        diagram.mark(marks);
+    match over {
+        super::Over::Nothing => {}
+        super::Over::Marks(marks) => diagram.mark(marks),
+        super::Over::Table(table) => return omaspec_uml::state::draw_table(&diagram, table).ok(),
     }
     draw_mapped(&diagram).ok()
 }
@@ -78,7 +76,7 @@ mod tests {
     fn draws_a_machine_in_the_theme_colors_with_its_lines() {
         let theme = Theme::mermaid_default();
         let source = "stateDiagram-v2\n[*] --> Idle\nIdle --> Busy : job\nBusy --> [*]\n";
-        let (svg, map) = try_draw(&theme, source, None).unwrap();
+        let (svg, map) = try_draw(&theme, source, super::super::Over::Nothing).unwrap();
         assert!(svg.contains("Idle") && svg.contains("job"), "{svg}");
         assert!(svg.contains("#ECECFF"), "{svg}");
         let states: Vec<(&str, usize)> = map
@@ -89,7 +87,14 @@ mod tests {
         assert_eq!(states, [("", 1), ("Idle", 1), ("Busy", 2), ("", 3)]);
         let lines: Vec<usize> = map.transitions.iter().map(|t| t.line).collect();
         assert_eq!(lines, [1, 2, 3]);
-        assert!(try_draw(&theme, "stateDiagram\nA --> B\nwhatever this is\n", None).is_none());
+        assert!(
+            try_draw(
+                &theme,
+                "stateDiagram\nA --> B\nwhatever this is\n",
+                super::super::Over::Nothing
+            )
+            .is_none()
+        );
     }
 
     /// Where a state is in the picture.

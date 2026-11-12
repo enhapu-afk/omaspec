@@ -12,7 +12,7 @@ cargo run -p omaspec-app -- new DIR        # a project: omaspec-project.toml and
 cargo run -p omaspec-app -- lint FILE      # --project DIR for the state machines; also fmt, outline, inspect, extract
 cargo run -p omaspec-app -- trace FILE     # a JSON Lines trace against the state machines of its project; --as timing [-o picture]
 cargo run -p omaspec-app -- coverage FILE --traces T.jsonl   # what traces take of a machine; -o picture, --json, --min
-cargo run -p omaspec-app -- matrix FILE    # a state machine as a table, states down, events across; -o .md, --json
+cargo run -p omaspec-app -- matrix FILE    # a state machine as a table, states down, events across; -o .md or a picture, --json
 cargo run -p omaspec-app -- refs NAME      # where a diagram, state or event is used in the project (docs/adr/0019)
 cargo run -p omaspec-app -- rename OLD NEW # renamed at every use; --dry-run shows what would change
 cargo run -p omaspec-app -- mcp            # MCP server over standard input and output (docs/adr/0008)

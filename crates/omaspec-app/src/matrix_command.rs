@@ -1,6 +1,7 @@
 //! `omaspec matrix`: a state machine as a table, a row for each state, a
 //! column for each event (`omaspec_model::matrix`); Markdown on standard
-//! output or into a file, or JSON.
+//! output or into a file, a picture in the look of the machine
+//! (`omaspec_render::render_table`), or JSON.
 
 use std::fs;
 use std::io::{Write, stdout};
@@ -25,18 +26,17 @@ pub fn run(file: &Path, output: Option<&Path>, json: bool) -> Result<ExitCode> {
     };
     let table = matrix(&m);
     if let Some(output) = output {
-        let markdown = output
+        let ext = output
             .extension()
             .and_then(|ext| ext.to_str())
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("md"));
-        if !markdown {
-            bail!(
-                "{} is no .md file; the table is written as Markdown",
-                output.display()
-            );
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if ext == "md" {
+            fs::write(output, table.markdown(&m))
+                .with_context(|| format!("writing {}", output.display()))?;
+        } else {
+            draw(&input.text, lang, input.path.as_deref(), output)?;
         }
-        fs::write(output, table.markdown(&m))
-            .with_context(|| format!("writing {}", output.display()))?;
     }
     let mut out = stdout();
     if json {
@@ -48,6 +48,29 @@ pub fn run(file: &Path, output: Option<&Path>, json: bool) -> Result<ExitCode> {
         write!(out, "{}", table.markdown(&m))?;
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// The state machine `source` (at `file`) as a table, drawn in the look of
+/// its states into `output`, a .svg, .png or .pdf.
+pub(crate) fn draw(
+    source: &str,
+    lang: omaspec_core::Language,
+    file: Option<&Path>,
+    output: &Path,
+) -> Result<()> {
+    use omaspec_render::export::{self, Format};
+    let format = output
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .and_then(Format::from_extension)
+        .filter(|format| matches!(format, Format::Svg | Format::Png | Format::Pdf))
+        .with_context(|| format!("{} is no .md, .svg, .png or .pdf", output.display()))?;
+    let place = file.and_then(|file| omaspec_render::Place::of(file, None));
+    let rendered = omaspec_render::render_table(source, lang, place.as_ref())
+        .map_err(|err| anyhow::anyhow!("{err}"))?;
+    let bytes = export::export(&rendered.svg, format, &export::Options::default())?;
+    fs::write(output, bytes).with_context(|| format!("writing {}", output.display()))?;
+    Ok(())
 }
 
 /// The table as the JSON report and the MCP tool give it: the states, the

@@ -2550,9 +2550,26 @@ are built once, with coverage, and the others take them.
       `-o door.md` writes the table, `--json` gives the states, the
       events and each cell with its kind and its transitions; the MCP
       server has it as `matrix`. Transitions without an event have no
-      column. Open: the table as a picture and in the editor.
-- [ ] The state-event matrix as a picture (.svg, .png) and beside the
-      diagram in the editor.
+      column.
+- [x] The state-event matrix as a picture and in the editor
+      (2026-11-12): `omaspec matrix door.puml -o door.svg` (or .png, .pdf;
+      the MCP tool `matrix` takes `output`) draws the table in the look
+      of the machine: the heads filled as a state is, the words in its
+      ink, the grid in its border, under its title, so a skin pack and
+      the Omarchy colors reach it too (`omaspec_uml::table`, drawn by
+      `state::draw_table` for PlantUML and Mermaid alike). A cell holds a
+      line for each way; an inherited one is in italics with `from On`
+      under it, a conflict framed in the orange red of coverage with
+      `⚠`; a row's head steps in for each state around it. In the
+      editor, *State machines: as a diagram or a table* (View menu, kept
+      in the session) shows every state machine as its table: the pane
+      hands the engine `' view (Omaspec) table` after the diagram, as it
+      hands a fold, and the file never holds it. The map says where each
+      line of a cell is and which transition it says (`map::Cell`), so
+      Ctrl+click on it puts the caret on that line, in the Omarchy colors
+      too. A play asks for the diagram. In place of the diagram rather
+      than beside it: the pane shows one picture, and the toggle is one
+      key away.
 - [x] A trace as a timeline (REQ-033, 2026-11-12): `omaspec trace
       run.jsonl --as timing` writes the states each object was in over
       time as a PlantUML timing diagram, which Omaspec draws itself and

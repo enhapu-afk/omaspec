@@ -331,6 +331,9 @@ pub enum Command {
     Motion,
     /// JSON and YAML diagrams as a tree, or nested.
     JsonLayout,
+    /// State machines shown as their tables of states and events, or as
+    /// diagrams.
+    StateTable,
     /// The fix a finding on the caret's line carries.
     Fix,
     /// Every fix the findings carry.
@@ -767,7 +770,10 @@ impl App {
             palette,
             look: Look {
                 motion: session.motion,
-                nested: session.nested,
+                views: crate::worker::Views {
+                    nested: session.nested,
+                    table: session.table,
+                },
                 ..look
             },
             font,
@@ -1989,30 +1995,23 @@ impl App {
                 Task::none()
             }
             Command::JsonLayout => {
-                self.look.nested = !self.look.nested;
-                for doc in &mut self.docs {
-                    doc.set_look(&self.look);
-                }
-                self.notice = Some(if self.look.nested {
+                self.look.views.nested = !self.look.views.nested;
+                self.notice = Some(if self.look.views.nested {
                     "JSON and YAML drawn nested, each value in its cell".into()
                 } else {
                     "JSON and YAML drawn as a tree, as PlantUML draws them".into()
                 });
-                self.keep_session();
-                if let Some(compare) = &mut self.compare {
-                    compare.paper.nested = self.look.nested;
-                }
                 // Only what holds a JSON or a YAML diagram looks different.
-                let keys: Vec<u64> = self
-                    .docs
-                    .iter()
-                    .filter(|doc| {
-                        let text = doc.text().to_ascii_lowercase();
-                        text.contains("@startjson") || text.contains("@startyaml")
-                    })
-                    .map(|doc| doc.key)
-                    .collect();
-                Task::batch(keys.into_iter().map(|key| self.render(key, true)))
+                self.redraw_views(crate::worker::holds_tables)
+            }
+            Command::StateTable => {
+                self.look.views.table = !self.look.views.table;
+                self.notice = Some(if self.look.views.table {
+                    "state machines shown as tables, states down, events across; Ctrl+click a cell for its line".into()
+                } else {
+                    "state machines shown as diagrams".into()
+                });
+                self.redraw_views(crate::worker::holds_machine)
             }
             Command::FollowTheme => {
                 self.follow_theme = !self.follow_theme;
@@ -2203,6 +2202,26 @@ impl App {
     }
 
     /// Ctrl+click in the diagram: to the word that draws what is there.
+    /// Hands the look's views to every tab and the comparison, keeps them
+    /// in the session, and redraws the tabs whose diagrams `affected`
+    /// says look different.
+    fn redraw_views(&mut self, affected: fn(&str, Language) -> bool) -> Task<Message> {
+        for doc in &mut self.docs {
+            doc.set_look(&self.look);
+        }
+        self.keep_session();
+        if let Some(compare) = &mut self.compare {
+            compare.paper.views = self.look.views;
+        }
+        let keys: Vec<u64> = self
+            .docs
+            .iter()
+            .filter(|doc| affected(&doc.text(), doc.current_language()))
+            .map(|doc| doc.key)
+            .collect();
+        Task::batch(keys.into_iter().map(|key| self.render(key, true)))
+    }
+
     fn pick_in_diagram(&mut self, key: u64, at: iced::Point) -> Task<Message> {
         if key != self.doc().key {
             return Task::none();
@@ -2226,6 +2245,10 @@ impl App {
     /// The caret lands on what is at `at` of the active tab's diagram, or
     /// `Err` says why it cannot.
     pub(super) fn land_on(&mut self, at: iced::Point) -> Result<Task<Message>, String> {
+        // A cell of a table: the transition it says.
+        if let Some(line) = self.doc().paper.cell_at(at) {
+            return Ok(self.jump_to(line));
+        }
         // Right on a line: the line that draws it.
         if let Some(line) = self.doc().paper.wire_at(at).and_then(|w| w.line) {
             return Ok(self.jump_to(line));
@@ -2383,7 +2406,7 @@ impl App {
         self.theme = ui::iced_theme(&self.theme_name, &palette);
         self.look = Look {
             motion: self.look.motion,
-            nested: self.look.nested,
+            views: self.look.views,
             ..Look::new(&palette, &omarchy.tweaks, self.font)
         };
         self.icons = icons_for(&palette, self.main_scale);
@@ -2458,6 +2481,7 @@ fn remap_map(map: &Map, shift: LineShift) -> Map {
         .map(|spot| &mut spot.line)
         .chain(map.transitions.iter_mut().map(|route| &mut route.line))
         .chain(map.messages.iter_mut().map(|step| &mut step.line))
+        .chain(map.cells.iter_mut().map(|cell| &mut cell.line))
         .chain(map.misses.iter_mut().map(|(line, _)| line))
         .chain(
             map.wires

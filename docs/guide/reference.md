@@ -572,6 +572,16 @@ never was dashed in red; the source stays as it is. `--json` gives the hits of e
 transition and state, and `--min 80` fails below that share of transitions, for CI.
 Where a trace leaves open which way an object went, every way it could have gone counts.
 
+**The table of states and events.** `omaspec matrix door.puml` writes a state machine as
+the classic table of a review or a test design: a row for each state, a column for each
+event, in each cell what the event does there (`→ Open [allowed] / beep`). A state that has
+nothing of its own takes what the state around it has, in italics with where it comes from;
+two ways no guard chooses between are framed in red with `⚠`. Most cells are empty, which
+is no finding. `-o door.md` writes it as Markdown, `-o door.svg` (or `.png`, `.pdf`) draws
+it in the look of the machine, and `--json` gives every cell. In the editor, *State
+machines: as a diagram or a table* (View) shows every state machine as its table, in the
+Omarchy colors; Ctrl+click on a line of a cell puts the caret on its transition.
+
 **What changed, and in the other language.** `omaspec diff` compares two versions, or a
 file with its last commit, by states, transitions and messages, not by lines; layout and
 colors do not count. Given a folder, it does so for the whole project: every diagram that
@@ -599,7 +609,7 @@ omaspec trace run.jsonl             # a recorded trace against the state machine
 omaspec trace run.jsonl --as timing -o run.svg   # the trace as a timing diagram; without -o its PlantUML source
 omaspec coverage door.puml --traces a.jsonl,b.jsonl -o door-cov.svg   # what the traces take of the machine; --json, --min 80
 omaspec diff old.puml door.puml -o door-diff.svg   # a state machine's changes drawn over its new version
-omaspec matrix door.puml            # the machine as a table, states down, events across; -o door.md, --json
+omaspec matrix door.puml            # the machine as a table, states down, events across; -o door.md or door.svg, --json
 omaspec refs Door                   # every use of a diagram, state or event in the project; --machine, --json
 omaspec rename Door Gate            # renamed at every use; --state, --event, --machine, --dry-run, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI

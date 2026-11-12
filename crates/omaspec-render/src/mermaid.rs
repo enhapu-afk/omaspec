@@ -80,7 +80,7 @@ pub fn render_mapped(source: &str) -> Result<(String, Engine, Map), RenderError>
 const MAX_NESTING: usize = 100;
 
 fn draw(source: &str) -> Result<Drawn, RenderError> {
-    draw_with(source, None)
+    draw_with(source, Over::Nothing)
 }
 
 /// The state machine `source` with `marks` over it, on the lines of the
@@ -99,7 +99,7 @@ pub fn render_marked(
             .collect(),
         ..marks.clone()
     };
-    let drawn = draw_with(source, Some(&shifted))?;
+    let drawn = draw_with(source, Over::Marks(&shifted))?;
     match drawn.declined {
         None => Ok((drawn.svg, drawn.map)),
         Some(_) => Err(RenderError::Unavailable {
@@ -109,10 +109,40 @@ pub fn render_marked(
     }
 }
 
-fn draw_with(
+/// The state machine `source` as `table`, its state-event matrix, whose
+/// lines are those of the source, drawn in the look of its states.
+pub fn render_table(
     source: &str,
-    marks: Option<&omaspec_uml::state::Marks>,
-) -> Result<Drawn, RenderError> {
+    table: &omaspec_uml::table::Table,
+) -> Result<(String, Map), RenderError> {
+    let (_, offset) = mermaid_body(source);
+    let mut shifted = table.clone();
+    for cell in shifted.rows.iter_mut().flat_map(|row| &mut row.cells) {
+        for (_, line) in &mut cell.lines {
+            *line = line.and_then(|line| line.checked_sub(offset));
+        }
+    }
+    let drawn = draw_with(source, Over::Table(&shifted))?;
+    match drawn.declined {
+        None => Ok((drawn.svg, drawn.map)),
+        Some(_) => Err(RenderError::Unavailable {
+            line: None,
+            reason: "only a state diagram Omaspec draws itself has a table".into(),
+        }),
+    }
+}
+
+/// What a state machine is drawn with or as, besides itself.
+#[derive(Clone, Copy)]
+pub(crate) enum Over<'a> {
+    Nothing,
+    /// Marks over it, on the lines of the fenced text.
+    Marks(&'a omaspec_uml::state::Marks),
+    /// Its table in place of it, on the lines of the fenced text.
+    Table(&'a omaspec_uml::table::Table),
+}
+
+fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
     // Lines before the body belong to the fence.
     let (fenced, offset) = mermaid_body(source);
     if let Some(line) = too_deep(fenced) {
@@ -157,7 +187,7 @@ fn draw_with(
             theme: &options.theme,
             body,
             fenced,
-            marks,
+            over,
         };
         if let Some(native) = native(body)
             && let Some((svg, map)) = (native.draw)(&input)
@@ -212,8 +242,8 @@ struct Input<'a> {
     theme: &'a Theme,
     body: &'a str,
     fenced: &'a str,
-    /// Marks over a state machine, on the lines of `fenced`.
-    marks: Option<&'a omaspec_uml::state::Marks>,
+    /// What a state machine is drawn with or as, on the lines of `fenced`.
+    over: Over<'a>,
 }
 
 /// A drawer's function: the SVG and where its parts are, or `None` to leave
@@ -255,7 +285,7 @@ const NATIVE: &[Native] = &[
         kind: DiagramKind::State,
         headers: &["statediagram"],
         noun: "state diagram",
-        draw: |i| state::try_draw(i.theme, i.fenced, i.marks),
+        draw: |i| state::try_draw(i.theme, i.fenced, i.over),
         refusal: |_| None,
     },
     Native {

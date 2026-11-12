@@ -540,7 +540,7 @@ fn shown(
                 &source,
                 language,
                 app.doc().paper.folded(),
-                app.doc().paper.nested,
+                app.doc().paper.views,
             ),
             language,
             place.as_ref(),

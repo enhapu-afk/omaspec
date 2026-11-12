@@ -42,6 +42,7 @@ pub mod state;
 pub mod structure;
 mod style;
 mod svg;
+pub mod table;
 mod text;
 pub mod timeline;
 pub mod timing;
@@ -295,6 +296,24 @@ pub fn render_marked(
         _ => Err(Declined {
             line: None,
             reason: "only a state diagram has transitions to mark".to_owned(),
+            refused: false,
+        }),
+    }
+}
+
+/// The state machine `source` as `table`, its state-event matrix, drawn
+/// in the look of its states ([`state::draw_table`]): the title and the
+/// skin of the diagram, the table in place of the graph.
+pub fn render_table(
+    source: &str,
+    includes: Option<&dyn Includes>,
+    table: &table::Table,
+) -> Result<(String, map::Map), Declined> {
+    match parse_with(source, includes)? {
+        Diagram::State(d) => state::draw_table(&d, table),
+        _ => Err(Declined {
+            line: None,
+            reason: "only a state diagram has a table of states and events".to_owned(),
             refused: false,
         }),
     }

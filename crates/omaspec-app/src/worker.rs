@@ -190,7 +190,14 @@ impl Worker {
         place: Option<Place>,
         linked: Option<Linked>,
     ) {
-        self.render_folded(ticket, source, language, place, linked, (Vec::new(), false));
+        self.render_folded(
+            ticket,
+            source,
+            language,
+            place,
+            linked,
+            (Vec::new(), Views::default()),
+        );
     }
 
     /// [`Self::render`] with the containers named in `folds` folded to
@@ -203,7 +210,7 @@ impl Worker {
         language: Language,
         place: Option<Place>,
         linked: Option<Linked>,
-        (folds, nested): (Vec<String>, bool),
+        (folds, views): (Vec<String>, Views),
     ) {
         let _ = self.input.unbounded_send(Input::Render {
             ticket,
@@ -213,7 +220,7 @@ impl Worker {
             linked,
             document: false,
             folds,
-            nested,
+            views,
             map: None,
         });
     }
@@ -229,7 +236,7 @@ impl Worker {
             linked: Some((atlas, None)),
             document: false,
             folds: Vec::new(),
-            nested: false,
+            views: Views::default(),
             map: Some(folder),
         });
     }
@@ -241,7 +248,7 @@ impl Worker {
         ticket: Ticket,
         source: Arc<str>,
         place: Option<Place>,
-        nested: bool,
+        views: Views,
     ) {
         let _ = self.input.unbounded_send(Input::Render {
             ticket,
@@ -251,7 +258,7 @@ impl Worker {
             linked: None,
             document: true,
             folds: Vec::new(),
-            nested,
+            views,
             map: None,
         });
     }
@@ -277,8 +284,8 @@ enum Input {
         document: bool,
         /// Containers folded to their box.
         folds: Vec<String>,
-        /// A JSON or YAML diagram drawn nested.
-        nested: bool,
+        /// How the pane asks the diagram drawn.
+        views: Views,
         /// The folder of the project in `linked` whose map is asked for.
         map: Option<String>,
     },
@@ -340,7 +347,7 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     linked,
                     document,
                     folds,
-                    nested,
+                    views,
                     map,
                 } => {
                     let generation = if let (Some(folder), Some((atlas, _))) = (map, &linked) {
@@ -351,11 +358,11 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                             folder,
                         )
                     } else if document {
-                        service.submit_document(ticket.doc, source.to_string(), place, nested)
+                        service.submit_document(ticket.doc, source.to_string(), place, views.nested)
                     } else {
                         service.submit_linked(
                             ticket.doc,
-                            folded(&source, language, &folds, nested),
+                            folded(&source, language, &folds, views),
                             language,
                             place,
                             linked,
@@ -387,14 +394,27 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
     })
 }
 
+/// How the pane asks a diagram drawn, besides the file (View menu): the
+/// lines it adds after the diagram, which every other reader takes for
+/// comments.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Views {
+    /// A JSON or a YAML diagram nested, not as a tree.
+    pub nested: bool,
+    /// A state machine as its table of states and events.
+    pub table: bool,
+}
+
 /// `source` with a line for each container `folds` names after it, which
-/// the drawers fold (`omaspec_uml::fold`), and one asking for a JSON or a
-/// YAML diagram `nested`; the file never holds them.
-pub fn folded(source: &str, language: Language, folds: &[String], nested: bool) -> String {
+/// the drawers fold (`omaspec_uml::fold`), and one for each of `views` that
+/// the diagram has; the file never holds them.
+pub fn folded(source: &str, language: Language, folds: &[String], views: Views) -> String {
     let mut text = source.to_owned();
-    // Only a JSON or a YAML diagram has a nested drawing.
-    let nested = nested && holds_tables(source, language);
-    if folds.is_empty() && !nested {
+    // Only a JSON or a YAML diagram has a nested drawing, only a state
+    // machine a table.
+    let nested = views.nested && holds_tables(source, language);
+    let table = views.table && holds_machine(source, language);
+    if folds.is_empty() && !nested && !table {
         return text;
     }
     if !text.ends_with('\n') {
@@ -411,7 +431,17 @@ pub fn folded(source: &str, language: Language, folds: &[String], nested: bool) 
             language == Language::Mermaid,
         ));
     }
+    if table {
+        text.push_str(&omaspec_uml::fold::table_line(
+            language == Language::Mermaid,
+        ));
+    }
     text
+}
+
+/// Whether `source` is a state machine, the kind drawn as a table too.
+pub fn holds_machine(source: &str, language: Language) -> bool {
+    omaspec_core::kind::classify(source, language).kind == omaspec_core::Kind::State
 }
 
 /// Whether `source` is a JSON or a YAML diagram, the kinds drawn as a tree

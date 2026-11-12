@@ -208,6 +208,57 @@ pub fn render_marked(
     })
 }
 
+/// The state machine `source` as a table, a row for each state and a
+/// column for each event (`omaspec_model::matrix`), drawn by Omaspec's own
+/// engines in the look of its states; [`Rendered::map`] says where each
+/// line of a cell is and which transition it says
+/// ([`omaspec_uml::map::Cell`]). A diagram that lives at `place` reads its
+/// `!include`s there.
+pub fn render_table(
+    source: &str,
+    language: Language,
+    place: Option<&Place>,
+) -> Result<Rendered, RenderError> {
+    let start = Instant::now();
+    let Some(machine) = omaspec_model::Machine::read(source, language) else {
+        return Err(RenderError::Unavailable {
+            line: None,
+            reason: "only a state machine Omaspec reads has a table of states and events".into(),
+        });
+    };
+    let table = omaspec_model::matrix(&machine).table(&machine);
+    let (svg, engine, map) = match language {
+        Language::Mermaid => {
+            let (svg, map) = mermaid::render_table(source, &table)?;
+            (svg, Engine::NativeMermaid, map)
+        }
+        Language::PlantUml => {
+            let folder = place.map(include::Folder::new);
+            let includes = folder.as_ref().map(|f| f as &dyn omaspec_uml::Includes);
+            let (svg, map) =
+                omaspec_uml::render_table(source, includes, &table).map_err(|declined| {
+                    RenderError::Unavailable {
+                        line: declined.line,
+                        reason: declined.reason,
+                    }
+                })?;
+            (svg, Engine::NativePlantUml, map)
+        }
+    };
+    let svg = sanitize::sanitize(&svg).map_err(|e| RenderError::Engine {
+        engine,
+        message: format!("invalid SVG: {e}"),
+    })?;
+    Ok(Rendered {
+        svg,
+        engine,
+        elapsed: start.elapsed(),
+        map,
+        links: Vec::new(),
+        cards: None,
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     /// The `plantuml` command for the Java fallback; searched in `PATH` if
@@ -274,6 +325,10 @@ impl Renderer {
         language: Language,
         place: Option<&Place>,
     ) -> Result<Rendered, RenderError> {
+        // The pane's table view of a state machine (`' view (Omaspec) table`).
+        if omaspec_uml::fold::table(source) {
+            return render_table(source, language, place);
+        }
         let start = Instant::now();
         let (svg, engine, map) = match language {
             Language::Mermaid => mermaid::render_mapped(source)?,

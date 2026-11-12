@@ -167,7 +167,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "matrix",
             "title": "Tabulate a state machine",
-            "description": "A state machine as a table: its states (rows), its events (columns), and every cell with what the event does in the state: `transition` (the transitions it fires, with their guards, actions and one-based lines), `inherited` (none of its own; those of the state around it, named in `from`), `conflict` (two ways with no guard to choose), or `empty`. An empty cell is no finding: most are. Also the table as Markdown, for a document or a review.",
+            "description": "A state machine as a table: its states (rows), its events (columns), and every cell with what the event does in the state: `transition` (the transitions it fires, with their guards, actions and one-based lines), `inherited` (none of its own; those of the state around it, named in `from`), `conflict` (two ways with no guard to choose), or `empty`. An empty cell is no finding: most are. Also the table as Markdown, for a document or a review. With `output`, writes the table as a picture in the look of the machine (.svg, .png or .pdf).",
             "inputSchema": schema(&[
                 ("path", path.clone()),
                 ("code", json!({
@@ -175,8 +175,12 @@ pub fn definitions() -> Vec<Value> {
                     "description": "The state machine's text, instead of `path`.",
                 })),
                 ("lang", lang.clone()),
+                ("output", json!({
+                    "type": "string",
+                    "description": "Where to write the table as a picture.",
+                })),
             ]),
-            "annotations": reading,
+            "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false },
         }),
         json!({
             "name": "refs",
@@ -904,6 +908,10 @@ fn matrix(args: &Args) -> Result<Answer> {
     let table = omaspec_model::matrix(&m);
     let mut data = crate::matrix_command::report(&m, &table);
     data["markdown"] = json!(table.markdown(&m));
+    if let Some(output) = args.path("output")? {
+        crate::matrix_command::draw(&input.text, lang, input.path.as_deref(), &output)?;
+        data["output"] = json!(output.display().to_string());
+    }
     Ok(Answer::data(data))
 }
 
@@ -1265,6 +1273,24 @@ mod tests {
         assert_eq!(data["passed"], false, "{data}");
         assert_eq!(data["transitions"][2]["hits"], 0, "{data}");
         assert!(std::fs::read_to_string(&image).unwrap().contains("open ×1"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn matrix_draws_the_table_when_asked() {
+        let dir = scratch("matrix");
+        let image = dir.join("door-table.png");
+        let result = call(
+            "matrix",
+            json!({
+                "code": "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+                "output": image.to_str().unwrap(),
+            }),
+        );
+        let data = &result["structuredContent"];
+        assert_eq!(data["events"], json!(["open", "close"]), "{result}");
+        let png = std::fs::read(&image).unwrap();
+        assert!(png.starts_with(b"\x89PNG"), "a picture");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
