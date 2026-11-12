@@ -1,6 +1,7 @@
 @startuml
 ' C4-PlantUML: Omaspec knows the library's macros by name and reads
-' nothing from the network.
+' nothing from the network. A sprite of Open Iconic (`&cog`) stands
+' above an element's name, drawn in its ink.
 !include <C4/C4_Container>
 LAYOUT_WITH_LEGEND()
 title Bike rental: containers
@@ -9,15 +10,15 @@ Person(rider, "Rider", "Rents a bike with the app")
 Person(mechanic, "Mechanic", "Keeps the bikes on the road")
 
 System_Boundary(rental, "Bike rental") {
-  Container(app, "Rider app", "Kotlin, Swift", "Finds a bike, unlocks it, pays")
-  Container(api, "Rental API", "Rust, axum", "Rentals, prices, bikes")
+  Container(app, "Rider app", "Kotlin, Swift", "Finds a bike, unlocks it, pays", $sprite="&phone")
+  Container(api, "Rental API", "Rust, axum", "Rentals, prices, bikes", $sprite="&cog")
   ContainerDb(db, "Rentals", "PostgreSQL", "Riders, rentals, invoices")
   ContainerQueue(events, "Bike events", "NATS", "Where each bike is, its lock")
-  Container(workshop, "Workshop", "Web app", "Repairs and spare parts")
+  Container(workshop, "Workshop", "Web app", "Repairs and spare parts", $sprite="&wrench")
 }
 
-System_Ext(payments, "Payment provider", "Cards and wallets")
-System_Ext(locks, "Smart locks", "A lock on every bike")
+System_Ext(payments, "Payment provider", "Cards and wallets", $sprite="&credit-card")
+System_Ext(locks, "Smart locks", "A lock on every bike", $sprite="&lock-locked")
 
 Rel(rider, app, "Uses")
 Rel(app, api, "Calls", "JSON/HTTPS")

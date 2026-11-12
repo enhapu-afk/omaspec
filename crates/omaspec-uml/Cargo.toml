@@ -10,6 +10,8 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+# Already in the tree, as flate2's: inflates a compressed sprite.
+miniz_oxide = "0.9"
 
 [lints]
 workspace = true

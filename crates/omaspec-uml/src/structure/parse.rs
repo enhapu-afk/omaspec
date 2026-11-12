@@ -405,8 +405,11 @@ impl Parser {
             };
             return Err(Declined::at(no, why));
         }
-        if text.contains("<$") {
-            return Err(Declined::at(no, "sprites are not supported yet"));
+        if text.contains("<<$") {
+            return Err(Declined::at(
+                no,
+                "a sprite as a stereotype (`<<$name>>`) is not supported yet",
+            ));
         }
         if is_note_header(text) {
             return self.note(lines, at);

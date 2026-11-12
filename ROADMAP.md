@@ -2482,16 +2482,33 @@ skin draws them by hand.
       round box under a round head (it was an actor), and `queue` is
       drawn. The gallery has one (`bike-rental.puml`), the editor names
       it *C4 diagram* and offers its macros. Open, declined by name:
-      dynamic and sequence diagrams of the library, sprites (with the
-      icons below), tags and the styles set by tag or by element
+      dynamic and sequence diagrams of the library, tags and the styles set by tag or by element
       (`AddElementTag`, `UpdateElementStyle`), a link on a
       relationship; the legend stands where the layout puts a frame
       without lines, not at the bottom right.
-- [ ] Icons: PlantUML's sprites and `<&icon>`, drawn in the hand of the
-      lines; then the icons of C4 and Archimate.
-- [ ] Still apart from the picture: an icon drawn in the hand of the
-      lines instead of an emoji's colors (sprites and `<&icon>` are
-      declined); a title at the left with a subtitle;
+- [x] Icons (2026-11-12): PlantUML's `<&icon>` and sprites, in any
+      text, drawn as the words are, in their color, so a card's icon
+      reads in any theme where an emoji keeps its own colors
+      (`omaspec_uml::icons`). Open Iconic's 223 icons are in the engine
+      (MIT, its notice beside them), each a path drawn after the text,
+      as tall as a capital and standing on the baseline; `<&cloud*2>`,
+      `{scale=2}` and a color (`<#red&lock-locked>`, `,color=red`) as
+      PlantUML reads them, and a tall icon lifts its line. A sprite the
+      diagram defines (`sprite $bolt [16x16/16] { … }`) is read in each
+      form `plantuml -encodesprite` writes: 16 levels a hex digit a
+      pixel, 8 levels two rows to a letter, 4 levels three, and each
+      compressed (`z`: raw deflate of a byte a pixel in PlantUML's 64
+      letters, a stream cut short leaving the page). Its definition is
+      taken out after the preprocessor and each use carries its pixels
+      (`<$:16x16:…>`), so a label is measured and drawn without looking
+      anything up; a pixel is as dark as its level, `0` the page. In
+      C4-PlantUML an element's or a boundary's `$sprite` stands above its
+      name, a relationship's before its label: `&cog` an icon at twice
+      its size, a name the diagram's sprite, `person` C4's own as an
+      icon. Open: a sprite as a stereotype (`<<$bolt>>`), SVG and color
+      sprites, the icon libraries of the standard library (no network),
+      C4's robot, and Archimate's icons with Archimate.
+- [ ] Still apart from the picture: a title at the left with a subtitle;
       arrows of the hand font's own (`→` falls to another face); and
       layers the writer names, where now the ranks follow the arrows.
 

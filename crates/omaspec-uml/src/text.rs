@@ -4,12 +4,14 @@
 //! Markup it draws: `\n`, `<b>`, `<i>`, `<u>`, `<s>`, `<color:…>`,
 //! `<size:…>`, `**bold**`, `//italic//`, `__underline__`, `--strike--`,
 //! `""mono""`, `~` to escape, Creole tables (`|= a |= b |` over
-//! `| 1 | 2 |`) and links (`[[url]]`, `[[url label]]`, `[[url{tooltip}
-//! label]]`), underlined in the text's color. Markup it knows but does not
+//! `| 1 | 2 |`), links (`[[url]]`, `[[url label]]`, `[[url{tooltip}
+//! label]]`), underlined in the text's color, and icons (`<&heart>`,
+//! `<$sprite>`, [`crate::icons`]). Markup it knows but does not
 //! draw (images, lists, headings, rules, …) is an error naming it; anything
 //! else that looks like a tag is shown as written, as PlantUML does.
 
 use crate::color::{self, Color};
+pub use crate::icons::{Icon, Picture};
 use crate::metrics;
 
 /// The font family of the whole diagram, by its metrics.
@@ -125,6 +127,8 @@ pub struct Run {
     pub width: f32,
     /// Where a click on it leads, from `[[…]]`.
     pub link: Option<Link>,
+    /// An icon in place of words (`<&heart>`); its text is empty.
+    pub icon: Option<Icon>,
 }
 
 /// A link in the text, as written: the sanitizer decides which addresses
@@ -141,6 +145,7 @@ struct Piece {
     text: String,
     style: Style,
     link: Option<Link>,
+    icon: Option<Icon>,
 }
 
 /// Space on the left and the right of a Creole table cell.
@@ -248,6 +253,7 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
                     text: format!("{}{mark}", "    ".repeat(depth - 1)),
                     style: Style::from(font),
                     link: None,
+                    icon: None,
                 }];
                 pieces.extend(inline(words, Style::from(font))?);
                 let mut item = line_of(pieces, font.size, family);
@@ -273,6 +279,7 @@ pub fn styled(lines: Vec<Vec<(String, Style)>>, font: Font, family: Family) -> B
                         text,
                         style,
                         link: None,
+                        icon: None,
                     })
                     .collect();
                 line_of(pieces, font.size, family)
@@ -285,11 +292,25 @@ fn line_of(pieces: Vec<Piece>, size: f32, family: Family) -> Line {
     let mut runs = Vec::new();
     let mut width: f32 = 0.0;
     let mut size = size;
-    for Piece { text, style, link } in pieces {
-        if text.is_empty() {
+    // The tallest icon stands on the baseline and lifts the line's top.
+    let mut tall: f32 = 0.0;
+    for Piece {
+        text,
+        style,
+        link,
+        icon,
+    } in pieces
+    {
+        if text.is_empty() && icon.is_none() {
             continue;
         }
-        let w = measure(&text, &style, family);
+        let w = match &icon {
+            Some(icon) => {
+                tall = tall.max(icon.height);
+                icon.width
+            }
+            None => measure(&text, &style, family),
+        };
         width += w;
         size = size.max(style.size);
         runs.push(Run {
@@ -297,13 +318,15 @@ fn line_of(pieces: Vec<Piece>, size: f32, family: Family) -> Line {
             style,
             width: w,
             link,
+            icon,
         });
     }
+    let ascent = (size * ASCENT).max(tall);
     Line {
         runs,
         width,
-        height: size * LINE,
-        ascent: size * ASCENT,
+        height: ascent + size * (LINE - ASCENT),
+        ascent,
         table: None,
         flush: false,
     }
@@ -638,6 +661,7 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
                 text: std::mem::take(text),
                 style,
                 link: None,
+                icon: None,
             });
         }
     };
@@ -683,8 +707,24 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
                 text: label,
                 style: linked,
                 link: Some(link),
+                icon: None,
             });
             i += end + 4;
+            continue;
+        }
+        // An icon (`<&heart>`), drawn in the text's color.
+        if c == '<'
+            && let Some(close) = rest.find('>')
+            && let Some(icon) = crate::icons::tag(&rest[1..close], style.size)
+        {
+            flush(&mut out, &mut text, style);
+            out.push(Piece {
+                text: String::new(),
+                style,
+                link: None,
+                icon: Some(icon?),
+            });
+            i += close + 1;
             continue;
         }
         if c == '<'
@@ -825,7 +865,7 @@ fn tag_change(tag: &str, style: Style) -> Result<Option<Tag>, String> {
         }
         _ => {
             let unsupported = UNSUPPORTED_TAGS.contains(&name)
-                || lower.starts_with(['$', '&'])
+                || lower.starts_with('$')
                 || lower.starts_with("u+");
             if unsupported {
                 return Err(format!("`<{tag}>` is not supported yet"));
@@ -1027,7 +1067,7 @@ mod tests {
         for (text, part) in [
             ("<img:x.png>", "<img:x.png>"),
             ("<$sprite>", "<$sprite>"),
-            ("<&key>", "<&key>"),
+            ("<&kye>", "Open Iconic has no icon"),
             ("[[{tip} label]]", "no address"),
             ("[[\"a b label]]", "open quote"),
             ("----", "rules"),
@@ -1038,6 +1078,35 @@ mod tests {
             let err = block(text, font(), Family::Sans).unwrap_err();
             assert!(err.contains(part), "{text}: {err}");
         }
+    }
+
+    #[test]
+    fn an_icon_takes_its_room_in_the_line_and_is_drawn_beside_the_words() {
+        let line = &block("<&key> Keys <&lock-locked*2>", font(), Family::Sans)
+            .unwrap()
+            .lines[0];
+        let icons: Vec<f32> = line
+            .runs
+            .iter()
+            .filter_map(|run| run.icon.as_ref().map(|icon| icon.width))
+            .collect();
+        assert_eq!(icons.len(), 2);
+        assert!((icons[1] - 2.0 * icons[0]).abs() < 1e-4);
+        let words = measure(" Keys ", &Style::from(font()), Family::Sans);
+        assert!((line.width - (icons[0] + icons[1] + words)).abs() < 1e-3);
+        let mut canvas = crate::svg::Canvas::new("sans-serif", false);
+        let drawn = block("<&key> Keys", font(), Family::Sans).unwrap();
+        canvas.text(
+            crate::svg::Layer::Front,
+            &drawn,
+            (0.0, 0.0),
+            crate::svg::Align::Left,
+        );
+        let svg = canvas.finish(0.0, None);
+        assert!(svg.contains("<path d=\"M5.5 0c"), "{svg}");
+        // The words start after the icon.
+        let x = format!(r#"<tspan x="{}""#, crate::svg::n(icons[0]));
+        assert!(svg.contains(&x), "{svg}");
     }
 
     #[test]

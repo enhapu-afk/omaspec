@@ -441,6 +441,14 @@ drawn in color in the pane and in every export, and the words beside it keep the
 In an unquoted title of a Mermaid subgraph mermaid.js does not read one; lint says so and
 puts the title in quotes.
 
+An icon drawn as the words are, in their color and so in any theme, is PlantUML's: one of
+the 223 of Open Iconic (`<&cloud>`, larger `<&cloud*2>`, in a color of its own
+`<#red&lock-locked>`), or a sprite the diagram defines (`sprite $bolt [16x16/16] { … }`,
+as `plantuml -encodesprite` writes it, compressed too) and puts in its text (`<$bolt>`).
+In C4-PlantUML an element's `$sprite="&cog"` stands above its name. A sprite as a
+stereotype (`<<$bolt>>`), an SVG sprite and the icon libraries of the standard library are
+not drawn yet.
+
 ### Fixes and an even hand
 
 A finding that can be put right in one sure way carries its fix: a line mermaid.js would
@@ -738,8 +746,8 @@ knows its macros by name and reads nothing from the network. A person is PlantUM
 a cylinder on its side, a boundary a dashed frame; the layout follows the arrows as
 PlantUML's does, `Rel_R` puts the second element beside the first, `Rel_Back` above it, and
 `Lay_R` places it without a line. `LAYOUT_WITH_LEGEND()` adds a legend of the kinds drawn.
-Dynamic and sequence diagrams of the library, sprites, tags and the styles set by tag go
-to the Java PlantUML. The other PlantUML types (network diagrams, Salt and more) render through
+Dynamic and sequence diagrams of the library, its robot sprite, tags and the styles set by
+tag go to the Java PlantUML. The other PlantUML types (network diagrams, Salt and more) render through
 the optional `plantuml` package, confined with Landlock. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
 angles. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a

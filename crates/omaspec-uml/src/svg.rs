@@ -7,7 +7,7 @@ use crate::color::{Color, Paint};
 use crate::common::Scale;
 use crate::map::Fit;
 use crate::sketch::{self, Hand, Outline};
-use crate::text::{Block, Family, Line, Link, TABLE_PAD, TableRow};
+use crate::text::{Block, Family, Icon, Line, Link, Picture, TABLE_PAD, TableRow};
 
 /// Drawing order, back to front.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -582,6 +582,8 @@ impl Canvas {
             escape(&self.font)
         );
         let mut top = y;
+        // Icons stand beside the words, drawn after the text element.
+        let mut icons: Vec<(f32, f32, Icon, Color)> = Vec::new();
         for line in &block.lines {
             let left = match align {
                 Align::Left => x,
@@ -603,17 +605,83 @@ impl Canvas {
                             inner,
                             left + cell.left + TABLE_PAD,
                             cell_top + inner.ascent,
+                            &mut icons,
                         );
                         cell_top += inner.height;
                     }
                 }
             } else {
-                self.write_line(&mut out, line, left, top + line.ascent);
+                self.write_line(&mut out, line, left, top + line.ascent, &mut icons);
             }
             top += line.height;
         }
         out.push_str("</text>");
+        for (x, baseline, icon, color) in icons {
+            self.icon(&mut out, &icon, (x, baseline), color);
+        }
         self.layers[layer as usize].push_str(&out);
+    }
+
+    /// `icon` with its left edge at `x`, standing on `baseline`, in
+    /// `color` unless it has its own.
+    fn icon(&self, out: &mut String, icon: &Icon, (x, baseline): (f32, f32), color: Color) {
+        let fill = self.color(icon.color.unwrap_or(color));
+        match &icon.picture {
+            Picture::Pixels(sprite) => {
+                // A path for each level, its pixels run by run.
+                let unit = icon.height / sprite.height.max(1) as f32;
+                let top = baseline - icon.height;
+                let mut paths: [String; 16] = Default::default();
+                for y in 0..sprite.height {
+                    let row = &sprite.levels[y * sprite.width..(y + 1) * sprite.width];
+                    let mut x0 = 0;
+                    while x0 < row.len() {
+                        let level = row[x0];
+                        let mut x1 = x0 + 1;
+                        while x1 < row.len() && row[x1] == level {
+                            x1 += 1;
+                        }
+                        if level > 0 {
+                            let _ = write!(
+                                paths[usize::from(level.min(15))],
+                                "M{} {}h{}v{}h-{}z",
+                                n(x + x0 as f32 * unit),
+                                n(top + y as f32 * unit),
+                                n((x1 - x0) as f32 * unit),
+                                n(unit),
+                                n((x1 - x0) as f32 * unit)
+                            );
+                        }
+                        x0 = x1;
+                    }
+                }
+                for (level, d) in paths.iter().enumerate().filter(|(_, d)| !d.is_empty()) {
+                    let opacity = level as f32 / 15.0;
+                    if level == 15 {
+                        let _ = write!(out, r#"<path d="{d}" fill="{fill}"/>"#);
+                    } else {
+                        let _ = write!(
+                            out,
+                            r#"<path d="{d}" fill="{fill}" fill-opacity="{}"/>"#,
+                            n(opacity)
+                        );
+                    }
+                }
+            }
+            Picture::Path { d, dx, dy } => {
+                let scale = icon.height / crate::icons::SIDE;
+                let top = baseline - icon.height;
+                let _ = write!(
+                    out,
+                    r#"<path d="{d}" transform="translate({} {}) scale({}) translate({} {})" fill="{fill}"/>"#,
+                    n(x),
+                    n(top),
+                    scale,
+                    n(*dx),
+                    n(*dy)
+                );
+            }
+        }
     }
 
     /// The grid of one table row. The first row draws the top edge; every
@@ -633,17 +701,36 @@ impl Canvas {
         self.line(layer, (right, top), (right, bottom), stroke);
     }
 
-    /// One line of `out`'s `<text>`, its first run anchored at `x` and `baseline`.
-    fn write_line(&self, out: &mut String, line: &Line, x: f32, baseline: f32) {
-        for (i, run) in line.runs.iter().enumerate() {
+    /// One line of `out`'s `<text>`, its first run anchored at `x` and
+    /// `baseline`; its icons go to `icons`, with where they stand, and the
+    /// words after one start where it ends.
+    fn write_line(
+        &self,
+        out: &mut String,
+        line: &Line,
+        x: f32,
+        baseline: f32,
+        icons: &mut Vec<(f32, f32, Icon, Color)>,
+    ) {
+        let mut at = x;
+        let mut placed = false;
+        for run in &line.runs {
             let s = &run.style;
+            if let Some(icon) = &run.icon {
+                icons.push((at, baseline, icon.clone(), s.color));
+                at += run.width;
+                placed = false;
+                continue;
+            }
             if let Some(link) = &run.link {
                 open_link(out, link);
             }
             out.push_str("<tspan");
-            if i == 0 {
-                let _ = write!(out, r#" x="{}" y="{}""#, n(x), n(baseline));
+            if !placed {
+                let _ = write!(out, r#" x="{}" y="{}""#, n(at), n(baseline));
+                placed = true;
             }
+            at += run.width;
             let _ = write!(
                 out,
                 r#" font-size="{}" fill="{}""#,

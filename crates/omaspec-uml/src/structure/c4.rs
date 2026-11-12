@@ -90,12 +90,25 @@ fn library(text: &str) -> Option<String> {
 }
 
 /// The diagram `lines` describe, its macros written out.
-pub(crate) fn parse(lines: &[Line<'_>]) -> Result<Diagram, Declined> {
+pub(crate) fn parse(
+    lines: &[Line<'_>],
+    sprites: Option<&crate::icons::sprite::Sprites>,
+) -> Result<Diagram, Declined> {
     let mut writer = Writer::default();
     for line in lines {
         writer.line(line)?;
     }
     writer.legend();
+    // The sprites the elements name, with their pixels, as a label that
+    // names one is written.
+    let none = crate::icons::sprite::Sprites::new();
+    let sprites = sprites.unwrap_or(&none);
+    for (model, text) in &mut writer.out {
+        if text.contains("<$") {
+            *text = crate::icons::sprite::uses(text, sprites)
+                .map_err(|why| Declined::at(model.no, why))?;
+        }
+    }
     let written: Vec<Line<'_>> = writer
         .out
         .iter()
@@ -259,7 +272,7 @@ impl<'a> Writer<'a> {
                 at(5, "link"),
             )
         };
-        refuse(sprite, tags, no)?;
+        refuse(tags, no)?;
         let kind = get(args, "type")
             .map(str::to_owned)
             .filter(|text| !text.is_empty())
@@ -278,9 +291,8 @@ impl<'a> Writer<'a> {
             (None, Some(techn)) => Some(techn),
             (None, None) => None,
         };
-        let mut rows: Vec<String> = pieces(&label)
-            .map(|piece| format!("<size:16><b>{piece}</b></size>"))
-            .collect();
+        let mut rows: Vec<String> = sprite_row(sprite.as_deref(), no)?.into_iter().collect();
+        rows.extend(pieces(&label).map(|piece| format!("<size:16><b>{piece}</b></size>")));
         if let Some(said) = said {
             rows.push(format!("<size:12>[{said}]</size>"));
         }
@@ -343,10 +355,9 @@ impl<'a> Writer<'a> {
                 .or_else(|| Some(word.to_owned()));
             (kind, at(4, "descr"), None, at(2, "tags"), at(3, "link"))
         };
-        refuse(sprite, tags, no)?;
-        let mut rows: Vec<String> = pieces(&label)
-            .map(|piece| format!("<b>{piece}</b>"))
-            .collect();
+        refuse(tags, no)?;
+        let mut rows: Vec<String> = sprite_row(sprite.as_deref(), no)?.into_iter().collect();
+        rows.extend(pieces(&label).map(|piece| format!("<b>{piece}</b>")));
         if let Some(kind) = kind {
             rows.push(format!("<size:12>[{kind}]</size>"));
         }
@@ -391,7 +402,7 @@ impl<'a> Writer<'a> {
             at(6, "tags"),
             at(7, "link"),
         );
-        refuse(sprite, tags, no)?;
+        refuse(tags, no)?;
         if link.is_some() {
             return Err(Declined::at(
                 no,
@@ -401,6 +412,11 @@ impl<'a> Writer<'a> {
         let mut rows: Vec<String> = pieces(&label)
             .map(|piece| format!("<b>{piece}</b>"))
             .collect();
+        if let Some(icon) = sprite_row(sprite.as_deref(), no)?
+            && let Some(first) = rows.first_mut()
+        {
+            *first = format!("{icon} {first}");
+        }
         if let Some(techn) = techn {
             rows.push(format!("<size:12><i>[{techn}]</i></size>"));
         }
@@ -630,10 +646,47 @@ fn alias(args: &Args, no: usize) -> Result<String, Declined> {
     }
 }
 
-fn refuse(sprite: Option<String>, tags: Option<String>, no: usize) -> Result<(), Declined> {
-    if sprite.is_some() {
-        return Err(Declined::at(no, "sprites are not supported yet"));
-    }
+/// The line that shows an element's sprite above its name: an Open
+/// Iconic icon (`&folder`, twice its size unless the writer gives one), a
+/// sprite the diagram defines (`bolt`, `bolt,scale=0.5`), or C4's own
+/// person.
+fn sprite_row(sprite: Option<&str>, no: usize) -> Result<Option<String>, Declined> {
+    let Some(sprite) = sprite.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Ok(None);
+    };
+    let sized = |text: &str| {
+        if text.contains([',', '*', '{']) {
+            text.to_owned()
+        } else {
+            format!("{text}*2")
+        }
+    };
+    let row = if let Some(icon) = sprite.strip_prefix('&') {
+        format!("<&{}>", sized(icon))
+    } else if sprite.starts_with("img:") {
+        return Err(Declined::at(
+            no,
+            "an image as a sprite is not supported yet",
+        ));
+    } else {
+        let name = sprite
+            .split([',', '*', '{'])
+            .next()
+            .unwrap_or(sprite)
+            .trim();
+        match name {
+            // C4's own sprites, drawn as an icon of the same.
+            "person" | "person2" => "<&person*3>".to_owned(),
+            "robot" | "robot2" => {
+                return Err(Declined::at(no, "C4's robot sprite is not drawn yet"));
+            }
+            _ => format!("<${sprite}>"),
+        }
+    };
+    Ok(Some(row))
+}
+
+fn refuse(tags: Option<String>, no: usize) -> Result<(), Declined> {
     if tags.is_some() {
         return Err(Declined::at(no, "C4-PlantUML's tags are not supported yet"));
     }

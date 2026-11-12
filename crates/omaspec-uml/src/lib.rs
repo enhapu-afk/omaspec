@@ -28,6 +28,7 @@ pub mod gantt;
 pub mod gitgraph;
 pub mod graph;
 pub mod hand;
+mod icons;
 pub mod journey;
 pub mod json;
 pub mod kanban;
@@ -121,13 +122,22 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
     // others are read.
     let c4 = kind == source::Kind::Uml && structure::c4::take(&mut raw)?;
     let expanded = preprocess::run(&raw, includes)?;
-    let lines = match &expanded {
+    let lines: Vec<source::Line> = match &expanded {
         Some(expanded) => expanded.iter().map(preprocess::Owned::line).collect(),
         None => raw,
     };
+    // Sprites taken out, each use carrying its pixels.
+    let sprited = icons::sprite::take(&lines)?;
+    let (lines, sprites) = match &sprited {
+        Some((sprited, sprites)) => (
+            sprited.iter().map(preprocess::Owned::line).collect(),
+            Some(sprites),
+        ),
+        None => (lines, None),
+    };
     Ok(match kind {
         source::Kind::Uml => match if c4 {
-            Diagram::Structure(structure::c4::parse(&lines)?)
+            Diagram::Structure(structure::c4::parse(&lines, sprites)?)
         } else {
             uml(&lines)?
         } {

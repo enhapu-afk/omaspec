@@ -197,11 +197,12 @@ Rel_D(x, y, \"along\")
 #[test]
 fn what_it_does_not_draw_is_declined_by_name() {
     for (body, line, part) in [
-        ("Person(a, \"A\", $sprite=\"person\")", 2, "sprites"),
+        ("Person(a, \"A\", $sprite=\"robot\")", 2, "robot"),
+        ("Person(a, \"A\", $sprite=\"bolt\")", 2, "no sprite"),
         (
             "Container(a, \"A\", \"Go\", \"D\", \"img:x.png\")",
             2,
-            "sprites",
+            "image",
         ),
         ("System(a, \"A\", $tags=\"v1\")", 2, "tags"),
         (
