@@ -1,0 +1,20 @@
+@startyaml
+title Pancakes
+#highlight "rest"
+serves: 4
+rest: 30 min
+batter:
+  - {what: flour, grams: 250}
+  - {what: milk, millilitres: 500}
+  - {what: eggs, count: 3}
+  - what: salt
+    amount: a pinch
+pan:
+  heat: medium
+  fat: butter
+steps:
+  - Whisk the batter until it is smooth.
+  - Let it rest.
+  - Fry each pancake until both sides are golden.
+toppings: [lemon and sugar, maple syrup, berries]
+@endyaml

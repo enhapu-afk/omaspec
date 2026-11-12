@@ -32,7 +32,7 @@ const RX: f32 = 5.0;
 const STROKE: f32 = 1.5;
 const RULE: f32 = 1.0;
 /// How many objects and arrays may wrap each other. One more declines.
-const NEST_LIMIT: u32 = 100;
+pub(crate) const NEST_LIMIT: u32 = 100;
 const FILL: Color = Color::hex(0xF1F1F1);
 const HIGHLIGHT: Color = Color::hex(0xCCFF02);
 const MUTED: Color = Color::hex(0x888888);
@@ -201,10 +201,20 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     let family = canvas.family();
     let notes = Annotations::new(&diagram.frame, look.around, family)?;
     let ground = |fill: Paint| fill.or(look.page).unwrap_or(Color::WHITE);
+    // The words of a highlighted row read on its fill, whatever a style
+    // or a theme gave the two: moved towards black or white, whichever
+    // reads better there, until they do.
+    let lit_ground = ground(look.lit_fill);
+    let far = if Color::WHITE.contrast(lit_ground) > Color::BLACK.contrast(lit_ground) {
+        Color::WHITE
+    } else {
+        Color::BLACK
+    };
+    let lit_ink = look.lit_ink.legible_on(lit_ground, far, LEGIBLE);
     let card = lay(
         &diagram.value,
         &Fonts::new(look.ink, ground(look.fill)),
-        &Fonts::new(look.lit_ink, ground(look.lit_fill)),
+        &Fonts::new(lit_ink, lit_ground),
         family,
     );
     paint(&mut canvas, &look, &card, 0.0, notes.top());
@@ -303,7 +313,7 @@ fn step(scan: &mut Scan, ch: char, line: usize) -> Result<(), Declined> {
 
 /// `#highlight "address" / "city"`, or `#highlight a/b/0`. A stereotype
 /// declines: it would ask for a color this drawer does not know.
-fn highlight_path(rest: &str, line: usize) -> Result<Vec<String>, Declined> {
+pub(crate) fn highlight_path(rest: &str, line: usize) -> Result<Vec<String>, Declined> {
     if rest.contains("<<") {
         return Err(Declined::at(
             line,
@@ -379,7 +389,7 @@ fn quoted_part(text: &str, line: usize) -> Result<(String, &str), Declined> {
     Err(Declined::at(line, "`#highlight` path is not understood"))
 }
 
-fn mark(value: &mut Value, path: &[String]) {
+pub(crate) fn mark(value: &mut Value, path: &[String]) {
     let Some((head, rest)) = path.split_first() else {
         return;
     };
@@ -936,6 +946,20 @@ fn row_places(row_y: f32, row: &Row) -> (f32, f32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_words_of_a_highlighted_row_read_on_its_fill() {
+        // A green neither dark nor light, and words nearly its color.
+        let source = "@startjson\n<style>\njsonDiagram {\n  highlight {\n    BackGroundColor #78824B\n    FontColor #6F7A45\n  }\n}\n</style>\n#highlight \"a\"\n{\"a\": 1}\n@endjson\n";
+        let crate::Diagram::Json(diagram) = crate::parse(source).unwrap() else {
+            panic!("a JSON diagram");
+        };
+        let svg = draw(&diagram).unwrap();
+        assert!(
+            svg.contains("#78824B") && svg.contains("#000000") && !svg.contains("#6F7A45"),
+            "{svg}"
+        );
+    }
 
     fn source(body: &str) -> String {
         format!("@startjson\n{body}\n@endjson\n")

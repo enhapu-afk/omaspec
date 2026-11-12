@@ -244,7 +244,7 @@ and its `yellow` may be a peach or a blue), one the theme has twice once.
 
 A box that lines only name gets a declaration before the first of them; a participant
 keeps its column. Where a language has no way to color one box (Mermaid's sequence
-diagrams, mind maps, Gantt charts, pies, journeys and timelines; PlantUML's JSON), the
+diagrams, mind maps, Gantt charts, pies, journeys and timelines; PlantUML's JSON and YAML), the
 command says so and writes nothing.
 
 ### Lines by hand
@@ -681,13 +681,15 @@ diagram window).
 
 Mermaid renders natively, and so do most PlantUML diagrams, with Omaspec's own engines:
 sequence, activity, state, class, component, use case, deployment, object, timing and
-Gantt diagrams, mind maps, WBS, JSON and formulas (`@startlatex`, `@startmath`), and of
+Gantt diagrams, mind maps, WBS, JSON, YAML and formulas (`@startlatex`, `@startmath`), and of
 Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,
 mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards and
 requirement diagrams. The other Mermaid types (the charts of numbers) are drawn by
 [mmdr](https://github.com/1jehuang/mermaid-rs-renderer), a Rust library, in the same
 process. A git graph shows the ids its writer gave its commits; an id Mermaid would make
-up is left out, since it says nothing and differs with every drawing. The other PlantUML types (YAML, network diagrams, Salt and more) render through
+up is left out, since it says nothing and differs with every drawing. A YAML diagram is drawn as the
+JSON it stands for; anchors, aliases and tags, and a text over several lines outside a `|`
+or `>` block, are not read yet and name their line. The other PlantUML types (network diagrams, Salt and more) render through
 the optional `plantuml` package, confined with Landlock. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
 angles. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a

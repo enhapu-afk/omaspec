@@ -46,6 +46,7 @@ mod text;
 pub mod timeline;
 pub mod timing;
 pub mod tree;
+pub mod yaml;
 
 // The Mermaid drawer in omaspec-render lays out flowcharts on the same
 // graph and draws with the same canvas. The modules stay private.
@@ -145,6 +146,7 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
         source::Kind::Gantt => Diagram::Gantt(gantt::parse(&lines)?),
         source::Kind::Flow => Diagram::Flow(flow::parse(&lines)?),
         source::Kind::Json => Diagram::Json(json::parse(&lines)?),
+        source::Kind::Yaml => Diagram::Json(yaml::parse(&lines)?),
         source::Kind::Latex => Diagram::Formula(formula::parse(&lines, formula::Notation::Latex)?),
         source::Kind::Math => Diagram::Formula(formula::parse(&lines, formula::Notation::Ascii)?),
     })

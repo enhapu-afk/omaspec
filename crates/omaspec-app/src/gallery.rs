@@ -267,6 +267,12 @@ pub static EXAMPLES: &[Example] = &[
         "Editor settings",
         "JSON drawn as nested tables."
     ),
+    example!(
+        "recipe.puml",
+        Data,
+        "Pancakes",
+        "YAML drawn as nested tables, one row lit."
+    ),
     example!("day.mmd", Data, "Where a day goes", "A Mermaid pie chart."),
 ];
 

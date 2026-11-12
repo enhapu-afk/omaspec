@@ -282,8 +282,12 @@ pub fn edit_in(
         Language::Mermaid => mermaid_block(code, &lines),
     };
     let text = pack.map(|p| match language {
-        Language::PlantUml if p == Pack::Omarchy && crate::kind::plantuml_block(code) == "json" => {
-            json_omarchy(colors, font)
+        Language::PlantUml if p == Pack::Omarchy => {
+            match crate::kind::plantuml_block(code).as_str() {
+                "json" => tables_omarchy("jsonDiagram", colors, font),
+                "yaml" => tables_omarchy("yamlDiagram", colors, font),
+                _ => plantuml(p, colors, font),
+            }
         }
         Language::PlantUml => plantuml(p, colors, font),
         Language::Mermaid => mermaid(p, colors, font),
@@ -494,15 +498,16 @@ fn plantuml(pack: Pack, c: &Colors, font: Option<&str>) -> String {
     text
 }
 
-/// The Omarchy pack for a JSON diagram. PlantUML draws one from its styles
-/// alone, so the colors go into a `<style>` block.
-fn json_omarchy(c: &Colors, font: Option<&str>) -> String {
+/// The Omarchy pack for a JSON or a YAML diagram, by the name its styles
+/// go by (`jsonDiagram`, `yamlDiagram`). PlantUML draws one from its
+/// styles alone, so the colors go into a `<style>` block.
+fn tables_omarchy(diagram: &str, c: &Colors, font: Option<&str>) -> String {
     let font = font.map_or_else(String::new, |f| format!("  FontName {}\n", f.trim()));
     format!(
         "{PLANTUML_MARK}{} (Omaspec)\n\
          <style>\n\
          document {{\n  BackGroundColor {bg}\n  FontColor {text}\n{font}}}\n\
-         jsonDiagram {{\n  \
+         {diagram} {{\n  \
            node {{\n    BackGroundColor {surface}\n    LineColor {accent}\n    FontColor {text}\n  }}\n  \
            highlight {{\n    BackGroundColor {accent}\n    FontColor {bg}\n  }}\n\
          }}\n\
@@ -696,6 +701,12 @@ mod tests {
         assert!(!text.contains("skinparam"));
         assert_eq!(current(&text), Some(Pack::Omarchy));
         assert_eq!(apply(&text, Language::PlantUml, None), code);
+        let yaml = apply(
+            "@startyaml\na: 1\n@endyaml\n",
+            Language::PlantUml,
+            Some(Pack::Omarchy),
+        );
+        assert!(yaml.contains("\nyamlDiagram {\n") && !yaml.contains("skinparam"));
     }
 
     #[test]

@@ -34,7 +34,7 @@ no browser, no network, and it sends nothing anywhere.
 
 Omaspec draws with its own engines, in a few milliseconds: PlantUML sequence, activity,
 state, class, component, use case, deployment, object, timing and Gantt diagrams, mind
-maps, WBS, JSON and formulas, and Mermaid flowcharts, state and sequence diagrams. The
+maps, WBS, JSON, YAML and formulas, and Mermaid flowcharts, state and sequence diagrams. The
 other Mermaid types are drawn by mmdr, a Rust library, in the same process. Lint findings
 are underlined while you type, and a Ctrl+click in the diagram jumps to its line in the
 source.
@@ -143,8 +143,8 @@ The release has a binary for ARM (aarch64) too; on Arch Linux ARM, `makepkg -si`
 `packaging/aur/omaspec-bin` installs it. ARM is best effort: Omaspec has not been run on ARM hardware yet,
 and reports are welcome as issues.
 
-Optional: `plantuml` for the few PlantUML types Omaspec does not draw itself yet (YAML,
-Salt and more), `wl-clipboard` to copy diagrams, `git` to compare with commits.
+Optional: `plantuml` for the few PlantUML types Omaspec does not draw itself yet (network
+diagrams, Salt and more), `wl-clipboard` to copy diagrams, `git` to compare with commits.
 
 ## Quick start
 
@@ -168,8 +168,8 @@ has every key and command.
   labels, closer to what Graphviz draws.
 - **More Mermaid diagrams drawn by Omaspec.** The charts of numbers (quadrant, sankey,
   radar, treemap, XY chart, packet) and ZenUML. Until then mmdr draws them.
-- **More PlantUML diagrams without Java.** YAML first, then network diagrams (nwdiag);
-  after them Salt, Ditaa, Archimate, EBNF, regex and chronology. Until then the optional
+- **More PlantUML diagrams without Java.** Network diagrams (nwdiag) first; after them
+  Salt, Ditaa, Archimate, EBNF, regex and chronology. Until then the optional
   `plantuml` draws them.
 
 More in the [roadmap](ROADMAP.md#next). Ideas and wishes are welcome as

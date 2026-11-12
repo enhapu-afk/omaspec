@@ -906,8 +906,8 @@ Lint and outline move onto the syntax tree as each type lands.
 
 What comes after 0.4, announced in the README. Lines by hand, projects and
 diagrams that link were released as 0.5.0 on 2026-11-01. The diagram types
-that follow (2026-11-12: PlantUML's YAML and Mermaid's charts of numbers
-first) stand at the end of *An editor that knows the diagram, and more
+that follow (2026-11-12: PlantUML's network diagrams and Mermaid's charts
+of numbers first) stand at the end of *An editor that knows the diagram, and more
 diagrams* below.
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it
@@ -2366,9 +2366,18 @@ without folding, lines by hand and plays, and the Java PlantUML:
       class diagrams, and Markdown in a quoted text, shown as written.
 - [ ] Mermaid: the charts of numbers next: quadrant, sankey, radar,
       treemap, XY chart, packet; and ZenUML.
-- [ ] PlantUML: YAML (close to the JSON drawer), then network diagrams
-      (nwdiag). After them: Salt, Ditaa, Archimate, EBNF, regex,
-      chronology.
+- [x] PlantUML's YAML diagram (2026-11-12): `@startyaml` is read here
+      (`omaspec_uml::yaml`) into the value the JSON drawer draws, so a
+      mapping is a table and a sequence a column, with `#highlight`, a
+      title and a `<style>` (`yamlDiagram`) as there; the Omarchy skin
+      writes that style. Read: mappings and sequences by their
+      indentation, `- key: value`, flow values on one line, quoted and
+      plain scalars, `|` and `>` blocks, comments. The gallery has one
+      (`recipe.puml`). Open, declined with their line: anchors, aliases
+      and tags, a `?` key, a second document, and a flow value or a
+      plain text over several lines.
+- [ ] PlantUML: network diagrams (nwdiag) next. After them: Salt,
+      Ditaa, Archimate, EBNF, regex, chronology.
 
 Beside the stages:
 

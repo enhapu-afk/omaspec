@@ -122,14 +122,14 @@ impl std::error::Error for RenderError {}
 
 /// Diagrams Omaspec does not draw at all, by their `@start…` word. A
 /// declined line of a kind it does draw (timing, Gantt, mind map, WBS,
-/// sequence, state, structure, signal flow, JSON, formulas) keeps that line.
+/// sequence, state, structure, signal flow, JSON, YAML, formulas) keeps that line.
 /// Signal flow is Omaspec's own syntax, so a declined line is not sent to Java.
-const WHOLE: &[&str] = &["chronology", "yaml", "salt", "ditaa", "dot", "tree"];
+const WHOLE: &[&str] = &["chronology", "salt", "ditaa", "dot", "tree"];
 
 /// For a PlantUML diagram Omaspec's own engine does not draw at all,
-/// the error that says so. Salt, ditaa, YAML, chronology, Graphviz and
+/// the error that says so. Salt, ditaa, chronology, Graphviz and
 /// tree diagrams are that kind: a line would only point at the first line
-/// of a different language. A timing, Gantt, JSON or formula diagram that
+/// of a different language. A timing, Gantt, JSON, YAML or formula diagram that
 /// declines keeps that line.
 fn not_native(source: &str) -> Option<RenderError> {
     if !WHOLE.contains(&kind::plantuml_block(source).as_str()) {
