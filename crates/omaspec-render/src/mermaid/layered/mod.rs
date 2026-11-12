@@ -641,8 +641,8 @@ impl Tree<'_> {
                         members.push(Member::Leaf(id.clone()));
                     }
                 }
-                for index in 0..self.parent.len() {
-                    if self.parent[index].is_none() {
+                for (index, parent) in self.parent.iter().enumerate() {
+                    if parent.is_none() {
                         members.push(Member::Group(index));
                     }
                 }

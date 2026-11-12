@@ -695,7 +695,7 @@ impl MachinePlay {
             }
         }
         // States around them get a quiet frame.
-        for state in 0..m.states.len() {
+        for (state, placed) in self.placed.states.iter().enumerate().take(m.states.len()) {
             if !m.is_composite(state) {
                 continue;
             }
@@ -703,10 +703,7 @@ impl MachinePlay {
                 .filter(|&s| m.ancestors(s).any(|a| a == state))
                 .map(|s| levels[s])
                 .fold(0.0, f32::max);
-            if let Some(spot) = self.placed.states[state]
-                .as_ref()
-                .filter(|_| inside > 0.004)
-            {
+            if let Some(spot) = placed.as_ref().filter(|_| inside > 0.004) {
                 let r = (view.place)(spot.rect);
                 let radius = spot.radius * zoom(spot, view);
                 frame.stroke(
