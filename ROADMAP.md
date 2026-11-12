@@ -2408,13 +2408,17 @@ skin draws them by hand.
       is drawn, so it serves as a card's icon without the title standing
       on it; and the words on a box with a fill of the writer's own moved
       towards black or white until they read, so pastel cards stay
-      legible in a dark look. The gallery has one
-      (`agent-platform.puml`), checked in every bundled theme.
+      legible in a dark look. PlantUML's inline style on a box
+      (`#fill;line:color;line.dashed;line.dotted;line.bold;text:color`)
+      gives a card a border of its own, as the dashed card of what a
+      system can do. The gallery has one (`agent-platform.puml`),
+      checked in every bundled theme.
 - [ ] Still apart from the picture: a card's title beside its icon at
       the left with the list under it (now the title is centered); an
       icon drawn in the hand of the lines instead of an emoji's colors
-      (sprites and `<&icon>` are declined); a note card with a dashed
-      border (`rectangle … #line.dashed`); a title at the left with a
+      (sprites and `<&icon>` are declined); hidden lines
+      (`-[hidden]-`), which place a card without an arrow, declined so
+      far; a title at the left with a
       subtitle; arrows of the hand font's own (`→` falls to another
       face); and a layout in layers the writer names, where now the
       ranks follow the arrows and boxes are held in place one by one

@@ -339,7 +339,7 @@ fn advance(c: char, family: Family, bold: bool) -> u32 {
     }
     // A picture of the emoji font is wider than its em, and a word after
     // it would stand on it.
-    if matches!(code, 0x1F000..=0x1FAFF) {
+    if matches!(code, 0x1F000..=0x1FAFF) || emoji_sign(code) {
         return 1250;
     }
     if is_wide(code) {
@@ -365,6 +365,46 @@ fn advance(c: char, family: Family, bold: bool) -> u32 {
         None if family == Family::Serif => 500,
         None => 556,
     }
+}
+
+/// The older signs Unicode shows as an emoji unless told otherwise
+/// (`⭐`, `✋`, `✅`, `⚡`): the emoji font draws them, as wide as its
+/// other pictures.
+fn emoji_sign(code: u32) -> bool {
+    matches!(code,
+        0x231A..=0x231B
+        | 0x23E9..=0x23EC
+        | 0x23F0
+        | 0x23F3
+        | 0x25FD..=0x25FE
+        | 0x2614..=0x2615
+        | 0x2648..=0x2653
+        | 0x267F
+        | 0x2693
+        | 0x26A1
+        | 0x26AA..=0x26AB
+        | 0x26BD..=0x26BE
+        | 0x26C4..=0x26C5
+        | 0x26CE
+        | 0x26D4
+        | 0x26EA
+        | 0x26F2..=0x26F3
+        | 0x26F5
+        | 0x26FA
+        | 0x26FD
+        | 0x2705
+        | 0x270A..=0x270B
+        | 0x2728
+        | 0x274C
+        | 0x274E
+        | 0x2753..=0x2755
+        | 0x2757
+        | 0x2795..=0x2797
+        | 0x27B0
+        | 0x27BF
+        | 0x2B1B..=0x2B1C
+        | 0x2B50
+        | 0x2B55)
 }
 
 /// CJK, Hangul, full-width forms, signs and dingbats (`☀`, `✋`) take a
@@ -967,6 +1007,19 @@ mod tests {
         // Marks without a space are no list.
         let bold = block("**all bold**", font(), Family::Sans).unwrap();
         assert!(!bold.lines[0].flush && bold.lines[0].runs[0].style.bold);
+    }
+
+    #[test]
+    fn an_emoji_is_as_wide_as_it_is_drawn() {
+        let style = Style::from(font());
+        let wide = |text: &str| measure(text, &style, Family::Sans) / style.size;
+        for picture in ["\u{1F916}", "\u{2B50}", "\u{270B}", "\u{2705}"] {
+            assert!((wide(picture) - 1.25).abs() < 0.001, "{picture}");
+        }
+        // With the mark that asks for its colors, no wider.
+        assert!((wide("\u{1F6E1}\u{FE0F}") - 1.25).abs() < 0.001);
+        // A sign a text face draws keeps an em.
+        assert!((wide("\u{2713}") - 1.0).abs() < 0.001);
     }
 
     #[test]

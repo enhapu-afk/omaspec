@@ -27,6 +27,7 @@ rectangle "💻 <size:16>Code sandbox</size>\n* Isolated containers\n* Time and 
 
 rectangle "📈 <size:16>Tracing</size>\n* Every step and tool call\n* Token cost\n* Replay runs" as tracing #DDEEDD
 rectangle "📄 <size:16>Audit log</size>" as audit #DCE8F8
+rectangle "⭐ <size:16>What it can do</size>\n* Multi-step planning\n* Tools and MCP\n* Short and long-term memory\n* A human in the loop\n* Full trace and replay" as can #F3EEFC;line.dashed;line:9B72E0
 
 user -> gateway
 gateway --> orch
@@ -45,4 +46,5 @@ mcp --> jira
 mcp --> db
 orch ..> tracing
 db ..> audit
+can ..> llm
 @enduml

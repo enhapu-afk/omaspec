@@ -223,6 +223,8 @@ struct Decl {
     stereotypes: Vec<String>,
     fill: Option<String>,
     line_color: Option<String>,
+    /// The rest of an inline style (`#fill;line.dashed;text:navy`).
+    more: More,
     open: Open,
     parents: Vec<Inherit>,
     link: Option<crate::text::Link>,
@@ -521,6 +523,7 @@ impl Parser {
         if let Some(color) = &decl.line_color {
             node.line_color = Some(color.clone());
         }
+        decl.more.lay(node);
         if decl.link.is_some() {
             node.link.clone_from(&decl.link);
         }
@@ -548,9 +551,9 @@ impl Parser {
             shape: decl.shape,
             fill: decl.fill.clone(),
             line_color: decl.line_color.clone(),
-            thickness: None,
-            text_color: None,
-            border_dash: None,
+            thickness: decl.more.thickness,
+            text_color: decl.more.text.clone(),
+            border_dash: decl.more.dash,
             explicit: true,
             composite: matches!(decl.open, Open::Group),
             children: Group::default(),
@@ -1110,7 +1113,7 @@ fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl,
         return Err(Declined::at(line, "a declaration needs a name"));
     }
     let (rest, stereotypes) = take_stereotypes(&rest, line)?;
-    let (rest, fill, line_color) = take_colors(&rest, line)?;
+    let (rest, fill, line_color, more) = take_colors(&rest, line)?;
     let (name, parents) = take_inherits(rest.trim(), line)?;
     if name.is_empty() {
         return Err(Declined::at(line, "a declaration needs a name"));
@@ -1132,6 +1135,7 @@ fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl,
         stereotypes,
         fill,
         line_color,
+        more,
         open: if opened { open } else { Open::None },
         parents,
         link,
@@ -1151,7 +1155,7 @@ fn bare(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
     }
     let (rest, link) = take_link(rest, line)?;
     let (rest, stereotypes) = take_stereotypes(&rest, line)?;
-    let (rest, fill, line_color) = take_colors(&rest, line)?;
+    let (rest, fill, line_color, more) = take_colors(&rest, line)?;
     let rest = rest.trim();
     if rest.is_empty() {
         return Ok(None);
@@ -1176,6 +1180,7 @@ fn bare(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
         stereotypes,
         fill,
         line_color,
+        more,
         open: if opened { open } else { Open::None },
         parents: Vec::new(),
         link,
@@ -1218,14 +1223,38 @@ fn take_stereotypes(input: &str, line: usize) -> Result<(String, Vec<String>), D
     Ok((out, stereos))
 }
 
-fn take_colors(
-    input: &str,
-    line: usize,
-) -> Result<(String, Option<String>, Option<String>), Declined> {
+/// What an inline style says beyond the fill and the line's color: the
+/// color of the words, a dashed or dotted border, a bold one.
+#[derive(Debug, Clone, Default, PartialEq)]
+struct More {
+    text: Option<String>,
+    dash: Option<(f32, f32)>,
+    thickness: Option<f32>,
+}
+
+impl More {
+    /// Onto a box declared before: what is said here replaces it.
+    fn lay(&self, node: &mut Element) {
+        if self.text.is_some() {
+            node.text_color.clone_from(&self.text);
+        }
+        if self.dash.is_some() {
+            node.border_dash = self.dash;
+        }
+        if self.thickness.is_some() {
+            node.thickness = self.thickness;
+        }
+    }
+}
+
+type Colors = (String, Option<String>, Option<String>, More);
+
+fn take_colors(input: &str, line: usize) -> Result<Colors, Declined> {
     let chars: Vec<char> = input.chars().collect();
     let mut out = String::new();
     let mut fill = None;
     let mut line_color = None;
+    let mut more = More::default();
     let mut i = 0;
     let mut quote = false;
     while i < chars.len() {
@@ -1246,6 +1275,40 @@ fn take_colors(
                 i += 1;
             }
             let token: String = chars[start..i].iter().collect();
+            let styled = ["#line.", "#line:", "#text:", "#back:"]
+                .iter()
+                .any(|start| token.starts_with(start));
+            if token.contains(';') || styled {
+                // `#fill;line:color;line.dashed;text:color`, PlantUML's
+                // inline style: the fill first, or none.
+                for (index, part) in token[1..].split(';').enumerate() {
+                    let part = part.trim();
+                    let color = |value: &str| {
+                        crate::color::parse(value)
+                            .map(|_| value.to_owned())
+                            .map_err(|err| Declined::at(line, err))
+                    };
+                    match part.split_once(':') {
+                        _ if part.is_empty() => {}
+                        Some(("line", value)) => line_color = Some(color(value)?),
+                        Some(("text", value)) => more.text = Some(color(value)?),
+                        Some(("back", value)) => fill = Some(color(value)?),
+                        None if part == "line.dashed" => more.dash = Some((7.0, 5.0)),
+                        None if part == "line.dotted" => more.dash = Some((2.0, 4.0)),
+                        None if part == "line.bold" => more.thickness = Some(2.5),
+                        None if index == 0 && !part.contains(['/', '|', '.']) => {
+                            fill = Some(color(part)?);
+                        }
+                        _ => {
+                            return Err(Declined::at(
+                                line,
+                                format!("`{part}` in a style is not supported yet"),
+                            ));
+                        }
+                    }
+                }
+                continue;
+            }
             let (next_fill, next_line) = read_color(&token, line)?;
             if next_fill.is_some() {
                 fill = next_fill;
@@ -1258,7 +1321,7 @@ fn take_colors(
         out.push(c);
         i += 1;
     }
-    Ok((out, fill, line_color))
+    Ok((out, fill, line_color, more))
 }
 
 fn read_color(token: &str, line: usize) -> Result<(Option<String>, Option<String>), Declined> {
@@ -2052,6 +2115,26 @@ mod tests {
 
     fn declined(source: &str) -> crate::Declined {
         parse(&lines_of(source)).unwrap_err()
+    }
+
+    #[test]
+    fn an_inline_style_paints_the_border_and_the_words() {
+        let d = diagram(
+            "rectangle \"Core\" as core #F0EAFB;line.dashed;line:8250C4;text:navy\nrectangle b #line.bold;line:red\nrectangle c #line.dotted\n",
+        );
+        let [core, b, c] = &d.root.nodes[..] else {
+            panic!("three boxes");
+        };
+        assert_eq!(core.fill.as_deref(), Some("F0EAFB"));
+        assert_eq!(core.line_color.as_deref(), Some("8250C4"));
+        assert_eq!(core.text_color.as_deref(), Some("navy"));
+        assert_eq!(core.border_dash, Some((7.0, 5.0)));
+        assert_eq!((b.fill.as_deref(), b.thickness), (None, Some(2.5)));
+        assert_eq!(b.line_color.as_deref(), Some("red"));
+        assert_eq!(c.border_dash, Some((2.0, 4.0)));
+        let err = declined("rectangle a #white;line.wavy\n");
+        assert_eq!(err.reason, "`line.wavy` in a style is not supported yet");
+        assert!(crate::render("rectangle a #F0EAFB;line.dashed;line:8250C4\n").is_ok());
     }
 
     fn element<'a>(group: &'a Group, key: &str) -> &'a Element {
