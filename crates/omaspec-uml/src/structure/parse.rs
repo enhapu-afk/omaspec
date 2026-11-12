@@ -102,6 +102,10 @@ fn marks_structure(text: &str) -> bool {
     {
         return true;
     }
+    // A sequence diagram has no `together`.
+    if squeezed_eq(text, "together{") {
+        return true;
+    }
     if let Some(inner) = starts_wrapped(&lead, '(', ')')
         && inner != "*"
     {
@@ -205,6 +209,10 @@ enum Open {
     Group,
 }
 
+/// The word of a line `together` makes: across the flow, whichever way
+/// the flow runs, the second box after the first.
+const ACROSS: &str = "across";
+
 struct RawName {
     key: String,
     label: String,
@@ -290,6 +298,9 @@ struct Parser {
     /// which holds for the whole diagram, inside packages too, as in
     /// PlantUML.
     direction: Option<Direction>,
+    /// `together { … }` blocks open: the boxes declared right in each,
+    /// with its line and how many packages were open around it.
+    together: Vec<(Vec<RawName>, usize, usize)>,
 }
 
 impl Default for Parser {
@@ -305,6 +316,7 @@ impl Default for Parser {
             raw_notes: Vec::new(),
             notes_made: 0,
             direction: None,
+            together: Vec::new(),
         }
     }
 }
@@ -316,6 +328,9 @@ impl Parser {
         }
         if let Some((_, line)) = self.open.last() {
             return Err(Declined::at(*line, "a package has no `}`"));
+        }
+        if let Some((_, line, _)) = self.together.last() {
+            return Err(Declined::at(*line, "`together` has no `}`"));
         }
         let pending = std::mem::take(&mut self.pending);
         let mut resolved = Vec::with_capacity(pending.len());
@@ -386,7 +401,44 @@ impl Parser {
         if squeezed_eq(text, "allowmixing") || squeezed_eq(text, "allow_mixing") {
             return Ok(at + 1);
         }
+        // The boxes of `together` stand in one rank, side by side in the
+        // order written: each held after the one before it, as a hidden
+        // line across the flow holds it (docs/adr/0021).
+        if squeezed_eq(text, "together{") {
+            if self.together.len() >= MAX_DEPTH {
+                return Err(Declined::at(no, "`together` nests too deep"));
+            }
+            self.together.push((Vec::new(), no, self.open.len()));
+            return Ok(at + 1);
+        }
         if text == "}" {
+            if self
+                .together
+                .last()
+                .is_some_and(|(_, _, depth)| *depth == self.open.len())
+            {
+                let (members, line, _) = self.together.pop().expect("a together block");
+                let home = self.here();
+                for pair in members.windows(2) {
+                    self.pending.push(Pending {
+                        from: pair[0].clone_name(),
+                        to: pair[1].clone_name(),
+                        from_card: None,
+                        to_card: None,
+                        from_head: Head::None,
+                        to_head: Head::None,
+                        dash: Dash::Solid,
+                        bold: false,
+                        hidden: true,
+                        toward: Some(ACROSS),
+                        color: None,
+                        label: None,
+                        line,
+                        home: home.clone(),
+                    });
+                }
+                return Ok(at + 1);
+            }
             self.close(no)?;
             return Ok(at + 1);
         }
@@ -477,6 +529,18 @@ impl Parser {
                 self.open.push((path.clone(), decl.line));
             }
             Open::None => {}
+        }
+        // A box declared right in `together` joins its rank.
+        let depth = self.open.len() - usize::from(decl.open == Open::Group);
+        if let Some((members, _, at)) = self.together.last_mut()
+            && *at == depth
+            && !members.iter().any(|m| m.key == decl.key)
+        {
+            members.push(RawName {
+                key: decl.key.clone(),
+                label: decl.label.clone(),
+                shape: None,
+            });
         }
         let home = self.here();
         for parent in &decl.parents {
@@ -740,12 +804,14 @@ impl Parser {
         // that side: held there by a hidden line (docs/adr/0021), joined
         // there by one that is drawn (docs/adr/0027).
         let down = self.direction.unwrap_or_default() == Direction::Down;
-        let along = item
-            .toward
-            .is_none_or(|word| matches!(word, "down" | "up") == down);
+        let along = match item.toward {
+            None => true,
+            Some(ACROSS) => false,
+            Some(word) => matches!(word, "down" | "up") == down,
+        };
         let forward = item
             .toward
-            .is_none_or(|word| matches!(word, "down" | "right"));
+            .is_none_or(|word| matches!(word, "down" | "right" | ACROSS));
         let turned = |from: usize, to: usize| Link {
             from_head: item.to_head,
             to_head: item.from_head,
@@ -2191,6 +2257,45 @@ mod tests {
     }
 
     #[test]
+    fn the_boxes_of_together_stand_in_one_rank_in_the_order_written() {
+        let block = "together {\n  rectangle web\n  rectangle api\n  database db\n}\n";
+        for direction in ["", "left to right direction\n"] {
+            // `together` first or after a box: a structure diagram both.
+            for (before, after) in [("rectangle top\n", ""), ("", "rectangle top\n")] {
+                let source = format!(
+                    "@startuml\n{direction}{before}{block}{after}rectangle low\ntop --> api\napi --> low\n@enduml\n"
+                );
+                let (_, map) = crate::render_mapped(&source, None).unwrap();
+                let at = |name: &str| {
+                    map.places
+                        .iter()
+                        .find(|p| p.name == name)
+                        .unwrap_or_else(|| panic!("{name}: {:?}", map.places))
+                        .rect
+                };
+                let (web, api, db) = (at("web"), at("api"), at("db"));
+                let flat = direction.is_empty();
+                let across = |r: crate::graph::Rect| if flat { r.x } else { r.y };
+                let rank = |r: crate::graph::Rect| {
+                    if flat {
+                        r.y + r.h / 2.0
+                    } else {
+                        r.x + r.w / 2.0
+                    }
+                };
+                assert!(
+                    (rank(web) - rank(api)).abs() < 1.0 && (rank(api) - rank(db)).abs() < 1.0,
+                    "{source}{web:?} {api:?} {db:?}"
+                );
+                assert!(
+                    across(web) < across(api) && across(api) < across(db),
+                    "{source}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn a_hidden_line_places_its_boxes_and_a_direction_says_where() {
         let d = diagram(
             "rectangle a\nrectangle b\nrectangle c\nrectangle d\nrectangle e\na --> b\na -[hidden]-> c : unseen\na -[hidden]right- d\nb -[hidden]left- e\nb -[hidden]up- c\n",
@@ -2477,7 +2582,7 @@ mod tests {
 
     #[test]
     fn unknown_lines_name_themselves() {
-        let err = declined("@startuml\nclass Foo\ntogether {\n}\n@enduml\n");
+        let err = declined("@startuml\nclass Foo\ntogether {\nclass Bar\n@enduml\n");
         assert_eq!(err.line, Some(2));
         assert!(err.reason.contains("together"), "{}", err.reason);
         let err = declined("@startuml\nclass A\nA -[hidden,bold]-> B\n@enduml\n");

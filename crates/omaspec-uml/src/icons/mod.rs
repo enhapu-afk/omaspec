@@ -31,6 +31,9 @@ pub enum Picture {
     Path { d: &'static str, dx: f32, dy: f32 },
     /// A sprite's pixels, each as dark as its level of 16.
     Pixels(std::sync::Arc<sprite::Sprite>),
+    /// An arrow the handwriting face lacks (`→`), drawn by hand in its
+    /// place.
+    Arrow(char),
 }
 
 /// The side of an Open Iconic icon in its own units.

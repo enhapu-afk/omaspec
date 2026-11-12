@@ -627,6 +627,15 @@ impl Canvas {
     fn icon(&self, out: &mut String, icon: &Icon, (x, baseline): (f32, f32), color: Color) {
         let fill = self.color(icon.color.unwrap_or(color));
         match &icon.picture {
+            Picture::Arrow(arrow) => {
+                let d = arrow_path(*arrow, x, baseline, icon.width, icon.height);
+                let width = (icon.height * 0.075).max(0.8);
+                let _ = write!(
+                    out,
+                    r#"<path d="{d}" fill="none" stroke="{fill}" stroke-width="{}" stroke-linecap="round" stroke-linejoin="round"/>"#,
+                    n(width)
+                );
+            }
             Picture::Pixels(sprite) => {
                 // A path for each level, its pixels run by run.
                 let unit = icon.height / sprite.height.max(1) as f32;
@@ -714,7 +723,13 @@ impl Canvas {
     ) {
         let mut at = x;
         let mut placed = false;
-        for run in &line.runs {
+        // The handwriting face has no arrows: drawn in its hand instead.
+        let runs = if self.font == HAND_FONT {
+            hand_arrows(&line.runs, self.family)
+        } else {
+            std::borrow::Cow::Borrowed(line.runs.as_slice())
+        };
+        for run in runs.iter() {
             let s = &run.style;
             if let Some(icon) = &run.icon {
                 icons.push((at, baseline, icon.clone(), s.color));
@@ -854,6 +869,153 @@ impl Canvas {
         }
         out.push_str("</g></svg>");
         out
+    }
+}
+
+/// The arrows the handwriting face lacks.
+const ARROWS: [char; 6] = ['→', '←', '↑', '↓', '↔', '⇒'];
+
+/// `runs` with each arrow of [`ARROWS`] a picture of its own, as wide as
+/// the face would set it, drawn by hand: the words around it keep their
+/// widths in the same proportion.
+fn hand_arrows(
+    runs: &[crate::text::Run],
+    family: Family,
+) -> std::borrow::Cow<'_, [crate::text::Run]> {
+    use crate::text::{Run, measure};
+    if !runs
+        .iter()
+        .any(|run| run.icon.is_none() && !run.style.mono && run.text.contains(ARROWS))
+    {
+        return std::borrow::Cow::Borrowed(runs);
+    }
+    let mut out: Vec<Run> = Vec::with_capacity(runs.len() + 2);
+    for run in runs {
+        if run.icon.is_some() || run.style.mono || !run.text.contains(ARROWS) {
+            out.push(run.clone());
+            continue;
+        }
+        let whole = measure(&run.text, &run.style, family);
+        let share = if whole > 0.0 { run.width / whole } else { 1.0 };
+        let mut words = String::new();
+        let flush = |words: &mut String, out: &mut Vec<Run>| {
+            if !words.is_empty() {
+                let text = std::mem::take(words);
+                out.push(Run {
+                    width: measure(&text, &run.style, family) * share,
+                    text,
+                    ..run.clone()
+                });
+            }
+        };
+        for c in run.text.chars() {
+            if ARROWS.contains(&c) {
+                flush(&mut words, &mut out);
+                out.push(Run {
+                    text: String::new(),
+                    width: measure(&c.to_string(), &run.style, family) * share,
+                    icon: Some(Icon {
+                        picture: Picture::Arrow(c),
+                        width: measure(&c.to_string(), &run.style, family) * share,
+                        height: run.style.size,
+                        color: None,
+                    }),
+                    ..run.clone()
+                });
+            } else {
+                words.push(c);
+            }
+        }
+        flush(&mut words, &mut out);
+    }
+    std::borrow::Cow::Owned(out)
+}
+
+/// An arrow drawn as a hand draws it, in a box `width` wide on `baseline`
+/// for text of `size`: a shaft at the height of a dash with a head.
+fn arrow_path(arrow: char, x: f32, baseline: f32, width: f32, size: f32) -> String {
+    let middle = baseline - size * 0.3;
+    let (left, right) = (x + width * 0.12, x + width * 0.88);
+    let head = (size * 0.22).min(width * 0.4);
+    let horizontal = |from: f32, to: f32| {
+        // A shaft with a slight bow, and the head at `to`.
+        let back = if to > from { -head } else { head };
+        format!(
+            "M{} {}Q{} {} {} {}M{} {}L{} {}L{} {}",
+            n(from),
+            n(middle + 0.4),
+            n((from + to) / 2.0),
+            n(middle - 0.6),
+            n(to),
+            n(middle),
+            n(to + back),
+            n(middle - head * 0.75),
+            n(to),
+            n(middle),
+            n(to + back),
+            n(middle + head * 0.75)
+        )
+    };
+    match arrow {
+        '←' => horizontal(right, left),
+        '↔' => {
+            let mut d = horizontal(left, right);
+            d.push_str(&format!(
+                "M{} {}L{} {}L{} {}",
+                n(left + head),
+                n(middle - head * 0.75),
+                n(left),
+                n(middle),
+                n(left + head),
+                n(middle + head * 0.75)
+            ));
+            d
+        }
+        '⇒' => {
+            let gap = size * 0.08;
+            format!(
+                "M{} {}L{} {}M{} {}L{} {}M{} {}L{} {}L{} {}",
+                n(left),
+                n(middle - gap),
+                n(right - head * 0.4),
+                n(middle - gap),
+                n(left),
+                n(middle + gap),
+                n(right - head * 0.4),
+                n(middle + gap),
+                n(right - head),
+                n(middle - head * 0.85),
+                n(right),
+                n(middle),
+                n(right - head),
+                n(middle + head * 0.85)
+            )
+        }
+        '↑' | '↓' => {
+            let centre = x + width / 2.0;
+            let (top, bottom) = (baseline - size * 0.72, baseline - size * 0.02);
+            let (from, to, back) = if arrow == '↑' {
+                (bottom, top, head)
+            } else {
+                (top, bottom, -head)
+            };
+            format!(
+                "M{} {}Q{} {} {} {}M{} {}L{} {}L{} {}",
+                n(centre + 0.3),
+                n(from),
+                n(centre - 0.5),
+                n((from + to) / 2.0),
+                n(centre),
+                n(to),
+                n(centre - head * 0.75),
+                n(to + back),
+                n(centre),
+                n(to),
+                n(centre + head * 0.75),
+                n(to + back)
+            )
+        }
+        _ => horizontal(left, right),
     }
 }
 

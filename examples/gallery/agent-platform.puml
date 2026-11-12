@@ -5,7 +5,15 @@ skinparam handwritten true
 skinparam linetype ortho
 skinparam roundcorner 18
 skinparam defaultTextAlignment left
-title <size:22>AI agent platform</size>
+<style>
+title {
+  HorizontalAlignment left
+}
+</style>
+title
+<size:22>AI agent platform</size>
+<size:13>a reference architecture, from the user to the tools</size>
+end title
 caption Vendor technologies are illustrative design choices.
 
 actor "User\n(chat, Slack, API)" as user

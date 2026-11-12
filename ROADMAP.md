@@ -2508,9 +2508,20 @@ skin draws them by hand.
       icon. Open: a sprite as a stereotype (`<<$bolt>>`), SVG and color
       sprites, the icon libraries of the standard library (no network),
       C4's robot, and Archimate's icons with Archimate.
-- [ ] Still apart from the picture: a title at the left with a subtitle;
-      arrows of the hand font's own (`→` falls to another face); and
-      layers the writer names, where now the ranks follow the arrows.
+- [x] The rest of the picture (2026-11-12): a title at the left with a
+      subtitle under it, as a style says it (`<style> title {
+      HorizontalAlignment left }`, header, footer and caption too): the
+      frame takes the alignment, so no diagram's skin needs to know it,
+      and a title's second line in a smaller `<size>` is the subtitle.
+      Arrows in the words (`→ ← ↑ ↓ ↔ ⇒`), which Excalifont lacks, are
+      drawn in the hand of the lines where the handwriting face writes
+      them, as wide as the face would set them, so the state-event
+      table and a label say `→` in one hand. Layers the writer names:
+      `together { … }` keeps its boxes in one rank in the order written,
+      each held after the one before it as a hidden line across the flow
+      holds it ([0021](docs/adr/0021-boxes-held-in-place.md)), whichever
+      way the flow runs; a diagram that starts with one is a structure
+      diagram.
 
 Beside the stages:
 

@@ -6,7 +6,7 @@
 
 use crate::Declined;
 use crate::color::{self, Color, Paint};
-use crate::common::{Frame, Scale, Skinparam, Text, normalize_key};
+use crate::common::{Aligned, Frame, Scale, Skinparam, Text, normalize_key};
 use crate::svg::{Align, Canvas, Layer, Stroke};
 use crate::text::{self, Block, Family, Font};
 
@@ -28,6 +28,7 @@ pub struct Annotations {
     frame: Option<Block>,
     look: Look,
     scale: Option<Scale>,
+    aligned: Aligned,
 }
 
 struct Placed {
@@ -67,6 +68,7 @@ impl Annotations {
             },
             look,
             scale: frame.scale,
+            aligned: frame.aligned,
         })
     }
 
@@ -177,22 +179,30 @@ impl Annotations {
 
         let left = left.min(0.0);
         let right = right.max(left + self.width());
-        let middle = (left + right) / 2.0;
         canvas.include(left, places.title);
         canvas.include(right, places.title);
-        canvas.text(
-            Layer::Front,
-            &self.title,
-            (middle, places.title),
-            Align::Center,
-        );
-        canvas.text(Layer::Front, &self.header, (right, 0.0), Align::Right);
+        // Each text where a style puts it, else where PlantUML does.
+        let at = |align: Option<Align>, usual: Align| {
+            let align = align.unwrap_or(usual);
+            let x = match align {
+                Align::Left => left,
+                Align::Center => (left + right) / 2.0,
+                Align::Right => right,
+            };
+            (x, align)
+        };
+        let (x, align) = at(self.aligned.title, Align::Center);
+        canvas.text(Layer::Front, &self.title, (x, places.title), align);
+        let (x, align) = at(self.aligned.header, Align::Right);
+        canvas.text(Layer::Front, &self.header, (x, 0.0), align);
         let mut y = canvas.bottom() + 8.0;
         if !self.caption.is_empty() {
-            canvas.text(Layer::Front, &self.caption, (middle, y), Align::Center);
+            let (x, align) = at(self.aligned.caption, Align::Center);
+            canvas.text(Layer::Front, &self.caption, (x, y), align);
             y += self.caption.height + 5.0;
         }
-        canvas.text(Layer::Front, &self.footer, (middle, y), Align::Center);
+        let (x, align) = at(self.aligned.footer, Align::Center);
+        canvas.text(Layer::Front, &self.footer, (x, y), align);
         if let Some(scale) = self.scale {
             canvas.scale(scale);
         }
@@ -384,6 +394,41 @@ mod tests {
                 declared: None,
             })
             .collect()
+    }
+
+    #[test]
+    fn a_style_puts_the_title_at_the_left_with_a_subtitle_under_it() {
+        let source = |style: &str| {
+            format!(
+                "@startuml\n{style}title\n**Agent platform**\n<size:11>reference architecture</size>\nend title\nrectangle \"A wide box that sets the width\" as a\n@enduml\n"
+            )
+        };
+        let x_of = |svg: &str, words: &str| -> f32 {
+            let at = svg.find(words).unwrap_or_else(|| panic!("{words}: {svg}"));
+            let tag = svg[..at].rfind("<tspan x=\"").unwrap();
+            let rest = &svg[tag + 10..];
+            rest[..rest.find('"').unwrap()].parse().unwrap()
+        };
+        let centered = crate::render(&source("")).unwrap();
+        let left = crate::render(&source(
+            "<style>\ntitle {\n  HorizontalAlignment left\n}\n</style>\n",
+        ))
+        .unwrap();
+        let box_x = x_of(&left, "A wide box");
+        // Both lines of the title start at the left edge of the drawing.
+        let (title, subtitle) = (x_of(&left, "Agent platform"), x_of(&left, "reference"));
+        assert_eq!(title, subtitle);
+        assert!(title < box_x, "{title} {box_x}");
+        assert!(x_of(&centered, "Agent platform") > title);
+        let err = crate::render(&source(
+            "<style>\ntitle {\n  HorizontalAlignment middle\n}\n</style>\n",
+        ))
+        .unwrap_err();
+        assert!(
+            err.reason.contains("left, center or right"),
+            "{}",
+            err.reason
+        );
     }
 
     #[test]

@@ -449,6 +449,15 @@ In C4-PlantUML an element's `$sprite="&cog"` stands above its name. A sprite as 
 stereotype (`<<$bolt>>`), an SVG sprite and the icon libraries of the standard library are
 not drawn yet.
 
+An architecture drawn by hand takes a few more words of PlantUML's. `together { … }` puts
+its boxes in one row, side by side in the order written, so a writer names the layers
+where the arrows would rank them otherwise; `a -[hidden]right- b` holds one box beside
+another and `a -right-> b` draws the line between them. A style puts the title at the
+left (`<style> title { HorizontalAlignment left } </style>`), its second line a subtitle
+in a smaller `<size:12>`; header, footer and caption take the same. In the handwriting
+face an arrow in the words (`→`, `⇒`, `↑`) is drawn in its hand, which the face itself
+lacks.
+
 ### Fixes and an even hand
 
 A finding that can be put right in one sure way carries its fix: a line mermaid.js would

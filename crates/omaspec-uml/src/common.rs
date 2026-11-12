@@ -131,6 +131,9 @@ pub struct Frame {
     pub legend: Option<Legend>,
     /// `mainframe`: the label of a frame around the diagram.
     pub mainframe: Option<Text>,
+    /// Where `<style>` puts the title, the header, the footer and the
+    /// caption (`HorizontalAlignment`); each its usual place when `None`.
+    pub aligned: Aligned,
     pub scale: Option<Scale>,
     /// `skinparam` lines and what `<style>` blocks stand for, in order.
     pub skinparams: Vec<Skinparam>,
@@ -147,6 +150,15 @@ pub struct Frame {
     /// Entries of held boxes that name no box, or two in different
     /// containers: by line, and why.
     pub unplaced: Vec<(usize, String)>,
+}
+
+/// The places a style gives the frame's texts in its width.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Aligned {
+    pub title: Option<Align>,
+    pub header: Option<Align>,
+    pub footer: Option<Align>,
+    pub caption: Option<Align>,
 }
 
 /// `legend … endlegend`: below the diagram unless `top`, aligned in its
@@ -223,8 +235,30 @@ impl Frame {
                 return Err(Declined::at(no, "`<style>` is not supported yet"));
             };
             let (declarations, next) = style::block(lines, at)?;
-            self.skinparams
-                .extend(style::skinparams(&declarations, elements)?);
+            for param in style::skinparams(&declarations, elements)? {
+                // The frame's own: where its texts stand.
+                let place = match normalize_key(&param.key).as_str() {
+                    "titlehorizontalalignment" => &mut self.aligned.title,
+                    "headerhorizontalalignment" => &mut self.aligned.header,
+                    "footerhorizontalalignment" => &mut self.aligned.footer,
+                    "captionhorizontalalignment" => &mut self.aligned.caption,
+                    _ => {
+                        self.skinparams.push(param);
+                        continue;
+                    }
+                };
+                *place = Some(match param.value.trim().to_ascii_lowercase().as_str() {
+                    "left" => Align::Left,
+                    "right" => Align::Right,
+                    "center" => Align::Center,
+                    _ => {
+                        return Err(Declined::at(
+                            param.line,
+                            "`HorizontalAlignment` is left, center or right",
+                        ));
+                    }
+                });
+            }
             return Ok(Some(next));
         }
         if let Some(rest) = keyword(text, "skinparam") {

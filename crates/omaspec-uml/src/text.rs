@@ -1110,6 +1110,33 @@ mod tests {
     }
 
     #[test]
+    fn an_arrow_is_drawn_in_the_hand_the_handwriting_face_lacks() {
+        let drawn = block("Ingest → Clean", font(), Family::Sans).unwrap();
+        let svg = |face: &str| {
+            let mut canvas = crate::svg::Canvas::new(face, false);
+            canvas.text(
+                crate::svg::Layer::Front,
+                &drawn,
+                (0.0, 0.0),
+                crate::svg::Align::Left,
+            );
+            canvas.finish(0.0, None)
+        };
+        let hand = svg(crate::svg::HAND_FONT);
+        assert!(
+            !hand.contains('→') && hand.contains("stroke-linecap=\"round\""),
+            "{hand}"
+        );
+        assert!(
+            hand.contains(">Ingest </tspan>") && hand.contains("> Clean</tspan>"),
+            "{hand}"
+        );
+        // The words keep the room the line was measured with.
+        let plain = svg("sans-serif");
+        assert!(plain.contains('→'), "{plain}");
+    }
+
+    #[test]
     fn links_are_underlined_and_keep_their_address() {
         let links = |text: &str| -> Vec<(String, Option<Link>)> {
             block(text, font(), Family::Sans).unwrap().lines[0]

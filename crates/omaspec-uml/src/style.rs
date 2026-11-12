@@ -276,6 +276,12 @@ impl Element {
         }
     }
 
+    /// The element, with skinparams of its own besides the usual ones:
+    /// the frame's texts, which the frame takes rather than a skin.
+    const fn aligned(self, keys: &'static [(Prop, &'static str)]) -> Element {
+        Element { keys, ..self }
+    }
+
     /// The element, telling its boxes apart by stereotype and by depth.
     pub const fn varied(self) -> Element {
         Element {
@@ -330,10 +336,14 @@ impl Element {
 /// PlantUML looks up with the diagram's name.
 const DOCUMENT: [Element; 6] = [
     Element::keys(&["document"], &[(Prop::BackGroundColor, "BackgroundColor")]),
-    Element::new(&["document", "title"], "Title", TEXT),
-    Element::new(&["document", "header"], "Header", TEXT),
-    Element::new(&["document", "footer"], "Footer", TEXT),
-    Element::new(&["document", "caption"], "Caption", TEXT),
+    Element::new(&["document", "title"], "Title", TEXT)
+        .aligned(&[(Prop::HorizontalAlignment, "TitleHorizontalAlignment")]),
+    Element::new(&["document", "header"], "Header", TEXT)
+        .aligned(&[(Prop::HorizontalAlignment, "HeaderHorizontalAlignment")]),
+    Element::new(&["document", "footer"], "Footer", TEXT)
+        .aligned(&[(Prop::HorizontalAlignment, "FooterHorizontalAlignment")]),
+    Element::new(&["document", "caption"], "Caption", TEXT)
+        .aligned(&[(Prop::HorizontalAlignment, "CaptionHorizontalAlignment")]),
     Element::new(
         &["document", "mainframe"],
         "Mainframe",
