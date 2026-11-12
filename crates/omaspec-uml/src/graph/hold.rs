@@ -158,9 +158,23 @@ pub(super) fn ranked(edges: &[Edge], group: &[usize]) -> Vec<Edge> {
 /// index) right after or before its neighbor, in the order of `holds`:
 /// boxes held after one neighbor follow it in that order.
 pub(super) fn order(rows: &mut [Vec<usize>], holds: &[Hold]) {
+    // A box is moved before the boxes held beside it, however the holds
+    // were written: moved after them, it would leave them behind.
+    let steps = |hold: &Hold| {
+        let (mut at, mut steps) = (hold.beside, 0);
+        while let Some(next) = holds.iter().find(|other| other.node == at) {
+            (at, steps) = (next.beside, steps + 1);
+            if steps > holds.len() {
+                break;
+            }
+        }
+        steps
+    };
+    let mut sorted: Vec<&Hold> = holds.iter().collect();
+    sorted.sort_by_key(|hold| steps(hold));
     // The last box placed after each neighbor so far.
     let mut last: std::collections::HashMap<usize, usize> = Default::default();
-    for hold in holds {
+    for hold in sorted {
         let Some(row) = rows.iter_mut().find(|row| row.contains(&hold.beside)) else {
             continue;
         };
@@ -249,6 +263,7 @@ mod tests {
             marked: false,
             arrival: 0,
             label_before: None,
+            level: None,
         }
     }
 

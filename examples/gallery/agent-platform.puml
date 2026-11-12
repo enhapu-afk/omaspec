@@ -1,5 +1,6 @@
 @startuml
 ' An architecture drawn by hand: boxes with a list, colors by layer.
+' A direction in a line puts its second box beside its first.
 skinparam handwritten true
 skinparam linetype ortho
 skinparam roundcorner 18
@@ -30,16 +31,16 @@ rectangle "📈 <size:16>Tracing</size>\n* Every step and tool call\n* Token cos
 rectangle "📄 <size:16>Audit log</size>" as audit #DCE8F8
 rectangle "⭐ <size:16>What it can do</size>\n* Multi-step planning\n* Tools and MCP\n* Short and long-term memory\n* A human in the loop\n* Full trace and replay" as can #F3EEFC;line.dashed;line:9B72E0
 
-user -> gateway
+user -right-> gateway
 gateway --> orch
-auth -> orch
+auth -right-> orch
 registry -> orch
-orch <-> llm : reason,\ndecide
+orch <-right-> llm : reason,\ndecide
 orch --> perm
 perm --> approval : needs approval
 approval --> user : approve?
-perm -> tools
-memory -> perm
+perm --> tools
+memory -right-> perm
 tools --> mcp
 tools --> sandbox
 mcp --> gh

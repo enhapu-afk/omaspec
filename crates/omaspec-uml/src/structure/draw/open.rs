@@ -114,6 +114,10 @@ impl<'a> Nested for Elements<'a> {
         frame_of(&item.item, self.skin)
     }
 
+    fn level(&self, group: &'a Group, index: usize) -> Option<bool> {
+        group.edges.get(index)?.level
+    }
+
     fn label_before(&self, group: &'a Group, index: usize) -> Option<bool> {
         match group.edges.get(index) {
             Some(edge) => edge.label_before,

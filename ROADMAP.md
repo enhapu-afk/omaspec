@@ -2424,10 +2424,22 @@ skin draws them by hand.
       where it drifted off as the others were pulled to their lines
       (`graph::fit_row`). `skinparam defaultTextAlignment left` starts a
       box's title at its left edge, over its list and beside its icon.
+- [x] A line within a rank (2026-11-12,
+      [0027](docs/adr/0027-a-line-within-a-rank.md)): `a -right-> b`
+      puts `b` beside `a` in its rank and runs straight between the two,
+      its label over its middle; `-left->` puts it before, and where the
+      flow runs to the right `-down->` and `-up->` do the same. Along
+      the flow `-up->` runs from its second box to its first. The layout
+      holds the two as an entry of 0021 does, keeps room for the label
+      and the heads, and routes the line itself (`graph::level_route`);
+      where the two cannot share a rank the line is one like any other.
+      Holds are placed anchor first, so a chain stands however it was
+      written. The gallery's architecture puts its gateway beside the
+      user, its router beside the orchestrator. Structure diagrams
+      only; a state diagram's `-right->` stays declined.
 - [ ] Still apart from the picture: an icon drawn in the hand of the
       lines instead of an emoji's colors (sprites and `<&icon>` are
-      declined); a direction on a line that is drawn (`-right->`), which
-      needs a line within one rank; a title at the left with a subtitle;
+      declined); a title at the left with a subtitle;
       arrows of the hand font's own (`→` falls to another face); and
       layers the writer names, where now the ranks follow the arrows.
 

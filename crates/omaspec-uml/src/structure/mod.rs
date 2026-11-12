@@ -345,6 +345,11 @@ pub struct Link {
     pub bold: bool,
     /// `-[hidden]-`: the line places its boxes and is not drawn.
     pub hidden: bool,
+    /// `-right->`, `-left->` (`-down->`, `-up->` where the flow runs to
+    /// the right): the line runs within a rank, its second box right
+    /// after its first across the flow or right before it
+    /// ([0027](../../../docs/adr/0027-a-line-within-a-rank.md)).
+    pub level: Option<bool>,
     pub line: usize,
     /// The side of the line its label takes, where the writer chose one
     /// by hand ([`crate::hand::Label`]).

@@ -980,6 +980,7 @@ impl Parser {
             dash: rel.dash,
             bold: false,
             hidden: false,
+            level: None,
             line: rel.line,
             label_before: None,
         };

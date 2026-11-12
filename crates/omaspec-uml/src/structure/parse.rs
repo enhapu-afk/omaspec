@@ -721,6 +721,7 @@ impl Parser {
             dash: item.dash,
             bold: item.bold,
             hidden: item.hidden,
+            level: None,
             line: item.line,
             label_before: None,
         };
@@ -739,29 +740,43 @@ impl Parser {
                 self.container_mut(&home).edges.push(link(from_i, to_i));
                 return Ok(());
             };
-            // Along the flow the hidden line ranks the two; across it the
-            // second box is held in the rank of the first, on that side
-            // (docs/adr/0021).
+            // Along the flow the line ranks the two, against it from its
+            // second box to its first; across it the second box stands in
+            // the rank of the first, on that side: held there by a hidden
+            // line (docs/adr/0021), joined there by one that is drawn
+            // (docs/adr/0027).
             let down = self.direction.unwrap_or_default() == Direction::Down;
             let along = matches!(word, "down" | "up") == down;
             let forward = matches!(word, "down" | "right");
+            let turned = Link {
+                from_head: item.to_head,
+                to_head: item.from_head,
+                from_card: item.to_card.as_ref().map(|text| text_at(text, item.line)),
+                to_card: item.from_card.as_ref().map(|text| text_at(text, item.line)),
+                ..link(to_i, from_i)
+            };
+            let level = Link {
+                level: Some(forward),
+                ..link(from_i, to_i)
+            };
             let group = self.container_mut(&home);
             match (along, forward) {
                 (true, true) => group.edges.push(link(from_i, to_i)),
-                (true, false) => group.edges.push(link(to_i, from_i)),
-                (false, after) => group.held.push(crate::graph::hold::Held {
+                (true, false) => group.edges.push(turned),
+                (false, after) if item.hidden => group.held.push(crate::graph::hold::Held {
                     line: item.line,
                     index: to_i,
                     beside: from_i,
                     after,
                 }),
+                (false, _) => group.edges.push(level),
             }
             return Ok(());
         }
         if item.toward.is_some() {
             return Err(Declined::at(
                 item.line,
-                "a hidden line with a direction between boxes of different packages is not supported yet",
+                "a line with a direction between boxes of different packages is not supported yet",
             ));
         }
         let Some((depth, a, b)) = meeting(&from, &to) else {
@@ -1840,17 +1855,10 @@ fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
     if token.contains('+') {
         return Err(Declined::at(line, "nesting with `+` is not supported yet"));
     }
-    // A direction places the second box; only a hidden line can say it,
-    // since a line that is drawn would have to run within one rank.
+    // A direction says where the second box goes (docs/adr/0027).
     let toward = direction_word(token);
     let mut rest = token.to_owned();
     if let Some(word) = toward {
-        if !token.to_ascii_lowercase().contains("[hidden]") {
-            return Err(Declined::at(
-                line,
-                format!("an arrow with a direction (`{word}`) is not supported yet"),
-            ));
-        }
         let lower = rest.to_ascii_lowercase();
         if let Some(at) = lower.find(word) {
             rest.replace_range(at..at + word.len(), "");
@@ -2196,9 +2204,29 @@ mod tests {
         );
         assert_eq!(across.root.held.len(), 1);
         assert_eq!(across.root.edges.len(), 1);
-        // A line that is drawn cannot say a direction yet.
-        let err = declined("rectangle a\nrectangle b\na -right-> b\n");
-        assert!(err.reason.contains("direction"), "{}", err.reason);
+        // A line that is drawn runs within the rank, or along the flow:
+        // against it from its second box to its first, its head with it.
+        let drawn = diagram(
+            "rectangle a\nrectangle b\nrectangle c\na -right-> b : beside\na <-left- c\nb -up-> a\nb -down-> c\n",
+        );
+        let told: Vec<(usize, usize, Option<bool>, Head, Head)> = drawn
+            .root
+            .edges
+            .iter()
+            .map(|edge| (edge.from, edge.to, edge.level, edge.from_head, edge.to_head))
+            .collect();
+        assert_eq!(
+            told,
+            [
+                (0, 1, Some(true), Head::None, Head::Arrow),
+                (0, 2, Some(false), Head::Arrow, Head::None),
+                (0, 1, None, Head::Arrow, Head::None),
+                (1, 2, None, Head::None, Head::Arrow),
+            ]
+        );
+        assert!(drawn.root.held.is_empty());
+        let err = declined("package p {\n  rectangle a\n}\nrectangle b\na -right-> b\n");
+        assert!(err.reason.contains("different packages"), "{}", err.reason);
     }
 
     #[test]
@@ -2424,9 +2452,6 @@ mod tests {
         let err = declined("@startuml\nclass Foo\ntogether {\n}\n@enduml\n");
         assert_eq!(err.line, Some(2));
         assert!(err.reason.contains("together"), "{}", err.reason);
-        let err = declined("@startuml\nclass A\nA -up-> B\n@enduml\n");
-        assert_eq!(err.line, Some(2));
-        assert!(err.reason.contains("direction"), "{}", err.reason);
         let err = declined("@startuml\nclass A\nA -[hidden,bold]-> B\n@enduml\n");
         assert!(err.reason.contains("hidden"), "{}", err.reason);
         let err = declined("@startuml\ncomponent C {\n  port p\n}\n@enduml\n");
