@@ -236,6 +236,12 @@ pub static EXAMPLES: &[Example] = &[
         "C4-PlantUML: people, containers, a boundary and a legend."
     ),
     example!(
+        "insurance.puml",
+        Structure,
+        "Handling a claim",
+        "ArchiMate: business, application and technology, each with its icon."
+    ),
+    example!(
         "home-network.puml",
         Structure,
         "A home network",

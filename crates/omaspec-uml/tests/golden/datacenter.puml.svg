@@ -62,7 +62,9 @@
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="126.97" y="64.99" font-size="14" fill="#000000" textLength="57.58" lengthAdjust="spacing"> balancer</tspan>
 </text>
+<g id="icon">
 <path d="M6 0v1h-6v1h6v1l2-1.5-2-1.5zm-4 4l-2 1.5 2 1.5v-1h6v-1h-6v-1z" transform="translate(116.05 54.07) scale(1.365) translate(0 0)" fill="#000000"/>
+</g>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="265.61" y="64.99" font-size="14" fill="#000000" textLength="31.14" lengthAdjust="spacing">app1</tspan>
 </text>

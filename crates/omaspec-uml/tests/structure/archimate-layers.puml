@@ -1,0 +1,11 @@
+@startuml
+archimate #Business "Customer" as c <<business-actor>>
+archimate #Application "CRM" as crm <<application-component>>
+archimate #Technology "Mainframe" as mf <<technology-node>>
+archimate #Motivation "Goal" as g <<motivation-goal>>
+archimate #Strategy "Capability" as cap <<strategy-capability>>
+archimate #Implementation "Package" as wp <<implementation-workpackage>>
+archimate #Physical "Truck" as t <<physical-equipment>>
+c --> crm
+crm --> mf
+@enduml

@@ -7,6 +7,7 @@
 //! keeps that line as a [`Crossing`]; the packages it runs into are laid
 //! out with that one, and it runs through their ranks like any other.
 
+pub(crate) mod archimate;
 pub(crate) mod c4;
 mod draw;
 mod mermaid;

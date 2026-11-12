@@ -188,9 +188,18 @@ pub(crate) fn uses(text: &str, sprites: &Sprites) -> Result<String, String> {
             rest = after;
             continue;
         }
-        let sprite = sprites
-            .get(name)
-            .ok_or_else(|| format!("`<${name}>`: no sprite of that name is defined"))?;
+        let Some(sprite) = sprites.get(name) else {
+            // PlantUML's own: ArchiMate's icons stay as written.
+            if name.starts_with("archimate/") {
+                out.push('<');
+                out.push_str(&after[..color]);
+                out.push('$');
+                out.push_str(name);
+                rest = &named[end..];
+                continue;
+            }
+            return Err(format!("`<${name}>`: no sprite of that name is defined"));
+        };
         out.push('<');
         out.push_str(&after[..color]);
         out.push_str("$:");

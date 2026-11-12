@@ -1,0 +1,24 @@
+@startuml
+' ArchiMate with Archimate-PlantUML: Omaspec knows the library's macros
+' by name and reads nothing from the network. Each element is a box in
+' the color of its layer, the icon of its type over its name.
+!include <archimate/Archimate>
+title Handling a claim
+
+Business_Actor(customer, "Customer")
+Business_Role(insurant, "Insurant")
+Business_Service(claimService, "Claim registration")
+Business_Process(handle, "Handle claim")
+Business_Object(claim, "Claim")
+Application_Component(crm, "CRM system")
+Application_Service(policyData, "Policy data")
+Technology_Node(host, "Mainframe")
+
+Rel_Assignment_Right(customer, insurant)
+Rel_Serving(claimService, insurant, "serves")
+Rel_Realization_Up(handle, claimService)
+Rel_Access_w(handle, claim, "writes")
+Rel_Serving_Up(policyData, handle)
+Rel_Realization_Up(crm, policyData)
+Rel_Serving_Up(host, crm)
+@enduml

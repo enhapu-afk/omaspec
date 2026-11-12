@@ -153,8 +153,7 @@ walks you through a state machine, a scenario and a recorded trace in ten minute
   frames set the order.
 - **More Mermaid diagrams drawn by Omaspec.** The charts of numbers (quadrant, sankey,
   radar, treemap, XY chart, packet) and ZenUML.
-- **More PlantUML diagrams without Java.** Archimate, Salt, EBNF and regex, Ditaa and
-  chronology.
+- **More PlantUML diagrams without Java.** Salt, EBNF and regex, Ditaa and chronology.
 - **The AUR**, as soon as it takes new accounts.
 
 ## Status

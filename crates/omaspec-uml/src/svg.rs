@@ -34,6 +34,10 @@ pub const LINES: &str = "lines";
 /// how well a picture reads leaves them out.
 pub const GRID: &str = "grid";
 
+/// The id of the group around an icon drawn in a line of text: it is
+/// seen as the words beside it are, against what lies under it.
+pub const ICON: &str = "icon";
+
 /// The handwriting face a sketched diagram's words are set in. Measured
 /// widths stay those of the canvas font; each run is locked to its width.
 pub const HAND_FONT: &str = "Excalifont";
@@ -617,7 +621,9 @@ impl Canvas {
         }
         out.push_str("</text>");
         for (x, baseline, icon, color) in icons {
+            let _ = write!(out, r#"<g id="{ICON}">"#);
             self.icon(&mut out, &icon, (x, baseline), color);
+            out.push_str("</g>");
         }
         self.layers[layer as usize].push_str(&out);
     }
@@ -634,6 +640,24 @@ impl Canvas {
                     out,
                     r#"<path d="{d}" fill="none" stroke="{fill}" stroke-width="{}" stroke-linecap="round" stroke-linejoin="round"/>"#,
                     n(width)
+                );
+            }
+            Picture::Line { d, filled } => {
+                let scale = icon.height / 16.0;
+                let top = baseline - icon.height;
+                let paint = if *filled {
+                    format!(r#"fill="{fill}""#)
+                } else {
+                    format!(
+                        r#"fill="none" stroke="{fill}" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round""#
+                    )
+                };
+                let _ = write!(
+                    out,
+                    r#"<path d="{d}" transform="translate({} {}) scale({})" {paint}/>"#,
+                    n(x),
+                    n(top),
+                    scale
                 );
             }
             Picture::Pixels(sprite) => {

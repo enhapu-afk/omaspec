@@ -166,6 +166,9 @@ fn plantuml_kind(code: &str, lines: &[&str]) -> DiagramKind {
         Some(UmlType::Structure) if omaspec_uml::is_c4(code) => {
             DiagramKind::new(Kind::Structure, "C4 diagram")
         }
+        Some(UmlType::Structure) if omaspec_uml::is_archimate(code) => {
+            DiagramKind::new(Kind::Structure, "ArchiMate diagram")
+        }
         Some(UmlType::Structure) => DiagramKind::new(Kind::Structure, structure_name(code)),
         Some(UmlType::Sequence) => DiagramKind::new(Kind::Sequence, "Sequence diagram"),
         Some(UmlType::Network) => DiagramKind::new(Kind::Other, "Network diagram"),

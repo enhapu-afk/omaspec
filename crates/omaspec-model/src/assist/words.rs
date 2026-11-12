@@ -186,6 +186,66 @@ const PUML_C4: &[&str] = &[
     "LAYOUT_AS_SKETCH()",
 ];
 
+/// Archimate-PlantUML's macros, for that kind only.
+const PUML_ARCHIMATE: &[&str] = &[
+    "Business_Actor",
+    "Business_Role",
+    "Business_Process",
+    "Business_Function",
+    "Business_Service",
+    "Business_Object",
+    "Business_Event",
+    "Application_Component",
+    "Application_Service",
+    "Application_Interface",
+    "Application_DataObject",
+    "Technology_Node",
+    "Technology_Device",
+    "Technology_SystemSoftware",
+    "Technology_Artifact",
+    "Technology_CommunicationNetwork",
+    "Motivation_Stakeholder",
+    "Motivation_Goal",
+    "Motivation_Requirement",
+    "Strategy_Capability",
+    "Implementation_WorkPackage",
+    "Grouping",
+    "Rel_Serving",
+    "Rel_Realization",
+    "Rel_Assignment",
+    "Rel_Access",
+    "Rel_Triggering",
+    "Rel_Flow",
+    "Rel_Composition",
+    "Rel_Aggregation",
+    "Rel_Specialization",
+    "Rel_Association",
+    "Rel_Influence",
+];
+
+const PUML_ARCHIMATE_BLOCKS: &[Block] = &[
+    (
+        "Business_Actor",
+        "someone who acts",
+        "Business_Actor(${1:alias}, \"${2:Label}\")",
+    ),
+    (
+        "Application_Component",
+        "a part of an application",
+        "Application_Component(${1:alias}, \"${2:Label}\")",
+    ),
+    (
+        "Rel_Serving",
+        "one element serves another",
+        "Rel_Serving(${1:from}, ${2:to}, \"${3:label}\")",
+    ),
+    (
+        "Grouping",
+        "elements that belong together",
+        "Grouping(${1:alias}, \"${2:Label}\") {\n  ${3}\n}",
+    ),
+];
+
 /// A network diagram's words (nwdiag), for that kind only.
 const PUML_NETWORK: &[&str] = &[
     "network",
@@ -458,6 +518,9 @@ fn tables(lang: Language, kind: &DiagramKind) -> (Vec<&'static str>, &'static [B
                 Kind::State => (PUML_STATE, PUML_STATE_BLOCKS),
                 Kind::Activity => (PUML_ACTIVITY, PUML_ACTIVITY_BLOCKS),
                 Kind::Structure if kind.name == "C4 diagram" => (PUML_C4, PUML_C4_BLOCKS),
+                Kind::Structure if kind.name == "ArchiMate diagram" => {
+                    (PUML_ARCHIMATE, PUML_ARCHIMATE_BLOCKS)
+                }
                 Kind::Other if kind.name == "Network diagram" => {
                     (PUML_NETWORK, PUML_NETWORK_BLOCKS)
                 }

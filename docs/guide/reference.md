@@ -733,7 +733,7 @@ diagram window).
 
 Mermaid renders natively, and so do most PlantUML diagrams, with Omaspec's own engines:
 sequence, activity, state, class, component, use case, deployment, object, timing and
-Gantt diagrams, C4-PlantUML, network diagrams, mind maps, WBS, JSON, YAML and formulas (`@startlatex`,
+Gantt diagrams, C4-PlantUML, ArchiMate, network diagrams, mind maps, WBS, JSON, YAML and formulas (`@startlatex`,
 `@startmath`), and of
 Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,
 mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards and
@@ -756,7 +756,11 @@ a cylinder on its side, a boundary a dashed frame; the layout follows the arrows
 PlantUML's does, `Rel_R` puts the second element beside the first, `Rel_Back` above it, and
 `Lay_R` places it without a line. `LAYOUT_WITH_LEGEND()` adds a legend of the kinds drawn.
 Dynamic and sequence diagrams of the library, its robot sprite, tags and the styles set by
-tag go to the Java PlantUML. A network diagram (`@startnwdiag`, or `nwdiag { … }` in an
+tag go to the Java PlantUML. ArchiMate is drawn both ways it is written: PlantUML's
+`archimate #Business "Customer" as c <<business-actor>>` and Archimate-PlantUML's
+macros (`!include <archimate/Archimate>`, `Business_Actor(c, "Customer")`,
+`Rel_Serving(a, b)`), each element in the color of its layer with the icon of its type
+over its name; the icons serve any text too (`<$archimate/technology-node>`). A network diagram (`@startnwdiag`, or `nwdiag { … }` in an
 `@startuml`) draws its networks as bars one under another, the servers between them with
 their addresses on the lines, a server on no network (`internet -- router`) above the
 topmost bar, and a group as a colored field. The other PlantUML types (Salt, Ditaa and more) render through

@@ -54,7 +54,7 @@ pub mod yaml;
 // The Mermaid drawer in omaspec-render lays out flowcharts on the same
 // graph and draws with the same canvas. The modules stay private.
 pub use color::{Color, Paint, parse as parse_color};
-pub use svg::{Align, Canvas, GRID, HAND_FONT, LINES, Layer, Stroke, without_lines};
+pub use svg::{Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, Stroke, without_lines};
 pub use text::{
     Block, Family, Font, Link, Style, block as measure_text, creole_link, measure as measure_run,
     styled as measure_styled,
@@ -123,6 +123,8 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
     // C4-PlantUML is known by name, its include taken out before the
     // others are read.
     let c4 = kind == source::Kind::Uml && structure::c4::take(&mut raw)?;
+    // So is Archimate-PlantUML.
+    let archimate = kind == source::Kind::Uml && !c4 && structure::archimate::take(&mut raw);
     let expanded = preprocess::run(&raw, includes)?;
     let lines: Vec<source::Line> = match &expanded {
         Some(expanded) => expanded.iter().map(preprocess::Owned::line).collect(),
@@ -140,6 +142,8 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
     Ok(match kind {
         source::Kind::Uml => match if c4 {
             Diagram::Structure(structure::c4::parse(&lines, sprites)?)
+        } else if archimate {
+            Diagram::Structure(structure::archimate::parse(&lines)?)
         } else {
             uml(&lines)?
         } {
@@ -198,6 +202,15 @@ pub fn is_c4(source: &str) -> bool {
     }
 }
 
+/// Whether `source` is an Archimate-PlantUML diagram: an `@startuml` that
+/// includes the library (`!include <archimate/Archimate>`).
+pub fn is_archimate(source: &str) -> bool {
+    match source::body(source) {
+        Ok((source::Kind::Uml, mut raw)) => structure::archimate::take(&mut raw),
+        _ => false,
+    }
+}
+
 /// The type the engine parses `source` as; `None` if it is no `@startuml`
 /// diagram or its body cannot be read. Lint, outline and the state
 /// machines go by this, so they never read a diagram as another type than
@@ -207,7 +220,7 @@ pub fn uml_type(source: &str) -> Option<UmlType> {
     let (source::Kind::Uml, mut raw) = source::body(source).ok()? else {
         return None;
     };
-    if structure::c4::take(&mut raw).unwrap_or(true) {
+    if structure::c4::take(&mut raw).unwrap_or(true) || structure::archimate::take(&mut raw) {
         return Some(UmlType::Structure);
     }
     Some(match preprocess::run(&raw, None) {

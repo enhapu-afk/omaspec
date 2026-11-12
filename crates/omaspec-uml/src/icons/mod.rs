@@ -8,6 +8,7 @@
 //! `<&name,color=red>`. The icon stands on the baseline, as tall as a
 //! capital of the text at scale 1.
 
+pub(crate) mod archimate;
 mod open_iconic;
 pub(crate) mod sprite;
 
@@ -31,6 +32,9 @@ pub enum Picture {
     Path { d: &'static str, dx: f32, dy: f32 },
     /// A sprite's pixels, each as dark as its level of 16.
     Pixels(std::sync::Arc<sprite::Sprite>),
+    /// Line art in a box 16 by 16, stroked or filled: ArchiMate's icons
+    /// (`<$archimate/business-actor>`).
+    Line { d: String, filled: bool },
     /// An arrow the handwriting face lacks (`→`), drawn by hand in its
     /// place.
     Arrow(char),
@@ -90,6 +94,30 @@ fn icon(name: &str, color: Option<&str>, options: &str, size: f32) -> Result<Ico
 /// The sprite a use carries (`:16x16:00F…`, as [`sprite::take`] wrote
 /// it), drawn a unit a pixel at scale 1.
 fn sprite_tag(rest: &str, color: Option<&str>) -> Result<Icon, String> {
+    // PlantUML's own: ArchiMate's icons, which no diagram defines.
+    if let Some(named) = rest.strip_prefix("archimate/") {
+        let end = named
+            .find(|c: char| !(c.is_ascii_alphanumeric() || matches!(c, '-' | '_')))
+            .unwrap_or(named.len());
+        let (name, options) = named.split_at(end);
+        let (d, filled) = archimate::icon(name).ok_or_else(|| {
+            format!("`<$archimate/{name}>`: ArchiMate has no element of that name")
+        })?;
+        let (scale, own) = options_of(options)?;
+        let color = match own.or(color) {
+            Some(value) => {
+                Some(color::parse(value)?.ok_or("an icon cannot be transparent".to_owned())?)
+            }
+            None => None,
+        };
+        let side = 16.0 * scale;
+        return Ok(Icon {
+            picture: Picture::Line { d, filled },
+            width: side,
+            height: side,
+            color,
+        });
+    }
     let Some(inline) = rest.strip_prefix(':') else {
         let name: String = rest
             .chars()

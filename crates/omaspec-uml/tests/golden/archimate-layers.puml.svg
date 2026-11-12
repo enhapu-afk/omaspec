@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="561" height="227" viewBox="0 0 561 227">
+<g transform="translate(10,10)">
+<g>
+<rect x="2.72" y="0" width="84.68" height="47.6" fill="#FFFFCC" stroke="#181818" stroke-width="1"/>
+<rect x="17.12" y="79.6" width="55.88" height="47.6" fill="#C2F0FF" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="159.2" width="90.12" height="47.6" fill="#C9FFC9" stroke="#181818" stroke-width="1"/>
+<rect x="131.4" y="0" width="54" height="47.6" fill="#CCCCFF" stroke="#181818" stroke-width="1"/>
+<rect x="229.4" y="0" width="85.46" height="47.6" fill="#F8E7C0" stroke="#181818" stroke-width="1"/>
+<rect x="358.86" y="0" width="78.47" height="47.6" fill="#FFE0E0" stroke="#181818" stroke-width="1"/>
+<rect x="481.33" y="0" width="59" height="47.6" fill="#97FF97" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
+<polyline points="45.06,47.6 45.06,69.6" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="45.06,127.2 45.06,149.2" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="41.06,69.6 45.06,79.6 49.06,69.6 45.06,74.1" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="41.06,149.2 45.06,159.2 49.06,149.2 45.06,153.7" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="14.72" y="38.3" font-size="14" fill="#000000" textLength="60.68" lengthAdjust="spacing">Customer</tspan>
+</text>
+<g id="icon">
+<path d="M5.5 3.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0zM8 6v5M4 8h8M8 11l-3 4M8 11l3 4" transform="translate(37.06 6) scale(1)" fill="none" stroke="#000000" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+</g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="29.12" y="117.9" font-size="14" fill="#000000" textLength="31.88" lengthAdjust="spacing">CRM</tspan>
+</text>
+<g id="icon">
+<path d="M5 2h9v12H5zM3 5h4v2H3zM3 9h4v2H3z" transform="translate(37.06 85.6) scale(1)" fill="none" stroke="#000000" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+</g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="12" y="197.5" font-size="14" fill="#000000" textLength="66.12" lengthAdjust="spacing">Mainframe</tspan>
+</text>
+<g id="icon">
+<path d="M2 5h9v9H2zM2 5l3-3h9l-3 3M14 2v9l-3 3" transform="translate(37.06 165.2) scale(1)" fill="none" stroke="#000000" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+</g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="143.61" y="38.3" font-size="14" fill="#000000" textLength="29.57" lengthAdjust="spacing">Goal</tspan>
+</text>
+<g id="icon">
+<path d="M2 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0zM4.5 8a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0zM7 8a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z" transform="translate(150.4 6) scale(1)" fill="none" stroke="#000000" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+</g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="241.4" y="38.3" font-size="14" fill="#000000" textLength="61.46" lengthAdjust="spacing">Capability</tspan>
+</text>
+<g id="icon">
+<path d="M2 14h12V2h-4v4H6v4H2zM6 10h8M10 6h4M6 10v4M10 6v8" transform="translate(264.13 6) scale(1)" fill="none" stroke="#000000" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+</g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="370.86" y="38.3" font-size="14" fill="#000000" textLength="54.47" lengthAdjust="spacing">Package</tspan>
+</text>
+<g id="icon">
+<path d="M12.5 9.5A5 5 0 1 1 11 4.5M9 2l2.5 2.5L9 7" transform="translate(390.1 6) scale(1)" fill="none" stroke="#000000" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+</g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="493.33" y="38.3" font-size="14" fill="#000000" textLength="35" lengthAdjust="spacing">Truck</tspan>
+</text>
+<g id="icon">
+<path d="M2.5 10a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0zM9 4.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0z" transform="translate(502.83 6) scale(1)" fill="none" stroke="#000000" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+</g>
+</g>
+</g>
+</svg>

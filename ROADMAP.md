@@ -906,8 +906,8 @@ Lint and outline move onto the syntax tree as each type lands.
 
 What comes after 0.4, announced in the README. Lines by hand, projects and
 diagrams that link were released as 0.5.0 on 2026-11-01. The diagram types
-that follow (2026-11-12: PlantUML's Archimate and Mermaid's charts of
-numbers next) stand at the end of *An editor that knows the diagram, and more
+that follow (2026-11-12: Mermaid's charts of numbers and PlantUML's Salt
+next) stand at the end of *An editor that knows the diagram, and more
 diagrams* below.
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it
@@ -2426,12 +2426,30 @@ without folding, lines by hand and plays, and the Java PlantUML:
       the other types (`NodeBackgroundColor`, `ArrowColor`) dress the
       servers and the lines. The editor names it *Network diagram* and
       offers its words; the gallery has a home network.
-- [ ] PlantUML, in this order (2026-11-12): Archimate, now that icons
-      are drawn (its elements are boxes with the icons of a library);
-      Salt (wireframes); EBNF and regex, which share one railroad
-      drawer. Ditaa and chronology last: little written, and Gantt
-      charts and timelines say the same as chronology; until then the
-      Java PlantUML draws them.
+- [x] ArchiMate (2026-11-12), both ways it is written. PlantUML's
+      `archimate #Business "Customer" as c <<business-actor>>` is a box
+      in the color of its layer (#Business, #Application, #Technology,
+      #Motivation, #Strategy, #Implementation, #Physical, as PlantUML
+      colors them) with the icon of its type over its name, as PlantUML
+      draws it; the stereotype that names the type is not shown.
+      Archimate-PlantUML (`!include <archimate/Archimate>`) is read as
+      C4-PlantUML is (`structure::archimate`): `Business_Actor(c,
+      "Customer")` is written as that line, `Grouping` a dashed frame,
+      and each `Rel_…` as the arrow nearest to ArchiMate's (serving and
+      triggering with a head, access and flow dotted, realization dotted
+      with a hollow triangle, specialization solid with one, aggregation
+      and composition with their diamonds), `_Up`, `_Down`, `_Left`,
+      `_Right` as a written direction. The icons are Omaspec's own line
+      art, drawn in the words' color, and serve any text as PlantUML's
+      built-in sprites do (`<$archimate/technology-node>`). On the way
+      the structure engine reads a dotted arrow with a direction
+      (`.up.|>`, `<.left.>`). Open: junctions, and the library's themes.
+      The editor names it *ArchiMate diagram* and offers its macros; the
+      gallery handles a claim.
+- [ ] PlantUML, in this order (2026-11-12): Salt (wireframes); EBNF and
+      regex, which share one railroad drawer. Ditaa and chronology last:
+      little written, and Gantt charts and timelines say the same as
+      chronology; until then the Java PlantUML draws them.
 
 ### Architecture diagrams, elegant and playful (2026-11-12)
 
@@ -2525,7 +2543,7 @@ skin draws them by hand.
       its size, a name the diagram's sprite, `person` C4's own as an
       icon. Open: a sprite as a stereotype (`<<$bolt>>`), SVG and color
       sprites, the icon libraries of the standard library (no network),
-      C4's robot, and Archimate's icons with Archimate.
+      C4's robot. ArchiMate's icons came with ArchiMate.
 - [x] The rest of the picture (2026-11-12): a title at the left with a
       subtitle under it, as a style says it (`<style> title {
       HorizontalAlignment left }`, header, footer and caption too): the

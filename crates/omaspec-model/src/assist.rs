@@ -776,6 +776,14 @@ mod tests {
     }
 
     #[test]
+    fn an_archimate_diagram_offers_the_library_s_macros() {
+        let none = Specs::default();
+        let code =
+            "@startuml\n!include <archimate/Archimate>\nBusiness_Actor(c, \"Customer\")\nRel_Se";
+        assert!(labels(&at_end(code, Language::PlantUml, &none)).contains(&"Rel_Serving"));
+    }
+
+    #[test]
     fn a_word_of_c4_is_still_a_name_elsewhere() {
         let none = Specs::default();
         let code = "@startuml\nparticipant System\nSystem -> DB : save\nS";

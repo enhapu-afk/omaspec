@@ -96,7 +96,7 @@ fn marks_structure(text: &str) -> bool {
     {
         return true;
     }
-    if ["map", "json", "port", "portin", "portout"]
+    if ["map", "json", "port", "portin", "portout", "archimate"]
         .iter()
         .any(|word| keyword(&lead, word).is_some_and(|rest| !rest.is_empty()))
     {
@@ -1225,10 +1225,50 @@ fn compatible(a: Shape, b: Shape) -> bool {
 }
 
 fn declaration(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
+    if let Some(rest) = keyword(text, "archimate") {
+        return archimate(rest, line).map(Some);
+    }
     let Some((shape, open, rest)) = leading_shape(text) else {
         return Ok(None);
     };
     Ok(Some(parse_decl(shape, open, rest, line)?))
+}
+
+/// `archimate #Business "Customer" as c <<business-actor>>`: a box in the
+/// color of its layer, the icon of its type over its name, as PlantUML
+/// draws it; the stereotype that names the type is not shown.
+fn archimate(rest: &str, line: usize) -> Result<Decl, Declined> {
+    let mut decl = parse_decl(Shape::Rectangle, Open::Group, rest, line)?;
+    if let Some(at) = decl
+        .stereotypes
+        .iter()
+        .position(|s| crate::icons::archimate::icon(s).is_some())
+    {
+        let kind = decl.stereotypes.remove(at);
+        decl.label = format!("<$archimate/{}>\\n{}", kind.trim(), decl.label);
+    }
+    if let Some(fill) = &decl.fill
+        && let Some(layer) = layer_color(fill)
+    {
+        decl.fill = Some(layer.to_owned());
+    }
+    Ok(decl)
+}
+
+/// The color PlantUML gives an ArchiMate layer by its name (`#Business`).
+pub(crate) fn layer_color(name: &str) -> Option<&'static str> {
+    Some(
+        match name.trim_start_matches('#').to_ascii_lowercase().as_str() {
+            "business" => "#FFFFCC",
+            "application" => "#C2F0FF",
+            "technology" => "#C9FFC9",
+            "motivation" => "#CCCCFF",
+            "strategy" => "#F8E7C0",
+            "implementation" => "#FFE0E0",
+            "physical" => "#97FF97",
+            _ => return None,
+        },
+    )
 }
 
 fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl, Declined> {
@@ -1895,7 +1935,7 @@ fn arrow_at(chars: &[(usize, char)], i: usize) -> bool {
     let next = chars.get(i + 1).map(|(_, ch)| *ch);
     match c {
         '-' => true,
-        '.' => matches!(next, Some('.' | '-' | '>')),
+        '.' => matches!(next, Some('.' | '-' | '>')) || dotted_direction(chars, i + 1),
         '<' => matches!(next, Some('-' | '|' | '.' | '>')),
         '*' | 'o' | 'O' | 'x' | 'X' => matches!(next, Some('-' | '.')),
         _ => false,
@@ -1992,6 +2032,11 @@ fn run_all(group: &mut Group, direction: Direction) {
     }
 }
 
+/// A direction word right after a dot, and a dot after it: `.up.>`.
+fn dotted_direction(chars: &[(usize, char)], i: usize) -> bool {
+    direction_chars(chars, i).is_some_and(|n| chars.get(i + n).is_some_and(|(_, c)| *c == '.'))
+}
+
 fn direction_chars(chars: &[(usize, char)], i: usize) -> Option<usize> {
     for word in ["down", "left", "right", "up"] {
         let letters: Vec<char> = word.chars().collect();
@@ -2021,8 +2066,10 @@ fn direction_chars(chars: &[(usize, char)], i: usize) -> Option<usize> {
 fn direction_word(arrow: &str) -> Option<&'static str> {
     let lower = arrow.to_ascii_lowercase();
     for word in ["up", "down", "left", "right"] {
+        // `-up->`, and dotted `.up.>` as PlantUML reads it too.
         if lower.contains(&format!("-{word}"))
             || lower.contains(&format!("{word}-"))
+            || lower.contains(&format!(".{word}."))
             || lower.contains(&format!("[{word}"))
         {
             return Some(word);

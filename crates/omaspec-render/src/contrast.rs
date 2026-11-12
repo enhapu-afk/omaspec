@@ -68,14 +68,16 @@ pub fn pairs(svg: &str) -> Result<Vec<Pair>, ExportError> {
     let mut walk = Walk {
         filled: Vec::new(),
         pairs: Vec::new(),
+        on_shapes: Vec::new(),
         paper: WHITE,
         size: (tree.size().width(), tree.size().height()),
     };
-    walk.group(tree.root(), 1.0, false);
-    // A line lies on the paper, whatever filled it first.
+    walk.group(tree.root(), 1.0, (false, false));
+    // A line lies on the paper, whatever filled it first; an icon keeps
+    // what lies under it.
     let paper = walk.paper;
-    for pair in &mut walk.pairs {
-        if pair.kind == Kind::Line {
+    for (i, pair) in walk.pairs.iter_mut().enumerate() {
+        if pair.kind == Kind::Line && !walk.on_shapes.contains(&i) {
             pair.on = paper;
         }
     }
@@ -94,6 +96,8 @@ struct Filled {
 struct Walk {
     filled: Vec<Filled>,
     pairs: Vec<Pair>,
+    /// The lines among `pairs` that are icons in the words.
+    on_shapes: Vec<usize>,
     /// The paper: white, or the fill of a shape that covers the picture.
     paper: Rgb,
     size: (f32, f32),
@@ -101,20 +105,22 @@ struct Walk {
 
 impl Walk {
     /// The nodes of `group`; in a `grid`, lines need not stand out.
-    fn group(&mut self, group: &usvg::Group, opacity: f32, grid: bool) {
+    /// `marks`: the group is (inside) a grid, an icon.
+    fn group(&mut self, group: &usvg::Group, opacity: f32, (grid, icon): (bool, bool)) {
         let opacity = opacity * group.opacity().get();
         let grid = grid || group.id() == omaspec_uml::GRID;
+        let icon = icon || group.id() == omaspec_uml::ICON;
         for node in group.children() {
             match node {
-                Node::Group(inner) => self.group(inner, opacity, grid),
-                Node::Path(path) => self.path(path, opacity, grid),
+                Node::Group(inner) => self.group(inner, opacity, (grid, icon)),
+                Node::Path(path) => self.path(path, opacity, (grid, icon)),
                 Node::Text(text) => self.text(text, opacity),
                 Node::Image(_) => {}
             }
         }
     }
 
-    fn path(&mut self, path: &usvg::Path, opacity: f32, grid: bool) {
+    fn path(&mut self, path: &usvg::Path, opacity: f32, (grid, icon): (bool, bool)) {
         if !path.is_visible() {
             return;
         }
@@ -146,7 +152,17 @@ impl Walk {
         {
             let opacity = opacity * stroke.opacity().get();
             if opacity > 0.0 && stroke.width().get() > 0.0 {
-                let on = self.paper;
+                // A line runs over the page; an icon in the words is seen
+                // as they are, against what lies under it.
+                let on = if icon {
+                    self.on_shapes.push(self.pairs.len());
+                    self.under((
+                        rect.x() + rect.width() / 2.0,
+                        rect.y() + rect.height() / 2.0,
+                    ))
+                } else {
+                    self.paper
+                };
                 self.pairs.push(Pair {
                     kind: Kind::Line,
                     color: blend(color, on, opacity),
