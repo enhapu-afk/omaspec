@@ -147,6 +147,67 @@ pub fn trace(
     report(&all, json, strict)
 }
 
+/// `omaspec trace FILE --as timing`: the trace as a timing diagram, on
+/// standard output or into `output` (the source, or its picture).
+pub fn trace_timing(
+    files: &[PathBuf],
+    project: Option<&Path>,
+    output: Option<&Path>,
+    json: bool,
+) -> Result<ExitCode> {
+    use omaspec_render::export::{self, Format};
+    anyhow::ensure!(!json, "--as timing writes a diagram, not JSON");
+    let [file] = files else {
+        anyhow::bail!("--as timing writes one trace");
+    };
+    let input = read_input(Some(file))?;
+    let mut projects = Projects::default();
+    let specs = projects.of(input.path.as_deref(), project);
+    let title = file
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let text = crate::trace_timing::timing(&input.text, &title, specs).with_context(|| {
+        format!(
+            "no object of {} goes by a state machine of its project",
+            file.display()
+        )
+    })?;
+    let Some(output) = output else {
+        print!("{text}");
+        return Ok(ExitCode::SUCCESS);
+    };
+    let ext = output
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    if matches!(ext.as_str(), "puml" | "plantuml" | "pu") {
+        std::fs::write(output, &text).with_context(|| format!("writing {}", output.display()))?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    // `-o -`: the picture as SVG on standard output, as `render` writes it.
+    let to_stdout = output.as_os_str() == "-";
+    let format = if to_stdout {
+        Format::Svg
+    } else {
+        Format::from_extension(&ext)
+            .filter(|f| matches!(f, Format::Svg | Format::Png | Format::Pdf))
+            .with_context(|| format!("{} is no .puml, .svg, .png or .pdf", output.display()))?
+    };
+    let svg = omaspec_uml::render(&text)
+        .map_err(|e| anyhow::anyhow!("the timing diagram does not draw: {}", e.reason))?;
+    let svg = omaspec_render::sanitize::sanitize(&svg)
+        .map_err(|e| anyhow::anyhow!("invalid SVG: {e}"))?;
+    if to_stdout {
+        print!("{svg}");
+        return Ok(ExitCode::SUCCESS);
+    }
+    let bytes = export::export(&svg, format, &export::Options::default())?;
+    std::fs::write(output, bytes).with_context(|| format!("writing {}", output.display()))?;
+    Ok(ExitCode::SUCCESS)
+}
+
 /// Prints the findings of each file as `lint` does; fails on an error, or
 /// with `strict` on a warning.
 fn report(all: &[(String, Vec<Finding>)], json: bool, strict: bool) -> Result<ExitCode> {

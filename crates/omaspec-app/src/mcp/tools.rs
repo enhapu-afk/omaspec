@@ -132,6 +132,10 @@ pub fn definitions() -> Vec<Value> {
                     "description": "The trace's lines, instead of `path`; then `project` names the state machines.",
                 })),
                 ("project", project.clone()),
+                ("timing", json!({
+                    "type": "boolean",
+                    "description": "Also answer the trace as a PlantUML timing diagram (`timing`): a row for each object and the states it was in over time, each deviation a red band. `render` draws it.",
+                })),
             ]),
             "annotations": reading,
         }),
@@ -848,6 +852,17 @@ fn trace(args: &Args) -> Result<Answer> {
     let found = omaspec_model::check_trace(&input.text, specs);
     let mut data = findings(&[(name(&input), found)])?;
     data["machines"] = json!(specs.len());
+    if args.flag("timing")?.unwrap_or(false) {
+        let title = input
+            .path
+            .as_deref()
+            .and_then(|path| path.file_stem())
+            .map_or_else(
+                || "trace".into(),
+                |stem| stem.to_string_lossy().into_owned(),
+            );
+        data["timing"] = json!(crate::trace_timing::timing(&input.text, &title, specs));
+    }
     Ok(Answer::data(data))
 }
 
@@ -1206,12 +1221,18 @@ mod tests {
             json!({
                 "code": "{\"object\":\"door\",\"event\":\"open\"}\n{\"object\":\"door\",\"event\":\"open\"}\n",
                 "project": dir.to_str().unwrap(),
+                "timing": true,
             }),
         );
         let data = &result["structuredContent"];
         assert_eq!(data["machines"], 1, "{result}");
         assert_eq!(data["errors"], 1, "{data}");
         assert_eq!(data["findings"][0]["line"], 2);
+        let timing = data["timing"].as_str().unwrap_or_else(|| panic!("{data}"));
+        assert!(
+            timing.contains("concise \"door\" as R0") && timing.contains("highlight 2 to"),
+            "{timing}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

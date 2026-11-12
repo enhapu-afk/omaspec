@@ -101,6 +101,46 @@ fn trace_holds_a_recording_against_the_machines_of_its_folder() {
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(json[0]["line"], 2);
     assert_eq!(json[0]["severity"], "error");
+
+    // As a timing diagram: written as PlantUML, or drawn.
+    let out = omaspec(&["trace", "--as", "timing", bad.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    let text = stdout(&out);
+    assert!(
+        text.starts_with("@startuml\ntitle bad\n") && text.contains("concise \"Door\" as R0"),
+        "{text}"
+    );
+    assert!(
+        text.contains("highlight 2 to 2.5 #FFC9C9 : line 2: Door open?"),
+        "{text}"
+    );
+    let picture = dir.join("bad.svg");
+    let out = omaspec(&[
+        "trace",
+        "--as",
+        "timing",
+        bad.to_str().unwrap(),
+        "-o",
+        picture.to_str().unwrap(),
+    ]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    let svg = fs::read_to_string(&picture).unwrap();
+    assert!(
+        svg.contains("Locked") && svg.contains("Door open?"),
+        "{svg}"
+    );
+    let out = omaspec(&["trace", "--as", "timing", good.to_str().unwrap(), "-o", "-"]);
+    assert_eq!(out.status.code(), Some(0), "{out:?}");
+    assert!(stdout(&out).starts_with("<svg"), "{}", stdout(&out));
+    let out = omaspec(&[
+        "trace",
+        "--as",
+        "timing",
+        bad.to_str().unwrap(),
+        "-o",
+        "x.gif",
+    ]);
+    assert_eq!(out.status.code(), Some(2), "{out:?}");
 }
 
 #[test]

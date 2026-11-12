@@ -47,6 +47,8 @@ struct Place {
     t1: f64,
     px: f64,
     axis_y: f32,
+    /// Where the highlights begin: above the first row by their captions.
+    band_top: f32,
 }
 
 fn place(diagram: &Diagram, skin: &Skin, family: Family, top: f32) -> Result<Place, Declined> {
@@ -63,7 +65,16 @@ fn place(diagram: &Diagram, skin: &Skin, family: Family, top: f32) -> Result<Pla
     }
     name_w += 4.0;
     let axis_x = name_w + NAME_GAP + if preamble > 0.0 { preamble + 8.0 } else { 0.0 };
-    let mut y = top;
+    // A highlight's caption sits in the band over the rows, not on the first.
+    let mut captions: f32 = 0.0;
+    for highlight in &diagram.highlights {
+        if !highlight.caption.is_empty() {
+            let caption = block(&highlight.caption, skin.state, family, highlight.line)?;
+            captions = captions.max(caption.height + 6.0);
+        }
+    }
+    let band_top = top;
+    let mut y = top + captions;
     let mut lanes = Vec::new();
     for row in &diagram.rows {
         let above = note_height(diagram, &row.key, true, skin, family)?;
@@ -96,6 +107,7 @@ fn place(diagram: &Diagram, skin: &Skin, family: Family, top: f32) -> Result<Pla
         t1,
         px,
         axis_y: y + 4.0,
+        band_top,
     })
 }
 
@@ -211,19 +223,15 @@ fn paint(
         t1: place.t1,
         name_w: place.name_w,
     };
-    if let (Some(first), Some(last)) = (place.lanes.first(), place.lanes.last()) {
+    if let Some(last) = place.lanes.last() {
+        let top = place.band_top;
         for highlight in &diagram.highlights {
             let left = x_of(highlight.start.min(highlight.end));
             let width = x_of(highlight.start.max(highlight.end)) - left;
             canvas.plain(|canvas| {
                 canvas.rect(
                     Layer::Background,
-                    (
-                        left,
-                        first.body,
-                        width.max(1.0),
-                        last.body + last.height - first.body,
-                    ),
+                    (left, top, width.max(1.0), last.body + last.height - top),
                     0.0,
                     Some(highlight.color.unwrap_or(skin.highlight)),
                     None,
@@ -234,7 +242,7 @@ fn paint(
                 canvas.text(
                     Layer::Front,
                     &caption,
-                    (left + width / 2.0, first.body + 2.0),
+                    (left + width / 2.0, top + 3.0),
                     Align::Center,
                 );
             }
@@ -445,6 +453,14 @@ fn paint_boxes(
             Some(fill),
             Some(Stroke::new(border, 1.0)),
         );
+        // A name wider than its box would run into its neighbors' (a trace's
+        // quick steps after a long night): the box stays, without it.
+        let name = block(
+            &state.mark.name,
+            colored(skin.state, state.mark.color),
+            family,
+            state.mark.line,
+        )?;
         paint_mark(
             canvas,
             skin,
@@ -452,7 +468,7 @@ fn paint_boxes(
             &state.mark,
             (start + end) / 2.0,
             y + (height - skin.state.size) / 2.0,
-            true,
+            name.width + 4.0 <= end - start,
         )?;
     }
     Ok(())
@@ -695,11 +711,18 @@ fn paint_axis(
     }
     ticks.sort_by(|a, b| a.total_cmp(b));
     ticks.dedup_by(|a, b| (*a - *b).abs() < 1e-6);
+    // Each time gets its tick; a label that would touch the one before it
+    // is left out.
+    let mut free = f32::NEG_INFINITY;
     for time in ticks {
         let x = at(axis, time);
         canvas.line(Layer::Lifelines, (x, y), (x, y + 4.0), stroke);
         let label = block(&format_time(time), skin.header, family, 0)?;
+        if x - label.width / 2.0 < free {
+            continue;
+        }
         canvas.text(Layer::Front, &label, (x, y + 5.0), Align::Center);
+        free = x + label.width / 2.0 + 4.0;
     }
     Ok(())
 }

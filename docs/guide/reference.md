@@ -559,6 +559,10 @@ time and the states it could be in. Many objects can share one machine
 the diagram, line by line with Space: the bar shows the time and the event, the states
 light up, and where the trace deviates the bar turns red and says why.
 [examples/player.jsonl](../../examples/player.jsonl) is an evening of the media player.
+`omaspec trace player.jsonl --as timing` writes the trace as a PlantUML timing diagram, a
+row for each object and the states it was in over time, each deviation a red band;
+`-o player.svg` draws it, and the source can be edited as any timing diagram. The time
+runs by the clock where every line has one, else by the lines.
 
 **Coverage.** `omaspec coverage player.puml --traces player.jsonl` follows the traces
 through the machine and says how much of it they take: how many transitions and states,
@@ -592,6 +596,7 @@ omaspec lint diagrams/*.puml        # syntax, likely typos, specification checks
 omaspec lint --project specs a.puml # sequences checked against the state machines in specs/, not the project
 omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
 omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json
+omaspec trace run.jsonl --as timing -o run.svg   # the trace as a timing diagram; without -o its PlantUML source
 omaspec coverage door.puml --traces a.jsonl,b.jsonl -o door-cov.svg   # what the traces take of the machine; --json, --min 80
 omaspec diff old.puml door.puml -o door-diff.svg   # a state machine's changes drawn over its new version
 omaspec matrix door.puml            # the machine as a table, states down, events across; -o door.md, --json

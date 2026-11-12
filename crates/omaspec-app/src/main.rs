@@ -27,6 +27,7 @@ mod sandbox;
 #[cfg(test)]
 mod scale;
 mod specs;
+mod trace_timing;
 mod ui;
 mod worker;
 
@@ -194,6 +195,14 @@ enum Command {
         /// default each trace's project, else its own folder.
         #[arg(long, value_name = "DIR")]
         project: Option<PathBuf>,
+        /// Write one trace as a PlantUML timing diagram instead: a row for
+        /// each object, its states over time, a band where it deviates.
+        #[arg(long = "as", value_name = "KIND")]
+        as_kind: Option<TraceAs>,
+        /// With --as: the diagram's file (.puml), or its picture (.svg,
+        /// .png, .pdf); else standard output.
+        #[arg(short, long, requires = "as_kind")]
+        output: Option<PathBuf>,
     },
     /// List every place in the project that uses a name.
     ///
@@ -593,6 +602,13 @@ struct LangArg {
     lang: Option<LangChoice>,
 }
 
+/// What a trace is written as, instead of checked.
+#[derive(Clone, Copy, ValueEnum)]
+enum TraceAs {
+    /// A PlantUML timing diagram.
+    Timing,
+}
+
 #[derive(Clone, Copy, ValueEnum)]
 enum FormatChoice {
     Svg,
@@ -684,8 +700,17 @@ fn main() -> ExitCode {
         Some(Command::Trace {
             files,
             json,
+            project,
+            as_kind: Some(TraceAs::Timing),
+            output,
+            ..
+        }) => commands::trace_timing(&files, project.as_deref(), output.as_deref(), json),
+        Some(Command::Trace {
+            files,
+            json,
             strict,
             project,
+            ..
         }) => commands::trace(&files, json, strict, project.as_deref()),
         Some(Command::Refs {
             name,

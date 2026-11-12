@@ -2553,11 +2553,24 @@ are built once, with coverage, and the others take them.
       column. Open: the table as a picture and in the editor.
 - [ ] The state-event matrix as a picture (.svg, .png) and beside the
       diagram in the editor.
-- [ ] A trace as a timeline (REQ-033): `omaspec trace run.jsonl --as
-      timing` writes the states each object was in over time as a
-      PlantUML timing diagram (a concise row per object, the deviations
-      as notes), which Omaspec draws itself and the writer can edit;
-      rather than a drawer of its own.
+- [x] A trace as a timeline (REQ-033, 2026-11-12): `omaspec trace
+      run.jsonl --as timing` writes the states each object was in over
+      time as a PlantUML timing diagram, which Omaspec draws itself and
+      the writer can edit, rather than a drawer of its own: a concise
+      row for each object the project's machines follow, the state it
+      begins in before the first line, each line where the trace
+      deviates as a red band with what it says (`line 3: Door lock?`).
+      The time runs as the trace gives it: seconds from the first line
+      where every line has a clock time (past midnight too), the numbers
+      where every line has one, else the lines in order; the caption
+      says which. Where the trace leaves the state open, the row says
+      each (`Open or Locked`), where it loses the object `?`, a final
+      state `[*]`. `-o night.svg` (or .png, .pdf, `-` for SVG on
+      standard output) draws it, `-o night.puml` writes the source. The
+      timing drawer now leaves out a state's name wider than its box and
+      a time that would touch the one before it (a night and its
+      morning's quick steps), and gives a highlight's caption room of
+      its own above the rows.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 
