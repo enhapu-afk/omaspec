@@ -2392,6 +2392,34 @@ without folding, lines by hand and plays, and the Java PlantUML:
 - [ ] PlantUML: network diagrams (nwdiag) next. After them: Salt,
       Ditaa, Archimate, EBNF, regex, chronology.
 
+### Architecture diagrams, elegant and playful (2026-11-12)
+
+The picture to match is a reference architecture drawn by hand: cards in
+pastel colors by layer, each with an icon, a title and a short list,
+arrows with a word on them, dashed ones for what runs beside. No new
+kind of diagram is needed for it: PlantUML's boxes (`rectangle`,
+`component`, `node`, `database`, an `actor`) are that diagram, drawn by
+the structure engine, and `skinparam handwritten true` or the sketch
+skin draws them by hand.
+
+- [x] What was missing for it (2026-11-12): Creole lists in any label
+      (`* item`, `** deeper`, `# numbered`), each item at the left edge
+      of its box under a centered title; an emoji measured as wide as it
+      is drawn, so it serves as a card's icon without the title standing
+      on it; and the words on a box with a fill of the writer's own moved
+      towards black or white until they read, so pastel cards stay
+      legible in a dark look. The gallery has one
+      (`agent-platform.puml`), checked in every bundled theme.
+- [ ] Still apart from the picture: a card's title beside its icon at
+      the left with the list under it (now the title is centered); an
+      icon drawn in the hand of the lines instead of an emoji's colors
+      (sprites and `<&icon>` are declined); a note card with a dashed
+      border (`rectangle … #line.dashed`); a title at the left with a
+      subtitle; arrows of the hand font's own (`→` falls to another
+      face); and a layout in layers the writer names, where now the
+      ranks follow the arrows and boxes are held in place one by one
+      ([0021](docs/adr/0021-boxes-held-in-place.md)).
+
 Beside the stages:
 
 - [ ] A box put into another rank than its neighbor's (`D below C`,

@@ -1,0 +1,48 @@
+@startuml
+' An architecture drawn by hand: boxes with a list, colors by layer.
+skinparam handwritten true
+skinparam linetype ortho
+skinparam roundcorner 18
+title <size:22>AI agent platform</size>
+caption Vendor technologies are illustrative design choices.
+
+actor "User\n(chat, Slack, API)" as user
+rectangle "🚪 <size:16>Agent gateway</size>" as gateway #E6E0F8
+
+rectangle "🔒 <size:16>Identity & auth</size>\n* SSO and OAuth\n* User to agent scopes" as auth #DDEEDD
+rectangle "📋 <size:16>Agent registry</size>\n* Agent definitions\n* System prompts\n* Versioning" as registry #DDEEDD
+rectangle "🧠 <size:16>Memory service</size>\n* Session memory\n* Long-term memory\n* User preferences" as memory #DCE8F8
+
+rectangle "🤖 <size:16>Agent orchestrator</size>\n* Plan, act, observe loop\n* Sub-agent delegation\n* Retry and error recovery\n* Context window management" as orch #FBE0E0
+rectangle "🛡 <size:16>Permission engine</size>\n* Policy check per action\n* Least-privilege scopes\n* Read and write tiers" as perm #FCF0D0
+rectangle "🙋 <size:16>Approval queue</size>\n* High-risk actions paused\n* A human approves or rejects\n* Timeout and escalate" as approval #FCF0D0
+
+rectangle "🔀 <size:16>LLM router</size>\n* Reasoning model\n* Fast model\n* Fallbacks" as llm #DDEEDD
+rectangle "🔧 <size:16>Tool registry</size>\n* Tool schemas\n* Discovery and search\n* Rate limits per tool" as tools #DDEEDD
+rectangle "🔌 <size:16>MCP gateway</size>\n* Auth to MCP servers\n* Tool call proxy\n* Response sanitizing" as mcp #DDEEDD
+rectangle "MCP server:\nGitHub" as gh #DDEEDD
+rectangle "MCP server:\nJira" as jira #DDEEDD
+rectangle "MCP server:\ndatabase" as db #DDEEDD
+rectangle "💻 <size:16>Code sandbox</size>\n* Isolated containers\n* Time and resource limits" as sandbox #DDEEDD
+
+rectangle "📈 <size:16>Tracing</size>\n* Every step and tool call\n* Token cost\n* Replay runs" as tracing #DDEEDD
+rectangle "📄 <size:16>Audit log</size>" as audit #DCE8F8
+
+user -> gateway
+gateway --> orch
+auth -> orch
+registry -> orch
+orch <-> llm : reason,\ndecide
+orch --> perm
+perm --> approval : needs approval
+approval --> user : approve?
+perm -> tools
+memory -> perm
+tools --> mcp
+tools --> sandbox
+mcp --> gh
+mcp --> jira
+mcp --> db
+orch ..> tracing
+db ..> audit
+@enduml

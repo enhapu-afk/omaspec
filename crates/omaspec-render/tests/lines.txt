@@ -42,7 +42,9 @@ crates/omaspec-uml/tests/structure/object.puml 2 0 0 0 0 0 2 92 0 30.7
 crates/omaspec-uml/tests/structure/usecase.puml 2 0 0 0 0 0 0 87 0 14.8
 examples/door/door.puml 7 0 0 0 0 0 8 587 0 19.2
 examples/drone/delivery-drone.puml 72 1 0 0 3 0 54 16764 3 6.8
+examples/gallery/agent-platform.puml 17 1 0 0 0 0 22 2337 1 8.8
 examples/gallery/bookshop.puml 6 0 0 0 0 0 0 279 0 8.6
+examples/gallery/brakes.mmd 6 0 0 0 0 0 0 1539 0 0.0
 examples/gallery/coffee-machine.puml 15 0 0 0 0 0 6 1572 0 12.8
 examples/gallery/crossing.mmd 9 0 0 0 0 0 8 800 0 9.1
 examples/gallery/elevator.puml 25 0 0 0 0 0 16 5927 0 3.9
@@ -57,4 +59,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 14.7
 examples/platform.mmd 17 1 0 0 4 0 36 5771 6 35.8
 examples/player.puml 8 0 0 0 0 0 14 1086 0 15.1
 examples/shop.mmd 6 0 0 0 0 0 4 619 0 17.1
-total 517 4 0 1 14 0 473 70699 18 1011.5
+total 540 5 0 1 14 0 495 74574 19 1020.3

@@ -230,6 +230,13 @@ pub static EXAMPLES: &[Example] = &[
         "A Mermaid requirement diagram: what satisfies and verifies what."
     ),
     example!(
+        "agent-platform.puml",
+        Structure,
+        "An AI agent platform",
+        "An architecture by hand: boxes with lists, emoji, colors by layer.",
+        true
+    ),
+    example!(
         "library.puml",
         Structure,
         "A library system",

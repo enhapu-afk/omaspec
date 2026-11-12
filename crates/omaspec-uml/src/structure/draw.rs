@@ -367,6 +367,24 @@ fn measure_element(
         look.stereo.color = color;
     }
     let (fill, border) = paints(el, &look)?;
+    // A fill the writer gave a box may be anything under the skin's text:
+    // light under the light text of a dark look. The words are moved
+    // towards black or white, whichever reads better there, until they
+    // read. An actor's name stands under the figure, on the page.
+    if el.text_color.is_none()
+        && el.fill.is_some()
+        && el.shape != Shape::Actor
+        && let Some(ground) = fill
+    {
+        let far = if Color::WHITE.contrast(ground) > Color::BLACK.contrast(ground) {
+            Color::WHITE
+        } else {
+            Color::BLACK
+        };
+        for font in [&mut look.font, &mut look.member, &mut look.stereo] {
+            font.color = font.color.legible_on(ground, far, 4.5);
+        }
+    }
     let (rows, body) = rows_of(el, &look, family)?;
     let children = if el.composite && !open {
         layout_group(&el.children, skin, family)?

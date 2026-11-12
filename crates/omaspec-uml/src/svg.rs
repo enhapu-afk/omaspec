@@ -585,6 +585,9 @@ impl Canvas {
         for line in &block.lines {
             let left = match align {
                 Align::Left => x,
+                // An item of a list starts at the block's left edge.
+                Align::Center if line.flush => x - block.width / 2.0,
+                Align::Right if line.flush => x - block.width,
                 Align::Center => x - line.width / 2.0,
                 Align::Right => x - line.width,
             };

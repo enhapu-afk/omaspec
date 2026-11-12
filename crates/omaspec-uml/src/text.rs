@@ -175,6 +175,9 @@ pub struct Line {
     pub ascent: f32,
     /// Set on a table row; the words then live in the cells.
     pub table: Option<TableRow>,
+    /// An item of a list: it starts at the left edge of its block, also
+    /// where the block's other lines are centered or stand at the right.
+    pub flush: bool,
 }
 
 /// Lines of text, measured.
@@ -216,18 +219,40 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
         }
         Ok(())
     };
+    // How far a numbered list has counted, by its depth.
+    let mut counts: Vec<u32> = Vec::new();
     for line in text.split('\n') {
         if is_table_line(line) {
             rows.push(line);
         } else {
             flush(&mut lines, &mut rows)?;
             for piece in split_lines(line) {
-                check_block_markup(piece)?;
-                lines.push(line_of(
-                    inline(piece, Style::from(font))?,
-                    font.size,
-                    family,
-                ));
+                let Some((depth, numbered, words)) = list_item(piece) else {
+                    counts.clear();
+                    check_block_markup(piece)?;
+                    lines.push(line_of(
+                        inline(piece, Style::from(font))?,
+                        font.size,
+                        family,
+                    ));
+                    continue;
+                };
+                counts.resize(depth, 0);
+                let mark = if numbered {
+                    counts[depth - 1] += 1;
+                    format!("{}. ", counts[depth - 1])
+                } else {
+                    "\u{2022}  ".to_owned()
+                };
+                let mut pieces = vec![Piece {
+                    text: format!("{}{mark}", "    ".repeat(depth - 1)),
+                    style: Style::from(font),
+                    link: None,
+                }];
+                pieces.extend(inline(words, Style::from(font))?);
+                let mut item = line_of(pieces, font.size, family);
+                item.flush = true;
+                lines.push(item);
             }
         }
     }
@@ -280,6 +305,7 @@ fn line_of(pieces: Vec<Piece>, size: f32, family: Family) -> Line {
         height: size * LINE,
         ascent: size * ASCENT,
         table: None,
+        flush: false,
     }
 }
 
@@ -306,8 +332,15 @@ fn advance(c: char, family: Family, bold: bool) -> u32 {
     if c == '\t' {
         return 4 * advance(' ', family, bold);
     }
-    if matches!(code, 0x0300..=0x036F | 0x200B..=0x200F | 0xFEFF) || c.is_control() {
+    if matches!(code, 0x0300..=0x036F | 0x200B..=0x200F | 0xFE00..=0xFE0F | 0xFEFF)
+        || c.is_control()
+    {
         return 0;
+    }
+    // A picture of the emoji font is wider than its em, and a word after
+    // it would stand on it.
+    if matches!(code, 0x1F000..=0x1FAFF) {
+        return 1250;
     }
     if is_wide(code) {
         return 1000;
@@ -334,10 +367,12 @@ fn advance(c: char, family: Family, bold: bool) -> u32 {
     }
 }
 
-/// CJK, Hangul, full-width forms and emoji take a whole em.
+/// CJK, Hangul, full-width forms, signs and dingbats (`☀`, `✋`) take a
+/// whole em.
 fn is_wide(code: u32) -> bool {
     matches!(code,
         0x1100..=0x115F
+        | 0x2600..=0x27BF
         | 0x2E80..=0x303E
         | 0x3041..=0x33FF
         | 0x3400..=0x4DBF
@@ -348,7 +383,6 @@ fn is_wide(code: u32) -> bool {
         | 0xFE30..=0xFE4F
         | 0xFF00..=0xFF60
         | 0xFFE0..=0xFFE6
-        | 0x1F300..=0x1FAFF
         | 0x20000..=0x3FFFD)
 }
 
@@ -450,6 +484,7 @@ fn table_rows(raw: &[&str], font: Font, family: Family) -> Result<Vec<Line>, Str
             width: table_w,
             height,
             ascent: 0.0,
+            flush: false,
             table: Some(TableRow {
                 cells,
                 color: font.color,
@@ -497,8 +532,20 @@ fn split_cells(line: &str) -> Vec<String> {
     cells
 }
 
-/// Creole that works on whole lines: lists, headings, rules. A table row
-/// does not come through here.
+/// An item of a Creole list: how deep it stands (`*` is 1, `**` is 2),
+/// whether its list is numbered (`#`), and its words. A line of other
+/// marks, or of marks with no space after them, is none: `**bold**`
+/// stays bold.
+fn list_item(line: &str) -> Option<(usize, bool, &str)> {
+    let text = line.trim_start();
+    let mark = text.chars().next().filter(|c| matches!(c, '*' | '#'))?;
+    let depth = text.chars().take_while(|c| *c == mark).count();
+    let words = text[depth..].strip_prefix(' ')?;
+    Some((depth, mark == '#', words.trim_start()))
+}
+
+/// Creole that works on whole lines: headings and rules. A table row and
+/// an item of a list do not come through here.
 fn check_block_markup(line: &str) -> Result<(), String> {
     check_other_markup(line)
 }
@@ -889,6 +936,40 @@ mod tests {
     }
 
     #[test]
+    fn a_list_has_bullets_or_numbers_and_stands_at_the_left() {
+        let said = block(
+            "**Title**\n* one\n** deeper\n# first\n# second\nplain\n# again",
+            font(),
+            Family::Sans,
+        )
+        .unwrap();
+        let lines: Vec<(String, bool)> = said
+            .lines
+            .iter()
+            .map(|line| {
+                let text: String = line.runs.iter().map(|run| run.text.as_str()).collect();
+                (text, line.flush)
+            })
+            .collect();
+        assert_eq!(
+            lines,
+            [
+                ("Title".to_owned(), false),
+                ("\u{2022}  one".to_owned(), true),
+                ("    \u{2022}  deeper".to_owned(), true),
+                ("1. first".to_owned(), true),
+                ("2. second".to_owned(), true),
+                ("plain".to_owned(), false),
+                ("1. again".to_owned(), true),
+            ]
+        );
+        assert!(said.lines[0].runs[0].style.bold);
+        // Marks without a space are no list.
+        let bold = block("**all bold**", font(), Family::Sans).unwrap();
+        assert!(!bold.lines[0].flush && bold.lines[0].runs[0].style.bold);
+    }
+
+    #[test]
     fn declines_what_it_cannot_draw() {
         for (text, part) in [
             ("<img:x.png>", "<img:x.png>"),
@@ -896,7 +977,6 @@ mod tests {
             ("<&key>", "<&key>"),
             ("[[{tip} label]]", "no address"),
             ("[[\"a b label]]", "open quote"),
-            ("* item", "lists"),
             ("----", "rules"),
             ("<color:#red/blue>x", "gradients"),
             ("<back:red>x", "<back:red>"),

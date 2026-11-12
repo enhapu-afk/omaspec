@@ -112,7 +112,7 @@ checked for legible colors, the gallery's diagrams in each of them too.
   with the same tools.
 - **The same picture everywhere.** A diagram is drawn byte for byte the same whatever
   language the system is set to; a test draws every example under five locales.
-- **26 examples** to start from, as tiles drawn on the spot (Ctrl+Shift+E).
+- **27 examples** to start from, as tiles drawn on the spot (Ctrl+Shift+E).
 
 ![The gallery of examples](docs/images/gallery.png)
 

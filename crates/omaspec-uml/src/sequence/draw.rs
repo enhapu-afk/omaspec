@@ -2199,7 +2199,7 @@ mod tests {
             ("A -> B : <img:x.png>", Some(0), "<img:x.png>"),
             ("participant A #red/blue", Some(0), "gradients"),
             ("title alone", None, "participant"),
-            ("note over A\n* item\nend note", Some(0), "lists"),
+            ("note over A\n== head\nend note", Some(0), "headings"),
         ] {
             let err = crate::render(source).unwrap_err();
             assert_eq!(err.line, line, "{source}: {err:?}");
