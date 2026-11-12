@@ -39,6 +39,7 @@ impl Command {
             }
             Command::Play
             | Command::PlayTrace
+            | Command::Coverage
             | Command::PlayAsk(_)
             | Command::StopPlay
             | Command::FocusBox
@@ -129,6 +130,7 @@ impl Command {
             | Command::Fit
             | Command::Play
             | Command::PlayTrace
+            | Command::Coverage
             | Command::PlayAsk(_)
             | Command::StopPlay
             | Command::FocusBox

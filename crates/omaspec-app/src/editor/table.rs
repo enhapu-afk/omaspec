@@ -226,6 +226,13 @@ pub const TABLE: &[Entry] = &[
     cmd("Play a recorded trace", "", Command::PlayTrace)
         .menu(Diagram)
         .short("Play a recorded trace…"),
+    cmd(
+        "Coverage of the recorded traces: shown or hidden",
+        "",
+        Command::Coverage,
+    )
+    .menu(Diagram)
+    .short("Coverage of the traces"),
     cmd("Format the diagram", "Ctrl+Shift+I", Command::Format)
         .menu(Edit)
         .at(Spot::Editor),

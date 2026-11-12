@@ -57,6 +57,94 @@ pub const MISSED: &str = "#E8590C";
 /// One that changed.
 pub const CHANGED: &str = "#C77700";
 
+/// The words a mark line starts with, after its comment mark: the pane
+/// hands marks to the engine as lines after the diagram, as it hands a
+/// fold (`crate::fold`), and the file never holds them.
+const MARK: &str = "mark (Omaspec)";
+
+impl Marks {
+    /// The lines that say these marks, in Mermaid's comments or
+    /// PlantUML's: `' mark (Omaspec) line 4 taken 12`, `… state missed
+    /// Idle`, `… caption 3 of 5 transitions taken`. Ghosts go by no line
+    /// and are left out.
+    pub fn lines(&self, mermaid: bool) -> String {
+        let comment = if mermaid { "%%" } else { "'" };
+        let said = |mark: &Mark| match mark {
+            Mark::Taken(n) => format!("taken {n}"),
+            Mark::Missed => "missed".to_owned(),
+            Mark::Added => "added".to_owned(),
+            Mark::Changed => "changed".to_owned(),
+        };
+        let mut out = String::new();
+        let mut lines: Vec<_> = self.transitions.iter().collect();
+        lines.sort_by_key(|(line, _)| **line);
+        for (line, mark) in lines {
+            out.push_str(&format!("{comment} {MARK} line {line} {}\n", said(mark)));
+        }
+        let mut states: Vec<_> = self.states.iter().collect();
+        states.sort_by(|a, b| a.0.cmp(b.0));
+        for (name, mark) in states {
+            let name = name.replace(['\n', '\r'], " ");
+            out.push_str(&format!("{comment} {MARK} state {} {name}\n", said(mark)));
+        }
+        if let Some(caption) = &self.caption {
+            let caption = caption.replace(['\n', '\r'], " ");
+            out.push_str(&format!("{comment} {MARK} caption {caption}\n"));
+        }
+        out
+    }
+
+    /// The marks the lines of `source` say ([`Self::lines`]); `None` when
+    /// it has none.
+    pub fn read(source: &str) -> Option<Marks> {
+        let mut marks = Marks::default();
+        let mut any = false;
+        for line in source.lines() {
+            let text = line.trim();
+            let Some(rest) = text
+                .strip_prefix('\'')
+                .or_else(|| text.strip_prefix("%%"))
+                .map(str::trim_start)
+                .and_then(|rest| rest.strip_prefix(MARK))
+                .map(str::trim_start)
+            else {
+                continue;
+            };
+            let mark = |words: &mut std::str::SplitWhitespace| match words.next()? {
+                "taken" => Some(Mark::Taken(words.next()?.parse().ok()?)),
+                "missed" => Some(Mark::Missed),
+                "added" => Some(Mark::Added),
+                "changed" => Some(Mark::Changed),
+                _ => None,
+            };
+            if let Some(rest) = rest.strip_prefix("line ") {
+                let mut words = rest.split_whitespace();
+                let Some(at) = words.next().and_then(|n| n.parse().ok()) else {
+                    continue;
+                };
+                if let Some(mark) = mark(&mut words) {
+                    marks.transitions.insert(at, mark);
+                    any = true;
+                }
+            } else if let Some(rest) = rest.strip_prefix("state ") {
+                let mut words = rest.split_whitespace();
+                let Some(mark) = mark(&mut words) else {
+                    continue;
+                };
+                let name = words.collect::<Vec<_>>().join(" ");
+                if !name.is_empty() {
+                    marks.states.insert(name, mark);
+                    any = true;
+                }
+            } else if let Some(caption) = rest.strip_prefix("caption ") {
+                marks.caption = Some(caption.trim().to_owned());
+                any = true;
+            }
+        }
+        any.then_some(marks)
+    }
+}
+
 impl Diagram {
     /// Draws what `marks` say over the diagram.
     pub fn mark(&mut self, marks: &Marks) {
@@ -239,6 +327,17 @@ mod tests {
         // Not a state machine: nothing to mark.
         let err = crate::render_marked("@startuml\nA -> B\n@enduml\n", None, &marks).unwrap_err();
         assert!(err.reason.contains("state"), "{}", err.reason);
+        // Handed over as lines after the diagram, as the pane does: the
+        // same picture.
+        let lines = marks.lines(false);
+        assert!(
+            lines.contains("' mark (Omaspec) line 2 taken 3\n"),
+            "{lines}"
+        );
+        assert_eq!(Marks::read(&lines), Some(marks.clone()));
+        let asked = DOOR.replace("@enduml\n", &format!("{lines}@enduml\n"));
+        assert_eq!(crate::render(&asked).unwrap(), svg);
+        assert_eq!(Marks::read(DOOR), None);
     }
 
     #[test]

@@ -35,7 +35,7 @@ use omaspec_uml::map::{Map, Shape, Spot};
 pub use across::Spec;
 pub use behavior::behavior;
 pub use convert::{Converted, Notice, Refused, convert};
-pub use coverage::{Coverage, coverage};
+pub use coverage::{Coverage, coverage, share as coverage_share};
 pub use diff::{Change, ChangeKind, DiagramChanges, diff, diff_project};
 pub use label::Trigger;
 pub use matrix::{Cell, CellKind, Matrix, matrix};

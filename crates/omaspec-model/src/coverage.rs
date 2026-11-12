@@ -35,6 +35,56 @@ impl Coverage {
         (taken, self.transitions.len())
     }
 
+    /// What to draw over `spec`'s machine: each transition taken bold in
+    /// green with how often, each never taken dashed in red, the states
+    /// the same, the share of transitions under the picture.
+    pub fn marks(&self, spec: &Spec) -> omaspec_uml::state::Marks {
+        use std::collections::HashMap;
+
+        use omaspec_uml::state::{Mark, Marks};
+        let mark = |hits: u32| {
+            if hits > 0 {
+                Mark::Taken(hits)
+            } else {
+                Mark::Missed
+            }
+        };
+        let mut transitions: HashMap<usize, Mark> = HashMap::new();
+        for (t, &hits) in spec.machine.transitions.iter().zip(&self.transitions) {
+            let new = mark(hits);
+            // Several transitions written on one line share it: taken
+            // when one of them is.
+            transitions
+                .entry(t.line)
+                .and_modify(|had| {
+                    if let (Mark::Taken(a), Mark::Taken(b)) = (*had, new) {
+                        *had = Mark::Taken(a + b);
+                    } else if matches!(new, Mark::Taken(_)) {
+                        *had = new;
+                    }
+                })
+                .or_insert(new);
+        }
+        let states = spec
+            .machine
+            .states
+            .iter()
+            .zip(&self.states)
+            .filter(|(s, _)| s.kind == Kind::State)
+            .map(|(s, &hits)| (s.name.clone(), mark(hits)))
+            .collect();
+        let (covered, total) = self.transitions_covered();
+        Marks {
+            transitions,
+            states,
+            ghosts: Vec::new(),
+            caption: Some(format!(
+                "{covered} of {total} transitions taken ({:.0} %)",
+                share(covered, total)
+            )),
+        }
+    }
+
     /// The same for the states that have a name (not a start, an end, a
     /// choice or a fork), by `spec`'s machine.
     pub fn states_covered(&self, spec: &Spec) -> (usize, usize) {
@@ -43,6 +93,15 @@ impl Coverage {
             .collect();
         let taken = named.iter().filter(|&&s| self.states[s] > 0).count();
         (taken, named.len())
+    }
+}
+
+/// `part` of `whole` in percent; all of nothing is all.
+pub fn share(part: usize, whole: usize) -> f32 {
+    if whole == 0 {
+        100.0
+    } else {
+        part as f32 * 100.0 / whole as f32
     }
 }
 

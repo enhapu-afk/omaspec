@@ -2527,8 +2527,18 @@ are built once, with coverage, and the others take them.
       both colors read on any page (`omaspec_uml::state::Marks`, laid
       over the tree before it is drawn, for PlantUML and Mermaid alike;
       the source stays as it is). The MCP server has it as `coverage`.
-      Open: coverage in the editor, over the diagram while a trace
-      plays.
+- [x] Coverage in the editor (2026-11-12): *Coverage of the recorded
+      traces* (Diagram menu) reads the traces in the project folder that
+      have an object of the machine on screen, in the background, and
+      draws what they take over it as `coverage -o` does, while it is
+      edited and while a trace plays; the status bar says the share and
+      how many traces. The pane hands the marks to the engine as lines
+      after the diagram, `' mark (Omaspec) line 4 taken 12`, as it hands
+      a fold (`Marks::lines`, `Marks::read`), worked out by the render
+      worker on the text drawn, Omarchy colors and all, so the lines
+      match whatever the pack adds; the file never holds them. The marks
+      of coverage are made once, in the model (`Coverage::marks`), for
+      the command line and the editor.
 - [x] The diff as a picture (REQ-035, 2026-11-12): `omaspec diff old new
       -o diff.svg` (or with `--rev`, or .png, .pdf) draws the new state
       machine with what came bold in green and what changed bold in

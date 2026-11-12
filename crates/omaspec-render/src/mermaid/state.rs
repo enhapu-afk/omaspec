@@ -97,6 +97,22 @@ mod tests {
         );
     }
 
+    #[test]
+    fn the_pane_s_marks_and_table_reach_a_mermaid_machine() {
+        let source = "stateDiagram-v2\n  [*] --> Closed\n  Closed --> Open : open\n  Open --> Closed : close\n%% mark (Omaspec) line 2 taken 4\n%% mark (Omaspec) line 3 missed\n";
+        let (svg, _, _) = crate::mermaid::render_mapped(source).unwrap();
+        assert!(svg.contains("open ×4") && svg.contains("#E8590C"), "{svg}");
+        // As a table, in a fence: the lines are those around it.
+        let doc = format!("\n\n```mermaid\n{source}```\n");
+        let machine = omaspec_model::Machine::read(&doc, omaspec_core::Language::Mermaid);
+        let machine = machine.expect("a machine in the fence");
+        let table = omaspec_model::matrix(&machine).table(&machine);
+        let (svg, map) = crate::mermaid::render_table(&doc, &table).unwrap();
+        assert!(svg.contains("→ Open"), "{svg}");
+        let lines: Vec<usize> = map.cells.iter().map(|c| c.line).collect();
+        assert_eq!(lines, [5, 6], "{map:?}");
+    }
+
     /// Where a state is in the picture.
     fn spot(source: &str, name: &str) -> omaspec_uml::graph::Rect {
         let (_, _, map) = crate::mermaid::render_mapped(source).unwrap();

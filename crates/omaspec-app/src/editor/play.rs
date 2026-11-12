@@ -94,6 +94,68 @@ impl App {
         )
     }
 
+    /// Draws what the recorded traces in the project folder take of the
+    /// state machine on screen, or stops drawing it.
+    pub(super) fn toggle_coverage(&mut self) -> Task<Message> {
+        let key = self.doc().key;
+        if self.doc().paper.covered.is_some() {
+            self.doc_mut().paper.covered = None;
+            self.notice = Some("coverage hidden".into());
+            return self.render(key, true);
+        }
+        let doc = self.doc();
+        let Some(spec) = doc.paper.spec(&doc.name()) else {
+            self.notice = Some("coverage is drawn over a state machine: show one first".into());
+            return Task::none();
+        };
+        let Some(root) = self.project_of(doc) else {
+            self.notice = Some("traces are found in the diagram's folder: save it first".into());
+            return Task::none();
+        };
+        Task::perform(
+            blocking(move || {
+                let mut paths: Vec<PathBuf> = specs::traces(&root, &spec)
+                    .into_iter()
+                    .map(|(_, path, _)| path)
+                    .collect();
+                paths.dedup();
+                paths
+                    .iter()
+                    .filter_map(|path| std::fs::read_to_string(path).ok())
+                    .collect::<Vec<String>>()
+            }),
+            move |traces| Message::Covered(key, traces.unwrap_or_default()),
+        )
+    }
+
+    /// Draws the coverage of `traces` over the state machine of tab `key`.
+    pub(super) fn covered(&mut self, key: u64, traces: Vec<String>) -> Task<Message> {
+        let Some(doc) = self.docs.iter_mut().find(|doc| doc.key == key) else {
+            return Task::none();
+        };
+        if traces.is_empty() {
+            self.notice = Some(
+                "no trace (JSON Lines, *.jsonl) in the diagram's folder has an object of its state machine"
+                    .into(),
+            );
+            return Task::none();
+        }
+        let name = doc.name();
+        let said = doc.paper.spec(&name).map(|spec| {
+            let texts: Vec<&str> = traces.iter().map(String::as_str).collect();
+            let (taken, total) = omaspec_model::coverage(&spec, &texts).transitions_covered();
+            format!(
+                "{taken} of {total} transitions taken ({:.0} %) by {} {}; green how often, dashed red never",
+                omaspec_model::coverage_share(taken, total),
+                traces.len(),
+                if traces.len() == 1 { "trace" } else { "traces" }
+            )
+        });
+        doc.paper.covered = Some(std::sync::Arc::new(crate::worker::Covered { name, traces }));
+        self.notice = said;
+        self.render(key, true)
+    }
+
     /// Plays the one trace found, or offers them.
     pub(super) fn found_traces(
         &mut self,

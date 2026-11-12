@@ -3,7 +3,6 @@
 //! what was taken and what never was drawn over it. The source stays as
 //! it is.
 
-use std::collections::HashMap;
 use std::fs;
 use std::io::{Write, stdout};
 use std::path::{Path, PathBuf};
@@ -12,7 +11,6 @@ use std::process::ExitCode;
 use anyhow::{Context, Result, bail};
 use omaspec_model::{Coverage, Kind, Spec, Transition, coverage};
 use omaspec_render::export::{self, Format};
-use omaspec_uml::state::{Mark, Marks};
 use serde::Serialize;
 
 use crate::commands::language;
@@ -77,7 +75,7 @@ pub fn run(args: &Args) -> Result<ExitCode> {
             "{file}: {} of {} transitions taken ({:.0} %), {} of {} states, by {objects} {}{}",
             report.covered_transitions,
             report.total_transitions,
-            percent(report.covered_transitions, report.total_transitions),
+            omaspec_model::coverage_share(report.covered_transitions, report.total_transitions),
             report.covered_states,
             report.total_states,
             if objects == 1 { "object" } else { "objects" },
@@ -135,7 +133,9 @@ pub(crate) fn measure(args: &Args) -> Result<Report> {
     let cov = coverage(&spec, &refs);
     let (covered, total) = cov.transitions_covered();
     let (covered_states, total_states) = cov.states_covered(&spec);
-    let passed = args.min.is_none_or(|min| percent(covered, total) >= min);
+    let passed = args
+        .min
+        .is_none_or(|min| omaspec_model::coverage_share(covered, total) >= min);
     let image = match args.output {
         Some(output) => {
             draw(&input.text, lang, args.file, &spec, &cov, output)?;
@@ -202,65 +202,13 @@ fn draw(
         .and_then(Format::from_extension)
         .filter(|format| matches!(format, Format::Svg | Format::Png | Format::Pdf))
         .with_context(|| format!("{} is no .svg, .png or .pdf", output.display()))?;
-    let mut transitions = HashMap::new();
-    for (t, &hits) in spec.machine.transitions.iter().zip(&cov.transitions) {
-        let mark = if hits > 0 {
-            Mark::Taken(hits)
-        } else {
-            Mark::Missed
-        };
-        // Several transitions written on one line share it: taken when
-        // one of them is.
-        transitions
-            .entry(t.line)
-            .and_modify(|had: &mut Mark| {
-                if let (Mark::Taken(a), Mark::Taken(b)) = (*had, mark) {
-                    *had = Mark::Taken(a + b);
-                } else if matches!(mark, Mark::Taken(_)) {
-                    *had = mark;
-                }
-            })
-            .or_insert(mark);
-    }
-    let states = spec
-        .machine
-        .states
-        .iter()
-        .zip(&cov.states)
-        .filter(|(s, _)| s.kind == Kind::State)
-        .map(|(s, &hits)| {
-            let mark = if hits > 0 {
-                Mark::Taken(hits)
-            } else {
-                Mark::Missed
-            };
-            (s.name.clone(), mark)
-        })
-        .collect();
-    let (covered, total) = cov.transitions_covered();
-    let marks = Marks {
-        transitions,
-        states,
-        ghosts: Vec::new(),
-        caption: Some(format!(
-            "{covered} of {total} transitions taken ({:.0} %)",
-            percent(covered, total)
-        )),
-    };
+    let marks = cov.marks(spec);
     let place = omaspec_render::Place::of(file, None);
     let rendered = omaspec_render::render_marked(code, lang, place.as_ref(), &marks)
         .map_err(|err| anyhow::anyhow!("{}: {err}", file.display()))?;
     let bytes = export::export(&rendered.svg, format, &export::Options::default())?;
     fs::write(output, bytes).with_context(|| format!("writing {}", output.display()))?;
     Ok(())
-}
-
-fn percent(part: usize, whole: usize) -> f32 {
-    if whole == 0 {
-        100.0
-    } else {
-        part as f32 * 100.0 / whole as f32
-    }
 }
 
 /// A state's name, `[*]` for a start or an end.

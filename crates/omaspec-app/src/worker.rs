@@ -190,14 +190,7 @@ impl Worker {
         place: Option<Place>,
         linked: Option<Linked>,
     ) {
-        self.render_folded(
-            ticket,
-            source,
-            language,
-            place,
-            linked,
-            (Vec::new(), Views::default()),
-        );
+        self.render_folded(ticket, source, language, place, linked, Asked::default());
     }
 
     /// [`Self::render`] with the containers named in `folds` folded to
@@ -210,7 +203,7 @@ impl Worker {
         language: Language,
         place: Option<Place>,
         linked: Option<Linked>,
-        (folds, views): (Vec<String>, Views),
+        asked: Asked,
     ) {
         let _ = self.input.unbounded_send(Input::Render {
             ticket,
@@ -219,8 +212,9 @@ impl Worker {
             place,
             linked,
             document: false,
-            folds,
-            views,
+            folds: asked.folds,
+            views: asked.views,
+            covered: asked.covered,
             map: None,
         });
     }
@@ -237,6 +231,7 @@ impl Worker {
             document: false,
             folds: Vec::new(),
             views: Views::default(),
+            covered: None,
             map: Some(folder),
         });
     }
@@ -259,6 +254,7 @@ impl Worker {
             document: true,
             folds: Vec::new(),
             views,
+            covered: None,
             map: None,
         });
     }
@@ -286,6 +282,8 @@ enum Input {
         folds: Vec<String>,
         /// How the pane asks the diagram drawn.
         views: Views,
+        /// Traces whose coverage is drawn over a state machine.
+        covered: Option<Arc<Covered>>,
         /// The folder of the project in `linked` whose map is asked for.
         map: Option<String>,
     },
@@ -348,6 +346,7 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     document,
                     folds,
                     views,
+                    covered,
                     map,
                 } => {
                     let generation = if let (Some(folder), Some((atlas, _))) = (map, &linked) {
@@ -362,7 +361,10 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     } else {
                         service.submit_linked(
                             ticket.doc,
-                            folded(&source, language, &folds, views),
+                            folded(&source, language, &folds, views)
+                                + &covered.map_or_else(String::new, |covered| {
+                                    covered.lines(&source, language)
+                                }),
                             language,
                             place,
                             linked,
@@ -392,6 +394,44 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
             }
         }
     })
+}
+
+/// What the pane asks of a drawing besides the text: the containers it
+/// folds, its views, the traces whose coverage it shows.
+#[derive(Debug, Clone, Default)]
+pub struct Asked {
+    pub folds: Vec<String>,
+    pub views: Views,
+    pub covered: Option<Arc<Covered>>,
+}
+
+/// Recorded traces whose coverage is drawn over a state machine: what
+/// they take bold in green with how often, what they never take dashed
+/// in red (`omaspec_model::coverage`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Covered {
+    /// The file name of the machine, which names it for the traces'
+    /// objects when it has no title.
+    pub name: String,
+    pub traces: Vec<String>,
+}
+
+impl Covered {
+    /// The lines that mark the coverage over `source`, the text drawn,
+    /// after it (`omaspec_uml::state::Marks::lines`); none when it is no
+    /// state machine.
+    pub fn lines(&self, source: &str, language: Language) -> String {
+        let Some(spec) = omaspec_model::Spec::read(source, language, &self.name) else {
+            return String::new();
+        };
+        let traces: Vec<&str> = self.traces.iter().map(String::as_str).collect();
+        let cov = omaspec_model::coverage(&spec, &traces);
+        let mut lines = cov.marks(&spec).lines(language == Language::Mermaid);
+        if !source.ends_with('\n') && !lines.is_empty() {
+            lines.insert(0, '\n');
+        }
+        lines
+    }
 }
 
 /// How the pane asks a diagram drawn, besides the file (View menu): the

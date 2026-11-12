@@ -571,6 +571,9 @@ draws the machine with what was taken bold in green, how often after its label, 
 never was dashed in red; the source stays as it is. `--json` gives the hits of every
 transition and state, and `--min 80` fails below that share of transitions, for CI.
 Where a trace leaves open which way an object went, every way it could have gone counts.
+In the editor, *Coverage of the recorded traces* (Diagram) draws the same over the state
+machine on screen, from the traces in its project folder, while it is edited and while a
+trace plays; the status bar says the share.
 
 **The table of states and events.** `omaspec matrix door.puml` writes a state machine as
 the classic table of a review or a test design: a row for each state, a column for each

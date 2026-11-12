@@ -247,6 +247,9 @@ pub enum Message {
     ),
     /// The recorded traces of a tab's state machine: label, file, object.
     Traces(u64, Vec<(String, PathBuf, String)>),
+    /// The texts of the recorded traces of a tab's state machine, whose
+    /// coverage is drawn over it.
+    Covered(u64, Vec<String>),
     /// The text of a version to compare a tab with.
     Version(u64, Target, Result<String, String>),
     CloseRequested(window::Id),
@@ -438,6 +441,9 @@ pub enum Command {
     Play,
     /// Plays a recorded trace of the state machine on screen.
     PlayTrace,
+    /// Draws what the recorded traces of the project take of the state
+    /// machine on screen, or stops drawing it.
+    Coverage,
     /// A step of the play.
     PlayAsk(paper::Ask),
     StopPlay,
@@ -1399,6 +1405,7 @@ impl App {
                 self.project_changes(&root, &rev, &label, changes)
             }
             Message::Traces(key, found) => self.found_traces(key, found),
+            Message::Covered(key, traces) => self.covered(key, traces),
             Message::Version(key, target, text) => {
                 match text {
                     Ok(text) => self.start_compare(key, target, text),
@@ -2094,6 +2101,7 @@ impl App {
             Command::Fit => paper(self.doc_mut().paper.fit()),
             Command::Play => self.toggle_play(),
             Command::PlayTrace => self.open_traces(),
+            Command::Coverage => self.toggle_coverage(),
             Command::PlayAsk(ask) => {
                 let task = paper(self.doc_mut().paper.update(paper::Message::Play(ask)));
                 self.light_played_line(key);

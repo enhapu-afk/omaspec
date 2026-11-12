@@ -331,6 +331,10 @@ pub fn render_mapped(
         Diagram::Sequence(d) => sequence::draw_mapped(&d),
         Diagram::State(mut d) => {
             d.fold(&fold::read(source));
+            // The pane's marks: what recorded traces cover.
+            if let Some(marks) = state::Marks::read(source) {
+                d.mark(&marks);
+            }
             state::draw_mapped(&d)
         }
         Diagram::Activity(d) => unmapped(activity::draw(&d)),

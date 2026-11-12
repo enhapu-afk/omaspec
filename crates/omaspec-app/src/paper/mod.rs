@@ -299,6 +299,8 @@ pub struct Paper {
     folds: Vec<String>,
     /// How the diagram is asked drawn besides its file (View menu).
     pub views: crate::worker::Views,
+    /// Recorded traces whose coverage is drawn over the state machine.
+    pub covered: Option<std::sync::Arc<crate::worker::Covered>>,
     /// The folds changed: the owner draws the diagram again.
     refold: bool,
     /// The container just folded or unfolded: the view glides to it once
@@ -351,6 +353,7 @@ impl Default for Paper {
             folding: false,
             folds: Vec::new(),
             views: crate::worker::Views::default(),
+            covered: None,
             refold: false,
             unfolding: None,
             focus: None,
@@ -442,7 +445,12 @@ impl Paper {
         } else {
             Vec::new()
         };
-        worker.render_folded(ticket, source, language, place, linked, (folds, self.views));
+        let asked = crate::worker::Asked {
+            folds,
+            views: self.views,
+            covered: self.covered.clone(),
+        };
+        worker.render_folded(ticket, source, language, place, linked, asked);
         self.made = false;
         self.asked();
     }

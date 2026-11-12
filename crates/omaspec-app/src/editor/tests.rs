@@ -5274,6 +5274,46 @@ fn json_is_drawn_nested_from_the_view_menu_and_the_session_keeps_it() {
 }
 
 #[test]
+fn the_coverage_of_the_recorded_traces_is_drawn_over_the_machine() {
+    let source = "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
+    let dir = temp_dir("coverage");
+    let path = dir.join("door.puml");
+    std::fs::write(&path, source).unwrap();
+    let trace =
+        "{\"object\":\"Door\",\"event\":\"open\"}\n{\"object\":\"Door\",\"event\":\"close\"}\n";
+    std::fs::write(dir.join("night.jsonl"), trace).unwrap();
+    let mut app = open(std::slice::from_ref(&path));
+    show(&mut app, source, Language::PlantUml);
+    let key = app.doc().key;
+    // The traces are read in the background; their texts come back.
+    press(&mut app, Command::Coverage);
+    assert!(app.doc().paper.covered.is_none());
+    let _ = app.update(Message::Covered(key, vec![trace.to_owned()]));
+    let covered = app.doc().paper.covered.clone().expect("covered");
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("3 of 5 transitions taken (60 %) by 1 trace; green how often, dashed red never")
+    );
+    // What the pane hands the engine marks it; the file never does.
+    let asked = format!("{source}{}", covered.lines(source, Language::PlantUml));
+    assert!(
+        asked.contains("' mark (Omaspec) line 2 taken 1\n"),
+        "{asked}"
+    );
+    let svg = omaspec_uml::render(&asked).unwrap();
+    assert!(svg.contains("open ×1") && svg.contains("#E8590C"), "{svg}");
+    assert!(svg.contains("3 of 5 transitions taken"), "{svg}");
+    press(&mut app, Command::Coverage);
+    assert!(app.doc().paper.covered.is_none());
+    assert_eq!(app.notice.as_deref(), Some("coverage hidden"));
+    // None of the project's traces goes by it: said so, nothing drawn.
+    let _ = app.update(Message::Covered(key, Vec::new()));
+    assert!(app.doc().paper.covered.is_none());
+    assert!(app.notice.as_deref().unwrap().starts_with("no trace"));
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
 fn a_state_machine_is_shown_as_its_table_and_a_cell_lands_on_its_line() {
     let source = "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\n@enduml\n";
     for follow in [false, true] {

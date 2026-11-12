@@ -91,14 +91,7 @@ pub fn render_marked(
     marks: &omaspec_uml::state::Marks,
 ) -> Result<(String, Map), RenderError> {
     let (_, offset) = mermaid_body(source);
-    let shifted = omaspec_uml::state::Marks {
-        transitions: marks
-            .transitions
-            .iter()
-            .filter_map(|(&line, &mark)| Some((line.checked_sub(offset)?, mark)))
-            .collect(),
-        ..marks.clone()
-    };
+    let shifted = fenced_marks(marks, offset);
     let drawn = draw_with(source, Over::Marks(&shifted))?;
     match drawn.declined {
         None => Ok((drawn.svg, drawn.map)),
@@ -106,6 +99,18 @@ pub fn render_marked(
             line: None,
             reason: "only a state diagram Omaspec draws itself has transitions to mark".into(),
         }),
+    }
+}
+
+/// `marks` on the lines of the source, on those inside its fence.
+fn fenced_marks(marks: &omaspec_uml::state::Marks, offset: usize) -> omaspec_uml::state::Marks {
+    omaspec_uml::state::Marks {
+        transitions: marks
+            .transitions
+            .iter()
+            .filter_map(|(&line, &mark)| Some((line.checked_sub(offset)?, mark)))
+            .collect(),
+        ..marks.clone()
     }
 }
 
@@ -145,6 +150,14 @@ pub(crate) enum Over<'a> {
 fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
     // Lines before the body belong to the fence.
     let (fenced, offset) = mermaid_body(source);
+    // The pane's marks (`%% mark (Omaspec) …`): what recorded traces cover.
+    let pane = match over {
+        Over::Nothing => {
+            omaspec_uml::state::Marks::read(source).map(|marks| fenced_marks(&marks, offset))
+        }
+        _ => None,
+    };
+    let over = pane.as_ref().map_or(over, Over::Marks);
     if let Some(line) = too_deep(fenced) {
         return Err(RenderError::Diagram {
             engine: Engine::Mermaid,
