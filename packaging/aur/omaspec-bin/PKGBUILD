@@ -23,9 +23,9 @@ provides=("$_pkgname")
 conflicts=("$_pkgname")
 options=('!debug')
 source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-x86_64-linux.tar.gz")
-sha256sums_x86_64=('SKIP')
+sha256sums_x86_64=('acd20a7af17d0d90febf29fb393e09c13078157c2af279fc570a591640a47a23')
 source_aarch64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-aarch64-linux.tar.gz")
-sha256sums_aarch64=('SKIP')
+sha256sums_aarch64=('94e5c456c81024c570c9c544db45b3edc4fda23169eca658314d9c6ab103ae1d')
 
 package() {
   cd "$_pkgname-$pkgver-$CARCH-linux"
