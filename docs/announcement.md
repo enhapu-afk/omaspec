@@ -151,6 +151,10 @@ walks you through a state machine, a scenario and a recorded trace in ten minute
   and the palette without Omarchy come next.
 - **Even cleaner lines.** Labels of lines between closed containers, fewer crossings where
   frames set the order.
+- **More Mermaid diagrams drawn by Omaspec.** Requirement diagrams first, then the charts
+  of numbers (quadrant, sankey, radar, treemap, XY chart, packet) and ZenUML.
+- **More PlantUML diagrams without Java.** YAML first, then network diagrams (nwdiag);
+  after them Salt, Ditaa, Archimate, EBNF, regex and chronology.
 - **The AUR**, as soon as it takes new accounts.
 
 ## Status

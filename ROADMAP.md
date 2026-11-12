@@ -905,7 +905,10 @@ Lint and outline move onto the syntax tree as each type lands.
 ## Next
 
 What comes after 0.4, announced in the README. Lines by hand, projects and
-diagrams that link were released as 0.5.0 on 2026-11-01.
+diagrams that link were released as 0.5.0 on 2026-11-01. The diagram types
+that follow (2026-11-12: Mermaid's requirement diagrams and PlantUML's YAML
+first) stand at the end of *An editor that knows the diagram, and more
+diagrams* below.
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it
       yourself; the diagram keeps the shape and draws it the same way next
