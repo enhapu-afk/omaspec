@@ -1245,7 +1245,12 @@ that change sides as a whole. Its tag was set before the version was: the
 program in it calls itself 0.9.1. 0.9.3 followed the same day with the version
 right, a sequence diagram's front matter title
 ([#4](https://github.com/enhapu-afk/omaspec/issues/4)) and a component's name
-off its icon ([#2](https://github.com/enhapu-afk/omaspec/issues/2)).
+off its icon ([#2](https://github.com/enhapu-afk/omaspec/issues/2)). 0.9.4
+followed on 2026-11-12 with what was built since: the menus, find in a file, the
+colored source and what the editor offers, `<style>` and shadows in more PlantUML
+diagrams, branches of a tree that fold, Mermaid's git graph and kanban board, and
+a release binary for aarch64 and for glibc 2.35 and newer, where 0.9.3's started
+only on Arch.
 
 ### Step 0: the yardstick
 

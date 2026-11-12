@@ -132,16 +132,15 @@ managers open `.puml` and `.mmd` files with Omaspec, and the Omarchy templates (
 Hyprland binding, a menu entry, themed colors) under `/usr/share/omaspec/omarchy`.
 
 Elsewhere, take the binary from the [latest release](https://github.com/enhapu-afk/omaspec/releases/latest),
-or build it with Rust 1.89 or newer. From the release after 0.9.3 on, the binary runs on
-glibc 2.35 or newer (Ubuntu 22.04, Debian 12); the one of 0.9.3 needs Arch's.
+or build it with Rust 1.89 or newer. The binary runs on glibc 2.35 or newer (Ubuntu
+22.04, Debian 12).
 
 ```bash
 cargo build --release -p omaspec-app   # the binary is target/release/omaspec
 ```
 
-On ARM (aarch64) the prebuilt binary comes with the release after 0.9.3. Until then, build
-from source: with the command above, or on Arch Linux ARM with `makepkg -si` in
-`packaging/aur/omaspec`. ARM is best effort: Omaspec has not been run on ARM hardware yet,
+The release has a binary for ARM (aarch64) too; on Arch Linux ARM, `makepkg -si` in
+`packaging/aur/omaspec-bin` installs it. ARM is best effort: Omaspec has not been run on ARM hardware yet,
 and reports are welcome as issues.
 
 Optional: `plantuml` for the few PlantUML types Omaspec does not draw itself yet (YAML,

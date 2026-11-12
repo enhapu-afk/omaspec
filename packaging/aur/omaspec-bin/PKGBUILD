@@ -6,13 +6,13 @@
 
 pkgname=omaspec-bin
 _pkgname=omaspec
-pkgver=0.9.3
+pkgver=0.9.4
 pkgrel=1
 pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy (prebuilt)"
 arch=('x86_64' 'aarch64')
 url="https://github.com/enhapu-afk/omaspec"
 license=('MIT' 'OFL-1.1-no-RFN')
-depends=('gcc-libs' 'glibc' 'fontconfig' 'libxkbcommon' 'wayland' 'vulkan-icd-loader')
+depends=('glibc' 'fontconfig' 'libxkbcommon' 'wayland' 'vulkan-icd-loader')
 optdepends=(
   'plantuml: optional, Java; draws the few PlantUML types the native engine does not (YAML, Salt, ...)'
   'wl-clipboard: copy diagrams to the clipboard'
@@ -23,8 +23,7 @@ provides=("$_pkgname")
 conflicts=("$_pkgname")
 options=('!debug')
 source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-x86_64-linux.tar.gz")
-sha256sums_x86_64=('6ab40665a18588cb8c524325d9b29118293a5be876793486a5c8057477f63c21')
-# From the first release with an aarch64 archive on: `updpkgsums` sets it.
+sha256sums_x86_64=('SKIP')
 source_aarch64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-aarch64-linux.tar.gz")
 sha256sums_aarch64=('SKIP')
 

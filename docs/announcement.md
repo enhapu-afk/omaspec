@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.9.3: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.9.4: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -83,6 +83,18 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   crosses less: on 300 random graphs 28 % fewer crossings.
 - **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
   matter, and a component's name keeps clear of its icon.
+
+## New in 0.9.4
+
+- **Runs outside Arch.** The release binary starts on glibc 2.35 and newer (Ubuntu 22.04,
+  Debian 12); the one of 0.9.3 asked for Arch's. There is one for ARM (aarch64) too.
+- **An editor that helps.** The source colored by what a word is, what could be written
+  offered as you type, a finding with its fix, find in the file, and the menus a mouse
+  expects.
+- **More of both languages.** Mermaid's git graph and kanban board drawn by Omaspec;
+  `<style>`, stereotypes and shadows in PlantUML's structure diagrams, mind maps and WBS.
+- **Trees that fold.** A branch of a mind map or a WBS folds into its box and glides out
+  of it.
 
 ## The editor
 
