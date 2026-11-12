@@ -171,7 +171,7 @@ pub(super) fn order(rows: &mut [Vec<usize>], holds: &[Hold]) {
         steps
     };
     let mut sorted: Vec<&Hold> = holds.iter().collect();
-    sorted.sort_by_key(|hold| steps(hold));
+    sorted.sort_by_cached_key(|hold| steps(hold));
     // The last box placed after each neighbor so far.
     let mut last: std::collections::HashMap<usize, usize> = Default::default();
     for hold in sorted {

@@ -731,52 +731,50 @@ impl Parser {
             self.container_mut(&home).edges.push(link(index, index));
             return Ok(());
         }
+        // A direction along the flow ranks the two, against it from the
+        // second box to the first, heads and multiplicities with it;
+        // across it the second box stands in the rank of the first, on
+        // that side: held there by a hidden line (docs/adr/0021), joined
+        // there by one that is drawn (docs/adr/0027).
+        let down = self.direction.unwrap_or_default() == Direction::Down;
+        let along = item
+            .toward
+            .is_none_or(|word| matches!(word, "down" | "up") == down);
+        let forward = item
+            .toward
+            .is_none_or(|word| matches!(word, "down" | "right"));
+        let turned = |from: usize, to: usize| Link {
+            from_head: item.to_head,
+            to_head: item.from_head,
+            from_card: item.to_card.as_ref().map(|text| text_at(text, item.line)),
+            to_card: item.from_card.as_ref().map(|text| text_at(text, item.line)),
+            ..link(to, from)
+        };
         let home = &from[..from.len() - 1];
         if to.len() == from.len() && to.starts_with(home) {
             let from_i = *from.last().expect("a path");
             let to_i = *to.last().expect("a path");
-            let home = home.to_vec();
-            let Some(word) = item.toward else {
-                self.container_mut(&home).edges.push(link(from_i, to_i));
-                return Ok(());
-            };
-            // Along the flow the line ranks the two, against it from its
-            // second box to its first; across it the second box stands in
-            // the rank of the first, on that side: held there by a hidden
-            // line (docs/adr/0021), joined there by one that is drawn
-            // (docs/adr/0027).
-            let down = self.direction.unwrap_or_default() == Direction::Down;
-            let along = matches!(word, "down" | "up") == down;
-            let forward = matches!(word, "down" | "right");
-            let turned = Link {
-                from_head: item.to_head,
-                to_head: item.from_head,
-                from_card: item.to_card.as_ref().map(|text| text_at(text, item.line)),
-                to_card: item.from_card.as_ref().map(|text| text_at(text, item.line)),
-                ..link(to_i, from_i)
-            };
-            let level = Link {
-                level: Some(forward),
-                ..link(from_i, to_i)
-            };
-            let group = self.container_mut(&home);
+            let group = self.container_mut(home);
             match (along, forward) {
                 (true, true) => group.edges.push(link(from_i, to_i)),
-                (true, false) => group.edges.push(turned),
+                (true, false) => group.edges.push(turned(from_i, to_i)),
                 (false, after) if item.hidden => group.held.push(crate::graph::hold::Held {
                     line: item.line,
                     index: to_i,
                     beside: from_i,
                     after,
                 }),
-                (false, _) => group.edges.push(level),
+                (false, after) => group.edges.push(Link {
+                    level: Some(after),
+                    ..link(from_i, to_i)
+                }),
             }
             return Ok(());
         }
-        if item.toward.is_some() {
+        if !along {
             return Err(Declined::at(
                 item.line,
-                "a line with a direction between boxes of different packages is not supported yet",
+                "a line with a direction across the flow between boxes of different packages is not supported yet",
             ));
         }
         let Some((depth, a, b)) = meeting(&from, &to) else {
@@ -785,11 +783,20 @@ impl Parser {
                 "a line between a box and something inside it is not supported yet",
             ));
         };
-        self.container_mut(&from[..depth]).crossings.push(Crossing {
-            from: from[depth..].to_vec(),
-            to: to[depth..].to_vec(),
-            arrow: link(a, b),
-        });
+        let crossing = if forward {
+            Crossing {
+                from: from[depth..].to_vec(),
+                to: to[depth..].to_vec(),
+                arrow: link(a, b),
+            }
+        } else {
+            Crossing {
+                from: to[depth..].to_vec(),
+                to: from[depth..].to_vec(),
+                arrow: turned(a, b),
+            }
+        };
+        self.container_mut(&from[..depth]).crossings.push(crossing);
         Ok(())
     }
 
@@ -2227,6 +2234,22 @@ mod tests {
         assert!(drawn.root.held.is_empty());
         let err = declined("package p {\n  rectangle a\n}\nrectangle b\na -right-> b\n");
         assert!(err.reason.contains("different packages"), "{}", err.reason);
+        // Along the flow it is a line like any other, out of a package too.
+        let out =
+            diagram("package p {\n  rectangle a\n}\nrectangle c\na -down-> c\nc <-up- a : back\n");
+        let told: Vec<(&[usize], &[usize], Head, Head)> = out
+            .root
+            .crossings
+            .iter()
+            .map(|c| (&c.from[..], &c.to[..], c.arrow.from_head, c.arrow.to_head))
+            .collect();
+        assert_eq!(
+            told,
+            [
+                (&[0, 0][..], &[1][..], Head::None, Head::Arrow),
+                (&[0, 0][..], &[1][..], Head::None, Head::Arrow),
+            ]
+        );
     }
 
     #[test]

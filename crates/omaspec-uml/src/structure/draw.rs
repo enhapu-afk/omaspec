@@ -1969,9 +1969,13 @@ fn card_at(
     };
     let (vx, vy) = (inner.0 - tip.0, inner.1 - tip.1);
     let len = (vx * vx + vy * vy).sqrt().max(0.01);
-    let first = (along + 8.0).min(len * 0.65).max(6.0);
     let (ux, uy) = (vx / len, vy / len);
     let (px, py) = (-uy, ux);
+    // Beside a level run it lies along the line: past the head by half
+    // its own width too, or the head would stand in its words.
+    let first = (along + 8.0 + py.abs() * block.width / 2.0)
+        .min(len * 0.65)
+        .max(6.0);
     let off = py.abs() * (block.height * 0.15 + 3.0) + px.abs() * (block.width / 2.0 + 3.0);
     let at = |travel: f32, side: f32| {
         let cx = tip.0 + ux * travel + side * px * off;

@@ -230,6 +230,15 @@ const TRACK: f32 = 10.0;
 const LEVEL_END: f32 = 20.0;
 /// Between a line within a rank and its label.
 const LEVEL_LABEL: f32 = 4.0;
+/// More room at each end that carries a mark: a multiplicity.
+const LEVEL_MARK: f32 = 28.0;
+/// Between two lines that join the same two boxes within a rank.
+const LEVEL_STEP: f32 = 16.0;
+/// How far such a line stays from the corners of its boxes.
+const LEVEL_CORNER: f32 = 8.0;
+/// How far before the boxes a line runs that passes over one between
+/// its two.
+const LEVEL_OVER: f32 = 14.0;
 /// Lays `nodes` out. Edges that name a missing node are dropped.
 pub fn layout(nodes: &[Node], edges: &[Edge], direction: Direction) -> Layout {
     framed(nodes, &[], &[], edges, &[], direction)
@@ -273,8 +282,8 @@ pub fn framed(
 
     let mut tree = (!frames.is_empty()).then(|| nest::Tree::new(frames, within, n, direction));
     // A line within a rank holds its second box beside its first, as a
-    // hold does; where that cannot be (the two are joined by another
-    // line, or lie in different frames) it is a line like any other.
+    // hold does. Where that cannot be it is a line like any other: the
+    // two are joined by another line, or lie in different frames.
     let wanted: Vec<(usize, hold::Hold)> = edges
         .iter()
         .enumerate()
@@ -285,7 +294,19 @@ pub fn framed(
                 beside: edge.from,
                 after,
             };
-            (edge.from < n && edge.to < n && edge.from != edge.to).then_some((index, hold))
+            let boxes = edge.from < n && edge.to < n && edge.from != edge.to;
+            // Room a box keeps on the side the line would run, for a note
+            // or its own loop, is in its way.
+            let clear = boxes && {
+                let (first, second) = (&nodes[edge.from], &nodes[edge.to]);
+                let (leaves, arrives) = if after {
+                    (first.loop_extra, second.before)
+                } else {
+                    (first.before, second.loop_extra)
+                };
+                leaves == 0.0 && arrives == 0.0
+            };
+            (clear && !edge.hidden).then_some((index, hold))
         })
         .collect();
     let between: Vec<Edge> = edges
@@ -300,10 +321,20 @@ pub fn framed(
         .collect();
     // A held box is ranked as one with its neighbor.
     let (holds, unheld) = hold::check(n, within, &between, &every);
-    let mut level: Vec<Option<bool>> = vec![None; edges.len()];
+    let group = hold::groups(n, &holds);
+    // Each such line that holds, with the room it asks for. One whose
+    // hold is not kept runs within the rank all the same where its boxes
+    // stand in one already (the same line written twice, or back): as
+    // an edge it would join two boxes of one rank, and be lost.
+    let mut level: Vec<Option<Level>> = vec![None; edges.len()];
     for (at, (index, hold)) in wanted.iter().enumerate() {
-        if !unheld.iter().any(|(not, _)| *not == at) {
-            level[*index] = Some(hold.after);
+        let kept = !unheld.iter().any(|(not, _)| *not == at);
+        if kept || group[hold.node] == group[hold.beside] {
+            level[*index] = Some(Level {
+                after: hold.after,
+                kept,
+                span: CROSS_GAP,
+            });
         }
     }
     let unheld: Vec<(usize, hold::Unheld)> = unheld
@@ -311,22 +342,30 @@ pub fn framed(
         .filter(|(index, _)| *index >= wanted.len())
         .map(|(index, why)| (index - wanted.len(), why))
         .collect();
-    // The ranks know nothing of such a line: it is no edge to them, and
-    // the box that stands first keeps room after it for the line, its
-    // heads and its label.
+    // The ranks know nothing of such a line: it is no edge to them. The
+    // box it holds keeps room on the side it is held from, for the line,
+    // its heads, its multiplicities and its label.
     let written = edges;
     let mut roomy = nodes.to_vec();
     let mut inner = edges.to_vec();
-    for (index, after) in level.iter().enumerate() {
-        let Some(after) = *after else { continue };
+    for (index, line) in level.iter_mut().enumerate() {
+        let Some(line) = line else { continue };
         let edge = written[index];
-        let first = if after { edge.from } else { edge.to };
         let label = match direction {
             Direction::Down => edge.label_width,
             Direction::Right => edge.label_height,
         };
-        let room = (label + 2.0 * LEVEL_END - CROSS_GAP).max(0.0);
-        roomy[first].loop_extra = roomy[first].loop_extra.max(room);
+        let marks = if edge.marked { 2.0 * LEVEL_MARK } else { 0.0 };
+        line.span = (label + 2.0 * LEVEL_END + marks).max(CROSS_GAP);
+        let held = &mut roomy[edge.to];
+        let side = if line.after {
+            &mut held.before
+        } else {
+            &mut held.loop_extra
+        };
+        if line.kept {
+            *side += line.span - CROSS_GAP;
+        }
         inner[index] = Edge {
             from: usize::MAX,
             to: usize::MAX,
@@ -334,7 +373,6 @@ pub fn framed(
         };
     }
     let (nodes, edges) = (roomy.as_slice(), inner.as_slice());
-    let group = hold::groups(n, &holds);
     let grouped = hold::ranked(edges, &group);
     let (rank, back) = match &tree {
         Some(tree) => nest::ranks(tree, &grouped),
@@ -437,6 +475,34 @@ pub fn framed(
     }
     let bands = place_along(&mut slots, &rows, &gaps);
     let rects: Vec<Rect> = (0..n).map(|i| rect_of(&slots, i, direction)).collect();
+    // The lines within a rank, each between its two boxes; those that
+    // join the same two run side by side, their labels on either side.
+    let mut level_routes: Vec<Option<Route>> = vec![None; written.len()];
+    for (index, line) in level.iter().enumerate() {
+        let Some(line) = line else { continue };
+        let edge = &written[index];
+        let pair = |other: &Edge| {
+            (other.from, other.to) == (edge.from, edge.to)
+                || (other.from, other.to) == (edge.to, edge.from)
+        };
+        let same = |at: &usize| level[*at].is_some() && pair(&written[*at]);
+        let count = (0..written.len()).filter(same).count();
+        let nth = (0..index).filter(same).count();
+        let others: Vec<Rect> = rects
+            .iter()
+            .enumerate()
+            .filter(|(at, _)| *at != edge.from && *at != edge.to)
+            .map(|(_, rect)| *rect)
+            .collect();
+        level_routes[index] = Some(level_route(
+            (rects[edge.from], rects[edge.to]),
+            &others,
+            edge,
+            line,
+            (nth, count),
+            direction,
+        ));
+    }
     let frame_rects: Vec<Rect> = match (&tree, &stacks) {
         (Some(tree), Some(stacks)) => (0..tree.count())
             .map(|f| frame_rect(f, &spans, &bands, &borders, stacks, tree, direction))
@@ -621,7 +687,21 @@ pub fn framed(
             },
         })
     });
-    let solids: Vec<Rect> = rects.iter().copied().chain(names).collect();
+    // The label of a line within a rank is in the way like a box.
+    let level_labels = level_routes.iter().flatten().filter_map(|route| {
+        (route.label_width > 0.0).then_some(Rect {
+            x: route.label_at.0,
+            y: route.label_at.1,
+            w: route.label_width,
+            h: route.label_height,
+        })
+    });
+    let solids: Vec<Rect> = rects
+        .iter()
+        .copied()
+        .chain(names)
+        .chain(level_labels)
+        .collect();
     straight::merge(
         &mut lines,
         &solids,
@@ -646,10 +726,9 @@ pub fn framed(
         }
         route.points = line;
     }
-    for (index, after) in level.iter().enumerate() {
-        if after.is_some() {
-            let edge = &written[index];
-            routes[index] = level_route(rects[edge.from], rects[edge.to], edge, direction);
+    for (route, level) in routes.iter_mut().zip(level_routes) {
+        if let Some(level) = level {
+            *route = level;
         }
     }
     Layout {
@@ -658,12 +737,35 @@ pub fn framed(
     }
 }
 
-/// A line within a rank, from the box `a` to the box `b` beside it:
-/// straight between the sides that face each other, where the two
-/// overlap along the flow, with its label over its middle (beside it
-/// where the flow runs across). Boxes that do not overlap are joined by
-/// one step between them.
-fn level_route(a: Rect, b: Rect, edge: &Edge, direction: Direction) -> Route {
+/// A line within a rank as the layout keeps it.
+#[derive(Debug, Clone, Copy)]
+struct Level {
+    /// Its second box stands after its first across the flow.
+    after: bool,
+    /// Its hold is kept: the room it asked for is there.
+    kept: bool,
+    /// How far apart the two boxes stand for it, across the flow.
+    span: f32,
+}
+
+/// A line within a rank, between the boxes `a` and `b`: straight between
+/// the sides that face each other, where the two overlap along the flow;
+/// the `nth` of `count` lines between the two, side by side. Its label
+/// lies in the room its second box keeps for it, on the side of the line
+/// the writer chose, else over it (after it where the flow runs to the
+/// right); every second line of several takes the other side. Boxes
+/// that do not overlap are joined by one step between them. Where one
+/// of `others` stands between the two, the line leaves and arrives
+/// before the boxes along the flow and runs over them, its label over
+/// that run.
+fn level_route(
+    (a, b): (Rect, Rect),
+    others: &[Rect],
+    edge: &Edge,
+    line: &Level,
+    (nth, count): (usize, usize),
+    direction: Direction,
+) -> Route {
     // Turned so the flow runs down: across is x, along is y.
     let turn = |r: Rect| match direction {
         Direction::Down => r,
@@ -686,7 +788,9 @@ fn level_route(a: Rect, b: Rect, edge: &Edge, direction: Direction) -> Route {
     };
     let (top, bottom) = (a.y.max(b.y), a.bottom().min(b.bottom()));
     let (points, at) = if top < bottom {
-        let y = (top + bottom) / 2.0;
+        let reach = ((bottom - top) / 2.0 - LEVEL_CORNER).max(0.0);
+        let shift = (nth as f32 - (count as f32 - 1.0) / 2.0) * LEVEL_STEP;
+        let y = (top + bottom) / 2.0 + shift.clamp(-reach, reach);
         (vec![(start, y), (end, y)], y)
     } else {
         let mid = (start + end) / 2.0;
@@ -695,17 +799,49 @@ fn level_route(a: Rect, b: Rect, edge: &Edge, direction: Direction) -> Route {
             a.cy().min(b.cy()),
         )
     };
-    let mid = (start + end) / 2.0;
-    let label_at = match direction {
-        Direction::Down => (
-            mid - edge.label_width / 2.0,
-            at - edge.label_height - LEVEL_LABEL,
-        ),
-        Direction::Right => (at + LEVEL_LABEL, mid - edge.label_height / 2.0),
+    // The middle of the room before the second box.
+    let middle = if line.after {
+        b.x - line.span / 2.0
+    } else {
+        b.right() + line.span / 2.0
+    };
+    let (across, along) = match direction {
+        Direction::Down => (edge.label_width, edge.label_height),
+        Direction::Right => (edge.label_height, edge.label_width),
+    };
+    let (low, high) = (start.min(end), start.max(end));
+    let passed: Vec<Rect> = others
+        .iter()
+        .map(|&other| turn(other))
+        .filter(|o| o.x < high && o.right() > low && o.y < at + 1.0 && o.bottom() > at - 1.0)
+        .collect();
+    if !passed.is_empty() {
+        let over = passed.iter().map(|o| o.y).fold(a.y.min(b.y), f32::min) - LEVEL_OVER;
+        let inset = |r: Rect| (r.w / 4.0).min(LEVEL_END);
+        let (leave, arrive) = if a.x <= b.x {
+            (a.right() - inset(a), b.x + inset(b))
+        } else {
+            (a.x + inset(a), b.right() - inset(b))
+        };
+        let points = [(leave, a.y), (leave, over), (arrive, over), (arrive, b.y)];
+        let label = ((leave + arrive - across) / 2.0, over - along - LEVEL_LABEL);
+        return Route {
+            points: points.into_iter().map(back).collect(),
+            label_at: back(label),
+            label_width: edge.label_width,
+            label_height: edge.label_height,
+        };
+    }
+    let chosen = edge.label_before.unwrap_or(direction == Direction::Down);
+    let before = chosen != (nth % 2 == 1);
+    let beside = if before {
+        at - along - LEVEL_LABEL
+    } else {
+        at + LEVEL_LABEL
     };
     Route {
         points: points.into_iter().map(back).collect(),
-        label_at,
+        label_at: back((middle - across / 2.0, beside)),
         label_width: edge.label_width,
         label_height: edge.label_height,
     }
@@ -1963,6 +2099,90 @@ mod tests {
                     .any(|(i, &x)| { laid.nodes[i + 1..].iter().any(|&y| overlaps(x, y)) })
             );
         }
+    }
+
+    #[test]
+    fn lines_within_a_rank_written_twice_back_or_past_a_box_are_all_drawn() {
+        let nodes = [node(80.0, 60.0), node(60.0, 60.0), node(70.0, 60.0)];
+        let level = |from, to, after| Edge {
+            level: Some(after),
+            label_width: 30.0,
+            label_height: 14.0,
+            ..edge(from, to)
+        };
+        // There, back, on, and from the first past the second.
+        let edges = [
+            level(0, 1, true),
+            level(1, 0, false),
+            level(1, 2, true),
+            level(0, 2, true),
+        ];
+        let laid = layout(&nodes, &edges, Direction::Down);
+        let [a, b, c] = [0, 1, 2].map(|i| laid.nodes[i]);
+        assert!(a.right() <= b.x && b.right() <= c.x, "a b c");
+        assert!(laid.routes.iter().all(|route| route.points.len() >= 2));
+        // The two between a and b lie side by side, a label on either side.
+        let (there, back) = (&laid.routes[0], &laid.routes[1]);
+        assert!((there.points[0].1 - back.points[0].1).abs() >= LEVEL_STEP - 0.5);
+        assert!(there.label_at.1 < there.points[0].1 && back.label_at.1 > back.points[0].1);
+        // Past b the line runs over it, and its label over that run.
+        let far = &laid.routes[3];
+        assert_eq!(far.points.len(), 4);
+        let over = far.points[1].1;
+        assert!(over < b.y && (over - far.points[2].1).abs() < 0.01);
+        assert!(far.label_at.1 + far.label_height <= over);
+        // A label of one line is not on a box or on another label.
+        let labels: Vec<Rect> = laid
+            .routes
+            .iter()
+            .map(|route| Rect {
+                x: route.label_at.0,
+                y: route.label_at.1,
+                w: route.label_width,
+                h: route.label_height,
+            })
+            .collect();
+        for (i, &label) in labels.iter().enumerate() {
+            assert!(!laid.nodes.iter().any(|&node| overlaps(label, node)), "{i}");
+            assert!(
+                !labels[i + 1..].iter().any(|&other| overlaps(label, other)),
+                "{i}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_line_within_a_rank_keeps_out_of_a_note_s_room_and_room_for_its_marks() {
+        // The first box keeps room after it: a note stands there.
+        let mut nodes = [node(80.0, 40.0), node(60.0, 40.0)];
+        nodes[0].loop_extra = 90.0;
+        let level = Edge {
+            level: Some(true),
+            ..edge(0, 1)
+        };
+        let laid = layout(&nodes, &[level], Direction::Down);
+        assert!(
+            laid.nodes[1].y >= laid.nodes[0].bottom(),
+            "a line like any other"
+        );
+        // Multiplicities at its ends ask for more room between the two.
+        let nodes = [node(80.0, 40.0), node(60.0, 40.0)];
+        let gap = |marked| {
+            let laid = layout(&nodes, &[Edge { marked, ..level }], Direction::Down);
+            laid.nodes[1].x - laid.nodes[0].right()
+        };
+        assert!(gap(true) > gap(false));
+        assert!(gap(true) >= 2.0 * (LEVEL_END + LEVEL_MARK) - 0.5);
+        // A hidden one is no line of the picture.
+        let hidden = Edge {
+            hidden: true,
+            ..level
+        };
+        assert!(
+            layout(&nodes, &[hidden], Direction::Down).routes[0]
+                .points
+                .is_empty()
+        );
     }
 
     #[test]
