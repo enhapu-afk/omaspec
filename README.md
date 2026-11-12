@@ -110,7 +110,9 @@ checked for legible colors, the gallery's diagrams in each of them too.
 - **For scripts and AI agents.** Every check is on the command line, with JSON output and
   exit codes. `omaspec check DIR` runs them for CI, and `omaspec mcp` is an MCP server
   with the same tools.
-- **24 examples** to start from, as tiles drawn on the spot (Ctrl+Shift+E).
+- **The same picture everywhere.** A diagram is drawn byte for byte the same whatever
+  language the system is set to; a test draws every example under five locales.
+- **26 examples** to start from, as tiles drawn on the spot (Ctrl+Shift+E).
 
 ![The gallery of examples](docs/images/gallery.png)
 

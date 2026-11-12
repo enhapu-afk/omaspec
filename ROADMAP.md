@@ -2381,6 +2381,14 @@ without folding, lines by hand and plays, and the Java PlantUML:
       (`recipe.puml`). Open, declined with their line: anchors, aliases
       and tags, a `?` key, a second document, and a flow value or a
       plain text over several lines.
+- [x] The same picture in every system language (2026-11-12): a test
+      draws every example, and names a locale would sort or fold its
+      own way, under C, German, Turkish, Japanese and Arabic and
+      compares the SVGs byte for byte (`omaspec-app/tests/locale.rs`);
+      CI installs the locales and fails when one is missing. Mermaid's
+      swimlane layout ranks its nodes by the browser's language
+      (mermaid-js/mermaid #8759). Not held to it: what the Java
+      PlantUML draws, which is given `LANG`.
 - [ ] PlantUML: network diagrams (nwdiag) next. After them: Salt,
       Ditaa, Archimate, EBNF, regex, chronology.
 

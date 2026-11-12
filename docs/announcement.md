@@ -106,7 +106,7 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   and themed colors included.
 - Exports SVG, PNG and PDF with the source inside, so an image opens as a diagram again;
   a whole project as linked SVGs and a ZIP anyone can open in a browser.
-- 24 examples to start from (Ctrl+Shift+E), and every command in a palette
+- 26 examples to start from (Ctrl+Shift+E), and every command in a palette
   (Ctrl+Shift+P).
 
 ## Drawing
