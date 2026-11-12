@@ -11,6 +11,10 @@
    (on Ubuntu) and attaches `omaspec-X.Y.Z-x86_64-linux.tar.gz` and
    `omaspec-X.Y.Z-aarch64-linux.tar.gz` with their checksums to the GitHub release. When
    one architecture fails, the release still gets the other's archive.
+   The binary is linked against glibc 2.35 (`cargo zigbuild`), so it runs outside Arch
+   too: the workflow fails when it asks for a newer one, and runs each archive on
+   Ubuntu 22.04 and Debian 12 before it attaches it. To try the workflow without a
+   release: `gh workflow run release.yml -f tag=main -f publish=false`.
    If the workflow fails, fix it on `main` and build the tag again with it:
    `gh workflow run release.yml -f tag=vX.Y.Z`. The tag stays where it is.
 4. **AUR.** For each of `packaging/aur/omaspec`, `omaspec-bin` (and once

@@ -132,7 +132,8 @@ managers open `.puml` and `.mmd` files with Omaspec, and the Omarchy templates (
 Hyprland binding, a menu entry, themed colors) under `/usr/share/omaspec/omarchy`.
 
 Elsewhere, take the binary from the [latest release](https://github.com/enhapu-afk/omaspec/releases/latest),
-or build it with Rust 1.89 or newer:
+or build it with Rust 1.89 or newer. From the release after 0.9.3 on, the binary runs on
+glibc 2.35 or newer (Ubuntu 22.04, Debian 12); the one of 0.9.3 needs Arch's.
 
 ```bash
 cargo build --release -p omaspec-app   # the binary is target/release/omaspec

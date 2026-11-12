@@ -3,6 +3,11 @@ name: Release
 # A signed tag vX.Y.Z (see packaging/RELEASING.md) builds the binary for
 # x86_64 and aarch64 and attaches both to a GitHub release for omaspec-bin.
 # Run by hand with a tag, it builds that tag again with this workflow.
+#
+# The binary is linked against glibc 2.35 (cargo zigbuild), whatever the
+# runner has, so it also starts on Ubuntu 22.04, Debian 12 and newer: the
+# build fails when it asks for more, and each archive is run on both
+# before it reaches the release.
 
 on:
   push:
@@ -10,14 +15,20 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "The tag to release, e.g. v0.4.0"
+        description: "The tag to release, e.g. v0.4.0; or a branch, with publish off"
         required: true
+      publish:
+        description: "Attach the archives to the GitHub release"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
 
 env:
   TAG: ${{ inputs.tag || github.ref_name }}
+  # The oldest glibc the binary may ask for: Ubuntu 22.04's.
+  GLIBC: "2.35"
 
 jobs:
   build:
@@ -30,8 +41,7 @@ jobs:
           - arch: x86_64
             runner: ubuntu-latest
             container: archlinux:base-devel
-          # Arch has no official image for ARM: built on Ubuntu, whose older
-          # glibc keeps the binary running on Arch Linux ARM and the others.
+          # Arch has no official image for ARM: tested and built on Ubuntu.
           - arch: aarch64
             runner: ubuntu-24.04-arm
             container: ""
@@ -41,12 +51,12 @@ jobs:
       # The renderer's tests read the labels the fonts lay out.
       - name: Tools, libraries and a font (Arch)
         if: matrix.container != ''
-        run: pacman -Syu --noconfirm rust git fontconfig libxkbcommon wayland vulkan-icd-loader ttf-liberation
+        run: pacman -Syu --noconfirm rust git python fontconfig libxkbcommon wayland vulkan-icd-loader ttf-liberation
       - name: Libraries (Ubuntu)
         if: matrix.container == ''
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxkbcommon-dev libwayland-dev libfontconfig1-dev libvulkan-dev
+          sudo apt-get install -y python3-venv libxkbcommon-dev libwayland-dev libfontconfig1-dev libvulkan-dev
       - uses: dtolnay/rust-toolchain@stable
         if: matrix.container == ''
       - uses: actions/checkout@v4
@@ -54,14 +64,30 @@ jobs:
           ref: ${{ env.TAG }}
       - name: Test
         run: cargo test --locked -p omaspec-core -p omaspec-theme -p omaspec-render
+      # Zig links against the glibc named after the target instead of the
+      # runner's. Both come from PyPI, at the versions the build was tried with.
+      - name: Zig as the linker
+        run: |
+          python3 -m venv "$RUNNER_TEMP/zig"
+          "$RUNNER_TEMP/zig/bin/pip" install cargo-zigbuild==0.24.1 ziglang==0.17.1
+          echo "$RUNNER_TEMP/zig/bin" >> "$GITHUB_PATH"
       - name: Build
-        run: cargo build --locked --release -p omaspec-app
+        run: |
+          cargo zigbuild --locked --release -p omaspec-app \
+            --target "${{ matrix.arch }}-unknown-linux-gnu.$GLIBC"
+      - name: The binary asks for no newer glibc
+        run: |
+          bin="target/${{ matrix.arch }}-unknown-linux-gnu/release/omaspec"
+          newest="$(objdump -T "$bin" | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -n 1)"
+          echo "newest symbol version: $newest"
+          test -n "$newest"
+          test "$(printf '%s\n' "GLIBC_$GLIBC" "$newest" | sort -V | tail -n 1)" = "GLIBC_$GLIBC"
       - name: Package
         run: |
           version="${TAG#v}"
           dir="omaspec-$version-${{ matrix.arch }}-linux"
           mkdir -p "$dir"
-          install -m755 target/release/omaspec "$dir/"
+          install -m755 "target/${{ matrix.arch }}-unknown-linux-gnu/release/omaspec" "$dir/"
           cp LICENSE README.md packaging/omaspec.desktop packaging/omaspec.svg \
             packaging/omaspec-mime.xml "$dir/"
           # The license of the handwriting face built into the binary. A tag
@@ -74,6 +100,47 @@ jobs:
           sha256sum "$dir.tar.gz" > "$dir.tar.gz.sha256"
       - uses: actions/upload-artifact@v4
         with:
+          name: built-${{ matrix.arch }}
+          path: |
+            omaspec-*.tar.gz
+            omaspec-*.tar.gz.sha256
+          if-no-files-found: error
+
+  # The archive as a user elsewhere gets it: unpacked on the oldest systems
+  # it is promised for, with nothing installed, and asked for a diagram.
+  # Only an archive that starts on each goes on to the release.
+  start:
+    needs: build
+    if: ${{ !cancelled() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: built-${{ matrix.arch }}
+      - name: Start on Ubuntu 22.04 and Debian 12
+        run: |
+          sha256sum -c omaspec-*.tar.gz.sha256
+          mkdir try
+          tar xzf omaspec-*.tar.gz -C try --strip-components=1
+          for image in ubuntu:22.04 debian:12; do
+            echo "== $image"
+            docker run --rm -v "$PWD/try:/omaspec:ro" -w /tmp "$image" sh -ec '
+              /omaspec/omaspec --version
+              /omaspec/omaspec example crossing.mmd > crossing.mmd
+              /omaspec/omaspec render crossing.mmd -o crossing.svg
+              grep -q "<svg" crossing.svg
+            '
+          done
+      - uses: actions/upload-artifact@v4
+        with:
           name: omaspec-${{ matrix.arch }}
           path: |
             omaspec-*.tar.gz
@@ -82,8 +149,8 @@ jobs:
 
   # One job writes the release, so the two builds never race to create it.
   release:
-    needs: build
-    if: ${{ !cancelled() }}
+    needs: start
+    if: ${{ !cancelled() && (github.event_name == 'push' || inputs.publish) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
