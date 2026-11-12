@@ -15,6 +15,7 @@ pub mod requirement;
 mod skin;
 
 pub use crate::common::{Frame, Skinparam, Text};
+pub(crate) use draw::{ACTOR_FIGURE, paint_outline, words_area};
 pub use draw::{draw, draw_mapped, label_by_hand};
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use parse::{is_structure, parse};

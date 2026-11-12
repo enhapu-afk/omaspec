@@ -69,6 +69,7 @@ fn block_name(block: &str) -> Option<&'static str> {
         "ditaa" => "Ditaa",
         "dot" => "Graphviz",
         "tree" => "Tree",
+        "nwdiag" => "Network diagram",
         _ => return None,
     })
 }
@@ -167,6 +168,7 @@ fn plantuml_kind(code: &str, lines: &[&str]) -> DiagramKind {
         }
         Some(UmlType::Structure) => DiagramKind::new(Kind::Structure, structure_name(code)),
         Some(UmlType::Sequence) => DiagramKind::new(Kind::Sequence, "Sequence diagram"),
+        Some(UmlType::Network) => DiagramKind::new(Kind::Other, "Network diagram"),
         _ => DiagramKind {
             kind: Kind::Other,
             name: Cow::Borrowed(""),
@@ -367,6 +369,17 @@ mod tests {
         let k = classify("@startflow\n@endflow", Language::PlantUml);
         assert_eq!(k.name, "Signal flow");
         assert_eq!(k.kind, Kind::Other);
+        // Both ways of writing a network diagram.
+        let k = classify(
+            "@startnwdiag\nnetwork a {\n  x;\n}\n@endnwdiag",
+            Language::PlantUml,
+        );
+        assert_eq!(k.name, "Network diagram");
+        let k = classify(
+            "@startuml\nnwdiag {\n  network a {\n    x;\n  }\n}\n@enduml",
+            Language::PlantUml,
+        );
+        assert_eq!(k.name, "Network diagram");
     }
 
     #[test]

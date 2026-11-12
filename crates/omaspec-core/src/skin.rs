@@ -286,6 +286,7 @@ pub fn edit_in(
             match crate::kind::plantuml_block(code).as_str() {
                 "json" => tables_omarchy("jsonDiagram", colors, font),
                 "yaml" => tables_omarchy("yamlDiagram", colors, font),
+                "nwdiag" => network_omarchy(colors, font),
                 _ => plantuml(p, colors, font),
             }
         }
@@ -518,6 +519,31 @@ fn tables_omarchy(diagram: &str, c: &Colors, font: Option<&str>) -> String {
         text = c.text,
         surface = c.surface,
         accent = c.accent,
+    )
+}
+
+/// The Omarchy pack for an `@startnwdiag` diagram, which PlantUML draws
+/// from its styles alone (`nwdiagDiagram`).
+fn network_omarchy(c: &Colors, font: Option<&str>) -> String {
+    let font = font.map_or_else(String::new, |f| format!("  FontName {}\n", f.trim()));
+    format!(
+        "{PLANTUML_MARK}{} (Omaspec)\n\
+         <style>\n\
+         document {{\n  BackGroundColor {bg}\n  FontColor {text}\n{font}}}\n\
+         nwdiagDiagram {{\n  \
+           network {{\n    BackGroundColor {surface}\n    LineColor {accent}\n    FontColor {text}\n  }}\n  \
+           server {{\n    BackGroundColor {surface}\n    LineColor {accent}\n    FontColor {text}\n  }}\n  \
+           arrow {{\n    LineColor {accent}\n    FontColor {text}\n  }}\n  \
+           group {{\n    BackGroundColor {bg}\n    LineColor {muted}\n    FontColor {text}\n  }}\n\
+         }}\n\
+         </style>\n\
+         {PLANTUML_END}\n",
+        Pack::Omarchy.name(),
+        bg = c.background,
+        text = c.text,
+        surface = c.surface,
+        accent = c.accent,
+        muted = c.muted,
     )
 }
 

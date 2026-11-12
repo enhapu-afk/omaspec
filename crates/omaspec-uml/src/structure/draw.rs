@@ -1178,6 +1178,86 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     paint_rows(canvas, node);
 }
 
+/// The outline of `shape` in `rect`, as a box of a structure diagram is
+/// drawn, without its words: what a network diagram's servers take. A
+/// package's tab is half its width.
+pub(crate) fn paint_outline(
+    canvas: &mut Canvas,
+    shape: Shape,
+    rect: Rect,
+    round: f32,
+    fill: Paint,
+    stroke: Stroke,
+) {
+    let round = round.min(rect.w / 2.0).min(rect.h / 2.0).max(0.0);
+    match shape {
+        Shape::UseCase => canvas.ellipse(
+            Layer::Frames,
+            (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0),
+            (rect.w / 2.0, rect.h / 2.0),
+            fill,
+            Some(stroke),
+        ),
+        Shape::Actor => paint_actor(canvas, rect, fill, stroke),
+        Shape::Node => paint_node(canvas, rect, fill, stroke),
+        Shape::Database | Shape::Storage => paint_cylinder(canvas, rect, fill, stroke),
+        Shape::Cloud => canvas.path(
+            Layer::Frames,
+            &cloud_path(rect),
+            (rect.x, rect.y, rect.x + rect.w, rect.y + rect.h),
+            fill,
+            Some(stroke),
+        ),
+        Shape::Hexagon => canvas.polygon(Layer::Frames, &hexagon(rect), fill, Some(stroke)),
+        Shape::Package | Shape::Folder => {
+            paint_tab(canvas, rect, 0.0, rect.w / 2.0, round, fill, stroke);
+        }
+        Shape::Stack => paint_stack(canvas, rect, round, fill, stroke),
+        Shape::Agent => paint_agent(canvas, rect, round, fill, stroke),
+        Shape::Person => shapes::paint_person(canvas, rect, fill, stroke),
+        Shape::Queue => shapes::paint_queue(canvas, rect, fill, stroke),
+        Shape::Note | Shape::Artifact | Shape::File => dog_ear(canvas, rect, fill, stroke),
+        _ => {
+            canvas.rect(
+                Layer::Frames,
+                (rect.x, rect.y, rect.w, rect.h),
+                round,
+                fill,
+                Some(stroke),
+            );
+            if shape == Shape::Component {
+                component_icon(canvas, rect, stroke);
+            }
+        }
+    }
+}
+
+/// Where the words of `shape` stand in `rect`: below an actor's figure,
+/// in a person's body, between a cylinder's caps.
+pub(crate) fn words_area(shape: Shape, rect: Rect) -> Rect {
+    match shape {
+        Shape::Actor => Rect {
+            y: rect.y + ACTOR_FIGURE,
+            h: (rect.h - ACTOR_FIGURE).max(1.0),
+            ..rect
+        },
+        Shape::Person => shapes::body_of(rect),
+        Shape::Queue => shapes::queue_area(rect),
+        Shape::Database | Shape::Storage => {
+            let ry = CAP.min(rect.h * 0.22).max(1.0);
+            Rect {
+                y: rect.y + 2.0 * ry,
+                h: (rect.h - 3.0 * ry).max(1.0),
+                ..rect
+            }
+        }
+        _ => rect,
+    }
+}
+
+/// The height of an actor's stick figure above its words.
+pub(crate) const ACTOR_FIGURE: f32 = 46.0;
+
 fn paint_actor(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
     let cx = rect.x + rect.w / 2.0;
     let head_r = 7.0;

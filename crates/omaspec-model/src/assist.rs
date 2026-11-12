@@ -766,6 +766,16 @@ mod tests {
     }
 
     #[test]
+    fn a_network_diagram_offers_its_own_words() {
+        let none = Specs::default();
+        let code = "@startnwdiag\nnetwork home {\n  address = \"10.0.0.0/24\"\n}\nnet";
+        let found = at_end(code, Language::PlantUml, &none);
+        assert!(labels(&found).contains(&"network"), "{found:?}");
+        let code = "@startnwdiag\nnetwork home {\n  laptop;\n}\ngr";
+        assert!(labels(&at_end(code, Language::PlantUml, &none)).contains(&"group"));
+    }
+
+    #[test]
     fn a_word_of_c4_is_still_a_name_elsewhere() {
         let none = Specs::default();
         let code = "@startuml\nparticipant System\nSystem -> DB : save\nS";

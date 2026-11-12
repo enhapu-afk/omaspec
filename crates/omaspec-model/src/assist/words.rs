@@ -186,6 +186,30 @@ const PUML_C4: &[&str] = &[
     "LAYOUT_AS_SKETCH()",
 ];
 
+/// A network diagram's words (nwdiag), for that kind only.
+const PUML_NETWORK: &[&str] = &[
+    "network",
+    "group",
+    "address",
+    "description",
+    "color",
+    "shape",
+    "width = full",
+];
+
+const PUML_NETWORK_BLOCKS: &[Block] = &[
+    (
+        "network",
+        "a network, drawn as a bar",
+        "network ${1:name} {\n  address = \"${2:10.0.0.0/24}\"\n  ${3:server} [address = \"${4:.1}\"];\n}",
+    ),
+    (
+        "group",
+        "servers on a colored field",
+        "group {\n  color = \"${1:#EBFBEE}\"\n  ${2:server};\n}",
+    ),
+];
+
 const PUML_C4_BLOCKS: &[Block] = &[
     (
         "Person",
@@ -434,6 +458,9 @@ fn tables(lang: Language, kind: &DiagramKind) -> (Vec<&'static str>, &'static [B
                 Kind::State => (PUML_STATE, PUML_STATE_BLOCKS),
                 Kind::Activity => (PUML_ACTIVITY, PUML_ACTIVITY_BLOCKS),
                 Kind::Structure if kind.name == "C4 diagram" => (PUML_C4, PUML_C4_BLOCKS),
+                Kind::Other if kind.name == "Network diagram" => {
+                    (PUML_NETWORK, PUML_NETWORK_BLOCKS)
+                }
                 Kind::Structure => (PUML_STRUCTURE, PUML_STRUCTURE_BLOCKS),
                 // Nothing says yet what it will be: a scenario's words,
                 // the most written.

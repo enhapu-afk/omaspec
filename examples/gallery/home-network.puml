@@ -1,0 +1,39 @@
+@startnwdiag
+' A network diagram: networks as bars, the servers between them, the
+' address of each on its line. A server on no network hangs above the
+' one it is joined to.
+title
+<size:18><b>A home network</b></size>
+<size:12>the internet, the router, two networks</size>
+end title
+<style>
+title {
+  HorizontalAlignment left
+  FontStyle plain
+}
+</style>
+internet [shape = cloud, description = "<&globe> internet"];
+internet -- router;
+
+network home {
+  address = "192.168.1.0/24"
+  color = "#D0EBFF"
+  router [address = ".1", description = "<&wifi> router"];
+  laptop [address = ".20", description = "<&laptop> laptop"];
+  phone [address = ".21", description = "<&phone> phone"];
+  nas [address = ".30", shape = database, description = "NAS"];
+}
+network guests {
+  address = "10.0.0.0/24"
+  color = "#FFF3BF"
+  router [address = ".1"];
+  tv [address = ".40", description = "<&monitor> TV"];
+  printer [address = ".41", description = "<&print> printer"];
+}
+group {
+  color = "#EBFBEE"
+  description = "kept on the guest network"
+  tv;
+  printer;
+}
+@endnwdiag

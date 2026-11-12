@@ -21,6 +21,8 @@ pub enum Kind {
     Json,
     /// `@startyaml`: drawn as the JSON it stands for.
     Yaml,
+    /// `@startnwdiag`: a network diagram.
+    Network,
     /// `@startlatex`.
     Latex,
     /// `@startmath`.
@@ -66,6 +68,7 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
                 "startflow" => Kind::Flow,
                 "startjson" => Kind::Json,
                 "startyaml" => Kind::Yaml,
+                "startnwdiag" => Kind::Network,
                 "startlatex" => Kind::Latex,
                 "startmath" => Kind::Math,
                 _ => {

@@ -34,6 +34,7 @@ pub mod json;
 pub mod kanban;
 pub mod map;
 mod metrics;
+pub mod network;
 pub mod pie;
 mod preprocess;
 pub mod sequence;
@@ -104,6 +105,7 @@ pub enum Diagram {
     Flow(flow::Diagram),
     Json(json::Diagram),
     Formula(formula::Diagram),
+    Network(network::Diagram),
 }
 
 pub use preprocess::{Included, Includes};
@@ -164,6 +166,7 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
         source::Kind::Gantt => Diagram::Gantt(gantt::parse(&lines)?),
         source::Kind::Flow => Diagram::Flow(flow::parse(&lines)?),
         source::Kind::Json => Diagram::Json(json::parse(&lines)?),
+        source::Kind::Network => Diagram::Network(network::parse(&lines)?),
         source::Kind::Yaml => Diagram::Json(yaml::parse(&lines)?),
         source::Kind::Latex => Diagram::Formula(formula::parse(&lines, formula::Notation::Latex)?),
         source::Kind::Math => Diagram::Formula(formula::parse(&lines, formula::Notation::Ascii)?),
@@ -177,6 +180,8 @@ pub enum UmlType {
     Activity,
     State,
     Structure,
+    /// `nwdiag { … }`: a network diagram.
+    Network,
     /// What no other type claims, as in PlantUML.
     Sequence,
     /// Nothing but what goes around every diagram: a title, a legend,
@@ -239,7 +244,9 @@ fn decide(lines: &[source::Line]) -> UmlType {
     // A timing keyword wins: `rectangle` is a timing row only once the
     // diagram is already a timing diagram, and on its own it stays a
     // structure diagram.
-    if timing::is_timing(&deciding) {
+    if network::is_network(&deciding) {
+        UmlType::Network
+    } else if timing::is_timing(&deciding) {
         UmlType::Timing
     } else if activity::is_activity(&deciding) {
         UmlType::Activity
@@ -275,6 +282,7 @@ fn uml(lines: &[source::Line]) -> Result<Diagram, Declined> {
         UmlType::Activity => Diagram::Activity(activity::parse(lines)?),
         UmlType::State => Diagram::State(state::parse(lines)?),
         UmlType::Structure => Diagram::Structure(structure::parse(lines)?),
+        UmlType::Network => Diagram::Network(network::parse(lines)?),
         UmlType::Sequence | UmlType::Empty => Diagram::Sequence(sequence::parse(lines)?),
     })
 }
@@ -377,6 +385,7 @@ pub fn render_mapped(
             json::draw_mapped(&d)
         }
         Diagram::Formula(d) => unmapped(formula::draw(&d)),
+        Diagram::Network(d) => unmapped(network::draw(&d)),
     }
 }
 

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="374" height="409" viewBox="0 0 374 409">
+<g transform="translate(10,10)">
+<g>
+<rect x="110.51" y="312.33" width="218.65" height="76.3" rx="4" ry="4" fill="#FFAAAA"/>
+</g>
+<g>
+<line x1="152.51" y1="152.04" x2="152.51" y2="182.04" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="152.51" y1="190.04" x2="152.51" y2="220.04" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="287.16" y1="190.04" x2="287.16" y2="220.04" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="152.51" y1="254.33" x2="152.51" y2="284.33" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="287.16" y1="254.33" x2="287.16" y2="284.33" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="152.51" y1="292.33" x2="152.51" y2="322.33" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="287.16" y1="292.33" x2="287.16" y2="322.33" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="152.51" y1="83.74" x2="152.51" y2="117.74" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<rect x="84.1" y="182.04" width="269.29" height="8" rx="4" ry="4" fill="#E2E2F0" stroke="#181818" stroke-width="1"/>
+<rect x="84.1" y="284.33" width="269.29" height="8" rx="4" ry="4" fill="#FFFFCC" stroke="#181818" stroke-width="1"/>
+<path d="M122.26,63.16 C107.14,63.16 102.1,52.87 118.23,48.76 C114.2,38.47 134.36,33.32 148.48,40.53 C157.55,33.32 180.74,34.35 186.79,44.64 C202.93,46.7 200.91,60.59 182.76,63.16 C188.81,74.48 164.61,82.71 148.48,73.45 C136.38,82.71 110.16,76.54 120.25,65.22Z" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="120.23" y="117.74" width="64.57" height="34.3" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="117.89" y="220.04" width="69.24" height="34.3" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="238.93" y="220.04" width="96.46" height="34.3" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="152.51" cy="369.63" rx="32" ry="9" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="120.51" y="331.33" width="64" height="38.3" fill="#F1F1F1"/>
+<line x1="120.51" y1="331.33" x2="120.51" y2="369.63" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="184.51" y1="331.33" x2="184.51" y2="369.63" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="152.51" cy="331.33" rx="32" ry="9" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="287.16" cy="369.63" rx="32" ry="9" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="255.16" y="331.33" width="64" height="38.3" fill="#F1F1F1"/>
+<line x1="255.16" y1="331.33" x2="255.16" y2="369.63" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="319.16" y1="331.33" x2="319.16" y2="369.63" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="287.16" cy="331.33" rx="32" ry="9" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="51.54" y="182.97" font-size="13" fill="#000000" textLength="24.56" lengthAdjust="spacing">dmz</tspan>
+<tspan x="6" y="198.1" font-size="13" fill="#000000" textLength="70.1" lengthAdjust="spacing">210.x.x.x/24</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="157.51" y="176.44" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">210.x.x.1</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="157.51" y="203.24" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">210.x.x.2</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="292.16" y="203.24" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">210.x.x.3</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="33.47" y="285.26" font-size="13" fill="#000000" textLength="42.63" lengthAdjust="spacing">internal</tspan>
+<tspan x="6" y="300.4" font-size="13" fill="#000000" textLength="70.1" lengthAdjust="spacing">172.x.x.x/24</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="157.51" y="278.74" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">172.x.x.1</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="292.16" y="278.74" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">172.x.x.2</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="129.17" y="62.86" font-size="14" fill="#000000" textLength="46.69" lengthAdjust="spacing">internet</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="134.23" y="139.73" font-size="14" fill="#000000" textLength="36.57" lengthAdjust="spacing">router</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="131.89" y="242.03" font-size="14" fill="#000000" textLength="41.24" lengthAdjust="spacing">web01</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="252.93" y="242.03" font-size="14" fill="#000000" textLength="68.46" lengthAdjust="spacing">web server</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="136.94" y="359.82" font-size="14" fill="#000000" textLength="31.14" lengthAdjust="spacing">db01</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="271.59" y="359.82" font-size="14" fill="#000000" textLength="31.14" lengthAdjust="spacing">db02</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="128.07" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="97.24" lengthAdjust="spacing">Office network</tspan>
+</text>
+</g>
+</g>
+</svg>

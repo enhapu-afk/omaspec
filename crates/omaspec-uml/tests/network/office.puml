@@ -1,0 +1,27 @@
+@startnwdiag
+title Office network
+nwdiag {
+  internet [shape = cloud];
+  internet -- router;
+
+  network dmz {
+    address = "210.x.x.x/24"
+    router [address = "210.x.x.1"];
+    web01 [address = "210.x.x.2"];
+    web02 [address = "210.x.x.3", description = "web server"];
+  }
+  network internal {
+    address = "172.x.x.x/24";
+    color = "#FFFFCC"
+    web01 [address = "172.x.x.1"];
+    web02 [address = "172.x.x.2"];
+    db01 [shape = database];
+    db02 [shape = database];
+  }
+  group {
+    color = "#FFAAAA";
+    db01;
+    db02;
+  }
+}
+@endnwdiag

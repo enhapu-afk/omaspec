@@ -1,0 +1,35 @@
+@startuml
+' The classic form: nwdiag inside @startuml.
+<style>
+nwdiagDiagram {
+  network {
+    BackGroundColor #D0EBFF
+  }
+  server {
+    BackGroundColor #F8F9FA
+  }
+}
+</style>
+nwdiag {
+  network frontend {
+    address = "10.0.1.0/24"
+    width = full
+    lb [address = ".10", shape = node, description = "<&transfer> balancer"];
+    app1 [address = ".21"];
+    app2 [address = ".22"];
+  }
+  network backend {
+    address = "10.0.2.0/24"
+    app1 [address = ".21"];
+    app2 [address = ".22"];
+    cache [shape = stack];
+    pg [address = ".40", shape = database, description = "Postgres"];
+  }
+  group cluster {
+    description = "app cluster"
+    app1;
+    app2;
+  }
+}
+caption two networks, one cluster
+@enduml

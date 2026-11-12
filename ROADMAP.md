@@ -906,8 +906,8 @@ Lint and outline move onto the syntax tree as each type lands.
 
 What comes after 0.4, announced in the README. Lines by hand, projects and
 diagrams that link were released as 0.5.0 on 2026-11-01. The diagram types
-that follow (2026-11-12: PlantUML's network diagrams and Mermaid's charts
-of numbers first) stand at the end of *An editor that knows the diagram, and more
+that follow (2026-11-12: PlantUML's Archimate and Mermaid's charts of
+numbers next) stand at the end of *An editor that knows the diagram, and more
 diagrams* below.
 
 - [x] Lines by hand: drag a part of a line in the diagram to shape it
@@ -2406,14 +2406,32 @@ without folding, lines by hand and plays, and the Java PlantUML:
       object or an array folds in the pane by its path
       ([0024](docs/adr/0024-focus-and-collapse.md)), and says what it
       holds in its row.
-- [ ] PlantUML, in this order (2026-11-12), architecture first:
-      C4-PlantUML (`!include <C4/C4_Container>`, see the next section);
-      network diagrams (nwdiag); Archimate, once icons are drawn (its
-      elements are boxes with the icons of a library); Salt
-      (wireframes); EBNF and regex, which share one railroad drawer.
-      Ditaa and chronology last: little written, and Gantt charts and
-      timelines say the same as chronology; until then the Java
-      PlantUML draws them.
+- [x] Network diagrams (nwdiag, 2026-11-12), `@startnwdiag` as PlantUML
+      now asks, or `nwdiag { … }` in an `@startuml` as its manual still
+      shows (`omaspec_uml::network`): the networks are bars one under
+      another with their name, address and description at the left,
+      `color` and `width = full` as written; each server stands in the
+      lane between the first and the last network it is on, below the
+      one it is on alone, above it when a server on no network hangs
+      from it by a peer line (`internet -- router`), which then stands
+      above the topmost bar. Servers share a column as long as no line
+      of one runs through another; the line to each network carries the
+      address there. A server takes the shapes of the structure engine
+      (`shape = database`, `cloud`, `node`, …, drawn by the same code)
+      and a description in its place, icons and Creole too; a group is a
+      colored field behind its servers, its description under them,
+      clear of the addresses. PlantUML's styles reach it
+      (`nwdiagDiagram { network server arrow group }`), the Omarchy pack
+      of an `@startnwdiag` is such a style, and the colors packs lay over
+      the other types (`NodeBackgroundColor`, `ArrowColor`) dress the
+      servers and the lines. The editor names it *Network diagram* and
+      offers its words; the gallery has a home network.
+- [ ] PlantUML, in this order (2026-11-12): Archimate, now that icons
+      are drawn (its elements are boxes with the icons of a library);
+      Salt (wireframes); EBNF and regex, which share one railroad
+      drawer. Ditaa and chronology last: little written, and Gantt
+      charts and timelines say the same as chronology; until then the
+      Java PlantUML draws them.
 
 ### Architecture diagrams, elegant and playful (2026-11-12)
 

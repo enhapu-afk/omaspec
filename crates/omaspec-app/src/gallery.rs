@@ -236,6 +236,12 @@ pub static EXAMPLES: &[Example] = &[
         "C4-PlantUML: people, containers, a boundary and a legend."
     ),
     example!(
+        "home-network.puml",
+        Structure,
+        "A home network",
+        "A network diagram (nwdiag): two networks, the servers on them, their addresses."
+    ),
+    example!(
         "agent-platform.puml",
         Structure,
         "An AI agent platform",
