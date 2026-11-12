@@ -363,6 +363,7 @@ impl Reader {
             color: None,
             dash: if contains { Dash::Solid } else { Dash::Dashed },
             bold: false,
+            hidden: false,
             line,
             label_before: None,
         });

@@ -72,7 +72,8 @@ pub(crate) fn hold<T: Members>(root: &mut T, held: &[(usize, Hold)]) -> Vec<(usi
         for &index in &path {
             container = container.inner_mut(index);
         }
-        *container.kept().held = holds;
+        // After what the source itself holds (`-[hidden]right-`).
+        container.kept().held.extend(holds);
     }
     misses
 }

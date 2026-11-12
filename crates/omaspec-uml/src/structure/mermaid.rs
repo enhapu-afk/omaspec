@@ -979,6 +979,7 @@ impl Parser {
             color: None,
             dash: rel.dash,
             bold: false,
+            hidden: false,
             line: rel.line,
             label_before: None,
         };

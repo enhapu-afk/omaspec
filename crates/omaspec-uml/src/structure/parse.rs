@@ -236,6 +236,10 @@ struct ArrowBits {
     to_head: Head,
     dash: Dash,
     bold: bool,
+    hidden: bool,
+    /// The word of a hidden line that says where its second box goes
+    /// (`-[hidden]right-`).
+    toward: Option<&'static str>,
     color: Option<String>,
 }
 
@@ -257,6 +261,8 @@ struct Pending {
     to_head: Head,
     dash: Dash,
     bold: bool,
+    hidden: bool,
+    toward: Option<&'static str>,
     color: Option<String>,
     label: Option<String>,
     line: usize,
@@ -484,6 +490,8 @@ impl Parser {
                 to_head: Head::None,
                 dash: parent.dash,
                 bold: false,
+                hidden: false,
+                toward: None,
                 color: None,
                 label: None,
                 line: decl.line,
@@ -575,6 +583,8 @@ impl Parser {
             to_head: rel.arrow.to_head,
             dash: rel.arrow.dash,
             bold: rel.arrow.bold,
+            hidden: rel.arrow.hidden,
+            toward: rel.arrow.toward,
             color: rel.arrow.color,
             label: rel.label,
             line,
@@ -710,6 +720,7 @@ impl Parser {
             color: item.color.clone(),
             dash: item.dash,
             bold: item.bold,
+            hidden: item.hidden,
             line: item.line,
             label_before: None,
         };
@@ -724,8 +735,34 @@ impl Parser {
             let from_i = *from.last().expect("a path");
             let to_i = *to.last().expect("a path");
             let home = home.to_vec();
-            self.container_mut(&home).edges.push(link(from_i, to_i));
+            let Some(word) = item.toward else {
+                self.container_mut(&home).edges.push(link(from_i, to_i));
+                return Ok(());
+            };
+            // Along the flow the hidden line ranks the two; across it the
+            // second box is held in the rank of the first, on that side
+            // (docs/adr/0021).
+            let down = self.direction.unwrap_or_default() == Direction::Down;
+            let along = matches!(word, "down" | "up") == down;
+            let forward = matches!(word, "down" | "right");
+            let group = self.container_mut(&home);
+            match (along, forward) {
+                (true, true) => group.edges.push(link(from_i, to_i)),
+                (true, false) => group.edges.push(link(to_i, from_i)),
+                (false, after) => group.held.push(crate::graph::hold::Held {
+                    line: item.line,
+                    index: to_i,
+                    beside: from_i,
+                    after,
+                }),
+            }
             return Ok(());
+        }
+        if item.toward.is_some() {
+            return Err(Declined::at(
+                item.line,
+                "a hidden line with a direction between boxes of different packages is not supported yet",
+            ));
         }
         let Some((depth, a, b)) = meeting(&from, &to) else {
             return Err(Declined::at(
@@ -1803,16 +1840,22 @@ fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
     if token.contains('+') {
         return Err(Declined::at(line, "nesting with `+` is not supported yet"));
     }
-    if token.to_ascii_lowercase().contains("hidden") {
-        return Err(Declined::at(line, "`hidden` arrows are not supported yet"));
-    }
-    if let Some(word) = direction_word(token) {
-        return Err(Declined::at(
-            line,
-            format!("an arrow with a direction (`{word}`) is not supported yet"),
-        ));
-    }
+    // A direction places the second box; only a hidden line can say it,
+    // since a line that is drawn would have to run within one rank.
+    let toward = direction_word(token);
     let mut rest = token.to_owned();
+    if let Some(word) = toward {
+        if !token.to_ascii_lowercase().contains("[hidden]") {
+            return Err(Declined::at(
+                line,
+                format!("an arrow with a direction (`{word}`) is not supported yet"),
+            ));
+        }
+        let lower = rest.to_ascii_lowercase();
+        if let Some(at) = lower.find(word) {
+            rest.replace_range(at..at + word.len(), "");
+        }
+    }
     let from_head = take_prefix(&mut rest, line)?;
     let to_head = take_suffix(&mut rest, line)?;
     let mut dash = if rest.contains('.') {
@@ -1821,13 +1864,18 @@ fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
         Dash::Solid
     };
     let mut bold = false;
+    let mut hidden = false;
     let mut color = None;
     while let Some(start) = rest.find('[') {
         let Some(end) = rest.find(']') else {
             return Err(Declined::at(line, "an arrow bracket has no `]`"));
         };
         let inside = rest[start + 1..end].to_owned();
-        apply_bracket(&inside, &mut dash, &mut bold, &mut color, line)?;
+        if inside.trim().eq_ignore_ascii_case("hidden") {
+            hidden = true;
+        } else {
+            apply_bracket(&inside, &mut dash, &mut bold, &mut color, line)?;
+        }
         rest.replace_range(start..end + 1, "");
     }
     if rest.chars().any(|c| c != '-' && c != '.')
@@ -1843,6 +1891,8 @@ fn parse_arrow(token: &str, line: usize) -> Result<ArrowBits, Declined> {
         to_head,
         dash,
         bold,
+        hidden,
+        toward,
         color,
     })
 }
@@ -1969,7 +2019,10 @@ fn apply_bracket(
             "bold" => *bold = true,
             "plain" => *dash = Dash::Solid,
             "hidden" => {
-                return Err(Declined::at(line, "`hidden` arrows are not supported yet"));
+                return Err(Declined::at(
+                    line,
+                    "`hidden` beside another word in an arrow's bracket is not supported yet",
+                ));
             }
             _ if crate::color::parse(part).is_ok() => *color = Some(part.to_owned()),
             _ => {
@@ -2115,6 +2168,37 @@ mod tests {
 
     fn declined(source: &str) -> crate::Declined {
         parse(&lines_of(source)).unwrap_err()
+    }
+
+    #[test]
+    fn a_hidden_line_places_its_boxes_and_a_direction_says_where() {
+        let d = diagram(
+            "rectangle a\nrectangle b\nrectangle c\nrectangle d\nrectangle e\na --> b\na -[hidden]-> c : unseen\na -[hidden]right- d\nb -[hidden]left- e\nb -[hidden]up- c\n",
+        );
+        let told: Vec<(usize, usize, bool)> = d
+            .root
+            .edges
+            .iter()
+            .map(|edge| (edge.from, edge.to, edge.hidden))
+            .collect();
+        // `up` runs against the flow: from c to b.
+        assert_eq!(told, [(0, 1, false), (0, 2, true), (2, 1, true)]);
+        let held: Vec<(usize, usize, bool)> = d
+            .root
+            .held
+            .iter()
+            .map(|held| (held.index, held.beside, held.after))
+            .collect();
+        assert_eq!(held, [(3, 0, true), (4, 1, false)]);
+        // Where the flow runs to the right, `down` is across it.
+        let across = diagram(
+            "left to right direction\nrectangle a\nrectangle b\na -[hidden]down- b\na -[hidden]right- b\n",
+        );
+        assert_eq!(across.root.held.len(), 1);
+        assert_eq!(across.root.edges.len(), 1);
+        // A line that is drawn cannot say a direction yet.
+        let err = declined("rectangle a\nrectangle b\na -right-> b\n");
+        assert!(err.reason.contains("direction"), "{}", err.reason);
     }
 
     #[test]
@@ -2343,7 +2427,7 @@ mod tests {
         let err = declined("@startuml\nclass A\nA -up-> B\n@enduml\n");
         assert_eq!(err.line, Some(2));
         assert!(err.reason.contains("direction"), "{}", err.reason);
-        let err = declined("@startuml\nclass A\nA -[hidden]-> B\n@enduml\n");
+        let err = declined("@startuml\nclass A\nA -[hidden,bold]-> B\n@enduml\n");
         assert!(err.reason.contains("hidden"), "{}", err.reason);
         let err = declined("@startuml\ncomponent C {\n  port p\n}\n@enduml\n");
         assert!(err.reason.contains("port"), "{}", err.reason);

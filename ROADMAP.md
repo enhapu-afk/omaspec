@@ -2413,16 +2413,23 @@ skin draws them by hand.
       gives a card a border of its own, as the dashed card of what a
       system can do. The gallery has one (`agent-platform.puml`),
       checked in every bundled theme.
-- [ ] Still apart from the picture: a card's title beside its icon at
-      the left with the list under it (now the title is centered); an
-      icon drawn in the hand of the lines instead of an emoji's colors
-      (sprites and `<&icon>` are declined); hidden lines
-      (`-[hidden]-`), which place a card without an arrow, declined so
-      far; a title at the left with a
-      subtitle; arrows of the hand font's own (`→` falls to another
-      face); and a layout in layers the writer names, where now the
-      ranks follow the arrows and boxes are held in place one by one
-      ([0021](docs/adr/0021-boxes-held-in-place.md)).
+- [x] Placed and aligned as the writer says (2026-11-12): a hidden line
+      (`a -[hidden]-> b`) ranks its two boxes and is not drawn, not in
+      the map and not a line to shape by hand; with a direction it says
+      where the second box goes: along the flow it ranks them
+      (`-[hidden]down-`), across it the box is held in the rank of the
+      first, on that side (`-[hidden]right-`), as an entry of
+      [0021](docs/adr/0021-boxes-held-in-place.md) holds it. A box no
+      line joins to anything stays beside its neighbor in the rank,
+      where it drifted off as the others were pulled to their lines
+      (`graph::fit_row`). `skinparam defaultTextAlignment left` starts a
+      box's title at its left edge, over its list and beside its icon.
+- [ ] Still apart from the picture: an icon drawn in the hand of the
+      lines instead of an emoji's colors (sprites and `<&icon>` are
+      declined); a direction on a line that is drawn (`-right->`), which
+      needs a line within one rank; a title at the left with a subtitle;
+      arrows of the hand font's own (`→` falls to another face); and
+      layers the writer names, where now the ranks follow the arrows.
 
 Beside the stages:
 

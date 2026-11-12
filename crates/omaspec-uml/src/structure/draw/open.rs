@@ -136,13 +136,12 @@ impl<'a> Nested for Elements<'a> {
             return Err(Declined::at(arrow.line, "a line needs two elements"));
         }
         let blocks = link_blocks(arrow, self.skin, self.family)?;
-        let look = Look {
-            from_card: blocks.from_card,
-            to_card: blocks.to_card,
-            from_head: arrow.from_head,
-            to_head: arrow.to_head,
-            stroke: arrow_stroke(self.skin, arrow)?,
-        };
+        let look = Look::of(
+            arrow,
+            blocks.from_card,
+            blocks.to_card,
+            arrow_stroke(self.skin, arrow)?,
+        );
         Ok((blocks.label, look))
     }
 

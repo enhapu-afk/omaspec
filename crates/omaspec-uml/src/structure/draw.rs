@@ -152,7 +152,12 @@ pub fn label_by_hand(root: &mut Group, labels: &[crate::hand::Label]) {
 fn arrows(root: &Group) -> Vec<(Arrow, Key)> {
     fn collect(group: &Group, path: &mut Vec<usize>, out: &mut Vec<Arrow>) {
         let within = |end: &[usize]| [path.as_slice(), end].concat();
+        // A hidden line is no line of the picture: not in its map, and
+        // not one to shape by hand.
         for (slot, edge) in group.edges.iter().enumerate() {
+            if edge.hidden {
+                continue;
+            }
             out.push(Arrow {
                 path: path.clone(),
                 slot,
@@ -163,6 +168,9 @@ fn arrows(root: &Group) -> Vec<(Arrow, Key)> {
             });
         }
         for (index, crossing) in group.crossings.iter().enumerate() {
+            if crossing.arrow.hidden {
+                continue;
+            }
             out.push(Arrow {
                 path: path.clone(),
                 slot: group.edges.len() + index,
@@ -295,6 +303,24 @@ struct Look {
     from_head: Head,
     to_head: Head,
     stroke: Stroke,
+    /// `-[hidden]-`: laid out, not painted.
+    hidden: bool,
+}
+
+impl Look {
+    /// The look of `arrow` with its measured multiplicities. A hidden line
+    /// has no heads, so nothing of it is drawn or listed.
+    fn of(arrow: &Link, blocks_from: Block, blocks_to: Block, stroke: Stroke) -> Look {
+        let head = |head| if arrow.hidden { Head::None } else { head };
+        Look {
+            from_card: blocks_from,
+            to_card: blocks_to,
+            from_head: head(arrow.from_head),
+            to_head: head(arrow.to_head),
+            stroke,
+            hidden: arrow.hidden,
+        }
+    }
 }
 
 enum Row {
@@ -385,7 +411,9 @@ fn measure_element(
             font.color = font.color.legible_on(ground, far, 4.5);
         }
     }
-    let (rows, body) = rows_of(el, &look, family)?;
+    // An actor's and a use case's words belong to their figure.
+    let left = skin.left && !matches!(el.shape, Shape::Actor | Shape::UseCase);
+    let (rows, body) = rows_of(el, &look, family, left)?;
     let children = if el.composite && !open {
         layout_group(&el.children, skin, family)?
     } else {
@@ -604,17 +632,27 @@ fn min_width(shape: Shape, skin: &Skin) -> f32 {
     }
 }
 
+/// The rows of a box: what it is, its name, its members. `left` starts
+/// the first two at the box's left edge instead of its middle.
 fn rows_of(
     el: &Element,
     look: &super::skin::Look,
     family: Family,
+    left: bool,
 ) -> Result<(Vec<Row>, usize), Declined> {
+    let head = |block| {
+        if left {
+            Row::Left(block)
+        } else {
+            Row::Center(block)
+        }
+    };
     let mut rows = Vec::new();
     for stereotype in &el.stereotypes {
         let shown = format!("«{}»", stereotype.value);
         let block = text::block(&shown, look.stereo, family)
             .map_err(|err| Declined::at(stereotype.line, err))?;
-        rows.push(Row::Center(block));
+        rows.push(head(block));
     }
     let name_font = if el.shape == Shape::Abstract {
         look.font.italic()
@@ -626,7 +664,7 @@ fn rows_of(
         name = restyle(name, name_font, family, false, true);
     }
     if !name.is_empty() {
-        rows.push(Row::Center(name));
+        rows.push(head(name));
     }
     let body = rows.len();
     for member in &el.members {
@@ -701,9 +739,10 @@ fn paints(el: &Element, look: &super::skin::Look) -> Result<(Paint, Stroke), Dec
 }
 
 fn link_blocks(link: &Link, skin: &Skin, family: Family) -> Result<Labeled, Declined> {
+    // A hidden line says nothing: no label keeps room beside it.
     let block = |text: &Option<crate::common::Text>| match text {
-        Some(text) => text_block(text, skin.arrow_font, family),
-        None => Ok(Block::empty()),
+        Some(text) if !link.hidden => text_block(text, skin.arrow_font, family),
+        _ => Ok(Block::empty()),
     };
     Ok(Labeled {
         label: block(&link.label)?,
@@ -911,13 +950,12 @@ fn link_crossings(
             points: linked.points,
             label: blocks.label,
             label_at: linked.label_at,
-            look: Look {
-                from_card: blocks.from_card,
-                to_card: blocks.to_card,
-                from_head: crossing.arrow.from_head,
-                to_head: crossing.arrow.to_head,
-                stroke: arrow_stroke(skin, &crossing.arrow)?,
-            },
+            look: Look::of(
+                &crossing.arrow,
+                blocks.from_card,
+                blocks.to_card,
+                arrow_stroke(skin, &crossing.arrow)?,
+            ),
         };
     }
     Ok(())
@@ -1639,7 +1677,7 @@ fn text_area(node: &Placed) -> (Rect, Place) {
 
 fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
     for edge in &scene.edges {
-        if edge.points.len() < 2 {
+        if edge.points.len() < 2 || edge.look.hidden {
             continue;
         }
         canvas.curve(
@@ -1982,6 +2020,40 @@ mod tests {
         let skin = Skin::default();
         let canvas = Canvas::new(&skin.font_name, false);
         layout_group(&diagram.root, &skin, canvas.family()).unwrap()
+    }
+
+    #[test]
+    fn a_hidden_line_is_laid_out_and_not_drawn() {
+        let shown = crate::render("rectangle a\nrectangle b\na --> b : seen\n").unwrap();
+        let hidden = crate::render("rectangle a\nrectangle b\na -[hidden]-> b : unseen\n").unwrap();
+        assert!(shown.contains("seen") && !hidden.contains("unseen"));
+        // The line and its head are gone: only the two boxes are left.
+        let shapes = |svg: &str| svg.matches("<p").count() + svg.matches("<line").count();
+        assert!(shapes(&shown) >= shapes(&hidden) + 2, "{hidden}");
+        // The two boxes stand as with the line: one under the other.
+        let scene = scene_of("rectangle a\nrectangle b\na -[hidden]-> b\n");
+        assert!(scene.nodes[1].rect.y > scene.nodes[0].rect.y + scene.nodes[0].rect.h);
+        // Held to the right of the first, and beside it: no line joins it
+        // to anything, and it does not drift from its neighbor.
+        let scene = scene_of(
+            "rectangle a\nrectangle b\nrectangle c\nrectangle wide_one_below\na --> b\nb --> wide_one_below\na -[hidden]right- c\n",
+        );
+        let (a, c) = (scene.nodes[0].rect, scene.nodes[2].rect);
+        assert!((a.y - c.y).abs() < 0.5, "one rank");
+        assert!(c.x > a.x + a.w && c.x - (a.x + a.w) < 80.0, "{a:?} {c:?}");
+    }
+
+    #[test]
+    fn a_title_and_its_list_start_at_the_left_when_the_skin_says_so() {
+        let source = "skinparam defaultTextAlignment left\nrectangle \"Title\\n* a long item of the list\" as r\n";
+        let svg = crate::render(source).unwrap();
+        let xs: Vec<&str> = svg
+            .split("<tspan x=\"")
+            .skip(1)
+            .map(|rest| rest.split('"').next().unwrap())
+            .collect();
+        assert_eq!(xs.len(), 2, "{svg}");
+        assert_eq!(xs[0], xs[1], "both lines start at one edge: {svg}");
     }
 
     #[test]

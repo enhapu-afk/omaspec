@@ -1234,9 +1234,14 @@ fn center(slot: &Slot) -> f32 {
 /// Places `row` as near as its order allows to where its neighbors are:
 /// those in the rank before it when going `down`, else those after. A
 /// line passing through counts double, so long lines stay straight; a box
-/// with no neighbor barely pulls and stays put.
+/// with no neighbor barely pulls, and wants to stay beside the box it
+/// stands next to in its rank, so it goes where that one goes.
 fn fit_row(slots: &mut [Slot], row: &[usize], down: bool) {
-    let wants: Vec<(usize, f32, f32)> = row
+    let lone: Vec<bool> = row
+        .iter()
+        .map(|&slot| slots[slot].preds.is_empty() && slots[slot].succs.is_empty())
+        .collect();
+    let mut wants: Vec<(usize, f32, f32)> = row
         .iter()
         .map(|&slot| {
             let s = &slots[slot];
@@ -1256,6 +1261,22 @@ fn fit_row(slots: &mut [Slot], row: &[usize], down: bool) {
             (slot, want - s.before - s.box_cross / 2.0, weight)
         })
         .collect();
+    // After the box before it; those that lead the rank, before the
+    // first box that has a neighbor.
+    for index in 1..row.len() {
+        if lone[index] {
+            let before = row[index - 1];
+            wants[index].1 =
+                wants[index - 1].1 + slots[before].pack_cross + gap(slots, before, row[index]);
+        }
+    }
+    if let Some(first) = lone.iter().position(|lone| !lone) {
+        for index in (0..first).rev() {
+            let slot = row[index];
+            wants[index].1 =
+                wants[index + 1].1 - slots[slot].pack_cross - gap(slots, slot, row[index + 1]);
+        }
+    }
     fit_to(slots, row, &wants);
 }
 

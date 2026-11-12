@@ -343,6 +343,8 @@ pub struct Link {
     pub color: Option<String>,
     pub dash: Dash,
     pub bold: bool,
+    /// `-[hidden]-`: the line places its boxes and is not drawn.
+    pub hidden: bool,
     pub line: usize,
     /// The side of the line its label takes, where the writer chose one
     /// by hand ([`crate::hand::Label`]).

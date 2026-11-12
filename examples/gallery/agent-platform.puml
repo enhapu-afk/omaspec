@@ -3,6 +3,7 @@
 skinparam handwritten true
 skinparam linetype ortho
 skinparam roundcorner 18
+skinparam defaultTextAlignment left
 title <size:22>AI agent platform</size>
 caption Vendor technologies are illustrative design choices.
 
@@ -46,5 +47,5 @@ mcp --> jira
 mcp --> db
 orch ..> tracing
 db ..> audit
-can ..> llm
+registry -[hidden]right- can
 @enduml

@@ -32,6 +32,9 @@ pub struct Skin {
     pub sketch: bool,
     /// `skinparam shadowing true`: the boxes cast a shadow.
     pub shadow: bool,
+    /// `skinparam defaultTextAlignment left`: what a box says starts at
+    /// its left edge, a card's title over its list.
+    pub left: bool,
     /// `skinparam style strictuml`: an open arrow head on `>`.
     pub strict: bool,
     pub background: Paint,
@@ -213,6 +216,7 @@ impl Default for Skin {
             monochrome: false,
             sketch: false,
             shadow: false,
+            left: false,
             strict: false,
             background: None,
             round: 0.0,
@@ -460,6 +464,13 @@ impl Skin {
                 }
                 "defaultfontsize" => font_size = Some(p.number(4.0, 100.0)?),
                 "defaultfontcolor" => font_color = Some(p.solid()?),
+                "defaulttextalignment" => {
+                    skin.left = match value.to_ascii_lowercase().as_str() {
+                        "left" => true,
+                        "center" => false,
+                        _ => return Err(p.unsupported()),
+                    };
+                }
                 "roundcorner" => skin.round = p.corner()?,
                 "minclasswidth" => skin.min_class = p.number(0.0, 2000.0)?,
                 "backgroundcolor" => skin.background = p.paint()?,
