@@ -2,13 +2,15 @@
 //! each state, how often (`omaspec coverage`).
 //!
 //! The traces are followed as `omaspec trace` follows them, object by
-//! object, through the machine their objects go by. Where a trace leaves
-//! open which way the object went (an event several states it may be in
-//! take, a choice it did not log), every way it could have gone counts,
-//! as the player lights them all: the coverage errs towards more, as the
-//! check errs towards a machine that can do more.
+//! object, through the machine their objects go by, each trace read once.
+//! A way without an event (a choice's branch, a guard's way) counts once
+//! a later line leaves it possible, or the trace ends there. Where a
+//! trace leaves open which way the object went (an event several states
+//! it may be in take, a choice it did not log), every way it could have
+//! gone counts, as the player lights them all: the coverage errs towards
+//! more, as the check errs towards a machine that can do more. A line
+//! that gives only a state counts that state, and the states around it.
 
-use crate::trace::{follow, objects};
 use crate::{Kind, Spec};
 
 /// The coverage of one machine.
@@ -22,7 +24,7 @@ pub struct Coverage {
     /// they first appear.
     pub objects: Vec<String>,
     /// Lines the machine cannot take as written: where the check finds a
-    /// deviation.
+    /// deviation (an error, not what it only notes).
     pub deviations: usize,
 }
 
@@ -52,34 +54,7 @@ pub fn coverage(spec: &Spec, traces: &[&str]) -> Coverage {
         ..Coverage::default()
     };
     for trace in traces {
-        for object in objects(trace, spec) {
-            let followed = follow(trace, spec, &object);
-            // Begun where the first line says, not by the start: those
-            // states are entered by no transition.
-            if followed.start.is_empty() {
-                for &state in &followed.begins {
-                    out.states[state] += 1;
-                }
-            }
-            let taken = followed
-                .start
-                .iter()
-                .chain(followed.steps.iter().flat_map(|step| &step.taken));
-            for step in taken {
-                out.transitions[step.transition] += 1;
-                for &state in &step.entered {
-                    out.states[state] += 1;
-                }
-            }
-            out.deviations += followed
-                .steps
-                .iter()
-                .filter(|step| step.finding.is_some())
-                .count();
-            if !out.objects.contains(&object) {
-                out.objects.push(object);
-            }
-        }
+        crate::trace::cover(trace, spec, &mut out);
     }
     out
 }
@@ -125,5 +100,79 @@ mod tests {
                 .unwrap()]
         };
         assert_eq!((state("Closed"), state("Open"), state("Locked")), (4, 3, 0));
+    }
+
+    const CHECKED: &str = "@startuml\ntitle Door\n[*] --> Closed\nstate check <<choice>>\nClosed --> check : inspect\ncheck --> Broken : [bad]\ncheck --> Closed : [good]\nBroken --> Closed : repair\n@enduml\n";
+
+    fn hits(spec: &Spec, cov: &Coverage, line: usize) -> u32 {
+        let t = spec
+            .machine
+            .transitions
+            .iter()
+            .position(|t| t.line == line)
+            .unwrap();
+        cov.transitions[t]
+    }
+
+    #[test]
+    fn a_way_without_an_event_counts_once_a_later_line_confirms_it() {
+        let spec = Spec::read(CHECKED, Language::PlantUml, "door.puml").unwrap();
+        // Repaired: it must have gone the bad way.
+        let bad = "{\"object\":\"Door\",\"event\":\"inspect\"}\n{\"object\":\"Door\",\"event\":\"repair\"}\n";
+        let cov = coverage(&spec, &[bad]);
+        assert_eq!(
+            (
+                hits(&spec, &cov, 5),
+                hits(&spec, &cov, 6),
+                hits(&spec, &cov, 7)
+            ),
+            (1, 0, 1)
+        );
+        let broken = spec
+            .machine
+            .states
+            .iter()
+            .position(|s| s.name == "Broken")
+            .unwrap();
+        assert_eq!(cov.states[broken], 1);
+        // Inspected again: it went the good way first.
+        let good = "{\"object\":\"Door\",\"event\":\"inspect\"}\n{\"object\":\"Door\",\"event\":\"inspect\"}\n";
+        let cov = coverage(&spec, &[good]);
+        // The good way once confirmed, and both once more where it ends.
+        assert_eq!((hits(&spec, &cov, 5), hits(&spec, &cov, 6)), (1, 2));
+        assert_eq!(hits(&spec, &cov, 4), 2);
+        // Where the trace ends at the choice, both ways may have been taken.
+        let open = "{\"object\":\"Door\",\"event\":\"inspect\"}\n";
+        let cov = coverage(&spec, &[open]);
+        assert_eq!((hits(&spec, &cov, 5), hits(&spec, &cov, 6)), (1, 1));
+    }
+
+    #[test]
+    fn a_line_that_says_where_it_is_counts_that_state() {
+        let spec = Spec::read(DOOR, Language::PlantUml, "door.puml").unwrap();
+        let trace = "{\"object\":\"Door\",\"state\":\"Locked\"}\n{\"object\":\"Door\",\"event\":\"unlock\"}\n";
+        let cov = coverage(&spec, &[trace]);
+        let state = |name: &str| {
+            cov.states[spec
+                .machine
+                .states
+                .iter()
+                .position(|s| s.name == name)
+                .unwrap()]
+        };
+        assert_eq!((state("Locked"), state("Closed")), (1, 1));
+        assert_eq!(cov.states_covered(&spec), (2, 3));
+        assert_eq!(cov.deviations, 0);
+    }
+
+    #[test]
+    fn what_the_check_only_notes_is_no_deviation() {
+        // No start: the first line, an event, is only noted.
+        let code = "@startuml\ntitle Door\nstate Closed\nstate Open\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+        let spec = Spec::read(code, Language::PlantUml, "door.puml").unwrap();
+        let trace = "{\"object\":\"Door\",\"event\":\"open\"}\n{\"object\":\"Door\",\"state\":\"Open\"}\n{\"object\":\"Door\",\"event\":\"close\"}\n";
+        let cov = coverage(&spec, &[trace]);
+        assert_eq!(cov.deviations, 0);
+        assert_eq!(cov.transitions_covered(), (1, 2));
     }
 }

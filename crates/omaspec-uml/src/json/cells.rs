@@ -141,7 +141,7 @@ pub(super) fn words(text: &str, font: Font, family: Family) -> Block {
 
 /// The name a value goes by in a fold, as `#highlight` writes a path:
 /// `JSON_Array/4`, a key with a slash, a quote or a space in quotes.
-pub(super) fn path_name(path: &[String]) -> String {
+pub fn path_name(path: &[String]) -> String {
     path.iter()
         .map(|part| {
             let plain = !part.is_empty()
@@ -151,7 +151,13 @@ pub(super) fn path_name(path: &[String]) -> String {
             if plain {
                 part.clone()
             } else {
-                format!("\"{}\"", part.replace('\\', "\\\\").replace('"', "\\\""))
+                // The escapes `#highlight` reads: a fold name stays on its line.
+                let escaped = part
+                    .replace('\\', "\\\\")
+                    .replace('"', "\\\"")
+                    .replace('\n', "\\n")
+                    .replace('\t', "\\t");
+                format!("\"{escaped}\"")
             }
         })
         .collect::<Vec<_>>()

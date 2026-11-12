@@ -278,13 +278,13 @@ pub static EXAMPLES: &[Example] = &[
         "settings.puml",
         Data,
         "Editor settings",
-        "JSON drawn as nested tables."
+        "JSON as a tree of cards, each value in its row."
     ),
     example!(
         "recipe.puml",
         Data,
         "Pancakes",
-        "YAML drawn as nested tables, one row lit."
+        "YAML as a tree of cards, one row lit."
     ),
     example!("day.mmd", Data, "Where a day goes", "A Mermaid pie chart."),
 ];

@@ -468,7 +468,6 @@ fn all() -> impl Iterator<Item = (&'static [&'static str], &'static [Block])> {
         (PUML_STATE, PUML_STATE_BLOCKS),
         (PUML_ACTIVITY, PUML_ACTIVITY_BLOCKS),
         (PUML_STRUCTURE, PUML_STRUCTURE_BLOCKS),
-        (PUML_C4, PUML_C4_BLOCKS),
         (MERMAID_HEADS, &[][..]),
         (MERMAID_FLOWCHART, MERMAID_FLOWCHART_BLOCKS),
         (MERMAID_SEQUENCE, MERMAID_SEQUENCE_BLOCKS),

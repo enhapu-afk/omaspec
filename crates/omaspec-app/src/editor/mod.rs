@@ -1999,7 +1999,19 @@ impl App {
                     "JSON and YAML drawn as a tree, as PlantUML draws them".into()
                 });
                 self.keep_session();
-                let keys: Vec<u64> = self.docs.iter().map(|doc| doc.key).collect();
+                if let Some(compare) = &mut self.compare {
+                    compare.paper.nested = self.look.nested;
+                }
+                // Only what holds a JSON or a YAML diagram looks different.
+                let keys: Vec<u64> = self
+                    .docs
+                    .iter()
+                    .filter(|doc| {
+                        let text = doc.text().to_ascii_lowercase();
+                        text.contains("@startjson") || text.contains("@startyaml")
+                    })
+                    .map(|doc| doc.key)
+                    .collect();
                 Task::batch(keys.into_iter().map(|key| self.render(key, true)))
             }
             Command::FollowTheme => {

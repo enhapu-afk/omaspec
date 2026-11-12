@@ -286,6 +286,101 @@ fn every_border_reads_on_a_light_page_and_a_dark_one() {
 }
 
 #[test]
+fn an_empty_argument_keeps_the_places_of_those_after_it() {
+    let source = "@startuml
+!include <C4/C4_Container>
+Container(api, \"API\", \"\", \"Handles requests\")
+Container(cfg, \"Config\", \"Rust\", \"Reads key=value pairs\")
+Rel(api, cfg, \"\", \"HTTPS\")
+@enduml
+";
+    let d = diagram(source);
+    let api = find(&d.root, "api");
+    assert!(
+        api.label.value.contains("[Container]"),
+        "{}",
+        api.label.value
+    );
+    assert!(
+        api.label.value.contains("Handles requests"),
+        "{}",
+        api.label.value
+    );
+    let cfg = find(&d.root, "cfg");
+    assert!(
+        cfg.label.value.contains("Reads key=value pairs"),
+        "{}",
+        cfg.label.value
+    );
+    let rel = d.root.edges[0].label.as_ref().unwrap();
+    assert!(!rel.value.contains("<b>HTTPS</b>"), "{}", rel.value);
+    assert!(rel.value.contains("<i>[HTTPS]</i>"), "{}", rel.value);
+}
+
+#[test]
+fn each_boundary_takes_its_arguments_in_its_own_order() {
+    let source = "@startuml
+!include <C4/C4_Container>
+System_Boundary(bank, \"Bank\", \"\", \"https://example.org/bank\") {
+  Container(web, \"Web\")
+}
+Boundary(zone, \"Zone\", \"Region\") {
+  Container(db, \"Data\")
+}
+@enduml
+";
+    let d = diagram(source);
+    let bank = find(&d.root, "bank");
+    assert!(
+        bank.label.value.contains("[System]"),
+        "{}",
+        bank.label.value
+    );
+    assert_eq!(bank.link.as_ref().unwrap().url, "https://example.org/bank");
+    assert!(find(&d.root, "zone").label.value.contains("[Region]"));
+    let err = crate::parse(
+        "@startuml\n!include <C4/C4_Container>\nSystem_Boundary(b, \"Bank\", \"v1\") {\n}\n@enduml\n",
+    )
+    .unwrap_err();
+    assert!(err.reason.contains("tags"), "{}", err.reason);
+}
+
+#[test]
+fn a_block_inside_a_boundary_closes_by_itself() {
+    let source = "@startuml
+!include <C4/C4_Container>
+System_Boundary(b, \"B\") {
+  package P {
+    Container(c, \"C\")
+  }
+  Container(d, \"D\")
+}
+@enduml
+";
+    let d = diagram(source);
+    let b = find(&d.root, "b");
+    assert!(
+        b.children.nodes.iter().any(|n| n.key == "d"),
+        "d stays in b"
+    );
+    // The writer knows `d` is in `b`: a direction to it from inside `b`
+    // is not dropped as one between two boundaries.
+    let mut writer = Writer::default();
+    for (no, text) in source.lines().enumerate().skip(1) {
+        writer
+            .line(&Line {
+                no,
+                text: text.trim(),
+                indent: 0,
+                blank_before: 0,
+            })
+            .unwrap();
+    }
+    assert_eq!(writer.home["d"], ["b"]);
+    assert_eq!(writer.home["c"], ["b"]);
+}
+
+#[test]
 fn the_bank_is_drawn() {
     let svg = crate::render(BANK).unwrap();
     for words in [

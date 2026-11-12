@@ -44,6 +44,14 @@ pub fn button(on_screen: Rectangle) -> Option<Rectangle> {
     })
 }
 
+/// Whether `at` lies in the place's box.
+fn within(place: &omaspec_uml::map::Place, at: Point) -> bool {
+    place.rect.x <= at.x
+        && at.x <= place.rect.x + place.rect.w
+        && place.rect.y <= at.y
+        && at.y <= place.rect.y + place.rect.h
+}
+
 /// The spot under `at` (in the diagram's units), the smallest of those
 /// around it.
 pub fn spot_under(spots: &[Spot], at: Point) -> Option<usize> {
@@ -176,6 +184,24 @@ impl Paper {
                 && !place.fixed
             {
                 return Some(place.name.clone());
+            }
+            // A key of a JSON or a YAML diagram: what it holds goes by its
+            // path, the path of the card around the key and the key.
+            let middle = Point::new(x + w / 2.0, y + h / 2.0);
+            let around = map
+                .places
+                .iter()
+                .filter(|p| p.fixed && p.frame && within(p, middle))
+                .min_by(|a, b| (a.rect.w * a.rect.h).total_cmp(&(b.rect.w * b.rect.h)));
+            // Only inside a card: a key at the top is found by its name
+            // below, where two boxes of a tree with the same words are not
+            // taken for each other.
+            if let Some(card) = around {
+                let key = omaspec_uml::json::path_name(std::slice::from_ref(&text));
+                let path = format!("{}/{key}", card.name);
+                if let Some(place) = map.places.iter().find(|p| p.fixed && p.name == path) {
+                    return Some(place.name.clone());
+                }
             }
             let off = |p: &&omaspec_uml::map::Place| {
                 (p.rect.x - x).abs()

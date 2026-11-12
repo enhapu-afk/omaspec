@@ -82,6 +82,12 @@ fn flavor(code: &str, language: Language) -> Flavor {
         Language::PlantUml => match crate::kind::plantuml_block(code).as_str() {
             "mindmap" | "wbs" => Flavor::Tree,
             "gantt" => Flavor::Gantt,
+            // C4-PlantUML colors one box by a tag (`AddElementTag`), which
+            // the engine does not draw yet; a color written beside the
+            // macro would be drawn over by it.
+            "" | "uml" if omaspec_uml::is_c4(code) => Flavor::No(
+                "C4-PlantUML colors one box by a tag, which Omaspec does not draw yet".into(),
+            ),
             "" | "uml" => match kind.kind {
                 Kind::State => Flavor::State,
                 Kind::Structure => Flavor::Structure,
@@ -523,6 +529,14 @@ mod tests {
         assert_eq!(
             refusal("@startjson\n{\"a\": 1}\n@endjson\n", Language::PlantUml).as_deref(),
             Some("PlantUML writes no color for one box of a JSON")
+        );
+        assert_eq!(
+            refusal(
+                "@startuml\n!include <C4/C4_Container>\nContainer(api, \"API\")\n@enduml\n",
+                Language::PlantUml
+            )
+            .as_deref(),
+            Some("C4-PlantUML colors one box by a tag, which Omaspec does not draw yet")
         );
         assert_eq!(
             refusal("@startwbs\n* A\n@endwbs\n", Language::PlantUml),

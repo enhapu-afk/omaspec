@@ -485,7 +485,7 @@ impl Paper {
             doc,
             id: self.requested,
         };
-        worker.render_document(ticket, source, place);
+        worker.render_document(ticket, source, place, self.nested);
         self.made = false;
         self.asked();
     }

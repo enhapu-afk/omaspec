@@ -58,13 +58,17 @@ fn mark_container(container: &mut Container, marks: &Marks) {
     for node in &mut container.nodes {
         let named = !matches!(node.kind, Kind::Start | Kind::End | Kind::Region);
         match marks.states.get(&node.key).filter(|_| named) {
+            // Whatever border the source gives it: only the dash says
+            // never taken.
             Some(Mark::Taken(_)) => {
                 node.line_color = Some(TAKEN.to_owned());
                 node.border_bold = true;
+                node.border_dash = Dash::Solid;
             }
             Some(Mark::Missed) => {
                 node.line_color = Some(MISSED.to_owned());
                 node.border_dash = Dash::Dashed;
+                node.border_bold = false;
             }
             None => {}
         }
@@ -134,6 +138,30 @@ mod tests {
         // Not a state machine: nothing to mark.
         let err = crate::render_marked("@startuml\nA -> B\n@enduml\n", None, &marks).unwrap_err();
         assert!(err.reason.contains("state"), "{}", err.reason);
+    }
+
+    #[test]
+    fn a_mark_says_taken_or_missed_whatever_border_the_source_gives() {
+        let source = "@startuml\n[*] --> Cold\nstate Cold ##[dashed]blue\nstate Hot ##[bold]red\nCold --> Hot : heat\n@enduml\n";
+        let crate::Diagram::State(mut d) = crate::parse(source).unwrap() else {
+            panic!("a state diagram");
+        };
+        d.mark(&Marks {
+            states: HashMap::from([
+                ("Cold".to_owned(), Mark::Taken(1)),
+                ("Hot".to_owned(), Mark::Missed),
+            ]),
+            ..Marks::default()
+        });
+        let node = |key: &str| d.root.nodes.iter().find(|n| n.key == key).unwrap();
+        assert_eq!(
+            (node("Cold").border_dash, node("Cold").border_bold),
+            (Dash::Solid, true)
+        );
+        assert_eq!(
+            (node("Hot").border_dash, node("Hot").border_bold),
+            (Dash::Dashed, false)
+        );
     }
 
     #[test]

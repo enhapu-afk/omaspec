@@ -236,7 +236,13 @@ impl Worker {
 
     /// Renders every diagram of the Markdown document `source`, one under
     /// another (`Renderer::render_document`).
-    pub fn render_document(&self, ticket: Ticket, source: Arc<str>, place: Option<Place>) {
+    pub fn render_document(
+        &self,
+        ticket: Ticket,
+        source: Arc<str>,
+        place: Option<Place>,
+        nested: bool,
+    ) {
         let _ = self.input.unbounded_send(Input::Render {
             ticket,
             source,
@@ -245,7 +251,7 @@ impl Worker {
             linked: None,
             document: true,
             folds: Vec::new(),
-            nested: false,
+            nested,
             map: None,
         });
     }
@@ -345,7 +351,7 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                             folder,
                         )
                     } else if document {
-                        service.submit_document(ticket.doc, source.to_string(), place)
+                        service.submit_document(ticket.doc, source.to_string(), place, nested)
                     } else {
                         service.submit_linked(
                             ticket.doc,
@@ -386,6 +392,8 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
 /// YAML diagram `nested`; the file never holds them.
 pub fn folded(source: &str, language: Language, folds: &[String], nested: bool) -> String {
     let mut text = source.to_owned();
+    // Only a JSON or a YAML diagram has a nested drawing.
+    let nested = nested && holds_tables(source, language);
     if folds.is_empty() && !nested {
         return text;
     }
@@ -404,6 +412,16 @@ pub fn folded(source: &str, language: Language, folds: &[String], nested: bool) 
         ));
     }
     text
+}
+
+/// Whether `source` is a JSON or a YAML diagram, the kinds drawn as a tree
+/// or nested.
+pub fn holds_tables(source: &str, language: Language) -> bool {
+    language == Language::PlantUml
+        && matches!(
+            omaspec_core::kind::plantuml_block(source).as_str(),
+            "json" | "yaml"
+        )
 }
 
 /// One thread for all alarms; it ends with the service.

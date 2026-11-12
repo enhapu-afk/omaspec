@@ -21,6 +21,8 @@ mod cells;
 mod nested;
 mod tree;
 
+pub use cells::path_name;
+
 use crate::Declined;
 use crate::annotations::Annotations;
 use crate::color::Color;
@@ -907,6 +909,10 @@ mod tests {
             assert!(told.contains(&("e", false)), "{nested}: {told:?}");
             assert!(map.places.iter().all(|p| p.fixed && p.rect.w > 0.0));
         }
+        // A key with a line break stays on the line of its fold.
+        let name = path_name(&["k\nl".to_owned(), "x".to_owned()]);
+        assert_eq!(name, "\"k\\nl\"/x");
+        assert_eq!(highlight_path(&name, 0).unwrap(), ["k\nl", "x"]);
         // A key a path has to quote.
         let body = "{\"a b\": {\"x\": 1}}\n' fold (Omaspec) \"a b\"";
         let svg = crate::render(&source(body)).unwrap();

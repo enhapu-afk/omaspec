@@ -2457,6 +2457,42 @@ fn an_object_of_a_json_diagram_folds_from_the_caret() {
 }
 
 #[test]
+fn a_key_deeper_down_folds_what_it_holds_not_the_card_around_it() {
+    let json =
+        "@startjson\n{\n  \"a\": {\n    \"b\": {\"c\": 1},\n    \"d\": 2\n  }\n}\n@endjson\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, json);
+    show(&mut app, json, Language::PlantUml);
+    let at = json.find("\"b\"").unwrap() + 1;
+    act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
+    press(&mut app, Command::FoldBox);
+    assert_eq!(app.notice.as_deref(), Some("a/b folded"));
+}
+
+#[test]
+fn only_a_json_or_yaml_diagram_is_asked_for_nested() {
+    let json = "@startjson\n{\"a\": 1}\n@endjson\n";
+    let state = "@startuml\n[*] --> A\n@enduml\n";
+    assert!(
+        crate::worker::folded(json, Language::PlantUml, &[], true).contains("layout (Omaspec)")
+    );
+    assert_eq!(
+        crate::worker::folded(state, Language::PlantUml, &[], true),
+        state
+    );
+    // A document's JSON is drawn nested too.
+    let doc = "# Notes\n\n```plantuml\n@startjson\n{\"a\": {\"b\": 1}}\n@endjson\n```\n";
+    let mut renderer = omaspec_render::Renderer::new(&omaspec_render::Config {
+        java_fallback: false,
+        ..omaspec_render::Config::default()
+    });
+    let tree = renderer.render_document_with(doc, None, false).unwrap();
+    let nested = renderer.render_document_with(doc, None, true).unwrap();
+    assert!(tree.svg.contains("stroke-dasharray"));
+    assert!(!nested.svg.contains("stroke-dasharray"), "{}", nested.svg);
+}
+
+#[test]
 fn the_edit_menu_has_what_the_editor_has_on_its_keys() {
     let source = "@startuml\n[*] --> Idle\n@enduml\n";
     let mut app = open(&[]);

@@ -766,6 +766,14 @@ mod tests {
     }
 
     #[test]
+    fn a_word_of_c4_is_still_a_name_elsewhere() {
+        let none = Specs::default();
+        let code = "@startuml\nparticipant System\nSystem -> DB : save\nS";
+        let found = at_end(code, Language::PlantUml, &none);
+        assert!(labels(&found).contains(&"System"), "{found:?}");
+    }
+
+    #[test]
     fn a_name_under_the_pointer_says_what_it_is() {
         let specs = door();
         let said = describe(DOOR, Language::PlantUml, "Open", &Specs::default()).unwrap();

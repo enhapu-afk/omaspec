@@ -981,22 +981,26 @@ pub(crate) struct Args {
     pub(crate) kv: Vec<(String, String)>,
 }
 
+/// The arguments as written (`split_args`): a keyword argument is a name
+/// not in quotes before its `=` (`$bgColor="#f7768e"`, the quotes around
+/// the value); anything else is positional, an empty one too, so the
+/// arguments after it keep their places. `"key=value"` is a text.
 pub(crate) fn parse_args(args: &[String]) -> Args {
     let mut positional = Vec::new();
     let mut kv = Vec::new();
     for arg in args {
         let trimmed = arg.trim();
-        if let Some((key, value)) = trimmed.split_once('=') {
+        let quoted = trimmed.starts_with(['"', '\'']);
+        if !quoted && let Some((key, value)) = trimmed.split_once('=') {
             let key = key.trim().trim_start_matches('$');
-            if !key.is_empty() {
-                // `$bgColor="#f7768e"`: the quotes are around the value.
+            let named =
+                !key.is_empty() && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+            if named {
                 kv.push((key.to_string(), strip_quotes(value.trim()).to_string()));
                 continue;
             }
         }
-        if !trimmed.is_empty() {
-            positional.push(trimmed.to_string());
-        }
+        positional.push(strip_quotes(trimmed).to_string());
     }
     Args { positional, kv }
 }
@@ -1009,7 +1013,12 @@ pub(crate) fn get<'a>(args: &'a Args, key: &str) -> Option<&'a str> {
         .map(|(_, value)| value.as_str())
 }
 
+/// The arguments between a macro's parentheses, as written, quotes kept;
+/// an empty one stays, so those after it keep their places.
 pub(crate) fn split_args(input: &str) -> Vec<String> {
+    if input.trim().is_empty() {
+        return Vec::new();
+    }
     let mut args = Vec::new();
     let mut current = String::new();
     let mut quote: Option<char> = None;
@@ -1037,10 +1046,7 @@ pub(crate) fn split_args(input: &str) -> Vec<String> {
 }
 
 fn push_arg(args: &mut Vec<String>, current: &mut String) {
-    let trimmed = strip_quotes(current.trim());
-    if !trimmed.is_empty() {
-        args.push(trimmed.to_string());
-    }
+    args.push(current.trim().to_string());
     current.clear();
 }
 

@@ -131,8 +131,9 @@ struct Writer<'a> {
     out: Vec<(Line<'a>, String)>,
     /// The flow runs to the right (`LAYOUT_LEFT_RIGHT()`).
     right: bool,
-    /// The boundaries open now, by alias.
-    open: Vec<String>,
+    /// The blocks open now: a boundary by its alias, any other block (a
+    /// `package`, a `skinparam` block) as none.
+    open: Vec<Option<String>>,
     /// Each element's boundaries, outermost first.
     home: HashMap<String, Vec<String>>,
     /// The kinds of element drawn, for the legend.
@@ -164,6 +165,10 @@ impl<'a> Writer<'a> {
             return Ok(());
         }
         let Some((name, inside, opens)) = call(text) else {
+            // Another block opens: its `}` closes it, not a boundary.
+            if text.ends_with('{') {
+                self.open.push(None);
+            }
             self.push(line, text);
             return Ok(());
         };
@@ -291,7 +296,7 @@ impl<'a> Writer<'a> {
         };
         let (fill, border) = colors(level, external);
         let ink = ink_on(fill);
-        self.home.insert(alias.clone(), self.open.clone());
+        self.home.insert(alias.clone(), self.boundaries());
         if !self.sorts.contains(&(level, external)) {
             self.sorts.push((level, external));
         }
@@ -323,18 +328,21 @@ impl<'a> Writer<'a> {
                 .or_else(|| args.positional.get(index).cloned())
                 .filter(|text| !text.trim().is_empty())
         };
-        let kind = at(2, "type").or_else(|| (!deployment).then(|| word.to_owned()));
-        let (descr, sprite, tags, link) = if deployment {
-            (
-                at(3, "descr"),
-                at(4, "sprite"),
-                at(5, "tags"),
-                at(6, "link"),
-            )
+        // As C4-PlantUML writes them: `Deployment_Node(alias, label, type,
+        // descr, sprite, tags, link)`, `Boundary(alias, label, type, tags,
+        // link, descr)`, `System_Boundary(alias, label, tags, link, descr)`.
+        let (kind, descr, sprite, tags, link) = if deployment {
+            let (kind, descr) = (at(2, "type"), at(3, "descr"));
+            (kind, descr, at(4, "sprite"), at(5, "tags"), at(6, "link"))
+        } else if name == "boundary" {
+            let kind = at(2, "type").or_else(|| Some(word.to_owned()));
+            (kind, at(5, "descr"), None, at(3, "tags"), at(4, "link"))
         } else {
-            (at(3, "descr"), None, at(3, "tags"), at(4, "link"))
+            let kind = get(args, "type")
+                .map(str::to_owned)
+                .or_else(|| Some(word.to_owned()));
+            (kind, at(4, "descr"), None, at(2, "tags"), at(3, "link"))
         };
-        let descr = if deployment { descr } else { None };
         refuse(sprite, tags, no)?;
         let mut rows: Vec<String> = pieces(&label)
             .map(|piece| format!("<b>{piece}</b>"))
@@ -353,7 +361,7 @@ impl<'a> Writer<'a> {
             "#transparent;line.dashed"
         };
         let body = if opens {
-            self.open.push(alias.clone());
+            self.open.push(Some(alias.clone()));
             " {"
         } else {
             ""
@@ -436,6 +444,11 @@ impl<'a> Writer<'a> {
         Ok(self
             .toward(Some(word), from, to)
             .map(|word| format!("{from} -[hidden]{word}- {to}")))
+    }
+
+    /// The boundaries open now, outermost first.
+    fn boundaries(&self) -> Vec<String> {
+        self.open.iter().flatten().cloned().collect()
     }
 
     /// The direction a line keeps: one across the flow between elements

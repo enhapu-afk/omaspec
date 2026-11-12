@@ -29,6 +29,8 @@ struct Job {
     linked: Option<(Arc<Atlas>, Option<String>)>,
     /// A Markdown document: all its diagrams ([`Renderer::render_document`]).
     document: bool,
+    /// Its JSON and YAML diagrams drawn nested.
+    nested: bool,
     /// The map of this folder of the project in `linked`, made from its
     /// diagrams ([`Renderer::render_map`]); `source` is the look it is
     /// drawn in.
@@ -123,6 +125,7 @@ impl RenderService {
             place,
             linked,
             document: false,
+            nested: false,
             map: None,
         });
         generation
@@ -147,6 +150,7 @@ impl RenderService {
             place: None,
             linked: Some((atlas, None)),
             document: false,
+            nested: false,
             map: Some(folder),
         });
         generation
@@ -159,6 +163,7 @@ impl RenderService {
         slot: u64,
         source: String,
         place: Option<Place>,
+        nested: bool,
     ) -> Generation {
         let generation = self.next;
         self.next += 1;
@@ -170,6 +175,7 @@ impl RenderService {
             place,
             linked: None,
             document: true,
+            nested,
             map: None,
         });
         generation
@@ -185,7 +191,9 @@ fn render_guarded(
     job: &Job,
 ) -> Result<Rendered, RenderError> {
     let result = catch_unwind(AssertUnwindSafe(|| match (&job.linked, &job.map) {
-        _ if job.document => renderer.render_document(&job.source, job.place.as_ref()),
+        _ if job.document => {
+            renderer.render_document_with(&job.source, job.place.as_ref(), job.nested)
+        }
         (Some((atlas, _)), Some(folder)) => renderer.render_map(atlas, folder, &job.source),
         (Some((atlas, own)), None) => renderer.render_linked(
             &job.source,

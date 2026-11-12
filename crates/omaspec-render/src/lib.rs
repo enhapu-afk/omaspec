@@ -303,6 +303,17 @@ impl Renderer {
         text: &str,
         place: Option<&Place>,
     ) -> Result<Rendered, RenderError> {
+        self.render_document_with(text, place, false)
+    }
+
+    /// [`Self::render_document`], its JSON and YAML diagrams drawn nested
+    /// when `nested` says so (`' layout (Omaspec) nested`).
+    pub fn render_document_with(
+        &mut self,
+        text: &str,
+        place: Option<&Place>,
+        nested: bool,
+    ) -> Result<Rendered, RenderError> {
         let start = Instant::now();
         let blocks = omaspec_core::markdown::blocks(text);
         let Some(first) = blocks.first() else {
@@ -314,7 +325,12 @@ impl Renderer {
         let mut engine = None;
         let mut pictures = Vec::with_capacity(blocks.len());
         for block in &blocks {
-            let masked = omaspec_core::markdown::masked(text, block);
+            let mut masked = omaspec_core::markdown::masked(text, block);
+            let tables = matches!(kind::plantuml_block(&block.code).as_str(), "json" | "yaml");
+            if nested && block.language == Language::PlantUml && tables {
+                masked.push('\n');
+                masked.push_str(&omaspec_uml::fold::nested_line(false));
+            }
             let drawn = self.render_at(&masked, block.language, place)?;
             engine.get_or_insert(drawn.engine);
             pictures.push(drawn.svg);

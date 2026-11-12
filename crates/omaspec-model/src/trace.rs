@@ -228,6 +228,10 @@ struct Object<'a> {
     started: Vec<Taken>,
     /// The states it began in there.
     begins: Vec<usize>,
+    /// For each way it can be in now, the transitions without an event it
+    /// took to get there since the last line; one the next line confirms
+    /// was passed (a choice's branch, a guard's way).
+    pending: Vec<Vec<Taken>>,
 }
 
 enum Track {
@@ -245,6 +249,9 @@ struct Outcome {
     findings: Vec<Finding>,
     /// The transitions its event took, on every way.
     taken: Vec<Taken>,
+    /// The transitions without an event taken since the line before, on
+    /// the ways this line leaves possible.
+    passed: Vec<Taken>,
     /// Whether the line deviates from the machine.
     deviated: bool,
 }
@@ -264,7 +271,35 @@ impl<'a> Object<'a> {
             written: written(&spec.machine),
             started: Vec::new(),
             begins: Vec::new(),
+            pending: Vec::new(),
         }
+    }
+
+    /// Takes `paths`, the ways it can be in with how it got there.
+    fn set_ways(&mut self, paths: Vec<(Run, Vec<Taken>)>) -> Vec<Run> {
+        let (ways, pending): (Vec<Run>, Vec<Vec<Taken>>) = paths.into_iter().unzip();
+        self.pending = pending;
+        ways
+    }
+
+    /// Followed from `state`, where the trace says it is.
+    fn anchor(&mut self, m: &Machine, state: usize) {
+        self.track = match Run::at(m, state) {
+            Some(run) => Track::Ways(self.set_ways(close_paths(m, vec![(run, Vec::new())]))),
+            None => Track::Lost,
+        };
+    }
+
+    /// The transitions without an event of the ways it can be in now,
+    /// each once: what the trace ends on.
+    fn pending(&self) -> Vec<&Taken> {
+        let mut out: Vec<&Taken> = Vec::new();
+        for step in self.pending.iter().flatten() {
+            if !out.iter().any(|t| t.transition == step.transition) {
+                out.push(step);
+            }
+        }
+        out
     }
 
     /// Follows the object through `entry`, its next line.
@@ -294,21 +329,25 @@ impl<'a> Object<'a> {
                         )),
                     );
                     self.track = Track::Lost;
+                    self.pending.clear();
                     return outcome;
                 }
             },
             None => None,
         };
+        let mut pending = std::mem::take(&mut self.pending);
         let ways = match std::mem::replace(&mut self.track, Track::Lost) {
             Track::Fresh => match (entry.event.is_some(), state) {
                 // Where it begins.
                 (false, Some(state)) => {
-                    self.track = anchored(m, state);
+                    self.anchor(m, state);
                     return outcome;
                 }
                 _ => match Run::start(m) {
                     Some((run, steps)) => {
-                        let ways = close(m, vec![run]);
+                        let paths = close_paths(m, vec![(run, Vec::new())]);
+                        let (ways, paths): (Vec<Run>, Vec<Vec<Taken>>) = paths.into_iter().unzip();
+                        pending = paths;
                         self.started = steps;
                         self.begins = active(&ways);
                         ways
@@ -329,7 +368,7 @@ impl<'a> Object<'a> {
             Track::Ways(ways) => ways,
             Track::Lost => {
                 if let Some(state) = state {
-                    self.track = anchored(m, state);
+                    self.anchor(m, state);
                 }
                 return outcome;
             }
@@ -338,7 +377,15 @@ impl<'a> Object<'a> {
             Some(event) => {
                 let event = event_of(event);
                 let k = key(event);
-                let next = react_all(m, &ways, &k);
+                let mut next = Vec::new();
+                for (index, run) in ways.iter().enumerate() {
+                    let before = next.len();
+                    react(m, run, &k, &[], &[], &mut next);
+                    if next.len() > before {
+                        // A way the event leaves: how it got there holds.
+                        outcome.pass(pending.get(index).map_or(&[][..], Vec::as_slice));
+                    }
+                }
                 if next.is_empty() {
                     let body = if self.written.contains_key(&k) {
                         let can_be = can_be(m, &ways);
@@ -362,8 +409,9 @@ impl<'a> Object<'a> {
                         ),
                     };
                     outcome.deviation(entry.line, say(body));
+                    outcome.passed.clear();
                     if let Some(state) = state {
-                        self.track = anchored(m, state);
+                        self.anchor(m, state);
                     }
                     return outcome;
                 }
@@ -378,13 +426,25 @@ impl<'a> Object<'a> {
                         }
                     }
                 }
-                close(m, next.into_iter().map(|(run, _)| run).collect())
+                let paths = close_paths(
+                    m,
+                    next.into_iter().map(|(run, _)| (run, Vec::new())).collect(),
+                );
+                let (ways, paths): (Vec<Run>, Vec<Vec<Taken>>) = paths.into_iter().unzip();
+                pending = paths;
+                ways
             }
             None => ways,
         };
         let ways = match state {
             Some(state) => {
-                let kept: Vec<Run> = ways.iter().filter(|w| w.is_in(m, state)).cloned().collect();
+                let keep: Vec<bool> = ways.iter().map(|w| w.is_in(m, state)).collect();
+                let kept: Vec<Run> = ways
+                    .iter()
+                    .zip(&keep)
+                    .filter(|(_, k)| **k)
+                    .map(|(w, _)| w.clone())
+                    .collect();
                 if kept.is_empty() {
                     outcome.deviation(
                         entry.line,
@@ -395,9 +455,24 @@ impl<'a> Object<'a> {
                             states_list(m, &can_be(m, &ways))
                         )),
                     );
-                    self.track = anchored(m, state);
+                    outcome.passed.clear();
+                    self.anchor(m, state);
                     return outcome;
                 }
+                // The ways the state leaves: without an event since the
+                // line before, how they got there holds when this line
+                // took no event.
+                if entry.event.is_none() {
+                    for (path, _) in pending.iter().zip(&keep).filter(|(_, k)| **k) {
+                        outcome.pass(path);
+                    }
+                }
+                pending = pending
+                    .into_iter()
+                    .zip(&keep)
+                    .filter(|(_, k)| **k)
+                    .map(|(path, _)| path)
+                    .collect();
                 kept
             }
             None => ways,
@@ -414,6 +489,7 @@ impl<'a> Object<'a> {
             return outcome;
         }
         self.track = Track::Ways(ways);
+        self.pending = pending;
         outcome
     }
 
@@ -433,27 +509,31 @@ fn state_named(m: &Machine, name: &str) -> Option<usize> {
         .find(|&s| m.states[s].kind == Kind::State && key(&m.states[s].name) == wanted)
 }
 
-/// Followed from `state`, where the trace says it is.
-fn anchored(m: &Machine, state: usize) -> Track {
-    match Run::at(m, state) {
-        Some(run) => Track::Ways(close(m, vec![run])),
-        None => Track::Lost,
+impl Outcome {
+    /// `path` was passed: its transitions, each once.
+    fn pass(&mut self, path: &[Taken]) {
+        for step in path {
+            if !self.passed.iter().any(|t| t.transition == step.transition) {
+                self.passed.push(step.clone());
+            }
+        }
     }
 }
 
-/// `ways` and everywhere they lead without an event: what the writer picks
-/// in a play, the system may take without logging it.
-fn close(m: &Machine, mut ways: Vec<Run>) -> Vec<Run> {
+/// `ways` and everywhere they lead without an event, each with the
+/// transitions it took to get there: what the writer picks in a play, the
+/// system may take without logging it.
+fn close_paths(m: &Machine, mut ways: Vec<(Run, Vec<Taken>)>) -> Vec<(Run, Vec<Taken>)> {
     let mut i = 0;
     while i < ways.len() && ways.len() < MAX_WAYS {
-        let run = ways[i].clone();
+        let (run, path) = ways[i].clone();
         i += 1;
         for t in run.options(m) {
             if m.transitions[t].trigger.events.is_empty() {
                 let mut next = run.clone();
-                next.take(m, t);
-                if !ways.contains(&next) {
-                    ways.push(next);
+                let steps = next.take(m, t);
+                if !ways.iter().any(|(r, _)| *r == next) {
+                    ways.push((next, [path.as_slice(), &steps].concat()));
                 }
             }
         }
@@ -461,14 +541,69 @@ fn close(m: &Machine, mut ways: Vec<Run>) -> Vec<Run> {
     ways
 }
 
-/// Where `ways` can go when the event with key `k` comes, each with the
-/// transitions it took.
-fn react_all(m: &Machine, ways: &[Run], k: &str) -> Vec<(Run, Vec<Taken>)> {
-    let mut out = Vec::new();
-    for run in ways {
-        react(m, run, k, &[], &[], &mut out);
+/// What `trace` takes of `spec`'s machine, added to `cov`, in one pass:
+/// each object of the machine followed as [`check`] follows it.
+pub(crate) fn cover(trace: &str, spec: &Spec, cov: &mut crate::Coverage) {
+    let m = &spec.machine;
+    let names: Vec<String> = spec.names.iter().map(|n| key(n)).collect();
+    let mut objects: HashMap<String, Object> = HashMap::new();
+    let mut order: Vec<String> = Vec::new();
+    let count = |cov: &mut crate::Coverage, step: &Taken| {
+        cov.transitions[step.transition] += 1;
+        for &state in &step.entered {
+            cov.states[state] += 1;
+        }
+    };
+    for (line, text) in trace.lines().enumerate() {
+        let Ok(entry) = entry(line, text) else {
+            continue;
+        };
+        if !names.contains(&key(entry.machine.as_deref().unwrap_or(&entry.object))) {
+            continue;
+        }
+        let object = objects.entry(entry.object.clone()).or_insert_with(|| {
+            order.push(entry.object.clone());
+            Object::new(spec)
+        });
+        let fresh = object.started.is_empty();
+        let outcome = object.follow(&entry);
+        if fresh {
+            for step in &object.started {
+                count(cov, step);
+            }
+        }
+        for step in outcome.taken.iter().chain(&outcome.passed) {
+            count(cov, step);
+        }
+        // A line that says where it is, with no event: it is there.
+        if entry.event.is_none() && !outcome.deviated {
+            let mut seen = Vec::new();
+            for mut state in object.at() {
+                loop {
+                    if !seen.contains(&state) {
+                        seen.push(state);
+                        cov.states[state] += 1;
+                    }
+                    match m.states[state].parent {
+                        Some(parent) => state = parent,
+                        None => break,
+                    }
+                }
+            }
+        }
+        if outcome.deviated {
+            cov.deviations += 1;
+        }
     }
-    out
+    // Where the trace ends, every way it may have gone counts.
+    for name in &order {
+        for step in objects[name].pending() {
+            count(cov, step);
+        }
+        if !cov.objects.contains(name) {
+            cov.objects.push(name.clone());
+        }
+    }
 }
 
 /// Where `run` can go when the event with key `k` comes: every region

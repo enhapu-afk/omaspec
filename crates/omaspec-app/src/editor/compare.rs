@@ -367,6 +367,7 @@ impl App {
             .unwrap_or_else(|| omaspec_core::detect(&text, Language::from_file_name(&a.name())));
         a.set_baseline(Some(text.clone()));
         let mut compare = Compare::new(key, target, title, text, language);
+        compare.paper.nested = self.look.nested;
         compare.refresh(&a.text(), a.current_language(), &a.specs);
         let (source, pending) = self.diagram_source(&compare.text, language);
         let place = self.place_of(key);
