@@ -36,7 +36,8 @@ Omaspec draws with its own engines, in a few milliseconds: PlantUML sequence, ac
 state, class, component, use case, deployment, object, timing and Gantt diagrams,
 C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, EBNF and regex railroads, Ditaa
 drawings, mind maps, WBS, JSON, YAML and formulas, and Mermaid flowcharts, state and sequence diagrams. The
-other Mermaid types are drawn by mmdr, a Rust library, in the same process. Lint findings
+other Mermaid types are drawn by mmdr, a Rust library, in the same process. A dense
+flowchart, 150 boxes and 476 lines between them, is laid out in under half a second. Lint findings
 are underlined while you type, and a Ctrl+click in the diagram jumps to its line in the
 source.
 
@@ -171,8 +172,6 @@ has every key and command.
 
 - **Even cleaner lines.** Fewer crossings and detours, lines that keep clear of frames and
   labels, closer to what Graphviz draws.
-- **Dense diagrams as fast as small ones.** 150 boxes and 476 lines laid out in under a
-  second, as you type.
 
 More in the [roadmap](ROADMAP.md#next). Ideas and wishes are welcome as
 [issues](https://github.com/enhapu-afk/omaspec/issues).

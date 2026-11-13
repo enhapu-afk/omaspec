@@ -204,17 +204,20 @@ pub(super) fn merge(
     sideways: bool,
 ) {
     let mut labels: Vec<Option<Rect>> = (0..lines.len()).map(|i| label(i, &lines[i])).collect();
+    let mut spans: Vec<Span> = lines.iter().map(|line| span(line)).collect();
     for index in 0..lines.len() {
+        // What the line keeps out of: the other labels, which stay as they
+        // are while this line moves, and the boxes.
+        let solids: Vec<Rect> = labels
+            .iter()
+            .enumerate()
+            .filter(|&(other, _)| other != index)
+            .filter_map(|(_, label)| *label)
+            .chain(boxes.iter().copied())
+            .collect();
         // The shortest step first, into a longer one beside it; each step
         // taken out leaves fewer, so this ends.
         'again: loop {
-            let solids: Vec<Rect> = labels
-                .iter()
-                .enumerate()
-                .filter(|&(other, _)| other != index)
-                .filter_map(|(_, label)| *label)
-                .chain(boxes.iter().copied())
-                .collect();
             let own = |points: &[Point]| label(index, points);
             let points = &lines[index];
             let mut steps: Vec<(f32, usize)> = (1..points.len().saturating_sub(2))
@@ -225,8 +228,10 @@ pub(super) fn merge(
                 .collect();
             steps.sort_by(|a, b| a.0.total_cmp(&b.0));
             for (_, k) in steps {
-                if let Some(moved) = absorb(lines, index, k, (&solids, frames), &own, sideways) {
+                let near = (&solids[..], frames, &spans[..]);
+                if let Some(moved) = absorb(lines, index, k, near, &own, sideways) {
                     labels[index] = label(index, &moved);
+                    spans[index] = span(&moved);
                     lines[index] = moved;
                     continue 'again;
                 }
@@ -243,7 +248,7 @@ fn absorb(
     lines: &[Vec<Point>],
     index: usize,
     k: usize,
-    (solids, frames): (&[Rect], &[Rect]),
+    (solids, frames, spans): (&[Rect], &[Rect], &[Span]),
     label: &dyn Fn(&[Point]) -> Option<Rect>,
     sideways: bool,
 ) -> Option<Vec<Point>> {
@@ -295,8 +300,18 @@ fn absorb(
         .filter(|&(other, _)| other != index)
         .map(|(_, line)| line)
         .collect();
+    // The lines near where this one runs and may run: one farther off than
+    // the room a run keeps can neither cross it nor crowd it.
+    let reach = span(points).grown(across.0.abs().max(across.1.abs()));
+    let nearby: Vec<&Vec<Point>> = lines
+        .iter()
+        .zip(spans)
+        .enumerate()
+        .filter(|&(other, (_, span))| other != index && reach.meets(*span, ROOM + 1.0))
+        .map(|(_, (line, _))| line)
+        .collect();
     let crossings = |line: &[Point]| -> usize {
-        others
+        nearby
             .iter()
             .map(|other| {
                 line.windows(2)
@@ -328,7 +343,7 @@ fn absorb(
         {
             continue;
         }
-        let clear = others.iter().all(|line| {
+        let clear = nearby.iter().all(|line| {
             line.windows(2).all(|s| {
                 let now = gap(run, (s[0], s[1]));
                 now >= ROOM || now >= gap(was, (s[0], s[1])) - 0.01
@@ -338,7 +353,10 @@ fn absorb(
             continue;
         }
         let moved = merged(moved);
-        if crossings(&moved) > crossings(points) {
+        // The steps both have in common at either end cross the same
+        // lines; only the ones between them can differ.
+        let (old, new) = differing(points, &moved);
+        if crossings(new) > crossings(old) {
             continue;
         }
         // The label follows its run, onto nothing else and not up against
@@ -360,6 +378,61 @@ fn absorb(
         return Some(moved);
     }
     None
+}
+
+/// The parts of `a` and `b` past the points they share at the start and
+/// at the end, each from the last shared point to the first shared one
+/// after: every step outside them is a step of both.
+fn differing<'a>(a: &'a [Point], b: &'a [Point]) -> (&'a [Point], &'a [Point]) {
+    let start = a.iter().zip(b).take_while(|(p, q)| p == q).count();
+    let end = a[start..]
+        .iter()
+        .rev()
+        .zip(b[start..].iter().rev())
+        .take_while(|(p, q)| p == q)
+        .count();
+    let from = start.saturating_sub(1);
+    (
+        &a[from..(a.len() - end + 1).min(a.len())],
+        &b[from..(b.len() - end + 1).min(b.len())],
+    )
+}
+
+/// Where a line runs: the least and the most x and y of its points.
+#[derive(Debug, Clone, Copy)]
+pub(super) struct Span {
+    min: Point,
+    max: Point,
+}
+
+impl Span {
+    /// `by` farther out on every side.
+    fn grown(self, by: f32) -> Span {
+        Span {
+            min: (self.min.0 - by, self.min.1 - by),
+            max: (self.max.0 + by, self.max.1 + by),
+        }
+    }
+
+    /// Whether the two lie within `pad` of each other.
+    fn meets(self, other: Span, pad: f32) -> bool {
+        self.min.0 <= other.max.0 + pad
+            && other.min.0 <= self.max.0 + pad
+            && self.min.1 <= other.max.1 + pad
+            && other.min.1 <= self.max.1 + pad
+    }
+}
+
+fn span(points: &[Point]) -> Span {
+    let mut span = Span {
+        min: (f32::INFINITY, f32::INFINITY),
+        max: (f32::NEG_INFINITY, f32::NEG_INFINITY),
+    };
+    for p in points {
+        span.min = (span.min.0.min(p.0), span.min.1.min(p.1));
+        span.max = (span.max.0.max(p.0), span.max.1.max(p.1));
+    }
+    span
 }
 
 /// Whether `p`, an end moved across a side that runs along x (`flat_x`:

@@ -50,47 +50,71 @@ fn between(upper: &[usize], lower: &[usize], slots: &[Slot], place: &[usize]) ->
     count
 }
 
-/// The crossings rank `r` takes part in.
-fn around(rows: &[Vec<usize>], r: usize, slots: &[Slot], place: &[usize]) -> usize {
-    let above = if r > 0 {
-        between(&rows[r - 1], &rows[r], slots, place)
-    } else {
-        0
+/// Where each slot stands among the ranks; `usize::MAX` for one in none.
+fn ranks(rows: &[Vec<usize>], n: usize) -> Vec<usize> {
+    let mut rank = vec![usize::MAX; n];
+    for (r, row) in rows.iter().enumerate() {
+        for &slot in row {
+            rank[slot] = r;
+        }
+    }
+    rank
+}
+
+/// The crossings between the lines of `a` and those of `b`, two neighbors
+/// of rank `r`, to the ranks on either side: with `a` first, and with `b`
+/// first. Swapping the two changes no other crossing.
+fn pair(
+    a: usize,
+    b: usize,
+    r: usize,
+    slots: &[Slot],
+    place: &[usize],
+    rank: &[usize],
+) -> (usize, usize) {
+    let (mut now, mut swapped) = (0, 0);
+    let mut count = |ends_a: &[usize], ends_b: &[usize], side: usize| {
+        for &x in ends_a.iter().filter(|&&x| rank[x] == side) {
+            for &y in ends_b.iter().filter(|&&y| rank[y] == side) {
+                match place[x].cmp(&place[y]) {
+                    std::cmp::Ordering::Greater => now += 1,
+                    std::cmp::Ordering::Less => swapped += 1,
+                    std::cmp::Ordering::Equal => {}
+                }
+            }
+        }
     };
-    let below = match rows.get(r + 1) {
-        Some(next) => between(&rows[r], next, slots, place),
-        None => 0,
-    };
-    above + below
+    if r > 0 {
+        count(&slots[a].preds, &slots[b].preds, r - 1);
+    }
+    count(&slots[a].succs, &slots[b].succs, r + 1);
+    (now, swapped)
 }
 
 /// Swaps two neighbors of a rank wherever that crosses less, while
-/// `together(a, b)` says the two may trade places (the same frames).
+/// `together(a, b)` says the two may trade places (the same frames). Only
+/// the crossings between the lines of the two change, so only those are
+/// counted.
 pub(super) fn transpose(
     rows: &mut [Vec<usize>],
     slots: &[Slot],
     together: impl Fn(usize, usize) -> bool,
 ) {
     let mut place = places(rows, slots.len());
+    let rank = ranks(rows, slots.len());
     for _ in 0..TRANSPOSE_ROUNDS {
         let mut better = false;
-        for r in 0..rows.len() {
-            for i in 0..rows[r].len().saturating_sub(1) {
-                let (a, b) = (rows[r][i], rows[r][i + 1]);
+        for (r, row) in rows.iter_mut().enumerate() {
+            for i in 0..row.len().saturating_sub(1) {
+                let (a, b) = (row[i], row[i + 1]);
                 if !together(a, b) {
                     continue;
                 }
-                let was = around(rows, r, slots, &place);
-                if was == 0 {
-                    continue;
-                }
-                rows[r].swap(i, i + 1);
-                (place[a], place[b]) = (i + 1, i);
-                if around(rows, r, slots, &place) < was {
+                let (now, swapped) = pair(a, b, r, slots, &place, &rank);
+                if swapped < now {
+                    row.swap(i, i + 1);
+                    (place[a], place[b]) = (i + 1, i);
                     better = true;
-                } else {
-                    rows[r].swap(i, i + 1);
-                    (place[a], place[b]) = (i, i + 1);
                 }
             }
         }
@@ -110,6 +134,12 @@ pub(super) fn keep_best(rows: &mut [Vec<usize>], slots: &[Slot], best: (usize, V
 
 /// Rounds of laying the long lines again, at most.
 const REROUTE_ROUNDS: usize = 4;
+/// How much laying lines again may weigh in all: for each line, the places
+/// of each two ranks it passes, times each other (`reroute_line` weighs
+/// every pair of places). A dense diagram has hundreds of long lines
+/// through wide ranks; past this the lines stay as the sweeps laid them,
+/// and every diagram of ordinary size is laid as before.
+const REROUTE_BUDGET: usize = 6_000_000;
 
 /// Lays a line that passes several ranks again as a whole where that
 /// crosses less: its points, one in each rank it passes, take the places
@@ -161,10 +191,22 @@ pub(super) fn reroute(
             lines.push(line);
         }
     }
+    // Where each slot of one rank stands, for one rank at a time; every
+    // other slot `usize::MAX`.
+    let mut scratch = vec![usize::MAX; slots.len()];
+    let mut spent = 0usize;
     for _ in 0..REROUTE_ROUNDS {
         let mut better = false;
         for line in &lines {
-            better |= reroute_line(rows, slots, line, rank[line[0]], &together);
+            let first = rank[line[0]];
+            let weight: usize = (first - 1..first + line.len())
+                .map(|r| (rows[r].len() + 1) * (rows[r + 1].len() + 1))
+                .sum();
+            spent += weight;
+            if spent > REROUTE_BUDGET {
+                return;
+            }
+            better |= reroute_line(rows, slots, line, first, &together, &mut scratch);
         }
         if !better {
             break;
@@ -179,6 +221,7 @@ fn reroute_line(
     line: &[usize],
     first: usize,
     together: &impl Fn(usize, usize) -> bool,
+    scratch: &mut [usize],
 ) -> bool {
     // The rows without the line's points, and where each point stood: a
     // point at `k` stands before the slot at `k` there.
@@ -218,27 +261,26 @@ fn reroute_line(
             (k - left, k + right)
         })
         .collect();
-    let place = |row: &[usize]| -> Vec<usize> {
-        let mut place = vec![usize::MAX; slots.len()];
-        for (index, &slot) in row.iter().enumerate() {
-            place[slot] = index;
-        }
-        place
-    };
     // The lines between two ranks that a stretch of this line crosses,
     // which starts left of `a` slots above and ends left of `b` below.
-    let crossed = |upper: &[usize], lower: &[usize], skip: (usize, usize)| -> Vec<(usize, usize)> {
-        let below = place(lower);
-        let mut ends = Vec::new();
-        for (index, &u) in upper.iter().enumerate() {
-            for &v in &slots[u].succs {
-                if (u, v) != skip && below[v] != usize::MAX {
-                    ends.push((index, below[v]));
+    let mut crossed =
+        |upper: &[usize], lower: &[usize], skip: (usize, usize)| -> Vec<(usize, usize)> {
+            for (index, &slot) in lower.iter().enumerate() {
+                scratch[slot] = index;
+            }
+            let mut ends = Vec::new();
+            for (index, &u) in upper.iter().enumerate() {
+                for &v in &slots[u].succs {
+                    if (u, v) != skip && scratch[v] != usize::MAX {
+                        ends.push((index, scratch[v]));
+                    }
                 }
             }
-        }
-        ends
-    };
+            for &slot in lower {
+                scratch[slot] = usize::MAX;
+            }
+            ends
+        };
     let cost = |ends: &[(usize, usize)], a: usize, b: usize| -> usize {
         ends.iter().filter(|&&(u, v)| (u < a) != (v < b)).count()
     };

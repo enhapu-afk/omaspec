@@ -2757,6 +2757,25 @@ are built once, with coverage, and the others take them.
       morning's quick steps), and gives a highlight's caption room of
       its own above the rows.
 
+### Dense diagrams as you type (2026-11-13)
+
+A flowchart of 150 boxes and 476 lines between random pairs (Mermaid's
+issue 8777, where Mermaid takes 36 seconds) took Omaspec 53 seconds:
+the ordering of the ranks grew far faster than the lines.
+
+- [x] Laid out in under half a second (2026-11-13), the same picture as
+      before for every diagram of the tests. Swapping two neighbors of a
+      rank counts only the crossings between their own lines, the only
+      ones a swap changes, instead of every crossing of the two ranks
+      around them (1.9 s a sweep to 3 ms); laying a long line again
+      reuses one table of places and stops at a budget past which a
+      dense diagram keeps the lines as the sweeps laid them; taking the
+      small steps out of a line looks only at the lines near it and
+      counts crossings only on the steps that change. `omaspec-render/
+      tests/dense.rs` draws 50, 100 and 150 boxes and holds the last
+      under a second; CI runs it in a release build. 100 boxes: 7.3 s
+      to 0.19 s; 150: 53 s to 0.44 s.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 Omaspec's engine is plain Rust; what ties the program to Linux is at the

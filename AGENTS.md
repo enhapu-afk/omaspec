@@ -41,6 +41,7 @@ OMASPEC_SNAPSHOT_DIR=/tmp cargo test -p omaspec-app snapshot   # headless screen
 OMASPEC_SNAPSHOT_DIR=/tmp cargo test --release -p omaspec-app snapshot_   # README pictures, every bundled theme
 docs/images/update.sh                      # the README's and the guide's pictures into docs/images (ImageMagick)
 cargo bench -p omaspec-render              # render and export timings
+cargo test --release -p omaspec-render --test dense -- --nocapture   # 150 boxes, 476 lines in under a second (CI too)
 cargo check --target x86_64-pc-windows-gnu -p omaspec-app -p omaspec-render -p omaspec-core -p omaspec-uml -p omaspec-model   # the engine and the binary stay buildable for Windows
 cargo run --release -p spike-editor          # editor spike window
 cargo run --release -p spike-menu            # menu bar, context menus and toolbar: iced_aw against an overlay of our own (docs/adr/0025); --snapshot DIR

@@ -151,8 +151,6 @@ walks you through a state machine, a scenario and a recorded trace in ten minute
   and the palette without Omarchy come next.
 - **Even cleaner lines.** Labels of lines between closed containers, fewer crossings where
   frames set the order.
-- **Dense diagrams as fast as small ones.** 150 boxes and 476 lines laid out in under a
-  second.
 - **The AUR**, as soon as it takes new accounts.
 
 ## Status
