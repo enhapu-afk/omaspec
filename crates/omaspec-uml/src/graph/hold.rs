@@ -81,6 +81,20 @@ impl Word {
         }
     }
 
+    /// The word for a layout laid out unmirrored and then mirrored along
+    /// its flow (a Mermaid `direction BT` or `RL`): what is below on the
+    /// page is laid above, what is right of it laid left. Across the flow
+    /// nothing turns.
+    pub fn mirrored(self, direction: Direction) -> Word {
+        match (self, direction) {
+            (Word::Below, Direction::Down) => Word::Above,
+            (Word::Above, Direction::Down) => Word::Below,
+            (Word::Right, Direction::Right) => Word::Left,
+            (Word::Left, Direction::Right) => Word::Right,
+            (word, _) => word,
+        }
+    }
+
     /// `after` or `before`, the words a drag writes.
     pub fn beside(after: bool) -> Word {
         if after { Word::After } else { Word::Before }
@@ -566,5 +580,11 @@ mod tests {
                 (2, Unheld::Missing)
             ]
         );
+        // The line B -> A keeps its way whichever box comes first: B below
+        // A is said, not drawn by turning the line around.
+        let back = [edge(1, 0)];
+        let laid = held(2, &back, &[hold(1, 0, Word::Below)]);
+        assert_eq!(laid.unheld, [(0, Unheld::Against)]);
+        assert!(laid.nodes[0].y > laid.nodes[1].y, "{:?}", laid.nodes);
     }
 }

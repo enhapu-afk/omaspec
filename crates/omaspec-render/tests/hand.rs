@@ -298,3 +298,52 @@ fn a_box_held_below_its_neighbor_stands_under_it_in_every_drawer() {
         }
     }
 }
+
+/// A flow that runs up or to the left is laid down or to the right and
+/// mirrored after: a box held above its neighbor still stands above it on
+/// the page, one held left of it left of it.
+#[test]
+fn a_box_held_by_the_page_keeps_its_side_in_a_mirrored_flow() {
+    use omaspec_uml::hand::{Hold, Word};
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    let cases = [
+        (
+            "stateDiagram-v2\n  direction BT\n  A --> B\n  A --> C\n",
+            Word::Above,
+        ),
+        ("flowchart BT\n  A --> B\n  A --> C\n", Word::Above),
+        ("flowchart RL\n  A --> B\n  A --> C\n", Word::Left),
+    ];
+    for (code, word) in cases {
+        let hold = Hold {
+            name: "C".into(),
+            beside: "B".into(),
+            word,
+        };
+        let (range, text) = hand::hold(code, Language::Mermaid, "C", Some(&hold)).unwrap();
+        let held = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
+        let drawn = renderer.render(&held, Language::Mermaid).unwrap();
+        assert!(
+            drawn.map.misses.is_empty(),
+            "{held}: {:?}",
+            drawn.map.misses
+        );
+        let place = |name: &str| {
+            drawn
+                .map
+                .places
+                .iter()
+                .find(|p| p.name == name)
+                .unwrap_or_else(|| panic!("{held}: no place {name}"))
+                .rect
+        };
+        let (b, c) = (place("B"), place("C"));
+        match word {
+            Word::Above => assert!(c.y + c.h < b.y, "{held}: {c:?} not above {b:?}"),
+            _ => assert!(c.x + c.w < b.x, "{held}: {c:?} not left of {b:?}"),
+        }
+    }
+}

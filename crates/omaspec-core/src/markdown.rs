@@ -112,6 +112,29 @@ pub fn blocks(text: &str) -> Vec<Block> {
     found
 }
 
+/// Whether line `row` of `text` lies in a fenced block of any language,
+/// its fences too: a diagram's, a `rust` one, one with no info string.
+pub fn in_fence(text: &str, row: usize) -> bool {
+    let text = normalize_newlines(text);
+    let lines: Vec<&str> = text.split('\n').collect();
+    let mut at = 0;
+    while at < lines.len() && at <= row {
+        let Some(open) = fence(lines[at]) else {
+            at += 1;
+            continue;
+        };
+        let end = lines[at + 1..]
+            .iter()
+            .position(|line| closes(line, &open))
+            .map_or(lines.len(), |i| at + 2 + i);
+        if row < end {
+            return true;
+        }
+        at = end;
+    }
+    false
+}
+
 /// The document `text` with only `block`'s diagram in it, each of its lines
 /// where the document has it and every other line empty, so what an engine
 /// or a check says about a line is said about the document's. A body put
@@ -290,6 +313,13 @@ mod tests {
                        ```puml\n\
                        Alice -> Bob\n\
                        ```\n";
+
+    #[test]
+    fn any_fence_counts_as_a_block() {
+        let text = "# A\n\n```rust\nfn main() {}\n```\n\n~~~\nplain\n~~~\ntext\n````\nopen";
+        let inside: Vec<usize> = (0..13).filter(|&row| in_fence(text, row)).collect();
+        assert_eq!(inside, [2, 3, 4, 6, 7, 8, 10, 11]);
+    }
 
     #[test]
     fn finds_the_diagrams_and_their_lines() {

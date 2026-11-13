@@ -3656,7 +3656,22 @@ fn an_example_is_put_in_at_the_caret_and_fenced_in_a_document() {
     press(&mut app, Command::Gallery);
     press(&mut app, Command::InsertExample);
     assert_eq!(app.doc().text(), text);
-    assert!(app.notice.as_deref().unwrap().contains("in a diagram"));
+    assert!(app.notice.as_deref().unwrap().contains("in a fenced block"));
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn an_example_stays_out_of_a_fence_of_any_language() {
+    let dir = temp_dir("gallery-insert-rust");
+    let path = dir.join("notes.md");
+    let notes = "# Notes\n\n```rust\nfn main() {}\n```\n";
+    std::fs::write(&path, notes).unwrap();
+    let mut app = open(std::slice::from_ref(&path));
+    app.doc_mut().jump_to_line_at(3, 0);
+    press(&mut app, Command::Gallery);
+    press(&mut app, Command::InsertExample);
+    assert_eq!(app.doc().text(), notes, "the rust block stays whole");
+    assert!(app.notice.as_deref().unwrap().contains("in a fenced block"));
     let _ = std::fs::remove_dir_all(dir);
 }
 

@@ -656,13 +656,10 @@ impl App {
         }
         let cursor = self.doc().editor.cursor();
         let (row, col) = (cursor.row as usize, cursor.col as usize);
-        if self
-            .doc()
-            .blocks()
-            .iter()
-            .any(|block| block.lines.contains(&row))
-        {
-            self.notice = Some("the caret is in a diagram: put it on a line of the text".into());
+        // Inside a fenced block of any language a fence would break it.
+        if omaspec_core::markdown::in_fence(&self.doc().text(), row) {
+            self.notice =
+                Some("the caret is in a fenced block: put it on a line of the text".into());
             return Task::none();
         }
         let mut text = example.text.to_owned();

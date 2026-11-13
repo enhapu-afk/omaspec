@@ -265,6 +265,14 @@ pub fn framed(
     let mut along: Vec<(usize, usize, usize)> = Vec::new();
     let mut unheld: Vec<(usize, hold::Unheld)> = Vec::new();
     let mut lines = edges.to_vec();
+    // Where the lines lead along the flow, between boxes: a hold into
+    // another rank that they lead the other way would turn a line around.
+    let mut leads: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for edge in edges {
+        if edge.from < n && edge.to < n && edge.from != edge.to && edge.level.is_none() {
+            leads[edge.from].push(edge.to);
+        }
+    }
     for (index, held) in holds.iter().enumerate() {
         let after = match held.word.place(direction) {
             hold::Place::Beside { after } => Some(after),
@@ -279,6 +287,11 @@ pub fn framed(
                 } else {
                     (held.node, held.beside)
                 };
+                if reaches(&leads, lower, upper) {
+                    unheld.push((index, hold::Unheld::Against));
+                    continue;
+                }
+                leads[upper].push(lower);
                 lines.push(Edge {
                     from: upper,
                     to: lower,
@@ -321,6 +334,23 @@ pub fn framed(
     unheld.sort_by_key(|(index, _)| *index);
     laid.unheld = unheld;
     laid
+}
+
+/// Whether `leads` (for each box, the boxes its lines lead to) lead from
+/// `from` to `to`.
+fn reaches(leads: &[Vec<usize>], from: usize, to: usize) -> bool {
+    let mut seen = vec![false; leads.len()];
+    let mut stack = vec![from];
+    while let Some(at) = stack.pop() {
+        if at == to {
+            return true;
+        }
+        if std::mem::replace(&mut seen[at], true) {
+            continue;
+        }
+        stack.extend(leads[at].iter().copied().filter(|&next| !seen[next]));
+    }
+    false
 }
 
 /// [`framed`] with every hold in its neighbor's rank.

@@ -323,7 +323,14 @@ pub fn layout<C: Nested>(cx: &C, top: C::Container) -> Result<Scene<C::Item, C::
     flat.gather(cx, top, &mut Vec::new(), None)?;
     let apart = flat.apart_nodes(cx);
     flat.join(cx, top, &mut Vec::new(), axis, &apart)?;
-    let (holds, lines, mut unheld) = flat.holds(cx);
+    let (mut holds, lines, mut unheld) = flat.holds(cx);
+    // The layout is laid unmirrored and turned after: a box below on the
+    // page is laid above.
+    if mirrored {
+        for hold in &mut holds {
+            hold.word = hold.word.mirrored(axis);
+        }
+    }
     let laid = framed(
         &flat.nodes,
         &flat.frames,

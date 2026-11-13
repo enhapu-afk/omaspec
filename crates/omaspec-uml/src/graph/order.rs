@@ -157,12 +157,7 @@ pub(super) fn reroute(
     slots: &[Slot],
     together: impl Fn(usize, usize) -> bool,
 ) {
-    let mut rank = vec![usize::MAX; slots.len()];
-    for (r, row) in rows.iter().enumerate() {
-        for &slot in row {
-            rank[slot] = r;
-        }
-    }
+    let rank = ranks(rows, slots.len());
     let point = |x: usize| {
         let s = &slots[x];
         s.real.is_none() && s.anchor.is_none() && s.preds.len() == 1 && s.succs.len() == 1

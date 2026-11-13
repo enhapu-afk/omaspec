@@ -27,7 +27,9 @@ lines since N5.
    is a later rank, `below` right after `C` in its rank. `after` and
    `before` keep going across the flow, whichever way it runs, as 0021
    wrote them. A container with a direction of its own reads the words
-   by its own.
+   by its own. A flow that runs up or to the left (Mermaid's `BT`, `RL`)
+   is laid down or to the right and mirrored after, so its words turn
+   with it: `below` on the page is laid above.
 2. **Another rank is an invisible line.** `D below C` is a line from `C`
    to `D` that ranks and orders the two and is not drawn, as `dot`'s
    invisible edge: `D` stands at least one rank past `C`, and as near
@@ -40,10 +42,13 @@ lines since N5.
    0021, an entry into another rank does not hold when the lines between
    the two rank them the other way round (`A --> B` and `A below B`):
    the lines keep their way, and the entry shows among the findings with
-   the box standing where the layout puts it.
+   the box standing where the layout puts it. Whether the lines lead from
+   the one box to the other is asked before the invisible line goes in, so
+   it never turns a line around, whichever box was named first.
 5. **One writer, one reader.** The block reads every word and writes it
    back as written; a name that is one of the words (`right`, `level`)
-   is written in double quotes. A drag still writes `after` or `before`,
+   is written in double quotes, and read bare too, since the word always
+   stands second. A drag still writes `after` or `before`,
    replacing whatever entry the box had.
 
 ## Why

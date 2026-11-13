@@ -48,7 +48,7 @@ pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
         .collect();
     lines.sort_by_key(|(line, _)| *line);
     lines.dedup_by_key(|(line, _)| *line);
-    let clock: Option<Vec<(f64, bool)>> = lines
+    let clock: Option<Vec<Moment>> = lines
         .iter()
         .map(|(_, time)| time.as_deref().and_then(seconds))
         .collect();
@@ -57,18 +57,24 @@ pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
         .map(|(_, time)| time.as_deref().and_then(|t| t.trim().parse().ok()))
         .collect();
     let (times, unit): (Vec<f64>, &str) = match (clock, plain) {
-        (Some(times), _) => {
-            // Times with their dates count as they are. A clock alone that
-            // goes back by more than half a day went past midnight; a line
-            // a moment out of order stays on its day, at the time before
-            // it, so the lines keep the trace's order.
-            let dated = times.iter().all(|(_, dated)| *dated);
+        (Some(moments), _) => {
+            // Times that all have their dates count as they are; where one
+            // has none, every line counts by its clock, so a trace that
+            // mixes the two stays on one scale. A clock that goes back by
+            // more than a few minutes went past midnight. A line a moment
+            // out of order stays on its day, at the time before it, so the
+            // lines keep the trace's order.
+            let dated = moments.iter().all(|m| m.at.is_some());
             let mut day = 0.0;
             let mut before = f64::NEG_INFINITY;
-            let times: Vec<f64> = times
+            let times: Vec<f64> = moments
                 .iter()
-                .map(|&(t, _)| {
-                    if !dated && t + day < before - 43_200.0 {
+                .map(|m| {
+                    let t = match m.at {
+                        Some(at) if dated => at,
+                        _ => m.clock,
+                    };
+                    if !dated && t + day < before - JITTER {
                         day += 86_400.0;
                     }
                     before = before.max(t + day);
@@ -181,15 +187,52 @@ pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
     Some(out)
 }
 
-/// A line's time in seconds, and whether it had its date: from 1970 for
-/// an ISO time (`2026-11-12T20:14:02Z`, `…+01:00`, a space for the `T`),
-/// of the day for a clock alone (`20:14:02`, `20:14:02.5`).
-fn seconds(time: &str) -> Option<(f64, bool)> {
+/// How far a clock may go back between two lines and still be a line out
+/// of order rather than the next day.
+const JITTER: f64 = 300.0;
+
+/// When a line happened: its clock as written, in seconds of the day, and
+/// for an ISO time with its date the moment in seconds from 1970 (UTC).
+struct Moment {
+    clock: f64,
+    at: Option<f64>,
+}
+
+/// The moment of a line's time: an ISO date and time
+/// (`2026-11-12T20:14:02Z`, `…+01:00`, a space for the `T`), or else a
+/// clock as its last word (`20:14:02.5`, `2026/11/12 20:14:02`, `Nov 12
+/// 20:14:02`), whose date, if any, is not read.
+fn seconds(time: &str) -> Option<Moment> {
     let time = time.trim();
-    let (date, clock) = match time.split_once(['T', ' ']) {
-        Some((date, clock)) => (Some(date), clock.trim()),
-        None => (None, time),
+    if let Some((date, clock)) = time.split_once(['T', ' '])
+        && let Some(days) = iso_date(date)
+        && let Some((clock, offset)) = clock_of(clock.trim())
+    {
+        return Some(Moment {
+            clock,
+            at: Some(days as f64 * 86_400.0 + clock - offset),
+        });
+    }
+    let last = time.rsplit([' ', 'T']).next()?;
+    let (clock, _) = clock_of(last)?;
+    Some(Moment { clock, at: None })
+}
+
+/// `2026-11-12` as days from 1970.
+fn iso_date(date: &str) -> Option<i64> {
+    let parts: Vec<i64> = date
+        .split('-')
+        .map(|p| p.parse().ok())
+        .collect::<Option<_>>()?;
+    let [year, month, day] = parts[..] else {
+        return None;
     };
+    ((1..=12).contains(&month) && (1..=31).contains(&day)).then(|| days_from_1970(year, month, day))
+}
+
+/// `20:14:02`, `20:14:02.5`, with `Z` or an offset after it: the seconds
+/// of the day as written, and the offset east of UTC.
+fn clock_of(clock: &str) -> Option<(f64, f64)> {
     let (clock, offset) = match clock.strip_suffix('Z') {
         Some(clock) => (clock, 0.0),
         None => match clock.rfind(['+', '-']) {
@@ -201,24 +244,7 @@ fn seconds(time: &str) -> Option<(f64, bool)> {
     let [h, m, s] = parts[..] else { return None };
     let (h, m): (f64, f64) = (h.parse().ok()?, m.parse().ok()?);
     let s: f64 = s.parse().ok()?;
-    let of_day = h * 3600.0 + m * 60.0 + s - offset;
-    let Some(date) = date else {
-        return Some((of_day, false));
-    };
-    let parts: Vec<i64> = date
-        .split('-')
-        .map(|p| p.parse().ok())
-        .collect::<Option<_>>()?;
-    let [year, month, day] = parts[..] else {
-        return None;
-    };
-    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
-        return None;
-    }
-    Some((
-        days_from_1970(year, month, day) as f64 * 86_400.0 + of_day,
-        true,
-    ))
+    Some((h * 3600.0 + m * 60.0 + s, offset))
 }
 
 /// `+01:00`, `-0530`, `+02` in seconds east of UTC.
@@ -333,24 +359,48 @@ mod tests {
         );
     }
 
+    /// A trace that mixes ISO times and clocks counts every line by its
+    /// clock; a night with a long pause still goes on to the next day.
+    #[test]
+    fn mixed_times_and_long_nights_keep_their_spacing() {
+        let specs = Specs::new(vec![
+            Spec::read(DOOR, Language::PlantUml, "door.puml").unwrap(),
+        ]);
+        let line = |time: &str, event: &str| {
+            format!("{{\"time\":\"{time}\",\"object\":\"Door\",\"event\":\"{event}\"}}\n")
+        };
+        let mixed = line("2026-11-12T20:00:00Z", "open")
+            + &line("20:00:05", "close")
+            + &line("20:00:09", "open");
+        let text = timing(&mixed, "mixed", &specs).unwrap();
+        assert!(text.contains("@5\n") && text.contains("@9\n"), "{text}");
+        let night = line("20:00:00", "open") + &line("09:00:00", "close");
+        let text = timing(&night, "night", &specs).unwrap();
+        assert!(text.contains("@46800\n"), "13 hours on: {text}");
+    }
+
     #[test]
     fn an_iso_time_counts_by_its_clock() {
         let day = 20_769.0 * 86_400.0;
+        let at = |time: &str| seconds(time).map(|m| (m.clock, m.at));
         assert_eq!(
-            seconds("2026-11-12T20:14:02.5Z"),
-            Some((day + 72842.5, true))
+            at("2026-11-12T20:14:02.5Z"),
+            Some((72842.5, Some(day + 72842.5)))
         );
         // The same moment with its offset, and with a space.
         assert_eq!(
-            seconds("2026-11-12T21:14:02.5+01:00"),
-            Some((day + 72842.5, true))
+            at("2026-11-12T21:14:02.5+01:00"),
+            Some((76442.5, Some(day + 72842.5)))
         );
         assert_eq!(
-            seconds("2026-11-12 15:14:02.5-0500"),
-            Some((day + 72842.5, true))
+            at("2026-11-12 15:14:02.5-0500"),
+            Some((54842.5, Some(day + 72842.5)))
         );
-        assert_eq!(seconds("10:30:01"), Some((37801.0, false)));
-        assert_eq!(seconds("soon"), None);
+        assert_eq!(at("10:30:01"), Some((37801.0, None)));
+        // A date not written as ISO writes it: the clock alone.
+        assert_eq!(at("2026/11/12 20:14:02"), Some((72842.0, None)));
+        assert_eq!(at("Nov 12 20:14:02"), Some((72842.0, None)));
+        assert_eq!(at("soon"), None);
         assert_eq!(days_from_1970(1970, 1, 1), 0);
         assert_eq!(days_from_1970(2000, 3, 1), 11_017);
         assert_eq!(round_off(160.17), 200.0);

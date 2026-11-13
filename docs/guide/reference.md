@@ -392,7 +392,7 @@ title, kind, language, or `complex`), Tab steps through behavior, structure, pla
 data, the arrows move between tiles. Enter (or a click) opens a copy in a new tab,
 unsaved, under a free name in the project folder; F5 (or the *plays* badge) opens it and
 plays it. Ctrl+Enter puts it in where the caret is in a Markdown document, as a fenced
-block on lines of its own; from a diagram's file, which holds that one diagram, it opens
+block on lines of its own, never inside another fenced block; from a diagram's file, which holds that one diagram, it opens
 as a copy. `omaspec example` lists them on the command line, and `omaspec example NAME`
 prints one.
 
@@ -600,7 +600,11 @@ light up, and where the trace deviates the bar turns red and says why.
 `omaspec trace player.jsonl --as timing` writes the trace as a PlantUML timing diagram, a
 row for each object and the states it was in over time, each deviation a red band;
 `-o player.svg` draws it, and the source can be edited as any timing diagram. The time
-runs by the clock where every line has one, else by the lines.
+runs by the clock where every line has one, else by the lines. ISO times with their
+dates (`2026-11-12T20:14:02+01:00`) count as the moments they are; where a line has a
+clock alone (`20:14:02`, or after a date written otherwise), every line counts by its
+clock, and a clock that goes back by more than five minutes went past midnight. A line a
+moment out of order stays at the time of the line before it.
 
 **Coverage.** `omaspec coverage player.puml --traces player.jsonl` follows the traces
 through the machine and says how much of it they take: how many transitions and states,

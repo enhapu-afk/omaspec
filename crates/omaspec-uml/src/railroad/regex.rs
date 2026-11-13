@@ -25,11 +25,8 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
             .and_then(|t| t.rfind('/').map(|end| &t[..end]))
             .unwrap_or(text);
         let chars: Vec<char> = body.chars().collect();
-        if depth(&chars) > MAX_DEPTH {
-            return Err(too_deep(no));
-        }
         let mut i = 0;
-        let node = alternation(&chars, &mut i, no)?;
+        let node = alternation(&chars, &mut i, no, 0)?;
         if i < chars.len() {
             return Err(Declined::at(
                 no,
@@ -49,43 +46,23 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
     Ok(Diagram { rules, frame })
 }
 
-/// How deep the groups of `chars` nest, escapes and classes left aside.
-fn depth(chars: &[char]) -> usize {
-    let (mut open, mut most, mut class) = (0usize, 0, false);
-    let mut i = 0;
-    while i < chars.len() {
-        match chars[i] {
-            '\\' => i += 1,
-            '[' if !class => class = true,
-            ']' if class => class = false,
-            '(' if !class => {
-                open += 1;
-                most = most.max(open);
-            }
-            ')' if !class => open = open.saturating_sub(1),
-            _ => {}
-        }
-        i += 1;
-    }
-    most
-}
-
-fn alternation(chars: &[char], i: &mut usize, no: usize) -> Result<Node, Declined> {
-    let mut ways = vec![concatenation(chars, i, no)?];
+/// Ways apart by `|`, `depth` groups deep.
+fn alternation(chars: &[char], i: &mut usize, no: usize, depth: usize) -> Result<Node, Declined> {
+    let mut ways = vec![concatenation(chars, i, no, depth)?];
     while chars.get(*i) == Some(&'|') {
         *i += 1;
-        ways.push(concatenation(chars, i, no)?);
+        ways.push(concatenation(chars, i, no, depth)?);
     }
     Ok(Node::choice(ways))
 }
 
-fn concatenation(chars: &[char], i: &mut usize, no: usize) -> Result<Node, Declined> {
+fn concatenation(chars: &[char], i: &mut usize, no: usize, depth: usize) -> Result<Node, Declined> {
     let mut parts: Vec<Node> = Vec::new();
     while let Some(&c) = chars.get(*i) {
         if c == '|' || c == ')' {
             break;
         }
-        let atom = atom(chars, i, no)?;
+        let atom = atom(chars, i, no, depth)?;
         let node = quantified(atom, chars, i, no)?;
         // Characters in a row read as one word.
         match (parts.last_mut(), &node) {
@@ -96,7 +73,7 @@ fn concatenation(chars: &[char], i: &mut usize, no: usize) -> Result<Node, Decli
     Ok(Node::sequence(parts))
 }
 
-fn atom(chars: &[char], i: &mut usize, no: usize) -> Result<Node, Declined> {
+fn atom(chars: &[char], i: &mut usize, no: usize, depth: usize) -> Result<Node, Declined> {
     let c = chars[*i];
     *i += 1;
     Ok(match c {
@@ -119,7 +96,11 @@ fn atom(chars: &[char], i: &mut usize, no: usize) -> Result<Node, Declined> {
                     }
                 }
             }
-            let inner = alternation(chars, i, no)?;
+            // Each group a level more for the reader and the drawer.
+            if depth >= MAX_DEPTH {
+                return Err(too_deep(no));
+            }
+            let inner = alternation(chars, i, no, depth + 1)?;
             if chars.get(*i) != Some(&')') {
                 return Err(Declined::at(no, "a group has no `)`"));
             }
@@ -308,6 +289,17 @@ mod tests {
         ] {
             let err = one(text).unwrap_err();
             assert!(err.reason.contains(part), "{text}: {}", err.reason);
+        }
+        // Groups nested past the limit are refused by the reader itself,
+        // whatever names or classes stand before them.
+        let deep = |prefix: &str| format!("{prefix}{}x{}", "(".repeat(200), ")".repeat(200));
+        for prefix in ["", "(?<)>", "(?<[>", "[a-\\]"] {
+            let err = one(&deep(prefix)).unwrap_err();
+            assert!(
+                err.reason.contains("nested groups"),
+                "{prefix}: {}",
+                err.reason
+            );
         }
     }
 }

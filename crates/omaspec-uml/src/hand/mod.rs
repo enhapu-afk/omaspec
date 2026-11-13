@@ -704,12 +704,10 @@ fn kept_apart(tokens: &[Token]) -> Result<Apart, String> {
 /// A box held in place: `Box after Neighbor`, `before`, `below`, `above`,
 /// `right of`, `left of` or `level with` it.
 fn hold(tokens: &[Token]) -> Result<Hold, String> {
-    // A word first is the entry's word, not a name; the neighbor comes
-    // last, where any word is a name.
+    // The word stands second, so a box or a neighbor named like one
+    // (`left after Running`) still reads; the writer quotes it all the same.
     let named = |t: Option<&Token>, what: &str| match t {
-        Some(t)
-            if t.quoted || !(t.is(",") || what == "box" && HOLD_WORDS.iter().any(|w| t.is(w))) =>
-        {
+        Some(t) if t.quoted || !t.is(",") => {
             if t.text.is_empty() {
                 Err(format!("the name of the {what} is empty"))
             } else {
@@ -855,7 +853,6 @@ mod tests {
         for wrong in [
             "Paused after",
             "Paused after Running too",
-            "after before X",
             "Done right Idle",
             "Done level Idle",
             "Done left of",
@@ -864,6 +861,10 @@ mod tests {
             assert!(parse(wrong).is_err(), "{wrong}");
         }
         assert!(parse("Done under Idle").unwrap_err().contains("`below`"));
+        // A box named like a word, written bare as entries were before.
+        let left = held("left after Running");
+        assert_eq!((left.name.as_str(), left.word), ("left", Word::After));
+        assert_eq!(left.to_string(), r#""left" after Running"#);
         let code = "' lines by hand (Omaspec)\n' A after B\n' A before C\n' B -> C at 0.5 0.5\n";
         let kept = super::held(code);
         assert_eq!(kept.len(), 1, "the first entry for a box holds");
