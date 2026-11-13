@@ -20,7 +20,7 @@ optdepends=(
   'libnotify: notifications outside Omarchy'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('fecfa6825cef84851fae4e6e4236c0d1952aeb1592bfa67d4ad219fef501c852')
 
 prepare() {
   cd "$pkgname-$pkgver"
