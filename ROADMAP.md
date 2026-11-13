@@ -2651,8 +2651,9 @@ Beside the stages:
       caret is in lit; a click puts the caret on its line. The column
       stays in the widget tree when hidden, so the editors keep their
       state. Ctrl+Enter in the gallery puts the chosen example in where
-      the caret is, in a Markdown document as a fenced block of its
-      language; into an empty tab it opens as a copy.
+      the caret is in a Markdown document, as a fenced block of its
+      language on lines of its own (not inside another diagram); from a
+      diagram's file or an empty tab it opens as a copy.
 
 ### Views derived from the behavior (2026-11-12)
 

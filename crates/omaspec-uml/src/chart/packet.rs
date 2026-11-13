@@ -32,7 +32,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         let bits = bits.trim();
         let (from, to) = if let Some(count) = bits.strip_prefix('+') {
             let count: u32 = count.trim().parse().ok().filter(|c| *c > 0)?;
-            (next, next + count - 1)
+            (next, next.checked_add(count - 1)?)
         } else if let Some((a, b)) = bits.split_once('-') {
             (a.trim().parse().ok()?, b.trim().parse().ok()?)
         } else {
@@ -122,6 +122,7 @@ mod tests {
         // A field over two rows is drawn in both.
         assert_eq!(svg.matches(">Data<").count(), 2, "{svg}");
         assert!(from_mermaid("packet-beta\n0-15 Source\n").is_none());
+        assert!(from_mermaid("packet-beta\n0: \"a\"\n+4294967295: \"b\"\n").is_none());
         assert!(from_mermaid("pie\n\"a\": 1\n").is_none());
     }
 }

@@ -3644,6 +3644,35 @@ fn an_example_is_put_in_at_the_caret_and_fenced_in_a_document() {
             .unwrap()
             .ends_with("put in at the caret")
     );
+    // In the middle of a line, the fence still opens on a line of its own.
+    app.doc_mut().jump_to_line_at(0, 3);
+    press(&mut app, Command::Gallery);
+    press(&mut app, Command::InsertExample);
+    let text = app.doc().text();
+    assert!(text.starts_with(&format!("# N\n{fence}")), "{text}");
+    // Inside a diagram nothing is put in.
+    let inside = app.doc().blocks()[0].lines.start + 1;
+    app.doc_mut().jump_to_line_at(inside, 0);
+    press(&mut app, Command::Gallery);
+    press(&mut app, Command::InsertExample);
+    assert_eq!(app.doc().text(), text);
+    assert!(app.notice.as_deref().unwrap().contains("in a diagram"));
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn an_example_from_a_diagram_file_opens_as_a_copy() {
+    let dir = temp_dir("gallery-insert-diagram");
+    let path = dir.join("door.puml");
+    let door = "@startuml\n[*] --> Closed\n@enduml\n";
+    std::fs::write(&path, door).unwrap();
+    let mut app = open(std::slice::from_ref(&path));
+    let _ = app.set_folder(Some(dir.clone()));
+    press(&mut app, Command::Gallery);
+    press(&mut app, Command::InsertExample);
+    assert_eq!(app.docs.len(), 2, "a tab of its own");
+    assert_eq!(app.docs[0].text(), door, "the diagram stays as it was");
+    assert!(app.notice.as_deref().unwrap().contains("opened as a copy"));
     let _ = std::fs::remove_dir_all(dir);
 }
 

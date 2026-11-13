@@ -2032,9 +2032,23 @@ fn run_all(group: &mut Group, direction: Direction) {
     }
 }
 
-/// A direction word right after a dot, and a dot after it: `.up.>`.
+/// `.up.>`, `.left.`: a dotted arrow with its direction. What follows the
+/// second dot is a head or the end of the arrow, never more of a name:
+/// `com.up.Service` is one name.
 fn dotted_direction(chars: &[(usize, char)], i: usize) -> bool {
-    direction_chars(chars, i).is_some_and(|n| chars.get(i + n).is_some_and(|(_, c)| *c == '.'))
+    let Some(n) = direction_chars(chars, i) else {
+        return false;
+    };
+    if chars.get(i + n).is_none_or(|(_, c)| *c != '.') {
+        return false;
+    }
+    let at = |k: usize| chars.get(i + n + k).map(|(_, c)| *c);
+    let word = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_');
+    match at(1) {
+        // A head of a letter (`.up.o`, `.up.x`) when no name goes on.
+        Some('o' | 'O' | 'x' | 'X') => !word(at(2)),
+        c => !word(c),
+    }
 }
 
 fn direction_chars(chars: &[(usize, char)], i: usize) -> Option<usize> {
@@ -2301,6 +2315,13 @@ mod tests {
 
     fn declined(source: &str) -> crate::Declined {
         parse(&lines_of(source)).unwrap_err()
+    }
+
+    #[test]
+    fn a_name_with_a_direction_word_is_no_dotted_arrow() {
+        // `.up.` inside a package name is part of the name.
+        diagram("@startuml\nclass com.up.Service\nclass Db\ncom.up.Service --> Db\n@enduml\n");
+        diagram("@startuml\nclass A\nclass B\nA .up.> B\nA .left.o B\nB .down. A\n@enduml\n");
     }
 
     #[test]

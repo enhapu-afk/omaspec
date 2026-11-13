@@ -353,19 +353,20 @@ pub fn diff(
     )
     .map_err(|reason| anyhow::anyhow!(reason))?;
     let new_name = new.name();
-    if let Some(output) = output {
+    // The changes are listed whether or not they can be drawn.
+    let drawn = output.map(|output| {
         crate::diff_picture::draw(
             (&old.text, language(&old, forced)),
             (&new.text, language(&new, forced)),
             new.path.as_deref(),
             &changes,
             output,
-        )?;
-    }
+        )
+    });
     let mut out = stdout();
     if json {
         let reported = reported_changes(&old_name, &new_name, &changes);
-        match output {
+        match output.filter(|_| matches!(drawn, Some(Ok(())))) {
             Some(output) => serde_json::to_writer_pretty(
                 &mut out,
                 &serde_json::json!({ "changes": reported, "image": output.display().to_string() }),
@@ -377,6 +378,11 @@ pub fn diff(
         for c in &changes {
             writeln!(out, "{}", change_line(&old_name, &new_name, c))?;
         }
+    }
+    if let Some(Err(err)) = drawn {
+        out.flush()?;
+        eprintln!("omaspec: {err:#}");
+        return Ok(ExitCode::from(2));
     }
     Ok(if changes.is_empty() {
         ExitCode::SUCCESS

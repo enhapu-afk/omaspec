@@ -4,7 +4,7 @@
 //! repeats (`{ … }-` at least once), `( … )` a group, `"…"` and `'…'`
 //! words as written, `? … ?` a special sequence, `(* … *)` a comment.
 
-use super::{Diagram, Node};
+use super::{Diagram, MAX_DEPTH, Node, too_deep};
 use crate::Declined;
 use crate::common::Frame;
 use crate::source::Line;
@@ -37,6 +37,19 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
             .last()
             .is_some_and(|(t, _)| !matches!(t, Token::Mark(';' | '.')));
         at += 1;
+    }
+    let mut open = 0usize;
+    for (token, no) in &tokens {
+        match token {
+            Token::Mark('(' | '[' | '{') => {
+                open += 1;
+                if open > MAX_DEPTH {
+                    return Err(too_deep(*no));
+                }
+            }
+            Token::Mark(')' | ']' | '}') => open = open.saturating_sub(1),
+            _ => {}
+        }
     }
     let mut rules = Vec::new();
     let mut i = 0;

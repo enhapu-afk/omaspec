@@ -138,7 +138,7 @@ pub fn from_zenuml(source: &str) -> Option<Diagram> {
             declared.push(name);
             continue;
         }
-        if let Some(rest) = text.strip_prefix("group") {
+        if let Some(rest) = keyword(text, "group") {
             let name = rest.trim().trim_end_matches('{').trim();
             out.push((no, format!("box \"{}\"", name.trim_matches('"'))));
             open.push(Open::Group);
@@ -276,6 +276,16 @@ fn fragment(text: &str) -> Option<(&'static str, String)> {
     Some((kind, label))
 }
 
+/// What follows `word` at the start of `text` when it is that word, not
+/// the start of a name: `group Shop {`, never `groupRepo.find()`.
+fn keyword<'a>(text: &'a str, word: &str) -> Option<&'a str> {
+    let rest = text.strip_prefix(word)?;
+    rest.chars()
+        .next()
+        .is_none_or(|c| c.is_whitespace() || matches!(c, '(' | '{' | '"'))
+        .then_some(rest)
+}
+
 /// What an `else` of a fragment says: `else if (x) {`, `catch (e) {`.
 fn clause(text: &str) -> Option<String> {
     let head = text.strip_suffix('{')?.trim();
@@ -286,13 +296,13 @@ fn clause(text: &str) -> Option<String> {
             .trim()
             .to_owned()
     };
-    if let Some(rest) = head.strip_prefix("else if") {
+    if let Some(rest) = keyword(head, "else if") {
         return Some(label(rest));
     }
     if head == "else" {
         return Some(String::new());
     }
-    if let Some(rest) = head.strip_prefix("catch") {
+    if let Some(rest) = keyword(head, "catch") {
         return Some(format!("catch {}", label(rest)).trim().to_owned());
     }
     if head == "finally" {
@@ -397,6 +407,13 @@ mod tests {
             })
             .collect();
         assert!(lines.contains(&6) && lines.contains(&9), "{lines:?}");
+        // A participant whose name starts with a keyword is called.
+        let group = from_zenuml("zenuml\n  groupRepo.find() {\n    Db.read()\n  }\n").unwrap();
+        let names: Vec<&str> = group.participants.iter().map(|p| p.code.as_str()).collect();
+        assert!(names.contains(&"groupRepo"), "{names:?}");
+        assert_eq!(keyword("group Shop {", "group"), Some(" Shop {"));
+        assert_eq!(keyword("catch(e) {", "catch"), Some("(e) {"));
+        assert_eq!(keyword("catchAll() {", "catch"), None);
     }
 
     #[test]

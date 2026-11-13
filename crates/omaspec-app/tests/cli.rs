@@ -2196,6 +2196,11 @@ fn diff_draws_a_state_machine_s_changes_over_its_new_version() {
     ]);
     assert_eq!(out.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&out.stderr).contains("only what changed in a state machine"));
+    assert!(
+        stdout(&out).contains("b.puml:2"),
+        "the changes are still listed: {}",
+        stdout(&out)
+    );
 }
 
 #[test]

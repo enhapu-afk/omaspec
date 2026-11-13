@@ -503,11 +503,14 @@ fn plantuml(pack: Pack, c: &Colors, font: Option<&str>) -> String {
 /// go by (`jsonDiagram`, `yamlDiagram`). PlantUML draws one from its
 /// styles alone, so the colors go into a `<style>` block.
 fn tables_omarchy(diagram: &str, c: &Colors, font: Option<&str>) -> String {
-    let font = font.map_or_else(String::new, |f| format!("  FontName {}\n", f.trim()));
+    // A font name is read in `root` only.
+    let font = font.map_or_else(String::new, |f| {
+        format!("root {{\n  FontName {}\n}}\n", f.trim())
+    });
     format!(
         "{PLANTUML_MARK}{} (Omaspec)\n\
          <style>\n\
-         document {{\n  BackGroundColor {bg}\n  FontColor {text}\n{font}}}\n\
+         {font}document {{\n  BackGroundColor {bg}\n  FontColor {text}\n}}\n\
          {diagram} {{\n  \
            node {{\n    BackGroundColor {surface}\n    LineColor {accent}\n    FontColor {text}\n  }}\n  \
            highlight {{\n    BackGroundColor {accent}\n    FontColor {bg}\n  }}\n\
@@ -525,11 +528,14 @@ fn tables_omarchy(diagram: &str, c: &Colors, font: Option<&str>) -> String {
 /// The Omarchy pack for an `@startnwdiag` diagram, which PlantUML draws
 /// from its styles alone (`nwdiagDiagram`).
 fn network_omarchy(c: &Colors, font: Option<&str>) -> String {
-    let font = font.map_or_else(String::new, |f| format!("  FontName {}\n", f.trim()));
+    // A font name is read in `root` only.
+    let font = font.map_or_else(String::new, |f| {
+        format!("root {{\n  FontName {}\n}}\n", f.trim())
+    });
     format!(
         "{PLANTUML_MARK}{} (Omaspec)\n\
          <style>\n\
-         document {{\n  BackGroundColor {bg}\n  FontColor {text}\n{font}}}\n\
+         {font}document {{\n  BackGroundColor {bg}\n  FontColor {text}\n}}\n\
          nwdiagDiagram {{\n  \
            network {{\n    BackGroundColor {surface}\n    LineColor {accent}\n    FontColor {text}\n  }}\n  \
            server {{\n    BackGroundColor {surface}\n    LineColor {accent}\n    FontColor {text}\n  }}\n  \

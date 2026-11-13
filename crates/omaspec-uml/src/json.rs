@@ -73,6 +73,8 @@ struct Look {
     around: [Font; 4],
     /// `skinparam handwritten true`: shapes drawn by hand.
     sketch: bool,
+    /// A style's `root { FontName … }`.
+    font_name: String,
 }
 
 impl Look {
@@ -92,6 +94,7 @@ impl Look {
                 Font::new(FONT, Color::BLACK),
             ],
             sketch: false,
+            font_name: "sans-serif".to_owned(),
         };
         for p in params {
             match normalize_key(&p.key).as_str() {
@@ -115,6 +118,7 @@ impl Look {
                 .position(|name| key.starts_with(name));
             match (key.as_str(), around) {
                 ("backgroundcolor", _) => look.page = p.paint()?,
+                ("defaultfontname", _) => look.font_name = p.value.trim().to_owned(),
                 ("jsonnodebackgroundcolor", _) => look.fill = p.paint()?,
                 ("jsonnodebordercolor", _) => look.line = p.solid()?,
                 ("jsonnodefontcolor", _) => look.ink = p.solid()?,
@@ -253,7 +257,7 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
 /// pane to fold them.
 pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let look = Look::read(&diagram.frame.skinparams)?;
-    let mut canvas = Canvas::new("sans-serif", false);
+    let mut canvas = Canvas::new(&look.font_name, false);
     canvas.sketch(look.sketch);
     let family = canvas.family();
     let notes = Annotations::new(&diagram.frame, look.around, family)?;

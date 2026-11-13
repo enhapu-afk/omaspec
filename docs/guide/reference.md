@@ -377,8 +377,9 @@ all in the file's own colors or the theme's. Typing filters (by
 title, kind, language, or `complex`), Tab steps through behavior, structure, plans and
 data, the arrows move between tiles. Enter (or a click) opens a copy in a new tab,
 unsaved, under a free name in the project folder; F5 (or the *plays* badge) opens it and
-plays it. Ctrl+Enter puts it in where the caret is, in a Markdown document as a fenced
-block. `omaspec example` lists them on the command line, and `omaspec example NAME`
+plays it. Ctrl+Enter puts it in where the caret is in a Markdown document, as a fenced
+block on lines of its own; from a diagram's file, which holds that one diagram, it opens
+as a copy. `omaspec example` lists them on the command line, and `omaspec example NAME`
 prints one.
 
 ![The gallery of examples in the theme's colors](../images/gallery.png)

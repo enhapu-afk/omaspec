@@ -26,17 +26,13 @@ pub fn run(file: &Path, output: Option<&Path>, json: bool) -> Result<ExitCode> {
     };
     let table = matrix(&m);
     if let Some(output) = output {
-        let ext = output
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .unwrap_or("")
-            .to_ascii_lowercase();
-        if ext == "md" {
-            fs::write(output, table.markdown(&m))
-                .with_context(|| format!("writing {}", output.display()))?;
-        } else {
-            draw(&input.text, lang, input.path.as_deref(), output)?;
-        }
+        write(
+            &m,
+            &table,
+            (&input.text, lang),
+            input.path.as_deref(),
+            output,
+        )?;
     }
     let mut out = stdout();
     if json {
@@ -48,6 +44,26 @@ pub fn run(file: &Path, output: Option<&Path>, json: bool) -> Result<ExitCode> {
         write!(out, "{}", table.markdown(&m))?;
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// The table into `output`: Markdown for a .md, else a picture
+/// ([`draw`]).
+pub(crate) fn write(
+    m: &Machine,
+    table: &Matrix,
+    (source, lang): (&str, omaspec_core::Language),
+    file: Option<&Path>,
+    output: &Path,
+) -> Result<()> {
+    let markdown = output
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("md"));
+    if markdown {
+        return fs::write(output, table.markdown(m))
+            .with_context(|| format!("writing {}", output.display()));
+    }
+    draw(source, lang, file, output)
 }
 
 /// The state machine `source` (at `file`) as a table, drawn in the look of

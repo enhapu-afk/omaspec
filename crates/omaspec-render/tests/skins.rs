@@ -229,3 +229,31 @@ fn plantuml_packs_draw_gantt_natively() {
         }
     }
 }
+
+#[test]
+fn the_omarchy_pack_with_a_font_draws_data_and_networks_natively() {
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    for code in [
+        "@startjson\n{\"a\": [1, 2]}\n@endjson\n",
+        "@startyaml\na:\n  - 1\n@endyaml\n",
+        "@startnwdiag\nnwdiag {\n  network lan {\n    web [address = \"10.0.0.1\"];\n  }\n}\n@endnwdiag\n",
+    ] {
+        let (range, text) = skin::edit_in(
+            code,
+            Language::PlantUml,
+            Some(Pack::Omarchy),
+            &COLORS,
+            Some("IBM Plex Sans"),
+        )
+        .unwrap();
+        let skinned = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
+        let out = renderer
+            .render(&skinned, Language::PlantUml)
+            .unwrap_or_else(|err| panic!("{skinned}: {err}"));
+        assert_eq!(out.engine, Engine::NativePlantUml);
+        assert!(out.svg.contains("IBM Plex Sans"), "{}", out.svg);
+    }
+}

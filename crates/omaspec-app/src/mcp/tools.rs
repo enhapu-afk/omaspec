@@ -167,7 +167,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "matrix",
             "title": "Tabulate a state machine",
-            "description": "A state machine as a table: its states (rows), its events (columns), and every cell with what the event does in the state: `transition` (the transitions it fires, with their guards, actions and one-based lines), `inherited` (none of its own; those of the state around it, named in `from`), `conflict` (two ways with no guard to choose), or `empty`. An empty cell is no finding: most are. Also the table as Markdown, for a document or a review. With `output`, writes the table as a picture in the look of the machine (.svg, .png or .pdf).",
+            "description": "A state machine as a table: its states (rows), its events (columns), and every cell with what the event does in the state: `transition` (the transitions it fires, with their guards, actions and one-based lines), `inherited` (none of its own; those of the state around it, named in `from`), `conflict` (two ways with no guard to choose), or `empty`. An empty cell is no finding: most are. Also the table as Markdown, for a document or a review. With `output`, writes the table as Markdown (.md) or as a picture in the look of the machine (.svg, .png or .pdf).",
             "inputSchema": schema(&[
                 ("path", path.clone()),
                 ("code", json!({
@@ -177,7 +177,7 @@ pub fn definitions() -> Vec<Value> {
                 ("lang", lang.clone()),
                 ("output", json!({
                     "type": "string",
-                    "description": "Where to write the table as a picture.",
+                    "description": "Where to write the table: .md, .svg, .png or .pdf.",
                 })),
             ]),
             "annotations": { "readOnlyHint": false, "destructiveHint": true, "idempotentHint": true, "openWorldHint": false },
@@ -233,7 +233,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "diff",
             "title": "Compare two versions",
-            "description": "Tells what changed in the behavior between two versions of a diagram, also between PlantUML and Mermaid: for a state machine its states (new, removed, moved, of another kind) and transitions (new, removed, another target, other events, guard or action); for a sequence diagram its participants, messages and blocks; then what the specification checks find now, or no longer. Layout, colors and notes do not count. The new version is `path` or `code`; the old one `old_path`, `old_code`, or `rev`, a git revision of `path` (HEAD when nothing else is given). Lines are one-based, each in its own version. With `output`, a state machine's changes are also drawn over its new version (.svg, .png or .pdf): what came in green, what changed in amber, a transition that went dashed in red, its label struck through.",
+            "description": "Tells what changed in the behavior between two versions of a diagram, also between PlantUML and Mermaid: for a state machine its states (new, removed, moved, of another kind) and transitions (new, removed, another target, other events, guard or action); for a sequence diagram its participants, messages and blocks; then what the specification checks find now, or no longer. Layout, colors and notes do not count. The new version is `path` or `code`; the old one `old_path`, `old_code`, or `rev`, a git revision of `path` (HEAD when nothing else is given). Lines are one-based, each in its own version. With `output`, a state machine's changes are also drawn over its new version (.svg, .png or .pdf): what came in green, what changed in amber, a transition that went dashed in red, its label struck through; when they cannot be drawn (no state machine), `image_error` says why and the changes are still listed.",
             "inputSchema": schema(&[
                 ("path", json!({
                     "type": "string",
@@ -909,7 +909,13 @@ fn matrix(args: &Args) -> Result<Answer> {
     let mut data = crate::matrix_command::report(&m, &table);
     data["markdown"] = json!(table.markdown(&m));
     if let Some(output) = args.path("output")? {
-        crate::matrix_command::draw(&input.text, lang, input.path.as_deref(), &output)?;
+        crate::matrix_command::write(
+            &m,
+            &table,
+            (&input.text, lang),
+            input.path.as_deref(),
+            &output,
+        )?;
         data["output"] = json!(output.display().to_string());
     }
     Ok(Answer::data(data))
@@ -1007,21 +1013,22 @@ fn diff(args: &Args) -> Result<Answer> {
     )
     .map_err(|reason| anyhow::anyhow!(reason))?;
     let output = args.path("output")?;
-    if let Some(output) = &output {
-        crate::diff_picture::draw(
-            (&old.text, language(&old, lang)),
-            (&new.text, language(&new, lang)),
-            new.path.as_deref(),
-            &changes,
-            output,
-        )?;
-    }
     let mut data = json!({
         "same": changes.is_empty(),
         "changes": serde_json::to_value(reported_changes(&old_name, &name(&new), &changes))?,
     });
+    // The changes are listed whether or not they can be drawn.
     if let Some(output) = output {
-        data["image"] = json!(output.display().to_string());
+        match crate::diff_picture::draw(
+            (&old.text, language(&old, lang)),
+            (&new.text, language(&new, lang)),
+            new.path.as_deref(),
+            &changes,
+            &output,
+        ) {
+            Ok(()) => data["image"] = json!(output.display().to_string()),
+            Err(err) => data["image_error"] = json!(format!("{err:#}")),
+        }
     }
     Ok(Answer::data(data))
 }
@@ -1291,6 +1298,17 @@ mod tests {
         assert_eq!(data["events"], json!(["open", "close"]), "{result}");
         let png = std::fs::read(&image).unwrap();
         assert!(png.starts_with(b"\x89PNG"), "a picture");
+        // Markdown, as the command line writes it.
+        let table = dir.join("door-table.md");
+        call(
+            "matrix",
+            json!({
+                "code": "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n",
+                "output": table.to_str().unwrap(),
+            }),
+        );
+        let md = std::fs::read_to_string(&table).unwrap();
+        assert!(md.starts_with("| state | open |"), "{md}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

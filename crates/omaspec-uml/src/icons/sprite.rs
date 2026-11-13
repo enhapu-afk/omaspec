@@ -139,19 +139,26 @@ pub(crate) fn take(lines: &[Line]) -> Result<Option<(Vec<Owned>, Sprites)>, Decl
     Ok(Some((out, sprites)))
 }
 
-/// The name a `sprite` line defines and what follows it.
+/// The name a `sprite` line defines and what follows it: `sprite $name`,
+/// or a name without `$` when its size (`[`) or an SVG follows, as
+/// PlantUML reads it. `sprite -> Engine` is a message from `sprite`.
 fn head(text: &str) -> Option<(&str, &str)> {
     let rest = text.strip_prefix("sprite")?;
     if !rest.starts_with([' ', '\t']) {
         return None;
     }
     let rest = rest.trim_start();
-    let rest = rest.strip_prefix('$').unwrap_or(rest);
+    let (dollar, rest) = match rest.strip_prefix('$') {
+        Some(rest) => (true, rest),
+        None => (false, rest),
+    };
     let end = rest
         .find(|c: char| !(c.is_alphanumeric() || matches!(c, '_' | '-' | '.')))
         .unwrap_or(rest.len());
     let (name, after) = rest.split_at(end);
-    (!name.is_empty()).then_some((name, after.trim_start()))
+    let after = after.trim_start();
+    let defines = dollar || after.starts_with('[') || after.starts_with("<svg");
+    (!name.is_empty() && defines).then_some((name, after))
 }
 
 /// `text` with each `<$name…>` and `<#color$name…>` carrying its sprite;
@@ -413,5 +420,8 @@ mod tests {
             blank_before: 0,
         }];
         assert!(take(&svg).unwrap_err().reason.contains("SVG sprite"));
+        // A participant named `sprite` sends a message.
+        assert_eq!(head("sprite -> Engine : draw"), None);
+        assert_eq!(head("sprite dot [2x2/16] {"), Some(("dot", "[2x2/16] {")));
     }
 }

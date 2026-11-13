@@ -2,15 +2,15 @@
 <g transform="translate(10,10)">
 <g transform="translate(3,3)" opacity="0.22">
 <path d="M5 8H95V82.4C72.5 76.8 72.5 90.8 50 85.2C27.5 79.6 27.5 90.8 5 82.4Z" fill="#000000"/>
-<rect x="135" y="8" width="80" height="32" fill="#000000"/>
 <rect x="265" y="8" width="80" height="80" fill="#000000"/>
 <rect x="135" y="40" width="80" height="48" fill="#000000"/>
+<rect x="135" y="8" width="80" height="32" fill="#000000"/>
 </g>
 <g>
 <path d="M5 8H95V82.4C72.5 76.8 72.5 90.8 50 85.2C27.5 79.6 27.5 90.8 5 82.4Z" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
-<rect x="135" y="8" width="80" height="32" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
 <rect x="265" y="8" width="80" height="80" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
 <rect x="135" y="40" width="80" height="48" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
+<rect x="135" y="8" width="80" height="32" fill="#FFFFFF" stroke="#000000" stroke-width="1.2"/>
 </g>
 <g id="lines">
 <line x1="105" y1="24" x2="115" y2="24" fill="none" stroke="#000000" stroke-width="1.2"/>

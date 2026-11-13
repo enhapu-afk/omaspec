@@ -32,7 +32,7 @@ pub use atlas::{Atlas, Entry, Link};
 pub use include::{Place, project_root};
 pub use java::JavaPlantUml;
 pub use mermaid::{MermaidDeclined, coverage as mermaid_coverage};
-pub use service::{Generation, Outcome, RenderService};
+pub use service::{After, Generation, Outcome, RenderService};
 
 /// The engine that drew (or failed to draw) a diagram.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

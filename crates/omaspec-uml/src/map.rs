@@ -341,27 +341,53 @@ impl Map {
     /// longer text.
     pub fn shifted(mut self, lines: usize) -> Map {
         for spot in &mut self.states {
-            spot.line += lines;
+            spot.line = spot.line.saturating_add(lines);
         }
         for route in &mut self.transitions {
-            route.line += lines;
+            route.line = route.line.saturating_add(lines);
         }
         for step in &mut self.messages {
-            step.line += lines;
+            step.line = step.line.saturating_add(lines);
         }
         for cell in &mut self.cells {
-            cell.line += lines;
+            cell.line = cell.line.saturating_add(lines);
         }
         for wire in &mut self.wires {
-            wire.line = wire.line.map(|l| l + lines);
-            wire.entry = wire.entry.map(|e| e + lines);
+            wire.line = wire.line.map(|l| l.saturating_add(lines));
+            wire.entry = wire.entry.map(|e| e.saturating_add(lines));
         }
         for place in &mut self.places {
-            place.entry = place.entry.map(|e| e + lines);
+            place.entry = place.entry.map(|e| e.saturating_add(lines));
         }
         for (line, _) in &mut self.misses {
-            *line += lines;
+            *line = line.saturating_add(lines);
         }
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_line_no_source_has_stays_without_one_when_shifted() {
+        // A transition drawn only to show it went (a diff) has no line.
+        let map = Map {
+            transitions: vec![
+                Route {
+                    line: usize::MAX,
+                    points: Vec::new(),
+                },
+                Route {
+                    line: 3,
+                    points: Vec::new(),
+                },
+            ],
+            ..Map::default()
+        }
+        .shifted(5);
+        assert_eq!(map.transitions[0].line, usize::MAX);
+        assert_eq!(map.transitions[1].line, 8);
     }
 }

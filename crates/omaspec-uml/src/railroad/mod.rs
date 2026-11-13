@@ -14,6 +14,18 @@ pub use draw::draw;
 
 use crate::common::Frame;
 
+/// How deep groups may nest: the readers and the drawer recurse once for
+/// each.
+const MAX_DEPTH: usize = 64;
+
+/// The refusal for an expression nested deeper than [`MAX_DEPTH`].
+fn too_deep(no: usize) -> crate::Declined {
+    crate::Declined::at(
+        no,
+        format!("more than {MAX_DEPTH} nested groups are not drawn"),
+    )
+}
+
 /// A grammar or an expression to draw, rule by rule.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Diagram {

@@ -637,6 +637,39 @@ fn deep_diagrams(depth: usize) -> Vec<(&'static str, Language, String)> {
             uml(format!("{}A -> B", nest("skinparam x {\n", "", "}\n"))),
         ),
         (
+            "regex groups",
+            format!("@startregex\n{}\n@endregex\n", nest("(", "a", ")")),
+        ),
+        (
+            "ebnf groups",
+            format!(
+                "@startebnf\nr = {};\n@endebnf\n",
+                nest("( [ {", "a", "} ] )")
+            ),
+        ),
+        (
+            "salt grids",
+            format!("@startsalt\n{}\n@endsalt\n", nest("{\n", "a\n", "}\n")),
+        ),
+        (
+            "c4 boundaries",
+            uml(format!(
+                "!include <C4/C4_Container>\n{}",
+                nest("System_Boundary(b, \"x\") {\n", "Person(p, \"P\")\n", "}\n")
+            )),
+        ),
+        (
+            "archimate groupings",
+            uml(format!(
+                "!include <archimate/Archimate>\n{}",
+                nest(
+                    "Grouping(g, \"x\") {\n",
+                    "Business_Actor(a, \"A\")\n",
+                    "}\n"
+                )
+            )),
+        ),
+        (
             "flow blocks",
             format!(
                 "@startflow\n{}@endflow\n",
@@ -704,6 +737,20 @@ fn deep_diagrams(depth: usize) -> Vec<(&'static str, Language, String)> {
             ),
         ),
         ("mermaid mind map", format!("mindmap\n{}", indented(" "))),
+        (
+            "treemap",
+            format!(
+                "treemap-beta\n{}",
+                (1..=d / 10)
+                    .map(|i| format!("{}\"n{i}\"\n", " ".repeat(i)))
+                    .collect::<String>()
+                    + &format!("{}\"leaf\": 1\n", " ".repeat(d / 10 + 1))
+            ),
+        ),
+        (
+            "zenuml blocks",
+            format!("zenuml\n{}", nest("A.m() {\n", "B.n()\n", "}\n")),
+        ),
         ("kanban", format!("kanban\n{}", indented(" "))),
         (
             "init",

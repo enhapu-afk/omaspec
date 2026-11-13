@@ -5,7 +5,7 @@
 //! escaped characters, and the quantifiers `* + ?` and `{n}`, `{n,}`,
 //! `{n,m}`, lazy ones too. Characters in a row are one word.
 
-use super::{Diagram, Node};
+use super::{Diagram, MAX_DEPTH, Node, too_deep};
 use crate::Declined;
 use crate::common::Frame;
 use crate::source::Line;
@@ -25,6 +25,9 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
             .and_then(|t| t.rfind('/').map(|end| &t[..end]))
             .unwrap_or(text);
         let chars: Vec<char> = body.chars().collect();
+        if depth(&chars) > MAX_DEPTH {
+            return Err(too_deep(no));
+        }
         let mut i = 0;
         let node = alternation(&chars, &mut i, no)?;
         if i < chars.len() {
@@ -44,6 +47,27 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
         });
     }
     Ok(Diagram { rules, frame })
+}
+
+/// How deep the groups of `chars` nest, escapes and classes left aside.
+fn depth(chars: &[char]) -> usize {
+    let (mut open, mut most, mut class) = (0usize, 0, false);
+    let mut i = 0;
+    while i < chars.len() {
+        match chars[i] {
+            '\\' => i += 1,
+            '[' if !class => class = true,
+            ']' if class => class = false,
+            '(' if !class => {
+                open += 1;
+                most = most.max(open);
+            }
+            ')' if !class => open = open.saturating_sub(1),
+            _ => {}
+        }
+        i += 1;
+    }
+    most
 }
 
 fn alternation(chars: &[char], i: &mut usize, no: usize) -> Result<Node, Declined> {

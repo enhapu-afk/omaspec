@@ -1,7 +1,7 @@
 //! Reading a ditaa drawing: the characters into a grid, the boxes found in
 //! it, then the lines and heads among what is left, then the text.
 
-use super::{Box, Diagram, Point, Shape};
+use super::{Box, Diagram, Point, Shape, Words};
 use crate::Declined;
 use crate::color::Color;
 use crate::common::Frame;
@@ -9,6 +9,9 @@ use crate::source::Line;
 
 /// The most cells a drawing may have.
 const MAX_CELLS: usize = 200_000;
+/// The most steps finding the boxes may take: a drawing of many corners
+/// that close late is declined rather than read for long.
+const MAX_STEPS: usize = 20_000_000;
 
 fn horizontal(c: char) -> bool {
     matches!(c, '-' | '=')
@@ -79,22 +82,73 @@ pub fn parse(lines: &[Line], source: &str) -> Result<Diagram, Declined> {
             refused: true,
         });
     }
-    let g = Grid { rows };
+    let g = Grid::new(rows);
     let mut border = vec![vec![false; width]; g.rows.len()];
-    find_boxes(&g, &mut d, &mut border);
+    let mut steps = 0;
+    find_boxes(&g, &mut d, &mut border, &mut steps)?;
+    let inner = innermost(&g, &d, &mut steps)?;
     // What is written inside a box and is a code of it: its color and shape.
     let mut used = vec![vec![false; width]; g.rows.len()];
-    codes(&g, &mut d, &mut used);
+    codes(&g, &mut d, &inner, &mut used);
     connect(&g, &mut d, &border, &mut used);
-    text(&g, &mut d, &border, &used);
+    text(&g, &mut d, &border, &used, &inner);
     Ok(d)
+}
+
+/// A step more of reading the boxes, or the refusal once there are too
+/// many.
+fn step(steps: &mut usize, more: usize) -> Result<(), Declined> {
+    *steps += more;
+    if *steps > MAX_STEPS {
+        return Err(Declined::at(0, "this drawing has too many corners to read"));
+    }
+    Ok(())
 }
 
 struct Grid {
     rows: Vec<Vec<char>>,
+    /// From each cell, how many cells on to the right can be a box's top
+    /// or bottom (`-`, `=`, `+`), itself counted.
+    across: Vec<Vec<usize>>,
+    /// The same downwards, for a box's sides (`|`, `:`, `+`).
+    down: Vec<Vec<usize>>,
+    /// For each column, the rows where a box's left side may end (`+`,
+    /// `\`), from the top.
+    ends: Vec<Vec<usize>>,
 }
 
 impl Grid {
+    fn new(rows: Vec<Vec<char>>) -> Grid {
+        let (h, w) = (rows.len(), rows.first().map_or(0, Vec::len));
+        let mut across = vec![vec![0; w + 1]; h];
+        let mut down = vec![vec![0; w]; h + 1];
+        let mut ends = vec![Vec::new(); w];
+        for (r, row) in rows.iter().enumerate() {
+            for (c, ch) in row.iter().enumerate() {
+                if matches!(ch, '+' | '\\') {
+                    ends[c].push(r);
+                }
+            }
+        }
+        for r in (0..h).rev() {
+            for c in (0..w).rev() {
+                let ch = rows[r][c];
+                if horizontal(ch) || ch == '+' {
+                    across[r][c] = across[r][c + 1] + 1;
+                }
+                if vertical(ch) || ch == '+' {
+                    down[r][c] = down[r + 1][c] + 1;
+                }
+            }
+        }
+        Grid {
+            rows,
+            across,
+            down,
+            ends,
+        }
+    }
+
     fn at(&self, r: isize, c: isize) -> char {
         if r < 0 || c < 0 {
             return ' ';
@@ -108,7 +162,12 @@ impl Grid {
 }
 
 /// Every rectangle whose sides are drawn, the smallest from each corner.
-fn find_boxes(g: &Grid, d: &mut Diagram, border: &mut [Vec<bool>]) {
+fn find_boxes(
+    g: &Grid,
+    d: &mut Diagram,
+    border: &mut [Vec<bool>],
+    steps: &mut usize,
+) -> Result<(), Declined> {
     let (h, w) = (g.rows.len(), g.rows.first().map_or(0, Vec::len));
     for r in 0..h {
         for c in 0..w {
@@ -123,7 +182,7 @@ fn find_boxes(g: &Grid, d: &mut Diagram, border: &mut [Vec<bool>]) {
             {
                 continue;
             }
-            if let Some(found) = smallest(g, r, c) {
+            if let Some(found) = smallest(g, r, c, steps)? {
                 for side in [found.top, found.bottom] {
                     border[side][found.left..=found.right].fill(true);
                 }
@@ -135,45 +194,53 @@ fn find_boxes(g: &Grid, d: &mut Diagram, border: &mut [Vec<bool>]) {
             }
         }
     }
+    Ok(())
 }
 
-/// The smallest box with its top left corner at `(r, c)`.
-fn smallest(g: &Grid, r: usize, c: usize) -> Option<Box> {
+/// The smallest box with its top left corner at `(r, c)`: along the top
+/// to a corner, down its right side and the left one to corners in one
+/// row, and the bottom drawn between them. A box no smaller than the best
+/// found so far is not looked for.
+fn smallest(g: &Grid, r: usize, c: usize, steps: &mut usize) -> Result<Option<Box>, Declined> {
     let w = g.rows[r].len();
-    let h = g.rows.len();
+    // The rows where the left side may end: below the top, as far as it
+    // runs.
+    let column = &g.ends[c];
+    let below = column.partition_point(|&row| row <= r);
+    let reach = r + 1 + g.down[r + 1][c];
+    let till = column.partition_point(|&row| row <= reach);
+    let ends = &column[below..till.max(below)];
     let mut best: Option<(usize, Box)> = None;
     let mut c2 = c + 1;
-    while c2 < w {
+    while c2 < w && best.as_ref().is_none_or(|(a, _)| c2 - c < *a) {
+        step(steps, 1)?;
         let ch = g.rows[r][c2];
-        if corner(ch) && matches!(ch, '+' | '\\') {
-            // Down the right side to a corner, then back along the bottom.
-            let mut r2 = r + 1;
-            while r2 < h {
-                let side = g.rows[r2][c2];
-                if corner(side) && matches!(side, '+' | '/') && closes(g, r, c, r2, c2) {
-                    let area = (r2 - r) * (c2 - c);
-                    if best.as_ref().is_none_or(|(a, _)| area < *a) {
-                        let round = g.rows[r][c] == '/' || g.rows[r][c2] == '\\';
-                        best = Some((
-                            area,
-                            Box {
-                                top: r,
-                                left: c,
-                                bottom: r2,
-                                right: c2,
-                                round,
-                                dashed: dashed(g, r, c, r2, c2),
-                                color: None,
-                                shape: Shape::Rect,
-                            },
-                        ));
-                    }
+        if matches!(ch, '+' | '\\') {
+            let right_reach = r + 1 + g.down[r + 1][c2];
+            for &r2 in ends {
+                step(steps, 1)?;
+                let area = (r2 - r) * (c2 - c);
+                if r2 > right_reach || best.as_ref().is_some_and(|(a, _)| area >= *a) {
                     break;
                 }
-                if !(vertical(side) || side == '+') {
+                let bottom = g.across[r2][c + 1] >= c2 - c - 1;
+                if matches!(g.rows[r2][c2], '+' | '/') && bottom {
+                    let round = g.rows[r][c] == '/' || g.rows[r][c2] == '\\';
+                    best = Some((
+                        area,
+                        Box {
+                            top: r,
+                            left: c,
+                            bottom: r2,
+                            right: c2,
+                            round,
+                            dashed: dashed(g, r, c, r2, c2),
+                            color: None,
+                            shape: Shape::Rect,
+                        },
+                    ));
                     break;
                 }
-                r2 += 1;
             }
         }
         if !(horizontal(ch) || ch == '+') {
@@ -181,15 +248,31 @@ fn smallest(g: &Grid, r: usize, c: usize) -> Option<Box> {
         }
         c2 += 1;
     }
-    best.map(|(_, b)| b)
+    Ok(best.map(|(_, b)| b))
 }
 
-/// Whether the bottom side and the left side of a box are drawn.
-fn closes(g: &Grid, r: usize, c: usize, r2: usize, c2: usize) -> bool {
-    let corner_ok = matches!(g.rows[r2][c], '+' | '\\');
-    let bottom = (c + 1..c2).all(|cc| horizontal(g.rows[r2][cc]) || g.rows[r2][cc] == '+');
-    let left = (r + 1..r2).all(|rr| vertical(g.rows[rr][c]) || g.rows[rr][c] == '+');
-    corner_ok && bottom && left
+/// For each cell, the innermost box it lies inside, by its place in the
+/// diagram's boxes: the larger painted first, the smaller over them.
+fn innermost(
+    g: &Grid,
+    d: &Diagram,
+    steps: &mut usize,
+) -> Result<Vec<Vec<Option<usize>>>, Declined> {
+    let width = g.rows.first().map_or(0, Vec::len);
+    let mut inner = vec![vec![None; width]; g.rows.len()];
+    let mut order: Vec<usize> = (0..d.boxes.len()).collect();
+    order.sort_by_key(|&i| {
+        let b = &d.boxes[i];
+        std::cmp::Reverse((b.bottom - b.top) * (b.right - b.left))
+    });
+    for i in order {
+        let b = &d.boxes[i];
+        step(steps, (b.bottom - b.top) * (b.right - b.left))?;
+        for row in &mut inner[b.top + 1..b.bottom] {
+            row[b.left + 1..b.right].fill(Some(i));
+        }
+    }
+    Ok(inner)
 }
 
 fn dashed(g: &Grid, r: usize, c: usize, r2: usize, c2: usize) -> bool {
@@ -198,7 +281,7 @@ fn dashed(g: &Grid, r: usize, c: usize, r2: usize, c2: usize) -> bool {
 }
 
 /// The color and shape codes inside the boxes.
-fn codes(g: &Grid, d: &mut Diagram, used: &mut [Vec<bool>]) {
+fn codes(g: &Grid, d: &mut Diagram, inner: &[Vec<Option<usize>>], used: &mut [Vec<bool>]) {
     for (r, row) in g.rows.iter().enumerate() {
         let text: String = row.iter().collect();
         for (start, token) in tokens(&text) {
@@ -211,12 +294,7 @@ fn codes(g: &Grid, d: &mut Diagram, used: &mut [Vec<bool>]) {
             };
             let Some((color, shape)) = code else { continue };
             // The innermost box around it.
-            let Some(b) = d
-                .boxes
-                .iter_mut()
-                .filter(|b| b.top < r && r < b.bottom && b.left < start && start < b.right)
-                .min_by_key(|b| (b.bottom - b.top) * (b.right - b.left))
-            else {
+            let Some(b) = inner[r][start].map(|i| &mut d.boxes[i]) else {
                 continue;
             };
             if let Some(color) = color {
@@ -351,7 +429,13 @@ fn connect(g: &Grid, d: &mut Diagram, border: &[Vec<bool>], used: &mut [Vec<bool
 }
 
 /// The words left: runs of characters apart by two spaces or more.
-fn text(g: &Grid, d: &mut Diagram, border: &[Vec<bool>], used: &[Vec<bool>]) {
+fn text(
+    g: &Grid,
+    d: &mut Diagram,
+    border: &[Vec<bool>],
+    used: &[Vec<bool>],
+    inner: &[Vec<Option<usize>>],
+) {
     for (r, row) in g.rows.iter().enumerate() {
         let mut c = 0;
         while c < row.len() {
@@ -369,7 +453,11 @@ fn text(g: &Grid, d: &mut Diagram, border: &[Vec<bool>], used: &[Vec<bool>]) {
             }
             let words: String = row[start..end].iter().collect();
             if !words.trim().is_empty() {
-                d.texts.push(((r, start), words.trim_end().to_owned()));
+                d.texts.push(Words {
+                    at: (r, start),
+                    text: words.trim_end().to_owned(),
+                    inside: inner[r][start],
+                });
             }
             c = end.max(start + 1);
         }
@@ -407,13 +495,26 @@ mod tests {
         assert_eq!(doc.boxes[0].shape, Shape::Document);
         assert_eq!(doc.texts.len(), 1, "{:?}", doc.texts);
         assert_eq!(d.heads, [((1, 14), Point::Right)]);
-        let words: Vec<&str> = d.texts.iter().map(|(_, t)| t.as_str()).collect();
+        let words: Vec<&str> = d.texts.iter().map(|w| w.text.as_str()).collect();
         assert_eq!(words, ["Client", "Store"], "codes are not words");
         assert!(
             d.lines
                 .iter()
                 .any(|(a, b, _)| *a == (1, 10) && *b == (1, 11))
         );
+    }
+
+    #[test]
+    fn a_field_of_corners_and_a_comb_are_read_at_once() {
+        // Every cell a corner: each box is the smallest at its corner.
+        let n = 120;
+        let field = vec!["+".repeat(n); n].join("\n");
+        let start = std::time::Instant::now();
+        assert_eq!(read(&field).boxes.len(), (n - 1) * (n - 1));
+        // A top with teeth and no bottom: no box, and no long search.
+        let comb = format!("{}\n{}", "+".repeat(n), vec!["|".repeat(n); n].join("\n"));
+        assert!(read(&comb).boxes.is_empty());
+        assert!(start.elapsed().as_secs() < 10, "{:?}", start.elapsed());
     }
 
     #[test]

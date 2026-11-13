@@ -33,19 +33,12 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
         )
     };
     let line = Stroke::new(look.ink, 1.2);
-    // The boxes by how deep they sit: a box inside another stays over it.
-    // Each casts its shadow as a box of PlantUML's does.
+    // The boxes, the larger first, so one inside another stays over it;
+    // each casts its shadow as a box of PlantUML's does.
     canvas.shadows(d.shadows);
-    let depth = |b: &Box| {
-        d.boxes
-            .iter()
-            .filter(|o| *o != b && o.top <= b.top && o.left <= b.left)
-            .filter(|o| b.bottom <= o.bottom && b.right <= o.right)
-            .count()
-    };
-    let mut boxes: Vec<(usize, &Box)> = d.boxes.iter().map(|b| (depth(b), b)).collect();
-    boxes.sort_by_key(|(depth, _)| *depth);
-    for (_, b) in boxes {
+    let mut boxes: Vec<&Box> = d.boxes.iter().collect();
+    boxes.sort_by_key(|b| std::cmp::Reverse((b.bottom - b.top) * (b.right - b.left)));
+    for b in boxes {
         let fill = b.color.unwrap_or(look.page.unwrap_or(Color::WHITE));
         let stroke = if b.dashed {
             line.dashed(5.0, 3.0)
@@ -114,22 +107,24 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
         canvas.polygon(Layer::Front, &tip, Some(look.ink), None);
     }
     // The words where they were written, read on what lies under them.
-    for ((r, c), words) in &d.texts {
-        let ground = d
-            .boxes
-            .iter()
-            .filter(|b| b.top < *r && *r < b.bottom && b.left < *c && *c < b.right)
-            .min_by_key(|b| (b.bottom - b.top) * (b.right - b.left))
-            .and_then(|b| b.color)
+    for words in &d.texts {
+        let (r, c) = words.at;
+        let ground = words
+            .inside
+            .and_then(|i| d.boxes[i].color)
             .unwrap_or(look.page.unwrap_or(Color::WHITE));
         let ink = legible(look.ink, ground);
         let font = Font {
             color: ink,
             ..look.font
         };
-        let block = styled(vec![vec![(words.clone(), Style::from(font))]], font, family);
-        let x = *c as f32 * CELL.0;
-        let y = top + *r as f32 * CELL.1 + (CELL.1 - block.height) / 2.0;
+        let block = styled(
+            vec![vec![(words.text.clone(), Style::from(font))]],
+            font,
+            family,
+        );
+        let x = c as f32 * CELL.0;
+        let y = top + r as f32 * CELL.1 + (CELL.1 - block.height) / 2.0;
         canvas.text(Layer::Front, &block, (x, y), Align::Left);
     }
     annotations.draw(&mut canvas);

@@ -19,6 +19,10 @@ use crate::{Atlas, Config, Engine, Place, RenderError, Rendered, Renderer};
 /// Counts requests; a higher generation is newer.
 pub type Generation = u64;
 
+/// Lines laid after a request's text on the render thread, where they cost
+/// nothing while typing: an overtaken request never makes them.
+pub type After = Box<dyn FnOnce() -> String + Send>;
+
 struct Job {
     generation: Generation,
     slot: u64,
@@ -35,6 +39,8 @@ struct Job {
     /// diagrams ([`Renderer::render_map`]); `source` is the look it is
     /// drawn in.
     map: Option<String>,
+    /// Lines to lay after `source` before it is drawn.
+    after: Option<After>,
 }
 
 /// The result of one request.
@@ -74,8 +80,8 @@ impl RenderService {
                         waiting.retain(|job| job.slot != newer.slot);
                         waiting.push(newer);
                     }
-                    let job = waiting.remove(0);
-                    let result = render_guarded(&mut renderer, &config, &job);
+                    let mut job = waiting.remove(0);
+                    let result = render_guarded(&mut renderer, &config, &mut job);
                     deliver(Outcome {
                         generation: job.generation,
                         result,
@@ -114,6 +120,20 @@ impl RenderService {
         place: Option<Place>,
         linked: Option<(Arc<Atlas>, Option<String>)>,
     ) -> Generation {
+        self.submit_after(slot, source, language, place, linked, None)
+    }
+
+    /// The same, with lines laid after `source` on the render thread
+    /// ([`After`]).
+    pub fn submit_after(
+        &mut self,
+        slot: u64,
+        source: String,
+        language: Language,
+        place: Option<Place>,
+        linked: Option<(Arc<Atlas>, Option<String>)>,
+        after: Option<After>,
+    ) -> Generation {
         let generation = self.next;
         self.next += 1;
         // The thread only stops when `self` is dropped, so sending succeeds.
@@ -127,6 +147,7 @@ impl RenderService {
             document: false,
             nested: false,
             map: None,
+            after,
         });
         generation
     }
@@ -152,6 +173,7 @@ impl RenderService {
             document: false,
             nested: false,
             map: Some(folder),
+            after: None,
         });
         generation
     }
@@ -177,6 +199,7 @@ impl RenderService {
             document: true,
             nested,
             map: None,
+            after: None,
         });
         generation
     }
@@ -188,9 +211,30 @@ impl RenderService {
 fn render_guarded(
     renderer: &mut Renderer,
     config: &Config,
-    job: &Job,
+    job: &mut Job,
 ) -> Result<Rendered, RenderError> {
-    let result = catch_unwind(AssertUnwindSafe(|| match (&job.linked, &job.map) {
+    let after = job.after.take();
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        if let Some(after) = after {
+            job.source.push_str(&after());
+        }
+        render_job(renderer, job)
+    }));
+    result.unwrap_or_else(|_| {
+        *renderer = Renderer::new(config);
+        Err(RenderError::Engine {
+            engine: match job.language {
+                Language::Mermaid => Engine::Mermaid,
+                Language::PlantUml => Engine::NativePlantUml,
+            },
+            message: "the engine failed on this diagram".into(),
+        })
+    })
+}
+
+/// The job drawn by its kind.
+fn render_job(renderer: &mut Renderer, job: &Job) -> Result<Rendered, RenderError> {
+    match (&job.linked, &job.map) {
         _ if job.document => {
             renderer.render_document_with(&job.source, job.place.as_ref(), job.nested)
         }
@@ -203,17 +247,7 @@ fn render_guarded(
             atlas,
         ),
         (None, _) => renderer.render_at(&job.source, job.language, job.place.as_ref()),
-    }));
-    result.unwrap_or_else(|_| {
-        *renderer = Renderer::new(config);
-        Err(RenderError::Engine {
-            engine: match job.language {
-                Language::Mermaid => Engine::Mermaid,
-                Language::PlantUml => Engine::NativePlantUml,
-            },
-            message: "the engine failed on this diagram".into(),
-        })
-    })
+    }
 }
 
 #[cfg(test)]
@@ -280,6 +314,32 @@ mod tests {
             seen.push(outcome.generation);
         }
         assert!(seen.windows(2).all(|w| w[0] < w[1]), "{seen:?}");
+    }
+
+    #[test]
+    fn lines_after_the_text_are_laid_on_the_render_thread() {
+        let (tx, rx) = mpsc::channel();
+        let mut service = RenderService::spawn(Config::default(), move |o| {
+            let _ = tx.send(o);
+        });
+        let main = thread::current().id();
+        let after: After = Box::new(move || {
+            assert_ne!(thread::current().id(), main, "not on the caller's thread");
+            "  \"later\": 2\n".into()
+        });
+        service.submit_after(
+            0,
+            "pie\n  \"a\": 1\n".into(),
+            Language::Mermaid,
+            None,
+            None,
+            Some(after),
+        );
+        let outcome = rx
+            .recv_timeout(Duration::from_secs(30))
+            .expect("an outcome");
+        let svg = outcome.result.expect("drawn").svg;
+        assert!(svg.contains("later"), "{svg}");
     }
 
     /// A diagram that takes a while, so later requests queue behind it.

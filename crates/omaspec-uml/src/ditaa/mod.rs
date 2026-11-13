@@ -25,14 +25,23 @@ pub struct Diagram {
     pub lines: Vec<(Cell, Cell, bool)>,
     /// Arrow heads: the cell and the way they point.
     pub heads: Vec<(Cell, Point)>,
-    /// Text by the cell it starts at.
-    pub texts: Vec<(Cell, String)>,
+    pub texts: Vec<Words>,
     pub shadows: bool,
     pub frame: Frame,
 }
 
 /// A cell of the grid: its row and its column.
 pub type Cell = (usize, usize);
+
+/// Words where they were typed.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Words {
+    /// The cell they start at.
+    pub at: Cell,
+    pub text: String,
+    /// The innermost box they lie in, by its place in the boxes.
+    pub inside: Option<usize>,
+}
 
 /// A box by its corner cells.
 #[derive(Debug, Clone, PartialEq)]

@@ -46,7 +46,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
             }
             "curve" => {
                 let open = rest.find('{')?;
-                let close = rest.rfind('}')?;
+                let close = rest.rfind('}').filter(|close| *close > open)?;
                 let (_, label) = labelled(rest[..open].trim())?;
                 raw.push((label.to_owned(), rest[open + 1..close].to_owned()));
             }
@@ -272,5 +272,7 @@ mod tests {
             from_mermaid("radar-beta\naxis a, b\n").is_none(),
             "three axes at least"
         );
+        // Braces the wrong way round are no curve, not a crash.
+        assert!(from_mermaid("radar-beta\naxis a, b, c\ncurve x}{1,2,3\n").is_none());
     }
 }

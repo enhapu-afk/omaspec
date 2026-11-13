@@ -5,7 +5,8 @@
 //! accent. Typing filters, Tab steps through the groups, the arrows move
 //! between tiles; Enter opens a copy in a new tab, F5 or Shift+Enter opens
 //! it and plays it, a click does the same; Ctrl+Enter puts it in where the
-//! caret is, in a Markdown document as a fenced block.
+//! caret is in a Markdown document, as a fenced block on lines of its own,
+//! and opens it as a copy from a diagram's file.
 
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
@@ -643,17 +644,38 @@ impl App {
         if self.docs.get(self.active).is_none_or(|doc| doc.is_blank()) {
             return self.open_example(index, false);
         }
+        // A diagram's file holds that one diagram: a second goes into a
+        // tab of its own.
+        if !self.doc().is_document() {
+            let task = self.open_example(index, false);
+            self.notice = Some(format!(
+                "{} opened as a copy: only a Markdown document takes another diagram",
+                example.title
+            ));
+            return task;
+        }
+        let cursor = self.doc().editor.cursor();
+        let (row, col) = (cursor.row as usize, cursor.col as usize);
+        if self
+            .doc()
+            .blocks()
+            .iter()
+            .any(|block| block.lines.contains(&row))
+        {
+            self.notice = Some("the caret is in a diagram: put it on a line of the text".into());
+            return Task::none();
+        }
         let mut text = example.text.to_owned();
         if !text.ends_with('\n') {
             text.push('\n');
         }
-        if self.doc().is_document() {
-            let fence = match example.language() {
-                omaspec_core::Language::PlantUml => "plantuml",
-                omaspec_core::Language::Mermaid => "mermaid",
-            };
-            text = format!("```{fence}\n{text}```\n");
-        }
+        let fence = match example.language() {
+            omaspec_core::Language::PlantUml => "plantuml",
+            omaspec_core::Language::Mermaid => "mermaid",
+        };
+        // The fence opens on a line of its own.
+        let before = if col > 0 { "\n" } else { "" };
+        text = format!("{before}```{fence}\n{text}```\n");
         self.gallery = None;
         self.notice = Some(format!("{} put in at the caret", example.title));
         self.edit(scrive_iced::Action::Paste {

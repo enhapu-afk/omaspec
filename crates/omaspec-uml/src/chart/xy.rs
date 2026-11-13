@@ -120,12 +120,16 @@ fn titled(text: &str) -> (Option<String>, &str) {
 fn range(text: &str) -> Option<(f64, f64)> {
     let (low, high) = text.split_once("-->")?;
     let (low, high) = (number(low)?, number(high)?);
-    (high > low).then_some((low, high))
+    (high > low && (high - low).is_finite()).then_some((low, high))
 }
 
-/// Ticks a reader takes in: steps of 1, 2 or 5 times a power of ten.
+/// Ticks a reader takes in: steps of 1, 2 or 5 times a power of ten. Only
+/// the ends where a step is too fine for numbers this large.
 fn ticks(low: f64, high: f64) -> Vec<f64> {
     let rough = (high - low) / 5.0;
+    if !(rough.is_finite() && rough > 0.0) {
+        return vec![low, high];
+    }
     let power = 10f64.powf(rough.log10().floor());
     let step = [1.0, 2.0, 5.0, 10.0]
         .iter()
@@ -136,7 +140,11 @@ fn ticks(low: f64, high: f64) -> Vec<f64> {
     let mut v = (low / step).ceil() * step;
     while v <= high + step * 1e-9 {
         out.push(v);
-        v += step;
+        let next = v + step;
+        if next <= v || out.len() > 20 {
+            return vec![low, high];
+        }
+        v = next;
     }
     out
 }
@@ -288,6 +296,8 @@ mod tests {
         );
         assert!(d.series[0].bar && !d.series[1].bar);
         assert_eq!(ticks(4000.0, 11000.0), [4000.0, 6000.0, 8000.0, 10000.0]);
+        // A step finer than the numbers can tell apart ends.
+        assert_eq!(ticks(1e17, 1e17 + 16.0), [1e17, 1e17 + 16.0]);
         let svg = draw(&d, &Look::default()).unwrap();
         assert!(svg.contains(">feb<") && svg.contains(">10000<"), "{svg}");
         assert!(from_mermaid("xychart-beta horizontal\nbar [1, 2]\n").is_none());

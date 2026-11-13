@@ -71,7 +71,7 @@ fn ends(text: &str) -> (String, String) {
 fn point(line: &str) -> Option<Point> {
     let (name, rest) = line.split_once(':')?;
     let open = rest.find('[')?;
-    let close = rest.find(']')?;
+    let close = open + rest[open..].find(']')?;
     let (x, y) = rest[open + 1..close].split_once(',')?;
     let (x, y) = (number(x)?, number(y)?);
     if !(0.0..=1.0).contains(&x) || !(0.0..=1.0).contains(&y) {
@@ -204,5 +204,6 @@ mod tests {
             "{svg}"
         );
         assert!(from_mermaid("quadrantChart\nA: [1.5, 0.2]\n").is_none());
+        assert!(from_mermaid("quadrantChart\nA: ] [0.3, 0.5\n").is_none());
     }
 }

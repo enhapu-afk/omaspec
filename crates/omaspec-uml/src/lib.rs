@@ -138,8 +138,23 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
         Some(expanded) => expanded.iter().map(preprocess::Owned::line).collect(),
         None => raw,
     };
-    // Sprites taken out, each use carrying its pixels.
-    let sprited = icons::sprite::take(&lines)?;
+    // Sprites taken out, each use carrying its pixels; data, a grammar or
+    // a drawing in characters has none, so `<$` there is its own text.
+    let words = !matches!(
+        kind,
+        source::Kind::Json
+            | source::Kind::Yaml
+            | source::Kind::Ebnf
+            | source::Kind::Regex
+            | source::Kind::Ditaa
+            | source::Kind::Latex
+            | source::Kind::Math
+    );
+    let sprited = if words {
+        icons::sprite::take(&lines)?
+    } else {
+        None
+    };
     let (lines, sprites) = match &sprited {
         Some((sprited, sprites)) => (
             sprited.iter().map(preprocess::Owned::line).collect(),
@@ -566,5 +581,14 @@ mod tests {
         );
         assert_eq!(uml_type("@startmindmap\n* a\n@endmindmap"), None);
         assert_eq!(uml_type("@startsalt\n{\n}\n@endsalt"), None);
+    }
+
+    #[test]
+    fn data_and_grammars_keep_their_dollars() {
+        // `<$` in data or a regular expression is its own text, no sprite.
+        assert!(parse("@startjson\n{\"tpl\": \"<$name>\"}\n@endjson\n").is_ok());
+        assert!(parse("@startregex\n/^.*<$tag/\n@endregex\n").is_ok());
+        // A participant named `sprite` sends a message.
+        assert!(parse("@startuml\nsprite -> Engine : draw\n@enduml\n").is_ok());
     }
 }

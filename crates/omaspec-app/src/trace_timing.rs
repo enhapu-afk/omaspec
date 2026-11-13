@@ -48,7 +48,7 @@ pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
         .collect();
     lines.sort_by_key(|(line, _)| *line);
     lines.dedup_by_key(|(line, _)| *line);
-    let clock: Option<Vec<f64>> = lines
+    let clock: Option<Vec<(f64, bool)>> = lines
         .iter()
         .map(|(_, time)| time.as_deref().and_then(seconds))
         .collect();
@@ -58,17 +58,21 @@ pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
         .collect();
     let (times, unit): (Vec<f64>, &str) = match (clock, plain) {
         (Some(times), _) => {
-            // A clock that goes back went past midnight.
+            // Times with their dates count as they are. A clock alone that
+            // goes back by more than half a day went past midnight; a line
+            // a moment out of order stays on its day, at the time before
+            // it, so the lines keep the trace's order.
+            let dated = times.iter().all(|(_, dated)| *dated);
             let mut day = 0.0;
             let mut before = f64::NEG_INFINITY;
             let times: Vec<f64> = times
                 .iter()
-                .map(|&t| {
-                    if t + day < before {
+                .map(|&(t, _)| {
+                    if !dated && t + day < before - 43_200.0 {
                         day += 86_400.0;
                     }
-                    before = t + day;
-                    t + day
+                    before = before.max(t + day);
+                    before
                 })
                 .collect();
             let first = times.first().copied().unwrap_or(0.0);
@@ -177,15 +181,69 @@ pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
     Some(out)
 }
 
-/// `20:14:02` or `20:14:02.5` as seconds of the day; the date of an ISO
-/// time before it is left out (`2026-11-12T20:14:02Z`).
-fn seconds(time: &str) -> Option<f64> {
-    let clock = time.rsplit(['T', ' ']).next()?.trim_end_matches('Z');
+/// A line's time in seconds, and whether it had its date: from 1970 for
+/// an ISO time (`2026-11-12T20:14:02Z`, `…+01:00`, a space for the `T`),
+/// of the day for a clock alone (`20:14:02`, `20:14:02.5`).
+fn seconds(time: &str) -> Option<(f64, bool)> {
+    let time = time.trim();
+    let (date, clock) = match time.split_once(['T', ' ']) {
+        Some((date, clock)) => (Some(date), clock.trim()),
+        None => (None, time),
+    };
+    let (clock, offset) = match clock.strip_suffix('Z') {
+        Some(clock) => (clock, 0.0),
+        None => match clock.rfind(['+', '-']) {
+            Some(at) => (&clock[..at], utc_offset(&clock[at..])?),
+            None => (clock, 0.0),
+        },
+    };
     let parts: Vec<&str> = clock.split(':').collect();
     let [h, m, s] = parts[..] else { return None };
     let (h, m): (f64, f64) = (h.parse().ok()?, m.parse().ok()?);
     let s: f64 = s.parse().ok()?;
-    Some(h * 3600.0 + m * 60.0 + s)
+    let of_day = h * 3600.0 + m * 60.0 + s - offset;
+    let Some(date) = date else {
+        return Some((of_day, false));
+    };
+    let parts: Vec<i64> = date
+        .split('-')
+        .map(|p| p.parse().ok())
+        .collect::<Option<_>>()?;
+    let [year, month, day] = parts[..] else {
+        return None;
+    };
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+        return None;
+    }
+    Some((
+        days_from_1970(year, month, day) as f64 * 86_400.0 + of_day,
+        true,
+    ))
+}
+
+/// `+01:00`, `-0530`, `+02` in seconds east of UTC.
+fn utc_offset(text: &str) -> Option<f64> {
+    let sign = if text.starts_with('-') { -1.0 } else { 1.0 };
+    let digits: String = text[1..].chars().filter(|c| *c != ':').collect();
+    if !digits.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    let (h, m) = match digits.len() {
+        2 => (digits.parse::<f64>().ok()?, 0.0),
+        4 => (digits[..2].parse().ok()?, digits[2..].parse().ok()?),
+        _ => return None,
+    };
+    Some(sign * (h * 3600.0 + m * 60.0))
+}
+
+/// The days from 1970-01-01 to a date of the Gregorian calendar.
+fn days_from_1970(year: i64, month: i64, day: i64) -> i64 {
+    let year = if month <= 2 { year - 1 } else { year };
+    let era = year.div_euclid(400);
+    let of_era = year - era * 400;
+    let of_year = (153 * ((month + 9) % 12) + 2) / 5 + day - 1;
+    let of_era_days = of_era * 365 + of_era / 4 - of_era / 100 + of_year;
+    era * 146_097 + of_era_days - 719_468
 }
 
 /// `value` to one figure (`160.17` to `200`), for a time no line gives.
@@ -263,10 +321,38 @@ mod tests {
     }
 
     #[test]
+    fn a_line_a_moment_out_of_order_stays_on_its_day() {
+        let specs = Specs::new(vec![
+            Spec::read(DOOR, Language::PlantUml, "door.puml").unwrap(),
+        ]);
+        let trace = "{\"time\":\"20:00:05\",\"object\":\"Door\",\"event\":\"open\"}\n{\"time\":\"20:00:04\",\"object\":\"Door\",\"event\":\"close\"}\n{\"time\":\"20:00:09\",\"object\":\"Door\",\"event\":\"open\"}\n";
+        let text = timing(trace, "jitter", &specs).unwrap();
+        assert!(
+            text.contains("@0\nR0 is \"Open\"\nR0 is \"Closed\"\n@4\nR0 is \"Open\"\n"),
+            "{text}"
+        );
+    }
+
+    #[test]
     fn an_iso_time_counts_by_its_clock() {
-        assert_eq!(seconds("2026-11-12T20:14:02.5Z"), Some(72842.5));
-        assert_eq!(seconds("10:30:01"), Some(37801.0));
+        let day = 20_769.0 * 86_400.0;
+        assert_eq!(
+            seconds("2026-11-12T20:14:02.5Z"),
+            Some((day + 72842.5, true))
+        );
+        // The same moment with its offset, and with a space.
+        assert_eq!(
+            seconds("2026-11-12T21:14:02.5+01:00"),
+            Some((day + 72842.5, true))
+        );
+        assert_eq!(
+            seconds("2026-11-12 15:14:02.5-0500"),
+            Some((day + 72842.5, true))
+        );
+        assert_eq!(seconds("10:30:01"), Some((37801.0, false)));
         assert_eq!(seconds("soon"), None);
+        assert_eq!(days_from_1970(1970, 1, 1), 0);
+        assert_eq!(days_from_1970(2000, 3, 1), 11_017);
         assert_eq!(round_off(160.17), 200.0);
         assert_eq!(round_off(8031.5), 8000.0);
         assert_eq!(round_off(0.42), 0.4);

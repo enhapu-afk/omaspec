@@ -359,15 +359,19 @@ fn service_stream(watched: &Watched) -> impl Stream<Item = Event> + use<> {
                     } else if document {
                         service.submit_document(ticket.doc, source.to_string(), place, views.nested)
                     } else {
-                        service.submit_linked(
+                        // The coverage is worked out on the render thread.
+                        let after = covered.map(|covered| {
+                            let source = Arc::clone(&source);
+                            Box::new(move || covered.lines(&source, language))
+                                as omaspec_render::After
+                        });
+                        service.submit_after(
                             ticket.doc,
-                            folded(&source, language, &folds, views)
-                                + &covered.map_or_else(String::new, |covered| {
-                                    covered.lines(&source, language)
-                                }),
+                            folded(&source, language, &folds, views),
                             language,
                             place,
                             linked,
+                            after,
                         )
                     };
                     requests.insert(generation, (ticket, source, language));
