@@ -4,6 +4,7 @@
 mod architecture;
 mod block;
 mod c4;
+mod chart;
 mod class;
 mod er;
 mod gantt;
@@ -391,6 +392,27 @@ const NATIVE: &[Native] = &[
         noun: "block diagram",
         draw: |i| block::try_draw(i.theme, i.body),
         refusal: omaspec_uml::block::mermaid_refusal,
+    },
+    Native {
+        kind: DiagramKind::Packet,
+        headers: &["packet"],
+        noun: "packet diagram",
+        draw: |i| chart::packet(i.theme, i.body),
+        refusal: |_| None,
+    },
+    Native {
+        kind: DiagramKind::Radar,
+        headers: &["radar"],
+        noun: "radar chart",
+        draw: |i| chart::radar(i.theme, i.body),
+        refusal: |_| None,
+    },
+    Native {
+        kind: DiagramKind::Treemap,
+        headers: &["treemap"],
+        noun: "treemap",
+        draw: |i| chart::treemap(i.theme, i.body),
+        refusal: |_| None,
     },
 ];
 

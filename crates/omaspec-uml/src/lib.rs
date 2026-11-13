@@ -16,6 +16,7 @@ mod annotations;
 pub mod architecture;
 pub mod block;
 pub mod c4;
+pub mod chart;
 pub mod click;
 mod color;
 mod common;

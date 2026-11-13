@@ -507,6 +507,26 @@ impl Canvas {
         let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
     }
 
+    /// A path filled with `color` let through to what lies under it by
+    /// `opacity`, as a chart's areas overlap; never by hand.
+    pub fn glaze(
+        &mut self,
+        layer: Layer,
+        d: &str,
+        bounds: (f32, f32, f32, f32),
+        color: Color,
+        opacity: f32,
+    ) {
+        self.grow(bounds.0, bounds.1);
+        self.grow(bounds.2, bounds.3);
+        let _ = write!(
+            self.layers[layer as usize],
+            r#"<path d="{d}" fill="{}" fill-opacity="{}"/>"#,
+            self.color(color),
+            n(opacity.clamp(0.0, 1.0))
+        );
+    }
+
     /// A path; `bounds` are its left, top, right and bottom edge, for the
     /// canvas size.
     pub fn path(

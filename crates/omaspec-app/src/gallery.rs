@@ -236,6 +236,24 @@ pub static EXAMPLES: &[Example] = &[
         "C4-PlantUML: people, containers, a boundary and a legend."
     ),
     example!(
+        "budget.mmd",
+        Data,
+        "Where the budget goes",
+        "A Mermaid treemap: each box as large as its share."
+    ),
+    example!(
+        "team-skills.mmd",
+        Data,
+        "What the team can do",
+        "A Mermaid radar: an axis for each skill, a shape for each person."
+    ),
+    example!(
+        "tcp-header.mmd",
+        Data,
+        "A TCP header",
+        "A Mermaid packet: a field over its bits, 32 to a row."
+    ),
+    example!(
         "json-grammar.puml",
         Data,
         "JSON, rule by rule",

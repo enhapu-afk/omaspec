@@ -2368,8 +2368,23 @@ without folding, lines by hand and plays, and the Java PlantUML:
       with a cross; the engine's line ends are polygons. Open:
       `direction BT` and `RL`, refused by name and left to mmdr, as in
       class diagrams, and Markdown in a quoted text, shown as written.
-- [ ] Mermaid: the charts of numbers next: quadrant, sankey, radar,
-      treemap, XY chart, packet; and ZenUML.
+- [x] Mermaid's packet, radar and treemap (2026-11-13), on drawers of
+      Omaspec's own (`omaspec_uml::chart`), where mmdr drew a packet as
+      a row of boxes, a radar with its syntax for labels and a treemap's
+      boxes out of their shares. A packet is rows of 32 bits, each field
+      a box over its bits with its first and last bit over it, cut where
+      its row ends, its name set smaller where the field is narrow
+      (`+16:` counts on from the last). A radar has an axis for each
+      thing measured, rings for the scale (`ticks`, `graticule polygon`),
+      each curve a shape let through to those under it, values by place
+      or by the axis's id, a legend. A treemap lays out its boxes as
+      squares as near as they come (the squarified layout), a section
+      around its parts with its name over them. They share a look: the
+      theme's page and ink, and a palette of middle tones that read as a
+      line on any page, the diagram's own `pieN` where it sets them. The
+      gallery has a TCP header, a team's skills and a budget.
+- [ ] Mermaid: the other charts of numbers: quadrant, sankey, XY chart;
+      and ZenUML.
 - [x] PlantUML's YAML diagram (2026-11-12): `@startyaml` is read here
       (`omaspec_uml::yaml`) into the value the JSON drawer draws, so a
       mapping is a table and a sequence a column, with `#highlight`, a

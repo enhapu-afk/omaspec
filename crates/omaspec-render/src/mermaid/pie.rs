@@ -129,6 +129,19 @@ fn paint(diagram: &mut Diagram, theme: &Theme) -> Option<()> {
     Some(())
 }
 
+/// Twelve colors in turn for a chart's series and parts: the pie's, mixed
+/// from the theme where its base colors moved and no `pieN` was set.
+pub(super) fn palette(theme: &Theme, stock: &Theme) -> Option<Vec<Color>> {
+    let derived = if restyled(theme, stock) {
+        Some(marks(theme)?)
+    } else {
+        None
+    };
+    (0..theme.pie_colors.len())
+        .map(|i| slice_fill(theme, stock, derived.as_ref(), i, Color::WHITE, 0.0))
+        .collect()
+}
+
 /// The base colors moved, and the pie palette was not given its own `pieN`.
 fn restyled(theme: &Theme, stock: &Theme) -> bool {
     theme.primary_color != stock.primary_color
