@@ -256,10 +256,6 @@ impl Stage {
             );
         }
         self.step(moving);
-        // The picture stays where it is from here on: in the window a
-        // fitted one glides to its new fit when the bar takes a second
-        // line, which in a picture that loops reads as a wobble.
-        self.app.doc_mut().paper.view.fit = false;
         let mut taken = Vec::new();
         for step in 0..args.steps {
             let Some(paper::Offer::Machine { options, ended, .. }) = self.app.doc().paper.offer()

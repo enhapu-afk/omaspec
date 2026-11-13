@@ -21,6 +21,7 @@
 //! [`copy`].
 
 mod arrive;
+mod bar;
 mod breath;
 mod canvas;
 mod cards;
