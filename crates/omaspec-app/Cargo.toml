@@ -46,6 +46,8 @@ workspace = true
 
 [dev-dependencies]
 iced_test = "0.14"
+# Properties over generated traces (trace_timing).
+proptest = { version = "1", default-features = false, features = ["std"] }
 
 # The Java PlantUML runs confined with Landlock, which only Linux has.
 [target.'cfg(target_os = "linux")'.dependencies]

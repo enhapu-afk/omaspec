@@ -17,6 +17,8 @@ omaspec-uml.workspace = true
 [dev-dependencies]
 # The oracle test reads PlantUML's SCXML and XMI exports.
 roxmltree = "0.21"
+# Properties over generated machines and scenarios (tests/properties.rs).
+proptest = { version = "1", default-features = false, features = ["std"] }
 
 [lints]
 workspace = true

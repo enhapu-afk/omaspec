@@ -407,4 +407,79 @@ mod tests {
         assert_eq!(round_off(8031.5), 8000.0);
         assert_eq!(round_off(0.42), 0.4);
     }
+
+    use proptest::prelude::*;
+
+    /// How a line writes its time.
+    #[derive(Debug, Clone, Copy)]
+    enum Written {
+        Clock,
+        Utc,
+        Slashed,
+    }
+
+    /// `at` seconds after 2026-11-12 00:00 UTC, written as `how` says.
+    fn written(at: u64, how: Written) -> String {
+        let day = 12 + at / 86_400;
+        let (h, m, s) = (at % 86_400 / 3600, at % 3600 / 60, at % 60);
+        match how {
+            Written::Clock => format!("{h:02}:{m:02}:{s:02}"),
+            Written::Utc => format!("2026-11-{day:02}T{h:02}:{m:02}:{s:02}Z"),
+            Written::Slashed => format!("2026/11/{day:02} {h:02}:{m:02}:{s:02}"),
+        }
+    }
+
+    /// The times a timing diagram puts its changes at, in its order.
+    fn moments(text: &str) -> Vec<f64> {
+        text.lines()
+            .filter_map(|l| l.strip_prefix('@')?.parse().ok())
+            .collect()
+    }
+
+    proptest! {
+        /// Whatever the form of its times, a trace's moments come out in
+        /// its order and as far apart as they were: a night past midnight
+        /// is the next day, a line a few seconds out of order stays at the
+        /// time of the line before it.
+        #[test]
+        fn a_trace_keeps_its_time(
+            start in 0u64..86_400,
+            steps in prop::collection::vec((0u64..85_000, 0u8..10, 0u8..3), 1..16),
+        ) {
+            let specs = Specs::new(vec![Spec::read(DOOR, Language::PlantUml, "door.puml").unwrap()]);
+            let events = ["open", "close", "lock", "unlock"];
+            let mut real = start;
+            let mut first = None;
+            let mut expected = vec![0.0];
+            let mut trace = String::new();
+            let mut last = 0.0f64;
+            for (i, &(gap, back, how)) in steps.iter().enumerate() {
+                // Now and then a line a second or three before the last.
+                let at = if i > 0 && back < 2 {
+                    real.saturating_sub(u64::from(back) + 1).max(first.unwrap_or(start))
+                } else {
+                    real += gap;
+                    real
+                };
+                let how = [Written::Clock, Written::Utc, Written::Slashed][usize::from(how)];
+                let event = events[i % events.len()];
+                trace.push_str(&format!(
+                    "{{\"time\":\"{}\",\"object\":\"Door\",\"event\":\"{event}\"}}\n",
+                    written(at, how)
+                ));
+                let first = *first.get_or_insert(at);
+                let since = at.saturating_sub(first) as f64;
+                last = last.max(since);
+                if i > 0 {
+                    expected.push(last);
+                }
+            }
+            let text = timing(&trace, "t", &specs).unwrap();
+            let shown = moments(&text);
+            prop_assert!(shown.windows(2).all(|w| w[0] <= w[1]), "{text}");
+            for t in shown.iter().filter(|t| **t >= 0.0) {
+                prop_assert!(expected.contains(t), "{t} not in {expected:?}\n{trace}\n{text}");
+            }
+        }
+    }
 }
