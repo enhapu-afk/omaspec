@@ -107,6 +107,7 @@ impl Command {
             | Command::Motion
             | Command::JsonLayout
             | Command::StateTable
+            | Command::Outline
             | Command::Suggest
             | Command::Fix
             | Command::FixAll
@@ -159,6 +160,7 @@ impl Command {
             | Command::Focus(_)
             | Command::Gallery
             | Command::OpenExample(_)
+            | Command::InsertExample
             | Command::NextGroup
             | Command::PreviousGroup
             | Command::OpenHelp

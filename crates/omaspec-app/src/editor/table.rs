@@ -364,6 +364,13 @@ pub const TABLE: &[Entry] = &[
     )
     .menu(View)
     .short("State machines as tables"),
+    cmd(
+        "Outline beside the source: shown or hidden",
+        "",
+        Command::Outline,
+    )
+    .menu(View)
+    .short("Outline beside the source"),
     cmd("Diagram theme: follow Omarchy", "", Command::FollowTheme)
         .menu(View)
         .gap(),

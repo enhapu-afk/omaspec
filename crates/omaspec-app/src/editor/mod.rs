@@ -337,6 +337,8 @@ pub enum Command {
     /// State machines shown as their tables of states and events, or as
     /// diagrams.
     StateTable,
+    /// The outline beside the source, or not.
+    Outline,
     /// The fix a finding on the caret's line carries.
     Fix,
     /// Every fix the findings carry.
@@ -418,6 +420,8 @@ pub enum Command {
     Gallery,
     /// Opens the example chosen in the gallery; and plays it with `true`.
     OpenExample(bool),
+    /// Puts the chosen example in at the caret (Ctrl+Enter in the gallery).
+    InsertExample,
     /// The gallery's next group of examples.
     NextGroup,
     PreviousGroup,
@@ -683,6 +687,8 @@ struct App {
     recent_files: Vec<std::path::PathBuf>,
     /// The menu bar is shown; the session keeps it.
     bar_shown: bool,
+    /// The outline stands beside the source; the session keeps it.
+    outline_shown: bool,
     /// The toolbar over the diagram is shown with the bar; the session
     /// keeps it.
     toolbar: bool,
@@ -803,6 +809,7 @@ impl App {
             previewing: None,
             recent_files: session.recent.clone(),
             bar_shown: session.menu_bar,
+            outline_shown: session.outline,
             toolbar: session.toolbar,
             alt_armed: false,
             play_when_drawn: None,
@@ -2011,6 +2018,16 @@ impl App {
                 // Only what holds a JSON or a YAML diagram looks different.
                 self.redraw_views(crate::worker::holds_tables)
             }
+            Command::Outline => {
+                self.outline_shown = !self.outline_shown;
+                self.notice = Some(if self.outline_shown {
+                    "the outline stands beside the source; a click goes to its line".into()
+                } else {
+                    "the outline is hidden".into()
+                });
+                self.keep_session();
+                Task::none()
+            }
             Command::StateTable => {
                 self.look.views.table = !self.look.views.table;
                 self.notice = Some(if self.look.views.table {
@@ -2036,6 +2053,7 @@ impl App {
             }
             Command::Gallery => self.toggle_gallery(),
             Command::OpenExample(play) => self.open_chosen(play),
+            Command::InsertExample => self.insert_chosen(),
             Command::NextGroup | Command::PreviousGroup => {
                 if let Some(gallery) = &mut self.gallery {
                     gallery.step_group(command == Command::PreviousGroup);

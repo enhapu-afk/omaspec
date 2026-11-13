@@ -55,6 +55,9 @@ pub struct Session {
     /// State machines drawn as their tables of states and events.
     #[serde(default)]
     pub table: bool,
+    /// The outline stands beside the source.
+    #[serde(default)]
+    pub outline: bool,
     #[serde(default)]
     pub docs: Vec<SavedDoc>,
     /// The files opened last, the newest first.
@@ -75,6 +78,7 @@ impl Default for Session {
             motion: true,
             nested: false,
             table: false,
+            outline: false,
             docs: Vec::new(),
             recent: Vec::new(),
         }
@@ -244,6 +248,7 @@ impl App {
             motion: self.look.motion,
             nested: self.look.views.nested,
             table: self.look.views.table,
+            outline: self.outline_shown,
             recent: self.recent_files.clone(),
             docs: self
                 .docs
@@ -320,6 +325,7 @@ mod tests {
             motion: false,
             nested: false,
             table: false,
+            outline: false,
             docs: vec![SavedDoc {
                 path: None,
                 text: Some("@startuml\n@enduml\n".into()),

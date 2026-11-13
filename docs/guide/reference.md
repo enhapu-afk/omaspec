@@ -28,7 +28,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 |---|---|
 | Ctrl+Shift+P | every command, as a list; type to filter it |
 | Ctrl+P | find a file in the folder by a few letters |
-| Ctrl+Shift+E | the examples, as tiles; Enter opens a copy, F5 plays it |
+| Ctrl+Shift+E | the examples, as tiles; Enter opens a copy, F5 plays it, Ctrl+Enter puts it in at the caret |
 | F5 | play the diagram (a state machine or a scenario) |
 | Ctrl+O | open a file, folder or image by path |
 | Ctrl+F in the source | find in this file |
@@ -365,7 +365,8 @@ class, component and deployment diagrams and in Mermaid flowcharts. Why:
 Ctrl+Shift+E (or *Examples* on an empty page) lays the examples that come with Omaspec
 out as tiles: a coffee machine's states, a pizza night's scenario, a first day at work in
 swimlanes, a washing machine's timing, a bookshop's classes, a garden year as a mind map,
-a treehouse as a Gantt chart and more, 24 in PlantUML and Mermaid. Seven are complex (an
+a treehouse as a Gantt chart, a network, a wireframe, a grammar, charts of numbers and
+more, 41 in PlantUML and Mermaid. Seven are complex (an
 elevator, a checkout, an incident in three lanes, a delivery pipeline, a library system
 and more) and have a *complex* filter of their own.
 
@@ -376,7 +377,8 @@ all in the file's own colors or the theme's. Typing filters (by
 title, kind, language, or `complex`), Tab steps through behavior, structure, plans and
 data, the arrows move between tiles. Enter (or a click) opens a copy in a new tab,
 unsaved, under a free name in the project folder; F5 (or the *plays* badge) opens it and
-plays it. `omaspec example` lists them on the command line, and `omaspec example NAME`
+plays it. Ctrl+Enter puts it in where the caret is, in a Markdown document as a fenced
+block. `omaspec example` lists them on the command line, and `omaspec example NAME`
 prints one.
 
 ![The gallery of examples in the theme's colors](../images/gallery.png)
@@ -414,6 +416,10 @@ takes (a participant named like `door.puml` or `title Door`), then what the scen
 before. At the first word of a line it also has the words of the language for this kind
 of diagram and its blocks, each with places to fill in: `alt` writes `alt … else … end`,
 *state block* a composite state, `subgraph` a subgraph; Tab goes from place to place.
+
+*Outline beside the source* (View) shows the diagram's outline in a column left of the
+source: its participants, states, fragments, classes, each with its kind, the one the
+caret is in lit. A click puts the caret on its line.
 Where a link is written (after PlantUML's `[[`, in the quotes of Mermaid's `click … href`)
 it lists the project's diagrams, each as the way to it from this file; in PlantUML, after
 a class and `::` (`note left of Order::`), that class's fields and methods.

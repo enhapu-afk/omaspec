@@ -3589,6 +3589,65 @@ fn the_gallery_has_keys_of_its_own() {
 }
 
 #[test]
+fn the_outline_stands_beside_the_source_and_the_session_keeps_it() {
+    let mut app = open(&[]);
+    select_all_and_paste(
+        &mut app,
+        "@startuml\nparticipant Shop\nparticipant Bank\nalt paid\n    Shop -> Bank : charge\nend\n@enduml\n",
+    );
+    let key = app.doc().key;
+    due(&mut app, Alarm::Lint(key));
+    assert!(!app.outline_shown);
+    press(&mut app, Command::Outline);
+    assert!(app.outline_shown && app.session().outline);
+    assert!(
+        app.notice
+            .as_deref()
+            .unwrap()
+            .starts_with("the outline stands")
+    );
+    // A picture of it, when asked for.
+    if let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") {
+        let _ = app.update(Message::JumpTo(4));
+        shoot(&mut app, Path::new(&dir), "outline");
+    }
+    press(&mut app, Command::Outline);
+    assert!(!app.outline_shown && !app.session().outline);
+}
+
+#[test]
+fn an_example_is_put_in_at_the_caret_and_fenced_in_a_document() {
+    let dir = temp_dir("gallery-insert");
+    let path = dir.join("notes.md");
+    std::fs::write(&path, "# Notes\n\n").unwrap();
+    let mut app = open(std::slice::from_ref(&path));
+    app.doc_mut().jump_to_line_at(2, 0);
+    press(&mut app, Command::Gallery);
+    assert_eq!(
+        gallery::key(&Key::Named(Named::Enter), Modifiers::CTRL),
+        Some(Command::InsertExample)
+    );
+    press(&mut app, Command::InsertExample);
+    assert!(app.gallery.is_none());
+    let first = &crate::gallery::EXAMPLES[0];
+    let fence = match first.language() {
+        Language::PlantUml => "```plantuml\n",
+        Language::Mermaid => "```mermaid\n",
+    };
+    let text = app.doc().text();
+    assert!(text.starts_with("# Notes\n"), "{text}");
+    assert!(text.contains(&format!("{fence}{}", first.text)), "{text}");
+    assert_eq!(app.docs.len(), 1, "no new tab");
+    assert!(
+        app.notice
+            .as_deref()
+            .unwrap()
+            .ends_with("put in at the caret")
+    );
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
 fn an_example_opens_as_an_unsaved_copy_in_the_project_folder() {
     let work = temp_dir("gallery");
     let mut app = open(&[]);

@@ -162,7 +162,7 @@ impl App {
                 ),
                 Pane::Source => (
                     // The right mouse button opens the editor's menu.
-                    keys::Guard::new(self.sources(), |_, _| None)
+                    keys::Guard::new(self.sources_with_outline(), |_, _| None)
                         .on_right_click(|at| Message::ContextAt(table::Spot::Editor, at))
                         .into(),
                     self.palette.background,
@@ -420,6 +420,35 @@ impl App {
 
     /// Every document's editor, only the active one in sight; the others
     /// keep their scroll position and folds.
+    /// The sources, the outline beside them where it is shown. The row
+    /// stays when it is hidden, so the editors keep their widgets.
+    fn sources_with_outline(&self) -> Element<'_, Message> {
+        let shown = self.outline_shown && !self.doc().outline.is_empty();
+        let p = &self.palette;
+        let doc = self.doc();
+        let current = doc.outline_at_caret();
+        let rows = doc.outline.iter().enumerate().map(|(i, entry)| {
+            let content = row![
+                self.small(entry.label.clone(), p.foreground),
+                self.small(entry.tag.clone(), p.dark_foreground),
+            ]
+            .spacing(6);
+            self.entry(
+                content,
+                entry.depth,
+                current == Some(i),
+                Message::JumpTo(entry.line),
+            )
+        });
+        let ground = ui::color(p.dark_background);
+        let outline = container(scrollable(column(rows).padding([4, 0])).height(Length::Fill))
+            .width(Length::Fixed(if shown { 200.0 } else { 0.0 }))
+            .height(Length::Fill)
+            .clip(true)
+            .style(move |_: &Theme| container::Style::default().background(ground));
+        row![outline, self.sources()].into()
+    }
+
     fn sources(&self) -> Element<'_, Message> {
         keyed_column(self.docs.iter().enumerate().map(|(i, doc)| {
             let key = doc.key;

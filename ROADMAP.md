@@ -2626,8 +2626,16 @@ Beside the stages:
 - [ ] A box put into another rank than its neighbor's (`D below C`,
       `right of`, `level with`); see the entry on boxes held in place
       above.
-- [ ] An outline beside the source to jump from, and an example from
-      the gallery put in at the caret.
+- [x] An outline beside the source to jump from, and an example from
+      the gallery put in at the caret (2026-11-13). *Outline beside the
+      source* (View menu, kept in the session) shows the outline the
+      editor keeps anyway (participants, states, fragments, classes,
+      each with its kind) in a column left of the source, the entry the
+      caret is in lit; a click puts the caret on its line. The column
+      stays in the widget tree when hidden, so the editors keep their
+      state. Ctrl+Enter in the gallery puts the chosen example in where
+      the caret is, in a Markdown document as a fenced block of its
+      language; into an empty tab it opens as a copy.
 
 ### Views derived from the behavior (2026-11-12)
 

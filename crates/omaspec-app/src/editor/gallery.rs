@@ -4,7 +4,8 @@
 //! each picture fades in as it comes, and the chosen tile glows in the
 //! accent. Typing filters, Tab steps through the groups, the arrows move
 //! between tiles; Enter opens a copy in a new tab, F5 or Shift+Enter opens
-//! it and plays it, a click does the same.
+//! it and plays it, a click does the same; Ctrl+Enter puts it in where the
+//! caret is, in a Markdown document as a fenced block.
 
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
@@ -423,7 +424,8 @@ pub(super) fn key(key: &Key, mods: Modifiers) -> Option<Command> {
     };
     Some(match named {
         Named::F5 => Command::OpenExample(true),
-        Named::Enter if !mods.control() => Command::OpenExample(mods.shift()),
+        Named::Enter if mods.control() => Command::InsertExample,
+        Named::Enter => Command::OpenExample(mods.shift()),
         Named::Tab if !mods.control() && mods.shift() => Command::PreviousGroup,
         Named::Tab if !mods.control() => Command::NextGroup,
         Named::ArrowLeft if plain => Command::Left,
@@ -628,6 +630,38 @@ impl App {
         self.select(at)
     }
 
+    /// Puts the chosen example in where the caret of the tab is: as it is
+    /// written, in a Markdown document as a fenced block of its language.
+    /// Into an empty tab it opens as a copy.
+    pub(super) fn insert_chosen(&mut self) -> Task<Message> {
+        let Some(index) = self.gallery.as_ref().and_then(Gallery::chosen) else {
+            return Task::none();
+        };
+        let Some(example) = EXAMPLES.get(index) else {
+            return Task::none();
+        };
+        if self.docs.get(self.active).is_none_or(|doc| doc.is_blank()) {
+            return self.open_example(index, false);
+        }
+        let mut text = example.text.to_owned();
+        if !text.ends_with('\n') {
+            text.push('\n');
+        }
+        if self.doc().is_document() {
+            let fence = match example.language() {
+                omaspec_core::Language::PlantUml => "plantuml",
+                omaspec_core::Language::Mermaid => "mermaid",
+            };
+            text = format!("```{fence}\n{text}```\n");
+        }
+        self.gallery = None;
+        self.notice = Some(format!("{} put in at the caret", example.title));
+        self.edit(scrive_iced::Action::Paste {
+            text,
+            entire_line: false,
+        })
+    }
+
     /// Opens the chosen example.
     pub(super) fn open_chosen(&mut self, play: bool) -> Task<Message> {
         match self.gallery.as_ref().and_then(Gallery::chosen) {
@@ -801,6 +835,7 @@ impl App {
         let foot = row![
             container(self.small(count, quiet)).width(Length::Fill),
             key("Enter", "opens a copy"),
+            key("Ctrl+Enter", "puts it in here"),
             key("F5", "plays it"),
             key("Tab", "next group"),
             key("Esc", "closes"),

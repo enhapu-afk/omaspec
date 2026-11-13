@@ -710,7 +710,6 @@ impl Doc {
     }
 
     /// The outline entry the caret is in: the last one at or above it.
-    #[cfg(test)]
     pub fn outline_at_caret(&self) -> Option<usize> {
         let row = self.editor.cursor().row as usize;
         self.outline.iter().rposition(|e| e.line <= row)
