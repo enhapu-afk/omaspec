@@ -5,7 +5,8 @@
 //! Front matter between `---` lines is skipped, and so are `%%` comments,
 //! as mmdr skips them: a `---` line opens and closes it wherever it is.
 
-use mermaid_rs_renderer::ParseError;
+use mermaid_rs_renderer::{ParseError, Theme};
+use omaspec_uml::{Color, Paint};
 use serde_json::Value;
 
 /// The line that names the diagram's kind, in lower case: the first that
@@ -77,6 +78,61 @@ pub(super) fn hand_drawn(body: &str) -> bool {
         .and_then(|init| init.get("look")?.as_str().map(str::to_owned))
         .or_else(|| front_look(body));
     look.is_some_and(|look| look.eq_ignore_ascii_case("handDrawn"))
+}
+
+/// What a drawer of its own reads from mmdr's theme before it sets the
+/// colors of its tiles ([`themed`]).
+pub(super) struct Themed {
+    pub font_name: String,
+    pub font_size: f32,
+    pub background: Paint,
+    /// The theme's border color, which the tiles mix onto the page.
+    pub accent: Color,
+    /// The ink a label takes where it reads.
+    pub preferred: Color,
+    /// The theme's own line color on the stock theme, else the accent.
+    pub line: Color,
+    /// Whether this is Mermaid's stock theme, whose classic colors a drawer
+    /// keeps.
+    pub classic: bool,
+}
+
+/// The font, the page, the accent and the ink of `theme`, and whether it is
+/// Mermaid's stock theme; `None` when a size or a color is not one Omaspec
+/// reads, which leaves the diagram to mmdr. The drawers of C4, block and
+/// architecture diagrams each set their own palette from it.
+pub(super) fn themed(theme: &Theme) -> Option<Themed> {
+    if !(4.0..=100.0).contains(&theme.font_size) {
+        return None;
+    }
+    let background = omaspec_uml::parse_color(&theme.background).ok()?;
+    let stock = Theme::mermaid_default();
+    let same = |left: &str, right: &str| left.eq_ignore_ascii_case(right);
+    let classic = same(&theme.primary_color, &stock.primary_color)
+        && same(&theme.secondary_color, &stock.secondary_color)
+        && same(&theme.tertiary_color, &stock.tertiary_color)
+        && same(&theme.primary_border_color, &stock.primary_border_color)
+        && same(&theme.line_color, &stock.line_color)
+        && same(&theme.background, &stock.background)
+        && same(&theme.primary_text_color, &stock.primary_text_color);
+    let solid = |value: &str| omaspec_uml::parse_color(value).ok().flatten();
+    let accent = solid(&theme.primary_border_color)?;
+    solid(&theme.primary_color)?;
+    solid(&theme.secondary_color)?;
+    solid(&theme.tertiary_color)?;
+    Some(Themed {
+        font_name: super::font_name(&theme.font_family)?,
+        font_size: theme.font_size,
+        background,
+        accent,
+        preferred: solid(&theme.primary_text_color)?,
+        line: if classic {
+            solid(&theme.line_color)?
+        } else {
+            accent
+        },
+        classic,
+    })
 }
 
 /// `look` in the `config` of the front matter, the YAML between `---`

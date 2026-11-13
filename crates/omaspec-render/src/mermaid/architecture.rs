@@ -7,9 +7,7 @@
 //! label uses the theme text when that still reads. A construct it
 //! refuses, or a theme color it cannot read, leaves the diagram to mmdr.
 
-use super::font_name;
 use mermaid_rs_renderer::Theme;
-use omaspec_uml::Color;
 use omaspec_uml::architecture::{self, Look, draw, from_mermaid};
 use omaspec_uml::map::Map;
 
@@ -25,48 +23,18 @@ pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
 /// The stock theme keeps the architecture blue. Any other theme uses the
 /// accent for the tile and the group stroke.
 fn paint(diagram: &mut architecture::Diagram, theme: &Theme) -> Option<()> {
-    if !(4.0..=100.0).contains(&theme.font_size) {
-        return None;
-    }
-    let background = match omaspec_uml::parse_color(&theme.background) {
-        Ok(paint) => paint,
-        Err(_) => return None,
-    };
-    let stock = Theme::mermaid_default();
-    let classic = same(&theme.primary_color, &stock.primary_color)
-        && same(&theme.secondary_color, &stock.secondary_color)
-        && same(&theme.tertiary_color, &stock.tertiary_color)
-        && same(&theme.primary_border_color, &stock.primary_border_color)
-        && same(&theme.line_color, &stock.line_color)
-        && same(&theme.background, &stock.background)
-        && same(&theme.primary_text_color, &stock.primary_text_color);
-    let accent = solid(&theme.primary_border_color)?;
-    solid(&theme.primary_color)?;
-    solid(&theme.secondary_color)?;
-    solid(&theme.tertiary_color)?;
+    let themed = super::head::themed(theme)?;
     diagram.look = Look {
-        font_name: font_name(&theme.font_family)?,
+        font_name: themed.font_name,
         sketch: false,
-        font_size: theme.font_size,
-        preferred: solid(&theme.primary_text_color)?,
-        background,
-        accent,
-        line: if classic {
-            solid(&theme.line_color)?
-        } else {
-            accent
-        },
-        classic,
+        font_size: themed.font_size,
+        preferred: themed.preferred,
+        background: themed.background,
+        accent: themed.accent,
+        line: themed.line,
+        classic: themed.classic,
     };
     Some(())
-}
-
-fn same(left: &str, right: &str) -> bool {
-    left.eq_ignore_ascii_case(right)
-}
-
-fn solid(value: &str) -> Option<Color> {
-    omaspec_uml::parse_color(value).ok().flatten()
 }
 
 #[cfg(test)]
