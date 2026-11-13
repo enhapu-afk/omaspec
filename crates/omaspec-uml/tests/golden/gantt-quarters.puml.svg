@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="136" viewBox="0 0 380 136">
+<g transform="translate(10,10)">
+<g>
+<g id="grid">
+<line x1="56.46" y1="28" x2="56.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="84.46" y1="28" x2="84.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="115.46" y1="28" x2="115.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="145.46" y1="28" x2="145.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="176.46" y1="28" x2="176.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="206.46" y1="28" x2="206.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="237.46" y1="28" x2="237.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="268.46" y1="28" x2="268.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="298.46" y1="28" x2="298.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="329.46" y1="28" x2="329.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="359.46" y1="28" x2="359.46" y2="116" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+<line x1="56.46" y1="28" x2="359.46" y2="28" fill="none" stroke="#E6E6E6" stroke-width="1"/>
+</g>
+</g>
+<g>
+<rect x="57.46" y="32" width="30" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+<rect x="87.46" y="54" width="150" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+<rect x="237.46" y="76" width="42" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+<rect x="279.46" y="98" width="60" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="196.84" y="9.28" font-size="10" fill="#888888" textLength="22.24" lengthAdjust="spacing">2026</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="61.84" y="23.28" font-size="10" fill="#888888" textLength="17.23" lengthAdjust="spacing">Feb</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="91.35" y="23.28" font-size="10" fill="#888888" textLength="17.22" lengthAdjust="spacing">Mar</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="122.68" y="23.28" font-size="10" fill="#888888" textLength="15.56" lengthAdjust="spacing">Apr</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="151.51" y="23.28" font-size="10" fill="#888888" textLength="18.89" lengthAdjust="spacing">May</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="183.4" y="23.28" font-size="10" fill="#888888" textLength="16.12" lengthAdjust="spacing">Jun</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="215.57" y="23.28" font-size="10" fill="#888888" textLength="12.78" lengthAdjust="spacing">Jul</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="244.06" y="23.28" font-size="10" fill="#888888" textLength="17.79" lengthAdjust="spacing">Aug</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="274.56" y="23.28" font-size="10" fill="#888888" textLength="17.79" lengthAdjust="spacing">Sep</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="306.18" y="23.28" font-size="10" fill="#888888" textLength="15.56" lengthAdjust="spacing">Oct</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="335.57" y="23.28" font-size="10" fill="#888888" textLength="17.78" lengthAdjust="spacing">Nov</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="43.5" font-size="13" fill="#000000" textLength="26.01" lengthAdjust="spacing">Plan</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="65.5" font-size="13" fill="#000000" textLength="28.9" lengthAdjust="spacing">Build</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="87.5" font-size="13" fill="#000000" textLength="25.28" lengthAdjust="spacing">Pilot</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="0" y="109.5" font-size="13" fill="#000000" textLength="40.46" lengthAdjust="spacing">Rollout</tspan>
+</text>
+</g>
+</g>
+</svg>

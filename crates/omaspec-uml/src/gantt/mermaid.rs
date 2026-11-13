@@ -601,6 +601,7 @@ impl Chart {
             origin,
             closed: closed_days(&self.days, &places),
             zoom: 1.0,
+            scale: super::Scale::Daily,
             frame: Frame {
                 title: self.title,
                 ..Frame::default()

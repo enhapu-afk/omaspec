@@ -50,6 +50,14 @@ pub(super) fn iso_weekday(days: i64) -> u8 {
     (days.rem_euclid(7) + 3) as u8 % 7 + 1
 }
 
+/// The ISO week number of a day: the week (from Monday) whose Thursday is
+/// in the year, counted from the one with the year's first Thursday.
+pub(super) fn iso_week(days: i64) -> i64 {
+    let thursday = days - i64::from(iso_weekday(days)) + 4;
+    let (year, _, _) = civil_from_days(thursday);
+    (thursday - days_from_civil(year, 1, 1)) / 7 + 1
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -66,5 +74,17 @@ mod tests {
         assert_eq!(iso_weekday(checked(2026, 1, 5).unwrap()), 1);
         assert_eq!(iso_weekday(checked(2026, 1, 10).unwrap()), 6);
         assert_eq!(iso_weekday(checked(2026, 1, 11).unwrap()), 7);
+    }
+
+    #[test]
+    fn iso_weeks_start_with_the_year_s_first_thursday() {
+        let week = |y, m, d| iso_week(checked(y, m, d).unwrap());
+        assert_eq!(week(2026, 1, 1), 1);
+        assert_eq!(week(2026, 1, 5), 2);
+        assert_eq!(week(2026, 12, 31), 53);
+        assert_eq!(week(2027, 1, 3), 53);
+        assert_eq!(week(2027, 1, 4), 1);
+        assert_eq!(week(2021, 1, 3), 53);
+        assert_eq!(week(2024, 12, 30), 1);
     }
 }

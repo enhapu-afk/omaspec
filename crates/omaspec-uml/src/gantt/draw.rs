@@ -2,10 +2,15 @@
 //! the right. The axis shows day numbers, or the day of the month when
 //! the chart has a real date; the origin date is the only full date drawn.
 //! An excluded day keeps its column, shaded, so that date stays the real one.
+//!
+//! On a coarser scale (`printscale weekly`, `monthly`, `quarterly`,
+//! `yearly`) a column is a week from Monday, a month, a quarter or a year:
+//! the axis names each, with the months or years they fall in above, and
+//! runs from the first column's start to the last one's end.
 
 use super::date;
 use super::skin::Skin;
-use super::{Bar, Diagram, Row};
+use super::{Bar, Diagram, Row, Scale};
 use crate::Declined;
 use crate::annotations::Annotations;
 use crate::color::Color;
@@ -15,7 +20,6 @@ use crate::text::{self, Block, Family, Font};
 const MARGIN: f32 = 10.0;
 const ROW: f32 = 22.0;
 const BAR: f32 = 14.0;
-const DAY: f32 = 16.0;
 const GAP: f32 = 16.0;
 const HEAD: f32 = 8.0;
 
@@ -44,6 +48,14 @@ struct Geom {
     day: f32,
 }
 
+/// A column of a coarse scale: its first day and the day after its last,
+/// from day 0, and what the axis calls it.
+struct Column {
+    start: i64,
+    end: i64,
+    name: String,
+}
+
 fn paint(
     canvas: &mut Canvas,
     diagram: &Diagram,
@@ -61,26 +73,48 @@ fn paint(
         name_w = name_w.max(label.width);
     }
     let (t0, t1) = bounds(diagram);
+    let columns = columns(diagram.scale, diagram.origin, t0, t1);
+    let (t0, t1) = match (columns.first(), columns.last()) {
+        (Some(first), Some(last)) => (first.start, last.end),
+        _ => (t0, t1),
+    };
     let geom = Geom {
         axis_x: name_w + GAP,
         t0,
         t1,
-        day: DAY * diagram.zoom,
+        day: diagram.scale.day_width() * diagram.zoom,
     };
     let line = block("0", skin.header, family, 0)?.height;
     let label_h = block("0", skin.label, family, 0)?.height;
     let section_h = block("0", skin.section, family, 0)?.height;
     // The classic row is 22. A larger theme font grows it, or the names stack.
     let row_h = ROW.max(label_h.max(section_h) + 4.0);
-    let rows_top = top + band(diagram.origin.is_some(), line);
-    paint_axis(canvas, diagram, skin, family, &geom, top, line)?;
+    let groups = groups(diagram.scale, diagram.origin, &columns);
+    let two_lines = if columns.is_empty() {
+        diagram.origin.is_some()
+    } else {
+        !groups.is_empty()
+    };
+    let rows_top = top + band(two_lines, line);
+    if columns.is_empty() {
+        paint_axis(canvas, diagram, skin, family, &geom, top, line)?;
+    } else {
+        paint_columns(canvas, skin, family, &geom, &columns, &groups, top, line)?;
+    }
     let right = x_of(&geom, geom.t1);
     let bottom = rows_top + row_h * diagram.rows.len() as f32;
     let grid = Stroke::new(skin.grid, 1.0);
     canvas.begin_group(Layer::Background, crate::GRID);
-    for day in geom.t0..=geom.t1 {
-        let x = x_of(&geom, day);
-        canvas.line(Layer::Background, (x, rows_top), (x, bottom), grid);
+    if columns.is_empty() {
+        for day in geom.t0..=geom.t1 {
+            let x = x_of(&geom, day);
+            canvas.line(Layer::Background, (x, rows_top), (x, bottom), grid);
+        }
+    } else {
+        for day in columns.iter().map(|c| c.start).chain([geom.t1]) {
+            let x = x_of(&geom, day);
+            canvas.line(Layer::Background, (x, rows_top), (x, bottom), grid);
+        }
     }
     canvas.line(
         Layer::Background,
@@ -199,7 +233,8 @@ fn paint_task(
         return Ok(());
     }
     let x = x_of(geom, bar.start);
-    let width = (bar.shown_end - bar.start) as f32 * geom.day;
+    // A day of a year's column is a tenth of a pixel: a bar stays in sight.
+    let width = ((bar.shown_end - bar.start) as f32 * geom.day).max(2.0);
     let bar_y = y + (row_h - BAR) / 2.0;
     canvas.rect(
         Layer::Bars,
@@ -261,6 +296,156 @@ fn paint_axis(
         let label = block(&tick_text(day, diagram.origin), skin.header, family, 0)?;
         canvas.text(Layer::Front, &label, (x_of(geom, day), y), Align::Center);
         day += step;
+    }
+    Ok(())
+}
+
+/// The columns of the axis from `t0` to `t1` on a coarse scale, the first
+/// starting at or before `t0`, the last ending at or after `t1`; none on a
+/// daily scale, which draws its own.
+fn columns(scale: Scale, origin: Option<i64>, t0: i64, t1: i64) -> Vec<Column> {
+    if scale == Scale::Daily {
+        return Vec::new();
+    }
+    let base = origin.unwrap_or(0);
+    let mut out = Vec::new();
+    let mut start = column_start(scale, origin, t0);
+    loop {
+        let end = column_end(scale, base, start);
+        out.push(Column {
+            start,
+            end,
+            name: column_name(scale, origin, start),
+        });
+        if end >= t1 {
+            return out;
+        }
+        start = end;
+    }
+}
+
+/// The first day of the column `day` falls in, from day 0.
+fn column_start(scale: Scale, origin: Option<i64>, day: i64) -> i64 {
+    let Some(base) = origin else {
+        // No calendar: weeks of seven days from day 0.
+        return day.div_euclid(7) * 7;
+    };
+    let at = base + day;
+    let (year, month, _) = date::civil_from_days(at);
+    let first = match scale {
+        Scale::Daily => at,
+        Scale::Weekly { .. } => at - i64::from(date::iso_weekday(at)) + 1,
+        Scale::Monthly => date::days_from_civil(year, month, 1),
+        Scale::Quarterly => date::days_from_civil(year, (month - 1) / 3 * 3 + 1, 1),
+        Scale::Yearly => date::days_from_civil(year, 1, 1),
+    };
+    first - base
+}
+
+/// The day after the last of the column that starts on `start`.
+fn column_end(scale: Scale, base: i64, start: i64) -> i64 {
+    let (year, month, _) = date::civil_from_days(base + start);
+    let months = |n: u32| {
+        let index = month - 1 + n;
+        date::days_from_civil(year + (index / 12) as i32, index % 12 + 1, 1) - base
+    };
+    match scale {
+        Scale::Daily => start + 1,
+        Scale::Weekly { .. } => start + 7,
+        Scale::Monthly => months(1),
+        Scale::Quarterly => months(3),
+        Scale::Yearly => months(12),
+    }
+}
+
+/// What the axis calls the column that starts on `start`: a week's ISO
+/// number (or the day its Monday falls on), a month, a quarter, a year.
+fn column_name(scale: Scale, origin: Option<i64>, start: i64) -> String {
+    let Some(base) = origin else {
+        return (start.div_euclid(7) + 1).to_string();
+    };
+    let (year, month, day) = date::civil_from_days(base + start);
+    match scale {
+        Scale::Daily => day.to_string(),
+        Scale::Weekly { dates: true } => day.to_string(),
+        Scale::Weekly { dates: false } => date::iso_week(base + start).to_string(),
+        Scale::Monthly => MONTHS[month as usize - 1].to_owned(),
+        Scale::Quarterly => format!("Q{}", (month - 1) / 3 + 1),
+        Scale::Yearly => year.to_string(),
+    }
+}
+
+const MONTHS: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/// The spans above the columns: the months a week's columns fall in, the
+/// years of the months' and quarters'. None for years, nor without dates.
+fn groups(scale: Scale, origin: Option<i64>, columns: &[Column]) -> Vec<Column> {
+    let Some(base) = origin else {
+        return Vec::new();
+    };
+    let of = |column: &Column| {
+        let (year, month, _) = date::civil_from_days(base + column.start);
+        match scale {
+            Scale::Weekly { .. } => Some(format!("{} {year}", MONTHS[month as usize - 1])),
+            Scale::Monthly | Scale::Quarterly => Some(year.to_string()),
+            Scale::Daily | Scale::Yearly => None,
+        }
+    };
+    let mut out: Vec<Column> = Vec::new();
+    for column in columns {
+        let Some(name) = of(column) else {
+            return Vec::new();
+        };
+        match out.last_mut() {
+            Some(last) if last.name == name => last.end = column.end,
+            _ => out.push(Column {
+                start: column.start,
+                end: column.end,
+                name,
+            }),
+        }
+    }
+    out
+}
+
+/// The axis of a coarse scale: the groups on the first line, the columns
+/// on the second, each name in the middle of its span. A name wider than
+/// its span is left out; a column's, every so many so they do not touch.
+#[allow(clippy::too_many_arguments)]
+fn paint_columns(
+    canvas: &mut Canvas,
+    skin: &Skin,
+    family: Family,
+    geom: &Geom,
+    columns: &[Column],
+    groups: &[Column],
+    top: f32,
+    line: f32,
+) -> Result<(), Declined> {
+    let middle = |c: &Column| (x_of(geom, c.start) + x_of(geom, c.end)) / 2.0;
+    let wide = |c: &Column| x_of(geom, c.end) - x_of(geom, c.start);
+    for group in groups {
+        let label = block(&group.name, skin.header, family, 0)?;
+        if label.width + 4.0 <= wide(group) {
+            canvas.text(Layer::Front, &label, (middle(group), top), Align::Center);
+        }
+    }
+    let y = if groups.is_empty() {
+        top
+    } else {
+        top + (line + 2.0).max(14.0)
+    };
+    let labels = columns
+        .iter()
+        .map(|c| block(&c.name, skin.header, family, 0))
+        .collect::<Result<Vec<_>, _>>()?;
+    let widest = labels.iter().map(|l| l.width).fold(0.0, f32::max);
+    let narrowest = columns.iter().map(wide).fold(f32::INFINITY, f32::min);
+    let step = ((widest + 4.0) / narrowest.max(0.1)).ceil().max(1.0) as usize;
+    for (column, label) in columns.iter().zip(&labels).step_by(step) {
+        canvas.text(Layer::Front, label, (middle(column), y), Align::Center);
     }
     Ok(())
 }

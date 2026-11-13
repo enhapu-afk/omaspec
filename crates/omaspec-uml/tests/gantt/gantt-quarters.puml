@@ -1,0 +1,8 @@
+@startgantt
+printscale monthly
+Project starts 2026-02-02
+[Plan] requires 1 month
+[Build] starts at [Plan]'s end and requires 5 months
+[Pilot] starts at [Build]'s end and requires 6 weeks
+[Rollout] starts at [Pilot]'s end and requires 2 months
+@endgantt

@@ -2,7 +2,7 @@
 //! chart is returned, so the drawer only places bars.
 
 use super::date;
-use super::{Bar, Diagram, Marks, Row};
+use super::{Bar, Diagram, Marks, Row, Scale};
 use crate::Declined;
 use crate::color::{self, Color};
 use crate::common::{Frame, keyword, snippet, take_link};
@@ -28,6 +28,9 @@ struct Builder {
     project: Option<i64>,
     zoom: f32,
     zoom_set: bool,
+    scale: Option<Scale>,
+    /// The line of `printscale`.
+    scale_line: usize,
     frame: Frame,
 }
 
@@ -39,6 +42,8 @@ impl Builder {
             project: None,
             zoom: 1.0,
             zoom_set: false,
+            scale: None,
+            scale_line: 0,
             frame: Frame::default(),
         }
     }
@@ -57,10 +62,7 @@ impl Builder {
             return self.project_starts(rest, no);
         }
         if let Some(rest) = keyword(text, "printscale").or_else(|| keyword(text, "projectscale")) {
-            if rest == "daily" {
-                return Ok(());
-            }
-            return Err(fail(no, "only a daily scale is supported yet"));
+            return self.print_scale(rest, no);
         }
         if keyword(text, "ganttscale").is_some() {
             return Err(fail(no, "only a daily scale is supported yet"));
@@ -104,6 +106,47 @@ impl Builder {
             When::Day(_) => return Err(fail(no, "the project start needs a date")),
         }
         Ok(())
+    }
+
+    /// `printscale weekly`, `weekly with calendar date`, `monthly zoom 2`.
+    fn print_scale(&mut self, rest: &str, no: usize) -> Result<(), Declined> {
+        let (word, mut rest) = split_word(rest);
+        let mut scale = match word.to_ascii_lowercase().as_str() {
+            "daily" => Scale::Daily,
+            "weekly" => Scale::Weekly { dates: false },
+            "monthly" => Scale::Monthly,
+            "quarterly" => Scale::Quarterly,
+            "yearly" => Scale::Yearly,
+            _ => {
+                return Err(fail(
+                    no,
+                    "a scale is daily, weekly, monthly, quarterly or yearly",
+                ));
+            }
+        };
+        if let Some(after) = keyword(rest, "with") {
+            let after = keyword(after, "calendar")
+                .and_then(|after| keyword(after, "date"))
+                .ok_or_else(|| fail(no, format!("`{}` is not supported yet", snippet(rest))))?;
+            let Scale::Weekly { dates } = &mut scale else {
+                return Err(fail(no, "`with calendar date` is for a weekly scale"));
+            };
+            *dates = true;
+            rest = after;
+        }
+        if self.scale.is_some() {
+            return Err(fail(no, "the scale is already set"));
+        }
+        self.scale = Some(scale);
+        self.scale_line = no;
+        match keyword(rest, "zoom") {
+            Some(zoom) => self.zoom(zoom, no),
+            None if rest.is_empty() => Ok(()),
+            None => Err(fail(
+                no,
+                format!("`{}` is not supported yet", snippet(rest)),
+            )),
+        }
     }
 
     fn zoom(&mut self, rest: &str, no: usize) -> Result<(), Declined> {
@@ -236,7 +279,15 @@ impl Builder {
 
     fn finish(self) -> Result<Diagram, Declined> {
         let (solved, origin) = solve(&self.tasks, self.project)?;
-        check_span(&self.tasks, &solved)?;
+        let scale = self.scale.unwrap_or_default();
+        check_span(&self.tasks, &solved, scale)?;
+        if origin.is_none() && !matches!(scale, Scale::Daily | Scale::Weekly { .. }) {
+            return Err(Declined::refused(
+                self.scale_line,
+                "months, quarters and years need the chart's dates: \
+                 `Project starts 2026-01-05`, or a task's date",
+            ));
+        }
         let mut rows = Vec::new();
         for event in self.events {
             match event {
@@ -266,6 +317,7 @@ impl Builder {
             origin,
             closed: Vec::new(),
             zoom: self.zoom,
+            scale,
             frame: self.frame,
         })
     }
@@ -560,10 +612,12 @@ fn duration(text: &str, no: usize) -> Result<(i64, &str), Declined> {
 
 fn one_span(text: &str, no: usize) -> Result<(i64, &str), Declined> {
     let (count, rest) = leading_int(text, no)?;
-    if keyword(rest, "months").is_some() || keyword(rest, "month").is_some() {
-        return Err(fail(no, "months are not supported yet"));
-    }
-    let (factor, rest) = if let Some(rest) = keyword(rest, "weeks") {
+    // PlantUML counts a month as 30 days, whatever the calendar says.
+    let (factor, rest) = if let Some(rest) = keyword(rest, "months") {
+        (30, rest)
+    } else if let Some(rest) = keyword(rest, "month") {
+        (30, rest)
+    } else if let Some(rest) = keyword(rest, "weeks") {
         (7, rest)
     } else if let Some(rest) = keyword(rest, "week") {
         (7, rest)
@@ -572,7 +626,7 @@ fn one_span(text: &str, no: usize) -> Result<(i64, &str), Declined> {
     } else if let Some(rest) = keyword(rest, "day") {
         (1, rest)
     } else {
-        return Err(fail(no, "a duration needs days or weeks"));
+        return Err(fail(no, "a duration needs days, weeks or months"));
     };
     let days = count
         .checked_mul(factor)
@@ -958,27 +1012,44 @@ fn schedule(task: &Task, start: Option<i64>, inclusive: Option<i64>) -> Result<S
     Ok(Solved { start, end })
 }
 
-/// The most days a chart may span, day 0 included: ten years. The chart
-/// draws a line for every day, so a date typed as `D+20200701` would
-/// otherwise take minutes and gigabytes.
+/// The most days a chart may span on a daily scale, day 0 included: ten
+/// years. The chart draws a line for every day, so a wider one takes a
+/// coarser scale.
 const MAX_DAYS: i64 = 3660;
 
-/// Declines a chart wider than [`MAX_DAYS`], naming the task farthest
-/// from day 0.
-fn check_span(tasks: &[Task], solved: &[Solved]) -> Result<(), Declined> {
+/// The most PlantUML draws on any scale: a last day 20 × 365 days after the
+/// first. A date typed as `D+20200701` stays a mistake.
+const MAX_SPAN: i64 = 20 * 365 + 1;
+
+/// Declines a chart wider than PlantUML draws, or than [`MAX_DAYS`] on a
+/// daily scale, naming the task farthest from day 0.
+fn check_span(tasks: &[Task], solved: &[Solved], scale: Scale) -> Result<(), Declined> {
     let low = solved.iter().map(|s| s.start).fold(0, i64::min);
     let high = solved.iter().map(|s| s.end).fold(0, i64::max);
-    if high.saturating_sub(low) <= MAX_DAYS {
-        return Ok(());
-    }
+    let span = high.saturating_sub(low);
     let far = |s: &Solved| s.start.unsigned_abs().max(s.end.unsigned_abs());
-    let index = (0..solved.len())
-        .max_by_key(|&index| far(&solved[index]))
-        .unwrap_or(0);
-    Err(fail(
-        tasks[index].line,
-        format!("a chart spans at most {MAX_DAYS} days, and this task is outside them"),
-    ))
+    let line = || {
+        (0..solved.len())
+            .max_by_key(|&index| far(&solved[index]))
+            .map_or(0, |index| tasks[index].line)
+    };
+    if span > MAX_SPAN {
+        return Err(Declined::refused(
+            line(),
+            "PlantUML draws a Gantt chart of 20 years at most, and this task is outside \
+             them; a Mermaid `timeline` tells a longer history",
+        ));
+    }
+    if scale == Scale::Daily && span > MAX_DAYS {
+        return Err(fail(
+            line(),
+            format!(
+                "a chart spans at most {MAX_DAYS} days on a daily scale, and this task is \
+                 outside them; `printscale weekly`, `monthly` or `yearly` draws up to 20 years"
+            ),
+        ));
+    }
+    Ok(())
 }
 
 fn origin_of(project: Option<i64>, tasks: &[Task]) -> Option<i64> {
@@ -1122,24 +1193,102 @@ mod tests {
         assert_eq!(bar(&diagram, 2).start, 2);
     }
 
+    /// Ten years a day at a time, twenty on a coarser scale, as far as
+    /// PlantUML draws; past that PlantUML refuses too.
     #[test]
-    fn a_chart_spans_at_most_ten_years() {
-        let wide = |task: &str| {
+    fn a_chart_spans_ten_years_by_day_and_twenty_in_all() {
+        let wide = |scale: &str, task: &str| {
             crate::render(&format!(
-                "@startgantt\n[A] requires 3 days\n{task}\n@endgantt\n"
+                "@startgantt\nprintscale {scale}\nProject starts 1986-01-01\n[A] requires 3 days\n{task}\n@endgantt\n"
             ))
         };
-        assert!(wide("[B] requires 3600 days").is_ok());
+        assert!(wide("daily", "[B] requires 3600 days").is_ok());
+        let err = wide("daily", "[B] requires 5000 days").unwrap_err();
+        assert_eq!(err.line, Some(4));
+        assert!(
+            err.reason.contains("3660 days") && err.reason.contains("printscale weekly"),
+            "{}",
+            err.reason
+        );
+        assert!(!err.refused);
+        for scale in ["weekly", "monthly", "quarterly", "yearly"] {
+            assert!(wide(scale, "[B] requires 5000 days").is_ok(), "{scale}");
+            // The last day 7300 days after the first, as PlantUML still draws.
+            assert!(
+                wide(scale, "[B] starts 1986-01-01 and ends 2005-12-27").is_ok(),
+                "{scale}"
+            );
+            let err = wide(scale, "[B] starts 1986-01-01 and ends 2005-12-28").unwrap_err();
+            assert!(err.refused && err.reason.contains("20 years"), "{scale}");
+        }
         for task in [
             "[B] requires 200000 days",
             "[B] requires 1000000000 days",
             "[M] happens D+20200701",
             "[M] happens D+9223372036854775807",
         ] {
-            let err = wide(task).unwrap_err();
-            assert_eq!(err.line, Some(2), "{task}");
-            assert!(err.reason.contains("3660 days"), "{}", err.reason);
+            let err = wide("daily", task).unwrap_err();
+            assert_eq!(err.line, Some(4), "{task}");
+            assert!(err.reason.contains("20 years"), "{}", err.reason);
+            assert!(err.refused, "{task}");
         }
+    }
+
+    #[test]
+    fn a_scale_reads_as_plantuml_writes_it() {
+        let scale = |line: &str| {
+            crate::parse(&format!(
+                "@startgantt\n{line}\nProject starts 2026-01-05\n[A] requires 6 weeks\n@endgantt\n"
+            ))
+            .map(|d| match d {
+                crate::Diagram::Gantt(g) => (g.scale, g.zoom),
+                _ => panic!("no Gantt chart"),
+            })
+        };
+        assert_eq!(
+            scale("printscale weekly"),
+            Ok((Scale::Weekly { dates: false }, 1.0))
+        );
+        assert_eq!(
+            scale("printscale weekly with calendar date"),
+            Ok((Scale::Weekly { dates: true }, 1.0))
+        );
+        assert_eq!(
+            scale("projectscale monthly zoom 2"),
+            Ok((Scale::Monthly, 2.0))
+        );
+        assert_eq!(scale("printscale Quarterly"), Ok((Scale::Quarterly, 1.0)));
+        assert_eq!(scale("printscale yearly"), Ok((Scale::Yearly, 1.0)));
+        let err = scale("printscale hourly").unwrap_err();
+        assert!(err.reason.contains("daily, weekly"), "{}", err.reason);
+        let err = scale("printscale monthly with calendar date").unwrap_err();
+        assert!(err.reason.contains("weekly scale"), "{}", err.reason);
+        // Months need dates; weeks count from day 0 without them.
+        let undated = |scale: &str| {
+            crate::parse(&format!(
+                "@startgantt\nprintscale {scale}\n[A] requires 20 days\n@endgantt\n"
+            ))
+        };
+        assert!(undated("weekly").is_ok());
+        let err = undated("monthly").unwrap_err();
+        assert!(err.refused && err.line == Some(1), "{err:?}");
+    }
+
+    /// PlantUML counts a month as 30 days.
+    #[test]
+    fn a_month_is_thirty_days() {
+        let chart = gantt(
+            "@startgantt\nProject starts 2026-01-31\n[A] requires 1 month\n[B] requires 2 months and 1 week\n[C] requires 12 months\n@endgantt\n",
+        );
+        let ends: Vec<i64> = chart
+            .rows
+            .iter()
+            .filter_map(|row| match row {
+                Row::Bar(bar) => Some(bar.end - bar.start),
+                Row::Section { .. } => None,
+            })
+            .collect();
+        assert_eq!(ends, [30, 67, 360]);
     }
 
     #[test]

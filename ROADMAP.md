@@ -621,14 +621,17 @@ types only; the others stay as they are.
       `monochrome`, `style strictuml`, `shadowing false`), so the four skin packs
       draw. Neither has skinparams for its boxes and lines in PlantUML (only
       `<style>`), so on a dark background they follow the background and the text
-      color; timing `rectangle` rows take `Rectangle…`. `printscale daily` is
-      ignored. Declines, naming the line: dates and
+      color; timing `rectangle` rows take `Rectangle…`. `printscale` (or
+      `projectscale`) `daily`, `weekly` (ISO weeks, or `with calendar date`),
+      `monthly`, `quarterly` and `yearly`, with `zoom`; durations in months of 30
+      days, as PlantUML counts them (2026-11-13). Declines, naming the line: dates and
       clock times on a timing axis, `{…}` states, `use date format`, a manual axis,
       compact mode, `<style>`, stereotypes, `has … as`, analog ticks and a pixel
       height, `@clk`, a note on a robust, analog or clock row, gradients, closed
-      days, resources, links, week numbering, a scale other than daily, months, a
-      chart wider than 3660 days (a line per day; `D+20200701` would take minutes),
-      and an unknown line. Golden SVGs and Ctrl+click on every label.
+      days, resources, links, week numbering, a chart wider than 3660 days on a
+      daily scale (a line per day; a coarser scale draws more), months, quarters or
+      years without a date, and an unknown line; a chart past 20 years is refused,
+      as PlantUML refuses it. Golden SVGs and Ctrl+click on every label.
 - [x] P1 preprocessor, for every type the engine draws: variables (`!$x = …`, `?=`,
       `!global`, `!local`), expressions with numbers, strings, `+ - * / %`,
       comparisons, `&&`, `||`, `!`; `!if`, `!elseif`, `!else`, `!ifdef`, `!ifndef`;

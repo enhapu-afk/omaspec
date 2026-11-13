@@ -1,0 +1,9 @@
+@startgantt
+printscale weekly with calendar date
+Project starts 2026-01-05
+[Design] requires 3 weeks
+[Build] requires 2 months
+[Design] -> [Build]
+[Review] starts at [Build]'s end and requires 10 days
+[Launch] happens at [Review]'s end
+@endgantt

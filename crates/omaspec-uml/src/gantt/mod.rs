@@ -32,9 +32,40 @@ pub struct Diagram {
     /// one. Empty when every column is a working day, which is every
     /// PlantUML chart: closed days there still decline.
     pub closed: Vec<i64>,
-    /// `zoom`, default 1. One day is `16 * zoom` pixels.
+    /// `zoom`, default 1. One day is `16 * zoom` pixels on a daily scale.
     pub zoom: f32,
+    /// `printscale`: what a column of the axis is. Mermaid's is daily.
+    pub scale: Scale,
     pub frame: Frame,
+}
+
+/// `printscale` (or `projectscale`): a day, a week, a month, a quarter or a
+/// year to a column, as PlantUML draws it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Scale {
+    #[default]
+    Daily,
+    /// Weeks from Monday, by their ISO number, or with `with calendar date`
+    /// by the day their Monday falls on.
+    Weekly {
+        dates: bool,
+    },
+    Monthly,
+    Quarterly,
+    Yearly,
+}
+
+impl Scale {
+    /// How wide a day is at zoom 1: a column about as wide as its label.
+    pub(crate) fn day_width(self) -> f32 {
+        match self {
+            Scale::Daily => 16.0,
+            Scale::Weekly { .. } => 4.0,
+            Scale::Monthly => 1.0,
+            Scale::Quarterly => 1.0 / 3.0,
+            Scale::Yearly => 0.1,
+        }
+    }
 }
 
 /// One row, top to bottom as the tasks and separators were first written.
