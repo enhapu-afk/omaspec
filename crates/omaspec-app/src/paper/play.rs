@@ -28,9 +28,13 @@ use omaspec_uml::map::{Shape, Spot, Step};
 
 use super::canvas::fill_paper_band;
 use super::light::{
-    LINGER, Light, MACHINE, REVEAL, SCENARIO, appearance, draw_run, ease_out, fraction, soft_band,
+    LINGER, Light, MACHINE, REVEAL, SCENARIO, appearance, draw_run, draw_run_over, ease_out,
+    fraction, smooth, soft_spot,
 };
 
+/// How deep the shade over the stretch of a message the light has not
+/// reached yet is.
+const AHEAD: f32 = 0.6;
 /// How long the veil takes to fall over the diagram, or lift off it.
 const VEIL_FADE: Duration = Duration::from_millis(320);
 /// How dark the veil gets, over the paper.
@@ -786,8 +790,33 @@ pub struct ScenarioPlay {
 struct Leaving {
     index: usize,
     light: Light,
-    top: f32,
-    bottom: f32,
+    spot: Spot4,
+}
+
+/// Where the highlight lies, in diagram units: top, bottom, left, right.
+type Spot4 = (f32, f32, f32, f32);
+
+/// How far the highlight reaches past a message's ends, in diagram units:
+/// across, above the label, and below the arrow, so the arrow lies in its
+/// full light and not in the fade, and the message above stays out.
+const SPOT_PAD: (f32, f32, f32) = (44.0, 2.0, 14.0);
+
+/// The highlight of `step`: its row, from a little before the leftmost of
+/// its points to a little past the rightmost.
+fn spot_of(step: &Step) -> Spot4 {
+    let (left, right) = step
+        .points
+        .iter()
+        .fold((f32::INFINITY, f32::NEG_INFINITY), |(l, r), &(x, _)| {
+            (l.min(x), r.max(x))
+        });
+    let (across, above, below) = SPOT_PAD;
+    (
+        step.top - above,
+        step.bottom + below,
+        left - across,
+        right + across,
+    )
 }
 
 impl ScenarioPlay {
@@ -815,14 +844,13 @@ impl ScenarioPlay {
     fn leaving(&self, now: Instant) -> Option<Leaving> {
         let index = self.at.checked_sub(1)?;
         let k = ease_out(fraction(now.saturating_duration_since(self.moved), REVEAL));
-        let (top, bottom) = self
+        let spot = self
             .band_span(k)
-            .unwrap_or((self.steps[index].top, self.steps[index].bottom));
+            .unwrap_or_else(|| spot_of(&self.steps[index]));
         Some(Leaving {
             index,
             light: self.light_now(now)?,
-            top,
-            bottom,
+            spot,
         })
     }
 
@@ -835,16 +863,19 @@ impl ScenarioPlay {
         Some(appearance(since, took, self.onward, presence, SCENARIO))
     }
 
-    /// Where the highlight band sits at reveal progress `k`.
-    fn band_span(&self, k: f32) -> Option<(f32, f32)> {
-        let to = self
-            .at
-            .checked_sub(1)
-            .map(|i| (self.steps[i].top, self.steps[i].bottom));
-        let from = self.leave.as_ref().map(|left| (left.top, left.bottom));
+    /// Where the highlight sits at reveal progress `k`, gliding from the
+    /// message left to the one shown.
+    fn band_span(&self, k: f32) -> Option<Spot4> {
+        let to = self.at.checked_sub(1).map(|i| spot_of(&self.steps[i]));
+        let from = self.leave.as_ref().map(|left| left.spot);
         match (from, to) {
-            (Some((a, b)), Some((c, d))) => Some((lerp(a, c, k), lerp(b, d, k))),
-            (None, Some(span)) | (Some(span), None) => Some(span),
+            (Some(a), Some(b)) => Some((
+                lerp(a.0, b.0, k),
+                lerp(a.1, b.1, k),
+                lerp(a.2, b.2, k),
+                lerp(a.3, b.3, k),
+            )),
+            (None, Some(spot)) | (Some(spot), None) => Some(spot),
             (None, None) => None,
         }
     }
@@ -901,11 +932,12 @@ impl ScenarioPlay {
         let soft_end = (top + SOFT).min(paper.y + paper.height);
         if soft_end > top {
             let full = with_alpha(look.veil, VEIL * veil);
+            // Eight stops: iced keeps no more, and a ninth, the full veil,
+            // was dropped, so the edge ended in a step.
             let mut fade = Linear::new(Point::new(paper.x, top), Point::new(paper.x, top + SOFT));
-            for i in 0..=8 {
-                let t = i as f32 / 8.0;
-                let s = t * t * (3.0 - 2.0 * t);
-                fade = fade.add_stop(t, with_alpha(full, s));
+            for i in 0..8 {
+                let t = i as f32 / 7.0;
+                fade = fade.add_stop(t, with_alpha(full, smooth(t)));
             }
             fill_paper_band(frame, paper, view.scale, top, soft_end, fade);
         }
@@ -935,23 +967,24 @@ impl ScenarioPlay {
         }
     }
 
-    /// The row of the message, sliding from the one before. Its edges fade,
-    /// so the highlight has no hard line of its own.
+    /// The light around the message, gliding from the one before. It
+    /// fades out on every side, so it has no hard line of its own, also
+    /// where the paper's shadow begins.
     fn draw_band(&self, frame: &mut Frame, look: &Look, view: &Viewer, k: f32) {
-        let Some((top, bottom)) = self.band_span(k) else {
+        let Some((top, bottom, left, right)) = self.band_span(k) else {
             return;
         };
         let alpha = self.band_alpha(k);
         if alpha <= 0.01 {
             return;
         }
-        soft_band(
+        let (a, b) = (view.point((left, top)), view.point((right, bottom)));
+        soft_spot(
             frame,
             view.paper,
             view.scale,
-            view.point((0.0, top)).y,
-            view.point((0.0, bottom)).y,
-            with_alpha(look.accent, 0.07 * alpha),
+            Rectangle::new(a, Size::new(b.x - a.x, b.y - a.y)),
+            with_alpha(look.accent, 0.09 * alpha),
         );
     }
 
@@ -991,7 +1024,16 @@ impl ScenarioPlay {
         let took = travel_time(&step.points);
         let presence = ease_out(fraction(since, REVEAL));
         let light = appearance(since, took, self.onward, presence, SCENARIO);
-        draw_run(frame, &screen, look.accent, look.light, light);
+        // The message is drawn under the light: what the head has not
+        // reached yet waits in shade, so the run reads as it lights it.
+        draw_run_over(
+            frame,
+            &screen,
+            look.accent,
+            look.light,
+            light,
+            Some(with_alpha(look.veil, AHEAD)),
+        );
         if self.onward && since >= took && since < took + RIPPLE {
             let ripple = ease_out(fraction(since - took, RIPPLE));
             if ripple < 1.0

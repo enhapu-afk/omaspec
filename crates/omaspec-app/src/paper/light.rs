@@ -25,7 +25,10 @@ const DISSOLVE: Duration = Duration::from_millis(220);
 /// How far behind its head a light's trail reaches, on screen.
 const TRAIL: f32 = 150.0;
 /// How bright the head is, over the resting line.
-const HEAD: f32 = 0.7;
+const HEAD: f32 = 0.85;
+/// How far the head's color goes from the accent towards the light, so
+/// the run reads on a line of the accent's own color.
+const WHITEN: f32 = 0.6;
 
 /// Where a running light is, and how bright the line under it is.
 #[derive(Clone, Copy, Debug)]
@@ -136,10 +139,30 @@ pub(super) fn draw_run(
     tip: Color,
     light: Light,
 ) {
+    draw_run_over(frame, points, accent, tip, light, None);
+}
+
+/// [`draw_run`], with the stretch the light has not reached yet shaded in
+/// `ahead` (the page's color), so the line lights up as the head passes,
+/// where the line is already drawn under it.
+pub(super) fn draw_run_over(
+    frame: &mut Frame,
+    points: &[Point],
+    accent: Color,
+    tip: Color,
+    light: Light,
+    ahead: Option<Color>,
+) {
     let length = polyline_length(points);
     let head = length * light.head.clamp(0.0, 1.0);
     if points.len() < 2 || head <= 0.5 || (light.rest <= 0.01 && light.extra <= 0.01) {
         return;
+    }
+    if let Some(shade) = ahead.filter(|_| light.extra > 0.01 && head < length - 0.5) {
+        let left = stretch(points, head, length);
+        if left.len() >= 2 {
+            frame.stroke(&polyline(left), soft(shade, 4.0, light.extra));
+        }
     }
     if light.rest > 0.01 {
         let walked = stretch(points, 0.0, head);
@@ -152,40 +175,87 @@ pub(super) fn draw_run(
     }
     let tail = (head - TRAIL).max(0.0);
     let stations = stations(points, tail, head);
-    draw_ribbon(frame, &stations, accent, light.extra);
+    draw_ribbon(frame, &stations, accent, tip, light.extra);
     let Some(&(at, _)) = stations.last() else {
         return;
     };
-    for (radius, alpha) in [(18.0, 0.06), (12.0, 0.13), (7.5, 0.28), (4.6, 0.7)] {
+    let warm = mix(accent, tip, WHITEN);
+    for (radius, alpha, color) in [
+        (18.0, 0.07, accent),
+        (12.0, 0.15, accent),
+        (7.5, 0.32, warm),
+        (4.6, 0.75, warm),
+    ] {
         frame.fill(
             &Path::circle(at, radius),
-            with_alpha(accent, alpha * light.extra),
+            with_alpha(color, alpha * light.extra),
         );
     }
     frame.fill(&Path::circle(at, 2.6), with_alpha(tip, light.extra));
 }
 
-/// The row highlight, fading out at its top and bottom.
-pub(super) fn soft_band(
+/// A highlight over `area` (screen units) that fades out on all four
+/// sides, smoothly: drawn row by row on whole device pixels, each row one
+/// gradient across, as bright as the fade at its height. A band with only
+/// its top and bottom faded ended hard where the paper's shadow begins.
+pub(super) fn soft_spot(
     frame: &mut Frame,
     paper: Rectangle,
     scale: f32,
-    top: f32,
-    bottom: f32,
+    area: Rectangle,
     color: Color,
 ) {
-    let height = bottom - top;
-    if height < 1.0 || color.a <= 0.004 {
+    let (left, right) = (
+        area.x.max(paper.x),
+        (area.x + area.width).min(paper.x + paper.width),
+    );
+    let (top, bottom) = (area.y, area.y + area.height);
+    if right - left < 1.0 || bottom - top < 1.0 || color.a <= 0.004 {
         return;
     }
-    let edge = (14.0 / height).clamp(0.08, 0.45);
-    let clear = with_alpha(color, 0.0);
-    let fade = Linear::new(Point::new(paper.x, top), Point::new(paper.x, bottom))
-        .add_stop(0.0, clear)
-        .add_stop(edge, color)
-        .add_stop(1.0 - edge, color)
-        .add_stop(1.0, clear);
-    fill_paper_band(frame, paper, scale, top, bottom, fade);
+    let scale = if scale > 0.0 { scale } else { 1.0 };
+    // Across: a ramp in at the left and out at the right, four stops each,
+    // in order (iced keeps eight, sorted).
+    let width = right - left;
+    let edge_x = (64.0_f32).min(width * 0.35) / width;
+    // `with_alpha` scales the color's own alpha by `share`.
+    let across = |share: f32| {
+        let mut row = Linear::new(Point::new(left, top), Point::new(right, top));
+        for i in 0..4 {
+            let t = i as f32 / 3.0;
+            row = row.add_stop(edge_x * t, with_alpha(color, share * smooth(t)));
+        }
+        for i in 0..4 {
+            let t = i as f32 / 3.0;
+            row = row.add_stop(
+                1.0 - edge_x * (1.0 - t),
+                with_alpha(color, share * smooth(1.0 - t)),
+            );
+        }
+        row
+    };
+    // Down: rows of whole device pixels, at most 48 of them, each as bright
+    // as the fade at its height.
+    let height = bottom - top;
+    let edge_y = (20.0_f32).min(height * 0.4);
+    let (first, last) = ((top * scale).floor(), (bottom * scale).ceil());
+    let step = ((last - first) / 48.0).ceil().max(1.0);
+    let mut y = first;
+    while y < last {
+        let (y0, y1) = (y / scale, (y + step).min(last) / scale);
+        let middle = (y0 + y1) / 2.0;
+        let fade = smooth((middle - top) / edge_y).min(smooth((bottom - middle) / edge_y));
+        if fade > 0.004 {
+            fill_paper_band(frame, paper, scale, y0, y1, across(fade));
+        }
+        y += step;
+    }
+}
+
+/// `t` eased in and out, from 0 to 1.
+pub(super) fn smooth(t: f32) -> f32 {
+    let t = t.clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
 }
 
 pub(super) fn polyline_length(points: &[Point]) -> f32 {
@@ -246,6 +316,23 @@ fn trail_alpha(k: f32) -> f32 {
     HEAD * k * k
 }
 
+/// The trail's color at `k` of the way from its tail to its head: the
+/// accent, lighter towards the head, as bright as [`trail_alpha`].
+fn trail_color(accent: Color, tip: Color, k: f32, presence: f32) -> Color {
+    with_alpha(mix(accent, tip, WHITEN * k * k), trail_alpha(k) * presence)
+}
+
+/// `a` moved `t` of the way to `b`, alpha too.
+fn mix(a: Color, b: Color, t: f32) -> Color {
+    let t = t.clamp(0.0, 1.0);
+    Color {
+        r: a.r + (b.r - a.r) * t,
+        g: a.g + (b.g - a.g) * t,
+        b: a.b + (b.b - a.b) * t,
+        a: a.a + (b.a - a.a) * t,
+    }
+}
+
 /// The trail's width. It starts as wide as the resting line.
 fn trail_width(k: f32) -> f32 {
     2.5 + 3.5 * k
@@ -291,7 +378,13 @@ fn push_station(out: &mut Vec<(Point, f32)>, at: Point, distance: f32) {
 /// The bright head: one filled run per straight part, a gradient along it.
 /// Neighbours share an edge and the color on it, so the corner does not
 /// show. A stack of separate strokes used to: each cap sat on the next.
-fn draw_ribbon(frame: &mut Frame, stations: &[(Point, f32)], accent: Color, presence: f32) {
+fn draw_ribbon(
+    frame: &mut Frame,
+    stations: &[(Point, f32)],
+    accent: Color,
+    tip: Color,
+    presence: f32,
+) {
     let Some(&(_, span)) = stations.last() else {
         return;
     };
@@ -312,8 +405,8 @@ fn draw_ribbon(frame: &mut Frame, stations: &[(Point, f32)], accent: Color, pres
         let k0 = stations[i].1 / span;
         let k1 = stations[i + 1].1 / span;
         let fill = Linear::new(stations[i].0, stations[i + 1].0)
-            .add_stop(0.0, with_alpha(accent, trail_alpha(k0) * presence))
-            .add_stop(1.0, with_alpha(accent, trail_alpha(k1) * presence));
+            .add_stop(0.0, trail_color(accent, tip, k0, presence))
+            .add_stop(1.0, trail_color(accent, tip, k1, presence));
         let (a, d) = ends[i];
         let (b, c) = ends[i + 1];
         frame.fill(&quad(a, b, c, d), fill);
