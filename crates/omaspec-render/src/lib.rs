@@ -136,6 +136,15 @@ fn not_native(source: &str) -> Option<RenderError> {
         return None;
     }
     let found = kind::classify(source, Language::PlantUml);
+    // PlantUML itself no longer draws it: no package would help.
+    if kind::plantuml_block(source) == "chronology" {
+        return Some(RenderError::Unavailable {
+            line: None,
+            reason: "a chronology is not drawn: PlantUML's own release does not draw it \
+                     either; a Gantt chart or a timeline says the same"
+                .into(),
+        });
+    }
     Some(RenderError::Unavailable {
         line: None,
         reason: format!(

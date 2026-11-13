@@ -2506,9 +2506,12 @@ without folding, lines by hand and plays, and the Java PlantUML:
       \b` and the quantifiers, characters in a row one word. Open: an
       EBNF exception (`a - b`), look-arounds. The gallery has JSON's
       grammar and an ISO date.
-- [ ] PlantUML: Ditaa and chronology last: little written, and Gantt
-      charts and timelines say the same as chronology; until then the
-      Java PlantUML draws them.
+- [ ] PlantUML: Ditaa last: little written; until then the Java
+      PlantUML draws it.
+- [x] Chronology, left out (2026-11-13): PlantUML 1.2026 does not draw
+      it either ("Diagram not supported by this release of PlantUML"), so
+      no package helps, and a Gantt chart or a timeline says the same.
+      Omaspec says so instead of offering the Java PlantUML.
 
 ### Architecture diagrams, elegant and playful (2026-11-12)
 
