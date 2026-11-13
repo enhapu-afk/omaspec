@@ -2383,8 +2383,20 @@ without folding, lines by hand and plays, and the Java PlantUML:
       theme's page and ink, and a palette of middle tones that read as a
       line on any page, the diagram's own `pieN` where it sets them. The
       gallery has a TCP header, a team's skills and a budget.
-- [ ] Mermaid: the other charts of numbers: quadrant, sankey, XY chart;
-      and ZenUML.
+- [x] Mermaid's sankey, XY and quadrant charts (2026-11-13), on the
+      same drawers (`omaspec_uml::chart`). A sankey's nodes stand in
+      columns by how far they are from where the flows start, each as
+      tall as what passes through it, a flow a band as wide as its value
+      in the color it comes from, let through to the others; flows in a
+      circle are left to mmdr. An XY chart has bars side by side in their
+      category and lines with a dot at each value, its y-axis with its
+      range or the data's in steps of 1, 2 or 5, a faint grid;
+      `horizontal` is left to mmdr. A quadrant chart is a square in four,
+      each quarter in a light color with its name, the axes' ends under
+      and beside it, the points with their names, their own color and
+      radius where they give one. The gallery has downloads, an energy
+      flow and priorities.
+- [ ] Mermaid: ZenUML.
 - [x] PlantUML's YAML diagram (2026-11-12): `@startyaml` is read here
       (`omaspec_uml::yaml`) into the value the JSON drawer draws, so a
       mapping is a table and a sequence a column, with `#highlight`, a

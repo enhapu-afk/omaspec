@@ -1,5 +1,6 @@
 //! Mermaid's charts of numbers on Omaspec's own drawers
-//! (`omaspec_uml::chart`): a packet's fields, a radar, a treemap. Each
+//! (`omaspec_uml::chart`): a packet's fields, a radar, a treemap, a
+//! sankey, an XY chart and a quadrant chart. Each
 //! reads the text itself; the Mermaid theme gives the page, the ink and
 //! the palette, the pie's, so a chart sits among the other diagrams in
 //! their colors. A chart a drawer does not read is left to mmdr.
@@ -65,5 +66,23 @@ pub fn radar(theme: &Theme, source: &str) -> Option<(String, Map)> {
 pub fn treemap(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let diagram = chart::treemap::from_mermaid(source)?;
     let svg = chart::treemap::draw(&diagram, &look(theme, source)?).ok()?;
+    Some((svg, Map::default()))
+}
+
+pub fn sankey(theme: &Theme, source: &str) -> Option<(String, Map)> {
+    let diagram = chart::sankey::from_mermaid(source)?;
+    let svg = chart::sankey::draw(&diagram, &look(theme, source)?).ok()?;
+    Some((svg, Map::default()))
+}
+
+pub fn xy(theme: &Theme, source: &str) -> Option<(String, Map)> {
+    let diagram = chart::xy::from_mermaid(source)?;
+    let svg = chart::xy::draw(&diagram, &look(theme, source)?).ok()?;
+    Some((svg, Map::default()))
+}
+
+pub fn quadrant(theme: &Theme, source: &str) -> Option<(String, Map)> {
+    let diagram = chart::quadrant::from_mermaid(source)?;
+    let svg = chart::quadrant::draw(&diagram, &look(theme, source)?).ok()?;
     Some((svg, Map::default()))
 }

@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="689" height="401" viewBox="0 0 689 401">
+<rect x="0" y="0" width="689" height="401" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<g id="grid">
+<line x1="108.04" y1="360.95" x2="668.04" y2="360.95" fill="none" stroke="#D8DCE2" stroke-width="1"/>
+<line x1="108.04" y1="289.84" x2="668.04" y2="289.84" fill="none" stroke="#D8DCE2" stroke-width="1"/>
+<line x1="108.04" y1="218.73" x2="668.04" y2="218.73" fill="none" stroke="#D8DCE2" stroke-width="1"/>
+<line x1="108.04" y1="147.62" x2="668.04" y2="147.62" fill="none" stroke="#D8DCE2" stroke-width="1"/>
+<line x1="108.04" y1="76.51" x2="668.04" y2="76.51" fill="none" stroke="#D8DCE2" stroke-width="1"/>
+</g>
+</g>
+<g>
+<line x1="108.04" y1="40.95" x2="108.04" y2="360.95" fill="none" stroke="#64748B" stroke-width="1"/>
+<line x1="108.04" y1="360.95" x2="668.04" y2="360.95" fill="none" stroke="#64748B" stroke-width="1"/>
+<rect x="122.04" y="318.29" width="60.11" height="42.67" fill="#3E7CB1"/>
+<rect x="215.37" y="286.29" width="60.11" height="74.67" fill="#3E7CB1"/>
+<rect x="308.71" y="240.06" width="60.11" height="120.89" fill="#3E7CB1"/>
+<rect x="402.04" y="215.17" width="60.11" height="145.78" fill="#3E7CB1"/>
+<rect x="495.37" y="136.95" width="60.11" height="224" fill="#3E7CB1"/>
+<rect x="588.71" y="69.4" width="60.11" height="291.56" fill="#3E7CB1"/>
+</g>
+<g id="lines">
+<polyline points="154.71,325.4 248.04,293.4 341.37,254.29 434.71,200.95 528.04,147.62 621.37,90.73" fill="none" stroke="#D9731A" stroke-width="2"/>
+<ellipse cx="154.71" cy="325.4" rx="3" ry="3" fill="#D9731A"/>
+<ellipse cx="248.04" cy="293.4" rx="3" ry="3" fill="#D9731A"/>
+<ellipse cx="341.37" cy="254.29" rx="3" ry="3" fill="#D9731A"/>
+<ellipse cx="434.71" cy="200.95" rx="3" ry="3" fill="#D9731A"/>
+<ellipse cx="528.04" cy="147.62" rx="3" ry="3" fill="#D9731A"/>
+<ellipse cx="621.37" cy="90.73" rx="3" ry="3" fill="#D9731A"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="254.51" y="16.7" font-size="18" fill="#0F172A" font-weight="bold" textLength="267.07" lengthAdjust="spacing">Downloads in the first half year</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="95.37" y="365.1" font-size="12" fill="#0F172A" textLength="6.67" lengthAdjust="spacing">0</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="75.35" y="293.99" font-size="12" fill="#0F172A" textLength="26.69" lengthAdjust="spacing">2000</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="75.35" y="222.88" font-size="12" fill="#0F172A" textLength="26.69" lengthAdjust="spacing">4000</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="75.35" y="151.77" font-size="12" fill="#0F172A" textLength="26.69" lengthAdjust="spacing">6000</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="75.35" y="80.66" font-size="12" fill="#0F172A" textLength="26.69" lengthAdjust="spacing">8000</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="0" y="205.1" font-size="12" fill="#0F172A" textLength="59.35" lengthAdjust="spacing">Downloads</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="145.03" y="378.09" font-size="12" fill="#0F172A" textLength="19.34" lengthAdjust="spacing">Jan</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="237.7" y="378.09" font-size="12" fill="#0F172A" textLength="20.68" lengthAdjust="spacing">Feb</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="331.04" y="378.09" font-size="12" fill="#0F172A" textLength="20.66" lengthAdjust="spacing">Mar</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="425.37" y="378.09" font-size="12" fill="#0F172A" textLength="18.67" lengthAdjust="spacing">Apr</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="516.71" y="378.09" font-size="12" fill="#0F172A" textLength="22.67" lengthAdjust="spacing">May</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="611.7" y="378.09" font-size="12" fill="#0F172A" textLength="19.34" lengthAdjust="spacing">Jun</tspan>
+</text>
+</g>
+</g>
+</svg>

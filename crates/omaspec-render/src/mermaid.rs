@@ -414,6 +414,27 @@ const NATIVE: &[Native] = &[
         draw: |i| chart::treemap(i.theme, i.body),
         refusal: |_| None,
     },
+    Native {
+        kind: DiagramKind::Sankey,
+        headers: &["sankey"],
+        noun: "sankey diagram",
+        draw: |i| chart::sankey(i.theme, i.body),
+        refusal: |_| None,
+    },
+    Native {
+        kind: DiagramKind::XYChart,
+        headers: &["xychart"],
+        noun: "XY chart",
+        draw: |i| chart::xy(i.theme, i.body),
+        refusal: |_| None,
+    },
+    Native {
+        kind: DiagramKind::Quadrant,
+        headers: &["quadrantchart"],
+        noun: "quadrant chart",
+        draw: |i| chart::quadrant(i.theme, i.body),
+        refusal: |_| None,
+    },
 ];
 
 /// The drawer of Omaspec's own for the kind the header of `body` names.
@@ -1163,11 +1184,11 @@ mod tests {
             class.reason,
             "a class is not drawn by Omaspec; mmdr draws it"
         );
-        let flows = coverage("sankey-beta\n  a,b,1\n").unwrap().unwrap();
-        assert!(flows.line.is_none());
+        let zen = coverage("zenuml\n  A.method()\n").unwrap().unwrap();
+        assert!(zen.line.is_none());
         assert_eq!(
-            flows.reason,
-            "Sankey diagrams are not drawn by Omaspec; mmdr draws them"
+            zen.reason,
+            "ZenUML sequence diagrams are not drawn by Omaspec; mmdr draws them"
         );
         assert_eq!(
             coverage("kanban\n  todo[Todo]\n    a[Write]\n").unwrap(),

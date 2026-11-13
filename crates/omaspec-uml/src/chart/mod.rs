@@ -1,12 +1,16 @@
 //! Mermaid's charts of numbers, each read from its text and drawn by a
 //! module of its own: a packet's fields (`packet-beta`), a radar
-//! (`radar-beta`), a treemap (`treemap-beta`). They share a [`Look`]: the
+//! (`radar-beta`), a treemap (`treemap-beta`), a sankey (`sankey-beta`),
+//! an XY chart (`xychart-beta`) and a quadrant chart (`quadrantChart`). They share a [`Look`]: the
 //! page, the ink and a palette the Mermaid theme gives, so a chart reads
 //! in the colors of the diagrams around it.
 
 pub mod packet;
+pub mod quadrant;
 pub mod radar;
+pub mod sankey;
 pub mod treemap;
+pub mod xy;
 
 use crate::color::{Color, Paint};
 use crate::svg::{Align, Canvas, Layer};

@@ -236,6 +236,24 @@ pub static EXAMPLES: &[Example] = &[
         "C4-PlantUML: people, containers, a boundary and a legend."
     ),
     example!(
+        "downloads.mmd",
+        Data,
+        "Downloads in the first half year",
+        "A Mermaid XY chart: bars and a line over the months."
+    ),
+    example!(
+        "energy-flow.mmd",
+        Data,
+        "Where the energy goes",
+        "A Mermaid sankey: each flow as wide as what it carries."
+    ),
+    example!(
+        "priorities.mmd",
+        Data,
+        "What to build next",
+        "A Mermaid quadrant chart: each idea by its effort and its value."
+    ),
+    example!(
         "budget.mmd",
         Data,
         "Where the budget goes",

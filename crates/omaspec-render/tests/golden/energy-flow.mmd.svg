@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="660" height="435" viewBox="0 0 660 435">
+<rect x="0" y="0" width="660" height="435" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<path d="M12 34.95C110.67 34.95 110.67 34.95 209.33 34.95L209.33 197.41C110.67 197.41 110.67 197.41 12 197.41Z" fill="#3E7CB1" fill-opacity="0.4"/>
+<path d="M12 211.41C110.67 211.41 110.67 197.41 209.33 197.41L209.33 305.72C110.67 305.72 110.67 319.72 12 319.72Z" fill="#3A9A4A" fill-opacity="0.4"/>
+<path d="M12 333.72C110.67 333.72 110.67 305.72 209.33 305.72L209.33 386.95C110.67 386.95 110.67 414.95 12 414.95Z" fill="#D64550" fill-opacity="0.4"/>
+<path d="M221.33 34.95C320 34.95 320 34.95 418.67 34.95L418.67 183.88C320 183.88 320 183.88 221.33 183.88Z" fill="#D9731A" fill-opacity="0.4"/>
+<path d="M221.33 183.88C320 183.88 320 197.88 418.67 197.88L418.67 333.26C320 333.26 320 319.26 221.33 319.26Z" fill="#D9731A" fill-opacity="0.4"/>
+<path d="M221.33 319.26C320 319.26 320 347.26 418.67 347.26L418.67 414.95C320 414.95 320 386.95 221.33 386.95Z" fill="#D9731A" fill-opacity="0.4"/>
+<path d="M430.67 197.88C529.33 197.88 529.33 34.95 628 34.95L628 137.84C529.33 137.84 529.33 300.77 430.67 300.77Z" fill="#2A9A93" fill-opacity="0.4"/>
+<path d="M430.67 300.77C529.33 300.77 529.33 151.84 628 151.84L628 184.34C529.33 184.34 529.33 333.26 430.67 333.26Z" fill="#2A9A93" fill-opacity="0.4"/>
+</g>
+<g>
+<rect x="0" y="34.95" width="12" height="162.46" fill="#3E7CB1"/>
+<rect x="209.33" y="34.95" width="12" height="352" fill="#D9731A"/>
+<rect x="0" y="211.41" width="12" height="108.31" fill="#3A9A4A"/>
+<rect x="0" y="333.72" width="12" height="81.23" fill="#D64550"/>
+<rect x="418.67" y="34.95" width="12" height="148.92" fill="#8E5BB5"/>
+<rect x="418.67" y="197.88" width="12" height="135.38" fill="#2A9A93"/>
+<rect x="418.67" y="347.26" width="12" height="67.69" fill="#B8860B"/>
+<rect x="628" y="34.95" width="12" height="102.89" fill="#C9508A"/>
+<rect x="628" y="151.84" width="12" height="32.49" fill="#9C6B3F"/>
+</g>
+<g>
+<rect x="15" y="108.62" width="54.41" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="224.33" y="203.39" width="55.85" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="15" y="258" width="53.68" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="15" y="366.77" width="47.91" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="433.67" y="101.85" width="65.24" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="433.67" y="258" width="70.31" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="433.67" y="373.54" width="65.25" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="549.63" y="78.83" width="75.37" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="573.47" y="160.52" width="51.53" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="220.97" y="16.7" font-size="18" fill="#0F172A" font-weight="bold" textLength="198.05" lengthAdjust="spacing">Where the energy goes</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="18" y="120.68" font-size="13" fill="#0F172A" textLength="48.41" lengthAdjust="spacing">Solar 60</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="227.33" y="215.45" font-size="13" fill="#0F172A" textLength="49.85" lengthAdjust="spacing">Grid 130</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="18" y="270.07" font-size="13" fill="#0F172A" textLength="47.68" lengthAdjust="spacing">Wind 40</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="18" y="378.83" font-size="13" fill="#0F172A" textLength="41.91" lengthAdjust="spacing">Gas 30</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="436.67" y="113.91" font-size="13" fill="#0F172A" textLength="59.24" lengthAdjust="spacing">Homes 55</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="436.67" y="270.07" font-size="13" fill="#0F172A" textLength="64.31" lengthAdjust="spacing">Industry 50</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="436.67" y="385.6" font-size="13" fill="#0F172A" textLength="59.25" lengthAdjust="spacing">Losses 25</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="552.63" y="90.9" font-size="13" fill="#0F172A" textLength="69.37" lengthAdjust="spacing">Products 38</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<tspan x="576.47" y="172.59" font-size="13" fill="#0F172A" textLength="45.53" lengthAdjust="spacing">Heat 12</tspan>
+</text>
+</g>
+</g>
+</svg>

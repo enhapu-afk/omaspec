@@ -209,7 +209,7 @@ fn structure_name(code: &str) -> &'static str {
 
 const MERMAID_KINDS: [(&str, Kind, &str); 22] = [
     ("sequenceDiagram", Kind::Sequence, "Sequence diagram"),
-    ("zenuml", Kind::Sequence, "Sequence diagram"),
+    ("zenuml", Kind::Sequence, "ZenUML sequence diagram"),
     ("stateDiagram", Kind::State, "State diagram"),
     ("classDiagram", Kind::Structure, "Class diagram"),
     ("erDiagram", Kind::Structure, "ER diagram"),
