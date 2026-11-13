@@ -12,6 +12,7 @@ use omaspec_render::export::Format;
 use super::doc::Doc;
 use super::files::export_in;
 use super::{App, Command, Message, PROMPT};
+use crate::save_dialog::Answer;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Asking {
@@ -62,6 +63,39 @@ impl ExportLook {
             ExportLook::File => "file's colors",
             ExportLook::Look(look) => look.name(),
         }
+    }
+
+    /// What the save dialog's choice of colors answers for it.
+    pub fn key(self) -> &'static str {
+        match self {
+            ExportLook::Shown => "shown",
+            ExportLook::File => "own",
+            ExportLook::Look(look) => look.name(),
+        }
+    }
+
+    /// As the save dialog lists it: `As shown`.
+    pub fn title(self) -> String {
+        let label = self.label();
+        let mut chars = label.chars();
+        chars.next().map_or_else(String::new, |first| {
+            first.to_uppercase().chain(chars).collect()
+        })
+    }
+}
+
+/// The id of the save dialog's choice of colors.
+pub(super) const LOOK: &str = "look";
+
+/// A format as a menu and a dialog name it.
+pub(super) fn format_name(format: Format) -> &'static str {
+    match format {
+        Format::Svg => "SVG",
+        Format::Png => "PNG",
+        Format::Jpeg => "JPEG",
+        Format::Pdf => "PDF",
+        Format::Markdown => "Markdown",
+        Format::Zip => "ZIP",
     }
 }
 
@@ -249,14 +283,8 @@ impl App {
             self.prompt = None;
             return Task::none();
         };
-        if self.docs[index].path.as_deref() == Some(path.as_path()) {
-            self.notice = Some("that file is the diagram source; choose another name".into());
-            return Task::none();
-        }
-        if let Some(parent) = path.parent().filter(|dir| !dir.as_os_str().is_empty())
-            && !parent.is_dir()
-        {
-            self.notice = Some(format!("{} is not a folder", parent.display()));
+        if let Err(why) = self.export_target(index, &path) {
+            self.notice = Some(why);
             return Task::none();
         }
         if path.exists() && !overwrite {
@@ -270,6 +298,34 @@ impl App {
             ));
             return Task::none();
         }
+        self.prompt = None;
+        self.write_export(index, format, path, look)
+    }
+
+    /// Why the export of the tab at `index` cannot go to `path`: it is the
+    /// diagram's own source, or its folder is not there.
+    fn export_target(&self, index: usize, path: &Path) -> Result<(), String> {
+        if self.docs[index].path.as_deref() == Some(path) {
+            return Err("that file is the diagram source; choose another name".into());
+        }
+        if let Some(parent) = path.parent().filter(|dir| !dir.as_os_str().is_empty())
+            && !parent.is_dir()
+        {
+            return Err(format!("{} is not a folder", parent.display()));
+        }
+        Ok(())
+    }
+
+    /// Writes the export of the tab at `index` to `path`, in `look`, in the
+    /// background; [`Message::Exported`] says how it went.
+    fn write_export(
+        &mut self,
+        index: usize,
+        format: Format,
+        path: PathBuf,
+        look: ExportLook,
+    ) -> Task<Message> {
+        let key = self.docs[index].key;
         let place = self.place_of(key);
         let doc = &self.docs[index];
         let own = place
@@ -279,16 +335,57 @@ impl App {
         let shown_name = doc
             .shown_diagram()
             .map_or_else(|| doc.name(), |(_, _, name)| name);
-        let task = match look {
+        match look {
             ExportLook::Shown => doc
                 .paper
                 .export_to(format, &shown_name, own, path)
                 .map(Message::Exported),
             ExportLook::File => export_in(None, doc, place, format, path),
             ExportLook::Look(look) => export_in(Some(look), doc, place, format, path),
+        }
+    }
+
+    /// What the desktop's save dialog answered for the export of tab `key`:
+    /// a file, which is written in the colors chosen (the dialog asked
+    /// before it replaces one); nothing; or no dialog, and the bottom line
+    /// asks instead.
+    pub(super) fn export_answered(
+        &mut self,
+        key: u64,
+        format: Format,
+        answer: Answer,
+    ) -> Task<Message> {
+        let Some(index) = self.docs.iter().position(|doc| doc.key == key) else {
+            return Task::none();
         };
-        self.prompt = None;
-        task
+        match &answer {
+            Answer::Cancelled => Task::none(),
+            Answer::Unavailable(why) => {
+                if self.doc().key != key {
+                    self.notice = Some(format!("no save dialog: {why}"));
+                    return Task::none();
+                }
+                let task = self.ask(Asking::Export(format));
+                self.notice = Some(format!("no save dialog ({why}): name the file here"));
+                task
+            }
+            Answer::Chosen { path, .. } => {
+                let path = export_path(path.clone(), format);
+                if let Err(why) = self.export_target(index, &path) {
+                    self.notice = Some(why);
+                    return Task::none();
+                }
+                let look = answer
+                    .choice(LOOK)
+                    .and_then(|chosen| {
+                        self.export_looks(format)
+                            .into_iter()
+                            .find(|look| look.key() == chosen)
+                    })
+                    .unwrap_or(ExportLook::Shown);
+                self.write_export(index, format, path, look)
+            }
+        }
     }
 
     /// The project the palette's *Export the project* writes: the active

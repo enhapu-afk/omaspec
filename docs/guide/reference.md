@@ -61,10 +61,14 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Super+F | fullscreen (Omarchy's chord for every window) |
 
 The status bar shows the Omaspec mark and `Ctrl+Shift+P`; a click opens the command
-list. Export asks for a path in that line (Enter writes it, a second Enter replaces a
-file that is already there), and for a look: as the diagram shows, in the file's own
-colors, plain, light, dark, or for an SVG auto. Tab takes the next, a click takes one.
-The image keeps the file's own source whatever the look.
+list. To export, right-click the diagram and pick *Export as ›* and a format (SVG, PNG,
+JPEG, PDF, Markdown, ZIP), or take it from File › Export as. The desktop's own save
+dialog opens (Omarchy's, through xdg-desktop-portal): the folder, the name, and beside
+them *Colors*: as the diagram shows, in the file's own colors, plain, light, dark, or
+for an SVG auto. It asks before it replaces a file. Where no such dialog answers, the
+status line asks for the path instead (Enter writes it, a second Enter replaces a file
+that is already there; Tab takes the next look, a click takes one). The image keeps
+the file's own source whatever the look.
 
 ### Project and tabs
 

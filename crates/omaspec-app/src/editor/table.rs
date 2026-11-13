@@ -440,39 +440,43 @@ pub const TABLE: &[Entry] = &[
     cmd("Export the diagram as SVG", "", Command::ExportSvg)
         .menu(File)
         .gap()
-        .child("Export")
+        .child("Export as")
         .short("SVG…")
         .tool(8)
         .at(Spot::Diagram),
     cmd("Export the diagram as PNG", "", Command::ExportPng)
         .menu(File)
-        .child("Export")
+        .child("Export as")
         .short("PNG…")
         .at(Spot::Diagram),
     cmd("Export the diagram as JPEG", "", Command::ExportJpeg)
         .menu(File)
-        .child("Export")
-        .short("JPEG…"),
+        .child("Export as")
+        .short("JPEG…")
+        .at(Spot::Diagram),
     cmd("Export the diagram as PDF", "", Command::ExportPdf)
         .menu(File)
-        .child("Export")
-        .short("PDF…"),
+        .child("Export as")
+        .short("PDF…")
+        .at(Spot::Diagram),
     cmd(
         "Export the diagram as Markdown",
         "",
         Command::ExportMarkdown,
     )
     .menu(File)
-    .child("Export")
-    .short("Markdown…"),
+    .child("Export as")
+    .short("Markdown…")
+    .at(Spot::Diagram),
     cmd(
         "Export the diagram as ZIP (SVG, source, PDF)",
         "",
         Command::ExportZip,
     )
     .menu(File)
-    .child("Export")
-    .short("ZIP…"),
+    .child("Export as")
+    .short("ZIP…")
+    .at(Spot::Diagram),
     cmd(
         "Check the project: lint every diagram and list the findings",
         "",
@@ -608,8 +612,19 @@ impl Row {
 
 /// The rows of `menu`: its entries, those of one child menu as one row.
 pub fn rows(menu: Menu) -> Vec<Row> {
+    grouped(entries(menu))
+}
+
+/// The rows of the context menu opened at `at`, a child menu's entries as
+/// one row there too (*Export as ›*).
+pub fn context_rows(at: Spot) -> Vec<Row> {
+    grouped(context(at))
+}
+
+/// `entries` as rows: those of one child menu, one after another, as one.
+fn grouped(entries: impl Iterator<Item = &'static Entry>) -> Vec<Row> {
     let mut rows: Vec<Row> = Vec::new();
-    for entry in entries(menu) {
+    for entry in entries {
         match entry.child {
             None => rows.push(Row::Entry(entry)),
             Some(name) => match rows.last_mut() {
@@ -679,8 +694,16 @@ mod tests {
         let rows = rows(Menu::File);
         let export = rows
             .iter()
-            .find(|r| matches!(r, Row::Child { name: "Export", .. }))
-            .expect("File has Export");
+            .find(|r| {
+                matches!(
+                    r,
+                    Row::Child {
+                        name: "Export as",
+                        ..
+                    }
+                )
+            })
+            .expect("File has Export as");
         let Row::Child {
             entries: children,
             gap,

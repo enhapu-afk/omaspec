@@ -66,7 +66,7 @@ pub struct Child {
 impl Open {
     pub fn rows(&self) -> Vec<Row> {
         match self.kind {
-            Kind::Context { spot, .. } => table::context(spot).map(Row::Entry).collect(),
+            Kind::Context { spot, .. } => table::context_rows(spot),
             Kind::Bar(menu) => table::rows(menu),
         }
     }

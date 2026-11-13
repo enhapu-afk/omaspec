@@ -232,6 +232,9 @@ pub enum Message {
     Focused,
     Copied(Result<&'static str, String>),
     Exported(Result<String, String>),
+    /// What the desktop's dialog answered to where the export of this tab
+    /// in this format goes.
+    ExportAnswered(u64, Format, crate::save_dialog::Answer),
     /// What a project's export wrote, or why it wrote nothing.
     ProjectExported(Result<String, String>),
     /// Commits of the file in a tab, for the compare picker.
@@ -702,6 +705,10 @@ struct App {
     /// The diagram takes the active Omarchy colors at render time. The
     /// file stays as it is.
     follow_theme: bool,
+    /// An export asks where in the desktop's own dialog ([`crate::save_dialog`]);
+    /// without it, or where none answers, in the bottom line. Tests ask
+    /// there.
+    pub(super) dialogs: bool,
     /// Render requests whose picture was colored on top of the file, so
     /// the answer can be read back against the file's lines.
     pending: HashMap<(u64, u64), Pending>,
@@ -816,6 +823,7 @@ impl App {
             alt_armed: false,
             play_when_drawn: None,
             follow_theme: session.follow_theme,
+            dialogs: cfg!(not(test)),
             pending: HashMap::new(),
             mark: crate::logo::handle(),
             mark_large: crate::logo::large(),
@@ -1288,6 +1296,9 @@ impl App {
                     Err(err) => format!("not copied: {err}"),
                 });
                 Task::none()
+            }
+            Message::ExportAnswered(key, format, answer) => {
+                self.export_answered(key, format, answer)
             }
             Message::Exported(result) => {
                 self.notice = Some(match result {

@@ -52,3 +52,6 @@ proptest = { version = "1", default-features = false, features = ["std"] }
 # The Java PlantUML runs confined with Landlock, which only Linux has.
 [target.'cfg(target_os = "linux")'.dependencies]
 landlock = "0.4"
+# The desktop's own dialog to save an export in (xdg-desktop-portal), on a
+# runtime of its own beside iced's thread pool.
+ashpd = { version = "0.14", default-features = false, features = ["async-io", "file_chooser"] }

@@ -1274,6 +1274,114 @@ fn a_markdown_document_shows_the_diagram_at_the_caret() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// The desktop's dialog asks where the export goes, under the name the
+/// bottom line would suggest, for the one kind of file, with the colors
+/// to draw it in beside; its answer is written, refused, or handed to the
+/// bottom line when no dialog came.
+#[test]
+fn an_export_asks_in_the_desktop_s_dialog() {
+    use crate::save_dialog::Answer;
+
+    let dir = temp_dir("export-dialog");
+    let src = dir.join("flow.puml");
+    let text = "@startuml\nA -> B\n@enduml\n";
+    std::fs::write(&src, text).unwrap();
+    let mut app = open(std::slice::from_ref(&src));
+    let key = app.doc().key;
+
+    let asked = app.export_asked(Format::Png);
+    assert_eq!(asked.title, "Export the diagram as PNG");
+    assert_eq!(
+        (asked.folder.as_path(), asked.name.as_str()),
+        (dir.as_path(), "flow.png")
+    );
+    assert_eq!(
+        asked.kind,
+        ("PNG file".into(), "image/png".into(), "*.png".into())
+    );
+    let colors = &asked.choices[0];
+    assert_eq!(
+        (colors.id.as_str(), colors.initial.as_str()),
+        ("look", "shown")
+    );
+    let titles: Vec<&str> = colors.options.iter().map(|(_, t)| t.as_str()).collect();
+    assert_eq!(
+        titles,
+        ["As shown", "File's colors", "Plain", "Light", "Dark"]
+    );
+    // Markdown is the source alone: no colors to choose.
+    assert!(app.export_asked(Format::Markdown).choices.is_empty());
+
+    // A file chosen is written, in the colors chosen; nothing asks again.
+    let chosen = |path: PathBuf, look: &str| Answer::Chosen {
+        path,
+        choices: vec![("look".into(), look.into())],
+    };
+    let _ = app.update(Message::ExportAnswered(
+        key,
+        Format::Png,
+        chosen(dir.join("out"), "dark"),
+    ));
+    assert!(
+        app.prompt.is_none() && app.notice.is_none(),
+        "{:?}",
+        app.notice
+    );
+    // A folder that is not there is refused.
+    let _ = app.update(Message::ExportAnswered(
+        key,
+        Format::Svg,
+        chosen(dir.join("gone").join("flow.svg"), "shown"),
+    ));
+    assert!(
+        app.notice
+            .as_deref()
+            .is_some_and(|n| n.contains("not a folder"))
+    );
+    assert_eq!(std::fs::read_to_string(&src).unwrap(), text);
+    // Cancelled: nothing.
+    app.notice = None;
+    let _ = app.update(Message::ExportAnswered(key, Format::Svg, Answer::Cancelled));
+    assert!(app.prompt.is_none() && app.notice.is_none());
+    // No dialog on this desktop: the bottom line asks, and says why.
+    let _ = app.update(Message::ExportAnswered(
+        key,
+        Format::Svg,
+        Answer::Unavailable("no portal".into()),
+    ));
+    let prompt = app.prompt.as_ref().unwrap();
+    assert!(matches!(prompt.asking, Asking::Export(Format::Svg)));
+    assert_eq!(prompt.input, dir.join("flow.svg").display().to_string());
+    assert!(
+        app.notice
+            .as_deref()
+            .is_some_and(|n| n.contains("no portal"))
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A click on the diagram with the right button offers *Export as ›* and
+/// every format in it.
+#[test]
+fn the_diagram_s_menu_exports_as_every_format() {
+    let rows = table::context_rows(table::Spot::Diagram);
+    let formats: Vec<&str> = rows
+        .iter()
+        .find_map(|row| match row {
+            table::Row::Child {
+                name: "Export as",
+                entries,
+                ..
+            } => Some(entries.iter().map(|e| e.menu_label()).collect()),
+            _ => None,
+        })
+        .expect("Export as in the diagram's menu");
+    assert_eq!(
+        formats,
+        ["SVG…", "PNG…", "JPEG…", "PDF…", "Markdown…", "ZIP…"]
+    );
+}
+
 #[test]
 fn export_asks_for_a_path_and_refuses_the_source() {
     let dir = temp_dir("export-to");
@@ -5598,17 +5706,17 @@ fn the_right_button_opens_a_menu_at_the_box_and_the_keys_run_it() {
         Some(Command::Cancel)
     );
 
-    // Down from nowhere is the first entry, Up from there the last.
-    let entries: Vec<_> = table::context(table::Spot::Diagram).collect();
-    assert_eq!(open.rows().len(), entries.len());
+    // Down from nowhere is the first row, Up from there the last.
+    let rows = table::context_rows(table::Spot::Diagram);
+    assert_eq!(open.rows().len(), rows.len());
     press(&mut app, Command::Down);
     assert_eq!(app.menu.as_ref().unwrap().pointed, Some(0));
     press(&mut app, Command::Up);
-    assert_eq!(app.menu.as_ref().unwrap().pointed, Some(entries.len() - 1));
+    assert_eq!(app.menu.as_ref().unwrap().pointed, Some(rows.len() - 1));
     // Enter on "fold this container" folds Brewing, where the caret landed.
-    let fold = entries
+    let fold = rows
         .iter()
-        .position(|e| e.command == Command::FoldBox)
+        .position(|row| matches!(row, table::Row::Entry(e) if e.command == Command::FoldBox))
         .unwrap();
     for _ in 0..=fold {
         press(&mut app, Command::Down);

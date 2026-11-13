@@ -10,7 +10,9 @@ use omaspec_render::export::Format;
 
 use super::compare::Target;
 use super::doc::Doc;
+use super::prompt::{ExportLook, LOOK, format_name};
 use super::{App, Asking, Message, free_name, plural};
+use crate::save_dialog;
 
 /// Images larger than this are not searched for a diagram.
 const MAX_IMAGE: u64 = 64 << 20;
@@ -49,11 +51,59 @@ impl App {
         }
     }
 
-    /// Asks where to write the diagram on screen. SVG and PNG carry the
-    /// source; the ZIP holds the SVG, the source and a PDF. The source file
-    /// itself is never the destination.
+    /// Asks where to write the diagram on screen: in the desktop's own
+    /// dialog, which also offers the colors to draw it in, else in the
+    /// bottom line. SVG and PNG carry the source; the ZIP holds the SVG,
+    /// the source and a PDF. The source file itself is never the
+    /// destination.
     pub(super) fn export(&mut self, format: Format) -> Task<Message> {
-        self.ask(Asking::Export(format))
+        if !self.dialogs {
+            return self.ask(Asking::Export(format));
+        }
+        let key = self.doc().key;
+        let asked = self.export_asked(format);
+        self.close_picker();
+        Task::perform(save_dialog::save(asked), move |answer| {
+            Message::ExportAnswered(key, format, answer)
+        })
+    }
+
+    /// What the save dialog asks for an export of the active tab: where
+    /// (the name and folder the bottom line would suggest), the kind of
+    /// file, and the colors to draw it in.
+    pub(super) fn export_asked(&self, format: Format) -> save_dialog::Asked {
+        let folder = self
+            .folder
+            .clone()
+            .or_else(|| std::env::current_dir().ok())
+            .unwrap_or_default();
+        let suggested = PathBuf::from(super::prompt::suggested_export(self.doc(), &folder, format));
+        let looks = self.export_looks(format);
+        let colors = (looks.len() > 1).then(|| save_dialog::Choice {
+            id: LOOK.into(),
+            label: "Colors".into(),
+            options: looks
+                .iter()
+                .map(|look| (look.key().to_owned(), look.title()))
+                .collect(),
+            initial: ExportLook::Shown.key().into(),
+        });
+        let name = format_name(format);
+        save_dialog::Asked {
+            title: format!("Export the diagram as {name}"),
+            accept: "Export".into(),
+            folder: suggested.parent().map_or(folder, Path::to_path_buf),
+            name: suggested
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            kind: (
+                format!("{name} file"),
+                format.mime().into(),
+                format!("*.{}", format.extension()),
+            ),
+            choices: colors.into_iter().collect(),
+        }
     }
 
     /// Closes every tab but this one, except those with unsaved changes.
