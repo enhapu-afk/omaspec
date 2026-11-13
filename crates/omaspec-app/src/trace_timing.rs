@@ -278,14 +278,10 @@ fn round_off(value: f64) -> f64 {
     ((value / scale).round() * scale).max(f64::MIN_POSITIVE)
 }
 
-/// A time as the timing diagram writes it: no needless decimals.
+/// A time as the timing diagram writes it: to the millisecond, no needless
+/// decimals (as `f64` writes itself), and no `-0` (adding `0.0` makes it `0`).
 fn number(value: f64) -> String {
-    let rounded = (value * 1000.0).round() / 1000.0;
-    if rounded.fract() == 0.0 {
-        format!("{}", rounded as i64)
-    } else {
-        format!("{rounded}")
-    }
+    format!("{}", (value * 1000.0).round() / 1000.0 + 0.0)
 }
 
 #[cfg(test)]
@@ -357,6 +353,97 @@ mod tests {
             text.contains("@0\nR0 is \"Open\"\nR0 is \"Closed\"\n@4\nR0 is \"Open\"\n"),
             "{text}"
         );
+        // Five minutes back is still out of order, not the next day.
+        let trace = door_line("20:05:00", "open")
+            + &door_line("20:00:00", "close")
+            + &door_line("20:05:10", "open");
+        let text = timing(&trace, "jitter", &specs).unwrap();
+        assert!(
+            text.contains("@0\nR0 is \"Open\"\nR0 is \"Closed\"\n@10\nR0 is \"Open\"\n"),
+            "{text}"
+        );
+    }
+
+    /// A line of the door's trace at `time`, the time as text or a number.
+    fn door_line(time: &str, event: &str) -> String {
+        let time = if time.parse::<f64>().is_ok() {
+            time.to_owned()
+        } else {
+            format!("\"{time}\"")
+        };
+        format!("{{\"time\":{time},\"object\":\"Door\",\"event\":\"{event}\"}}\n")
+    }
+
+    fn door() -> Specs {
+        Specs::new(vec![
+            Spec::read(DOOR, Language::PlantUml, "door.puml").unwrap(),
+        ])
+    }
+
+    #[test]
+    fn two_objects_of_one_machine_are_two_rows() {
+        let trace = "{\"time\":\"20:00:00\",\"object\":\"front\",\"machine\":\"Door\",\"event\":\"open\"}\n{\"time\":\"20:00:10\",\"object\":\"back\",\"machine\":\"Door\",\"event\":\"lock\"}\n";
+        let text = timing(trace, "doors", &door()).unwrap();
+        assert!(
+            text.contains("concise \"front\" as R0\nconcise \"back\" as R1\n"),
+            "{text}"
+        );
+        assert!(text.contains("@10\nR1 is \"Locked\"\n"), "{text}");
+    }
+
+    /// Where every line has its date, the moments count, whatever the
+    /// offset each is written in and however long the pause between.
+    #[test]
+    fn dated_times_count_as_the_moments_they_are() {
+        let trace = door_line("2026-11-12T21:00:00+01:00", "open")
+            + &door_line("2026-11-12T20:00:10Z", "close");
+        let text = timing(&trace, "zones", &door()).unwrap();
+        assert!(
+            text.contains("@0\nR0 is \"Open\"\n@10\nR0 is \"Closed\"\n"),
+            "{text}"
+        );
+        let trace =
+            door_line("2026-11-12T20:00:00Z", "open") + &door_line("2026-11-14T20:00:05Z", "close");
+        let text = timing(&trace, "weekend", &door()).unwrap();
+        assert!(text.contains("@172805\n"), "two days on: {text}");
+    }
+
+    /// Where each object begins: a step before the first line, as long as
+    /// the lines are apart on average; one second before a single line.
+    #[test]
+    fn an_object_begins_a_step_before_the_first_line() {
+        let trace = door_line("100", "open") + &door_line("110", "close");
+        let text = timing(&trace, "numbers", &door()).unwrap();
+        assert!(
+            text.contains("caption time as the trace gives it")
+                && text.contains("@95\nR0 is \"Closed\"\n@100\nR0 is \"Open\"\n@110\n"),
+            "{text}"
+        );
+        let text = timing(&door_line("20:00:00", "open"), "one", &door()).unwrap();
+        assert!(
+            text.contains("@-1\nR0 is \"Closed\"\n@0\nR0 is \"Open\"\n"),
+            "{text}"
+        );
+    }
+
+    /// A band runs to the object's next line, or a step on after its last
+    /// one, and is never narrower than half a step.
+    #[test]
+    fn a_band_runs_to_the_next_line_and_is_never_too_narrow() {
+        // The lines 30 s apart, a step of 20 s: on to 50.
+        let trace = door_line("20:00:00", "open") + &door_line("20:00:30", "lock");
+        let text = timing(&trace, "last", &door()).unwrap();
+        assert!(
+            text.contains("highlight 30 to 50 #FFC9C9 : line 2: Door lock?"),
+            "{text}"
+        );
+        // The next line a second on, a step of 10 s: half a step, to 35.
+        let trace = trace + &door_line("20:00:31", "close");
+        let text = timing(&trace, "close", &door()).unwrap();
+        assert!(
+            text.contains("highlight 30 to 35 #FFC9C9 : line 2: Door lock?"),
+            "{text}"
+        );
     }
 
     /// A trace that mixes ISO times and clocks counts every line by its
@@ -396,6 +483,13 @@ mod tests {
             at("2026-11-12 15:14:02.5-0500"),
             Some((54842.5, Some(day + 72842.5)))
         );
+        assert_eq!(
+            at("2026-11-13T01:44:02.5+05:30"),
+            Some((6242.5, Some(day + 72842.5)))
+        );
+        // No such month or day: the clock alone.
+        assert_eq!(at("2026-13-01T10:00:00Z"), Some((36000.0, None)));
+        assert_eq!(at("2026-11-32T10:00:00Z"), Some((36000.0, None)));
         assert_eq!(at("10:30:01"), Some((37801.0, None)));
         // A date not written as ISO writes it: the clock alone.
         assert_eq!(at("2026/11/12 20:14:02"), Some((72842.0, None)));
@@ -406,6 +500,11 @@ mod tests {
         assert_eq!(round_off(160.17), 200.0);
         assert_eq!(round_off(8031.5), 8000.0);
         assert_eq!(round_off(0.42), 0.4);
+        assert_eq!(number(30.0), "30");
+        assert_eq!(number(0.5), "0.5");
+        assert_eq!(number(1.23456), "1.235");
+        assert_eq!(number(-0.0001), "0");
+        assert_eq!(number(172_805.0), "172805");
     }
 
     use proptest::prelude::*;
