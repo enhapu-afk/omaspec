@@ -807,3 +807,228 @@ fn deep_diagrams_end_without_overflowing_the_stack() {
         }
     });
 }
+
+/// Every diagram of the repository, in both languages and every kind: the
+/// examples and the gallery, the engines' own test diagrams, the fixtures.
+fn every_diagram() -> Vec<(String, Language)> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let mut out = Vec::new();
+    let mut dirs = vec![
+        root.join("examples"),
+        root.join("crates/omaspec-uml/tests"),
+        root.join("crates/omaspec-render/tests"),
+        root.join("crates/omaspec-core/tests/fixtures"),
+    ];
+    while let Some(dir) = dirs.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for path in entries.flatten().map(|e| e.path()) {
+            if path.is_dir() {
+                if !path.ends_with("golden") {
+                    dirs.push(path);
+                }
+                continue;
+            }
+            let language = match path.extension().and_then(|e| e.to_str()) {
+                Some("puml") => Language::PlantUml,
+                Some("mmd") => Language::Mermaid,
+                _ => continue,
+            };
+            if let Ok(text) = std::fs::read_to_string(&path) {
+                out.push((text, language));
+            }
+        }
+    }
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    out
+}
+
+/// What breaks the readers of every kind: their words, numbers at the
+/// edges, brackets left open, and lines by hand.
+const EVERY_KIND: &[&str] = &[
+    "@startsalt",
+    "@startnwdiag",
+    "@startebnf",
+    "@startregex",
+    "@startditaa",
+    "@startjson",
+    "@startyaml",
+    "@startlatex",
+    "@startmath",
+    "@startgantt",
+    "@startflow",
+    "nwdiag {",
+    "network n {",
+    "address = \"10.0.0.1\"",
+    "{+",
+    "{#",
+    "[x]",
+    "^x^",
+    "+---+",
+    "|   |",
+    "cBLU",
+    "{d}",
+    "{s}",
+    "-->",
+    "a = b ;",
+    "( [ {",
+    "} ] )",
+    "(?<n>",
+    "[a-\\]",
+    "\\d{2,}",
+    "x-axis [a, b]",
+    "y-axis 0 --> 1e308",
+    "bar [1, 2]",
+    "line [1e30, -1e30]",
+    "curve x{1,2,3}",
+    "axis a, b, c",
+    "quadrant-1 Q",
+    "A: [0.5, 0.5]",
+    "+4294967295: \"b\"",
+    "0-15: \"x\"",
+    "A,B,1",
+    "zenuml",
+    "A.m() {",
+    "if(x) {",
+    "try {",
+    "catch(e) {",
+    "requirementDiagram",
+    "requirement r {",
+    "C4Context",
+    "Person(p, \"P\")",
+    "System_Boundary(b, \"B\") {",
+    "Rel(a, b, \"r\")",
+    "!include <C4/C4_Container>",
+    "!include <archimate/Archimate>",
+    "Business_Actor(a, \"A\")",
+    "Rel_Serving(a, b)",
+    "archimate #Business \"X\" as x <<business-actor>>",
+    "<$archimate/node>",
+    "<&home>",
+    "sprite $s [4x4/16] {",
+    "0123",
+    "<$s>",
+    "together {",
+    "-[hidden]->",
+    "-right->",
+    ".up.>",
+    "block-beta",
+    "columns 3",
+    "architecture-beta",
+    "service s(server)[S]",
+    "erDiagram",
+    "A ||--o{ B : has",
+    "treemap-beta",
+    "\"A\": 1",
+    "packet-beta",
+    "radar-beta",
+    "sankey-beta",
+    "xychart-beta",
+    "quadrantChart",
+    "kanban",
+    "gitGraph",
+    "commit",
+    "branch b",
+    "timeline",
+    "journey",
+    "section S",
+    "direction BT",
+    "direction RL",
+    "' lines by hand (Omaspec)",
+    "%% lines by hand (Omaspec)",
+    "' A -> B at 0.5 -0.4",
+    "' A below B",
+    "' A level with B",
+    "' A right of B",
+    "' apart",
+    "' A -> B label left",
+    "' fold (Omaspec) A",
+    "' layout (Omaspec) nested",
+    "' view (Omaspec) table",
+    "skinparam handwritten true",
+    "<style>",
+    "</style>",
+    "FontName x",
+    "%%{init: {}}%%",
+    "\n",
+    "\t",
+    "é",
+    "😀",
+    "\u{feff}",
+    "NaN",
+    "-0",
+    "1e38",
+    "999999999999",
+];
+
+/// `code` mutated harder than [`mutate`]: tokens put in and pieces cut
+/// out, a line of another diagram spliced in, a piece repeated many times
+/// (deep nesting, long lists).
+fn mutate_hard(rng: &mut Rng, code: String, others: &[(String, Language)]) -> String {
+    let mut code = mutate(rng, code, EVERY_KIND);
+    if rng.below(3) == 0 {
+        let (other, _) = rng.pick(others);
+        let lines: Vec<&str> = other.lines().collect();
+        if let Some(line) = lines.get(rng.below(lines.len())) {
+            let at = code.find('\n').map_or(0, |i| i + 1);
+            code.insert_str(at, &format!("{line}\n"));
+        }
+    }
+    if rng.below(4) == 0 {
+        let piece = *rng.pick(EVERY_KIND);
+        let times = 2 + rng.below(80);
+        let at = code.rfind('\n').unwrap_or(0);
+        code.insert_str(at, &piece.repeat(times));
+    }
+    code
+}
+
+/// Every engine on mutated diagrams of every kind, each on a thread with a
+/// small stack and a time limit: no panic, no hang, no stack overflow. The
+/// input of the round under way is kept in `robust-last-input.txt`, so an
+/// overflow, which ends the program, still names it.
+#[test]
+fn every_kind_survives_broken_diagrams() {
+    let diagrams = every_diagram();
+    assert!(diagrams.len() >= 100, "only {} diagrams", diagrams.len());
+    let last = Path::new(env!("CARGO_TARGET_TMPDIR")).join("robust-last-input.txt");
+    // A debug build is slow; a release build checks the limit as it is meant.
+    let limit = if cfg!(debug_assertions) {
+        Duration::from_secs(30)
+    } else {
+        Duration::from_secs(5)
+    };
+    let mut rng = seed(0x5eed_0fa1_1c0d_e5ee);
+    for round in 0..rounds(300) {
+        let (start, language) = rng.pick(&diagrams).clone();
+        let code = mutate_hard(&mut rng, start, &diagrams);
+        std::fs::write(&last, &code).unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let input = code.clone();
+        std::thread::Builder::new()
+            .name(format!("round {round}"))
+            .stack_size(2 << 20)
+            .spawn(move || {
+                let outcome = std::panic::catch_unwind(|| {
+                    let mut renderer = Renderer::new(&Config {
+                        java_fallback: false,
+                        ..Config::default()
+                    });
+                    if let Ok(out) = renderer.render(&input, language) {
+                        assert!(sanitize(&out.svg).is_ok());
+                    }
+                    let _ = omaspec_core::lint::lint(&input, language);
+                    let _ = omaspec_core::outline::outline(&input, language);
+                    let _ = omaspec_model::Spec::read(&input, language, "robust");
+                });
+                let _ = tx.send(outcome.is_ok());
+            })
+            .expect("a thread starts");
+        match rx.recv_timeout(limit) {
+            Ok(true) => {}
+            Ok(false) => panic!("round {round} panicked on {code:?}"),
+            Err(_) => panic!("round {round} took over {limit:?} on {code:?}"),
+        }
+    }
+}

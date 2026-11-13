@@ -5,7 +5,7 @@
 
 use libfuzzer_sys::fuzz_target;
 use omaspec_core::Language;
-use omaspec_model::{Machine, Run, convert, diff, findings};
+use omaspec_model::{Machine, Run, Specs, convert, diff, findings};
 
 fuzz_target!(|code: &str| {
     let lines = code.split('\n').count();
@@ -28,6 +28,6 @@ fuzz_target!(|code: &str| {
             }
         }
         let _ = convert(code, lang, other);
-        let _ = diff(code, lang, code, lang, &[]);
+        let _ = diff(code, lang, code, lang, &Specs::default());
     }
 });

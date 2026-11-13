@@ -1,0 +1,53 @@
+name: Fuzz
+
+# Coverage-guided fuzzing of every reader and drawer (fuzz/README.md), each
+# night and by hand. Each target starts from the repository's diagrams and
+# from the corpus it grew the nights before; what crashes or hangs is kept
+# as an artifact, with the command that repeats it in the log.
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Seconds for each target
+        default: "600"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          [plantuml, mermaid, layout, hand, text, model, document, trace, sanitize, image_source]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@nightly
+      - name: Fonts for the engines' measurements
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+      - name: cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+      - name: The corpus of the nights before
+        uses: actions/cache@v4
+        with:
+          path: fuzz/corpus/${{ matrix.target }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-${{ matrix.target }}-
+      - name: Fuzz ${{ matrix.target }}
+        run: fuzz/run.sh "${{ github.event.inputs.seconds || '600' }}" "${{ matrix.target }}"
+      - name: What it found
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}

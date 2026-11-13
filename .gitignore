@@ -10,6 +10,7 @@ vendor/*/Cargo.lock
 /fuzz/target/
 /fuzz/corpus/
 /fuzz/artifacts/
+/fuzz/*.log
 /fuzz/Cargo.lock
 
 # makepkg output when a package in packaging/aur is built in place.

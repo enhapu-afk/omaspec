@@ -59,3 +59,31 @@ path = "fuzz_targets/model.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "hand"
+path = "fuzz_targets/hand.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "document"
+path = "fuzz_targets/document.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "trace"
+path = "fuzz_targets/trace.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "layout"
+path = "fuzz_targets/layout.rs"
+test = false
+doc = false
+bench = false
