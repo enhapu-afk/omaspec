@@ -448,7 +448,8 @@ fn a_pane_that_only_grows_or_shrinks_in_height_holds_the_picture_then_glides() {
     };
     let _ = paper.update(Message::Viewport(short));
     let glide = paper.glide.expect("a fitted picture glides to its new fit");
-    let start = on_screen(glide.at(Instant::now()), short);
+    // Where it starts, whatever time has passed on a loaded machine.
+    let start = on_screen(glide.from(), short);
     let was = on_screen(before, tall);
     assert!(
         (start.x - was.x).abs() < 0.5 && (start.y - was.y).abs() < 0.5,
