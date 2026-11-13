@@ -736,9 +736,9 @@ sequence, activity, state, class, component, use case, deployment, object, timin
 Gantt diagrams, C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, EBNF and regex railroads, mind maps, WBS, JSON, YAML and formulas (`@startlatex`,
 `@startmath`), and of
 Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,
-packets, radars, treemaps, sankeys, XY and quadrant charts,
+packets, radars, treemaps, sankeys, XY and quadrant charts, ZenUML,
 mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards and
-requirement diagrams. The other Mermaid types (ZenUML, a horizontal XY chart) are drawn by
+requirement diagrams. What a drawer leaves (a horizontal XY chart) is drawn by
 [mmdr](https://github.com/1jehuang/mermaid-rs-renderer), a Rust library, in the same
 process. A git graph shows the ids its writer gave its commits; an id Mermaid would make
 up is left out, since it says nothing and differs with every drawing. A YAML diagram is drawn as the

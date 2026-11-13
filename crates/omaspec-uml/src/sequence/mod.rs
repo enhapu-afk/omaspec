@@ -8,11 +8,13 @@ mod draw;
 mod mermaid;
 mod parse;
 mod skin;
+mod zenuml;
 
 pub use crate::common::{Frame, Skinparam, Text};
 pub use draw::{draw, draw_mapped};
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use parse::parse;
+pub use zenuml::from_zenuml;
 
 /// A parsed sequence diagram.
 #[derive(Debug, Clone, PartialEq)]

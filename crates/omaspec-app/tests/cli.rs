@@ -585,13 +585,13 @@ fn inspect_reports_kind_and_outline() {
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(json["native"], "understood");
 
-    let file = dir.join("zen.mmd");
-    fs::write(&file, "zenuml\n  A.method()\n").unwrap();
+    let file = dir.join("sideways.mmd");
+    fs::write(&file, "xychart-beta horizontal\n  bar [1, 2]\n").unwrap();
     let out = omaspec(&["inspect", file.to_str().unwrap()]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(
         json["native"]["declined"]["reason"],
-        "ZenUML sequence diagrams are not drawn by Omaspec; mmdr draws them"
+        "Omaspec does not draw this XY chart; mmdr does"
     );
     assert!(json["native"]["declined"].get("line").is_none());
 

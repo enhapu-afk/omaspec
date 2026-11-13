@@ -151,8 +151,6 @@ walks you through a state machine, a scenario and a recorded trace in ten minute
   and the palette without Omarchy come next.
 - **Even cleaner lines.** Labels of lines between closed containers, fewer crossings where
   frames set the order.
-- **More Mermaid diagrams drawn by Omaspec.** The charts of numbers (quadrant, sankey,
-  radar, treemap, XY chart, packet) and ZenUML.
 - **More PlantUML diagrams without Java.** Ditaa and chronology.
 - **The AUR**, as soon as it takes new accounts.
 

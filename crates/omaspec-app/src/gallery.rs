@@ -236,6 +236,12 @@ pub static EXAMPLES: &[Example] = &[
         "C4-PlantUML: people, containers, a boundary and a legend."
     ),
     example!(
+        "checkout-zen.mmd",
+        Behavior,
+        "Paying for an order, in ZenUML",
+        "ZenUML: a sequence written as code, drawn by the sequence engine."
+    ),
+    example!(
         "downloads.mmd",
         Data,
         "Downloads in the first half year",

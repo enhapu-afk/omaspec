@@ -2396,7 +2396,18 @@ without folding, lines by hand and plays, and the Java PlantUML:
       and beside it, the points with their names, their own color and
       radius where they give one. The gallery has downloads, an energy
       flow and priorities.
-- [ ] Mermaid: ZenUML.
+- [x] Mermaid's ZenUML (2026-11-13), read as the sequence it describes
+      (`sequence::from_zenuml`): each statement written as the PlantUML
+      line it stands for, on its own line, so the sequence engine draws
+      and plays it as every other. Participants with their kind
+      (`@Actor`, `@Database`, …) and color, `group`, `@Starter`, calls
+      with their arguments, results and blocks (which activate the
+      callee), self calls, `new`, async messages, `return` (the end of a
+      block gives back its result only where no `return` did), and the
+      fragments `if`/`else`, the loops, `par`, `opt`, `try`/`catch`/
+      `finally` and `critical`. A call at the top with no starter comes
+      from the left edge. The gallery pays for an order. Only a
+      horizontal XY chart is now left to mmdr, where a drawer reads it.
 - [x] PlantUML's YAML diagram (2026-11-12): `@startyaml` is read here
       (`omaspec_uml::yaml`) into the value the JSON drawer draws, so a
       mapping is a table and a sequence a column, with `#highlight`, a

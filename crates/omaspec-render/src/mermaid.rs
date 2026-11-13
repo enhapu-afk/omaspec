@@ -429,6 +429,13 @@ const NATIVE: &[Native] = &[
         refusal: |_| None,
     },
     Native {
+        kind: DiagramKind::ZenUML,
+        headers: &["zenuml"],
+        noun: "ZenUML diagram",
+        draw: |i| sequence::try_draw_zenuml(i.theme, i.body),
+        refusal: |_| None,
+    },
+    Native {
         kind: DiagramKind::Quadrant,
         headers: &["quadrantchart"],
         noun: "quadrant chart",
@@ -1184,11 +1191,13 @@ mod tests {
             class.reason,
             "a class is not drawn by Omaspec; mmdr draws it"
         );
-        let zen = coverage("zenuml\n  A.method()\n").unwrap().unwrap();
-        assert!(zen.line.is_none());
+        let sideways = coverage("xychart-beta horizontal\n  bar [1, 2]\n")
+            .unwrap()
+            .unwrap();
+        assert!(sideways.line.is_none());
         assert_eq!(
-            zen.reason,
-            "ZenUML sequence diagrams are not drawn by Omaspec; mmdr draws them"
+            sideways.reason,
+            "Omaspec does not draw this XY chart; mmdr does"
         );
         assert_eq!(
             coverage("kanban\n  todo[Todo]\n    a[Write]\n").unwrap(),

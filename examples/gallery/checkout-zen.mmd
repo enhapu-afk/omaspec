@@ -1,0 +1,17 @@
+zenuml
+    %% ZenUML: a sequence written as code, drawn as every sequence is.
+    title Paying for an order
+    @Actor Customer
+    @Boundary Shop
+    @Database Orders
+    @Starter(Customer)
+    receipt = Shop.checkout(cart) {
+      order = new Order(cart)
+      Orders.save(order)
+      if (card.accepted) {
+        Payments.charge(order)
+        return receipt
+      } else {
+        Shop->Customer: try another card
+      }
+    }

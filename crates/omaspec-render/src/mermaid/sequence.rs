@@ -10,12 +10,21 @@
 use super::{font_name, plain_number};
 use mermaid_rs_renderer::Theme;
 use omaspec_uml::map::Map;
-use omaspec_uml::sequence::{Skinparam, draw_mapped, from_mermaid};
+use omaspec_uml::sequence::{Skinparam, draw_mapped, from_mermaid, from_zenuml};
 
 /// The SVG and where its messages are, or `None` when this drawer leaves
 /// the diagram to mmdr.
 pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
+    diagram.frame.skinparams = skin_of(theme)?;
+    diagram.frame.skinparams.extend(super::sketch_param(source));
+    draw_mapped(&diagram).ok()
+}
+
+/// ZenUML on the same engine, read as the sequence it describes
+/// (`from_zenuml`), in the colors of the Mermaid theme.
+pub fn try_draw_zenuml(theme: &Theme, source: &str) -> Option<(String, Map)> {
+    let mut diagram = from_zenuml(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
     diagram.frame.skinparams.extend(super::sketch_param(source));
     draw_mapped(&diagram).ok()
