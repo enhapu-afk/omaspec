@@ -1050,6 +1050,8 @@ impl ScenarioPlay {
 
 /// A transition's label as a writer reads it: `event [guard]`, or what
 /// happens without one.
+/// An option as its line says it: `event [guard] / action`, or `go on`
+/// for a line without event or guard.
 fn label(trigger: &Trigger) -> String {
     let mut out = trigger.events.join(", ");
     if let Some(guard) = &trigger.guard {
@@ -1059,12 +1061,16 @@ fn label(trigger: &Trigger) -> String {
         out.push_str(&format!("[{guard}]"));
     }
     if out.is_empty() {
-        "go on".to_owned()
-    } else {
-        out
+        out.push_str("go on");
     }
+    if let Some(action) = &trigger.action {
+        out.push_str(&format!(" / {action}"));
+    }
+    out
 }
 
+/// A state as its box shows it (its long name, if it has one), or what
+/// a pseudo-state is.
 fn name_of(m: &Machine, state: usize) -> String {
     use omaspec_model::Kind;
     let s = &m.states[state];
@@ -1072,10 +1078,10 @@ fn name_of(m: &Machine, state: usize) -> String {
         Kind::End => "end",
         Kind::History => "history",
         Kind::DeepHistory => "deep history",
-        _ => return s.name.clone(),
+        _ => return s.shown().to_owned(),
     };
     match s.parent {
-        Some(p) => format!("{what} of {}", m.states[p].name),
+        Some(p) => format!("{what} of {}", m.states[p].shown()),
         None => what.to_owned(),
     }
 }
@@ -1390,6 +1396,42 @@ mod tests {
             panic!("no machine");
         };
         assert_eq!(machine.lines.len(), 1);
+    }
+
+    /// The bar says what the diagram shows: a state by its long name, an
+    /// option with its action, and no end while another way still runs.
+    #[test]
+    fn the_offer_speaks_as_the_diagram_does() {
+        let source = "@startuml\nstate \"Fix attempt\" as FixAttempt\n[*] --> Working\nWorking --> FixAttempt : restarts / reroute\n[*] --> Send\nSend --> [*] : sent\n@enduml\n";
+        let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+        let t0 = Instant::now();
+        let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+        let Offer::Machine { options, at, .. } = play.offer() else {
+            panic!("no machine");
+        };
+        assert_eq!(at, "Working, Send");
+        assert_eq!(
+            options,
+            [
+                ("restarts / reroute".to_owned(), "Fix attempt".to_owned()),
+                ("sent".to_owned(), "end".to_owned()),
+            ]
+        );
+        play.ask(Ask::Take(1), t0);
+        let Offer::Machine {
+            options, at, ended, ..
+        } = play.offer()
+        else {
+            panic!("no machine");
+        };
+        assert!(!ended, "{at}");
+        // One way at its end, the other still running.
+        assert_eq!(at, "Working, end");
+        play.ask(Ask::Take(0), t0 + Duration::from_secs(10));
+        let Offer::Machine { at, ended, .. } = play.offer() else {
+            panic!("no machine");
+        };
+        assert!(!ended && at == "Fix attempt, end", "{at} {options:?}");
     }
 
     #[test]

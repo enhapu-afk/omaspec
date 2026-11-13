@@ -57,6 +57,7 @@ impl Reader {
             let id = self.machine.states.len();
             self.machine.states.push(State {
                 name: node.key.clone(),
+                label: crate::long_name(&node.label.value, &node.key),
                 kind,
                 parent,
                 region,
@@ -138,6 +139,23 @@ mod tests {
             .filter(|s| s.kind == Kind::Start && s.parent == Some(busy))
             .count();
         assert_eq!(starts, 2);
+    }
+
+    #[test]
+    fn a_state_keeps_the_long_name_its_box_shows() {
+        let m = read(
+            "@startuml\nstate \"Fix attempt\" as FixAttempt\nstate \"Two\\nlines\" as Two\n[*] --> Idle\nIdle --> FixAttempt : fail\nFixAttempt --> Two\n@enduml\n",
+        )
+        .unwrap();
+        let shown = |n: &str| m.states.iter().find(|s| s.name == n).unwrap().shown();
+        assert_eq!(shown("FixAttempt"), "Fix attempt");
+        assert_eq!(shown("Two"), "Two lines");
+        assert_eq!(shown("Idle"), "Idle");
+        assert!(
+            m.states
+                .iter()
+                .any(|s| s.name == "Idle" && s.label.is_none())
+        );
     }
 
     #[test]

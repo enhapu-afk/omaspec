@@ -129,7 +129,7 @@ pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
             // A final state has no name of its own; it is `[*]` as written.
             let mut said: Vec<&str> = states
                 .iter()
-                .map(|&s| match m.states[s].name.as_str() {
+                .map(|&s| match m.states[s].shown() {
                     "" => "[*]",
                     name => name,
                 })

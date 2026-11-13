@@ -57,6 +57,9 @@ pub struct Machine {
 pub struct State {
     /// The name transitions use; empty for a start or an end.
     pub name: String,
+    /// What its box shows where that is not its name: the long name of
+    /// `state "Fix attempt" as FixAttempt`, on one line.
+    pub label: Option<String>,
     pub kind: Kind,
     /// The composite state it sits in; `None` at the top.
     pub parent: Option<usize>,
@@ -64,6 +67,24 @@ pub struct State {
     pub region: usize,
     /// Zero-based line where it first appears.
     pub line: usize,
+}
+
+impl State {
+    /// The name as its box shows it: its long name, else its name.
+    pub fn shown(&self) -> &str {
+        self.label.as_deref().unwrap_or(&self.name)
+    }
+}
+
+/// A state's long name where it differs from `name`, on one line: PlantUML's
+/// `\n` and Mermaid's `<br>` as spaces, runs of spaces as one.
+fn long_name(label: &str, name: &str) -> Option<String> {
+    let flat = label
+        .replace("\\n", " ")
+        .replace("<br/>", " ")
+        .replace("<br>", " ");
+    let flat = flat.split_whitespace().collect::<Vec<_>>().join(" ");
+    (!flat.is_empty() && flat != name).then_some(flat)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

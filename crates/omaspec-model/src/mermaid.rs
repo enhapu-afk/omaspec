@@ -12,6 +12,7 @@ pub fn read(code: &str) -> Option<Machine> {
         .states
         .into_iter()
         .map(|s| State {
+            label: s.label.as_deref().and_then(|l| crate::long_name(l, &s.id)),
             name: s.id,
             kind: match s.kind {
                 ChartKind::State => Kind::State,
@@ -61,5 +62,17 @@ mod tests {
         assert_eq!((job.from, job.to, job.line), (idle, busy, 2));
         assert_eq!(job.trigger.guard.as_deref(), Some("ready"));
         assert!(read("stateDiagram\nA -> B").is_none());
+    }
+
+    #[test]
+    fn a_state_keeps_the_long_name_its_box_shows() {
+        let m = read(
+            "stateDiagram-v2\n  state \"Fix attempt\" as FixAttempt\n  state \"Two<br>lines\" as Two\n  [*] --> Idle\n  Idle --> FixAttempt\n  FixAttempt --> Two\n",
+        )
+        .unwrap();
+        let shown = |n: &str| m.states.iter().find(|s| s.name == n).unwrap().shown();
+        assert_eq!(shown("FixAttempt"), "Fix attempt");
+        assert_eq!(shown("Two"), "Two lines");
+        assert_eq!(shown("Idle"), "Idle");
     }
 }

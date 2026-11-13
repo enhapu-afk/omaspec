@@ -144,11 +144,13 @@ impl Run {
             .any(|&a| a == state || m.ancestors(a).any(|p| p == state))
     }
 
-    /// Whether the machine has ended: its top end reached.
+    /// Whether the machine has ended: its top end reached, and nothing else
+    /// going on. A diagram with two starts at the top runs both ways at
+    /// once; one of them at its end leaves the other running.
     pub fn ended(&self, m: &Machine) -> bool {
-        self.active
-            .iter()
-            .any(|&a| m.states[a].kind == Kind::End && m.states[a].parent.is_none())
+        let top_end = |a: usize| m.states[a].kind == Kind::End && m.states[a].parent.is_none();
+        self.active.iter().any(|&a| top_end(a))
+            && self.active.iter().all(|&a| m.states[a].kind == Kind::End)
     }
 
     /// What can be taken now, in the order the transitions are written: a
@@ -685,6 +687,19 @@ mod tests {
         assert_eq!(labels(&m, &run.options(&m)), ["b"]);
         take(&mut run, &m, "b");
         assert!(run.ended(&m), "{:?}", names(&m, run.active()));
+    }
+
+    #[test]
+    fn two_ways_from_the_top_end_when_both_have() {
+        let m = machine(
+            "[*] --> Working\nWorking --> Degraded : fail\n[*] --> Send\nSend --> [*] : sent",
+        );
+        let (mut run, _) = Run::start(&m).unwrap();
+        assert_eq!(names(&m, run.active()), ["Working", "Send"]);
+        take(&mut run, &m, "sent");
+        // One way at its end, the other still running.
+        assert!(!run.ended(&m), "{:?}", names(&m, run.active()));
+        assert_eq!(labels(&m, &run.options(&m)), ["fail"]);
     }
 
     #[test]
