@@ -21,6 +21,8 @@ const SECTION_H: f32 = 44.0;
 const PERIOD_H: f32 = 50.0;
 const EVENT_H: f32 = 40.0;
 const EVENT_GAP: f32 = 10.0;
+/// Between a card's edge and its words, across and down.
+const INSET: f32 = 8.0;
 /// A vertical timeline keeps the arrow clear of the period column.
 const DOWN_X: f32 = 28.0;
 const ARROW_X: f32 = 8.0;
@@ -159,7 +161,7 @@ fn paint_across(
         .any(|section| !section.label.is_empty());
     let period_y = if bands { top + SECTION_H + 16.0 } else { top };
     let event_y = period_y + PERIOD_H + 28.0;
-    let depth = event_depth(diagram);
+    let depth = event_depth(diagram, family)?;
     let line_bottom = if depth > 0.0 {
         event_y + depth + 12.0
     } else {
@@ -206,19 +208,38 @@ fn title_block(diagram: &Diagram, family: Family) -> Result<Option<Block>, Decli
         .map_err(|reason| Declined::at(title.line, reason))
 }
 
-fn event_depth(diagram: &Diagram) -> f32 {
-    let slots = diagram
-        .sections
-        .iter()
-        .flat_map(|section| section.periods.iter())
-        .map(|period| period.events.len())
-        .max()
-        .unwrap_or(0);
-    if slots == 0 {
-        0.0
-    } else {
-        slots as f32 * EVENT_H + (slots - 1) as f32 * EVENT_GAP
+/// How far down the events of the period with the most reach, each card
+/// as tall as its words need.
+fn event_depth(diagram: &Diagram, family: Family) -> Result<f32, Declined> {
+    let mut deepest: f32 = 0.0;
+    for period in diagram.sections.iter().flat_map(|s| s.periods.iter()) {
+        let mut depth = 0.0;
+        for (slot, event) in period.events.iter().enumerate() {
+            let block = card_words(&event.label, diagram, Color::BLACK, family, event.line)?;
+            depth += card_height(&block, EVENT_H) + if slot > 0 { EVENT_GAP } else { 0.0 };
+        }
+        deepest = deepest.max(depth);
     }
+    Ok(deepest)
+}
+
+/// A card's words, broken at spaces to stay inside it, as Mermaid breaks
+/// them.
+fn card_words(
+    words: &str,
+    diagram: &Diagram,
+    ink: Color,
+    family: Family,
+    line: usize,
+) -> Result<Block, Declined> {
+    let font = Font::new(diagram.look.label_size, ink);
+    text::wrapped(words, font, family, BOX_W - 2.0 * INSET)
+        .map_err(|reason| Declined::at(line, reason))
+}
+
+/// How tall a card is with `block` in it: `least`, or more for its words.
+fn card_height(block: &Block, least: f32) -> f32 {
+    least.max(block.height + 2.0 * INSET)
 }
 
 struct Place {
@@ -300,12 +321,7 @@ fn paint_period(
         );
     }
     canvas.card(Layer::Bars, (x, place.period_y, BOX_W, PERIOD_H), 5.0, fill);
-    let label = text::block(
-        &period.label,
-        Font::new(diagram.look.label_size, on_fill(fill)),
-        family,
-    )
-    .map_err(|reason| Declined::at(period.line, reason))?;
+    let label = card_words(&period.label, diagram, on_fill(fill), family, period.line)?;
     canvas.text(
         Layer::Front,
         &label,
@@ -315,20 +331,16 @@ fn paint_period(
     let card = event_fill(fill);
     let mut y = place.event_y;
     for event in &period.events {
-        canvas.card(Layer::Bars, (x, y, BOX_W, EVENT_H), 5.0, card);
-        let block = text::block(
-            &event.label,
-            Font::new(diagram.look.label_size, on_fill(card)),
-            family,
-        )
-        .map_err(|reason| Declined::at(event.line, reason))?;
+        let block = card_words(&event.label, diagram, on_fill(card), family, event.line)?;
+        let height = card_height(&block, EVENT_H);
+        canvas.card(Layer::Bars, (x, y, BOX_W, height), 5.0, card);
         canvas.text(
             Layer::Front,
             &block,
-            (center, y + (EVENT_H - block.height) / 2.0),
+            (center, y + (height - block.height) / 2.0),
             Align::Center,
         );
-        y += EVENT_H + EVENT_GAP;
+        y += height + EVENT_GAP;
     }
     Ok(())
 }
@@ -416,12 +428,7 @@ fn paint_period_down(
 ) -> Result<(), Declined> {
     let x = DOWN_X;
     canvas.card(Layer::Bars, (x, y, BOX_W, PERIOD_H), 5.0, fill);
-    let label = text::block(
-        &period.label,
-        Font::new(diagram.look.label_size, on_fill(fill)),
-        family,
-    )
-    .map_err(|reason| Declined::at(period.line, reason))?;
+    let label = card_words(&period.label, diagram, on_fill(fill), family, period.line)?;
     canvas.text(
         Layer::Front,
         &label,
@@ -436,20 +443,17 @@ fn paint_period_down(
     let dash = Stroke::new(diagram.look.ink, 2.0).dashed(5.0, 5.0);
     canvas.line(Layer::Background, (x + BOX_W, mid), (far, mid), dash);
     let card = event_fill(fill);
-    let event_y = y + (PERIOD_H - EVENT_H) / 2.0;
     for (slot, event) in period.events.iter().enumerate() {
         let ex = x + BOX_W + BESIDE + slot as f32 * EVENT_STEP;
-        canvas.card(Layer::Bars, (ex, event_y, BOX_W, EVENT_H), 5.0, card);
-        let block = text::block(
-            &event.label,
-            Font::new(diagram.look.label_size, on_fill(card)),
-            family,
-        )
-        .map_err(|reason| Declined::at(event.line, reason))?;
+        let block = card_words(&event.label, diagram, on_fill(card), family, event.line)?;
+        let height = card_height(&block, EVENT_H);
+        // Level with its period, however tall its words make it.
+        let event_y = mid - height / 2.0;
+        canvas.card(Layer::Bars, (ex, event_y, BOX_W, height), 5.0, card);
         canvas.text(
             Layer::Front,
             &block,
-            (ex + BOX_W / 2.0, event_y + (EVENT_H - block.height) / 2.0),
+            (ex + BOX_W / 2.0, event_y + (height - block.height) / 2.0),
             Align::Center,
         );
     }
@@ -911,6 +915,32 @@ mod tests {
         assert!(periods.len() >= 2, "{svg}");
         let y = attr(periods[0], "y");
         assert!(periods.iter().all(|piece| attr(piece, "y") == y), "{svg}");
+    }
+
+    /// Words wider than a card break at their spaces and the card grows
+    /// for them, as Mermaid draws it; the next card moves down, and no
+    /// line runs past the card's edge into its neighbor's.
+    #[test]
+    fn long_words_break_inside_their_card() {
+        let diagram = chart(
+            "timeline\n\
+             2026 : Rubin images, March to June : Smithsonian report, 12 Nov\n\
+             Next months : Size confirmation, ALMA or an occultation\n",
+        );
+        let family = Canvas::new(&diagram.look.font_name, false).family();
+        let event = &diagram.sections[0].periods[0].events[0];
+        let block = card_words(&event.label, &diagram, Color::BLACK, family, 0).unwrap();
+        assert!(block.lines.len() > 1, "{block:?}");
+        assert!(block.width <= BOX_W - 2.0 * INSET, "{block:?}");
+        assert!(card_height(&block, EVENT_H) > EVENT_H);
+        // Two cards, one of them tall: deeper than two short ones.
+        let depth = event_depth(&diagram, family).unwrap();
+        assert!(depth > 2.0 * EVENT_H + EVENT_GAP, "{depth}");
+        let svg = draw(&diagram).unwrap();
+        assert!(
+            svg.contains("Rubin images") && svg.contains("occultation"),
+            "{svg}"
+        );
     }
 
     #[test]

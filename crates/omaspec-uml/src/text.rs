@@ -212,6 +212,34 @@ impl Block {
 const LINE: f32 = 1.164;
 const ASCENT: f32 = 0.928;
 
+/// `words` broken into lines no wider than `width`, at its spaces. A
+/// word wider than that stands on a line of its own.
+pub(crate) fn wrapped(
+    words: &str,
+    font: Font,
+    family: Family,
+    width: f32,
+) -> Result<Block, String> {
+    let mut lines: Vec<String> = Vec::new();
+    for paragraph in words.split('\n') {
+        let mut line = String::new();
+        for word in paragraph.split_whitespace() {
+            let longer = if line.is_empty() {
+                word.to_owned()
+            } else {
+                format!("{line} {word}")
+            };
+            if !line.is_empty() && block(&longer, font, family)?.width > width {
+                lines.push(std::mem::replace(&mut line, word.to_owned()));
+            } else {
+                line = longer;
+            }
+        }
+        lines.push(line);
+    }
+    block(&lines.join("\n"), font, family)
+}
+
 /// `text` in `font`, measured. `\n` and real line breaks start new lines.
 /// Consecutive lines that start with `|` are one Creole table.
 pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {

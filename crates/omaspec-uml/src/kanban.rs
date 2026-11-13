@@ -14,7 +14,7 @@ use crate::color::{Color, Paint};
 use crate::common::{Text, text_at};
 use crate::source::starts_with_ci;
 use crate::svg::{Align, Canvas, Layer, Stroke};
-use crate::text::{self, Block, Family, Font};
+use crate::text::{self, Block, Font};
 
 const COLUMN_W: f32 = 230.0;
 const COLUMN_GAP: f32 = 14.0;
@@ -139,7 +139,7 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
 
     let mut laid = Vec::with_capacity(diagram.columns.len());
     for column in &diagram.columns {
-        let head = wrapped(
+        let head = text::wrapped(
             &column.label,
             Font::new(look.label_size, on_column).bold(),
             family,
@@ -150,7 +150,7 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         for card in &column.cards {
             let at = |reason| Declined::at(card.line, reason);
             let room = inner - 2.0 * CARD_PAD - BAR;
-            let words = wrapped(
+            let words = text::wrapped(
                 &card.label,
                 Font::new(look.label_size, on_card),
                 family,
@@ -230,29 +230,6 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         canvas.text(Layer::Front, block, (width / 2.0, 0.0), Align::Center);
     }
     Ok(canvas.finish(10.0, look.background))
-}
-
-/// `words` broken into lines no wider than `width`, at its spaces. A
-/// word wider than that stands on a line of its own.
-fn wrapped(words: &str, font: Font, family: Family, width: f32) -> Result<Block, String> {
-    let mut lines: Vec<String> = Vec::new();
-    for paragraph in words.split('\n') {
-        let mut line = String::new();
-        for word in paragraph.split_whitespace() {
-            let longer = if line.is_empty() {
-                word.to_owned()
-            } else {
-                format!("{line} {word}")
-            };
-            if !line.is_empty() && text::block(&longer, font, family)?.width > width {
-                lines.push(std::mem::replace(&mut line, word.to_owned()));
-            } else {
-                line = longer;
-            }
-        }
-        lines.push(line);
-    }
-    text::block(&lines.join("\n"), font, family)
 }
 
 /// Black on a light fill, white on a dark one.
