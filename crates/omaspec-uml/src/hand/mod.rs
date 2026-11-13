@@ -17,7 +17,10 @@
 //! The block holds boxes in place too
 //! ([0021](../../../../docs/adr/0021-boxes-held-in-place.md)): `Paused after
 //! Running` keeps `Paused` in the rank of `Running`, right after it across
-//! the flow ([`Hold`]). And it keeps lines apart
+//! the flow ([`Hold`]); `Done below Idle` ranks `Done` under `Idle`, `Error
+//! level with Idle` in its rank where the layout orders it
+//! ([0028](../../../../docs/adr/0028-a-box-in-another-rank.md)). And it
+//! keeps lines apart
 //! ([0022](../../../../docs/adr/0022-lines-bundled.md)): `apart` draws every
 //! line on its own, and `apart at Name` does that for the lines of one box
 //! ([`Apart`]). And it puts a label on the side of its line the writer
@@ -75,15 +78,18 @@ pub struct Line {
     pub corners: Vec<Corner>,
 }
 
-/// A box held beside another: `name` stands in the rank of `beside`, right
-/// after it across the flow (right of it when the flow runs down, below it
-/// when it runs across), or right before it.
+/// A box held against another: `name` stands where `word` puts it against
+/// `beside` ([`Word`]): in its rank right after it across the flow (right
+/// of it when the flow runs down, below it when it runs across) or right
+/// before it, level with it, or in a rank below or above it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hold {
     pub name: String,
     pub beside: String,
-    pub after: bool,
+    pub word: Word,
 }
+
+pub use crate::graph::hold::Word;
 
 /// Lines that stay out of a bundle
 /// ([0022](../../../../docs/adr/0022-lines-bundled.md)): every line, or the
@@ -478,8 +484,13 @@ impl fmt::Display for Key {
 /// An entry as written, without the comment mark.
 impl fmt::Display for Hold {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let side = if self.after { "after" } else { "before" };
-        write!(f, "{} {side} {}", name(&self.name), name(&self.beside))
+        write!(
+            f,
+            "{} {} {}",
+            name(&self.name),
+            self.word,
+            name(&self.beside)
+        )
     }
 }
 
@@ -544,8 +555,7 @@ fn name(name: &str) -> String {
         && !name.starts_with('#')
         && name != "->"
         && name != "at"
-        && name != "after"
-        && name != "before"
+        && !HOLD_WORDS.contains(&name)
         && name != "apart"
         && !name.contains(|c: char| c.is_whitespace() || c == '"' || c == ',');
     if bare {
@@ -601,9 +611,13 @@ fn tokens(text: &str) -> Result<Vec<Token<'_>>, String> {
 }
 
 const SHAPE: &str = "a line by hand reads `From -> To at 0.5 -0.4`";
-const HELD: &str = "a box held in place reads `Box after Neighbor` or `Box before Neighbor`";
-/// Words that would put a box in another rank than its neighbor's.
-const RANKS: [&str; 7] = ["below", "above", "under", "over", "left", "right", "level"];
+const HELD: &str = "a box held in place reads `Box after Neighbor`, `before`, `below`, \
+                    `above`, `right of`, `left of` or `level with`";
+/// The words that start holding a box; a box of that name is written in
+/// double quotes.
+const HOLD_WORDS: [&str; 7] = [
+    "after", "before", "below", "above", "right", "left", "level",
+];
 const APART: &str = "lines stay apart as `apart`, or as `apart at Name`";
 const LABEL: &str = "a label's side reads `From -> To label left` (or right, above, below)";
 
@@ -646,11 +660,11 @@ fn parse(text: &str) -> Result<Hand, String> {
         return kept_apart(&tokens).map(Hand::Apart);
     }
     match tokens.get(1) {
-        Some(t) if t.is("after") || t.is("before") => hold(&tokens).map(Hand::Hold),
-        Some(t) if !t.quoted && RANKS.iter().any(|word| t.is(word)) => Err(format!(
-            "a box is held beside a neighbor in its rank, as `Box after Neighbor` or \
-             `Box before Neighbor`; `{}` moves no box to another rank",
-            t.text
+        Some(t) if HOLD_WORDS.iter().any(|word| t.is(word)) => hold(&tokens).map(Hand::Hold),
+        Some(t) if t.is("under") || t.is("over") => Err(format!(
+            "`{}` reads `{}`: {HELD}",
+            t.text,
+            if t.is("under") { "below" } else { "above" }
         )),
         _ => line(&tokens),
     }
@@ -687,10 +701,15 @@ fn kept_apart(tokens: &[Token]) -> Result<Apart, String> {
     }
 }
 
-/// A box held in place: `Box after Neighbor` or `Box before Neighbor`.
+/// A box held in place: `Box after Neighbor`, `before`, `below`, `above`,
+/// `right of`, `left of` or `level with` it.
 fn hold(tokens: &[Token]) -> Result<Hold, String> {
+    // A word first is the entry's word, not a name; the neighbor comes
+    // last, where any word is a name.
     let named = |t: Option<&Token>, what: &str| match t {
-        Some(t) if t.quoted || !(t.is("after") || t.is("before") || t.is(",")) => {
+        Some(t)
+            if t.quoted || !(t.is(",") || what == "box" && HOLD_WORDS.iter().any(|w| t.is(w))) =>
+        {
             if t.text.is_empty() {
                 Err(format!("the name of the {what} is empty"))
             } else {
@@ -699,13 +718,32 @@ fn hold(tokens: &[Token]) -> Result<Hold, String> {
         }
         _ => Err(HELD.to_owned()),
     };
-    if tokens.len() != 3 {
+    // The word, one or two tokens long, and where the neighbor stands.
+    let (word, beside) = Word::ALL
+        .iter()
+        .find_map(|word| {
+            let mut parts = word.text().split(' ');
+            let first = parts.next()?;
+            let second = parts.next();
+            if !tokens.get(1).is_some_and(|t| t.is(first)) {
+                return None;
+            }
+            match second {
+                None => Some((*word, 2)),
+                Some(second) => tokens
+                    .get(2)
+                    .is_some_and(|t| t.is(second))
+                    .then_some((*word, 3)),
+            }
+        })
+        .ok_or_else(|| HELD.to_owned())?;
+    if tokens.len() != beside + 1 {
         return Err(HELD.to_owned());
     }
     Ok(Hold {
         name: named(tokens.first(), "box")?,
-        after: tokens[1].is("after"),
-        beside: named(tokens.get(2), "neighbor")?,
+        word,
+        beside: named(tokens.get(beside), "neighbor")?,
     })
 }
 
@@ -786,7 +824,7 @@ mod tests {
     }
 
     #[test]
-    fn a_box_is_held_after_or_before_a_neighbor() {
+    fn a_box_is_held_against_a_neighbor() {
         let held = |text: &str| match parse(text) {
             Ok(Hand::Hold(hold)) => hold,
             other => panic!("{text}: {other:?}"),
@@ -797,16 +835,35 @@ mod tests {
             Hold {
                 name: "Paused".to_owned(),
                 beside: "Running".to_owned(),
-                after: true,
+                word: Word::After,
             }
         );
         assert_eq!(hold.to_string(), "Paused after Running");
         let quoted = held(r#""Wait here" before "after""#);
-        assert!(!quoted.after && quoted.beside == "after");
+        assert!(quoted.word == Word::Before && quoted.beside == "after");
         assert_eq!(quoted.to_string(), r#""Wait here" before "after""#);
-        for wrong in ["Paused after", "Paused after Running too", "after before X"] {
+        // Into another rank, or level with it: every word reads back.
+        for word in Word::ALL {
+            let text = format!("Done {word} Idle");
+            assert_eq!(held(&text).word, word, "{text}");
+            assert_eq!(held(&text).to_string(), text);
+        }
+        assert_eq!(
+            held(r#""right" right of left"#).to_string(),
+            r#""right" right of "left""#
+        );
+        for wrong in [
+            "Paused after",
+            "Paused after Running too",
+            "after before X",
+            "Done right Idle",
+            "Done level Idle",
+            "Done left of",
+            "Done right of Idle too",
+        ] {
             assert!(parse(wrong).is_err(), "{wrong}");
         }
+        assert!(parse("Done under Idle").unwrap_err().contains("`below`"));
         let code = "' lines by hand (Omaspec)\n' A after B\n' A before C\n' B -> C at 0.5 0.5\n";
         let kept = super::held(code);
         assert_eq!(kept.len(), 1, "the first entry for a box holds");

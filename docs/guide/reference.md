@@ -299,14 +299,28 @@ there, beside its neighbor. The same block keeps it:
 ```
 
 `Paused before Running` keeps *Paused* in the rank of *Running*, right before it (left of
-it when the flow runs down, above it when it runs across); `after`, right after it. No
+it when the flow runs down, above it when it runs across); `after`, right after it. Other
+words go by the page:
+
+| Entry | Flow down | Flow to the right |
+|---|---|---|
+| `Done below Idle` | a rank under *Idle* | right after it in its rank |
+| `Done above Idle` | a rank over *Idle* | right before it in its rank |
+| `Done right of Idle` | right after it in its rank | a rank right of *Idle* |
+| `Done left of Idle` | right before it in its rank | a rank left of *Idle* |
+| `Done level with Idle` | in its rank, where the layout orders it | the same |
+
+A box put into another rank is ranked as `dot` ranks an invisible edge: at least one rank
+past its neighbor, nearer where the lines allow it, and no line is drawn. Where the lines
+between the two rank them the other way, the entry shows among the findings. No
 coordinates are kept, so the box holds its place in any theme and font, and when the
 diagram grows. Lines by hand on it move with it. A box stays in its container, and a
 box joined to another by a line cannot stand in its rank; where an entry cannot hold, a
 name is gone, or two entries go round, the box stands where the layout puts it and the
 entry shows among the findings. Alt and a double click gives the box back to the
 layout. Renaming a state renames it in the block too. Why it works this way:
-[ADR 0021](../adr/0021-boxes-held-in-place.md).
+[ADR 0021](../adr/0021-boxes-held-in-place.md) and
+[ADR 0028](../adr/0028-a-box-in-another-rank.md).
 
 ### Lines bundled
 

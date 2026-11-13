@@ -2178,9 +2178,8 @@ what it costs.
       from the list.
 - [x] `D below C` among the boxes held in place said how a line by hand
       reads (2026-11-11); it says now that a box is held in its
-      neighbor's rank only. Open: a box put into another rank (`below`,
-      `right of`, `level with`), which needs a decision on how it meets
-      the ranks the layout gives.
+      neighbor's rank only. A box put into another rank came with
+      [0028](docs/adr/0028-a-box-in-another-rank.md) (2026-11-13).
 - [x] PlantUML's themes, weighed and declined for now: `!theme` other than
       `plain` stays declined (`the preprocessor's !theme is not supported
       yet`). Omaspec does not ship PlantUML's theme files and reads nothing
@@ -2640,9 +2639,16 @@ skin draws them by hand.
 
 Beside the stages:
 
-- [ ] A box put into another rank than its neighbor's (`D below C`,
-      `right of`, `level with`); see the entry on boxes held in place
-      above.
+- [x] A box put into another rank than its neighbor's (2026-11-13,
+      [0028](docs/adr/0028-a-box-in-another-rank.md)): the block reads
+      `D below C`, `above`, `right of`, `left of` and `level with` by the
+      page, as the flow runs. Another rank is an invisible line from the
+      one to the other, as `dot`'s, which ranks and orders the two and is
+      not drawn; `level with` ranks the two as one and leaves the order
+      to the sweeps; `right of` and `left of` (`below` and `above` in a
+      flow to the right) are `after` and `before`. An entry the lines
+      rank the other way is said. All five drawers of graph diagrams;
+      the drag still writes `after` or `before`.
 - [x] An outline beside the source to jump from, and an example from
       the gallery put in at the caret (2026-11-13). *Outline beside the
       source* (View menu, kept in the session) shows the outline the

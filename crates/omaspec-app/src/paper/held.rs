@@ -15,7 +15,7 @@ use iced::mouse::Interaction;
 use iced::widget::canvas::{self, Action, Event, Frame, Geometry, Path, Stroke};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
 use omaspec_uml::graph::Rect;
-use omaspec_uml::hand::Hold;
+use omaspec_uml::hand::{Hold, Word};
 use omaspec_uml::map::{Map, Place};
 
 use super::Message;
@@ -280,12 +280,12 @@ pub fn target(map: &Map, index: usize, p: At) -> Option<Target> {
         Some(before) => Hold {
             name: place.name.clone(),
             beside: others[before].name.clone(),
-            after: true,
+            word: Word::After,
         },
         None => Hold {
             name: place.name.clone(),
             beside: others[0].name.clone(),
-            after: false,
+            word: Word::Before,
         },
     };
     let cross = match (at.checked_sub(1).map(|i| others[i]), others.get(at)) {
@@ -459,14 +459,23 @@ mod tests {
         let map = map();
         // D dropped between B and C: after B.
         let t = target(&map, 3, (90.0, 95.0)).unwrap();
-        assert_eq!((t.hold.beside.as_str(), t.hold.after), ("B", true));
+        assert_eq!(
+            (t.hold.beside.as_str(), t.hold.word),
+            ("B", omaspec_uml::hand::Word::After)
+        );
         assert_eq!(t.bar, ((80.0, 80.0), (80.0, 110.0)));
         // D dropped left of B: before B.
         let t = target(&map, 3, (-20.0, 90.0)).unwrap();
-        assert_eq!((t.hold.beside.as_str(), t.hold.after), ("B", false));
+        assert_eq!(
+            (t.hold.beside.as_str(), t.hold.word),
+            ("B", omaspec_uml::hand::Word::Before)
+        );
         // B dropped beside A, a rank up: after A.
         let t = target(&map, 1, (190.0, 10.0)).unwrap();
-        assert_eq!((t.hold.beside.as_str(), t.hold.after), ("A", true));
+        assert_eq!(
+            (t.hold.beside.as_str(), t.hold.word),
+            ("A", omaspec_uml::hand::Word::After)
+        );
     }
 
     #[test]

@@ -317,7 +317,7 @@ mod tests {
         let hold = Hold {
             name: "Running".into(),
             beside: "Idle".into(),
-            after: false,
+            word: omaspec_uml::hand::Word::Before,
         };
         let held = apply(
             STATES,
@@ -336,7 +336,7 @@ mod tests {
             ),
         );
         let after = Hold {
-            after: true,
+            word: omaspec_uml::hand::Word::After,
             ..hold.clone()
         };
         let moved = apply(

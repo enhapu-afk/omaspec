@@ -413,7 +413,7 @@ fn lint_fix_makes_the_fixes_findings_carry_and_fmt_pretty_writes_evenly() {
     let file = dir.join("door.puml");
     fs::write(
         &file,
-        "@startuml\n[*]-->Closed\nClosed-->Open : open\n\n' lines by hand (Omaspec)\n' Open below Closed\n",
+        "@startuml\n[*]-->Closed\nClosed-->Open : open\n\n' lines by hand (Omaspec)\n' Open under Closed\n",
     )
     .unwrap();
     let path = file.to_str().unwrap();

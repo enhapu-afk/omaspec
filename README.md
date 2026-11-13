@@ -171,8 +171,8 @@ has every key and command.
 
 - **Even cleaner lines.** Fewer crossings and detours, lines that keep clear of frames and
   labels, closer to what Graphviz draws.
-- **A box placed by a word.** `D below C`, `right of` or `level with` in the block by
-  hand, beside the drag that holds a box where it was put.
+- **Dense diagrams as fast as small ones.** 150 boxes and 476 lines laid out in under a
+  second, as you type.
 
 More in the [roadmap](ROADMAP.md#next). Ideas and wishes are welcome as
 [issues](https://github.com/enhapu-afk/omaspec/issues).

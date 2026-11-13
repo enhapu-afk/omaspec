@@ -831,7 +831,7 @@ impl Parser {
                     line: item.line,
                     index: to_i,
                     beside: from_i,
-                    after,
+                    word: crate::graph::hold::Word::beside(after),
                 }),
                 (false, after) => group.edges.push(Link {
                     level: Some(after),
@@ -2304,6 +2304,7 @@ fn take_quoted(text: &str, line: usize) -> Result<(String, &str), Declined> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::graph::hold::Word;
 
     fn lines_of(source: &str) -> Vec<crate::source::Line<'_>> {
         crate::source::body(source).unwrap().1
@@ -2380,7 +2381,7 @@ mod tests {
             .root
             .held
             .iter()
-            .map(|held| (held.index, held.beside, held.after))
+            .map(|held| (held.index, held.beside, held.word == Word::After))
             .collect();
         assert_eq!(held, [(3, 0, true), (4, 1, false)]);
         // Where the flow runs to the right, `down` is across it.

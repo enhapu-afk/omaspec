@@ -877,8 +877,8 @@ mod tests {
                 (
                     9,
                     Severity::Warning,
-                    "A box held in place reads `Box after Neighbor` or `Box before Neighbor`. \
-                     This entry is left out"
+                    "A box held in place reads `Box after Neighbor`, `before`, `below`, \
+                     `above`, `right of`, `left of` or `level with`. This entry is left out"
                         .into()
                 ),
                 (

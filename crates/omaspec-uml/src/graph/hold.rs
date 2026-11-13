@@ -1,26 +1,118 @@
-//! Boxes held in place ([0021](../../../../docs/adr/0021-boxes-held-in-place.md)):
-//! a box held beside a neighbor takes the neighbor's rank, the two ranked
-//! as one as `dot` ranks `rank=same` ([`groups`]), and stands right after
-//! or before it across the flow once the ranks are ordered ([`order`]).
-//! Placement is as before. A hold that cannot be kept is said
-//! ([`Unheld`]), and the box stands where the layout puts it.
+//! Boxes held in place ([0021](../../../../docs/adr/0021-boxes-held-in-place.md),
+//! [0028](../../../../docs/adr/0028-a-box-in-another-rank.md)): a box held
+//! beside a neighbor takes the neighbor's rank, the two ranked as one as
+//! `dot` ranks `rank=same` ([`groups`]), and stands right after or before
+//! it across the flow once the ranks are ordered ([`order`]); a box held
+//! level with it takes its rank and the order the layout gives. A box held
+//! below or above a neighbor along the flow is ranked after or before it,
+//! by a line that ranks and orders the two and is not drawn, as `dot`'s
+//! invisible edge ([`super::framed`]). Placement is as before. A hold that
+//! cannot be kept is said ([`Unheld`]), and the box stands where the layout
+//! puts it.
 
 use std::collections::HashMap;
+use std::fmt;
 
-use super::Edge;
+use super::{Direction, Edge};
 use crate::hand;
 
-/// A box held beside another: `node` stands in the rank of `beside`, right
-/// after it across the flow (right of it when the flow runs down, below it
-/// when it runs across) or right before it.
+/// The word of an entry that holds a box against its neighbor. `after`
+/// and `before` go across the flow, whichever way it runs; the others go
+/// by the page: across the flow or along it, as the flow runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Word {
+    After,
+    Before,
+    Below,
+    Above,
+    Right,
+    Left,
+    Level,
+}
+
+/// Where a word puts a box against its neighbor in a flow.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Place {
+    /// In its rank, right after it across the flow, or right before it.
+    Beside { after: bool },
+    /// In its rank, where the layout orders it.
+    Level,
+    /// In a rank after its own along the flow (`later`), or before it.
+    Rank { later: bool },
+}
+
+impl Word {
+    pub const ALL: [Word; 7] = [
+        Word::After,
+        Word::Before,
+        Word::Below,
+        Word::Above,
+        Word::Right,
+        Word::Left,
+        Word::Level,
+    ];
+
+    /// How the entry writes it.
+    pub fn text(self) -> &'static str {
+        match self {
+            Word::After => "after",
+            Word::Before => "before",
+            Word::Below => "below",
+            Word::Above => "above",
+            Word::Right => "right of",
+            Word::Left => "left of",
+            Word::Level => "level with",
+        }
+    }
+
+    /// Where it puts the box in a flow that runs `direction`: below a
+    /// neighbor is a later rank when the flow runs down, after it across
+    /// the flow when it runs to the right; right of it the other way round.
+    pub fn place(self, direction: Direction) -> Place {
+        use Direction::{Down, Right};
+        match (self, direction) {
+            (Word::After, _) => Place::Beside { after: true },
+            (Word::Before, _) => Place::Beside { after: false },
+            (Word::Level, _) => Place::Level,
+            (Word::Below, Down) | (Word::Right, Right) => Place::Rank { later: true },
+            (Word::Above, Down) | (Word::Left, Right) => Place::Rank { later: false },
+            (Word::Right, Down) | (Word::Below, Right) => Place::Beside { after: true },
+            (Word::Left, Down) | (Word::Above, Right) => Place::Beside { after: false },
+        }
+    }
+
+    /// `after` or `before`, the words a drag writes.
+    pub fn beside(after: bool) -> Word {
+        if after { Word::After } else { Word::Before }
+    }
+}
+
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.text())
+    }
+}
+
+/// A box held against another: `node` stands where `word` puts it
+/// against `beside`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Hold {
     pub node: usize,
     pub beside: usize,
-    pub after: bool,
+    pub word: Word,
 }
 
-/// A box held beside another in one container, as a drawer gives it to
+/// A box held in its neighbor's rank, as ranking and ordering take it:
+/// right after it across the flow (`Some(true)`), right before it, or
+/// where the layout orders it (`None`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct Same {
+    pub node: usize,
+    pub beside: usize,
+    pub after: Option<bool>,
+}
+
+/// A box held against another in one container, as a drawer gives it to
 /// the layout ([`super::open::Nested::holds`]): the entry's zero-based
 /// line, and the two boxes by their index among the container's members.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,7 +120,7 @@ pub struct Held {
     pub line: usize,
     pub index: usize,
     pub beside: usize,
-    pub after: bool,
+    pub word: Word,
 }
 
 /// The boxes held in each container, by the path of the container; and
@@ -62,7 +154,7 @@ pub fn sort(held: &[(usize, hand::Hold)], places: &HashMap<String, (Vec<usize>, 
             line: *line,
             index: at.1,
             beside: by.1,
-            after: hold.after,
+            word: hold.word,
         });
     }
     (sorted, misses)
@@ -83,17 +175,20 @@ pub enum Unheld {
     Round,
     /// One of the two is a container laid out with what is around it.
     Frame,
+    /// The lines between the two rank them the other way round.
+    Against,
 }
 
-/// The holds that can be kept, in their order, and why each other one
-/// cannot: by its index in `holds`. `n` boxes, `within` the frame around
-/// each (empty when there are none), `edges` every line between them.
+/// The holds in one rank that can be kept, in their order, and why each
+/// other one cannot: by its index in `holds`. `n` boxes, `within` the
+/// frame around each (empty when there are none), `edges` every line
+/// between them.
 pub(super) fn check(
     n: usize,
     within: &[Option<usize>],
     edges: &[Edge],
-    holds: &[Hold],
-) -> (Vec<Hold>, Vec<(usize, Unheld)>) {
+    holds: &[Same],
+) -> (Vec<Same>, Vec<(usize, Unheld)>) {
     let mut sets = Sets::new(n);
     let mut kept = Vec::new();
     let mut unheld = Vec::new();
@@ -130,9 +225,25 @@ pub(super) fn check(
     (kept, unheld)
 }
 
+/// Why a hold into another rank cannot be kept before the layout, if it
+/// cannot: `n` boxes, `within` the frame around each.
+pub(super) fn ranked_check(n: usize, within: &[Option<usize>], hold: &Hold) -> Option<Unheld> {
+    let (a, b) = (hold.node, hold.beside);
+    let frame = |x: usize| within.get(x).copied().flatten();
+    if a >= n || b >= n {
+        Some(Unheld::Missing)
+    } else if a == b {
+        Some(Unheld::Itself)
+    } else if frame(a) != frame(b) {
+        Some(Unheld::Apart)
+    } else {
+        None
+    }
+}
+
 /// For every box, the box it is ranked as: one of each group of boxes the
 /// holds put in one rank, itself for a box held by none.
-pub(super) fn groups(n: usize, holds: &[Hold]) -> Vec<usize> {
+pub(super) fn groups(n: usize, holds: &[Same]) -> Vec<usize> {
     let mut sets = Sets::new(n);
     for hold in holds {
         sets.join(hold.node, hold.beside);
@@ -156,13 +267,18 @@ pub(super) fn ranked(edges: &[Edge], group: &[usize]) -> Vec<Edge> {
 
 /// Moves each held box of `rows` (ranks of slots, a box's slot being its
 /// index) right after or before its neighbor, in the order of `holds`:
-/// boxes held after one neighbor follow it in that order.
-pub(super) fn order(rows: &mut [Vec<usize>], holds: &[Hold]) {
+/// boxes held after one neighbor follow it in that order. A box held level
+/// with its neighbor stays where the sweeps put it.
+pub(super) fn order(rows: &mut [Vec<usize>], holds: &[Same]) {
+    let holds: Vec<(Same, bool)> = holds
+        .iter()
+        .filter_map(|hold| hold.after.map(|after| (*hold, after)))
+        .collect();
     // A box is moved before the boxes held beside it, however the holds
     // were written: moved after them, it would leave them behind.
-    let steps = |hold: &Hold| {
+    let steps = |hold: &Same| {
         let (mut at, mut steps) = (hold.beside, 0);
-        while let Some(next) = holds.iter().find(|other| other.node == at) {
+        while let Some((next, _)) = holds.iter().find(|(other, _)| other.node == at) {
             (at, steps) = (next.beside, steps + 1);
             if steps > holds.len() {
                 break;
@@ -170,11 +286,11 @@ pub(super) fn order(rows: &mut [Vec<usize>], holds: &[Hold]) {
         }
         steps
     };
-    let mut sorted: Vec<&Hold> = holds.iter().collect();
-    sorted.sort_by_cached_key(|hold| steps(hold));
+    let mut sorted: Vec<&(Same, bool)> = holds.iter().collect();
+    sorted.sort_by_cached_key(|(hold, _)| steps(hold));
     // The last box placed after each neighbor so far.
     let mut last: std::collections::HashMap<usize, usize> = Default::default();
-    for hold in sorted {
+    for &&(hold, after) in &sorted {
         let Some(row) = rows.iter_mut().find(|row| row.contains(&hold.beside)) else {
             continue;
         };
@@ -182,7 +298,7 @@ pub(super) fn order(rows: &mut [Vec<usize>], holds: &[Hold]) {
             continue;
         };
         row.remove(from);
-        let anchor = if hold.after {
+        let anchor = if after {
             last.get(&hold.beside)
                 .copied()
                 .filter(|slot| row.contains(slot))
@@ -194,7 +310,7 @@ pub(super) fn order(rows: &mut [Vec<usize>], holds: &[Hold]) {
             row.insert(from.min(row.len()), hold.node);
             continue;
         };
-        if hold.after {
+        if after {
             row.insert(at + 1, hold.node);
             last.insert(hold.beside, hold.node);
         } else {
@@ -240,7 +356,7 @@ impl Sets {
 #[cfg(test)]
 mod tests {
     use super::super::{Direction, Edge, Frame, Layout, Node, framed, layout};
-    use super::{Hold, Unheld};
+    use super::{Hold, Unheld, Word};
 
     fn node() -> Node {
         Node {
@@ -295,7 +411,7 @@ mod tests {
             &[Hold {
                 node: 3,
                 beside: 2,
-                after: true,
+                word: Word::After,
             }],
         );
         assert!(after.unheld.is_empty(), "{:?}", after.unheld);
@@ -307,7 +423,7 @@ mod tests {
             &[Hold {
                 node: 3,
                 beside: 1,
-                after: false,
+                word: Word::Before,
             }],
         );
         assert!(same_rank(&before, 3, 1));
@@ -323,12 +439,12 @@ mod tests {
             Hold {
                 node: 3,
                 beside: 1,
-                after: true,
+                word: Word::After,
             },
             Hold {
                 node: 2,
                 beside: 1,
-                after: true,
+                word: Word::After,
             },
         ];
         let laid = held(4, &edges, &holds);
@@ -343,7 +459,7 @@ mod tests {
         let hold = |node: usize, beside: usize| Hold {
             node,
             beside,
-            after: true,
+            word: Word::After,
         };
         let holds = [hold(1, 1), hold(1, 0), hold(2, 7), hold(2, 0), hold(0, 2)];
         let laid = held(3, &edges, &holds);
@@ -374,10 +490,81 @@ mod tests {
             &[Hold {
                 node: 0,
                 beside: 1,
-                after: true,
+                word: Word::After,
             }],
             Direction::Down,
         );
         assert_eq!(laid.unheld, [(0, Unheld::Apart)]);
+    }
+
+    /// A chain 0 -> 1 and a box 2 on its own: held below 1 it takes the
+    /// rank after 1's, above 0 a rank before 0's; level with 1 it takes
+    /// 1's rank where the layout orders it. Right of 1 is after it.
+    #[test]
+    fn a_box_goes_into_another_rank_by_the_page() {
+        let edges = [edge(0, 1)];
+        let at = |word: Word, beside: usize| {
+            held(
+                3,
+                &edges,
+                &[Hold {
+                    node: 2,
+                    beside,
+                    word,
+                }],
+            )
+        };
+        let below = at(Word::Below, 1);
+        assert!(below.unheld.is_empty(), "{:?}", below.unheld);
+        assert!(below.nodes[2].y > below.nodes[1].y + below.nodes[1].h);
+        let above = at(Word::Above, 0);
+        assert!(above.nodes[2].y + above.nodes[2].h < above.nodes[0].y);
+        let level = at(Word::Level, 1);
+        assert!(same_rank(&level, 2, 1));
+        let right = at(Word::Right, 1);
+        assert!(same_rank(&right, 2, 1) && right.nodes[2].x > right.nodes[1].x);
+        // Across the flow, right of a box is the rank after its own.
+        let across = framed(
+            &[node(); 3],
+            &[],
+            &[],
+            &edges,
+            &[Hold {
+                node: 2,
+                beside: 1,
+                word: Word::Right,
+            }],
+            Direction::Right,
+        );
+        assert!(across.nodes[2].x > across.nodes[1].x + across.nodes[1].w);
+        // No line is drawn for it.
+        assert_eq!(below.routes.len(), 1);
+    }
+
+    /// 0 -> 1: held above 1, 0 is above it already; 1 held above 0 goes
+    /// against the line, which keeps its way down.
+    #[test]
+    fn a_rank_against_the_lines_is_said() {
+        let edges = [edge(0, 1), edge(1, 2)];
+        let hold = |node, beside, word| Hold { node, beside, word };
+        let kept = held(3, &edges, &[hold(0, 1, Word::Above)]);
+        assert!(kept.unheld.is_empty(), "{:?}", kept.unheld);
+        let against = held(
+            3,
+            &edges,
+            &[
+                hold(2, 2, Word::Below),
+                hold(2, 0, Word::Above),
+                hold(0, 9, Word::Below),
+            ],
+        );
+        assert_eq!(
+            against.unheld,
+            [
+                (0, Unheld::Itself),
+                (1, Unheld::Against),
+                (2, Unheld::Missing)
+            ]
+        );
     }
 }

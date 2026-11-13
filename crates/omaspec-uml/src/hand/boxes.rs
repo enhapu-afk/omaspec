@@ -188,6 +188,7 @@ pub fn unheld(hold: &Hold, why: Unheld) -> String {
         Unheld::Frame => {
             "a container laid out with what is around it is not held as a whole".to_owned()
         }
+        Unheld::Against => format!("the lines between {name} and {beside} rank them the other way"),
     };
     format!("{hold}: {why}; {name} stands where the layout puts it")
 }

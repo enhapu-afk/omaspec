@@ -248,14 +248,88 @@ pub fn layout(nodes: &[Node], edges: &[Edge], direction: Direction) -> Layout {
 /// `within[i]` is the innermost frame around node `i`, if any. An edge end
 /// past the nodes, `nodes.len() + f`, is frame `f` itself: the line ends
 /// at its border. Edges that name neither are dropped, and so is an edge
-/// between a frame and what it holds. `holds` keep boxes beside others
-/// ([`hold`]).
+/// between a frame and what it holds. `holds` keep boxes against others
+/// ([`hold`]): one held into another rank is a line that ranks and orders
+/// the two and is not drawn, as `dot`'s invisible edge; the rest hold a
+/// box in its neighbor's rank.
 pub fn framed(
     nodes: &[Node],
     frames: &[Frame],
     within: &[Option<usize>],
     edges: &[Edge],
     holds: &[hold::Hold],
+    direction: Direction,
+) -> Layout {
+    let n = nodes.len();
+    let mut same: Vec<(usize, hold::Same)> = Vec::new();
+    let mut along: Vec<(usize, usize, usize)> = Vec::new();
+    let mut unheld: Vec<(usize, hold::Unheld)> = Vec::new();
+    let mut lines = edges.to_vec();
+    for (index, held) in holds.iter().enumerate() {
+        let after = match held.word.place(direction) {
+            hold::Place::Beside { after } => Some(after),
+            hold::Place::Level => None,
+            hold::Place::Rank { later } => {
+                if let Some(why) = hold::ranked_check(n, within, held) {
+                    unheld.push((index, why));
+                    continue;
+                }
+                let (upper, lower) = if later {
+                    (held.beside, held.node)
+                } else {
+                    (held.node, held.beside)
+                };
+                lines.push(Edge {
+                    from: upper,
+                    to: lower,
+                    label_width: 0.0,
+                    label_height: 0.0,
+                    hidden: true,
+                    apart: true,
+                    marked: false,
+                    arrival: 0,
+                    label_before: None,
+                    level: None,
+                });
+                along.push((index, upper, lower));
+                continue;
+            }
+        };
+        same.push((
+            index,
+            hold::Same {
+                node: held.node,
+                beside: held.beside,
+                after,
+            },
+        ));
+    }
+    let kept: Vec<hold::Same> = same.iter().map(|(_, hold)| *hold).collect();
+    let mut laid = in_ranks(nodes, frames, within, &lines, &kept, direction);
+    laid.routes.truncate(edges.len());
+    unheld.extend(laid.unheld.iter().map(|&(at, why)| (same[at].0, why)));
+    // A box held into another rank that the lines rank the other way.
+    let middle = |r: Rect| match direction {
+        Direction::Down => r.y + r.h / 2.0,
+        Direction::Right => r.x + r.w / 2.0,
+    };
+    for (index, upper, lower) in along {
+        if middle(laid.nodes[lower]) <= middle(laid.nodes[upper]) + 0.5 {
+            unheld.push((index, hold::Unheld::Against));
+        }
+    }
+    unheld.sort_by_key(|(index, _)| *index);
+    laid.unheld = unheld;
+    laid
+}
+
+/// [`framed`] with every hold in its neighbor's rank.
+fn in_ranks(
+    nodes: &[Node],
+    frames: &[Frame],
+    within: &[Option<usize>],
+    edges: &[Edge],
+    holds: &[hold::Same],
     direction: Direction,
 ) -> Layout {
     let n = nodes.len();
@@ -284,15 +358,15 @@ pub fn framed(
     // A line within a rank holds its second box beside its first, as a
     // hold does. Where that cannot be it is a line like any other: the
     // two are joined by another line, or lie in different frames.
-    let wanted: Vec<(usize, hold::Hold)> = edges
+    let wanted: Vec<(usize, hold::Same)> = edges
         .iter()
         .enumerate()
         .filter_map(|(index, edge)| {
             let after = edge.level?;
-            let hold = hold::Hold {
+            let hold = hold::Same {
                 node: edge.to,
                 beside: edge.from,
-                after,
+                after: Some(after),
             };
             let boxes = edge.from < n && edge.to < n && edge.from != edge.to;
             // Room a box keeps on the side the line would run, for a note
@@ -314,7 +388,7 @@ pub fn framed(
         .filter(|edge| edge.level.is_none())
         .copied()
         .collect();
-    let every: Vec<hold::Hold> = wanted
+    let every: Vec<hold::Same> = wanted
         .iter()
         .map(|(_, hold)| *hold)
         .chain(holds.iter().copied())
@@ -331,7 +405,7 @@ pub fn framed(
         let kept = !unheld.iter().any(|(not, _)| *not == at);
         if kept || group[hold.node] == group[hold.beside] {
             level[*index] = Some(Level {
-                after: hold.after,
+                after: hold.after == Some(true),
                 kept,
                 span: CROSS_GAP,
             });

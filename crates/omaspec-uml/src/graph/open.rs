@@ -512,7 +512,7 @@ impl<C: Nested> Flat<C> {
                         holds.push(Hold {
                             node,
                             beside,
-                            after: held.after,
+                            word: held.word,
                         });
                         lines.push(held.line);
                     }

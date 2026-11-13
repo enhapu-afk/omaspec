@@ -156,7 +156,7 @@ fn a_line_by_hand_is_drawn_as_the_pane_shows_it_in_every_graph_drawer() {
 /// every drawer of graph diagrams; an entry for no box is said.
 #[test]
 fn a_box_held_before_its_neighbor_stands_left_of_it_in_every_drawer() {
-    use omaspec_uml::hand::Hold;
+    use omaspec_uml::hand::{Hold, Word};
     let mut renderer = Renderer::new(&Config {
         java_fallback: false,
         ..Config::default()
@@ -177,7 +177,7 @@ fn a_box_held_before_its_neighbor_stands_left_of_it_in_every_drawer() {
     let hold = |name: &str, beside: &str| Hold {
         name: name.into(),
         beside: beside.into(),
-        after: false,
+        word: Word::Before,
     };
     for (code, language) in diagrams {
         let ends = |map: &omaspec_uml::map::Map| {
@@ -231,5 +231,70 @@ fn a_box_held_before_its_neighbor_stands_left_of_it_in_every_drawer() {
             ["No box is named Nobody; C before Nobody is left out"],
             "{nowhere}"
         );
+    }
+}
+
+/// docs/adr/0028: a box held below its neighbor stands in a rank under it,
+/// in every drawer of graph diagrams, and no line is drawn for it; level
+/// with it, it keeps its rank.
+#[test]
+fn a_box_held_below_its_neighbor_stands_under_it_in_every_drawer() {
+    use omaspec_uml::hand::{Hold, Word};
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    let diagrams = [
+        (
+            "@startuml\nstate A\nstate B\nstate C\nA --> B\nA --> C\n@enduml\n",
+            Language::PlantUml,
+        ),
+        (
+            "@startuml\nclass A\nclass B\nclass C\nA --> B\nA --> C\n@enduml\n",
+            Language::PlantUml,
+        ),
+        ("flowchart TD\n  A --> B\n  A --> C\n", Language::Mermaid),
+        ("stateDiagram-v2\n  A --> B\n  A --> C\n", Language::Mermaid),
+        ("classDiagram\n  A --> B\n  A --> C\n", Language::Mermaid),
+    ];
+    for (code, language) in diagrams {
+        let place = |map: &omaspec_uml::map::Map, name: &str| {
+            map.places
+                .iter()
+                .find(|p| p.name == name)
+                .unwrap_or_else(|| panic!("{code}: no place {name}"))
+                .rect
+        };
+        let bare = renderer.render(code, language).unwrap();
+        for word in [Word::Below, Word::Level] {
+            let hold = Hold {
+                name: "C".into(),
+                beside: "B".into(),
+                word,
+            };
+            let (range, text) = hand::hold(code, language, "C", Some(&hold)).unwrap();
+            let held = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
+            let drawn = renderer.render(&held, language).unwrap();
+            assert!(
+                drawn.map.misses.is_empty(),
+                "{held}: {:?}",
+                drawn.map.misses
+            );
+            let (b, c) = (place(&drawn.map, "B"), place(&drawn.map, "C"));
+            match word {
+                Word::Below => assert!(c.y > b.y + b.h, "{held}"),
+                _ => assert!((c.y + c.h / 2.0 - b.y - b.h / 2.0).abs() < 0.5, "{held}"),
+            }
+            assert_eq!(
+                drawn.map.wires.len(),
+                bare.map.wires.len(),
+                "{held}: no line more"
+            );
+            assert_eq!(
+                lint::lint(&held, language),
+                lint::lint(code, language),
+                "{held}"
+            );
+        }
     }
 }

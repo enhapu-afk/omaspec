@@ -7,7 +7,7 @@
 //! the lines meet their boxes, the points move onto them ([`point_wants`]),
 //! and the gaps make room for the lines that bend there ([`rank_gaps`]).
 
-use super::hold::{self, Hold};
+use super::hold::{self, Same};
 use super::{ALONG_PAD, Direction, Edge, PORT_CORNER, Ports, Slot, TRACK, center, nest};
 
 /// Between a label and its line, across the flow, by direction: beside a
@@ -257,7 +257,7 @@ pub(super) fn order_ranks(
     rows: &mut [Vec<usize>],
     slots: &mut [Slot],
     framing: Option<(&[Vec<usize>], usize)>,
-    holds: &[Hold],
+    holds: &[Same],
 ) {
     // Every line passes a point in each rank between two ranks of boxes,
     // which has one slot before it and one after.
