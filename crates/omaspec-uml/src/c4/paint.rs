@@ -5,6 +5,7 @@ use super::lay::{Laid, Mark, Rect, lay, stack_height};
 use super::{BOUND_ROUND, Boundary, Diagram, Kind, Look, MARGIN, ROUND, Shape};
 use crate::Declined;
 use crate::color::{Color, Paint};
+use crate::geom::shorten;
 use crate::svg::{Align, Canvas, Layer, Stroke};
 use crate::text::Block;
 
@@ -357,30 +358,4 @@ pub(super) fn arrow(canvas: &mut Canvas, tip: (f32, f32), from: (f32, f32), colo
         Some(color),
         None,
     );
-}
-
-pub(super) fn shorten(points: &mut [(f32, f32)], len: f32, at_end: bool) {
-    if points.len() < 2 {
-        return;
-    }
-    if at_end {
-        let last = points.len() - 1;
-        let from = points[last - 1];
-        pull(&mut points[last], from, len);
-    } else {
-        let toward = points[1];
-        pull(&mut points[0], toward, len);
-    }
-}
-
-pub(super) fn pull(point: &mut (f32, f32), toward: (f32, f32), len: f32) {
-    let dx = toward.0 - point.0;
-    let dy = toward.1 - point.1;
-    let dist = (dx * dx + dy * dy).sqrt();
-    if dist < 0.1 {
-        return;
-    }
-    let step = len.min(dist);
-    point.0 += dx / dist * step;
-    point.1 += dy / dist * step;
 }
