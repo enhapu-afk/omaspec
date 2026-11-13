@@ -2810,6 +2810,64 @@ the ordering of the ranks grew far faster than the lines.
       under a second; CI runs it in a release build. 100 boxes: 7.3 s
       to 0.19 s; 150: 53 s to 0.44 s.
 
+### Presenting, animating, and diagrams only Omaspec draws (2026-11-13)
+
+Wished for after 0.9.6: a diagram that is shown to others, not only read,
+and a few kinds of diagram no other tool has, made to be a highlight.
+Each new kind gets a gallery example and golden SVGs; one of Omaspec's own
+syntax is an `@start…` block, as signal flow is, and the portability lint
+says that PlantUML does not know it. In this order, as each one builds on
+the one before:
+
+- [ ] Save As and Open in the desktop's own dialog, as the export asks
+      since 0.9.6: the folder and the name in xdg-desktop-portal's file
+      chooser, the bottom line where none answers. A new project's
+      folder too.
+- [ ] A presentation as one HTML file: *Export as › Presentation…*
+      writes a page that needs nothing but a browser, offline, every
+      picture and script inside it, and no request to anywhere. A
+      scenario steps message by message with the arrow keys, a click or
+      a presenter's remote (which sends the same keys), the message
+      played lit as the pane lights it, the ones before it quiet, the
+      ones after it veiled; a state machine plays by its options; F
+      shows it full screen. The page draws the diagram as the pane
+      does, in the look chosen, and keeps its source. The foundation of
+      the HTML items below.
+- [ ] A fold and an unfold as a moving picture, from the diagram's menu
+      (*Export as › Animation…*, the container to fold chosen there),
+      not only from `omaspec play --fold`: animated WebP or APNG in full
+      color at 60 frames a second instead of GIF's 256 colors and
+      banded gradients, the glide eased in and out; and in the HTML
+      page as vectors, sharp at any size.
+- [ ] Orbit: a state machine's life cycle on a circle, the way through
+      it round the ring, a way back as an arc inside it, an end where
+      the ring opens, from the machines that are there with no syntax
+      of their own (a view, as the table is: View menu, `omaspec orbit
+      FILE -o`). For orders, tickets, sprints, anything that comes
+      round again.
+- [ ] Trace river: many recorded traces flowing through a machine, each
+      way as wide as it was taken, the ways never taken thin and
+      dashed, a deviation branching off in red where the trace left the
+      machine; from coverage, which counts it all already.
+- [ ] Story map: activities across, the steps of each under it, release
+      slices across the whole as bands (`@startstorymap`): the backbone
+      of a product and what goes into which release, which neither
+      PlantUML nor Mermaid draws.
+- [ ] Capability map: what a business can do as nested tiles, each
+      colored by a value given to it (maturity, cost, risk) on a scale
+      with its legend (`@startcapabilities`), for planning an
+      architecture.
+- [ ] Time travel: two commits of a diagram, one gliding into the other
+      as the pane glides after an edit, what changed glowing a moment
+      (the diff's colors); in the editor beside the compare, and as an
+      animation or a page to export, for a review.
+- [ ] A presenter mode in the editor: the diagram full screen, the keys
+      of the presentation page, and the comments next to the lines
+      played as speaker notes on a second screen.
+- [ ] The project as an interactive page: its map, a click zooming into
+      a tile as the editor dives into it, and back out, every diagram
+      inside; `omaspec export --html`.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 Omaspec's engine is plain Rust; what ties the program to Linux is at the
