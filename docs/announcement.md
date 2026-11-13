@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.9.4: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.9.5: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -83,6 +83,24 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   crosses less: on 300 random graphs 28 % fewer crossings.
 - **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
   matter, and a component's name keeps clear of its icon.
+
+## New in 0.9.5
+
+- **Views from the behavior.** A state machine as a table, states down and events across;
+  what changed since the last commit drawn over its new version; what recorded traces
+  covered, and missed, drawn over the machine; a trace as a timing diagram.
+- **Architectures, elegant or playful.** C4-PlantUML and ArchiMate drawn by Omaspec,
+  Open Iconic icons and sprites in the color of the words, cards with lists and emoji,
+  a line within a rank, and a box placed by a word: `D below C`, `level with`.
+- **More PlantUML without Java.** JSON and YAML (as a tree or nested, branches that
+  fold), network diagrams, Salt wireframes, EBNF and regular expressions as railroads,
+  and Ditaa.
+- **More Mermaid on Omaspec's own drawers.** Requirement diagrams, ZenUML, and the
+  packet, radar, treemap, sankey, XY and quadrant charts.
+- **Fast when dense.** A flowchart of 150 boxes and 476 lines is laid out in under half a
+  second, where it took close to a minute; CI holds it there.
+- **An outline beside the source**, and an example from the gallery put in where the caret
+  is.
 
 ## New in 0.9.4
 

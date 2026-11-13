@@ -1271,7 +1271,14 @@ followed on 2026-11-12 with what was built since: the menus, find in a file, the
 colored source and what the editor offers, `<style>` and shadows in more PlantUML
 diagrams, branches of a tree that fold, Mermaid's git graph and kanban board, and
 a release binary for aarch64 and for glibc 2.35 and newer, where 0.9.3's started
-only on Arch.
+only on Arch. 0.9.5 followed on 2026-11-13: views derived from the behavior (a
+machine as a table, its changes and the coverage of its traces drawn over it, a
+trace as a timing diagram), architectures drawn by hand (C4-PlantUML, ArchiMate,
+icons and sprites, a line within a rank, a box placed by a word), PlantUML's
+JSON, YAML, network diagrams, Salt, EBNF, regular expressions and Ditaa without
+Java, Mermaid's charts, requirements and ZenUML on drawers of their own, the
+outline beside the source, and a dense flowchart laid out in under half a
+second.
 
 ### Step 0: the yardstick
 

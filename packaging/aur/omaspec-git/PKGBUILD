@@ -14,7 +14,7 @@ license=('MIT' 'OFL-1.1-no-RFN')
 depends=('gcc-libs' 'glibc' 'fontconfig' 'libxkbcommon' 'wayland' 'vulkan-icd-loader')
 makedepends=('cargo' 'git')
 optdepends=(
-  'plantuml: optional, Java; draws the few PlantUML types the native engine does not (YAML, Salt, ...)'
+  'plantuml: optional, Java; draws the few PlantUML types the native engine does not (Graphviz, tree diagrams)'
   'wl-clipboard: copy diagrams to the clipboard'
   'git: compare a diagram with a git commit'
   'libnotify: notifications outside Omarchy'

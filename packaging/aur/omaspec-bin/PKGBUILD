@@ -6,7 +6,7 @@
 
 pkgname=omaspec-bin
 _pkgname=omaspec
-pkgver=0.9.4
+pkgver=0.9.5
 pkgrel=1
 pkgdesc="Native PlantUML and Mermaid editor and live preview for Omarchy (prebuilt)"
 arch=('x86_64' 'aarch64')
@@ -14,7 +14,7 @@ url="https://github.com/enhapu-afk/omaspec"
 license=('MIT' 'OFL-1.1-no-RFN')
 depends=('glibc' 'fontconfig' 'libxkbcommon' 'wayland' 'vulkan-icd-loader')
 optdepends=(
-  'plantuml: optional, Java; draws the few PlantUML types the native engine does not (YAML, Salt, ...)'
+  'plantuml: optional, Java; draws the few PlantUML types the native engine does not (Graphviz, tree diagrams)'
   'wl-clipboard: copy diagrams to the clipboard'
   'git: compare a diagram with a git commit'
   'libnotify: notifications outside Omarchy'
@@ -23,9 +23,9 @@ provides=("$_pkgname")
 conflicts=("$_pkgname")
 options=('!debug')
 source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-x86_64-linux.tar.gz")
-sha256sums_x86_64=('acd20a7af17d0d90febf29fb393e09c13078157c2af279fc570a591640a47a23')
+sha256sums_x86_64=('SKIP')
 source_aarch64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-aarch64-linux.tar.gz")
-sha256sums_aarch64=('94e5c456c81024c570c9c544db45b3edc4fda23169eca658314d9c6ab103ae1d')
+sha256sums_aarch64=('SKIP')
 
 package() {
   cd "$_pkgname-$pkgver-$CARCH-linux"
