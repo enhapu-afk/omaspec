@@ -56,8 +56,10 @@ mod session;
 mod syntax;
 pub mod table;
 mod takes;
+mod tidy;
 mod tools;
 mod view;
+mod views;
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -1084,89 +1086,13 @@ impl App {
                 }
                 Task::none()
             }
-            Message::Paper(key, message) => {
-                if let paper::Message::Viewport(size) = message {
-                    self.paper_size = size;
-                }
-                let step = matches!(message, paper::Message::Play(_));
-                let relight = key != compare::KEY && matches!(message, paper::Message::PlayGone);
-                let moves = paper::Paper::moves_view(&message);
-                let (task, by_hand, held, refold) = match self.find(key) {
-                    Some(doc) => (
-                        doc.paper
-                            .update(message)
-                            .map(move |m| Message::Paper(key, m)),
-                        doc.paper.take_by_hand(),
-                        doc.paper.take_held(),
-                        doc.paper.take_refold(),
-                    ),
-                    None => (Task::none(), None, None, false),
-                };
-                // A container folded or unfolded in the pane: drawn again.
-                if refold {
-                    return Task::batch([task, self.render(key, true)]);
-                }
-                if let Some(line) = by_hand {
-                    return Task::batch([task, self.draw_by_hand(key, &line)]);
-                }
-                if let Some((name, hold)) = held {
-                    return Task::batch([task, self.hold_box(key, &name, hold.as_ref())]);
-                }
-                // The diagram a zoom leads to got its picture.
-                let arrived = if self.is_arriving(key) {
-                    self.arrive()
-                } else {
-                    Task::none()
-                };
-                let follow = match &mut self.compare {
-                    Some(c) if moves && c.sync && c.a == key => {
-                        let view = self
-                            .docs
-                            .iter()
-                            .find(|d| d.key == key)
-                            .map(|d| d.paper.view);
-                        view.map_or_else(Task::none, |v| c.paper.follow(v))
-                            .map(|m| Message::Paper(compare::KEY, m))
-                    }
-                    _ => Task::none(),
-                };
-                if step {
-                    self.light_played_line(key);
-                }
-                if relight {
-                    self.follow_caret(key);
-                }
-                Task::batch([task, follow, arrived])
-            }
+            Message::Paper(key, message) => self.paper_event(key, message),
             Message::Resized(event) => {
                 self.panes.resize(event.split, event.ratio);
                 Task::none()
             }
             Message::Focus(pane) => self.focus_pane(pane),
-            Message::ScaleFactor(window, factor) => {
-                if Some(window) == self.detached {
-                    self.detached_scale = factor;
-                } else {
-                    self.main_scale = factor;
-                    self.icons = icons_for(&self.palette, factor);
-                }
-                let thumbs = self.draw_thumbs();
-                let factor = self.paper_scale();
-                let key = self.doc().key;
-                let b = match &mut self.compare {
-                    Some(c) => c
-                        .paper
-                        .set_scale_factor(factor)
-                        .map(|m| Message::Paper(compare::KEY, m)),
-                    None => Task::none(),
-                };
-                let a = self
-                    .doc_mut()
-                    .paper
-                    .set_scale_factor(factor)
-                    .map(move |m| Message::Paper(key, m));
-                Task::batch([a, b, thumbs])
-            }
+            Message::ScaleFactor(window, factor) => self.scale_factor(window, factor),
             Message::Command(command) => self.run(command),
             Message::Keyed(window, command) => {
                 self.command_window = Some(window);
@@ -1776,28 +1702,7 @@ impl App {
         let paper = |task: Task<paper::Message>| task.map(move |m| Message::Paper(key, m));
         match command {
             Command::Palette => self.open_palette(),
-            Command::Save => {
-                let doc = self.doc();
-                match doc.path.clone() {
-                    // A name not written yet may have been taken since.
-                    Some(path) if !doc.on_disk() && path.exists() => {
-                        let task = self.ask(Asking::SaveAs);
-                        self.notice = Some(format!(
-                            "{} exists now: Enter overwrites it",
-                            path.display()
-                        ));
-                        if let Some(prompt) = &mut self.prompt {
-                            prompt.overwrite = true;
-                        }
-                        task
-                    }
-                    Some(path) => {
-                        self.save(&path);
-                        Task::none()
-                    }
-                    None => self.ask(Asking::SaveAs),
-                }
-            }
+            Command::Save => self.save_tab(),
             Command::SaveAs => self.ask(Asking::SaveAs),
             Command::Revert => self.revert(),
             Command::Open => self.ask(Asking::Open),
@@ -1811,52 +1716,11 @@ impl App {
                 self.stop_compare();
                 Task::none()
             }
-            Command::CompareDiff => {
-                if let Some(c) = &mut self.compare {
-                    c.show_diff = !c.show_diff;
-                    c.show_behavior = false;
-                }
-                Task::none()
-            }
-            Command::CompareBehavior => {
-                if let Some(c) = &mut self.compare {
-                    c.show_behavior = !c.show_behavior;
-                    c.show_diff = false;
-                }
-                Task::none()
-            }
+            Command::CompareDiff => self.toggle_compare_diff(),
+            Command::CompareBehavior => self.toggle_compare_behavior(),
             Command::Convert => self.convert(),
-            Command::CompareGlide => {
-                let old = self
-                    .compare
-                    .as_ref()
-                    .and_then(|c| Some((c.a, c.paper.drawn_now()?)));
-                let Some((a, (drawn, source, language))) = old else {
-                    self.notice = Some("compare with a tab or a git commit first".into());
-                    return Task::none();
-                };
-                // Into the pane of the tab that is compared, not any other.
-                if self.doc().key != a {
-                    self.notice = Some("the comparison is in another tab".into());
-                    return Task::none();
-                }
-                self.notice = None;
-                self.doc_mut()
-                    .paper
-                    .glide_from(drawn, source, language)
-                    .map(move |m| Message::Paper(a, m))
-            }
-            Command::CompareSync => {
-                if let Some(c) = &mut self.compare {
-                    c.sync = !c.sync;
-                    self.notice = Some(if c.sync {
-                        "A and B zoom together".into()
-                    } else {
-                        "A and B zoom apart".into()
-                    });
-                }
-                Task::none()
-            }
+            Command::CompareGlide => self.glide_into_compared(),
+            Command::CompareSync => self.toggle_compare_sync(),
             Command::Find => self.open_search(false, true),
             Command::FindAll => self.open_search(false, false),
             Command::ReplaceAll => self.open_search(true, false),
@@ -1877,57 +1741,15 @@ impl App {
                 self.next_export_look(None);
                 Task::none()
             }
-            Command::Format => {
-                if self.doc_mut().format() {
-                    self.edited(key);
-                } else {
-                    self.notice = Some("already formatted".into());
-                }
-                Task::none()
-            }
-            Command::Prettify => {
-                if self.doc_mut().prettify() {
-                    self.edited(key);
-                } else {
-                    self.notice = Some("already written evenly".into());
-                }
-                Task::none()
-            }
-            Command::Portable => {
-                if self.doc_mut().portable() {
-                    self.edited(key);
-                } else {
-                    self.notice = Some("mermaid.js reads it as it is".into());
-                }
-                Task::none()
-            }
+            Command::Format => self.format_source(),
+            Command::Prettify => self.prettify_source(),
+            Command::Portable => self.make_portable(),
             Command::Suggest => {
                 self.doc_mut().editor.ask_completions();
                 Task::none()
             }
-            Command::Fix => {
-                match self.doc_mut().fix_at_caret() {
-                    Some(title) => {
-                        self.edited(key);
-                        self.notice = Some(format!("fixed: {title}"));
-                    }
-                    None => self.notice = Some("no finding on this line has a fix".into()),
-                }
-                Task::none()
-            }
-            Command::FixAll => {
-                match self.doc_mut().fix_all() {
-                    0 => self.notice = Some("no finding has a fix".into()),
-                    done => {
-                        self.edited(key);
-                        self.notice = Some(match done {
-                            1 => "1 finding fixed".to_owned(),
-                            done => format!("{done} findings fixed"),
-                        });
-                    }
-                }
-                Task::none()
-            }
+            Command::Fix => self.fix_at_caret(),
+            Command::FixAll => self.fix_all(),
             Command::Collapse => self.fold_at_caret(false),
             Command::Expand => self.fold_at_caret(true),
             Command::CollapseAll => {
@@ -1995,62 +1817,11 @@ impl App {
                 self.edited(key);
                 self.render(key, false)
             }
-            Command::Motion => {
-                self.look.motion = !self.look.motion;
-                for doc in &mut self.docs {
-                    doc.set_look(&self.look);
-                }
-                self.notice = Some(if self.look.motion {
-                    "the caret glides and the list arrives".into()
-                } else {
-                    "no motion in the editor".into()
-                });
-                self.keep_session();
-                Task::none()
-            }
-            Command::JsonLayout => {
-                self.look.views.nested = !self.look.views.nested;
-                self.notice = Some(if self.look.views.nested {
-                    "JSON and YAML drawn nested, each value in its cell".into()
-                } else {
-                    "JSON and YAML drawn as a tree, as PlantUML draws them".into()
-                });
-                // Only what holds a JSON or a YAML diagram looks different.
-                self.redraw_views(crate::worker::holds_tables)
-            }
-            Command::Outline => {
-                self.outline_shown = !self.outline_shown;
-                self.notice = Some(if self.outline_shown {
-                    "the outline stands beside the source; a click goes to its line".into()
-                } else {
-                    "the outline is hidden".into()
-                });
-                self.keep_session();
-                Task::none()
-            }
-            Command::StateTable => {
-                self.look.views.table = !self.look.views.table;
-                self.notice = Some(if self.look.views.table {
-                    "state machines shown as tables, states down, events across; Ctrl+click a cell for its line".into()
-                } else {
-                    "state machines shown as diagrams".into()
-                });
-                self.redraw_views(crate::worker::holds_machine)
-            }
-            Command::FollowTheme => {
-                self.follow_theme = !self.follow_theme;
-                let root = self.place_of(key).map(|p| p.root);
-                self.notice = Some(if self.pinned_look(root.as_deref()).is_some() {
-                    "this project pins its look in omaspec-project.toml; other diagrams follow the change".into()
-                } else if self.follow_theme {
-                    "diagram colors follow the Omarchy theme".into()
-                } else {
-                    "diagram colors are the ones in the file".into()
-                });
-                self.keep_session();
-                self.rerender_all();
-                self.draw_thumbs()
-            }
+            Command::Motion => self.toggle_motion(),
+            Command::JsonLayout => self.toggle_json_layout(),
+            Command::Outline => self.toggle_outline(),
+            Command::StateTable => self.toggle_state_table(),
+            Command::FollowTheme => self.toggle_follow_theme(),
             Command::Gallery => self.toggle_gallery(),
             Command::OpenExample(play) => self.open_chosen(play),
             Command::InsertExample => self.insert_chosen(),
@@ -2228,26 +1999,6 @@ impl App {
     }
 
     /// Ctrl+click in the diagram: to the word that draws what is there.
-    /// Hands the look's views to every tab and the comparison, keeps them
-    /// in the session, and redraws the tabs whose diagrams `affected`
-    /// says look different.
-    fn redraw_views(&mut self, affected: fn(&str, Language) -> bool) -> Task<Message> {
-        for doc in &mut self.docs {
-            doc.set_look(&self.look);
-        }
-        self.keep_session();
-        if let Some(compare) = &mut self.compare {
-            compare.paper.views = self.look.views;
-        }
-        let keys: Vec<u64> = self
-            .docs
-            .iter()
-            .filter(|doc| affected(&doc.text(), doc.current_language()))
-            .map(|doc| doc.key)
-            .collect();
-        Task::batch(keys.into_iter().map(|key| self.render(key, true)))
-    }
-
     fn pick_in_diagram(&mut self, key: u64, at: iced::Point) -> Task<Message> {
         if key != self.doc().key {
             return Task::none();

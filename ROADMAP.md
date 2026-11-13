@@ -1218,12 +1218,30 @@ dispatch spread over two lists. The rules it set for the next change are in
         the scroll that shows a tab or a tile whole is `editor/reveal.rs`;
         the help's state is in `help.rs`. `mod.rs` 2,806 → 2,418 lines,
         `files.rs` 744 → 376.
-  - [ ] Still in `mod.rs`: `update` and `run`, about 370 and 280 lines,
-        one arm for each message and command, and the window's start
-        (`themed`, 150). To cut when one of them is next touched.
-- [ ] Large files cut along the phases they already have, when they are
-      next touched: `formula.rs` (parse, symbols, layout, paint); `c4.rs`,
-      `block.rs`, `er.rs`, `architecture.rs` (read, measure, paint).
+  - [x] The stories out of `run` and `update` (2026-11-13, after a review
+        found `mod.rs` grown back to 2,622 lines): saving under a name taken
+        since is `files::save_tab`; the comparison's diff, behavior, glide
+        and sync are `compare.rs`; the views (motion, JSON nested, outline,
+        state tables, colors that follow the theme) and `redraw_views` are
+        `editor/views.rs`; formatting, writing evenly, portable and the
+        fixes are `editor/tidy.rs`; what the diagram's pane hands back is
+        `hand::paper_event`; a new scale is `panes::scale_factor`. Each arm
+        is one call. `mod.rs` 2,622 → 2,373 lines. From here a new command
+        goes into the module its story belongs to, and `run` calls it.
+- [x] Large files cut along the phases they already have (2026-11-13,
+      after the review of 2026-11-13): `formula.rs` 3,285 lines into
+      parse, nodes, pairs, symbols, layout and paint; Mermaid's `c4.rs`
+      2,881 into read, args, lay, route and paint; `block.rs` 2,440 into
+      read, tokens, lay, route and paint; `architecture.rs` 1,958 and
+      `er.rs` 1,946 into read, lay, route and paint; each with its tests
+      beside it, every file under 1,000 lines. C4's and architecture's
+      `shorten` and `pull`, the same line for line, are `geom.rs`; ER
+      keeps its own, which stops short of a step's end. The theme reading
+      the C4, block and architecture drawers each did is
+      `mermaid::head::themed`. The ways of the four stay their own: one
+      search for all would change their pictures. Every picture of the
+      examples, the tests and mmdr's 134 fixtures stayed the same, byte
+      for byte, also in the omarchy, dark and plain looks.
 
 ## Plan for 0.6 to 0.9 (2026-11-03)
 

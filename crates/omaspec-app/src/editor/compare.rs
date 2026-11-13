@@ -384,6 +384,59 @@ impl App {
         self.compare = Some(compare);
     }
 
+    /// Shows the comparison's text diff, or hides it.
+    pub(super) fn toggle_compare_diff(&mut self) -> Task<Message> {
+        if let Some(c) = &mut self.compare {
+            c.show_diff = !c.show_diff;
+            c.show_behavior = false;
+        }
+        Task::none()
+    }
+
+    /// Shows what changed in the behavior, or hides it.
+    pub(super) fn toggle_compare_behavior(&mut self) -> Task<Message> {
+        if let Some(c) = &mut self.compare {
+            c.show_behavior = !c.show_behavior;
+            c.show_diff = false;
+        }
+        Task::none()
+    }
+
+    /// The other version glides into the pane of the tab compared.
+    pub(super) fn glide_into_compared(&mut self) -> Task<Message> {
+        let old = self
+            .compare
+            .as_ref()
+            .and_then(|c| Some((c.a, c.paper.drawn_now()?)));
+        let Some((a, (drawn, source, language))) = old else {
+            self.notice = Some("compare with a tab or a git commit first".into());
+            return Task::none();
+        };
+        // Into the pane of the tab that is compared, not any other.
+        if self.doc().key != a {
+            self.notice = Some("the comparison is in another tab".into());
+            return Task::none();
+        }
+        self.notice = None;
+        self.doc_mut()
+            .paper
+            .glide_from(drawn, source, language)
+            .map(move |m| Message::Paper(a, m))
+    }
+
+    /// A and B zoom together, or apart.
+    pub(super) fn toggle_compare_sync(&mut self) -> Task<Message> {
+        if let Some(c) = &mut self.compare {
+            c.sync = !c.sync;
+            self.notice = Some(if c.sync {
+                "A and B zoom together".into()
+            } else {
+                "A and B zoom apart".into()
+            });
+        }
+        Task::none()
+    }
+
     pub(super) fn stop_compare(&mut self) {
         if let Some(c) = self.compare.take()
             && let Some(a) = self.find(c.a)

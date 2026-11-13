@@ -203,6 +203,30 @@ impl App {
         Task::batch([maps, self.select(self.active)])
     }
 
+    /// Saves the tab under its name, or asks for one: also when the name,
+    /// not written yet, has been taken since.
+    pub(super) fn save_tab(&mut self) -> Task<Message> {
+        let doc = self.doc();
+        match doc.path.clone() {
+            Some(path) if !doc.on_disk() && path.exists() => {
+                let task = self.ask(Asking::SaveAs);
+                self.notice = Some(format!(
+                    "{} exists now: Enter overwrites it",
+                    path.display()
+                ));
+                if let Some(prompt) = &mut self.prompt {
+                    prompt.overwrite = true;
+                }
+                task
+            }
+            Some(path) => {
+                self.save(&path);
+                Task::none()
+            }
+            None => self.ask(Asking::SaveAs),
+        }
+    }
+
     pub(super) fn save(&mut self, path: &Path) {
         let key = self.doc().key;
         self.save_doc(key, path);

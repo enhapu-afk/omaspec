@@ -6,9 +6,38 @@ use iced::time::Instant;
 use iced::widget::pane_grid;
 use iced::{Animation, Task, window};
 
-use super::{App, Message, PICKER, Pane, SIDEBAR_SHARE, TAB_FADE, blur, compare, layout, stacked};
+use super::{
+    App, Message, PICKER, Pane, SIDEBAR_SHARE, TAB_FADE, blur, compare, icons_for, layout, stacked,
+};
 
 impl App {
+    /// A window moved to a screen of another scale: the icons, the
+    /// thumbnails and both diagram panes drawn for it.
+    pub(super) fn scale_factor(&mut self, window: window::Id, factor: f32) -> Task<Message> {
+        if Some(window) == self.detached {
+            self.detached_scale = factor;
+        } else {
+            self.main_scale = factor;
+            self.icons = icons_for(&self.palette, factor);
+        }
+        let thumbs = self.draw_thumbs();
+        let factor = self.paper_scale();
+        let key = self.doc().key;
+        let b = match &mut self.compare {
+            Some(c) => c
+                .paper
+                .set_scale_factor(factor)
+                .map(|m| Message::Paper(compare::KEY, m)),
+            None => Task::none(),
+        };
+        let a = self
+            .doc_mut()
+            .paper
+            .set_scale_factor(factor)
+            .map(move |m| Message::Paper(key, m));
+        Task::batch([a, b, thumbs])
+    }
+
     pub(super) fn pane(&self, wanted: Pane) -> Option<pane_grid::Pane> {
         self.panes
             .iter()

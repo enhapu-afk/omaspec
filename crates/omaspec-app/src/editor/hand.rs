@@ -1,12 +1,74 @@
 //! Lines and boxes placed by hand, written into the source from the
 //! diagram (docs/adr/0016, 0021): a line's bends, a box held beside its
-//! neighbor, a label's side, and the way back to the layout.
+//! neighbor, a label's side, and the way back to the layout. Every message
+//! of a diagram's pane passes here ([`App::paper_event`]): what the pane
+//! hands back, a line or a box by hand, a fold, is written or drawn.
 
 use iced::Task;
 
-use super::{App, Message};
+use super::{App, Message, compare};
+use crate::paper;
 
 impl App {
+    /// A message of the pane of tab `key`, and what follows from it: a
+    /// line or a box placed by hand written into the source, a fold drawn
+    /// again, a zoom that arrives, the comparison following the view, a
+    /// play's line lit.
+    pub(super) fn paper_event(&mut self, key: u64, message: paper::Message) -> Task<Message> {
+        if let paper::Message::Viewport(size) = message {
+            self.paper_size = size;
+        }
+        let step = matches!(message, paper::Message::Play(_));
+        let relight = key != compare::KEY && matches!(message, paper::Message::PlayGone);
+        let moves = paper::Paper::moves_view(&message);
+        let (task, by_hand, held, refold) = match self.find(key) {
+            Some(doc) => (
+                doc.paper
+                    .update(message)
+                    .map(move |m| Message::Paper(key, m)),
+                doc.paper.take_by_hand(),
+                doc.paper.take_held(),
+                doc.paper.take_refold(),
+            ),
+            None => (Task::none(), None, None, false),
+        };
+        // A container folded or unfolded in the pane: drawn again.
+        if refold {
+            return Task::batch([task, self.render(key, true)]);
+        }
+        if let Some(line) = by_hand {
+            return Task::batch([task, self.draw_by_hand(key, &line)]);
+        }
+        if let Some((name, hold)) = held {
+            return Task::batch([task, self.hold_box(key, &name, hold.as_ref())]);
+        }
+        // The diagram a zoom leads to got its picture.
+        let arrived = if self.is_arriving(key) {
+            self.arrive()
+        } else {
+            Task::none()
+        };
+        let follow = match &mut self.compare {
+            Some(c) if moves && c.sync && c.a == key => {
+                let view = self
+                    .docs
+                    .iter()
+                    .find(|d| d.key == key)
+                    .map(|d| d.paper.view);
+                view.map_or_else(Task::none, |v| c.paper.follow(v))
+                    .map(|m| Message::Paper(compare::KEY, m))
+            }
+            _ => Task::none(),
+        };
+        if step {
+            self.light_played_line(key);
+        }
+        if relight {
+            self.follow_caret(key);
+        }
+        Task::batch([task, follow, arrived])
+    }
+
     /// Writes the bends of a line drawn by hand in the diagram into the
     /// source, as one undo step (docs/adr/0016).
     pub(super) fn draw_by_hand(
