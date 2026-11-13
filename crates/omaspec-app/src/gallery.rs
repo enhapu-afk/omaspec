@@ -290,6 +290,12 @@ pub static EXAMPLES: &[Example] = &[
         "A regular expression as a railroad: groups, classes and counts."
     ),
     example!(
+        "release-ditaa.puml",
+        Structure,
+        "A release, drawn in characters",
+        "Ditaa: boxes, lines and arrows typed as text, with colors and shapes."
+    ),
+    example!(
         "sign-up.puml",
         Structure,
         "A sign-up form",

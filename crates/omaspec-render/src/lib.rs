@@ -124,11 +124,11 @@ impl std::error::Error for RenderError {}
 /// declined line of a kind it does draw (timing, Gantt, mind map, WBS,
 /// sequence, state, structure, signal flow, JSON, YAML, formulas) keeps that line.
 /// Signal flow is Omaspec's own syntax, so a declined line is not sent to Java.
-const WHOLE: &[&str] = &["chronology", "ditaa", "dot", "tree"];
+const WHOLE: &[&str] = &["chronology", "dot", "tree"];
 
 /// For a PlantUML diagram Omaspec's own engine does not draw at all,
-/// the error that says so. Ditaa, chronology, Graphviz and
-/// tree diagrams are that kind: a line would only point at the first line
+/// the error that says so. Chronology, Graphviz and tree diagrams are
+/// that kind: a line would only point at the first line
 /// of a different language. A timing, Gantt, JSON, YAML or formula diagram that
 /// declines keeps that line.
 fn not_native(source: &str) -> Option<RenderError> {
@@ -148,8 +148,9 @@ fn not_native(source: &str) -> Option<RenderError> {
     Some(RenderError::Unavailable {
         line: None,
         reason: format!(
-            "{}s are not drawn by Omaspec's own engine yet; install the `plantuml` \
-                 package to draw them with the Java PlantUML",
+            "`@start{}` ({}) is not drawn by Omaspec's own engine yet; install the \
+                 `plantuml` package to draw it with the Java PlantUML",
+            kind::plantuml_block(source),
             found.name
         ),
     })

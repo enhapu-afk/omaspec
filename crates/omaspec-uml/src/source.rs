@@ -29,6 +29,8 @@ pub enum Kind {
     Ebnf,
     /// `@startregex`: a regular expression as a railroad.
     Regex,
+    /// `@startditaa`: a drawing in characters.
+    Ditaa,
     /// `@startlatex`.
     Latex,
     /// `@startmath`.
@@ -78,6 +80,7 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
                 "startsalt" => Kind::Salt,
                 "startebnf" => Kind::Ebnf,
                 "startregex" => Kind::Regex,
+                "startditaa" => Kind::Ditaa,
                 "startlatex" => Kind::Latex,
                 "startmath" => Kind::Math,
                 _ => {
@@ -410,9 +413,9 @@ mod tests {
 
     #[test]
     fn declines_other_blocks_and_keeps_directives() {
-        let err = body("@startditaa\n+---+\n@endditaa\n").unwrap_err();
+        let err = body("@startdot\ndigraph { a -> b }\n@enddot\n").unwrap_err();
         assert_eq!(err.line, Some(0));
-        assert!(err.reason.contains("@startditaa"), "{}", err.reason);
+        assert!(err.reason.contains("@startdot"), "{}", err.reason);
         assert_eq!(
             body("@startgantt\n[a] lasts 1 day\n@endgantt\n").unwrap().0,
             Kind::Gantt

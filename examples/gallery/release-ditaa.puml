@@ -1,0 +1,18 @@
+@startditaa
+' Ditaa: a drawing in characters turned into a picture. Boxes close
+' with + - |, round corners with / and \, a dashed side with : or =.
+' A code inside a box gives its color (cBLU, c9CF) or its shape:
+' {d} a document, {s} storage, {io} input and output, {c} a choice.
+/-------------\      +-------------+      /-------------\
+| cBLU        |      | cYEL        |      | cGRE        |
+|   Commit    +----->|   Build     +----->|   Release   |
+|             |      |   and test  |      |             |
+\------+------/      +------+------+      \------+------/
+       :                    |                    |
+       v                    v                    v
++-------------+      +-------------+      +-------------+
+| c9CF    {d} |      | cDDD    {s} |      | cFC9   {io} |
+|  Changelog  |      |  Artifacts  |      |  Download   |
+|             |      |             |      |             |
++-------------+      +-------------+      +-------------+
+@endditaa

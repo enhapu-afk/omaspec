@@ -34,7 +34,8 @@ no browser, no network, and it sends nothing anywhere.
 
 Omaspec draws with its own engines, in a few milliseconds: PlantUML sequence, activity,
 state, class, component, use case, deployment, object, timing and Gantt diagrams,
-C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, EBNF and regex railroads, mind maps, WBS, JSON, YAML and formulas, and Mermaid flowcharts, state and sequence diagrams. The
+C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, EBNF and regex railroads, Ditaa
+drawings, mind maps, WBS, JSON, YAML and formulas, and Mermaid flowcharts, state and sequence diagrams. The
 other Mermaid types are drawn by mmdr, a Rust library, in the same process. Lint findings
 are underlined while you type, and a Ctrl+click in the diagram jumps to its line in the
 source.
@@ -147,8 +148,8 @@ The release has a binary for ARM (aarch64) too; on Arch Linux ARM, `makepkg -si`
 `packaging/aur/omaspec-bin` installs it. ARM is best effort: Omaspec has not been run on ARM hardware yet,
 and reports are welcome as issues.
 
-Optional: `plantuml` for the few PlantUML types Omaspec does not draw itself yet (network
-diagrams, Salt and more), `wl-clipboard` to copy diagrams, `git` to compare with commits.
+Optional: `plantuml` for the few PlantUML types Omaspec does not draw itself yet (Graphviz and tree
+diagrams), `wl-clipboard` to copy diagrams, `git` to compare with commits.
 
 ## Quick start
 
@@ -170,8 +171,8 @@ has every key and command.
 
 - **Even cleaner lines.** Fewer crossings and detours, lines that keep clear of frames and
   labels, closer to what Graphviz draws.
-- **More PlantUML diagrams without Java.** Ditaa and chronology.
-  Until then the optional `plantuml` draws them.
+- **A box placed by a word.** `D below C`, `right of` or `level with` in the block by
+  hand, beside the drag that holds a box where it was put.
 
 More in the [roadmap](ROADMAP.md#next). Ideas and wishes are welcome as
 [issues](https://github.com/enhapu-afk/omaspec/issues).

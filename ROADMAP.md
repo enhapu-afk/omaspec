@@ -75,8 +75,9 @@ Speed (release build, 20,000 lines, including process start): lint 48 ms, outlin
 - [x] `Renderer` routes: Mermaid → mmdr; PlantUML → `omaspec-uml` (sequence diagrams since
       N1, mind maps and WBS since N2, activity diagrams since N3, state diagrams since N4,
       class, component, use case, deployment and object diagrams since N5, timing
-      diagrams and Gantt charts since N6, JSON and formulas since; salt, ditaa, YAML,
-      chronology, Graphviz and tree diagrams are still not drawn at all; anything else
+      diagrams and Gantt charts since N6, JSON, formulas, YAML, salt, nwdiag, EBNF,
+      regular expressions and ditaa since; chronology, Graphviz and tree diagrams
+      are still not drawn at all; anything else
       declines naming the line) → Java PlantUML if
       installed → a message saying what to install, with the line the native engine stopped at
 - [x] `RenderService`: own thread, newest request wins, results carry a generation number
@@ -2506,8 +2507,24 @@ without folding, lines by hand and plays, and the Java PlantUML:
       \b` and the quantifiers, characters in a row one word. Open: an
       EBNF exception (`a - b`), look-arounds. The gallery has JSON's
       grammar and an ISO date.
-- [ ] PlantUML: Ditaa last: little written; until then the Java
-      PlantUML draws it.
+- [x] Ditaa (2026-11-13), `@startditaa` (`omaspec_uml::ditaa`): the
+      drawing read on its grid of characters as ditaa reads it. A box is
+      the smallest rectangle `+`, `-` and `|` close (`/` and `\` round
+      its corners, `:` and `=` dash a side), a box split by a line two
+      boxes; every other run of those characters a line, bending at a
+      `+`, dashed where it has a `:` or `=`, with a head at `<`, `>`,
+      `^` or `v` that reaches the side of a box right behind it. Codes
+      inside a box give it a color (`cBLU`, `cGRE`, `cRED`, `cYEL`,
+      `cPNK`, `cBLK`, `cWHT`, `c1AB`) and a shape (`{d}` a document,
+      `{s}` storage, `{io}` input and output, `{c}` a choice, `{o}` an
+      ellipse, `{tr}` a trapezoid) and are not shown; the words stay
+      where they were typed, in black or white where the fill needs it.
+      The boxes cast the shadows PlantUML's do; `--no-shadows` on the
+      start line takes them away. A pack's page and ink reach it. Open:
+      the other codes (`{mo}` is read as a box), bullets (`*` on a
+      line), `--round-corners` and `--scale`. The Graphviz and tree
+      diagrams stay with the Java PlantUML; the gallery has a release
+      drawn in characters.
 - [x] Chronology, left out (2026-11-13): PlantUML 1.2026 does not draw
       it either ("Diagram not supported by this release of PlantUML"), so
       no package helps, and a Gantt chart or a timeline says the same.

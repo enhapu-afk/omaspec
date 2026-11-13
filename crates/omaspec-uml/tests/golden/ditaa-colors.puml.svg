@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="255" height="92" viewBox="0 0 255 92">
+<g transform="translate(10,10)">
+<g transform="translate(3,3)" opacity="0.22">
+<rect x="5" y="8" width="90" height="48" rx="8" ry="8" fill="#000000"/>
+<ellipse cx="195" cy="63" rx="40" ry="9" fill="#000000"/>
+<ellipse cx="195" cy="17" rx="40" ry="9" fill="#000000"/>
+</g>
+<g>
+<rect x="5" y="8" width="90" height="48" rx="8" ry="8" fill="#5555BB" stroke="#000000" stroke-width="1.2"/>
+<ellipse cx="195" cy="63" rx="40" ry="9" fill="#7ED17E" stroke="#000000" stroke-width="1.2"/>
+<rect x="155" y="17" width="80" height="46" fill="#7ED17E"/>
+<line x1="155" y1="17" x2="155" y2="63" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="235" y1="17" x2="235" y2="63" fill="none" stroke="#000000" stroke-width="1.2"/>
+<ellipse cx="195" cy="17" rx="40" ry="9" fill="#7ED17E" stroke="#000000" stroke-width="1.2"/>
+</g>
+<g id="lines">
+<line x1="105" y1="24" x2="115" y2="24" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="95" y1="24" x2="105" y2="24" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="115" y1="24" x2="125" y2="24" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="125" y1="24" x2="135" y2="24" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="135" y1="24" x2="145" y2="24" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="135" y1="24" x2="145" y2="24" fill="none" stroke="#000000" stroke-width="1.2"/>
+<line x1="145" y1="24" x2="155" y2="24" fill="none" stroke="#000000" stroke-width="1.2"/>
+</g>
+<g>
+<polygon points="155,24 145,20 145,28" fill="#000000"/>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="20" y="44.5" font-size="13" fill="#E6E6E6" textLength="33.23" lengthAdjust="spacing">Client</tspan>
+</text>
+<text font-family="sans-serif" xml:space="preserve">
+<tspan x="170" y="44.5" font-size="13" fill="#000000" textLength="31.07" lengthAdjust="spacing">Store</tspan>
+</text>
+</g>
+</g>
+</svg>

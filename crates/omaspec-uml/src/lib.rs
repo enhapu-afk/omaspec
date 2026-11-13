@@ -21,6 +21,7 @@ pub mod click;
 mod color;
 mod common;
 pub mod curve;
+pub mod ditaa;
 pub mod er;
 pub mod flow;
 pub mod fold;
@@ -112,6 +113,7 @@ pub enum Diagram {
     Salt(salt::Diagram),
     /// EBNF and regular expressions.
     Railroad(railroad::Diagram),
+    Ditaa(ditaa::Diagram),
 }
 
 pub use preprocess::{Included, Includes};
@@ -180,6 +182,7 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
         source::Kind::Salt => Diagram::Salt(salt::parse(&lines)?),
         source::Kind::Ebnf => Diagram::Railroad(railroad::ebnf::parse(&lines)?),
         source::Kind::Regex => Diagram::Railroad(railroad::regex::parse(&lines)?),
+        source::Kind::Ditaa => Diagram::Ditaa(ditaa::parse(&lines, source)?),
         source::Kind::Yaml => Diagram::Json(yaml::parse(&lines)?),
         source::Kind::Latex => Diagram::Formula(formula::parse(&lines, formula::Notation::Latex)?),
         source::Kind::Math => Diagram::Formula(formula::parse(&lines, formula::Notation::Ascii)?),
@@ -415,6 +418,7 @@ pub fn render_mapped(
         Diagram::Network(d) => unmapped(network::draw(&d)),
         Diagram::Salt(d) => unmapped(salt::draw(&d)),
         Diagram::Railroad(d) => unmapped(railroad::draw(&d)),
+        Diagram::Ditaa(d) => unmapped(ditaa::draw(&d)),
     }
 }
 

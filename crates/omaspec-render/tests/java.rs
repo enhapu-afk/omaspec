@@ -21,16 +21,16 @@ fn text_of(svg: &str) -> &str {
     &svg[start..svg.find("</text>").unwrap()]
 }
 
-/// A ditaa diagram: the native engine does not draw that kind, so the
+/// A Graphviz diagram: the native engine does not draw that kind, so the
 /// router asks Java. A class diagram is drawn natively.
-const DITAA: &str = "@startditaa\n+---+\n@endditaa\n";
+const DOT: &str = "@startdot\ndigraph { a -> b }\n@enddot\n";
 
 #[test]
 fn one_process_serves_many_diagrams() {
     let mut renderer = Renderer::new(&config(5000));
     assert!(renderer.has_java_fallback());
     for n in 1..=3 {
-        let out = renderer.render(DITAA, Language::PlantUml).unwrap();
+        let out = renderer.render(DOT, Language::PlantUml).unwrap();
         assert_eq!(out.engine, Engine::JavaPlantUml);
         assert_eq!(text_of(&out.svg), format!("diagram {n}"));
     }
@@ -39,7 +39,7 @@ fn one_process_serves_many_diagrams() {
         .render("@startuml\nA -> B\n@enduml\n", Language::PlantUml)
         .unwrap();
     assert_eq!(out.engine, Engine::NativePlantUml);
-    let out = renderer.render(DITAA, Language::PlantUml).unwrap();
+    let out = renderer.render(DOT, Language::PlantUml).unwrap();
     assert_eq!(text_of(&out.svg), "diagram 4");
 }
 
@@ -69,7 +69,7 @@ fn json_is_drawn_here_and_a_refusal_keeps_its_line() {
         panic!("{err}");
     };
     assert!(reason.contains("stereotype"), "{reason}");
-    assert!(!reason.contains("JSONs are not drawn"), "{reason}");
+    assert!(!reason.contains("is not drawn by"), "{reason}");
 
     let mut renderer = Renderer::new(&config(5000));
     let out = renderer
@@ -112,7 +112,7 @@ fn formula_is_drawn_here_and_a_refusal_keeps_its_line() {
         panic!("{err}");
     };
     assert!(reason.contains("<style>"), "{reason}");
-    assert!(!reason.contains("Formulas are not drawn"), "{reason}");
+    assert!(!reason.contains("is not drawn by"), "{reason}");
 
     let mut renderer = Renderer::new(&config(5000));
     let out = renderer
@@ -205,9 +205,13 @@ fn without_java_plantuml_is_unavailable() {
         ..Config::default()
     });
     // A kind the engine does not draw at all: the kind, not a line.
-    let err = renderer.render(DITAA, Language::PlantUml).unwrap_err();
+    let err = renderer.render(DOT, Language::PlantUml).unwrap_err();
     assert!(matches!(err, RenderError::Unavailable { line: None, .. }));
-    assert!(err.to_string().starts_with("Ditaas are not drawn"), "{err}");
+    assert!(
+        err.to_string()
+            .starts_with("`@startdot` (Graphviz) is not drawn"),
+        "{err}"
+    );
     // A timing or Gantt line the engine declines keeps that line.
     let timing = "@startuml\nbinary \"E\" as E\n@0\nE is maybe\n@enduml\n";
     let err = renderer.render(timing, Language::PlantUml).unwrap_err();

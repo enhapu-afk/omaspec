@@ -33,6 +33,7 @@ fn diagrams_match_golden_svgs() {
         "network",
         "salt",
         "railroad",
+        "ditaa",
     ]
     .iter()
     .flat_map(|dir| fs::read_dir(root.join("tests").join(dir)).unwrap())

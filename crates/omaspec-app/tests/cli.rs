@@ -1518,13 +1518,16 @@ fn render_plantuml_falls_back_to_java_or_says_why_not() {
     );
 
     let file = dir.join("boxes.puml");
-    fs::write(&file, "@startditaa\n+---+\n| A |\n+---+\n@endditaa\n").unwrap();
+    fs::write(&file, "@startdot\ndigraph { a -> b }\n@enddot\n").unwrap();
     let path = file.to_str().unwrap();
 
     let out = omaspec_with(("OMASPEC_PLANTUML", "none"), &["render", path]);
     assert_eq!(out.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("Ditaas are not drawn"), "{stderr}");
+    assert!(
+        stderr.contains("`@startdot` (Graphviz) is not drawn"),
+        "{stderr}"
+    );
     assert!(
         stderr.contains("install the `plantuml` package"),
         "{stderr}"
@@ -1537,7 +1540,10 @@ fn render_plantuml_falls_back_to_java_or_says_why_not() {
     assert!(json[0].get("line").is_none());
     assert!(json[0].get("engine").is_none());
     let message = json[0]["message"].as_str().unwrap();
-    assert!(message.contains("Ditaas are not drawn"), "{message}");
+    assert!(
+        message.contains("`@startdot` (Graphviz) is not drawn"),
+        "{message}"
+    );
     assert!(
         message.contains("install the `plantuml` package"),
         "{message}"
@@ -1644,11 +1650,11 @@ fn the_java_plantuml_runs_confined() {
     let escaped = dir.join("escaped");
     let secret = dir.join("secret");
     fs::write(&secret, "key\n").unwrap();
-    // A ditaa diagram: the engine draws the others itself.
+    // A Graphviz diagram: the engine draws the others itself.
     fs::write(
         &diagram,
         format!(
-            "@startditaa\n' try {} {port} {}\n+---+\n@endditaa\n",
+            "@startdot\n' try {} {port} {}\ndigraph {{ a -> b }}\n@enddot\n",
             escaped.display(),
             secret.display()
         ),

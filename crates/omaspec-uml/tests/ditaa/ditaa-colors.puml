@@ -1,0 +1,7 @@
+@startditaa
+/--------\     +-------+
+| cBLU   |---->| cGRE  |
+| Client |     | Store |
+\--------/     |  {s}  |
+               +-------+
+@endditaa
