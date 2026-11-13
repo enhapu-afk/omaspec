@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.9.5: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.9.6: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -83,6 +83,20 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   crosses less: on 300 random graphs 28 % fewer crossings.
 - **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
   matter, and a component's name keeps clear of its icon.
+
+## New in 0.9.6
+
+- **Export as you would expect.** Right-click the diagram, *Export as ›* SVG, PNG, JPEG,
+  PDF, Markdown or ZIP, and Omarchy's own save dialog opens, with the colors to draw it
+  in as a choice beside the name.
+- **Gantt charts over years.** `printscale weekly`, `monthly`, `quarterly` and `yearly`,
+  as PlantUML draws them, up to 20 years, and durations in months.
+- **A steadier play.** The bar under a play keeps one line, so the diagram above it never
+  jumps; it calls a state by the name its box shows, an option by its whole label with
+  its action, and a diagram with two ways from the start ends when both have.
+- **Timelines that wrap.** A long event breaks inside its card, as Mermaid draws it.
+- **Tested harder.** Every reader and drawer is fuzzed each night, and properties of
+  machines, scenarios and traces are checked on thousands of generated ones.
 
 ## New in 0.9.5
 

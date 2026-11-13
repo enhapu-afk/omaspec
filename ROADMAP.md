@@ -1281,7 +1281,12 @@ icons and sprites, a line within a rank, a box placed by a word), PlantUML's
 JSON, YAML, network diagrams, Salt, EBNF, regular expressions and Ditaa without
 Java, Mermaid's charts, requirements and ZenUML on drawers of their own, the
 outline beside the source, and a dense flowchart laid out in under half a
-second.
+second. 0.9.6 followed the same day: an export through the desktop's own save
+dialog from the diagram's menu, Gantt charts by week, month, quarter or year
+over up to 20 years with durations in months, a play whose bar keeps one line
+and calls states and options as the diagram does, a timeline whose long words
+break inside their cards, and every reader and drawer fuzzed each night, with
+properties checked on generated machines and traces.
 
 ### Step 0: the yardstick
 
