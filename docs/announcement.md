@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.9.6: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.9.7: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -83,6 +83,24 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   crosses less: on 300 random graphs 28 % fewer crossings.
 - **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
   matter, and a component's name keeps clear of its icon.
+
+## New in 0.9.7
+
+- **Plays that record anywhere.** A play recorded without a GPU looks as it does on one,
+  and every GIF is drawn frame by frame on a clock of its own: all its frames, the same
+  each time, and on a GPU in a third of the time. `play` checks its `--events` before it
+  draws, keeps to `--width`, and without events walks ways it has not taken yet.
+- **Mermaid as Mermaid draws it.** The thirty shapes Mermaid 11 names, `A@{ shape: doc }`
+  and its kin, are drawn, not written into a box; a node named `title`, a dash in an
+  asymmetric box and a node beside an invisible link are no longer lost or doubled;
+  generics read `Crate<T>`.
+- **Clearer pictures.** A generic PlantUML class is one class; a Salt tree keeps its
+  columns, and a block may stand in a row; a cloud holds what it says; a Sankey's columns
+  stand as far apart as their names need; timing states keep their names; a state's note
+  keeps off the lines into it; `Re-run` stays a word in Ditaa.
+- **Told, not hidden.** Lint names a line only the Java PlantUML draws; `render` names
+  the characters no installed font draws, and `--fit` draws a picture past 100 million
+  pixels at the largest scale that fits.
 
 ## New in 0.9.6
 

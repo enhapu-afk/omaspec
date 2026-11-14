@@ -1286,7 +1286,14 @@ dialog from the diagram's menu, Gantt charts by week, month, quarter or year
 over up to 20 years with durations in months, a play whose bar keeps one line
 and calls states and options as the diagram does, a timeline whose long words
 break inside their cards, and every reader and drawer fuzzed each night, with
-properties checked on generated machines and traces.
+properties checked on generated machines and traces. 0.9.7 took in what a stress
+test of some forty diagrams found: a play without a GPU drawn as on one and
+recorded on a clock of its own, Mermaid flowcharts that lose no node and draw
+Mermaid 11's thirty named shapes, generics in both languages, Salt trees with
+their columns, clouds, Sankey columns, timing names and state notes that keep
+clear of what is around them, a hyphen in Ditaa kept, lint naming what only Java
+draws, `render --fit` and the characters no installed font draws, and a play
+that checks its events first and keeps to its width.
 
 ### Step 0: the yardstick
 
