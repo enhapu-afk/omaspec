@@ -261,7 +261,10 @@ impl Parser {
         if let Some(rest) = keyword(text, "ref") {
             return self.reference(lines, at, rest);
         }
-        if let Some(rest) = keyword(text, "box") {
+        // `Box -> Item` is a message from a participant named Box.
+        if let Some(rest) = keyword(text, "box")
+            && !rest.starts_with(['-', '<', '.', '=', '\\', '/', '?'])
+        {
             self.open_box(rest, no)?;
             return Ok(at + 1);
         }
@@ -993,6 +996,10 @@ impl Parser {
             let Some(rest) = keyword(text, word) else {
                 continue;
             };
+            // `Loop -> Bob` is a message from a participant named Loop.
+            if rest.starts_with(['-', '<']) {
+                continue;
+            }
             let (label, secondary) = match rest.strip_suffix(']').and_then(|r| r.rsplit_once('[')) {
                 Some((label, secondary)) if kind == GroupKind::Group => {
                     (label.trim(), Some(secondary.trim()))

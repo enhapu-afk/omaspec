@@ -50,7 +50,9 @@ fn is_note_header(text: &str) -> bool {
 }
 
 /// A line that only a sequence diagram writes. `actor` and `database` are
-/// not here: a use case and a deployment diagram use them too.
+/// not here: a use case and a deployment diagram use them too. A keyword
+/// before an arrow is a name, as PlantUML reads it: `Box <|-- Crate`
+/// relates a class named Box, `Loop -> Bob` a participant named Loop.
 fn sequence_line(text: &str) -> bool {
     if text.starts_with("==") || text.starts_with("|||") || text.starts_with("...") {
         return true;
@@ -76,7 +78,7 @@ fn sequence_line(text: &str) -> bool {
         "create",
     ]
     .iter()
-    .any(|word| keyword(text, word).is_some())
+    .any(|word| keyword(text, word).is_some() && find_arrow(text).is_none())
         || keyword(text, "ref")
             .is_some_and(|rest| keyword(rest, "over").is_some() || rest.is_empty())
 }
@@ -2350,6 +2352,27 @@ mod tests {
 
     fn declined(source: &str) -> crate::Declined {
         parse(&lines_of(source)).unwrap_err()
+    }
+
+    #[test]
+    fn a_name_like_a_sequence_keyword_before_an_arrow_is_a_name() {
+        // Classes named Box and Loop: a class diagram, as PlantUML reads it.
+        for source in [
+            "@startuml\nclass Box {\n  +width : int\n}\nclass Item\nBox \"1\" *-- \"many\" Item : holds\n@enduml\n",
+            "@startuml\nclass Item\nBox <|-- Crate\nBox o-- Item\n@enduml\n",
+            "@startuml\nclass Loop\nLoop <|-- Alt\n@enduml\n",
+        ] {
+            assert!(is_structure(&lines_of(source)), "{source}");
+            diagram(source);
+        }
+        // Participants named Loop and Box send messages; a box is still one.
+        crate::render(
+            "@startuml\nLoop -> Bob : hi\nBob --> Loop : back\nBox -> Bob : too\n@enduml\n",
+        )
+        .unwrap();
+        let boxed = "@startuml\nbox \"Shop\" #LightBlue\nparticipant Cart\nend box\nCart -> Bob : hi\n@enduml\n";
+        assert!(!is_structure(&lines_of(boxed)));
+        crate::render(boxed).unwrap();
     }
 
     #[test]
