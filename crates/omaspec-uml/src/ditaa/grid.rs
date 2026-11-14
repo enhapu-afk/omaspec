@@ -17,6 +17,26 @@ fn horizontal(c: char) -> bool {
     matches!(c, '-' | '=')
 }
 
+/// A `-` and a `=` between two letters or digits, `Re-run`, stand for
+/// these while the drawing is read: they are words, not lines. Read as a
+/// line, the hyphen turned `Re-run` into `Re run`, another word.
+const WORD_DASH: char = '\u{E000}';
+const WORD_EQUALS: char = '\u{E001}';
+
+/// `row` with each dash between two letters or digits kept for the words.
+fn keep_word_dashes(row: &mut [char]) {
+    for c in 1..row.len().saturating_sub(1) {
+        let word = |ch: char| ch.is_alphanumeric();
+        if word(row[c - 1]) && word(row[c + 1]) {
+            row[c] = match row[c] {
+                '-' => WORD_DASH,
+                '=' => WORD_EQUALS,
+                other => other,
+            };
+        }
+    }
+}
+
 fn vertical(c: char) -> bool {
     matches!(c, '|' | ':')
 }
@@ -49,6 +69,7 @@ pub fn parse(lines: &[Line], source: &str) -> Result<Diagram, Declined> {
         }
         let mut row: Vec<char> = " ".repeat(line.indent).chars().collect();
         row.extend(line.text.chars().map(|c| if c == '\t' { ' ' } else { c }));
+        keep_word_dashes(&mut row);
         rows.push(row);
         at += 1;
     }
@@ -451,7 +472,14 @@ fn text(
                 }
                 end += 1;
             }
-            let words: String = row[start..end].iter().collect();
+            let words: String = row[start..end]
+                .iter()
+                .map(|&ch| match ch {
+                    WORD_DASH => '-',
+                    WORD_EQUALS => '=',
+                    other => other,
+                })
+                .collect();
             if !words.trim().is_empty() {
                 d.texts.push(Words {
                     at: (r, start),
@@ -480,6 +508,24 @@ mod tests {
             })
             .collect();
         parse(&lines, "@startditaa\n").unwrap()
+    }
+
+    #[test]
+    fn a_dash_between_letters_is_a_word_s() {
+        let d = read(
+            "+-------------+\n| Re-run job  +---->\n+-------------+\n  a=b  x--y  pre-commit\n",
+        );
+        let words: Vec<&str> = d.texts.iter().map(|w| w.text.as_str()).collect();
+        assert_eq!(words, ["Re-run job", "a=b", "x", "y", "pre-commit"]);
+        // `x--y` is a line between two words; the box's sides and the
+        // arrow stay lines too.
+        assert!(
+            d.lines
+                .iter()
+                .any(|&((r, _), (r2, _), _)| r == 3 && r2 == 3)
+        );
+        assert_eq!(d.boxes.len(), 1);
+        assert_eq!(d.heads.len(), 1);
     }
 
     #[test]
