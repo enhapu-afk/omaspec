@@ -56,5 +56,6 @@ codegen-units = 1
 [patch.crates-io]
 scrive-core = { path = "vendor/scrive-core" }
 scrive-iced = { path = "vendor/scrive-iced" }
+iced_tiny_skia = { path = "vendor/iced_tiny_skia" }
 smithay-clipboard = { path = "vendor/smithay-clipboard" }
 winit = { path = "vendor/winit" }

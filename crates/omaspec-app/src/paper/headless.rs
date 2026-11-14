@@ -93,6 +93,32 @@ impl Paper {
         }
     }
 
+    /// The pictures the pane may draw next: those shown, those a fade or a
+    /// glide goes from and to, and the pictures without lines it asked
+    /// for. A recording puts them on the GPU before it draws them, as the
+    /// window waits for its pixels to be there.
+    pub fn pictures(&self) -> Vec<iced::widget::image::Handle> {
+        let mut out: Vec<&raster::Raster> = Vec::new();
+        for layer in [&self.overview, &self.detail, &self.bare_old, &self.bare_new] {
+            out.extend(layer.shown.iter());
+        }
+        if let Some(fade) = &self.fade {
+            out.extend(fade.old.iter());
+            out.extend(fade.next.iter());
+            if let Some((old, new)) = &fade.bare {
+                out.extend([old, new]);
+            }
+        }
+        if let Some(previous) = &self.previous {
+            out.extend(previous.pictures.iter());
+        }
+        if let Some(passage) = &self.passage {
+            out.extend(passage.linked.iter().filter_map(|l| l.picture.as_ref()));
+            out.extend(passage.small.iter().flatten());
+        }
+        out.into_iter().map(|r| r.handle.clone()).collect()
+    }
+
     /// How many pictures of the diagram before fade out, if a fade runs.
     pub fn fading(&self) -> Option<usize> {
         self.fade.as_ref().map(|fade| fade.old.len())

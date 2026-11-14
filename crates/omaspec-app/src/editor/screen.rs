@@ -32,6 +32,8 @@ pub struct Screen {
     /// How long the view and its layout took, and the pixels, in each
     /// redraw of [`Self::run`].
     spent: Vec<(Duration, Duration)>,
+    /// The pictures [`Self::upload`] put on the GPU, kept there.
+    held: Vec<iced::advanced::image::Allocation>,
 }
 
 /// A screenshot, as RGBA rows.
@@ -76,6 +78,7 @@ impl Screen {
             warm: false,
             cache: None,
             spent: Vec::new(),
+            held: Vec::new(),
         })
     }
 
@@ -87,6 +90,19 @@ impl Screen {
             self.warm = true;
         }
         self.frame(app)
+    }
+
+    /// Puts `pictures` on the GPU now and keeps them there, in place of
+    /// those of the call before. iced uploads a picture the first time a
+    /// frame draws it and draws nothing of it meanwhile; the window waits
+    /// for its pixels to be there before it shows them, and a recording
+    /// does this.
+    pub fn upload(&mut self, pictures: impl IntoIterator<Item = iced::widget::image::Handle>) {
+        use iced::advanced::image::Renderer as _;
+        self.held = pictures
+            .into_iter()
+            .filter_map(|picture| self.renderer.load_image(&picture).ok())
+            .collect();
     }
 
     pub fn frame(&mut self, app: &App) -> Shot {

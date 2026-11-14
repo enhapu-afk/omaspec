@@ -139,3 +139,32 @@ diff -ru ~/.cargo/registry/src/*/smithay-clipboard-0.7.3/src vendor/smithay-clip
 
 A new release is taken by copying it here again and applying that edit,
 as long as winit keeps a data device of its own.
+
+## iced_tiny_skia 0.14.1
+
+iced's renderer without a GPU, by Héctor Ramón and the iced contributors, MIT
+(`LICENSE`, from the `iced` 0.14.0 package of the same repository; this
+package ships none). `omaspec play` draws with it where there is no GPU.
+Copied from the crates.io package unchanged, then changed as below; each
+change says "Omaspec" in a comment.
+
+- `src/engine.rs`, `draw_image`: a raster image keeps to its own clip, a
+  canvas's `with_clip`, as well as to its layer's, as it does on the GPU.
+  The package kept it to its layer only: a glide that draws each box as a
+  part of its picture, cut out by a clip, drew the whole picture for each
+  box, scaled as the box, all over the pane. An image that is not turned
+  is drawn only inside the clip and without a mask; a turned one gets the
+  clip as its mask, and the layer's mask back after it.
+- `src/raster.rs`: `Pipeline::draw_within`, which fills that part with the
+  image as a pattern, at the image's exact place (the package rounded it
+  down to a whole pixel of the image), on whole pixels of the target, as a
+  fill without anti-aliasing covers them, so two parts side by side meet
+  without a seam.
+
+```bash
+diff -ru ~/.cargo/registry/src/*/iced_tiny_skia-0.14.1/src vendor/iced_tiny_skia/src
+```
+
+The change may go upstream; a new release is taken by copying it here
+again and applying it. `paper::sprite`'s test
+`a_box_s_parts_keep_to_the_box_without_a_gpu` fails without it.

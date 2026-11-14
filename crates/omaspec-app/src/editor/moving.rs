@@ -58,8 +58,6 @@ pub struct Moving {
 
 /// How long the play holds after each step, and at the end.
 const HOLD: Duration = Duration::from_millis(500);
-/// How long a picture takes to reach the GPU, at most.
-const UPLOAD: Duration = Duration::from_millis(300);
 /// How long a zoom into a tile may take, or out of it.
 const DIVE: Duration = Duration::from_millis(4_000);
 /// How long a step may take to settle before the next.
@@ -242,6 +240,19 @@ impl Stage {
         })
     }
 
+    /// Puts the pictures each tab may draw next on the GPU, before a
+    /// frame draws them ([`Screen::upload`]): a picture drawn the first
+    /// time is not there yet, and its frame would show nothing of it.
+    fn upload(&mut self) {
+        let pictures: Vec<_> = self
+            .app
+            .docs
+            .iter()
+            .flat_map(|doc| doc.paper.pictures())
+            .collect();
+        self.screen.upload(pictures);
+    }
+
     /// Draws frames for `most`, or until `done`.
     fn run(&mut self, most: Duration, done: impl Fn(&App) -> bool) {
         let count = (most.as_secs_f32() / self.tick.as_secs_f32()).ceil() as usize;
@@ -334,9 +345,7 @@ impl Stage {
         let paper = &mut self.app.doc_mut().paper;
         paper.deliver_overview();
         let _ = paper.update(paper::Message::Faded);
-        // Its picture is on the GPU a moment after a frame asked for it.
-        let _ = self.screen.frame(&self.app);
-        std::thread::sleep(UPLOAD);
+        self.upload();
         self.run(HOLD, |_| false);
         let folds = names.iter().map(|name| (name, true));
         let unfolds = names.iter().rev().map(|name| (name, false));
@@ -355,6 +364,9 @@ impl Stage {
                 &self.file,
             )?;
             self.app.doc_mut().paper.deliver_overview();
+            // The pictures the glide goes between, and the new one it
+            // lands on, on the GPU before its first frame.
+            self.upload();
             self.step(|app| {
                 let paper = &app.doc().paper;
                 paper.fading().is_none() && paper.glide().is_none()
@@ -407,6 +419,7 @@ impl Stage {
             linked(&mut self.app, target)?;
             let _ = self.app.arrive();
             self.app.doc_mut().paper.finish_small();
+            self.upload();
             // The way in, the diagram in its own tab, and a moment there.
             self.run(self.tick, |_| false);
             self.run(DIVE, still);
@@ -415,13 +428,16 @@ impl Stage {
                 .update(Message::Worker(worker::Event::Due(worker::Alarm::Follow)));
             self.run(self.tick * 2, |_| false);
             self.app.doc_mut().paper.finish_rasters();
+            self.upload();
             self.run(HOLD, |_| false);
             // The way back out, and the map again.
             let _ = self.app.update(Message::Command(Command::Back));
             self.app.doc_mut().paper.finish_small();
+            self.upload();
             self.run(self.tick, |_| false);
             self.run(DIVE, still);
             self.app.doc_mut().paper.finish_rasters();
+            self.upload();
             self.run(HOLD, |_| false);
         }
         Ok(format!("into {} and back", names.join(", ")))

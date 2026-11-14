@@ -11,15 +11,15 @@
 //! picture and the last frame is the new one, so nothing pops at either
 //! end.
 
-use iced::widget::canvas::{self, Frame};
-use iced::widget::image;
-use iced::{Color, Point, Rectangle, Size, Vector};
+use iced::widget::canvas::Frame;
+use iced::{Color, Point, Rectangle, Size};
 
 use omaspec_render::pick;
 
 use super::Diagram;
 use super::canvas::{self as draw, Grid};
 use super::raster::Raster;
+use super::sprite::{self, HAIR};
 use super::view::View;
 
 /// One named box of a picture, in that picture's units.
@@ -69,9 +69,6 @@ const SHIFT: f32 = 0.012;
 /// hole and the travelling picture use the same rim, so the stroke goes
 /// with the box and the first frame still matches the picture exactly.
 const RIM: f32 = 2.0;
-/// Strips thinner than this are the same edge. Wide enough to miss a
-/// hairline gap, narrow enough that two boxes still meet.
-const HAIR: f32 = 0.05;
 /// Old lines have gone by `LINE_OUT`. New ones begin at `LINE_IN`. The
 /// quiet between them is short, so it reads as one change, and the lines
 /// never cross.
@@ -409,6 +406,9 @@ struct Placed {
     /// `paper` held one device pixel in, so the cleared edge of a picture
     /// does not draw a light line.
     visible: Rectangle,
+    /// The pictures' pixels to a unit, eased from the old one's to the
+    /// new one's, as a box that stays is drawn.
+    natural: f32,
     out: f32,
     inn: f32,
 }
@@ -426,6 +426,11 @@ fn placed(grid: Grid, local: Rectangle, paint: &Paint<'_>) -> Placed {
         old_paper,
         new_paper,
         visible: inset_px(paper, 1.0 / grid.scale),
+        natural: lerp(
+            old_paper.width / paint.old_size.width.max(1e-3),
+            new_paper.width / paint.new_size.width.max(1e-3),
+            t,
+        ),
         out: line_out(t),
         inn: line_in(t),
     }
@@ -507,10 +512,10 @@ fn paint_lines(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, old: bool
         (paint.new, paint.new_size)
     };
     let holes = box_holes(paint, old, size, placed.paper);
-    blit_punched(
+    sprite::punched(
         frame,
         local,
-        &Blit {
+        &sprite::Blit {
             raster,
             src: Rectangle::with_size(size),
             dest: placed.paper,
@@ -534,121 +539,6 @@ fn box_holes(paint: &Paint<'_>, old: bool, size: Size, paper: Rectangle) -> Vec<
             Some(onto(grow(rect), size, paper))
         })
         .collect()
-}
-
-/// One picture drawn into `dest`, from diagram units `src`.
-struct Blit<'a> {
-    raster: &'a Raster,
-    src: Rectangle,
-    dest: Rectangle,
-    /// The part of `dest` that is actually painted. The mapping stays `src`
-    /// onto `dest`, so a tighter limit does not move the picture.
-    limit: Rectangle,
-    alpha: f32,
-}
-
-/// `raster`'s `src` drawn into `dest`, with `holes` (in `dest`) left out.
-fn blit_punched(frame: &mut Frame, local: Rectangle, blit: &Blit<'_>, holes: &[Rectangle]) {
-    if blit.alpha <= 0.02
-        || blit.src.width < 1e-3
-        || blit.src.height < 1e-3
-        || blit.dest.width < HAIR
-        || blit.dest.height < HAIR
-    {
-        return;
-    }
-    let Some(bounds) = blit.dest.intersection(&blit.limit) else {
-        return;
-    };
-    let cuts: Vec<Rectangle> = holes
-        .iter()
-        .filter_map(|hole| hole.intersection(&bounds))
-        .collect();
-    if cuts.is_empty() {
-        blit_map(frame, local, blit, bounds);
-        return;
-    }
-    let mut ys = vec![bounds.y, bounds.y + bounds.height];
-    for cut in &cuts {
-        ys.push(cut.y.clamp(bounds.y, bounds.y + bounds.height));
-        ys.push((cut.y + cut.height).clamp(bounds.y, bounds.y + bounds.height));
-    }
-    ys.sort_by(f32::total_cmp);
-    ys.dedup_by(|a, b| (*a - *b).abs() < HAIR);
-    let right = bounds.x + bounds.width;
-    for pair in ys.windows(2) {
-        let (y0, y1) = (pair[0], pair[1]);
-        if y1 - y0 < HAIR {
-            continue;
-        }
-        let mut spans: Vec<(f32, f32)> = cuts
-            .iter()
-            .filter(|cut| cut.y <= y0 + HAIR && cut.y + cut.height >= y1 - HAIR)
-            .map(|cut| (cut.x.max(bounds.x), (cut.x + cut.width).min(right)))
-            .filter(|(from, to)| to - from > HAIR)
-            .collect();
-        spans.sort_by(|a, b| a.0.total_cmp(&b.0));
-        let mut merged: Vec<(f32, f32)> = Vec::new();
-        for (from, to) in spans {
-            if let Some(last) = merged.last_mut()
-                && from <= last.1 + HAIR
-            {
-                last.1 = last.1.max(to);
-            } else {
-                merged.push((from, to));
-            }
-        }
-        let mut x = bounds.x;
-        for (from, to) in merged {
-            if from > x + HAIR {
-                blit_map(
-                    frame,
-                    local,
-                    blit,
-                    Rectangle::new(Point::new(x, y0), Size::new(from - x, y1 - y0)),
-                );
-            }
-            x = x.max(to);
-        }
-        if right > x + HAIR {
-            blit_map(
-                frame,
-                local,
-                blit,
-                Rectangle::new(Point::new(x, y0), Size::new(right - x, y1 - y0)),
-            );
-        }
-    }
-}
-
-fn blit_map(frame: &mut Frame, local: Rectangle, blit: &Blit<'_>, clip: Rectangle) {
-    if blit.alpha <= 0.02 || clip.width < HAIR || clip.height < HAIR {
-        return;
-    }
-    let Some(clip) = clip.intersection(&local) else {
-        return;
-    };
-    if clip.width < HAIR || clip.height < HAIR {
-        return;
-    }
-    let (kx, ky) = (
-        blit.dest.width / blit.src.width,
-        blit.dest.height / blit.src.height,
-    );
-    let region = blit.raster.region;
-    let origin = blit.dest.position()
-        + Vector::new((region.x - blit.src.x) * kx, (region.y - blit.src.y) * ky);
-    let at = Rectangle::new(origin, Size::new(region.width * kx, region.height * ky));
-    frame.with_clip(clip, |frame| {
-        frame.draw_image(
-            at,
-            canvas::Image {
-                ..canvas::Image::new(blit.raster.handle.clone())
-                    .filter_method(image::FilterMethod::Linear)
-                    .opacity(blit.alpha)
-            },
-        );
-    });
 }
 
 fn paint_box(
@@ -678,25 +568,52 @@ fn paint_box(
     if old_a <= 0.02 && new_a <= 0.02 {
         return;
     }
-    let fill = mix(step.from_fill, step.to_fill, placed.t);
-    if old_a > 0.02 {
-        let holes = child_holes(paint, index, true, dest);
-        cover(frame, &holes, fill, old_a);
-        blit_box(
-            frame,
-            local,
-            paint.old,
-            grow(step.from),
-            dest,
-            &holes,
-            old_a,
-        );
+    // The holes of each picture filled with its own box's color: the
+    // container's, not the folded box's it becomes.
+    for (old, fill, alpha) in [(true, step.from_fill, old_a), (false, step.to_fill, new_a)] {
+        if alpha > 0.02 {
+            let fill = Color::from_rgb(fill[0], fill[1], fill[2]);
+            paint_side(frame, local, paint, index, placed, dest, old, fill, alpha);
+        }
     }
-    if new_a > 0.02 {
-        let holes = child_holes(paint, index, false, dest);
-        cover(frame, &holes, fill, new_a);
-        blit_box(frame, local, paint.new, grow(step.to), dest, &holes, new_a);
-    }
+}
+
+/// The box's pixels of the picture before, or of the new one, in `dest`:
+/// shaped to it ([`sprite::fit`]), with the boxes it holds cut out. One
+/// that stays, or glides into the box it hung below, changes its shape on
+/// the way; one that only goes or comes stretches with the sheet.
+#[allow(clippy::too_many_arguments)]
+fn paint_side(
+    frame: &mut Frame,
+    local: Rectangle,
+    paint: &Paint<'_>,
+    index: usize,
+    placed: &Placed,
+    dest: Rectangle,
+    old: bool,
+    fill: Color,
+    alpha: f32,
+) {
+    let step = &paint.morph.moves[index];
+    let (raster, size, src) = if old {
+        (paint.old, paint.old_size, grow(step.from))
+    } else {
+        (paint.new, paint.new_size, grow(step.to))
+    };
+    let natural = match step.role {
+        Role::Stay => Some(placed.natural),
+        _ if step.into.is_some() => {
+            let own = onto(src, size, placed.paper);
+            Some((own.width / src.width.max(1e-3)).min(own.height / src.height.max(1e-3)))
+        }
+        _ => None,
+    };
+    let children: Vec<Rectangle> = children(paint, index, old).into_iter().map(grow).collect();
+    let fit = sprite::fit(src, dest, natural, !children.is_empty());
+    // Under the box, should no plain column of it fill a hole.
+    let holes: Vec<Rectangle> = children.iter().filter_map(|c| fit.place(*c)).collect();
+    cover(frame, &holes, fill, alpha);
+    sprite::draw(frame, local, raster, &fit, &children, alpha);
 }
 
 /// Where this box is drawn. One that stays eases from its old place on the
@@ -745,57 +662,26 @@ fn parent_dest(step: &Move, paint: &Paint<'_>, placed: &Placed) -> Option<Rectan
     ))
 }
 
-fn blit_box(
-    frame: &mut Frame,
-    local: Rectangle,
-    raster: &Raster,
-    src: Rectangle,
-    dest: Rectangle,
-    holes: &[Rectangle],
-    alpha: f32,
-) {
-    blit_punched(
-        frame,
-        local,
-        &Blit {
-            raster,
-            src,
-            dest,
-            limit: local,
-            alpha,
-        },
-        holes,
-    );
-}
-
-/// The boxes drawn inside this one, as holes in its sprite. Each hole is
-/// the child's own rect taken through the parent's, so at either end it
-/// lands on the same pixels as the child's sprite.
-fn child_holes(paint: &Paint<'_>, index: usize, old: bool, dest: Rectangle) -> Vec<Rectangle> {
+/// The boxes drawn inside box `index`, in the picture before or in the
+/// new one, in that picture's units: they are cut out of its pixels, and
+/// glide on their own.
+fn children(paint: &Paint<'_>, index: usize, old: bool) -> Vec<Rectangle> {
+    let missing =
+        |step: &Move| (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave);
     let step = &paint.morph.moves[index];
-    if (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave) {
+    if missing(step) {
         return Vec::new();
     }
     let parent = if old { step.from } else { step.to };
-    let parent_src = grow(parent);
-    let mut holes = Vec::new();
-    for (other_i, other) in paint.morph.moves.iter().enumerate() {
-        if other_i == index {
-            continue;
-        }
-        if (old && other.role == Role::Arrive) || (!old && other.role == Role::Leave) {
-            continue;
-        }
-        let child = if old { other.from } else { other.to };
-        if !inside(child, parent) {
-            continue;
-        }
-        let hole = map_through(grow(child), parent_src, dest);
-        if let Some(hit) = hole.intersection(&dest) {
-            holes.push(hit);
-        }
-    }
-    holes
+    paint
+        .morph
+        .moves
+        .iter()
+        .enumerate()
+        .filter(|(other_i, other)| *other_i != index && !missing(other))
+        .map(|(_, other)| if old { other.from } else { other.to })
+        .filter(|child| inside(*child, parent))
+        .collect()
 }
 
 fn cover(frame: &mut Frame, holes: &[Rectangle], fill: Color, alpha: f32) {
@@ -820,20 +706,7 @@ fn grow(rect: Rectangle) -> Rectangle {
 
 /// `rect` of a diagram of `size`, placed on `paper`.
 fn onto(rect: Rectangle, size: Size, paper: Rectangle) -> Rectangle {
-    map_through(rect, Rectangle::with_size(size), paper)
-}
-
-/// `inner`, which lies in `through`, placed where `through` lands on `dest`.
-fn map_through(inner: Rectangle, through: Rectangle, dest: Rectangle) -> Rectangle {
-    let (tw, th) = (through.width.max(1e-3), through.height.max(1e-3));
-    let (kx, ky) = (dest.width / tw, dest.height / th);
-    Rectangle::new(
-        Point::new(
-            dest.x + (inner.x - through.x) * kx,
-            dest.y + (inner.y - through.y) * ky,
-        ),
-        Size::new(inner.width * kx, inner.height * ky),
-    )
+    sprite::map_through(rect, Rectangle::with_size(size), paper)
 }
 
 /// Old lines leave over the first part of the glide. New ones come in over
@@ -870,14 +743,6 @@ fn lerp_rect(from: Rectangle, to: Rectangle, t: f32) -> Rectangle {
             lerp(from.width, to.width, t),
             lerp(from.height, to.height, t),
         ),
-    )
-}
-
-fn mix(from: [f32; 3], to: [f32; 3], t: f32) -> Color {
-    Color::from_rgb(
-        lerp(from[0], to[0], t),
-        lerp(from[1], to[1], t),
-        lerp(from[2], to[2], t),
     )
 }
 
@@ -992,8 +857,10 @@ mod tests {
         );
         // A child cut out of its parent lands on the child's own place.
         let parent_dest = onto(grow(from), old_size, old_paper);
+        let natural = old_paper.width / old_size.width;
+        let fit = sprite::fit(grow(from), parent_dest, Some(natural), true);
         close(
-            map_through(grow(child), grow(from), parent_dest),
+            fit.place(grow(child)).unwrap(),
             onto(grow(child), old_size, old_paper),
         );
     }

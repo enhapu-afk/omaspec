@@ -38,6 +38,7 @@ mod pane;
 mod passage;
 mod play;
 mod raster;
+mod sprite;
 pub(crate) mod view;
 mod wash;
 mod wires;
