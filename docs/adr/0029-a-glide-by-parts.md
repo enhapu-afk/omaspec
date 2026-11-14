@@ -31,9 +31,13 @@ words it draws for which state, which words belong to which line.
    (a start, an end, a choice) or the words of a line, everything it draws
    on each of its layers lies in a group of that part,
    `<g id="part-…">`, the part's name written in hex. A box is named by its
-   key, as the map names it; a mark and a line's words by where they are in
-   the diagram's tree, and the map's `Spot` and `Wire` carry that name. A
-   container's group holds its rim and its title, never what it holds.
+   key (`state:Brewing`, `box:Pack`) or by where it is in the diagram's
+   tree (`box:2.0`), a mark and a line's words by where they are
+   (`mark:0`, `words:3:0`), the title and its kind by what they are
+   (`frame:title`); each kind of name has its own prefix, so no box's
+   words name another part. The map's `Spot`, `Place` and `Wire` carry
+   the names. A container's group holds its rim and its title, never what
+   it holds.
 2. **Only for the pane.** The pane asks for the parts with a line after
    the diagram, `' parts (Omaspec)` (`%%` in Mermaid), as it asks for a
    fold. A render for a file or an export draws no part groups: the
@@ -50,15 +54,20 @@ words it draws for which state, which words belong to which line.
    and travel with the line (`paper::wires`): from their old place to their
    new one, or away and in with the line when it goes or comes.
 5. **What no box takes glides on its own.** The title, header, caption,
-   footer, legend and main frame (`frame:title` and so on) and the top
-   card of a JSON diagram are parts without a place. One in both pictures
-   glides from where it was to where it is; one in only one of them comes
-   or goes with the ground.
+   footer and legend (`frame:title` and so on) and the top card of a JSON
+   diagram are parts without a place. One in both pictures glides from
+   where it was to where it is; one in only one of them comes or goes with
+   the ground. The main frame stays on the ground: around everything, its
+   picture would be as large as the ground again.
 6. **A card keeps its rows where they are.** A box whose rows are laid
    from its top left and whose size follows them, as a JSON card or a
-   tree's box (`Place::fixed`), is drawn at its own size from the top
-   left of its place of the moment rather than stretched: rows that are
-   in both pictures lie on each other.
+   tree's box (`Place::fixed`), and a part of point 5, is drawn at its own
+   size from the top left of its place of the moment and within it,
+   rather than stretched: rows that are in both pictures lie on each
+   other, and what it gains or loses is wiped in or out. Its old picture
+   stays opaque to the end where the new one covers it (a card with a
+   fill, or one that keeps its size); words that change fade from one to
+   the other.
 7. **One drawer at a time.** State diagrams of both languages mark their
    parts first, then structure, flowcharts and trees. A picture without
    parts glides as it did, by cutting; once every drawer that glides marks

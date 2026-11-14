@@ -692,6 +692,7 @@ mod tests {
             from_header: 1.0,
             role,
             anchored: false,
+            solid: false,
             into: None,
         }
     }

@@ -1221,10 +1221,43 @@ mod tests {
         assert!(notes(&ground) < notes(&svg), "{ground}");
         let brewing: String = crate::part_groups(&svg)
             .into_iter()
-            .filter(|(name, _)| name == "Brewing")
+            .filter(|(name, _)| name == "state:Brewing")
             .map(|(_, group)| group)
             .collect();
         assert!(brewing.contains("<path"), "Brewing's note: {brewing}");
+    }
+
+    /// A state whose name is that of another part (the title's, a
+    /// mark's) or that has a name of its own besides its key is drawn in
+    /// a part of its own, the one the map names.
+    #[test]
+    fn a_state_never_shares_another_part() {
+        let source = "@startuml\ntitle Year\nstate \"frame:title\"\nstate \"mark:0\"\nstate \"Long name\" as L\n[*] --> L\n' parts (Omaspec)\n@enduml\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        let groups = crate::part_groups(&svg);
+        let title: Vec<&str> = groups
+            .iter()
+            .filter(|(n, _)| n == crate::TITLE_PART)
+            .map(|(_, g)| *g)
+            .collect();
+        assert!(
+            title.len() == 1 && !title[0].contains("frame:title"),
+            "{title:?}"
+        );
+        for spot in &map.states {
+            let mine: Vec<&str> = groups
+                .iter()
+                .filter(|(n, _)| *n == spot.part)
+                .map(|(_, g)| *g)
+                .collect();
+            assert!(!mine.is_empty(), "{} not drawn: {groups:?}", spot.part);
+            let marks = mine.iter().filter(|g| g.contains("<ellipse")).count();
+            assert!(
+                spot.name.is_empty() || marks == 0,
+                "{}: {mine:?}",
+                spot.name
+            );
+        }
     }
 
     /// Asked for its parts, a state diagram draws each state, each mark
@@ -1257,7 +1290,7 @@ mod tests {
             "{named:?}"
         );
         // Brewing's groups: its frame, its divider and its title only.
-        for (_, group) in groups.iter().filter(|(name, _)| name == "Brewing") {
+        for (_, group) in groups.iter().filter(|(name, _)| name == "state:Brewing") {
             assert!(group.matches("<rect").count() <= 1, "{group}");
             assert!(!group.contains("Grinding"), "{group}");
         }

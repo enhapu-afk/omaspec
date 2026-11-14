@@ -239,8 +239,19 @@ fn place(key: &str, rect: crate::graph::Rect, frame: bool) -> Option<crate::map:
         entry: None,
         frame,
         fixed: true,
-        part: None,
+        part: Some(part(key)),
     })
+}
+
+/// The part the box called `key` is drawn in (docs/adr/0029): its key in
+/// a name of its own, so no box's words name the title's part, or
+/// another's.
+fn part(key: &str) -> String {
+    if key.is_empty() {
+        String::new()
+    } else {
+        format!("box:{key}")
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

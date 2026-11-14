@@ -213,7 +213,7 @@ impl Drawer<'_> {
     fn label(&mut self, b: &Branch, (x, y): (f32, f32)) {
         // Each box in its part (docs/adr/0029), by its key.
         let skin = self.skin;
-        self.canvas.part(&b.key, |canvas| {
+        self.canvas.part(&super::part(&b.key), |canvas| {
             b.label.draw(canvas, skin, (x, y), 0.0);
         });
         let rect = Rect {
@@ -337,7 +337,8 @@ mod tests {
             assert!(
                 groups
                     .iter()
-                    .any(|(n, g)| *n == place.name && g.contains(&format!(">{}<", place.name))),
+                    .any(|(n, g)| Some(n.as_str()) == place.part.as_deref()
+                        && g.contains(&format!(">{}<", place.name))),
                 "{} not drawn: {groups:?}",
                 place.name
             );

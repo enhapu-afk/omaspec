@@ -1270,13 +1270,15 @@ pub fn place_part(path: &[usize]) -> String {
     format!("box:{}", part_path(path))
 }
 
-/// The part a box is drawn in: its key, or for one without, as a start or
-/// an end, its place in the diagram's tree.
+/// The part a state is drawn in: its key, or for one without, as a start
+/// or an end, its place in the diagram's tree. Each kind of part has a
+/// name of its own (`state:`, `mark:`, `words:`, `frame:`), so a state
+/// called `frame:title` is never the title.
 pub(crate) fn box_part(key: &str, path: &[usize]) -> String {
     if key.is_empty() {
         format!("mark:{}", part_path(path))
     } else {
-        key.to_owned()
+        format!("state:{key}")
     }
 }
 

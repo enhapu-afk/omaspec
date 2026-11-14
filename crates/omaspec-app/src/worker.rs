@@ -478,16 +478,9 @@ pub fn folded(source: &str, language: Language, folds: &[String], views: Views) 
     // machine a table.
     let nested = views.nested && holds_tables(source, language);
     let classified = omaspec_core::kind::classify(source, language);
-    let kind = classified.kind;
-    let machine = kind == omaspec_core::Kind::State;
+    let machine = classified.kind == omaspec_core::Kind::State;
     let table = views.table && machine;
-    // The drawers that mark their parts: state machines, structures,
-    // Mermaid's flowcharts, the trees and the JSON and YAML cards,
-    // whichever kind they read as.
-    let parts = machine
-        || kind == omaspec_core::Kind::Structure
-        || (language == Language::Mermaid && kind == omaspec_core::Kind::Activity)
-        || matches!(&*classified.name, "Mind map" | "WBS" | "JSON" | "YAML");
+    let parts = marks_parts(source, language, &classified);
     if folds.is_empty() && !nested && !parts {
         return text;
     }
@@ -518,6 +511,22 @@ pub fn folded(source: &str, language: Language, folds: &[String], views: Views) 
         ));
     }
     text
+}
+
+/// Whether the drawer of `source`, classified as `kind`, marks its parts
+/// for a glide (docs/adr/0029): state machines, structures, Mermaid's
+/// flowcharts and mind maps, PlantUML's mind maps, WBS and JSON and YAML
+/// cards. `the_drawers_that_mark_parts_are_asked_for_them` keeps it true.
+fn marks_parts(source: &str, language: Language, kind: &omaspec_core::DiagramKind) -> bool {
+    use omaspec_core::Kind;
+    match language {
+        _ if matches!(kind.kind, Kind::State | Kind::Structure) => true,
+        Language::Mermaid => kind.kind == Kind::Activity || kind.name == "Mind map",
+        Language::PlantUml => matches!(
+            omaspec_core::kind::plantuml_block(source).as_str(),
+            "mindmap" | "wbs" | "json" | "yaml"
+        ),
+    }
 }
 
 /// Whether `source` is a state machine, the kind drawn as a table too.

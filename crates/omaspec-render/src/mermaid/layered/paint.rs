@@ -30,7 +30,11 @@ pub(super) fn title(canvas: &mut Canvas, palette: &Palette, title: &str, family:
         (left + right - block.width) / 2.0,
         canvas.top() - TITLE_GAP - block.height,
     );
-    canvas.text(Layer::Front, &block, at, Align::Left);
+    // A part of its own, as a PlantUML title is (docs/adr/0029): it
+    // glides from where it was to where it is.
+    canvas.part(omaspec_uml::TITLE_PART, |canvas| {
+        canvas.text(Layer::Front, &block, at, Align::Left);
+    });
 }
 
 /// Draws `scene`; the lines' corners curve by up to `curve`.

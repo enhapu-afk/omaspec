@@ -2585,6 +2585,45 @@ fn a_key_deeper_down_folds_what_it_holds_not_the_card_around_it() {
     assert_eq!(app.notice.as_deref(), Some("a/b folded"));
 }
 
+/// Each drawer that marks its parts is asked for them, and only those
+/// (docs/adr/0029): a kind renamed in the classifier must not stop it.
+#[test]
+fn the_drawers_that_mark_parts_are_asked_for_them() {
+    let plain = crate::worker::Views {
+        nested: false,
+        table: false,
+    };
+    let asked = |source: &str, language: Language| {
+        crate::worker::folded(source, language, &[], plain).contains("parts (Omaspec)")
+    };
+    for (source, language) in [
+        ("@startuml\n[*] --> A\n@enduml\n", Language::PlantUml),
+        ("@startuml\nclass A\n@enduml\n", Language::PlantUml),
+        ("@startmindmap\n* A\n@endmindmap\n", Language::PlantUml),
+        ("@startwbs\n* A\n@endwbs\n", Language::PlantUml),
+        ("@startjson\n{\"a\": 1}\n@endjson\n", Language::PlantUml),
+        ("@startyaml\na: 1\n@endyaml\n", Language::PlantUml),
+        ("stateDiagram-v2\n[*] --> A\n", Language::Mermaid),
+        ("classDiagram\nclass A\n", Language::Mermaid),
+        ("flowchart LR\nA --> B\n", Language::Mermaid),
+        ("mindmap\n  A\n", Language::Mermaid),
+    ] {
+        assert!(asked(source, language), "{source}");
+    }
+    for (source, language) in [
+        ("@startuml\nA -> B\n@enduml\n", Language::PlantUml),
+        ("@startuml\nstart\n:a;\nstop\n@enduml\n", Language::PlantUml),
+        (
+            "@startgantt\n[A] lasts 1 day\n@endgantt\n",
+            Language::PlantUml,
+        ),
+        ("sequenceDiagram\nA->>B: hi\n", Language::Mermaid),
+        ("pie\n\"a\": 1\n", Language::Mermaid),
+    ] {
+        assert!(!asked(source, language), "{source}");
+    }
+}
+
 #[test]
 fn only_a_json_or_yaml_diagram_is_asked_for_nested() {
     let json = "@startjson\n{\"a\": 1}\n@endjson\n";

@@ -215,16 +215,24 @@ pub(super) fn fit(
     }
 }
 
-/// The box of pixels `src` drawn at `natural` pixels to a unit from `at`,
-/// its top left, as large as the picture draws it: a card whose rows are
-/// laid out from its left keeps them where they are as it changes size.
-pub(super) fn anchored(src: Rectangle, at: Point, natural: f32) -> Fit {
-    let dest = Rectangle::new(at, Size::new(src.width, src.height) * natural);
+/// The box of pixels `src` drawn at `natural` pixels to a unit from the
+/// top left of `within`, as large as the picture draws it, and no further
+/// than `within`: a card whose rows are laid out from its left keeps them
+/// where they are as it changes size, and what it gains or loses is wiped
+/// in or out with the box of the moment.
+pub(super) fn anchored(src: Rectangle, within: Rectangle, natural: f32) -> Fit {
+    let dest = Rectangle::new(
+        within.position(),
+        Size::new(src.width, src.height) * natural,
+    );
+    let limit = dest
+        .intersection(&within)
+        .unwrap_or(Rectangle::new(dest.position(), Size::ZERO));
     Fit {
         pieces: vec![Piece {
             src,
             dest,
-            limit: dest,
+            limit,
             room: false,
         }],
         inside: 0,
@@ -538,6 +546,19 @@ fn plain_column(
 /// are clear: a box with no fill of its own, or the clear margin of a
 /// part's own picture.
 fn mostly_clear(raster: &Raster, area: Rectangle) -> bool {
+    alphas(raster, area).is_some_and(|(seen, clear, _)| seen > 0 && clear * 2 >= seen)
+}
+
+/// Whether nearly all of `raster`'s pixels in `area` (diagram units) are
+/// opaque: the inside of a box with a fill, which covers what lies under
+/// it, rather than words on clear pixels.
+pub(super) fn opaque(raster: &Raster, area: Rectangle) -> bool {
+    alphas(raster, area).is_some_and(|(seen, _, opaque)| seen > 0 && opaque * 10 >= seen * 9)
+}
+
+/// How many of `raster`'s pixels in `area` (diagram units) there are, how
+/// many of them are clear and how many opaque.
+fn alphas(raster: &Raster, area: Rectangle) -> Option<(usize, usize, usize)> {
     let image::Handle::Rgba {
         width,
         height,
@@ -545,11 +566,11 @@ fn mostly_clear(raster: &Raster, area: Rectangle) -> bool {
         ..
     } = &raster.handle
     else {
-        return false;
+        return None;
     };
     let region = raster.region;
     if region.width <= 0.0 || region.height <= 0.0 {
-        return false;
+        return None;
     }
     let (w, h) = (i64::from(*width), i64::from(*height));
     let at = |x: f32, y: f32| {
@@ -562,8 +583,7 @@ fn mostly_clear(raster: &Raster, area: Rectangle) -> bool {
     let (right, bottom) = at(area.x + area.width, area.y + area.height);
     let (left, right) = (left.clamp(0, w - 1), right.clamp(0, w - 1));
     let (top, bottom) = (top.clamp(0, h - 1), bottom.clamp(0, h - 1));
-    let mut seen = 0usize;
-    let mut clear = 0usize;
+    let (mut seen, mut clear, mut opaque) = (0usize, 0usize, 0usize);
     for y in top..=bottom {
         for x in left..=right {
             let alpha = pixels
@@ -572,9 +592,10 @@ fn mostly_clear(raster: &Raster, area: Rectangle) -> bool {
                 .unwrap_or(255);
             seen += 1;
             clear += usize::from(alpha == 0);
+            opaque += usize::from(alpha >= 250);
         }
     }
-    seen > 0 && clear * 2 >= seen
+    Some((seen, clear, opaque))
 }
 
 /// Whether `raster` is one color over `columns` and `rows`, in diagram

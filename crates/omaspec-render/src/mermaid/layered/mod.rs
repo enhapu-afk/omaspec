@@ -118,16 +118,18 @@ pub fn try_draw(
                 return Dress {
                     stroke: Stroke::new(omaspec_uml::Color::BLACK, 1.0),
                     heads: Vec::new(),
-                    words: [Some(omaspec_uml::words_part(&[], slot)), None, None],
+                    words: [None, None, None],
                 };
             };
             let (start, end) = edge.look.caps;
             let mut heads = paint::cap_shape(drawn, true, start);
             heads.extend(paint::cap_shape(drawn, false, end));
+            // The part of its words, where it has some (paint::paint_labels).
+            let words = (!edge.label.is_empty()).then(|| omaspec_uml::words_part(&[], slot));
             Dress {
                 stroke: edge.look.stroke,
                 heads,
-                words: [Some(omaspec_uml::words_part(&[], slot)), None, None],
+                words: [words, None, None],
             }
         },
     );

@@ -299,6 +299,14 @@ pub struct Cutout {
 impl Raster {
     /// The picture of the part `name` of a sheet, as a picture of its own:
     /// the sheet, placed so that the part lies at its place in the diagram.
+    pub fn has_part(&self, name: &str) -> bool {
+        self.parts
+            .as_ref()
+            .is_some_and(|parts| parts.0.contains_key(name))
+    }
+
+    /// The sheet as the picture of the part called `name`, and where that
+    /// part lies in the diagram.
     pub fn part(&self, name: &str) -> Option<(Raster, Rectangle)> {
         let cutout = self.parts.as_ref()?.0.get(name)?;
         // The sheet placed so that the part's pixels lie on its place in
@@ -752,7 +760,7 @@ mod tests {
         let plan = Plan::overview(size, 7.0).unwrap();
         let sheet = sheet(drawn.bare.as_ref().unwrap(), &drawn.tree, plan).unwrap();
         let parts = sheet.parts.as_ref().unwrap();
-        assert!(parts.0.contains_key("Idle") && parts.0.contains_key("Busy"));
+        assert!(parts.0.contains_key("state:Idle") && parts.0.contains_key("state:Busy"));
         let reach = |r: Rectangle| {
             Rectangle::new(
                 Point::new(r.x - SHEET_REACH, r.y - SHEET_REACH),

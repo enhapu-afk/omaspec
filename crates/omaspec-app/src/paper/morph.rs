@@ -70,6 +70,10 @@ pub struct Move {
     pub parts: [String; 2],
     /// Its rows are laid out from its top left ([`Side::anchored`]).
     pub anchored: bool,
+    /// Its new picture covers its box (a card with a fill), so the old one
+    /// may stay opaque under it to the end; worked out once a glide
+    /// ([`prepare`]).
+    pub solid: bool,
     /// Share of the box's height that is its title band. `1` is the whole
     /// box: nothing sits inside it.
     pub from_header: f32,
@@ -91,7 +95,16 @@ pub struct Morph {
     /// The parts no box takes that are in both pictures, as a title or
     /// the top card of a JSON diagram: each glides from where it was to
     /// where it is ([`paint_kept`]).
-    pub kept: Vec<String>,
+    pub kept: Vec<Kept>,
+}
+
+/// A part no box takes, in both pictures ([`Morph::kept`]).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Kept {
+    pub name: String,
+    /// Its new picture covers its place, as a card does and words do not
+    /// ([`Move::solid`]).
+    pub solid: bool,
 }
 
 /// How far a box may sit, as a share of the picture, and still count as
@@ -286,6 +299,7 @@ pub fn plan_with(
             columns: Default::default(),
             parts: [to.part.clone(), to.part.clone()],
             anchored: to.anchored,
+            solid: false,
             from_header: new_header[index],
             role: Role::Arrive,
             into: None,
@@ -358,6 +372,7 @@ fn stay(from: &Side, to: &Side, from_header: f32) -> Move {
         columns: Default::default(),
         parts: [from.part.clone(), to.part.clone()],
         anchored: from.anchored || to.anchored,
+        solid: false,
         from_header,
         role: Role::Stay,
         into: None,
@@ -377,6 +392,7 @@ fn stay_move(from: &Move, to: &Side) -> Move {
         columns: Default::default(),
         parts: [from.parts[0].clone(), to.part.clone()],
         anchored: from.anchored || to.anchored,
+        solid: false,
         from_header: from.from_header,
         role: Role::Stay,
         into: None,
@@ -433,6 +449,7 @@ fn leave(from: &Side, header: f32) -> Move {
         columns: Default::default(),
         parts: [from.part.clone(), from.part.clone()],
         anchored: from.anchored,
+        solid: false,
         from_header: header,
         role: Role::Leave,
         into: None,
@@ -671,9 +688,6 @@ fn box_holes(paint: &Paint<'_>, old: bool, size: Size, paper: Rectangle) -> Vec<
             if (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave) {
                 return None;
             }
-            if raster.part(&step.parts[usize::from(!old)]).is_some() {
-                return None;
-            }
             let rect = if old { step.from } else { step.to };
             Some(onto(grow(rect), size, paper))
         })
@@ -695,14 +709,13 @@ fn paint_box(
     // A box that stays is opaque the whole way: the old pixels first, then
     // the new ones over them. Drawing both at half would wash the box out.
     // One whose new pixels are another part's, as a JSON card that folds
-    // into a row of the card above, fades out over that part.
-    // One drawn at its size that shrinks fades out too, so nothing of it
-    // is left outside the new one at the end.
-    let shrinks = anchored(paint, step)
-        && (step.to.width < step.from.width - 0.5 || step.to.height < step.from.height - 0.5);
+    // into a row of the card above, fades out over that part. One drawn
+    // at its size ([`anchored`]) whose new picture does not cover the old
+    // one fades out too, so nothing of it is left at the end.
+    let keeps = !anchored(paint, step) || step.solid || same_size(step.from, step.to);
     let old_a = match step.role {
         Role::Leave => placed.out,
-        Role::Stay if placed.t < 1.0 && drawn(paint, step, false) && !shrinks => 1.0,
+        Role::Stay if placed.t < 1.0 && drawn(paint, step, false) && keeps => 1.0,
         Role::Stay if placed.t < 1.0 => 1.0 - placed.t,
         Role::Stay | Role::Arrive => 0.0,
     };
@@ -726,9 +739,12 @@ fn paint_box(
 /// Whether `step`, a box whose rows are laid from its top left
 /// ([`Move::anchored`]), is drawn from a part of its own in both pictures.
 fn anchored(paint: &Paint<'_>, step: &Move) -> bool {
-    step.anchored
-        && paint.old.part(&step.parts[0]).is_some()
-        && paint.new.part(&step.parts[1]).is_some()
+    step.anchored && paint.old.has_part(&step.parts[0]) && paint.new.has_part(&step.parts[1])
+}
+
+/// Whether two places of a box, in their pictures' units, are as large.
+fn same_size(a: Rectangle, b: Rectangle) -> bool {
+    (a.width - b.width).abs() < 0.5 && (a.height - b.height).abs() < 0.5
 }
 
 /// Whether a side of `step` is drawn on its own: from its part on a sheet
@@ -737,7 +753,7 @@ fn anchored(paint: &Paint<'_>, step: &Move) -> bool {
 /// box around it, and goes with that (docs/adr/0029).
 fn drawn(paint: &Paint<'_>, step: &Move, old: bool) -> bool {
     let raster = if old { paint.old } else { paint.new };
-    raster.parts.is_none() || raster.part(&step.parts[usize::from(!old)]).is_some()
+    raster.parts.is_none() || raster.has_part(&step.parts[usize::from(!old)])
 }
 
 /// The box's pixels of the picture before, or of the new one, in `dest`:
@@ -790,13 +806,12 @@ fn paint_side(
     // none of its lines' words: nothing to cut out, fill or fade.
     // Both pictures keep to the box's own rectangle, so their rims meet.
     if let Some((part, _)) = raster.part(&step.parts[usize::from(!old)]) {
-        // Rows laid from the top left stay there, the box at its size,
-        // while it is a box in both pictures (not a card that folds into a
-        // row, which shrinks into it).
+        // Rows laid from the top left stay there, the box at its size
+        // within its place of the moment, while it is a box in both
+        // pictures (not a card that folds into a row, which shrinks into
+        // it).
         let fit = match natural {
-            Some(natural) if anchored(paint, step) => {
-                sprite::anchored(src, dest.position(), natural)
-            }
+            Some(natural) if anchored(paint, step) => sprite::anchored(src, dest, natural),
             _ => sprite::fit(src, dest, natural, placed.pixel, bend, &rects),
         };
         let swatch = fill.map(Raster::swatch);
@@ -871,13 +886,23 @@ pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&sup
     }
     // A part in both pictures that no box takes glides on its own.
     let [old_orphans, new_orphans] = &mut morph.orphans;
-    morph.kept = old_orphans
+    let kept: Vec<String> = old_orphans
         .iter()
         .filter(|name| new_orphans.binary_search(name).is_ok())
         .cloned()
         .collect();
-    old_orphans.retain(|name| morph.kept.binary_search(name).is_err());
-    new_orphans.retain(|name| morph.kept.binary_search(name).is_err());
+    old_orphans.retain(|name| kept.binary_search(name).is_err());
+    new_orphans.retain(|name| kept.binary_search(name).is_err());
+    morph.kept = kept
+        .into_iter()
+        .map(|name| Kept {
+            solid: covers(new, &name),
+            name,
+        })
+        .collect();
+    for step in &mut morph.moves {
+        step.solid = step.anchored && covers(new, &step.parts[1]);
+    }
     for index in 0..morph.moves.len() {
         for (side, raster) in [(0, old), (1, new)] {
             // On a sheet of parts nothing is cut out.
@@ -900,14 +925,16 @@ pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&sup
 
 /// The parts in both pictures that no box takes ([`Morph::kept`]), each
 /// from its old place to its new one. Each picture of it is as large as
-/// that picture draws it, from the top left of its place of the moment,
-/// so the rows of a card that changes size stay where they are; only the
-/// main frame around everything stretches. The old pixels are opaque the
-/// whole way where the new ones cover them, the new ones come over them.
-/// Under the boxes, so a card that holds others is under them.
+/// that picture draws it, from the top left of its place of the moment
+/// and within it, so the rows of a card that changes size stay where they
+/// are. The old pixels stay opaque where the new ones will cover them (a
+/// card, or one that keeps its size), the new ones come over them; words
+/// that change fade from the old to the new. Under the boxes, so a card
+/// that holds others is under them.
 fn paint_kept(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, placed: &Placed) {
-    for name in &paint.morph.kept {
-        let (Some((old, was)), Some((new, is))) = (paint.old.part(name), paint.new.part(name))
+    for kept in &paint.morph.kept {
+        let (Some((old, was)), Some((new, is))) =
+            (paint.old.part(&kept.name), paint.new.part(&kept.name))
         else {
             continue;
         };
@@ -919,22 +946,21 @@ fn paint_kept(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, placed: &P
         if dest.width < 1.0 || dest.height < 1.0 {
             continue;
         }
-        let stretched = name == omaspec_uml::MAIN_FRAME;
-        let covered = is.width >= was.width - 0.5 && is.height >= was.height - 0.5;
         let old_alpha = match placed.t {
             t if t >= 1.0 => 0.0,
-            _ if stretched || covered => 1.0,
+            _ if kept.solid || same_size(was, is) => 1.0,
             t => 1.0 - t,
         };
         for (part, src, alpha) in [(&old, was, old_alpha), (&new, is, placed.t)] {
             if alpha <= 0.02 {
                 continue;
             }
-            let fit = if stretched {
-                sprite::fit(src, dest, Some(placed.natural), placed.pixel, None, &[])
-            } else {
-                sprite::anchored(src, dest.position(), placed.natural)
+            // On the paper, as the orphans are.
+            let mut fit = sprite::anchored(src, dest, placed.natural);
+            let Some(limit) = fit.pieces[0].limit.intersection(&placed.visible) else {
+                continue;
             };
+            fit.pieces[0].limit = limit;
             let whole = sprite::Holes {
                 children: &[],
                 columns: &[],
@@ -944,6 +970,19 @@ fn paint_kept(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, placed: &P
             sprite::draw(frame, local, part, &fit, &whole, alpha);
         }
     }
+}
+
+/// Whether the part called `name` of `raster` covers its place: the
+/// inside of a card with a fill is opaque, words and lines on clear pixels
+/// are not. Its rim and its corners are left out of the count.
+fn covers(raster: &Raster, name: &str) -> bool {
+    raster.part(name).is_some_and(|(part, at)| {
+        let inner = Rectangle::new(
+            Point::new(at.x + at.width * 0.2, at.y + at.height * 0.2),
+            Size::new(at.width * 0.6, at.height * 0.6),
+        );
+        sprite::opaque(&part, inner)
+    })
 }
 
 /// Where this box is drawn. One that stays eases from its old place on the

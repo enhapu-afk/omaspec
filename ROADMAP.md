@@ -2851,12 +2851,14 @@ order ([0029](docs/adr/0029-a-glide-by-parts.md)):
       their ends. Mermaid's flowcharts, mind maps of both languages, WBS
       and JSON and YAML cards do too (2026-11-14): a JSON card's arrows
       are lines of the map now and glide with their cards; the title, the
-      header, the caption, the footer, the legend, the main frame and the
-      top JSON card are parts in both pictures that no box takes, and glide
-      from where they were to where they are instead of fading with the
-      ground; a card whose rows are laid from its left (a JSON card, a
-      tree's box) is drawn at its size from its top left, so its rows stay
-      put as it grows. Every drawer whose boxes glide marks them now; the
+      header, the caption, the footer, the legend and the top JSON card are
+      parts in both pictures that no box takes, and glide from where they
+      were to where they are instead of fading with the ground; a card
+      whose rows are laid from its left (a JSON card, a tree's box) is
+      drawn at its size from its top left, so its rows stay put as it
+      grows. Each kind of part name has its own prefix (`state:`, `box:`,
+      `mark:`, `words:`, `frame:`), so a box called `frame:title` is never
+      the title. Every drawer whose boxes glide marks them now; the
       cutting is left for pictures without parts (the Java engine's, one
       too large for a sheet).
 - [ ] Fade and glide as one small state machine instead of a dozen flags,

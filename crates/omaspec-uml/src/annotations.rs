@@ -119,7 +119,9 @@ impl Annotations {
     /// Draws them around what `canvas` holds.
     /// Each in a part of its own (docs/adr/0029), `frame:title` and so
     /// on, when the parts are marked: in the pictures before and after a
-    /// fold, a pane glides it from where it was to where it is.
+    /// fold, a pane glides it from where it was to where it is. The main
+    /// frame is not: around everything, it would take a sheet as large as
+    /// the picture again, and it stretches with the ground as it is.
     pub fn draw(&self, canvas: &mut Canvas) {
         let places = self.places();
         let (mut left, mut right) = canvas.width_span();
@@ -128,29 +130,27 @@ impl Annotations {
             let top = places.frame;
             let frame_left = left - FRAME_PAD;
             let frame_right = (right + FRAME_PAD).max(frame_left + tab_w + 10.0);
-            canvas.part(MAIN_FRAME, |canvas| {
-                let bottom = canvas.bottom().max(top + tab_h) + FRAME_PAD;
-                let stroke = Stroke::new(self.look.line, self.look.line_thickness);
-                canvas.rect(
-                    Layer::Frames,
-                    (frame_left, top, frame_right - frame_left, bottom - top),
-                    0.0,
-                    None,
-                    Some(stroke),
-                );
-                canvas.polygon(
-                    Layer::Frames,
-                    &tab(frame_left, top, tab_w, tab_h),
-                    None,
-                    Some(stroke),
-                );
-                canvas.text(
-                    Layer::Front,
-                    label,
-                    (frame_left + 6.0, top + 2.0),
-                    Align::Left,
-                );
-            });
+            let bottom = canvas.bottom().max(top + tab_h) + FRAME_PAD;
+            let stroke = Stroke::new(self.look.line, self.look.line_thickness);
+            canvas.rect(
+                Layer::Frames,
+                (frame_left, top, frame_right - frame_left, bottom - top),
+                0.0,
+                None,
+                Some(stroke),
+            );
+            canvas.polygon(
+                Layer::Frames,
+                &tab(frame_left, top, tab_w, tab_h),
+                None,
+                Some(stroke),
+            );
+            canvas.text(
+                Layer::Front,
+                label,
+                (frame_left + 6.0, top + 2.0),
+                Align::Left,
+            );
             (left, right) = (frame_left, frame_right);
         }
         if let Some(placed) = &self.legend {
@@ -199,7 +199,7 @@ impl Annotations {
             (x, align)
         };
         let (x, align) = at(self.aligned.title, Align::Center);
-        canvas.part("frame:title", |canvas| {
+        canvas.part(TITLE_PART, |canvas| {
             canvas.text(Layer::Front, &self.title, (x, places.title), align);
         });
         let (x, align) = at(self.aligned.header, Align::Right);
@@ -224,9 +224,9 @@ impl Annotations {
     }
 }
 
-/// The part of the main frame (`mainframe`): its rim and its tab, around
-/// all the rest, which a pane stretches as the picture's size changes.
-pub const MAIN_FRAME: &str = "frame:main";
+/// The part of a diagram's title (docs/adr/0029), whichever drawer draws
+/// it: a name no box has, as each drawer names its boxes.
+pub const TITLE_PART: &str = "frame:title";
 
 struct Places {
     title: f32,

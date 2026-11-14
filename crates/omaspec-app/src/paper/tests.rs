@@ -885,7 +885,17 @@ fn a_json_card_folds_from_its_part_into_its_row() {
         "{:?}",
         morph.orphans
     );
-    assert_eq!(morph.kept, ["frame:title", "json:top"]);
+    // The title is words on clear pixels, the top card covers its place.
+    let kept: Vec<(&str, bool)> = morph
+        .kept
+        .iter()
+        .map(|kept| (kept.name.as_str(), kept.solid))
+        .collect();
+    assert_eq!(kept, [("frame:title", false), ("json:top", true)]);
+    // The home card, which grows by its folded row, is drawn at its size
+    // and covers the old one.
+    let home = morph.moves.iter().find(|m| m.name == "home").unwrap();
+    assert!(home.anchored && home.solid, "{home:?}");
     let lines = fade.lines.as_ref().expect("the arrows glide");
     assert!(
         lines

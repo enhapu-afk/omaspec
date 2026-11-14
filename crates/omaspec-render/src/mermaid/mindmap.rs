@@ -181,7 +181,9 @@ mod tests {
         assert_eq!(map.places.len(), 3, "{:?}", map.places);
         for place in &map.places {
             assert!(
-                groups.iter().any(|(n, _)| *n == place.name),
+                groups
+                    .iter()
+                    .any(|(n, _)| Some(n.as_str()) == place.part.as_deref()),
                 "{} not drawn: {groups:?}",
                 place.name
             );

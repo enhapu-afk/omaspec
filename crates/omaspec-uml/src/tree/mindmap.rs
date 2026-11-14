@@ -264,7 +264,7 @@ impl Geometry<'_> {
             let corner = self.at(start, e0, margin - finger.thickness / 2.0);
             let before = if dir > 0.0 { 3.0 } else { 0.0 };
             // Each box in its part (docs/adr/0029), by its key.
-            canvas.part(&finger.key, |canvas| {
+            canvas.part(&super::part(&finger.key), |canvas| {
                 label.draw(canvas, skin, corner, before);
             });
             let (w, h) = label.size(skin, before, 0.0);
@@ -558,6 +558,27 @@ mod tests {
     /// Asked for its parts, a mind map draws each box in a group of its
     /// own, named as its map names it: the box and its words, nothing of
     /// the boxes on its branches, and the links stay lines.
+    /// A box whose words are the name of the title's part is a part of
+    /// its own all the same: the title glides apart from it.
+    #[test]
+    fn a_box_never_shares_the_title_s_part() {
+        let source =
+            "@startmindmap\ntitle Year\n* frame:title\n** mark:0\n' parts (Omaspec)\n@endmindmap\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        let groups = crate::part_groups(&svg);
+        let title: Vec<&str> = groups
+            .iter()
+            .filter(|(n, _)| n == crate::TITLE_PART)
+            .map(|(_, g)| *g)
+            .collect();
+        assert!(
+            title.len() == 1 && title[0].contains(">Year<") && !title[0].contains("frame:title"),
+            "{title:?}"
+        );
+        let names: Vec<String> = map.places.iter().filter_map(|p| p.part.clone()).collect();
+        assert!(names.iter().all(|n| n.starts_with("box:")), "{names:?}");
+    }
+
     #[test]
     fn a_mind_map_s_boxes_are_parts_named_as_its_map_names_them() {
         let source =
@@ -569,12 +590,13 @@ mod tests {
             assert!(
                 groups
                     .iter()
-                    .any(|(n, g)| *n == place.name && g.contains(&format!(">{}<", place.name))),
+                    .any(|(n, g)| Some(n.as_str()) == place.part.as_deref()
+                        && g.contains(&format!(">{}<", place.name))),
                 "{} not drawn: {groups:?}",
                 place.name
             );
         }
-        for (_, group) in groups.iter().filter(|(n, _)| n == "Pack") {
+        for (_, group) in groups.iter().filter(|(n, _)| n == "box:Pack") {
             assert!(
                 !group.contains("Socks") && !group.contains("<path"),
                 "{group}"
