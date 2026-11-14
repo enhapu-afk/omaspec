@@ -4160,6 +4160,55 @@ fn shoot_at(app: &mut App, dir: &Path, name: &str, size: Size) {
 
 use super::screen::{Screen, Shot};
 
+/// Drawn without a GPU, by iced's tiny-skia, as `omaspec play` draws
+/// where there is none: the soft light round a played message stays
+/// round it. Its rows were the paper's whole outline in a clip, which
+/// that renderer does not keep for fills, and stacked into one solid
+/// column from the paper's top to its bottom.
+#[test]
+fn a_played_message_s_light_stays_round_it_without_a_gpu() {
+    let source = "@startuml\nhide footbox\nparticipant Alice\nparticipant Bob\nAlice -> Bob : a message long enough to make the paper wide\nBob --> Alice : and an answer\n@enduml\n";
+    let work = temp_dir("software-spot");
+    let file = work.join("talk.puml");
+    std::fs::write(&file, source).unwrap();
+    let start = Start {
+        files: vec![file],
+        ..Start::default()
+    };
+    let theme = theme_named("tokyo-night", omaspec_theme::Palette::fallback());
+    let mut app = App::themed(start, None, theme).0;
+    // The file's own white paper.
+    follow_theme(&mut app, false);
+    show(&mut app, source, Language::PlantUml);
+    settle(&mut app);
+    let mut screen = Screen::drawn_by(&app, 1.0, Some("tiny-skia")).unwrap();
+    let _ = app.update(Message::Command(Command::Play));
+    let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Next)));
+    app.doc_mut().paper.freeze_play(Duration::from_secs(3));
+    let shot = screen.shoot(&app);
+
+    // The paper's top edge, and a row just under it, above all it shows.
+    let top = shot.first((900, 60), (0, 1), 0x48);
+    let row = top.1 + 3;
+    let left = shot.first((620, row + 40), (1, 0), 0x48).0;
+    let mut right = 1190;
+    while shot.red((right, row + 40)) <= 0x48 {
+        right -= 1;
+    }
+    assert!(right > left + 200, "the paper from {left} to {right}");
+    let pixel = |x: usize| {
+        let at = (row * shot.width + x) * 4;
+        [shot.rgba[at], shot.rgba[at + 1], shot.rgba[at + 2]]
+    };
+    let first = pixel(left + 16);
+    for x in left + 16..right - 16 {
+        let seen = pixel(x);
+        let off = (0..3).map(|c| seen[c].abs_diff(first[c])).max().unwrap();
+        assert!(off <= 3, "({x}, {row}): {seen:?} beside {first:?}");
+    }
+    let _ = std::fs::remove_dir_all(&work);
+}
+
 /// At a fractional scale, as on a 1.5 screen, when OMASPEC_SNAPSHOT_DIR
 /// is set: the paper's edge and glow keep their pixels wherever a pan
 /// leaves them; the veil of a play leaves no light fleck in the paper's

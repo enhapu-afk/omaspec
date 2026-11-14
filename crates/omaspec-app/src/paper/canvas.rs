@@ -1043,8 +1043,8 @@ pub(super) fn rounded(rect: Rectangle, radius: f32) -> Path {
 }
 
 /// Fills the part of the rounded `paper` from `top` to `bottom`, for a veil
-/// over some of it: the paper's outline one device pixel larger, cut by a
-/// clip.
+/// over some of it: the paper's outline one device pixel larger, cut at
+/// the band's rows.
 ///
 /// The veil reaches past the paper's edge. Its own outline, the paper's
 /// grown, takes no point off the paper's, as a line of its own would in the
@@ -1052,6 +1052,10 @@ pub(super) fn rounded(rect: Rectangle, radius: f32) -> Path {
 /// edges before it lays one over the other, and where the paper's edge
 /// pixel is three quarters white, a veil that covers it to three quarters
 /// too lets more of that white through than the paper next to it shows.
+///
+/// The band is a shape of its own, not the whole outline in a clip: the
+/// software renderer (no GPU) lays a canvas's fills over everything,
+/// whatever the clip, so a soft spot's rows stacked into one solid column.
 pub fn fill_paper_band(
     frame: &mut Frame,
     paper: Rectangle,
@@ -1060,7 +1064,7 @@ pub fn fill_paper_band(
     bottom: f32,
     fill: impl Into<canvas::Fill>,
 ) {
-    let Some(clip) = band_clip(paper, scale, top, bottom) else {
+    let Some(band) = band_rows(paper, scale, top, bottom) else {
         return;
     };
     let out = 1.0 / if scale > 0.0 { scale } else { 1.0 };
@@ -1068,15 +1072,60 @@ pub fn fill_paper_band(
         paper.position() - Vector::new(out, out),
         paper.size() + Size::new(out * 2.0, out * 2.0),
     );
-    frame.with_clip(clip, |frame| frame.fill(&rounded(veil, RADIUS + out), fill));
+    if let Some(shape) = rounded_band(veil, RADIUS + out, band.y, band.y + band.height) {
+        frame.fill(&shape, fill);
+    }
 }
 
-/// The clip for [`fill_paper_band`], on whole device pixels of the canvas.
-/// iced moves what is drawn in a clip by as much as it takes to put the
-/// clip's corner on a whole pixel; a clip that starts on one moves it as
-/// far as the paper underneath, which is drawn without one. Where the band
-/// reaches the paper's edge, the clip reaches past the veil's.
-fn band_clip(paper: Rectangle, scale: f32, top: f32, bottom: f32) -> Option<Rectangle> {
+/// How many straight pieces a quarter of a rounded corner takes in
+/// [`rounded_band`]; at the paper's radius they stay a hundredth of a
+/// pixel off the arc.
+const ARC_PIECES: usize = 16;
+
+/// The part of the rounded rectangle `rect` from `top` to `bottom`: its
+/// sides, bent where they run round a corner.
+fn rounded_band(rect: Rectangle, radius: f32, top: f32, bottom: f32) -> Option<Path> {
+    let (top, bottom) = (top.max(rect.y), bottom.min(rect.y + rect.height));
+    if bottom <= top {
+        return None;
+    }
+    let radius = radius.min(rect.width / 2.0).min(rect.height / 2.0).max(0.0);
+    // How far the outline lies in from the side at height `y`.
+    let inset = |y: f32| {
+        let from_edge = (y - rect.y).min(rect.y + rect.height - y);
+        let up = (radius - from_edge).max(0.0);
+        radius - (radius * radius - up * up).max(0.0).sqrt()
+    };
+    // The heights where the outline bends: the band's own, and the arcs'
+    // points between them, evenly round each corner.
+    let mut heights = vec![top, bottom];
+    for i in 0..=ARC_PIECES {
+        let turn = std::f32::consts::FRAC_PI_2 * i as f32 / ARC_PIECES as f32;
+        let rise = radius * (1.0 - turn.sin());
+        for y in [rect.y + rise, rect.y + rect.height - rise] {
+            if y > top && y < bottom {
+                heights.push(y);
+            }
+        }
+    }
+    heights.sort_by(f32::total_cmp);
+    heights.dedup_by(|a, b| (*a - *b).abs() < 1e-4);
+    Some(Path::new(|b| {
+        b.move_to(Point::new(rect.x + inset(heights[0]), heights[0]));
+        for &y in &heights[1..] {
+            b.line_to(Point::new(rect.x + inset(y), y));
+        }
+        for &y in heights.iter().rev() {
+            b.line_to(Point::new(rect.x + rect.width - inset(y), y));
+        }
+        b.close();
+    }))
+}
+
+/// The rows of [`fill_paper_band`], on whole device pixels of the canvas,
+/// so neighbouring bands meet without a seam. Where the band reaches the
+/// paper's edge, it reaches past the veil's.
+fn band_rows(paper: Rectangle, scale: f32, top: f32, bottom: f32) -> Option<Rectangle> {
     let scale = if scale > 0.0 { scale } else { 1.0 };
     let (paper_bottom, paper_right) = (paper.y + paper.height, paper.x + paper.width);
     let below = |at: f32| ((at * scale).floor() - 3.0) / scale;
@@ -1451,24 +1500,65 @@ mod tests {
     }
 
     #[test]
-    fn a_veil_band_is_clipped_on_whole_pixels_and_past_the_paper() {
+    fn a_veil_band_lies_on_whole_pixels_and_past_the_paper() {
         let scale = 1.5;
         let paper = Rectangle::new(Point::new(40.3, 30.7), Size::new(180.0, 120.0));
         let whole = |at: f32| ((at * scale) - (at * scale).round()).abs() < 1e-3;
         let (right, bottom) = (paper.x + paper.width, paper.y + paper.height);
-        // Over the whole paper the clip reaches past every edge.
-        let all = band_clip(paper, scale, paper.y, bottom).unwrap();
+        // Over the whole paper the rows reach past every edge.
+        let all = band_rows(paper, scale, paper.y, bottom).unwrap();
         assert!(all.x < paper.x && all.y < paper.y);
         assert!(all.x + all.width > right && all.y + all.height > bottom);
         for edge in [all.x, all.y, all.x + all.width, all.y + all.height] {
             assert!(whole(edge), "{edge}");
         }
         // Bands that meet share a row: no gap, no overlap.
-        let upper = band_clip(paper, scale, paper.y - 5.0, 77.4).unwrap();
-        let lower = band_clip(paper, scale, 77.4, bottom + 5.0).unwrap();
+        let upper = band_rows(paper, scale, paper.y - 5.0, 77.4).unwrap();
+        let lower = band_rows(paper, scale, 77.4, bottom + 5.0).unwrap();
         assert!((upper.y + upper.height - lower.y).abs() < 1e-4);
         assert!(whole(lower.y));
         // Less than half a pixel high is nothing.
-        assert!(band_clip(paper, scale, 90.0, 90.1).is_none());
+        assert!(band_rows(paper, scale, 90.0, 90.1).is_none());
+    }
+
+    /// The points of a path, in order.
+    fn corners(path: &Path) -> Vec<Point> {
+        use iced::widget::canvas::path::lyon_path::Event;
+        path.raw()
+            .iter()
+            .filter_map(|event| match event {
+                Event::Begin { at } | Event::Line { to: at, .. } => Some(Point::new(at.x, at.y)),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_band_is_the_paper_between_its_rows_and_nothing_more() {
+        let rect = Rectangle::new(Point::new(10.0, 20.0), Size::new(200.0, 300.0));
+        let radius = 8.0;
+        // In the middle: a rectangle as wide as the paper, as high as the band.
+        let middle = corners(&rounded_band(rect, radius, 100.0, 140.0).unwrap());
+        assert_eq!(middle.len(), 4);
+        for at in &middle {
+            assert!(at.y == 100.0 || at.y == 140.0, "{at:?}");
+            assert!(at.x == 10.0 || at.x == 210.0, "{at:?}");
+        }
+        // At the top: from the paper's edge, round its corners. Every point
+        // lies on the rounded outline, none above the paper or below the band.
+        let top = corners(&rounded_band(rect, radius, 0.0, 60.0).unwrap());
+        let (left, right) = (Point::new(18.0, 28.0), Point::new(202.0, 28.0));
+        for at in &top {
+            assert!((20.0..=60.0).contains(&at.y), "{at:?}");
+            if at.y < 28.0 {
+                let center = if at.x < 110.0 { left } else { right };
+                assert!((at.distance(center) - radius).abs() < 1e-3, "{at:?}");
+            }
+        }
+        let highest = top.iter().map(|at| at.y).fold(f32::INFINITY, f32::min);
+        assert_eq!(highest, 20.0, "the band starts at the paper's edge");
+        assert!(top.len() > 2 * ARC_PIECES, "the corner is bent, not cut");
+        // Past the paper there is nothing.
+        assert!(rounded_band(rect, radius, 330.0, 400.0).is_none());
     }
 }

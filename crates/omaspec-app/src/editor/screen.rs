@@ -47,6 +47,13 @@ impl Screen {
     /// A screen for `app`, or why there is none: a GPU the renderer can
     /// draw on without a window.
     pub fn new(app: &App, scale: f32) -> Result<Screen, String> {
+        let backend = std::env::var("ICED_TEST_BACKEND").ok();
+        Self::drawn_by(app, scale, backend.as_deref())
+    }
+
+    /// A screen drawn by the renderer `backend` names (`wgpu`, `tiny-skia`:
+    /// the one without a GPU), or the first that can.
+    pub fn drawn_by(app: &App, scale: f32, backend: Option<&str>) -> Result<Screen, String> {
         use iced::advanced::graphics::text::font_system;
         use iced::advanced::renderer::Headless;
         for font in scrive_iced::required_fonts() {
@@ -55,11 +62,10 @@ impl Screen {
                 .map_err(|_| "the fonts are locked".to_owned())?
                 .load_font(std::borrow::Cow::Borrowed(*font));
         }
-        let backend = std::env::var("ICED_TEST_BACKEND").ok();
         let renderer = iced::futures::executor::block_on(iced::Renderer::new(
             app.font,
             iced::Pixels(16.0),
-            backend.as_deref(),
+            backend,
         ))
         .ok_or_else(|| "no GPU to draw on without a window".to_owned())?;
         Ok(Screen {
