@@ -1,5 +1,6 @@
 == component-deploy.puml: PlantUML / Structure (Component and deployment diagram)
 == lint
+   4 Info: a cardinality needs quotes: only the Java PlantUML draws this diagram
 == outline
    2 node | Laptop
    6 cloud | AUR

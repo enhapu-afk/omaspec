@@ -79,7 +79,9 @@ that folder. The project, the editor and the diagram are separate areas; Ctrl+Al
 moves between them, and an accent border shows which one has the keys.
 
 Lint findings are underlined while you type (F8 jumps to the next); the diagram is drawn
-again after a short pause. A click on a render error in the status bar jumps to its line;
+again after a short pause. A PlantUML line Omaspec's own engine does not draw yet is an
+*info*: the Java PlantUML draws that diagram where it is installed, and nothing does where
+it is not, so `omaspec lint` and `check` name the line before the diagram goes there. A click on a render error in the status bar jumps to its line;
 so does Ctrl+click on a label, box, diamond or line in the diagram. Lines changed since the last
 save are marked beside the line numbers. The language is detected from the text and the
 file name unless `--lang` (or the palette) sets it.

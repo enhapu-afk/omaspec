@@ -1,5 +1,6 @@
 == activity-release.puml: PlantUML / Activity (Activity diagram)
 == lint
+  29 Info: `switch` is not supported yet: only the Java PlantUML draws this diagram
   35 Warning: Lane "developer" differs from "Developer" only in case or spaces. PlantUML draws two lanes.
 == outline
    2 title | Release pipeline

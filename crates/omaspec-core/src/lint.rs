@@ -8,7 +8,8 @@
 //! to a frequent one, an entry of the lines by hand that does not read or
 //! comes twice, two colors the writer set that hardly differ
 //! ([`crate::faint`]), a line of a Mermaid flowchart that mermaid.js would
-//! not read ([`portable`]).
+//! not read ([`portable`]), a PlantUML line Omaspec's own engine does not
+//! draw yet, so only the Java PlantUML draws the diagram ([`java_only`]).
 
 mod fix;
 mod namesakes;
@@ -111,6 +112,14 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
         // about names hold back once it runs.
         Language::PlantUml if lines.iter().any(|l| l.trim_start().starts_with('!')) => {}
         Language::PlantUml => {
+            // A line the syntax rules already name needs no second word.
+            if let Some(java) = java_only(&code)
+                && !findings
+                    .iter()
+                    .any(|f| f.line == java.line && f.severity >= Severity::Warning)
+            {
+                findings.push(java);
+            }
             let rows: Vec<Row> = element_lines(&code)
                 .unwrap_or_default()
                 .into_iter()
@@ -140,6 +149,24 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     findings.sort_by_key(|f| f.line);
     findings
 }
+
+/// What Omaspec's own engine does not draw yet, though PlantUML does: the
+/// diagram is drawn by the Java PlantUML where it is installed, and not at
+/// all where it is not. Worth knowing before it goes where Java is not.
+/// What PlantUML refuses too is a mistake, which the syntax rules name.
+fn java_only(code: &str) -> Option<Finding> {
+    let declined = omaspec_uml::parse(code).err()?;
+    (!declined.refused).then(|| {
+        Finding::new(
+            declined.line.unwrap_or(0),
+            Severity::Info,
+            format!("{}: {JAVA_ONLY}", declined.reason),
+        )
+    })
+}
+
+/// How [`java_only`]'s finding ends.
+const JAVA_ONLY: &str = "only the Java PlantUML draws this diagram";
 
 /// Entries of the block of lines by hand that do not read, and a second
 /// entry for the same line or the same box: the drawing leaves both out.
@@ -898,6 +925,28 @@ mod tests {
         assert!(messages(flow, Language::Mermaid).is_empty());
     }
 
+    /// The findings of `code` but the note that only Java draws it.
+    fn but_java(code: &str) -> Vec<(usize, Severity, String)> {
+        messages(code, Language::PlantUml)
+            .into_iter()
+            .filter(|(_, _, message)| !message.ends_with(JAVA_ONLY))
+            .collect()
+    }
+
+    #[test]
+    fn a_line_only_java_draws_is_named() {
+        let found = messages(
+            "@startsalt\n{S\n  Line one\n}\n@endsalt\n",
+            Language::PlantUml,
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!((found[0].0, found[0].1), (1, Severity::Info));
+        assert!(found[0].2.ends_with(JAVA_ONLY), "{found:?}");
+        // What Omaspec draws itself says nothing.
+        assert!(but_java("@startuml\nA -> B : hi\n@enduml\n").is_empty());
+        assert!(messages("@startuml\nA -> B : hi\n@enduml\n", Language::PlantUml).is_empty());
+    }
+
     /// From PlantUML's own examples: blocks that are closed after all.
     #[test]
     fn closed_blocks_are_not_reported() {
@@ -907,7 +956,8 @@ mod tests {
             "@startuml\nA -> B : hi\nalt#Gold #LightBlue ok\n  B -> A : yes\nelse #Pink no\n  B -> A : no\nend\n@enduml",
             "@startgantt\n[a] requires 2 days\nnote bottom\n  note for a\nend note\n@endgantt",
         ] {
-            let found = messages(code, Language::PlantUml);
+            // Group colors only the Java PlantUML draws, which says so.
+            let found = but_java(code);
             assert!(found.is_empty(), "{code:?}: {found:?}");
         }
         let found = messages(
@@ -956,7 +1006,9 @@ mod tests {
             // A signal-flow block and its ports (issue #1).
             "@startflow\nin h\nout height\nblock Alt \"Altimeter\" {\n  in h\n  out height\n}\nh -> Alt.h\nAlt.height -> height\nLoop.out -> height\n@endflow",
         ] {
-            let found = messages(code, Language::PlantUml);
+            // PlantUML does read `Par ..> Alt` as a group, which only Java
+            // draws, unclosed: lint says no more than that.
+            let found = but_java(code);
             assert!(found.is_empty(), "{code:?}: {found:?}");
         }
     }
