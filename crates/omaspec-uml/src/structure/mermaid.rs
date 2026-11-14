@@ -2,7 +2,9 @@
 //!
 //! The class name is the word before a `~generic~`: Mermaid does not treat
 //! the parameter as part of the name, so relations say `Square` for
-//! `class Square~Shape~`. A namespace is a package. Its classes are named
+//! `class Square~Shape~`. As in Mermaid, a generic is shown in angle
+//! brackets, `Square<Shape>` and `List<List<int>>`; a `~` left as it is
+//! would be the escape of the words' markup. A namespace is a package. Its classes are named
 //! `Namespace.Class` from the outside and by their short name from
 //! anywhere it is unambiguous.
 //!
@@ -833,7 +835,7 @@ impl Parser {
         };
         let display = match &label {
             Some(label) => label.clone(),
-            None if !generic.is_empty() => format!("{short}{generic}"),
+            None if !generic.is_empty() => format!("{short}{}", angled(generic)),
             None => short.to_owned(),
         };
         if let Some(path) = self.classes.get(&full).cloned() {
@@ -1253,7 +1255,7 @@ fn member_of(text: &str, line: usize) -> Result<Member, Reason> {
         Slot::Attribute
     };
     Ok(Member::Text {
-        text: text_at(&rest, line),
+        text: text_at(&angled(&rest), line),
         italic,
         underline,
         slot,
@@ -1602,6 +1604,37 @@ fn take_ident(text: &str) -> Option<(String, &str)> {
     (end > 0).then(|| (text[..end].to_owned(), &text[end..]))
 }
 
+/// `text` with its `~...~` generics in angle brackets, as Mermaid shows
+/// them: a `~` before a name opens one, any other closes the one open.
+/// Text whose tildes do not pair stays as it is.
+fn angled(text: &str) -> String {
+    if !text.contains('~') {
+        return text.to_owned();
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut depth = 0usize;
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c != '~' {
+            out.push(c);
+            continue;
+        }
+        let opens = chars
+            .peek()
+            .is_some_and(|next| next.is_alphanumeric() || *next == '_');
+        if opens {
+            depth += 1;
+            out.push('<');
+        } else if depth > 0 {
+            depth -= 1;
+            out.push('>');
+        } else {
+            return text.to_owned();
+        }
+    }
+    if depth == 0 { out } else { text.to_owned() }
+}
+
 /// The byte length of a `~...~` generic, including nested `List~int~`.
 fn generic_len(text: &str) -> Option<usize> {
     let bytes = text.as_bytes();
@@ -1844,7 +1877,7 @@ pub(super) fn cut_comment(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::super::{Dash, Direction, Head, Shape, Slot, draw};
-    use super::{from_mermaid, mermaid_refusal};
+    use super::{angled, from_mermaid, mermaid_refusal};
 
     fn diagram(source: &str) -> super::super::Diagram {
         from_mermaid(source).unwrap_or_else(|| panic!("refused {source}"))
@@ -1906,12 +1939,23 @@ mod tests {
         );
         let class = &diagram.root.nodes[0];
         assert_eq!(class.key, "Square");
-        assert_eq!(class.label.value, "Square~Shape~");
+        assert_eq!(class.label.value, "Square<Shape>");
         assert_eq!(class.members.len(), 3);
         assert!(class.members.iter().any(|member| matches!(
             member,
-            super::super::Member::Text { text, .. } if text.value.contains("List~List") || text.value.contains("getPoints")
+            super::super::Member::Text { text, .. } if text.value == "getPoints() List<int>"
         )));
+        // Nested, with a comma, and a tilde that pairs with nothing.
+        assert_eq!(
+            angled("+Map~String, List~int~~ index"),
+            "+Map<String, List<int>> index"
+        );
+        assert_eq!(
+            angled("nested() Map~K, List~V~~"),
+            "nested() Map<K, List<V>>"
+        );
+        assert_eq!(angled("about ~ 5"), "about ~ 5");
+        assert_eq!(angled("open~ended"), "open~ended");
     }
 
     #[test]
