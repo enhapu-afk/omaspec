@@ -413,8 +413,9 @@ pub(super) fn draw(
                 limit,
                 alpha,
             },
-            // A box with no fill of its own: what lies under it shows.
-            (true, None) => continue,
+            // A box with no fill of its own, clear where it is drawn out:
+            // what lies under it shows.
+            (true, None) if mostly_clear(raster, piece.src) => continue,
             _ => Blit {
                 raster,
                 src: piece.src,
@@ -514,6 +515,49 @@ fn plain_column(
                     || other.y >= rows.1
             }) && one_color(raster, (x, x + STRIP), rows)
         })
+}
+
+/// Whether at least half of `raster`'s pixels in `area` (diagram units)
+/// are clear: a box with no fill of its own, or the clear margin of a
+/// part's own picture.
+fn mostly_clear(raster: &Raster, area: Rectangle) -> bool {
+    let image::Handle::Rgba {
+        width,
+        height,
+        pixels,
+        ..
+    } = &raster.handle
+    else {
+        return false;
+    };
+    let region = raster.region;
+    if region.width <= 0.0 || region.height <= 0.0 {
+        return false;
+    }
+    let (w, h) = (i64::from(*width), i64::from(*height));
+    let at = |x: f32, y: f32| {
+        (
+            ((x - region.x) * w as f32 / region.width).floor() as i64,
+            ((y - region.y) * h as f32 / region.height).floor() as i64,
+        )
+    };
+    let (left, top) = at(area.x, area.y);
+    let (right, bottom) = at(area.x + area.width, area.y + area.height);
+    let (left, right) = (left.clamp(0, w - 1), right.clamp(0, w - 1));
+    let (top, bottom) = (top.clamp(0, h - 1), bottom.clamp(0, h - 1));
+    let mut seen = 0usize;
+    let mut clear = 0usize;
+    for y in top..=bottom {
+        for x in left..=right {
+            let alpha = pixels
+                .get(((y * w + x) * 4 + 3) as usize)
+                .copied()
+                .unwrap_or(255);
+            seen += 1;
+            clear += usize::from(alpha == 0);
+        }
+    }
+    seen > 0 && clear * 2 >= seen
 }
 
 /// Whether `raster` is one color over `columns` and `rows`, in diagram
@@ -1025,6 +1069,38 @@ mod tests {
         for x in 125..135 {
             assert_eq!(red[(100 + 30) * 200 + x], 255, "({x}, 130)");
         }
+    }
+
+    /// Room whose row crosses words, in a box with no color of its own: a
+    /// clear box leaves it clear, what lies under it shows; an opaque one
+    /// of many colors draws its row out as before.
+    #[test]
+    fn crossed_room_is_left_clear_only_in_a_clear_box() {
+        let draw_box = |inside: [u8; 4]| {
+            on_tiny_skia(move |frame, local| {
+                let picture = Raster::painted(60, 40, move |x, y| {
+                    let rim = !(2..58).contains(&x) || !(2..38).contains(&y);
+                    let word = (6..9).contains(&y) && (20..40).contains(&x);
+                    // The rim and the words white, the rest `inside`.
+                    if rim || word { [255; 4] } else { inside }
+                });
+                let dest = rect(100.0, 40.0, 60.0, 120.0);
+                let fit = fit(picture.region, dest, Some(1.0), 1.0, square(0.0), &[]);
+                let holes = Holes {
+                    children: &[],
+                    columns: &[],
+                    swatch: None,
+                    content: 1.0,
+                };
+                draw(frame, local, &picture, &fit, &holes, 1.0);
+            })
+        };
+        // Clear inside: the room above the words shows the black under it.
+        let clear = draw_box([0, 0, 0, 0]);
+        assert_eq!(clear[60 * 200 + 130], 0, "a clear box's room");
+        // A dim red inside: the row drawn out, red, words and all.
+        let filled = draw_box([120, 0, 0, 255]);
+        assert!(filled[60 * 200 + 130] >= 120, "an opaque box's room");
     }
 
     /// What `paint` draws on a canvas of 200 by 200 pixels over black, by

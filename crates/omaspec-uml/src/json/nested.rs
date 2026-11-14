@@ -265,5 +265,6 @@ fn place_of(path: &[String], (x, y, w, h): (f32, f32, f32, f32), frame: bool) ->
         entry: None,
         frame,
         fixed: true,
+        part: None,
     }
 }

@@ -162,12 +162,14 @@ pub fn lay(
 /// ([0021](../../../../docs/adr/0021-boxes-held-in-place.md)): each with a
 /// name (`name`, by its path; a pseudo state's `[*]` or `[H]` is none), the
 /// container it keeps to and which way its ranks run (`across`, by the
-/// container's path), and the entry of `held` that holds it.
+/// container's path), the entry of `held` that holds it, and the part it
+/// is drawn in, where its name is not (`part`, by its path).
 pub fn places(
     top: &[Placement],
     name: impl Fn(&[usize]) -> String,
     across: impl Fn(&[usize]) -> bool,
     held: &[(usize, hand::Hold)],
+    part: impl Fn(&[usize]) -> Option<String>,
 ) -> Vec<crate::map::Place> {
     fn walk(
         level: &[Placement],
@@ -199,6 +201,7 @@ pub fn places(
             within,
             frame: place.frame,
             fixed: false,
+            part: part(path),
         });
     });
     out
@@ -215,8 +218,9 @@ fn end(place: &Placement) -> hand::End {
 pub struct Dress {
     pub stroke: Stroke,
     pub heads: Vec<Head>,
-    /// The part its words are drawn in, where the drawer marks them.
-    pub words: Option<String>,
+    /// The parts its words are drawn in, where the drawer marks them
+    /// ([`crate::map::Wire::words`]).
+    pub words: [Option<String>; 3],
 }
 
 /// Every line drawn, as a [`Wire`] for the map; `drawn` turns a line's

@@ -57,10 +57,18 @@ pub struct Wire {
     /// The layout alone lays it: a link of a mind map or a WBS, which a
     /// pane glides with its boxes and no writer shapes by hand.
     pub fixed: bool,
-    /// The part its words are drawn in (docs/adr/0029), where its drawer
-    /// marks them.
-    pub words: Option<String>,
+    /// The parts its words are drawn in (docs/adr/0029), where its drawer
+    /// marks them: [`WORDS`] in its middle, [`FROM`] beside its start and
+    /// [`TO`] beside its end, a multiplicity's.
+    pub words: [Option<String>; 3],
 }
+
+/// Which of a line's [`Wire::words`] are in its middle.
+pub const WORDS: usize = 0;
+/// Which are beside its start.
+pub const FROM: usize = 1;
+/// Which are beside its end.
+pub const TO: usize = 2;
 
 /// A mark at the end of a line: an arrowhead, a triangle, a diamond, a
 /// dot, drawn as a polygon of the picture.
@@ -166,6 +174,9 @@ pub struct Place {
     /// The layout alone says where it stands: a box of a mind map or a
     /// WBS, which folds and takes the focus and is held beside no other.
     pub fixed: bool,
+    /// The part it is drawn in (docs/adr/0029), where its drawer marks its
+    /// parts and the name is not enough: two boxes may share a name.
+    pub part: Option<String>,
 }
 
 /// A state's box, or the mark of a pseudo state.

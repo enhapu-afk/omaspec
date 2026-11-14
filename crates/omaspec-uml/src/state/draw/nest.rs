@@ -367,6 +367,7 @@ pub(super) fn places(
         |path| name(root, path),
         across,
         held,
+        |_| None,
     )
 }
 
@@ -396,7 +397,7 @@ pub(super) fn wires(
                 })
                 .into_iter()
                 .collect(),
-            words: Some(super::words_part(path, slot)),
+            words: [Some(crate::svg::words_part(path, slot)), None, None],
         },
     )
 }

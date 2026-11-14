@@ -132,7 +132,7 @@ pub fn sides(diagram: &Diagram) -> Vec<Side> {
 }
 
 /// The part the box at `place` is drawn in: that of the state drawn
-/// there, else the box's own name.
+/// there, else the one the map gives it, else the box's own name.
 fn map_part(map: &omaspec_uml::map::Map, place: &omaspec_uml::map::Place) -> String {
     let same = |a: omaspec_uml::graph::Rect, b: omaspec_uml::graph::Rect| {
         (a.x - b.x).abs() < 0.5
@@ -144,7 +144,9 @@ fn map_part(map: &omaspec_uml::map::Map, place: &omaspec_uml::map::Place) -> Str
         .iter()
         .find(|spot| spot.name == place.name && same(spot.rect, place.rect))
         .or_else(|| map.states.iter().find(|spot| same(spot.rect, place.rect)))
-        .map_or_else(|| place.name.clone(), |spot| spot.part.clone())
+        .map(|spot| spot.part.clone())
+        .or_else(|| place.part.clone())
+        .unwrap_or_else(|| place.name.clone())
 }
 
 fn side_at(fills: &pick::Fills, name: &str, part: &str, rect: omaspec_uml::graph::Rect) -> Side {
@@ -790,16 +792,13 @@ pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&sup
             .moves
             .iter()
             .map(|step| step.parts[side].as_str())
-            .collect();
-        let words: Vec<String> = lines
-            .iter()
-            .flat_map(|glide| &glide.lines)
-            .filter_map(|line| line.words[side].as_deref())
-            .flat_map(super::wires::pieces)
-            .collect();
-        let taken: std::collections::HashSet<&str> = taken
-            .into_iter()
-            .chain(words.iter().map(String::as_str))
+            .chain(
+                lines
+                    .iter()
+                    .flat_map(|glide| &glide.lines)
+                    .flat_map(|line| &line.words[side])
+                    .filter_map(Option::as_deref),
+            )
             .collect();
         let mut orphans: Vec<String> = parts
             .0
@@ -1161,6 +1160,7 @@ mod tests {
             entry: None,
             frame: false,
             fixed: false,
+            part: None,
         };
         assert_eq!(map_part(&map, &place("Brewing[H]", rect)), "mark:1.2");
         let elsewhere = Rect { x: 200.0, ..rect };

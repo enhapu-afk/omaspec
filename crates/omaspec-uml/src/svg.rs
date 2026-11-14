@@ -99,8 +99,10 @@ pub struct Canvas {
     marks_parts: bool,
     /// The part being drawn: what its groups' ids start with.
     part: Option<String>,
-    /// For each layer, the part whose group is open there.
+    /// For each layer, the part whose group is open there, among its
+    /// shapes and among its shadows.
     open: [Option<String>; LAYERS],
+    open_shades: [Option<String>; LAYERS],
     /// The part drawn when each link still open was opened.
     links: Vec<Option<String>>,
     /// How many groups of parts were opened, to keep their ids apart.
@@ -151,6 +153,7 @@ impl Canvas {
             marks_parts: false,
             part: None,
             open: Default::default(),
+            open_shades: Default::default(),
             links: Vec::new(),
             groups: 0,
         }
@@ -178,20 +181,25 @@ impl Canvas {
         painted
     }
 
+    /// Draws with `paint` in the part `owner` names, if one does: a note
+    /// inside a state goes where the state goes.
+    pub fn within<T>(&mut self, owner: Option<&str>, paint: impl FnOnce(&mut Canvas) -> T) -> T {
+        match owner {
+            Some(owner) => self.part(owner, paint),
+            None => paint(self),
+        }
+    }
+
     /// What is drawn on `layer`, within the group of the part being drawn:
     /// the group of another part closes, this part's opens.
     fn at(&mut self, layer: Layer) -> &mut String {
         let index = layer as usize;
-        if self.open[index] != self.part {
-            if self.open[index].take().is_some() {
-                self.layers[index].push_str("</g>");
-            }
-            if let Some(part) = &self.part {
-                self.groups += 1;
-                let _ = write!(self.layers[index], r#"<g id="{part}-{}">"#, self.groups);
-                self.open[index] = Some(part.clone());
-            }
-        }
+        sync(
+            &mut self.layers[index],
+            &mut self.open[index],
+            self.part.as_deref(),
+            &mut self.groups,
+        );
         &mut self.layers[index]
     }
 
@@ -208,7 +216,15 @@ impl Canvas {
     fn shade(&mut self, layer: Layer, shape: &str, (w, h): (f32, f32), fill: Paint, stroke: bool) {
         let boxed = fill.is_some() && stroke && w >= SHADOW_FROM && h >= SHADOW_FROM;
         if self.shadows && boxed && !matches!(layer, Layer::Background | Layer::Lines) {
-            let _ = write!(self.shades[layer as usize], r##"{shape} fill="#000000"/>"##);
+            let index = layer as usize;
+            // A shadow goes with its box's part.
+            sync(
+                &mut self.shades[index],
+                &mut self.open_shades[index],
+                self.part.as_deref(),
+                &mut self.groups,
+            );
+            let _ = write!(self.shades[index], r##"{shape} fill="#000000"/>"##);
         }
     }
 
@@ -953,14 +969,19 @@ impl Canvas {
         }
         let _ = write!(out, r#"<g transform="translate({},{})">"#, n(dx), n(dy));
         let mut layers = self.layers;
-        for (layer, open) in layers.iter_mut().zip(&self.open) {
+        let mut shades = self.shades;
+        for (layer, open) in layers
+            .iter_mut()
+            .zip(&self.open)
+            .chain(shades.iter_mut().zip(&self.open_shades))
+        {
             if open.is_some() {
                 layer.push_str("</g>");
             }
         }
         for (index, layer) in layers.iter().enumerate() {
             // One group, so shadows that overlap are no darker there.
-            let shade = &self.shades[index];
+            let shade = &shades[index];
             if !shade.is_empty() {
                 let _ = write!(
                     out,
@@ -1143,6 +1164,22 @@ pub fn has_parts(svg: &str) -> bool {
     svg.contains(&format!(r#"<g id="{PART}"#))
 }
 
+/// Brings the group open in `out` to the one of `part`: closes another
+/// part's, opens `part`'s with the next of `groups` for its id.
+fn sync(out: &mut String, open: &mut Option<String>, part: Option<&str>, groups: &mut usize) {
+    if open.as_deref() == part {
+        return;
+    }
+    if open.take().is_some() {
+        out.push_str("</g>");
+    }
+    if let Some(part) = part {
+        *groups += 1;
+        let _ = write!(out, r#"<g id="{part}-{groups}">"#);
+        *open = Some(part.to_owned());
+    }
+}
+
 /// `svg` without the groups of its parts ([`Canvas::part`]): its ground,
 /// what a glide draws under the parts it glides. None when it has none.
 pub fn without_parts(svg: &str) -> Option<String> {
@@ -1214,6 +1251,12 @@ pub fn card_part(words: &str, at_start: bool) -> String {
     format!("{words}#{}", if at_start { "from" } else { "to" })
 }
 
+/// The part a box is drawn in by its place in a diagram's tree alone, for
+/// a drawer whose keys two boxes may share (a namespace and a class).
+pub(crate) fn place_part(path: &[usize]) -> String {
+    format!("box:{}", part_path(path))
+}
+
 /// The part a box is drawn in: its key, or for one without, as a start or
 /// an end, its place in the diagram's tree.
 pub(crate) fn box_part(key: &str, path: &[usize]) -> String {
@@ -1242,7 +1285,7 @@ fn part_id(name: &str) -> String {
 }
 
 /// How long the group that `svg` starts with is, through its `</g>`.
-fn group_length(svg: &str) -> Option<usize> {
+pub(crate) fn group_length(svg: &str) -> Option<usize> {
     // Groups open and close in pairs; the one that brings the depth back
     // to zero closes it.
     let mut depth = 0usize;

@@ -185,7 +185,7 @@ fn chart_node(
         parent: parent.map(str::to_owned),
         rect,
         radius,
-        part: part_of(&node.key, path),
+        part: crate::svg::box_part(&node.key, path),
     });
     chart(
         &node.children,
@@ -195,18 +195,6 @@ fn chart_node(
         path,
         map,
     );
-}
-
-/// The part a state is drawn in (docs/adr/0029): its key, or for a mark,
-/// which has none, its place in the scene's tree.
-fn part_of(key: &str, path: &[usize]) -> String {
-    crate::svg::box_part(key, path)
-}
-
-/// The part the words of the line at `slot` of the container at `path`
-/// are drawn in.
-pub(super) fn words_part(path: &[usize], slot: usize) -> String {
-    crate::svg::words_part(path, slot)
 }
 
 /// One container after layout ([`graph::open::Scene`]); a transition keeps its
@@ -843,22 +831,13 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     paint_heads(canvas, skin, scene);
 }
 
-/// Draws with `paint` in the part of the state `owner` names, if one does:
-/// a note inside a state goes where the state goes.
-fn within<T>(canvas: &mut Canvas, owner: Option<&str>, paint: impl FnOnce(&mut Canvas) -> T) -> T {
-    match owner {
-        Some(owner) => canvas.part(owner, paint),
-        None => paint(canvas),
-    }
-}
-
 /// The part a note inside `node` is drawn in: the state's, a region's
 /// state's for a region; `owner` is the one around it.
 fn owner_of(node: &Placed, path: &[usize], owner: Option<&str>) -> Option<String> {
     if node.item.kind == Kind::Region {
         owner.map(str::to_owned)
     } else {
-        Some(part_of(&node.item.name, path))
+        Some(crate::svg::box_part(&node.item.name, path))
     }
 }
 
@@ -867,7 +846,7 @@ fn owner_of(node: &Placed, path: &[usize], owner: Option<&str>) -> Option<String
 fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        canvas.part(&part_of(&node.item.name, path), |canvas| {
+        canvas.part(&crate::svg::box_part(&node.item.name, path), |canvas| {
             canvas.named(&node.item.name, |canvas| {
                 paint_shape(canvas, skin, node);
                 if node.item.composite {
@@ -1005,7 +984,7 @@ fn paint_notes(
     owner: Option<&str>,
 ) {
     for note in &scene.notes {
-        within(canvas, owner, |canvas| note_box(canvas, skin, note));
+        canvas.within(owner, |canvas| note_box(canvas, skin, note));
     }
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
@@ -1067,7 +1046,7 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
 fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>, owner: Option<&str>) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        canvas.part(&part_of(&node.item.name, path), |canvas| {
+        canvas.part(&crate::svg::box_part(&node.item.name, path), |canvas| {
             canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
                 paint_words(canvas, node);
             });
@@ -1077,12 +1056,12 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>, owner
         path.pop();
     }
     for (slot, edge) in scene.edges.iter().enumerate() {
-        canvas.part(&words_part(path, slot), |canvas| {
+        canvas.part(&crate::svg::words_part(path, slot), |canvas| {
             canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
         });
     }
     for note in &scene.notes {
-        within(canvas, owner, |canvas| {
+        canvas.within(owner, |canvas| {
             canvas.text(
                 Layer::Front,
                 &note.text,
@@ -1277,7 +1256,7 @@ mod tests {
             );
         }
         for wire in map.wires.iter().filter(|w| !w.labels.is_empty()) {
-            let words = wire.words.as_ref().unwrap();
+            let words = wire.words[crate::map::WORDS].as_ref().unwrap();
             assert!(named.contains(words), "{words} not drawn: {named:?}");
         }
         assert!(

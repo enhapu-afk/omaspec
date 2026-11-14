@@ -301,10 +301,18 @@ impl Raster {
     /// the sheet, placed so that the part lies at its place in the diagram.
     pub fn part(&self, name: &str) -> Option<(Raster, Rectangle)> {
         let cutout = self.parts.as_ref()?.0.get(name)?;
-        let shift = cutout.at.position() - cutout.sheet.position();
+        // The sheet placed so that the part's pixels lie on its place in
+        // the diagram, at the scale the part was drawn at.
+        let k = cutout.at.width / cutout.sheet.width.max(f32::EPSILON);
         Some((
             Raster {
-                region: Rectangle::new(self.region.position() + shift, self.region.size()),
+                region: Rectangle::new(
+                    Point::new(
+                        cutout.at.x + (self.region.x - cutout.sheet.x) * k,
+                        cutout.at.y + (self.region.y - cutout.sheet.y) * k,
+                    ),
+                    Size::new(self.region.width * k, self.region.height * k),
+                ),
                 ..self.clone()
             },
             cutout.at,
@@ -340,19 +348,17 @@ pub fn draw(tree: &usvg::Tree, full: Option<&usvg::Tree>, plan: Plan) -> Option<
 pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raster> {
     use export::tiny_skia::{Pixmap, PixmapPaint, Transform};
     let scale = plan.scale;
-    let gap = sheet_gap(scale);
     let (ground_w, ground_h) = (plan.part.width(), plan.part.height());
-    let mut parts: Vec<(String, Vec<&usvg::Node>)> = Vec::new();
-    gather_parts(full.root(), &mut parts);
-    // Each part's pixels: from the pixel its left edge lies in to the one
-    // its right edge lies in, a pixel more on each side for its blur.
-    let boxes: Vec<(IntRect, &(String, Vec<&usvg::Node>))> = parts
+    let mut parts: Vec<Part<'_>> = Vec::new();
+    gather_parts(full.root(), 1.0, &mut parts);
+    // Each part's box in the diagram, its shadow too.
+    let bounds: Vec<(usvg::NonZeroRect, &Part<'_>)> = parts
         .iter()
         .filter_map(|part| {
             let bounds = part
-                .1
+                .nodes
                 .iter()
-                .filter_map(|node| node.abs_layer_bounding_box())
+                .filter_map(|(node, _)| node.abs_layer_bounding_box())
                 .reduce(|a, b| {
                     usvg::NonZeroRect::from_ltrb(
                         a.left().min(b.left()),
@@ -362,17 +368,163 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
                     )
                     .unwrap_or(a)
                 })?;
-            let left = (bounds.left() * scale).floor() as i32 - 1;
-            let top = (bounds.top() * scale).floor() as i32 - 1;
-            let right = (bounds.right() * scale).ceil() as i32 + 1;
-            let bottom = (bounds.bottom() * scale).ceil() as i32 + 1;
-            Some((IntRect::from_ltrb(left, top, right, bottom)?, part))
+            Some((bounds, part))
         })
         .collect();
-    // Shelves: a row of parts as wide as the ground, the next below it.
-    // Shelves: a row of parts as wide as the ground, the next below it,
-    // each part `gap` from the next and from the edges, so nothing a glide
-    // takes past a part reaches another.
+    let most = 4 * OVERVIEW_PIXELS as u64;
+    let mut layout = shelves(&bounds, scale, ground_w, ground_h);
+    // Too large at the ground's scale (packages in packages each as large as
+    // all they hold): the parts drawn smaller, to be drawn larger as they
+    // glide, rather than not at all.
+    if layout.area() > most {
+        let room = most.saturating_sub(u64::from(ground_w) * u64::from(ground_h)) as f32;
+        let parts = (layout.area() - u64::from(ground_w) * u64::from(ground_h)).max(1) as f32;
+        let smaller = scale * (room / parts).sqrt() * 0.9;
+        layout = shelves(&bounds, smaller, ground_w, ground_h);
+        if layout.area() > most {
+            return None;
+        }
+    }
+    let Shelves {
+        part_scale,
+        boxes,
+        slots,
+        width,
+        height,
+    } = layout;
+    let base = export::rasterize_part(ground, scale, plan.part).ok()?;
+    let mut pixmap = Pixmap::new(width, height)?;
+    pixmap.draw_pixmap(
+        0,
+        0,
+        base.as_ref(),
+        &PixmapPaint::default(),
+        Transform::identity(),
+        None,
+    );
+    let region = plan.region();
+    let mut cutouts = HashMap::with_capacity(boxes.len());
+    for ((pixels, part), (sx, sy)) in boxes.iter().zip(&slots) {
+        // Diagram units onto the part's slot of the sheet.
+        let onto = Transform::from_translate(*sx as f32, *sy as f32)
+            .pre_translate(-pixels.x() as f32, -pixels.y() as f32)
+            .pre_scale(part_scale, part_scale);
+        for (node, opacity) in &part.nodes {
+            // resvg draws a node from where its box begins: start there.
+            let Some(bounds) = node.abs_layer_bounding_box() else {
+                continue;
+            };
+            let at = onto
+                .pre_concat(node.abs_transform())
+                .pre_translate(bounds.x(), bounds.y());
+            if *opacity >= 0.999 {
+                let _ = export::render_node(node, at, &mut pixmap.as_mut());
+                continue;
+            }
+            // Seen through a group around it (a shadow's): drawn alone on
+            // a picture of the part's size, then laid on at that strength.
+            let Some(mut alone) = Pixmap::new(pixels.width(), pixels.height()) else {
+                continue;
+            };
+            let local = Transform::from_translate(-pixels.x() as f32, -pixels.y() as f32)
+                .pre_scale(part_scale, part_scale)
+                .pre_concat(node.abs_transform())
+                .pre_translate(bounds.x(), bounds.y());
+            let _ = export::render_node(node, local, &mut alone.as_mut());
+            pixmap.draw_pixmap(
+                *sx as i32,
+                *sy as i32,
+                alone.as_ref(),
+                &PixmapPaint {
+                    opacity: *opacity,
+                    ..PixmapPaint::default()
+                },
+                Transform::identity(),
+                None,
+            );
+        }
+        let (w, h) = (pixels.width() as f32, pixels.height() as f32);
+        cutouts.insert(
+            part.name.clone(),
+            Cutout {
+                sheet: Rectangle::new(
+                    Point::new(region.x + *sx as f32 / scale, region.y + *sy as f32 / scale),
+                    Size::new(w / scale, h / scale),
+                ),
+                at: Rectangle::new(
+                    Point::new(
+                        pixels.x() as f32 / part_scale,
+                        pixels.y() as f32 / part_scale,
+                    ),
+                    Size::new(w / part_scale, h / part_scale),
+                ),
+            },
+        );
+    }
+    let paper = base.pixel(0, 0).map_or(Color::WHITE, |p| {
+        Color::from_rgb8(p.red(), p.green(), p.blue())
+    });
+    // The screen takes colors as they are, not multiplied by how much is
+    // seen of them: the parts' blurred edges are.
+    let rgba = straight(pixmap, ground_h);
+    Some(Raster {
+        handle: image::Handle::from_rgba(width, height, rgba),
+        region: Rectangle::new(
+            region.position(),
+            Size::new(width as f32 / scale, height as f32 / scale),
+        ),
+        paper,
+        _allocation: None,
+        parts: Some(Arc::new(Cutouts(cutouts))),
+    })
+}
+
+/// One part of a picture: its name, and its groups, each with how much of
+/// it the groups around it let be seen.
+struct Part<'a> {
+    name: String,
+    nodes: Vec<(&'a usvg::Node, f32)>,
+}
+
+/// The parts laid out on a sheet below its ground, drawn at `part_scale`.
+struct Shelves<'a, 'b> {
+    part_scale: f32,
+    /// Each part's pixels at that scale, and the part.
+    boxes: Vec<(IntRect, &'b Part<'a>)>,
+    /// Where each lies on the sheet, in pixels.
+    slots: Vec<(u32, u32)>,
+    width: u32,
+    height: u32,
+}
+
+impl Shelves<'_, '_> {
+    fn area(&self) -> u64 {
+        u64::from(self.width) * u64::from(self.height)
+    }
+}
+
+/// The parts of `bounds` at `part_scale`, in rows as wide as the ground
+/// below it, each `sheet_gap` from the next and from the edges, so nothing
+/// a glide takes past a part reaches another.
+fn shelves<'a, 'b>(
+    bounds: &[(usvg::NonZeroRect, &'b Part<'a>)],
+    part_scale: f32,
+    ground_w: u32,
+    ground_h: u32,
+) -> Shelves<'a, 'b> {
+    let gap = sheet_gap(part_scale);
+    // From the pixel its left edge lies in to the one its right edge lies
+    // in, a pixel more on each side for its blur.
+    let boxes: Vec<(IntRect, &Part<'_>)> = bounds
+        .iter()
+        .filter_map(|(bounds, part)| {
+            let left = (bounds.left() * part_scale).floor() as i32 - 1;
+            let top = (bounds.top() * part_scale).floor() as i32 - 1;
+            let right = (bounds.right() * part_scale).ceil() as i32 + 1;
+            let bottom = (bounds.bottom() * part_scale).ceil() as i32 + 1;
+            Some((IntRect::from_ltrb(left, top, right, bottom)?, *part))
+        })
+        .collect();
     let width = ground_w.max(
         boxes
             .iter()
@@ -390,69 +542,13 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
         x += pixels.width() + gap;
         row = row.max(pixels.height());
     }
-    let height = y + row + gap;
-    // Too large, it is not drawn at all, the ground neither.
-    if u64::from(width) * u64::from(height) > 4 * OVERVIEW_PIXELS as u64 {
-        return None;
+    Shelves {
+        part_scale,
+        boxes,
+        slots,
+        width,
+        height: y + row + gap,
     }
-    let base = export::rasterize_part(ground, scale, plan.part).ok()?;
-    let mut pixmap = Pixmap::new(width, height)?;
-    pixmap.draw_pixmap(
-        0,
-        0,
-        base.as_ref(),
-        &PixmapPaint::default(),
-        Transform::identity(),
-        None,
-    );
-    let region = plan.region();
-    let unit = |px: f32| px / scale;
-    let mut cutouts = HashMap::with_capacity(boxes.len());
-    for ((pixels, (name, nodes)), (sx, sy)) in boxes.iter().zip(&slots) {
-        // Diagram units onto the part's slot of the sheet.
-        let onto = Transform::from_translate(*sx as f32, *sy as f32)
-            .pre_translate(-pixels.x() as f32, -pixels.y() as f32)
-            .pre_scale(scale, scale);
-        for node in nodes {
-            // resvg draws a node from where its box begins: start there.
-            let Some(bounds) = node.abs_layer_bounding_box() else {
-                continue;
-            };
-            let at = onto
-                .pre_concat(node.abs_transform())
-                .pre_translate(bounds.x(), bounds.y());
-            let _ = export::render_node(node, at, &mut pixmap.as_mut());
-        }
-        cutouts.insert(
-            name.clone(),
-            Cutout {
-                sheet: Rectangle::new(
-                    Point::new(region.x + unit(*sx as f32), region.y + unit(*sy as f32)),
-                    Size::new(unit(pixels.width() as f32), unit(pixels.height() as f32)),
-                ),
-                at: Rectangle::new(
-                    Point::new(unit(pixels.x() as f32), unit(pixels.y() as f32)),
-                    Size::new(unit(pixels.width() as f32), unit(pixels.height() as f32)),
-                ),
-            },
-        );
-    }
-    let paper = base.pixel(0, 0).map_or(Color::WHITE, |p| {
-        Color::from_rgb8(p.red(), p.green(), p.blue())
-    });
-    // The screen takes colors as they are, not multiplied by how much is
-    // seen of them: the parts' blurred edges are.
-    let rgba = straight(pixmap, ground_h);
-    Some(Raster {
-        handle: image::Handle::from_rgba(width, height, rgba),
-        region: Rectangle::new(
-            region.position(),
-            Size::new(unit(width as f32), unit(height as f32)),
-        ),
-        paper,
-        _allocation: None,
-        parts: Some(Arc::new(Cutouts(cutouts))),
-    })
 }
 
 /// The sheet's pixels as the screen takes them: colors as they are, not
@@ -505,18 +601,22 @@ fn straight(pixmap: export::tiny_skia::Pixmap, ground: u32) -> Vec<u8> {
 }
 
 /// The groups of each part of the picture under `group`, by the part's
-/// name, in the order drawn.
-fn gather_parts<'a>(group: &'a usvg::Group, parts: &mut Vec<(String, Vec<&'a usvg::Node>)>) {
+/// name, in the order drawn, each with how much of it `seen`, the groups
+/// around it, let be seen: a shadow's 0.22.
+fn gather_parts<'a>(group: &'a usvg::Group, seen: f32, parts: &mut Vec<Part<'a>>) {
     for node in group.children() {
         let usvg::Node::Group(inner) = node else {
             continue;
         };
         match omaspec_uml::part_name(inner.id()) {
-            Some(name) => match parts.iter_mut().find(|(have, _)| *have == name) {
-                Some((_, nodes)) => nodes.push(node),
-                None => parts.push((name, vec![node])),
+            Some(name) => match parts.iter_mut().find(|part| part.name == name) {
+                Some(part) => part.nodes.push((node, seen)),
+                None => parts.push(Part {
+                    name,
+                    nodes: vec![(node, seen)],
+                }),
             },
-            None => gather_parts(inner, parts),
+            None => gather_parts(inner, seen * inner.opacity().get(), parts),
         }
     }
 }
@@ -672,6 +772,28 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// A shadow, a group seen at 0.22 around its box's part, is drawn on
+    /// the sheet at that strength, not as solid black.
+    #[test]
+    fn a_part_s_shadow_is_drawn_at_its_strength() {
+        let source =
+            "@startuml\nskinparam shadowing true\nclass Loan\n' parts (Omaspec)\n@enduml\n";
+        let drawn = super::super::testing::drawn(source, omaspec_core::Language::PlantUml);
+        let size = drawn.tree.size();
+        let plan = Plan::overview(Size::new(size.width(), size.height()), 2.0).unwrap();
+        let sheet = sheet(drawn.bare.as_ref().unwrap(), &drawn.tree, plan).unwrap();
+        let cutout = *sheet.parts.as_ref().unwrap().0.values().next().unwrap();
+        let image::Handle::Rgba { width, pixels, .. } = &sheet.handle else {
+            panic!("a sheet is pixels");
+        };
+        // The shadow lies past the box's right edge, three units down.
+        let k = 2.0;
+        let x = ((cutout.sheet.x - sheet.region.x + cutout.sheet.width) * k) as usize - 4;
+        let y = ((cutout.sheet.y - sheet.region.y + cutout.sheet.height / 2.0) * k) as usize;
+        let alpha = pixels[(y * *width as usize + x) * 4 + 3];
+        assert!((30..90).contains(&alpha), "the shadow's alpha {alpha}");
     }
 
     /// A clear pixel beside a part takes the part's color, so the GPU,

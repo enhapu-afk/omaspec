@@ -224,7 +224,7 @@ fn wire(
         stroke,
         heads: Vec::new(),
         fixed: true,
-        words: None,
+        words: Default::default(),
     })
 }
 
@@ -239,6 +239,7 @@ fn place(key: &str, rect: crate::graph::Rect, frame: bool) -> Option<crate::map:
         entry: None,
         frame,
         fixed: true,
+        part: None,
     })
 }
 

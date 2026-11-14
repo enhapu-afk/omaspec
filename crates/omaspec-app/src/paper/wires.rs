@@ -49,8 +49,9 @@ pub struct Line {
     /// box, and fades as a line that goes or comes does.
     pub fold: Option<Role>,
     /// The parts its words are drawn in, in the old picture and the new
-    /// one (docs/adr/0029): they travel with it.
-    pub words: [Option<String>; 2],
+    /// one, as the map names them (`Wire::words`, docs/adr/0029): they
+    /// travel with it.
+    pub words: [[Option<String>; 3]; 2],
 }
 
 /// A line's route and the marks at its ends, in its picture's units.
@@ -133,7 +134,7 @@ impl Line {
     fn leaving(wire: &Wire) -> Line {
         Line {
             from: Some(Shape::of(wire)),
-            words: [wire.words.clone(), None],
+            words: [wire.words.clone(), Default::default()],
             ..Line::dressed(wire)
         }
     }
@@ -141,7 +142,7 @@ impl Line {
     fn arriving(wire: &Wire) -> Line {
         Line {
             to: Some(Shape::of(wire)),
-            words: [None, wire.words.clone()],
+            words: [Default::default(), wire.words.clone()],
             ..Line::dressed(wire)
         }
     }
@@ -370,35 +371,17 @@ pub fn paint(frame: &mut Frame, local: Rectangle, glide: &Glide, sheets: &Sheets
     }
     // Lines that become one, or one that becomes several, share their
     // words: each is drawn once, with the first of them.
-    let mut drawn: [HashSet<String>; 2] = Default::default();
+    let mut drawn: [HashSet<&str>; 2] = Default::default();
     for line in &glide.lines {
-        let pieces = line.words.clone().map(|words| words.map(|w| pieces(&w)));
         for piece in 0..3 {
             let names = [0, 1].map(|side| {
-                pieces[side]
-                    .as_ref()
-                    .map(|names| names[piece].clone())
-                    .filter(|name| drawn[side].insert(name.clone()))
+                line.words[side][piece]
+                    .as_deref()
+                    .filter(|name| drawn[side].insert(name))
             });
-            paint_words(
-                frame,
-                local,
-                line,
-                sheets,
-                [names[0].as_deref(), names[1].as_deref()],
-            );
+            paint_words(frame, local, line, sheets, names);
         }
     }
-}
-
-/// The parts of a line's words `words`: the words in its middle, and the
-/// multiplicities at its start and its end, each on its own.
-pub fn pieces(words: &str) -> [String; 3] {
-    [
-        words.to_owned(),
-        omaspec_uml::card_part(words, true),
-        omaspec_uml::card_part(words, false),
-    ]
 }
 
 /// A line's words, each a part of its own: from their old place to their
@@ -671,7 +654,7 @@ mod tests {
             stroke: omaspec_uml::Stroke::new(omaspec_uml::Color::BLACK, 1.0),
             heads: Vec::new(),
             fixed: false,
-            words: None,
+            words: Default::default(),
         }
     }
 

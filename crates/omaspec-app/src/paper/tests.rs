@@ -694,7 +694,7 @@ fn a_fold_glides_each_part_from_a_picture_of_its_own() {
     let going = lines.lines.iter().filter(|line| line.to.is_none());
     assert!(
         going
-            .filter_map(|line| line.words[0].as_deref())
+            .filter_map(|line| line.words[0][0].as_deref())
             .any(|words| old.part(words).is_some()),
         "the words of a line that goes are on the old sheet"
     );
@@ -706,8 +706,8 @@ fn a_fold_glides_each_part_from_a_picture_of_its_own() {
     let kept = staying
         .filter(|line| {
             let [was, is] = &line.words;
-            was.as_deref().is_some_and(|w| old.part(w).is_some())
-                && is.as_deref().is_some_and(|w| new.part(w).is_some())
+            was[0].as_deref().is_some_and(|w| old.part(w).is_some())
+                && is[0].as_deref().is_some_and(|w| new.part(w).is_some())
         })
         .count();
     assert_eq!(kept, 2, "the words of the lines that stay");
@@ -730,10 +730,22 @@ fn a_package_glides_from_its_parts() {
     let fade = paper.fade.as_ref().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
-    for name in ["Lending", "Loan", "Copy", "Member"] {
-        assert!(old.part(name).is_some(), "{name} on the old sheet");
+    for step in &morph.moves {
+        if step.role != morph::Role::Arrive {
+            assert!(
+                old.part(&step.parts[0]).is_some(),
+                "{} on the old sheet",
+                step.name
+            );
+        }
+        if step.role != morph::Role::Leave {
+            assert!(
+                new.part(&step.parts[1]).is_some(),
+                "{} on the new sheet",
+                step.name
+            );
+        }
     }
-    assert!(new.part("Lending").is_some() && new.part("Member").is_some());
     let role = |name: &str| morph.moves.iter().find(|m| m.name == name).map(|m| m.role);
     assert_eq!(role("Loan"), Some(morph::Role::Leave));
     assert_eq!(role("Lending"), Some(morph::Role::Stay));

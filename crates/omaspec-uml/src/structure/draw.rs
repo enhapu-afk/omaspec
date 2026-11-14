@@ -229,7 +229,13 @@ fn places(
         }
         group.direction == Direction::Right
     };
-    by_hand::places(top, |path| key_at(root, path), across, held)
+    by_hand::places(
+        top,
+        |path| key_at(root, path),
+        across,
+        held,
+        |path| Some(crate::svg::place_part(path)),
+    )
 }
 
 impl Laid for Scene {
@@ -1091,22 +1097,13 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        canvas.part(&crate::svg::box_part(&node.item.name, path), |canvas| {
+        canvas.part(&crate::svg::place_part(path), |canvas| {
             paint_shape(canvas, skin, node);
         });
         if node.item.composite {
             paint_shapes(canvas, skin, &node.children, path);
         }
         path.pop();
-    }
-}
-
-/// Draws with `paint` in the part `owner` names, if one does: a note
-/// inside a package goes where the package goes.
-fn within<T>(canvas: &mut Canvas, owner: Option<&str>, paint: impl FnOnce(&mut Canvas) -> T) -> T {
-    match owner {
-        Some(owner) => canvas.part(owner, paint),
-        None => paint(canvas),
     }
 }
 
@@ -1824,7 +1821,7 @@ fn paint_notes(
     owner: Option<&str>,
 ) {
     for note in &scene.notes {
-        within(canvas, owner, |canvas| {
+        canvas.within(owner, |canvas| {
             dog_ear(
                 canvas,
                 Rect {
@@ -1840,7 +1837,7 @@ fn paint_notes(
     }
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        let inner = crate::svg::box_part(&node.item.name, path);
+        let inner = crate::svg::place_part(path);
         paint_notes(canvas, skin, &node.children, path, Some(&inner));
         path.pop();
     }
@@ -1871,7 +1868,7 @@ fn paint_labels(
         }
     }
     for note in &scene.notes {
-        within(canvas, owner, |canvas| {
+        canvas.within(owner, |canvas| {
             canvas.text(
                 Layer::Front,
                 &note.text,
@@ -1882,7 +1879,7 @@ fn paint_labels(
     }
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        let inner = crate::svg::box_part(&node.item.name, path);
+        let inner = crate::svg::place_part(path);
         paint_labels(canvas, &node.children, containers, path, Some(&inner));
         path.pop();
     }
@@ -2042,7 +2039,7 @@ fn dress(scene: &Scene, path: &[usize], slot: usize, drawn: &[(f32, f32)], stric
     }
     let Some(edge) = here.edges.get(slot).filter(|_| drawn.len() >= 2) else {
         return Dress {
-            words: Some(crate::svg::words_part(path, slot)),
+            words: [Some(crate::svg::words_part(path, slot)), None, None],
             stroke: Stroke::new(Color::BLACK, 1.0),
             heads: Vec::new(),
         };
@@ -2052,8 +2049,16 @@ fn dress(scene: &Scene, path: &[usize], slot: usize, drawn: &[(f32, f32)], stric
         head_shape(drawn[0], drawn[1], edge.look.from_head, strict),
         head_shape(drawn[last], drawn[last - 1], edge.look.to_head, strict),
     ];
+    let words = crate::svg::words_part(path, slot);
+    let card = |card: &Block, at_start| {
+        (!card.is_empty()).then(|| crate::svg::card_part(&words, at_start))
+    };
     Dress {
-        words: Some(crate::svg::words_part(path, slot)),
+        words: [
+            Some(words.clone()),
+            card(&edge.look.from_card, true),
+            card(&edge.look.to_card, false),
+        ],
         stroke: edge.look.stroke,
         heads: heads.into_iter().flatten().collect(),
     }
@@ -2074,16 +2079,8 @@ fn containers(scene: &Scene) -> Vec<Rect> {
     out
 }
 
-/// The multiplicities at the ends of `edge`, and where each goes, off the
-/// borders of `containers`.
-fn cards<'a>(
-    edge: &'a PlacedEdge,
-    containers: &'a [Rect],
-) -> impl Iterator<Item = (&'a Block, (f32, f32))> + 'a {
-    ends_cards(edge, containers).map(|(card, at, _)| (card, at))
-}
-
-/// [`cards`], each with whether it stands at the line's start.
+/// The multiplicities at the ends of `edge`, where each goes, off the
+/// borders of `containers`, and whether it stands at the line's start.
 fn ends_cards<'a>(
     edge: &'a PlacedEdge,
     containers: &'a [Rect],
@@ -2106,7 +2103,7 @@ fn ends_cards<'a>(
 
 /// Where the multiplicities at the ends of `edge` are.
 fn card_rects<'a>(edge: &'a PlacedEdge, containers: &'a [Rect]) -> impl Iterator<Item = Rect> + 'a {
-    cards(edge, containers).map(|(block, (x, y))| Rect {
+    ends_cards(edge, containers).map(|(block, (x, y), _)| Rect {
         x,
         y,
         w: block.width,
@@ -2184,6 +2181,18 @@ mod tests {
     use super::super::parse::parse;
     use super::*;
 
+    /// Each group of a part in `svg`, whole: the part's name and the group.
+    fn part_groups(svg: &str) -> Vec<(String, &str)> {
+        svg.match_indices(r#"<g id="part-"#)
+            .filter_map(|(at, _)| {
+                let rest = &svg[at..];
+                let id = &rest[7..];
+                let name = crate::part_name(&id[..id.find('"')?])?;
+                Some((name, &rest[..crate::svg::group_length(rest)?]))
+            })
+            .collect()
+    }
+
     /// Asked for its parts, a structure draws each element and each line's
     /// words (its label and multiplicities) in groups of their own, named
     /// as its map names them; a package's groups hold nothing of what it
@@ -2192,32 +2201,76 @@ mod tests {
     fn a_structure_s_parts_are_named_as_its_map_names_them() {
         let source = "@startuml\npackage Lending {\n  class Loan\n  class Copy\n  Loan \"1\" --> \"*\" Copy : lends\n  note right of Copy : on the shelf\n}\nclass Member\nMember --> Loan : borrows\n' parts (Omaspec)\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
-        let groups: Vec<(String, &str)> = svg
-            .match_indices(r#"<g id="part-"#)
-            .filter_map(|(at, _)| {
-                let rest = &svg[at + 7..];
-                let id = &rest[..rest.find('"')?];
-                let group = &rest[..rest.find("</g>").unwrap_or(rest.len())];
-                Some((crate::part_name(id)?, group))
-            })
-            .collect();
+        let groups = part_groups(&svg);
         let named = |name: &str| groups.iter().any(|(n, _)| n == name);
         for place in &map.places {
-            assert!(named(&place.name), "{} not drawn: {groups:?}", place.name);
+            let part = place.part.as_deref().unwrap();
+            assert!(named(part), "{} ({part}) not drawn: {groups:?}", place.name);
         }
-        for wire in map.wires.iter().filter(|w| !w.labels.is_empty()) {
-            let words = wire.words.as_ref().unwrap();
+        let lends = map.wires.iter().find(|w| w.key.from == "Loan").unwrap();
+        for words in lends.words.iter().flatten() {
             assert!(named(words), "{words} not drawn");
         }
-        for (name, group) in groups.iter().filter(|(n, _)| n == "Lending") {
+        assert!(lends.words.iter().all(Option::is_some), "{:?}", lends.words);
+        let lending = map.places.iter().find(|p| p.name == "Lending").unwrap();
+        let lending = lending.part.as_deref().unwrap();
+        for (_, group) in groups.iter().filter(|(n, _)| n == lending) {
             assert!(
                 !group.contains(">Loan<") && !group.contains(">Copy<"),
-                "{name}: {group}"
+                "{group}"
             );
         }
         // The note inside Lending is drawn in Lending's part.
+        assert!(
+            groups
+                .iter()
+                .any(|(n, g)| n == lending && g.contains("shelf")),
+            "the note in Lending's part"
+        );
         let ground = crate::without_parts(&svg).unwrap();
         assert!(!ground.contains("shelf"), "{ground}");
+    }
+
+    /// A box's shadow is drawn in its part: it goes where the box goes,
+    /// and stays off the ground.
+    #[test]
+    fn a_shadow_goes_with_its_box() {
+        let source = "@startuml\nskinparam shadowing true\nclass Loan\nclass Copy\nLoan --> Copy\n' parts (Omaspec)\n@enduml\n";
+        let (svg, _) = crate::render_mapped(source, None).unwrap();
+        assert!(svg.contains(r##"fill="#000000""##), "shadows drawn: {svg}");
+        let ground = crate::without_parts(&svg).unwrap();
+        assert!(!ground.contains(r##"fill="#000000""##), "{ground}");
+    }
+
+    /// A namespace and a class of one name are two parts, the namespace's
+    /// holding nothing of the classes in it.
+    #[test]
+    fn a_namespace_and_its_class_of_one_name_are_two_parts() {
+        let mut diagram = super::super::mermaid::from_mermaid(
+            "classDiagram\nnamespace Order {\n  class Order\n  class Line\n}\n",
+        )
+        .unwrap();
+        diagram.frame.parts = true;
+        let (svg, map) = draw_mapped(&diagram).unwrap();
+        let orders: Vec<&str> = map
+            .places
+            .iter()
+            .filter(|p| p.name == "Order")
+            .filter_map(|p| p.part.as_deref())
+            .collect();
+        assert_eq!(orders.len(), 2, "{:?}", map.places);
+        assert_ne!(orders[0], orders[1]);
+        let groups = part_groups(&svg);
+        let space = map
+            .places
+            .iter()
+            .find(|p| p.name == "Order" && p.frame)
+            .and_then(|p| p.part.as_deref())
+            .unwrap();
+        for (_, group) in groups.iter().filter(|(n, _)| n == space) {
+            assert!(!group.contains(">Line<"), "{group}");
+            assert_eq!(group.matches("<rect").count(), 0, "{group}");
+        }
     }
 
     #[test]
