@@ -622,9 +622,17 @@ fn the_session_brings_back_tabs_unsaved_text_and_folder() {
     drop(app);
     std::fs::remove_file(&gone).unwrap();
 
-    let store = Store::at(&state)
-        .unwrap()
-        .expect("the first window is gone");
+    // The first window's lock goes with its last thread, which on a loaded
+    // machine ends a moment after the window.
+    let mut store = None;
+    for _ in 0..100 {
+        store = Store::at(&state).unwrap();
+        if store.is_some() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    let store = store.expect("the first window is gone");
     let app = App::new(Start::default(), Some(store)).0;
     let names: Vec<String> = app.docs.iter().map(Doc::name).collect();
     assert_eq!(names, ["a.puml", "untitled"]);
