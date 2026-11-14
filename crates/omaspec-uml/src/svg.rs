@@ -1202,6 +1202,35 @@ pub fn part_name(id: &str) -> Option<String> {
     String::from_utf8(bytes).ok()
 }
 
+/// The part the words of the line at `slot` of the container at `path` of
+/// a diagram's tree are drawn in; the map's `Wire::words` names it so.
+pub(crate) fn words_part(path: &[usize], slot: usize) -> String {
+    format!("words:{}:{slot}", part_path(path))
+}
+
+/// The part of a line's multiplicity at its start, or at its end, beside
+/// the part of its words `words`: `words:2:1#from`.
+pub fn card_part(words: &str, at_start: bool) -> String {
+    format!("{words}#{}", if at_start { "from" } else { "to" })
+}
+
+/// The part a box is drawn in: its key, or for one without, as a start or
+/// an end, its place in the diagram's tree.
+pub(crate) fn box_part(key: &str, path: &[usize]) -> String {
+    if key.is_empty() {
+        format!("mark:{}", part_path(path))
+    } else {
+        key.to_owned()
+    }
+}
+
+fn part_path(path: &[usize]) -> String {
+    path.iter()
+        .map(usize::to_string)
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
 /// What the ids of the groups of the part `name` start with.
 fn part_id(name: &str) -> String {
     let mut id = String::with_capacity(PART.len() + name.len() * 2);

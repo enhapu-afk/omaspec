@@ -790,12 +790,16 @@ pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&sup
             .moves
             .iter()
             .map(|step| step.parts[side].as_str())
-            .chain(
-                lines
-                    .iter()
-                    .flat_map(|glide| &glide.lines)
-                    .filter_map(|line| line.words[side].as_deref()),
-            )
+            .collect();
+        let words: Vec<String> = lines
+            .iter()
+            .flat_map(|glide| &glide.lines)
+            .filter_map(|line| line.words[side].as_deref())
+            .flat_map(super::wires::pieces)
+            .collect();
+        let taken: std::collections::HashSet<&str> = taken
+            .into_iter()
+            .chain(words.iter().map(String::as_str))
             .collect();
         let mut orphans: Vec<String> = parts
             .0

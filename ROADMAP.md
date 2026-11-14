@@ -2844,7 +2844,11 @@ order ([0029](docs/adr/0029-a-glide-by-parts.md)):
       the groups (`unmarked`).
 - [ ] Structure, flowcharts and trees mark their parts too; then the
       cutting goes, with its box test, columns, swatches and the faded
-      inside of a folding container.
+      inside of a folding container. Structures do (2026-11-14): classes,
+      packages, components, deployment, use cases, C4 and Mermaid's classes,
+      a note inside a package with it, a line's words and each of its
+      multiplicities a part of their own, the multiplicities going with
+      their ends.
 - [ ] Fade and glide as one small state machine instead of a dozen flags,
       written as a diagram of its own and checked by Omaspec.
 - [ ] One way for the window and a recording to take their pictures: the

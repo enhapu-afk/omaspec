@@ -472,17 +472,20 @@ pub fn folded(source: &str, language: Language, folds: &[String], views: Views) 
     // Only a JSON or a YAML diagram has a nested drawing, only a state
     // machine a table.
     let nested = views.nested && holds_tables(source, language);
-    let machine = holds_machine(source, language);
+    let kind = omaspec_core::kind::classify(source, language).kind;
+    let machine = kind == omaspec_core::Kind::State;
     let table = views.table && machine;
-    if folds.is_empty() && !nested && !machine {
+    // The drawers that mark their parts: state machines and structures.
+    let parts = machine || kind == omaspec_core::Kind::Structure;
+    if folds.is_empty() && !nested && !parts {
         return text;
     }
     if !text.ends_with('\n') {
         text.push('\n');
     }
     // Each box, mark and line's words in a group of its own, for a glide
-    // to take whole (docs/adr/0029); the state machines' drawer marks them.
-    if machine {
+    // to take whole (docs/adr/0029).
+    if parts {
         text.push_str(&omaspec_uml::fold::parts_line(
             language == Language::Mermaid,
         ));

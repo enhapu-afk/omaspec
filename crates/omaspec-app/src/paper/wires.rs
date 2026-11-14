@@ -370,15 +370,35 @@ pub fn paint(frame: &mut Frame, local: Rectangle, glide: &Glide, sheets: &Sheets
     }
     // Lines that become one, or one that becomes several, share their
     // words: each is drawn once, with the first of them.
-    let mut drawn: [HashSet<&str>; 2] = Default::default();
+    let mut drawn: [HashSet<String>; 2] = Default::default();
     for line in &glide.lines {
-        let first = [0, 1].map(|side| {
-            line.words[side]
-                .as_deref()
-                .is_some_and(|words| drawn[side].insert(words))
-        });
-        paint_words(frame, local, line, sheets, first);
+        let pieces = line.words.clone().map(|words| words.map(|w| pieces(&w)));
+        for piece in 0..3 {
+            let names = [0, 1].map(|side| {
+                pieces[side]
+                    .as_ref()
+                    .map(|names| names[piece].clone())
+                    .filter(|name| drawn[side].insert(name.clone()))
+            });
+            paint_words(
+                frame,
+                local,
+                line,
+                sheets,
+                [names[0].as_deref(), names[1].as_deref()],
+            );
+        }
     }
+}
+
+/// The parts of a line's words `words`: the words in its middle, and the
+/// multiplicities at its start and its end, each on its own.
+pub fn pieces(words: &str) -> [String; 3] {
+    [
+        words.to_owned(),
+        omaspec_uml::card_part(words, true),
+        omaspec_uml::card_part(words, false),
+    ]
 }
 
 /// A line's words, each a part of its own: from their old place to their
@@ -389,16 +409,10 @@ fn paint_words(
     local: Rectangle,
     line: &Line,
     s: &Sheets<'_>,
-    [first_old, first_new]: [bool; 2],
+    [old, new]: [Option<&str>; 2],
 ) {
-    let old = line.words[0]
-        .as_deref()
-        .filter(|_| first_old)
-        .and_then(|name| s.pictures.0.part(name));
-    let new = line.words[1]
-        .as_deref()
-        .filter(|_| first_new)
-        .and_then(|name| s.pictures.1.part(name));
+    let old = old.and_then(|name| s.pictures.0.part(name));
+    let new = new.and_then(|name| s.pictures.1.part(name));
     let place = |at: Rectangle, (paper, size): (Rectangle, Size)| {
         let (kx, ky) = (
             paper.width / size.width.max(1e-3),

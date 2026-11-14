@@ -413,6 +413,8 @@ pub(super) fn draw(
                 limit,
                 alpha,
             },
+            // A box with no fill of its own: what lies under it shows.
+            (true, None) => continue,
             _ => Blit {
                 raster,
                 src: piece.src,

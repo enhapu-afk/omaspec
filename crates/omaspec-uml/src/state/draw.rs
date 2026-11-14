@@ -200,24 +200,13 @@ fn chart_node(
 /// The part a state is drawn in (docs/adr/0029): its key, or for a mark,
 /// which has none, its place in the scene's tree.
 fn part_of(key: &str, path: &[usize]) -> String {
-    if key.is_empty() {
-        format!("mark:{}", path_name(path))
-    } else {
-        key.to_owned()
-    }
+    crate::svg::box_part(key, path)
 }
 
 /// The part the words of the line at `slot` of the container at `path`
 /// are drawn in.
 pub(super) fn words_part(path: &[usize], slot: usize) -> String {
-    format!("words:{}:{slot}", path_name(path))
-}
-
-fn path_name(path: &[usize]) -> String {
-    path.iter()
-        .map(usize::to_string)
-        .collect::<Vec<_>>()
-        .join(".")
+    crate::svg::words_part(path, slot)
 }
 
 /// One container after layout ([`graph::open::Scene`]); a transition keeps its

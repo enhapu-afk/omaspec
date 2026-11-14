@@ -60,8 +60,8 @@ pub mod yaml;
 // graph and draws with the same canvas. The modules stay private.
 pub use color::{Color, Paint, parse as parse_color};
 pub use svg::{
-    Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, PART, Stroke, has_parts, part_name,
-    unmarked, without_lines, without_parts,
+    Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, PART, Stroke, card_part, has_parts,
+    part_name, unmarked, without_lines, without_parts,
 };
 pub use text::{
     Block, Family, Font, Link, Style, block as measure_text, creole_link, measure as measure_run,
@@ -417,6 +417,7 @@ pub fn render_mapped(
         }
         Diagram::Structure(mut d) => {
             d.fold(&fold::read(source));
+            d.frame.parts = fold::parts(source);
             structure::draw_mapped(&d)
         }
         Diagram::Timing(d) => unmapped(timing::draw(&d)),

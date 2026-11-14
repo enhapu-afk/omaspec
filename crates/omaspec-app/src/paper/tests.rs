@@ -713,6 +713,33 @@ fn a_fold_glides_each_part_from_a_picture_of_its_own() {
     assert_eq!(kept, 2, "the words of the lines that stay");
 }
 
+/// A package of a class diagram folds from parts too: each class and the
+/// package itself come from the sheets.
+#[test]
+fn a_package_glides_from_its_parts() {
+    let open = "@startuml\npackage Lending {\n  class Loan\n  class Copy\n  Loan --> Copy : lends\n}\nclass Member\nMember --> Loan : borrows\n' parts (Omaspec)\n@enduml\n";
+    let folded = open.replace("@enduml", "' fold (Omaspec) Lending\n@enduml");
+    let mut paper = Paper::default();
+    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    show_source(&mut paper, open, Language::PlantUml);
+    paper.deliver_overview();
+    let _ = paper.update(Message::Faded);
+    paper.set_fold("Lending", true);
+    show_source(&mut paper, &folded, Language::PlantUml);
+    paper.deliver_overview();
+    let fade = paper.fade.as_ref().expect("the fold glides");
+    let morph = fade.morph.as_ref().expect("the boxes move");
+    let (old, new) = fade.bare.as_ref().expect("both sheets");
+    for name in ["Lending", "Loan", "Copy", "Member"] {
+        assert!(old.part(name).is_some(), "{name} on the old sheet");
+    }
+    assert!(new.part("Lending").is_some() && new.part("Member").is_some());
+    let role = |name: &str| morph.moves.iter().find(|m| m.name == name).map(|m| m.role);
+    assert_eq!(role("Loan"), Some(morph::Role::Leave));
+    assert_eq!(role("Lending"), Some(morph::Role::Stay));
+    assert!(morph.orphans[0].is_empty(), "{:?}", morph.orphans);
+}
+
 /// The glide waits for the pictures without lines; a picture that has
 /// none, or one that could not be drawn, lets it start without them.
 #[test]

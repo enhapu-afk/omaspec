@@ -71,6 +71,9 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
+    if diagram.frame.parts {
+        canvas.mark_parts();
+    }
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,
@@ -1076,19 +1079,34 @@ fn drawn_in(scene: &Scene, drawn: &mut Drawn) {
 }
 
 fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
-    paint_shapes(canvas, skin, scene);
+    paint_shapes(canvas, skin, scene, &mut Vec::new());
     paint_edges(canvas, scene, skin.curve);
-    paint_notes(canvas, skin, scene);
-    paint_labels(canvas, scene, &containers(scene));
+    paint_notes(canvas, skin, scene, &mut Vec::new(), None);
+    paint_labels(canvas, scene, &containers(scene), &mut Vec::new(), None);
     paint_heads(canvas, skin, scene);
 }
 
-fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
-    for node in &scene.nodes {
-        paint_shape(canvas, skin, node);
+/// Each element in its part (docs/adr/0029): its shape and its words;
+/// `path` is where `scene` is in the tree.
+fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        canvas.part(&crate::svg::box_part(&node.item.name, path), |canvas| {
+            paint_shape(canvas, skin, node);
+        });
         if node.item.composite {
-            paint_shapes(canvas, skin, &node.children);
+            paint_shapes(canvas, skin, &node.children, path);
         }
+        path.pop();
+    }
+}
+
+/// Draws with `paint` in the part `owner` names, if one does: a note
+/// inside a package goes where the package goes.
+fn within<T>(canvas: &mut Canvas, owner: Option<&str>, paint: impl FnOnce(&mut Canvas) -> T) -> T {
+    match owner {
+        Some(owner) => canvas.part(owner, paint),
+        None => paint(canvas),
     }
 }
 
@@ -1796,44 +1814,77 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
     }
 }
 
-fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
+/// Each note, in the part of the element it lies in; `path` is where
+/// `scene` is in the tree, `owner` the element around it.
+fn paint_notes(
+    canvas: &mut Canvas,
+    skin: &Skin,
+    scene: &Scene,
+    path: &mut Vec<usize>,
+    owner: Option<&str>,
+) {
     for note in &scene.notes {
-        dog_ear(
-            canvas,
-            Rect {
-                x: note.x,
-                y: note.y,
-                w: note.w,
-                h: note.h,
-            },
-            skin.note.fill,
-            Stroke::new(skin.note.border, skin.note.thickness),
-        );
+        within(canvas, owner, |canvas| {
+            dog_ear(
+                canvas,
+                Rect {
+                    x: note.x,
+                    y: note.y,
+                    w: note.w,
+                    h: note.h,
+                },
+                skin.note.fill,
+                Stroke::new(skin.note.border, skin.note.thickness),
+            );
+        });
     }
-    for node in &scene.nodes {
-        paint_notes(canvas, skin, &node.children);
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        let inner = crate::svg::box_part(&node.item.name, path);
+        paint_notes(canvas, skin, &node.children, path, Some(&inner));
+        path.pop();
     }
 }
 
-/// `containers` are those of the whole diagram, whose borders the
-/// multiplicities keep off.
-fn paint_labels(canvas: &mut Canvas, scene: &Scene, containers: &[Rect]) {
-    for edge in &scene.edges {
-        canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
-        for (card, at) in cards(edge, containers) {
-            canvas.text(Layer::Front, card, at, Align::Left);
+/// Each line's words in a part of their own, and each note's in the part
+/// of the element it lies in. `containers` are those of the whole
+/// diagram, whose borders the multiplicities keep off; `path` is where
+/// `scene` is in the tree, `owner` the element around it.
+fn paint_labels(
+    canvas: &mut Canvas,
+    scene: &Scene,
+    containers: &[Rect],
+    path: &mut Vec<usize>,
+    owner: Option<&str>,
+) {
+    for (slot, edge) in scene.edges.iter().enumerate() {
+        let words = crate::svg::words_part(path, slot);
+        canvas.part(&words, |canvas| {
+            canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
+        });
+        // Each multiplicity a part of its own, by its end: it travels
+        // with that end, not with the words in the middle.
+        for (card, at, at_start) in ends_cards(edge, containers) {
+            canvas.part(&crate::svg::card_part(&words, at_start), |canvas| {
+                canvas.text(Layer::Front, card, at, Align::Left);
+            });
         }
     }
     for note in &scene.notes {
-        canvas.text(
-            Layer::Front,
-            &note.text,
-            (note.x + NOTE_PAD, note.y + NOTE_PAD),
-            Align::Left,
-        );
+        within(canvas, owner, |canvas| {
+            canvas.text(
+                Layer::Front,
+                &note.text,
+                (note.x + NOTE_PAD, note.y + NOTE_PAD),
+                Align::Left,
+            );
+        });
     }
-    for node in &scene.nodes {
-        paint_labels(canvas, &node.children, containers);
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        let inner = crate::svg::box_part(&node.item.name, path);
+        paint_labels(canvas, &node.children, containers, path, Some(&inner));
+        path.pop();
     }
 }
 
@@ -1991,7 +2042,7 @@ fn dress(scene: &Scene, path: &[usize], slot: usize, drawn: &[(f32, f32)], stric
     }
     let Some(edge) = here.edges.get(slot).filter(|_| drawn.len() >= 2) else {
         return Dress {
-            words: None,
+            words: Some(crate::svg::words_part(path, slot)),
             stroke: Stroke::new(Color::BLACK, 1.0),
             heads: Vec::new(),
         };
@@ -2002,7 +2053,7 @@ fn dress(scene: &Scene, path: &[usize], slot: usize, drawn: &[(f32, f32)], stric
         head_shape(drawn[last], drawn[last - 1], edge.look.to_head, strict),
     ];
     Dress {
-        words: None,
+        words: Some(crate::svg::words_part(path, slot)),
         stroke: edge.look.stroke,
         heads: heads.into_iter().flatten().collect(),
     }
@@ -2029,6 +2080,14 @@ fn cards<'a>(
     edge: &'a PlacedEdge,
     containers: &'a [Rect],
 ) -> impl Iterator<Item = (&'a Block, (f32, f32))> + 'a {
+    ends_cards(edge, containers).map(|(card, at, _)| (card, at))
+}
+
+/// [`cards`], each with whether it stands at the line's start.
+fn ends_cards<'a>(
+    edge: &'a PlacedEdge,
+    containers: &'a [Rect],
+) -> impl Iterator<Item = (&'a Block, (f32, f32), bool)> + 'a {
     [
         (&edge.look.from_card, true, edge.look.from_head),
         (&edge.look.to_card, false, edge.look.to_head),
@@ -2040,6 +2099,7 @@ fn cards<'a>(
         (
             card,
             card_at(&edge.points, at_start, card, along, containers),
+            at_start,
         )
     })
 }
@@ -2123,6 +2183,42 @@ fn on_border(frame: Rect, rect: Rect) -> bool {
 mod tests {
     use super::super::parse::parse;
     use super::*;
+
+    /// Asked for its parts, a structure draws each element and each line's
+    /// words (its label and multiplicities) in groups of their own, named
+    /// as its map names them; a package's groups hold nothing of what it
+    /// holds, a note inside it goes with it.
+    #[test]
+    fn a_structure_s_parts_are_named_as_its_map_names_them() {
+        let source = "@startuml\npackage Lending {\n  class Loan\n  class Copy\n  Loan \"1\" --> \"*\" Copy : lends\n  note right of Copy : on the shelf\n}\nclass Member\nMember --> Loan : borrows\n' parts (Omaspec)\n@enduml\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        let groups: Vec<(String, &str)> = svg
+            .match_indices(r#"<g id="part-"#)
+            .filter_map(|(at, _)| {
+                let rest = &svg[at + 7..];
+                let id = &rest[..rest.find('"')?];
+                let group = &rest[..rest.find("</g>").unwrap_or(rest.len())];
+                Some((crate::part_name(id)?, group))
+            })
+            .collect();
+        let named = |name: &str| groups.iter().any(|(n, _)| n == name);
+        for place in &map.places {
+            assert!(named(&place.name), "{} not drawn: {groups:?}", place.name);
+        }
+        for wire in map.wires.iter().filter(|w| !w.labels.is_empty()) {
+            let words = wire.words.as_ref().unwrap();
+            assert!(named(words), "{words} not drawn");
+        }
+        for (name, group) in groups.iter().filter(|(n, _)| n == "Lending") {
+            assert!(
+                !group.contains(">Loan<") && !group.contains(">Copy<"),
+                "{name}: {group}"
+            );
+        }
+        // The note inside Lending is drawn in Lending's part.
+        let ground = crate::without_parts(&svg).unwrap();
+        assert!(!ground.contains("shelf"), "{ground}");
+    }
 
     #[test]
     fn a_cloud_keeps_to_the_edge_of_its_box() {
