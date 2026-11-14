@@ -29,6 +29,17 @@ fn comments_and_labels_are_not_double_circles() {
 }
 
 #[test]
+fn a_bare_id_before_an_invisible_link_leaves_no_box_behind() {
+    // mmdr names a box `B ~~~ C` and gives it C's text.
+    let (graph, fix) = fixed("flowchart LR\nA[One] ~~~ B[Two]\nB ~~~ C[Three]\nA --> C\n");
+    let mut ids: Vec<&str> = graph.nodes.keys().map(String::as_str).collect();
+    ids.sort_unstable();
+    assert_eq!(ids, ["A", "B", "C"]);
+    assert_eq!(graph.nodes["C"].label, "Three");
+    assert_eq!(fix.invisible.len(), 2);
+}
+
+#[test]
 fn an_invisible_link_keeps_the_node_mmdr_drops() {
     let (graph, fix) = fixed("flowchart LR\nA[text] ~~~ B ~~~ C\n");
     assert!(graph.nodes.contains_key("A"));

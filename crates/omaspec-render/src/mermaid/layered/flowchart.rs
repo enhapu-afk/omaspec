@@ -102,10 +102,10 @@ fn apply_statement(
     for piece in &pieces {
         parsed.push(parse_piece(piece)?);
     }
-    if let Some(id) = unread_id(line)
-        && !parsed.iter().any(|piece| piece.holds(&id))
-    {
-        drop_unread(graph, &id);
+    for id in unread_ids(line) {
+        if !parsed.iter().any(|piece| piece.holds(&id)) {
+            drop_unread(graph, &id);
+        }
     }
     for piece in &parsed {
         for spec in &piece.all {
@@ -153,15 +153,26 @@ fn apply_subgraph(
     Ok(())
 }
 
-/// The id mmdr keeps when `A[text] ~~~ B` is not an edge: the first word.
-/// A real id parsed from that line is not unread.
-fn unread_id(line: &str) -> Option<String> {
+/// The ids mmdr keeps when `A[text] ~~~ B` is not an edge: the first
+/// word, and for `B ~~~ C[text]` all before the first box, `B ~~~ C`,
+/// which took C's text. A real id parsed from that line is not unread.
+fn unread_ids(line: &str) -> Vec<String> {
     if !has_invisible(line) || find_top(line, |rest| arrow_sep(rest).is_some()).is_some() {
-        return None;
+        return Vec::new();
     }
-    let token = line.split_whitespace().next()?;
-    let (body, _) = split_classes(token);
-    Some(body.split_whitespace().next()?.to_string())
+    let mut ids = Vec::new();
+    if let Some(token) = line.split_whitespace().next() {
+        let (body, _) = split_classes(token);
+        ids.extend(body.split_whitespace().next().map(str::to_string));
+    }
+    let before = line
+        .find(['[', '(', '{', '>'])
+        .map_or(line, |at| &line[..at]);
+    let (before, _) = split_classes(before);
+    if has_invisible(&before) {
+        ids.push(before);
+    }
+    ids
 }
 
 fn drop_unread(graph: &mut Graph, id: &str) {

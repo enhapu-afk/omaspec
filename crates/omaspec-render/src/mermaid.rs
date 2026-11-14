@@ -212,9 +212,13 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
                 declined: None,
             });
         }
-        // Flowcharts lay out on the shared graph from mmdr's reading.
-        // Anything a drawer does not accept keeps mmdr's layout.
-        let parsed = parse_mermaid_strict(body)?;
+        // Flowcharts lay out on the shared graph from mmdr's reading, of
+        // the text written where mmdr misreads it. Anything a drawer does
+        // not accept keeps mmdr's layout.
+        let flowchart_text = head::header(body)
+            .filter(|header| head::names(header, "flowchart") || head::names(header, "graph"))
+            .map(|_| layered::readable(body));
+        let parsed = parse_mermaid_strict(flowchart_text.as_deref().unwrap_or(body))?;
         let curve = flowchart_curve(init.as_ref());
         let flowchart = parsed.graph.kind == DiagramKind::Flowchart;
         if let Some((svg, map)) = flowchart
@@ -1271,6 +1275,42 @@ mod tests {
             .replace("A --> B", "[*] --> X")
             .replace("\nstate S", " {\nstate S");
         assert!(render(&states).is_err());
+    }
+
+    /// The words of a drawing, as its text elements hold them.
+    fn words(svg: &str) -> Vec<String> {
+        svg.split("</tspan>")
+            .filter_map(|part| part.rsplit_once('>').map(|(_, text)| text.to_string()))
+            .filter(|text| !text.trim().is_empty())
+            .collect()
+    }
+
+    #[test]
+    fn a_flowchart_loses_no_node_mmdr_would_misread() {
+        // A node named `title`, which mmdr took for a title and skipped.
+        let svg =
+            render("flowchart LR\n  start[Begin] --> title[Title page]\n  title --> done[End]\n")
+                .unwrap();
+        assert!(
+            words(&svg).contains(&"End".to_string()),
+            "{:?}",
+            words(&svg)
+        );
+        // An asymmetric box with a dash: one box, not `A>svc` and `30]`.
+        let svg = render("flowchart LR\n  A>svc-30] --> B[Done]\n").unwrap();
+        let seen = words(&svg);
+        assert!(seen.contains(&"svc-30".to_string()), "{seen:?}");
+        assert!(
+            !seen
+                .iter()
+                .any(|w| w.contains("30]") || w.contains("A&gt;")),
+            "{seen:?}"
+        );
+        // `B ~~~ C[text]`: C once, not again as a box named `B ~~~ C`.
+        let svg =
+            render("flowchart LR\n  A[One] ~~~ B[Two]\n  B ~~~ C[Three]\n  A --> C\n").unwrap();
+        let seen = words(&svg);
+        assert_eq!(seen.iter().filter(|w| *w == "Three").count(), 1, "{seen:?}");
     }
 
     #[test]
