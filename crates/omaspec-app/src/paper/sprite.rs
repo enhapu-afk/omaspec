@@ -325,6 +325,11 @@ pub(super) struct Holes<'a> {
     /// The box's own color, for a hole no column fills
     /// ([`Raster::swatch`]).
     pub swatch: Option<&'a Raster>,
+    /// How strongly its inside is drawn below its title, the words of its
+    /// lines: less than the box while the boxes it holds go or come, on
+    /// its own color, so its words go with their lines. Its title, down to
+    /// the first box it holds, stays with its rim.
+    pub content: f32,
 }
 
 /// The box `fit` of `raster` at `alpha`, without the boxes it holds:
@@ -333,7 +338,9 @@ pub(super) struct Holes<'a> {
 /// across, else its color as the picture names it, so the box stays one
 /// color where they were whatever is under it. A hole a child covers
 /// whole needs neither. Room the inside leaves is filled with the color
-/// too where its outermost row or column crosses words or a line.
+/// too where its outermost row or column crosses words or a line. While
+/// the boxes it holds go or come, its inside fades on its own color
+/// ([`Holes::content`]).
 pub(super) fn draw(
     frame: &mut Frame,
     local: Rectangle,
@@ -348,8 +355,48 @@ pub(super) fn draw(
         .map(|child| fit.place(child.rect))
         .collect();
     let cut: Vec<Rectangle> = placed.iter().flatten().copied().collect();
+    // Only a box drawn in parts has an inside apart from its rim.
+    let fading = holes
+        .swatch
+        .filter(|_| fit.pieces.len() > 1 && holes.content < alpha - 1e-3);
     for (index, piece) in fit.pieces.iter().enumerate() {
         let limit = piece.limit.intersection(&local).unwrap_or_default();
+        if let Some(swatch) = fading.filter(|_| index == fit.inside) {
+            // The title band, down to the first box held, as drawn.
+            let first = holes
+                .children
+                .iter()
+                .map(|child| child.rect.y)
+                .fold(f32::INFINITY, f32::min);
+            let band = (piece.dest.y
+                + (first - piece.src.y) * piece.dest.height / piece.src.height)
+                .clamp(limit.y, limit.y + limit.height);
+            let (title, body) = (
+                Rectangle::new(limit.position(), Size::new(limit.width, band - limit.y)),
+                Rectangle::new(
+                    Point::new(limit.x, band),
+                    Size::new(limit.width, limit.y + limit.height - band),
+                ),
+            );
+            let drawn = |limit, alpha| Blit {
+                raster,
+                src: piece.src,
+                dest: piece.dest,
+                limit,
+                alpha,
+            };
+            punched(frame, local, &drawn(title, alpha), &cut);
+            let base = Blit {
+                raster: swatch,
+                src: inset(swatch.region, swatch.region.width / 4.0),
+                dest: body,
+                limit: body,
+                alpha,
+            };
+            punched(frame, local, &base, &[]);
+            punched(frame, local, &drawn(body, holes.content), &cut);
+            continue;
+        }
         // Room drawn out from a row or a column that crosses words or a
         // line would draw them out: the box's color fills it instead.
         let crossed = piece.room
@@ -376,6 +423,10 @@ pub(super) fn draw(
         };
         let cut = if index == fit.inside { &cut[..] } else { &[] };
         punched(frame, local, &blit, cut);
+    }
+    // On its own color, the holes need no filling.
+    if fading.is_some() {
+        return;
     }
     let inside = fit.inside();
     for (nth, (child, hole)) in holes.children.iter().zip(&placed).enumerate() {
@@ -897,6 +948,7 @@ mod tests {
                 children: &children,
                 columns: &columns,
                 swatch: Some(&swatch),
+                content: 1.0,
             };
             draw(frame, local, &picture, &fit, &holes, 1.0);
         });
@@ -925,6 +977,7 @@ mod tests {
                 children: &[],
                 columns: &[],
                 swatch: Some(&swatch),
+                content: 1.0,
             };
             draw(frame, local, &picture, &fit, &holes, 1.0);
         });
@@ -932,6 +985,44 @@ mod tests {
         assert_eq!(red[60 * 200 + 130], 0, "above the words");
         // Below them: the white row drawn out.
         assert_eq!(red[140 * 200 + 130], 255, "below the words");
+    }
+
+    /// A container whose boxes go: its words fade with their lines, on its
+    /// own color, while its rim stays.
+    #[test]
+    fn a_folding_container_s_words_fade_on_its_color() {
+        let red = on_tiny_skia(|frame, local| {
+            // A white box with a black word in its middle.
+            let picture = Raster::painted(60, 60, |x, y| {
+                if (25..35).contains(&x) && (28..32).contains(&y) {
+                    [0, 0, 0, 255]
+                } else {
+                    [255; 4]
+                }
+            });
+            // Drawn shorter, as a container folding is.
+            let dest = rect(100.0, 100.0, 60.0, 50.0);
+            // A box it holds, below its title and the word.
+            let child = rect(10.0, 20.0, 12.0, 12.0);
+            let fit = fit(picture.region, dest, Some(1.0), 1.0, square(0.0), &[child]);
+            assert!(fit.pieces.len() > 1, "{fit:?}");
+            let swatch = Raster::swatch([1.0, 1.0, 1.0]);
+            let children = [Child {
+                rect: child,
+                covered: None,
+            }];
+            let holes = Holes {
+                children: &children,
+                columns: &[],
+                swatch: Some(&swatch),
+                content: 0.0,
+            };
+            draw(frame, local, &picture, &fit, &holes, 1.0);
+        });
+        // Where the word was drawn: the box's white, not the word.
+        for x in 125..135 {
+            assert_eq!(red[(100 + 30) * 200 + x], 255, "({x}, 130)");
+        }
     }
 
     /// What `paint` draws on a canvas of 200 by 200 pixels over black, by
@@ -1005,6 +1096,7 @@ mod tests {
                 children: &[],
                 columns: &[],
                 swatch: None,
+                content: 1.0,
             };
             draw(frame, local, &picture, &fit, &holes, 1.0);
         });

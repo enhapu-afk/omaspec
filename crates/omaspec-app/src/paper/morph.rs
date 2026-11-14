@@ -126,7 +126,9 @@ fn side_at(fills: &pick::Fills, name: &str, rect: omaspec_uml::graph::Rect) -> S
     }
 }
 
-/// Starts, or ends, in a stable order, so the same dot matches next time.
+/// Starts, or ends, each named by the state it sits in and its place
+/// among that state's, so the same dot matches next time: a start that
+/// folds away with its state is never taken for one beside it.
 fn push_marks(
     diagram: &Diagram,
     fills: &pick::Fills,
@@ -134,22 +136,43 @@ fn push_marks(
     label: &str,
     out: &mut Vec<Side>,
 ) {
-    let mut marks: Vec<_> = diagram
+    let marks: Vec<_> = diagram
         .drawn
         .map
         .states
         .iter()
         .filter(|spot| spot.shape == shape && spot.rect.w >= 1.0 && spot.rect.h >= 1.0)
         .collect();
-    marks.sort_by(|a, b| {
-        a.rect
-            .y
-            .total_cmp(&b.rect.y)
-            .then(a.rect.x.total_cmp(&b.rect.x))
-    });
-    for (index, spot) in marks.iter().enumerate() {
-        out.push(side_at(fills, &format!("{label}:{index}"), spot.rect));
+    let names = mark_names(
+        label,
+        &marks
+            .iter()
+            .map(|spot| (spot.parent.as_deref(), spot.rect))
+            .collect::<Vec<_>>(),
+    );
+    for (spot, name) in marks.iter().zip(names) {
+        out.push(side_at(fills, &name, spot.rect));
     }
+}
+
+/// The names of marks, each given by the state it sits in (none at the
+/// top) and where it is: `start:Brewing:0` is the first start in Brewing,
+/// from the top, then from the left.
+fn mark_names(label: &str, marks: &[(Option<&str>, omaspec_uml::graph::Rect)]) -> Vec<String> {
+    let mut order: Vec<usize> = (0..marks.len()).collect();
+    order.sort_by(|&a, &b| {
+        let (a, b) = (marks[a].1, marks[b].1);
+        a.y.total_cmp(&b.y).then(a.x.total_cmp(&b.x))
+    });
+    let mut names = vec![String::new(); marks.len()];
+    let mut counted: std::collections::HashMap<Option<&str>, usize> = Default::default();
+    for at in order {
+        let parent = marks[at].0;
+        let nth = counted.entry(parent).or_default();
+        names[at] = format!("{label}:{}:{nth}", parent.unwrap_or(""));
+        *nth += 1;
+    }
+    names
 }
 
 /// The glide from `old` to `new`, when a box changed place. `None` when
@@ -658,11 +681,20 @@ fn paint_side(
         worked = sprite::columns(raster, fit.interior, &rects);
         &worked[..]
     };
+    // A container whose boxes go, or come: its words go with their lines.
+    let held = held(&paint.morph.moves, index, old);
+    let moving = |role| held.iter().any(|(i, _)| paint.morph.moves[*i].role == role);
+    let content = match step.role {
+        Role::Stay if old && moving(Role::Leave) => alpha.min(placed.out),
+        Role::Stay if !old && moving(Role::Arrive) => alpha.min(placed.inn),
+        _ => alpha,
+    };
     let swatch = fill.map(Raster::swatch);
     let holes = sprite::Holes {
         children: &children,
         columns,
         swatch: swatch.as_ref(),
+        content,
     };
     sprite::draw(frame, local, raster, &fit, &holes, alpha);
 }
@@ -952,6 +984,40 @@ mod tests {
             fit.place(grow(child)).unwrap(),
             onto(grow(child), old_size, old_paper),
         );
+    }
+
+    /// A start is known by the state it sits in: the one inside a state
+    /// that folds goes, and the one beside it does not glide into its place,
+    /// though it is first from the top once the other is gone.
+    #[test]
+    fn a_mark_is_named_by_the_state_it_sits_in() {
+        let at = |x: f32, y: f32| omaspec_uml::graph::Rect {
+            x,
+            y,
+            w: 22.0,
+            h: 22.0,
+        };
+        let open = mark_names(
+            "end",
+            &[(Some("Awake"), at(50.0, 200.0)), (None, at(50.0, 400.0))],
+        );
+        assert_eq!(open, ["end:Awake:0", "end::0"]);
+        let folded = mark_names("end", &[(None, at(50.0, 300.0))]);
+        assert_eq!(folded, ["end::0"]);
+        let side = |name: &str, y: f32| Side {
+            rect: Rectangle::new(Point::new(50.0, y), Size::new(22.0, 22.0)),
+            ..super::tests::side(name, 0.0, 0.0, 1.0, 1.0)
+        };
+        let morph = plan(
+            &[side(&open[0], 200.0), side(&open[1], 400.0)],
+            &[side(&folded[0], 300.0)],
+            size(),
+            size(),
+        )
+        .unwrap();
+        let role = |name: &str| morph.moves.iter().find(|m| m.name == name).unwrap().role;
+        assert_eq!(role("end:Awake:0"), Role::Leave);
+        assert_eq!(role("end::0"), Role::Stay);
     }
 
     #[test]
