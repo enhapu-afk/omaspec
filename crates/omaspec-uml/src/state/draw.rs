@@ -475,11 +475,15 @@ fn place_notes(
                 w: note.w,
                 h: note.h,
                 text: std::mem::replace(&mut note.text, Block::empty()),
+                tether: None,
             });
             let last = placed.len() - 1;
             // An edge label can sit in the same gap. Step the note off it,
             // onto free paper rather than onto another state.
             clear_note(&mut placed[last], side, edges, rects);
+            // Lines into the state on that side would run under it.
+            let (before, note) = placed.split_at_mut(last);
+            clear_lines(&mut note[0], side, rect, (edges, rects, before));
         }
     }
     Ok(placed)
@@ -507,6 +511,124 @@ fn clear_note(note: &mut PlacedNote, side: Side, edges: &[PlacedEdge], rects: &[
         note.x += dx;
         note.y += dy;
     }
+}
+
+/// Moves a note that lies on a line, a label or a state along its side
+/// and further out, to where it covers the fewest, and the nearest such
+/// place; off its state, a dashed line ties it to it. A note under a state
+/// lay on every line that came in from below.
+fn clear_lines(
+    note: &mut PlacedNote,
+    side: Side,
+    state: Rect,
+    (edges, rects, notes): (&[PlacedEdge], &[Rect], &[PlacedNote]),
+) {
+    let (w, h) = (note.w, note.h);
+    let covers = |x: f32, y: f32| -> f32 {
+        let area = (x, y, w, h);
+        let crossed: usize = edges
+            .iter()
+            .map(|edge| {
+                edge.points
+                    .windows(2)
+                    .filter(|pair| segment_meets(pair[0], pair[1], area))
+                    .count()
+            })
+            .sum();
+        let labels = edges
+            .iter()
+            .filter(|edge| !edge.label.is_empty() && boxes_overlap(area, label_box(edge)))
+            .count()
+            + notes
+                .iter()
+                .filter(|other| boxes_overlap(area, (other.x, other.y, other.w, other.h)))
+                .count();
+        let states: f32 = rects
+            .iter()
+            .map(|rect| overlap_area(area, (rect.x, rect.y, rect.w, rect.h)))
+            .sum();
+        (crossed + labels) as f32 * 10_000.0 + states
+    };
+    let (x0, y0) = (note.x, note.y);
+    let mut best = (covers(x0, y0), 0.0, x0, y0);
+    if best.0 <= 0.5 {
+        return;
+    }
+    const STEP: f32 = 12.0;
+    for level in 0..4 {
+        let out = level as f32 * (h.min(w) / 2.0 + NOTE_GAP);
+        for k in -40..=40 {
+            let along = k as f32 * STEP;
+            let (x, y) = match side {
+                Side::Bottom => (x0 + along, y0 + out),
+                Side::Top => (x0 + along, y0 - out),
+                Side::Right => (x0 + out, y0 + along),
+                Side::Left => (x0 - out, y0 + along),
+            };
+            let cost = covers(x, y);
+            let far = along.abs() + out;
+            if cost < best.0 - 0.5 || ((cost - best.0).abs() <= 0.5 && far < best.1) {
+                best = (cost, far, x, y);
+            }
+        }
+    }
+    (note.x, note.y) = (best.2, best.3);
+    let box_of = (note.x, note.y, w, h);
+    if gap(box_of, (state.x, state.y, state.w, state.h)) > NOTE_GAP + 1.0 {
+        note.tether = Some((
+            nearest(box_of, center(state)),
+            nearest(
+                (state.x, state.y, state.w, state.h),
+                (note.x + w / 2.0, note.y + h / 2.0),
+            ),
+        ));
+    }
+}
+
+fn center(rect: Rect) -> (f32, f32) {
+    (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0)
+}
+
+/// The point of the box `(x, y, w, h)` nearest `to`.
+fn nearest((x, y, w, h): (f32, f32, f32, f32), to: (f32, f32)) -> (f32, f32) {
+    (to.0.clamp(x, x + w), to.1.clamp(y, y + h))
+}
+
+/// How far apart two boxes stand; 0 where they meet.
+fn gap(a: (f32, f32, f32, f32), b: (f32, f32, f32, f32)) -> f32 {
+    let dx = (b.0 - (a.0 + a.2)).max(a.0 - (b.0 + b.2)).max(0.0);
+    let dy = (b.1 - (a.1 + a.3)).max(a.1 - (b.1 + b.3)).max(0.0);
+    (dx * dx + dy * dy).sqrt()
+}
+
+/// Whether the segment from `a` to `b` runs through the box.
+fn segment_meets(a: (f32, f32), b: (f32, f32), (x, y, w, h): (f32, f32, f32, f32)) -> bool {
+    // Clipped to the box's slabs, one axis after the other.
+    let (mut t0, mut t1) = (0.0_f32, 1.0_f32);
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    for (p, q) in [
+        (-dx, a.0 - x),
+        (dx, x + w - a.0),
+        (-dy, a.1 - y),
+        (dy, y + h - a.1),
+    ] {
+        if p.abs() < 1e-6 {
+            if q < 0.0 {
+                return false;
+            }
+            continue;
+        }
+        let r = q / p;
+        if p < 0.0 {
+            t0 = t0.max(r);
+        } else {
+            t1 = t1.min(r);
+        }
+        if t0 > t1 {
+            return false;
+        }
+    }
+    true
 }
 
 fn note_text_box(note: &PlacedNote) -> (f32, f32, f32, f32) {
@@ -825,6 +947,10 @@ fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
     let (x, y, w, h) = (note.x, note.y, note.w, note.h);
     let stroke = Some(Stroke::new(skin.note.border, skin.note.thickness));
+    if let Some((from, to)) = note.tether {
+        let line = Stroke::new(skin.note.border, skin.note.thickness).dashed(4.0, 3.0);
+        canvas.line(Layer::Front, from, to, line);
+    }
     let fold = 10.0_f32.min(w / 2.0).min(h / 2.0);
     let body = format!(
         "M{},{} L{},{} L{},{} L{},{} L{},{} Z",
@@ -1386,6 +1512,38 @@ mod tests {
                 looped.label.width,
                 looped.label.height,
             ),
+        ));
+    }
+
+    #[test]
+    fn a_note_under_a_state_keeps_off_the_lines_into_it() {
+        let (_, scene) = laid(
+            "@startuml\n[*] --> Docked\nDocked --> Cleaning : schedule\nCleaning --> Returning : battery low\nReturning --> Docked : arrived\nCleaning --> Stuck : wheel blocked\nStuck --> Docked : human lifts it\nCleaning --> Docked : done\nnote bottom of Docked : Where it spends most of its life\n@enduml\n",
+        );
+        let note = &scene.notes[0];
+        let area = (note.x, note.y, note.w, note.h);
+        for edge in &scene.edges {
+            for pair in edge.points.windows(2) {
+                assert!(
+                    !segment_meets(pair[0], pair[1], area),
+                    "{pair:?} through the note at {area:?}"
+                );
+            }
+            if !edge.label.is_empty() {
+                assert!(!boxes_overlap(area, label_box(edge)), "{area:?}");
+            }
+        }
+        // Moved off its state, it is tied to it.
+        assert!(note.tether.is_some());
+        assert!(segment_meets(
+            (0.0, 5.0),
+            (10.0, 5.0),
+            (4.0, 0.0, 2.0, 10.0)
+        ));
+        assert!(!segment_meets(
+            (0.0, 5.0),
+            (3.0, 5.0),
+            (4.0, 0.0, 2.0, 10.0)
         ));
     }
 

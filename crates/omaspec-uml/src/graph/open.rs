@@ -69,6 +69,8 @@ pub struct Note {
     pub w: f32,
     pub h: f32,
     pub text: Block,
+    /// A dashed line to its box, when it stands off it.
+    pub tether: Option<(Point, Point)>,
 }
 
 /// A box measured, before it is placed: a box of `children` laid out on
@@ -246,6 +248,9 @@ impl<N, E> Scene<N, E> {
         for note in &mut self.notes {
             note.x += dx;
             note.y += dy;
+            if let Some((from, to)) = &mut note.tether {
+                (from.0, from.1, to.0, to.1) = (from.0 + dx, from.1 + dy, to.0 + dx, to.1 + dy);
+            }
         }
     }
 

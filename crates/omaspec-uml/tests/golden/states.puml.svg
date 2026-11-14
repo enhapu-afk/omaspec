@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="365" height="669" viewBox="0 0 365 669">
+<svg xmlns="http://www.w3.org/2000/svg" width="421" height="669" viewBox="0 0 421 669">
 <g transform="translate(10,10)">
 <g>
 <rect x="88.1" y="184.86" width="115.15" height="46.26" rx="8" ry="8" fill="#F0F8FF" stroke="#181818" stroke-width="1"/>
@@ -45,8 +45,9 @@
 <g>
 <path d="M255.93,184.86 L255.93,211.99 L297.95,211.99 L297.95,194.86 L287.95,184.86 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M287.95,184.86 L287.95,194.86 L297.95,194.86" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
-<path d="M219.2,138.89 L219.2,166.02 L268.43,166.02 L268.43,148.89 L258.43,138.89 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
-<path d="M258.43,138.89 L258.43,148.89 L268.43,148.89" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<line x1="351.2" y1="138.89" x2="278.26" y2="128.89" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="4,3"/>
+<path d="M351.2,138.89 L351.2,166.02 L400.43,166.02 L400.43,148.89 L390.43,138.89 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M390.43,138.89 L390.43,148.89 L400.43,148.89" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="sans-serif" xml:space="preserve">
 <tspan x="102.1" y="205.85" font-size="14" fill="#000000" font-weight="bold" textLength="87.15" lengthAdjust="spacing">Playing track</tspan>
 </text>
@@ -96,10 +97,10 @@
 <tspan x="261.93" y="202.92" font-size="13" fill="#000000" textLength="26.01" lengthAdjust="spacing">here</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="225.2" y="156.95" font-size="13" fill="#000000" textLength="33.23" lengthAdjust="spacing">which</tspan>
+<tspan x="357.2" y="156.95" font-size="13" fill="#000000" textLength="33.23" lengthAdjust="spacing">which</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="151.38" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="42.01" lengthAdjust="spacing">States</tspan>
+<tspan x="179.21" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="42.01" lengthAdjust="spacing">States</tspan>
 </text>
 </g>
 </g>
