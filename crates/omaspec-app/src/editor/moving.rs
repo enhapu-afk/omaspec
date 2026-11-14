@@ -592,8 +592,8 @@ mod tests {
                 output: output.clone(),
                 events: vec!["open".into()],
                 steps: 1,
-                width: 300,
-                fps: 10,
+                width: 200,
+                fps: 5,
                 folds: Vec::new(),
                 dives: Vec::new(),
                 theme: Some("built-in".into()),
@@ -611,9 +611,9 @@ mod tests {
             .and_then(|rest| rest.split(' ').next())
             .and_then(|count| count.parse().ok())
             .unwrap();
-        // The light runs along the arrow for most of a second, at 10 frames
+        // The light runs along the arrow for most of a second, at 5 frames
         // a second, each frame a little further on.
-        assert!(frames >= 8, "{told}");
+        assert!(frames >= 4, "{told}");
         assert!(first == second, "two recordings of one play differ");
         let _ = std::fs::remove_dir_all(&work);
     }

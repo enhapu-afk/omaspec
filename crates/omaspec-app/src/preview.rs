@@ -548,10 +548,14 @@ mod tests {
 
     #[test]
     fn large_diagrams_stay_sharp_when_zoomed_in() {
+        // The zoom to 100 % has arrived before the pan, however slow the
+        // machine: the time is the test's own.
+        let _clock = crate::clock::Recording::start();
         let mut p = showing(tall());
         assert!(p.paper.overview_shown() && p.paper.detail().0.is_none());
 
         let _ = p.update(press("0"));
+        crate::clock::advance(Duration::from_secs(2));
         let detail = p.paper.detail().0.expect("a detail at 100 %");
         assert_eq!(detail.scale, 2.0);
         let (region, seen) = (detail.region(), p.paper.view.visible(p.paper.viewport()));
