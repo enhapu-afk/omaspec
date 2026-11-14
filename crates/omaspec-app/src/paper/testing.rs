@@ -67,6 +67,7 @@ pub fn tall() -> Drawn {
         links: Arc::default(),
         cards: false,
         bare: None,
+        parts: false,
     }
 }
 

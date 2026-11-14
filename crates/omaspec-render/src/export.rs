@@ -20,7 +20,7 @@ use krilla::page::PageSettings;
 use krilla::{Data, Document};
 use krilla_svg::{SurfaceExt, SvgSettings};
 use omaspec_core::{Language, embed, lang};
-pub use resvg::{tiny_skia, usvg};
+pub use resvg::{render_node, tiny_skia, usvg};
 use zip::CompressionMethod;
 use zip::write::{SimpleFileOptions, ZipWriter};
 

@@ -101,6 +101,11 @@ impl Paper {
                         links: self.followable().to_vec(),
                         spots: self.fold_spots(),
                         bare: self.diagram.as_ref().and_then(|d| d.drawn.bare.clone()),
+                        tree: self
+                            .diagram
+                            .as_ref()
+                            .filter(|d| d.drawn.parts)
+                            .map(|d| Arc::clone(&d.drawn.tree)),
                         plan: self.overview.asked,
                         map: self
                             .diagram
@@ -322,13 +327,28 @@ impl Paper {
     fn ask_bare(&mut self) -> Option<Task<Message>> {
         let previous = self.previous.as_ref()?;
         let (old_tree, old_plan) = (previous.bare.clone()?, previous.plan?);
-        let new_tree = self.diagram.as_ref()?.drawn.bare.clone()?;
+        let old_full = previous.tree.clone();
+        let diagram = self.diagram.as_ref()?;
+        let new_tree = diagram.drawn.bare.clone()?;
+        let new_full = diagram.drawn.parts.then(|| Arc::clone(&diagram.drawn.tree));
         let new_plan = self.overview.asked?;
+        // With its parts marked, a picture is a sheet: its ground, and
+        // each part on its own.
         Some(Task::batch([
-            self.bare_old
-                .ask(Some(old_plan), &old_tree, Duration::ZERO, Message::BareOld),
-            self.bare_new
-                .ask(Some(new_plan), &new_tree, Duration::ZERO, Message::BareNew),
+            self.bare_old.ask_sheet(
+                Some(old_plan),
+                &old_tree,
+                old_full.as_ref(),
+                Duration::ZERO,
+                Message::BareOld,
+            ),
+            self.bare_new.ask_sheet(
+                Some(new_plan),
+                &new_tree,
+                new_full.as_ref(),
+                Duration::ZERO,
+                Message::BareNew,
+            ),
         ]))
     }
 

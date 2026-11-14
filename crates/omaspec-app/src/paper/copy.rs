@@ -55,6 +55,7 @@ impl Paper {
             return Task::done(Err("no diagram yet".into()));
         };
         let svg = Arc::clone(&diagram.drawn.svg);
+        let parts = diagram.drawn.parts;
         let links = Arc::clone(&diagram.drawn.links);
         let source = Arc::clone(&diagram.source);
         let document = self.document;
@@ -85,6 +86,12 @@ impl Paper {
                     }),
                     links: &links,
                     up,
+                };
+                // The picture as a file shows it: the pane's parts are its own.
+                let svg = if parts {
+                    omaspec_uml::unmarked(&svg)
+                } else {
+                    svg.to_string()
                 };
                 let bytes = export::export(&svg, format, &options).map_err(|e| e.to_string())?;
                 then(bytes)

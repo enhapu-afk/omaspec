@@ -2596,9 +2596,10 @@ fn only_a_json_or_yaml_diagram_is_asked_for_nested() {
     assert!(
         crate::worker::folded(json, Language::PlantUml, &[], nested).contains("layout (Omaspec)")
     );
+    // A state machine is asked for its parts, never nested.
     assert_eq!(
         crate::worker::folded(state, Language::PlantUml, &[], nested),
-        state
+        format!("{state}' parts (Omaspec)\n")
     );
     // Only a state machine is asked for its table.
     let table = crate::worker::Views {

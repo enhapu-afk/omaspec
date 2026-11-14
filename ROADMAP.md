@@ -2832,9 +2832,16 @@ order ([0029](docs/adr/0029-a-glide-by-parts.md)):
       the map's `Spot::part` and `Wire::words` name the same parts;
       `without_parts` leaves the ground. Without the line nothing changes,
       the golden SVGs neither.
-- [ ] The pane draws each part as a picture of its own and glides it; a
+- [x] The pane draws each part as a picture of its own and glides it; a
       line's words travel with the line. The ground is the picture without
-      lines and parts.
+      lines and parts (2026-11-14). The pane asks a state machine for its
+      parts; the glide's two pictures become sheets (`raster::sheet`): the
+      ground on top, each part below it, drawn alone from the picture
+      (`resvg::render_node`), with where each lies; one picture to draw in
+      the background and to upload, as before. A box drawn from its part
+      is cut out of nothing and fills nothing; its rim still keeps its
+      corners when it changes shape. An export of the pane's picture drops
+      the groups (`unmarked`).
 - [ ] Structure, flowcharts and trees mark their parts too; then the
       cutting goes, with its box test, columns, swatches and the faded
       inside of a folding container.

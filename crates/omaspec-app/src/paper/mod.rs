@@ -154,6 +154,9 @@ struct Previous {
     /// Its picture without lines and the plan its overview was drawn to,
     /// and its map: the lines glide from these ([`wires`]).
     bare: Option<Arc<usvg::Tree>>,
+    /// The picture itself, when its parts are marked: they are drawn from
+    /// it, each on its own (docs/adr/0029).
+    tree: Option<Arc<usvg::Tree>>,
     plan: Option<raster::Plan>,
     map: Arc<omaspec_render::Map>,
 }

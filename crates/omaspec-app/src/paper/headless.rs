@@ -7,6 +7,7 @@ use std::sync::Arc;
 use iced::Size;
 use omaspec_core::Language;
 use omaspec_render::RenderError;
+use omaspec_render::export::usvg;
 
 use super::view::Glide;
 use super::{Message, Paper, raster};
@@ -76,19 +77,26 @@ impl Paper {
         let old = self
             .previous
             .as_ref()
-            .and_then(|previous| previous.bare.clone())
+            .and_then(|previous| Some((previous.bare.clone()?, previous.tree.clone())))
             .zip(self.bare_old.asked);
         let new = self
             .diagram
             .as_ref()
-            .and_then(|diagram| diagram.drawn.bare.clone())
+            .and_then(|diagram| {
+                let full = diagram.drawn.parts.then(|| Arc::clone(&diagram.drawn.tree));
+                Some((diagram.drawn.bare.clone()?, full))
+            })
             .zip(self.bare_new.asked);
-        if let Some((tree, plan)) = old {
-            let raster = raster::render(&tree, plan);
+        let draw = |(tree, full): (Arc<usvg::Tree>, Option<Arc<usvg::Tree>>), plan| match full {
+            Some(full) => raster::sheet(&tree, &full, plan),
+            None => raster::render(&tree, plan),
+        };
+        if let Some((trees, plan)) = old {
+            let raster = draw(trees, plan);
             let _ = self.update(Message::BareOld(self.bare_old.seq(), raster));
         }
-        if let Some((tree, plan)) = new {
-            let raster = raster::render(&tree, plan);
+        if let Some((trees, plan)) = new {
+            let raster = draw(trees, plan);
             let _ = self.update(Message::BareNew(self.bare_new.seq(), raster));
         }
     }

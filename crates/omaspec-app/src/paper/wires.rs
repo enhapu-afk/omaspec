@@ -19,6 +19,7 @@ use iced::{Color, Point, Rectangle, Size};
 use omaspec_uml::map::{Head, HeadFill, Map, Wire};
 
 use super::morph::{Move, Role};
+use super::raster::Raster;
 
 /// How many points a line is drawn with while it glides: enough for its
 /// curves to keep their shape.
@@ -47,6 +48,9 @@ pub struct Line {
     /// comes out of it: it has both routes, one of them a point on that
     /// box, and fades as a line that goes or comes does.
     pub fold: Option<Role>,
+    /// The parts its words are drawn in, in the old picture and the new
+    /// one (docs/adr/0029): they travel with it.
+    pub words: [Option<String>; 2],
 }
 
 /// A line's route and the marks at its ends, in its picture's units.
@@ -79,6 +83,7 @@ impl Line {
             width: wire.stroke.width,
             dash: wire.stroke.dash,
             fold: None,
+            words: Default::default(),
         }
     }
 
@@ -120,6 +125,7 @@ impl Line {
             from: Some(Shape::of(old)),
             to: Some(Shape::of(new)),
             colors: (ink(old), ink(new)),
+            words: [old.words.clone(), new.words.clone()],
             ..Line::dressed(new)
         }
     }
@@ -127,6 +133,7 @@ impl Line {
     fn leaving(wire: &Wire) -> Line {
         Line {
             from: Some(Shape::of(wire)),
+            words: [wire.words.clone(), None],
             ..Line::dressed(wire)
         }
     }
@@ -134,6 +141,7 @@ impl Line {
     fn arriving(wire: &Wire) -> Line {
         Line {
             to: Some(Shape::of(wire)),
+            words: [None, wire.words.clone()],
             ..Line::dressed(wire)
         }
     }
@@ -327,7 +335,10 @@ fn resample(points: &[(f32, f32)], n: usize) -> Vec<(f32, f32)> {
 }
 
 /// Where the pictures lie for one frame of the glide.
-pub struct Sheets {
+pub struct Sheets<'a> {
+    /// The old picture and the new one, sheets of their parts where they
+    /// mark them ([`super::raster::sheet`]): a line's words come from them.
+    pub pictures: (&'a Raster, &'a Raster),
     /// How far the glide is, and how far the old picture has gone and the
     /// new one has come.
     pub t: f32,
@@ -351,10 +362,79 @@ struct Mark {
     alpha: f32,
 }
 
-/// Draws every line of `glide` where it is at `sheets.t`.
-pub fn paint(frame: &mut Frame, glide: &Glide, sheets: &Sheets) {
+/// Draws every line of `glide` where it is at `sheets.t`, its words
+/// with it.
+pub fn paint(frame: &mut Frame, local: Rectangle, glide: &Glide, sheets: &Sheets<'_>) {
     for line in &glide.lines {
         paint_line(frame, line, sheets);
+    }
+    for line in &glide.lines {
+        paint_words(frame, local, line, sheets);
+    }
+}
+
+/// A line's words, each a part of its own: from their old place to their
+/// new one, the old words under the new ones fading in, as a box's are;
+/// or going, or coming, with the line.
+fn paint_words(frame: &mut Frame, local: Rectangle, line: &Line, s: &Sheets<'_>) {
+    let old = line.words[0]
+        .as_deref()
+        .and_then(|name| s.pictures.0.part(name));
+    let new = line.words[1]
+        .as_deref()
+        .and_then(|name| s.pictures.1.part(name));
+    let place = |at: Rectangle, (paper, size): (Rectangle, Size)| {
+        let (kx, ky) = (
+            paper.width / size.width.max(1e-3),
+            paper.height / size.height.max(1e-3),
+        );
+        Rectangle::new(
+            Point::new(paper.x + at.x * kx, paper.y + at.y * ky),
+            Size::new(at.width * kx, at.height * ky),
+        )
+    };
+    let (from, to) = match (&line.from, &line.to) {
+        (Some(_), Some(_)) => (s.old, s.new),
+        _ => ((s.paper, s.old.1), (s.paper, s.new.1)),
+    };
+    let was = old.as_ref().map(|(_, at)| place(*at, from));
+    let is = new.as_ref().map(|(_, at)| place(*at, to));
+    // Where the words are now: on their way between where they were and
+    // where they go, the old and the new words on the same place, so the
+    // same words cover each other.
+    let between = |own: Rectangle| match (was, is) {
+        (Some(was), Some(is)) => Rectangle::new(
+            Point::new(lerp(was.x, is.x, s.t), lerp(was.y, is.y, s.t)),
+            Size::new(
+                lerp(was.width, is.width, s.t),
+                lerp(was.height, is.height, s.t),
+            ),
+        ),
+        _ => own,
+    };
+    let (old_alpha, new_alpha) = match (&line.from, &line.to, line.fold) {
+        (_, _, Some(_)) => return,
+        (Some(_), Some(_), _) => (if s.t < 1.0 { 1.0 } else { 0.0 }, s.t),
+        (Some(_), None, _) => (s.out, 0.0),
+        (None, Some(_), _) => (0.0, s.inn),
+        (None, None, _) => return,
+    };
+    for ((part, own), alpha) in [(old.zip(was), old_alpha), (new.zip(is), new_alpha)]
+        .into_iter()
+        .filter_map(|(drawn, alpha)| Some((drawn?, alpha)))
+    {
+        let dest = between(own);
+        let Some(limit) = dest.intersection(&local) else {
+            continue;
+        };
+        let blit = super::sprite::Blit {
+            raster: &part.0,
+            src: part.1,
+            dest,
+            limit,
+            alpha,
+        };
+        super::sprite::punched(frame, local, &blit, &[]);
     }
 }
 
@@ -577,6 +657,7 @@ mod tests {
             from_bend: None,
             to_bend: None,
             columns: Default::default(),
+            parts: Default::default(),
             from_header: 1.0,
             role,
             into: None,

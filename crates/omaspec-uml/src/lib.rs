@@ -60,8 +60,8 @@ pub mod yaml;
 // graph and draws with the same canvas. The modules stay private.
 pub use color::{Color, Paint, parse as parse_color};
 pub use svg::{
-    Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, PART, Stroke, part_name, without_lines,
-    without_parts,
+    Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, PART, Stroke, part_name, unmarked,
+    without_lines, without_parts,
 };
 pub use text::{
     Block, Family, Font, Link, Style, block as measure_text, creole_link, measure as measure_run,

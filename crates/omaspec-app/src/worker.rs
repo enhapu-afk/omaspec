@@ -39,8 +39,12 @@ pub struct Drawn {
     /// shows them.
     pub cards: bool,
     /// The picture without its lines, for a glide that draws them itself
-    /// (`paper::wires`); a graph diagram has one.
+    /// (`paper::wires`); a graph diagram has one. Without its parts too,
+    /// when it has them: the ground the parts glide over.
     pub bare: Option<Arc<usvg::Tree>>,
+    /// Its boxes, marks and lines' words are parts of their own in `tree`,
+    /// for a glide to take whole (docs/adr/0029).
+    pub parts: bool,
 }
 
 /// A map's SVG up to this size is parsed whole at once, as quick to parse
@@ -67,11 +71,19 @@ impl Drawn {
         // The picture and the one without its lines are read side by
         // side: each takes as long as the other, a quarter of a second
         // for a tree of some thousand boxes.
-        let wanted = cards.is_none() && !rendered.map.wires.is_empty();
+        let parts = cards.is_none() && rendered.svg.contains(omaspec_uml::PART);
+        let wanted = cards.is_none() && (parts || !rendered.map.wires.is_empty());
         let (tree, bare) = std::thread::scope(|scope| {
             let bare = scope.spawn(|| {
                 wanted
-                    .then(|| omaspec_uml::without_lines(&rendered.svg))
+                    .then(|| {
+                        let ground = if parts {
+                            omaspec_uml::without_parts(&rendered.svg)?
+                        } else {
+                            rendered.svg.clone()
+                        };
+                        omaspec_uml::without_lines(&ground).or(parts.then_some(ground))
+                    })
                     .flatten()
                     .and_then(|svg| export::parse(&svg).ok())
                     .map(Arc::new)
@@ -93,6 +105,7 @@ impl Drawn {
             links: Arc::new(rendered.links),
             cards,
             bare,
+            parts,
         })
     }
 }
@@ -450,19 +463,28 @@ pub struct Views {
 }
 
 /// `source` with a line for each container `folds` names after it, which
-/// the drawers fold (`omaspec_uml::fold`), and one for each of `views` that
-/// the diagram has; the file never holds them.
+/// the drawers fold (`omaspec_uml::fold`), one for each of `views` that
+/// the diagram has, and one that asks for its parts marked; the file never
+/// holds them.
 pub fn folded(source: &str, language: Language, folds: &[String], views: Views) -> String {
     let mut text = source.to_owned();
     // Only a JSON or a YAML diagram has a nested drawing, only a state
     // machine a table.
     let nested = views.nested && holds_tables(source, language);
-    let table = views.table && holds_machine(source, language);
-    if folds.is_empty() && !nested && !table {
+    let machine = holds_machine(source, language);
+    let table = views.table && machine;
+    if folds.is_empty() && !nested && !machine {
         return text;
     }
     if !text.ends_with('\n') {
         text.push('\n');
+    }
+    // Each box, mark and line's words in a group of its own, for a glide
+    // to take whole (docs/adr/0029); the state machines' drawer marks them.
+    if machine {
+        text.push_str(&omaspec_uml::fold::parts_line(
+            language == Language::Mermaid,
+        ));
     }
     for name in folds {
         text.push_str(&omaspec_uml::fold::line(

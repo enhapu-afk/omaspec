@@ -1148,6 +1148,38 @@ pub fn without_parts(svg: &str) -> Option<String> {
     found.then_some(out)
 }
 
+/// `svg` with its parts drawn as they are, their groups gone around them
+/// ([`Canvas::part`]): the picture as a file or an export shows it.
+pub fn unmarked(svg: &str) -> String {
+    let open = format!(r#"<g id="{PART}"#);
+    let mut out = String::with_capacity(svg.len());
+    // For each group open, whether it is a part's, whose close goes too.
+    let mut groups: Vec<bool> = Vec::new();
+    let mut index = 0;
+    while index < svg.len() {
+        let here = &svg[index..];
+        if here.starts_with(&open) {
+            let end = here.find('>').map_or(here.len(), |at| at + 1);
+            groups.push(true);
+            index += end;
+        } else if here.starts_with("</g>") {
+            if !groups.pop().unwrap_or(false) {
+                out.push_str("</g>");
+            }
+            index += "</g>".len();
+        } else if here.starts_with("<g>") || here.starts_with("<g ") {
+            groups.push(false);
+            out.push_str("<g");
+            index += 2;
+        } else {
+            let length = here.chars().next().map_or(1, char::len_utf8);
+            out.push_str(&here[..length]);
+            index += length;
+        }
+    }
+    out
+}
+
 /// The name of the part whose group has the id `id`, if it is one.
 pub fn part_name(id: &str) -> Option<String> {
     let hex = id.strip_prefix(PART)?.rsplit_once('-')?.0;
@@ -1308,6 +1340,11 @@ mod tests {
         let ground = without_parts(&svg).unwrap();
         assert!(!ground.contains(PART), "{ground}");
         assert_eq!(ground.matches("<rect").count(), 1, "{ground}");
+        // As a file shows it: the same drawing, no groups of parts.
+        let shown = unmarked(&svg);
+        assert!(!shown.contains(PART), "{shown}");
+        assert_eq!(shown.matches("<rect").count(), 3, "{shown}");
+        assert_eq!(shown.matches("<g").count(), shown.matches("</g>").count());
         // Unmarked, the same drawing has no groups of parts.
         let mut plain = Canvas::new("sans-serif", false);
         plain.part("Brewing", |canvas| {

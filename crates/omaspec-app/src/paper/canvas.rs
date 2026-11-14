@@ -260,7 +260,7 @@ impl canvas::Program<Message> for GlideLines<'_> {
             },
         );
         let mut frame = Frame::new(renderer, bounds.size());
-        super::wires::paint(&mut frame, lines, &sheets);
+        super::wires::paint(&mut frame, local, lines, &sheets);
         vec![frame.into_geometry()]
     }
 }

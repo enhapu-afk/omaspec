@@ -32,6 +32,9 @@ pub struct Side {
     /// How its outline bends; none for a shape that is no box
     /// ([`pick::Fills::bend`]).
     pub bend: Option<pick::Bend>,
+    /// The part it is drawn in, where the picture marks its parts
+    /// (docs/adr/0029): a box's name, a mark's place.
+    pub part: String,
 }
 
 /// Whether a box was already there, appears, or goes.
@@ -58,6 +61,8 @@ pub struct Move {
     /// beside it ([`sprite::columns`]), worked out once a glide
     /// ([`prepare`]).
     pub columns: [Vec<Option<f32>>; 2],
+    /// The part it is drawn in, before and after ([`Side::part`]).
+    pub parts: [String; 2],
     /// Share of the box's height that is its title band. `1` is the whole
     /// box: nothing sits inside it.
     pub from_header: f32,
@@ -98,7 +103,7 @@ pub fn sides(diagram: &Diagram) -> Vec<Side> {
         .places
         .iter()
         .filter(|place| !place.name.is_empty() && !place.name.starts_with('['))
-        .map(|place| side_at(&fills, &place.name, place.rect))
+        .map(|place| side_at(&fills, &place.name, &place.name, place.rect))
         .collect();
     push_marks(
         diagram,
@@ -117,9 +122,10 @@ pub fn sides(diagram: &Diagram) -> Vec<Side> {
     out
 }
 
-fn side_at(fills: &pick::Fills, name: &str, rect: omaspec_uml::graph::Rect) -> Side {
+fn side_at(fills: &pick::Fills, name: &str, part: &str, rect: omaspec_uml::graph::Rect) -> Side {
     Side {
         name: name.to_owned(),
+        part: part.to_owned(),
         rect: Rectangle::new(Point::new(rect.x, rect.y), Size::new(rect.w, rect.h)),
         fill: fills.of(rect.x, rect.y, rect.w, rect.h),
         bend: fills.bend(rect.x, rect.y, rect.w, rect.h),
@@ -151,7 +157,7 @@ fn push_marks(
             .collect::<Vec<_>>(),
     );
     for (spot, name) in marks.iter().zip(names) {
-        out.push(side_at(fills, &name, spot.rect));
+        out.push(side_at(fills, &name, &spot.part, spot.rect));
     }
 }
 
@@ -236,6 +242,7 @@ pub fn plan_with(
             from_bend: to.bend,
             to_bend: to.bend,
             columns: Default::default(),
+            parts: [to.part.clone(), to.part.clone()],
             from_header: new_header[index],
             role: Role::Arrive,
             into: None,
@@ -302,6 +309,7 @@ fn stay(from: &Side, to: &Side, from_header: f32) -> Move {
         from_bend: from.bend,
         to_bend: to.bend,
         columns: Default::default(),
+        parts: [from.part.clone(), to.part.clone()],
         from_header,
         role: Role::Stay,
         into: None,
@@ -319,6 +327,7 @@ fn stay_move(from: &Move, to: &Side) -> Move {
         from_bend: from.from_bend,
         to_bend: to.bend,
         columns: Default::default(),
+        parts: [from.parts[0].clone(), to.part.clone()],
         from_header: from.from_header,
         role: Role::Stay,
         into: None,
@@ -373,6 +382,7 @@ fn leave(from: &Side, header: f32) -> Move {
         from_bend: from.bend,
         to_bend: from.bend,
         columns: Default::default(),
+        parts: [from.part.clone(), from.part.clone()],
         from_header: header,
         role: Role::Leave,
         into: None,
@@ -488,9 +498,10 @@ fn placed(grid: Grid, local: Rectangle, paint: &Paint<'_>) -> Placed {
 /// Where the lines of the glide go ([`super::wires`]), for the layer that
 /// draws them over the pictures: iced draws the pictures of a layer over
 /// its shapes, so they cannot share one.
-pub fn sheets(grid: Grid, local: Rectangle, paint: &Paint<'_>) -> super::wires::Sheets {
+pub fn sheets<'a>(grid: Grid, local: Rectangle, paint: &Paint<'a>) -> super::wires::Sheets<'a> {
     let placed = placed(grid, local, paint);
     super::wires::Sheets {
+        pictures: (paint.old, paint.new),
         t: placed.t,
         out: placed.out,
         inn: placed.inn,
@@ -575,13 +586,20 @@ fn paint_lines(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, old: bool
     );
 }
 
+/// Where the boxes of the picture before, or of the new one, are cut out
+/// of it. A box drawn from a part of its own is not in the picture under
+/// it (its ground), and needs no hole.
 fn box_holes(paint: &Paint<'_>, old: bool, size: Size, paper: Rectangle) -> Vec<Rectangle> {
+    let raster = if old { paint.old } else { paint.new };
     paint
         .morph
         .moves
         .iter()
         .filter_map(|step| {
             if (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave) {
+                return None;
+            }
+            if raster.part(&step.parts[usize::from(!old)]).is_some() {
                 return None;
             }
             let rect = if old { step.from } else { step.to };
@@ -672,6 +690,21 @@ fn paint_side(
     };
     let children = children(paint, index, old, placed);
     let rects: Vec<Rectangle> = children.iter().map(|child| child.rect).collect();
+    // Drawn from a part of its own, the box holds nothing of another and
+    // none of its lines' words: nothing to cut out, fill or fade.
+    // Both pictures keep to the box's own rectangle, so their rims meet.
+    if let Some((part, _)) = raster.part(&step.parts[usize::from(!old)]) {
+        let fit = sprite::fit(src, dest, natural, placed.pixel, bend, &rects);
+        let swatch = fill.map(Raster::swatch);
+        let whole = sprite::Holes {
+            children: &[],
+            columns: &[],
+            swatch: swatch.as_ref(),
+            content: alpha,
+        };
+        sprite::draw(frame, local, &part, &fit, &whole, alpha);
+        return;
+    }
     let fit = sprite::fit(src, dest, natural, placed.pixel, bend, &rects);
     let prepared = &step.columns[usize::from(!old)];
     let worked;
@@ -862,6 +895,7 @@ mod tests {
             name: name.to_owned(),
             rect: Rectangle::new(Point::new(x, y), Size::new(w, h)),
             fill: Some([0.9, 0.9, 0.9]),
+            part: name.to_owned(),
             bend: Some(pick::Bend {
                 radius: 8.0,
                 inset: 0.0,

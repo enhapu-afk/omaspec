@@ -7,6 +7,7 @@
 //! are on the GPU: iced uploads large images in the background and draws
 //! nothing meanwhile, so the paper would flash empty after every save.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
@@ -108,6 +109,8 @@ pub struct Raster {
     pub paper: Color,
     /// Keeps the pixels on the GPU while they are shown.
     _allocation: Option<Allocation>,
+    /// A sheet's parts: where each of them lies on it ([`sheet`]).
+    pub parts: Option<Arc<Cutouts>>,
 }
 
 /// How many colors [`Raster::swatch`] keeps; a picture has a few.
@@ -140,6 +143,7 @@ impl Raster {
             region: Rectangle::with_size(Size::new(4.0, 4.0)),
             paper: Color::from_rgb8(rgb[0], rgb[1], rgb[2]),
             _allocation: None,
+            parts: None,
         }
     }
 
@@ -156,6 +160,7 @@ impl Raster {
             region: Rectangle::with_size(Size::new(width as f32, height as f32)),
             paper: Color::WHITE,
             _allocation: None,
+            parts: None,
         }
     }
 
@@ -172,6 +177,7 @@ impl Raster {
             region: Rectangle::with_size(Size::new(width as f32, height as f32)),
             paper: Color::WHITE,
             _allocation: None,
+            parts: None,
         }
     }
 
@@ -235,6 +241,7 @@ pub fn halves(raster: &Raster) -> Vec<Raster> {
             region: raster.region,
             paper: raster.paper,
             _allocation: None,
+            parts: None,
         });
         last = Some(half);
         (w, h) = (nw, nh);
@@ -270,7 +277,180 @@ pub fn render(tree: &usvg::Tree, plan: Plan) -> Option<Raster> {
         handle: image::Handle::from_rgba(pixmap.width(), pixmap.height(), pixmap.take()),
         region: plan.region(),
         _allocation: None,
+        parts: None,
     })
+}
+
+/// Where each part of a picture lies on its sheet ([`sheet`]), by the
+/// part's name (docs/adr/0029).
+#[derive(Debug, Default)]
+pub struct Cutouts(pub HashMap<String, Cutout>);
+
+/// One part on a sheet.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Cutout {
+    /// Where its picture lies on the sheet, in the sheet's units.
+    pub sheet: Rectangle,
+    /// Where it is drawn in the diagram, in diagram units: as large as
+    /// `sheet`.
+    pub at: Rectangle,
+}
+
+impl Raster {
+    /// The picture of the part `name` of a sheet, as a picture of its own:
+    /// the sheet, placed so that the part lies at its place in the diagram.
+    pub fn part(&self, name: &str) -> Option<(Raster, Rectangle)> {
+        let cutout = self.parts.as_ref()?.0.get(name)?;
+        let shift = cutout.at.position() - cutout.sheet.position();
+        Some((
+            Raster {
+                region: Rectangle::new(self.region.position() + shift, self.region.size()),
+                ..self.clone()
+            },
+            cutout.at,
+        ))
+    }
+}
+
+/// Space between two parts on a sheet, in pixels, so the blur of one does
+/// not reach the next, and a glide that takes a part by its box's
+/// rectangle, a little wider than its pixels, takes nothing of another.
+const SHEET_GAP: u32 = 8;
+
+/// `ground` at `plan`, and below it each part of `full` on its own, on one
+/// sheet: one picture to rasterize and to upload for a glide that takes
+/// its parts whole (docs/adr/0029). The parts lie in rows as wide as the
+/// ground, each part's own pixels and nothing else, on clear pixels.
+pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raster> {
+    use export::tiny_skia::{Pixmap, PixmapPaint, Transform};
+    let base = export::rasterize_part(ground, plan.scale, plan.part).ok()?;
+    let scale = plan.scale;
+    let mut parts: Vec<(String, Vec<&usvg::Node>)> = Vec::new();
+    gather_parts(full.root(), &mut parts);
+    // Each part's pixels: from the pixel its left edge lies in to the one
+    // its right edge lies in, a pixel more on each side for its blur.
+    let boxes: Vec<(IntRect, &(String, Vec<&usvg::Node>))> = parts
+        .iter()
+        .filter_map(|part| {
+            let bounds = part
+                .1
+                .iter()
+                .filter_map(|node| node.abs_layer_bounding_box())
+                .reduce(|a, b| {
+                    usvg::NonZeroRect::from_ltrb(
+                        a.left().min(b.left()),
+                        a.top().min(b.top()),
+                        a.right().max(b.right()),
+                        a.bottom().max(b.bottom()),
+                    )
+                    .unwrap_or(a)
+                })?;
+            let left = (bounds.left() * scale).floor() as i32 - 1;
+            let top = (bounds.top() * scale).floor() as i32 - 1;
+            let right = (bounds.right() * scale).ceil() as i32 + 1;
+            let bottom = (bounds.bottom() * scale).ceil() as i32 + 1;
+            Some((IntRect::from_ltrb(left, top, right, bottom)?, part))
+        })
+        .collect();
+    // Shelves: a row of parts as wide as the ground, the next below it.
+    let width = base
+        .width()
+        .max(boxes.iter().map(|(b, _)| b.width()).max().unwrap_or(0));
+    let mut slots = Vec::with_capacity(boxes.len());
+    let (mut x, mut y, mut row) = (0u32, base.height() + SHEET_GAP, 0u32);
+    for (pixels, _) in &boxes {
+        if x > 0 && x + pixels.width() > width {
+            (x, y, row) = (0, y + row + SHEET_GAP, 0);
+        }
+        slots.push((x, y));
+        x += pixels.width() + SHEET_GAP;
+        row = row.max(pixels.height());
+    }
+    let height = y + row;
+    if u64::from(width) * u64::from(height) > 4 * OVERVIEW_PIXELS as u64 {
+        return None;
+    }
+    let mut pixmap = Pixmap::new(width, height)?;
+    pixmap.draw_pixmap(
+        0,
+        0,
+        base.as_ref(),
+        &PixmapPaint::default(),
+        Transform::identity(),
+        None,
+    );
+    let region = plan.region();
+    let unit = |px: f32| px / scale;
+    let mut cutouts = HashMap::with_capacity(boxes.len());
+    for ((pixels, (name, nodes)), (sx, sy)) in boxes.iter().zip(&slots) {
+        // Diagram units onto the part's slot of the sheet.
+        let onto = Transform::from_translate(*sx as f32, *sy as f32)
+            .pre_translate(-pixels.x() as f32, -pixels.y() as f32)
+            .pre_scale(scale, scale);
+        for node in nodes {
+            // resvg draws a node from where its box begins: start there.
+            let Some(bounds) = node.abs_layer_bounding_box() else {
+                continue;
+            };
+            let at = onto
+                .pre_concat(node.abs_transform())
+                .pre_translate(bounds.x(), bounds.y());
+            let _ = export::render_node(node, at, &mut pixmap.as_mut());
+        }
+        cutouts.insert(
+            name.clone(),
+            Cutout {
+                sheet: Rectangle::new(
+                    Point::new(region.x + unit(*sx as f32), region.y + unit(*sy as f32)),
+                    Size::new(unit(pixels.width() as f32), unit(pixels.height() as f32)),
+                ),
+                at: Rectangle::new(
+                    Point::new(unit(pixels.x() as f32), unit(pixels.y() as f32)),
+                    Size::new(unit(pixels.width() as f32), unit(pixels.height() as f32)),
+                ),
+            },
+        );
+    }
+    let paper = base.pixel(0, 0).map_or(Color::WHITE, |p| {
+        Color::from_rgb8(p.red(), p.green(), p.blue())
+    });
+    // The screen takes colors as they are, not multiplied by how much is
+    // seen of them: the parts' blurred edges are.
+    let rgba: Vec<u8> = pixmap
+        .pixels()
+        .iter()
+        .flat_map(|pixel| {
+            let c = pixel.demultiply();
+            [c.red(), c.green(), c.blue(), c.alpha()]
+        })
+        .collect();
+    Some(Raster {
+        handle: image::Handle::from_rgba(width, height, rgba),
+        region: Rectangle::new(
+            region.position(),
+            Size::new(unit(width as f32), unit(height as f32)),
+        ),
+        paper,
+        _allocation: None,
+        parts: Some(Arc::new(Cutouts(cutouts))),
+    })
+}
+
+/// The groups of each part of the picture under `group`, by the part's
+/// name, in the order drawn.
+fn gather_parts<'a>(group: &'a usvg::Group, parts: &mut Vec<(String, Vec<&'a usvg::Node>)>) {
+    for node in group.children() {
+        let usvg::Node::Group(inner) = node else {
+            continue;
+        };
+        match omaspec_uml::part_name(inner.id()) {
+            Some(name) => match parts.iter_mut().find(|(have, _)| *have == name) {
+                Some((_, nodes)) => nodes.push(node),
+                None => parts.push((name, vec![node])),
+            },
+            None => gather_parts(inner, parts),
+        }
+    }
 }
 
 /// Uploads the pixels to the GPU; `None` if that failed.
@@ -304,6 +484,19 @@ impl Layer {
         delay: Duration,
         done: fn(u64, Option<Raster>) -> Message,
     ) -> Task<Message> {
+        self.ask_sheet(plan, tree, None, delay, done)
+    }
+
+    /// [`Self::ask`]; with `full`, the picture whose parts `tree` is the
+    /// ground of, a [`sheet`] of the ground and the parts.
+    pub fn ask_sheet(
+        &mut self,
+        plan: Option<Plan>,
+        tree: &Arc<usvg::Tree>,
+        full: Option<&Arc<usvg::Tree>>,
+        delay: Duration,
+        done: fn(u64, Option<Raster>) -> Message,
+    ) -> Task<Message> {
         if plan == self.asked {
             return Task::none();
         }
@@ -315,13 +508,17 @@ impl Layer {
         };
         let latest = Arc::clone(&self.latest);
         let tree = Arc::clone(tree);
+        let full = full.map(Arc::clone);
         Task::perform(
             blocking(move || {
                 std::thread::sleep(delay);
                 if latest.load(Ordering::Relaxed) != seq {
                     return None;
                 }
-                render(&tree, plan)
+                match &full {
+                    Some(full) => sheet(&tree, full, plan),
+                    None => render(&tree, plan),
+                }
             }),
             Option::flatten,
         )
@@ -446,6 +643,7 @@ mod tests {
             region: Rectangle::with_size(Size::new(400.0, 200.0)),
             paper: Color::WHITE,
             _allocation: None,
+            parts: None,
         };
         let copies = halves(&picture);
         let sizes: Vec<(u32, u32)> = copies.iter().filter_map(Raster::pixels).collect();

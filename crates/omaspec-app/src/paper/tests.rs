@@ -646,6 +646,73 @@ fn a_fold_fades_and_a_zoomed_box_stays_put() {
     assert!(lines.lines[0].from.is_some() && lines.lines[0].to.is_some());
 }
 
+/// Asked for its parts, a state machine's fold glides each box, mark and
+/// line's words from a picture of its own: the pictures under the glide
+/// are sheets of their ground and their parts, and a box drawn from its
+/// part leaves no hole in the ground (docs/adr/0029).
+#[test]
+fn a_fold_glides_each_part_from_a_picture_of_its_own() {
+    let open = "@startuml\n[*] --> Idle\nIdle --> Brewing : start\nstate Brewing {\n  [*] --> Grind\n  Grind --> Pour : ground\n}\nBrewing --> Idle : done\n' parts (Omaspec)\n@enduml\n";
+    let folded = open.replace("@enduml", "' fold (Omaspec) Brewing\n@enduml");
+    let mut paper = Paper::default();
+    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    show_source(&mut paper, open, Language::PlantUml);
+    paper.deliver_overview();
+    let _ = paper.update(Message::Faded);
+    assert!(paper.diagram.as_ref().unwrap().drawn.parts);
+    paper.set_fold("Brewing", true);
+    show_source(&mut paper, &folded, Language::PlantUml);
+    paper.deliver_overview();
+    let fade = paper.fade.as_ref().expect("the fold glides");
+    let morph = fade.morph.as_ref().expect("the boxes move");
+    let (old, new) = fade.bare.as_ref().expect("both sheets");
+    for step in &morph.moves {
+        let parts = [&step.parts[0], &step.parts[1]];
+        if step.role != morph::Role::Arrive {
+            assert!(
+                old.part(parts[0]).is_some(),
+                "{} not on the old sheet",
+                parts[0]
+            );
+        }
+        if step.role != morph::Role::Leave {
+            assert!(
+                new.part(parts[1]).is_some(),
+                "{} not on the new sheet",
+                parts[1]
+            );
+        }
+    }
+    // The inner start goes, the outer one stays, each its own part.
+    let start = |name: &str| morph.moves.iter().find(|m| m.name == name).map(|m| m.role);
+    assert_eq!(start("start::0"), Some(morph::Role::Stay));
+    assert_eq!(start("start:Brewing:0"), Some(morph::Role::Leave));
+    // The words of the lines travel with them, from the sheets too.
+    let lines = fade.lines.as_ref().expect("the lines glide");
+    // The line inside Brewing goes, its words ("ground") with it; the
+    // start's line has none.
+    let going = lines.lines.iter().filter(|line| line.to.is_none());
+    assert!(
+        going
+            .filter_map(|line| line.words[0].as_deref())
+            .any(|words| old.part(words).is_some()),
+        "the words of a line that goes are on the old sheet"
+    );
+    // "start" and "done" stay, on both sheets.
+    let staying = lines
+        .lines
+        .iter()
+        .filter(|line| line.from.is_some() && line.to.is_some());
+    let kept = staying
+        .filter(|line| {
+            let [was, is] = &line.words;
+            was.as_deref().is_some_and(|w| old.part(w).is_some())
+                && is.as_deref().is_some_and(|w| new.part(w).is_some())
+        })
+        .count();
+    assert_eq!(kept, 2, "the words of the lines that stay");
+}
+
 /// The glide waits for the pictures without lines; a picture that has
 /// none, or one that could not be drawn, lets it start without them.
 #[test]
