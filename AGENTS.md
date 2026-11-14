@@ -29,7 +29,7 @@ OMASPEC_SCALE=1 cargo test --release -p omaspec-app scale -- --nocapture  # gene
 OMASPEC_FRAMES=1 cargo run --release -p omaspec-app -- FILE   # how smooth each dive, glide, play and fade is, on standard error
 OMASPEC_FRAMES=1 cargo test --release -p omaspec-app frames_ -- --nocapture  # the same, headless on the GPU at 2560x1440
 OMASPEC_DIVE_DIR=/tmp OMASPEC_DIVE_PROJECT=DIR cargo test --release -p omaspec-app snapshot_dive   # every frame of the zoom into each tile of a project's map and back
-cargo run -p omaspec-app -- render FILE    # SVG/PNG/PDF, or text (.txt: the behavior); --json for the report; OMASPEC_PLANTUML=path|none for the Java fallback
+cargo run -p omaspec-app -- render FILE    # SVG/PNG/PDF, or text (.txt: the behavior); --json for the report; --fit a PNG past 100 million pixels; OMASPEC_PLANTUML=path|none for the Java fallback
 cargo run -p omaspec-app -- render DIR/omaspec-project.toml   # the project's map, made from its diagrams (docs/adr/0026)
 cargo run -p omaspec-app -- render --check DIR   # each SVG drawn now against the one beside it; exit 1 when one differs
 cargo run -p omaspec-app -- check DIR      # lint, the machines, the links and render --check; --json, --github, --strict

@@ -471,6 +471,10 @@ enum Command {
         /// PNG pixels per diagram unit.
         #[arg(long, default_value_t = 2.0)]
         scale: f32,
+        /// A PNG or JPEG too large at that scale (more than 100 million
+        /// pixels) is drawn at the largest scale that fits, not refused.
+        #[arg(long)]
+        fit: bool,
         /// Do not store the diagram source in SVG and PNG images.
         #[arg(long)]
         no_source: bool,
@@ -831,6 +835,7 @@ fn main() -> ExitCode {
             output,
             format,
             scale,
+            fit,
             no_source,
             copy,
             look,
@@ -843,6 +848,7 @@ fn main() -> ExitCode {
             format: format.and_then(FormatChoice::image),
             text: matches!(format, Some(FormatChoice::Text)),
             scale,
+            fit,
             source: !no_source,
             copy,
             look,

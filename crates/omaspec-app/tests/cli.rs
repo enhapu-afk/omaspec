@@ -26,6 +26,60 @@ fn stdout(out: &Output) -> String {
 }
 
 #[test]
+fn render_fits_a_picture_too_large_with_fit() {
+    let dir = scratch("fit");
+    let long = dir.join("long.puml");
+    let mut source = String::from("@startuml\n");
+    for i in 1..=60 {
+        source.push_str(&format!(
+            "Alice -> Bob : message number {i} with some words\n"
+        ));
+    }
+    source.push_str("@enduml\n");
+    fs::write(&long, source).unwrap();
+    let png = dir.join("long.png");
+    let args = |fit: bool| {
+        let mut args = vec![
+            "render",
+            "--json",
+            long.to_str().unwrap(),
+            "-o",
+            png.to_str().unwrap(),
+            "--scale",
+            "16",
+        ];
+        if fit {
+            args.push("--fit");
+        }
+        args.into_iter().map(str::to_owned).collect::<Vec<_>>()
+    };
+    let refused = omaspec(&args(false).iter().map(String::as_str).collect::<Vec<_>>());
+    assert!(!refused.status.success());
+    let said = String::from_utf8_lossy(&refused.stderr);
+    assert!(said.contains("--fit"), "{said}");
+    // A debug build takes over a minute for a hundred million pixels; the
+    // release build a second (`cargo test --release`).
+    if cfg!(debug_assertions) {
+        let _ = fs::remove_dir_all(&dir);
+        return;
+    }
+    let fitted = omaspec(&args(true).iter().map(String::as_str).collect::<Vec<_>>());
+    assert!(
+        fitted.status.success(),
+        "{}",
+        String::from_utf8_lossy(&fitted.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&fitted.stdout).unwrap();
+    let scale = report[0]["fitted_scale"].as_f64().unwrap();
+    assert!(scale > 1.0 && scale < 16.0, "{scale}");
+    // The PNG's header: its width and height, within the limit.
+    let bytes = fs::read(&png).unwrap();
+    let side = |at: usize| u32::from_be_bytes(bytes[at..at + 4].try_into().unwrap());
+    assert!(u64::from(side(16)) * u64::from(side(20)) <= 100_000_000);
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn render_names_the_characters_no_font_draws() {
     let dir = scratch("undrawable");
     let flow = dir.join("flow.mmd");

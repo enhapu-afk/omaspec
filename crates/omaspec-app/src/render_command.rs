@@ -28,6 +28,8 @@ pub struct RenderArgs<'a> {
     /// Text instead of a picture ([`as_text`]); so is a `.txt` output.
     pub text: bool,
     pub scale: f32,
+    /// A picture too large at `scale` is drawn at the largest that fits.
+    pub fit: bool,
     /// Store the diagram source in SVG and PNG images.
     pub source: bool,
     pub copy: bool,
@@ -137,6 +139,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 message: Some(message),
                 same: None,
                 undrawable: Vec::new(),
+                fitted_scale: None,
             });
         } else {
             eprintln!("{}: error: {message}", input.name());
@@ -152,6 +155,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             Draw {
                 format,
                 scale: args.scale,
+                fit: args.fit,
                 source: args.source,
                 look: args.look,
             },
@@ -173,6 +177,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                         message: Some(message),
                         same: None,
                         undrawable: Vec::new(),
+                        fitted_scale: None,
                     });
                 } else {
                     let at = line.map(|l| format!(":{l}")).unwrap_or_default();
@@ -202,6 +207,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                     message: None,
                     same: None,
                     undrawable: exported.undrawable.iter().map(char::to_string).collect(),
+                    fitted_scale: exported.fitted,
                 });
             } else {
                 eprintln!(
@@ -210,6 +216,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                     format.extension().to_uppercase()
                 );
                 warn_undrawable(&input.name(), &exported.undrawable);
+                say_fitted(&input.name(), exported.fitted);
             }
             continue;
         }
@@ -238,10 +245,12 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                         message: None,
                         same: None,
                         undrawable: exported.undrawable.iter().map(char::to_string).collect(),
+                        fitted_scale: exported.fitted,
                     });
                 } else {
                     eprintln!("{} → {} ({took})", input.name(), dest.display());
                     warn_undrawable(&input.name(), &exported.undrawable);
+                    say_fitted(&input.name(), exported.fitted);
                 }
             }
             None => stdout().write_all(&bytes)?,
@@ -297,6 +306,7 @@ fn render_text(
                 message,
                 same: None,
                 undrawable: Vec::new(),
+                fitted_scale: None,
             });
         };
     for input in empty {
@@ -385,6 +395,16 @@ struct Report {
     /// box for each.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     undrawable: Vec<String>,
+    /// With `--fit`: the scale the picture was drawn at to fit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fitted_scale: Option<f32>,
+}
+
+/// Says the scale a picture was drawn at to fit, when `--fit` lowered it.
+fn say_fitted(name: &str, fitted: Option<f32>) {
+    if let Some(scale) = fitted {
+        eprintln!("{name}: drawn at scale {scale} to fit in 100 million pixels (--fit)");
+    }
 }
 
 /// Names the characters no installed font draws, and the font to install
@@ -411,6 +431,8 @@ struct Exported {
     elapsed: std::time::Duration,
     /// The characters no installed font draws, in a PNG, JPEG or PDF.
     undrawable: Vec<char>,
+    /// The scale a picture was drawn at to fit, when `--fit` lowered it.
+    fitted: Option<f32>,
 }
 
 /// How [`export_piece`] draws.
@@ -418,6 +440,8 @@ struct Exported {
 struct Draw {
     format: Format,
     scale: f32,
+    /// A picture too large at `scale` is drawn at the largest that fits.
+    fit: bool,
     source: bool,
     look: Option<crate::look::Look>,
 }
@@ -472,6 +496,7 @@ fn hold(
     let draw = Draw {
         format: Format::Svg,
         scale,
+        fit: false,
         source,
         look,
     };
@@ -593,6 +618,7 @@ fn report_of(item: &Held) -> Report {
         message: item.message.clone(),
         same: item.same,
         undrawable: Vec::new(),
+        fitted_scale: None,
     }
 }
 
@@ -656,21 +682,32 @@ fn export_piece(
         crate::specs::export_links(&rendered.links, &own, false)
     });
     let source_name = piece.source_name();
-    let bytes = export::export(
-        &rendered.svg,
-        draw.format,
-        &export::Options {
-            scale: draw.scale,
-            // A map has no source of its own: it is made from the project.
-            source: (draw.source && project.is_none()).then(|| export::Source {
-                code: &piece.code,
-                language: piece.language,
-                file: source_name.as_deref(),
-            }),
-            links: &links,
-            up,
-        },
-    )?;
+    let export_at = |scale: f32| {
+        export::export(
+            &rendered.svg,
+            draw.format,
+            &export::Options {
+                scale,
+                // A map has no source of its own: it is made from the project.
+                source: (draw.source && project.is_none()).then(|| export::Source {
+                    code: &piece.code,
+                    language: piece.language,
+                    file: source_name.as_deref(),
+                }),
+                links: &links,
+                up,
+            },
+        )
+    };
+    let (bytes, fitted) = match export_at(draw.scale) {
+        Err(export::ExportError::TooLarge {
+            fits: Some(fits), ..
+        }) if draw.fit && fits > 0.0 => (export_at(fits)?, Some(fits)),
+        Err(too_large @ export::ExportError::TooLarge { fits: Some(_), .. }) => {
+            anyhow::bail!("{too_large}; `--fit` draws it at that scale")
+        }
+        drawn => (drawn?, None),
+    };
     // A picture's words are set here, in the faces installed; an SVG's
     // are set where it is shown.
     let undrawable = match draw.format {
@@ -684,6 +721,7 @@ fn export_piece(
         engine: rendered.engine.name(),
         elapsed: rendered.elapsed,
         undrawable,
+        fitted,
     }))
 }
 
