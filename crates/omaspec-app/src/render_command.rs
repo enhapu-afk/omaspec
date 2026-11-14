@@ -136,6 +136,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 line: None,
                 message: Some(message),
                 same: None,
+                undrawable: Vec::new(),
             });
         } else {
             eprintln!("{}: error: {message}", input.name());
@@ -171,6 +172,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                         line,
                         message: Some(message),
                         same: None,
+                        undrawable: Vec::new(),
                     });
                 } else {
                     let at = line.map(|l| format!(":{l}")).unwrap_or_default();
@@ -199,6 +201,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                     line: None,
                     message: None,
                     same: None,
+                    undrawable: exported.undrawable.iter().map(char::to_string).collect(),
                 });
             } else {
                 eprintln!(
@@ -206,6 +209,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                     input.name(),
                     format.extension().to_uppercase()
                 );
+                warn_undrawable(&input.name(), &exported.undrawable);
             }
             continue;
         }
@@ -233,9 +237,11 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                         line: None,
                         message: None,
                         same: None,
+                        undrawable: exported.undrawable.iter().map(char::to_string).collect(),
                     });
                 } else {
                     eprintln!("{} → {} ({took})", input.name(), dest.display());
+                    warn_undrawable(&input.name(), &exported.undrawable);
                 }
             }
             None => stdout().write_all(&bytes)?,
@@ -290,6 +296,7 @@ fn render_text(
                 line: None,
                 message,
                 same: None,
+                undrawable: Vec::new(),
             });
         };
     for input in empty {
@@ -374,6 +381,23 @@ struct Report {
     /// now.
     #[serde(skip_serializing_if = "Option::is_none")]
     same: Option<bool>,
+    /// The characters no installed font draws: the picture shows an empty
+    /// box for each.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    undrawable: Vec<String>,
+}
+
+/// Names the characters no installed font draws, and the font to install
+/// for emoji, the usual ones.
+fn warn_undrawable(name: &str, chars: &[char]) {
+    if chars.is_empty() {
+        return;
+    }
+    let listed: Vec<String> = chars.iter().map(char::to_string).collect();
+    eprintln!(
+        "{name}: warning: no installed font draws {}; they show as empty boxes. Install a font that has them (emoji: noto-fonts-emoji)",
+        listed.join(" ")
+    );
 }
 
 fn skip_false(copied: &bool) -> bool {
@@ -385,6 +409,8 @@ struct Exported {
     bytes: Vec<u8>,
     engine: &'static str,
     elapsed: std::time::Duration,
+    /// The characters no installed font draws, in a PNG, JPEG or PDF.
+    undrawable: Vec<char>,
 }
 
 /// How [`export_piece`] draws.
@@ -566,6 +592,7 @@ fn report_of(item: &Held) -> Report {
         line: item.line,
         message: item.message.clone(),
         same: item.same,
+        undrawable: Vec::new(),
     }
 }
 
@@ -644,10 +671,19 @@ fn export_piece(
             up,
         },
     )?;
+    // A picture's words are set here, in the faces installed; an SVG's
+    // are set where it is shown.
+    let undrawable = match draw.format {
+        Format::Png | Format::Jpeg | Format::Pdf => {
+            export::undrawable(&rendered.svg).unwrap_or_default()
+        }
+        _ => Vec::new(),
+    };
     Ok(Ok(Exported {
         bytes,
         engine: rendered.engine.name(),
         elapsed: rendered.elapsed,
+        undrawable,
     }))
 }
 

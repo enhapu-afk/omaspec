@@ -26,6 +26,50 @@ fn stdout(out: &Output) -> String {
 }
 
 #[test]
+fn render_names_the_characters_no_font_draws() {
+    let dir = scratch("undrawable");
+    let flow = dir.join("flow.mmd");
+    // U+0378 is not assigned, so no font draws it.
+    fs::write(
+        &flow,
+        "flowchart LR\n  A[Unassigned \u{378} here] --> B[Plain]\n",
+    )
+    .unwrap();
+    let png = dir.join("flow.png");
+    let out = omaspec(&[
+        "render",
+        flow.to_str().unwrap(),
+        "-o",
+        png.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+    let said = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        said.contains("warning: no installed font draws \u{378}"),
+        "{said}"
+    );
+    let out = omaspec(&[
+        "render",
+        "--json",
+        flow.to_str().unwrap(),
+        "-o",
+        png.to_str().unwrap(),
+    ]);
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(report[0]["undrawable"][0], "\u{378}");
+    // An SVG's words are set where it is shown: nothing is said.
+    let svg = dir.join("flow.svg");
+    let out = omaspec(&[
+        "render",
+        flow.to_str().unwrap(),
+        "-o",
+        svg.to_str().unwrap(),
+    ]);
+    assert!(!String::from_utf8_lossy(&out.stderr).contains("warning"));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn lint_fails_on_errors_and_with_strict_on_warnings() {
     let dir = scratch("lint");
     let broken = dir.join("broken.puml");

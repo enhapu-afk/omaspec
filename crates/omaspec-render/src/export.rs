@@ -5,6 +5,8 @@
 //! as attachments, plus a title. The ZIP holds the SVG, the source file and
 //! that PDF. JPEG is the picture only.
 
+mod glyphs;
+
 use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Cursor, Write};
@@ -238,17 +240,7 @@ fn fallback(
     }
     drop(kept);
 
-    let has = |id, c| {
-        fonts
-            .with_face_data(id, |data, index| {
-                use skrifa::MetadataProvider;
-                skrifa::FontRef::from_index(data, index)
-                    .ok()
-                    .and_then(|face| face.charmap().map(c))
-                    .is_some()
-            })
-            .unwrap_or(false)
-    };
+    let has = |id, c| glyphs::face_has(fonts, id, c);
     let emoji = |face: &usvg::fontdb::FaceInfo| {
         face.families
             .iter()
@@ -344,6 +336,17 @@ fn generic_families(fonts: &mut usvg::fontdb::Database) {
 /// Parses `svg` with Omaspec's fonts and image rules.
 pub fn parse(svg: &str) -> Result<usvg::Tree, ExportError> {
     usvg::Tree::from_str(svg, &SVG_OPTIONS).map_err(|e| ExportError::Svg(e.to_string()))
+}
+
+/// The faces every export draws with.
+fn fonts() -> &'static usvg::fontdb::Database {
+    &SVG_OPTIONS.fontdb
+}
+
+/// The characters of `svg`'s words that no installed face draws, each
+/// once: a PNG, JPEG or PDF of it shows an empty box for each.
+pub fn undrawable(svg: &str) -> Result<Vec<char>, ExportError> {
+    Ok(glyphs::undrawable(&parse(svg)?, fonts()))
 }
 
 /// Rasterizes `tree` at `scale` on white paper.
