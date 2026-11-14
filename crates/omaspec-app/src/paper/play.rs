@@ -638,10 +638,7 @@ impl MachinePlay {
             .run
             .options(m)
             .into_iter()
-            .map(|t| {
-                let tr = &m.transitions[t];
-                (label(&tr.trigger), name_of(m, tr.to))
-            })
+            .map(|t| option_of(m, t))
             .collect();
         let hover = writer
             .hover
@@ -1052,6 +1049,13 @@ impl ScenarioPlay {
 /// happens without one.
 /// An option as its line says it: `event [guard] / action`, or `go on`
 /// for a line without event or guard.
+/// How the play offers the transition `t` of `m`: its label, and the
+/// state it leads to.
+pub(crate) fn option_of(m: &Machine, t: usize) -> (String, String) {
+    let tr = &m.transitions[t];
+    (label(&tr.trigger), name_of(m, tr.to))
+}
+
 fn label(trigger: &Trigger) -> String {
     let mut out = trigger.events.join(", ");
     if let Some(guard) = &trigger.guard {

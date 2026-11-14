@@ -39,9 +39,9 @@ pub struct Moving {
     pub events: Vec<String>,
     /// How many steps at most.
     pub steps: usize,
-    /// The picture's width in pixels at most; a small diagram takes less,
-    /// drawn twice its size, and the height follows the diagram.
-    pub width: u32,
+    /// The picture's width in pixels, the height following the diagram;
+    /// `None` takes twice the diagram's size, up to [`WIDEST`].
+    pub width: Option<u32>,
     pub fps: u32,
     /// The containers to fold and unfold instead of a play.
     pub folds: Vec<String>,
@@ -69,15 +69,20 @@ const LEAST_HEIGHT: f32 = 0.3;
 const MOST_HEIGHT: f32 = 1.4;
 /// Around the diagram, and below it for the bar of the play.
 const MARGIN: f32 = 40.0;
+/// How wide a picture is at most when no width is asked for.
+const WIDEST: f32 = 1200.0;
 const BAR: f32 = 90.0;
 
 /// Writes the play, or the fold; says what it wrote.
 pub fn play(args: &Moving) -> Result<String> {
     anyhow::ensure!(args.fps >= 1 && args.fps <= 50, "--fps takes 1 to 50");
     anyhow::ensure!(
-        args.width >= 200 && args.width <= 4000,
+        args.width.is_none_or(|width| (200..=4000).contains(&width)),
         "--width takes 200 to 4000"
     );
+    // An event the machine does not offer stops the play before anything
+    // is drawn, not after the frames up to it.
+    rehearse(args)?;
     // Each frame a tick later than the one before, however long drawing it
     // took: every frame is in the picture, and none waits.
     let _clock = crate::clock::Recording::start();
@@ -190,18 +195,21 @@ impl Stage {
         } else {
             shown(&mut app, key, &text, language, &file)?;
         }
-        // Twice the diagram's size up to the width asked for, the height
-        // from the diagram, with room for the bar a play has.
+        // The width asked for, else twice the diagram's size up to
+        // WIDEST; the height from the diagram, with room for the bar a play
+        // has.
         let bar = if args.folds.is_empty() && args.dives.is_empty() {
             BAR
         } else {
             0.0
         };
         let drawn = app.doc().paper.diagram_size();
-        let width = (drawn.width * 2.0 + 2.0 * MARGIN)
-            .min(args.width as f32)
-            .max(320.0)
-            .round();
+        let width = match args.width {
+            Some(width) => width as f32,
+            None => (drawn.width * 2.0 + 2.0 * MARGIN)
+                .clamp(320.0, WIDEST)
+                .round(),
+        };
         let height = (width * drawn.height / drawn.width.max(1.0) + bar)
             .clamp(width * LEAST_HEIGHT, width * MOST_HEIGHT)
             .round();
@@ -269,6 +277,7 @@ impl Stage {
         }
         self.step(moving);
         let mut taken = Vec::new();
+        let mut walked = Vec::new();
         for step in 0..args.steps {
             let Some(paper::Offer::Machine { options, ended, .. }) = self.app.doc().paper.offer()
             else {
@@ -285,30 +294,10 @@ impl Stage {
             if ended || options.is_empty() {
                 break;
             }
-            let choice = match args.events.get(step) {
-                Some(wanted) => options
-                    .iter()
-                    .position(|(label, _)| label.trim() == wanted.trim())
-                    .or_else(|| {
-                        options
-                            .iter()
-                            .position(|(label, _)| event_of(label) == wanted.trim())
-                    })
-                    .with_context(|| {
-                        format!(
-                            "step {}: {} is not offered here; the machine offers {}",
-                            step + 1,
-                            wanted,
-                            options
-                                .iter()
-                                .map(|(label, _)| label.trim())
-                                .collect::<Vec<_>>()
-                                .join(", ")
-                        )
-                    })?,
-                None if !args.events.is_empty() => break,
-                None => 0,
+            let Some(choice) = choose(&options, &args.events, step, &walked)? else {
+                break;
             };
+            walked.push(options[choice].clone());
             taken.push(options[choice].0.trim().to_owned());
             let _ = self
                 .app
@@ -441,6 +430,89 @@ impl Stage {
 
 /// The event of an option's label, without its guard and its action:
 /// `start [tank empty] / beep` offers `start`, `power on` is `power on`.
+/// The option step `step` takes: the event `--events` names there, by
+/// its label or by its event alone; without `--events`, the first way not
+/// `walked` yet, else the first, so a play does not circle while others
+/// wait. `None` ends the play: the events are all taken.
+fn choose(
+    options: &[(String, String)],
+    events: &[String],
+    step: usize,
+    walked: &[(String, String)],
+) -> Result<Option<usize>> {
+    let Some(wanted) = events.get(step) else {
+        return Ok(events.is_empty().then(|| {
+            options
+                .iter()
+                .position(|option| !walked.contains(option))
+                .unwrap_or(0)
+        }));
+    };
+    options
+        .iter()
+        .position(|(label, _)| label.trim() == wanted.trim())
+        .or_else(|| {
+            options
+                .iter()
+                .position(|(label, _)| event_of(label) == wanted.trim())
+        })
+        .map(Some)
+        .with_context(|| {
+            format!(
+                "step {}: {} is not offered here; the machine offers {}",
+                step + 1,
+                wanted,
+                options
+                    .iter()
+                    .map(|(label, _)| label.trim())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })
+}
+
+/// Walks `--events` on the state machine alone, as the play will, before
+/// anything is drawn: an event it does not offer stops it at once, with
+/// the words the play would say.
+fn rehearse(args: &Moving) -> Result<()> {
+    if args.events.is_empty() || !args.folds.is_empty() || !args.dives.is_empty() {
+        return Ok(());
+    }
+    let text = std::fs::read_to_string(&args.file)
+        .with_context(|| format!("cannot read {}", args.file.display()))?;
+    let name = args
+        .file
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let language = args
+        .forced
+        .unwrap_or_else(|| detect(&text, Language::from_file_name(&name)));
+    let Some(machine) = omaspec_model::Machine::read(&text, language) else {
+        return Ok(());
+    };
+    let Some((mut run, _)) = omaspec_model::Run::start(&machine) else {
+        return Ok(());
+    };
+    let mut walked = Vec::new();
+    for step in 0..args.steps {
+        let ways = run.options(&machine);
+        if run.ended(&machine) || ways.is_empty() {
+            break;
+        }
+        let options: Vec<(String, String)> = ways
+            .iter()
+            .map(|&way| paper::option_of(&machine, way))
+            .collect();
+        let Some(choice) = choose(&options, &args.events, step, &walked)? else {
+            break;
+        };
+        walked.push(options[choice].clone());
+        let _ = run.take(&machine, ways[choice]);
+    }
+    Ok(())
+}
+
 fn event_of(label: &str) -> &str {
     label.split(['[', '/']).next().unwrap_or(label).trim()
 }
@@ -592,7 +664,7 @@ mod tests {
                 output: output.clone(),
                 events: vec!["open".into()],
                 steps: 1,
-                width: 200,
+                width: Some(200),
                 fps: 5,
                 folds: Vec::new(),
                 dives: Vec::new(),
@@ -615,6 +687,67 @@ mod tests {
         // a second, each frame a little further on.
         assert!(frames >= 4, "{told}");
         assert!(first == second, "two recordings of one play differ");
+        // As wide as asked, though the door drawn twice would be wider.
+        assert_eq!(u16::from_le_bytes([first[6], first[7]]), 200);
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
+    #[test]
+    fn a_play_takes_a_way_not_walked_before_one_walked() {
+        let options = |labels: &[&str]| -> Vec<(String, String)> {
+            labels
+                .iter()
+                .map(|label| ((*label).to_owned(), "There".to_owned()))
+                .collect()
+        };
+        let walked = options(&["nap"]);
+        assert_eq!(
+            choose(&options(&["nap", "hungry"]), &[], 3, &walked).unwrap(),
+            Some(1)
+        );
+        // All walked: the first again.
+        assert_eq!(
+            choose(&options(&["nap"]), &[], 3, &walked).unwrap(),
+            Some(0)
+        );
+        // Events asked for: past their end the play ends.
+        let asked = vec!["nap".to_owned()];
+        assert_eq!(choose(&options(&["nap"]), &asked, 0, &[]).unwrap(), Some(0));
+        assert_eq!(choose(&options(&["nap"]), &asked, 1, &[]).unwrap(), None);
+    }
+
+    #[test]
+    fn an_event_not_offered_stops_the_play_before_it_draws() {
+        let work = std::env::temp_dir().join(format!("omaspec-rehearse-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("door.puml");
+        std::fs::write(
+            &file,
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        )
+        .unwrap();
+        let moving = |events: &[&str]| Moving {
+            file: file.clone(),
+            output: work.join("never.gif"),
+            events: events.iter().map(|e| (*e).to_owned()).collect(),
+            steps: 8,
+            width: None,
+            fps: 10,
+            folds: Vec::new(),
+            dives: Vec::new(),
+            theme: Some("built-in".into()),
+            forced: None,
+            renderer: Some("tiny-skia"),
+        };
+        rehearse(&moving(&["open", "close", "open"])).unwrap();
+        let err = rehearse(&moving(&["open", "fly"])).unwrap_err().to_string();
+        assert_eq!(
+            err,
+            "step 2: fly is not offered here; the machine offers close"
+        );
+        // The play itself says so too, and writes nothing.
+        assert!(play(&moving(&["open", "fly"])).is_err());
+        assert!(!work.join("never.gif").exists());
         let _ = std::fs::remove_dir_all(&work);
     }
 

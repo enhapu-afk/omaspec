@@ -425,8 +425,9 @@ enum Command {
         #[arg(long, default_value_t = 8)]
         steps: usize,
         /// The picture's width in pixels; its height follows the diagram.
-        #[arg(long, default_value_t = 1200)]
-        width: u32,
+        /// Without it, twice the diagram's size, up to 1200.
+        #[arg(long)]
+        width: Option<u32>,
         /// Frames per second.
         #[arg(long, default_value_t = 20)]
         fps: u32,
