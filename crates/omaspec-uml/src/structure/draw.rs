@@ -48,6 +48,10 @@ const DEPTH: f32 = 10.0;
 const STACK: f32 = 5.0;
 /// Cylinder caps and the stick figure, shared by measuring and painting.
 const CAP: f32 = 9.0;
+/// How far a cloud's scalloped edge dips into its box, and how long a bump
+/// of it is at most.
+const CLOUD_DIP: f32 = 6.0;
+const CLOUD_BUMP: f32 = 26.0;
 const ACTOR_H: f32 = 50.0;
 const ACTOR_W: f32 = 40.0;
 
@@ -1038,12 +1042,7 @@ fn name_band(node: &Placed) -> Rect {
 fn is_flat(shape: Shape) -> bool {
     !matches!(
         shape,
-        Shape::UseCase
-            | Shape::Actor
-            | Shape::Cloud
-            | Shape::Database
-            | Shape::Storage
-            | Shape::Hexagon
+        Shape::UseCase | Shape::Actor | Shape::Database | Shape::Storage | Shape::Hexagon
     )
 }
 
@@ -1555,43 +1554,50 @@ fn dog_ear(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
     );
 }
 
+/// A cloud: the box with a scalloped edge, bumps all round it whose
+/// tops touch the box and whose dips stand [`CLOUD_DIP`] inside, as
+/// PlantUML draws one, so what it holds stays clear of its edge. A cloud
+/// stretched from one outline left its words and boxes poking out of the
+/// dips.
 fn cloud_path(rect: Rect) -> String {
-    let unit = [
-        (0.20, 0.60),
-        (0.05, 0.60),
-        (0.00, 0.40),
-        (0.16, 0.32),
-        (0.12, 0.12),
-        (0.32, 0.02),
-        (0.46, 0.16),
-        (0.55, 0.02),
-        (0.78, 0.04),
-        (0.84, 0.24),
-        (1.00, 0.28),
-        (0.98, 0.55),
-        (0.80, 0.60),
-        (0.86, 0.82),
-        (0.62, 0.98),
-        (0.46, 0.80),
-        (0.34, 0.98),
-        (0.08, 0.86),
-        (0.18, 0.64),
-    ];
-    let at = |i: usize| {
-        format!(
-            "{},{}",
-            n(rect.x + unit[i].0 * rect.w),
-            n(rect.y + unit[i].1 * rect.h)
-        )
-    };
-    let mut d = format!("M{}", at(0));
-    let mut i = 1;
-    while i + 2 < unit.len() {
-        let _ = write!(d, " C{} {} {}", at(i), at(i + 1), at(i + 2));
-        i += 3;
+    let d = CLOUD_DIP.min(rect.w / 4.0).min(rect.h / 4.0);
+    let (x0, y0, x1, y1) = (
+        rect.x + d,
+        rect.y + d,
+        rect.x + rect.w - d,
+        rect.y + rect.h - d,
+    );
+    // A cubic bump reaches 3/4 of its handles' offset.
+    let reach = d / 0.75;
+    let bumps = |len: f32| ((len / CLOUD_BUMP).round() as usize).max(2);
+    let corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)];
+    // Outward along each side: up, right, down, left.
+    let outward = [(0.0, -1.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0)];
+    let mut d_path = format!("M{},{}", n(x0), n(y0));
+    for side in 0..4 {
+        let (from, to) = (corners[side], corners[(side + 1) % 4]);
+        let (ox, oy) = (outward[side].0 * reach, outward[side].1 * reach);
+        let count = bumps((to.0 - from.0).abs() + (to.1 - from.1).abs());
+        for k in 0..count {
+            let at = |t: f32| (from.0 + (to.0 - from.0) * t, from.1 + (to.1 - from.1) * t);
+            let (a, b) = (
+                at(k as f32 / count as f32),
+                at((k + 1) as f32 / count as f32),
+            );
+            let _ = write!(
+                d_path,
+                " C{},{} {},{} {},{}",
+                n(a.0 + ox),
+                n(a.1 + oy),
+                n(b.0 + ox),
+                n(b.1 + oy),
+                n(b.0),
+                n(b.1)
+            );
+        }
     }
-    d.push('Z');
-    d
+    d_path.push('Z');
+    d_path
 }
 
 fn hexagon(rect: Rect) -> [(f32, f32); 6] {
@@ -2114,6 +2120,46 @@ fn on_border(frame: Rect, rect: Rect) -> bool {
 mod tests {
     use super::super::parse::parse;
     use super::*;
+
+    #[test]
+    fn a_cloud_keeps_to_the_edge_of_its_box() {
+        let rect = Rect {
+            x: 10.0,
+            y: 20.0,
+            w: 240.0,
+            h: 150.0,
+        };
+        let path = cloud_path(rect);
+        let numbers: Vec<f32> = path
+            .split(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-'))
+            .filter_map(|part| part.parse().ok())
+            .collect();
+        assert!(numbers.len() > 40, "{path}");
+        for pair in numbers.chunks(2) {
+            let (x, y) = (pair[0], pair[1]);
+            // Handles reach past the box by a third of the dip; the curve
+            // itself, three quarters of the way, stays on the box's edge.
+            let out = CLOUD_DIP / 0.75 - CLOUD_DIP;
+            assert!(
+                x >= rect.x - out - 0.01 && x <= rect.x + rect.w + out + 0.01,
+                "{x}"
+            );
+            assert!(
+                y >= rect.y - out - 0.01 && y <= rect.y + rect.h + out + 0.01,
+                "{y}"
+            );
+        }
+        // Where two bumps meet, each curve's end, the edge dips CLOUD_DIP
+        // in from the nearest side, no deeper.
+        for end in numbers.chunks(2).skip(3).step_by(3) {
+            let (x, y) = (end[0], end[1]);
+            let nearest = (x - rect.x)
+                .min(rect.x + rect.w - x)
+                .min(y - rect.y)
+                .min(rect.y + rect.h - y);
+            assert!((nearest - CLOUD_DIP).abs() < 0.01, "({x}, {y}): {nearest}");
+        }
+    }
 
     fn scene_of(source: &str) -> Scene {
         let (_, lines) = crate::source::body(source).unwrap();
