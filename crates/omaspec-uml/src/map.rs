@@ -57,6 +57,9 @@ pub struct Wire {
     /// The layout alone lays it: a link of a mind map or a WBS, which a
     /// pane glides with its boxes and no writer shapes by hand.
     pub fixed: bool,
+    /// The part its words are drawn in (docs/adr/0029), where its drawer
+    /// marks them.
+    pub words: Option<String>,
 }
 
 /// A mark at the end of a line: an arrowhead, a triangle, a diamond, a
@@ -178,6 +181,9 @@ pub struct Spot {
     pub rect: Rect,
     /// How round its corners are: a circle's radius for a start or an end.
     pub radius: f32,
+    /// The part it is drawn in (docs/adr/0029): a state's key, a mark's
+    /// place in the diagram's tree.
+    pub part: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

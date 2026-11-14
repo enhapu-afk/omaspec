@@ -224,6 +224,7 @@ fn wire(
         stroke,
         heads: Vec::new(),
         fixed: true,
+        words: None,
     })
 }
 

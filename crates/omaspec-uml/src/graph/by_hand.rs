@@ -215,6 +215,8 @@ fn end(place: &Placement) -> hand::End {
 pub struct Dress {
     pub stroke: Stroke,
     pub heads: Vec<Head>,
+    /// The part its words are drawn in, where the drawer marks them.
+    pub words: Option<String>,
 }
 
 /// Every line drawn, as a [`Wire`] for the map; `drawn` turns a line's
@@ -239,7 +241,11 @@ pub fn wires(
             }
             let hand = hands.iter().find(|(_, line)| line.key == *key);
             let drawn = drawn(points);
-            let Dress { stroke, heads } = dress(&arrow.path, arrow.slot, &drawn);
+            let Dress {
+                stroke,
+                heads,
+                words,
+            } = dress(&arrow.path, arrow.slot, &drawn);
             Some(Wire {
                 key: key.clone(),
                 line: arrow.line,
@@ -253,6 +259,7 @@ pub fn wires(
                 stroke,
                 heads,
                 fixed: false,
+                words,
             })
         })
         .collect()

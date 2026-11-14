@@ -396,6 +396,7 @@ pub(super) fn wires(
                 })
                 .into_iter()
                 .collect(),
+            words: Some(super::words_part(path, slot)),
         },
     )
 }

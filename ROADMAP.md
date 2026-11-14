@@ -2817,6 +2817,35 @@ the ordering of the ranks grew far faster than the lines.
       under a second; CI runs it in a release build. 100 boxes: 7.3 s
       to 0.19 s; 150: 53 s to 0.44 s.
 
+### A glide that knows its parts (2026-11-14)
+
+The glide of a fold or an edit took its boxes by cutting them out of the
+picture and guessed what belongs to which box; two reviews found fifteen
+wrong guesses each. Before the presenting below builds on it, in this
+order ([0029](docs/adr/0029-a-glide-by-parts.md)):
+
+- [x] The engine marks the parts it draws, for the pane only: each box, mark
+      and line's words in a group of its own; state diagrams of both
+      languages first (2026-11-14). `' parts (Omaspec)` after the diagram
+      (`%%` in Mermaid) asks for them; the canvas puts what a part draws on
+      each layer into `<g id="part-…">`, its name in hex, a link inside it;
+      the map's `Spot::part` and `Wire::words` name the same parts;
+      `without_parts` leaves the ground. Without the line nothing changes,
+      the golden SVGs neither.
+- [ ] The pane draws each part as a picture of its own and glides it; a
+      line's words travel with the line. The ground is the picture without
+      lines and parts.
+- [ ] Structure, flowcharts and trees mark their parts too; then the
+      cutting goes, with its box test, columns, swatches and the faded
+      inside of a folding container.
+- [ ] Fade and glide as one small state machine instead of a dozen flags,
+      written as a diagram of its own and checked by Omaspec.
+- [ ] One way for the window and a recording to take their pictures: the
+      recording runs the window's tasks, at once.
+- [ ] The files of `paper/` under 1,000 lines each; the glide's promises as
+      tests: the first frame is the old picture, the last the new one,
+      nothing lands outside a box, each pixel is drawn once.
+
 ### Presenting, animating, and diagrams only Omaspec draws (2026-11-13)
 
 Wished for after 0.9.6: a diagram that is shown to others, not only read,

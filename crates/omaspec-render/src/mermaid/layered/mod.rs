@@ -113,6 +113,7 @@ pub fn try_draw(
                 return Dress {
                     stroke: Stroke::new(omaspec_uml::Color::BLACK, 1.0),
                     heads: Vec::new(),
+                    words: None,
                 };
             };
             let (start, end) = edge.look.caps;
@@ -121,6 +122,7 @@ pub fn try_draw(
             Dress {
                 stroke: edge.look.stroke,
                 heads,
+                words: None,
             }
         },
     );

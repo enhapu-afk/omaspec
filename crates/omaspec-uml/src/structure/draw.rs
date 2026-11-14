@@ -1991,6 +1991,7 @@ fn dress(scene: &Scene, path: &[usize], slot: usize, drawn: &[(f32, f32)], stric
     }
     let Some(edge) = here.edges.get(slot).filter(|_| drawn.len() >= 2) else {
         return Dress {
+            words: None,
             stroke: Stroke::new(Color::BLACK, 1.0),
             heads: Vec::new(),
         };
@@ -2001,6 +2002,7 @@ fn dress(scene: &Scene, path: &[usize], slot: usize, drawn: &[(f32, f32)], stric
         head_shape(drawn[last], drawn[last - 1], edge.look.to_head, strict),
     ];
     Dress {
+        words: None,
         stroke: edge.look.stroke,
         heads: heads.into_iter().flatten().collect(),
     }

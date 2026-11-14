@@ -64,6 +64,9 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
+    if diagram.frame.parts {
+        canvas.mark_parts();
+    }
     let family = canvas.family();
     let annotations = Annotations::new(
         &diagram.frame,
@@ -88,6 +91,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         &scene,
         None,
         (skin.round, skin.curve),
+        &mut Vec::new(),
         &mut map,
     );
     map.wires = wires(
@@ -118,9 +122,37 @@ fn chart(
     scene: &Scene,
     parent: Option<&str>,
     (round, curve): (f32, f32),
+    path: &mut Vec<usize>,
     map: &mut Map,
 ) {
-    for (node, placed) in container.nodes.iter().zip(&scene.nodes) {
+    for (index, (node, placed)) in container.nodes.iter().zip(&scene.nodes).enumerate() {
+        path.push(index);
+        chart_node(node, placed, parent, (round, curve), path, map);
+        path.pop();
+    }
+    let arrows = container
+        .edges
+        .iter()
+        .chain(container.crossings.iter().map(|c| &c.arrow));
+    for (arrow, edge) in arrows.zip(&scene.edges) {
+        map.transitions.push(Route {
+            line: arrow.line,
+            points: drawn_route(&edge.points, curve),
+        });
+    }
+}
+
+/// Puts the state `node`, placed as `placed` at `path` in the scene's
+/// tree, on `map`, and what it holds.
+fn chart_node(
+    node: &super::Node,
+    placed: &Placed,
+    parent: Option<&str>,
+    (round, curve): (f32, f32),
+    path: &mut Vec<usize>,
+    map: &mut Map,
+) {
+    {
         let shape = match node.kind {
             Kind::State => Shape::State,
             Kind::Start => Shape::Start,
@@ -134,9 +166,10 @@ fn chart(
                     &placed.children,
                     parent,
                     (round, curve),
+                    path,
                     map,
                 );
-                continue;
+                return;
             }
         };
         let rect = placed.rect;
@@ -153,25 +186,40 @@ fn chart(
             parent: parent.map(str::to_owned),
             rect,
             radius,
+            part: part_of(&node.key, path),
         });
         chart(
             &node.children,
             &placed.children,
             Some(&node.key),
             (round, curve),
+            path,
             map,
         );
     }
-    let arrows = container
-        .edges
-        .iter()
-        .chain(container.crossings.iter().map(|c| &c.arrow));
-    for (arrow, edge) in arrows.zip(&scene.edges) {
-        map.transitions.push(Route {
-            line: arrow.line,
-            points: drawn_route(&edge.points, curve),
-        });
+}
+
+/// The part a state is drawn in (docs/adr/0029): its key, or for a mark,
+/// which has none, its place in the scene's tree.
+fn part_of(key: &str, path: &[usize]) -> String {
+    if key.is_empty() {
+        format!("mark:{}", path_name(path))
+    } else {
+        key.to_owned()
     }
+}
+
+/// The part the words of the line at `slot` of the container at `path`
+/// are drawn in.
+pub(super) fn words_part(path: &[usize], slot: usize) -> String {
+    format!("words:{}:{slot}", path_name(path))
+}
+
+fn path_name(path: &[usize]) -> String {
+    path.iter()
+        .map(usize::to_string)
+        .collect::<Vec<_>>()
+        .join(".")
 }
 
 /// One container after layout ([`graph::open::Scene`]); a transition keeps its
@@ -801,30 +849,36 @@ fn stack_height(title: &Block, description: &[Block]) -> f32 {
 }
 
 fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
-    paint_shapes(canvas, skin, scene);
+    paint_shapes(canvas, skin, scene, &mut Vec::new());
     paint_edges(canvas, scene, skin.curve);
     paint_notes(canvas, skin, scene);
-    paint_labels(canvas, scene);
+    paint_labels(canvas, scene, &mut Vec::new());
     paint_heads(canvas, skin, scene);
 }
 
-fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
-    for node in &scene.nodes {
-        canvas.named(&node.item.name, |canvas| {
-            paint_shape(canvas, skin, node);
-            if node.item.composite {
-                paint_divider(canvas, node);
-                for (a, b) in separators(node) {
-                    let mut stroke =
-                        Stroke::new(node.item.border.color, node.item.border.width.max(0.5));
-                    stroke.dash = Some((5.0, 4.0));
-                    canvas.line(Layer::Frames, a, b, stroke);
+/// Each state's shape, in its part; `path` is where `scene` is in the
+/// tree.
+fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        canvas.part(&part_of(&node.item.name, path), |canvas| {
+            canvas.named(&node.item.name, |canvas| {
+                paint_shape(canvas, skin, node);
+                if node.item.composite {
+                    paint_divider(canvas, node);
+                    for (a, b) in separators(node) {
+                        let mut stroke =
+                            Stroke::new(node.item.border.color, node.item.border.width.max(0.5));
+                        stroke.dash = Some((5.0, 4.0));
+                        canvas.line(Layer::Frames, a, b, stroke);
+                    }
                 }
-            }
+            });
         });
         if node.item.composite {
-            paint_shapes(canvas, skin, &node.children);
+            paint_shapes(canvas, skin, &node.children, path);
         }
+        path.pop();
     }
 }
 
@@ -990,15 +1044,23 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
     );
 }
 
-fn paint_labels(canvas: &mut Canvas, scene: &Scene) {
-    for node in &scene.nodes {
-        canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
-            paint_words(canvas, node);
+/// Each state's words in its part, and each line's in a part of their
+/// own; `path` is where `scene` is in the tree.
+fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>) {
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        canvas.part(&part_of(&node.item.name, path), |canvas| {
+            canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
+                paint_words(canvas, node);
+            });
         });
-        paint_labels(canvas, &node.children);
+        paint_labels(canvas, &node.children, path);
+        path.pop();
     }
-    for edge in &scene.edges {
-        canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
+    for (slot, edge) in scene.edges.iter().enumerate() {
+        canvas.part(&words_part(path, slot), |canvas| {
+            canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
+        });
     }
     for note in &scene.notes {
         canvas.text(
@@ -1144,6 +1206,54 @@ mod tests {
         let canvas = Canvas::new(&skin.font_name, false);
         let scene = layout_container(&diagram.root, &skin, canvas.family()).unwrap();
         (diagram.root, scene)
+    }
+
+    /// Asked for its parts, a state diagram draws each state, each mark
+    /// and each line's words in groups of their own, named as its map
+    /// names them; a composite state's groups hold nothing of the states
+    /// in it.
+    #[test]
+    fn the_pane_s_parts_are_named_as_the_map_names_them() {
+        let source = "@startuml\n[*] --> Off\nOff --> Brewing : start\nstate Brewing {\n  [*] --> Grinding\n  Grinding --> Pouring : ground\n  Pouring --> [*]\n}\nBrewing --> Off : done\n' parts (Omaspec)\n@enduml\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        let ids: Vec<&str> = svg
+            .match_indices(r#"<g id="part-"#)
+            .map(|(at, _)| {
+                let id = &svg[at + 7..];
+                &id[..id.find('"').unwrap()]
+            })
+            .collect();
+        let named: std::collections::HashSet<String> =
+            ids.iter().filter_map(|id| crate::part_name(id)).collect();
+        for spot in &map.states {
+            assert!(
+                named.contains(&spot.part),
+                "{} not drawn: {named:?}",
+                spot.part
+            );
+        }
+        for wire in map.wires.iter().filter(|w| !w.labels.is_empty()) {
+            let words = wire.words.as_ref().unwrap();
+            assert!(named.contains(words), "{words} not drawn: {named:?}");
+        }
+        assert!(
+            named.contains("mark:0") && named.contains("mark:2.0"),
+            "{named:?}"
+        );
+        // Brewing's groups: its frame, its divider and its title only.
+        for id in ids
+            .iter()
+            .filter(|id| crate::part_name(id).as_deref() == Some("Brewing"))
+        {
+            let at = svg.find(&format!(r#"id="{id}""#)).unwrap();
+            let group = &svg[at..];
+            let group = &group[..group.find("</g>").unwrap()];
+            assert!(group.matches("<rect").count() <= 1, "{group}");
+            assert!(!group.contains("Grinding"), "{group}");
+        }
+        // Without the line, the same picture has none.
+        let plain = crate::render(&source.replace("' parts (Omaspec)\n", "")).unwrap();
+        assert!(!plain.contains("part-"));
     }
 
     /// A state that holds others is a frame: its fill steps toward the

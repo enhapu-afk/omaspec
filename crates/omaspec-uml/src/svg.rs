@@ -29,6 +29,11 @@ const LAYERS: usize = 6;
 /// The id of the group that holds the [`Layer::Lines`].
 pub const LINES: &str = "lines";
 
+/// What the id of a group of a part starts with: a box, a mark or a
+/// line's words, drawn so the pane can glide it on its own
+/// ([`Canvas::part`], docs/adr/0029).
+pub const PART: &str = "part-";
+
 /// The id of the group that holds a chart's grid: lines that only guide
 /// the eye, drawn faint on purpose, as PlantUML draws them. A check of
 /// how well a picture reads leaves them out.
@@ -90,6 +95,14 @@ pub struct Canvas {
     shadows: bool,
     /// The shadows of each layer's shapes, drawn under that layer.
     shades: [String; LAYERS],
+    /// The parts are marked ([`Self::mark_parts`]).
+    marks_parts: bool,
+    /// The part being drawn: what its groups' ids start with.
+    part: Option<String>,
+    /// For each layer, the part whose group is open there.
+    open: [Option<String>; LAYERS],
+    /// How many groups of parts were opened, to keep their ids apart.
+    groups: usize,
 }
 
 /// How far a shadow lies to the right of its shape and below it.
@@ -133,7 +146,48 @@ impl Canvas {
             sketch: None,
             shadows: false,
             shades: Default::default(),
+            marks_parts: false,
+            part: None,
+            open: Default::default(),
+            groups: 0,
         }
+    }
+
+    /// Marks the parts drawn from here on ([`Self::part`]), for the pane.
+    pub fn mark_parts(&mut self) {
+        self.marks_parts = true;
+    }
+
+    /// Draws with `paint` the part called `name`: a box, a mark or a line's
+    /// words. When the parts are marked, what it draws on each layer lies
+    /// in a group of that part, `<g id="part-…">`, its name in hex
+    /// ([`part_name`]); a part drawn within it is a part of its own. A
+    /// link is opened within the part, not around it.
+    pub fn part<T>(&mut self, name: &str, paint: impl FnOnce(&mut Canvas) -> T) -> T {
+        if !self.marks_parts {
+            return paint(self);
+        }
+        let before = self.part.replace(part_id(name));
+        let painted = paint(self);
+        self.part = before;
+        painted
+    }
+
+    /// What is drawn on `layer`, within the group of the part being drawn:
+    /// the group of another part closes, this part's opens.
+    fn at(&mut self, layer: Layer) -> &mut String {
+        let index = layer as usize;
+        if self.open[index] != self.part {
+            if self.open[index].take().is_some() {
+                self.layers[index].push_str("</g>");
+            }
+            if let Some(part) = &self.part {
+                self.groups += 1;
+                let _ = write!(self.layers[index], r#"<g id="{part}-{}">"#, self.groups);
+                self.open[index] = Some(part.clone());
+            }
+        }
+        &mut self.layers[index]
     }
 
     /// Lets every box drawn from here on cast a shadow when `on`, as
@@ -240,7 +294,7 @@ impl Canvas {
         if fill.is_some() {
             let d = hand.fill(outlines);
             let paint = self.paint(fill, None);
-            let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
+            let _ = write!(self.at(layer), r#"<path d="{d}"{paint}/>"#);
         }
         let d = hand.stroke(outlines, stroke.dash.is_none());
         self.stroke_by_hand(layer, &d, stroke);
@@ -249,7 +303,7 @@ impl Canvas {
     fn stroke_by_hand(&mut self, layer: Layer, d: &str, stroke: Stroke) {
         let paint = self.paint(None, Some(stroke));
         let _ = write!(
-            self.layers[layer as usize],
+            self.at(layer),
             r#"<path d="{d}"{paint} stroke-linecap="round" stroke-linejoin="round"/>"#
         );
     }
@@ -346,7 +400,7 @@ impl Canvas {
             } else {
                 let d = hand.fill(&[outline]);
                 let paint = self.paint(fill, None);
-                let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
+                let _ = write!(self.at(layer), r#"<path d="{d}"{paint}/>"#);
             }
             return;
         }
@@ -364,17 +418,17 @@ impl Canvas {
             n(h.max(0.0))
         );
         self.shade(layer, &shape, (w, h), fill, stroke.is_some());
-        let _ = write!(self.layers[layer as usize], "{shape}{paint}/>");
+        let _ = write!(self.at(layer), "{shape}{paint}/>");
     }
 
     /// What is drawn into `layer` until [`Self::end_group`] lies in a group
     /// with the id `id`, as the lines of a chart's [`GRID`].
     pub fn begin_group(&mut self, layer: Layer, id: &str) {
-        let _ = write!(self.layers[layer as usize], r#"<g id="{id}">"#);
+        let _ = write!(self.at(layer), r#"<g id="{id}">"#);
     }
 
     pub fn end_group(&mut self, layer: Layer) {
-        self.layers[layer as usize].push_str("</g>");
+        self.at(layer).push_str("</g>");
     }
 
     /// Draws with `paint`; with a `link`, what it draws into each of
@@ -390,11 +444,11 @@ impl Canvas {
             return paint(self);
         };
         for &layer in layers {
-            open_link(&mut self.layers[layer as usize], link);
+            open_link(self.at(layer), link);
         }
         let painted = paint(self);
         for &layer in layers {
-            self.layers[layer as usize].push_str("</a>");
+            self.at(layer).push_str("</a>");
         }
         painted
     }
@@ -417,7 +471,7 @@ impl Canvas {
         }
         let paint = self.paint(None, Some(stroke));
         let _ = write!(
-            self.layers[layer as usize],
+            self.at(layer),
             r#"<line x1="{}" y1="{}" x2="{}" y2="{}"{paint}/>"#,
             n(x1),
             n(y1),
@@ -459,7 +513,7 @@ impl Canvas {
             .collect();
         let shape = format!(r#"<polygon points="{}""#, points.join(" "));
         self.shade(layer, &shape, size, fill, stroke.is_some());
-        let _ = write!(self.layers[layer as usize], "{shape}{paint}/>");
+        let _ = write!(self.at(layer), "{shape}{paint}/>");
     }
 
     pub fn polyline(&mut self, layer: Layer, points: &[(f32, f32)], stroke: Stroke) {
@@ -478,7 +532,7 @@ impl Canvas {
             .map(|&(x, y)| format!("{},{}", n(x), n(y)))
             .collect();
         let _ = write!(
-            self.layers[layer as usize],
+            self.at(layer),
             r#"<polyline points="{}"{paint}/>"#,
             points.join(" ")
         );
@@ -504,7 +558,7 @@ impl Canvas {
             return;
         }
         let paint = self.paint(None, Some(stroke));
-        let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
+        let _ = write!(self.at(layer), r#"<path d="{d}"{paint}/>"#);
     }
 
     /// A path filled with `color` let through to what lies under it by
@@ -519,10 +573,10 @@ impl Canvas {
     ) {
         self.grow(bounds.0, bounds.1);
         self.grow(bounds.2, bounds.3);
+        let color = self.color(color);
         let _ = write!(
-            self.layers[layer as usize],
-            r#"<path d="{d}" fill="{}" fill-opacity="{}"/>"#,
-            self.color(color),
+            self.at(layer),
+            r#"<path d="{d}" fill="{color}" fill-opacity="{}"/>"#,
             n(opacity.clamp(0.0, 1.0))
         );
     }
@@ -555,7 +609,7 @@ impl Canvas {
         let shape = format!(r#"<path d="{d}""#);
         let size = (bounds.2 - bounds.0, bounds.3 - bounds.1);
         self.shade(layer, &shape, size, fill, stroke.is_some());
-        let _ = write!(self.layers[layer as usize], "{shape}{paint}/>");
+        let _ = write!(self.at(layer), "{shape}{paint}/>");
     }
 
     pub fn ellipse(
@@ -573,7 +627,7 @@ impl Canvas {
             if fill.is_some() {
                 let d = hand.ellipse_fill((cx, cy), (rx, ry));
                 let paint = self.paint(fill, None);
-                let _ = write!(self.layers[layer as usize], r#"<path d="{d}"{paint}/>"#);
+                let _ = write!(self.at(layer), r#"<path d="{d}"{paint}/>"#);
             }
             if let Some(stroke) = stroke {
                 let d = hand.ellipse_stroke((cx, cy), (rx, ry));
@@ -590,7 +644,7 @@ impl Canvas {
             n(ry)
         );
         self.shade(layer, &shape, (2.0 * rx, 2.0 * ry), fill, stroke.is_some());
-        let _ = write!(self.layers[layer as usize], "{shape}{paint}/>");
+        let _ = write!(self.at(layer), "{shape}{paint}/>");
     }
 
     /// `block` with its top at `y`; `x` is its left edge, middle or right
@@ -645,7 +699,7 @@ impl Canvas {
             self.icon(&mut out, &icon, (x, baseline), color);
             out.push_str("</g>");
         }
-        self.layers[layer as usize].push_str(&out);
+        self.at(layer).push_str(&out);
     }
 
     /// `icon` with its left edge at `x`, standing on `baseline`, in
@@ -891,7 +945,13 @@ impl Canvas {
             );
         }
         let _ = write!(out, r#"<g transform="translate({},{})">"#, n(dx), n(dy));
-        for (index, layer) in self.layers.iter().enumerate() {
+        let mut layers = self.layers;
+        for (layer, open) in layers.iter_mut().zip(&self.open) {
+            if open.is_some() {
+                layer.push_str("</g>");
+            }
+        }
+        for (index, layer) in layers.iter().enumerate() {
             // One group, so shadows that overlap are no darker there.
             let shade = &self.shades[index];
             if !shade.is_empty() {
@@ -1067,20 +1127,60 @@ fn arrow_path(arrow: char, x: f32, baseline: f32, width: f32, size: f32) -> Stri
 pub fn without_lines(svg: &str) -> Option<String> {
     let open = format!(r#"<g id="{LINES}">"#);
     let start = svg.find(&open)?;
-    let mut depth = 0usize;
-    let mut at = start;
-    let rest = &svg[start..];
+    let end = start + group_length(&svg[start..])?;
+    Some(format!("{}{}", &svg[..start], &svg[end..]))
+}
+
+/// `svg` without the groups of its parts ([`Canvas::part`]): its ground,
+/// what a glide draws under the parts it glides. None when it has none.
+pub fn without_parts(svg: &str) -> Option<String> {
+    let open = format!(r#"<g id="{PART}"#);
+    let mut out = String::with_capacity(svg.len());
+    let mut rest = svg;
+    let mut found = false;
+    while let Some(start) = rest.find(&open) {
+        let length = group_length(&rest[start..])?;
+        out.push_str(&rest[..start]);
+        rest = &rest[start + length..];
+        found = true;
+    }
+    out.push_str(rest);
+    found.then_some(out)
+}
+
+/// The name of the part whose group has the id `id`, if it is one.
+pub fn part_name(id: &str) -> Option<String> {
+    let hex = id.strip_prefix(PART)?.rsplit_once('-')?.0;
+    let bytes = (0..hex.len())
+        .step_by(2)
+        .map(|at| u8::from_str_radix(hex.get(at..at + 2)?, 16).ok())
+        .collect::<Option<Vec<u8>>>()?;
+    String::from_utf8(bytes).ok()
+}
+
+/// What the ids of the groups of the part `name` start with.
+fn part_id(name: &str) -> String {
+    let mut id = String::with_capacity(PART.len() + name.len() * 2);
+    id.push_str(PART);
+    for byte in name.bytes() {
+        let _ = write!(id, "{byte:02x}");
+    }
+    id
+}
+
+/// How long the group that `svg` starts with is, through its `</g>`.
+fn group_length(svg: &str) -> Option<usize> {
     // Groups open and close in pairs; the one that brings the depth back
-    // to zero closes the layer.
+    // to zero closes it.
+    let mut depth = 0usize;
     let mut index = 0;
-    while index < rest.len() {
-        let here = &rest[index..];
+    while index < svg.len() {
+        let here = &svg[index..];
         if here.starts_with("</g>") {
-            depth -= 1;
+            depth = depth.checked_sub(1)?;
             index += "</g>".len();
             if depth == 0 {
-                at = start + index;
-                break;
+                return Some(index);
             }
         } else if here.starts_with("<g>") || here.starts_with("<g ") {
             depth += 1;
@@ -1089,7 +1189,7 @@ pub fn without_lines(svg: &str) -> Option<String> {
             index += here.chars().next().map_or(1, char::len_utf8);
         }
     }
-    (at > start).then(|| format!("{}{}", &svg[..start], &svg[at..]))
+    None
 }
 
 /// A number with at most two decimals, without trailing zeros.
@@ -1137,6 +1237,98 @@ fn rim(fill: Color) -> Color {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// What a canvas draws for each part lies in groups of that part, on
+    /// each layer, balanced with the links and groups inside them; the
+    /// ground is the rest.
+    #[test]
+    fn parts_are_groups_of_their_own_on_every_layer() {
+        let mut canvas = Canvas::new("sans-serif", false);
+        canvas.mark_parts();
+        let ink = Stroke::new(Color::BLACK, 1.0);
+        canvas.rect(
+            Layer::Background,
+            (0.0, 0.0, 5.0, 5.0),
+            0.0,
+            None,
+            Some(ink),
+        );
+        canvas.part("Brewing", |canvas| {
+            canvas.rect(
+                Layer::Frames,
+                (10.0, 10.0, 80.0, 60.0),
+                8.0,
+                None,
+                Some(ink),
+            );
+            canvas.part("Grinding", |canvas| {
+                canvas.rect(
+                    Layer::Frames,
+                    (20.0, 30.0, 30.0, 20.0),
+                    8.0,
+                    None,
+                    Some(ink),
+                );
+            });
+            let link = Link {
+                url: "next.puml".into(),
+                tooltip: None,
+            };
+            canvas.linked(Some(&link), &[Layer::Front], |canvas| {
+                canvas.line(Layer::Front, (10.0, 20.0), (90.0, 20.0), ink);
+            });
+        });
+        canvas.part("mark:0.1", |canvas| {
+            canvas.line(Layer::Front, (0.0, 0.0), (1.0, 1.0), ink);
+        });
+        let svg = canvas.finish(4.0, None);
+        assert_eq!(
+            svg.matches("<g").count(),
+            svg.matches("</g>").count(),
+            "{svg}"
+        );
+        assert_eq!(
+            svg.matches("<a ").count(),
+            svg.matches("</a>").count(),
+            "{svg}"
+        );
+        let named: Vec<String> = svg
+            .match_indices(r#"<g id=""#)
+            .filter_map(|(at, open)| {
+                let id = &svg[at + open.len()..];
+                part_name(&id[..id.find('"')?])
+            })
+            .collect();
+        assert_eq!(named, ["Brewing", "Grinding", "Brewing", "mark:0.1"]);
+        // Brewing's group of its frame holds its own box, not Grinding's.
+        let brewing = &svg[svg.find(&part_id("Brewing")).unwrap()..];
+        let brewing = &brewing[..brewing.find("</g>").unwrap()];
+        assert_eq!(brewing.matches("<rect").count(), 1, "{brewing}");
+        // The ground keeps what no part drew.
+        let ground = without_parts(&svg).unwrap();
+        assert!(!ground.contains(PART), "{ground}");
+        assert_eq!(ground.matches("<rect").count(), 1, "{ground}");
+        // Unmarked, the same drawing has no groups of parts.
+        let mut plain = Canvas::new("sans-serif", false);
+        plain.part("Brewing", |canvas| {
+            canvas.rect(
+                Layer::Frames,
+                (10.0, 10.0, 80.0, 60.0),
+                8.0,
+                None,
+                Some(ink),
+            );
+        });
+        assert!(!plain.finish(4.0, None).contains(PART));
+    }
+
+    #[test]
+    fn a_part_s_name_is_read_back_from_its_group() {
+        let id = format!("{}-7", part_id("Ready → Brewing"));
+        assert_eq!(part_name(&id).as_deref(), Some("Ready → Brewing"));
+        assert_eq!(part_name("lines"), None);
+        assert_eq!(part_name("part-zz-1"), None);
+    }
     use crate::text::{Font, block};
 
     #[test]

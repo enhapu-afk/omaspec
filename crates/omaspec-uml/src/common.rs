@@ -150,6 +150,9 @@ pub struct Frame {
     /// Entries of held boxes that name no box, or two in different
     /// containers: by line, and why.
     pub unplaced: Vec<(usize, String)>,
+    /// The pane asked for the parts of the picture marked
+    /// ([`crate::fold::parts`], docs/adr/0029).
+    pub parts: bool,
 }
 
 /// The places a style gives the frame's texts in its width.

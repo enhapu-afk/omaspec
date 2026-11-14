@@ -76,6 +76,7 @@ fn spot_at(map: &Map, rect: Rect, name: &str) -> Spot {
             parent: None,
             rect,
             radius: 0.0,
+            part: name.to_owned(),
         })
 }
 

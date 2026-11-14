@@ -59,7 +59,10 @@ pub mod yaml;
 // The Mermaid drawer in omaspec-render lays out flowcharts on the same
 // graph and draws with the same canvas. The modules stay private.
 pub use color::{Color, Paint, parse as parse_color};
-pub use svg::{Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, Stroke, without_lines};
+pub use svg::{
+    Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, PART, Stroke, part_name, without_lines,
+    without_parts,
+};
 pub use text::{
     Block, Family, Font, Link, Style, block as measure_text, creole_link, measure as measure_run,
     styled as measure_styled,
@@ -354,6 +357,7 @@ pub fn render_marked(
     match parse_with(source, includes)? {
         Diagram::State(mut d) => {
             d.fold(&fold::read(source));
+            d.frame.parts = fold::parts(source);
             d.mark(marks);
             state::draw_mapped(&d)
         }
@@ -395,6 +399,7 @@ pub fn render_mapped(
         Diagram::Sequence(d) => sequence::draw_mapped(&d),
         Diagram::State(mut d) => {
             d.fold(&fold::read(source));
+            d.frame.parts = fold::parts(source);
             // The pane's marks: what recorded traces cover.
             if let Some(marks) = state::Marks::read(source) {
                 d.mark(&marks);
