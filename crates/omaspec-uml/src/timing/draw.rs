@@ -14,6 +14,11 @@ const ROW_GAP: f32 = 8.0;
 const LEVEL: f32 = 20.0;
 const NAME_GAP: f32 = 14.0;
 const HEAD: f32 = 8.0;
+/// How wide the axis grows at most so that every state's name fits its
+/// box, when no `scale` is set; past it a name is cut short.
+const MOST_AXIS: f64 = 2400.0;
+/// The room a state's name keeps from its box's ends.
+const NAME_AIR: f32 = 4.0;
 
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
@@ -52,7 +57,13 @@ struct Place {
 }
 
 fn place(diagram: &Diagram, skin: &Skin, family: Family, top: f32) -> Result<Place, Declined> {
-    let (t0, t1, px) = axis_of(diagram);
+    let (t0, t1, mut px) = axis_of(diagram);
+    // As wide as the boxes' names need, PlantUML's way, up to a width
+    // that still reads on a screen.
+    if diagram.scale.is_none() {
+        let most = MOST_AXIS / (t1 - t0).max(1e-6);
+        px = px.max(names_fit(diagram, skin, family, t1)?.min(most));
+    }
     let mut name_w: f32 = 0.0;
     let mut preamble: f32 = 0.0;
     for row in &diagram.rows {
@@ -109,6 +120,27 @@ fn place(diagram: &Diagram, skin: &Skin, family: Family, top: f32) -> Result<Pla
         axis_y: y + 4.0,
         band_top,
     })
+}
+
+/// The pixels per time unit that let every box's name fit in it, its
+/// air at both ends; the last box runs to `t1`.
+fn names_fit(diagram: &Diagram, skin: &Skin, family: Family, t1: f64) -> Result<f64, Declined> {
+    let mut px: f64 = 0.0;
+    for row in &diagram.rows {
+        if !matches!(row.kind, RowKind::Concise | RowKind::Rectangle) {
+            continue;
+        }
+        for (index, state) in row.states.iter().enumerate() {
+            let end = row.states.get(index + 1).map_or(t1, |next| next.time);
+            let span = end - state.time;
+            if span <= 0.0 || state.mark.name.is_empty() {
+                continue;
+            }
+            let name = block(&state.mark.name, skin.state, family, state.mark.line)?;
+            px = px.max(f64::from(name.width + 2.0 * NAME_AIR) / span);
+        }
+    }
+    Ok(px)
 }
 
 fn body_height(row: &Row) -> f32 {
@@ -409,7 +441,7 @@ fn paint_robust(
             &state.mark,
             (start + end) / 2.0,
             y_of(&state.mark.name) - skin.state.size,
-            true,
+            Name::Whole,
         )?;
     }
     Ok(())
@@ -454,13 +486,7 @@ fn paint_boxes(
             Some(Stroke::new(border, 1.0)),
         );
         // A name wider than its box would run into its neighbors' (a trace's
-        // quick steps after a long night): the box stays, without it.
-        let name = block(
-            &state.mark.name,
-            colored(skin.state, state.mark.color),
-            family,
-            state.mark.line,
-        )?;
+        // quick steps after a long night): it is cut short to fit.
         paint_mark(
             canvas,
             skin,
@@ -468,7 +494,7 @@ fn paint_boxes(
             &state.mark,
             (start + end) / 2.0,
             y + (height - skin.state.size) / 2.0,
-            name.width + 4.0 <= end - start,
+            Name::Within(end - start - 2.0 * NAME_AIR),
         )?;
     }
     Ok(())
@@ -533,7 +559,7 @@ fn paint_binary(
             &state.mark,
             (start + end) / 2.0,
             mid,
-            false,
+            Name::None,
         )?;
     }
     Ok(())
@@ -630,10 +656,19 @@ fn paint_analog(
             &state.mark,
             at(axis, state.time) + 4.0,
             y_of(value) - skin.state.size - 1.0,
-            true,
+            Name::Whole,
         )?;
     }
     Ok(())
+}
+
+/// How a state's name is shown: whole, within a width (cut short with an
+/// ellipsis, left out when not even a letter and the ellipsis fit), or not.
+#[derive(Clone, Copy)]
+enum Name {
+    Whole,
+    Within(f32),
+    None,
 }
 
 fn paint_mark(
@@ -643,16 +678,16 @@ fn paint_mark(
     mark: &Mark,
     x: f32,
     y: f32,
-    show_name: bool,
+    name: Name,
 ) -> Result<(), Declined> {
     let mut y = y;
-    if show_name {
-        let text = block(
-            &mark.name,
-            colored(skin.state, mark.color),
-            family,
-            mark.line,
-        )?;
+    let font = colored(skin.state, mark.color);
+    let text = match name {
+        Name::None => None,
+        Name::Whole => Some(block(&mark.name, font, family, mark.line)?),
+        Name::Within(room) => fitted(&mark.name, room, font, family, mark.line)?,
+    };
+    if let Some(text) = text {
         canvas.text(Layer::Front, &text, (x, y), Align::Center);
         y += text.height;
     }
@@ -662,6 +697,34 @@ fn paint_mark(
         canvas.text(Layer::Front, &note, (x, y), Align::Center);
     }
     Ok(())
+}
+
+/// `name` set to fit `room`: whole, or its first letters and an ellipsis,
+/// or nothing when not even one letter fits.
+fn fitted(
+    name: &str,
+    room: f32,
+    font: Font,
+    family: Family,
+    line: usize,
+) -> Result<Option<Block>, Declined> {
+    let whole = block(name, font, family, line)?;
+    if whole.width <= room {
+        return Ok(Some(whole));
+    }
+    let letters: Vec<char> = name.chars().collect();
+    for keep in (1..letters.len()).rev() {
+        let short: String = letters[..keep].iter().collect();
+        let short = format!("{}…", short.trim_end());
+        // Cut inside markup, a name may no longer read; it is left out.
+        let Ok(text) = block(&short, font, family, line) else {
+            continue;
+        };
+        if text.width <= room {
+            return Ok(Some(text));
+        }
+    }
+    Ok(None)
 }
 
 fn paint_notes(
@@ -852,4 +915,48 @@ fn clock_high(time: f64, clock: super::Clock) -> bool {
 
 fn block(text: &str, font: Font, family: Family, line: usize) -> Result<Block, Declined> {
     text::block(text, font, family).map_err(|reason| Declined::at(line, reason))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_box_too_narrow_for_its_name_widens_the_axis_or_shortens_the_name() {
+        let svg = crate::render(
+            "@startuml\nconcise \"Order\" as O\nconcise \"Payment\" as P\n@0\nO is Created\nP is Idle\n@10\nO is \"Waiting for payment\"\nP is Authorizing\n@14\nO is Paid\nP is Captured\n@100\nO is Shipped\nP is Idle\n@enduml\n",
+        )
+        .unwrap();
+        // The axis grew, so these fit whole.
+        for whole in [">Created<", ">Authorizing<", ">Paid<", ">Captured<"] {
+            assert!(svg.contains(whole), "{whole}");
+        }
+        // This one still does not, and is cut short, not left out.
+        assert!(svg.contains(">Waiting for…<"), "{svg}");
+        // A scale set by hand is kept: the names are cut instead.
+        let scaled = crate::render(
+            "@startuml\nscale 100 as 50 pixels\nconcise \"Order\" as O\n@0\nO is Created\n@10\nO is \"Waiting for payment\"\n@14\nO is Paid\n@100\nO is Shipped\n@enduml\n",
+        )
+        .unwrap();
+        assert!(!scaled.contains(">Waiting for payment<"));
+        assert!(!scaled.contains(">Created<"), "five pixels hold no name");
+    }
+
+    #[test]
+    fn a_name_is_cut_to_its_room_or_left_out() {
+        let font = Font::new(12.0, Color::BLACK);
+        let family = Family::Sans;
+        let whole = block("Authorizing", font, family, 0).unwrap();
+        let fits = fitted("Authorizing", whole.width, font, family, 0).unwrap();
+        assert_eq!(fits.unwrap().width, whole.width);
+        let cut = fitted("Authorizing", whole.width / 2.0, font, family, 0)
+            .unwrap()
+            .unwrap();
+        assert!(cut.width <= whole.width / 2.0);
+        assert!(
+            fitted("Authorizing", 3.0, font, family, 0)
+                .unwrap()
+                .is_none()
+        );
+    }
 }
