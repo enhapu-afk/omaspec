@@ -25,6 +25,9 @@ pub struct Screen {
     pub scale: f32,
     pub size: Size,
     pub shows: Shows,
+    /// A snapshot drew its first frame, and the pictures it asked for are
+    /// on the GPU.
+    #[cfg(test)]
     warm: bool,
     /// The widgets' state between the redraws of [`Self::run`], as a
     /// window keeps it.
@@ -34,6 +37,9 @@ pub struct Screen {
     spent: Vec<(Duration, Duration)>,
     /// The pictures [`Self::upload`] put on the GPU, kept there.
     held: Vec<iced::advanced::image::Allocation>,
+    /// It draws on a GPU, which takes pictures up before it draws them;
+    /// tiny-skia draws them as they are.
+    gpu: bool,
 }
 
 /// A screenshot, as RGBA rows.
@@ -70,20 +76,27 @@ impl Screen {
             backend,
         ))
         .ok_or_else(|| "no GPU to draw on without a window".to_owned())?;
+        let gpu = renderer.name() != "tiny-skia";
         Ok(Screen {
             renderer,
             scale,
             size: Self::SIZE,
             shows: Shows::Window,
+            #[cfg(test)]
             warm: false,
             cache: None,
             spent: Vec::new(),
             held: Vec::new(),
+            gpu,
         })
     }
 
+    /// A snapshot of `app`. The window's other pictures (a gallery's, an
+    /// icon's) go up as a frame first draws them, so the first snapshot
+    /// draws one and waits a moment.
+    #[cfg(test)]
     pub fn shoot(&mut self, app: &App) -> Shot {
-        // The first frame starts uploading the pictures in the background.
+        self.upload(app);
         if !self.warm {
             let _ = self.frame(app);
             std::thread::sleep(Duration::from_millis(300));
@@ -92,19 +105,29 @@ impl Screen {
         self.frame(app)
     }
 
-    /// Puts `pictures` on the GPU now and keeps them there, in place of
-    /// those of the call before. iced uploads a picture the first time a
-    /// frame draws it and draws nothing of it meanwhile; the window waits
-    /// for its pixels to be there before it shows them, and a recording
-    /// does this.
-    pub fn upload(&mut self, pictures: impl IntoIterator<Item = iced::widget::image::Handle>) {
+    /// Puts the pictures every tab of `app` may draw next on the GPU now
+    /// and keeps them there, in place of those of the call before. iced
+    /// uploads a picture the first time a frame draws it and draws nothing
+    /// of it meanwhile; the window waits for its pixels to be there before
+    /// it shows them, and the frames of [`Self::run_frames`] are drawn
+    /// after this. tiny-skia needs nothing of the kind.
+    pub fn upload(&mut self, app: &App) {
         use iced::advanced::image::Renderer as _;
+        if !self.gpu {
+            return;
+        }
+        let pictures: Vec<_> = app
+            .docs
+            .iter()
+            .flat_map(|doc| doc.paper.pictures())
+            .collect();
         self.held = pictures
-            .into_iter()
-            .filter_map(|picture| self.renderer.load_image(&picture).ok())
+            .iter()
+            .filter_map(|picture| self.renderer.load_image(picture).ok())
             .collect();
     }
 
+    #[cfg(test)]
     pub fn frame(&mut self, app: &App) -> Shot {
         self.cache = None;
         self.redraw(app).0
@@ -186,6 +209,7 @@ impl Screen {
             if done(app) {
                 break;
             }
+            self.upload(app);
             let start = Instant::now();
             let (shot, published) = self.redraw(app);
             each(&shot);

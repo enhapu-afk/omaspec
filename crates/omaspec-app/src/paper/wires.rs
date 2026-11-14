@@ -573,6 +573,8 @@ mod tests {
             to,
             from_fill: [0.9; 3],
             to_fill: [0.9; 3],
+            from_corner: Some(8.0),
+            to_corner: Some(8.0),
             from_header: 1.0,
             role,
             into: None,

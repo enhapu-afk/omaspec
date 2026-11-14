@@ -80,9 +80,11 @@ impl Pipeline {
 
     /// Omaspec addition to iced_tiny_skia 0.14.1: draws the image into
     /// `bounds`, as [`Self::draw`] does unturned, but only the pixels of
-    /// `area` (in the target's pixels), without a mask. Its edges are
-    /// whole pixels, the ones a fill without anti-aliasing covers, so two
-    /// areas side by side meet without a seam.
+    /// `area` (in the target's pixels), without a mask. It covers the
+    /// pixels whose centers lie in `area`, its left and top edges in and
+    /// its right and bottom ones out, as a fill without anti-aliasing and
+    /// a clip mask do, so two areas side by side meet without a seam, and
+    /// one thinner than a pixel's middle covers nothing.
     pub fn draw_within(
         &mut self,
         handle: &raster::Handle,
@@ -99,12 +101,17 @@ impl Pipeline {
             return;
         };
 
-        let Some(rect) = tiny_skia::Rect::from_ltrb(
-            area.x.round(),
-            area.y.round(),
-            (area.x + area.width).round(),
-            (area.y + area.height).round(),
-        ) else {
+        // The first pixel whose center lies at or past an edge.
+        let edge = |at: f32| (at - 0.5).ceil();
+        let (left, top) = (edge(area.x), edge(area.y));
+        let (right, bottom) =
+            (edge(area.x + area.width), edge(area.y + area.height));
+        // tiny-skia fills a rectangle of no width one pixel wide.
+        if left >= right || top >= bottom {
+            return;
+        }
+        let Some(rect) = tiny_skia::Rect::from_ltrb(left, top, right, bottom)
+        else {
             return;
         };
 

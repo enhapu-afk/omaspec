@@ -28,6 +28,9 @@ pub struct Side {
     pub name: String,
     pub rect: Rectangle,
     pub fill: [f32; 3],
+    /// The radius of its corners; none for a shape that is no box
+    /// ([`pick::Fills::corner`]).
+    pub corner: Option<f32>,
 }
 
 /// Whether a box was already there, appears, or goes.
@@ -46,6 +49,10 @@ pub struct Move {
     pub to: Rectangle,
     pub from_fill: [f32; 3],
     pub to_fill: [f32; 3],
+    /// The radius of its corners before and after; none for a shape that
+    /// is no box.
+    pub from_corner: Option<f32>,
+    pub to_corner: Option<f32>,
     /// Share of the box's height that is its title band. `1` is the whole
     /// box: nothing sits inside it.
     pub from_header: f32,
@@ -112,6 +119,7 @@ fn side_at(fills: &pick::Fills, name: &str, rect: omaspec_uml::graph::Rect) -> S
         fill: fills
             .of(rect.x, rect.y, rect.w, rect.h)
             .unwrap_or([0.94, 0.94, 0.94]),
+        corner: fills.corner(rect.x, rect.y, rect.w, rect.h),
     }
 }
 
@@ -199,6 +207,8 @@ pub fn plan_with(
             to: to.rect,
             from_fill: to.fill,
             to_fill: to.fill,
+            from_corner: to.corner,
+            to_corner: to.corner,
             from_header: new_header[index],
             role: Role::Arrive,
             into: None,
@@ -262,6 +272,8 @@ fn stay(from: &Side, to: &Side, from_header: f32) -> Move {
         to: to.rect,
         from_fill: from.fill,
         to_fill: to.fill,
+        from_corner: from.corner,
+        to_corner: to.corner,
         from_header,
         role: Role::Stay,
         into: None,
@@ -276,6 +288,8 @@ fn stay_move(from: &Move, to: &Side) -> Move {
         to: to.rect,
         from_fill: from.from_fill,
         to_fill: to.fill,
+        from_corner: from.from_corner,
+        to_corner: to.corner,
         from_header: from.from_header,
         role: Role::Stay,
         into: None,
@@ -327,6 +341,8 @@ fn leave(from: &Side, header: f32) -> Move {
         to: from.rect,
         from_fill: from.fill,
         to_fill: from.fill,
+        from_corner: from.corner,
+        to_corner: from.corner,
         from_header: header,
         role: Role::Leave,
         into: None,
@@ -595,25 +611,26 @@ fn paint_side(
     alpha: f32,
 ) {
     let step = &paint.morph.moves[index];
-    let (raster, size, src) = if old {
-        (paint.old, paint.old_size, grow(step.from))
+    let (raster, size, src, corner) = if old {
+        (paint.old, paint.old_size, grow(step.from), step.from_corner)
     } else {
-        (paint.new, paint.new_size, grow(step.to))
+        (paint.new, paint.new_size, grow(step.to), step.to_corner)
     };
     let natural = match step.role {
         Role::Stay => Some(placed.natural),
-        _ if step.into.is_some() => {
-            let own = onto(src, size, placed.paper);
-            Some((own.width / src.width.max(1e-3)).min(own.height / src.height.max(1e-3)))
-        }
+        // The eased sheet's scale for that picture.
+        _ if step.into.is_some() => Some(
+            (placed.paper.width / size.width.max(1e-3))
+                .min(placed.paper.height / size.height.max(1e-3)),
+        ),
         _ => None,
     };
-    let children: Vec<Rectangle> = children(paint, index, old).into_iter().map(grow).collect();
-    let fit = sprite::fit(src, dest, natural, !children.is_empty());
-    // Under the box, should no plain column of it fill a hole.
-    let holes: Vec<Rectangle> = children.iter().filter_map(|c| fit.place(*c)).collect();
-    cover(frame, &holes, fill, alpha);
-    sprite::draw(frame, local, raster, &fit, &children, alpha);
+    let children = children(paint, index, old, placed);
+    let rects: Vec<Rectangle> = children.iter().map(|child| child.rect).collect();
+    let fit = sprite::fit(src, dest, natural, corner, &rects);
+    let open = sprite::draw(frame, local, raster, &fit, &children, alpha);
+    // Under the box, where no plain column of it fills a hole.
+    cover(frame, &open, fill, alpha);
 }
 
 /// Where this box is drawn. One that stays eases from its old place on the
@@ -663,9 +680,10 @@ fn parent_dest(step: &Move, paint: &Paint<'_>, placed: &Placed) -> Option<Rectan
 }
 
 /// The boxes drawn inside box `index`, in the picture before or in the
-/// new one, in that picture's units: they are cut out of its pixels, and
-/// glide on their own.
-fn children(paint: &Paint<'_>, index: usize, old: bool) -> Vec<Rectangle> {
+/// new one, in that picture's units as they are cut out: they glide on
+/// their own. One that stays covers its place whole while the picture
+/// before is drawn: its own pixels, opaque, over the hole it leaves.
+fn children(paint: &Paint<'_>, index: usize, old: bool, placed: &Placed) -> Vec<sprite::Child> {
     let missing =
         |step: &Move| (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave);
     let step = &paint.morph.moves[index];
@@ -679,8 +697,12 @@ fn children(paint: &Paint<'_>, index: usize, old: bool) -> Vec<Rectangle> {
         .iter()
         .enumerate()
         .filter(|(other_i, other)| *other_i != index && !missing(other))
-        .map(|(_, other)| if old { other.from } else { other.to })
-        .filter(|child| inside(*child, parent))
+        .filter(|(_, other)| inside(if old { other.from } else { other.to }, parent))
+        .map(|(_, other)| sprite::Child {
+            rect: grow(if old { other.from } else { other.to }),
+            covered: (old && other.role == Role::Stay && placed.t < 1.0)
+                .then(|| sprite_dest(other, paint, placed)),
+        })
         .collect()
 }
 
@@ -755,6 +777,7 @@ mod tests {
             name: name.to_owned(),
             rect: Rectangle::new(Point::new(x, y), Size::new(w, h)),
             fill: [0.9, 0.9, 0.9],
+            corner: Some(8.0),
         }
     }
 
@@ -858,7 +881,13 @@ mod tests {
         // A child cut out of its parent lands on the child's own place.
         let parent_dest = onto(grow(from), old_size, old_paper);
         let natural = old_paper.width / old_size.width;
-        let fit = sprite::fit(grow(from), parent_dest, Some(natural), true);
+        let fit = sprite::fit(
+            grow(from),
+            parent_dest,
+            Some(natural),
+            Some(8.0),
+            &[grow(child)],
+        );
         close(
             fit.place(grow(child)).unwrap(),
             onto(grow(child), old_size, old_paper),

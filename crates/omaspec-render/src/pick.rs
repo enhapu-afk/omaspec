@@ -37,6 +37,8 @@ struct Shape {
     rect: Rect,
     /// The fill, when it is a plain color. A pattern has none.
     fill: Option<[f32; 3]>,
+    /// The radius of its corners, when it is a box ([`corner_of`]).
+    corner: Option<f32>,
     /// Whether the shape has an outline of its own.
     stroked: bool,
 }
@@ -221,7 +223,10 @@ pub fn fill_of(tree: &Tree, x: f32, y: f32, w: f32, h: f32) -> Option<[f32; 3]> 
 }
 
 /// The filled shapes of a picture, read once, to ask [`Fills::of`] for many boxes.
-pub struct Fills(Vec<(Rect, [f32; 3])>);
+pub struct Fills(Vec<(Rect, Found)>);
+
+/// A shape's fill, and the radius of its corners when it is a box.
+type Found = ([f32; 3], Option<f32>);
 
 /// The filled shapes of `tree`.
 pub fn fills(tree: &Tree) -> Fills {
@@ -230,7 +235,7 @@ pub fn fills(tree: &Tree) -> Fills {
     Fills(
         shapes
             .into_iter()
-            .filter_map(|shape| Some((shape.rect, shape.fill?)))
+            .filter_map(|shape| Some((shape.rect, (shape.fill?, shape.corner))))
             .collect(),
     )
 }
@@ -238,8 +243,19 @@ pub fn fills(tree: &Tree) -> Fills {
 impl Fills {
     /// What [`fill_of`] says for the box `(x, y, w, h)`.
     pub fn of(&self, x: f32, y: f32, w: f32, h: f32) -> Option<[f32; 3]> {
-        let mut best: Option<([f32; 3], f32)> = None;
-        for (rect, fill) in &self.0 {
+        self.nearest(x, y, w, h).map(|(fill, _)| fill)
+    }
+
+    /// The radius of the corners of the box `(x, y, w, h)`: `None` when
+    /// its shape is no box, as a diamond, a circle or a hexagon is not
+    /// ([`corner_of`]), or none is drawn there.
+    pub fn corner(&self, x: f32, y: f32, w: f32, h: f32) -> Option<f32> {
+        self.nearest(x, y, w, h).and_then(|(_, corner)| corner)
+    }
+
+    fn nearest(&self, x: f32, y: f32, w: f32, h: f32) -> Option<Found> {
+        let mut best: Option<(Found, f32)> = None;
+        for (rect, found) in &self.0 {
             let delta = (rect.left() - x).abs()
                 + (rect.top() - y).abs()
                 + (rect.width() - w).abs()
@@ -248,11 +264,56 @@ impl Fills {
                 continue;
             }
             if best.is_none_or(|(_, have)| delta < have) {
-                best = Some((*fill, delta));
+                best = Some((*found, delta));
             }
         }
-        best.map(|(fill, _)| fill)
+        best.map(|(found, _)| found)
     }
+}
+
+/// The radius of the corners of `path`, in diagram units, when it is a
+/// box: its straight edges run across and down, and it bends only in its
+/// corners, by at most a third of its shorter side. A diamond, a hexagon
+/// or a note's folded corner has a slanted edge, a circle or a stadium
+/// bends all along: none of them is a box.
+fn corner_of(path: &usvg::Path) -> Option<f32> {
+    use usvg::tiny_skia_path::PathSegment;
+    let ts = path.abs_transform();
+    if ts.kx != 0.0 || ts.ky != 0.0 {
+        return None;
+    }
+    let (sx, sy) = (ts.sx.abs(), ts.sy.abs());
+    let straight = |a: usvg::tiny_skia_path::Point, b: usvg::tiny_skia_path::Point| {
+        (a.x - b.x).abs() * sx < 0.01 || (a.y - b.y).abs() * sy < 0.01
+    };
+    let bounds = path.data().bounds();
+    let most = (bounds.width() * sx).min(bounds.height() * sy) / 3.0;
+    let (mut at, mut start) = Default::default();
+    let mut edges = 0;
+    let mut radius = 0.0f32;
+    for segment in path.data().segments() {
+        match segment {
+            PathSegment::MoveTo(p) => (at, start) = (p, p),
+            PathSegment::LineTo(p) => {
+                if !straight(at, p) {
+                    return None;
+                }
+                edges += 1;
+                at = p;
+            }
+            PathSegment::QuadTo(_, p) | PathSegment::CubicTo(_, _, p) => {
+                radius = radius.max(((p.x - at.x).abs() * sx).max((p.y - at.y).abs() * sy));
+                at = p;
+            }
+            PathSegment::Close => {
+                if !straight(at, start) {
+                    return None;
+                }
+                at = start;
+            }
+        }
+    }
+    (edges >= 2 && radius <= most).then_some(radius)
 }
 
 /// The topmost fill under `(cx, cy)`, page background included.
@@ -370,6 +431,7 @@ fn push_shape(path: &usvg::Path, shapes: &mut Vec<Shape>) {
         shapes.push(Shape {
             rect: rect.to_rect(),
             fill: path.fill().and_then(|fill| paint_rgb(fill.paint())),
+            corner: corner_of(path),
             stroked: path
                 .stroke()
                 .is_some_and(|stroke| stroke.opacity().get() > 0.0),
@@ -409,6 +471,26 @@ fn paint_rgb(paint: &usvg::Paint) -> Option<[f32; 3]> {
 mod tests {
     use super::*;
     use crate::export;
+
+    #[test]
+    fn a_box_has_corners_and_other_shapes_have_none() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100">
+<rect x="10" y="10" width="80" height="40" rx="8" fill="#f1f1f1" stroke="#181818"/>
+<rect x="100" y="10" width="80" height="40" fill="#f1f1f1"/>
+<rect x="190" y="10" width="80" height="40" rx="20" fill="#f1f1f1"/>
+<circle cx="300" cy="30" r="20" fill="#f1f1f1"/>
+<polygon points="360,10 380,30 360,50 340,30" fill="#f1f1f1"/>
+</svg>"##;
+        let tree = export::parse(svg).unwrap();
+        let fills = fills(&tree);
+        let rounded = fills.corner(10.0, 10.0, 80.0, 40.0).unwrap();
+        assert!((rounded - 8.0).abs() < 0.5, "{rounded}");
+        assert_eq!(fills.corner(100.0, 10.0, 80.0, 40.0), Some(0.0));
+        // A stadium, a circle and a diamond bend or slant all along.
+        assert_eq!(fills.corner(190.0, 10.0, 80.0, 40.0), None);
+        assert_eq!(fills.corner(280.0, 10.0, 40.0, 40.0), None);
+        assert_eq!(fills.corner(340.0, 10.0, 40.0, 40.0), None);
+    }
 
     /// Where `text` is drawn: the middle of its first label.
     fn middle(tree: &Tree, text: &str) -> (f32, f32) {

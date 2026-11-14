@@ -11,7 +11,9 @@
 //! than the picture draws it. A container keeps its title at the top and
 //! rolls up from below; a plain box keeps its words in its middle. Where
 //! the inside is shorter or narrower than the box, its outermost row or
-//! column of pixels fills the rest, as a box's own padding would.
+//! column of pixels fills the rest, as a box's own padding would. Only a
+//! box is drawn so: a diamond, a circle, a box whose corners bend further
+//! than its rim, or one whose boxes reach into its rim, is stretched.
 
 use iced::widget::canvas::{self, Frame};
 use iced::widget::image;
@@ -22,12 +24,16 @@ use super::raster::Raster;
 /// Strips thinner than this are the same edge. Wide enough to miss a
 /// hairline gap, narrow enough that two boxes still meet.
 pub(super) const HAIR: f32 = 0.05;
-/// The rim of a box, in diagram units: the stroke, the rounded corner
-/// (8) and the margin a box is cut with (2). Its corners keep their size.
-const CORNER: f32 = 10.0;
-/// How far the scales of a box may differ, as a share, and the box still
-/// count as only scaled.
+/// A box's rim, in diagram units, beyond the radius of its corners: the
+/// margin it is cut out with (2) and its stroke.
+const RIM: f32 = 3.0;
+/// How far a box drawn may differ from its size in the picture, as a
+/// share or in pixels on screen (a paper snapped to whole pixels), and
+/// the box still count as only scaled.
 const SAME_SHAPE: f32 = 0.01;
+const SAME_PIXELS: f32 = 1.5;
+/// How far two pixels of one color may differ, in each channel.
+const SAME_COLOR: u8 = 3;
 /// How wide the row or column of pixels is that fills out an inside
 /// shorter or narrower than its box, in diagram units.
 const STRIP: f32 = 0.5;
@@ -59,6 +65,10 @@ pub(super) struct Fit {
     pub pieces: Vec<Piece>,
     /// The index in `pieces` of the inside.
     pub inside: usize,
+    /// The box within its rim, in the picture's units, where none of the
+    /// boxes it holds reaches: its own color, which fills their holes.
+    /// None for a shape that is no box.
+    pub interior: Option<Rectangle>,
 }
 
 impl Fit {
@@ -74,31 +84,57 @@ impl Fit {
     }
 }
 
+/// How wide a box's rim is whose corners bend by `corner`.
+fn rim_of(corner: f32) -> f32 {
+    corner + RIM
+}
+
 /// How the box of pixels `src` fills `dest` on screen, where the picture
 /// is drawn at `natural` pixels to a unit; without one, it is stretched
-/// as the sheet under it is. A box `holding` others is a container: its
-/// title stays at the top.
-pub(super) fn fit(src: Rectangle, dest: Rectangle, natural: Option<f32>, holding: bool) -> Fit {
-    let plain = Fit {
+/// as the sheet under it is. `corner` is the radius of its corners, none
+/// for a shape that is no box; `children` are the boxes it holds, in the
+/// picture's units. A box holding others is a container: its title stays
+/// at the top.
+pub(super) fn fit(
+    src: Rectangle,
+    dest: Rectangle,
+    natural: Option<f32>,
+    corner: Option<f32>,
+    children: &[Rectangle],
+) -> Fit {
+    let plain = |interior| Fit {
         pieces: vec![Piece {
             src,
             dest,
             limit: dest,
         }],
         inside: 0,
+        interior,
     };
+    let Some(rim) = corner
+        .map(rim_of)
+        .filter(|rim| *rim <= src.width / 3.0 && *rim <= src.height / 3.0)
+    else {
+        return plain(None);
+    };
+    let interior = inset(src, rim);
+    // The rows and columns drawn out lie just inside the rim: a box held
+    // there would be drawn out with them.
+    let clear = children
+        .iter()
+        .all(|child| holds(inset(interior, STRIP), *child));
+    let interior = clear.then_some(interior);
     let Some(natural) = natural.filter(|n| *n > 0.0) else {
-        return plain;
+        return plain(interior);
     };
-    if src.width < 1e-3 || src.height < 1e-3 {
-        return plain;
+    let near =
+        |a: f32, b: f32| (a - b).abs() <= (SAME_SHAPE * a.abs().max(b.abs())).max(SAME_PIXELS);
+    if near(dest.width, src.width * natural) && near(dest.height, src.height * natural) {
+        return plain(interior);
     }
-    let (kx, ky) = (dest.width / src.width, dest.height / src.height);
-    let near = |a: f32, b: f32| (a - b).abs() <= SAME_SHAPE * a.abs().max(b.abs());
-    if near(kx, ky) && near(kx, natural) {
-        return plain;
+    if interior.is_none() {
+        return plain(None);
     }
-    let rim = CORNER.min(src.width / 3.0).min(src.height / 3.0);
     // The corners at the picture's size, unless the box is too small for
     // them.
     let corner = natural
@@ -109,11 +145,12 @@ pub(super) fn fit(src: Rectangle, dest: Rectangle, natural: Option<f32>, holding
     let (src_w, src_h) = inner(src, rim);
     let (room_w, room_h) = inner(dest, edge);
     if src_w < 1.0 || src_h < 1.0 || room_w < HAIR || room_h < HAIR {
-        return plain;
+        return plain(interior);
     }
     let (across, down) = (room_w / src_w, room_h / src_h);
     // A container as wide as there is room, cut short below; a plain box
     // whole, in the middle. Never larger than the picture draws it.
+    let holding = !children.is_empty();
     let scale = if holding {
         natural.min(across)
     } else {
@@ -149,7 +186,21 @@ pub(super) fn fit(src: Rectangle, dest: Rectangle, natural: Option<f32>, holding
             });
         }
     }
-    Fit { pieces, inside }
+    Fit {
+        pieces,
+        inside,
+        interior,
+    }
+}
+
+fn inset(rect: Rectangle, by: f32) -> Rectangle {
+    Rectangle::new(
+        Point::new(rect.x + by, rect.y + by),
+        Size::new(
+            (rect.width - 2.0 * by).max(0.0),
+            (rect.height - 2.0 * by).max(0.0),
+        ),
+    )
 }
 
 /// One stretch of a box along one axis.
@@ -225,20 +276,30 @@ fn span(x: (f32, f32), y: (f32, f32)) -> Rectangle {
     )
 }
 
+/// A box held by the one drawn: where it is in the picture, and where its
+/// own pixels cover it on screen, whole and opaque, when they do.
+#[derive(Clone, Copy, Debug)]
+pub(super) struct Child {
+    pub rect: Rectangle,
+    pub covered: Option<Rectangle>,
+}
+
 /// The box `fit` of `raster` at `alpha`, without the boxes it holds:
-/// `children`, in the picture's units, are cut out of its inside and
-/// filled with its own plain inside, a column of it beside them drawn out
-/// across, so they glide on their own and the box stays one color where
-/// they were, whatever is under it.
+/// `children` are cut out of its inside, so they glide on their own, and
+/// their holes filled with a column of the box's own color beside them,
+/// drawn out across, so the box stays one color where they were whatever
+/// is under it. A hole that a child covers whole needs none. The holes it
+/// could not fill so: no plain column lies beside them.
 pub(super) fn draw(
     frame: &mut Frame,
     local: Rectangle,
     raster: &Raster,
     fit: &Fit,
-    children: &[Rectangle],
+    children: &[Child],
     alpha: f32,
-) {
-    let holes: Vec<Rectangle> = children.iter().filter_map(|c| fit.place(*c)).collect();
+) -> Vec<Rectangle> {
+    let holes: Vec<Option<Rectangle>> = children.iter().map(|c| fit.place(c.rect)).collect();
+    let cut: Vec<Rectangle> = holes.iter().flatten().copied().collect();
     for (index, piece) in fit.pieces.iter().enumerate() {
         let blit = Blit {
             raster,
@@ -247,38 +308,71 @@ pub(super) fn draw(
             limit: piece.limit.intersection(&local).unwrap_or_default(),
             alpha,
         };
-        let holes = if index == fit.inside { &holes[..] } else { &[] };
+        let holes = if index == fit.inside { &cut[..] } else { &[] };
         punched(frame, local, &blit, holes);
     }
+    let rects: Vec<Rectangle> = children.iter().map(|c| c.rect).collect();
     let inside = fit.inside();
-    let outermost = children.iter().filter(|child| {
-        !children
-            .iter()
-            .any(|other| other != *child && holds(*other, **child))
-    });
-    for child in outermost {
-        let Some(limit) = fit.place(*child).and_then(|hole| hole.intersection(&local)) else {
+    let mut open = Vec::new();
+    for (child, hole) in children.iter().zip(&holes) {
+        let Some(hole) = *hole else {
             continue;
         };
-        let Some(column) = plain_column(inside.src, children, *child) else {
+        // One within another is filled with it.
+        if rects
+            .iter()
+            .any(|other| *other != child.rect && holds(*other, child.rect))
+        {
+            continue;
+        }
+        if child
+            .covered
+            .is_some_and(|covered| holds(inset(covered, -0.5), hole))
+        {
+            continue;
+        }
+        let column = fit
+            .interior
+            .and_then(|interior| plain_column(raster, interior, &rects, child.rect));
+        let Some(column) = column else {
+            open.push(hole);
+            continue;
+        };
+        let Some(limit) = hole.intersection(&local) else {
             continue;
         };
         let blit = Blit {
             raster,
-            src: Rectangle::new(Point::new(column, child.y), Size::new(STRIP, child.height)),
-            dest: map_through(*child, inside.src, inside.dest),
+            src: Rectangle::new(
+                Point::new(column, child.rect.y),
+                Size::new(STRIP, child.rect.height),
+            ),
+            dest: map_through(child.rect, inside.src, inside.dest),
             limit,
             alpha,
         };
         punched(frame, local, &blit, &[]);
     }
+    open
 }
 
-/// Where a column of the inside `inside` beside `child` crosses no box it
-/// holds, at its left edge or its right: the box's own plain color there.
-fn plain_column(inside: Rectangle, children: &[Rectangle], child: Rectangle) -> Option<f32> {
-    let rows = (child.y, child.y + child.height);
-    [inside.x, inside.x + inside.width - STRIP]
+/// Where a column of the box's `interior` beside `child`, at its left
+/// edge or its right, crosses none of the boxes it holds and is one color
+/// all down `child`'s rows: the box's own color, and no line or word.
+fn plain_column(
+    raster: &Raster,
+    interior: Rectangle,
+    children: &[Rectangle],
+    child: Rectangle,
+) -> Option<f32> {
+    let rows = (
+        child.y.max(interior.y),
+        (child.y + child.height).min(interior.y + interior.height),
+    );
+    if rows.1 <= rows.0 {
+        return None;
+    }
+    [interior.x, interior.x + interior.width - STRIP]
         .into_iter()
         .find(|&x| {
             children.iter().all(|other| {
@@ -286,8 +380,52 @@ fn plain_column(inside: Rectangle, children: &[Rectangle], child: Rectangle) -> 
                     || other.x >= x + STRIP
                     || other.y + other.height <= rows.0
                     || other.y >= rows.1
+            }) && one_color(raster, (x, x + STRIP), rows)
+        })
+}
+
+/// Whether `raster` is one color over `columns` and `rows`, in diagram
+/// units, and a pixel either side of the columns, which a scaled picture
+/// blends in.
+fn one_color(raster: &Raster, columns: (f32, f32), rows: (f32, f32)) -> bool {
+    let image::Handle::Rgba {
+        width,
+        height,
+        pixels,
+        ..
+    } = &raster.handle
+    else {
+        return false;
+    };
+    let region = raster.region;
+    if region.width <= 0.0 || region.height <= 0.0 {
+        return false;
+    }
+    let (w, h) = (i64::from(*width), i64::from(*height));
+    let column = |x: f32| ((x - region.x) * w as f32 / region.width).floor() as i64;
+    let row = |y: f32| ((y - region.y) * h as f32 / region.height).floor() as i64;
+    let (left, right) = (column(columns.0) - 1, column(columns.1) + 1);
+    let (top, bottom) = (row(rows.0), row(rows.1 - 1e-3));
+    if left < 0 || right >= w || top < 0 || bottom >= h || bottom < top {
+        return false;
+    }
+    let at = |x: i64, y: i64| {
+        let i = ((y * w + x) * 4) as usize;
+        pixels.get(i..i + 4)
+    };
+    let Some(first) = at(left, top) else {
+        return false;
+    };
+    (top..=bottom).all(|y| {
+        (left..=right).all(|x| {
+            at(x, y).is_some_and(|pixel| {
+                pixel
+                    .iter()
+                    .zip(first)
+                    .all(|(a, b)| a.abs_diff(*b) <= SAME_COLOR)
             })
         })
+    })
 }
 
 /// Whether `outer` holds `inner` whole.
@@ -455,13 +593,28 @@ mod tests {
         }
     }
 
+    /// The rim of the boxes of these tests, whose corners bend by 8.
+    const BENT: f32 = 8.0;
+
+    fn rim() -> f32 {
+        rim_of(BENT)
+    }
+
     #[test]
     fn a_box_that_keeps_its_shape_is_only_scaled() {
         let src = rect(10.0, 20.0, 100.0, 40.0);
         let dest = rect(5.0, 5.0, 200.0, 80.0);
-        let fit = fit(src, dest, Some(2.0), false);
+        let fit = fit(src, dest, Some(2.0), Some(BENT), &[]);
         assert_eq!(fit.pieces.len(), 1);
         assert!(close(fit.inside().dest, dest));
+        assert!(close(fit.interior.unwrap(), inset(src, rim())));
+        // A paper snapped to whole pixels is a pixel off: still the box.
+        let snapped = rect(5.0, 5.0, 201.0, 79.0);
+        assert_eq!(fit_of(src, snapped).pieces.len(), 1);
+    }
+
+    fn fit_of(src: Rectangle, dest: Rectangle) -> Fit {
+        fit(src, dest, Some(2.0), Some(BENT), &[])
     }
 
     #[test]
@@ -469,7 +622,7 @@ mod tests {
         // A small box on its way into a tall container's place.
         let src = rect(0.0, 0.0, 150.0, 50.0);
         let dest = rect(0.0, 0.0, 150.0, 200.0);
-        let fit = fit(src, dest, Some(1.0), false);
+        let fit = fit(src, dest, Some(1.0), Some(BENT), &[]);
         tiles(&fit, dest);
         let inside = fit.inside();
         // Its words as large as the picture draws them, in the middle.
@@ -480,7 +633,7 @@ mod tests {
         // Its corners at their size.
         let corner = fit.pieces[0];
         assert!(
-            close(corner.dest, rect(0.0, 0.0, CORNER, CORNER)),
+            close(corner.dest, rect(0.0, 0.0, rim(), rim())),
             "{corner:?}"
         );
     }
@@ -490,16 +643,17 @@ mod tests {
         // A tall container on its way into a short wide box.
         let src = rect(0.0, 0.0, 110.0, 350.0);
         let dest = rect(0.0, 0.0, 130.0, 120.0);
-        let fit = fit(src, dest, Some(1.0), true);
+        let child = rect(20.0, 40.0, 60.0, 30.0);
+        let fit = fit(src, dest, Some(1.0), Some(BENT), &[child]);
         tiles(&fit, dest);
         let inside = fit.inside();
         // As large as drawn, its title at the top, cut short below.
         assert!((inside.dest.width / inside.src.width - 1.0).abs() < 1e-3);
         assert!((inside.dest.height / inside.src.height - 1.0).abs() < 1e-3);
-        assert!((inside.dest.y - CORNER).abs() < 1e-3);
-        assert!(inside.limit.y + inside.limit.height <= 120.0 - CORNER + 1e-3);
+        assert!((inside.dest.y - rim()).abs() < 1e-3);
+        assert!(inside.limit.y + inside.limit.height <= 120.0 - rim() + 1e-3);
         // A child near its top lands as drawn, one below the cut is gone.
-        let top = fit.place(rect(20.0, 40.0, 60.0, 30.0)).unwrap();
+        let top = fit.place(child).unwrap();
         assert!(close(top, rect(30.0, 40.0, 60.0, 30.0)), "{top:?}");
         assert!(fit.place(rect(20.0, 300.0, 60.0, 30.0)).is_none());
     }
@@ -508,7 +662,7 @@ mod tests {
     fn a_box_drawn_narrower_shrinks_whole() {
         let src = rect(0.0, 0.0, 200.0, 50.0);
         let dest = rect(0.0, 0.0, 100.0, 50.0);
-        let fit = fit(src, dest, Some(1.0), false);
+        let fit = fit(src, dest, Some(1.0), Some(BENT), &[]);
         tiles(&fit, dest);
         let inside = fit.inside();
         let (kx, ky) = (
@@ -520,38 +674,73 @@ mod tests {
     }
 
     #[test]
-    fn a_hole_is_filled_from_a_column_beside_it_that_crosses_no_box() {
-        let inside = rect(10.0, 10.0, 100.0, 200.0);
+    fn a_shape_that_is_no_box_or_holds_boxes_in_its_rim_is_stretched() {
+        let src = rect(0.0, 0.0, 110.0, 350.0);
+        let dest = rect(0.0, 0.0, 130.0, 120.0);
+        // A diamond, a circle: no corners to keep.
+        let shape = fit(src, dest, Some(1.0), None, &[]);
+        assert_eq!(shape.pieces.len(), 1);
+        assert!(shape.interior.is_none());
+        // Corners that bend further than a third of the box.
+        assert_eq!(fit(src, dest, Some(1.0), Some(40.0), &[]).pieces.len(), 1);
+        // A box held at its edge would be drawn out with the rim.
+        let lane = rect(4.0, 40.0, 100.0, 30.0);
+        let held = fit(src, dest, Some(1.0), Some(BENT), &[lane]);
+        assert_eq!(held.pieces.len(), 1);
+        assert!(held.interior.is_none());
+    }
+
+    #[test]
+    fn a_hole_is_filled_from_a_plain_column_beside_it() {
+        let interior = rect(10.0, 10.0, 100.0, 200.0);
         let child = rect(30.0, 50.0, 60.0, 30.0);
-        // Nothing else beside it: the left edge of the inside.
-        assert_eq!(plain_column(inside, &[child], child), Some(10.0));
+        let white = Raster::blank(120, 220);
+        // Nothing else beside it: the left edge of the interior.
+        assert_eq!(plain_column(&white, interior, &[child], child), Some(10.0));
         // A box on the left at its height: the right edge.
         let left = rect(5.0, 60.0, 20.0, 10.0);
         assert_eq!(
-            plain_column(inside, &[child, left], child),
+            plain_column(&white, interior, &[child, left], child),
             Some(110.0 - STRIP)
         );
         // Boxes on both sides: none, and the hole stays as it is.
         let right = rect(100.0, 40.0, 20.0, 20.0);
-        assert_eq!(plain_column(inside, &[child, left, right], child), None);
+        assert_eq!(
+            plain_column(&white, interior, &[child, left, right], child),
+            None
+        );
         // A box beside it but above it is no matter.
         let above = rect(5.0, 10.0, 20.0, 20.0);
-        assert_eq!(plain_column(inside, &[child, above], child), Some(10.0));
+        assert_eq!(
+            plain_column(&white, interior, &[child, above], child),
+            Some(10.0)
+        );
+        // A line across the left column at its rows, as a transition into
+        // it draws: the right column, which is plain.
+        let crossed = Raster::painted(120, 220, |x, y| {
+            if y == 64 && x < 30 {
+                [0, 0, 0, 255]
+            } else {
+                [255; 4]
+            }
+        });
+        assert_eq!(
+            plain_column(&crossed, interior, &[child], child),
+            Some(110.0 - STRIP)
+        );
     }
 
-    /// A box's pixels drawn in parts by iced's tiny-skia, as `omaspec play`
-    /// draws where there is no GPU: each part keeps to its own clip, so
-    /// nothing of the picture lands outside the box. iced_tiny_skia 0.14.1
-    /// kept an image to its layer only, and each part drew the whole
-    /// picture, scaled as that part is (vendor/iced_tiny_skia).
-    #[test]
-    fn a_box_s_parts_keep_to_the_box_without_a_gpu() {
+    /// What `paint` draws on a canvas of 200 by 200 pixels over black, by
+    /// iced's tiny-skia, as `omaspec play` draws where there is no GPU:
+    /// its pixels' red, row by row.
+    fn on_tiny_skia(paint: impl Fn(&mut Frame, Rectangle) + 'static) -> Vec<u8> {
         use iced::advanced::renderer::{Headless, Style};
         use iced::widget::canvas::{Canvas, Geometry, Program};
         use iced::{Color, Element, Length, Renderer, Theme, mouse};
 
-        struct Boxed(Raster, Rectangle);
-        impl Program<()> for Boxed {
+        type Paint = Box<dyn Fn(&mut Frame, Rectangle)>;
+        struct Painted(Paint);
+        impl Program<()> for Painted {
             type State = ();
             fn draw(
                 &self,
@@ -562,36 +751,22 @@ mod tests {
                 _: mouse::Cursor,
             ) -> Vec<Geometry> {
                 let mut frame = Frame::new(renderer, bounds.size());
-                // A square picture in a box three times as tall: its
-                // inside in the middle, its own rows drawn out above and
-                // below.
-                let fit = fit(self.0.region, self.1, Some(1.0), false);
-                assert!(fit.pieces.len() > 9, "{fit:?}");
-                draw(
-                    &mut frame,
-                    Rectangle::with_size(bounds.size()),
-                    &self.0,
-                    &fit,
-                    &[],
-                    1.0,
-                );
+                (self.0)(&mut frame, Rectangle::with_size(bounds.size()));
                 vec![frame.into_geometry()]
             }
         }
 
-        let size = Size::new(200.0, 200.0);
-        let dest = rect(80.0, 40.0, 40.0, 120.0);
         let mut renderer = iced::futures::executor::block_on(Renderer::new(
             iced::Font::DEFAULT,
             iced::Pixels(16.0),
             Some("tiny-skia"),
         ))
         .expect("tiny-skia draws without a GPU");
-        let element: Element<'_, (), Theme, Renderer> =
-            Canvas::new(Boxed(Raster::blank(40, 40), dest))
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .into();
+        let element: Element<'_, (), Theme, Renderer> = Canvas::new(Painted(Box::new(paint)))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into();
+        let size = Size::new(200.0, 200.0);
         let mut ui =
             iced_runtime::UserInterface::build(element, size, Default::default(), &mut renderer);
         let style = Style {
@@ -605,16 +780,67 @@ mod tests {
         );
         let rgba = renderer.screenshot(iced::Size::new(200, 200), 1.0, Color::BLACK);
         drop(ui);
-        let red = |x: usize, y: usize| rgba[(y * 200 + x) * 4];
+        rgba.chunks(4).map(|pixel| pixel[0]).collect()
+    }
+
+    /// A box's pixels drawn in parts without a GPU: each part keeps to its
+    /// own clip, so nothing of the picture lands outside the box.
+    /// iced_tiny_skia 0.14.1 kept an image to its layer only, and each part
+    /// drew the whole picture, scaled as that part is
+    /// (vendor/iced_tiny_skia).
+    #[test]
+    fn a_box_s_parts_keep_to_the_box_without_a_gpu() {
+        let dest = rect(80.0, 40.0, 40.0, 120.0);
+        let red = on_tiny_skia(move |frame, local| {
+            // A square picture in a box three times as tall: its inside in
+            // the middle, its own rows drawn out above and below.
+            let picture = Raster::blank(40, 40);
+            let fit = fit(picture.region, dest, Some(1.0), Some(BENT), &[]);
+            assert!(fit.pieces.len() > 9, "{fit:?}");
+            draw(frame, local, &picture, &fit, &[], 1.0);
+        });
         for y in 0..200 {
             for x in 0..200 {
                 let within = (80..120).contains(&x) && (40..160).contains(&y);
+                let seen = red[y * 200 + x];
                 if within {
-                    assert!(red(x, y) > 0xf0, "({x}, {y}) in the box is not drawn");
+                    assert!(seen > 0xf0, "({x}, {y}) in the box is not drawn");
                 } else {
-                    assert!(red(x, y) < 0x10, "({x}, {y}) outside the box is drawn");
+                    assert!(seen < 0x10, "({x}, {y}) outside the box is drawn");
                 }
             }
         }
+    }
+
+    /// Parts side by side, half seen, meet without a seam: each pixel is
+    /// drawn once, by the part its middle lies in, and a part thinner than
+    /// that draws none, though tiny-skia fills a rectangle of no width one
+    /// pixel wide.
+    #[test]
+    fn parts_side_by_side_draw_each_pixel_once() {
+        let red = on_tiny_skia(|frame, local| {
+            let picture = Raster::blank(40, 40);
+            let cuts = [80.0, 90.5, 100.2, 100.45, 110.0, 120.0];
+            for pair in cuts.windows(2) {
+                let blit = Blit {
+                    raster: &picture,
+                    src: picture.region,
+                    dest: rect(80.0, 40.0, 40.0, 40.0),
+                    limit: rect(pair[0], 40.0, pair[1] - pair[0], 40.0),
+                    alpha: 0.5,
+                };
+                punched(frame, local, &blit, &[]);
+            }
+        });
+        let row = 60 * 200;
+        for x in 80..120 {
+            let seen = red[row + x];
+            assert!(
+                (0x70..=0x90).contains(&seen),
+                "column {x}: {seen:#x}, drawn {} times",
+                if seen > 0x90 { "two" } else { "no" }
+            );
+        }
+        assert!(red[row + 79] < 0x10 && red[row + 120] < 0x10);
     }
 }

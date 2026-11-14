@@ -93,14 +93,19 @@ impl Paper {
         }
     }
 
-    /// The pictures the pane may draw next: those shown, those a fade or a
-    /// glide goes from and to, and the pictures without lines it asked
-    /// for. A recording puts them on the GPU before it draws them, as the
-    /// window waits for its pixels to be there.
+    /// The pictures the pane may draw next: those shown or held back,
+    /// those a fade, a glide or a zoom goes from and to, and the pictures
+    /// without lines it asked for. A recording puts them on the GPU before
+    /// each frame ([`crate::editor::Screen::upload`]), as the window waits
+    /// for its pixels to be there.
     pub fn pictures(&self) -> Vec<iced::widget::image::Handle> {
         let mut out: Vec<&raster::Raster> = Vec::new();
         for layer in [&self.overview, &self.detail, &self.bare_old, &self.bare_new] {
             out.extend(layer.shown.iter());
+        }
+        // Those that came while the view glided, shown when it lands.
+        for held in [&self.held_overview, &self.held_detail] {
+            out.extend(held.iter().filter_map(|(_, raster)| raster.as_ref()));
         }
         if let Some(fade) = &self.fade {
             out.extend(fade.old.iter());

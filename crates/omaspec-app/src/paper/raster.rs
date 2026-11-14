@@ -127,6 +127,22 @@ impl Raster {
         }
     }
 
+    /// A picture of `width` by `height` pixels, each `paint`ed by its
+    /// column and row, of a diagram as large in its own units.
+    #[cfg(test)]
+    pub fn painted(width: u32, height: u32, paint: impl Fn(u32, u32) -> [u8; 4]) -> Raster {
+        let pixels = (0..height)
+            .flat_map(|y| (0..width).map(move |x| (x, y)))
+            .flat_map(|(x, y)| paint(x, y))
+            .collect::<Vec<u8>>();
+        Raster {
+            handle: image::Handle::from_rgba(width, height, pixels),
+            region: Rectangle::with_size(Size::new(width as f32, height as f32)),
+            paper: Color::WHITE,
+            _allocation: None,
+        }
+    }
+
     /// How many pixels it has, across and down; `None` unless they are
     /// held in memory.
     pub fn pixels(&self) -> Option<(u32, u32)> {
