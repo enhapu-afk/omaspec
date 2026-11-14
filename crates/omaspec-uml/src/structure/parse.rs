@@ -1288,7 +1288,12 @@ fn parse_decl(shape: Shape, open: Open, rest: &str, line: usize) -> Result<Decl,
     if name.is_empty() {
         return Err(Declined::at(line, "a declaration needs a name"));
     }
-    let (key, label, _) = split_alias(&name, line)?;
+    // `class Crate<T>` is the class Crate, its type parameters shown.
+    let (name, generic) = take_generic(&name);
+    let (key, mut label, _) = split_alias(name, line)?;
+    if let Some(generic) = generic {
+        label = format!("{label}<{generic}>");
+    }
     if key.is_empty() {
         return Err(Declined::at(line, "a declaration needs a name"));
     }
@@ -1622,6 +1627,35 @@ fn split_alias(text: &str, line: usize) -> Result<(String, String, Option<Shape>
     }
     let raw = raw_name(text, line)?;
     Ok((raw.key, raw.label, raw.shape))
+}
+
+/// The type parameters a declared name ends in, `Map<K, V>` or
+/// `C as "Crate"<T>`, apart from the name: as PlantUML has it, the class
+/// is `Map`, and a line to `Map` is a line to it. `None` when the name
+/// ends in none; a quoted name keeps its `<` and `>`.
+fn take_generic(name: &str) -> (&str, Option<&str>) {
+    let name = name.trim();
+    let Some(inside) = name.strip_suffix('>') else {
+        return (name, None);
+    };
+    let mut depth = 1usize;
+    for (at, c) in inside.char_indices().rev() {
+        match c {
+            '>' => depth += 1,
+            '<' => depth -= 1,
+            '"' => return (name, None),
+            _ => {}
+        }
+        if depth == 0 {
+            let before = inside[..at].trim_end();
+            let generic = inside[at + 1..].trim();
+            if before.is_empty() || before.ends_with('<') || generic.is_empty() {
+                return (name, None);
+            }
+            return (before, Some(generic));
+        }
+    }
+    (name, None)
 }
 
 fn quoted(text: &str) -> bool {
@@ -2316,6 +2350,48 @@ mod tests {
 
     fn declined(source: &str) -> crate::Declined {
         parse(&lines_of(source)).unwrap_err()
+    }
+
+    #[test]
+    fn a_generic_class_is_one_class_by_its_name() {
+        // Declared before or after the line that names it.
+        for source in [
+            "@startuml\nclass Crate<T> {\n  +items : List<T>\n}\nStore --> Crate : holds\n@enduml\n",
+            "@startuml\nStore --> Crate : holds\nclass Crate<T>\n@enduml\n",
+        ] {
+            let d = diagram(source);
+            let keys: Vec<&str> = d.root.nodes.iter().map(|n| n.key.as_str()).collect();
+            assert_eq!(
+                keys.iter().filter(|k| k.starts_with("Crate")).count(),
+                1,
+                "{keys:?}"
+            );
+            let crate_ = d.root.nodes.iter().find(|n| n.key == "Crate").unwrap();
+            assert_eq!(crate_.label.value, "Crate<T>");
+        }
+        // Parameters with spaces and bounds, an alias, nested ones.
+        let d = diagram(
+            "@startuml\nclass Map<K, V>\nclass C as \"Crate\"<T>\ninterface Repo<T extends Item>\nclass Box<List<T>>\nMap --> C\nRepo --> Map\nBox --> Repo\n@enduml\n",
+        );
+        let shown: Vec<(&str, &str)> = d
+            .root
+            .nodes
+            .iter()
+            .map(|n| (n.key.as_str(), n.label.value.as_str()))
+            .collect();
+        assert_eq!(
+            shown,
+            [
+                ("Map", "Map<K, V>"),
+                ("C", "Crate<T>"),
+                ("Repo", "Repo<T extends Item>"),
+                ("Box", "Box<List<T>>")
+            ]
+        );
+        // A quoted name keeps its brackets; a stereotype is no parameter.
+        assert_eq!(take_generic("\"Crate<T>\""), ("\"Crate<T>\"", None));
+        assert_eq!(take_generic("Crate"), ("Crate", None));
+        assert_eq!(take_generic("<T>"), ("<T>", None));
     }
 
     #[test]
