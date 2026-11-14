@@ -21,7 +21,7 @@ optdepends=(
   'noto-fonts-emoji: emoji in diagrams, where no emoji font is installed'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('a3bef25b83a2a121aa2870a5d5bd804abb21fb448f05b4f07a153010f35a4014')
 
 prepare() {
   cd "$pkgname-$pkgver"
