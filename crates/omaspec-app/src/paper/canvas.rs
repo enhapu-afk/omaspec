@@ -92,14 +92,10 @@ impl DiagramCanvas<'_> {
         let Some(morph) = fade.morph.as_ref() else {
             return false;
         };
-        // With the lines gliding on their own, the pictures under them
-        // have none.
-        let (old, new) = match &fade.bare {
-            Some((old, new)) => (old, new),
-            None => match (fade.old.first(), fade.next.as_ref()) {
-                (Some(old), Some(new)) => (old, new),
-                _ => return false,
-            },
+        // The sheets of the two pictures: the ground, without lines, and
+        // each part on its own (docs/adr/0029).
+        let Some((old, new)) = &fade.bare else {
+            return false;
         };
         let t = fade.shown.interpolate(0.0, 1.0, now).clamp(0.0, 1.0);
         let new_view = self.glide.map_or(fade.new_view, |glide| glide.at(now));

@@ -461,7 +461,7 @@ fn paint_words(
             limit,
             alpha,
         };
-        super::sprite::punched(frame, local, &blit, &[]);
+        super::sprite::blit(frame, local, &blit);
     }
 }
 
@@ -687,9 +687,7 @@ mod tests {
             to_fill: Some([0.9; 3]),
             from_bend: None,
             to_bend: None,
-            columns: Default::default(),
             parts: Default::default(),
-            from_header: 1.0,
             role,
             anchored: false,
             solid: false,

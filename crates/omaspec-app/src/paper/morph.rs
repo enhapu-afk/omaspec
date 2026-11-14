@@ -1,15 +1,14 @@
 //! The boxes of a new picture glide to their places.
 //!
 //! A render that only recolors the same layout fades, as before. One that
-//! moves a box waits until the new picture is drawn, then the sheet eases
-//! from the old size to the new one and each box travels, as its own
-//! pixels, from where it was to where it is. A box inside another is not
-//! carried along baked into it. The lines glide along ([`super::wires`]),
-//! drawn over the two pictures without their lines; where a picture has
-//! no such twin, the lines leave with the old picture and come back on the
-//! new routes once the boxes are nearly there. The first frame is the old
-//! picture and the last frame is the new one, so nothing pops at either
-//! end.
+//! moves a box, of a diagram that marks its parts (docs/adr/0029), waits
+//! until the sheets of both pictures are drawn: the ground, without lines
+//! and parts, and each part on its own. Then the sheet eases from the old
+//! size to the new one and each box travels, as the picture of its own
+//! part, from where it was to where it is; a box inside another is not in
+//! its picture. The lines glide along ([`super::wires`]), their words with
+//! them. The first frame is the old picture and the last frame is the new
+//! one, so nothing pops at either end. A picture without parts fades.
 
 use iced::widget::canvas::Frame;
 use iced::{Color, Point, Rectangle, Size};
@@ -27,11 +26,6 @@ use super::view::View;
 pub struct Side {
     pub name: String,
     pub rect: Rectangle,
-    /// Its fill, when the picture names one plain color.
-    pub fill: Option<[f32; 3]>,
-    /// How its outline bends; none for a shape that is no box
-    /// ([`pick::Fills::bend`]).
-    pub bend: Option<pick::Bend>,
     /// The part it is drawn in, where the picture marks its parts
     /// (docs/adr/0029): a box's name, a mark's place.
     pub part: String,
@@ -56,16 +50,14 @@ pub struct Move {
     pub name: String,
     pub from: Rectangle,
     pub to: Rectangle,
+    /// Its fill before and after, when its own outline names one plain
+    /// color; worked out once a glide, from its part ([`prepare`]).
     pub from_fill: Option<[f32; 3]>,
     pub to_fill: Option<[f32; 3]>,
-    /// How its outline bends before and after; none for a shape that is
-    /// no box.
+    /// How its own outline bends before and after; none for a shape that
+    /// is no box ([`pick::Fills::bend`], [`prepare`]).
     pub from_bend: Option<pick::Bend>,
     pub to_bend: Option<pick::Bend>,
-    /// For each box it holds before and after, a column of its own color
-    /// beside it ([`sprite::columns`]), worked out once a glide
-    /// ([`prepare`]).
-    pub columns: [Vec<Option<f32>>; 2],
     /// The part it is drawn in, before and after ([`Side::part`]).
     pub parts: [String; 2],
     /// Its rows are laid out from its top left ([`Side::anchored`]).
@@ -74,9 +66,6 @@ pub struct Move {
     /// may stay opaque under it to the end; worked out once a glide
     /// ([`prepare`]).
     pub solid: bool,
-    /// Share of the box's height that is its title band. `1` is the whole
-    /// box: nothing sits inside it.
-    pub from_header: f32,
     pub role: Role,
     /// The box of a tree it hangs below, which stays: where that one was
     /// and where it is. A box that leaves glides into it, one that
@@ -110,9 +99,9 @@ pub struct Kept {
 /// How far a box may sit, as a share of the picture, and still count as
 /// unmoved. A recolor stays under it. A fold does not.
 const SHIFT: f32 = 0.012;
-/// How far past a box's edge its stroke can reach, in diagram units. The
-/// hole and the travelling picture use the same rim, so the stroke goes
-/// with the box and the first frame still matches the picture exactly.
+/// How far past a box's edge its stroke can reach, in diagram units: the
+/// travelling picture takes it along, so the first frame still matches
+/// the picture exactly.
 const RIM: f32 = 2.0;
 /// Old lines have gone by `LINE_OUT`. New ones begin at `LINE_IN`. The
 /// quiet between them is short, so it reads as one change, and the lines
@@ -123,8 +112,6 @@ const LINE_IN: f32 = 0.55;
 /// The named boxes of `diagram`, in the picture's units. A start or an end
 /// travels too: it would otherwise vanish with the lines and pop back.
 pub fn sides(diagram: &Diagram) -> Vec<Side> {
-    // The picture is read once for every box, not once per box.
-    let fills = pick::fills(&diagram.drawn.tree);
     let mut out: Vec<Side> = diagram
         .drawn
         .map
@@ -137,24 +124,12 @@ pub fn sides(diagram: &Diagram) -> Vec<Side> {
             let part = map_part(&diagram.drawn.map, place);
             Side {
                 anchored: place.fixed,
-                ..side_at(&fills, &place.name, &part, place.rect)
+                ..side_at(&place.name, &part, place.rect)
             }
         })
         .collect();
-    push_marks(
-        diagram,
-        &fills,
-        omaspec_uml::map::Shape::Start,
-        "start",
-        &mut out,
-    );
-    push_marks(
-        diagram,
-        &fills,
-        omaspec_uml::map::Shape::End,
-        "end",
-        &mut out,
-    );
+    push_marks(diagram, omaspec_uml::map::Shape::Start, "start", &mut out);
+    push_marks(diagram, omaspec_uml::map::Shape::End, "end", &mut out);
     out
 }
 
@@ -176,13 +151,11 @@ fn map_part(map: &omaspec_uml::map::Map, place: &omaspec_uml::map::Place) -> Str
         .unwrap_or_else(|| place.name.clone())
 }
 
-fn side_at(fills: &pick::Fills, name: &str, part: &str, rect: omaspec_uml::graph::Rect) -> Side {
+fn side_at(name: &str, part: &str, rect: omaspec_uml::graph::Rect) -> Side {
     Side {
         name: name.to_owned(),
         part: part.to_owned(),
         rect: Rectangle::new(Point::new(rect.x, rect.y), Size::new(rect.w, rect.h)),
-        fill: fills.of(rect.x, rect.y, rect.w, rect.h),
-        bend: fills.bend(rect.x, rect.y, rect.w, rect.h),
         anchored: false,
     }
 }
@@ -190,13 +163,7 @@ fn side_at(fills: &pick::Fills, name: &str, part: &str, rect: omaspec_uml::graph
 /// Starts, or ends, each named by the state it sits in and its place
 /// among that state's, so the same dot matches next time: a start that
 /// folds away with its state is never taken for one beside it.
-fn push_marks(
-    diagram: &Diagram,
-    fills: &pick::Fills,
-    shape: omaspec_uml::map::Shape,
-    label: &str,
-    out: &mut Vec<Side>,
-) {
+fn push_marks(diagram: &Diagram, shape: omaspec_uml::map::Shape, label: &str, out: &mut Vec<Side>) {
     let marks: Vec<_> = diagram
         .drawn
         .map
@@ -212,7 +179,7 @@ fn push_marks(
             .collect::<Vec<_>>(),
     );
     for (spot, name) in marks.iter().zip(names) {
-        out.push(side_at(fills, &name, &spot.part, spot.rect));
+        out.push(side_at(&name, &spot.part, spot.rect));
     }
 }
 
@@ -253,23 +220,21 @@ pub fn plan_with(
     new_size: Size,
     folding: bool,
 ) -> Option<Morph> {
-    let old_header = headers(old);
-    let new_header = headers(new);
     let mut stays = Vec::new();
     let mut used_new = vec![false; new.len()];
     let mut leaves = Vec::new();
-    for (index, from) in old.iter().enumerate() {
+    for from in old {
         let Some(to_at) = new
             .iter()
             .enumerate()
             .position(|(nth, to)| !used_new[nth] && to.name == from.name)
         else {
-            leaves.push(leave(from, old_header[index]));
+            leaves.push(leave(from));
             continue;
         };
         used_new[to_at] = true;
         let to = &new[to_at];
-        stays.push(stay(from, to, old_header[index]));
+        stays.push(stay(from, to));
     }
     // A name the writer is still typing (`Pla` becoming `Playing`) is the
     // same box. Matching it as gone and new would pop it out and in.
@@ -292,15 +257,13 @@ pub fn plan_with(
             name: to.name.clone(),
             from: to.rect,
             to: to.rect,
-            from_fill: to.fill,
-            to_fill: to.fill,
-            from_bend: to.bend,
-            to_bend: to.bend,
-            columns: Default::default(),
+            from_fill: None,
+            to_fill: None,
+            from_bend: None,
+            to_bend: None,
             parts: [to.part.clone(), to.part.clone()],
             anchored: to.anchored,
             solid: false,
-            from_header: new_header[index],
             role: Role::Arrive,
             into: None,
         });
@@ -360,20 +323,18 @@ pub fn gather(morph: &mut Morph, old: &omaspec_uml::map::Map, new: &omaspec_uml:
     }
 }
 
-fn stay(from: &Side, to: &Side, from_header: f32) -> Move {
+fn stay(from: &Side, to: &Side) -> Move {
     Move {
         name: from.name.clone(),
         from: from.rect,
         to: to.rect,
-        from_fill: from.fill,
-        to_fill: to.fill,
-        from_bend: from.bend,
-        to_bend: to.bend,
-        columns: Default::default(),
+        from_fill: None,
+        to_fill: None,
+        from_bend: None,
+        to_bend: None,
         parts: [from.part.clone(), to.part.clone()],
         anchored: from.anchored || to.anchored,
         solid: false,
-        from_header,
         role: Role::Stay,
         into: None,
     }
@@ -385,15 +346,13 @@ fn stay_move(from: &Move, to: &Side) -> Move {
         name: to.name.clone(),
         from: from.from,
         to: to.rect,
-        from_fill: from.from_fill,
-        to_fill: to.fill,
-        from_bend: from.from_bend,
-        to_bend: to.bend,
-        columns: Default::default(),
+        from_fill: None,
+        to_fill: None,
+        from_bend: None,
+        to_bend: None,
         parts: [from.parts[0].clone(), to.part.clone()],
         anchored: from.anchored || to.anchored,
         solid: false,
-        from_header: from.from_header,
         role: Role::Stay,
         into: None,
     }
@@ -437,20 +396,18 @@ fn center_shift(from: Rectangle, to: Rectangle, old: Size, new: Size) -> f32 {
     dx * dx + dy * dy
 }
 
-fn leave(from: &Side, header: f32) -> Move {
+fn leave(from: &Side) -> Move {
     Move {
         name: from.name.clone(),
         from: from.rect,
         to: from.rect,
-        from_fill: from.fill,
-        to_fill: from.fill,
-        from_bend: from.bend,
-        to_bend: from.bend,
-        columns: Default::default(),
+        from_fill: None,
+        to_fill: None,
+        from_bend: None,
+        to_bend: None,
         parts: [from.part.clone(), from.part.clone()],
         anchored: from.anchored,
         solid: false,
-        from_header: header,
         role: Role::Leave,
         into: None,
     }
@@ -460,30 +417,6 @@ fn area(step: &Move) -> f32 {
     let from = step.from.width * step.from.height;
     let to = step.to.width * step.to.height;
     from.max(to)
-}
-
-/// `1` when nothing is drawn inside the box. Otherwise the band above the
-/// first box it holds, as a share of its height.
-fn headers(boxes: &[Side]) -> Vec<f32> {
-    boxes
-        .iter()
-        .map(|box_| {
-            let mut top = f32::MAX;
-            for other in boxes {
-                if std::ptr::eq(box_, other) {
-                    continue;
-                }
-                if inside(other.rect, box_.rect) {
-                    top = top.min(other.rect.y);
-                }
-            }
-            if top == f32::MAX {
-                return 1.0;
-            }
-            let band = (top - box_.rect.y - 2.0).max(box_.rect.height * 0.08);
-            (band / box_.rect.height.max(1.0)).clamp(0.08, 0.92)
-        })
-        .collect()
 }
 
 fn inside(inner: Rectangle, outer: Rectangle) -> bool {
@@ -587,8 +520,8 @@ pub fn paint(frame: &mut Frame, grid: Grid, local: Rectangle, paint: &Paint<'_>)
     if let Some(fill) = sheet_color(paint.old, paint.new, t) {
         frame.fill(&draw::rounded(paper, draw::RADIUS), fill);
     }
-    paint_lines(frame, local, paint, true, &placed);
-    paint_lines(frame, local, paint, false, &placed);
+    paint_ground(frame, local, paint, true, &placed);
+    paint_ground(frame, local, paint, false, &placed);
     paint_kept(frame, local, paint, &placed);
     for index in 0..paint.morph.moves.len() {
         paint_box(frame, local, paint, index, &placed);
@@ -626,10 +559,16 @@ fn inset_px(rect: Rectangle, px: f32) -> Rectangle {
     )
 }
 
-/// The picture with its boxes left out, at `alpha`. A box is cut where it
-/// sits in that picture, mapped onto the easing sheet, so the hole and the
-/// sprite that covers it are the same pixels at either end.
-fn paint_lines(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, old: bool, placed: &Placed) {
+/// The ground of the picture before or of the new one, without its lines
+/// and its parts, at `alpha` on the easing sheet; with the parts of that
+/// picture alone that nothing glides ([`Morph::orphans`]).
+fn paint_ground(
+    frame: &mut Frame,
+    local: Rectangle,
+    paint: &Paint<'_>,
+    old: bool,
+    placed: &Placed,
+) {
     let alpha = if old { placed.out } else { placed.inn };
     if alpha <= 0.02 || placed.paper.width <= 1.0 || placed.paper.height <= 1.0 {
         return;
@@ -639,8 +578,7 @@ fn paint_lines(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, old: bool
     } else {
         (paint.new, paint.new_size)
     };
-    let holes = box_holes(paint, old, size, placed.paper);
-    sprite::punched(
+    sprite::blit(
         frame,
         local,
         &sprite::Blit {
@@ -650,7 +588,6 @@ fn paint_lines(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, old: bool
             limit: placed.visible,
             alpha,
         },
-        &holes,
     );
     for name in &paint.morph.orphans[usize::from(!old)] {
         let Some((part, at)) = raster.part(name) else {
@@ -667,31 +604,8 @@ fn paint_lines(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, old: bool
             limit,
             alpha,
         };
-        sprite::punched(frame, local, &blit, &[]);
+        sprite::blit(frame, local, &blit);
     }
-}
-
-/// Where the boxes of the picture before, or of the new one, are cut out
-/// of it. A sheet of parts has none: a box drawn from a part of its own is
-/// not in its ground, and one without stays in the ground or in the part
-/// of the box around it (docs/adr/0029).
-fn box_holes(paint: &Paint<'_>, old: bool, size: Size, paper: Rectangle) -> Vec<Rectangle> {
-    let raster = if old { paint.old } else { paint.new };
-    if raster.parts.is_some() {
-        return Vec::new();
-    }
-    paint
-        .morph
-        .moves
-        .iter()
-        .filter_map(|step| {
-            if (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave) {
-                return None;
-            }
-            let rect = if old { step.from } else { step.to };
-            Some(onto(grow(rect), size, paper))
-        })
-        .collect()
 }
 
 fn paint_box(
@@ -747,20 +661,20 @@ fn same_size(a: Rectangle, b: Rectangle) -> bool {
     (a.width - b.width).abs() < 0.5 && (a.height - b.height).abs() < 0.5
 }
 
-/// Whether a side of `step` is drawn on its own: from its part on a sheet
-/// of parts, cut out of the picture on one without. A box without a part
-/// of its own on a sheet of parts is in the ground or in the part of the
-/// box around it, and goes with that (docs/adr/0029).
+/// Whether a side of `step` is drawn on its own, from its part. A box
+/// without a part of its own is in the ground or in the part of the box
+/// around it, and goes with that (docs/adr/0029).
 fn drawn(paint: &Paint<'_>, step: &Move, old: bool) -> bool {
     let raster = if old { paint.old } else { paint.new };
-    raster.parts.is_none() || raster.has_part(&step.parts[usize::from(!old)])
+    raster.has_part(&step.parts[usize::from(!old)])
 }
 
-/// The box's pixels of the picture before, or of the new one, in `dest`:
-/// shaped to it ([`sprite::fit`]), with the boxes it holds cut out and
-/// their holes filled with its own color. One that stays, or glides into
-/// the box it hung below, changes its shape on the way; one that only goes
-/// or comes stretches with the sheet.
+/// The box's picture before, or the new one, in `dest`: the picture of its
+/// own part, which holds nothing of another box and none of its lines'
+/// words, shaped to `dest` ([`sprite::fit`]). One that stays, or glides
+/// into the box it hung below, changes its shape on the way, its rim kept;
+/// one that only goes or comes stretches with the sheet. Both pictures
+/// keep to the box's own rectangle, so their rims meet.
 #[allow(clippy::too_many_arguments)]
 fn paint_side(
     frame: &mut Frame,
@@ -773,23 +687,20 @@ fn paint_side(
     alpha: f32,
 ) {
     let step = &paint.morph.moves[index];
-    let (raster, size, src, bend, fill) = if old {
-        let src = grow(step.from);
+    let Some((part, _)) =
+        (if old { paint.old } else { paint.new }).part(&step.parts[usize::from(!old)])
+    else {
+        return;
+    };
+    let (size, src, bend, fill) = if old {
         (
-            paint.old,
             paint.old_size,
-            src,
+            grow(step.from),
             step.from_bend,
             step.from_fill,
         )
     } else {
-        (
-            paint.new,
-            paint.new_size,
-            grow(step.to),
-            step.to_bend,
-            step.to_fill,
-        )
+        (paint.new_size, grow(step.to), step.to_bend, step.to_fill)
     };
     let natural = match step.role {
         Role::Stay => Some(placed.natural),
@@ -800,65 +711,33 @@ fn paint_side(
         ),
         _ => None,
     };
-    let children = children(paint, index, old, placed);
-    let rects: Vec<Rectangle> = children.iter().map(|child| child.rect).collect();
-    // Drawn from a part of its own, the box holds nothing of another and
-    // none of its lines' words: nothing to cut out, fill or fade.
-    // Both pictures keep to the box's own rectangle, so their rims meet.
-    if let Some((part, _)) = raster.part(&step.parts[usize::from(!old)]) {
-        // Rows laid from the top left stay there, the box at its size
-        // within its place of the moment, while it is a box in both
-        // pictures (not a card that folds into a row, which shrinks into
-        // it).
-        let fit = match natural {
-            Some(natural) if anchored(paint, step) => sprite::anchored(src, dest, natural),
-            _ => sprite::fit(src, dest, natural, placed.pixel, bend, &rects),
-        };
-        let swatch = fill.map(Raster::swatch);
-        let whole = sprite::Holes {
-            children: &[],
-            columns: &[],
-            swatch: swatch.as_ref(),
-            content: alpha,
-        };
-        sprite::draw(frame, local, &part, &fit, &whole, alpha);
-        return;
-    }
-    if raster.parts.is_some() {
-        return;
-    }
-    let fit = sprite::fit(src, dest, natural, placed.pixel, bend, &rects);
-    let prepared = &step.columns[usize::from(!old)];
-    let worked;
-    let columns = if prepared.len() == rects.len() {
-        &prepared[..]
-    } else {
-        worked = sprite::columns(raster, fit.interior, &rects);
-        &worked[..]
-    };
-    // A container whose boxes go, or come: its words go with their lines.
-    let held = held(&paint.morph.moves, index, old);
-    let moving = |role| held.iter().any(|(i, _)| paint.morph.moves[*i].role == role);
-    let content = match step.role {
-        Role::Stay if old && moving(Role::Leave) => alpha.min(placed.out),
-        Role::Stay if !old && moving(Role::Arrive) => alpha.min(placed.inn),
-        _ => alpha,
+    // Rows laid from the top left stay there, the box at its size within
+    // its place of the moment, while it is a box in both pictures (not a
+    // card that folds into a row, which shrinks into it). A container
+    // keeps its title at the top.
+    let fit = match natural {
+        Some(natural) if anchored(paint, step) => sprite::anchored(src, dest, natural),
+        _ => {
+            let held: Vec<Rectangle> = held(&paint.morph.moves, index, old)
+                .into_iter()
+                .map(|(_, rect)| rect)
+                .collect();
+            sprite::fit(src, dest, natural, placed.pixel, bend, &held)
+        }
     };
     let swatch = fill.map(Raster::swatch);
-    let holes = sprite::Holes {
-        children: &children,
-        columns,
-        swatch: swatch.as_ref(),
-        content,
-    };
-    sprite::draw(frame, local, raster, &fit, &holes, alpha);
+    sprite::draw(frame, local, &part, &fit, swatch.as_ref(), alpha);
 }
 
-/// Works out once, for a glide drawn from `old` to `new`, the columns of
-/// each box's own color that fill the holes of the boxes it holds
-/// ([`sprite::columns`]): the pictures and the boxes are the same in every
-/// frame.
+/// Works out once, for a glide drawn from the sheet `old` to the sheet
+/// `new`, what is the same in every frame: how each box's own outline is
+/// filled and bends, which parts no box and no line's words take, and
+/// which of them are in both pictures.
 pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&super::wires::Glide>) {
+    for step in &mut morph.moves {
+        (step.from_fill, step.from_bend) = old.outline(&step.parts[0], grow(step.from));
+        (step.to_fill, step.to_bend) = new.outline(&step.parts[1], grow(step.to));
+    }
     for (side, raster) in [(0, old), (1, new)] {
         let Some(parts) = &raster.parts else {
             continue;
@@ -903,24 +782,6 @@ pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&sup
     for step in &mut morph.moves {
         step.solid = step.anchored && covers(new, &step.parts[1]);
     }
-    for index in 0..morph.moves.len() {
-        for (side, raster) in [(0, old), (1, new)] {
-            // On a sheet of parts nothing is cut out.
-            if raster.parts.is_some() {
-                continue;
-            }
-            let held = held(&morph.moves, index, side == 0);
-            let step = &morph.moves[index];
-            let (src, bend) = if side == 0 {
-                (grow(step.from), step.from_bend)
-            } else {
-                (grow(step.to), step.to_bend)
-            };
-            let rects: Vec<Rectangle> = held.iter().map(|(_, rect)| *rect).collect();
-            let interior = sprite::rim(src, bend, &rects).map(|rim| sprite::inset(src, rim));
-            morph.moves[index].columns[side] = sprite::columns(raster, interior, &rects);
-        }
-    }
 }
 
 /// The parts in both pictures that no box takes ([`Morph::kept`]), each
@@ -961,13 +822,7 @@ fn paint_kept(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, placed: &P
                 continue;
             };
             fit.pieces[0].limit = limit;
-            let whole = sprite::Holes {
-                children: &[],
-                columns: &[],
-                swatch: None,
-                content: alpha,
-            };
-            sprite::draw(frame, local, part, &fit, &whole, alpha);
+            sprite::draw(frame, local, part, &fit, None, alpha);
         }
     }
 }
@@ -1031,26 +886,8 @@ fn parent_dest(step: &Move, paint: &Paint<'_>, placed: &Placed) -> Option<Rectan
     ))
 }
 
-/// The boxes drawn inside box `index`, in the picture before or in the
-/// new one, in that picture's units as they are cut out: they glide on
-/// their own. One that stays covers its place whole while the picture
-/// before is drawn: its own pixels, opaque, over the hole it leaves.
-fn children(paint: &Paint<'_>, index: usize, old: bool, placed: &Placed) -> Vec<sprite::Child> {
-    held(&paint.morph.moves, index, old)
-        .into_iter()
-        .map(|(other, rect)| {
-            let other = &paint.morph.moves[other];
-            sprite::Child {
-                rect,
-                covered: (old && other.role == Role::Stay && placed.t < 1.0)
-                    .then(|| sprite_dest(other, paint, placed)),
-            }
-        })
-        .collect()
-}
-
 /// The boxes inside box `index` in the picture before or the new one: each
-/// one's index, and its place as it is cut out.
+/// one's index, and its place with its stroke.
 fn held(moves: &[Move], index: usize, old: bool) -> Vec<(usize, Rectangle)> {
     let missing =
         |step: &Move| (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave);
@@ -1126,12 +963,7 @@ mod tests {
         Side {
             name: name.to_owned(),
             rect: Rectangle::new(Point::new(x, y), Size::new(w, h)),
-            fill: Some([0.9, 0.9, 0.9]),
             part: name.to_owned(),
-            bend: Some(pick::Bend {
-                radius: 8.0,
-                inset: 0.0,
-            }),
             anchored: false,
         }
     }
@@ -1163,14 +995,7 @@ mod tests {
         let morph = plan(&old, &new, size(), size()).expect("the boxes moved");
         let on = morph.moves.iter().find(|step| step.name == "On").unwrap();
         assert_eq!(on.role, Role::Stay);
-        assert!(on.from_header < 0.5, "the title band is {}", on.from_header);
         assert!((on.from.x - 10.0).abs() < 0.1 && (on.to.x - 40.0).abs() < 0.1);
-        let playing = morph
-            .moves
-            .iter()
-            .find(|step| step.name == "Playing")
-            .unwrap();
-        assert_eq!(playing.from_header, 1.0);
         let updating = morph
             .moves
             .iter()
@@ -1216,13 +1041,14 @@ mod tests {
         assert!(line_in(0.25).abs() < 0.01);
     }
 
+    /// A box drawn on the easing sheet is where the picture before draws
+    /// it at the start and where the new one does at the end.
     #[test]
-    fn a_sprite_meets_its_hole_at_both_ends() {
+    fn a_sprite_lands_on_its_places_at_both_ends() {
         let old_size = Size::new(400.0, 300.0);
         let new_size = Size::new(500.0, 360.0);
         let from = Rectangle::new(Point::new(10.0, 20.0), Size::new(80.0, 40.0));
         let to = Rectangle::new(Point::new(40.0, 30.0), Size::new(90.0, 50.0));
-        let child = Rectangle::new(Point::new(24.0, 36.0), Size::new(30.0, 16.0));
         let old_paper = Rectangle::new(Point::new(8.0, 12.0), Size::new(200.0, 150.0));
         let new_paper = Rectangle::new(Point::new(4.0, 6.0), Size::new(240.0, 180.0));
         let from_at = onto(grow(from), old_size, old_paper);
@@ -1232,24 +1058,6 @@ mod tests {
         close(
             lerp_rect(from_at, to_at, 1.0),
             onto(grow(to), new_size, paper_end),
-        );
-        // A child cut out of its parent lands on the child's own place.
-        let parent_dest = onto(grow(from), old_size, old_paper);
-        let natural = old_paper.width / old_size.width;
-        let fit = sprite::fit(
-            grow(from),
-            parent_dest,
-            Some(natural),
-            1.0,
-            Some(pick::Bend {
-                radius: 8.0,
-                inset: 0.0,
-            }),
-            &[grow(child)],
-        );
-        close(
-            fit.place(grow(child)).unwrap(),
-            onto(grow(child), old_size, old_paper),
         );
     }
 

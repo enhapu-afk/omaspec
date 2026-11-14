@@ -222,9 +222,11 @@ pub fn fill_of(tree: &Tree, x: f32, y: f32, w: f32, h: f32) -> Option<[f32; 3]> 
 
 /// The shapes of a picture, read once, to ask [`Fills::of`] and
 /// [`Fills::bend`] for many boxes.
+#[derive(Debug, Clone, Default)]
 pub struct Fills(Vec<Outline>);
 
 /// A shape as [`Fills`] knows it.
+#[derive(Debug, Clone)]
 struct Outline {
     rect: Rect,
     /// Its fill, when it is a plain color.
@@ -245,8 +247,17 @@ pub struct Bend {
 
 /// The shapes of `tree` with a fill or an outline, and how they are filled.
 pub fn fills(tree: &Tree) -> Fills {
+    fills_of([tree.root()])
+}
+
+/// The shapes of `groups` alone, as [`fills`] reads a whole picture: the
+/// groups of one part of it, so that what is asked of a box is answered
+/// by its own outline and never by another's (docs/adr/0029).
+pub fn fills_of<'a>(groups: impl IntoIterator<Item = &'a usvg::Group>) -> Fills {
     let mut outlines = Vec::new();
-    collect_outlines(tree.root(), &mut outlines);
+    for group in groups {
+        collect_outlines(group, &mut outlines);
+    }
     Fills(outlines)
 }
 

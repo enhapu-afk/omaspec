@@ -72,7 +72,7 @@ impl Paper {
         self.deliver_bare();
     }
 
-    /// The pictures without lines a glide asked for, rasterized here.
+    /// The sheets of parts a glide asked for, rasterized here.
     pub fn deliver_bare(&mut self) {
         let old = self
             .previous
@@ -101,8 +101,9 @@ impl Paper {
     }
 
     /// The pictures the pane may draw next: those shown or held back,
-    /// those a fade, a glide or a zoom goes from and to, the pictures
-    /// without lines it asked for, and the colors a glide fills holes with. A recording puts them on the GPU before
+    /// those a fade, a glide or a zoom goes from and to, the sheets of
+    /// parts it asked for, and the colors of the boxes a glide draws out
+    /// ([`super::sprite::draw`]). A recording puts them on the GPU before
     /// each frame ([`crate::editor::Screen::upload`]), as the window waits
     /// for its pixels to be there.
     pub fn pictures(&self) -> Vec<iced::widget::image::Handle> {
@@ -129,7 +130,7 @@ impl Paper {
             out.extend(passage.small.iter().flatten());
         }
         let mut handles: Vec<_> = out.into_iter().map(|r| r.handle.clone()).collect();
-        // The colors a glide fills the holes of its boxes with.
+        // The colors a glide fills the room of its boxes with.
         let moves = self
             .fade
             .iter()

@@ -38,9 +38,9 @@ pub struct Drawn {
     /// (`Rendered::cards`); `svg` has them, for the pane to parse when it
     /// shows them.
     pub cards: bool,
-    /// The picture without its lines, for a glide that draws them itself
-    /// (`paper::wires`); a graph diagram has one. Without its parts too,
-    /// when it has them: the ground the parts glide over.
+    /// The ground of a picture that marks its parts: without its parts,
+    /// and without the lines a glide draws itself (`paper::wires`), those
+    /// the map names. The parts glide over it (docs/adr/0029).
     pub bare: Option<Arc<usvg::Tree>>,
     /// Its boxes, marks and lines' words are parts of their own in `tree`,
     /// for a glide to take whole (docs/adr/0029).
@@ -68,27 +68,21 @@ impl Drawn {
             .cards
             .as_deref()
             .filter(|_| rendered.svg.len() > whole);
-        // The picture and the one without its lines are read side by
-        // side: each takes as long as the other, a quarter of a second
-        // for a tree of some thousand boxes.
+        // The picture and its ground are read side by side: each takes as
+        // long as the other, a quarter of a second for a tree of some
+        // thousand boxes.
         let parts = cards.is_none() && omaspec_uml::has_parts(&rendered.svg);
-        let wanted = cards.is_none() && (parts || !rendered.map.wires.is_empty());
         let (tree, bare) = std::thread::scope(|scope| {
             let bare = scope.spawn(|| {
-                wanted
+                parts
                     .then(|| {
-                        let ground = if parts {
-                            std::borrow::Cow::Owned(omaspec_uml::without_parts(&rendered.svg)?)
-                        } else {
-                            std::borrow::Cow::Borrowed(rendered.svg.as_str())
-                        };
+                        let ground = omaspec_uml::without_parts(&rendered.svg)?;
                         // Only the lines the map names glide on their own;
                         // without them, the lines stay on the ground.
                         if rendered.map.wires.is_empty() {
-                            return Some(ground.into_owned());
+                            return Some(ground);
                         }
-                        omaspec_uml::without_lines(&ground)
-                            .or_else(|| parts.then(|| ground.into_owned()))
+                        omaspec_uml::without_lines(&ground).or(Some(ground))
                     })
                     .flatten()
                     .and_then(|svg| export::parse(&svg).ok())

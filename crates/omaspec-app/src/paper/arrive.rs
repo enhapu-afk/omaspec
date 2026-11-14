@@ -204,13 +204,16 @@ impl Paper {
 
     /// Fades from the pictures before to the new diagram's overview. A
     /// detail of the diagram before goes with them; the new one comes sharp
-    /// once it is rasterized. When a box moved, the boxes glide for
-    /// [`MORPH`], and the lines with them once the pictures without lines
+    /// once it is rasterized. When a box moved and both pictures mark their
+    /// parts, the boxes glide for [`MORPH`], each from a picture of its
+    /// own, and the lines with them, once the sheets of the two pictures
     /// are drawn: until then the old picture stays, and this is called
-    /// again when they come. Otherwise a fold eases longer than an edit.
+    /// again when they come (docs/adr/0029). Otherwise, or when a sheet
+    /// could not be drawn, the pictures fade, a fold longer than an edit.
     pub(super) fn start_fade(&mut self, now: Instant) -> Task<Message> {
+        let parts = self.diagram.as_ref().is_some_and(|d| d.drawn.parts);
         let mut morph = match &self.previous {
-            Some(previous) => self
+            Some(previous) if parts && previous.tree.is_some() => self
                 .morph_of(
                     &previous.pictures,
                     &previous.boxes,
@@ -223,7 +226,7 @@ impl Paper {
                     }
                     morph
                 }),
-            None => None,
+            _ => None,
         };
         if morph.is_some()
             && !self.no_bare
@@ -271,20 +274,27 @@ impl Paper {
         }) {
             self.detail.shown = None;
         }
+        // The two sheets of parts the boxes glide from; without them,
+        // the pictures fade.
+        let bare = match (
+            &morph,
+            self.bare_old.shown.take(),
+            self.bare_new.shown.take(),
+        ) {
+            (Some(_), Some(old), Some(new)) if old.parts.is_some() && new.parts.is_some() => {
+                Some((old, new))
+            }
+            _ => None,
+        };
+        if bare.is_none() {
+            morph = None;
+        }
         let (duration, easing) = if morph.is_some() {
             (MORPH, Easing::EaseInOut)
         } else if fold {
             (FOLD_FADE, Easing::EaseInOut)
         } else {
             (DIAGRAM_FADE, Easing::EaseOut)
-        };
-        let bare = match (
-            &morph,
-            self.bare_old.shown.take(),
-            self.bare_new.shown.take(),
-        ) {
-            (Some(_), Some(old), Some(new)) => Some((old, new)),
-            _ => None,
         };
         let lines = match (&morph, &bare, old_map, &self.diagram) {
             (Some(morph), Some(_), Some(old_map), Some(diagram)) => {
@@ -294,12 +304,7 @@ impl Paper {
         };
         self.bare_old.clear();
         self.bare_new.clear();
-        // The pictures the boxes are cut out of, as the glide draws them.
-        let pictures = match &bare {
-            Some((old, new)) => Some((old, new)),
-            None => old.first().zip(self.overview.shown.as_ref()),
-        };
-        if let (Some(morph), Some((old, new))) = (morph.as_mut(), pictures) {
+        if let (Some(morph), Some((old, new))) = (morph.as_mut(), &bare) {
             morph::prepare(morph, old, new, lines.as_ref());
         }
         self.fade = Some(Fade {
@@ -321,9 +326,9 @@ impl Paper {
         Task::none()
     }
 
-    /// Asks for the old picture and the new one without their lines, at
-    /// the plans their overviews were drawn to; `None` when one of them
-    /// has no such picture, so the lines fade with the pictures.
+    /// Asks for the sheets of the old picture and of the new one, at the
+    /// plans their overviews were drawn to; `None` when one of them has
+    /// no ground, so they fade.
     fn ask_bare(&mut self) -> Option<Task<Message>> {
         let previous = self.previous.as_ref()?;
         let (old_tree, old_plan) = (previous.bare.clone()?, previous.plan?);
@@ -352,8 +357,8 @@ impl Paper {
         ]))
     }
 
-    /// A picture without lines came, or could not be drawn: with both in,
-    /// or one failed, the fade that waited for them starts.
+    /// A sheet came, or could not be drawn: with both in, or one failed,
+    /// the fade that waited for them starts.
     pub(super) fn bare_came(
         &mut self,
         seq: u64,

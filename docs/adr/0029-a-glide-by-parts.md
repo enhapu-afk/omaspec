@@ -49,7 +49,8 @@ words it draws for which state, which words belong to which line.
    another box is in it, nothing has to be cut out of it, filled or faded.
    A box that changes its shape is still drawn in parts, its corners kept
    ([`paper::sprite`](../../crates/omaspec-app/src/paper/sprite.rs)); its
-   rim comes from its own outline.
+   rim and its fill come from its own outline, read from its part alone
+   (`pick::fills_of`).
 4. **Words go with their lines.** A line's words are a part of their own
    and travel with the line (`paper::wires`): from their old place to their
    new one, or away and in with the line when it goes or comes.
@@ -68,12 +69,14 @@ words it draws for which state, which words belong to which line.
    stays opaque to the end where the new one covers it (a card with a
    fill, or one that keeps its size); words that change fade from one to
    the other.
-7. **One drawer at a time.** State diagrams of both languages mark their
-   parts first, then structure, flowcharts and trees. A picture without
-   parts glides as it did, by cutting; once every drawer that glides marks
-   its parts, the cutting and its guesses go: the box test of `pick`, the
-   columns and swatches of `sprite`, the faded inside of a folding
-   container.
+7. **One drawer at a time, then no cutting.** State diagrams of both
+   languages marked their parts first, then structure, flowcharts and
+   trees. Every drawer whose boxes glide marks them now, and the cutting
+   and its guesses are gone: the holes cut into the picture, the columns
+   that filled them, the faded inside of a folding container, the search
+   of the whole picture for each box's outline. A glide runs only between
+   two sheets of parts; a picture without parts (the Java engine's), or
+   one too large for a sheet, fades into the other, as a recolor does.
 
 ## Why
 

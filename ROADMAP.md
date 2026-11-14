@@ -2842,9 +2842,9 @@ order ([0029](docs/adr/0029-a-glide-by-parts.md)):
       is cut out of nothing and fills nothing; its rim still keeps its
       corners when it changes shape. An export of the pane's picture drops
       the groups (`unmarked`).
-- [ ] Structure, flowcharts and trees mark their parts too; then the
+- [x] Structure, flowcharts and trees mark their parts too; then the
       cutting goes, with its box test, columns, swatches and the faded
-      inside of a folding container. Structures do (2026-11-14): classes,
+      inside of a folding container (2026-11-14). Structures do: classes,
       packages, components, deployment, use cases, C4 and Mermaid's classes,
       a note inside a package with it, a line's words and each of its
       multiplicities a part of their own, the multiplicities going with
@@ -2858,9 +2858,10 @@ order ([0029](docs/adr/0029-a-glide-by-parts.md)):
       drawn at its size from its top left, so its rows stay put as it
       grows. Each kind of part name has its own prefix (`state:`, `box:`,
       `mark:`, `words:`, `frame:`), so a box called `frame:title` is never
-      the title. Every drawer whose boxes glide marks them now; the
-      cutting is left for pictures without parts (the Java engine's, one
-      too large for a sheet).
+      the title. Every drawer whose boxes glide marks them now, and the
+      cutting is gone: a glide runs between two sheets of parts, a picture
+      without them (the Java engine's, one too large for a sheet) fades;
+      a box's rim and fill are read from its own part's outline alone.
 - [ ] Fade and glide as one small state machine instead of a dozen flags,
       written as a diagram of its own and checked by Omaspec.
 - [ ] One way for the window and a recording to take their pictures: the

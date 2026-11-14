@@ -1,6 +1,6 @@
-//! A box's pixels, cut out of its picture, drawn into a box on screen,
-//! as a glide carries each box from one place to the next
-//! ([`super::morph`]).
+//! A box's own picture, the part it is drawn in (docs/adr/0029), drawn
+//! into a box on screen, as a glide carries each box from one place to
+//! the next ([`super::morph`]).
 //!
 //! Where the box keeps its shape, its pixels are only scaled. Where it
 //! changes shape, as a container folds into a small box or a box unfolds
@@ -27,7 +27,7 @@ use super::raster::Raster;
 /// hairline gap, narrow enough that two boxes still meet.
 pub(super) const HAIR: f32 = 0.05;
 /// A box's rim, in diagram units, beyond the radius of its corners: the
-/// margin it is cut out with (2) and its stroke.
+/// margin it is drawn with (2) and its stroke.
 const RIM: f32 = 3.0;
 /// A rim reaches this far past the box's sides, so the rows drawn out from
 /// just inside it lie clear of its stroke and its blur, and at least a
@@ -69,32 +69,22 @@ pub(super) struct Piece {
 }
 
 /// How a box's pixels fill a box on screen: its parts, and of them the
-/// inside, where the boxes it holds are cut out.
+/// inside, within its rim.
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Fit {
     pub pieces: Vec<Piece>,
     /// The index in `pieces` of the inside.
     pub inside: usize,
-    /// The box within its rim, in the picture's units, where none of the
-    /// boxes it holds reaches: its own color, which fills their holes.
-    /// None for a shape that is no box.
-    pub interior: Option<Rectangle>,
 }
 
 impl Fit {
+    #[cfg(test)]
     pub fn inside(&self) -> Piece {
         self.pieces[self.inside]
     }
-
-    /// `child`, in the box's diagram units, where the inside draws it on
-    /// screen; the part of it that is shown.
-    pub fn place(&self, child: Rectangle) -> Option<Rectangle> {
-        let inside = self.inside();
-        map_through(child, inside.src, inside.dest).intersection(&inside.limit)
-    }
 }
 
-/// How wide the rim is of the box cut out as `src`, whose outline bends
+/// How wide the rim is of the box drawn from `src`, whose outline bends
 /// as `bend` says and which holds `children` (in the picture's units): as
 /// wide as its corners and its stroke, and [`WIDEST_RIM`] past its sides,
 /// and narrow enough that the rows drawn out from just inside it lie clear
@@ -131,7 +121,7 @@ pub(super) fn fit(
     bend: Option<Bend>,
     children: &[Rectangle],
 ) -> Fit {
-    let plain = |interior| Fit {
+    let plain = || Fit {
         pieces: vec![Piece {
             src,
             dest,
@@ -139,20 +129,18 @@ pub(super) fn fit(
             room: false,
         }],
         inside: 0,
-        interior,
     };
     let Some(rim) = rim(src, bend, children) else {
-        return plain(None);
+        return plain();
     };
-    let interior = Some(inset(src, rim));
     let Some(natural) = natural.filter(|n| *n > 0.0) else {
-        return plain(interior);
+        return plain();
     };
     let near = |a: f32, b: f32| {
         (a - b).abs() <= (SAME_SHAPE * a.abs().max(b.abs())).max(SAME_PIXELS * pixel)
     };
     if near(dest.width, src.width * natural) && near(dest.height, src.height * natural) {
-        return plain(interior);
+        return plain();
     }
     // The corners at the picture's size, unless the box is too small for
     // them.
@@ -164,7 +152,7 @@ pub(super) fn fit(
     let (src_w, src_h) = inner(src, rim);
     let (room_w, room_h) = inner(dest, edge);
     if src_w < 1.0 || src_h < 1.0 || room_w < HAIR || room_h < HAIR {
-        return plain(interior);
+        return plain();
     }
     let (across, down) = (room_w / src_w, room_h / src_h);
     // A container as wide as there is room, cut short below; a plain box
@@ -208,11 +196,7 @@ pub(super) fn fit(
             });
         }
     }
-    Fit {
-        pieces,
-        inside,
-        interior,
-    }
+    Fit { pieces, inside }
 }
 
 /// The box of pixels `src` drawn at `natural` pixels to a unit from the
@@ -236,7 +220,6 @@ pub(super) fn anchored(src: Rectangle, within: Rectangle, natural: f32) -> Fit {
             room: false,
         }],
         inside: 0,
-        interior: None,
     }
 }
 
@@ -332,105 +315,29 @@ fn span(x: (f32, f32), y: (f32, f32)) -> Rectangle {
     )
 }
 
-/// A box held by the one drawn: where it is in the picture, and where its
-/// own pixels cover it on screen, whole and opaque, when they do.
-#[derive(Clone, Copy, Debug)]
-pub(super) struct Child {
-    pub rect: Rectangle,
-    pub covered: Option<Rectangle>,
-}
-
-/// The boxes a box holds as its picture is drawn, and how their holes are
-/// filled.
-pub(super) struct Holes<'a> {
-    pub children: &'a [Child],
-    /// For each child, a column of the box's own color beside it
-    /// ([`columns`]).
-    pub columns: &'a [Option<f32>],
-    /// The box's own color, for a hole no column fills
-    /// ([`Raster::swatch`]).
-    pub swatch: Option<&'a Raster>,
-    /// How strongly its inside is drawn below its title, the words of its
-    /// lines: less than the box while the boxes it holds go or come, on
-    /// its own color, so its words go with their lines. Its title, down to
-    /// the first box it holds, stays with its rim.
-    pub content: f32,
-}
-
-/// The box `fit` of `raster` at `alpha`, without the boxes it holds:
-/// their holes are cut out of its inside, so they glide on their own, and
-/// filled with the box's own color, a column of it beside them drawn out
-/// across, else its color as the picture names it, so the box stays one
-/// color where they were whatever is under it. A hole a child covers
-/// whole needs neither. Room the inside leaves is filled with the color
-/// too where its outermost row or column crosses words or a line. While
-/// the boxes it holds go or come, its inside fades on its own color
-/// ([`Holes::content`]).
+/// The box `fit` of `raster` at `alpha`. Room its inside leaves is drawn
+/// out from the inside's outermost row or column; where that row crosses
+/// words or a line, which would be drawn out into stripes, the box's own
+/// color fills the room (`swatch`), or in a box with no fill of its own,
+/// clear there, nothing, and what lies under it shows.
 pub(super) fn draw(
     frame: &mut Frame,
     local: Rectangle,
     raster: &Raster,
     fit: &Fit,
-    holes: &Holes<'_>,
+    swatch: Option<&Raster>,
     alpha: f32,
 ) {
-    let placed: Vec<Option<Rectangle>> = holes
-        .children
-        .iter()
-        .map(|child| fit.place(child.rect))
-        .collect();
-    let cut: Vec<Rectangle> = placed.iter().flatten().copied().collect();
-    // Only a box drawn in parts has an inside apart from its rim.
-    let fading = holes
-        .swatch
-        .filter(|_| fit.pieces.len() > 1 && holes.content < alpha - 1e-3);
-    for (index, piece) in fit.pieces.iter().enumerate() {
+    for piece in &fit.pieces {
         let limit = piece.limit.intersection(&local).unwrap_or_default();
-        if let Some(swatch) = fading.filter(|_| index == fit.inside) {
-            // The title band, down to the first box held, as drawn.
-            let first = holes
-                .children
-                .iter()
-                .map(|child| child.rect.y)
-                .fold(f32::INFINITY, f32::min);
-            let band = (piece.dest.y
-                + (first - piece.src.y) * piece.dest.height / piece.src.height)
-                .clamp(limit.y, limit.y + limit.height);
-            let (title, body) = (
-                Rectangle::new(limit.position(), Size::new(limit.width, band - limit.y)),
-                Rectangle::new(
-                    Point::new(limit.x, band),
-                    Size::new(limit.width, limit.y + limit.height - band),
-                ),
-            );
-            let drawn = |limit, alpha| Blit {
-                raster,
-                src: piece.src,
-                dest: piece.dest,
-                limit,
-                alpha,
-            };
-            punched(frame, local, &drawn(title, alpha), &cut);
-            let base = Blit {
-                raster: swatch,
-                src: inset(swatch.region, swatch.region.width / 4.0),
-                dest: body,
-                limit: body,
-                alpha,
-            };
-            punched(frame, local, &base, &[]);
-            punched(frame, local, &drawn(body, holes.content), &cut);
-            continue;
-        }
-        // Room drawn out from a row or a column that crosses words or a
-        // line would draw them out: the box's color fills it instead.
         let crossed = piece.room
             && !one_color(
                 raster,
                 (piece.src.x, piece.src.x + piece.src.width),
                 (piece.src.y, piece.src.y + piece.src.height),
             );
-        let blit = match (crossed, holes.swatch) {
+        let drawn = match (crossed, swatch) {
+            // The middle of the swatch, which no edge blurs.
             (true, Some(swatch)) => Blit {
                 raster: swatch,
                 src: inset(swatch.region, swatch.region.width / 4.0),
@@ -438,8 +345,6 @@ pub(super) fn draw(
                 limit,
                 alpha,
             },
-            // A box with no fill of its own, clear where it is drawn out:
-            // what lies under it shows.
             (true, None) if mostly_clear(raster, piece.src) => continue,
             _ => Blit {
                 raster,
@@ -449,97 +354,8 @@ pub(super) fn draw(
                 alpha,
             },
         };
-        let cut = if index == fit.inside { &cut[..] } else { &[] };
-        punched(frame, local, &blit, cut);
+        blit(frame, local, &drawn);
     }
-    // On its own color, the holes need no filling.
-    if fading.is_some() {
-        return;
-    }
-    let inside = fit.inside();
-    for (nth, (child, hole)) in holes.children.iter().zip(&placed).enumerate() {
-        let Some(hole) = *hole else {
-            continue;
-        };
-        // One within another is filled with it.
-        let within = holes
-            .children
-            .iter()
-            .any(|other| other.rect != child.rect && holds(other.rect, child.rect));
-        let covered = child
-            .covered
-            .is_some_and(|covered| holds(inset(covered, -1e-3), hole));
-        let Some(limit) = hole.intersection(&local) else {
-            continue;
-        };
-        if within || covered {
-            continue;
-        }
-        let blit = match (holes.columns.get(nth).copied().flatten(), holes.swatch) {
-            (Some(column), _) => Blit {
-                raster,
-                src: Rectangle::new(
-                    Point::new(column, child.rect.y),
-                    Size::new(STRIP, child.rect.height),
-                ),
-                dest: map_through(child.rect, inside.src, inside.dest),
-                limit,
-                alpha,
-            },
-            // The middle of the swatch, which no edge blurs.
-            (None, Some(swatch)) => Blit {
-                raster: swatch,
-                src: inset(swatch.region, swatch.region.width / 4.0),
-                dest: hole,
-                limit,
-                alpha,
-            },
-            (None, None) => continue,
-        };
-        punched(frame, local, &blit, &[]);
-    }
-}
-
-/// For each of `children`, a column of the box's `interior` beside it
-/// that is the box's own color ([`plain_column`]); none without an
-/// interior. The same for a whole glide, so worked out once.
-pub(super) fn columns(
-    raster: &Raster,
-    interior: Option<Rectangle>,
-    children: &[Rectangle],
-) -> Vec<Option<f32>> {
-    children
-        .iter()
-        .map(|child| interior.and_then(|interior| plain_column(raster, interior, children, *child)))
-        .collect()
-}
-
-/// Where a column of the box's `interior` beside `child`, at its left
-/// edge or its right, crosses none of the boxes it holds and is one color
-/// all down `child`'s rows: the box's own color, and no line or word.
-fn plain_column(
-    raster: &Raster,
-    interior: Rectangle,
-    children: &[Rectangle],
-    child: Rectangle,
-) -> Option<f32> {
-    let rows = (
-        child.y.max(interior.y),
-        (child.y + child.height).min(interior.y + interior.height),
-    );
-    if rows.1 <= rows.0 {
-        return None;
-    }
-    [interior.x, interior.x + interior.width - STRIP]
-        .into_iter()
-        .find(|&x| {
-            children.iter().all(|other| {
-                other.x + other.width <= x
-                    || other.x >= x + STRIP
-                    || other.y + other.height <= rows.0
-                    || other.y >= rows.1
-            }) && one_color(raster, (x, x + STRIP), rows)
-        })
 }
 
 /// Whether at least half of `raster`'s pixels in `area` (diagram units)
@@ -641,16 +457,8 @@ fn one_color(raster: &Raster, columns: (f32, f32), rows: (f32, f32)) -> bool {
     })
 }
 
-/// Whether `outer` holds `inner` whole.
-fn holds(outer: Rectangle, inner: Rectangle) -> bool {
-    outer.x <= inner.x
-        && outer.y <= inner.y
-        && inner.x + inner.width <= outer.x + outer.width
-        && inner.y + inner.height <= outer.y + outer.height
-}
-
-/// `raster`'s `src` drawn into `dest`, with `holes` (in `dest`) left out.
-pub(super) fn punched(frame: &mut Frame, local: Rectangle, blit: &Blit<'_>, holes: &[Rectangle]) {
+/// `blit`'s picture drawn: its `src` into its `dest`, where its `limit` is.
+pub(super) fn blit(frame: &mut Frame, local: Rectangle, blit: &Blit<'_>) {
     if blit.alpha <= 0.02
         || blit.src.width < 1e-3
         || blit.src.height < 1e-3
@@ -659,67 +467,8 @@ pub(super) fn punched(frame: &mut Frame, local: Rectangle, blit: &Blit<'_>, hole
     {
         return;
     }
-    let Some(bounds) = blit.dest.intersection(&blit.limit) else {
-        return;
-    };
-    let cuts: Vec<Rectangle> = holes
-        .iter()
-        .filter_map(|hole| hole.intersection(&bounds))
-        .collect();
-    if cuts.is_empty() {
+    if let Some(bounds) = blit.dest.intersection(&blit.limit) {
         map(frame, local, blit, bounds);
-        return;
-    }
-    let mut ys = vec![bounds.y, bounds.y + bounds.height];
-    for cut in &cuts {
-        ys.push(cut.y.clamp(bounds.y, bounds.y + bounds.height));
-        ys.push((cut.y + cut.height).clamp(bounds.y, bounds.y + bounds.height));
-    }
-    ys.sort_by(f32::total_cmp);
-    ys.dedup_by(|a, b| (*a - *b).abs() < HAIR);
-    let right = bounds.x + bounds.width;
-    for pair in ys.windows(2) {
-        let (y0, y1) = (pair[0], pair[1]);
-        if y1 - y0 < HAIR {
-            continue;
-        }
-        let mut spans: Vec<(f32, f32)> = cuts
-            .iter()
-            .filter(|cut| cut.y <= y0 + HAIR && cut.y + cut.height >= y1 - HAIR)
-            .map(|cut| (cut.x.max(bounds.x), (cut.x + cut.width).min(right)))
-            .filter(|(from, to)| to - from > HAIR)
-            .collect();
-        spans.sort_by(|a, b| a.0.total_cmp(&b.0));
-        let mut merged: Vec<(f32, f32)> = Vec::new();
-        for (from, to) in spans {
-            if let Some(last) = merged.last_mut()
-                && from <= last.1 + HAIR
-            {
-                last.1 = last.1.max(to);
-            } else {
-                merged.push((from, to));
-            }
-        }
-        let mut x = bounds.x;
-        for (from, to) in merged {
-            if from > x + HAIR {
-                map(
-                    frame,
-                    local,
-                    blit,
-                    Rectangle::new(Point::new(x, y0), Size::new(from - x, y1 - y0)),
-                );
-            }
-            x = x.max(to);
-        }
-        if right > x + HAIR {
-            map(
-                frame,
-                local,
-                blit,
-                Rectangle::new(Point::new(x, y0), Size::new(right - x, y1 - y0)),
-            );
-        }
     }
 }
 
@@ -831,7 +580,7 @@ mod tests {
         let fit = fit(src, dest, Some(2.0), 1.0, Some(BENT), &[]);
         assert_eq!(fit.pieces.len(), 1);
         assert!(close(fit.inside().dest, dest));
-        assert!(close(fit.interior.unwrap(), inset(src, bent_rim())));
+        assert_eq!(rim(src, Some(BENT), &[]), Some(bent_rim()));
         // A paper snapped to whole pixels is a pixel off: still the box.
         let snapped = rect(5.0, 5.0, 201.0, 79.0);
         assert_eq!(fit_of(src, snapped).pieces.len(), 1);
@@ -876,10 +625,12 @@ mod tests {
         assert!((inside.dest.height / inside.src.height - 1.0).abs() < 1e-3);
         assert!((inside.dest.y - bent_rim()).abs() < 1e-3);
         assert!(inside.limit.y + inside.limit.height <= 120.0 - bent_rim() + 1e-3);
-        // A child near its top lands as drawn, one below the cut is gone.
-        let top = fit.place(child).unwrap();
+        // What lies near its top is drawn where the picture draws it,
+        // what lies below the cut is not drawn.
+        let place = |r| map_through(r, inside.src, inside.dest).intersection(&inside.limit);
+        let top = place(child).unwrap();
         assert!(close(top, rect(30.0, 40.0, 60.0, 30.0)), "{top:?}");
-        assert!(fit.place(rect(20.0, 300.0, 60.0, 30.0)).is_none());
+        assert!(place(rect(20.0, 300.0, 60.0, 30.0)).is_none());
     }
 
     #[test]
@@ -904,7 +655,7 @@ mod tests {
         // A diamond, a circle: no corners to keep.
         let shape = fit(src, dest, Some(1.0), 1.0, None, &[]);
         assert_eq!(shape.pieces.len(), 1);
-        assert!(shape.interior.is_none());
+        assert!(rim(src, None, &[]).is_none());
         // Corners that bend further than a third of the box.
         assert_eq!(
             fit(src, dest, Some(1.0), 1.0, round(40.0), &[])
@@ -916,47 +667,7 @@ mod tests {
         let lane = rect(4.0, 40.0, 100.0, 30.0);
         let held = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[lane]);
         assert_eq!(held.pieces.len(), 1);
-        assert!(held.interior.is_none());
-    }
-
-    #[test]
-    fn a_hole_is_filled_from_a_plain_column_beside_it() {
-        let interior = rect(10.0, 10.0, 100.0, 200.0);
-        let child = rect(30.0, 50.0, 60.0, 30.0);
-        let white = Raster::blank(120, 220);
-        // Nothing else beside it: the left edge of the interior.
-        assert_eq!(plain_column(&white, interior, &[child], child), Some(10.0));
-        // A box on the left at its height: the right edge.
-        let left = rect(5.0, 60.0, 20.0, 10.0);
-        assert_eq!(
-            plain_column(&white, interior, &[child, left], child),
-            Some(110.0 - STRIP)
-        );
-        // Boxes on both sides: none, and the hole stays as it is.
-        let right = rect(100.0, 40.0, 20.0, 20.0);
-        assert_eq!(
-            plain_column(&white, interior, &[child, left, right], child),
-            None
-        );
-        // A box beside it but above it is no matter.
-        let above = rect(5.0, 10.0, 20.0, 20.0);
-        assert_eq!(
-            plain_column(&white, interior, &[child, above], child),
-            Some(10.0)
-        );
-        // A line across the left column at its rows, as a transition into
-        // it draws: the right column, which is plain.
-        let crossed = Raster::painted(120, 220, |x, y| {
-            if y == 64 && x < 30 {
-                [0, 0, 0, 255]
-            } else {
-                [255; 4]
-            }
-        });
-        assert_eq!(
-            plain_column(&crossed, interior, &[child], child),
-            Some(110.0 - STRIP)
-        );
+        assert!(rim(src, Some(BENT), &[lane]).is_none());
     }
 
     #[test]
@@ -1001,46 +712,6 @@ mod tests {
         assert!(fit(src, dest, Some(1.0), 0.5, Some(BENT), &[]).pieces.len() > 1);
     }
 
-    /// A hole beside which no column is plain is filled with the box's
-    /// color as the picture names it, drawn as a picture over what lies
-    /// under the box.
-    #[test]
-    fn a_hole_with_no_plain_column_is_filled_with_the_box_s_color() {
-        let src = rect(0.0, 0.0, 60.0, 60.0);
-        let child = rect(20.0, 20.0, 20.0, 20.0);
-        let red = on_tiny_skia(move |frame, local| {
-            // A white box whose every row is crossed by a black line, so
-            // no column beside the child is one color.
-            let picture =
-                Raster::painted(
-                    60,
-                    60,
-                    |x, _| {
-                        if x % 2 == 0 { [0, 0, 0, 255] } else { [255; 4] }
-                    },
-                );
-            let dest = rect(100.0, 100.0, 60.0, 60.0);
-            let fit = fit(src, dest, Some(1.0), 1.0, square(0.0), &[child]);
-            let children = [Child {
-                rect: child,
-                covered: None,
-            }];
-            let columns = columns(&picture, fit.interior, &[child]);
-            assert_eq!(columns, vec![None]);
-            let swatch = Raster::swatch([1.0, 0.0, 0.0]);
-            let holes = Holes {
-                children: &children,
-                columns: &columns,
-                swatch: Some(&swatch),
-                content: 1.0,
-            };
-            draw(frame, local, &picture, &fit, &holes, 1.0);
-        });
-        for (x, y) in [(121, 121), (130, 130), (138, 138)] {
-            assert_eq!(red[y * 200 + x], 255, "({x}, {y}) is the box's red");
-        }
-    }
-
     /// A box's words reach up to its inside's first row: drawn taller, the
     /// room above them is filled with its color, not with that row drawn
     /// out into stripes; the room below, plain, is drawn out as before.
@@ -1057,56 +728,12 @@ mod tests {
             let dest = rect(100.0, 40.0, 60.0, 120.0);
             let fit = fit(picture.region, dest, Some(1.0), 1.0, square(0.0), &[]);
             let swatch = Raster::swatch([0.0, 1.0, 1.0]);
-            let holes = Holes {
-                children: &[],
-                columns: &[],
-                swatch: Some(&swatch),
-                content: 1.0,
-            };
-            draw(frame, local, &picture, &fit, &holes, 1.0);
+            draw(frame, local, &picture, &fit, Some(&swatch), 1.0);
         });
         // Above the words, between them and the rim: the swatch's cyan.
         assert_eq!(red[60 * 200 + 130], 0, "above the words");
         // Below them: the white row drawn out.
         assert_eq!(red[140 * 200 + 130], 255, "below the words");
-    }
-
-    /// A container whose boxes go: its words fade with their lines, on its
-    /// own color, while its rim stays.
-    #[test]
-    fn a_folding_container_s_words_fade_on_its_color() {
-        let red = on_tiny_skia(|frame, local| {
-            // A white box with a black word in its middle.
-            let picture = Raster::painted(60, 60, |x, y| {
-                if (25..35).contains(&x) && (28..32).contains(&y) {
-                    [0, 0, 0, 255]
-                } else {
-                    [255; 4]
-                }
-            });
-            // Drawn shorter, as a container folding is.
-            let dest = rect(100.0, 100.0, 60.0, 50.0);
-            // A box it holds, below its title and the word.
-            let child = rect(10.0, 20.0, 12.0, 12.0);
-            let fit = fit(picture.region, dest, Some(1.0), 1.0, square(0.0), &[child]);
-            assert!(fit.pieces.len() > 1, "{fit:?}");
-            let swatch = Raster::swatch([1.0, 1.0, 1.0]);
-            let children = [Child {
-                rect: child,
-                covered: None,
-            }];
-            let holes = Holes {
-                children: &children,
-                columns: &[],
-                swatch: Some(&swatch),
-                content: 0.0,
-            };
-            draw(frame, local, &picture, &fit, &holes, 1.0);
-        });
-        // Where the word was drawn: the box's white, not the word.
-        for x in 125..135 {
-            assert_eq!(red[(100 + 30) * 200 + x], 255, "({x}, 130)");
-        }
     }
 
     /// Room whose row crosses words, in a box with no color of its own: a
@@ -1124,13 +751,7 @@ mod tests {
                 });
                 let dest = rect(100.0, 40.0, 60.0, 120.0);
                 let fit = fit(picture.region, dest, Some(1.0), 1.0, square(0.0), &[]);
-                let holes = Holes {
-                    children: &[],
-                    columns: &[],
-                    swatch: None,
-                    content: 1.0,
-                };
-                draw(frame, local, &picture, &fit, &holes, 1.0);
+                draw(frame, local, &picture, &fit, None, 1.0);
             })
         };
         // Clear inside: the room above the words shows the black under it.
@@ -1208,13 +829,7 @@ mod tests {
             let picture = Raster::blank(40, 40);
             let fit = fit(picture.region, dest, Some(1.0), 1.0, Some(BENT), &[]);
             assert!(fit.pieces.len() > 9, "{fit:?}");
-            let holes = Holes {
-                children: &[],
-                columns: &[],
-                swatch: None,
-                content: 1.0,
-            };
-            draw(frame, local, &picture, &fit, &holes, 1.0);
+            draw(frame, local, &picture, &fit, None, 1.0);
         });
         for y in 0..200 {
             for x in 0..200 {
@@ -1246,7 +861,7 @@ mod tests {
                     limit: rect(pair[0], 40.0, pair[1] - pair[0], 40.0),
                     alpha: 0.5,
                 };
-                punched(frame, local, &blit, &[]);
+                super::blit(frame, local, &blit);
             }
         });
         let row = 60 * 200;

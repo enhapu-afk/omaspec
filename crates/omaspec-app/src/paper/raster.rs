@@ -16,6 +16,7 @@ use iced::widget::image;
 use iced::{Color, Point, Rectangle, Size, Task, Vector};
 use iced_runtime::image::Allocation;
 use omaspec_render::export::{self, tiny_skia::IntRect, usvg};
+use omaspec_render::pick;
 
 use super::Message;
 use crate::worker::blocking;
@@ -287,26 +288,40 @@ pub fn render(tree: &usvg::Tree, plan: Plan) -> Option<Raster> {
 pub struct Cutouts(pub HashMap<String, Cutout>);
 
 /// One part on a sheet.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Cutout {
     /// Where its picture lies on the sheet, in the sheet's units.
     pub sheet: Rectangle,
     /// Where it is drawn in the diagram, in diagram units: as large as
     /// `sheet`.
     pub at: Rectangle,
+    /// Its own outlines, which say how its box bends and how it is filled.
+    pub outlines: pick::Fills,
 }
 
 impl Raster {
-    /// The picture of the part `name` of a sheet, as a picture of its own:
-    /// the sheet, placed so that the part lies at its place in the diagram.
+    /// Whether the sheet has a part called `name`.
     pub fn has_part(&self, name: &str) -> bool {
         self.parts
             .as_ref()
             .is_some_and(|parts| parts.0.contains_key(name))
     }
 
-    /// The sheet as the picture of the part called `name`, and where that
-    /// part lies in the diagram.
+    /// How the box at `rect` of the part called `name` is filled and how
+    /// its outline bends, read from that part's own outlines alone.
+    pub fn outline(&self, name: &str, rect: Rectangle) -> (Option<[f32; 3]>, Option<pick::Bend>) {
+        let Some(cutout) = self.parts.as_ref().and_then(|parts| parts.0.get(name)) else {
+            return (None, None);
+        };
+        let (x, y, w, h) = (rect.x, rect.y, rect.width, rect.height);
+        (
+            cutout.outlines.of(x, y, w, h),
+            cutout.outlines.bend(x, y, w, h),
+        )
+    }
+
+    /// The picture of the part `name` of a sheet, as a picture of its own:
+    /// the sheet, placed so that the part lies at its place in the diagram.
     pub fn part(&self, name: &str) -> Option<(Raster, Rectangle)> {
         let cutout = self.parts.as_ref()?.0.get(name)?;
         // The sheet placed so that the part's pixels lie on its place in
@@ -466,6 +481,10 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
                     ),
                     Size::new(w / part_scale, h / part_scale),
                 ),
+                outlines: pick::fills_of(part.nodes.iter().filter_map(|(node, _)| match node {
+                    usvg::Node::Group(group) => Some(group.as_ref()),
+                    _ => None,
+                })),
             },
         );
     }
@@ -792,7 +811,15 @@ mod tests {
         let size = drawn.tree.size();
         let plan = Plan::overview(Size::new(size.width(), size.height()), 2.0).unwrap();
         let sheet = sheet(drawn.bare.as_ref().unwrap(), &drawn.tree, plan).unwrap();
-        let cutout = *sheet.parts.as_ref().unwrap().0.values().next().unwrap();
+        let cutout = sheet
+            .parts
+            .as_ref()
+            .unwrap()
+            .0
+            .values()
+            .next()
+            .unwrap()
+            .clone();
         let image::Handle::Rgba { width, pixels, .. } = &sheet.handle else {
             panic!("a sheet is pixels");
         };

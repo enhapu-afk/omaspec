@@ -74,8 +74,9 @@ const RASTER_DELAY: Duration = Duration::from_millis(120);
 pub enum Message {
     Overview(u64, Option<Raster>),
     Detail(u64, Option<Raster>),
-    /// The old picture and the new one without their lines, for a glide
-    /// that draws the lines itself ([`wires`]).
+    /// The sheets of the old picture and of the new one: the ground,
+    /// without lines and parts, and each part on its own, for a glide
+    /// (docs/adr/0029).
     BareOld(u64, Option<Raster>),
     BareNew(u64, Option<Raster>),
     /// A smaller copy of the picture with this id, which a zoom into a
@@ -151,8 +152,8 @@ struct Previous {
     /// Its links and folds, whose marks stay on it.
     links: Vec<Link>,
     spots: Vec<fold::Spot>,
-    /// Its picture without lines and the plan its overview was drawn to,
-    /// and its map: the lines glide from these ([`wires`]).
+    /// Its ground, without lines and parts, the plan its overview was
+    /// drawn to, and its map: its boxes and lines glide from these.
     bare: Option<Arc<usvg::Tree>>,
     /// The picture itself, when its parts are marked: they are drawn from
     /// it, each on its own (docs/adr/0029).
@@ -235,8 +236,8 @@ pub struct Paper {
     scale_factor: f32,
     overview: Layer,
     detail: Layer,
-    /// The old and the new picture without their lines, for a glide
-    /// ([`wires`]); `no_bare` once one of them could not be drawn.
+    /// The sheets of the old and the new picture, for a glide;
+    /// `no_bare` once one of them could not be drawn, and they fade.
     bare_old: Layer,
     bare_new: Layer,
     no_bare: bool,

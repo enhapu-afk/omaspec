@@ -12,7 +12,10 @@ pub fn drawn(source: &str, language: Language) -> Drawn {
         java_fallback: false,
         ..Config::default()
     });
-    let out = renderer.render(source, language).unwrap();
+    // As the window asks for it: the drawers that mark their parts mark
+    // them (docs/adr/0029).
+    let asked = crate::worker::folded(source, language, &[], crate::worker::Views::default());
+    let out = renderer.render(&asked, language).unwrap();
     Drawn::of(out).unwrap()
 }
 

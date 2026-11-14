@@ -639,7 +639,7 @@ fn a_fold_fades_and_a_zoomed_box_stays_put() {
         left > Duration::from_millis(280),
         "a fold fades longer, {left:?}"
     );
-    // The line into Brewing glides along, over pictures without lines.
+    // The line into Brewing glides along, over the grounds of the sheets.
     assert!(fade.bare.is_some(), "both pictures without their lines");
     let lines = fade.lines.as_ref().expect("the lines glide");
     assert_eq!(lines.lines.len(), 1);
@@ -907,10 +907,10 @@ fn a_json_card_folds_from_its_part_into_its_row() {
     );
 }
 
-/// The glide waits for the pictures without lines; a picture that has
-/// none, or one that could not be drawn, lets it start without them.
+/// The glide waits for the sheets of parts of both pictures; when one
+/// could not be drawn, the pictures fade instead (docs/adr/0029).
 #[test]
-fn a_glide_waits_for_the_pictures_without_lines_unless_one_fails() {
+fn a_glide_waits_for_the_sheets_of_parts_and_fades_without_one() {
     let first = "@startuml
 [*] --> A
 @enduml
@@ -929,20 +929,20 @@ D --> E
     paper.deliver_overview();
     let _ = paper.update(Message::Faded);
     show_source(&mut paper, next, Language::PlantUml);
-    // The overview alone: the fade waits for the pictures without lines.
+    // The overview alone: the fade waits for the sheets.
     let tree = Arc::clone(paper.shown_tree().unwrap());
     let raster = raster::render(&tree, paper.overview.asked.unwrap());
     let _ = paper.update(Message::Overview(paper.overview.seq(), raster));
-    assert!(paper.fade.is_none(), "waits for the bare pictures");
+    assert!(paper.fade.is_none(), "waits for the sheets");
     assert!(paper.bare_old.asked.is_some() && paper.bare_new.asked.is_some());
     assert!(
         paper.held_picture().is_some(),
         "the old picture stays meanwhile"
     );
-    // One of them fails: the glide starts, the lines in the pictures.
+    // One of them fails: the pictures fade, nothing is cut out of them.
     let _ = paper.update(Message::BareOld(paper.bare_old.seq(), None));
-    let fade = paper.fade.as_ref().expect("the glide starts without them");
-    assert!(fade.morph.is_some());
+    let fade = paper.fade.as_ref().expect("the fade starts without them");
+    assert!(fade.morph.is_none());
     assert!(fade.lines.is_none() && fade.bare.is_none());
 }
 
@@ -976,8 +976,7 @@ fn from_to(first: &str, next: &str) -> Paper {
 }
 
 /// A diagram of more boxes than glide in time fades to its new layout:
-/// one picture into the other, with no picture for each box and none
-/// without lines to wait for. The most that glide still do, and one more
+/// one picture into the other, with no sheet of parts to wait for. The most that glide still do, and one more
 /// on either side does not.
 #[test]
 fn a_diagram_of_too_many_boxes_fades_to_its_new_layout() {
@@ -1067,7 +1066,7 @@ fn a_glide_finishes_before_the_next_one_starts() {
     assert_eq!(fade.new_size, pinned);
 
     let _ = paper.update(Message::Faded);
-    // The next glide asks for the pictures without lines first.
+    // The next glide asks for the sheets of parts first.
     assert!(paper.fade.is_none());
     paper.deliver_bare();
     let fade = paper
