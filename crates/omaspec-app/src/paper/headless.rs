@@ -87,9 +87,8 @@ impl Paper {
                 Some((diagram.drawn.bare.clone()?, full))
             })
             .zip(self.bare_new.asked);
-        let draw = |(tree, full): (Arc<usvg::Tree>, Option<Arc<usvg::Tree>>), plan| match full {
-            Some(full) => raster::sheet(&tree, &full, plan),
-            None => raster::render(&tree, plan),
+        let draw = |(tree, full): (Arc<usvg::Tree>, Option<Arc<usvg::Tree>>), plan| {
+            raster::draw(&tree, full.as_deref(), plan)
         };
         if let Some((trees, plan)) = old {
             let raster = draw(trees, plan);

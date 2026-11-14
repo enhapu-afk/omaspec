@@ -77,6 +77,10 @@ pub struct Move {
 #[derive(Clone, Debug)]
 pub struct Morph {
     pub moves: Vec<Move>,
+    /// The parts of the picture before and of the new one that no box and
+    /// no line's words take ([`prepare`]): they go and come with the
+    /// ground, so a part named otherwise than its box is never lost.
+    pub orphans: [Vec<String>; 2],
 }
 
 /// How far a box may sit, as a share of the picture, and still count as
@@ -103,7 +107,12 @@ pub fn sides(diagram: &Diagram) -> Vec<Side> {
         .places
         .iter()
         .filter(|place| !place.name.is_empty() && !place.name.starts_with('['))
-        .map(|place| side_at(&fills, &place.name, &place.name, place.rect))
+        .map(|place| {
+            // The part of the state drawn at the place: a history mark is
+            // `Brewing[H]` on the map and a mark among the parts.
+            let part = map_part(&diagram.drawn.map, place);
+            side_at(&fills, &place.name, &part, place.rect)
+        })
         .collect();
     push_marks(
         diagram,
@@ -120,6 +129,22 @@ pub fn sides(diagram: &Diagram) -> Vec<Side> {
         &mut out,
     );
     out
+}
+
+/// The part the box at `place` is drawn in: that of the state drawn
+/// there, else the box's own name.
+fn map_part(map: &omaspec_uml::map::Map, place: &omaspec_uml::map::Place) -> String {
+    let same = |a: omaspec_uml::graph::Rect, b: omaspec_uml::graph::Rect| {
+        (a.x - b.x).abs() < 0.5
+            && (a.y - b.y).abs() < 0.5
+            && (a.w - b.w).abs() < 0.5
+            && (a.h - b.h).abs() < 0.5
+    };
+    map.states
+        .iter()
+        .find(|spot| spot.name == place.name && same(spot.rect, place.rect))
+        .or_else(|| map.states.iter().find(|spot| same(spot.rect, place.rect)))
+        .map_or_else(|| place.name.clone(), |spot| spot.part.clone())
 }
 
 fn side_at(fills: &pick::Fills, name: &str, part: &str, rect: omaspec_uml::graph::Rect) -> Side {
@@ -260,7 +285,10 @@ pub fn plan_with(
             .total_cmp(&area(a))
             .then_with(|| a.name.cmp(&b.name))
     });
-    Some(Morph { moves })
+    Some(Morph {
+        moves,
+        orphans: Default::default(),
+    })
 }
 
 /// Lets the boxes of a tree that leave glide into the box they hung below,
@@ -584,6 +612,23 @@ fn paint_lines(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, old: bool
         },
         &holes,
     );
+    for name in &paint.morph.orphans[usize::from(!old)] {
+        let Some((part, at)) = raster.part(name) else {
+            continue;
+        };
+        let dest = onto(at, size, placed.paper);
+        let Some(limit) = dest.intersection(&placed.visible) else {
+            continue;
+        };
+        let blit = sprite::Blit {
+            raster: &part,
+            src: at,
+            dest,
+            limit,
+            alpha,
+        };
+        sprite::punched(frame, local, &blit, &[]);
+    }
 }
 
 /// Where the boxes of the picture before, or of the new one, are cut out
@@ -736,9 +781,37 @@ fn paint_side(
 /// each box's own color that fill the holes of the boxes it holds
 /// ([`sprite::columns`]): the pictures and the boxes are the same in every
 /// frame.
-pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster) {
+pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&super::wires::Glide>) {
+    for (side, raster) in [(0, old), (1, new)] {
+        let Some(parts) = &raster.parts else {
+            continue;
+        };
+        let taken: std::collections::HashSet<&str> = morph
+            .moves
+            .iter()
+            .map(|step| step.parts[side].as_str())
+            .chain(
+                lines
+                    .iter()
+                    .flat_map(|glide| &glide.lines)
+                    .filter_map(|line| line.words[side].as_deref()),
+            )
+            .collect();
+        let mut orphans: Vec<String> = parts
+            .0
+            .keys()
+            .filter(|name| !taken.contains(name.as_str()))
+            .cloned()
+            .collect();
+        orphans.sort();
+        morph.orphans[side] = orphans;
+    }
     for index in 0..morph.moves.len() {
         for (side, raster) in [(0, old), (1, new)] {
+            // A box drawn from its own part has nothing cut out of it.
+            if raster.part(&morph.moves[index].parts[side]).is_some() {
+                continue;
+            }
             let held = held(&morph.moves, index, side == 0);
             let step = &morph.moves[index];
             let (src, bend) = if side == 0 {
@@ -1052,6 +1125,42 @@ mod tests {
         let role = |name: &str| morph.moves.iter().find(|m| m.name == name).unwrap().role;
         assert_eq!(role("end:Awake:0"), Role::Leave);
         assert_eq!(role("end::0"), Role::Stay);
+    }
+
+    /// A history mark is `Brewing[H]` on the map and a mark among the
+    /// parts: its box finds its part by the state drawn at its place.
+    #[test]
+    fn a_box_finds_the_part_of_the_state_drawn_at_its_place() {
+        use omaspec_uml::graph::Rect;
+        use omaspec_uml::map::{Map, Place, Shape, Spot};
+        let rect = Rect {
+            x: 10.0,
+            y: 20.0,
+            w: 22.0,
+            h: 22.0,
+        };
+        let mut map = Map::default();
+        map.states.push(Spot {
+            name: String::new(),
+            shape: Shape::History,
+            line: 3,
+            parent: Some("Brewing".into()),
+            rect,
+            radius: 11.0,
+            part: "mark:1.2".into(),
+        });
+        let place = |name: &str, rect| Place {
+            name: name.into(),
+            rect,
+            within: Vec::new(),
+            across: false,
+            entry: None,
+            frame: false,
+            fixed: false,
+        };
+        assert_eq!(map_part(&map, &place("Brewing[H]", rect)), "mark:1.2");
+        let elsewhere = Rect { x: 200.0, ..rect };
+        assert_eq!(map_part(&map, &place("Idle", elsewhere)), "Idle");
     }
 
     #[test]

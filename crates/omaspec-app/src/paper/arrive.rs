@@ -300,7 +300,7 @@ impl Paper {
             None => old.first().zip(self.overview.shown.as_ref()),
         };
         if let (Some(morph), Some((old, new))) = (morph.as_mut(), pictures) {
-            morph::prepare(morph, old, new);
+            morph::prepare(morph, old, new, lines.as_ref());
         }
         self.fade = Some(Fade {
             old,

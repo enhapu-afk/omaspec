@@ -89,9 +89,9 @@ impl Paper {
                 };
                 // The picture as a file shows it: the pane's parts are its own.
                 let svg = if parts {
-                    omaspec_uml::unmarked(&svg)
+                    std::borrow::Cow::Owned(omaspec_uml::unmarked(&svg))
                 } else {
-                    svg.to_string()
+                    std::borrow::Cow::Borrowed(&*svg)
                 };
                 let bytes = export::export(&svg, format, &options).map_err(|e| e.to_string())?;
                 then(bytes)

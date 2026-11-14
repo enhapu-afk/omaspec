@@ -312,10 +312,26 @@ impl Raster {
     }
 }
 
-/// Space between two parts on a sheet, in pixels, so the blur of one does
-/// not reach the next, and a glide that takes a part by its box's
-/// rectangle, a little wider than its pixels, takes nothing of another.
-const SHEET_GAP: u32 = 8;
+/// How far past a part's own pixels a glide may take it, in diagram
+/// units: by its box's rectangle, which reaches this far past the box
+/// (`morph::RIM`), a little more than its stroke.
+const SHEET_REACH: f32 = 2.0;
+
+/// Space between two parts on a sheet, in pixels at `scale`, so the blur
+/// of one does not reach the next and a glide that takes a part a little
+/// wider than its pixels takes nothing of another, nor of the ground.
+fn sheet_gap(scale: f32) -> u32 {
+    (SHEET_REACH * scale).ceil() as u32 + 3
+}
+
+/// The picture a layer asks for: `tree` at `plan`, or with `full`, the
+/// picture whose ground `tree` is, a [`sheet`] of the ground and its parts.
+pub fn draw(tree: &usvg::Tree, full: Option<&usvg::Tree>, plan: Plan) -> Option<Raster> {
+    match full {
+        Some(full) => sheet(tree, full, plan),
+        None => render(tree, plan),
+    }
+}
 
 /// `ground` at `plan`, and below it each part of `full` on its own, on one
 /// sheet: one picture to rasterize and to upload for a glide that takes
@@ -323,8 +339,9 @@ const SHEET_GAP: u32 = 8;
 /// ground, each part's own pixels and nothing else, on clear pixels.
 pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raster> {
     use export::tiny_skia::{Pixmap, PixmapPaint, Transform};
-    let base = export::rasterize_part(ground, plan.scale, plan.part).ok()?;
     let scale = plan.scale;
+    let gap = sheet_gap(scale);
+    let (ground_w, ground_h) = (plan.part.width(), plan.part.height());
     let mut parts: Vec<(String, Vec<&usvg::Node>)> = Vec::new();
     gather_parts(full.root(), &mut parts);
     // Each part's pixels: from the pixel its left edge lies in to the one
@@ -353,23 +370,32 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
         })
         .collect();
     // Shelves: a row of parts as wide as the ground, the next below it.
-    let width = base
-        .width()
-        .max(boxes.iter().map(|(b, _)| b.width()).max().unwrap_or(0));
+    // Shelves: a row of parts as wide as the ground, the next below it,
+    // each part `gap` from the next and from the edges, so nothing a glide
+    // takes past a part reaches another.
+    let width = ground_w.max(
+        boxes
+            .iter()
+            .map(|(b, _)| b.width() + 2 * gap)
+            .max()
+            .unwrap_or(0),
+    );
     let mut slots = Vec::with_capacity(boxes.len());
-    let (mut x, mut y, mut row) = (0u32, base.height() + SHEET_GAP, 0u32);
+    let (mut x, mut y, mut row) = (gap, ground_h + gap, 0u32);
     for (pixels, _) in &boxes {
-        if x > 0 && x + pixels.width() > width {
-            (x, y, row) = (0, y + row + SHEET_GAP, 0);
+        if x > gap && x + pixels.width() + gap > width {
+            (x, y, row) = (gap, y + row + gap, 0);
         }
         slots.push((x, y));
-        x += pixels.width() + SHEET_GAP;
+        x += pixels.width() + gap;
         row = row.max(pixels.height());
     }
-    let height = y + row;
+    let height = y + row + gap;
+    // Too large, it is not drawn at all, the ground neither.
     if u64::from(width) * u64::from(height) > 4 * OVERVIEW_PIXELS as u64 {
         return None;
     }
+    let base = export::rasterize_part(ground, scale, plan.part).ok()?;
     let mut pixmap = Pixmap::new(width, height)?;
     pixmap.draw_pixmap(
         0,
@@ -416,14 +442,7 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
     });
     // The screen takes colors as they are, not multiplied by how much is
     // seen of them: the parts' blurred edges are.
-    let rgba: Vec<u8> = pixmap
-        .pixels()
-        .iter()
-        .flat_map(|pixel| {
-            let c = pixel.demultiply();
-            [c.red(), c.green(), c.blue(), c.alpha()]
-        })
-        .collect();
+    let rgba = straight(pixmap, ground_h);
     Some(Raster {
         handle: image::Handle::from_rgba(width, height, rgba),
         region: Rectangle::new(
@@ -434,6 +453,55 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
         _allocation: None,
         parts: Some(Arc::new(Cutouts(cutouts))),
     })
+}
+
+/// The sheet's pixels as the screen takes them: colors as they are, not
+/// multiplied by how much is seen of them, as a part's blurred edges are;
+/// and each clear pixel beside a part in its neighbor's color, so a part
+/// scaled on the GPU blends its edge with its own color, not with black.
+/// The ground, `ground` rows high, is opaque and stays as it is.
+fn straight(pixmap: export::tiny_skia::Pixmap, ground: u32) -> Vec<u8> {
+    let (w, h) = (pixmap.width() as usize, pixmap.height() as usize);
+    let ground = ground as usize;
+    let mut rgba = pixmap.take();
+    for pixel in rgba[ground * w * 4..].as_chunks_mut::<4>().0 {
+        let alpha = u16::from(pixel[3]);
+        if alpha > 0 && alpha < 255 {
+            for channel in &mut pixel[..3] {
+                *channel = ((u16::from(*channel) * 255 + alpha / 2) / alpha).min(255) as u8;
+            }
+        }
+    }
+    // One pass of bleeding: enough for a picture sampled between two
+    // pixels.
+    let seen: Vec<bool> = rgba
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|pixel| pixel[3] > 0)
+        .collect();
+    for y in ground..h {
+        for x in 0..w {
+            let at = y * w + x;
+            if seen[at] {
+                continue;
+            }
+            let neighbor = [
+                (x > 0).then(|| at - 1),
+                (x + 1 < w).then(|| at + 1),
+                (y > ground).then(|| at - w),
+                (y + 1 < h).then(|| at + w),
+            ]
+            .into_iter()
+            .flatten()
+            .find(|&n| seen[n]);
+            if let Some(n) = neighbor {
+                let color = [rgba[n * 4], rgba[n * 4 + 1], rgba[n * 4 + 2]];
+                rgba[at * 4..at * 4 + 3].copy_from_slice(&color);
+            }
+        }
+    }
+    rgba
 }
 
 /// The groups of each part of the picture under `group`, by the part's
@@ -515,10 +583,7 @@ impl Layer {
                 if latest.load(Ordering::Relaxed) != seq {
                     return None;
                 }
-                match &full {
-                    Some(full) => sheet(&tree, full, plan),
-                    None => render(&tree, plan),
-                }
+                draw(&tree, full.as_deref(), plan)
             }),
             Option::flatten,
         )
@@ -573,6 +638,59 @@ impl Layer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// On a sheet drawn sharp, each part lies far enough from every other
+    /// and from the ground that a glide taking it a little wider than its
+    /// pixels takes nothing of them.
+    #[test]
+    fn a_sheet_keeps_its_parts_apart_at_any_scale() {
+        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\nBusy --> Idle : done\n' parts (Omaspec)\n@enduml\n";
+        let drawn = super::super::testing::drawn(source, omaspec_core::Language::PlantUml);
+        assert!(drawn.parts);
+        let size = drawn.tree.size();
+        let size = Size::new(size.width(), size.height());
+        let plan = Plan::overview(size, 7.0).unwrap();
+        let sheet = sheet(drawn.bare.as_ref().unwrap(), &drawn.tree, plan).unwrap();
+        let parts = sheet.parts.as_ref().unwrap();
+        assert!(parts.0.contains_key("Idle") && parts.0.contains_key("Busy"));
+        let reach = |r: Rectangle| {
+            Rectangle::new(
+                Point::new(r.x - SHEET_REACH, r.y - SHEET_REACH),
+                Size::new(r.width + 2.0 * SHEET_REACH, r.height + 2.0 * SHEET_REACH),
+            )
+        };
+        let ground_bottom = sheet.region.y + size.height;
+        for (name, cutout) in &parts.0 {
+            let wide = reach(cutout.sheet);
+            assert!(wide.y >= ground_bottom, "{name} reaches the ground");
+            for (other, them) in &parts.0 {
+                if other != name {
+                    assert!(
+                        wide.intersection(&them.sheet).is_none(),
+                        "{name} reaches {other}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// A clear pixel beside a part takes the part's color, so the GPU,
+    /// blending the two while it scales the part, blends no black in.
+    #[test]
+    fn a_part_s_edge_bleeds_its_color_into_the_clear_pixels_beside_it() {
+        use export::tiny_skia::{Color as Skia, Pixmap};
+        let mut pixmap = Pixmap::new(3, 2).unwrap();
+        pixmap.fill(Skia::TRANSPARENT);
+        // The ground's row, then a half-seen red pixel and two clear ones.
+        let data = pixmap.data_mut();
+        data[..12].copy_from_slice(&[255, 255, 255, 255].repeat(3));
+        data[12..16].copy_from_slice(&[100, 0, 0, 128]);
+        let rgba = straight(pixmap, 1);
+        assert_eq!(&rgba[12..16], &[199, 0, 0, 128], "demultiplied");
+        assert_eq!(&rgba[16..20], &[199, 0, 0, 0], "bled into its neighbor");
+        assert_eq!(&rgba[20..24], &[0, 0, 0, 0], "two pixels off, clear");
+        assert_eq!(&rgba[..4], &[255, 255, 255, 255], "the ground as it is");
+    }
 
     /// A long sequence diagram: 34 million units², more than the overview holds.
     const TALL: Size = Size::new(2850.0, 12093.0);

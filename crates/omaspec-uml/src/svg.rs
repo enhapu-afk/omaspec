@@ -101,6 +101,8 @@ pub struct Canvas {
     part: Option<String>,
     /// For each layer, the part whose group is open there.
     open: [Option<String>; LAYERS],
+    /// The part drawn when each link still open was opened.
+    links: Vec<Option<String>>,
     /// How many groups of parts were opened, to keep their ids apart.
     groups: usize,
 }
@@ -149,6 +151,7 @@ impl Canvas {
             marks_parts: false,
             part: None,
             open: Default::default(),
+            links: Vec::new(),
             groups: 0,
         }
     }
@@ -162,9 +165,11 @@ impl Canvas {
     /// words. When the parts are marked, what it draws on each layer lies
     /// in a group of that part, `<g id="part-…">`, its name in hex
     /// ([`part_name`]); a part drawn within it is a part of its own. A
-    /// link is opened within the part, not around it.
+    /// link is opened within the part, not around it; a part drawn within
+    /// a link opened within another part is drawn as that one, so the link
+    /// closes inside its group.
     pub fn part<T>(&mut self, name: &str, paint: impl FnOnce(&mut Canvas) -> T) -> T {
-        if !self.marks_parts {
+        if !self.marks_parts || self.links.iter().any(Option::is_some) {
             return paint(self);
         }
         let before = self.part.replace(part_id(name));
@@ -446,7 +451,9 @@ impl Canvas {
         for &layer in layers {
             open_link(self.at(layer), link);
         }
+        self.links.push(self.part.clone());
         let painted = paint(self);
+        self.links.pop();
         for &layer in layers {
             self.at(layer).push_str("</a>");
         }
@@ -1131,6 +1138,11 @@ pub fn without_lines(svg: &str) -> Option<String> {
     Some(format!("{}{}", &svg[..start], &svg[end..]))
 }
 
+/// Whether `svg` marks its parts ([`Canvas::part`]).
+pub fn has_parts(svg: &str) -> bool {
+    svg.contains(&format!(r#"<g id="{PART}"#))
+}
+
 /// `svg` without the groups of its parts ([`Canvas::part`]): its ground,
 /// what a glide draws under the parts it glides. None when it has none.
 pub fn without_parts(svg: &str) -> Option<String> {
@@ -1357,6 +1369,37 @@ mod tests {
             );
         });
         assert!(!plain.finish(4.0, None).contains(PART));
+    }
+
+    /// A part drawn within a link opened within another part is drawn as
+    /// that one: the link closes inside its group.
+    #[test]
+    fn a_part_within_a_link_keeps_the_groups_whole() {
+        let mut canvas = Canvas::new("sans-serif", false);
+        canvas.mark_parts();
+        let ink = Stroke::new(Color::BLACK, 1.0);
+        let link = Link {
+            url: "next.puml".into(),
+            tooltip: None,
+        };
+        canvas.part("A", |canvas| {
+            canvas.linked(Some(&link), &[Layer::Front], |canvas| {
+                canvas.part("B", |canvas| {
+                    canvas.line(Layer::Front, (0.0, 0.0), (9.0, 9.0), ink);
+                });
+            });
+        });
+        let svg = canvas.finish(4.0, None);
+        let a = svg.find("<a ").unwrap();
+        let close = svg.find("</a>").unwrap();
+        // Between the link's opening and its close, no group opens or
+        // closes: B is drawn as A.
+        assert!(
+            !svg[a..close].contains("<g") && !svg[a..close].contains("</g>"),
+            "{svg}"
+        );
+        assert!(has_parts(&svg) && !svg.contains(&part_id("B")), "{svg}");
+        assert!(!has_parts("<text>part-of</text>"));
     }
 
     #[test]

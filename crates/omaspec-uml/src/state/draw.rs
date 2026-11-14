@@ -152,51 +152,49 @@ fn chart_node(
     path: &mut Vec<usize>,
     map: &mut Map,
 ) {
-    {
-        let shape = match node.kind {
-            Kind::State => Shape::State,
-            Kind::Start => Shape::Start,
-            Kind::End => Shape::End,
-            Kind::Choice => Shape::Choice,
-            Kind::Fork | Kind::Join => Shape::Bar,
-            Kind::History | Kind::DeepHistory => Shape::History,
-            Kind::Region => {
-                chart(
-                    &node.children,
-                    &placed.children,
-                    parent,
-                    (round, curve),
-                    path,
-                    map,
-                );
-                return;
-            }
-        };
-        let rect = placed.rect;
-        let radius = match shape {
-            Shape::State => round.min(rect.w / 2.0).min(rect.h / 2.0),
-            Shape::Start | Shape::End | Shape::History => rect.w.min(rect.h) / 2.0,
-            Shape::Bar => 2.0,
-            Shape::Choice => 0.0,
-        };
-        map.states.push(Spot {
-            name: node.key.clone(),
-            shape,
-            line: node.line,
-            parent: parent.map(str::to_owned),
-            rect,
-            radius,
-            part: part_of(&node.key, path),
-        });
-        chart(
-            &node.children,
-            &placed.children,
-            Some(&node.key),
-            (round, curve),
-            path,
-            map,
-        );
-    }
+    let shape = match node.kind {
+        Kind::State => Shape::State,
+        Kind::Start => Shape::Start,
+        Kind::End => Shape::End,
+        Kind::Choice => Shape::Choice,
+        Kind::Fork | Kind::Join => Shape::Bar,
+        Kind::History | Kind::DeepHistory => Shape::History,
+        Kind::Region => {
+            chart(
+                &node.children,
+                &placed.children,
+                parent,
+                (round, curve),
+                path,
+                map,
+            );
+            return;
+        }
+    };
+    let rect = placed.rect;
+    let radius = match shape {
+        Shape::State => round.min(rect.w / 2.0).min(rect.h / 2.0),
+        Shape::Start | Shape::End | Shape::History => rect.w.min(rect.h) / 2.0,
+        Shape::Bar => 2.0,
+        Shape::Choice => 0.0,
+    };
+    map.states.push(Spot {
+        name: node.key.clone(),
+        shape,
+        line: node.line,
+        parent: parent.map(str::to_owned),
+        rect,
+        radius,
+        part: part_of(&node.key, path),
+    });
+    chart(
+        &node.children,
+        &placed.children,
+        Some(&node.key),
+        (round, curve),
+        path,
+        map,
+    );
 }
 
 /// The part a state is drawn in (docs/adr/0029): its key, or for a mark,
@@ -851,9 +849,28 @@ fn stack_height(title: &Block, description: &[Block]) -> f32 {
 fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     paint_shapes(canvas, skin, scene, &mut Vec::new());
     paint_edges(canvas, scene, skin.curve);
-    paint_notes(canvas, skin, scene);
-    paint_labels(canvas, scene, &mut Vec::new());
+    paint_notes(canvas, skin, scene, &mut Vec::new(), None);
+    paint_labels(canvas, scene, &mut Vec::new(), None);
     paint_heads(canvas, skin, scene);
+}
+
+/// Draws with `paint` in the part of the state `owner` names, if one does:
+/// a note inside a state goes where the state goes.
+fn within<T>(canvas: &mut Canvas, owner: Option<&str>, paint: impl FnOnce(&mut Canvas) -> T) -> T {
+    match owner {
+        Some(owner) => canvas.part(owner, paint),
+        None => paint(canvas),
+    }
+}
+
+/// The part a note inside `node` is drawn in: the state's, a region's
+/// state's for a region; `owner` is the one around it.
+fn owner_of(node: &Placed, path: &[usize], owner: Option<&str>) -> Option<String> {
+    if node.item.kind == Kind::Region {
+        owner.map(str::to_owned)
+    } else {
+        Some(part_of(&node.item.name, path))
+    }
 }
 
 /// Each state's shape, in its part; `path` is where `scene` is in the
@@ -989,12 +1006,23 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
     }
 }
 
-fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
+/// Each note, in the part of the state it lies in; `path` is where
+/// `scene` is in the tree, `owner` the state around it.
+fn paint_notes(
+    canvas: &mut Canvas,
+    skin: &Skin,
+    scene: &Scene,
+    path: &mut Vec<usize>,
+    owner: Option<&str>,
+) {
     for note in &scene.notes {
-        note_box(canvas, skin, note);
+        within(canvas, owner, |canvas| note_box(canvas, skin, note));
     }
-    for node in &scene.nodes {
-        paint_notes(canvas, skin, &node.children);
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        let inner = owner_of(node, path, owner);
+        paint_notes(canvas, skin, &node.children, path, inner.as_deref());
+        path.pop();
     }
 }
 
@@ -1044,9 +1072,10 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
     );
 }
 
-/// Each state's words in its part, and each line's in a part of their
-/// own; `path` is where `scene` is in the tree.
-fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>) {
+/// Each state's words in its part, each line's in a part of their own,
+/// and each note's in the part of the state it lies in; `path` is where
+/// `scene` is in the tree, `owner` the state around it.
+fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>, owner: Option<&str>) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
         canvas.part(&part_of(&node.item.name, path), |canvas| {
@@ -1054,7 +1083,8 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>) {
                 paint_words(canvas, node);
             });
         });
-        paint_labels(canvas, &node.children, path);
+        let inner = owner_of(node, path, owner);
+        paint_labels(canvas, &node.children, path, inner.as_deref());
         path.pop();
     }
     for (slot, edge) in scene.edges.iter().enumerate() {
@@ -1063,12 +1093,14 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>) {
         });
     }
     for note in &scene.notes {
-        canvas.text(
-            Layer::Front,
-            &note.text,
-            (note.x + NOTE_PAD, note.y + NOTE_PAD),
-            Align::Left,
-        );
+        within(canvas, owner, |canvas| {
+            canvas.text(
+                Layer::Front,
+                &note.text,
+                (note.x + NOTE_PAD, note.y + NOTE_PAD),
+                Align::Left,
+            );
+        });
     }
 }
 
@@ -1206,6 +1238,29 @@ mod tests {
         let canvas = Canvas::new(&skin.font_name, false);
         let scene = layout_container(&diagram.root, &skin, canvas.family()).unwrap();
         (diagram.root, scene)
+    }
+
+    /// A note inside a state is drawn in that state's part, so it goes
+    /// where the state goes; a note at the top lies on the ground.
+    #[test]
+    fn a_note_inside_a_state_is_drawn_in_its_part() {
+        let source = "@startuml\nstate Brewing {\n  state Grind\n  note right of Grind : fine\n}\nstate Idle\nnote left of Idle : coarse\n' parts (Omaspec)\n@enduml\n";
+        let (svg, _) = crate::render_mapped(source, None).unwrap();
+        let ground = crate::without_parts(&svg).unwrap();
+        // The note inside Brewing left the ground with Brewing's part; the
+        // one at the top stayed.
+        let notes = |svg: &str| svg.matches("<path d=\"M").count();
+        assert!(notes(&ground) < notes(&svg), "{ground}");
+        let brewing: String = svg
+            .match_indices(r#"<g id="part-"#)
+            .filter_map(|(at, _)| {
+                let rest = &svg[at + 7..];
+                let id = &rest[..rest.find('"')?];
+                (crate::part_name(id).as_deref() == Some("Brewing"))
+                    .then(|| rest[..rest.find("</g>").unwrap_or(rest.len())].to_owned())
+            })
+            .collect();
+        assert!(brewing.contains("<path"), "Brewing's note: {brewing}");
     }
 
     /// Asked for its parts, a state diagram draws each state, each mark

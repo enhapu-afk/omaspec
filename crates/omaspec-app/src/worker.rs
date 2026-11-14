@@ -71,18 +71,19 @@ impl Drawn {
         // The picture and the one without its lines are read side by
         // side: each takes as long as the other, a quarter of a second
         // for a tree of some thousand boxes.
-        let parts = cards.is_none() && rendered.svg.contains(omaspec_uml::PART);
+        let parts = cards.is_none() && omaspec_uml::has_parts(&rendered.svg);
         let wanted = cards.is_none() && (parts || !rendered.map.wires.is_empty());
         let (tree, bare) = std::thread::scope(|scope| {
             let bare = scope.spawn(|| {
                 wanted
                     .then(|| {
                         let ground = if parts {
-                            omaspec_uml::without_parts(&rendered.svg)?
+                            std::borrow::Cow::Owned(omaspec_uml::without_parts(&rendered.svg)?)
                         } else {
-                            rendered.svg.clone()
+                            std::borrow::Cow::Borrowed(rendered.svg.as_str())
                         };
-                        omaspec_uml::without_lines(&ground).or(parts.then_some(ground))
+                        omaspec_uml::without_lines(&ground)
+                            .or_else(|| parts.then(|| ground.into_owned()))
                     })
                     .flatten()
                     .and_then(|svg| export::parse(&svg).ok())

@@ -12,7 +12,7 @@
 //! and held it, the other way round when a container unfolds, and several
 //! lines that become one all travel to it.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use iced::widget::canvas::{Frame, LineDash, Path, Stroke};
 use iced::{Color, Point, Rectangle, Size};
@@ -368,20 +368,36 @@ pub fn paint(frame: &mut Frame, local: Rectangle, glide: &Glide, sheets: &Sheets
     for line in &glide.lines {
         paint_line(frame, line, sheets);
     }
+    // Lines that become one, or one that becomes several, share their
+    // words: each is drawn once, with the first of them.
+    let mut drawn: [HashSet<&str>; 2] = Default::default();
     for line in &glide.lines {
-        paint_words(frame, local, line, sheets);
+        let first = [0, 1].map(|side| {
+            line.words[side]
+                .as_deref()
+                .is_some_and(|words| drawn[side].insert(words))
+        });
+        paint_words(frame, local, line, sheets, first);
     }
 }
 
 /// A line's words, each a part of its own: from their old place to their
 /// new one, the old words under the new ones fading in, as a box's are;
 /// or going, or coming, with the line.
-fn paint_words(frame: &mut Frame, local: Rectangle, line: &Line, s: &Sheets<'_>) {
+fn paint_words(
+    frame: &mut Frame,
+    local: Rectangle,
+    line: &Line,
+    s: &Sheets<'_>,
+    [first_old, first_new]: [bool; 2],
+) {
     let old = line.words[0]
         .as_deref()
+        .filter(|_| first_old)
         .and_then(|name| s.pictures.0.part(name));
     let new = line.words[1]
         .as_deref()
+        .filter(|_| first_new)
         .and_then(|name| s.pictures.1.part(name));
     let place = |at: Rectangle, (paper, size): (Rectangle, Size)| {
         let (kx, ky) = (
@@ -412,9 +428,14 @@ fn paint_words(frame: &mut Frame, local: Rectangle, line: &Line, s: &Sheets<'_>)
         ),
         _ => own,
     };
+    // Words the line keeps: the old under the new ones as they come. Words
+    // it loses go with the old picture, words it gains come with the new.
     let (old_alpha, new_alpha) = match (&line.from, &line.to, line.fold) {
         (_, _, Some(_)) => return,
-        (Some(_), Some(_), _) => (if s.t < 1.0 { 1.0 } else { 0.0 }, s.t),
+        (Some(_), Some(_), _) if old.is_some() && new.is_some() => {
+            (if s.t < 1.0 { 1.0 } else { 0.0 }, s.t)
+        }
+        (Some(_), Some(_), _) => (s.out, s.inn),
         (Some(_), None, _) => (s.out, 0.0),
         (None, Some(_), _) => (0.0, s.inn),
         (None, None, _) => return,
