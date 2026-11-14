@@ -1286,6 +1286,20 @@ mod tests {
     }
 
     #[test]
+    fn mermaid_11_shapes_are_drawn_not_written() {
+        let source = "flowchart LR\n  A --> B@{ shape: doc, label: \"Report\" }\n  B --> C@{ shape: delay }\n  C --> D@{ shape: f-circ }\n  D --> E@{ shape: text, label: \"note\" }\n";
+        let (svg, engine, _) = render_mapped(source).unwrap();
+        assert_eq!(engine, Engine::NativeMermaid);
+        let seen = words(&svg);
+        assert!(!seen.iter().any(|w| w.contains("shape")), "{seen:?}");
+        for word in ["Report", "C", "note"] {
+            assert!(seen.contains(&word.to_string()), "{word}: {seen:?}");
+        }
+        // A junction is a dot, its name not written.
+        assert!(!seen.contains(&"D".to_string()), "{seen:?}");
+    }
+
+    #[test]
     fn a_flowchart_loses_no_node_mmdr_would_misread() {
         // A node named `title`, which mmdr took for a title and skipped.
         let svg =

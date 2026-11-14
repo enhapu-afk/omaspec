@@ -11,13 +11,17 @@ use std::collections::{HashMap, HashSet};
 use mermaid_rs_renderer::ir::NodeStyle;
 use mermaid_rs_renderer::{DiagramKind, Edge, EdgeStyle, Graph, NodeLink, NodeShape};
 
+use super::forms::Form;
+
 /// Edges that rank nodes and are not drawn, nodes written
-/// `@{ shape: dbl-circ }`, and icons with no `form` (text, no box).
+/// `@{ shape: dbl-circ }`, icons with no `form` and `@{ shape: text }`
+/// (words, no box), and the nodes of a shape mmdr has none for.
 #[derive(Default)]
 pub(super) struct Fix {
     pub invisible: HashSet<usize>,
     pub doubles: HashSet<String>,
     pub bare: HashSet<String>,
+    pub forms: HashMap<String, Form>,
 }
 
 struct Decline;
@@ -226,7 +230,17 @@ fn node_shape(spec: &Spec, fix: &mut Fix) -> Result<Option<NodeShape>, Decline> 
         return Err(Decline);
     }
     if let Some(name) = &at.shape {
-        let shape = map_shape(name).ok_or(Decline)?;
+        let name = name.trim().to_ascii_lowercase();
+        if name == "text" {
+            fix.bare.insert(spec.id.clone());
+            return Ok(Some(NodeShape::Rectangle));
+        }
+        if let Some(form) = Form::named(&name) {
+            // Laid out as a box; drawn as its form.
+            fix.forms.insert(spec.id.clone(), form);
+            return Ok(Some(NodeShape::Rectangle));
+        }
+        let shape = map_shape(&name).ok_or(Decline)?;
         if shape == NodeShape::DoubleCircle {
             fix.doubles.insert(spec.id.clone());
         }
@@ -282,15 +296,16 @@ fn map_shape(name: &str) -> Option<NodeShape> {
             NodeShape::Subroutine
         }
         "cyl" | "db" | "database" | "cylinder" => NodeShape::Cylinder,
-        "circle" => NodeShape::Circle,
+        "circle" | "circ" => NodeShape::Circle,
         "dbl-circ" | "double-circle" | "doublecircle" => NodeShape::DoubleCircle,
         "diam" | "decision" | "diamond" | "question" => NodeShape::Diamond,
         "hex" | "hexagon" | "prepare" => NodeShape::Hexagon,
         "lean-r" | "lean-right" | "in-out" => NodeShape::Parallelogram,
         "lean-l" | "lean-left" | "out-in" => NodeShape::ParallelogramAlt,
-        "trap-b" | "trapezoid" | "priority" => NodeShape::Trapezoid,
-        "trap-t" | "trapezoid-alt" | "inverted-trapezoid" => NodeShape::TrapezoidAlt,
-        "odd" | "flag" | "asymmetric" => NodeShape::Asymmetric,
+        "trap-b" | "trapezoid" | "trapezoid-bottom" | "priority" => NodeShape::Trapezoid,
+        "trap-t" | "trapezoid-top" | "inv-trapezoid" | "manual" | "trapezoid-alt"
+        | "inverted-trapezoid" => NodeShape::TrapezoidAlt,
+        "odd" | "asymmetric" => NodeShape::Asymmetric,
         _ => return None,
     })
 }

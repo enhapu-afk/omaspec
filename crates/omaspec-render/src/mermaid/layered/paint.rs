@@ -84,6 +84,7 @@ fn paint_node(canvas: &mut Canvas, node: &Placed, shape: Shape) {
     let layer = Layer::Frames;
     match shape {
         Shape::Label => {}
+        Shape::Form(form) => form.paint(canvas, rect, node.item.fill, node.item.border),
         Shape::Rect => canvas.rect(layer, (x, y, w, h), 0.0, node.item.fill, border),
         Shape::Rounded => {
             let radius = ROUNDED.min(w / 2.0).min(h / 2.0);
@@ -186,6 +187,7 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, ground: Paint) {
                     rect.y + COMP_PAD,
                 );
             }
+            Kind::Node(shape) if !shape.shows_text() => {}
             Kind::Node(shape) => {
                 let (cx, cy) = shape.text_center(rect);
                 let top = cy - node.item.title.height / 2.0;

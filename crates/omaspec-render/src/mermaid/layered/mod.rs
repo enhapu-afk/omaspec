@@ -25,6 +25,7 @@ use shape::{Kind, Shape};
 
 mod flowchart;
 mod fold;
+mod forms;
 mod label;
 mod look;
 mod nest;
@@ -395,6 +396,8 @@ fn prepare<'a>(graph: &'a Graph, source: &str, fix: &flowchart::Fix) -> Option<T
         }
         let kind = if fix.bare.contains(id) {
             Kind::Node(Shape::Label)
+        } else if let Some(form) = fix.forms.get(id) {
+            Kind::Node(Shape::Form(*form))
         } else {
             Kind::Node(Shape::of(node.shape, doubles.contains(id))?)
         };

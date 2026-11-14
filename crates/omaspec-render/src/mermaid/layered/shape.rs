@@ -8,6 +8,8 @@
 use mermaid_rs_renderer::NodeShape;
 use omaspec_uml::graph::Rect;
 
+use super::forms::Form;
+
 /// A box of a flowchart.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Kind {
@@ -50,6 +52,8 @@ pub(super) enum Shape {
     Flag,
     /// An icon with no `form`: the short name, and no box behind it.
     Label,
+    /// One of Mermaid 11's named shapes, `@{ shape: doc }`.
+    Form(Form),
 }
 
 impl Kind {
@@ -62,7 +66,7 @@ impl Kind {
                 matches!(
                     shape,
                     Shape::Rect | Shape::Rounded | Shape::Subroutine | Shape::Label
-                )
+                ) || matches!(shape, Shape::Form(form) if form.flat())
             }
         }
     }
@@ -100,11 +104,20 @@ impl Shape {
         })
     }
 
+    /// Whether its words are drawn: not in a small mark like a junction.
+    pub(super) fn shows_text(self) -> bool {
+        match self {
+            Shape::Form(form) => form.shows_text(),
+            _ => true,
+        }
+    }
+
     /// The box around text of `width` and `height`.
     pub(super) fn size(self, width: f32, height: f32) -> (f32, f32) {
         let w = (width + PAD_X * 2.0).max(MIN_W);
         let h = (height + PAD_Y * 2.0).max(MIN_H);
         match self {
+            Shape::Form(form) => form.size((w, h), (width, height)),
             Shape::Rect | Shape::Rounded | Shape::Label => (w, h),
             Shape::Stadium => ((w + h / 2.0).max(h), h),
             Shape::Subroutine => (w + 2.0 * SUBROUTINE, h),
@@ -139,6 +152,7 @@ impl Shape {
         match self {
             Shape::Cylinder => (cx, cy + cap(rect.w)),
             Shape::Flag => (cx + slant(rect.h) / 2.0, cy),
+            Shape::Form(form) => form.text_center(rect),
             _ => (cx, cy),
         }
     }
@@ -152,6 +166,7 @@ impl Shape {
             Shape::Rect | Shape::Rounded | Shape::Subroutine | Shape::Label => {
                 vec![(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
             }
+            Shape::Form(form) => form.outline(r),
             Shape::Stadium => {
                 let radius = h / 2.0;
                 let mut points = arc((x + w - radius, cy), (radius, radius), -90.0, 90.0);

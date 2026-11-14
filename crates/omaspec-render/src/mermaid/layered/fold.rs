@@ -147,6 +147,12 @@ pub(super) fn fold(
             .filter(|n| !hidden.contains(*n))
             .cloned()
             .collect(),
+        forms: fix
+            .forms
+            .iter()
+            .filter(|(n, _)| !hidden.contains(*n))
+            .map(|(n, form)| (n.clone(), *form))
+            .collect(),
     };
     Some((out, fix, hidden))
 }
