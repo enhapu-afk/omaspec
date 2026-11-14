@@ -8,8 +8,10 @@
 //! radio buttons (`(X) label`, `()`), drop-down lists (`^Pro^`), words,
 //! an empty cell (`.`), rules (`--`, `==`, `..`, `~~`), a group box
 //! (`{^"Title" … }`), tabs (`{/ a | b }`), a menu bar (`{* File | Edit }`)
-//! and a tree (`{T + a ++ b }`). The words take Creole and icons. Anything
-//! else declines and names the line.
+//! and a tree (`{T + a ++ b }`), with columns (`+ World | 8 bn`) and a
+//! grid's lines (`{T#`). A block may stand in a row's last cell
+//! (`Files | {T`), the row going on after its close (`} | 3 files`). The
+//! words take Creole and icons. Anything else declines and names the line.
 
 mod draw;
 mod parse;
@@ -67,8 +69,11 @@ pub enum Widget {
     Tabs(Vec<String>),
     /// `{* File | Edit }`.
     Menu(Vec<String>),
-    /// `{T + a ++ b }`: each item with how deep it stands, from 1.
-    Tree(Vec<(usize, String)>),
+    /// `{T + a | x ++ b | y }`: its items, and the lines of a grid.
+    Tree {
+        lines: Lines,
+        items: Vec<Item>,
+    },
     Text(String),
     Button(String),
     Field(String),
@@ -82,6 +87,15 @@ pub enum Widget {
     },
     Drop(String),
     Empty,
+}
+
+/// An item of a tree: how deep it stands, from 1, its words, and the
+/// cells of the tree's other columns.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Item {
+    pub depth: usize,
+    pub label: String,
+    pub cells: Vec<String>,
 }
 
 /// A row of a grid: its cells, or a rule across it.

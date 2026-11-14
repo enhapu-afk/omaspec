@@ -1,7 +1,7 @@
 //! Laying out and painting Salt: each widget measured, then painted in
 //! the room its grid gives it, in thin lines in the ink on the page.
 
-use super::{Diagram, Lines, Row, Rule, Widget};
+use super::{Diagram, Item, Lines, Row, Rule, Widget};
 use crate::Declined;
 use crate::annotations::Annotations;
 use crate::color::{self, Color, Paint};
@@ -125,15 +125,15 @@ impl Painter<'_> {
                 }
                 (w, h)
             }
-            Widget::Tree(items) => {
-                let mut w: f32 = 0.0;
-                let mut h = 0.0;
-                for (depth, text) in items {
-                    let b = self.words(text, font)?;
-                    w = w.max(INDENT * *depth as f32 + 2.0 + b.width);
-                    h += b.height;
-                }
-                (w, h)
+            Widget::Tree { lines, items } => {
+                let (widths, heights) = self.tree(*lines, items)?;
+                let inner = framed(*lines);
+                (
+                    widths.iter().sum::<f32>()
+                        + GAP.0 * widths.len().saturating_sub(1) as f32
+                        + 2.0 * inner,
+                    heights.iter().sum::<f32>() + 2.0 * inner,
+                )
             }
             Widget::Grid { lines, rows } => {
                 let (widths, heights) = self.grid(*lines, rows)?;
@@ -186,6 +186,42 @@ impl Painter<'_> {
                     heights.push(tall + pad);
                 }
             }
+        }
+        Ok((widths, heights))
+    }
+
+    /// The widths of a tree's columns, the first its items' words, each
+    /// stepped in as deep as it stands, and the heights of its rows, which
+    /// stand close, as a list's.
+    fn tree(&self, lines: Lines, items: &[Item]) -> Result<(Vec<f32>, Vec<f32>), Declined> {
+        let font = self.look.font;
+        let columns = items
+            .iter()
+            .map(|item| 1 + item.cells.len())
+            .max()
+            .unwrap_or(1);
+        let pad = if matches!(lines, Lines::All | Lines::Columns) {
+            2.0 * PAD
+        } else {
+            0.0
+        };
+        let ruled = if matches!(lines, Lines::All | Lines::Rows) {
+            2.0
+        } else {
+            0.0
+        };
+        let mut widths = vec![0.0f32; columns];
+        let mut heights = Vec::with_capacity(items.len());
+        for item in items {
+            let b = self.words(&item.label, font)?;
+            widths[0] = widths[0].max(INDENT * item.depth as f32 + 2.0 + b.width + pad);
+            let mut tall = b.height;
+            for (c, cell) in item.cells.iter().enumerate() {
+                let b = self.words(cell, font)?;
+                widths[c + 1] = widths[c + 1].max(b.width + pad);
+                tall = tall.max(b.height);
+            }
+            heights.push(tall + ruled);
         }
         Ok((widths, heights))
     }
@@ -361,18 +397,31 @@ impl Painter<'_> {
                     at += b.width + 12.0;
                 }
             }
-            Widget::Tree(items) => {
-                let mut top = y;
+            Widget::Tree { lines, items } => {
+                let (widths, heights) = self.tree(*lines, items)?;
+                let inner = framed(*lines);
+                if matches!(lines, Lines::Frame | Lines::All) {
+                    canvas.rect(Layer::Frames, (x, y, w, h), 0.0, None, Some(line));
+                }
+                let pad_x = if matches!(lines, Lines::All | Lines::Columns) {
+                    PAD
+                } else {
+                    0.0
+                };
+                let mut top = y + inner;
                 // Where the last item of each level stood, for the lines.
                 let mut last: Vec<f32> = Vec::new();
-                for (depth, text) in items {
-                    let b = self.words(text, font)?;
-                    let middle = top + b.height / 2.0;
-                    let at = x + INDENT * *depth as f32;
+                for (r, item) in items.iter().enumerate() {
+                    let rh = heights[r];
+                    let depth = item.depth;
+                    let b = self.words(&item.label, font)?;
+                    let words_top = top + (rh - b.height) / 2.0;
+                    let middle = words_top + b.height / 2.0;
+                    let at = x + inner + pad_x + INDENT * depth as f32;
                     // Under the start of the parent's words.
                     let joint = at - INDENT + 4.0;
-                    if *depth > 1 {
-                        let from = last.get(depth - 2).copied().unwrap_or(top);
+                    if depth > 1 {
+                        let from = last.get(depth - 2).copied().unwrap_or(words_top);
                         canvas.line(Layer::Frames, (joint, from), (joint, middle), line);
                         canvas.line(Layer::Frames, (joint, middle), (at - 2.0, middle), line);
                     } else {
@@ -384,10 +433,33 @@ impl Painter<'_> {
                             Some(line),
                         );
                     }
-                    last.truncate(*depth - 1);
-                    last.push(top + b.height - 1.0);
-                    canvas.text(Layer::Front, &b, (at, top), Align::Left);
-                    top += b.height;
+                    last.truncate(depth - 1);
+                    last.push(words_top + b.height - 1.0);
+                    canvas.text(Layer::Front, &b, (at, words_top), Align::Left);
+                    // The item's other columns, as a grid's words.
+                    let mut left = x + inner + widths[0] + GAP.0;
+                    for (c, cell) in item.cells.iter().enumerate() {
+                        let b = self.words(cell, font)?;
+                        canvas.text(
+                            Layer::Front,
+                            &b,
+                            (left + pad_x, top + (rh - b.height) / 2.0),
+                            Align::Left,
+                        );
+                        left += widths[c + 1] + GAP.0;
+                    }
+                    top += rh;
+                    if r + 1 < items.len() && matches!(lines, Lines::All | Lines::Rows) {
+                        canvas.line(Layer::Frames, (x, top), (x + w, top), line);
+                    }
+                }
+                if matches!(lines, Lines::All | Lines::Columns) {
+                    let mut at = x + inner;
+                    for cw in &widths[..widths.len().saturating_sub(1)] {
+                        at += cw + GAP.0 / 2.0;
+                        canvas.line(Layer::Frames, (at, y), (at, y + h), line);
+                        at += GAP.0 / 2.0;
+                    }
                 }
             }
             Widget::Grid { lines, rows } => {
