@@ -2181,17 +2181,7 @@ mod tests {
     use super::super::parse::parse;
     use super::*;
 
-    /// Each group of a part in `svg`, whole: the part's name and the group.
-    fn part_groups(svg: &str) -> Vec<(String, &str)> {
-        svg.match_indices(r#"<g id="part-"#)
-            .filter_map(|(at, _)| {
-                let rest = &svg[at..];
-                let id = &rest[7..];
-                let name = crate::part_name(&id[..id.find('"')?])?;
-                Some((name, &rest[..crate::svg::group_length(rest)?]))
-            })
-            .collect()
-    }
+    use crate::part_groups;
 
     /// Asked for its parts, a structure draws each element and each line's
     /// words (its label and multiplicities) in groups of their own, named

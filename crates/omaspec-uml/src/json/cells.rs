@@ -139,6 +139,19 @@ pub(super) fn words(text: &str, font: Font, family: Family) -> Block {
     text::styled(lines, font, family)
 }
 
+/// The part of the top card (docs/adr/0029), which has no place: a name
+/// no path has, since a key with a colon is written in quotes.
+pub(super) const TOP: &str = "json:top";
+
+/// The part a card is drawn in: its path's name, the top card's [`TOP`].
+pub(super) fn part_of(path: &[String]) -> String {
+    if path.is_empty() {
+        TOP.to_owned()
+    } else {
+        path_name(path)
+    }
+}
+
 /// The name a value goes by in a fold, as `#highlight` writes a path:
 /// `JSON_Array/4`, a key with a slash, a quote or a space in quotes.
 pub fn path_name(path: &[String]) -> String {

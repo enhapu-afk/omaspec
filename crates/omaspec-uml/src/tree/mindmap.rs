@@ -26,6 +26,9 @@ pub fn draw_mapped(d: &MindMap) -> Result<(String, map::Map), Declined> {
     let skin = Skin::from_params(&d.frame.skinparams, TreeKind::MindMap)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
+    if d.frame.parts {
+        canvas.mark_parts();
+    }
     canvas.shadows(skin.shadow);
     let family = canvas.family();
     let annotations = Annotations::new(
@@ -260,7 +263,10 @@ impl Geometry<'_> {
             let e0 = if dir > 0.0 { 0.0 } else { -finger.elongation };
             let corner = self.at(start, e0, margin - finger.thickness / 2.0);
             let before = if dir > 0.0 { 3.0 } else { 0.0 };
-            label.draw(canvas, skin, corner, before);
+            // Each box in its part (docs/adr/0029), by its key.
+            canvas.part(&finger.key, |canvas| {
+                label.draw(canvas, skin, corner, before);
+            });
             let (w, h) = label.size(skin, before, 0.0);
             let rect = Rect {
                 x: corner.0,
@@ -548,6 +554,40 @@ impl Frontier {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Asked for its parts, a mind map draws each box in a group of its
+    /// own, named as its map names it: the box and its words, nothing of
+    /// the boxes on its branches, and the links stay lines.
+    #[test]
+    fn a_mind_map_s_boxes_are_parts_named_as_its_map_names_them() {
+        let source =
+            "@startmindmap\n* Trip\n** Pack\n*** Socks\n** Book\n' parts (Omaspec)\n@endmindmap\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        let groups = crate::part_groups(&svg);
+        assert_eq!(map.places.len(), 4, "{:?}", map.places);
+        for place in &map.places {
+            assert!(
+                groups
+                    .iter()
+                    .any(|(n, g)| *n == place.name && g.contains(&format!(">{}<", place.name))),
+                "{} not drawn: {groups:?}",
+                place.name
+            );
+        }
+        for (_, group) in groups.iter().filter(|(n, _)| n == "Pack") {
+            assert!(
+                !group.contains("Socks") && !group.contains("<path"),
+                "{group}"
+            );
+        }
+        let ground = crate::without_parts(&svg).unwrap();
+        assert!(
+            !ground.contains("Socks") && ground.contains("<path"),
+            "{ground}"
+        );
+        let plain = crate::render(&source.replace("' parts (Omaspec)\n", "")).unwrap();
+        assert!(!crate::has_parts(&plain));
+    }
 
     #[test]
     fn tetris_tucks_a_short_child_under_a_long_one() {

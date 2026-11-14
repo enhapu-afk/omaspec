@@ -58,10 +58,11 @@ pub mod yaml;
 
 // The Mermaid drawer in omaspec-render lays out flowcharts on the same
 // graph and draws with the same canvas. The modules stay private.
+pub use annotations::MAIN_FRAME;
 pub use color::{Color, Paint, parse as parse_color};
 pub use svg::{
     Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, PART, Stroke, card_part, has_parts,
-    part_name, unmarked, without_lines, without_parts,
+    part_groups, part_name, place_part, unmarked, without_lines, without_parts, words_part,
 };
 pub use text::{
     Block, Family, Font, Link, Style, block as measure_text, creole_link, measure as measure_run,
@@ -409,10 +410,12 @@ pub fn render_mapped(
         Diagram::Activity(d) => unmapped(activity::draw(&d)),
         Diagram::MindMap(mut d) => {
             d.fold(&fold::read(source));
+            d.frame.parts = fold::parts(source);
             tree::draw_mindmap_mapped(&d)
         }
         Diagram::Wbs(mut d) => {
             d.fold(&fold::read(source));
+            d.frame.parts = fold::parts(source);
             tree::draw_wbs_mapped(&d)
         }
         Diagram::Structure(mut d) => {
@@ -425,6 +428,7 @@ pub fn render_mapped(
         Diagram::Flow(d) => unmapped(flow::draw(&d)),
         Diagram::Json(mut d) => {
             d.fold(&fold::read(source));
+            d.frame.parts = fold::parts(source);
             // The pane's view over the file's skinparam.
             if fold::nested(source) {
                 d.frame.skinparams.push(common::Skinparam {

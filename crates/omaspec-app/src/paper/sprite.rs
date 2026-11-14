@@ -215,6 +215,23 @@ pub(super) fn fit(
     }
 }
 
+/// The box of pixels `src` drawn at `natural` pixels to a unit from `at`,
+/// its top left, as large as the picture draws it: a card whose rows are
+/// laid out from its left keeps them where they are as it changes size.
+pub(super) fn anchored(src: Rectangle, at: Point, natural: f32) -> Fit {
+    let dest = Rectangle::new(at, Size::new(src.width, src.height) * natural);
+    Fit {
+        pieces: vec![Piece {
+            src,
+            dest,
+            limit: dest,
+            room: false,
+        }],
+        inside: 0,
+        interior: None,
+    }
+}
+
 pub(super) fn inset(rect: Rectangle, by: f32) -> Rectangle {
     Rectangle::new(
         Point::new(rect.x + by, rect.y + by),

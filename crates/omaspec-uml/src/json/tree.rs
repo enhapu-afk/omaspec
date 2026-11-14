@@ -8,10 +8,10 @@
 //! column the cards keep the order of their rows: each as near as it can
 //! be to the row that reaches it, below the card above it.
 
-use super::cells::{Fonts, Scalar, path_name, words};
+use super::cells::{Fonts, Scalar, part_of, path_name, words};
 use super::{Kind, Look, Value};
 use crate::color::Color;
-use crate::map::Place;
+use crate::map::{Head, HeadFill, Map, Place, Wire};
 use crate::svg::{Align, Canvas, Layer, Stroke};
 use crate::text::{Block, Family};
 
@@ -62,7 +62,8 @@ enum Cell {
 }
 
 /// Draws `value` with its top left at `(0, top)`; the places of the
-/// cards and of the folded values, by their paths, for the pane to fold.
+/// cards and of the folded values, by their paths, for the pane to fold,
+/// and the arrows between the cards, for it to glide them.
 pub(super) fn paint(
     canvas: &mut Canvas,
     look: &Look,
@@ -70,15 +71,15 @@ pub(super) fn paint(
     fonts: (&Fonts, &Fonts),
     top: f32,
     family: Family,
-) -> Vec<Place> {
+) -> Map {
     let mut cards = Vec::new();
     build(value, Vec::new(), 0, fonts, family, &mut cards);
     place(&mut cards, top);
-    let mut places = Vec::new();
+    let mut map = Map::default();
     for index in 0..cards.len() {
-        paint_card(canvas, look, &cards, index, fonts, &mut places);
+        paint_card(canvas, look, &cards, index, fonts, &mut map);
     }
-    places
+    map
 }
 
 /// The card of `value`, and of everything it holds, after the others in
@@ -196,10 +197,32 @@ fn paint_card(
     cards: &[Card],
     index: usize,
     fonts: (&Fonts, &Fonts),
-    places: &mut Vec<Place>,
+    map: &mut Map,
 ) {
+    // A card in its part (docs/adr/0029), by its path as the map names
+    // it, the top card in [`TOP`], with the dots of its rows. Its arrows
+    // glide on their own, so they are drawn outside it.
     let card = &cards[index];
+    let arrows = canvas.part(&part_of(&card.path), |canvas| {
+        paint_rows(canvas, look, card, fonts, &mut map.places)
+    });
+    for (from, child) in arrows {
+        map.wires
+            .push(arrow(canvas, look.line, from, card, &cards[child]));
+    }
+}
+
+/// The card's rows, its folded values' places in `places`; where each
+/// row that reaches a card has its dot, and that card.
+fn paint_rows(
+    canvas: &mut Canvas,
+    look: &Look,
+    card: &Card,
+    fonts: (&Fonts, &Fonts),
+    places: &mut Vec<Place>,
+) -> Vec<((f32, f32), usize)> {
     let (x, y) = (card.x, card.y);
+    let mut arrows = Vec::new();
     let border = Stroke::new(look.line, STROKE);
     canvas.rect(
         Layer::Background,
@@ -239,7 +262,8 @@ fn paint_card(
             }
             Cell::Child(child) => {
                 let from = (x + card.width - DOT_IN, row_y + row.height / 2.0);
-                arrow(canvas, look.line, from, x + card.width, &cards[*child]);
+                canvas.ellipse(Layer::Front, from, (DOT_R, DOT_R), Some(look.line), None);
+                arrows.push((from, *child));
             }
         }
         row_y += row.height;
@@ -262,14 +286,15 @@ fn paint_card(
         None,
         Some(border),
     );
+    arrows
 }
 
-/// The dot at `from` and the dotted arrow from it, out of the card whose
-/// right edge is at `right`, to the middle of `to`'s left edge.
-fn arrow(canvas: &mut Canvas, ink: Color, from: (f32, f32), right: f32, to: &Card) {
-    canvas.ellipse(Layer::Front, from, (DOT_R, DOT_R), Some(ink), None);
+/// The dotted arrow from the dot at `from`, out of `card`, to the middle
+/// of `to`'s left edge; the arrow for the map, which a pane glides with
+/// the two cards.
+fn arrow(canvas: &mut Canvas, ink: Color, from: (f32, f32), card: &Card, to: &Card) -> Wire {
     let end = (to.x, to.y + to.height / 2.0);
-    let out = right + 2.0;
+    let out = card.x + card.width + 2.0;
     let tip = (end.0 - HEAD, end.1);
     let bend = (tip.0 - out) / 2.0;
     let d = format!(
@@ -303,6 +328,56 @@ fn arrow(canvas: &mut Canvas, ink: Color, from: (f32, f32), right: f32, to: &Car
         (end.0 - HEAD, end.1 + HEAD * 0.45),
     ];
     canvas.polygon(Layer::Lines, &head, Some(ink), None);
+    // The route as drawn: the run out of the card, then the curve.
+    let start = (out, from.1);
+    let (c1, c2) = ((out + bend, from.1), (tip.0 - bend, tip.1));
+    let mut points = vec![from];
+    points.extend((0..=CURVE).map(|step| cubic(start, c1, c2, tip, step as f32 / CURVE as f32)));
+    let rect = |c: &Card| crate::graph::Rect {
+        x: c.x,
+        y: c.y,
+        w: c.width,
+        h: c.height,
+    };
+    let end_of = |c: &Card| crate::hand::End {
+        rect: rect(c),
+        flat: false,
+    };
+    Wire {
+        key: crate::hand::Key {
+            from: path_name(&card.path),
+            to: path_name(&to.path),
+            nth: 0,
+        },
+        line: None,
+        path: vec![from, start, tip],
+        points,
+        from: end_of(card),
+        to: end_of(to),
+        entry: None,
+        labels: Vec::new(),
+        stroke: dotted,
+        heads: vec![Head {
+            points: head.to_vec(),
+            closed: true,
+            fill: HeadFill::Ink,
+        }],
+        fixed: true,
+        words: Default::default(),
+    }
+}
+
+/// How many runs an arrow's curve is drawn with on its way.
+const CURVE: usize = 16;
+
+/// The point `t` of the way along the cubic curve from `a` to `d`.
+fn cubic(a: (f32, f32), b: (f32, f32), c: (f32, f32), d: (f32, f32), t: f32) -> (f32, f32) {
+    let u = 1.0 - t;
+    let (w0, w1, w2, w3) = (u * u * u, 3.0 * u * u * t, 3.0 * u * t * t, t * t * t);
+    (
+        w0 * a.0 + w1 * b.0 + w2 * c.0 + w3 * d.0,
+        w0 * a.1 + w1 * b.1 + w2 * c.1 + w3 * d.1,
+    )
 }
 
 fn place_of(path: &[String], (x, y, w, h): (f32, f32, f32, f32), frame: bool) -> Place {
@@ -320,4 +395,65 @@ fn place_of(path: &[String], (x, y, w, h): (f32, f32, f32, f32), frame: bool) ->
 
 fn n(value: f32) -> String {
     format!("{}", (value * 100.0).round() / 100.0)
+}
+
+#[cfg(test)]
+mod tests {
+    /// Asked for its parts, a JSON diagram draws each card in a group of
+    /// its own, named as its map names it (the top one, which has none,
+    /// as `json:top`), with the dots of its rows; the arrows between the
+    /// cards are in the map, to glide with them.
+    #[test]
+    fn a_json_card_is_a_part_and_its_arrows_are_in_the_map() {
+        let source = "@startjson\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}, \"tags\": [\"x\"]}\n' parts (Omaspec)\n@endjson\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        let groups = crate::part_groups(&svg);
+        let cards: Vec<&str> = map
+            .places
+            .iter()
+            .filter(|p| p.frame)
+            .map(|p| p.name.as_str())
+            .collect();
+        assert_eq!(cards, ["home", "home/street", "tags"], "{:?}", map.places);
+        for card in &cards {
+            assert!(groups.iter().any(|(n, _)| n == card), "{card}: {groups:?}");
+        }
+        let home: String = groups
+            .iter()
+            .filter(|(n, _)| n == "home")
+            .map(|(_, g)| *g)
+            .collect();
+        assert!(home.contains("London") && !home.contains(">7<"), "{home}");
+        // The dot of the row that reaches the street card is home's; the
+        // arrows glide on their own, outside every card.
+        assert!(home.contains("<ellipse"), "{home}");
+        assert!(svg.contains("stroke-dasharray"));
+        assert!(
+            groups.iter().all(|(_, g)| !g.contains("stroke-dasharray")),
+            "{groups:?}"
+        );
+        let top: String = groups
+            .iter()
+            .filter(|(n, _)| n == super::super::cells::TOP)
+            .map(|(_, g)| *g)
+            .collect();
+        assert!(top.contains("Ada") && !top.contains("London"), "{top}");
+        let ground = crate::without_parts(&svg).unwrap();
+        assert!(!ground.contains("Ada"), "{ground}");
+        let keys: Vec<(&str, &str)> = map
+            .wires
+            .iter()
+            .map(|w| (w.key.from.as_str(), w.key.to.as_str()))
+            .collect();
+        assert_eq!(keys, [("", "home"), ("", "tags"), ("home", "home/street")]);
+        for wire in &map.wires {
+            assert!(wire.fixed && wire.heads.len() == 1, "{wire:?}");
+            assert!(wire.stroke.dash.is_some(), "dotted: {wire:?}");
+            // From the dot to the card it reaches.
+            let last = *wire.points.last().unwrap();
+            let to = wire.to.rect;
+            assert!((last.0 - to.x).abs() < 12.0, "{last:?} {to:?}");
+            assert!(last.1 > to.y && last.1 < to.y + to.h, "{last:?} {to:?}");
+        }
+    }
 }

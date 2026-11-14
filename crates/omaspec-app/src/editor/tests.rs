@@ -2601,14 +2601,15 @@ fn only_a_json_or_yaml_diagram_is_asked_for_nested() {
         crate::worker::folded(state, Language::PlantUml, &[], nested),
         format!("{state}' parts (Omaspec)\n")
     );
-    // Only a state machine is asked for its table.
+    // Only a state machine is asked for its table; a JSON diagram for
+    // its parts.
     let table = crate::worker::Views {
         nested: false,
         table: true,
     };
     assert_eq!(
         crate::worker::folded(json, Language::PlantUml, &[], table),
-        json
+        format!("{json}' parts (Omaspec)\n")
     );
     assert!(
         crate::worker::folded(

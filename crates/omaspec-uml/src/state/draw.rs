@@ -1219,14 +1219,10 @@ mod tests {
         // one at the top stayed.
         let notes = |svg: &str| svg.matches("<path d=\"M").count();
         assert!(notes(&ground) < notes(&svg), "{ground}");
-        let brewing: String = svg
-            .match_indices(r#"<g id="part-"#)
-            .filter_map(|(at, _)| {
-                let rest = &svg[at + 7..];
-                let id = &rest[..rest.find('"')?];
-                (crate::part_name(id).as_deref() == Some("Brewing"))
-                    .then(|| rest[..rest.find("</g>").unwrap_or(rest.len())].to_owned())
-            })
+        let brewing: String = crate::part_groups(&svg)
+            .into_iter()
+            .filter(|(name, _)| name == "Brewing")
+            .map(|(_, group)| group)
             .collect();
         assert!(brewing.contains("<path"), "Brewing's note: {brewing}");
     }
@@ -1239,38 +1235,29 @@ mod tests {
     fn the_pane_s_parts_are_named_as_the_map_names_them() {
         let source = "@startuml\n[*] --> Off\nOff --> Brewing : start\nstate Brewing {\n  [*] --> Grinding\n  Grinding --> Pouring : ground\n  Pouring --> [*]\n}\nBrewing --> Off : done\n' parts (Omaspec)\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
-        let ids: Vec<&str> = svg
-            .match_indices(r#"<g id="part-"#)
-            .map(|(at, _)| {
-                let id = &svg[at + 7..];
-                &id[..id.find('"').unwrap()]
-            })
-            .collect();
-        let named: std::collections::HashSet<String> =
-            ids.iter().filter_map(|id| crate::part_name(id)).collect();
+        let groups = crate::part_groups(&svg);
+        let named: std::collections::HashSet<&str> =
+            groups.iter().map(|(name, _)| name.as_str()).collect();
         for spot in &map.states {
             assert!(
-                named.contains(&spot.part),
+                named.contains(spot.part.as_str()),
                 "{} not drawn: {named:?}",
                 spot.part
             );
         }
         for wire in map.wires.iter().filter(|w| !w.labels.is_empty()) {
             let words = wire.words[crate::map::WORDS].as_ref().unwrap();
-            assert!(named.contains(words), "{words} not drawn: {named:?}");
+            assert!(
+                named.contains(words.as_str()),
+                "{words} not drawn: {named:?}"
+            );
         }
         assert!(
             named.contains("mark:0") && named.contains("mark:2.0"),
             "{named:?}"
         );
         // Brewing's groups: its frame, its divider and its title only.
-        for id in ids
-            .iter()
-            .filter(|id| crate::part_name(id).as_deref() == Some("Brewing"))
-        {
-            let at = svg.find(&format!(r#"id="{id}""#)).unwrap();
-            let group = &svg[at..];
-            let group = &group[..group.find("</g>").unwrap()];
+        for (_, group) in groups.iter().filter(|(name, _)| name == "Brewing") {
             assert!(group.matches("<rect").count() <= 1, "{group}");
             assert!(!group.contains("Grinding"), "{group}");
         }

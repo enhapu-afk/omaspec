@@ -555,3 +555,36 @@ fn lines_that_arrive_differently_keep_their_own_arrivals() {
     let at = ends("flowchart TD\n  A --> C\n  B --> C\n  D --> C\n");
     assert!(at[2] - at[0] < 0.5, "{at:?}");
 }
+
+/// Asked for its parts, a flowchart draws each node and subgraph and
+/// each line's words in groups of their own, named as its map names them;
+/// a subgraph's groups hold nothing of the nodes in it.
+#[test]
+fn a_flowchart_s_parts_are_named_as_its_map_names_them() {
+    let source = "flowchart LR\n  A[Cart] -->|pays| B[Till]\n  subgraph Back[Back office]\n    C[Stock] --> D[Ship]\n  end\n  B -->|orders| C\n%% parts (Omaspec)\n";
+    let parsed = parse_mermaid_strict(source).unwrap();
+    let theme = RenderOptions::default().theme;
+    let (svg, map) = super::super::try_draw(&parsed.graph, &theme, source, &[], &[], 0.0).unwrap();
+    let groups = omaspec_uml::part_groups(&svg);
+    let named = |name: &str| groups.iter().any(|(n, _)| n == name);
+    for place in &map.places {
+        let part = place.part.as_deref().unwrap();
+        assert!(named(part), "{} ({part}) not drawn", place.name);
+    }
+    let labeled = map.wires.iter().filter(|w| !w.labels.is_empty());
+    for wire in labeled {
+        let words = wire.words[omaspec_uml::map::WORDS].as_deref().unwrap();
+        assert!(named(words), "{words} not drawn");
+    }
+    let back = map.places.iter().find(|p| p.name == "Back").unwrap();
+    let back = back.part.as_deref().unwrap();
+    for (_, group) in groups.iter().filter(|(n, _)| n == back) {
+        assert!(
+            !group.contains("Stock") && !group.contains("Ship"),
+            "{group}"
+        );
+    }
+    // Without the line, none.
+    let plain = draw(&source.replace("%% parts (Omaspec)\n", "")).unwrap();
+    assert!(!omaspec_uml::has_parts(&plain));
+}

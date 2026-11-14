@@ -752,6 +752,151 @@ fn a_package_glides_from_its_parts() {
     assert!(morph.orphans[0].is_empty(), "{:?}", morph.orphans);
 }
 
+/// A subgraph of a Mermaid flowchart folds from parts too, its line's
+/// words with it.
+#[test]
+fn a_subgraph_glides_from_its_parts() {
+    let open = "flowchart LR\n  A[Cart] -->|pays| B[Till]\n  subgraph Back[Back office]\n    C[Stock] --> D[Ship]\n  end\n  B -->|orders| C\n%% parts (Omaspec)\n";
+    let folded = format!("{open}%% fold (Omaspec) Back\n");
+    let mut paper = Paper::default();
+    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    show_source(&mut paper, open, Language::Mermaid);
+    paper.deliver_overview();
+    let _ = paper.update(Message::Faded);
+    assert!(paper.diagram.as_ref().unwrap().drawn.parts);
+    paper.set_fold("Back", true);
+    show_source(&mut paper, &folded, Language::Mermaid);
+    paper.deliver_overview();
+    let fade = paper.fade.as_ref().expect("the fold glides");
+    let morph = fade.morph.as_ref().expect("the boxes move");
+    let (old, new) = fade.bare.as_ref().expect("both sheets");
+    for step in &morph.moves {
+        if step.role != morph::Role::Arrive {
+            assert!(
+                old.part(&step.parts[0]).is_some(),
+                "{} on the old sheet",
+                step.name
+            );
+        }
+        if step.role != morph::Role::Leave {
+            assert!(
+                new.part(&step.parts[1]).is_some(),
+                "{} on the new sheet",
+                step.name
+            );
+        }
+    }
+    let role = |name: &str| morph.moves.iter().find(|m| m.name == name).map(|m| m.role);
+    assert_eq!(role("C"), Some(morph::Role::Leave));
+    assert_eq!(role("Back"), Some(morph::Role::Stay));
+    assert!(morph.orphans[0].is_empty(), "{:?}", morph.orphans);
+    let lines = fade.lines.as_ref().expect("the lines glide");
+    assert!(
+        lines.lines.iter().any(|line| {
+            line.words[0][0]
+                .as_deref()
+                .is_some_and(|w| old.part(w).is_some())
+                && line.words[1][0]
+                    .as_deref()
+                    .is_some_and(|w| new.part(w).is_some())
+        }),
+        "the words of a line that stays on both sheets"
+    );
+}
+
+/// A branch of a WBS folds from parts: the boxes below it go into it,
+/// each from its own picture, and nothing is left over.
+#[test]
+fn a_wbs_branch_glides_from_its_parts() {
+    let open =
+        "@startwbs\n* Move\n** Pack\n*** Books\n*** Plates\n** Clean\n' parts (Omaspec)\n@endwbs\n";
+    let folded = format!("{open}' fold (Omaspec) Pack\n");
+    let mut paper = Paper::default();
+    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    show_source(&mut paper, open, Language::PlantUml);
+    paper.deliver_overview();
+    let _ = paper.update(Message::Faded);
+    assert!(paper.diagram.as_ref().unwrap().drawn.parts);
+    paper.set_fold("Pack", true);
+    show_source(&mut paper, &folded, Language::PlantUml);
+    paper.deliver_overview();
+    let fade = paper.fade.as_ref().expect("the fold glides");
+    let morph = fade.morph.as_ref().expect("the boxes move");
+    let (old, new) = fade.bare.as_ref().expect("both sheets");
+    for step in &morph.moves {
+        if step.role != morph::Role::Arrive {
+            assert!(
+                old.part(&step.parts[0]).is_some(),
+                "{} on the old sheet",
+                step.name
+            );
+        }
+        if step.role != morph::Role::Leave {
+            assert!(
+                new.part(&step.parts[1]).is_some(),
+                "{} on the new sheet",
+                step.name
+            );
+        }
+    }
+    let role = |name: &str| morph.moves.iter().find(|m| m.name == name).map(|m| m.role);
+    assert_eq!(role("Books"), Some(morph::Role::Leave));
+    assert_eq!(role("Pack"), Some(morph::Role::Stay));
+    assert!(
+        morph.orphans.iter().all(Vec::is_empty),
+        "{:?}",
+        morph.orphans
+    );
+    assert!(fade.lines.is_some(), "the links glide");
+}
+
+/// A JSON card that folds glides from its part into the row of the card
+/// above, whose part has the folded row; its arrow is a line that goes.
+/// The top card and the title, in both pictures, glide on their own.
+#[test]
+fn a_json_card_folds_from_its_part_into_its_row() {
+    let open = "@startjson\ntitle People\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}}\n' parts (Omaspec)\n@endjson\n";
+    let folded = format!("{open}' fold (Omaspec) home/street\n");
+    let mut paper = Paper::default();
+    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    show_source(&mut paper, open, Language::PlantUml);
+    paper.deliver_overview();
+    let _ = paper.update(Message::Faded);
+    assert!(paper.diagram.as_ref().unwrap().drawn.parts);
+    paper.set_fold("home/street", true);
+    show_source(&mut paper, &folded, Language::PlantUml);
+    paper.deliver_overview();
+    let fade = paper.fade.as_ref().expect("the fold glides");
+    let morph = fade.morph.as_ref().expect("the boxes move");
+    let (old, new) = fade.bare.as_ref().expect("both sheets");
+    let street = morph
+        .moves
+        .iter()
+        .find(|m| m.name == "home/street")
+        .expect("the street card moves");
+    // From its card to the folded row in home's card: a part on the old
+    // sheet, in home's part on the new one.
+    assert_eq!(street.role, morph::Role::Stay);
+    assert!(old.part(&street.parts[0]).is_some());
+    assert!(new.part(&street.parts[1]).is_none());
+    assert!(new.part("home").is_some() && old.part("home").is_some());
+    assert!(
+        morph.orphans.iter().all(Vec::is_empty),
+        "{:?}",
+        morph.orphans
+    );
+    assert_eq!(morph.kept, ["frame:title", "json:top"]);
+    let lines = fade.lines.as_ref().expect("the arrows glide");
+    assert!(
+        lines
+            .lines
+            .iter()
+            .any(|line| line.from.is_some() && line.to.is_none()),
+        "the arrow to the street card goes: {:?}",
+        lines.lines
+    );
+}
+
 /// The glide waits for the pictures without lines; a picture that has
 /// none, or one that could not be drawn, lets it start without them.
 #[test]

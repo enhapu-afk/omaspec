@@ -29,6 +29,9 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&d.frame.skinparams, TreeKind::Wbs)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
+    if d.frame.parts {
+        canvas.mark_parts();
+    }
     canvas.shadows(skin.shadow);
     let family = canvas.family();
     let annotations = Annotations::new(
@@ -208,7 +211,11 @@ impl Drawer<'_> {
 
     /// Draws the box of `b`.
     fn label(&mut self, b: &Branch, (x, y): (f32, f32)) {
-        b.label.draw(self.canvas, self.skin, (x, y), 0.0);
+        // Each box in its part (docs/adr/0029), by its key.
+        let skin = self.skin;
+        self.canvas.part(&b.key, |canvas| {
+            b.label.draw(canvas, skin, (x, y), 0.0);
+        });
         let rect = Rect {
             x,
             y,
@@ -312,5 +319,36 @@ impl Drawer<'_> {
             cy += c.height;
         }
         self.line((spine, below), (spine, bottom));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// Asked for its parts, a WBS draws each box in a group of its own,
+    /// named as its map names it, the lines between them outside.
+    #[test]
+    fn a_wbs_s_boxes_are_parts_named_as_its_map_names_them() {
+        let source =
+            "@startwbs\n* Move\n** Pack\n*** Books\n** Clean\n' parts (Omaspec)\n@endwbs\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        let groups = crate::part_groups(&svg);
+        assert_eq!(map.places.len(), 4, "{:?}", map.places);
+        for place in &map.places {
+            assert!(
+                groups
+                    .iter()
+                    .any(|(n, g)| *n == place.name && g.contains(&format!(">{}<", place.name))),
+                "{} not drawn: {groups:?}",
+                place.name
+            );
+        }
+        assert!(
+            groups
+                .iter()
+                .all(|(_, g)| !g.contains("<line") && !g.contains("<path")),
+            "{groups:?}"
+        );
+        let ground = crate::without_parts(&svg).unwrap();
+        assert!(!ground.contains("Books"), "{ground}");
     }
 }

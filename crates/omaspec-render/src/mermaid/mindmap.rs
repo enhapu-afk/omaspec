@@ -24,6 +24,7 @@ pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     paint(&mut diagram, theme)?;
     // After the paint: a folded branch keeps the color it had.
     diagram.fold(&omaspec_uml::fold::read(source));
+    diagram.frame.parts = omaspec_uml::fold::parts(source);
     draw_mindmap_mapped(&diagram).ok()
 }
 
@@ -168,6 +169,28 @@ fn solid(value: &str) -> Option<Color> {
 mod tests {
     use super::*;
     use mermaid_rs_renderer::DiagramKind;
+
+    /// Asked for its parts, Mermaid's mind map draws each box in a group
+    /// of its own, named as its map names it.
+    #[test]
+    fn a_mind_map_s_boxes_are_parts() {
+        let theme = Theme::mermaid_default();
+        let source = "mindmap\n  ((Root))\n    Branch\n      Leaf\n%% parts (Omaspec)\n";
+        let (svg, map) = try_draw(&theme, source).unwrap();
+        let groups = omaspec_uml::part_groups(&svg);
+        assert_eq!(map.places.len(), 3, "{:?}", map.places);
+        for place in &map.places {
+            assert!(
+                groups.iter().any(|(n, _)| *n == place.name),
+                "{} not drawn: {groups:?}",
+                place.name
+            );
+        }
+        let plain = try_draw(&theme, "mindmap\n  ((Root))\n    Branch\n")
+            .unwrap()
+            .0;
+        assert!(!omaspec_uml::has_parts(&plain));
+    }
 
     #[test]
     fn draws_a_mind_map_in_the_theme_colors() {

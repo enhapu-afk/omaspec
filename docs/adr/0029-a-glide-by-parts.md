@@ -49,7 +49,17 @@ words it draws for which state, which words belong to which line.
 4. **Words go with their lines.** A line's words are a part of their own
    and travel with the line (`paper::wires`): from their old place to their
    new one, or away and in with the line when it goes or comes.
-5. **One drawer at a time.** State diagrams of both languages mark their
+5. **What no box takes glides on its own.** The title, header, caption,
+   footer, legend and main frame (`frame:title` and so on) and the top
+   card of a JSON diagram are parts without a place. One in both pictures
+   glides from where it was to where it is; one in only one of them comes
+   or goes with the ground.
+6. **A card keeps its rows where they are.** A box whose rows are laid
+   from its top left and whose size follows them, as a JSON card or a
+   tree's box (`Place::fixed`), is drawn at its own size from the top
+   left of its place of the moment rather than stretched: rows that are
+   in both pictures lie on each other.
+7. **One drawer at a time.** State diagrams of both languages mark their
    parts first, then structure, flowcharts and trees. A picture without
    parts glides as it did, by cutting; once every drawer that glides marks
    its parts, the cutting and its guesses go: the box test of `pick`, the
@@ -66,6 +76,4 @@ background, once a glide.
 
 ## Not now
 
-Shadows (`skinparam shadowing true`) lie in a layer of their own under the
-shapes and stay with the ground while their boxes glide. The sketch look
-keeps drawing its lines straight while they glide.
+The sketch look keeps drawing its lines straight while they glide.

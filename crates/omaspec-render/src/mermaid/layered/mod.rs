@@ -93,6 +93,11 @@ pub fn try_draw(
     };
     let mut canvas = Canvas::new(&theme.font_family, false);
     canvas.sketch(super::head::hand_drawn(source));
+    // The pane's parts (docs/adr/0029): each node and subgraph by its place
+    // in the tree, each line's words by its edge.
+    if omaspec_uml::fold::parts(source) {
+        canvas.mark_parts();
+    }
     paint::paint(&mut canvas, &palette, &scene, curve);
     if let Some((_, title)) = omaspec_uml::front_title(source) {
         paint::title(&mut canvas, &palette, title, family);
@@ -113,7 +118,7 @@ pub fn try_draw(
                 return Dress {
                     stroke: Stroke::new(omaspec_uml::Color::BLACK, 1.0),
                     heads: Vec::new(),
-                    words: Default::default(),
+                    words: [Some(omaspec_uml::words_part(&[], slot)), None, None],
                 };
             };
             let (start, end) = edge.look.caps;
@@ -122,7 +127,7 @@ pub fn try_draw(
             Dress {
                 stroke: edge.look.stroke,
                 heads,
-                words: Default::default(),
+                words: [Some(omaspec_uml::words_part(&[], slot)), None, None],
             }
         },
     );
@@ -161,7 +166,7 @@ fn places(
         },
         across,
         held,
-        |_| None,
+        |path| Some(omaspec_uml::place_part(path)),
     )
 }
 

@@ -117,6 +117,9 @@ impl Annotations {
     }
 
     /// Draws them around what `canvas` holds.
+    /// Each in a part of its own (docs/adr/0029), `frame:title` and so
+    /// on, when the parts are marked: in the pictures before and after a
+    /// fold, a pane glides it from where it was to where it is.
     pub fn draw(&self, canvas: &mut Canvas) {
         let places = self.places();
         let (mut left, mut right) = canvas.width_span();
@@ -125,27 +128,29 @@ impl Annotations {
             let top = places.frame;
             let frame_left = left - FRAME_PAD;
             let frame_right = (right + FRAME_PAD).max(frame_left + tab_w + 10.0);
-            let bottom = canvas.bottom().max(top + tab_h) + FRAME_PAD;
-            let stroke = Stroke::new(self.look.line, self.look.line_thickness);
-            canvas.rect(
-                Layer::Frames,
-                (frame_left, top, frame_right - frame_left, bottom - top),
-                0.0,
-                None,
-                Some(stroke),
-            );
-            canvas.polygon(
-                Layer::Frames,
-                &tab(frame_left, top, tab_w, tab_h),
-                None,
-                Some(stroke),
-            );
-            canvas.text(
-                Layer::Front,
-                label,
-                (frame_left + 6.0, top + 2.0),
-                Align::Left,
-            );
+            canvas.part(MAIN_FRAME, |canvas| {
+                let bottom = canvas.bottom().max(top + tab_h) + FRAME_PAD;
+                let stroke = Stroke::new(self.look.line, self.look.line_thickness);
+                canvas.rect(
+                    Layer::Frames,
+                    (frame_left, top, frame_right - frame_left, bottom - top),
+                    0.0,
+                    None,
+                    Some(stroke),
+                );
+                canvas.polygon(
+                    Layer::Frames,
+                    &tab(frame_left, top, tab_w, tab_h),
+                    None,
+                    Some(stroke),
+                );
+                canvas.text(
+                    Layer::Front,
+                    label,
+                    (frame_left + 6.0, top + 2.0),
+                    Align::Left,
+                );
+            });
             (left, right) = (frame_left, frame_right);
         }
         if let Some(placed) = &self.legend {
@@ -162,19 +167,21 @@ impl Annotations {
                 canvas.bottom() + GAP
             };
             let look = &self.look;
-            canvas.rect(
-                Layer::Front,
-                (x, y, w, h),
-                look.round,
-                look.fill,
-                Some(Stroke::new(look.border, look.thickness)),
-            );
-            canvas.text(
-                Layer::Front,
-                &placed.text,
-                (x + LEGEND_PAD.0, y + LEGEND_PAD.1),
-                Align::Left,
-            );
+            canvas.part("frame:legend", |canvas| {
+                canvas.rect(
+                    Layer::Front,
+                    (x, y, w, h),
+                    look.round,
+                    look.fill,
+                    Some(Stroke::new(look.border, look.thickness)),
+                );
+                canvas.text(
+                    Layer::Front,
+                    &placed.text,
+                    (x + LEGEND_PAD.0, y + LEGEND_PAD.1),
+                    Align::Left,
+                );
+            });
         }
 
         let left = left.min(0.0);
@@ -192,22 +199,34 @@ impl Annotations {
             (x, align)
         };
         let (x, align) = at(self.aligned.title, Align::Center);
-        canvas.text(Layer::Front, &self.title, (x, places.title), align);
+        canvas.part("frame:title", |canvas| {
+            canvas.text(Layer::Front, &self.title, (x, places.title), align);
+        });
         let (x, align) = at(self.aligned.header, Align::Right);
-        canvas.text(Layer::Front, &self.header, (x, 0.0), align);
+        canvas.part("frame:header", |canvas| {
+            canvas.text(Layer::Front, &self.header, (x, 0.0), align);
+        });
         let mut y = canvas.bottom() + 8.0;
         if !self.caption.is_empty() {
             let (x, align) = at(self.aligned.caption, Align::Center);
-            canvas.text(Layer::Front, &self.caption, (x, y), align);
+            canvas.part("frame:caption", |canvas| {
+                canvas.text(Layer::Front, &self.caption, (x, y), align);
+            });
             y += self.caption.height + 5.0;
         }
         let (x, align) = at(self.aligned.footer, Align::Center);
-        canvas.text(Layer::Front, &self.footer, (x, y), align);
+        canvas.part("frame:footer", |canvas| {
+            canvas.text(Layer::Front, &self.footer, (x, y), align);
+        });
         if let Some(scale) = self.scale {
             canvas.scale(scale);
         }
     }
 }
+
+/// The part of the main frame (`mainframe`): its rim and its tab, around
+/// all the rest, which a pane stretches as the picture's size changes.
+pub const MAIN_FRAME: &str = "frame:main";
 
 struct Places {
     title: f32,

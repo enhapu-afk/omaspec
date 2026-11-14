@@ -6,7 +6,7 @@
 
 use super::cells::{Fonts, Scalar, path_name, words};
 use super::{Kind, Look, Value};
-use crate::map::Place;
+use crate::map::{Map, Place};
 use crate::svg::{Align, Canvas, Layer, Stroke};
 use crate::text::{Block, Family};
 
@@ -51,7 +51,7 @@ pub(super) fn paint(
     fonts: (&Fonts, &Fonts),
     top: f32,
     family: Family,
-) -> Vec<Place> {
+) -> Map {
     let node = lay(value, Vec::new(), fonts, family);
     let mut places = Vec::new();
     match &node {
@@ -60,7 +60,10 @@ pub(super) fn paint(
             scalar.paint(canvas, (0.0, top), fonts.0.value.color);
         }
     }
-    places
+    Map {
+        places,
+        ..Map::default()
+    }
 }
 
 fn lay(value: &Value, path: Vec<String>, fonts: (&Fonts, &Fonts), family: Family) -> Node {
@@ -159,7 +162,22 @@ fn card(path: Vec<String>, rows: Vec<Row>) -> Card {
     }
 }
 
+/// A card in its part (docs/adr/0029), by its path as the map names it,
+/// the top card in [`super::cells::TOP`], the cards inside it in theirs.
 fn paint_card(
+    canvas: &mut Canvas,
+    look: &Look,
+    card: &Card,
+    at: (f32, f32),
+    fonts: (&Fonts, &Fonts),
+    places: &mut Vec<Place>,
+) {
+    canvas.part(&super::cells::part_of(&card.path), |canvas| {
+        paint_rows(canvas, look, card, at, fonts, places);
+    });
+}
+
+fn paint_rows(
     canvas: &mut Canvas,
     look: &Look,
     card: &Card,
@@ -266,5 +284,32 @@ fn place_of(path: &[String], (x, y, w, h): (f32, f32, f32, f32), frame: bool) ->
         frame,
         fixed: true,
         part: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// Nested, each card is a part of its own, the cards in it parts of
+    /// theirs: a card's groups hold its own rows only.
+    #[test]
+    fn a_nested_card_is_a_part_and_holds_its_own_rows() {
+        let source = "@startjson\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}}\n' layout (Omaspec) nested\n' parts (Omaspec)\n@endjson\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        let groups = crate::part_groups(&svg);
+        let of = |name: &str| -> String {
+            groups
+                .iter()
+                .filter(|(n, _)| n == name)
+                .map(|(_, g)| *g)
+                .collect()
+        };
+        let (home, street) = (of("home"), of("home/street"));
+        assert!(home.contains("London") && !home.contains(">7<"), "{home}");
+        assert!(street.contains(">7<"), "{street}");
+        assert!(map.wires.is_empty());
+        let top = of(super::super::cells::TOP);
+        assert!(top.contains("Ada") && !top.contains("London"), "{top}");
+        let ground = crate::without_parts(&svg).unwrap();
+        assert!(!ground.contains("Ada"), "{ground}");
     }
 }

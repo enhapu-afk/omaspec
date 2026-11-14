@@ -82,6 +82,11 @@ impl Drawn {
                         } else {
                             std::borrow::Cow::Borrowed(rendered.svg.as_str())
                         };
+                        // Only the lines the map names glide on their own;
+                        // without them, the lines stay on the ground.
+                        if rendered.map.wires.is_empty() {
+                            return Some(ground.into_owned());
+                        }
                         omaspec_uml::without_lines(&ground)
                             .or_else(|| parts.then(|| ground.into_owned()))
                     })
@@ -472,11 +477,17 @@ pub fn folded(source: &str, language: Language, folds: &[String], views: Views) 
     // Only a JSON or a YAML diagram has a nested drawing, only a state
     // machine a table.
     let nested = views.nested && holds_tables(source, language);
-    let kind = omaspec_core::kind::classify(source, language).kind;
+    let classified = omaspec_core::kind::classify(source, language);
+    let kind = classified.kind;
     let machine = kind == omaspec_core::Kind::State;
     let table = views.table && machine;
-    // The drawers that mark their parts: state machines and structures.
-    let parts = machine || kind == omaspec_core::Kind::Structure;
+    // The drawers that mark their parts: state machines, structures,
+    // Mermaid's flowcharts, the trees and the JSON and YAML cards,
+    // whichever kind they read as.
+    let parts = machine
+        || kind == omaspec_core::Kind::Structure
+        || (language == Language::Mermaid && kind == omaspec_core::Kind::Activity)
+        || matches!(&*classified.name, "Mind map" | "WBS" | "JSON" | "YAML");
     if folds.is_empty() && !nested && !parts {
         return text;
     }

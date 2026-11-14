@@ -35,18 +35,24 @@ pub(super) fn title(canvas: &mut Canvas, palette: &Palette, title: &str, family:
 
 /// Draws `scene`; the lines' corners curve by up to `curve`.
 pub(super) fn paint(canvas: &mut Canvas, palette: &Palette, scene: &Scene, curve: f32) {
-    paint_shapes(canvas, scene);
+    paint_shapes(canvas, scene, &mut Vec::new());
     paint_edges(canvas, scene, curve);
-    paint_labels(canvas, scene, Some(palette.background));
+    paint_labels(canvas, scene, Some(palette.background), &mut Vec::new());
     paint_caps(canvas, scene);
 }
 
-fn paint_shapes(canvas: &mut Canvas, scene: &Scene) {
-    for node in &scene.nodes {
-        paint_shape(canvas, node);
+/// Each node's and subgraph's shape, in its part (docs/adr/0029); `path` is
+/// where `scene` is in the tree.
+fn paint_shapes(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>) {
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        canvas.part(&omaspec_uml::place_part(path), |canvas| {
+            paint_shape(canvas, node);
+        });
         if node.item.nested {
-            paint_shapes(canvas, &node.children);
+            paint_shapes(canvas, &node.children, path);
         }
+        path.pop();
     }
 }
 
@@ -173,60 +179,78 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
     }
 }
 
-/// `ground` is the fill the scene sits on.
-fn paint_labels(canvas: &mut Canvas, scene: &Scene, ground: Paint) {
-    for node in &scene.nodes {
-        let rect = node.rect;
-        match node.item.kind {
-            Kind::Cluster if node.item.nested => {
-                paint_stack(
-                    canvas,
-                    &node.item.title,
-                    &node.item.description,
-                    rect.x + rect.w / 2.0,
-                    rect.y + COMP_PAD,
-                );
-            }
-            Kind::Node(shape) if !shape.shows_text() => {}
-            Kind::Node(shape) => {
-                let (cx, cy) = shape.text_center(rect);
-                let top = cy - node.item.title.height / 2.0;
-                canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
-                    canvas.text(Layer::Front, &node.item.title, (cx, top), Align::Center);
-                });
-            }
-            Kind::Cluster => {}
-        }
+/// Each node's and subgraph's words in its part, each line's in a part of
+/// their own, by its edge; `ground` is the fill the scene sits on, `path`
+/// where it is in the tree.
+fn paint_labels(canvas: &mut Canvas, scene: &Scene, ground: Paint, path: &mut Vec<usize>) {
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        canvas.part(&omaspec_uml::place_part(path), |canvas| {
+            node_words(canvas, node);
+        });
         let inside = if node.item.nested {
             node.item.fill.or(ground)
         } else {
             ground
         };
-        paint_labels(canvas, &node.children, inside);
+        paint_labels(canvas, &node.children, inside, path);
+        path.pop();
     }
     for edge in &scene.edges {
         if edge.label.is_empty() {
             continue;
         }
-        // A line between containers lies in the one that holds both, but
-        // its label may sit in a subgraph inside it.
-        let (x, y) = edge.label_at;
-        let center = (x + edge.label.width / 2.0, y + edge.label.height / 2.0);
-        let ground = ground_at(scene, center, ground);
-        if ground.is_some() {
-            let bounds = (
-                x - LABEL_PAD,
-                y - LABEL_PAD,
-                edge.label.width + 2.0 * LABEL_PAD,
-                edge.label.height + 2.0 * LABEL_PAD,
+        canvas.part(&omaspec_uml::words_part(&[], edge.look.edge), |canvas| {
+            edge_words(canvas, scene, edge, ground);
+        });
+    }
+}
+
+/// A node's words, or a subgraph's title.
+fn node_words(canvas: &mut Canvas, node: &Placed) {
+    let rect = node.rect;
+    match node.item.kind {
+        Kind::Cluster if node.item.nested => {
+            paint_stack(
+                canvas,
+                &node.item.title,
+                &node.item.description,
+                rect.x + rect.w / 2.0,
+                rect.y + COMP_PAD,
             );
-            // The ground keeps its form, so it still covers the line under the words.
-            canvas.plain(|canvas| {
-                canvas.rect(Layer::Front, bounds, 2.0, ground, None);
+        }
+        Kind::Node(shape) if !shape.shows_text() => {}
+        Kind::Node(shape) => {
+            let (cx, cy) = shape.text_center(rect);
+            let top = cy - node.item.title.height / 2.0;
+            canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
+                canvas.text(Layer::Front, &node.item.title, (cx, top), Align::Center);
             });
         }
-        canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
+        Kind::Cluster => {}
     }
+}
+
+/// A line's words, on the ground of the frame they sit in.
+fn edge_words(canvas: &mut Canvas, scene: &Scene, edge: &super::PlacedEdge, ground: Paint) {
+    // A line between containers lies in the one that holds both, but
+    // its label may sit in a subgraph inside it.
+    let (x, y) = edge.label_at;
+    let center = (x + edge.label.width / 2.0, y + edge.label.height / 2.0);
+    let ground = ground_at(scene, center, ground);
+    if ground.is_some() {
+        let bounds = (
+            x - LABEL_PAD,
+            y - LABEL_PAD,
+            edge.label.width + 2.0 * LABEL_PAD,
+            edge.label.height + 2.0 * LABEL_PAD,
+        );
+        // The ground keeps its form, so it still covers the line under the words.
+        canvas.plain(|canvas| {
+            canvas.rect(Layer::Front, bounds, 2.0, ground, None);
+        });
+    }
+    canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
 }
 
 /// The fill at `point`: of the innermost frame around it, else `ground`.

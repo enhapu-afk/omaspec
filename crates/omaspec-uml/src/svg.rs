@@ -170,9 +170,10 @@ impl Canvas {
     /// ([`part_name`]); a part drawn within it is a part of its own. A
     /// link is opened within the part, not around it; a part drawn within
     /// a link opened within another part is drawn as that one, so the link
-    /// closes inside its group.
+    /// closes inside its group. A box without a name, which the map does
+    /// not name either, is no part of its own.
     pub fn part<T>(&mut self, name: &str, paint: impl FnOnce(&mut Canvas) -> T) -> T {
-        if !self.marks_parts || self.links.iter().any(Option::is_some) {
+        if !self.marks_parts || name.is_empty() || self.links.iter().any(Option::is_some) {
             return paint(self);
         }
         let before = self.part.replace(part_id(name));
@@ -1164,6 +1165,18 @@ pub fn has_parts(svg: &str) -> bool {
     svg.contains(&format!(r#"<g id="{PART}"#))
 }
 
+/// Each group of a part in `svg`, whole: the part's name and the group.
+pub fn part_groups(svg: &str) -> Vec<(String, &str)> {
+    svg.match_indices(&format!(r#"<g id="{PART}"#))
+        .filter_map(|(at, _)| {
+            let rest = &svg[at..];
+            let id = &rest[7..];
+            let name = part_name(&id[..id.find('"')?])?;
+            Some((name, &rest[..group_length(rest)?]))
+        })
+        .collect()
+}
+
 /// Brings the group open in `out` to the one of `part`: closes another
 /// part's, opens `part`'s with the next of `groups` for its id.
 fn sync(out: &mut String, open: &mut Option<String>, part: Option<&str>, groups: &mut usize) {
@@ -1241,7 +1254,7 @@ pub fn part_name(id: &str) -> Option<String> {
 
 /// The part the words of the line at `slot` of the container at `path` of
 /// a diagram's tree are drawn in; the map's `Wire::words` names it so.
-pub(crate) fn words_part(path: &[usize], slot: usize) -> String {
+pub fn words_part(path: &[usize], slot: usize) -> String {
     format!("words:{}:{slot}", part_path(path))
 }
 
@@ -1253,7 +1266,7 @@ pub fn card_part(words: &str, at_start: bool) -> String {
 
 /// The part a box is drawn in by its place in a diagram's tree alone, for
 /// a drawer whose keys two boxes may share (a namespace and a class).
-pub(crate) fn place_part(path: &[usize]) -> String {
+pub fn place_part(path: &[usize]) -> String {
     format!("box:{}", part_path(path))
 }
 

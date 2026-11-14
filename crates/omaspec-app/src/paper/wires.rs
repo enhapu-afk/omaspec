@@ -104,9 +104,18 @@ impl Line {
             )
         };
         let shape = Shape::of(wire);
+        // Its marks shrink to the same point, as the arrowheads of a JSON
+        // card's arrow do.
         let point = |at: (f32, f32)| Shape {
             points: vec![at; shape.points.len()],
-            heads: Vec::new(),
+            heads: shape
+                .heads
+                .iter()
+                .map(|head| Head {
+                    points: vec![at; head.points.len()],
+                    ..head.clone()
+                })
+                .collect(),
         };
         let (from, to) = match step.role {
             Role::Leave => (shape.clone(), point(onto(was, is))),
@@ -475,7 +484,11 @@ fn paint_line(frame: &mut Frame, line: &Line, s: &Sheets) {
                 .zip(&b)
                 .map(|(&p, &q)| lerp_point(p, q, way))
                 .collect();
-            let marks = marks_between(from, to, s);
+            let mut marks = marks_between(from, to, s, way);
+            // A folding link's marks fade with it.
+            for mark in &mut marks {
+                mark.alpha = mark.alpha.min(alpha);
+            }
             let k = lerp(scale(s.old), scale(s.new), s.t);
             (points, marks, alpha, k)
         }
@@ -542,10 +555,10 @@ fn paint_line(frame: &mut Frame, line: &Line, s: &Sheets) {
     }
 }
 
-/// The marks of a line that stays: each eased from its old place to its
-/// new one when old and new are alike, else the old ones going and the
-/// new ones coming.
-fn marks_between(from: &Shape, to: &Shape, s: &Sheets) -> Vec<Mark> {
+/// The marks of a line that stays: each eased `way` from its old place to
+/// its new one when old and new are alike, else the old ones going and
+/// the new ones coming.
+fn marks_between(from: &Shape, to: &Shape, s: &Sheets, way: f32) -> Vec<Mark> {
     let alike = from.heads.len() == to.heads.len()
         && from.heads.iter().zip(&to.heads).all(|(a, b)| {
             a.points.len() == b.points.len() && a.closed == b.closed && a.fill == b.fill
@@ -561,7 +574,7 @@ fn marks_between(from: &Shape, to: &Shape, s: &Sheets) -> Vec<Mark> {
                     points: old
                         .iter()
                         .zip(&new)
-                        .map(|(&p, &q)| lerp_point(p, q, s.t))
+                        .map(|(&p, &q)| lerp_point(p, q, way))
                         .collect(),
                     closed: a.closed,
                     fill: a.fill,
@@ -678,6 +691,7 @@ mod tests {
             parts: Default::default(),
             from_header: 1.0,
             role,
+            anchored: false,
             into: None,
         }
     }
