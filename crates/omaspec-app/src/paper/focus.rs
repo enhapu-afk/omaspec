@@ -215,7 +215,7 @@ impl canvas::Program<Message> for FocusLayer<'_> {
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(renderer, bounds.size());
         let local = Rectangle::new(Point::ORIGIN, bounds.size());
-        let now = iced::time::Instant::now();
+        let now = crate::clock::now();
         let view = self.glide.map_or(self.view, |g| g.at(now));
         let place = |r: Rect| {
             view.on_screen(

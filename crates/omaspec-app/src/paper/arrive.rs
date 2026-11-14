@@ -69,7 +69,7 @@ impl Paper {
                         self.play = None;
                     }
                 }
-                let now = Instant::now();
+                let now = crate::clock::now();
                 let running = self.glide.filter(|glide| !glide.done(now));
                 let on_screen = running.map_or(self.view, |glide| glide.at(now));
                 let old_size = self.diagram.as_ref().map(|d| d.size);
@@ -343,7 +343,7 @@ impl Paper {
         layer.receive(seq, raster);
         let both = self.bare_old.shown.is_some() && self.bare_new.shown.is_some();
         if self.fresh && self.landed && self.fade.is_none() && (both || self.no_bare) {
-            return self.start_fade(Instant::now());
+            return self.start_fade(crate::clock::now());
         }
         Task::none()
     }
@@ -402,7 +402,7 @@ impl Paper {
     /// Whether pixels that come now wait: the view glides, and a picture
     /// is on screen meanwhile.
     pub(super) fn holds(&self) -> bool {
-        self.overview.shown.is_some() && self.glide.is_some_and(|g| !g.done(Instant::now()))
+        self.overview.shown.is_some() && self.glide.is_some_and(|g| !g.done(crate::clock::now()))
     }
 
     /// Shows the pixels that came while the view glided.
@@ -433,7 +433,7 @@ impl Paper {
             // still gives way at once, as it always has.
             let morphing = self.fade.as_ref().is_some_and(|fade| fade.morph.is_some());
             if !morphing {
-                let fade = self.start_fade(Instant::now());
+                let fade = self.start_fade(crate::clock::now());
                 // The older drawing is on screen: now the way to the one
                 // it was shown for.
                 let back = match self.back.take() {

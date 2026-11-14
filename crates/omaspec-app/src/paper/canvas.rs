@@ -239,7 +239,7 @@ impl canvas::Program<Message> for GlideLines<'_> {
         else {
             return Vec::new();
         };
-        let now = iced::time::Instant::now();
+        let now = crate::clock::now();
         let t = fade.shown.interpolate(0.0, 1.0, now).clamp(0.0, 1.0);
         let new_view = self.glide.map_or(fade.new_view, |glide| glide.at(now));
         let grid = Grid::of(bounds, self.scale);
@@ -320,7 +320,7 @@ impl canvas::Program<Message> for PlayCanvas<'_> {
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(renderer, bounds.size());
         let local = Rectangle::new(Point::ORIGIN, bounds.size());
-        let now = self.at.unwrap_or_else(iced::time::Instant::now);
+        let now = self.at.unwrap_or_else(crate::clock::now);
         let view = self.glide.map_or(self.view, |g| g.at(now));
         let place = |r: omaspec_uml::graph::Rect| {
             view.on_screen(
@@ -438,7 +438,7 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
                 if state.modifiers.shift() && self.focusing && self.overview.is_some() {
                     return Some(Action::publish(Message::FocusAt(at)).and_capture());
                 }
-                let now = Instant::now();
+                let now = crate::clock::now();
                 state.hand_click = None;
                 if state
                     .last_click
@@ -506,7 +506,7 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
         frame.fill_rectangle(Point::ORIGIN, bounds.size(), self.background);
         let local = Rectangle::new(Point::ORIGIN, bounds.size());
         let grid = Grid::of(bounds, self.scale);
-        let now = iced::time::Instant::now();
+        let now = crate::clock::now();
         let view = self.glide.map_or(self.view, |g| g.at(now));
         if self.paint_morph(&mut frame, grid, local, now) {
             return vec![frame.into_geometry()];
@@ -699,7 +699,7 @@ impl canvas::Program<Message> for LinkMarks<'_> {
         _cursor: Cursor,
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(renderer, bounds.size());
-        let now = iced::time::Instant::now();
+        let now = crate::clock::now();
         let view = self.glide.map_or(self.view, |glide| glide.at(now));
         let grid = Grid::of(bounds, self.scale);
         let local = Rectangle::with_size(bounds.size());
@@ -788,7 +788,7 @@ impl canvas::Program<Message> for BreathLight {
         _cursor: Cursor,
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(renderer, bounds.size());
-        let now = iced::time::Instant::now();
+        let now = crate::clock::now();
         let shown = self.breath.at(now);
         if shown.alpha < 0.01 {
             return vec![frame.into_geometry()];
@@ -929,9 +929,7 @@ impl canvas::Program<Message> for PaperEdge {
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(renderer, bounds.size());
         let grid = Grid::of(bounds, self.scale);
-        let view = self
-            .glide
-            .map_or(self.view, |g| g.at(iced::time::Instant::now()));
+        let view = self.glide.map_or(self.view, |g| g.at(crate::clock::now()));
         let paper = grid.snap(view.diagram_rect(self.diagram, Rectangle::with_size(bounds.size())));
         frame.stroke(
             &rounded(paper, RADIUS),
@@ -1236,7 +1234,7 @@ impl DiagramCanvas<'_> {
                 if self.by_hand && state.modifiers.alt() && !state.modifiers.control() =>
             {
                 let at = cursor.position_in(bounds)?;
-                let now = Instant::now();
+                let now = crate::clock::now();
                 let double = state
                     .hand_click
                     .is_some_and(|t| now.duration_since(t) < DOUBLE_CLICK);

@@ -4,8 +4,10 @@
 //! presentation or a pull request.
 //!
 //! The pane is the editor's own ([`super::screen`]), drawn on the GPU
-//! without a window, so the light along a transition is the one the
-//! window shows. The events are taken by name (`--events open,close`;
+//! without a window (by tiny-skia where there is none), so the light
+//! along a transition is the one the window shows. Its motions run on the
+//! recording's own clock ([`crate::clock`]): each frame a tick after the
+//! one before, however long drawing it took. The events are taken by name (`--events open,close`;
 //! with its guard, `"start [tank empty]"`, where two share a name),
 //! else the first the machine offers at each state, for `--steps` steps.
 //! With `--fold Brewing` no play runs: the container folds to its box,
@@ -15,7 +17,7 @@
 
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use iced::Size;
@@ -49,6 +51,9 @@ pub struct Moving {
     /// Omaspec ships, else a theme's `colors.toml`.
     pub theme: Option<String>,
     pub forced: Option<Language>,
+    /// The renderer that draws (`tiny-skia`, without a GPU); `None` takes
+    /// `ICED_TEST_BACKEND`, else the first that can.
+    pub renderer: Option<&'static str>,
 }
 
 /// How long the play holds after each step, and at the end.
@@ -73,6 +78,9 @@ pub fn play(args: &Moving) -> Result<String> {
         args.width >= 200 && args.width <= 4000,
         "--width takes 200 to 4000"
     );
+    // Each frame a tick later than the one before, however long drawing it
+    // took: every frame is in the picture, and none waits.
+    let _clock = crate::clock::Recording::start();
     let mut stage = Stage::new(args)?;
     let told = if !args.dives.is_empty() {
         stage.dive(&args.dives)?
@@ -204,7 +212,11 @@ impl Stage {
         let _ = app.update(Message::Paper(key, paper::Message::Viewport(size)));
         app.doc_mut().paper.finish_rasters();
 
-        let mut screen = Screen::new(&app, 1.0).map_err(|why| anyhow::anyhow!(why))?;
+        let mut screen = match args.renderer {
+            Some(renderer) => Screen::drawn_by(&app, 1.0, Some(renderer)),
+            None => Screen::new(&app, 1.0),
+        }
+        .map_err(|why| anyhow::anyhow!(why))?;
         screen.size = size;
         screen.shows = Shows::Diagram;
         // The first frame starts uploading the pictures; they are on the
@@ -244,7 +256,7 @@ impl Stage {
 
     /// Runs the play; the events it took.
     fn play(&mut self, args: &Moving) -> Result<String> {
-        let moving = |app: &App| !app.doc().paper.play_moving(Instant::now());
+        let moving = |app: &App| !app.doc().paper.play_moving(crate::clock::now());
         let _ = self.app.update(Message::Command(Command::Play));
         if !self.app.doc().paper.playing() {
             bail!(
@@ -558,7 +570,53 @@ fn shown(
 
 #[cfg(test)]
 mod tests {
-    use super::event_of;
+    use super::*;
+
+    /// Drawn without a GPU, which takes longer than a frame lasts, a play
+    /// still has every frame: each is a tick after the one before, on the
+    /// recording's own clock. So it comes out the same each time.
+    #[test]
+    fn a_recorded_play_has_every_frame_however_slow_the_drawing() {
+        let work = std::env::temp_dir().join(format!("omaspec-moving-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("door.puml");
+        std::fs::write(
+            &file,
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        )
+        .unwrap();
+        let record = |name: &str| {
+            let output = work.join(name);
+            let told = play(&Moving {
+                file: file.clone(),
+                output: output.clone(),
+                events: vec!["open".into()],
+                steps: 1,
+                width: 300,
+                fps: 10,
+                folds: Vec::new(),
+                dives: Vec::new(),
+                theme: Some("built-in".into()),
+                forced: None,
+                renderer: Some("tiny-skia"),
+            })
+            .unwrap();
+            (told, std::fs::read(output).unwrap())
+        };
+        let (told, first) = record("first.gif");
+        let (_, second) = record("second.gif");
+        let frames: usize = told
+            .split('(')
+            .nth(1)
+            .and_then(|rest| rest.split(' ').next())
+            .and_then(|count| count.parse().ok())
+            .unwrap();
+        // The light runs along the arrow for most of a second, at 10 frames
+        // a second, each frame a little further on.
+        assert!(frames >= 8, "{told}");
+        assert!(first == second, "two recordings of one play differ");
+        let _ = std::fs::remove_dir_all(&work);
+    }
 
     #[test]
     fn an_event_is_its_label_without_guard_and_action() {

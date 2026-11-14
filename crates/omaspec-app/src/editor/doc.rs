@@ -575,7 +575,7 @@ impl Doc {
     }
 
     fn show_marks(&mut self) {
-        self.show_marks_at(Instant::now());
+        self.show_marks_at(crate::clock::now());
     }
 
     /// The marks as they look at `now`, while the jump's light goes out.
@@ -653,7 +653,7 @@ impl Doc {
                 Animation::new(true)
                     .duration(FLASH_FADE)
                     .easing(Easing::EaseIn)
-                    .go(false, Instant::now()),
+                    .go(false, crate::clock::now()),
             );
         }
     }

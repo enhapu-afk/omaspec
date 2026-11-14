@@ -415,9 +415,7 @@ impl canvas::Program<Message> for HandLayer<'_> {
         let Some(wire) = self.map.wires.get(self.hand.wire) else {
             return vec![frame.into_geometry()];
         };
-        let view = self
-            .glide
-            .map_or(self.view, |g| g.at(iced::time::Instant::now()));
+        let view = self.glide.map_or(self.view, |g| g.at(crate::clock::now()));
         let local = Rectangle::new(Point::ORIGIN, bounds.size());
         let screen = |(x, y): At| {
             view.on_screen(Rectangle::new(Point::new(x, y), Size::ZERO), local)

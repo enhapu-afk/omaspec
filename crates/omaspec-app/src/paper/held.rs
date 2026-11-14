@@ -360,9 +360,7 @@ impl canvas::Program<Message> for HeldLayer<'_> {
         let Some(place) = self.map.places.get(self.grab.place) else {
             return vec![frame.into_geometry()];
         };
-        let view = self
-            .glide
-            .map_or(self.view, |g| g.at(iced::time::Instant::now()));
+        let view = self.glide.map_or(self.view, |g| g.at(crate::clock::now()));
         let local = Rectangle::new(Point::ORIGIN, bounds.size());
         let screen = |r: Rect| {
             view.on_screen(

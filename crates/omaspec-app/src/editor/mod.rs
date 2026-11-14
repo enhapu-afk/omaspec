@@ -1024,7 +1024,7 @@ impl App {
                 window::Event::FileDropped(path) => Some(Message::Open(path)),
                 _ => None,
             }),
-            if self.animating(Instant::now()) {
+            if self.animating(crate::clock::now()) {
                 window::frames().map(|_| Message::Frame)
             } else {
                 Subscription::none()
@@ -1111,7 +1111,7 @@ impl App {
             Message::Select(index) => self.select(index),
             Message::Close(index) => self.close(index),
             Message::Frame => {
-                let now = Instant::now();
+                let now = crate::clock::now();
                 for doc in &mut self.docs {
                     doc.fade_flash(now);
                 }
@@ -1957,7 +1957,7 @@ impl App {
             self.tab_fade = Animation::new(false)
                 .duration(TAB_FADE)
                 .easing(Easing::EaseOut)
-                .go(true, Instant::now());
+                .go(true, crate::clock::now());
             self.active = index;
             self.prompt = None;
             self.keep_session();

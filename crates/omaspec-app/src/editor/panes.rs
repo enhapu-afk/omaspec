@@ -2,7 +2,6 @@
 //! the diagram in a window of its own, and which area has the keyboard.
 
 use iced::animation::Easing;
-use iced::time::Instant;
 use iced::widget::pane_grid;
 use iced::{Animation, Task, window};
 
@@ -192,7 +191,7 @@ impl App {
             self.focus_fade = Animation::new(false)
                 .duration(TAB_FADE)
                 .easing(Easing::EaseOut)
-                .go(true, Instant::now());
+                .go(true, crate::clock::now());
         }
         self.focus = pane;
     }

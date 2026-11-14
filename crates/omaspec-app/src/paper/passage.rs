@@ -16,7 +16,6 @@
 use std::time::Duration;
 
 use iced::mouse::Cursor;
-use iced::time::Instant;
 use iced::widget::canvas::{self, Frame, Geometry};
 use iced::{Color, Point, Rectangle, Renderer, Size, Task, Theme, Vector};
 use omaspec_render::Link;
@@ -207,7 +206,7 @@ impl canvas::Program<Message> for PassageLayer<'_> {
         _cursor: Cursor,
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(renderer, bounds.size());
-        let now = iced::time::Instant::now();
+        let now = crate::clock::now();
         let (view, progress) = self
             .glide
             .map_or((self.view, 1.0), |g| (g.at(now), g.progress(now)));
@@ -368,7 +367,7 @@ impl Paper {
             .linked
             .as_ref()
             .is_none_or(|old| old.size != linked.size || old.place != linked.place);
-        let now = Instant::now();
+        let now = crate::clock::now();
         // A picture that comes on the way fades in from here.
         let came = passage
             .linked
@@ -471,7 +470,7 @@ impl Paper {
     }
 
     fn dive(&mut self, to: View) -> Task<Message> {
-        let now = Instant::now();
+        let now = crate::clock::now();
         let from = self.glide.map_or(self.view, |g| g.at(now));
         self.view = to;
         self.glide = Some(Glide::dive(from, to, self.viewport, now));

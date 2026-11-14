@@ -111,9 +111,7 @@ impl Screen {
             &mut self.renderer,
         );
         let built = start.elapsed();
-        let redraw = iced::Event::Window(iced::window::Event::RedrawRequested(
-            iced::time::Instant::now(),
-        ));
+        let redraw = iced::Event::Window(iced::window::Event::RedrawRequested(crate::clock::now()));
         let cursor = iced::mouse::Cursor::Unavailable;
         let mut published = Vec::new();
         let _ = ui.update(
@@ -177,6 +175,11 @@ impl Screen {
             each(&shot);
             for message in published {
                 let _ = app.update(message);
+            }
+            // A recording's clock moves on by the frame; the wall clock is
+            // waited for.
+            if crate::clock::advance(tick) {
+                continue;
             }
             if let Some(wait) = (start + tick).checked_duration_since(Instant::now()) {
                 std::thread::sleep(wait);

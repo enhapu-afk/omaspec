@@ -3,7 +3,6 @@
 
 use std::time::Duration;
 
-use iced::time::Instant;
 use iced::{Point, Size, Task, Vector};
 
 use super::raster::Plan;
@@ -40,7 +39,7 @@ impl Paper {
     /// pixels for `to` are asked for at once, so they are in about when the
     /// glide arrives; a few wheel notches in a row ask once.
     pub(super) fn glide_to(&mut self, to: View, at: Point) -> Task<Message> {
-        let now = Instant::now();
+        let now = crate::clock::now();
         let from = self.glide.map_or(self.view, |g| g.at(now));
         self.view = to;
         self.glide = Some(Glide::new(from, to, at, self.viewport, now));
@@ -51,7 +50,7 @@ impl Paper {
     /// a zoom out of a link leaves the diagram it led to behind.
     pub(super) fn settle(&mut self) {
         if let Some(glide) = self.glide.take() {
-            self.view = glide.at(Instant::now());
+            self.view = glide.at(crate::clock::now());
             if self.passage.as_ref().is_some_and(|p| !p.inward) {
                 self.passage = None;
             }

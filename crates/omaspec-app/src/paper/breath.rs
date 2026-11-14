@@ -425,7 +425,7 @@ impl Paper {
 
     /// Moves the light to `target`, or lets it go out.
     pub(super) fn set_breath(&mut self, target: Option<Aim>) {
-        self.breath = Breath::go(self.breath, target, Instant::now());
+        self.breath = Breath::go(self.breath, target, crate::clock::now());
     }
 }
 

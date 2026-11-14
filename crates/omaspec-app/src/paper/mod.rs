@@ -539,12 +539,12 @@ impl Paper {
             Message::Faded => {
                 self.fade = None;
                 if self.fresh && self.landed {
-                    return self.start_fade(Instant::now());
+                    return self.start_fade(crate::clock::now());
                 }
                 Task::none()
             }
             Message::Viewport(size) => {
-                let now = Instant::now();
+                let now = crate::clock::now();
                 let before = self.viewport;
                 let resized = size != before;
                 self.viewport = size;
@@ -602,7 +602,7 @@ impl Paper {
                 self.glide_to(to, at)
             }
             Message::Glided => match self.glide {
-                Some(glide) if glide.done(Instant::now()) => {
+                Some(glide) if glide.done(crate::clock::now()) => {
                     self.glide = None;
                     self.note_view();
                     let held = self.show_held();
@@ -647,7 +647,7 @@ impl Paper {
             Message::Play(ask) => {
                 // On the clock the play is drawn at, so that a picture of
                 // one moment takes its steps at that moment too.
-                let now = self.clock.unwrap_or_else(Instant::now);
+                let now = self.clock.unwrap_or_else(crate::clock::now);
                 if let Some(play) = self.play.as_mut().filter(|_| self.leaving.is_none()) {
                     play.ask(ask, now);
                 }
@@ -655,7 +655,7 @@ impl Paper {
             }
             Message::StopPlay => {
                 if self.play.is_some() && self.leaving.is_none() {
-                    self.leaving = Some(Instant::now());
+                    self.leaving = Some(crate::clock::now());
                 }
                 Task::none()
             }
@@ -838,7 +838,7 @@ impl Paper {
             &diagram.source,
             diagram.language,
             &diagram.drawn.map,
-            Instant::now(),
+            crate::clock::now(),
         )?;
         self.play = Some(play);
         self.leaving = None;
@@ -866,7 +866,7 @@ impl Paper {
             trace,
             name,
             object,
-            Instant::now(),
+            crate::clock::now(),
         )?;
         self.play = Some(play);
         self.leaving = None;

@@ -1,5 +1,6 @@
 mod check;
 mod check_command;
+mod clock;
 mod commands;
 mod coverage_command;
 mod diff_picture;
@@ -819,6 +820,7 @@ fn main() -> ExitCode {
             dives: dive,
             theme,
             forced: lang.get(),
+            renderer: None,
         })
         .map(|wrote| {
             eprintln!("{wrote}");

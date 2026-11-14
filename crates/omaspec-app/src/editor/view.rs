@@ -150,9 +150,7 @@ impl App {
 
     pub(super) fn main_view(&self) -> Element<'_, Message> {
         // The focused area's frame fades in as the one before fades out.
-        let lit = self
-            .focus_fade
-            .interpolate(0.0, 1.0, iced::time::Instant::now());
+        let lit = self.focus_fade.interpolate(0.0, 1.0, crate::clock::now());
         let grid = pane_grid::PaneGrid::new(&self.panes, |_, pane, _maximized| {
             let (body, quiet, fill) = match pane {
                 Pane::Files => (
@@ -793,9 +791,7 @@ impl App {
     fn tabs(&self) -> Element<'_, Message> {
         let p = &self.palette;
         let quiet = ui::quiet(p);
-        let lit = self
-            .tab_fade
-            .interpolate(0.0, 1.0, iced::time::Instant::now());
+        let lit = self.tab_fade.interpolate(0.0, 1.0, crate::clock::now());
         let tabs = self.docs.iter().enumerate().map(|(i, doc)| {
             let active = i == self.active;
             let hovered = self.hovered_tab == Some(i);

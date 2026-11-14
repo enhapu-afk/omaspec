@@ -2,7 +2,6 @@
 //! recorded trace from the project folder.
 
 use std::path::{Path, PathBuf};
-use std::time::Instant;
 
 use iced::Task;
 use iced::keyboard::{Key, Modifiers, key::Named};
@@ -231,7 +230,7 @@ impl App {
         let Some(doc) = self.find(key) else {
             return;
         };
-        if let Some(line) = doc.paper.take_jump(Instant::now())
+        if let Some(line) = doc.paper.take_jump(crate::clock::now())
             && shown
         {
             doc.jump_to_line(line);

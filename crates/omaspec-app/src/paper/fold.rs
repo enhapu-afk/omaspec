@@ -354,7 +354,7 @@ impl canvas::Program<Message> for FoldMarks {
         _cursor: Cursor,
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(renderer, bounds.size());
-        let now = iced::time::Instant::now();
+        let now = crate::clock::now();
         let view = self.glide.map_or(self.view, |glide| glide.at(now));
         let grid = Grid::of(bounds, self.scale);
         let local = Rectangle::with_size(bounds.size());
