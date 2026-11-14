@@ -204,7 +204,7 @@ impl Paper {
     /// are drawn: until then the old picture stays, and this is called
     /// again when they come. Otherwise a fold eases longer than an edit.
     pub(super) fn start_fade(&mut self, now: Instant) -> Task<Message> {
-        let morph = match &self.previous {
+        let mut morph = match &self.previous {
             Some(previous) => self
                 .morph_of(
                     &previous.pictures,
@@ -289,6 +289,14 @@ impl Paper {
         };
         self.bare_old.clear();
         self.bare_new.clear();
+        // The pictures the boxes are cut out of, as the glide draws them.
+        let pictures = match &bare {
+            Some((old, new)) => Some((old, new)),
+            None => old.first().zip(self.overview.shown.as_ref()),
+        };
+        if let (Some(morph), Some((old, new))) = (morph.as_mut(), pictures) {
+            morph::prepare(morph, old, new);
+        }
         self.fade = Some(Fade {
             old,
             old_view,

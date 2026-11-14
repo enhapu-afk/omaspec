@@ -19,7 +19,7 @@ use omaspec_render::pick;
 use super::Diagram;
 use super::canvas::{self as draw, Grid};
 use super::raster::Raster;
-use super::sprite::{self, HAIR};
+use super::sprite;
 use super::view::View;
 
 /// One named box of a picture, in that picture's units.
@@ -27,10 +27,11 @@ use super::view::View;
 pub struct Side {
     pub name: String,
     pub rect: Rectangle,
-    pub fill: [f32; 3],
-    /// The radius of its corners; none for a shape that is no box
-    /// ([`pick::Fills::corner`]).
-    pub corner: Option<f32>,
+    /// Its fill, when the picture names one plain color.
+    pub fill: Option<[f32; 3]>,
+    /// How its outline bends; none for a shape that is no box
+    /// ([`pick::Fills::bend`]).
+    pub bend: Option<pick::Bend>,
 }
 
 /// Whether a box was already there, appears, or goes.
@@ -47,12 +48,16 @@ pub struct Move {
     pub name: String,
     pub from: Rectangle,
     pub to: Rectangle,
-    pub from_fill: [f32; 3],
-    pub to_fill: [f32; 3],
-    /// The radius of its corners before and after; none for a shape that
-    /// is no box.
-    pub from_corner: Option<f32>,
-    pub to_corner: Option<f32>,
+    pub from_fill: Option<[f32; 3]>,
+    pub to_fill: Option<[f32; 3]>,
+    /// How its outline bends before and after; none for a shape that is
+    /// no box.
+    pub from_bend: Option<pick::Bend>,
+    pub to_bend: Option<pick::Bend>,
+    /// For each box it holds before and after, a column of its own color
+    /// beside it ([`sprite::columns`]), worked out once a glide
+    /// ([`prepare`]).
+    pub columns: [Vec<Option<f32>>; 2],
     /// Share of the box's height that is its title band. `1` is the whole
     /// box: nothing sits inside it.
     pub from_header: f32,
@@ -116,10 +121,8 @@ fn side_at(fills: &pick::Fills, name: &str, rect: omaspec_uml::graph::Rect) -> S
     Side {
         name: name.to_owned(),
         rect: Rectangle::new(Point::new(rect.x, rect.y), Size::new(rect.w, rect.h)),
-        fill: fills
-            .of(rect.x, rect.y, rect.w, rect.h)
-            .unwrap_or([0.94, 0.94, 0.94]),
-        corner: fills.corner(rect.x, rect.y, rect.w, rect.h),
+        fill: fills.of(rect.x, rect.y, rect.w, rect.h),
+        bend: fills.bend(rect.x, rect.y, rect.w, rect.h),
     }
 }
 
@@ -207,8 +210,9 @@ pub fn plan_with(
             to: to.rect,
             from_fill: to.fill,
             to_fill: to.fill,
-            from_corner: to.corner,
-            to_corner: to.corner,
+            from_bend: to.bend,
+            to_bend: to.bend,
+            columns: Default::default(),
             from_header: new_header[index],
             role: Role::Arrive,
             into: None,
@@ -272,8 +276,9 @@ fn stay(from: &Side, to: &Side, from_header: f32) -> Move {
         to: to.rect,
         from_fill: from.fill,
         to_fill: to.fill,
-        from_corner: from.corner,
-        to_corner: to.corner,
+        from_bend: from.bend,
+        to_bend: to.bend,
+        columns: Default::default(),
         from_header,
         role: Role::Stay,
         into: None,
@@ -288,8 +293,9 @@ fn stay_move(from: &Move, to: &Side) -> Move {
         to: to.rect,
         from_fill: from.from_fill,
         to_fill: to.fill,
-        from_corner: from.from_corner,
-        to_corner: to.corner,
+        from_bend: from.from_bend,
+        to_bend: to.bend,
+        columns: Default::default(),
         from_header: from.from_header,
         role: Role::Stay,
         into: None,
@@ -341,8 +347,9 @@ fn leave(from: &Side, header: f32) -> Move {
         to: from.rect,
         from_fill: from.fill,
         to_fill: from.fill,
-        from_corner: from.corner,
-        to_corner: from.corner,
+        from_bend: from.bend,
+        to_bend: from.bend,
+        columns: Default::default(),
         from_header: header,
         role: Role::Leave,
         into: None,
@@ -425,6 +432,8 @@ struct Placed {
     /// The pictures' pixels to a unit, eased from the old one's to the
     /// new one's, as a box that stays is drawn.
     natural: f32,
+    /// A pixel of the screen, in the pane's units.
+    pixel: f32,
     out: f32,
     inn: f32,
 }
@@ -447,6 +456,7 @@ fn placed(grid: Grid, local: Rectangle, paint: &Paint<'_>) -> Placed {
             new_paper.width / paint.new_size.width.max(1e-3),
             t,
         ),
+        pixel: 1.0 / grid.scale,
         out: line_out(t),
         inn: line_in(t),
     }
@@ -586,18 +596,18 @@ fn paint_box(
     }
     // The holes of each picture filled with its own box's color: the
     // container's, not the folded box's it becomes.
-    for (old, fill, alpha) in [(true, step.from_fill, old_a), (false, step.to_fill, new_a)] {
+    for (old, alpha) in [(true, old_a), (false, new_a)] {
         if alpha > 0.02 {
-            let fill = Color::from_rgb(fill[0], fill[1], fill[2]);
-            paint_side(frame, local, paint, index, placed, dest, old, fill, alpha);
+            paint_side(frame, local, paint, index, placed, dest, old, alpha);
         }
     }
 }
 
 /// The box's pixels of the picture before, or of the new one, in `dest`:
-/// shaped to it ([`sprite::fit`]), with the boxes it holds cut out. One
-/// that stays, or glides into the box it hung below, changes its shape on
-/// the way; one that only goes or comes stretches with the sheet.
+/// shaped to it ([`sprite::fit`]), with the boxes it holds cut out and
+/// their holes filled with its own color. One that stays, or glides into
+/// the box it hung below, changes its shape on the way; one that only goes
+/// or comes stretches with the sheet.
 #[allow(clippy::too_many_arguments)]
 fn paint_side(
     frame: &mut Frame,
@@ -607,14 +617,26 @@ fn paint_side(
     placed: &Placed,
     dest: Rectangle,
     old: bool,
-    fill: Color,
     alpha: f32,
 ) {
     let step = &paint.morph.moves[index];
-    let (raster, size, src, corner) = if old {
-        (paint.old, paint.old_size, grow(step.from), step.from_corner)
+    let (raster, size, src, bend, fill) = if old {
+        let src = grow(step.from);
+        (
+            paint.old,
+            paint.old_size,
+            src,
+            step.from_bend,
+            step.from_fill,
+        )
     } else {
-        (paint.new, paint.new_size, grow(step.to), step.to_corner)
+        (
+            paint.new,
+            paint.new_size,
+            grow(step.to),
+            step.to_bend,
+            step.to_fill,
+        )
     };
     let natural = match step.role {
         Role::Stay => Some(placed.natural),
@@ -627,10 +649,43 @@ fn paint_side(
     };
     let children = children(paint, index, old, placed);
     let rects: Vec<Rectangle> = children.iter().map(|child| child.rect).collect();
-    let fit = sprite::fit(src, dest, natural, corner, &rects);
-    let open = sprite::draw(frame, local, raster, &fit, &children, alpha);
-    // Under the box, where no plain column of it fills a hole.
-    cover(frame, &open, fill, alpha);
+    let fit = sprite::fit(src, dest, natural, placed.pixel, bend, &rects);
+    let prepared = &step.columns[usize::from(!old)];
+    let worked;
+    let columns = if prepared.len() == rects.len() {
+        &prepared[..]
+    } else {
+        worked = sprite::columns(raster, fit.interior, &rects);
+        &worked[..]
+    };
+    let swatch = fill.map(Raster::swatch);
+    let holes = sprite::Holes {
+        children: &children,
+        columns,
+        swatch: swatch.as_ref(),
+    };
+    sprite::draw(frame, local, raster, &fit, &holes, alpha);
+}
+
+/// Works out once, for a glide drawn from `old` to `new`, the columns of
+/// each box's own color that fill the holes of the boxes it holds
+/// ([`sprite::columns`]): the pictures and the boxes are the same in every
+/// frame.
+pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster) {
+    for index in 0..morph.moves.len() {
+        for (side, raster) in [(0, old), (1, new)] {
+            let held = held(&morph.moves, index, side == 0);
+            let step = &morph.moves[index];
+            let (src, bend) = if side == 0 {
+                (grow(step.from), step.from_bend)
+            } else {
+                (grow(step.to), step.to_bend)
+            };
+            let rects: Vec<Rectangle> = held.iter().map(|(_, rect)| *rect).collect();
+            let interior = sprite::rim(src, bend, &rects).map(|rim| sprite::inset(src, rim));
+            morph.moves[index].columns[side] = sprite::columns(raster, interior, &rects);
+        }
+    }
 }
 
 /// Where this box is drawn. One that stays eases from its old place on the
@@ -684,39 +739,37 @@ fn parent_dest(step: &Move, paint: &Paint<'_>, placed: &Placed) -> Option<Rectan
 /// their own. One that stays covers its place whole while the picture
 /// before is drawn: its own pixels, opaque, over the hole it leaves.
 fn children(paint: &Paint<'_>, index: usize, old: bool, placed: &Placed) -> Vec<sprite::Child> {
-    let missing =
-        |step: &Move| (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave);
-    let step = &paint.morph.moves[index];
-    if missing(step) {
-        return Vec::new();
-    }
-    let parent = if old { step.from } else { step.to };
-    paint
-        .morph
-        .moves
-        .iter()
-        .enumerate()
-        .filter(|(other_i, other)| *other_i != index && !missing(other))
-        .filter(|(_, other)| inside(if old { other.from } else { other.to }, parent))
-        .map(|(_, other)| sprite::Child {
-            rect: grow(if old { other.from } else { other.to }),
-            covered: (old && other.role == Role::Stay && placed.t < 1.0)
-                .then(|| sprite_dest(other, paint, placed)),
+    held(&paint.morph.moves, index, old)
+        .into_iter()
+        .map(|(other, rect)| {
+            let other = &paint.morph.moves[other];
+            sprite::Child {
+                rect,
+                covered: (old && other.role == Role::Stay && placed.t < 1.0)
+                    .then(|| sprite_dest(other, paint, placed)),
+            }
         })
         .collect()
 }
 
-fn cover(frame: &mut Frame, holes: &[Rectangle], fill: Color, alpha: f32) {
-    if alpha <= 0.02 {
-        return;
+/// The boxes inside box `index` in the picture before or the new one: each
+/// one's index, and its place as it is cut out.
+fn held(moves: &[Move], index: usize, old: bool) -> Vec<(usize, Rectangle)> {
+    let missing =
+        |step: &Move| (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave);
+    let step = &moves[index];
+    if missing(step) {
+        return Vec::new();
     }
-    let color = Color { a: alpha, ..fill };
-    for hole in holes {
-        if hole.width < HAIR || hole.height < HAIR {
-            continue;
-        }
-        frame.fill_rectangle(hole.position(), hole.size(), color);
-    }
+    let rect = |step: &Move| if old { step.from } else { step.to };
+    let parent = rect(step);
+    moves
+        .iter()
+        .enumerate()
+        .filter(|(other_i, other)| *other_i != index && !missing(other))
+        .filter(|(_, other)| inside(rect(other), parent))
+        .map(|(other_i, other)| (other_i, grow(rect(other))))
+        .collect()
 }
 
 fn grow(rect: Rectangle) -> Rectangle {
@@ -776,8 +829,11 @@ mod tests {
         Side {
             name: name.to_owned(),
             rect: Rectangle::new(Point::new(x, y), Size::new(w, h)),
-            fill: [0.9, 0.9, 0.9],
-            corner: Some(8.0),
+            fill: Some([0.9, 0.9, 0.9]),
+            bend: Some(pick::Bend {
+                radius: 8.0,
+                inset: 0.0,
+            }),
         }
     }
 
@@ -885,7 +941,11 @@ mod tests {
             grow(from),
             parent_dest,
             Some(natural),
-            Some(8.0),
+            1.0,
+            Some(pick::Bend {
+                radius: 8.0,
+                inset: 0.0,
+            }),
             &[grow(child)],
         );
         close(

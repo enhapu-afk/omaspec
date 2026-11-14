@@ -225,6 +225,8 @@ impl Stage {
         .map_err(|why| anyhow::anyhow!(why))?;
         screen.size = size;
         screen.shows = Shows::Diagram;
+        // Each frame's pictures on the GPU before it is drawn.
+        screen.preload = true;
         Ok(Self {
             app,
             screen,

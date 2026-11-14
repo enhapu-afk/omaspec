@@ -37,8 +37,6 @@ struct Shape {
     rect: Rect,
     /// The fill, when it is a plain color. A pattern has none.
     fill: Option<[f32; 3]>,
-    /// The radius of its corners, when it is a box ([`corner_of`]).
-    corner: Option<f32>,
     /// Whether the shape has an outline of its own.
     stroked: bool,
 }
@@ -222,40 +220,96 @@ pub fn fill_of(tree: &Tree, x: f32, y: f32, w: f32, h: f32) -> Option<[f32; 3]> 
     fills(tree).of(x, y, w, h)
 }
 
-/// The filled shapes of a picture, read once, to ask [`Fills::of`] for many boxes.
-pub struct Fills(Vec<(Rect, Found)>);
+/// The shapes of a picture, read once, to ask [`Fills::of`] and
+/// [`Fills::bend`] for many boxes.
+pub struct Fills(Vec<Outline>);
 
-/// A shape's fill, and the radius of its corners when it is a box.
-type Found = ([f32; 3], Option<f32>);
+/// A shape as [`Fills`] knows it.
+struct Outline {
+    rect: Rect,
+    /// Its fill, when it is a plain color.
+    fill: Option<[f32; 3]>,
+    /// How its outline bends, when it is a box ([`bend_of`]).
+    bend: Option<Bend>,
+}
 
-/// The filled shapes of `tree`.
+/// How a box's outline lies in the rectangle around it, in diagram units.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Bend {
+    /// How far its corners are rounded, or cut off.
+    pub radius: f32,
+    /// How far in from that rectangle its sides run at most: a step in a
+    /// side, a hand-drawn side's shake, or a margin it is drawn with.
+    pub inset: f32,
+}
+
+/// The shapes of `tree` with a fill or an outline, and how they are filled.
 pub fn fills(tree: &Tree) -> Fills {
-    let mut shapes = Vec::new();
-    collect_shapes(tree.root(), &mut shapes);
-    Fills(
-        shapes
-            .into_iter()
-            .filter_map(|shape| Some((shape.rect, (shape.fill?, shape.corner))))
-            .collect(),
-    )
+    let mut outlines = Vec::new();
+    collect_outlines(tree.root(), &mut outlines);
+    Fills(outlines)
+}
+
+fn collect_outlines(group: &usvg::Group, outlines: &mut Vec<Outline>) {
+    for node in group.children() {
+        match node {
+            Node::Group(g) => collect_outlines(g, outlines),
+            Node::Path(path) => {
+                let filled = path.fill().filter(|fill| fill.opacity().get() > 0.0);
+                let stroked = path.stroke().is_some_and(|s| s.opacity().get() > 0.0);
+                if !path.is_visible() || (filled.is_none() && !stroked) {
+                    continue;
+                }
+                if let Some(rect) = path.abs_bounding_box().to_non_zero_rect() {
+                    outlines.push(Outline {
+                        rect: rect.to_rect(),
+                        fill: filled.and_then(|fill| paint_rgb(fill.paint())),
+                        bend: bend_of(path),
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 impl Fills {
     /// What [`fill_of`] says for the box `(x, y, w, h)`.
     pub fn of(&self, x: f32, y: f32, w: f32, h: f32) -> Option<[f32; 3]> {
-        self.nearest(x, y, w, h).map(|(fill, _)| fill)
+        self.nearest(x, y, w, h, |outline| outline.fill.is_some())
+            .and_then(|outline| outline.fill)
     }
 
-    /// The radius of the corners of the box `(x, y, w, h)`: `None` when
-    /// its shape is no box, as a diamond, a circle or a hexagon is not
-    /// ([`corner_of`]), or none is drawn there.
-    pub fn corner(&self, x: f32, y: f32, w: f32, h: f32) -> Option<f32> {
-        self.nearest(x, y, w, h).and_then(|(_, corner)| corner)
+    /// How the outline of the box `(x, y, w, h)` bends, filled or only
+    /// outlined, its margin within that box counted in: `None` when its
+    /// shape is no box, as a diamond, a circle or a hexagon is not
+    /// ([`bend_of`]), or none is drawn there.
+    pub fn bend(&self, x: f32, y: f32, w: f32, h: f32) -> Option<Bend> {
+        let outline = self.nearest(x, y, w, h, |_| true)?;
+        let bend = outline.bend?;
+        let rect = &outline.rect;
+        let margin = (rect.left() - x)
+            .max(rect.top() - y)
+            .max(x + w - rect.right())
+            .max(y + h - rect.bottom())
+            .max(0.0);
+        Some(Bend {
+            inset: bend.inset + margin,
+            ..bend
+        })
     }
 
-    fn nearest(&self, x: f32, y: f32, w: f32, h: f32) -> Option<Found> {
-        let mut best: Option<(Found, f32)> = None;
-        for (rect, found) in &self.0 {
+    fn nearest(
+        &self,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        counts: impl Fn(&Outline) -> bool,
+    ) -> Option<&Outline> {
+        let mut best: Option<(&Outline, f32)> = None;
+        for outline in self.0.iter().filter(|outline| counts(outline)) {
+            let rect = &outline.rect;
             let delta = (rect.left() - x).abs()
                 + (rect.top() - y).abs()
                 + (rect.width() - w).abs()
@@ -264,57 +318,92 @@ impl Fills {
                 continue;
             }
             if best.is_none_or(|(_, have)| delta < have) {
-                best = Some((*found, delta));
+                best = Some((outline, delta));
             }
         }
-        best.map(|(found, _)| found)
+        best.map(|(outline, _)| outline)
     }
 }
 
-/// The radius of the corners of `path`, in diagram units, when it is a
-/// box: its straight edges run across and down, and it bends only in its
-/// corners, by at most a third of its shorter side. A diamond, a hexagon
-/// or a note's folded corner has a slanted edge, a circle or a stadium
-/// bends all along: none of them is a box.
-fn corner_of(path: &usvg::Path) -> Option<f32> {
-    use usvg::tiny_skia_path::PathSegment;
+/// How `path` bends, in diagram units, when it is a box. Its sides run
+/// across and down, near enough for the hand-drawn look's bowed and shaken
+/// ones, and it turns from one to the next in its corners, by at most a
+/// third of its shorter side, round or cut off. A diamond, a hexagon, a
+/// circle or a stadium turns all along its sides: none of them is a box.
+/// An open outline is closed, as a fill closes it.
+fn bend_of(path: &usvg::Path) -> Option<Bend> {
+    use usvg::tiny_skia_path::{PathSegment, Point};
     let ts = path.abs_transform();
     if ts.kx != 0.0 || ts.ky != 0.0 {
         return None;
     }
     let (sx, sy) = (ts.sx.abs(), ts.sy.abs());
-    let straight = |a: usvg::tiny_skia_path::Point, b: usvg::tiny_skia_path::Point| {
-        (a.x - b.x).abs() * sx < 0.01 || (a.y - b.y).abs() * sy < 0.01
-    };
     let bounds = path.data().bounds();
-    let most = (bounds.width() * sx).min(bounds.height() * sy) / 3.0;
-    let (mut at, mut start) = Default::default();
-    let mut edges = 0;
-    let mut radius = 0.0f32;
-    for segment in path.data().segments() {
-        match segment {
-            PathSegment::MoveTo(p) => (at, start) = (p, p),
-            PathSegment::LineTo(p) => {
-                if !straight(at, p) {
-                    return None;
-                }
-                edges += 1;
-                at = p;
-            }
-            PathSegment::QuadTo(_, p) | PathSegment::CubicTo(_, _, p) => {
-                radius = radius.max(((p.x - at.x).abs() * sx).max((p.y - at.y).abs() * sy));
-                at = p;
-            }
-            PathSegment::Close => {
-                if !straight(at, start) {
-                    return None;
-                }
-                at = start;
-            }
+    let (width, height) = (bounds.width() * sx, bounds.height() * sy);
+    let most = width.min(height) / 3.0;
+    let mut sides = 0;
+    let mut bend = Bend {
+        radius: 0.0,
+        inset: 0.0,
+    };
+    // A run from `a` to `b`: a side, or a corner, or neither.
+    let mut run = |a: Point, b: Point| -> bool {
+        let (dx, dy) = ((b.x - a.x).abs() * sx, (b.y - a.y).abs() * sy);
+        let (long, short) = (dx.max(dy), dx.min(dy));
+        if long < 1e-3 {
+            return true;
         }
+        // A corner's arc runs as far across as down.
+        if short <= SKEW.max(long * SLANT) && short * 3.0 <= long {
+            sides += 1;
+            // How far in a side that runs along much of the box lies; a
+            // short one only steps from one side to the next.
+            let inset = if dx >= dy {
+                let y = (a.y + b.y) / 2.0;
+                (long >= width / 4.0).then(|| (y - bounds.top()).min(bounds.bottom() - y) * sy)
+            } else {
+                let x = (a.x + b.x) / 2.0;
+                (long >= height / 4.0).then(|| (x - bounds.left()).min(bounds.right() - x) * sx)
+            };
+            bend.inset = bend.inset.max(inset.unwrap_or(0.0));
+            true
+        } else if long <= most {
+            bend.radius = bend.radius.max(long);
+            true
+        } else {
+            false
+        }
+    };
+    let (mut at, mut start) = (Point::zero(), Point::zero());
+    let mut open = false;
+    for segment in path.data().segments() {
+        let to = match segment {
+            PathSegment::MoveTo(p) => {
+                if open && !run(at, start) {
+                    return None;
+                }
+                (at, start, open) = (p, p, false);
+                continue;
+            }
+            PathSegment::LineTo(p) | PathSegment::QuadTo(_, p) | PathSegment::CubicTo(_, _, p) => p,
+            PathSegment::Close => start,
+        };
+        if !run(at, to) {
+            return None;
+        }
+        open = !matches!(segment, PathSegment::Close);
+        at = to;
     }
-    (edges >= 2 && radius <= most).then_some(radius)
+    if open && !run(at, start) {
+        return None;
+    }
+    (sides >= 2).then_some(bend)
 }
+
+/// How far a box's side may run off straight, in diagram units, or as a
+/// share of its length: the hand-drawn look shakes its ends by up to 2.4.
+const SKEW: f32 = 5.0;
+const SLANT: f32 = 0.15;
 
 /// The topmost fill under `(cx, cy)`, page background included.
 fn ground_at(shapes: &[Shape], cx: f32, cy: f32) -> Option<[f32; 3]> {
@@ -411,17 +500,6 @@ fn collect(group: &usvg::Group, texts: &mut Vec<Text>, shapes: &mut Vec<Shape>) 
     }
 }
 
-/// Only the shapes, for a caller that never reads the words.
-fn collect_shapes(group: &usvg::Group, shapes: &mut Vec<Shape>) {
-    for node in group.children() {
-        match node {
-            Node::Group(g) => collect_shapes(g, shapes),
-            Node::Path(p) => push_shape(p, shapes),
-            _ => {}
-        }
-    }
-}
-
 /// A visible filled path. Lines and outlines with no fill are no shape.
 fn push_shape(path: &usvg::Path, shapes: &mut Vec<Shape>) {
     if !path.is_visible() || path.fill().is_none_or(|fill| fill.opacity().get() <= 0.0) {
@@ -431,7 +509,6 @@ fn push_shape(path: &usvg::Path, shapes: &mut Vec<Shape>) {
         shapes.push(Shape {
             rect: rect.to_rect(),
             fill: path.fill().and_then(|fill| paint_rgb(fill.paint())),
-            corner: corner_of(path),
             stroked: path
                 .stroke()
                 .is_some_and(|stroke| stroke.opacity().get() > 0.0),
@@ -474,22 +551,50 @@ mod tests {
 
     #[test]
     fn a_box_has_corners_and_other_shapes_have_none() {
-        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100">
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200">
 <rect x="10" y="10" width="80" height="40" rx="8" fill="#f1f1f1" stroke="#181818"/>
 <rect x="100" y="10" width="80" height="40" fill="#f1f1f1"/>
 <rect x="190" y="10" width="80" height="40" rx="20" fill="#f1f1f1"/>
 <circle cx="300" cy="30" r="20" fill="#f1f1f1"/>
 <polygon points="360,10 380,30 360,50 340,30" fill="#f1f1f1"/>
+<path d="M10,110 C40,112 70,108 100,111 C102,130 99,140 101,160 C70,158 40,162 9,159 C11,140 8,130 10,110 Z" fill="#f1f1f1"/>
+<path d="M200,110 L240,110 L240,130" fill="#f1f1f1"/>
+<rect x="300" y="110" width="120" height="60" rx="5" fill="none" stroke="#181818"/>
+<polygon points="566,140 566,110 450,110 450,170 570,170 570,140" fill="#f1f1f1"/>
 </svg>"##;
         let tree = export::parse(svg).unwrap();
         let fills = fills(&tree);
-        let rounded = fills.corner(10.0, 10.0, 80.0, 40.0).unwrap();
+        let radius = |x, y, w, h| fills.bend(x, y, w, h).map(|bend| bend.radius);
+        let rounded = radius(10.0, 10.0, 80.0, 40.0).unwrap();
         assert!((rounded - 8.0).abs() < 0.5, "{rounded}");
-        assert_eq!(fills.corner(100.0, 10.0, 80.0, 40.0), Some(0.0));
+        assert_eq!(
+            fills.bend(100.0, 10.0, 80.0, 40.0),
+            Some(Bend {
+                radius: 0.0,
+                inset: 0.0
+            })
+        );
         // A stadium, a circle and a diamond bend or slant all along.
-        assert_eq!(fills.corner(190.0, 10.0, 80.0, 40.0), None);
-        assert_eq!(fills.corner(280.0, 10.0, 40.0, 40.0), None);
-        assert_eq!(fills.corner(340.0, 10.0, 40.0, 40.0), None);
+        assert_eq!(radius(190.0, 10.0, 80.0, 40.0), None);
+        assert_eq!(radius(280.0, 10.0, 40.0, 40.0), None);
+        assert_eq!(radius(340.0, 10.0, 40.0, 40.0), None);
+        // The hand-drawn look's box: bowed sides, its ends shaken, so its
+        // sides lie a little in.
+        let hand = fills.bend(9.0, 108.0, 93.0, 54.0).unwrap();
+        assert_eq!(hand.radius, 0.0);
+        assert!(hand.inset > 0.0 && hand.inset < 5.0, "{hand:?}");
+        // An open outline, closed by its fill along a slant: a triangle.
+        assert_eq!(radius(200.0, 110.0, 40.0, 20.0), None);
+        // A container drawn only as its outline is a box, with no fill.
+        let outlined = radius(300.0, 110.0, 120.0, 60.0).unwrap();
+        assert!((outlined - 5.0).abs() < 0.5, "{outlined}");
+        // A box whose right side steps in by 4, as a folded package's
+        // does, and one drawn 3 inside the box asked about.
+        let step = fills.bend(450.0, 110.0, 120.0, 60.0).unwrap();
+        assert!((step.inset - 4.0).abs() < 0.01, "{step:?}");
+        let within = fills.bend(97.0, 7.0, 86.0, 46.0).unwrap();
+        assert!((within.inset - 3.0).abs() < 0.01, "{within:?}");
+        assert_eq!(fills.of(300.0, 110.0, 120.0, 60.0), None);
     }
 
     /// Where `text` is drawn: the middle of its first label.

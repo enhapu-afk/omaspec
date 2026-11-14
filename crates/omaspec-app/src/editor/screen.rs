@@ -40,6 +40,11 @@ pub struct Screen {
     /// It draws on a GPU, which takes pictures up before it draws them;
     /// tiny-skia draws them as they are.
     gpu: bool,
+    /// Whether [`Self::run_frames`] puts the pictures on the GPU before
+    /// each frame ([`Self::upload`]), as `omaspec play` does. The window
+    /// does not: its own pictures wait for their pixels, and the frames of
+    /// the tests that watch it are the window's.
+    pub preload: bool,
 }
 
 /// A screenshot, as RGBA rows.
@@ -88,15 +93,15 @@ impl Screen {
             spent: Vec::new(),
             held: Vec::new(),
             gpu,
+            preload: false,
         })
     }
 
-    /// A snapshot of `app`. The window's other pictures (a gallery's, an
-    /// icon's) go up as a frame first draws them, so the first snapshot
-    /// draws one and waits a moment.
+    /// A snapshot of `app`. A picture goes up to the GPU as a frame first
+    /// draws it, so the first snapshot draws one and waits a moment.
     #[cfg(test)]
     pub fn shoot(&mut self, app: &App) -> Shot {
-        self.upload(app);
+        // The first frame starts uploading the pictures in the background.
         if !self.warm {
             let _ = self.frame(app);
             std::thread::sleep(Duration::from_millis(300));
@@ -109,8 +114,8 @@ impl Screen {
     /// and keeps them there, in place of those of the call before. iced
     /// uploads a picture the first time a frame draws it and draws nothing
     /// of it meanwhile; the window waits for its pixels to be there before
-    /// it shows them, and the frames of [`Self::run_frames`] are drawn
-    /// after this. tiny-skia needs nothing of the kind.
+    /// it shows them, and a recording draws its frames after this
+    /// ([`Self::preload`]). tiny-skia needs nothing of the kind.
     pub fn upload(&mut self, app: &App) {
         use iced::advanced::image::Renderer as _;
         if !self.gpu {
@@ -209,7 +214,9 @@ impl Screen {
             if done(app) {
                 break;
             }
-            self.upload(app);
+            if self.preload {
+                self.upload(app);
+            }
             let start = Instant::now();
             let (shot, published) = self.redraw(app);
             each(&shot);

@@ -94,8 +94,8 @@ impl Paper {
     }
 
     /// The pictures the pane may draw next: those shown or held back,
-    /// those a fade, a glide or a zoom goes from and to, and the pictures
-    /// without lines it asked for. A recording puts them on the GPU before
+    /// those a fade, a glide or a zoom goes from and to, the pictures
+    /// without lines it asked for, and the colors a glide fills holes with. A recording puts them on the GPU before
     /// each frame ([`crate::editor::Screen::upload`]), as the window waits
     /// for its pixels to be there.
     pub fn pictures(&self) -> Vec<iced::widget::image::Handle> {
@@ -121,7 +121,19 @@ impl Paper {
             out.extend(passage.linked.iter().filter_map(|l| l.picture.as_ref()));
             out.extend(passage.small.iter().flatten());
         }
-        out.into_iter().map(|r| r.handle.clone()).collect()
+        let mut handles: Vec<_> = out.into_iter().map(|r| r.handle.clone()).collect();
+        // The colors a glide fills the holes of its boxes with.
+        let moves = self
+            .fade
+            .iter()
+            .flat_map(|fade| fade.morph.iter())
+            .flat_map(|m| &m.moves);
+        for step in moves {
+            for fill in [step.from_fill, step.to_fill].into_iter().flatten() {
+                handles.push(raster::Raster::swatch(fill).handle);
+            }
+        }
+        handles
     }
 
     /// How many pictures of the diagram before fade out, if a fade runs.

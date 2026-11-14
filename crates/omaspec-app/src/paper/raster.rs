@@ -110,7 +110,39 @@ pub struct Raster {
     _allocation: Option<Allocation>,
 }
 
+/// How many colors [`Raster::swatch`] keeps; a picture has a few.
+const SWATCHES: usize = 256;
+
 impl Raster {
+    /// A small picture of one `color`, red green blue each 0 to 1, four
+    /// pixels a side and four units large: the same picture for the same
+    /// color, so it goes up to the GPU once.
+    pub fn swatch(color: [f32; 3]) -> Raster {
+        use std::cell::RefCell;
+        use std::collections::HashMap;
+        thread_local! {
+            static KEPT: RefCell<HashMap<[u8; 3], image::Handle>> = RefCell::new(HashMap::new());
+        }
+        let rgb = color.map(|c| (c.clamp(0.0, 1.0) * 255.0).round() as u8);
+        let handle = KEPT.with(|kept| {
+            let mut kept = kept.borrow_mut();
+            if kept.len() >= SWATCHES && !kept.contains_key(&rgb) {
+                kept.clear();
+            }
+            kept.entry(rgb)
+                .or_insert_with(|| {
+                    image::Handle::from_rgba(4, 4, [rgb[0], rgb[1], rgb[2], 255].repeat(16))
+                })
+                .clone()
+        });
+        Raster {
+            handle,
+            region: Rectangle::with_size(Size::new(4.0, 4.0)),
+            paper: Color::from_rgb8(rgb[0], rgb[1], rgb[2]),
+            _allocation: None,
+        }
+    }
+
     /// A white picture of `width` by `height` pixels, of a diagram as
     /// large in its own units.
     #[cfg(test)]

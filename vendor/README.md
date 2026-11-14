@@ -157,10 +157,11 @@ change says "Omaspec" in a comment.
   clip as its mask, and the layer's mask back after it.
 - `src/raster.rs`: `Pipeline::draw_within`, which fills that part with the
   image as a pattern, at the image's exact place (the package rounded it
-  down to a whole pixel of the image). It covers the pixels whose middles
-  lie in the part, as a fill without anti-aliasing and a clip mask do, so
-  two parts side by side meet without a seam, and a part thinner than that
-  covers none (tiny-skia would fill one of no width a pixel wide).
+  down to a whole pixel of the image). Its edges round half a pixel up, as
+  tiny-skia's fills without anti-aliasing and its clip masks round theirs,
+  so two parts side by side meet without a seam, and a part that holds no
+  pixel's middle covers none (tiny-skia would fill one of no width a pixel
+  wide).
 
 ```bash
 diff -ru ~/.cargo/registry/src/*/iced_tiny_skia-0.14.1/src vendor/iced_tiny_skia/src
