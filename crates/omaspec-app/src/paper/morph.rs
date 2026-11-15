@@ -714,8 +714,12 @@ fn paint_side(
             &looks.held[side],
         ),
     };
-    let swatch = looks.fill[side].map(Raster::swatch);
-    sprite::draw(frame, local, &part, &fit, swatch.as_ref(), alpha);
+    // The box's own color, from the patch of it on the same sheet.
+    let sheet = if old { paint.old } else { paint.new };
+    let swatch = looks.fill[side]
+        .and_then(|fill| sheet.swatch(fill))
+        .map(|patch| (sheet, patch));
+    sprite::draw(frame, local, &part, &fit, swatch, alpha);
 }
 
 /// Works out once, for a glide drawn from the sheet `old` to the sheet
@@ -760,7 +764,7 @@ pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&sup
             )
             .collect();
         let mut orphans: Vec<String> = parts
-            .0
+            .parts
             .keys()
             .filter(|name| !taken.contains(name.as_str()))
             .cloned()

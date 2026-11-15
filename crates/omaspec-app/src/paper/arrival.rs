@@ -397,7 +397,8 @@ pub(super) mod tests {
         /// A pane gliding from `FIRST` to `MOVED`.
         fn gliding() -> Paper {
             let mut paper = sheets();
-            paper.deliver_bare();
+            sheet(&mut paper, true);
+            sheet(&mut paper, false);
             at(&paper, "Alone");
             paper
         }
@@ -486,7 +487,8 @@ pub(super) mod tests {
             walk(paper);
             let mut paper = sheets();
             hold(&mut paper);
-            paper.deliver_bare();
+            sheet(&mut paper, true);
+            sheet(&mut paper, false);
             at(&paper, "Fading");
             walk(paper);
 

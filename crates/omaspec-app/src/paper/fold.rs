@@ -130,18 +130,25 @@ impl Paper {
         true
     }
 
-    /// The containers of the picture and the boxes folded in it.
+    /// The buttons of the containers of the picture and of the boxes
+    /// folded in it ([`Self::containers_to_fold`]). They sit on the finished boxes:
+    /// while the boxes glide, a button would land where a box has not
+    /// arrived yet. The same while one picture fades into the other in a
+    /// glide's place: the old boxes are still to be seen where no button
+    /// is.
     pub(super) fn fold_spots(&self) -> Vec<Spot> {
-        if !self.folding || self.document || self.play.is_some() {
-            return Vec::new();
-        }
-        // The buttons sit on the finished boxes. While they glide, a button
-        // would land where a box has not arrived yet.
-        // The same while one picture fades into the other in a glide's
-        // place: the old boxes are still to be seen where no button is.
         if matches!(self.arrival, super::arrival::Arrival::Gliding(..))
             || self.arrival.fade().is_some_and(|fade| fade.stands_in)
         {
+            return Vec::new();
+        }
+        self.containers_to_fold()
+    }
+
+    /// The containers of the picture and the boxes folded in it: what
+    /// folds or unfolds, whether or not its button shows now.
+    pub(super) fn containers_to_fold(&self) -> Vec<Spot> {
+        if !self.folding || self.document || self.play.is_some() {
             return Vec::new();
         }
         let Some(diagram) = &self.diagram else {
@@ -243,7 +250,8 @@ impl Paper {
         let name = self
             .box_at_caret(source, row, col)
             .ok_or("put the caret on a box that holds others: a nested state, a package, a subgraph, a branch of a tree")?;
-        let spots = self.fold_spots();
+        // A box that glides still folds: only its button waits.
+        let spots = self.containers_to_fold();
         match spots.iter().find(|s| s.name == name) {
             Some(spot) if spot.folded => {
                 self.set_fold(&name, false);

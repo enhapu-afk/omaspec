@@ -488,6 +488,20 @@ mod tests {
 
     const FLOW: &str = "flowchart LR\n  A[Edit] --> B{Saved?}\n  B -->|yes| C[Render]\n";
 
+    /// Runs `task`, one the preview gave, to its end here and now, as the
+    /// window's runtime runs it ([`crate::at_once`]).
+    fn run(p: &mut Preview, task: Task<Message>) {
+        crate::at_once::with_renderer(|renderer| {
+            crate::at_once::run(renderer, task, |message| p.update(message));
+        });
+    }
+
+    /// Hands `message` to the preview and runs what it gives ([`run`]).
+    fn send(p: &mut Preview, message: Message) {
+        let task = p.update(message);
+        run(p, task);
+    }
+
     fn rendered(id: u64, result: Result<Drawn, RenderError>) -> Message {
         Message::Worker(worker::Event::Rendered(Box::new(answer(0, id, result))))
     }
@@ -501,8 +515,9 @@ mod tests {
             900.0, 520.0,
         ))));
         p.paper.pretend_requested(1);
-        let _ = p.update(rendered(1, Ok(drawn)));
-        p.paper.finish_rasters();
+        send(&mut p, rendered(1, Ok(drawn)));
+        // It has faded in, as a reader finds it.
+        send(&mut p, Message::Paper(paper::Message::Faded));
         p
     }
 
@@ -554,7 +569,7 @@ mod tests {
         let mut p = showing(tall());
         assert!(p.paper.overview_shown() && p.paper.detail().0.is_none());
 
-        let _ = p.update(press("0"));
+        let zoomed = p.update(press("0"));
         crate::clock::advance(Duration::from_secs(2));
         let detail = p.paper.detail().0.expect("a detail at 100 %");
         assert_eq!(detail.scale, 2.0);
@@ -562,7 +577,7 @@ mod tests {
         assert!(region.x <= seen.x && region.y <= seen.y);
         assert!(region.x + region.width >= seen.x + seen.width);
         assert!(region.y + region.height >= seen.y + seen.height);
-        p.paper.finish_rasters();
+        run(&mut p, zoomed);
         assert!(p.paper.detail().1);
 
         // A short pan needs nothing new, fitting needs no detail.
@@ -619,8 +634,10 @@ mod tests {
         p.paper.pretend_requested(1);
         let mut reply = answer(0, 1, Ok(drawn(source, Language::Mermaid)));
         reply.source = source.into();
-        let _ = p.update(Message::Worker(worker::Event::Rendered(Box::new(reply))));
-        p.paper.finish_rasters();
+        send(
+            &mut p,
+            Message::Worker(worker::Event::Rendered(Box::new(reply))),
+        );
         let _ = p.update(press("p"));
         assert!(p.paper.playing(), "{:?}", p.notice);
         assert_eq!(p.note(), Some(PLAY_KEYS));
@@ -661,8 +678,7 @@ mod tests {
         for _ in 0..8 {
             let _ = p.update(press("+"));
         }
-        let _ = p.update(press("j"));
-        p.paper.finish_rasters();
+        send(&mut p, press("j"));
         shoot(&p, &dir, "preview-zoomed");
         // A Markdown document: its diagrams one under another.
         let doc = "# Door\n\n```plantuml\n@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n```\n\n\

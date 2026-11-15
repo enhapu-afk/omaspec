@@ -322,14 +322,15 @@ fn span(x: (f32, f32), y: (f32, f32)) -> Rectangle {
 /// The box `fit` of `raster` at `alpha`. Room its inside leaves is drawn
 /// out from the inside's outermost row or column; where that row crosses
 /// words or a line, which would be drawn out into stripes, the box's own
-/// color fills the room (`swatch`), or in a box with no fill of its own,
+/// color fills the room (`swatch`: a picture, and where in it a patch of
+/// that color lies), or in a box with no fill of its own,
 /// clear there, nothing, and what lies under it shows.
 pub(super) fn draw(
     frame: &mut Frame,
     local: Rectangle,
     raster: &Raster,
     fit: &Fit,
-    swatch: Option<&Raster>,
+    swatch: Option<(&Raster, Rectangle)>,
     alpha: f32,
 ) {
     for piece in &fit.pieces {
@@ -342,9 +343,9 @@ pub(super) fn draw(
             );
         let drawn = match (crossed, swatch) {
             // The middle of the swatch, which no edge blurs.
-            (true, Some(swatch)) => Blit {
+            (true, Some((swatch, patch))) => Blit {
                 raster: swatch,
-                src: inset(swatch.region, swatch.region.width / 4.0),
+                src: inset(patch, patch.width / 4.0),
                 dest: piece.limit,
                 limit,
                 alpha,
@@ -731,8 +732,15 @@ mod tests {
             });
             let dest = rect(100.0, 40.0, 60.0, 120.0);
             let fit = fit(picture.region, dest, Some(1.0), 1.0, square(0.0), &[]);
-            let swatch = Raster::swatch([0.0, 1.0, 1.0]);
-            draw(frame, local, &picture, &fit, Some(&swatch), 1.0);
+            let swatch = Raster::painted(4, 4, |_, _| [0, 255, 255, 255]);
+            draw(
+                frame,
+                local,
+                &picture,
+                &fit,
+                Some((&swatch, swatch.region)),
+                1.0,
+            );
         });
         // Above the words, between them and the rim: the swatch's cyan.
         assert_eq!(red[60 * 200 + 130], 0, "above the words");

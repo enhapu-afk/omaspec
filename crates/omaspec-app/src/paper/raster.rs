@@ -114,40 +114,7 @@ pub struct Raster {
     pub parts: Option<Arc<Cutouts>>,
 }
 
-/// How many colors [`Raster::swatch`] keeps; a picture has a few.
-const SWATCHES: usize = 256;
-
 impl Raster {
-    /// A small picture of one `color`, red green blue each 0 to 1, four
-    /// pixels a side and four units large: the same picture for the same
-    /// color, so it goes up to the GPU once.
-    pub fn swatch(color: [f32; 3]) -> Raster {
-        use std::cell::RefCell;
-        use std::collections::HashMap;
-        thread_local! {
-            static KEPT: RefCell<HashMap<[u8; 3], image::Handle>> = RefCell::new(HashMap::new());
-        }
-        let rgb = color.map(|c| (c.clamp(0.0, 1.0) * 255.0).round() as u8);
-        let handle = KEPT.with(|kept| {
-            let mut kept = kept.borrow_mut();
-            if kept.len() >= SWATCHES && !kept.contains_key(&rgb) {
-                kept.clear();
-            }
-            kept.entry(rgb)
-                .or_insert_with(|| {
-                    image::Handle::from_rgba(4, 4, [rgb[0], rgb[1], rgb[2], 255].repeat(16))
-                })
-                .clone()
-        });
-        Raster {
-            handle,
-            region: Rectangle::with_size(Size::new(4.0, 4.0)),
-            paper: Color::from_rgb8(rgb[0], rgb[1], rgb[2]),
-            _allocation: None,
-            parts: None,
-        }
-    }
-
     /// A white picture of `width` by `height` pixels, of a diagram as
     /// large in its own units.
     #[cfg(test)]
@@ -283,9 +250,25 @@ pub fn render(tree: &usvg::Tree, plan: Plan) -> Option<Raster> {
 }
 
 /// Where each part of a picture lies on its sheet ([`sheet`]), by the
-/// part's name (docs/adr/0029).
+/// part's name (docs/adr/0029), and the colors its boxes are filled with.
 #[derive(Debug, Default)]
-pub struct Cutouts(pub HashMap<String, Cutout>);
+pub struct Cutouts {
+    pub parts: HashMap<String, Cutout>,
+    /// A patch of each color the parts' shapes are filled with, by the
+    /// color: what a glide fills a box's room with ([`super::sprite::draw`]),
+    /// on the GPU with the sheet.
+    swatches: HashMap<[u8; 3], Rectangle>,
+}
+
+/// How many pixels a side a patch of [`Cutouts::swatches`] is, and between
+/// two of them: a glide takes its middle half, which no edge blurs.
+const SWATCH: u32 = 8;
+const SWATCH_GAP: u32 = 2;
+
+/// A color as the patches of a sheet are told apart.
+fn swatch_key(color: [f32; 3]) -> [u8; 3] {
+    color.map(|c| (c.clamp(0.0, 1.0) * 255.0).round() as u8)
+}
 
 /// One part on a sheet.
 #[derive(Debug, Clone)]
@@ -304,13 +287,13 @@ impl Raster {
     pub fn has_part(&self, name: &str) -> bool {
         self.parts
             .as_ref()
-            .is_some_and(|parts| parts.0.contains_key(name))
+            .is_some_and(|parts| parts.parts.contains_key(name))
     }
 
     /// How the box at `rect` of the part called `name` is filled and how
     /// its outline bends, read from that part's own outlines alone.
     pub fn outline(&self, name: &str, rect: Rectangle) -> (Option<[f32; 3]>, Option<pick::Bend>) {
-        let Some(cutout) = self.parts.as_ref().and_then(|parts| parts.0.get(name)) else {
+        let Some(cutout) = self.parts.as_ref().and_then(|parts| parts.parts.get(name)) else {
             return (None, None);
         };
         let (x, y, w, h) = (rect.x, rect.y, rect.width, rect.height);
@@ -320,10 +303,20 @@ impl Raster {
         )
     }
 
+    /// Where on a sheet its patch of `color` lies, in the units of its
+    /// region: a box's own fill, read from its part ([`Self::outline`]).
+    pub fn swatch(&self, color: [f32; 3]) -> Option<Rectangle> {
+        self.parts
+            .as_ref()?
+            .swatches
+            .get(&swatch_key(color))
+            .copied()
+    }
+
     /// The picture of the part `name` of a sheet, as a picture of its own:
     /// the sheet, placed so that the part lies at its place in the diagram.
     pub fn part(&self, name: &str) -> Option<(Raster, Rectangle)> {
-        let cutout = self.parts.as_ref()?.0.get(name)?;
+        let cutout = self.parts.as_ref()?.parts.get(name)?;
         // The sheet placed so that the part's pixels lie on its place in
         // the diagram, at the scale the part was drawn at.
         let k = cutout.at.width / cutout.sheet.width.max(f32::EPSILON);
@@ -431,8 +424,31 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
         width,
         height,
     } = layout;
+    let outlines: Vec<pick::Fills> = boxes
+        .iter()
+        .map(|(_, part)| {
+            pick::fills_of(part.nodes.iter().filter_map(|(node, _)| match node {
+                usvg::Node::Group(group) => Some(group.as_ref()),
+                _ => None,
+            }))
+        })
+        .collect();
+    // Below the parts, a patch of each color they are filled with, in
+    // rows as wide as the sheet.
+    let mut colors: Vec<[u8; 3]> = outlines
+        .iter()
+        .flat_map(pick::Fills::colors)
+        .map(swatch_key)
+        .collect();
+    colors.sort_unstable();
+    colors.dedup();
+    let step = SWATCH + SWATCH_GAP;
+    let across = ((width.saturating_sub(SWATCH_GAP)) / step).max(1);
+    let rows = (colors.len() as u32).div_ceil(across);
+    let patches_at = height + SWATCH_GAP;
+    let height = height + rows * step;
     let base = export::rasterize_part(ground, scale, plan.part).ok()?;
-    let mut pixmap = Pixmap::new(width, height)?;
+    let mut pixmap = Pixmap::new(width.max(step + SWATCH_GAP), height)?;
     pixmap.draw_pixmap(
         0,
         0,
@@ -442,8 +458,30 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
         None,
     );
     let region = plan.region();
+    let mut swatches = HashMap::with_capacity(colors.len());
+    for (index, color) in colors.into_iter().enumerate() {
+        let index = index as u32;
+        let (x, y) = (
+            SWATCH_GAP + (index % across) * step,
+            patches_at + (index / across) * step,
+        );
+        let mut paint = export::tiny_skia::Paint::default();
+        paint.set_color_rgba8(color[0], color[1], color[2], 255);
+        if let Some(rect) =
+            export::tiny_skia::Rect::from_xywh(x as f32, y as f32, SWATCH as f32, SWATCH as f32)
+        {
+            pixmap.fill_rect(rect, &paint, Transform::identity(), None);
+        }
+        swatches.insert(
+            color,
+            Rectangle::new(
+                Point::new(region.x + x as f32 / scale, region.y + y as f32 / scale),
+                Size::new(SWATCH as f32 / scale, SWATCH as f32 / scale),
+            ),
+        );
+    }
     let mut cutouts = HashMap::with_capacity(boxes.len());
-    for ((pixels, part), (sx, sy)) in boxes.iter().zip(&slots) {
+    for (((pixels, part), (sx, sy)), outlines) in boxes.iter().zip(&slots).zip(outlines) {
         // Diagram units onto the part's slot of the sheet.
         let onto = Transform::from_translate(*sx as f32, *sy as f32)
             .pre_translate(-pixels.x() as f32, -pixels.y() as f32)
@@ -497,10 +535,7 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
                     ),
                     Size::new(w / part_scale, h / part_scale),
                 ),
-                outlines: pick::fills_of(part.nodes.iter().filter_map(|(node, _)| match node {
-                    usvg::Node::Group(group) => Some(group.as_ref()),
-                    _ => None,
-                })),
+                outlines,
             },
         );
     }
@@ -509,6 +544,7 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
     });
     // The screen takes colors as they are, not multiplied by how much is
     // seen of them: the parts' blurred edges are.
+    let (width, height) = (pixmap.width(), pixmap.height());
     let rgba = straight(pixmap, ground_h);
     Some(Raster {
         handle: image::Handle::from_rgba(width, height, rgba),
@@ -518,7 +554,10 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
         ),
         paper,
         _allocation: None,
-        parts: Some(Arc::new(Cutouts(cutouts))),
+        parts: Some(Arc::new(Cutouts {
+            parts: cutouts,
+            swatches,
+        })),
     })
 }
 
@@ -772,16 +811,9 @@ impl Layer {
     }
 
     /// The number the newest request carries.
+    #[cfg(test)]
     pub fn seq(&self) -> u64 {
         self.latest.load(Ordering::Relaxed)
-    }
-
-    /// Rasterizes what was asked right here, as the background would.
-    pub fn finish(&mut self, tree: &usvg::Tree) {
-        if let Some(plan) = self.asked {
-            let seq = self.latest.load(Ordering::Relaxed);
-            let _ = self.receive(seq, render(tree, plan));
-        }
     }
 }
 
@@ -802,7 +834,7 @@ mod tests {
         let plan = Plan::overview(size, 7.0).unwrap();
         let sheet = sheet(drawn.bare.as_ref().unwrap(), &drawn.tree, plan).unwrap();
         let parts = sheet.parts.as_ref().unwrap();
-        assert!(parts.0.contains_key("state:Idle") && parts.0.contains_key("state:Busy"));
+        assert!(parts.parts.contains_key("state:Idle") && parts.parts.contains_key("state:Busy"));
         let reach = |r: Rectangle| {
             Rectangle::new(
                 Point::new(r.x - SHEET_REACH, r.y - SHEET_REACH),
@@ -810,10 +842,10 @@ mod tests {
             )
         };
         let ground_bottom = sheet.region.y + size.height;
-        for (name, cutout) in &parts.0 {
+        for (name, cutout) in &parts.parts {
             let wide = reach(cutout.sheet);
             assert!(wide.y >= ground_bottom, "{name} reaches the ground");
-            for (other, them) in &parts.0 {
+            for (other, them) in &parts.parts {
                 if other != name {
                     assert!(
                         wide.intersection(&them.sheet).is_none(),
@@ -822,6 +854,38 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// A sheet carries a patch of each color its parts' shapes are filled
+    /// with, the color itself in its middle: a glide fills a box's room
+    /// from it, and it is on the GPU with the sheet.
+    #[test]
+    fn a_sheet_has_a_patch_of_each_fill() {
+        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\nnote right of Busy : hot\n' parts (Omaspec)\n@enduml\n";
+        let drawn = super::super::testing::drawn(source, omaspec_core::Language::PlantUml);
+        let size = drawn.tree.size();
+        let plan = Plan::overview(Size::new(size.width(), size.height()), 2.0).unwrap();
+        let sheet = Sheet::of(&drawn).unwrap().draw(plan).unwrap();
+        let image::Handle::Rgba { width, pixels, .. } = &sheet.handle else {
+            panic!("a sheet is pixels");
+        };
+        let mut colors = 0;
+        for cutout in sheet.parts.as_ref().unwrap().parts.values() {
+            for color in cutout.outlines.colors() {
+                colors += 1;
+                let patch = sheet.swatch(color).expect("a patch of each fill");
+                let x = ((patch.center_x() - sheet.region.x) * plan.scale) as usize;
+                let y = ((patch.center_y() - sheet.region.y) * plan.scale) as usize;
+                let at = (y * *width as usize + x) * 4;
+                for (channel, value) in color.iter().enumerate() {
+                    let want = (value * 255.0).round() as i32;
+                    let got = i32::from(pixels[at + channel]);
+                    assert!((want - got).abs() <= 1, "{color:?} at {patch:?}");
+                }
+            }
+        }
+        assert!(colors > 0, "the states are filled");
+        assert!(sheet.swatch([0.123, 0.456, 0.789]).is_none());
     }
 
     /// A shadow, a group seen at 0.22 around its box's part, is drawn on
@@ -838,7 +902,7 @@ mod tests {
             .parts
             .as_ref()
             .unwrap()
-            .0
+            .parts
             .values()
             .next()
             .unwrap()

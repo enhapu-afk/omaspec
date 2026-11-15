@@ -50,7 +50,9 @@ words it draws for which state, which words belong to which line.
    A box that changes its shape is still drawn in parts, its corners kept
    ([`paper::sprite`](../../crates/omaspec-app/src/paper/sprite.rs)); its
    rim and its fill come from its own outline, read from its part alone
-   (`pick::fills_of`).
+   (`pick::fills_of`). The room a box gains is filled from a patch of
+   its fill on the same sheet, so it is on the GPU with the sheet
+   (2026-11-15).
 4. **Words go with their lines.** A line's words are a part of their own
    and travel with the line (`paper::wires`): from their old place to their
    new one, or away and in with the line when it goes or comes.

@@ -2872,8 +2872,22 @@ order ([0029](docs/adr/0029-a-glide-by-parts.md)):
       trace check as it is made, a tour walks all 31 transitions and
       Omaspec's coverage of it is the whole diagram. A diagram drawn while
       a short fade runs ends that fade at once; a glide runs to its end.
-- [ ] One way for the window and a recording to take their pictures: the
-      recording runs the window's tasks, at once.
+- [x] One way for the window and a recording to take their pictures: the
+      recording runs the window's tasks, at once (2026-11-15). `at_once`
+      runs the tasks an update gives to their end, their messages back
+      into the update and the pictures they allocate onto the screen's
+      GPU, as iced's runtime does in the background; `omaspec play` and
+      the tests take their pictures that way. Gone: `deliver_overview`,
+      `deliver_bare`, `finish_rasters`, `finish_small`, `Layer::finish`
+      and the recording's upload of every picture before each frame. The
+      colors a glide fills a box's room with are patches on its sheet
+      now, on the GPU with it; the window drew them a frame late. Two
+      faults of the window came out, as the tests now go its way: a
+      recording's first picture skipped its fade (the arrival stayed in
+      `Coming`), and the caret's fold said a container held nothing to
+      fold while the last fold glided (its button hid, and the command
+      asked the button). The diagram itself is still drawn by the
+      recording, not by the render thread.
 - [ ] The files of `paper/` under 1,000 lines each; the glide's promises as
       tests: the first frame is the old picture, the last the new one,
       nothing lands outside a box, each pixel is drawn once.

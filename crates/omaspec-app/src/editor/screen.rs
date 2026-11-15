@@ -35,16 +35,6 @@ pub struct Screen {
     /// How long the view and its layout took, and the pixels, in each
     /// redraw of [`Self::run`].
     spent: Vec<(Duration, Duration)>,
-    /// The pictures [`Self::upload`] put on the GPU, kept there.
-    held: Vec<iced::advanced::image::Allocation>,
-    /// It draws on a GPU, which takes pictures up before it draws them;
-    /// tiny-skia draws them as they are.
-    gpu: bool,
-    /// Whether [`Self::run_frames`] puts the pictures on the GPU before
-    /// each frame ([`Self::upload`]), as `omaspec play` does. The window
-    /// does not: its own pictures wait for their pixels, and the frames of
-    /// the tests that watch it are the window's.
-    pub preload: bool,
 }
 
 /// A screenshot, as RGBA rows.
@@ -81,7 +71,6 @@ impl Screen {
             backend,
         ))
         .ok_or_else(|| "no GPU to draw on without a window".to_owned())?;
-        let gpu = renderer.name() != "tiny-skia";
         Ok(Screen {
             renderer,
             scale,
@@ -91,9 +80,6 @@ impl Screen {
             warm: false,
             cache: None,
             spent: Vec::new(),
-            held: Vec::new(),
-            gpu,
-            preload: false,
         })
     }
 
@@ -110,26 +96,18 @@ impl Screen {
         self.frame(app)
     }
 
-    /// Puts the pictures every tab of `app` may draw next on the GPU now
-    /// and keeps them there, in place of those of the call before. iced
-    /// uploads a picture the first time a frame draws it and draws nothing
-    /// of it meanwhile; the window waits for its pixels to be there before
-    /// it shows them, and a recording draws its frames after this
-    /// ([`Self::preload`]). tiny-skia needs nothing of the kind.
-    pub fn upload(&mut self, app: &App) {
-        use iced::advanced::image::Renderer as _;
-        if !self.gpu {
-            return;
-        }
-        let pictures: Vec<_> = app
-            .docs
-            .iter()
-            .flat_map(|doc| doc.paper.pictures())
-            .collect();
-        self.held = pictures
-            .iter()
-            .filter_map(|picture| self.renderer.load_image(picture).ok())
-            .collect();
+    /// Hands `message` to `app` and runs the tasks it gives at once, as
+    /// the window's runtime runs them in the background: a picture they
+    /// make is rasterized and put on this screen's GPU before this returns
+    /// ([`crate::at_once`]).
+    pub fn perform(&self, app: &mut App, message: Message) {
+        let task = app.update(message);
+        self.run_task(app, task);
+    }
+
+    /// Runs `task`, one an update of `app` gave, at once ([`Self::perform`]).
+    pub fn run_task(&self, app: &mut App, task: iced::Task<Message>) {
+        crate::at_once::run(&self.renderer, task, |message| app.update(message));
     }
 
     #[cfg(test)]
@@ -214,14 +192,11 @@ impl Screen {
             if done(app) {
                 break;
             }
-            if self.preload {
-                self.upload(app);
-            }
             let start = Instant::now();
             let (shot, published) = self.redraw(app);
             each(&shot);
             for message in published {
-                let _ = app.update(message);
+                self.perform(app, message);
             }
             // A recording's clock moves on by the frame; the wall clock is
             // waited for.

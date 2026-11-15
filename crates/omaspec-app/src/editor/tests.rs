@@ -42,6 +42,21 @@ fn select_all_and_paste(app: &mut App, text: &str) {
     paste(app, text);
 }
 
+/// Runs `task`, one the editor gave, to its end here and now, as the
+/// window's runtime runs it in the background: the pictures it makes are
+/// rasterized and put on a GPU ([`crate::at_once`]).
+fn run(app: &mut App, task: Task<Message>) {
+    crate::at_once::with_renderer(|renderer| {
+        crate::at_once::run(renderer, task, |message| app.update(message));
+    });
+}
+
+/// Hands `message` to the editor and runs what it gives ([`run`]).
+fn send(app: &mut App, message: Message) {
+    let task = app.update(message);
+    run(app, task);
+}
+
 fn due(app: &mut App, alarm: Alarm) {
     let _ = app.update(Message::Worker(worker::Event::Due(alarm)));
 }
@@ -954,8 +969,8 @@ fn a_machine_plays_while_the_diagram_follows_the_theme() {
             .iter()
             .any(|s| s.name == "State1" && s.line == state1)
     );
-    let _ = app.doc_mut().paper.rendered(reply);
-    app.doc_mut().paper.finish_rasters();
+    let task = app.doc_mut().paper.rendered(reply);
+    app.doc_mut().paper.run(task);
     press(&mut app, Command::Play);
     assert_eq!(app.mode(app.main), Mode::Playing, "{:?}", app.notice);
 }
@@ -1669,20 +1684,15 @@ fn the_change_since_b_glides_from_b_to_a() {
     reply.source = old.into();
     let _ = c.paper.rendered(reply);
     // A has faded in; the glide starts from B as it stands.
-    let paper = &mut app.doc_mut().paper;
-    paper.deliver_overview();
-    let _ = paper.update(paper::Message::Faded);
-    press(&mut app, Command::CompareGlide);
+    app.doc_mut().paper.send(paper::Message::Faded);
+    let glide = app.update(Message::Command(Command::CompareGlide));
     assert!(app.notice.is_none());
-    let paper = &mut app.doc_mut().paper;
-    assert_eq!(paper.drawn_now().unwrap().1.as_ref(), old);
-    paper.deliver_overview();
-    // B is on screen; A came back and glides from it, its boxes and
+    assert_eq!(app.doc().paper.drawn_now().unwrap().1.as_ref(), old);
+    // B comes on screen; A comes back and glides from it, its boxes and
     // lines on their way, Done fading in.
+    run(&mut app, glide);
+    let paper = &app.doc().paper;
     assert_eq!(paper.drawn_now().unwrap().1.as_ref(), new);
-    // B's short fade-in ends: the glide to A begins.
-    let _ = paper.update(paper::Message::Faded);
-    paper.deliver_overview();
     assert!(paper.fading_lines(), "the way from B to A glides");
 
     // Asked for a new drawing while B stands, the pane shows that next,
@@ -2338,8 +2348,8 @@ fn show_folded(app: &mut App, source: &str, folds: &[&str]) {
     reply.language = Language::PlantUml;
     reply.source = source.into();
     let paper = &mut app.doc_mut().paper;
-    let _ = paper.rendered(reply);
-    paper.finish_rasters();
+    let task = paper.rendered(reply);
+    paper.run(task);
 }
 
 #[test]
@@ -2944,9 +2954,7 @@ fn snapshot_glide() {
     show(&mut app, BREWER, Language::PlantUml);
     let key = app.doc().key;
     // The first picture has faded in: the next one glides from it.
-    let paper = &mut app.doc_mut().paper;
-    paper.deliver_overview();
-    let _ = paper.update(paper::Message::Faded);
+    app.doc_mut().paper.send(paper::Message::Faded);
     let _ = app.update(Message::Paper(key, paper::Message::Fold("Brewing".into())));
     // Drawn in the theme, as the first picture was.
     let (styled, _) = app.diagram_source(BREWER, Language::PlantUml);
@@ -2957,8 +2965,8 @@ fn snapshot_glide() {
     reply.language = Language::PlantUml;
     reply.source = BREWER.into();
     let paper = &mut app.doc_mut().paper;
-    let _ = paper.rendered(reply);
-    paper.deliver_overview();
+    let task = paper.rendered(reply);
+    paper.run(task);
     assert!(
         paper.fading_lines(),
         "the lines glide over pictures without them"
@@ -3188,13 +3196,12 @@ fn snapshot() {
     c.paper.pretend_requested(1);
     let mut reply = answer(compare::KEY, 1, Ok(drawn(&old, Language::Mermaid)));
     reply.source = old.into();
-    let _ = c.paper.rendered(reply);
-    c.paper.finish_rasters();
-    let _ = app.update(Message::Paper(
-        key,
-        paper::Message::Viewport(Size::new(330.0, 540.0)),
-    ));
-    app.doc_mut().paper.finish_rasters();
+    let task = c.paper.rendered(reply);
+    c.paper.run(task);
+    send(
+        &mut app,
+        Message::Paper(key, paper::Message::Viewport(Size::new(330.0, 540.0))),
+    );
     app.notice = None;
     shoot(&mut app, &dir, "editor-compare");
     let _ = app.update(Message::Command(Command::CompareDiff));
@@ -3218,11 +3225,10 @@ fn snapshot() {
     };
     let _ = app.update(Message::Version(key, target, Ok(door.into())));
     let _ = app.update(Message::Command(Command::CompareBehavior));
-    let _ = app.update(Message::Paper(
-        key,
-        paper::Message::Viewport(Size::new(330.0, 540.0)),
-    ));
-    app.doc_mut().paper.finish_rasters();
+    send(
+        &mut app,
+        Message::Paper(key, paper::Message::Viewport(Size::new(330.0, 540.0))),
+    );
     app.notice = None;
     shoot(&mut app, &dir, "editor-compare-behavior");
 
@@ -3231,11 +3237,10 @@ fn snapshot() {
     let _ = app.update(Message::Command(Command::Detach));
     app.notice = None;
     shoot(&mut app, &dir, "editor-detached");
-    let _ = app.update(Message::Paper(
-        key,
-        paper::Message::Viewport(Size::new(900.0, 520.0)),
-    ));
-    app.doc_mut().paper.finish_rasters();
+    send(
+        &mut app,
+        Message::Paper(key, paper::Message::Viewport(Size::new(900.0, 520.0))),
+    );
     let settings = iced::Settings {
         default_font: app.font,
         ..Default::default()
@@ -3347,13 +3352,12 @@ fn snapshot_readme() {
     let id = c.paper.pretend_next();
     let mut reply = answer(compare::KEY, id, Ok(drawn(&old, Language::Mermaid)));
     reply.source = old.into();
-    let _ = c.paper.rendered(reply);
-    c.paper.finish_rasters();
-    let _ = app.update(Message::Paper(
-        key,
-        paper::Message::Viewport(Size::new(330.0, 540.0)),
-    ));
-    app.doc_mut().paper.finish_rasters();
+    let task = c.paper.rendered(reply);
+    c.paper.run(task);
+    send(
+        &mut app,
+        Message::Paper(key, paper::Message::Viewport(Size::new(330.0, 540.0))),
+    );
     let _ = app.update(Message::Command(Command::CompareDiff));
     app.notice = None;
     shoot(&mut app, &dir, "readme-compare");
@@ -3391,11 +3395,13 @@ fn snapshot_drone() {
     due(&mut app, Alarm::Lint(key));
     assert_eq!(app.doc().counts(), (0, 0));
     show_themed(&mut app, Language::PlantUml);
-    let _ = app.update(Message::Paper(
-        key,
-        paper::Message::ZoomAt(2.6, iced::Point::new(422.0, 250.0)),
-    ));
-    app.doc_mut().paper.finish_rasters();
+    send(
+        &mut app,
+        Message::Paper(
+            key,
+            paper::Message::ZoomAt(2.6, iced::Point::new(422.0, 250.0)),
+        ),
+    );
     // The source at the two regions of the flight, as the diagram.
     let regions = DRONE.lines().position(|l| l.trim() == "--").unwrap();
     app.doc_mut().jump_to_line(regions);
@@ -3445,8 +3451,8 @@ fn show_themed(app: &mut App, language: Language) {
     reply.language = language;
     reply.source = shown;
     app.untangle(&mut reply);
-    let _ = app.doc_mut().paper.rendered(reply);
-    app.doc_mut().paper.finish_rasters();
+    let task = app.doc_mut().paper.rendered(reply);
+    app.doc_mut().paper.run(task);
 }
 
 /// The active tab's text replaced with `text`, linted and drawn in the
@@ -4168,8 +4174,8 @@ fn show(app: &mut App, source: &str, language: Language) {
     reply.source = shown;
     app.untangle(&mut reply);
     let paper = &mut app.doc_mut().paper;
-    let _ = paper.rendered(reply);
-    paper.finish_rasters();
+    let task = paper.rendered(reply);
+    paper.run(task);
 }
 
 /// Settles what the window animates: the tab highlight and the focus frame
@@ -4739,8 +4745,8 @@ fn show_linked(app: &mut App) {
         app.untangle(&mut reply);
     }
     let paper = &mut app.doc_mut().paper;
-    let _ = paper.rendered(reply);
-    paper.finish_rasters();
+    let task = paper.rendered(reply);
+    paper.run(task);
 }
 
 /// `source` drawn as a diagram of its project, as the worker draws it.
@@ -4762,7 +4768,7 @@ fn linked_drawing(
 
 /// Draws the document `key`, open in a tab or not shown, as a diagram of
 /// its project, and hands the answer in as the worker does.
-fn deliver_linked(app: &mut App, key: u64) {
+fn deliver_linked(app: &mut App, key: u64) -> Task<Message> {
     let (atlas, own) = app.linked_of(key).expect("a project");
     let doc = app.docs.iter().find(|d| d.key == key).expect("the tab");
     let (text, language) = (doc.text(), doc.language);
@@ -4772,7 +4778,7 @@ fn deliver_linked(app: &mut App, key: u64) {
     let mut reply = answer(key, id, Ok(drawn));
     reply.language = language;
     reply.source = text.into();
-    let _ = app.update(Message::Worker(worker::Event::Rendered(Box::new(reply))));
+    app.update(Message::Worker(worker::Event::Rendered(Box::new(reply))))
 }
 
 /// Whether a diagram of `size`, laid into `room` as large as fits and
@@ -4892,24 +4898,19 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
         .expect("Orders open")
         .key;
     assert_ne!(target, map);
-    deliver_linked(&mut app, target);
+    let drawn = deliver_linked(&mut app, target);
+    run(&mut app, drawn);
     let dive = app
         .doc()
         .paper
         .glide()
         .expect("the zoom runs on the size alone");
     assert!(app.doc().paper.view.zoom > before.zoom);
-    app.docs
-        .iter_mut()
-        .find(|d| d.key == target)
-        .unwrap()
-        .paper
-        .finish_rasters();
-    let _ = app.arrive();
+    let arrived = app.arrive();
+    run(&mut app, arrived);
     assert_eq!(app.doc().paper.glide(), Some(dive), "one way, not turned");
     // Its picture lies on the tile's, so it is asked for in smaller
     // copies too.
-    app.doc_mut().paper.finish_small();
     assert!(app.doc().paper.small_copies() > 0);
     let _ = app.arrive();
     assert_eq!(app.doc().paper.glide(), Some(dive), "one way, not turned");
@@ -4950,9 +4951,11 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
     let orders_key = app.doc().key;
     let checkout = link_on_screen(&app, "Checkout");
     let checkout_box = paper::link_rect(&app.doc().paper.links()[0]);
-    let _ = app.update(Message::Paper(orders_key, paper::Message::Follow(checkout)));
+    send(
+        &mut app,
+        Message::Paper(orders_key, paper::Message::Follow(checkout)),
+    );
     // A state shows no picture of its diagram: none to lay on it small.
-    app.doc_mut().paper.finish_small();
     assert_eq!(app.doc().paper.small_copies(), 0);
     due(&mut app, Alarm::Follow);
     assert_eq!(app.doc().path, Some(root.join("checkout.puml")));
@@ -5029,7 +5032,6 @@ fn frames_headless() {
     screen.size = Size::new(2560.0, 1440.0);
     // The first redraw tells the pane its size; the map is fitted to it.
     screen.run(&mut app, 2, |_| false);
-    app.doc_mut().paper.finish_rasters();
     eprintln!(
         "frames: the map's pane {:?}, the diagrams drawn on {}",
         app.doc().paper.viewport(),
@@ -5038,15 +5040,15 @@ fn frames_headless() {
 
     let map = app.doc().key;
     let door = link_on_screen(&app, "Door");
-    let _ = app.update(Message::Paper(map, paper::Message::Follow(door)));
+    screen.perform(&mut app, Message::Paper(map, paper::Message::Follow(door)));
     let target = app.docs.last().unwrap().key;
-    deliver_linked(&mut app, target);
-    app.docs.last_mut().unwrap().paper.finish_rasters();
-    let _ = app.arrive();
+    let drawn = deliver_linked(&mut app, target);
+    screen.run_task(&mut app, drawn);
+    let arrived = app.arrive();
+    screen.run_task(&mut app, arrived);
     screen.run(&mut app, 120, |app| app.doc().paper.glide().is_none());
-    due(&mut app, Alarm::Follow);
+    screen.perform(&mut app, Message::Worker(worker::Event::Due(Alarm::Follow)));
     screen.run(&mut app, 2, |_| false);
-    app.doc_mut().paper.finish_rasters();
 
     let _ = app.update(Message::Command(Command::Play));
     let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Take(0))));
@@ -5055,10 +5057,8 @@ fn frames_headless() {
     // The play fades, and its bar goes.
     screen.run(&mut app, 40, |_| false);
 
-    press(&mut app, Command::Back);
-    app.doc_mut().paper.finish_rasters();
+    screen.perform(&mut app, Message::Command(Command::Back));
     screen.run(&mut app, 120, |app| app.doc().paper.glide().is_none());
-    app.doc_mut().paper.finish_rasters();
 
     press(&mut app, Command::ZoomIn);
     screen.run(&mut app, 60, |app| app.doc().paper.glide().is_none());
@@ -5110,17 +5110,20 @@ fn snapshot_links() {
     shoot(&mut app, &dir, "links-map");
     let map = app.doc().key;
     let orders = link_on_screen(&app, "Orders");
-    let _ = app.update(Message::Paper(map, paper::Message::Follow(orders)));
+    send(
+        &mut app,
+        Message::Paper(map, paper::Message::Follow(orders)),
+    );
     // The zoom arrived: Orders lies where its tab will show it.
     let target = app.docs.last().unwrap().key;
-    deliver_linked(&mut app, target);
-    app.docs.last_mut().unwrap().paper.finish_rasters();
-    let _ = app.arrive();
+    let drawn = deliver_linked(&mut app, target);
+    run(&mut app, drawn);
+    let arrived = app.arrive();
+    run(&mut app, arrived);
     let takes = app.doc().paper.glide().unwrap().duration();
     std::thread::sleep(takes);
     shoot(&mut app, &dir, "links-arriving");
-    due(&mut app, Alarm::Follow);
-    app.doc_mut().paper.finish_rasters();
+    send(&mut app, Message::Worker(worker::Event::Due(Alarm::Follow)));
     shoot(&mut app, &dir, "links-orders");
 }
 
@@ -6165,8 +6168,6 @@ fn snapshot_dive() {
     screen.size = Size::new(1600.0, 1000.0);
     // The first redraws tell the pane its size; the map is fitted to it.
     screen.run(&mut app, 2, |_| false);
-    app.doc_mut().paper.finish_rasters();
-    screen.run(&mut app, 2, |_| false);
 
     let map = app.doc().key;
     let names: Vec<String> = match std::env::var("OMASPEC_DIVE_TILES") {
@@ -6222,24 +6223,18 @@ fn snapshot_dive() {
             if let Some(pending) = pending {
                 app.pending.insert((target, id), pending);
             }
-            let _ = app.update(Message::Worker(worker::Event::Rendered(Box::new(reply))));
+            screen.perform(
+                &mut app,
+                Message::Worker(worker::Event::Rendered(Box::new(reply))),
+            );
         }
-        app.docs
-            .iter_mut()
-            .find(|d| d.key == target)
-            .unwrap()
-            .paper
-            .finish_rasters();
-        let _ = app.arrive();
-        app.doc_mut().paper.finish_small();
+        let arrived = app.arrive();
+        screen.run_task(&mut app, arrived);
         frames(&mut app, &mut screen, &format!("{slug}-1in"), 200, true);
-        due(&mut app, Alarm::Follow);
+        screen.perform(&mut app, Message::Worker(worker::Event::Due(Alarm::Follow)));
         frames(&mut app, &mut screen, &format!("{slug}-2tab"), 3, false);
-        app.doc_mut().paper.finish_rasters();
-        press(&mut app, Command::Back);
-        app.doc_mut().paper.finish_small();
+        screen.perform(&mut app, Message::Command(Command::Back));
         frames(&mut app, &mut screen, &format!("{slug}-3out"), 200, true);
-        app.doc_mut().paper.finish_rasters();
         frames(&mut app, &mut screen, &format!("{slug}-4map"), 3, false);
     }
     let _ = std::fs::remove_dir_all(&root);
@@ -6329,8 +6324,8 @@ fn show_map(app: &mut App) {
     reply.language = Language::PlantUml;
     reply.source = skin;
     let paper = &mut app.doc_mut().paper;
-    let _ = paper.rendered(reply);
-    paper.finish_rasters();
+    let task = paper.rendered(reply);
+    paper.run(task);
 }
 
 /// A project of a machine, the diagram one of its states opens, a plan and
@@ -6403,14 +6398,10 @@ fn a_project_s_file_shows_the_map_made_from_its_diagrams() {
         .find(|d| d.path == Some(root.join("orders.puml")))
         .expect("Orders open")
         .key;
-    deliver_linked(&mut app, target);
-    app.docs
-        .iter_mut()
-        .find(|d| d.key == target)
-        .unwrap()
-        .paper
-        .finish_rasters();
-    let _ = app.arrive();
+    let drawn = deliver_linked(&mut app, target);
+    run(&mut app, drawn);
+    let arrived = app.arrive();
+    run(&mut app, arrived);
     assert!(app.doc().paper.glide().is_some(), "the zoom runs");
     due(&mut app, Alarm::Follow);
     assert_eq!(app.doc().path, Some(root.join("orders.puml")));
@@ -6553,11 +6544,10 @@ fn snapshot_readme_map() {
     split_at(&mut app, 0.2);
     show_map(&mut app);
     let key = app.doc().key;
-    let _ = app.update(Message::Paper(
-        key,
-        paper::Message::Viewport(Size::new(760.0, 560.0)),
-    ));
-    app.doc_mut().paper.finish_rasters();
+    send(
+        &mut app,
+        Message::Paper(key, paper::Message::Viewport(Size::new(760.0, 560.0))),
+    );
     app.notice = None;
     shoot(&mut app, &dir, "readme-map");
     let _ = std::fs::remove_dir_all(&root);

@@ -176,22 +176,29 @@ impl Stage {
         };
         let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
         let key = app.doc().key;
-        let _ = app.doc_mut().paper.set_scale_factor(1.0);
-        let _ = app
-            .doc_mut()
-            .paper
-            .update(paper::Message::Viewport(Size::new(800.0, 600.0)));
+        // The pane's pictures go up to this screen's GPU as they are made,
+        // as the window's go up to its own.
+        let mut screen = match args.renderer {
+            Some(renderer) => Screen::drawn_by(&app, 1.0, Some(renderer)),
+            None => Screen::new(&app, 1.0),
+        }
+        .map_err(|why| anyhow::anyhow!(why))?;
+        let scaled = app.doc_mut().paper.set_scale_factor(1.0);
+        screen.run_task(&mut app, scaled.map(move |m| Message::Paper(key, m)));
+        screen.perform(
+            &mut app,
+            Message::Paper(key, paper::Message::Viewport(Size::new(800.0, 600.0))),
+        );
         if project {
             let root = file.parent().context("a project lies in a folder")?;
             let (specs, atlas) = crate::specs::read_project(root);
-            let _ = app.update(Message::Specs(
-                root.to_owned(),
-                Arc::new(specs),
-                Arc::new(atlas),
-            ));
-            map(&mut app, key)?;
+            screen.perform(
+                &mut app,
+                Message::Specs(root.to_owned(), Arc::new(specs), Arc::new(atlas)),
+            );
+            map(&mut app, &screen, key)?;
         } else {
-            shown(&mut app, key, &text, language, &file)?;
+            shown(&mut app, &screen, key, &text, language, &file)?;
         }
         // The width asked for, else twice the diagram's size up to
         // WIDEST; the height from the diagram, with room for the bar a play
@@ -215,18 +222,15 @@ impl Stage {
         app.doc_mut().paper.view.fit = true;
         // Through the window, which draws the diagram of a tile in the
         // pane's size before its tab shows.
-        let _ = app.update(Message::Paper(key, paper::Message::Viewport(size)));
-        app.doc_mut().paper.finish_rasters();
-
-        let mut screen = match args.renderer {
-            Some(renderer) => Screen::drawn_by(&app, 1.0, Some(renderer)),
-            None => Screen::new(&app, 1.0),
-        }
-        .map_err(|why| anyhow::anyhow!(why))?;
+        screen.perform(
+            &mut app,
+            Message::Paper(key, paper::Message::Viewport(size)),
+        );
+        // The picture stands from the first frame: it has faded in, as it
+        // has by the time a window's reader looks at it.
+        screen.perform(&mut app, Message::Paper(key, paper::Message::Faded));
         screen.size = size;
         screen.shows = Shows::Diagram;
-        // Each frame's pictures on the GPU before it is drawn.
-        screen.preload = true;
         Ok(Self {
             app,
             screen,
@@ -259,10 +263,15 @@ impl Stage {
         self.run(HOLD, |_| false);
     }
 
+    /// Hands `message` to the editor, its tasks run at once.
+    fn send(&mut self, message: Message) {
+        self.screen.perform(&mut self.app, message);
+    }
+
     /// Runs the play; the events it took.
     fn play(&mut self, args: &Moving) -> Result<String> {
         let moving = |app: &App| !app.doc().paper.play_moving(crate::clock::now());
-        let _ = self.app.update(Message::Command(Command::Play));
+        self.send(Message::Command(Command::Play));
         if !self.app.doc().paper.playing() {
             bail!(
                 "{}",
@@ -279,9 +288,7 @@ impl Stage {
             let Some(paper::Offer::Machine { options, ended, .. }) = self.app.doc().paper.offer()
             else {
                 // A scenario: its next message.
-                let _ = self
-                    .app
-                    .update(Message::Command(Command::PlayAsk(Ask::Next)));
+                self.send(Message::Command(Command::PlayAsk(Ask::Next)));
                 if !self.app.doc().paper.playing() {
                     break;
                 }
@@ -296,9 +303,7 @@ impl Stage {
             };
             walked.push(options[choice].clone());
             taken.push(options[choice].0.trim().to_owned());
-            let _ = self
-                .app
-                .update(Message::Command(Command::PlayAsk(Ask::Take(choice))));
+            self.send(Message::Command(Command::PlayAsk(Ask::Take(choice))));
             self.step(moving);
         }
         // The picture ends on the state the play reached, held a moment
@@ -327,10 +332,6 @@ impl Stage {
                 }
             );
         }
-        // The first picture has faded in: the next glides from it.
-        let paper = &mut self.app.doc_mut().paper;
-        paper.deliver_overview();
-        let _ = paper.update(paper::Message::Faded);
         self.run(HOLD, |_| false);
         let folds = names.iter().map(|name| (name, true));
         let unfolds = names.iter().rev().map(|name| (name, false));
@@ -340,15 +341,15 @@ impl Stage {
             } else {
                 paper::Message::Unfold(name.clone())
             };
-            let _ = self.app.update(Message::Paper(self.key, ask));
+            self.send(Message::Paper(self.key, ask));
             shown(
                 &mut self.app,
+                &self.screen,
                 self.key,
                 &self.text,
                 self.language,
                 &self.file,
             )?;
-            self.app.doc_mut().paper.deliver_overview();
             self.step(|app| {
                 let paper = &app.doc().paper;
                 paper.fading().is_none() && paper.glide().is_none()
@@ -388,9 +389,7 @@ impl Stage {
                             .join(", ")
                     )
                 })?;
-            let _ = self
-                .app
-                .update(Message::Paper(map, paper::Message::Follow(at)));
+            self.send(Message::Paper(map, paper::Message::Follow(at)));
             let target = self
                 .app
                 .docs
@@ -398,24 +397,19 @@ impl Stage {
                 .map(|doc| doc.key)
                 .find(|key| self.app.is_arriving(*key))
                 .with_context(|| format!("{name} opens no diagram"))?;
-            linked(&mut self.app, target)?;
-            let _ = self.app.arrive();
-            self.app.doc_mut().paper.finish_small();
+            linked(&mut self.app, &self.screen, target)?;
+            let arrived = self.app.arrive();
+            self.screen.run_task(&mut self.app, arrived);
             // The way in, the diagram in its own tab, and a moment there.
             self.run(self.tick, |_| false);
             self.run(DIVE, still);
-            let _ = self
-                .app
-                .update(Message::Worker(worker::Event::Due(worker::Alarm::Follow)));
+            self.send(Message::Worker(worker::Event::Due(worker::Alarm::Follow)));
             self.run(self.tick * 2, |_| false);
-            self.app.doc_mut().paper.finish_rasters();
             self.run(HOLD, |_| false);
             // The way back out, and the map again.
-            let _ = self.app.update(Message::Command(Command::Back));
-            self.app.doc_mut().paper.finish_small();
+            self.send(Message::Command(Command::Back));
             self.run(self.tick, |_| false);
             self.run(DIVE, still);
-            self.app.doc_mut().paper.finish_rasters();
             self.run(HOLD, |_| false);
         }
         Ok(format!("into {} and back", names.join(", ")))
@@ -543,7 +537,7 @@ fn theme(named: Option<&str>) -> Result<Omarchy> {
 
 /// Draws the project's map in the pane of its file, as the window makes
 /// it from the project's diagrams (docs/adr/0026).
-fn map(app: &mut App, key: u64) -> Result<()> {
+fn map(app: &mut App, screen: &Screen, key: u64) -> Result<()> {
     let (atlas, _) = app
         .linked_of(key)
         .context("the project could not be read")?;
@@ -557,15 +551,16 @@ fn map(app: &mut App, key: u64) -> Result<()> {
     let mut reply = headless::answer(key, id, Ok(drawn));
     reply.language = Language::PlantUml;
     reply.source = skin;
-    let paper = &mut app.doc_mut().paper;
-    let _ = paper.rendered(reply);
-    paper.finish_rasters();
+    screen.perform(
+        app,
+        Message::Worker(worker::Event::Rendered(Box::new(reply))),
+    );
     Ok(())
 }
 
 /// Draws the diagram of the tab `key` as one of its project, with its
 /// links, and hands it in as the render thread does.
-fn linked(app: &mut App, key: u64) -> Result<()> {
+fn linked(app: &mut App, screen: &Screen, key: u64) -> Result<()> {
     let (atlas, own) = app
         .linked_of(key)
         .context("the project could not be read")?;
@@ -588,11 +583,10 @@ fn linked(app: &mut App, key: u64) -> Result<()> {
     if let Some(pending) = pending {
         app.pending.insert((key, id), pending);
     }
-    let _ = app.update(Message::Worker(worker::Event::Rendered(Box::new(reply))));
-    app.find(key)
-        .context("the diagram's tab")?
-        .paper
-        .finish_rasters();
+    screen.perform(
+        app,
+        Message::Worker(worker::Event::Rendered(Box::new(reply))),
+    );
     Ok(())
 }
 
@@ -600,6 +594,7 @@ fn linked(app: &mut App, key: u64) -> Result<()> {
 /// the containers folded that the pane has folded, here and now.
 fn shown(
     app: &mut App,
+    screen: &Screen,
     key: u64,
     text: &str,
     language: Language,
@@ -627,10 +622,11 @@ fn shown(
     reply.source = source;
     if let Some(pending) = pending {
         app.pending.insert((key, id), pending);
-        app.untangle(&mut reply);
     }
-    let _ = app.doc_mut().paper.rendered(reply);
-    app.doc_mut().paper.finish_rasters();
+    screen.perform(
+        app,
+        Message::Worker(worker::Event::Rendered(Box::new(reply))),
+    );
     Ok(())
 }
 

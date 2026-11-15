@@ -4,27 +4,27 @@ use super::*;
 #[test]
 fn a_new_diagram_fades_in_over_the_one_before() {
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
     paper.pretend_requested(2);
     let first = drawn("flowchart LR\n  A --> B\n", Language::Mermaid);
-    let _ = paper.rendered(answer(1, 1, Ok(first)));
-    paper.deliver_overview();
+    let task = paper.rendered(answer(1, 1, Ok(first)));
+    paper.run(task);
     // The first picture comes in from white paper.
     assert_eq!(paper.fading(), Some(0));
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     assert_eq!(paper.fading(), None);
 
     let second = drawn("flowchart LR\n  A --> C\n", Language::Mermaid);
-    let _ = paper.rendered(answer(1, 2, Ok(second)));
+    let task = paper.rendered(answer(1, 2, Ok(second)));
     // The old picture stays as it is until the new one is rasterized.
     assert_eq!(paper.fading(), None);
-    paper.deliver_overview();
+    paper.run(task);
     assert_eq!(paper.fading(), Some(1));
 
     // Zooming rasterizes again without a fade.
-    let _ = paper.update(Message::Faded);
-    let _ = paper.zoom(2.0);
-    paper.deliver_overview();
+    paper.send(Message::Faded);
+    let task = paper.zoom(2.0);
+    paper.run(task);
     assert_eq!(paper.fading(), None);
 }
 
@@ -394,37 +394,37 @@ fn new_pixels_wait_until_the_view_stops_gliding() {
     let door =
         "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     show_source(&mut paper, door, Language::PlantUml);
-    paper.finish_rasters();
     let before = paper.overview.shown.as_ref().map(|r| r.region);
     assert!(before.is_some());
-    let _ = paper.zoom(1.2);
+    let zoomed = paper.zoom(1.2);
     assert!(paper.glide.is_some());
     // The glide outlasts the rasterizing here, however loaded the machine.
     paper.glide = paper
         .glide
         .map(|g| g.taking(std::time::Duration::from_secs(60)));
     let asked = paper.overview.asked;
-    paper.deliver_overview();
+    paper.run(zoomed);
     assert!(paper.held_overview.is_some(), "held while it glides");
     assert_eq!(paper.overview.shown.as_ref().map(|r| r.region), before);
     // Once it stops, the held pixels are shown.
     paper.glide = paper.glide.map(|g| g.taking(std::time::Duration::ZERO));
-    let _ = paper.update(Message::Glided);
+    paper.send(Message::Glided);
     assert!(paper.held_overview.is_none());
     assert_eq!(paper.overview.asked, asked);
     assert!(paper.overview.shown.is_some());
 
     // Without a picture on screen, pixels come at once.
     let mut bare = Paper::default();
-    let _ = bare.update(Message::Viewport(Size::new(800.0, 600.0)));
+    bare.send(Message::Viewport(Size::new(800.0, 600.0)));
     let mut reply = answer(1, bare.pretend_next(), Ok(drawn(door, Language::PlantUml)));
     reply.source = door.into();
     reply.language = Language::PlantUml;
-    let _ = bare.rendered(reply);
-    let _ = bare.zoom(1.2);
-    bare.deliver_overview();
+    let drawn = bare.rendered(reply);
+    let zoomed = bare.zoom(1.2);
+    bare.run(drawn);
+    bare.run(zoomed);
     assert!(bare.held_overview.is_none() && bare.overview.shown.is_some());
 }
 
@@ -434,7 +434,7 @@ fn a_pane_that_only_grows_or_shrinks_in_height_holds_the_picture_then_glides() {
     let door =
         "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     show_source(&mut paper, door, Language::PlantUml);
     let (tall, short) = (Size::new(800.0, 600.0), Size::new(800.0, 550.0));
     let before = paper.view;
@@ -446,7 +446,7 @@ fn a_pane_that_only_grows_or_shrinks_in_height_holds_the_picture_then_glides() {
         )
         .position()
     };
-    let _ = paper.update(Message::Viewport(short));
+    paper.send(Message::Viewport(short));
     let glide = paper.glide.expect("a fitted picture glides to its new fit");
     // Where it starts, whatever time has passed on a loaded machine.
     let start = on_screen(glide.from(), short);
@@ -459,11 +459,11 @@ fn a_pane_that_only_grows_or_shrinks_in_height_holds_the_picture_then_glides() {
 
     // Zoomed in, not fitted: it stays where it is, without a glide.
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(tall));
+    paper.send(Message::Viewport(tall));
     show_source(&mut paper, door, Language::PlantUml);
-    let _ = paper.update(Message::ZoomAt(2.0, Point::new(400.0, 300.0)));
+    paper.send(Message::ZoomAt(2.0, Point::new(400.0, 300.0)));
     let zoomed = paper.view;
-    let _ = paper.update(Message::Viewport(short));
+    paper.send(Message::Viewport(short));
     assert!(paper.glide.is_none());
     let (now, was) = (on_screen(paper.view, short), on_screen(zoomed, tall));
     assert!((now.y - was.y).abs() < 0.5, "{now:?} {was:?}");
@@ -476,13 +476,13 @@ fn the_way_back_out_of_a_link_runs_on_when_the_pane_reports_its_size() {
     let door =
         "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 540.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 540.0)));
     show_source(&mut paper, door, Language::PlantUml);
     let area = Rectangle::new(Point::new(10.0, 10.0), Size::new(40.0, 20.0));
     let back = View::fitted(paper.diagram_size(), Size::new(800.0, 540.0));
     let _ = paper.zoom_out_of(area, back, None);
     let started = paper.glide.expect("the way back runs");
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     let glide = paper.glide.expect("the way back runs on");
     assert_ne!(glide, started);
     // It ends where the taller pane fits the diagram, and goes on from
@@ -493,23 +493,22 @@ fn the_way_back_out_of_a_link_runs_on_when_the_pane_reports_its_size() {
     assert!(glide.duration() <= started.duration());
 
     // The same size again changes nothing.
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     assert_eq!(paper.glide, Some(glide));
 }
 
 #[test]
 fn a_new_picture_stays_where_it_was_until_it_fades() {
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
     show_source(
         &mut paper,
         "@startuml\n[*] --> A\n@enduml\n",
         Language::PlantUml,
     );
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     let kept = paper.view;
-    show_source(
+    let task = draw_source(
         &mut paper,
         "@startuml\n[*] --> A\nA --> B\nB --> C\nC --> D\nD --> E\n@enduml\n",
         Language::PlantUml,
@@ -520,7 +519,7 @@ fn a_new_picture_stays_where_it_was_until_it_fades() {
         Some(kept)
     );
     assert!(paper.fading().is_none());
-    paper.deliver_overview();
+    paper.run(task);
     let fade = paper.arrival.fade().expect("the new picture fades in");
     assert_eq!(fade.old_view, kept);
     assert!(fade.morph.is_some(), "the boxes moved, so they glide");
@@ -536,12 +535,10 @@ fn a_new_picture_stays_where_it_was_until_it_fades() {
 fn the_same_layout_keeps_the_short_fade() {
     let source = "@startuml\n[*] --> A\nA --> B\n@enduml\n";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
     show_source(&mut paper, source, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     show_source(&mut paper, source, Language::PlantUml);
-    paper.deliver_overview();
     let fade = paper.arrival.fade().expect("a new raster still fades");
     assert!(fade.morph.is_none(), "the boxes did not move");
     let left = fade.shown.remaining(Instant::now());
@@ -604,15 +601,14 @@ fn a_fold_fades_and_a_zoomed_box_stays_put() {
     let open = "@startuml\nstate Idle\nstate Brewing {\n  state Grind\n  state Pour\n}\nIdle --> Brewing\n@enduml\n";
     let folded = "@startuml\nstate Idle\nstate Brewing {\n  state Grind\n  state Pour\n}\nIdle --> Brewing\n' fold (Omaspec) Brewing\n@enduml\n";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     show_source(&mut paper, open, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
-    let _ = paper.update(Message::ZoomAt(2.0, Point::new(400.0, 300.0)));
+    paper.send(Message::Faded);
+    paper.send(Message::ZoomAt(2.0, Point::new(400.0, 300.0)));
     let before = paper.screen_of_box("Brewing");
     let open_box = paper.box_center("Brewing").expect("Brewing");
     paper.set_fold("Brewing", true);
-    show_source(&mut paper, folded, Language::PlantUml);
+    let task = draw_source(&mut paper, folded, Language::PlantUml);
     let folded_box = paper.box_center("Brewing").expect("Brewing folded");
     assert!(
         folded_box.distance(open_box) > 1.0
@@ -630,7 +626,7 @@ fn a_fold_fades_and_a_zoomed_box_stays_put() {
         "the box left the screen: {before:?} -> {after:?}"
     );
     assert!(!paper.view.fit);
-    paper.deliver_overview();
+    paper.run(task);
     let fade = paper.arrival.fade().expect("the fold fades");
     assert!(!fade.old.is_empty());
     assert!(fade.morph.is_some(), "folding moves the boxes");
@@ -655,14 +651,12 @@ fn a_fold_glides_each_part_from_a_picture_of_its_own() {
     let open = "@startuml\n[*] --> Idle\nIdle --> Brewing : start\nstate Brewing {\n  [*] --> Grind\n  Grind --> Pour : ground\n}\nBrewing --> Idle : done\n' parts (Omaspec)\n@enduml\n";
     let folded = open.replace("@enduml", "' fold (Omaspec) Brewing\n@enduml");
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     show_source(&mut paper, open, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     assert!(paper.diagram.as_ref().unwrap().drawn.parts);
     paper.set_fold("Brewing", true);
     show_source(&mut paper, &folded, Language::PlantUml);
-    paper.deliver_overview();
     let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
@@ -720,13 +714,11 @@ fn a_package_glides_from_its_parts() {
     let open = "@startuml\npackage Lending {\n  class Loan\n  class Copy\n  Loan --> Copy : lends\n}\nclass Member\nMember --> Loan : borrows\n' parts (Omaspec)\n@enduml\n";
     let folded = open.replace("@enduml", "' fold (Omaspec) Lending\n@enduml");
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     show_source(&mut paper, open, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     paper.set_fold("Lending", true);
     show_source(&mut paper, &folded, Language::PlantUml);
-    paper.deliver_overview();
     let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
@@ -759,14 +751,12 @@ fn a_subgraph_glides_from_its_parts() {
     let open = "flowchart LR\n  A[Cart] -->|pays| B[Till]\n  subgraph Back[Back office]\n    C[Stock] --> D[Ship]\n  end\n  B -->|orders| C\n%% parts (Omaspec)\n";
     let folded = format!("{open}%% fold (Omaspec) Back\n");
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     show_source(&mut paper, open, Language::Mermaid);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     assert!(paper.diagram.as_ref().unwrap().drawn.parts);
     paper.set_fold("Back", true);
     show_source(&mut paper, &folded, Language::Mermaid);
-    paper.deliver_overview();
     let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
@@ -812,14 +802,12 @@ fn a_wbs_branch_glides_from_its_parts() {
         "@startwbs\n* Move\n** Pack\n*** Books\n*** Plates\n** Clean\n' parts (Omaspec)\n@endwbs\n";
     let folded = format!("{open}' fold (Omaspec) Pack\n");
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     show_source(&mut paper, open, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     assert!(paper.diagram.as_ref().unwrap().drawn.parts);
     paper.set_fold("Pack", true);
     show_source(&mut paper, &folded, Language::PlantUml);
-    paper.deliver_overview();
     let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
@@ -858,14 +846,12 @@ fn a_json_card_folds_from_its_part_into_its_row() {
     let open = "@startjson\ntitle People\n{\"name\": \"Ada\", \"home\": {\"city\": \"London\", \"street\": {\"no\": 7}}}\n' parts (Omaspec)\n@endjson\n";
     let folded = format!("{open}' fold (Omaspec) home/street\n");
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     show_source(&mut paper, open, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     assert!(paper.diagram.as_ref().unwrap().drawn.parts);
     paper.set_fold("home/street", true);
     show_source(&mut paper, &folded, Language::PlantUml);
-    paper.deliver_overview();
     let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
@@ -924,15 +910,15 @@ D --> E
 @enduml
 ";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
     show_source(&mut paper, first, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
-    show_source(&mut paper, next, Language::PlantUml);
-    // The overview alone: the fade waits for the sheets.
+    paper.send(Message::Faded);
+    // Its pictures on their way: the overview comes alone, and the fade
+    // waits for the sheets.
+    let _on_their_way = draw_source(&mut paper, next, Language::PlantUml);
     let tree = Arc::clone(paper.shown_tree().unwrap());
     let raster = raster::render(&tree, paper.overview.asked.unwrap());
-    let _ = paper.update(Message::Overview(paper.overview.seq(), raster));
+    let _sheets = paper.update(Message::Overview(paper.overview.seq(), raster));
     assert!(paper.arrival.fade().is_none(), "waits for the sheets");
     assert!(paper.bare_old.asked.is_some() && paper.bare_new.asked.is_some());
     assert!(
@@ -940,7 +926,7 @@ D --> E
         "the old picture stays meanwhile"
     );
     // One of them fails: the pictures fade, nothing is cut out of them.
-    let _ = paper.update(Message::BareOld(paper.bare_old.seq(), None));
+    paper.send(Message::BareOld(paper.bare_old.seq(), None));
     let fade = paper.arrival.fade().expect("the fade starts without them");
     assert!(fade.morph.is_none());
     assert!(fade.lines.is_none() && fade.bare.is_none());
@@ -964,7 +950,7 @@ fn a_picture_without_parts_fades() {
         let mut reply = answer(1, paper.pretend_next(), Ok(drawn));
         reply.source = source.into();
         reply.language = Language::PlantUml;
-        let _ = paper.rendered(reply);
+        paper.rendered(reply)
     };
     for (from, to) in [(false, false), (true, false), (false, true)] {
         let what = format!("parts {from} to {to}");
@@ -972,18 +958,18 @@ fn a_picture_without_parts_fades() {
             folding: true,
             ..Paper::default()
         };
-        let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
-        show(&mut paper, first, from);
-        paper.deliver_overview();
-        let _ = paper.update(Message::Faded);
+        paper.send(Message::Viewport(Size::new(400.0, 300.0)));
+        let task = show(&mut paper, first, from);
+        paper.run(task);
+        paper.send(Message::Faded);
         paper.set_fold("Big", true);
-        show(&mut paper, next, to);
+        let task = show(&mut paper, next, to);
         assert_eq!(
             paper.arrival.previous().unwrap().boxes.is_empty(),
             !from,
             "{what}: its boxes read only for a glide"
         );
-        paper.deliver_overview();
+        paper.run(task);
         assert!(paper.bare_old.asked.is_none() && paper.bare_new.asked.is_none());
         let fade = paper.arrival.fade().expect("the fade starts at once");
         assert!(fade.morph.is_none() && fade.bare.is_none(), "{what}");
@@ -1012,12 +998,10 @@ fn wide_tree(branches: usize, leaves: usize, more: usize) -> String {
 /// The pane after `first` was shown and `next` came: its fade.
 fn from_to(first: &str, next: &str) -> Paper {
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
     show_source(&mut paper, first, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     show_source(&mut paper, next, Language::PlantUml);
-    paper.deliver_overview();
     paper
 }
 
@@ -1050,8 +1034,8 @@ fn a_diagram_of_too_many_boxes_fades_to_its_new_layout() {
     assert_eq!(boxes(&from_to(&small, &one_more)), arrive::MOST_GLIDING + 1);
     // Nothing of a picture that will not glide is read for a glide.
     let mut paper = from_to(&small, &one_more);
-    let _ = paper.update(Message::Faded);
-    show_source(&mut paper, &most, Language::PlantUml);
+    paper.send(Message::Faded);
+    let _on_their_way = draw_source(&mut paper, &most, Language::PlantUml);
     assert!(paper.arrival.previous().unwrap().boxes.is_empty());
 }
 
@@ -1066,20 +1050,18 @@ fn a_fold_of_too_many_boxes_fades_and_its_buttons_wait() {
         folding: true,
         ..Paper::default()
     };
-    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
     show_source(&mut paper, &open, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     assert!(!paper.fold_spots().is_empty(), "the branches fold");
     paper.set_fold("Branch 0", true);
     show_source(&mut paper, &folded, Language::PlantUml);
-    paper.deliver_overview();
     let fade = paper.arrival.fade().expect("the fold fades");
     assert!(fade.morph.is_none() && fade.stands_in);
     let left = fade.shown.remaining(Instant::now());
     assert!(left > Duration::from_millis(280), "{left:?}");
     assert!(paper.fold_spots().is_empty(), "the buttons wait");
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     assert!(!paper.fold_spots().is_empty(), "and come with the picture");
 }
 
@@ -1090,14 +1072,12 @@ fn a_glide_finishes_before_the_next_one_starts() {
     let last =
         "@startuml\n[*] --> A\nA --> B\nB --> C\nC --> D\nD --> E\nE --> F\nF --> G\n@enduml\n";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
     show_source(&mut paper, first, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
 
     show_source(&mut paper, mid, Language::PlantUml);
     let mid_size = paper.diagram_size();
-    paper.deliver_overview();
     let fade = paper.arrival.fade().expect("the first glide");
     assert!(fade.morph.is_some());
     let first_size = fade.old_size;
@@ -1106,15 +1086,14 @@ fn a_glide_finishes_before_the_next_one_starts() {
 
     // A newer diagram arrives while that glide is still going.
     show_source(&mut paper, last, Language::PlantUml);
-    paper.deliver_overview();
     let fade = paper.arrival.fade().expect("the glide in flight");
     assert_eq!(fade.old_size, first_size);
     assert_eq!(fade.new_size, pinned);
 
-    let _ = paper.update(Message::Faded);
+    let sheets = paper.update(Message::Faded);
     // The next glide asks for the sheets of parts first.
     assert!(paper.arrival.fade().is_none());
-    paper.deliver_bare();
+    paper.run(sheets);
     let fade = paper
         .arrival
         .fade()
@@ -1129,8 +1108,8 @@ fn the_way_back_waits_until_the_diagram_has_a_picture() {
     let door =
         "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
-    show_source(&mut paper, door, Language::PlantUml);
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
+    let drawn = draw_source(&mut paper, door, Language::PlantUml);
     assert!(paper.overview.shown.is_none());
     let area = Rectangle::new(Point::new(10.0, 10.0), Size::new(40.0, 20.0));
     let back = paper.view;
@@ -1139,12 +1118,13 @@ fn the_way_back_waits_until_the_diagram_has_a_picture() {
         place: Rectangle::new(Point::new(40.0, 30.0), Size::new(80.0, 40.0)),
         picture: None,
     };
-    let _ = paper.zoom_out_of(area, back, Some(from));
+    let out = paper.zoom_out_of(area, back, Some(from));
     assert!(paper.glide.is_none(), "no glide over an empty pane");
     let passage = paper.passage.as_ref().expect("waiting to leave");
     assert!(passage.goal.is_some());
     assert_eq!(passage.shown(0.2), 1.0);
-    paper.deliver_overview();
+    paper.run(drawn);
+    paper.run(out);
     let glide = paper
         .glide
         .expect("the way back starts once the picture is in");
@@ -1163,8 +1143,9 @@ fn the_way_back_stops_waiting_for_a_pan_or_a_picture_that_failed() {
     };
     let waiting = || {
         let mut paper = Paper::default();
-        let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
-        show_source(&mut paper, door, Language::PlantUml);
+        paper.send(Message::Viewport(Size::new(800.0, 600.0)));
+        // Its picture on its way.
+        let _ = draw_source(&mut paper, door, Language::PlantUml);
         let back = paper.view;
         let _ = paper.zoom_out_of(area, back, Some(from()));
         assert!(paper.passage.as_ref().unwrap().goal.is_some());
@@ -1172,13 +1153,13 @@ fn the_way_back_stops_waiting_for_a_pan_or_a_picture_that_failed() {
     };
     // A pan lifts the veil where the way back was going.
     let (mut paper, back) = waiting();
-    let _ = paper.update(Message::Pan(Vector::new(5.0, 0.0)));
+    paper.send(Message::Pan(Vector::new(5.0, 0.0)));
     assert!(paper.passage.is_none());
     assert!((paper.view.zoom - back.zoom).abs() < 1e-4);
     // A picture that could not be drawn does too.
     let (mut paper, back) = waiting();
     let seq = paper.overview.seq();
-    let _ = paper.update(Message::Overview(seq, None));
+    paper.send(Message::Overview(seq, None));
     assert!(paper.passage.is_none(), "the veil stays up for nothing");
     assert_eq!(paper.view, back);
 }
@@ -1186,16 +1167,16 @@ fn the_way_back_stops_waiting_for_a_pan_or_a_picture_that_failed() {
 #[test]
 fn the_picture_held_for_the_next_one_moves_with_the_view() {
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
     show_source(
         &mut paper,
         "@startuml\n[*] --> A\n@enduml\n",
         Language::PlantUml,
     );
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
     let kept = paper.view;
-    show_source(
+    // The new one's pictures on their way while the view moves.
+    let _ = draw_source(
         &mut paper,
         "@startuml\n[*] --> A\nA --> B\nB --> C\nC --> D\n@enduml\n",
         Language::PlantUml,
@@ -1222,7 +1203,7 @@ fn the_picture_held_for_the_next_one_moves_with_the_view() {
     assert!(zoomed.center.distance(expected.center) < 1e-2, "{zoomed:?}");
     // A raster that cannot be drawn lets it go.
     let seq = paper.overview.seq();
-    let _ = paper.update(Message::Overview(seq, None));
+    paper.send(Message::Overview(seq, None));
     assert!(paper.held_picture().is_none());
 }
 
@@ -1230,14 +1211,14 @@ fn the_picture_held_for_the_next_one_moves_with_the_view() {
 fn a_zoom_gliding_when_a_picture_comes_goes_on_to_its_end() {
     let source = "@startuml\n[*] --> A\nA --> B\n@enduml\n";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
     show_source(&mut paper, source, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
+    paper.send(Message::Faded);
+    // Its pixels on their way.
     let _ = paper.update(Message::ZoomStep(2.0, Point::new(200.0, 150.0)));
     let asked = paper.view;
     assert!(paper.glide.is_some());
-    show_source(&mut paper, source, Language::PlantUml);
+    let _ = draw_source(&mut paper, source, Language::PlantUml);
     let glide = paper.glide.expect("the zoom glides on");
     assert_eq!(paper.view, asked);
     assert_eq!(glide.at(Instant::now() + glide.duration()), asked);
@@ -1248,11 +1229,10 @@ fn a_render_asked_before_a_fold_leaves_the_fold_to_the_next() {
     let open = "@startuml\nstate Idle\nstate Brewing {\n  state Grind\n  state Pour\n}\nIdle --> Brewing\n@enduml\n";
     let folded = "@startuml\nstate Idle\nstate Brewing {\n  state Grind\n  state Pour\n}\nIdle --> Brewing\n' fold (Omaspec) Brewing\n@enduml\n";
     let mut paper = Paper::default();
-    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
     show_source(&mut paper, open, Language::PlantUml);
-    paper.deliver_overview();
-    let _ = paper.update(Message::Faded);
-    let _ = paper.update(Message::ZoomAt(2.0, Point::new(400.0, 300.0)));
+    paper.send(Message::Faded);
+    paper.send(Message::ZoomAt(2.0, Point::new(400.0, 300.0)));
     // An edit is on its way when the fold is asked for.
     let edit = paper.pretend_next();
     paper.set_fold("Brewing", true);
@@ -1260,24 +1240,24 @@ fn a_render_asked_before_a_fold_leaves_the_fold_to_the_next() {
     let mut reply = answer(1, edit, Ok(drawn(open, Language::PlantUml)));
     reply.source = open.into();
     reply.language = Language::PlantUml;
-    let _ = paper.rendered(reply);
+    let task = paper.rendered(reply);
     assert!(
         matches!(&paper.change, Change::Fold { anchor: Some(name), .. } if name == "Brewing"),
         "the edit took the fold's anchor"
     );
-    paper.deliver_overview();
+    paper.run(task);
     assert!(
         matches!(paper.change, Change::Fold { .. }),
         "the edit's fade took the fold"
     );
-    let _ = paper.update(Message::Faded);
-    show_source(&mut paper, folded, Language::PlantUml);
+    paper.send(Message::Faded);
+    let task = draw_source(&mut paper, folded, Language::PlantUml);
     let after = paper.screen_of_box("Brewing");
     assert!(
         (after.x - before.x).abs() < 1.5 && (after.y - before.y).abs() < 1.5,
         "the box left the screen: {before:?} -> {after:?}"
     );
-    paper.deliver_overview();
+    paper.run(task);
     assert!(matches!(paper.change, Change::Edit));
     let fade = paper.arrival.fade().expect("the fold fades");
     let left = fade.shown.remaining(Instant::now());
@@ -1287,10 +1267,18 @@ fn a_render_asked_before_a_fold_leaves_the_fold_to_the_next() {
     );
 }
 
-/// Puts `source` on the sheet, as a render would.
+/// Puts `source` on the sheet, as a render would, and makes the pictures
+/// it asks for, as the window makes them.
 fn show_source(paper: &mut Paper, source: &str, language: Language) {
+    let task = draw_source(paper, source, language);
+    paper.run(task);
+}
+
+/// Hands `source` to the pane, as a render would: the tasks that make its
+/// pictures are still to run.
+fn draw_source(paper: &mut Paper, source: &str, language: Language) -> Task<Message> {
     let mut reply = answer(1, paper.pretend_next(), Ok(drawn(source, language)));
     reply.source = source.into();
     reply.language = language;
-    let _ = paper.rendered(reply);
+    paper.rendered(reply)
 }

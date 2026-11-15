@@ -274,6 +274,12 @@ fn collect_outlines(group: &usvg::Group, outlines: &mut Vec<Outline>) {
 }
 
 impl Fills {
+    /// The plain colors its shapes are filled with, each as often as a
+    /// shape has it.
+    pub fn colors(&self) -> impl Iterator<Item = [f32; 3]> + '_ {
+        self.0.iter().filter_map(|outline| outline.fill)
+    }
+
     /// The fill of the shape drawn on the box `(x, y, w, h)`, when one
     /// sits there. A sketch's stroke bows, so the shape may miss the box
     /// by a little.

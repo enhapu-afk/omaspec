@@ -2,14 +2,12 @@
 //! tests and `omaspec play FILE -o play.gif` need to show one and draw
 //! its pixels here and now.
 
-use std::sync::Arc;
-
 use iced::Size;
 use omaspec_core::Language;
 use omaspec_render::RenderError;
 
+use super::Paper;
 use super::view::Glide;
-use super::{Message, Paper, raster};
 use crate::worker::{Answer, Drawn, Ticket};
 
 /// A render thread's answer for the request `id` of the tab `doc`.
@@ -41,7 +39,7 @@ impl Paper {
 
     /// The containers the picture offers to fold, and those folded in it.
     pub fn containers(&self) -> Vec<String> {
-        self.fold_spots()
+        self.containers_to_fold()
             .into_iter()
             .map(|spot| spot.name)
             .collect()
@@ -57,86 +55,6 @@ impl Paper {
         self.glide
     }
 
-    /// Rasterizes the overview the view asked for and hands it in as
-    /// the background task's message would, with the pictures a glide
-    /// needs.
-    pub fn deliver_overview(&mut self) {
-        let Some(tree) = self.shown_tree().map(Arc::clone) else {
-            return;
-        };
-        if let Some(plan) = self.overview.asked {
-            let raster = raster::render(&tree, plan);
-            let _ = self.update(Message::Overview(self.overview.seq(), raster));
-        }
-        self.deliver_bare();
-    }
-
-    /// The sheets of parts a glide asked for, rasterized here.
-    pub fn deliver_bare(&mut self) {
-        let old = self
-            .arrival
-            .previous()
-            .and_then(|previous| previous.sheet.clone())
-            .zip(self.bare_old.asked);
-        let new = self
-            .diagram
-            .as_ref()
-            .and_then(|diagram| raster::Sheet::of(&diagram.drawn))
-            .zip(self.bare_new.asked);
-        if let Some((sheet, plan)) = old {
-            let raster = sheet.draw(plan);
-            let _ = self.update(Message::BareOld(self.bare_old.seq(), raster));
-        }
-        if let Some((sheet, plan)) = new {
-            let raster = sheet.draw(plan);
-            let _ = self.update(Message::BareNew(self.bare_new.seq(), raster));
-        }
-    }
-
-    /// The pictures the pane may draw next: those shown or held back,
-    /// those a fade, a glide or a zoom goes from and to, the sheets of
-    /// parts it asked for, and the colors of the boxes a glide draws out
-    /// ([`super::sprite::draw`]). A recording puts them on the GPU before
-    /// each frame ([`crate::editor::Screen::upload`]), as the window waits
-    /// for its pixels to be there.
-    pub fn pictures(&self) -> Vec<iced::widget::image::Handle> {
-        let mut out: Vec<&raster::Raster> = Vec::new();
-        for layer in [&self.overview, &self.detail, &self.bare_old, &self.bare_new] {
-            out.extend(layer.shown.iter());
-        }
-        // Those that came while the view glided, shown when it lands.
-        for held in [&self.held_overview, &self.held_detail] {
-            out.extend(held.iter().filter_map(|(_, raster)| raster.as_ref()));
-        }
-        if let Some(fade) = self.arrival.fade() {
-            out.extend(fade.old.iter());
-            if let Some((old, new)) = &fade.bare {
-                out.extend([old, new]);
-            }
-        }
-        if let Some(previous) = self.arrival.previous() {
-            out.extend(previous.pictures.iter());
-        }
-        if let Some(passage) = &self.passage {
-            out.extend(passage.linked.iter().filter_map(|l| l.picture.as_ref()));
-            out.extend(passage.small.iter().flatten());
-        }
-        let mut handles: Vec<_> = out.into_iter().map(|r| r.handle.clone()).collect();
-        // The colors a glide fills the room of its boxes with.
-        let moves = self
-            .arrival
-            .fade()
-            .into_iter()
-            .flat_map(|fade| fade.morph.iter())
-            .flat_map(|m| &m.moves);
-        for step in moves {
-            for fill in step.looks.fill.into_iter().flatten() {
-                handles.push(raster::Raster::swatch(fill).handle);
-            }
-        }
-        handles
-    }
-
     /// How many pictures of the diagram before fade out, if a fade runs.
     pub fn fading(&self) -> Option<usize> {
         self.arrival.fade().map(|fade| fade.old.len())
@@ -145,29 +63,5 @@ impl Paper {
     /// The pane's size.
     pub fn viewport(&self) -> Size {
         self.viewport
-    }
-
-    /// Makes the smaller copies a zoom into a tile or out of it asked
-    /// for, as the background task would.
-    pub fn finish_small(&mut self) {
-        if let Some(passage) = self.passage.as_mut().filter(|p| p.small_of.is_some()) {
-            let picture = passage.linked.as_ref().and_then(|l| l.picture.as_ref());
-            passage.small = picture
-                .map(raster::halves)
-                .unwrap_or_default()
-                .into_iter()
-                .map(Some)
-                .collect();
-        }
-    }
-
-    /// Rasterizes what the pane asked for, here and now, as the
-    /// background task would.
-    pub fn finish_rasters(&mut self) {
-        let Some(tree) = self.shown_tree().map(Arc::clone) else {
-            return;
-        };
-        self.overview.finish(&tree);
-        self.detail.finish(&tree);
     }
 }
