@@ -6,6 +6,9 @@
 //! that PDF. JPEG is the picture only.
 
 mod glyphs;
+mod present;
+
+pub use present::Play;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -37,6 +40,8 @@ pub enum Format {
     Pdf,
     Markdown,
     Zip,
+    /// A presentation: one page that plays the diagram (docs/adr/0031).
+    Html,
 }
 
 impl Format {
@@ -48,6 +53,7 @@ impl Format {
             "pdf" => Some(Format::Pdf),
             "md" | "markdown" => Some(Format::Markdown),
             "zip" => Some(Format::Zip),
+            "html" | "htm" => Some(Format::Html),
             _ => None,
         }
     }
@@ -60,6 +66,7 @@ impl Format {
             Format::Pdf => "pdf",
             Format::Markdown => "md",
             Format::Zip => "zip",
+            Format::Html => "html",
         }
     }
 
@@ -71,6 +78,7 @@ impl Format {
             Format::Pdf => "application/pdf",
             Format::Markdown => "text/markdown",
             Format::Zip => "application/zip",
+            Format::Html => "text/html",
         }
     }
 }
@@ -96,6 +104,9 @@ pub struct Options<'a> {
     /// How many folders the picture lies below its project's root: how far
     /// up its links may lead.
     pub up: usize,
+    /// What a presentation plays, and in which colors; without it the page
+    /// shows the picture alone.
+    pub play: Option<Play<'a>>,
 }
 
 impl Default for Options<'_> {
@@ -105,6 +116,7 @@ impl Default for Options<'_> {
             source: None,
             links: &[],
             up: 0,
+            play: None,
         }
     }
 }
@@ -189,6 +201,18 @@ pub fn export(svg: &str, format: Format, options: &Options) -> Result<Vec<u8>, E
         Format::Pdf => pdf(svg, &parse(svg)?, options),
         Format::Markdown => markdown(options.source.ok_or(ExportError::NeedsSource)?),
         Format::Zip => zip_bundle(svg, options),
+        Format::Html => {
+            let title = options
+                .source
+                .and_then(|s| s.file)
+                .map_or("Diagram", |file| {
+                    file.rsplit_once('.').map_or(file, |(stem, _)| stem)
+                });
+            Ok(
+                present::page(&linked(svg, options)?, options.play, options.source, title)
+                    .into_bytes(),
+            )
+        }
     }
 }
 
@@ -733,6 +757,7 @@ mod tests {
                 source: Some(source),
                 links: &[],
                 up: 0,
+                play: None,
             },
         )
         .unwrap();
@@ -858,6 +883,7 @@ mod tests {
                 source: Some(sample()),
                 links: &[],
                 up: 0,
+                play: None,
             },
         )
         .unwrap()
@@ -893,6 +919,7 @@ mod tests {
             source: Some(fenced),
             links: &[],
             up: 0,
+            play: None,
         };
         let text = String::from_utf8(export(SVG, Format::Markdown, &options).unwrap()).unwrap();
         assert_eq!(text, "# pie\n\n```mermaid\npie\n  \"a\": 1\n```\n");

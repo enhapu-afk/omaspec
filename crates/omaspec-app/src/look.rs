@@ -243,6 +243,25 @@ impl Pinned {
     }
 }
 
+/// The paper and the accent of `skin`, a presentation's veil and light
+/// (docs/adr/0031); the light palette's for the file's own colors.
+pub fn stage(skin: Option<&Skin>) -> (omaspec_uml::Color, omaspec_uml::Color) {
+    let (paper, accent) = match skin.map(|skin| &skin.kind) {
+        Some(Kind::Pack(pack)) => (pack.paper().to_owned(), LIGHT.accent.to_owned()),
+        Some(Kind::Colors(hex) | Kind::Auto(hex, _)) => {
+            (hex.background.clone(), hex.accent.clone())
+        }
+        None => (LIGHT.background.to_owned(), LIGHT.accent.to_owned()),
+    };
+    let color = |hex: &str, or: u32| {
+        omaspec_uml::parse_color(hex)
+            .ok()
+            .flatten()
+            .unwrap_or(omaspec_uml::Color::hex(or))
+    };
+    (color(&paper, 0xFFFFFF), color(&accent, 0x2F6FDB))
+}
+
 /// Omaspec's light palette: dark text on white, a blue accent.
 pub const LIGHT: Colors<'static> = Colors {
     background: "#ffffff",
@@ -362,6 +381,19 @@ pub fn apply(text: &str, language: Language, skin: &Skin) -> (String, Option<Lin
     match laid {
         Some((shown, shift)) => (shown, Some(shift)),
         None => (text.to_owned(), None),
+    }
+}
+
+/// `text` as it is drawn in `skin`: the pack laid over it, its lines the
+/// map's; the text itself in the file's own colors.
+pub fn drawn_text<'a>(
+    text: &'a str,
+    language: Language,
+    skin: Option<&Skin>,
+) -> std::borrow::Cow<'a, str> {
+    match skin {
+        Some(skin) => std::borrow::Cow::Owned(apply(text, language, skin).0),
+        None => std::borrow::Cow::Borrowed(text),
     }
 }
 

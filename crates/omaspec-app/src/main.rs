@@ -651,6 +651,8 @@ enum FormatChoice {
     Pdf,
     Markdown,
     Zip,
+    /// A presentation: one page that plays the diagram.
+    Html,
     /// A state machine's or a sequence diagram's behavior as text, one
     /// fact a line; so is an output ending in `.txt`.
     Text,
@@ -666,6 +668,7 @@ impl FormatChoice {
             FormatChoice::Pdf => Format::Pdf,
             FormatChoice::Markdown => Format::Markdown,
             FormatChoice::Zip => Format::Zip,
+            FormatChoice::Html => Format::Html,
             FormatChoice::Text => return None,
         })
     }

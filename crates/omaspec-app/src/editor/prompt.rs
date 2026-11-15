@@ -96,6 +96,7 @@ pub(super) fn format_name(format: Format) -> &'static str {
         Format::Pdf => "PDF",
         Format::Markdown => "Markdown",
         Format::Zip => "ZIP",
+        Format::Html => "HTML presentation",
     }
 }
 
@@ -328,10 +329,17 @@ impl App {
             .shown_diagram()
             .map_or_else(|| doc.name(), |(_, _, name)| name);
         match look {
-            ExportLook::Shown => doc
-                .paper
-                .export_to(format, &shown_name, own, path)
-                .map(Message::Exported),
+            ExportLook::Shown => {
+                let color = |c: omaspec_theme::Rgb| {
+                    omaspec_uml::Color::hex(
+                        u32::from(c.r) << 16 | u32::from(c.g) << 8 | u32::from(c.b),
+                    )
+                };
+                let stage = (color(self.palette.background), color(self.palette.accent));
+                doc.paper
+                    .export_to(format, &shown_name, own, path, stage)
+                    .map(Message::Exported)
+            }
             ExportLook::File => export_in(None, doc, place, format, path),
             ExportLook::Look(look) => export_in(Some(look), doc, place, format, path),
         }

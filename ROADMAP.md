@@ -2983,7 +2983,7 @@ the one before:
       *Open folder* (Ctrl+Shift+O) a folder for the sidebar, since the
       portal asks for one or the other; *New project* asks for its folder
       beside the project the sidebar is in.
-- [ ] A presentation as one HTML file: *Export as › Presentation…*
+- [x] A presentation as one HTML file: *Export as › Presentation…*
       writes a page that needs nothing but a browser, offline, every
       picture and script inside it, and no request to anywhere. A
       scenario steps message by message with the arrow keys, a click or
@@ -2992,7 +2992,15 @@ the one before:
       ones after it veiled; a state machine plays by its options; F
       shows it full screen. The page draws the diagram as the pane
       does, in the look chosen, and keeps its source. The foundation of
-      the HTML items below.
+      the HTML items below. Built (2026-11-15,
+      [0031](docs/adr/0031-a-presentation-as-one-page.md)): the page is
+      the export's picture, the play as data and a script of some 250
+      lines that only walks it, under a Content-Security-Policy that
+      allows no request. A machine's places are worked out in Rust
+      (`omaspec_model::play::Graph`, which the play bar reads too), so
+      the page has no rules of its own; `omaspec render FILE -o x.html`
+      writes one too. A test runs the script's stepping in Node where
+      it is installed; headless Chromium showed the light and the veil.
 - [ ] A fold and an unfold as a moving picture, from the diagram's menu
       (*Export as › Animation…*, the container to fold chosen there),
       not only from `omaspec play --fold`: animated WebP or APNG in full

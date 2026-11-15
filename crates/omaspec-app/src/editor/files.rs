@@ -436,6 +436,8 @@ impl Drawn<'_> {
         let links = self.own.map_or_else(Vec::new, |own| {
             crate::specs::export_links(&rendered.links, own, false)
         });
+        // The text as drawn, whose lines the map's are: a play is read from it.
+        let drawn = crate::look::drawn_text(self.text, self.language, skin.as_ref());
         let options = omaspec_render::export::Options {
             scale: 2.0,
             source: self
@@ -448,6 +450,18 @@ impl Drawn<'_> {
                 }),
             links: &links,
             up: self.own.map_or(0, crate::specs::depth),
+            play: (format == Format::Html).then(|| {
+                let (paper, accent) = crate::look::stage(skin.as_ref());
+                omaspec_render::export::Play {
+                    map: &rendered.map,
+                    code: self
+                        .map
+                        .is_none()
+                        .then_some((drawn.as_ref(), self.language)),
+                    paper,
+                    accent,
+                }
+            }),
         };
         omaspec_render::export::export(&rendered.svg, format, &options).map_err(|e| e.to_string())
     }

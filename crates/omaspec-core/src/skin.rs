@@ -37,6 +37,17 @@ impl Pack {
         Pack::Vivid,
     ];
 
+    /// The paper a pack draws on: what a presentation veils in.
+    pub fn paper(self) -> &'static str {
+        match self {
+            Pack::Plain => PLAIN.paper,
+            Pack::Sketch => SKETCH.paper,
+            Pack::Vivid => VIVID.paper,
+            Pack::Presentation => PRESENTATION.paper,
+            Pack::Spec | Pack::Omarchy => "#FFFFFF",
+        }
+    }
+
     pub fn name(self) -> &'static str {
         match self {
             Pack::Plain => "plain",

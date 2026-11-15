@@ -121,6 +121,7 @@ impl Command {
             | Command::ExportPdf
             | Command::ExportMarkdown
             | Command::ExportZip
+            | Command::ExportPresentation
             | Command::RenderNow
             | Command::Detach
             | Command::FindInDiagram

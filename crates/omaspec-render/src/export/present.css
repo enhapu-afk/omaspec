@@ -1,0 +1,72 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.4 system-ui, sans-serif;
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+#diagram {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2vh 2vw 0;
+  cursor: pointer;
+}
+#diagram > svg {
+  width: 100%;
+  height: 100%;
+}
+#bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.6rem 1rem 1rem;
+}
+#bar button {
+  font: inherit;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 999px;
+  padding: 0.25rem 0.8rem;
+  cursor: pointer;
+}
+#bar button:hover,
+#bar button:focus-visible {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--accent);
+  outline: none;
+}
+#bar .key {
+  background: var(--accent);
+  color: var(--paper);
+  border-radius: 999px;
+  padding: 0 0.4rem;
+  margin-right: 0.45rem;
+  font-size: 0.8em;
+}
+#bar .at {
+  color: var(--accent);
+  margin-right: 0.5rem;
+}
+#bar .to,
+#bar .help {
+  opacity: 0.6;
+}
+#bar .to {
+  margin-left: 0.35rem;
+  font-size: 0.9em;
+}
+#bar .help {
+  font-size: 0.85em;
+  margin-left: 0.75rem;
+}

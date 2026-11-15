@@ -485,6 +485,15 @@ pub const TABLE: &[Entry] = &[
     .short("ZIP…")
     .at(Spot::Diagram),
     cmd(
+        "Export the diagram as a presentation: one page that plays it",
+        "",
+        Command::ExportPresentation,
+    )
+    .menu(File)
+    .child("Export as")
+    .short("Presentation…")
+    .at(Spot::Diagram),
+    cmd(
         "Check the project: lint every diagram and list the findings",
         "",
         Command::CheckProject,
@@ -719,7 +728,7 @@ mod tests {
         else {
             unreachable!()
         };
-        assert_eq!(children.len(), 6);
+        assert_eq!(children.len(), 7);
         assert!(gap, "a line before Export");
         assert!(rows.len() < entries(Menu::File).count());
     }

@@ -682,6 +682,8 @@ fn export_piece(
         crate::specs::export_links(&rendered.links, &own, false)
     });
     let source_name = piece.source_name();
+    // The text as drawn, whose lines the map's are: a play is read from it.
+    let drawn = crate::look::drawn_text(&piece.code, piece.language, skin.as_ref());
     let export_at = |scale: f32| {
         export::export(
             &rendered.svg,
@@ -696,6 +698,17 @@ fn export_piece(
                 }),
                 links: &links,
                 up,
+                play: (draw.format == Format::Html).then(|| {
+                    let (paper, accent) = crate::look::stage(skin.as_ref());
+                    export::Play {
+                        map: &rendered.map,
+                        code: project
+                            .is_none()
+                            .then_some((drawn.as_ref(), piece.language)),
+                        paper,
+                        accent,
+                    }
+                }),
             },
         )
     };

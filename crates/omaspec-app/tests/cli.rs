@@ -2400,3 +2400,58 @@ fn play_names_how_a_gif_gets_smaller() {
     let wrong = omaspec(&["play", "x.puml", "-o", "x.gif", "--lossy", "200"]);
     assert!(!wrong.status.success());
 }
+
+/// A presentation is one page that plays the diagram: a state machine by
+/// its places, a scenario by its messages; nothing fetched (docs/adr/0031).
+#[test]
+fn render_writes_a_presentation_that_plays() {
+    let dir = scratch("present");
+    let machine = dir.join("door.puml");
+    fs::write(
+        &machine,
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+    )
+    .unwrap();
+    let page = dir.join("door.html");
+    let out = omaspec(&[
+        "render",
+        machine.to_str().unwrap(),
+        "-o",
+        page.to_str().unwrap(),
+        "--look",
+        "dark",
+    ]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let text = fs::read_to_string(&page).unwrap();
+    assert!(text.starts_with("<!DOCTYPE html>"));
+    assert!(text.contains("default-src 'none'"));
+    assert!(
+        text.contains("\"kind\":\"machine\""),
+        "the play is the machine's"
+    );
+    assert!(text.contains("--paper: #16181D") || text.contains("--paper: #16181d"));
+    let scenario = dir.join("talk.mmd");
+    fs::write(
+        &scenario,
+        "sequenceDiagram\n  Alice->>Bob: hi\n  Bob-->>Alice: hello\n",
+    )
+    .unwrap();
+    let page = dir.join("talk.html");
+    let out = omaspec(&[
+        "render",
+        scenario.to_str().unwrap(),
+        "-o",
+        page.to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+    assert!(
+        fs::read_to_string(&page)
+            .unwrap()
+            .contains("\"kind\":\"scenario\"")
+    );
+    let _ = fs::remove_dir_all(&dir);
+}

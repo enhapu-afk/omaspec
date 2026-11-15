@@ -62,13 +62,22 @@ omaspec ~/diagrams           # with that folder in the sidebar
 
 The status bar shows the Omaspec mark and `Ctrl+Shift+P`; a click opens the command
 list. To export, right-click the diagram and pick *Export as ›* and a format (SVG, PNG,
-JPEG, PDF, Markdown, ZIP), or take it from File › Export as. The desktop's own save
+JPEG, PDF, Markdown, ZIP, Presentation), or take it from File › Export as. The desktop's own save
 dialog opens (Omarchy's, through xdg-desktop-portal): the folder, the name, and beside
 them *Colors*: as the diagram shows, in the file's own colors, plain, light, dark, or
 for an SVG auto. It asks before it replaces a file. Where no such dialog answers, the
 status line asks for the path instead (Enter writes it, a second Enter replaces a file
 that is already there; Tab takes the next look, a click takes one). The image keeps
 the file's own source whatever the look.
+
+*Presentation* writes one HTML page that plays the diagram as the pane does, in any
+browser and offline: it holds the picture, the play and a small script, and fetches
+nothing ([ADR 0031](../adr/0031-a-presentation-as-one-page.md)). A scenario steps message
+by message, the one played lit, the ones to come veiled; a state machine plays by its
+options, which stand under it. →, ↓, Space, PageDown, Enter or a click go on (a
+presenter's remote sends these), ←, ↑, PageUp or Backspace go back, Home starts again,
+1 to 9 take an option, F shows the page full screen. `#3` after the page's address opens
+a scenario at its third message.
 
 ### Project and tabs
 
@@ -691,6 +700,7 @@ omaspec convert door.puml -o door.mmd  # the same machine or scenario in Mermaid
 omaspec render flow.mmd             # flow.svg next to it, with the source inside
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
+omaspec render door.puml -o door.html --look dark   # a presentation: one page that plays it, offline
 omaspec render door.puml -o -  --format text   # its behavior, one fact a line, for an agent or a terminal; or -o door.txt
 omaspec play door.puml -o door.gif --events open,close   # the play as a GIF that moves, drawn as the window draws it; --steps, --width, --fps, --theme built-in; --colors 32 --lossy 15 a third smaller
 omaspec play coffee.puml -o fold.gif --fold Brewing      # a container folding to its box and unfolding again

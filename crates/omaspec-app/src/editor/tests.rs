@@ -1084,6 +1084,7 @@ fn images_open_their_diagram_under_a_free_name() {
         }),
         links: &[],
         up: 0,
+        play: None,
     };
     let png = export::export(&svg, Format::Png, &options).unwrap();
     std::fs::write(dir.join("flow.png"), &png).unwrap();
@@ -1405,7 +1406,15 @@ fn the_diagram_s_menu_exports_as_every_format() {
         .expect("Export as in the diagram's menu");
     assert_eq!(
         formats,
-        ["SVG…", "PNG…", "JPEG…", "PDF…", "Markdown…", "ZIP…"]
+        [
+            "SVG…",
+            "PNG…",
+            "JPEG…",
+            "PDF…",
+            "Markdown…",
+            "ZIP…",
+            "Presentation…"
+        ]
     );
 }
 

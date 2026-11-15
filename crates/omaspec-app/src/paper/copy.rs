@@ -15,7 +15,7 @@ impl Paper {
     /// what it copied.
     pub fn copy(&self, format: Format, file: &str) -> Task<Result<&'static str, String>> {
         // Pasted elsewhere, a link to a file beside it leads nowhere.
-        self.exported(format, file, None, move |bytes| {
+        self.exported(format, file, None, None, move |bytes| {
             crate::files::copy_to_clipboard(&bytes, format.mime()).map_err(|e| format!("{e:#}"))?;
             Ok(match format {
                 Format::Png => "PNG",
@@ -24,6 +24,7 @@ impl Paper {
                 Format::Pdf => "PDF",
                 Format::Markdown => "Markdown",
                 Format::Zip => "ZIP",
+                Format::Html => "HTML",
             })
         })
     }
@@ -35,8 +36,9 @@ impl Paper {
         file: &str,
         own: Option<String>,
         out: PathBuf,
+        stage: (omaspec_uml::Color, omaspec_uml::Color),
     ) -> Task<Result<String, String>> {
-        self.exported(format, file, own, move |bytes| {
+        self.exported(format, file, own, Some(stage), move |bytes| {
             crate::files::write_atomic(&out, &bytes).map_err(|e| format!("{e:#}"))?;
             Ok(out.display().to_string())
         })
@@ -44,17 +46,21 @@ impl Paper {
 
     /// Exports the diagram on screen in the background and hands the bytes
     /// to `then`. `file` is the source's file name, stored with it.
+    /// A presentation plays in `stage`, the paper and the accent the pane
+    /// plays in.
     fn exported<T: Send + 'static>(
         &self,
         format: Format,
         file: &str,
         own: Option<String>,
+        stage: Option<(omaspec_uml::Color, omaspec_uml::Color)>,
         then: impl FnOnce(Vec<u8>) -> Result<T, String> + Send + 'static,
     ) -> Task<Result<T, String>> {
         let Some(diagram) = &self.diagram else {
             return Task::done(Err("no diagram yet".into()));
         };
         let svg = Arc::clone(&diagram.drawn.svg);
+        let map = Arc::clone(&diagram.drawn.map);
         let parts = diagram.drawn.parts;
         let links = Arc::clone(&diagram.drawn.links);
         let source = Arc::clone(&diagram.source);
@@ -86,6 +92,18 @@ impl Paper {
                     }),
                     links: &links,
                     up,
+                    play: (format == Format::Html).then(|| {
+                        let (paper, accent) = stage.unwrap_or((
+                            omaspec_uml::Color::WHITE,
+                            omaspec_uml::Color::hex(0x2F6FDB),
+                        ));
+                        export::Play {
+                            map: &map,
+                            code: (!made).then_some((source, language)),
+                            paper,
+                            accent,
+                        }
+                    }),
                 };
                 // The picture as a file shows it: the pane's parts are its own.
                 let svg = if parts {

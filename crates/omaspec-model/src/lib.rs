@@ -21,6 +21,7 @@ mod label;
 mod matrix;
 mod mermaid;
 mod plantuml;
+pub mod play;
 mod pretty;
 mod refs;
 mod rename;

@@ -7,7 +7,7 @@ use iced::border::Radius;
 use iced::time::Instant;
 use iced::widget::canvas::{Frame, LineCap, LineJoin, Path, Stroke};
 use iced::{Color, Point, Rectangle, Size, Vector};
-use omaspec_model::{Machine, Trigger};
+use omaspec_model::Machine;
 use omaspec_uml::map::{Shape, Spot};
 
 use super::super::light::{ease_out, fraction};
@@ -17,44 +17,12 @@ use super::*;
 /// How the play offers the transition `t` of `m`: its label, and the
 /// state it leads to.
 pub(crate) fn option_of(m: &Machine, t: usize) -> (String, String) {
-    let tr = &m.transitions[t];
-    (label(&tr.trigger), name_of(m, tr.to))
+    m.option(t)
 }
 
-/// An option as its line says it: `event [guard] / action`, or `go on`
-/// for a line without event or guard.
-pub(super) fn label(trigger: &Trigger) -> String {
-    let mut out = trigger.events.join(", ");
-    if let Some(guard) = &trigger.guard {
-        if !out.is_empty() {
-            out.push(' ');
-        }
-        out.push_str(&format!("[{guard}]"));
-    }
-    if out.is_empty() {
-        out.push_str("go on");
-    }
-    if let Some(action) = &trigger.action {
-        out.push_str(&format!(" / {action}"));
-    }
-    out
-}
-
-/// A state as its box shows it (its long name, if it has one), or what
-/// a pseudo-state is.
+/// A state as its box shows it, or what a pseudo-state is.
 pub(super) fn name_of(m: &Machine, state: usize) -> String {
-    use omaspec_model::Kind;
-    let s = &m.states[state];
-    let what = match s.kind {
-        Kind::End => "end",
-        Kind::History => "history",
-        Kind::DeepHistory => "deep history",
-        _ => return s.shown().to_owned(),
-    };
-    match s.parent {
-        Some(p) => format!("{what} of {}", m.states[p].shown()),
-        None => what.to_owned(),
-    }
+    m.shown_name(state)
 }
 
 /// Notes that a state's light goes on or off at `at`; older notes go.

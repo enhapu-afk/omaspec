@@ -78,25 +78,12 @@ pub(super) struct Travel {
     pub(super) entered: Vec<usize>,
 }
 
-/// The most runs [`every_offer`] visits: a machine that can be in more
-/// ways is judged by the first of them.
-const VISITED: usize = 256;
-
 /// Where the machine can come from `start`, and what it offers there, each
-/// once: the bar takes its rows from them.
+/// once: the bar takes its rows from them ([`omaspec_model::play::Graph`],
+/// the first runs of a machine that can be in more ways).
 pub(super) fn every_offer(m: &Machine, start: &Run) -> Vec<Offered> {
-    let mut runs = vec![start.clone()];
-    let mut next = 0;
-    while next < runs.len() && runs.len() < VISITED {
-        for t in runs[next].options(m) {
-            let mut after = runs[next].clone();
-            after.take(m, t);
-            if !runs.contains(&after) {
-                runs.push(after);
-            }
-        }
-        next += 1;
-    }
+    let runs =
+        omaspec_model::play::Graph::of(m).map_or_else(|| vec![start.clone()], |graph| graph.runs);
     let mut offers: Vec<Offered> = Vec::new();
     for run in &runs {
         let offer = (

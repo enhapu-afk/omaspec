@@ -56,6 +56,11 @@ fn prompt_text(asking: Asking) -> (&'static str, &'static str, &'static str) {
                 EXPORT_HINT,
             ),
             Format::Zip => ("Export ZIP", "where to write the ZIP", EXPORT_HINT),
+            Format::Html => (
+                "Export a presentation",
+                "where to write the page",
+                EXPORT_HINT,
+            ),
         },
         Asking::ExportProject => (
             "Export the project",

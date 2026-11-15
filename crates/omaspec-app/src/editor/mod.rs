@@ -377,6 +377,8 @@ pub enum Command {
     ExportPdf,
     ExportMarkdown,
     ExportZip,
+    /// A page that plays the diagram (docs/adr/0031).
+    ExportPresentation,
     /// Asks where, then writes the project as SVGs linked to one another
     /// and a ZIP of them.
     ExportProject,
@@ -1810,6 +1812,7 @@ impl App {
             Command::ExportPdf => self.export(Format::Pdf),
             Command::ExportMarkdown => self.export(Format::Markdown),
             Command::ExportZip => self.export(Format::Zip),
+            Command::ExportPresentation => self.export(Format::Html),
             Command::ExportProject => self.export_project(),
             Command::CloseOthers => self.close_others(),
             Command::RenderNow => self.render(key, true),

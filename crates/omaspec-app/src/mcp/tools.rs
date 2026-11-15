@@ -538,6 +538,7 @@ impl Tools {
                 source: None,
                 links: &[],
                 up: 0,
+                play: None,
             };
             let picture = match format {
                 Format::Png | Format::Jpeg => {
@@ -596,6 +597,7 @@ impl Tools {
                 }),
             links: &links,
             up,
+            play: None,
         };
         let bytes = export::export(&rendered.svg, format, &options)?;
         write_atomic(&dest, &bytes)?;
