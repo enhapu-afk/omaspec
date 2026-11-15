@@ -766,6 +766,13 @@ impl Layer {
             return Task::none();
         };
         let latest = Arc::clone(&self.latest);
+        // A recording runs its tasks at once, on a clock of its own: no
+        // newer request can come while this one waits.
+        let delay = if crate::clock::recording() {
+            Duration::ZERO
+        } else {
+            delay
+        };
         Task::perform(
             blocking(move || {
                 std::thread::sleep(delay);

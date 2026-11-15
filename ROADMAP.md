@@ -2886,8 +2886,16 @@ order ([0029](docs/adr/0029-a-glide-by-parts.md)):
       recording's first picture skipped its fade (the arrival stayed in
       `Coming`), and the caret's fold said a container held nothing to
       fold while the last fold glided (its button hid, and the command
-      asked the button). The diagram itself is still drawn by the
-      recording, not by the render thread.
+      asked the button). Frames drawn on the wall clock (`frames_`,
+      `snapshot_dive`) take what they published on the side
+      (`at_once::Background`), as the window does, rather than stalling;
+      on a recording's clock it runs at once, without the debounce of a
+      zoom's raster. The review of it found a fault of the window too: a
+      pan or a landing zoom that showed a picture held while the view
+      glided dropped what it started, so a glide waited for its sheets
+      until the next edit; `settle` and `land` hand that on now. The
+      diagram itself is still drawn by the recording, not by the render
+      thread.
 - [ ] The files of `paper/` under 1,000 lines each; the glide's promises as
       tests: the first frame is the old picture, the last the new one,
       nothing lands outside a box, each pixel is drawn once.

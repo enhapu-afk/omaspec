@@ -88,11 +88,9 @@ pub fn tall() -> Drawn {
 impl Paper {
     /// Runs `task`, one an update of this pane gave, to its end here and
     /// now, as the window's runtime runs it in the background: the
-    /// pictures it makes are rasterized and put on a GPU ([`crate::at_once`]).
+    /// pictures it makes are rasterized and allocated ([`crate::at_once`]).
     pub fn run(&mut self, task: Task<Message>) {
-        crate::at_once::with_renderer(|renderer| {
-            crate::at_once::run(renderer, task, |message| self.update(message));
-        });
+        crate::at_once::here(task, |message| self.update(message));
     }
 
     /// Hands `message` to the pane and runs what it gives ([`Self::run`]).

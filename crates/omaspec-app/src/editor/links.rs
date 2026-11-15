@@ -403,9 +403,13 @@ impl App {
         let from_path = from.path.clone();
         let from_name = self.trail_name(from);
         // The diagram left keeps the view it had, for a tab click back.
-        if let Some(doc) = self.find(f.from) {
-            doc.paper.land(f.view);
-        }
+        let landed = match self.find(f.from) {
+            Some(doc) => doc
+                .paper
+                .land(f.view)
+                .map(move |m| Message::Paper(f.from, m)),
+            None => Task::none(),
+        };
         let index = match self.docs.iter().position(|d| d.key == f.target) {
             Some(index) => index,
             None => match self.open_doc(&f.to) {
@@ -443,7 +447,7 @@ impl App {
         self.notice = None;
         let task = self.select(index);
         self.release_off_trail();
-        task
+        Task::batch([landed, task])
     }
 
     /// Where the active diagram is on the trail, past its first step.

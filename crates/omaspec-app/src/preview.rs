@@ -491,9 +491,7 @@ mod tests {
     /// Runs `task`, one the preview gave, to its end here and now, as the
     /// window's runtime runs it ([`crate::at_once`]).
     fn run(p: &mut Preview, task: Task<Message>) {
-        crate::at_once::with_renderer(|renderer| {
-            crate::at_once::run(renderer, task, |message| p.update(message));
-        });
+        crate::at_once::here(task, |message| p.update(message));
     }
 
     /// Hands `message` to the preview and runs what it gives ([`run`]).

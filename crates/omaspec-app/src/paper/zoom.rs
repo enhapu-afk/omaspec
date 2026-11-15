@@ -47,27 +47,29 @@ impl Paper {
     }
 
     /// Stops a glide where it is: a pan or a pinch goes on from there, and
-    /// a zoom out of a link leaves the diagram it led to behind.
-    pub(super) fn settle(&mut self) {
+    /// a zoom out of a link leaves the diagram it led to behind. The
+    /// pixels held while it glided are shown: what they start (a glide's
+    /// sheets, the way back to a drawing) is the task.
+    pub(super) fn settle(&mut self) -> Task<Message> {
         if let Some(glide) = self.glide.take() {
             self.view = glide.at(crate::clock::now());
             if self.passage.as_ref().is_some_and(|p| !p.inward) {
                 self.passage = None;
             }
         }
-        let _ = self.show_held();
+        self.show_held()
     }
 
     /// Takes `view` from another pane (Compare A|B zooms both together): a
     /// fitted one fits this diagram.
     pub fn follow(&mut self, view: View) -> Task<Message> {
-        self.settle();
+        let held = self.settle();
         if view.fit {
-            return self.refit();
+            return Task::batch([held, self.refit()]);
         }
         self.view = view;
         self.note_view();
-        self.rasterize(RASTER_DELAY)
+        Task::batch([held, self.rasterize(RASTER_DELAY)])
     }
 
     /// Whether `message` moves or zooms the view (and another pane should

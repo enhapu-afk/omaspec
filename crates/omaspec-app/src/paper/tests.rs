@@ -1207,6 +1207,30 @@ fn the_picture_held_for_the_next_one_moves_with_the_view() {
     assert!(paper.held_picture().is_none());
 }
 
+/// A new picture that came while the view glided is held; a pan that
+/// stops the glide shows it, and what it starts comes with it: the sheets
+/// of its glide, which a dropped task left waiting for ever.
+#[test]
+fn a_pan_that_stops_a_zoom_brings_the_held_picture_and_its_glide() {
+    let first = "@startuml\n[*] --> A\n@enduml\n";
+    let next = "@startuml\n[*] --> A\nA --> B\nB --> C\nC --> D\n@enduml\n";
+    let mut paper = Paper::default();
+    paper.send(Message::Viewport(Size::new(400.0, 300.0)));
+    show_source(&mut paper, first, Language::PlantUml);
+    paper.send(Message::Faded);
+    // A zoom glides, long enough for the new picture to come meanwhile.
+    let _ = paper.update(Message::ZoomStep(1.5, Point::new(200.0, 150.0)));
+    paper.glide = paper
+        .glide
+        .map(|g| g.taking(std::time::Duration::from_secs(60)));
+    show_source(&mut paper, next, Language::PlantUml);
+    assert!(paper.held_overview.is_some(), "held while the view glides");
+    assert!(paper.arrival.fade().is_none());
+    paper.send(Message::Pan(Vector::new(10.0, 0.0)));
+    assert!(paper.held_overview.is_none());
+    assert!(paper.fading_lines(), "the boxes glide from the picture before");
+}
+
 #[test]
 fn a_zoom_gliding_when_a_picture_comes_goes_on_to_its_end() {
     let source = "@startuml\n[*] --> A\nA --> B\n@enduml\n";

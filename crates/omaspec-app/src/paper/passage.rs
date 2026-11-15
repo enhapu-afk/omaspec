@@ -399,13 +399,14 @@ impl Paper {
     }
 
     /// Ends a zoom into a link at `view`: the diagram it leads to is shown
-    /// in its own tab now, and this one keeps `view` for a click back.
-    pub fn land(&mut self, view: View) {
+    /// in its own tab now, and this one keeps `view` for a click back. The
+    /// pixels held meanwhile are shown, with what they start.
+    pub fn land(&mut self, view: View) -> Task<Message> {
         self.glide = None;
         self.passage = None;
         self.view = view;
         self.note_view();
-        let _ = self.show_held();
+        self.show_held()
     }
 
     /// The diagram as the pane shows it, for a zoom into a link to it or
@@ -441,7 +442,7 @@ impl Paper {
         } else {
             to
         };
-        self.settle();
+        let held = self.settle();
         let start = match &from {
             Some(linked) => view_holding(area, linked.size, linked.place, self.viewport),
             None => View::showing(area, self.viewport),
@@ -464,9 +465,9 @@ impl Paper {
         let small = self.ask_small();
         if goal.is_some() {
             self.glide = None;
-            return Task::batch([small, self.rasterize(Duration::ZERO)]);
+            return Task::batch([held, small, self.rasterize(Duration::ZERO)]);
         }
-        Task::batch([small, self.dive(to)])
+        Task::batch([held, small, self.dive(to)])
     }
 
     fn dive(&mut self, to: View) -> Task<Message> {

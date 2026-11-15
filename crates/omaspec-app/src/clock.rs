@@ -31,6 +31,11 @@ impl Recording {
     }
 }
 
+/// Whether a recording's clock runs on this thread.
+pub fn recording() -> bool {
+    RECORDING.with(Cell::get).is_some()
+}
+
 /// Moves a recording's clock on by `by`, and says whether there is one;
 /// the wall clock moves on its own.
 pub fn advance(by: Duration) -> bool {

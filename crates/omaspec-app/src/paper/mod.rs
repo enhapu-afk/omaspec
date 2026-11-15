@@ -572,20 +572,21 @@ impl Paper {
                     self.note_view();
                     return self.rasterize(RASTER_DELAY);
                 }
-                self.settle();
-                if self.view.fit {
+                let held = self.settle();
+                let then = if self.view.fit {
                     self.refit()
                 } else {
                     self.note_view();
                     self.rasterize(RASTER_DELAY)
-                }
+                };
+                Task::batch([held, then])
             }
             Message::ZoomAt(factor, at) => {
                 self.stop_waiting();
-                self.settle();
+                let held = self.settle();
                 self.view = self.view.zoom_at(factor, at, self.viewport);
                 self.note_view();
-                self.rasterize(RASTER_DELAY)
+                Task::batch([held, self.rasterize(RASTER_DELAY)])
             }
             Message::ZoomStep(factor, at) => {
                 self.stop_waiting();
@@ -609,17 +610,17 @@ impl Paper {
             },
             Message::Pan(delta) => {
                 self.stop_waiting();
-                self.settle();
+                let held = self.settle();
                 self.view = self.view.pan(delta);
                 self.note_view();
-                self.rasterize(RASTER_DELAY)
+                Task::batch([held, self.rasterize(RASTER_DELAY)])
             }
             Message::Pinch { factor, at, pan } => {
                 self.stop_waiting();
-                self.settle();
+                let held = self.settle();
                 self.view = self.view.pinch(factor, at, pan, self.viewport);
                 self.note_view();
-                self.rasterize(RASTER_DELAY)
+                Task::batch([held, self.rasterize(RASTER_DELAY)])
             }
             Message::Fit => self.fit(),
             Message::Pick(_) | Message::Follow(_) | Message::Context(..) => Task::none(),

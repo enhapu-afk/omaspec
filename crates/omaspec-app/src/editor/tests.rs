@@ -44,11 +44,15 @@ fn select_all_and_paste(app: &mut App, text: &str) {
 
 /// Runs `task`, one the editor gave, to its end here and now, as the
 /// window's runtime runs it in the background: the pictures it makes are
-/// rasterized and put on a GPU ([`crate::at_once`]).
+/// rasterized and allocated ([`crate::at_once`]).
 fn run(app: &mut App, task: Task<Message>) {
-    crate::at_once::with_renderer(|renderer| {
-        crate::at_once::run(renderer, task, |message| app.update(message));
-    });
+    crate::at_once::here(task, |message| app.update(message));
+}
+
+/// Runs `task`, one the pane `key` gave, through the editor, as the window
+/// hands the pane's messages to it ([`App::paper_event`]).
+fn run_pane(app: &mut App, key: u64, task: Task<paper::Message>) {
+    run(app, task.map(move |message| Message::Paper(key, message)));
 }
 
 /// Hands `message` to the editor and runs what it gives ([`run`]).
@@ -970,7 +974,7 @@ fn a_machine_plays_while_the_diagram_follows_the_theme() {
             .any(|s| s.name == "State1" && s.line == state1)
     );
     let task = app.doc_mut().paper.rendered(reply);
-    app.doc_mut().paper.run(task);
+    run_pane(&mut app, key, task);
     press(&mut app, Command::Play);
     assert_eq!(app.mode(app.main), Mode::Playing, "{:?}", app.notice);
 }
@@ -2347,9 +2351,8 @@ fn show_folded(app: &mut App, source: &str, folds: &[&str]) {
     let mut reply = answer(key, id, Ok(drawn(&text, Language::PlantUml)));
     reply.language = Language::PlantUml;
     reply.source = source.into();
-    let paper = &mut app.doc_mut().paper;
-    let task = paper.rendered(reply);
-    paper.run(task);
+    let task = app.doc_mut().paper.rendered(reply);
+    run_pane(app, key, task);
 }
 
 #[test]
@@ -2545,7 +2548,9 @@ fn a_branch_of_a_tree_folds_from_the_caret() {
         "{names:?}"
     );
     assert_eq!(app.doc().text(), wbs);
-    // The same caret unfolds it; a box that holds nothing says so.
+    // The same caret unfolds it while the fold still glides: only the
+    // buttons wait for the boxes, the caret does not.
+    assert!(app.doc().paper.fading().is_some(), "the fold glides");
     press(&mut app, Command::FoldBox);
     assert_eq!(app.notice.as_deref(), Some("Budget unfolded"));
     show(&mut app, wbs, Language::PlantUml);
@@ -2964,9 +2969,9 @@ fn snapshot_glide() {
     let mut reply = answer(key, id, Ok(drawn(&text, Language::PlantUml)));
     reply.language = Language::PlantUml;
     reply.source = BREWER.into();
+    let task = app.doc_mut().paper.rendered(reply);
+    run_pane(&mut app, key, task);
     let paper = &mut app.doc_mut().paper;
-    let task = paper.rendered(reply);
-    paper.run(task);
     assert!(
         paper.fading_lines(),
         "the lines glide over pictures without them"
@@ -3197,7 +3202,7 @@ fn snapshot() {
     let mut reply = answer(compare::KEY, 1, Ok(drawn(&old, Language::Mermaid)));
     reply.source = old.into();
     let task = c.paper.rendered(reply);
-    c.paper.run(task);
+    run_pane(&mut app, compare::KEY, task);
     send(
         &mut app,
         Message::Paper(key, paper::Message::Viewport(Size::new(330.0, 540.0))),
@@ -3353,7 +3358,7 @@ fn snapshot_readme() {
     let mut reply = answer(compare::KEY, id, Ok(drawn(&old, Language::Mermaid)));
     reply.source = old.into();
     let task = c.paper.rendered(reply);
-    c.paper.run(task);
+    run_pane(&mut app, compare::KEY, task);
     send(
         &mut app,
         Message::Paper(key, paper::Message::Viewport(Size::new(330.0, 540.0))),
@@ -3452,7 +3457,10 @@ fn show_themed(app: &mut App, language: Language) {
     reply.source = shown;
     app.untangle(&mut reply);
     let task = app.doc_mut().paper.rendered(reply);
-    app.doc_mut().paper.run(task);
+    run_pane(app, key, task);
+    // It has faded in, or glided, as a reader finds it: the canvas
+    // says so when the motion ends.
+    send(app, Message::Paper(key, paper::Message::Faded));
 }
 
 /// The active tab's text replaced with `text`, linted and drawn in the
@@ -4173,9 +4181,11 @@ fn show(app: &mut App, source: &str, language: Language) {
     reply.language = language;
     reply.source = shown;
     app.untangle(&mut reply);
-    let paper = &mut app.doc_mut().paper;
-    let task = paper.rendered(reply);
-    paper.run(task);
+    let task = app.doc_mut().paper.rendered(reply);
+    run_pane(app, key, task);
+    // It has faded in, or glided, as a reader finds it: the canvas
+    // says so when the motion ends.
+    send(app, Message::Paper(key, paper::Message::Faded));
 }
 
 /// Settles what the window animates: the tab highlight and the focus frame
@@ -4744,9 +4754,11 @@ fn show_linked(app: &mut App) {
         app.pending.insert((key, id), pending);
         app.untangle(&mut reply);
     }
-    let paper = &mut app.doc_mut().paper;
-    let task = paper.rendered(reply);
-    paper.run(task);
+    let task = app.doc_mut().paper.rendered(reply);
+    run_pane(app, key, task);
+    // It has faded in, or glided, as a reader finds it: the canvas
+    // says so when the motion ends.
+    send(app, Message::Paper(key, paper::Message::Faded));
 }
 
 /// `source` drawn as a diagram of its project, as the worker draws it.
@@ -4898,22 +4910,20 @@ fn a_click_on_a_tile_or_a_linked_state_zooms_into_its_diagram_and_back() {
         .expect("Orders open")
         .key;
     assert_ne!(target, map);
+    // Orders is drawn; its picture is still on its way.
     let drawn = deliver_linked(&mut app, target);
-    run(&mut app, drawn);
     let dive = app
         .doc()
         .paper
         .glide()
         .expect("the zoom runs on the size alone");
     assert!(app.doc().paper.view.zoom > before.zoom);
-    let arrived = app.arrive();
-    run(&mut app, arrived);
+    // The picture comes: the zoom goes on as it was.
+    run(&mut app, drawn);
     assert_eq!(app.doc().paper.glide(), Some(dive), "one way, not turned");
     // Its picture lies on the tile's, so it is asked for in smaller
     // copies too.
     assert!(app.doc().paper.small_copies() > 0);
-    let _ = app.arrive();
-    assert_eq!(app.doc().paper.glide(), Some(dive), "one way, not turned");
     let landing = app
         .docs
         .iter()
@@ -5044,8 +5054,6 @@ fn frames_headless() {
     let target = app.docs.last().unwrap().key;
     let drawn = deliver_linked(&mut app, target);
     screen.run_task(&mut app, drawn);
-    let arrived = app.arrive();
-    screen.run_task(&mut app, arrived);
     screen.run(&mut app, 120, |app| app.doc().paper.glide().is_none());
     screen.perform(&mut app, Message::Worker(worker::Event::Due(Alarm::Follow)));
     screen.run(&mut app, 2, |_| false);
@@ -5118,8 +5126,6 @@ fn snapshot_links() {
     let target = app.docs.last().unwrap().key;
     let drawn = deliver_linked(&mut app, target);
     run(&mut app, drawn);
-    let arrived = app.arrive();
-    run(&mut app, arrived);
     let takes = app.doc().paper.glide().unwrap().duration();
     std::thread::sleep(takes);
     shoot(&mut app, &dir, "links-arriving");
@@ -6183,22 +6189,20 @@ fn snapshot_dive() {
     };
     // Redraws at 60 Hz and keeps each frame; with `gliding`, until the
     // glide ends.
+    // Every frame, as the window draws it; what a frame publishes runs
+    // on the side, as in the window ([`Screen::run_frames`]).
     let frames = |app: &mut App, screen: &mut Screen, name: &str, most: usize, gliding: bool| {
-        let tick = Duration::from_micros(16_667);
-        for i in 0..most {
-            let start = Instant::now();
-            let (shot, messages) = screen.redraw(app);
-            for message in messages {
-                let _ = app.update(message);
-            }
-            shot.save(&out.join(format!("{name}-{i:03}.png")));
-            if gliding && app.doc().paper.glide().is_none() {
-                break;
-            }
-            if let Some(wait) = (start + tick).checked_duration_since(Instant::now()) {
-                std::thread::sleep(wait);
-            }
-        }
+        let index = std::cell::Cell::new(0);
+        screen.run_frames(
+            app,
+            most,
+            Duration::from_micros(16_667),
+            |app| gliding && index.get() > 0 && app.doc().paper.glide().is_none(),
+            |shot| {
+                shot.save(&out.join(format!("{name}-{:03}.png", index.get())));
+                index.set(index.get() + 1);
+            },
+        );
     };
     for name in &names {
         let slug = name.to_lowercase().replace(' ', "-");
@@ -6228,8 +6232,6 @@ fn snapshot_dive() {
                 Message::Worker(worker::Event::Rendered(Box::new(reply))),
             );
         }
-        let arrived = app.arrive();
-        screen.run_task(&mut app, arrived);
         frames(&mut app, &mut screen, &format!("{slug}-1in"), 200, true);
         screen.perform(&mut app, Message::Worker(worker::Event::Due(Alarm::Follow)));
         frames(&mut app, &mut screen, &format!("{slug}-2tab"), 3, false);
@@ -6323,9 +6325,11 @@ fn show_map(app: &mut App) {
     let mut reply = answer(key, id, Ok(drawn));
     reply.language = Language::PlantUml;
     reply.source = skin;
-    let paper = &mut app.doc_mut().paper;
-    let task = paper.rendered(reply);
-    paper.run(task);
+    let task = app.doc_mut().paper.rendered(reply);
+    run_pane(app, key, task);
+    // It has faded in, or glided, as a reader finds it: the canvas
+    // says so when the motion ends.
+    send(app, Message::Paper(key, paper::Message::Faded));
 }
 
 /// A project of a machine, the diagram one of its states opens, a plan and
@@ -6400,8 +6404,6 @@ fn a_project_s_file_shows_the_map_made_from_its_diagrams() {
         .key;
     let drawn = deliver_linked(&mut app, target);
     run(&mut app, drawn);
-    let arrived = app.arrive();
-    run(&mut app, arrived);
     assert!(app.doc().paper.glide().is_some(), "the zoom runs");
     due(&mut app, Alarm::Follow);
     assert_eq!(app.doc().path, Some(root.join("orders.puml")));

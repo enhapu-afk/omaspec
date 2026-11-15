@@ -35,6 +35,9 @@ pub struct Screen {
     /// How long the view and its layout took, and the pixels, in each
     /// redraw of [`Self::run`].
     spent: Vec<(Duration, Duration)>,
+    /// The tasks of what the frames published, on their way while frames
+    /// are drawn on the wall clock ([`Self::run_frames`]).
+    background: crate::at_once::Background<Message>,
 }
 
 /// A screenshot, as RGBA rows.
@@ -80,6 +83,7 @@ impl Screen {
             warm: false,
             cache: None,
             spent: Vec::new(),
+            background: crate::at_once::Background::default(),
         })
     }
 
@@ -193,10 +197,22 @@ impl Screen {
                 break;
             }
             let start = Instant::now();
+            // What came of the tasks on their way since the frame before,
+            // as the window takes it between two frames.
+            self.background
+                .poll(&self.renderer, |message| app.update(message));
             let (shot, published) = self.redraw(app);
             each(&shot);
+            // On a recording's clock what the frame published runs at
+            // once, as no wall clock passes; on the wall clock it runs on
+            // the side, as the window runs it, and the frames go on.
             for message in published {
-                self.perform(app, message);
+                if crate::clock::recording() {
+                    self.perform(app, message);
+                } else {
+                    let task = app.update(message);
+                    self.background.add(task);
+                }
             }
             // A recording's clock moves on by the frame; the wall clock is
             // waited for.

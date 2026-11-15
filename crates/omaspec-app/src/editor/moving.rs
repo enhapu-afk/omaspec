@@ -56,6 +56,9 @@ pub struct Moving {
     pub renderer: Option<&'static str>,
 }
 
+/// The frames the first picture may take to fade in, before the frames
+/// the picture keeps.
+const FADE_IN_FRAMES: usize = 60;
 /// How long the play holds after each step, and at the end.
 const HOLD: Duration = Duration::from_millis(500);
 /// How long a zoom into a tile may take, or out of it.
@@ -226,16 +229,24 @@ impl Stage {
             &mut app,
             Message::Paper(key, paper::Message::Viewport(size)),
         );
-        // The picture stands from the first frame: it has faded in, as it
-        // has by the time a window's reader looks at it.
-        screen.perform(&mut app, Message::Paper(key, paper::Message::Faded));
         screen.size = size;
         screen.shows = Shows::Diagram;
+        let tick = Duration::from_micros(1_000_000 / u64::from(args.fps));
+        // The picture stands from the first frame kept: it fades in over
+        // frames that are drawn and left out, as it has faded in by the
+        // time a window's reader looks at it.
+        screen.run_frames(
+            &mut app,
+            FADE_IN_FRAMES,
+            tick,
+            |app| app.doc().paper.fading().is_none(),
+            |_| {},
+        );
         Ok(Self {
             app,
             screen,
             frames: Vec::new(),
-            tick: Duration::from_micros(1_000_000 / u64::from(args.fps)),
+            tick,
             key,
             text,
             language,
@@ -397,9 +408,8 @@ impl Stage {
                 .map(|doc| doc.key)
                 .find(|key| self.app.is_arriving(*key))
                 .with_context(|| format!("{name} opens no diagram"))?;
+            // Its picture arrives with the zoom.
             linked(&mut self.app, &self.screen, target)?;
-            let arrived = self.app.arrive();
-            self.screen.run_task(&mut self.app, arrived);
             // The way in, the diagram in its own tab, and a moment there.
             self.run(self.tick, |_| false);
             self.run(DIVE, still);
