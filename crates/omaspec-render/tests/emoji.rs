@@ -6,7 +6,7 @@
 //! words around the emoji (`**bold**`) made it remove past its glyphs and
 //! end the program. Both are mended in `vendor/usvg`.
 
-use omaspec_render::export::{parse, rasterize, undrawable};
+use omaspec_render::export::{parse, rasterize};
 
 /// The pixels of `text` drawn in black that are not grey: the emoji's.
 /// (Noto draws a family in grey, so the emoji here have colors.)
@@ -25,11 +25,11 @@ fn colored(text: &str) -> usize {
         .count()
 }
 
-/// Whether an emoji face is installed; without one every emoji is a box.
+/// Whether an emoji face that draws in color is installed. Without one an
+/// emoji is a box, or drawn in one color by a face of signs (GNU FreeFont
+/// has a cat), and its colors tell nothing.
 fn emoji_face() -> bool {
-    let svg =
-        r#"<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><text>🐈</text></svg>"#;
-    undrawable(svg).expect("the picture").is_empty()
+    omaspec_render::export::color_emoji()
 }
 
 #[test]

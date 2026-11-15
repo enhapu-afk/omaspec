@@ -20,6 +20,28 @@ pub(super) fn face_has(fonts: &usvg::fontdb::Database, id: usvg::fontdb::ID, c: 
         .unwrap_or(false)
 }
 
+/// Whether a face in `fonts` draws emoji in color: one with a table of
+/// colored glyphs (`CBDT`, `COLR` or `sbix`), as Noto Color Emoji.
+pub(super) fn color_emoji(fonts: &usvg::fontdb::Database) -> bool {
+    fonts.faces().any(|face| in_color(fonts, face.id))
+}
+
+/// Whether the face `id` has a table of colored glyphs.
+fn in_color(fonts: &usvg::fontdb::Database, id: usvg::fontdb::ID) -> bool {
+    use skrifa::raw::TableProvider;
+    use skrifa::raw::types::Tag;
+    fonts
+        .with_face_data(id, |data, index| {
+            skrifa::FontRef::from_index(data, index).is_ok_and(|font| {
+                [*b"CBDT", *b"COLR", *b"sbix"]
+                    .iter()
+                    .any(|tag| font.table_data(Tag::new(tag)).is_some())
+                    && font.cmap().is_ok()
+            })
+        })
+        .unwrap_or(false)
+}
+
 /// The characters of `tree`'s words that no face in `fonts` draws, each
 /// once, in the order they first stand.
 pub(super) fn undrawable(tree: &usvg::Tree, fonts: &usvg::fontdb::Database) -> Vec<char> {
@@ -93,6 +115,24 @@ mod tests {
         }
         for c in ['ü', '🍕', '✅', '→'] {
             assert!(needs_a_face(c), "{c:?}");
+        }
+    }
+
+    /// A face of colored glyphs is told by its tables, not by its name.
+    #[test]
+    fn a_face_in_color_is_told_by_its_tables() {
+        let fonts = super::super::fonts();
+        let face = |name: &str| {
+            fonts
+                .faces()
+                .find(|f| f.families.iter().any(|(n, _)| n == name))
+                .map(|f| f.id)
+        };
+        if let Some(text) = face("Liberation Sans") {
+            assert!(!in_color(fonts, text));
+        }
+        if let Some(emoji) = face("Noto Color Emoji") {
+            assert!(in_color(fonts, emoji) && color_emoji(fonts));
         }
     }
 

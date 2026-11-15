@@ -48,10 +48,11 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container: ${{ matrix.container }}
     steps:
-      # The renderer's tests read the labels the fonts lay out.
+      # The renderer's tests read the labels the fonts lay out, and its
+      # emoji in the colors of the emoji face Omarchy installs.
       - name: Tools, libraries and a font (Arch)
         if: matrix.container != ''
-        run: pacman -Syu --noconfirm rust git python fontconfig libxkbcommon wayland vulkan-icd-loader ttf-liberation
+        run: pacman -Syu --noconfirm rust git python fontconfig libxkbcommon wayland vulkan-icd-loader ttf-liberation noto-fonts-emoji
       - name: Libraries (Ubuntu)
         if: matrix.container == ''
         run: |

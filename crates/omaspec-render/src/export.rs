@@ -343,6 +343,12 @@ fn fonts() -> &'static usvg::fontdb::Database {
     &SVG_OPTIONS.fontdb
 }
 
+/// Whether an installed face draws emoji in color. Without one an emoji
+/// is drawn in one color, or as an empty box.
+pub fn color_emoji() -> bool {
+    glyphs::color_emoji(fonts())
+}
+
 /// The characters of `svg`'s words that no installed face draws, each
 /// once: a PNG, JPEG or PDF of it shows an empty box for each.
 pub fn undrawable(svg: &str) -> Result<Vec<char>, ExportError> {
