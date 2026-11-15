@@ -1280,6 +1280,33 @@ mod tests {
         }
     }
 
+    /// REQ-043: `zoom` widens the days and leaves the rows, the words and
+    /// the height as they are, as PlantUML 1.2026.8 draws it (627, 1107
+    /// and 2067 pixels wide, 166 high, at zoom 1, 2 and 4); `scale 2`
+    /// makes the whole picture twice as large.
+    #[test]
+    fn zoom_widens_the_days_and_scale_the_whole_chart() {
+        let size = |head: &str| {
+            let svg = crate::render(&format!(
+                "@startgantt\n{head}\nProject starts 2026-01-05\n[Design] requires 10 days\n[Build] requires 15 days\n[Build] starts at [Design]'s end\n@endgantt\n"
+            ))
+            .unwrap();
+            let number = |name: &str| -> f32 {
+                let at = svg.find(&format!(" {name}=\"")).unwrap() + name.len() + 3;
+                svg[at..at + svg[at..].find('"').unwrap()].parse().unwrap()
+            };
+            (number("width"), number("height"))
+        };
+        let (one, two, four) = (size("zoom 1"), size("zoom 2"), size("zoom 4"));
+        assert!(
+            two.0 > one.0 * 1.5 && four.0 > two.0 * 1.5,
+            "{one:?} {two:?} {four:?}"
+        );
+        assert_eq!((one.1, two.1, four.1), (one.1, one.1, one.1));
+        let scaled = size("scale 2");
+        assert!((scaled.0 - 2.0 * one.0).abs() < 1.0 && (scaled.1 - 2.0 * one.1).abs() < 1.0);
+    }
+
     #[test]
     fn a_scale_reads_as_plantuml_writes_it() {
         let scale = |line: &str| {
