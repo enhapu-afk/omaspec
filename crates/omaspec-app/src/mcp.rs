@@ -169,7 +169,7 @@ fn initialize(params: &Value) -> Value {
         "serverInfo": {
             "name": "omaspec",
             "title": "Omaspec",
-            "version": env!("CARGO_PKG_VERSION"),
+            "version": crate::VERSION,
         },
         "instructions": INSTRUCTIONS,
     })

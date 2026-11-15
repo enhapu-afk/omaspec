@@ -41,13 +41,22 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use omaspec_core::Language;
 use omaspec_render::export::Format;
 
+/// The version Omaspec tells: the release, and past it the commit it was
+/// built from, when that is not the release's own (`0.9.8+3b94dc3`;
+/// `build.rs`).
+pub(crate) const VERSION: &str = env!("OMASPEC_VERSION");
+
 /// Native PlantUML and Mermaid editor for Omarchy.
 ///
 /// Without a command, opens the editor: the last session, plus the given
 /// diagrams (a file that does not exist yet is created on the first save);
 /// a folder becomes the folder in the sidebar.
 #[derive(Parser)]
-#[command(name = "omaspec", version, args_conflicts_with_subcommands = true)]
+#[command(
+    name = "omaspec",
+    version = VERSION,
+    args_conflicts_with_subcommands = true
+)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,

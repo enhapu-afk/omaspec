@@ -2354,3 +2354,24 @@ fn matrix_tabulates_a_state_machine() {
     ]);
     assert_ne!(out.status.code(), Some(0));
 }
+
+/// `--version` tells the release, and past it the commit it was built
+/// from when that is not the release's own: a build of main is told apart
+/// from the release it follows.
+#[test]
+fn the_version_tells_the_commit_it_was_built_from() {
+    let out = omaspec(&["--version"]);
+    assert!(out.status.success());
+    let said = String::from_utf8_lossy(&out.stdout);
+    let told = said
+        .trim()
+        .strip_prefix("omaspec ")
+        .expect("its name first");
+    let release = env!("CARGO_PKG_VERSION");
+    let rest = told.strip_prefix(release).expect("the release first");
+    let commit = rest.strip_prefix('+').unwrap_or(rest);
+    assert!(
+        rest.is_empty() || (commit.len() >= 7 && commit.chars().all(|c| c.is_ascii_hexdigit())),
+        "{told}"
+    );
+}
