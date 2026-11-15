@@ -469,6 +469,8 @@ state machine in the project.
 
 An emoji is written with Omarchy's own picker, Super+Ctrl+E, as in any window. It is
 drawn in color in the pane and in every export, and the words beside it keep their face.
+One written with several characters is one picture too: a family (`👨‍👩‍👧`), a skin tone
+(`👍🏽`), a flag (`🇩🇪`), a keycap (`1️⃣`) or a sign asked for as a picture (`🛋️`).
 Its colors come from an emoji font, which Omarchy installs (`noto-fonts-emoji`); where
 none is, a picture shows an empty box for it, and `omaspec render` says which characters
 no installed font draws (`undrawable` in its `--json` report).

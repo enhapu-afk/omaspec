@@ -59,3 +59,4 @@ scrive-iced = { path = "vendor/scrive-iced" }
 iced_tiny_skia = { path = "vendor/iced_tiny_skia" }
 smithay-clipboard = { path = "vendor/smithay-clipboard" }
 winit = { path = "vendor/winit" }
+usvg = { path = "vendor/usvg" }

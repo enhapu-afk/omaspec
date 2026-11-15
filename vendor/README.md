@@ -171,3 +171,36 @@ The change may go upstream; a new release is taken by copying it here
 again and applying it. `paper::sprite`'s tests
 `a_box_s_parts_keep_to_the_box_without_a_gpu` and
 `parts_side_by_side_draw_each_pixel_once` fail without it.
+
+## usvg 0.47.0
+
+resvg's SVG reader, by Yevhenii Reizner and the resvg contributors,
+Apache-2.0 OR MIT (`LICENSE-APACHE`, `LICENSE-MIT`, from the package).
+Every picture Omaspec shows or exports is read by it
+(`omaspec_render::export::parse`). Copied from the crates.io package
+unchanged, then changed as below in `src/text/layout.rs`; each change says
+"Omaspec addition to usvg 0.47.0" in a comment.
+
+- `shape_text`: for a character its face lacks, usvg shapes the text again
+  in a fallback face and copies that face's glyphs in, but only when both
+  shapings have as many glyphs, and gave up otherwise. An emoji face draws
+  a family joined by zero width joiners, a skin tone, a flag, a keycap and
+  `🛋️` (with the mark that asks for a picture) as one glyph where a text
+  face has one for each character, so every emoji of such a line was an
+  empty box (REQ-051). Where the counts differ, `merge_by_bytes` now lays
+  each of the fallback's clusters over the missing glyphs by the bytes they
+  cover, where both faces cut the text at the cluster's ends.
+- `process_chunk`: a run of words in another face (`<tspan
+  font-weight="bold">`) replaces the glyphs of its clusters. A cluster's
+  length is in bytes, and the package took it for a number of glyphs: for
+  an emoji of four bytes a character it removed the glyphs after the
+  cluster and could remove past the end, which ends the program. The
+  glyphs that go or come are now those whose bytes the cluster covers.
+
+```bash
+diff -ru ~/.cargo/registry/src/*/usvg-0.47.0/src vendor/usvg/src
+```
+
+The changes may go upstream; a new release is taken by copying it here
+again and applying them. `omaspec-render`'s `tests/emoji.rs` fails without
+them.

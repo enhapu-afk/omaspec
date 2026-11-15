@@ -14,6 +14,9 @@ use crate::color::{self, Color};
 pub use crate::icons::{Icon, Picture};
 use crate::metrics;
 
+mod emoji;
+pub use emoji::emoji;
+
 /// The font family of the whole diagram, by its metrics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Family {
@@ -370,12 +373,25 @@ fn stack(lines: Vec<Line>) -> Block {
     }
 }
 
-/// The width of `text` in `style`.
+/// The width of `text` in `style`. An emoji is one picture of the emoji
+/// face however many characters write it ([`emoji`]).
 pub fn measure(text: &str, style: &Style, family: Family) -> f32 {
     let family = if style.mono { Family::Mono } else { family };
-    let em: u32 = text.chars().map(|c| advance(c, family, style.bold)).sum();
+    let letters =
+        |text: &str| -> u32 { text.chars().map(|c| advance(c, family, style.bold)).sum() };
+    let mut em = 0;
+    let mut at = 0;
+    for picture in emoji(text) {
+        em += letters(&text[at..picture.start]) + PICTURE;
+        at = picture.end;
+    }
+    em += letters(&text[at..]);
     em as f32 / 1000.0 * style.size
 }
+
+/// How wide a picture of the emoji face is, in thousandths of an em: wider
+/// than its em, so a word after it does not stand on it.
+const PICTURE: u32 = 1250;
 
 /// The advance of `c` in thousandths of an em.
 fn advance(c: char, family: Family, bold: bool) -> u32 {
@@ -388,10 +404,8 @@ fn advance(c: char, family: Family, bold: bool) -> u32 {
     {
         return 0;
     }
-    // A picture of the emoji font is wider than its em, and a word after
-    // it would stand on it.
-    if matches!(code, 0x1F000..=0x1FAFF) || emoji_sign(code) {
-        return 1250;
+    if emoji::is_picture(c) {
+        return PICTURE;
     }
     if is_wide(code) {
         return 1000;
@@ -1087,8 +1101,19 @@ mod tests {
         for picture in ["\u{1F916}", "\u{2B50}", "\u{270B}", "\u{2705}"] {
             assert!((wide(picture) - 1.25).abs() < 0.001, "{picture}");
         }
-        // With the mark that asks for its colors, no wider.
+        // With the mark that asks for its colors, no wider; a family, a
+        // skin tone and a flag are one picture each.
         assert!((wide("\u{1F6E1}\u{FE0F}") - 1.25).abs() < 0.001);
+        for one in [
+            "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}",
+            "\u{1F44D}\u{1F3FD}",
+            "\u{1F1E9}\u{1F1EA}",
+            "\u{2764}\u{FE0F}",
+        ] {
+            assert!((wide(one) - 1.25).abs() < 0.001, "{one}");
+        }
+        let words = wide("ab");
+        assert!((wide("a\u{1F44D}\u{1F3FD}\u{1F408}b") - (words + 2.5)).abs() < 0.001);
         // A sign a text face draws keeps an em.
         assert!((wide("\u{2713}") - 1.0).abs() < 0.001);
     }
