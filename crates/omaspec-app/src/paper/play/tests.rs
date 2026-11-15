@@ -59,6 +59,40 @@ fn lines_nobody_takes_do_not_pile_up() {
     assert_eq!(machine.lines.len(), 1);
 }
 
+/// From the start the bar knows where the machine can be and what it
+/// offers there, so it can keep its rows: every state of `never.mmd`'s
+/// kind, each once, and both regions of a parallel state together.
+#[test]
+fn the_offer_knows_every_place_of_the_play() {
+    let source = "@startuml\n[*] --> Unstable\nUnstable --> Attempt1 : try 1\nAttempt1 --> Unstable : reverted\nUnstable --> Attempt2 : try 2\nAttempt2 --> Unstable : reverted\nUnstable --> Stable : Rust 1.100\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let play = Play::new(source, Language::PlantUml, &map, Instant::now()).unwrap();
+    let Offer::Machine { every, .. } = play.offer() else {
+        panic!("no machine");
+    };
+    let places: Vec<(&str, usize)> = every
+        .iter()
+        .map(|(at, options)| (at.as_str(), options.len()))
+        .collect();
+    assert_eq!(
+        places,
+        [
+            ("Unstable", 3),
+            ("Attempt1", 1),
+            ("Attempt2", 1),
+            ("Stable", 0)
+        ]
+    );
+    let parallel = "@startuml\n[*] --> On\nstate On {\n  [*] --> A\n  A --> B : a\n  --\n  [*] --> X\n  X --> Y : x\n}\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(parallel, None).unwrap();
+    let play = Play::new(parallel, Language::PlantUml, &map, Instant::now()).unwrap();
+    let Offer::Machine { every, .. } = play.offer() else {
+        panic!("no machine");
+    };
+    assert_eq!(every.len(), 4, "{every:?}");
+    assert_eq!(every[0].1.len(), 2, "{every:?}");
+}
+
 /// The bar says what the diagram shows: a state by its long name, an
 /// option with its action, and no end while another way still runs.
 #[test]

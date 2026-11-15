@@ -598,7 +598,9 @@ through `alt`, `opt` and `loop`.
 
 **Play it.** F5 (`p` in the preview window) runs the diagram on screen. A state machine
 starts: the rest of the diagram sinks under a veil, the states it is in shine through it,
-and the bar below offers what can happen next, numbered 1 to 9; a light runs along the
+and the bar below offers what can happen next, numbered 1 to 9 (where they would not fit
+one line with their names, anywhere in the play, the bar has a second or third from the
+start, so it keeps its height); a light runs along the
 transition's route to the next state, regions start side by side, a choice (or a state
 with several ways out) waits for you to pick one, and a history goes back to where its
 state was left. A scenario unfolds message by message (Space), a light running along each

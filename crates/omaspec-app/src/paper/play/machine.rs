@@ -39,6 +39,8 @@ pub(super) enum Driver {
 }
 
 pub(super) struct Writer {
+    /// Where the machine can be and what it offers there ([`every_offer`]).
+    pub(super) every: std::sync::Arc<Vec<Offered>>,
     /// The run as it started, for a restart.
     pub(super) start: Run,
     pub(super) run: Run,
@@ -74,6 +76,53 @@ pub(super) struct Travel {
     pub(super) took: Duration,
     /// The states it arrives in, for the ripple.
     pub(super) entered: Vec<usize>,
+}
+
+/// The most runs [`every_offer`] visits: a machine that can be in more
+/// ways is judged by the first of them.
+const VISITED: usize = 256;
+
+/// Where the machine can come from `start`, and what it offers there, each
+/// once: the bar takes its rows from them.
+pub(super) fn every_offer(m: &Machine, start: &Run) -> Vec<Offered> {
+    let mut runs = vec![start.clone()];
+    let mut next = 0;
+    while next < runs.len() && runs.len() < VISITED {
+        for t in runs[next].options(m) {
+            let mut after = runs[next].clone();
+            after.take(m, t);
+            if !runs.contains(&after) {
+                runs.push(after);
+            }
+        }
+        next += 1;
+    }
+    let mut offers: Vec<Offered> = Vec::new();
+    for run in &runs {
+        let offer = (
+            names(m, run.active()),
+            run.options(m)
+                .into_iter()
+                .map(|t| option_of(m, t))
+                .collect(),
+        );
+        if !offers.contains(&offer) {
+            offers.push(offer);
+        }
+    }
+    offers
+}
+
+/// The names of `states`, each once in a row, as the bar says where the
+/// machine is.
+fn names(m: &Machine, states: &[usize]) -> String {
+    let mut at: Vec<String> = states
+        .iter()
+        .map(|&s| name_of(m, s))
+        .filter(|n| !n.is_empty())
+        .collect();
+    at.dedup();
+    at.join(", ")
 }
 
 impl MachinePlay {
@@ -280,15 +329,7 @@ impl MachinePlay {
 
     pub(super) fn offer(&self) -> Offer {
         let m = &self.machine;
-        let names = |states: &[usize]| {
-            let mut at: Vec<String> = states
-                .iter()
-                .map(|&s| name_of(m, s))
-                .filter(|n| !n.is_empty())
-                .collect();
-            at.dedup();
-            at.join(", ")
-        };
+        let names = |states: &[usize]| names(m, states);
         let writer = match &self.driver {
             Driver::Writer(writer) => writer,
             Driver::Trace(trace) => {
@@ -333,6 +374,7 @@ impl MachinePlay {
             steps: writer.steps,
             ended: writer.run.ended(m),
             can_go_back: !writer.before.is_empty(),
+            every: writer.every.clone(),
         }
     }
 

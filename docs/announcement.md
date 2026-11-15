@@ -126,8 +126,9 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   in as a choice beside the name.
 - **Gantt charts over years.** `printscale weekly`, `monthly`, `quarterly` and `yearly`,
   as PlantUML draws them, up to 20 × 365 days, and durations in months.
-- **A steadier play.** The bar under a play keeps one line, so the diagram above it never
-  jumps; it calls a state by the name its box shows, an option by its whole label with
+- **A steadier play.** The bar under a play keeps its height, so the diagram above it never
+  jumps; options that would not fit one line with their names take a second from the
+  start. It calls a state by the name its box shows, an option by its whole label with
   its action, and a diagram with two ways from the start ends when both have.
 - **Timelines that wrap.** A long event breaks inside its card, as Mermaid draws it.
 - **Tested harder.** Every reader and drawer is fuzzed each night, and properties of

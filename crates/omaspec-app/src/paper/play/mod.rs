@@ -12,6 +12,7 @@
 //! it has passed is already as bright as it will rest, and the head eases
 //! into that, so the joins of the highlight never show.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use iced::time::Instant;
@@ -81,6 +82,7 @@ impl Play {
             let (run, steps) = Run::start(&machine)
                 .ok_or("the state machine has no start ([*] --> …), so it cannot run")?;
             let writer = Writer {
+                every: Arc::new(machine::every_offer(&machine, &run)),
                 start: run.clone(),
                 run,
                 before: Vec::new(),
@@ -301,6 +303,10 @@ fn placed(machine: &Machine, map: &Map) -> Result<Placed, String> {
     Ok(placed)
 }
 
+/// Where a machine is, by the names of its states, and its options there,
+/// each a label and the state it leads to.
+pub type Offered = (String, Vec<(String, String)>);
+
 /// The bar under a playing diagram.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Offer {
@@ -313,6 +319,10 @@ pub enum Offer {
         steps: usize,
         ended: bool,
         can_go_back: bool,
+        /// Where the machine can be in this play and what it offers there:
+        /// the bar takes the rows the most of them need from the start, so
+        /// it keeps its height.
+        every: Arc<Vec<Offered>>,
     },
     Scenario {
         at: usize,
