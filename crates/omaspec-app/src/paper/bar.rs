@@ -4,10 +4,12 @@
 //!
 //! It keeps its height and its width for the whole play, so the diagram
 //! above it never moves: one row (a trace has a second line for what its
-//! line says), as wide as the pane allows. A machine's options take a
-//! second or third row where one would leave only their numbers, wherever
-//! in the play that is: the bar has those rows from the start. Else what
-//! does not fit is cut short with `…`.
+//! line says), as wide as the pane allows up to [`WIDEST`]. A machine's
+//! options take a second or third row where one would leave only their
+//! numbers, wherever in the play that is: the bar has those rows from the
+//! start. Where not even three rows keep their labels, the bar is as wide
+//! as the pane; where that does not either, the numbers take the rows.
+//! Else what does not fit is cut short with `…`.
 
 use std::cell::RefCell;
 use std::sync::{Arc, Weak};
@@ -21,7 +23,8 @@ use super::Message;
 use super::play::{Ask, Offer, Offered};
 use crate::ui;
 
-/// The widest the bar gets.
+/// The widest the bar gets, but for a machine whose options would keep
+/// only their numbers in it.
 const WIDEST: f32 = 900.0;
 /// Around the bar in the pane, across.
 const MARGIN: f32 = 18.0;
@@ -57,7 +60,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             .color(color)
             .wrapping(text::Wrapping::None)
     };
-    let inside = inside_of(pane);
+    let mut inside = inside_of(pane);
     // What the bar says on the left; what is offered, in the room between,
     // clipped there should it not fit after all; the tools on the right.
     let mut items: Vec<Element<'a, Message>> = Vec::new();
@@ -77,6 +80,8 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             can_go_back,
             every,
         } => {
+            let (wide, kept_rows) = layout_of(every, pane);
+            inside = wide;
             let back = (*can_go_back).then_some(("↶ back", "↶", Ask::Back));
             let again = (*steps > 0 || *ended).then_some(("⟲ again", "⟲", Ask::Restart));
             let head = if *ended {
@@ -85,7 +90,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                 head_of(at, inside)
             };
             let (room, signs) = room_beside(&head, back.is_some(), again.is_some(), inside);
-            rows = rows_of(every, inside).max(rows_needed(options, room, signs));
+            rows = kept_rows.max(rows_needed(options, room, signs).1);
             items.push(words(head, accent).into());
             let fit = arranged(options, room, signs, rows);
             for (label, sign, ask) in back.into_iter().chain(again) {
@@ -232,7 +237,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
     let bar = container(content)
         .padding([8, 12])
         .width(Length::Fill)
-        .max_width(WIDEST)
+        .max_width(inside + 2.0 * PADDING)
         .style(move |_: &Theme| {
             container::Style::default()
                 .background(iced::Color { a: 0.94, ..fill })
@@ -266,7 +271,7 @@ pub fn extra_height(source: &str, language: omaspec_core::Language, pane: f32) -
     let Some(every) = super::play::every_offer_of(source, language) else {
         return 0.0;
     };
-    rows_height(rows_of(&Arc::new(every), inside_of(pane))) - rows_height(1)
+    rows_height(layout_of(&Arc::new(every), pane).1) - rows_height(1)
 }
 
 /// How high `rows` rows of options are, with the gaps between them.
@@ -275,9 +280,11 @@ fn rows_height(rows: usize) -> f32 {
 }
 
 /// What the bar says first of a machine at `at`: its states, cut to a
-/// third of the room `inside`.
+/// third of the room `inside`, or of a bar [`WIDEST`] wide where it is
+/// wider (what more it has is the options').
 fn head_of(at: &str, inside: f32) -> String {
-    format!("● {}", cut(at, (inside / 3.0 / (13.0 * CHAR)) as usize))
+    let third = inside.min(WIDEST - 2.0 * PADDING) / 3.0;
+    format!("● {}", cut(at, (third / (13.0 * CHAR)) as usize))
 }
 
 /// The room left for a machine's options beside `head`, the tools shown
@@ -297,45 +304,65 @@ fn room_beside(head: &str, back: bool, again: bool, inside: f32) -> (f32, f32) {
     (inside - used, signs)
 }
 
-/// The rows a play needs for its options wherever the machine can be
-/// (`every`), with both tools beside them as after a first step: the most
-/// any place needs to keep its labels. They depend on the play and the
-/// width alone, so they are worked out once for each and kept.
-fn rows_of(every: &Arc<Vec<Offered>>, inside: f32) -> usize {
+/// The room inside the bar of a play whose machine can be in each of
+/// `every` place, in a pane `pane` pixels wide, and the rows its options
+/// need, with both tools beside them as after a first step: as wide as
+/// [`WIDEST`] lets it where every place keeps its labels there, else as
+/// wide as the pane; as many rows as the place that needs most. They
+/// depend on the play and the width alone, so they are worked out once
+/// for each and kept.
+fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> (f32, usize) {
     // The play by a weak hold on its places, which keeps their address
     // from going to another play's.
-    type Kept = Option<(Weak<Vec<Offered>>, u32, usize)>;
+    type Kept = Option<(Weak<Vec<Offered>>, u32, (f32, usize))>;
     thread_local! {
         static KEPT: RefCell<Kept> = const { RefCell::new(None) };
     }
-    let width = inside.to_bits();
+    let width = pane.to_bits();
     let kept = KEPT.with_borrow(|kept| {
         kept.as_ref()
             .filter(|(play, at, _)| *at == width && play.ptr_eq(&Arc::downgrade(every)))
-            .map(|&(_, _, rows)| rows)
+            .map(|&(_, _, layout)| layout)
     });
-    if let Some(rows) = kept {
-        return rows;
+    if let Some(layout) = kept {
+        return layout;
     }
-    let rows = every
-        .iter()
-        .map(|(at, options)| {
-            let (room, signs) = room_beside(&head_of(at, inside), true, true, inside);
-            rows_needed(options, room, signs)
-        })
-        .max()
-        .unwrap_or(1);
-    KEPT.set(Some((Arc::downgrade(every), width, rows)));
-    rows
+    // Whether every place keeps its labels in a bar `inside` wide, and
+    // the most rows a place needs there.
+    let needs = |inside: f32| {
+        every
+            .iter()
+            .fold((true, 1), |(labels, most), (at, options)| {
+                let (room, signs) = room_beside(&head_of(at, inside), true, true, inside);
+                let (kept, rows) = rows_needed(options, room, signs);
+                (labels && kept, most.max(rows))
+            })
+    };
+    let narrow = inside_of(pane);
+    let wide = pane - 2.0 * (MARGIN + PADDING);
+    let (labels, rows) = needs(narrow);
+    let layout = if labels || wide <= narrow {
+        (narrow, rows)
+    } else {
+        (wide, needs(wide).1)
+    };
+    KEPT.set(Some((Arc::downgrade(every), width, layout)));
+    layout
 }
 
 /// The fewest rows, up to [`MOST_ROWS`], in which `options` keep their
-/// labels, if cut; one where not even the most do, the numbers alone
-/// taking no more.
-fn rows_needed(options: &[(String, String)], room: f32, signs: f32) -> usize {
-    (1..=MOST_ROWS)
-        .find(|&rows| fitted(options, room, signs, rows).shown > Shown::Numbers)
-        .unwrap_or(1)
+/// labels, if cut, and whether they do; where not even the most do, the
+/// fewest in which their numbers stand, none clipped (the most, should
+/// even those not do).
+fn rows_needed(options: &[(String, String)], room: f32, signs: f32) -> (bool, usize) {
+    let shown = |rows: usize| fitted(options, room, signs, rows).shown;
+    if let Some(rows) = (1..=MOST_ROWS).find(|&rows| shown(rows) > Shown::Numbers) {
+        return (true, rows);
+    }
+    let rows = (1..=MOST_ROWS)
+        .find(|&rows| shown(rows) == Shown::Numbers)
+        .unwrap_or(MOST_ROWS);
+    (false, rows)
 }
 
 /// The options in at most `rows` rows: in as many as show the most of
@@ -421,6 +448,8 @@ struct Fit {
 /// How much of its options a [`Fit`] shows, least first.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Shown {
+    /// Their numbers, some clipped at the bar's end.
+    Clipped,
     /// Their numbers alone.
     Numbers,
     /// Their labels, some cut, without where they lead.
@@ -436,7 +465,7 @@ enum Shown {
 /// then left out, and only then are the labels cut, longest first; where
 /// even the shortest do not fit, the chips show their numbers alone (the
 /// keys 1 to 9 take them). What still does not fit is clipped at the bar's
-/// end.
+/// end ([`Shown::Clipped`]).
 fn fitted(options: &[(String, String)], room: f32, signs: f32, rows: usize) -> Fit {
     let per_row = options.len().div_ceil(rows.max(1)).max(1);
     let count = |s: &str| s.chars().count();
@@ -501,7 +530,11 @@ fn fitted(options: &[(String, String)], room: f32, signs: f32, rows: usize) -> F
         options: options.iter().map(|_| (String::new(), None)).collect(),
         signs: true,
         per_row,
-        shown: Shown::Numbers,
+        shown: if width(0, None) <= room {
+            Shown::Numbers
+        } else {
+            Shown::Clipped
+        },
     }
 }
 
@@ -795,7 +828,7 @@ mod tests {
         let inside = 800.0 - 2.0 * MARGIN - 2.0 * PADDING;
         let (room, signs) = room_beside(&head_of("Unstable", inside), true, true, inside);
         assert_eq!(fitted(&unstable, room, signs, 1).shown, Shown::Numbers);
-        assert_eq!(rows_needed(&unstable, room, signs), 2);
+        assert_eq!(rows_needed(&unstable, room, signs), (true, 2));
         let fit = arranged(&unstable, room, signs, 2);
         assert_eq!(fit.per_row, 3);
         assert!(fit.shown >= Shown::Targets, "{fit:?}");
@@ -807,17 +840,16 @@ mod tests {
         let reverted = options(&[("reverted", "Unstable")]);
         let attempt = ("Attempt 1".to_owned(), reverted.clone());
         let every = Arc::new(vec![("Unstable".to_owned(), unstable), attempt.clone()]);
-        assert_eq!(rows_of(&every, inside), 2);
+        assert_eq!(layout_of(&every, 800.0), (inside, 2));
         // Kept for the play and the width; another play counts its own.
-        assert_eq!(rows_of(&every, inside), 2);
+        assert_eq!(layout_of(&every, 800.0), (inside, 2));
         // A state with one option in a bar of two rows shows it in one.
         assert_eq!(arranged(&reverted, room, signs, 2).per_row, 1);
-        assert_eq!(rows_of(&Arc::new(vec![attempt]), inside), 1);
+        assert_eq!(layout_of(&Arc::new(vec![attempt]), 800.0), (inside, 1));
         assert_eq!(rows_height(2), 2.0 * ROW + ROW_GAP);
     }
 
-    /// Where not even three rows keep the labels, the numbers alone take
-    /// one; a second row the bar has is taken where it shows more of the
+    /// A second row the bar has is taken where it shows more of the
     /// labels; and a badge of two digits is measured as two.
     #[test]
     fn rows_are_taken_only_where_they_show_more() {
@@ -827,7 +859,6 @@ mod tests {
             ("the third of four rather long events", "Three"),
             ("the fourth of four rather long events", "Four"),
         ]);
-        assert_eq!(rows_needed(&long, -31.0, 87.0), 1);
         let room = 520.0;
         let one = fitted(&long, room, 0.0, 1);
         let two = arranged(&long, room, 0.0, 2);
@@ -841,6 +872,47 @@ mod tests {
         };
         assert!(letters(&two) > letters(&one), "{two:?}");
         assert!(chips_width(9, [(5, 0)].into_iter()) > chips_width(0, [(5, 0)].into_iter()));
+    }
+
+    /// REQ-045, the Odyssey of 3,000 lines 1,400 pixels wide: seventeen
+    /// options of regions side by side kept only their numbers in a bar
+    /// 900 wide, and those in one row, clipped after the ninth. The bar is
+    /// as wide as the pane where its options need it, the states it names
+    /// no wider for that, and every option keeps its label.
+    #[test]
+    fn many_options_side_by_side_widen_the_bar_and_keep_their_labels() {
+        let many: Vec<(String, String)> = (1..=17)
+            .map(|i| {
+                (
+                    format!("event {i} of a region that runs beside the others"),
+                    format!("State{i}"),
+                )
+            })
+            .collect();
+        let at = "Besieging, WashedUp, PoseidonAway, Daydreaming, AtTheLoom, Waiting";
+        let every = Arc::new(vec![(at.to_owned(), many.clone())]);
+        let narrow = inside_of(1400.0);
+        assert_eq!(narrow, WIDEST - 2.0 * PADDING);
+        let (room, signs) = room_beside(&head_of(at, narrow), true, true, narrow);
+        assert!(!rows_needed(&many, room, signs).0);
+        let (inside, rows) = layout_of(&every, 1400.0);
+        assert_eq!(inside, 1400.0 - 2.0 * (MARGIN + PADDING));
+        assert_eq!(head_of(at, inside), head_of(at, narrow));
+        let (room, signs) = room_beside(&head_of(at, inside), true, true, inside);
+        let fit = arranged(&many, room, signs, rows);
+        assert!(fit.shown >= Shown::Labels, "{fit:?}");
+        assert!(rows <= MOST_ROWS);
+        // Without the room, a bar keeps the pane's width and its numbers
+        // take the rows they need, none clipped.
+        let (inside, rows) = layout_of(&Arc::new(vec![(at.to_owned(), many.clone())]), 800.0);
+        assert_eq!(inside, inside_of(800.0));
+        let (room, signs) = room_beside(&head_of(at, inside), true, true, inside);
+        assert_eq!(rows_needed(&many, room, signs), (false, rows));
+        assert!(rows > 1);
+        assert_eq!(arranged(&many, room, signs, rows).shown, Shown::Numbers);
+        assert_eq!(fitted(&many, room, signs, 1).shown, Shown::Clipped);
+        // Where even the most rows clip them, the bar takes the most.
+        assert_eq!(rows_needed(&many, 60.0, 0.0), (false, MOST_ROWS));
     }
 
     #[test]
