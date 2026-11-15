@@ -355,7 +355,7 @@ pub(super) mod tests {
             } else {
                 let drawn = &paper.diagram.as_ref().unwrap().drawn;
                 (
-                    raster::Sheet::of(drawn).unwrap(),
+                    super::super::super::sheet::Sheet::of(drawn).unwrap(),
                     paper.bare_new.asked.unwrap(),
                 )
             };

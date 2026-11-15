@@ -204,15 +204,17 @@ pub(super) fn fit(
     Fit { pieces }
 }
 
-/// The box of pixels `src` drawn at `natural` pixels to a unit from the
-/// top left of `within`, as large as the picture draws it, and no further
-/// than `within`: a card whose rows are laid out from its left keeps them
-/// where they are as it changes size, and what it gains or loses is wiped
-/// in or out with the box of the moment.
-pub(super) fn anchored(src: Rectangle, within: Rectangle, natural: f32) -> Fit {
+/// The box of pixels `src` drawn at `natural` pixels to a unit across and
+/// down from the top left of `within`, as large as the picture draws it,
+/// and no further than `within`: a card whose rows are laid out from its
+/// left keeps them where they are as it changes size, and what it gains
+/// or loses is wiped in or out with the box of the moment. Each way at its
+/// own scale, as the paper is: a row far down a card lies on the pixels
+/// it lies on in the picture.
+pub(super) fn anchored(src: Rectangle, within: Rectangle, natural: Vector) -> Fit {
     let dest = Rectangle::new(
         within.position(),
-        Size::new(src.width, src.height) * natural,
+        Size::new(src.width * natural.x, src.height * natural.y),
     );
     let limit = dest
         .intersection(&within)

@@ -39,6 +39,7 @@ mod pane;
 mod passage;
 mod play;
 mod raster;
+mod sheet;
 mod sprite;
 pub(crate) mod view;
 mod wash;
@@ -153,10 +154,10 @@ struct Previous {
     /// Its links and folds, whose marks stay on it.
     links: Vec<Link>,
     spots: Vec<fold::Spot>,
-    /// What its sheet of parts is drawn from ([`raster::Sheet::of`]), the plan
+    /// What its sheet of parts is drawn from ([`sheet::Sheet::of`]), the plan
     /// its overview was drawn to, and its map: its boxes and lines glide
     /// from these.
-    sheet: Option<raster::Sheet>,
+    sheet: Option<sheet::Sheet>,
     plan: Option<raster::Plan>,
     map: Arc<omaspec_render::Map>,
 }

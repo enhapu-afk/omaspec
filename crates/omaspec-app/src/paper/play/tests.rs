@@ -1,0 +1,331 @@
+use super::draw::*;
+use super::*;
+#[test]
+fn lights_fade_on_and_off() {
+    let t0 = Instant::now();
+    let ms = |n: u64| t0 + Duration::from_millis(n);
+    let mut events = Vec::new();
+    assert_eq!(level(&events, ms(100)), 0.0);
+    light(&mut events, ms(0), true);
+    assert!(level(&events, ms(40)) > 0.0 && level(&events, ms(40)) < 1.0);
+    assert!((level(&events, ms(1000)) - 1.0).abs() < 1e-6);
+    light(&mut events, ms(1000), false);
+    assert!(level(&events, ms(1100)) < 1.0);
+    assert_eq!(level(&events, ms(5000)), 0.0);
+    // On again before it went quite out: it rises from where it was.
+    light(&mut events, ms(1100), true);
+    assert!(level(&events, ms(1100)) > 0.3);
+}
+
+#[test]
+fn the_lit_line_follows_the_light_through_a_step_that_follows_by_itself() {
+    let source = "@startuml\n[*] --> Brewing\nstate Brewing {\n  [*] --> Heating\n  Heating --> Pouring : hot\n  Pouring --> [*]\n}\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    // Long after the start has arrived, the writer picks hot.
+    let t1 = t0 + Duration::from_secs(10);
+    let _ = play.take_jump(t1);
+    play.ask(Ask::Take(0), t1);
+    let Play::Machine(machine) = &play else {
+        panic!("no machine");
+    };
+    let lines: Vec<_> = machine.lines.clone();
+    assert_eq!(
+        lines.iter().map(|&(_, line)| line).collect::<Vec<_>>(),
+        [4, 5],
+        "hot, then Pouring --> [*] by itself"
+    );
+    assert!(lines[0].0 < lines[1].0);
+    assert_eq!(play.take_jump(lines[0].0), Some(4));
+    assert_eq!(play.take_jump(lines[1].0 - Duration::from_millis(1)), None);
+    assert_eq!(play.take_jump(lines[1].0), Some(5));
+}
+
+#[test]
+fn lines_nobody_takes_do_not_pile_up() {
+    // The preview lights no line; a long play keeps only the recent.
+    let source = "@startuml\n[*] --> Off\nOff --> On : switch\nOn --> Off : switch\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    for n in 1..=50 {
+        play.ask(Ask::Take(0), t0 + Duration::from_secs(10 * n));
+    }
+    assert!(play.line_waiting());
+    let Play::Machine(machine) = &play else {
+        panic!("no machine");
+    };
+    assert_eq!(machine.lines.len(), 1);
+}
+
+/// The bar says what the diagram shows: a state by its long name, an
+/// option with its action, and no end while another way still runs.
+#[test]
+fn the_offer_speaks_as_the_diagram_does() {
+    let source = "@startuml\nstate \"Fix attempt\" as FixAttempt\n[*] --> Working\nWorking --> FixAttempt : restarts / reroute\n[*] --> Send\nSend --> [*] : sent\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    let Offer::Machine { options, at, .. } = play.offer() else {
+        panic!("no machine");
+    };
+    assert_eq!(at, "Working, Send");
+    assert_eq!(
+        options,
+        [
+            ("restarts / reroute".to_owned(), "Fix attempt".to_owned()),
+            ("sent".to_owned(), "end".to_owned()),
+        ]
+    );
+    play.ask(Ask::Take(1), t0);
+    let Offer::Machine {
+        options, at, ended, ..
+    } = play.offer()
+    else {
+        panic!("no machine");
+    };
+    assert!(!ended, "{at}");
+    // One way at its end, the other still running.
+    assert_eq!(at, "Working, end");
+    play.ask(Ask::Take(0), t0 + Duration::from_secs(10));
+    let Offer::Machine { at, ended, .. } = play.offer() else {
+        panic!("no machine");
+    };
+    assert!(!ended && at == "Fix attempt, end", "{at} {options:?}");
+}
+
+#[test]
+fn a_machine_plays_steps_one_after_another() {
+    let source = "@startuml\n[*] --> Closed\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    let Offer::Machine { options, at, .. } = play.offer() else {
+        panic!("no machine");
+    };
+    assert_eq!(options, [("lock".to_owned(), "Locked".to_owned())]);
+    assert_eq!(at, "Closed");
+    play.ask(Ask::Take(0), t0);
+    // Each line lights when its step's light sets off: first the start.
+    assert_eq!(play.take_jump(t0), None);
+    assert_eq!(play.take_jump(t0 + VEIL_FADE), Some(1));
+    assert_eq!(play.take_jump(t0 + Duration::from_secs(10)), Some(2));
+    assert_eq!(play.take_jump(t0 + Duration::from_secs(10)), None);
+    assert!(play.animating(t0 + Duration::from_millis(300)));
+    assert!(!play.animating(t0 + Duration::from_secs(10)));
+    let Offer::Machine {
+        at,
+        steps,
+        can_go_back,
+        ..
+    } = play.offer()
+    else {
+        panic!("no machine");
+    };
+    assert_eq!((at.as_str(), steps, can_go_back), ("Locked", 1, true));
+    play.ask(Ask::Back, t0);
+    let Offer::Machine { at, steps, .. } = play.offer() else {
+        panic!("no machine");
+    };
+    assert_eq!((at.as_str(), steps), ("Closed", 0));
+    // The light fades back. The travel that was on the way does not
+    // finish first.
+    assert!(play.animating(t0 + Duration::from_millis(200)));
+    assert!(!play.animating(t0 + Duration::from_millis(1500)));
+}
+
+#[test]
+fn a_history_is_on_the_map_and_named_in_the_bar() {
+    let source = "@startuml\n[*] --> Off\nOff --> On : power\nstate On {\n  [*] --> Low\n  Low --> High : up\n}\nOn --> Off : pause\nOff --> On[H] : resume\nOff --> On[H*] : deep\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let machine = Machine::read(source, Language::PlantUml).unwrap();
+    for (state, place) in machine.states.iter().zip(&machine.place(&map).states) {
+        assert!(place.is_some(), "{state:?} not on the map");
+    }
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    let Offer::Machine { options, .. } = play.offer() else {
+        panic!("no machine");
+    };
+    let option = |label: &str, to: &str| (label.to_owned(), to.to_owned());
+    assert_eq!(
+        options,
+        [
+            option("power", "On"),
+            option("resume", "history of On"),
+            option("deep", "deep history of On"),
+        ]
+    );
+    // On, Low, High, back to Off, and through the history to High.
+    for n in [0, 0, 0, 1] {
+        play.ask(Ask::Take(n), t0);
+    }
+    let Offer::Machine { at, .. } = play.offer() else {
+        panic!("no machine");
+    };
+    assert_eq!(at, "High");
+}
+
+#[test]
+fn a_trace_plays_line_by_line() {
+    let source = "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
+    let trace = [
+        r#"{"time":"10:30:01","object":"Door","event":"lock"}"#,
+        r#"{"object":"Car","event":"park"}"#,
+        r#"{"time":"10:30:02","object":"Door","event":"open"}"#,
+        r#"{"object":"Door","event":"unlock","state":"Closed"}"#,
+    ]
+    .join("\n");
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::trace(
+        source,
+        Language::PlantUml,
+        &map,
+        "door.puml",
+        &trace,
+        "run.jsonl",
+        "Door",
+        t0,
+    )
+    .unwrap();
+    let bar = |play: &Play| match play.offer() {
+        Offer::Trace {
+            played,
+            line,
+            said,
+            at,
+            finding,
+            ..
+        } => (played, line, said, at, finding.map(|(s, _)| s)),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(bar(&play), (0, None, String::new(), "Closed".into(), None));
+    play.ask(Ask::Next, t0);
+    assert_eq!(
+        play.take_jump(t0 + Duration::from_secs(10)),
+        Some(4),
+        "the lock line of the diagram"
+    );
+    assert_eq!(
+        bar(&play),
+        (1, Some(1), "lock".into(), "Locked".into(), None)
+    );
+    // Digits pick nothing in a trace.
+    play.ask(Ask::Take(0), t0);
+    play.ask(Ask::Next, t0);
+    assert_eq!(
+        bar(&play),
+        (
+            2,
+            Some(3),
+            "open".into(),
+            "Locked".into(),
+            Some(Severity::Error)
+        )
+    );
+    play.ask(Ask::Next, t0);
+    assert_eq!(
+        bar(&play),
+        (3, Some(4), "unlock → Closed".into(), "Closed".into(), None)
+    );
+    play.ask(Ask::Next, t0);
+    assert_eq!(bar(&play).0, 3, "the end of the trace");
+    play.ask(Ask::Back, t0);
+    assert_eq!(bar(&play).0, 2);
+    play.ask(Ask::Restart, t0);
+    assert_eq!(bar(&play).0, 0);
+    assert!(!play.animating(t0 + Duration::from_secs(10)));
+    let err = Play::trace(
+        source,
+        Language::PlantUml,
+        &map,
+        "door.puml",
+        &trace,
+        "run.jsonl",
+        "Ghost",
+        t0,
+    )
+    .err();
+    assert_eq!(err.as_deref(), Some("run.jsonl has no line of Ghost"));
+}
+
+#[test]
+fn a_scenario_unfolds_message_by_message() {
+    let source = "@startuml\nA -> B : one\nB -> A : two\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    assert_eq!(play.offer(), Offer::Scenario { at: 0, of: 2 });
+    play.ask(Ask::Next, t0);
+    play.ask(Ask::Next, t0);
+    play.ask(Ask::Next, t0);
+    assert_eq!(play.offer(), Offer::Scenario { at: 2, of: 2 });
+    assert_eq!(play.take_jump(t0), Some(2));
+    play.ask(Ask::Restart, t0);
+    assert_eq!(play.offer(), Offer::Scenario { at: 0, of: 2 });
+    let flow = Play::new(
+        "@startuml\nstart\n:a;\nstop\n@enduml\n",
+        Language::PlantUml,
+        &Map::default(),
+        t0,
+    );
+    assert!(flow.is_err());
+}
+
+#[test]
+fn mermaid_machines_find_their_places() {
+    let source = "stateDiagram-v2\n    [*] --> Idle\n    Idle --> Busy : job\n    state Busy {\n        [*] --> Work\n        Work --> Check : done\n        --\n        [*] --> Watch\n        Watch --> Watch : tick\n    }\n    Busy --> Idle : stop\n    Idle --> [*] : off\n";
+    let drawn = super::super::testing::drawn(source, Language::Mermaid);
+    let machine = Machine::read(source, Language::Mermaid).unwrap();
+    let placed = machine.place(&drawn.map);
+    for (state, place) in machine.states.iter().zip(&placed.states) {
+        assert!(place.is_some(), "{state:?} not on {:#?}", drawn.map.states);
+    }
+    for (t, route) in machine.transitions.iter().zip(&placed.routes) {
+        assert!(route.is_some(), "{t:?} not on {:#?}", drawn.map.transitions);
+    }
+    let mut play = Play::new(source, Language::Mermaid, &drawn.map, Instant::now()).unwrap();
+    play.ask(Ask::Take(0), Instant::now());
+    let Offer::Machine { at, .. } = play.offer() else {
+        panic!("no machine");
+    };
+    assert_eq!(at, "Work, Watch");
+}
+
+#[test]
+fn the_next_message_fades_the_line_it_leaves() {
+    let source = "@startuml\nA -> B : one\nB -> A : two\n@enduml\n";
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    play.ask(Ask::Next, t0);
+    let later = t0 + Duration::from_secs(2);
+    play.ask(Ask::Next, later);
+    let Play::Scenario(scenario) = &play else {
+        panic!("scenario");
+    };
+    let left = scenario
+        .leave
+        .as_ref()
+        .expect("the first message fades out");
+    assert_eq!(left.index, 0);
+    assert!(
+        (left.light.head - 1.0).abs() < 0.01,
+        "the light had arrived, {}",
+        left.light.head
+    );
+    // Two seconds later the line has lingered down to half. The fade
+    // starts there, not back at the full resting brightness.
+    assert!(
+        (left.light.rest - 0.45).abs() < 0.01,
+        "the fade starts from the dimmed line, {}",
+        left.light.rest
+    );
+    assert!(
+        left.light.extra < 0.01,
+        "the head had dissolved, {}",
+        left.light.extra
+    );
+}

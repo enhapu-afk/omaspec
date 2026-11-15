@@ -52,7 +52,10 @@ words it draws for which state, which words belong to which line.
    rim and its fill come from its own outline, read from its part alone
    (`pick::fills_of`). The room a box gains is filled from a patch of
    its fill on the same sheet, so it is on the GPU with the sheet
-   (2026-11-15).
+   (2026-11-15). The sheet is mapped onto the screen by the size its
+   ground's pixels cover, as the pane maps the overview, so the first
+   frame lies on the picture before to the pixel and the last on the new
+   one; `paper/tests/promises.rs` holds a glide to that.
 4. **Words go with their lines.** A line's words are a part of their own
    and travel with the line (`paper::wires`): from their old place to their
    new one, or away and in with the line when it goes or comes.

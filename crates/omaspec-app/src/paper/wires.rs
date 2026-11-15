@@ -347,7 +347,7 @@ fn resample(points: &[(f32, f32)], n: usize) -> Vec<(f32, f32)> {
 /// Where the pictures lie for one frame of the glide.
 pub struct Sheets<'a> {
     /// The old picture and the new one, sheets of their parts where they
-    /// mark them ([`super::raster::sheet`]): a line's words come from them.
+    /// mark them ([`super::sheet::sheet`]): a line's words come from them.
     pub pictures: (&'a Raster, &'a Raster),
     /// How far the glide is, and how far the old picture has gone and the
     /// new one has come.

@@ -11,7 +11,8 @@ use iced::time::Instant;
 use iced::{Animation, Point, Size, Task};
 
 use super::arrival::{Arrival, Event, Next};
-use super::raster::{Plan, Raster, Sheet};
+use super::raster::{Plan, Raster};
+use super::sheet::Sheet;
 use super::view::View;
 use super::{Change, Diagram, Fade, Message, Paper, Previous, Status, cards, frames, morph, wires};
 use crate::worker::Answer;

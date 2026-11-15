@@ -2896,9 +2896,24 @@ order ([0029](docs/adr/0029-a-glide-by-parts.md)):
       until the next edit; `settle` and `land` hand that on now. The
       diagram itself is still drawn by the recording, not by the render
       thread.
-- [ ] The files of `paper/` under 1,000 lines each; the glide's promises as
+- [x] The files of `paper/` under 1,000 lines each; the glide's promises as
       tests: the first frame is the old picture, the last the new one,
-      nothing lands outside a box, each pixel is drawn once.
+      nothing lands outside a box, each pixel is drawn once (2026-11-15).
+      `canvas`, `play`, `morph` and the pane's tests are folders of
+      modules now (the paper's grid, the marks over it, the pointer; a
+      machine, a scenario, a play's drawing; a glide's planning and its
+      frames; the glides' tests), and the sheet of parts has its own
+      `sheet.rs`; the largest file is `paper/mod.rs` at 977 lines.
+      `tests/promises.rs` folds four of the gallery's diagrams (states,
+      packages, a subgraph, JSON cards) and draws the glide's first and
+      last frame by tiny-skia against the pictures as the pane shows them,
+      and holds every box's pieces at every tenth of the way to its place
+      and to one drawing per pixel. The first of them found the glide
+      mapping the diagram onto its paper by the diagram's size, where the
+      pane maps the picture by the whole pixels its overview covers: half
+      a pixel down the picture, a card's lower rows were blurred for the
+      whole glide. A glide maps by the ground's own size now, and a card
+      laid from its top left keeps its scale each way.
 
 ### Presenting, animating, and diagrams only Omaspec draws (2026-11-13)
 
