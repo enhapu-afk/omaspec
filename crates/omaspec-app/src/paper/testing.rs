@@ -124,7 +124,7 @@ impl Paper {
     /// The fade that runs takes `duration` from now: for a picture of it
     /// half way.
     pub fn stretch_fade(&mut self, duration: Duration) {
-        if let Some(fade) = self.fade.as_mut() {
+        if let Some(fade) = self.arrival.fade_mut() {
             fade.shown = Animation::new(false)
                 .duration(duration)
                 .easing(iced::animation::Easing::Linear)
@@ -134,8 +134,8 @@ impl Paper {
 
     /// Whether a glide runs with its lines drawn on their own.
     pub fn fading_lines(&self) -> bool {
-        self.fade
-            .as_ref()
+        self.arrival
+            .fade()
             .is_some_and(|fade| fade.lines.is_some() && fade.bare.is_some())
     }
 

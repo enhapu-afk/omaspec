@@ -74,8 +74,8 @@ impl Paper {
     /// The sheets of parts a glide asked for, rasterized here.
     pub fn deliver_bare(&mut self) {
         let old = self
-            .previous
-            .as_ref()
+            .arrival
+            .previous()
             .and_then(|previous| previous.sheet.clone())
             .zip(self.bare_old.asked);
         let new = self
@@ -108,13 +108,13 @@ impl Paper {
         for held in [&self.held_overview, &self.held_detail] {
             out.extend(held.iter().filter_map(|(_, raster)| raster.as_ref()));
         }
-        if let Some(fade) = &self.fade {
+        if let Some(fade) = self.arrival.fade() {
             out.extend(fade.old.iter());
             if let Some((old, new)) = &fade.bare {
                 out.extend([old, new]);
             }
         }
-        if let Some(previous) = &self.previous {
+        if let Some(previous) = self.arrival.previous() {
             out.extend(previous.pictures.iter());
         }
         if let Some(passage) = &self.passage {
@@ -124,8 +124,9 @@ impl Paper {
         let mut handles: Vec<_> = out.into_iter().map(|r| r.handle.clone()).collect();
         // The colors a glide fills the room of its boxes with.
         let moves = self
-            .fade
-            .iter()
+            .arrival
+            .fade()
+            .into_iter()
             .flat_map(|fade| fade.morph.iter())
             .flat_map(|m| &m.moves);
         for step in moves {
@@ -138,7 +139,7 @@ impl Paper {
 
     /// How many pictures of the diagram before fade out, if a fade runs.
     pub fn fading(&self) -> Option<usize> {
-        self.fade.as_ref().map(|fade| fade.old.len())
+        self.arrival.fade().map(|fade| fade.old.len())
     }
 
     /// The pane's size.

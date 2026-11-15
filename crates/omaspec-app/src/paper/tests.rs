@@ -521,7 +521,7 @@ fn a_new_picture_stays_where_it_was_until_it_fades() {
     );
     assert!(paper.fading().is_none());
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the new picture fades in");
+    let fade = paper.arrival.fade().expect("the new picture fades in");
     assert_eq!(fade.old_view, kept);
     assert!(fade.morph.is_some(), "the boxes moved, so they glide");
     let left = fade.shown.remaining(Instant::now());
@@ -542,7 +542,7 @@ fn the_same_layout_keeps_the_short_fade() {
     let _ = paper.update(Message::Faded);
     show_source(&mut paper, source, Language::PlantUml);
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("a new raster still fades");
+    let fade = paper.arrival.fade().expect("a new raster still fades");
     assert!(fade.morph.is_none(), "the boxes did not move");
     let left = fade.shown.remaining(Instant::now());
     assert!(
@@ -618,8 +618,8 @@ fn a_fold_fades_and_a_zoomed_box_stays_put() {
         folded_box.distance(open_box) > 1.0
             || paper.diagram_size().height + 1.0
                 < paper
-                    .previous
-                    .as_ref()
+                    .arrival
+                    .previous()
                     .map(|p| p.size.height)
                     .unwrap_or(1.0),
         "folding Brewing changed nothing"
@@ -631,7 +631,7 @@ fn a_fold_fades_and_a_zoomed_box_stays_put() {
     );
     assert!(!paper.view.fit);
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the fold fades");
+    let fade = paper.arrival.fade().expect("the fold fades");
     assert!(!fade.old.is_empty());
     assert!(fade.morph.is_some(), "folding moves the boxes");
     let left = fade.shown.remaining(Instant::now());
@@ -663,7 +663,7 @@ fn a_fold_glides_each_part_from_a_picture_of_its_own() {
     paper.set_fold("Brewing", true);
     show_source(&mut paper, &folded, Language::PlantUml);
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the fold glides");
+    let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
     for step in &morph.moves {
@@ -727,7 +727,7 @@ fn a_package_glides_from_its_parts() {
     paper.set_fold("Lending", true);
     show_source(&mut paper, &folded, Language::PlantUml);
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the fold glides");
+    let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
     for step in &morph.moves {
@@ -767,7 +767,7 @@ fn a_subgraph_glides_from_its_parts() {
     paper.set_fold("Back", true);
     show_source(&mut paper, &folded, Language::Mermaid);
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the fold glides");
+    let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
     for step in &morph.moves {
@@ -820,7 +820,7 @@ fn a_wbs_branch_glides_from_its_parts() {
     paper.set_fold("Pack", true);
     show_source(&mut paper, &folded, Language::PlantUml);
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the fold glides");
+    let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
     for step in &morph.moves {
@@ -866,7 +866,7 @@ fn a_json_card_folds_from_its_part_into_its_row() {
     paper.set_fold("home/street", true);
     show_source(&mut paper, &folded, Language::PlantUml);
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the fold glides");
+    let fade = paper.arrival.fade().expect("the fold glides");
     let morph = fade.morph.as_ref().expect("the boxes move");
     let (old, new) = fade.bare.as_ref().expect("both sheets");
     let street = morph
@@ -933,7 +933,7 @@ D --> E
     let tree = Arc::clone(paper.shown_tree().unwrap());
     let raster = raster::render(&tree, paper.overview.asked.unwrap());
     let _ = paper.update(Message::Overview(paper.overview.seq(), raster));
-    assert!(paper.fade.is_none(), "waits for the sheets");
+    assert!(paper.arrival.fade().is_none(), "waits for the sheets");
     assert!(paper.bare_old.asked.is_some() && paper.bare_new.asked.is_some());
     assert!(
         paper.held_picture().is_some(),
@@ -941,7 +941,7 @@ D --> E
     );
     // One of them fails: the pictures fade, nothing is cut out of them.
     let _ = paper.update(Message::BareOld(paper.bare_old.seq(), None));
-    let fade = paper.fade.as_ref().expect("the fade starts without them");
+    let fade = paper.arrival.fade().expect("the fade starts without them");
     assert!(fade.morph.is_none());
     assert!(fade.lines.is_none() && fade.bare.is_none());
 }
@@ -979,13 +979,13 @@ fn a_picture_without_parts_fades() {
         paper.set_fold("Big", true);
         show(&mut paper, next, to);
         assert_eq!(
-            paper.previous.as_ref().unwrap().boxes.is_empty(),
+            paper.arrival.previous().unwrap().boxes.is_empty(),
             !from,
             "{what}: its boxes read only for a glide"
         );
         paper.deliver_overview();
         assert!(paper.bare_old.asked.is_none() && paper.bare_new.asked.is_none());
-        let fade = paper.fade.as_ref().expect("the fade starts at once");
+        let fade = paper.arrival.fade().expect("the fade starts at once");
         assert!(fade.morph.is_none() && fade.bare.is_none(), "{what}");
         assert!(fade.stands_in, "{what}: a fold that does not glide");
         assert!(paper.fold_spots().is_empty(), "{what}: the buttons wait");
@@ -1041,7 +1041,7 @@ fn a_diagram_of_too_many_boxes_fades_to_its_new_layout() {
         (&small, &most, true, "few to the most"),
     ] {
         let paper = from_to(first, next);
-        let fade = paper.fade.as_ref().expect("the new layout comes");
+        let fade = paper.arrival.fade().expect("the new layout comes");
         assert_eq!(fade.morph.is_some(), glides, "{what}");
         assert_eq!(fade.bare.is_some(), glides, "{what}");
         assert!(!fade.stands_in, "{what}: an edit, not a fold");
@@ -1052,7 +1052,7 @@ fn a_diagram_of_too_many_boxes_fades_to_its_new_layout() {
     let mut paper = from_to(&small, &one_more);
     let _ = paper.update(Message::Faded);
     show_source(&mut paper, &most, Language::PlantUml);
-    assert!(paper.previous.as_ref().unwrap().boxes.is_empty());
+    assert!(paper.arrival.previous().unwrap().boxes.is_empty());
 }
 
 /// A fold in such a diagram fades as long as a fold does, and its
@@ -1074,7 +1074,7 @@ fn a_fold_of_too_many_boxes_fades_and_its_buttons_wait() {
     paper.set_fold("Branch 0", true);
     show_source(&mut paper, &folded, Language::PlantUml);
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the fold fades");
+    let fade = paper.arrival.fade().expect("the fold fades");
     assert!(fade.morph.is_none() && fade.stands_in);
     let left = fade.shown.remaining(Instant::now());
     assert!(left > Duration::from_millis(280), "{left:?}");
@@ -1098,7 +1098,7 @@ fn a_glide_finishes_before_the_next_one_starts() {
     show_source(&mut paper, mid, Language::PlantUml);
     let mid_size = paper.diagram_size();
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the first glide");
+    let fade = paper.arrival.fade().expect("the first glide");
     assert!(fade.morph.is_some());
     let first_size = fade.old_size;
     let pinned = fade.new_size;
@@ -1107,17 +1107,17 @@ fn a_glide_finishes_before_the_next_one_starts() {
     // A newer diagram arrives while that glide is still going.
     show_source(&mut paper, last, Language::PlantUml);
     paper.deliver_overview();
-    let fade = paper.fade.as_ref().expect("the glide in flight");
+    let fade = paper.arrival.fade().expect("the glide in flight");
     assert_eq!(fade.old_size, first_size);
     assert_eq!(fade.new_size, pinned);
 
     let _ = paper.update(Message::Faded);
     // The next glide asks for the sheets of parts first.
-    assert!(paper.fade.is_none());
+    assert!(paper.arrival.fade().is_none());
     paper.deliver_bare();
     let fade = paper
-        .fade
-        .as_ref()
+        .arrival
+        .fade()
         .expect("the next glide starts where the last one landed");
     assert_eq!(fade.old_size, mid_size);
     assert_eq!(fade.new_size, paper.diagram_size());
@@ -1279,7 +1279,7 @@ fn a_render_asked_before_a_fold_leaves_the_fold_to_the_next() {
     );
     paper.deliver_overview();
     assert!(matches!(paper.change, Change::Edit));
-    let fade = paper.fade.as_ref().expect("the fold fades");
+    let fade = paper.arrival.fade().expect("the fold fades");
     let left = fade.shown.remaining(Instant::now());
     assert!(
         left > Duration::from_millis(280),

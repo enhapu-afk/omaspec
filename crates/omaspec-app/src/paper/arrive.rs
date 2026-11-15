@@ -10,6 +10,7 @@ use iced::animation::Easing;
 use iced::time::Instant;
 use iced::{Animation, Point, Size, Task};
 
+use super::arrival::{Arrival, Event, Next};
 use super::raster::{Plan, Raster, Sheet};
 use super::view::View;
 use super::{Change, Diagram, Fade, Message, Paper, Previous, Status, cards, frames, morph, wires};
@@ -77,41 +78,53 @@ impl Paper {
                 let old_center = anchor.as_deref().and_then(|name| self.box_center(name));
                 // Where the picture on screen sits now. It stays there until
                 // the new one is rasterized: fitting at once would jump it.
-                let held_at = match &self.previous {
-                    Some(previous) if self.fresh => previous.view_at(on_screen),
-                    _ => on_screen,
+                let held_at = self
+                    .arrival
+                    .previous()
+                    .map_or(on_screen, |previous| previous.view_at(on_screen));
+                // The picture on screen, unless one before it is still to
+                // be faded from: a short fade on screen gives way at once,
+                // its new picture held; a glide goes on to its end.
+                let previous = (!self.arrival.coming()).then(|| Previous {
+                    view: on_screen,
+                    then: on_screen,
+                    size: old_size.unwrap_or(Size::new(1.0, 1.0)),
+                    pictures: [self.overview.shown.clone(), self.detail.shown.clone()]
+                        .into_iter()
+                        .flatten()
+                        .collect(),
+                    // Nothing of a picture that will not glide is
+                    // read for a glide.
+                    boxes: self
+                        .diagram
+                        .as_ref()
+                        .filter(|diagram| {
+                            Sheet::of(&diagram.drawn).is_some() && !too_many(&diagram.drawn.map)
+                        })
+                        .map(morph::sides)
+                        .unwrap_or_default(),
+                    links: self.followable().to_vec(),
+                    spots: self.fold_spots(),
+                    sheet: self.diagram.as_ref().and_then(|d| Sheet::of(&d.drawn)),
+                    plan: self.overview.asked,
+                    map: self
+                        .diagram
+                        .as_ref()
+                        .map(|d| Arc::clone(&d.drawn.map))
+                        .unwrap_or_default(),
+                });
+                let next = match self.take_arrival() {
+                    Arrival::Still | Arrival::Fading(_) => Arrival::Coming(previous),
+                    Arrival::Coming(before) => Arrival::Coming(before),
+                    Arrival::Sheets(before) => Arrival::Coming(Some(before)),
+                    Arrival::Gliding(fade, Next::Alone) => {
+                        Arrival::Gliding(fade, Next::Following(previous))
+                    }
+                    Arrival::Gliding(fade, Next::Following(before) | Next::Waiting(before)) => {
+                        Arrival::Gliding(fade, Next::Following(before))
+                    }
                 };
-                if !self.fresh {
-                    self.previous = Some(Previous {
-                        view: on_screen,
-                        then: on_screen,
-                        size: old_size.unwrap_or(Size::new(1.0, 1.0)),
-                        pictures: [self.overview.shown.clone(), self.detail.shown.clone()]
-                            .into_iter()
-                            .flatten()
-                            .collect(),
-                        // Nothing of a picture that will not glide is
-                        // read for a glide.
-                        boxes: self
-                            .diagram
-                            .as_ref()
-                            .filter(|diagram| {
-                                Sheet::of(&diagram.drawn).is_some() && !too_many(&diagram.drawn.map)
-                            })
-                            .map(morph::sides)
-                            .unwrap_or_default(),
-                        links: self.followable().to_vec(),
-                        spots: self.fold_spots(),
-                        sheet: self.diagram.as_ref().and_then(|d| Sheet::of(&d.drawn)),
-                        plan: self.overview.asked,
-                        map: self
-                            .diagram
-                            .as_ref()
-                            .map(|d| Arc::clone(&d.drawn.map))
-                            .unwrap_or_default(),
-                    });
-                    self.fresh = true;
-                }
+                self.arrive(Event::Drawn, next);
                 let size = drawn.tree.size();
                 self.diagram = Some(Diagram {
                     size: Size::new(size.width(), size.height()),
@@ -145,7 +158,7 @@ impl Paper {
                     };
                     self.view = view;
                 }
-                if let Some(previous) = self.previous.as_mut().filter(|_| self.fresh) {
+                if let Some(previous) = self.arrival.previous_mut() {
                     previous.view = held_at;
                     previous.then = self.glide.map_or(self.view, |glide| glide.at(now));
                 }
@@ -156,8 +169,6 @@ impl Paper {
                 // Sheets of parts belong to one pair of diagrams.
                 self.bare_old.clear();
                 self.bare_new.clear();
-                self.no_bare = false;
-                self.landed = false;
                 let pixels = self.rasterize(Duration::ZERO);
                 if self.passage.is_some() {
                     return pixels;
@@ -191,7 +202,7 @@ impl Paper {
     /// The box a fold should keep on screen, once, for the answer to
     /// request `id`. A render asked for before the fold does not draw it,
     /// and leaves the anchor to the one that does. The fold itself stays
-    /// until [`Self::start_fade`] reads it.
+    /// until [`Self::start`] reads it.
     fn take_anchor(&mut self, id: u64) -> Option<String> {
         match &mut self.change {
             Change::Fold { anchor, since } if id > *since => anchor.take(),
@@ -199,20 +210,27 @@ impl Paper {
         }
     }
 
-    /// Fades from the pictures before to the new diagram's overview. A
-    /// detail of the diagram before goes with them; the new one comes sharp
-    /// once it is rasterized. When a box moved and both pictures mark their
-    /// parts, the boxes glide for [`MORPH`], each from a picture of its
-    /// own, and the lines with them, once the sheets of the two pictures
-    /// are drawn: until then the old picture stays, and this is called
-    /// again when they come (docs/adr/0029). Otherwise, or when a sheet
-    /// could not be drawn, the pictures fade, a fold longer than an edit.
-    pub(super) fn start_fade(&mut self, now: Instant) -> Task<Message> {
+    /// Fades from `previous`, the pictures before, to the new diagram's
+    /// overview, on `event`. A detail of the diagram before goes with them;
+    /// the new one comes sharp once it is rasterized. When a box moved and
+    /// both pictures mark their parts, the boxes glide for [`MORPH`], each
+    /// from a picture of its own, and the lines with them, once the sheets
+    /// of the two pictures are drawn: until then the old picture stays, and
+    /// this is called again when they come (docs/adr/0029). Otherwise, or
+    /// when a sheet could not be drawn (`failed`), the pictures fade, a fold
+    /// longer than an edit.
+    fn start(
+        &mut self,
+        event: Event,
+        previous: Option<Previous>,
+        failed: bool,
+        now: Instant,
+    ) -> Task<Message> {
         let parts = self
             .diagram
             .as_ref()
             .is_some_and(|d| Sheet::of(&d.drawn).is_some());
-        let mut morph = match &self.previous {
+        let mut morph = match &previous {
             Some(previous) if parts && previous.sheet.is_some() => self
                 .morph_of(
                     &previous.pictures,
@@ -228,11 +246,15 @@ impl Paper {
                 }),
             _ => None,
         };
-        if morph.is_some()
-            && !self.no_bare
-            && (self.bare_old.shown.is_none() || self.bare_new.shown.is_none())
-            && let Some(asked) = self.ask_bare()
+        let sheets_missing = self.bare_old.shown.is_none() || self.bare_new.shown.is_none();
+        let asked = match &previous {
+            Some(before) if morph.is_some() && !failed && sheets_missing => self.ask_bare(before),
+            _ => None,
+        };
+        if let Some(asked) = asked
+            && let Some(previous) = previous
         {
+            self.arrive(event, Arrival::Sheets(previous));
             return asked;
         }
         // A picture asked for before the fold leaves it to the one after.
@@ -245,9 +267,6 @@ impl Paper {
             self.change = Change::Edit;
         }
         let fold = fold.unwrap_or(false);
-        self.fresh = false;
-        self.landed = false;
-        let previous = self.previous.take();
         let seen = self.glide.map_or(self.view, |glide| glide.at(now));
         let (old, old_view, old_size, old_map) = match previous {
             Some(previous) => {
@@ -296,7 +315,7 @@ impl Paper {
         if let (Some(morph), Some((old, new))) = (morph.as_mut(), &bare) {
             morph::prepare(morph, old, new, lines.as_ref());
         }
-        self.fade = Some(Fade {
+        let fade = Fade {
             old,
             old_view,
             old_size,
@@ -310,7 +329,13 @@ impl Paper {
                 .duration(duration)
                 .easing(easing)
                 .go(true, now),
-        });
+        };
+        let to = if fade.morph.is_some() {
+            Arrival::Gliding(fade, Next::Alone)
+        } else {
+            Arrival::Fading(fade)
+        };
+        self.arrive(event, to);
         Task::none()
     }
 
@@ -318,8 +343,7 @@ impl Paper {
     /// plans their overviews were drawn to: each picture's ground, and
     /// each of its parts on its own. `None` when one of them has no
     /// sheet, so they fade.
-    fn ask_bare(&mut self) -> Option<Task<Message>> {
-        let previous = self.previous.as_ref()?;
+    fn ask_bare(&mut self, previous: &Previous) -> Option<Task<Message>> {
         let (old_sheet, old_plan) = (previous.sheet.clone()?, previous.plan?);
         let new_sheet = Sheet::of(&self.diagram.as_ref()?.drawn)?;
         let new_plan = self.overview.asked?;
@@ -344,13 +368,39 @@ impl Paper {
         } else {
             &mut self.bare_new
         };
-        if raster.is_none() && layer.is_latest(seq) {
-            self.no_bare = true;
+        let failed = raster.is_none() && layer.is_latest(seq);
+        let came = layer.receive(seq, raster);
+        if !(came || failed) {
+            return Task::none();
         }
-        layer.receive(seq, raster);
-        let both = self.bare_old.shown.is_some() && self.bare_new.shown.is_some();
-        if self.fresh && self.landed && self.fade.is_none() && (both || self.no_bare) {
-            return self.start_fade(crate::clock::now());
+        match self.take_arrival() {
+            Arrival::Sheets(previous) => {
+                let both = self.bare_old.shown.is_some() && self.bare_new.shown.is_some();
+                let event = if failed { Event::NoSheet } else { Event::Sheet };
+                if both || failed {
+                    return self.start(event, Some(previous), failed, crate::clock::now());
+                }
+                self.arrive(event, Arrival::Sheets(previous));
+            }
+            other => self.arrival = other,
+        }
+        Task::none()
+    }
+
+    /// The fade or the glide on screen has ended. A diagram that came
+    /// meanwhile comes now: its overview, once that is in.
+    pub(super) fn faded(&mut self, now: Instant) -> Task<Message> {
+        match self.take_arrival() {
+            Arrival::Fading(_) | Arrival::Gliding(_, Next::Alone) => {
+                self.arrive(Event::Faded, Arrival::Still);
+            }
+            Arrival::Gliding(_, Next::Following(previous)) => {
+                self.arrive(Event::Faded, Arrival::Coming(previous));
+            }
+            Arrival::Gliding(_, Next::Waiting(previous)) => {
+                return self.start(Event::Faded, previous, false, now);
+            }
+            other => self.arrival = other,
         }
         Task::none()
     }
@@ -366,7 +416,7 @@ impl Paper {
     }
 
     fn pin_morph(&mut self, view: View) {
-        if let Some(fade) = self.fade.as_mut().filter(|fade| fade.morph.is_some()) {
+        if let Arrival::Gliding(fade, _) = &mut self.arrival {
             fade.new_view = view;
         }
     }
@@ -435,27 +485,37 @@ impl Paper {
             self.back = None;
             return self.no_overview();
         }
-        if shown && self.fresh {
-            self.landed = true;
-            // A glide keeps its own picture until it ends. A short fade
-            // still gives way at once, as it always has.
-            let morphing = self.fade.as_ref().is_some_and(|fade| fade.morph.is_some());
-            if !morphing {
-                let fade = self.start_fade(crate::clock::now());
-                // The older drawing is on screen: now the way to the one
-                // it was shown for.
-                let back = match self.back.take() {
-                    Some(mut back) => {
-                        self.requested += 1;
-                        back.ticket.id = self.requested;
-                        self.rendered(back)
-                    }
-                    None => Task::none(),
-                };
-                return Task::batch([fade, self.resume_outward(), back]);
-            }
+        if !shown || !self.arrival.coming() {
+            return self.resume_outward();
         }
-        self.resume_outward()
+        let now = crate::clock::now();
+        let fade = match self.take_arrival() {
+            Arrival::Coming(previous) => self.start(Event::Overview, previous, false, now),
+            Arrival::Sheets(previous) => self.start(Event::Overview, Some(previous), false, now),
+            // A glide keeps its own picture until it ends.
+            Arrival::Gliding(fade, Next::Following(previous)) => {
+                self.arrive(
+                    Event::Overview,
+                    Arrival::Gliding(fade, Next::Waiting(previous)),
+                );
+                return self.resume_outward();
+            }
+            other => {
+                self.arrival = other;
+                return self.resume_outward();
+            }
+        };
+        // The older drawing is on screen: now the way to the one it was
+        // shown for.
+        let back = match self.back.take() {
+            Some(mut back) => {
+                self.requested += 1;
+                back.ticket.id = self.requested;
+                self.rendered(back)
+            }
+            None => Task::none(),
+        };
+        Task::batch([fade, self.resume_outward(), back])
     }
 
     /// Shows the way from `old`, an older drawing of this diagram (as B of
@@ -489,7 +549,7 @@ impl Paper {
             result: Ok(old),
         });
         // Nothing glides to the old one: it is where the way starts.
-        self.previous = None;
+        self.arrival.forget_previous();
         task
     }
 
@@ -509,10 +569,14 @@ impl Paper {
     /// diagram's view, and a zoom out of a link lifts its veil where it was
     /// going.
     fn no_overview(&mut self) -> Task<Message> {
-        if self.fresh {
-            self.fresh = false;
-            self.landed = false;
-            self.previous = None;
+        match self.take_arrival() {
+            Arrival::Coming(_) | Arrival::Sheets(_) => {
+                self.arrive(Event::NoOverview, Arrival::Still);
+            }
+            Arrival::Gliding(fade, Next::Following(_) | Next::Waiting(_)) => {
+                self.arrive(Event::NoOverview, Arrival::Gliding(fade, Next::Alone));
+            }
+            other => self.arrival = other,
         }
         self.stop_waiting();
         Task::none()
@@ -544,11 +608,11 @@ impl Paper {
     /// diagram waits for its first raster. Fitting has already moved
     /// [`Self::view`]; drawing with that would jump the old picture.
     pub(super) fn held_picture(&self) -> Option<&Previous> {
-        if !self.fresh || self.fade.is_some() || self.passage.is_some() {
+        if self.passage.is_some() {
             return None;
         }
-        self.previous
-            .as_ref()
+        self.arrival
+            .held()
             .filter(|previous| !previous.pictures.is_empty())
     }
 }

@@ -76,9 +76,9 @@ impl DiagramCanvas<'_> {
         link_under(self.links, self.view.to_diagram(at, viewport))
     }
 
-    /// The boxes gliding across this frame, through the last one. The
-    /// picture they travel to was taken when the glide started, so a newer
-    /// render cannot swap it in before this one has landed.
+    /// The boxes gliding across this frame, through the last one, drawn
+    /// from the two sheets taken when the glide started: a newer render
+    /// waits for its end ([`super::arrival::Next`]).
     fn paint_morph(
         &self,
         frame: &mut Frame,

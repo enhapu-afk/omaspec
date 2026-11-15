@@ -139,10 +139,8 @@ impl Paper {
         // would land where a box has not arrived yet.
         // The same while one picture fades into the other in a glide's
         // place: the old boxes are still to be seen where no button is.
-        if self
-            .fade
-            .as_ref()
-            .is_some_and(|fade| fade.morph.is_some() || fade.stands_in)
+        if matches!(self.arrival, super::arrival::Arrival::Gliding(..))
+            || self.arrival.fade().is_some_and(|fade| fade.stands_in)
         {
             return Vec::new();
         }

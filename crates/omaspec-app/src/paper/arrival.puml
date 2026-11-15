@@ -1,0 +1,49 @@
+@startuml Arrival
+title How a new picture comes on screen
+
+' The pane's own state machine (arrival.rs beside this file). Each
+' transition the pane takes in its tests is written to a trace and held
+' against this diagram by Omaspec's trace check (docs/adr/0030).
+
+state "Still" as Still : the picture on screen stands
+state "Coming" as Coming : a new diagram is drawn; the picture on\nscreen stays as it was until the new one's\noverview is rasterized
+state "Sheets" as Sheets : the overview is in; the sheets of parts\nof both pictures are on their way
+state "Fading" as Fading : one picture fades into the other
+state "Gliding" as Gliding {
+  state "Alone" as Alone : nothing newer is drawn
+  state "Following" as Following : a newer diagram is drawn; it waits\nfor its overview, then for the glide
+  state "Waiting" as Waiting : its overview is in; the glide ends first
+  [*] --> Alone
+  Alone --> Following : drawn
+  Following --> Following : drawn
+  Following --> Waiting : overview
+  Waiting --> Following : drawn
+  Following --> Alone : no overview
+  Waiting --> Alone : no overview
+}
+
+[*] --> Still
+Still --> Coming : drawn
+Coming --> Coming : drawn
+Coming --> Still : no overview
+Coming --> Fading : overview [it fades]
+Coming --> Sheets : overview [it glides]
+Sheets --> Sheets : overview [it glides]
+Sheets --> Fading : overview [it fades after all]
+Sheets --> Sheets : sheet [the other to come]
+Sheets --> Gliding : sheet [both in]
+Sheets --> Fading : sheet [it fades after all]
+Sheets --> Fading : no sheet
+Sheets --> Coming : drawn
+Sheets --> Still : no overview
+Fading --> Coming : drawn
+Fading --> Still : faded
+Alone --> Still : faded
+Following --> Coming : faded
+Waiting --> Fading : faded [it fades]
+Waiting --> Sheets : faded [it glides]
+Coming --> Still : released
+Sheets --> Still : released
+Fading --> Still : released
+Gliding --> Still : released
+@enduml

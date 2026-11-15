@@ -2862,8 +2862,16 @@ order ([0029](docs/adr/0029-a-glide-by-parts.md)):
       cutting is gone: a glide runs between two sheets of parts, a picture
       without them (the Java engine's, one too large for a sheet) fades;
       a box's rim and fill are read from its own part's outline alone.
-- [ ] Fade and glide as one small state machine instead of a dozen flags,
-      written as a diagram of its own and checked by Omaspec.
+- [x] Fade and glide as one small state machine instead of a dozen flags,
+      written as a diagram of its own and checked by Omaspec (2026-11-15,
+      [0030](docs/adr/0030-arrival-as-a-state-machine.md)).
+      `paper::arrival::Arrival` (still, coming, sheets, fading, gliding with
+      a newer diagram alone, following or waiting) replaces `fresh`,
+      `landed`, `no_bare`, `previous` and `fade`; `paper/arrival.puml` is
+      the machine. In the tests each move is held against it by Omaspec's
+      trace check as it is made, a tour walks all 31 transitions and
+      Omaspec's coverage of it is the whole diagram. A diagram drawn while
+      a short fade runs ends that fade at once; a glide runs to its end.
 - [ ] One way for the window and a recording to take their pictures: the
       recording runs the window's tasks, at once.
 - [ ] The files of `paper/` under 1,000 lines each; the glide's promises as

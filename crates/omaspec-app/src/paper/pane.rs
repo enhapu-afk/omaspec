@@ -25,7 +25,7 @@ impl Paper {
         };
         // What the diagram's own layer asks frames for; a play asks in its
         // layer over the diagram.
-        let motion = match (&self.glide, &self.passage, &self.fade) {
+        let motion = match (&self.glide, &self.passage, self.arrival.fade()) {
             (Some(_), Some(_), _) => Some(Motion::Dive),
             (Some(_), None, _) => Some(Motion::Glide),
             (None, _, Some(_)) => Some(Motion::Fade),
@@ -58,7 +58,7 @@ impl Paper {
                 diagram: self.diagram.as_ref().map(|d| d.size),
                 overview: self.overview.shown.as_ref(),
                 detail: self.detail.shown.as_ref(),
-                fade: self.fade.as_ref(),
+                fade: self.arrival.fade(),
                 previous: held,
                 view: self.view,
                 glide: self.glide,
@@ -84,8 +84,8 @@ impl Paper {
         .into();
         // The lines of a glide, over the pictures and the boxes on their way.
         let lines = self
-            .fade
-            .as_ref()
+            .arrival
+            .fade()
             .filter(|fade| fade.lines.is_some())
             .map(|fade| {
                 Canvas::new(Timed::new(canvas::GlideLines {

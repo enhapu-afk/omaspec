@@ -20,6 +20,7 @@
 //! draws, the play's bar with it, is [`pane`]; copy and export are
 //! [`copy`].
 
+mod arrival;
 mod arrive;
 mod bar;
 mod breath;
@@ -232,31 +233,27 @@ pub struct Paper {
     scale_factor: f32,
     overview: Layer,
     detail: Layer,
-    /// The sheets of the old and the new picture, for a glide;
-    /// `no_bare` once one of them could not be drawn, and they fade.
+    /// The sheets of the old and the new picture, for a glide.
     bare_old: Layer,
     bare_new: Layer,
-    no_bare: bool,
     /// The picture is made from a project, not drawn from the text in the
     /// tab (a map): an export of it carries no source.
     made: bool,
-    /// A new diagram came; its first overview raster starts the fade.
-    fresh: bool,
     /// The diagram to come back to once the one that just came is shown:
     /// the way from an older drawing of it, shown as a glide
     /// ([`Paper::glide_from`]).
     back: Option<crate::worker::Answer>,
-    /// That overview is in. A glide still on screen finishes before the
-    /// next one starts from it.
-    landed: bool,
     /// Whether the layers' plans are of a map with its pictures
     /// ([`Diagram::pictures`]); a change rasterizes them again.
     on_pictures: bool,
-    /// The pictures on screen when the new diagram came, until they fade.
-    previous: Option<Previous>,
+    /// How a new picture comes on screen: the one before held, faded or
+    /// glided from ([`arrival`]).
+    arrival: arrival::Arrival,
+    /// Each move of `arrival`, held against its diagram.
+    #[cfg(test)]
+    trace: arrival::Trace,
     /// The fold waiting to fade. An ordinary edit is [`Change::Edit`].
     change: Change,
-    fade: Option<Fade>,
     /// A state machine or scenario being played.
     play: Option<Play>,
     /// When a stopped play began to fade away.
@@ -329,15 +326,13 @@ impl Default for Paper {
             detail: Layer::default(),
             bare_old: Layer::default(),
             bare_new: Layer::default(),
-            no_bare: false,
             made: false,
-            fresh: false,
             back: None,
-            landed: false,
             on_pictures: false,
-            previous: None,
+            arrival: arrival::Arrival::Still,
+            #[cfg(test)]
+            trace: arrival::Trace::default(),
             change: Change::Edit,
-            fade: None,
             play: None,
             leaving: None,
             clock: None,
@@ -538,13 +533,7 @@ impl Paper {
             }
             Message::BareOld(seq, raster) => self.bare_came(seq, raster, true),
             Message::BareNew(seq, raster) => self.bare_came(seq, raster, false),
-            Message::Faded => {
-                self.fade = None;
-                if self.fresh && self.landed {
-                    return self.start_fade(crate::clock::now());
-                }
-                Task::none()
-            }
+            Message::Faded => self.faded(crate::clock::now()),
             Message::Viewport(size) => {
                 let now = crate::clock::now();
                 let before = self.viewport;

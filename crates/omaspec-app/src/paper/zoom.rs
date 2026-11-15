@@ -114,10 +114,12 @@ impl Paper {
         self.held_detail = None;
         self.overview.clear();
         self.detail.clear();
-        self.fresh = false;
-        self.landed = false;
-        self.previous = None;
-        self.fade = None;
+        if !matches!(self.arrival, super::arrival::Arrival::Still) {
+            self.arrive(
+                super::arrival::Event::Released,
+                super::arrival::Arrival::Still,
+            );
+        }
         self.change = Change::Edit;
     }
 
