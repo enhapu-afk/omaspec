@@ -580,3 +580,47 @@ fn a_render_asked_before_a_fold_leaves_the_fold_to_the_next() {
         "a fold fades longer, {left:?}"
     );
 }
+
+/// A start or an end is `[*]` in every key: the end of a state inside a
+/// folding container is no end of the diagram. Folding the cat's Awake,
+/// its Eating's line to Hungry's end goes with Awake, and only "nine lives
+/// used" travels to the diagram's own end; the inner line once travelled
+/// there too, its head beside the end circle to the last frames.
+#[test]
+fn an_inner_end_s_line_does_not_glide_to_the_diagram_s_end() {
+    let open = "stateDiagram-v2\n[*] --> Awake\nstate Awake {\n  [*] --> Hungry\n  state Hungry {\n    [*] --> Eating\n    Eating --> [*]\n  }\n}\nAwake --> [*]: nine lives used\n";
+    let folded = format!("{open}%% fold (Omaspec) Awake\n");
+    let mut paper = Paper {
+        folding: true,
+        ..Paper::default()
+    };
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
+    show_source(&mut paper, open, Language::Mermaid);
+    paper.send(Message::Faded);
+    paper.set_fold("Awake", true);
+    show_source(&mut paper, &folded, Language::Mermaid);
+    assert!(paper.fading_lines(), "the fold glides");
+    let map = &paper.diagram.as_ref().unwrap().drawn.map;
+    let end = map
+        .wires
+        .iter()
+        .find(|w| w.key.from == "Awake" && w.key.to == "[*]")
+        .and_then(|w| w.points.last().copied())
+        .expect("nine lives used");
+    let fade = paper.arrival.fade().unwrap();
+    let onto_end = fade
+        .lines
+        .as_ref()
+        .unwrap()
+        .lines
+        .iter()
+        .filter(|line| {
+            line.to.as_ref().is_some_and(|to| {
+                to.points
+                    .last()
+                    .is_some_and(|&(x, y)| (x - end.0).abs() < 0.5 && (y - end.1).abs() < 0.5)
+            })
+        })
+        .count();
+    assert_eq!(onto_end, 1, "one line ends on the diagram's end");
+}

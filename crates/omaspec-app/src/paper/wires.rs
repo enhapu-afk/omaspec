@@ -10,7 +10,10 @@
 //! container changes those: a line into a box inside it now ends on the
 //! container. So a box that left stands as the smallest box that stayed
 //! and held it, the other way round when a container unfolds, and several
-//! lines that become one all travel to it.
+//! lines that become one all travel to it. A start or an end is `[*]` in
+//! every key, wherever it sits; it is told apart by its place, as the
+//! glide names its marks ([`super::morph`]), so a line to the end of a
+//! state that folds away is no line to the diagram's own end.
 
 use std::collections::{HashMap, HashSet};
 
@@ -165,19 +168,30 @@ impl Line {
 /// stand for its ends, took a quarter of a minute where this takes
 /// milliseconds.
 pub fn plan(old: &Map, new: &Map, moves: &[Move]) -> Glide {
-    // The box each end stands as, asked once for a name.
+    // The box each end stands as, asked once for a name; a mark by its
+    // place, line by line.
     let stood = |wires: &'_ [Wire], old: bool| {
         let mut names: HashMap<String, String> = HashMap::new();
         for name in wires.iter().flat_map(|w| [&w.key.from, &w.key.to]) {
-            if !names.contains_key(name) {
+            if !is_mark(name) && !names.contains_key(name) {
                 names.insert(name.clone(), stands_for(name, moves, old));
             }
         }
         names
     };
     let (old_names, new_names) = (stood(&old.wires, true), stood(&new.wires, false));
-    let ends = |wire: &Wire, names: &HashMap<String, String>| {
-        (names[&wire.key.from].clone(), names[&wire.key.to].clone())
+    let end = |name: &String, rect: omaspec_uml::graph::Rect, old: bool| {
+        let names = if old { &old_names } else { &new_names };
+        match names.get(name) {
+            Some(stood) => stood.clone(),
+            None => stands_for(&mark_named(name, rect, moves, old), moves, old),
+        }
+    };
+    let ends = |wire: &Wire, old: bool| {
+        (
+            end(&wire.key.from, wire.from.rect, old),
+            end(&wire.key.to, wire.to.rect, old),
+        )
     };
     // The new picture's lines by their key and by the boxes their ends
     // stand as, each list in the order of the lines.
@@ -185,19 +199,19 @@ pub fn plan(old: &Map, new: &Map, moves: &[Move]) -> Glide {
     let mut by_ends: HashMap<(String, String), Vec<usize>> = HashMap::new();
     for (at, wire) in new.wires.iter().enumerate() {
         by_key.entry(&wire.key).or_default().push(at);
-        by_ends.entry(ends(wire, &new_names)).or_default().push(at);
+        by_ends.entry(ends(wire, false)).or_default().push(at);
     }
     // The old picture's first line between two such boxes.
     let mut was_by_ends: HashMap<(String, String), usize> = HashMap::new();
     for (at, wire) in old.wires.iter().enumerate() {
-        was_by_ends.entry(ends(wire, &old_names)).or_insert(at);
+        was_by_ends.entry(ends(wire, true)).or_insert(at);
     }
 
     let mut used = vec![false; new.wires.len()];
     let mut lines = Vec::with_capacity(old.wires.len().max(new.wires.len()));
     for wire in &old.wires {
         let partner = pick(by_key.get(&wire.key), &used)
-            .or_else(|| pick(by_ends.get(&ends(wire, &old_names)), &used));
+            .or_else(|| pick(by_ends.get(&ends(wire, true)), &used));
         lines.push(match partner {
             Some(at) => {
                 used[at] = true;
@@ -211,7 +225,7 @@ pub fn plan(old: &Map, new: &Map, moves: &[Move]) -> Glide {
             continue;
         }
         // One line became several: each comes from the one it was.
-        let was = was_by_ends.get(&ends(wire, &new_names));
+        let was = was_by_ends.get(&ends(wire, false));
         lines.push(match was {
             Some(&w) => Line::between(&old.wires[w], wire),
             None => Line::folding(wire, moves).unwrap_or_else(|| Line::arriving(wire)),
@@ -235,10 +249,17 @@ fn pick(fitting: Option<&Vec<usize>>, used: &[bool]) -> Option<usize> {
 /// lookups must give too.
 #[cfg(test)]
 fn plan_by_walking(old: &Map, new: &Map, moves: &[Move]) -> Glide {
-    let old_name = |name: &str| stands_for(name, moves, true);
-    let new_name = |name: &str| stands_for(name, moves, false);
+    let named = |name: &str, rect: omaspec_uml::graph::Rect, old: bool| {
+        let name = if is_mark(name) {
+            mark_named(name, rect, moves, old)
+        } else {
+            name.to_owned()
+        };
+        stands_for(&name, moves, old)
+    };
     let alike = |a: &Wire, b: &Wire| {
-        old_name(&a.key.from) == new_name(&b.key.from) && old_name(&a.key.to) == new_name(&b.key.to)
+        named(&a.key.from, a.from.rect, true) == named(&b.key.from, b.from.rect, false)
+            && named(&a.key.to, a.to.rect, true) == named(&b.key.to, b.to.rect, false)
     };
     let mut used = vec![false; new.wires.len()];
     let mut lines = Vec::with_capacity(old.wires.len().max(new.wires.len()));
@@ -298,6 +319,34 @@ fn stands_for(name: &str, moves: &[Move], old: bool) -> String {
         .min_by(|a, b| {
             let (a, b) = (side(a), side(b));
             (a.width * a.height).total_cmp(&(b.width * b.height))
+        })
+        .map_or_else(|| name.to_owned(), |step| step.name.clone())
+}
+
+/// Whether `name` is a start, an end or a history: `[*]`, `[H]`, `[H*]`,
+/// the same in every key wherever it sits.
+fn is_mark(name: &str) -> bool {
+    name.starts_with('[')
+}
+
+/// The glide's name of the mark `name` that a line's end meets at `rect`,
+/// in the old picture or the new one ([`Move::name`]: `end:Hungry:0`);
+/// `name` itself where no mark of the glide lies there.
+fn mark_named(name: &str, rect: omaspec_uml::graph::Rect, moves: &[Move], old: bool) -> String {
+    let near = |a: f32, b: f32| (a - b).abs() < 0.5;
+    moves
+        .iter()
+        .filter(|step| match step.role {
+            Role::Stay => true,
+            Role::Leave => old,
+            Role::Arrive => !old,
+        })
+        .find(|step| {
+            let at = if old { step.from } else { step.to };
+            near(at.x, rect.x)
+                && near(at.y, rect.y)
+                && near(at.width, rect.w)
+                && near(at.height, rect.h)
         })
         .map_or_else(|| name.to_owned(), |step| step.name.clone())
 }
