@@ -630,8 +630,10 @@ types only; the others stay as they are.
       height, `@clk`, a note on a robust, analog or clock row, gradients, closed
       days, resources, links, week numbering, a chart wider than 3660 days on a
       daily scale (a line per day; a coarser scale draws more), months, quarters or
-      years without a date, and an unknown line; a chart past 20 years is refused,
-      as PlantUML refuses it. Golden SVGs and Ctrl+click on every label.
+      years without a date, and an unknown line; a chart past 7300 days (20 × 365,
+      a few days short of 20 calendar years) is refused, as PlantUML 1.2026.8
+      refuses it, and the message names the last day the chart can reach
+      (2026-11-15). Golden SVGs and Ctrl+click on every label.
 - [x] P1 preprocessor, for every type the engine draws: variables (`!$x = …`, `?=`,
       `!global`, `!local`), expressions with numbers, strings, `+ - * / %`,
       comparisons, `&&`, `||`, `!`; `!if`, `!elseif`, `!else`, `!ifdef`, `!ifndef`;

@@ -280,7 +280,7 @@ impl Builder {
     fn finish(self) -> Result<Diagram, Declined> {
         let (solved, origin) = solve(&self.tasks, self.project)?;
         let scale = self.scale.unwrap_or_default();
-        check_span(&self.tasks, &solved, scale)?;
+        check_span(&self.tasks, &solved, scale, origin)?;
         if origin.is_none() && !matches!(scale, Scale::Daily | Scale::Weekly { .. }) {
             return Err(Declined::refused(
                 self.scale_line,
@@ -1018,12 +1018,19 @@ fn schedule(task: &Task, start: Option<i64>, inclusive: Option<i64>) -> Result<S
 const MAX_DAYS: i64 = 3660;
 
 /// The most PlantUML draws on any scale: a last day 20 × 365 days after the
-/// first. A date typed as `D+20200701` stays a mistake.
+/// first, a few days short of 20 calendar years (PlantUML 1.2026.8 refuses
+/// a day more). A date typed as `D+20200701` stays a mistake.
 const MAX_SPAN: i64 = 20 * 365 + 1;
 
 /// Declines a chart wider than PlantUML draws, or than [`MAX_DAYS`] on a
-/// daily scale, naming the task farthest from day 0.
-fn check_span(tasks: &[Task], solved: &[Solved], scale: Scale) -> Result<(), Declined> {
+/// daily scale, naming the task farthest from day 0 and the last day the
+/// chart can reach: its date, when the chart has dates (`origin`, day 0).
+fn check_span(
+    tasks: &[Task],
+    solved: &[Solved],
+    scale: Scale,
+    origin: Option<i64>,
+) -> Result<(), Declined> {
     let low = solved.iter().map(|s| s.start).fold(0, i64::min);
     let high = solved.iter().map(|s| s.end).fold(0, i64::max);
     let span = high.saturating_sub(low);
@@ -1033,11 +1040,24 @@ fn check_span(tasks: &[Task], solved: &[Solved], scale: Scale) -> Result<(), Dec
             .max_by_key(|&index| far(&solved[index]))
             .map_or(0, |index| tasks[index].line)
     };
+    // The last day a chart from its first day `low` can reach, in `days`.
+    let last = |days: i64| match origin {
+        Some(origin) => format!(
+            "its last day can be {}",
+            date::format(origin + low + days - 1)
+        ),
+        None => format!("its last day can be day {}", low + days - 1),
+    };
     if span > MAX_SPAN {
         return Err(Declined::refused(
             line(),
-            "PlantUML draws a Gantt chart of 20 years at most, and this task is outside \
-             them; a Mermaid `timeline` tells a longer history",
+            format!(
+                "PlantUML draws a Gantt chart of {} days at most (20 × 365, a few days \
+                 short of 20 calendar years), and this task is past them: {}. A Mermaid \
+                 `timeline` tells a longer history",
+                MAX_SPAN - 1,
+                last(MAX_SPAN)
+            ),
         ));
     }
     if scale == Scale::Daily && span > MAX_DAYS {
@@ -1045,7 +1065,10 @@ fn check_span(tasks: &[Task], solved: &[Solved], scale: Scale) -> Result<(), Dec
             line(),
             format!(
                 "a chart spans at most {MAX_DAYS} days on a daily scale, and this task is \
-                 outside them; `printscale weekly`, `monthly` or `yearly` draws up to 20 years"
+                 past them: {}; `printscale weekly`, `monthly` or `yearly` draws up to {} \
+                 days",
+                last(MAX_DAYS),
+                MAX_SPAN - 1
             ),
         ));
     }
@@ -1196,7 +1219,7 @@ mod tests {
     /// Ten years a day at a time, twenty on a coarser scale, as far as
     /// PlantUML draws; past that PlantUML refuses too.
     #[test]
-    fn a_chart_spans_ten_years_by_day_and_twenty_in_all() {
+    fn a_chart_spans_ten_years_by_day_and_7300_days_in_all() {
         let wide = |scale: &str, task: &str| {
             crate::render(&format!(
                 "@startgantt\nprintscale {scale}\nProject starts 1986-01-01\n[A] requires 3 days\n{task}\n@endgantt\n"
@@ -1206,20 +1229,33 @@ mod tests {
         let err = wide("daily", "[B] requires 5000 days").unwrap_err();
         assert_eq!(err.line, Some(4));
         assert!(
-            err.reason.contains("3660 days") && err.reason.contains("printscale weekly"),
+            err.reason.contains("3660 days")
+                && err.reason.contains("its last day can be 1996-01-08")
+                && err.reason.contains("printscale weekly"),
             "{}",
             err.reason
         );
         assert!(!err.refused);
         for scale in ["weekly", "monthly", "quarterly", "yearly"] {
             assert!(wide(scale, "[B] requires 5000 days").is_ok(), "{scale}");
-            // The last day 7300 days after the first, as PlantUML still draws.
+            // The last day 7300 days after the first, as PlantUML still
+            // draws; 20 calendar years are a few days more, and PlantUML
+            // refuses them: so does Omaspec, and says where the chart ends.
             assert!(
                 wide(scale, "[B] starts 1986-01-01 and ends 2005-12-27").is_ok(),
                 "{scale}"
             );
-            let err = wide(scale, "[B] starts 1986-01-01 and ends 2005-12-28").unwrap_err();
-            assert!(err.refused && err.reason.contains("20 years"), "{scale}");
+            for end in ["2005-12-28", "2005-12-31"] {
+                let err =
+                    wide(scale, &format!("[B] starts 1986-01-01 and ends {end}")).unwrap_err();
+                assert!(err.refused, "{scale}");
+                assert!(
+                    err.reason.contains("7300 days")
+                        && err.reason.contains("its last day can be 2005-12-27"),
+                    "{scale}: {}",
+                    err.reason
+                );
+            }
         }
         for task in [
             "[B] requires 200000 days",
@@ -1229,7 +1265,7 @@ mod tests {
         ] {
             let err = wide("daily", task).unwrap_err();
             assert_eq!(err.line, Some(4), "{task}");
-            assert!(err.reason.contains("20 years"), "{}", err.reason);
+            assert!(err.reason.contains("7300 days"), "{}", err.reason);
             assert!(err.refused, "{task}");
         }
     }

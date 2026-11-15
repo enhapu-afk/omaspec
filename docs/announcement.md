@@ -125,7 +125,7 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   PDF, Markdown or ZIP, and Omarchy's own save dialog opens, with the colors to draw it
   in as a choice beside the name.
 - **Gantt charts over years.** `printscale weekly`, `monthly`, `quarterly` and `yearly`,
-  as PlantUML draws them, up to 20 years, and durations in months.
+  as PlantUML draws them, up to 20 × 365 days, and durations in months.
 - **A steadier play.** The bar under a play keeps one line, so the diagram above it never
   jumps; it calls a state by the name its box shows, an option by its whole label with
   its action, and a diagram with two ways from the start ends when both have.
