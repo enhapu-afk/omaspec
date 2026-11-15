@@ -1804,7 +1804,9 @@ impl App {
                 let name = doc
                     .shown_diagram()
                     .map_or_else(|| doc.name(), |(_, _, name)| name);
-                doc.paper.copy(format, &name).map(Message::Copied)
+                doc.paper
+                    .copy(format, &name, crate::look::palette_stage(&self.palette))
+                    .map(Message::Copied)
             }
             Command::ExportSvg => self.export(Format::Svg),
             Command::ExportPng => self.export(Format::Png),

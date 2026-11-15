@@ -301,7 +301,7 @@ pub fn definitions() -> Vec<Value> {
         json!({
             "name": "render",
             "title": "Render a diagram",
-            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip, txt); SVG and PNG files carry the diagram's source. As text (`format: text`, or a .txt output), a state machine or a sequence diagram comes back as its behavior, one fact a line: states, transitions and findings sorted, messages in order. A project's `omaspec-project.toml` as `path` draws the project's map, which is made from its diagrams: each a tile with its picture, and arrows for what plays, opens and includes what. A diagram with an error comes back as an error with its line. In a Markdown document, `diagram` picks one of its `plantuml` and `mermaid` blocks; an image written stores that diagram's source.",
+            "description": "Draws a diagram. Without `output`, the picture comes back: a PNG to look at (the default), or the SVG's text. With `output`, it is written to that file instead, in the format its extension names (svg, png, jpeg, pdf, md, zip, html, txt); SVG and PNG files carry the diagram's source. An HTML file is a presentation: one page that plays a state machine by its options or a scenario message by message, with the arrow keys, in a browser and offline. As text (`format: text`, or a .txt output), a state machine or a sequence diagram comes back as its behavior, one fact a line: states, transitions and findings sorted, messages in order. A project's `omaspec-project.toml` as `path` draws the project's map, which is made from its diagrams: each a tile with its picture, and arrows for what plays, opens and includes what. A diagram with an error comes back as an error with its line. In a Markdown document, `diagram` picks one of its `plantuml` and `mermaid` blocks; an image written stores that diagram's source.",
             "inputSchema": schema(&[
                 ("path", path),
                 ("code", code),
@@ -316,7 +316,7 @@ pub fn definitions() -> Vec<Value> {
                 })),
                 ("format", json!({
                     "type": "string",
-                    "enum": ["svg", "png", "jpeg", "pdf", "markdown", "zip", "text"],
+                    "enum": ["svg", "png", "jpeg", "pdf", "markdown", "zip", "html", "text"],
                     "description": "The format; by default the output's extension, else PNG to look at. text: a state machine's or sequence diagram's behavior, one fact a line.",
                 })),
                 ("scale", json!({
@@ -452,7 +452,7 @@ impl Tools {
         }
         let format = match args.text("format")? {
             Some(name) => Some(Format::from_extension(name).with_context(|| {
-                format!("no format `{name}`; take svg, png, jpeg, pdf, markdown or zip")
+                format!("no format `{name}`; take svg, png, jpeg, pdf, markdown, zip, html or text")
             })?),
             None => None,
         };
@@ -498,7 +498,9 @@ impl Tools {
         // A project's file is drawn as the project's map, which is made
         // from its diagrams (docs/adr/0026).
         let mut maps = crate::specs::Maps::default();
-        let drawn = match input.path.as_deref().and_then(crate::look::map_root) {
+        let map_root = input.path.as_deref().and_then(crate::look::map_root);
+        let is_map = map_root.is_some();
+        let drawn = match map_root {
             Some(root) => crate::look::render_map(&mut maps, renderer, &root, "", skin.as_ref()),
             None => crate::look::render(
                 &mut maps,
@@ -585,6 +587,11 @@ impl Tools {
             crate::specs::export_links(&rendered.links, &own, false)
         });
         let source_name = piece.source_name();
+        // A presentation plays the text as drawn, whose lines the map's are;
+        // a project's map plays nothing.
+        let drawn = (format == Format::Html && !is_map)
+            .then(|| crate::look::drawn_text(&piece.code, lang, skin.as_ref()));
+        let (paper, accent) = crate::look::stage(skin.as_ref());
         let options = export::Options {
             scale,
             source: args
@@ -597,7 +604,12 @@ impl Tools {
                 }),
             links: &links,
             up,
-            play: None,
+            play: (format == Format::Html).then(|| export::Play {
+                map: &rendered.map,
+                code: drawn.as_deref().map(|drawn| (drawn, lang)),
+                paper,
+                accent,
+            }),
         };
         let bytes = export::export(&rendered.svg, format, &options)?;
         write_atomic(&dest, &bytes)?;

@@ -245,6 +245,26 @@ fn mermaid_painted(s: &Swatch) -> String {
     )
 }
 
+/// Omaspec's light palette: dark text on white, a blue accent.
+pub const LIGHT: Colors<'static> = Colors {
+    background: "#ffffff",
+    surface: "#f3f4f6",
+    text: "#1f2328",
+    accent: "#2f6fdb",
+    muted: "#6b7280",
+    note: "#fdf6d8",
+};
+
+/// Omaspec's dark palette: light text on near black, a lighter blue.
+pub const DARK: Colors<'static> = Colors {
+    background: "#16181d",
+    surface: "#23272f",
+    text: "#e3e5ea",
+    accent: "#79a6f0",
+    muted: "#8b93a1",
+    note: "#3a3526",
+};
+
 /// The colors the Omarchy pack writes in, as `#rrggbb`.
 #[derive(Debug, Clone, Copy)]
 pub struct Colors<'a> {

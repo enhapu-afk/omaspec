@@ -78,38 +78,21 @@ pub(super) struct Travel {
     pub(super) entered: Vec<usize>,
 }
 
-/// Where the machine can come from `start`, and what it offers there, each
-/// once: the bar takes its rows from them ([`omaspec_model::play::Graph`],
-/// the first runs of a machine that can be in more ways).
-pub(super) fn every_offer(m: &Machine, start: &Run) -> Vec<Offered> {
-    let runs =
-        omaspec_model::play::Graph::of(m).map_or_else(|| vec![start.clone()], |graph| graph.runs);
+/// Where the machine can be in `graph`, and what it offers there, each
+/// once: the bar takes its rows from them (the first runs of a machine
+/// that can be in more ways).
+pub(super) fn every_offer(m: &Machine, graph: &Graph) -> Vec<Offered> {
     let mut offers: Vec<Offered> = Vec::new();
-    for run in &runs {
+    for (run, ways) in graph.runs.iter().zip(&graph.options) {
         let offer = (
-            names(m, run.active()),
-            run.options(m)
-                .into_iter()
-                .map(|t| option_of(m, t))
-                .collect(),
+            m.shown_at(run.active()),
+            ways.iter().map(|way| m.option(way.transition)).collect(),
         );
         if !offers.contains(&offer) {
             offers.push(offer);
         }
     }
     offers
-}
-
-/// The names of `states`, each once in a row, as the bar says where the
-/// machine is.
-fn names(m: &Machine, states: &[usize]) -> String {
-    let mut at: Vec<String> = states
-        .iter()
-        .map(|&s| name_of(m, s))
-        .filter(|n| !n.is_empty())
-        .collect();
-    at.dedup();
-    at.join(", ")
 }
 
 impl MachinePlay {
@@ -316,7 +299,7 @@ impl MachinePlay {
 
     pub(super) fn offer(&self) -> Offer {
         let m = &self.machine;
-        let names = |states: &[usize]| names(m, states);
+        let names = |states: &[usize]| m.shown_at(states);
         let writer = match &self.driver {
             Driver::Writer(writer) => writer,
             Driver::Trace(trace) => {
@@ -349,7 +332,7 @@ impl MachinePlay {
             .run
             .options(m)
             .into_iter()
-            .map(|t| option_of(m, t))
+            .map(|t| m.option(t))
             .collect();
         let hover = writer
             .hover

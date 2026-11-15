@@ -3,6 +3,8 @@
 //! with its options and where they lead. The editor's play bar and an
 //! exported presentation (docs/adr/0031) read the same.
 
+use std::collections::HashMap;
+
 use crate::{Kind, Machine, Run, Taken, Trigger};
 
 /// The most runs [`Graph::of`] visits: a machine that can be in more ways is
@@ -31,6 +33,18 @@ impl Machine {
             Some(p) => format!("{what} of {}", self.states[p].shown()),
             None => what.to_owned(),
         }
+    }
+
+    /// Where a machine in `states` is, as a play says it: their names, each
+    /// once in a row.
+    pub fn shown_at(&self, states: &[usize]) -> String {
+        let mut at: Vec<String> = states
+            .iter()
+            .map(|&s| self.shown_name(s))
+            .filter(|name| !name.is_empty())
+            .collect();
+        at.dedup();
+        at.join(", ")
     }
 }
 
@@ -80,6 +94,7 @@ impl Graph {
     /// The places `m` comes to from its start; `None` without a start.
     pub fn of(m: &Machine) -> Option<Graph> {
         let (start, begun) = Run::start(m)?;
+        let mut found = HashMap::from([(start.clone(), 0)]);
         let mut runs = vec![start];
         let mut options = Vec::new();
         let mut at = 0;
@@ -88,9 +103,10 @@ impl Graph {
             for transition in runs[at].options(m) {
                 let mut after = runs[at].clone();
                 let taken = after.take(m, transition);
-                let next = match runs.iter().position(|run| *run == after) {
-                    Some(found) => Some(found),
+                let next = match found.get(&after) {
+                    Some(&place) => Some(place),
                     None if runs.len() < VISITED => {
+                        found.insert(after.clone(), runs.len());
                         runs.push(after);
                         Some(runs.len() - 1)
                     }

@@ -234,37 +234,20 @@ fn xml_escape(s: &str, attribute: bool) -> String {
     out
 }
 
-/// The source in an SVG: Omaspec's own `<sf:source>` element, else
-/// PlantUML's `<?plantuml-src …?>` (which has no comments and no
-/// `@startuml`; both are added back).
+/// The source in an SVG, or in an HTML page that holds one (a
+/// presentation): Omaspec's own `<sf:source>` element, else PlantUML's
+/// `<?plantuml-src …?>` (which has no comments and no `@startuml`; both
+/// are added back).
 pub fn source_from_svg(svg: &str) -> Option<Source> {
-    let options = roxmltree::ParsingOptions {
-        allow_dtd: true,
-        nodes_limit: 4_000_000,
-        // No resolver: external entities are never loaded.
-        ..Default::default()
-    };
-    if let Ok(doc) = roxmltree::Document::parse_with_options(svg, options)
-        && let Some(el) = doc.descendants().find(|n| {
-            matches!(n.tag_name().namespace(), Some(NAMESPACE | OLD_NAMESPACE))
-                && n.tag_name().name() == "source"
-        })
+    if let Some(source) = own_source(svg) {
+        return Some(source);
+    }
+    // A page is no XML; the SVG in it is.
+    if let (Some(start), Some(end)) = (svg.find("<svg"), svg.rfind("</svg>"))
+        && start < end
+        && let Some(source) = own_source(&svg[start..end + "</svg>".len()])
     {
-        let code: String = el
-            .descendants()
-            .filter(|n| n.is_text())
-            .filter_map(|n| n.text())
-            .collect();
-        if !code.trim().is_empty() {
-            return Some(Source {
-                code,
-                language: el.attribute("lang").and_then(Language::from_id),
-                file: el
-                    .attribute("file")
-                    .filter(|f| !f.is_empty())
-                    .map(str::to_owned),
-            });
-        }
+        return Some(source);
     }
 
     let encoded = re!(r"<\?plantuml-src\s+([0-9A-Za-z_-]+)\s*\?>").captures(svg)?;
@@ -280,6 +263,34 @@ pub fn source_from_svg(svg: &str) -> Option<Source> {
         code,
         language: Some(Language::PlantUml),
         file: None,
+    })
+}
+
+/// Omaspec's own `<sf:source>` element in `xml`, if it parses.
+fn own_source(xml: &str) -> Option<Source> {
+    let options = roxmltree::ParsingOptions {
+        allow_dtd: true,
+        nodes_limit: 4_000_000,
+        // No resolver: external entities are never loaded.
+        ..Default::default()
+    };
+    let doc = roxmltree::Document::parse_with_options(xml, options).ok()?;
+    let el = doc.descendants().find(|n| {
+        matches!(n.tag_name().namespace(), Some(NAMESPACE | OLD_NAMESPACE))
+            && n.tag_name().name() == "source"
+    })?;
+    let code: String = el
+        .descendants()
+        .filter(|n| n.is_text())
+        .filter_map(|n| n.text())
+        .collect();
+    (!code.trim().is_empty()).then(|| Source {
+        code,
+        language: el.attribute("lang").and_then(Language::from_id),
+        file: el
+            .attribute("file")
+            .filter(|f| !f.is_empty())
+            .map(str::to_owned),
     })
 }
 

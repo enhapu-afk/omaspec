@@ -20,7 +20,8 @@ use iced::widget::canvas::Frame;
 use iced::{Color, Point, Rectangle};
 use omaspec_core::Language;
 use omaspec_core::lint::Severity;
-use omaspec_model::{Machine, Placed, Run, Spec};
+use omaspec_model::play::Graph;
+use omaspec_model::{Machine, Placed, Spec};
 use omaspec_render::Map;
 use omaspec_uml::graph::Rect;
 
@@ -30,7 +31,6 @@ mod scenario;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use draw::option_of;
 use draw::*;
 pub(super) use draw::{Glow, with_alpha};
 pub use machine::MachinePlay;
@@ -79,10 +79,11 @@ impl Play {
     pub fn new(source: &str, language: Language, map: &Map, now: Instant) -> Result<Play, String> {
         if let Some(machine) = Machine::read(source, language) {
             let placed = placed(&machine, map)?;
-            let (run, steps) = Run::start(&machine)
+            let graph = Graph::of(&machine)
                 .ok_or("the state machine has no start ([*] --> …), so it cannot run")?;
+            let (run, steps) = (graph.runs[0].clone(), graph.begun.clone());
             let writer = Writer {
-                every: Arc::new(machine::every_offer(&machine, &run)),
+                every: Arc::new(machine::every_offer(&machine, &graph)),
                 start: run.clone(),
                 run,
                 before: Vec::new(),
@@ -307,8 +308,7 @@ fn placed(machine: &Machine, map: &Map) -> Result<Placed, String> {
 /// play of it finds them; `None` for a diagram that is no state machine.
 pub fn every_offer_of(source: &str, language: Language) -> Option<Vec<Offered>> {
     let machine = Machine::read(source, language)?;
-    let (run, _) = Run::start(&machine)?;
-    Some(machine::every_offer(&machine, &run))
+    Some(machine::every_offer(&machine, &Graph::of(&machine)?))
 }
 
 /// Where a machine is, by the names of its states, and its options there,

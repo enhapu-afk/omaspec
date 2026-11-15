@@ -24,7 +24,7 @@ use crate::{Kind, Machine};
 /// transitions without events cannot hang the viewer.
 const MAX_CHAIN: usize = 200;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Run {
     /// The states it is in, by index, in order.
     active: Vec<usize>,
@@ -38,7 +38,7 @@ pub struct Run {
     memory: Vec<Memory>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Memory {
     state: usize,
     /// The innermost states it was in.

@@ -8,7 +8,7 @@
 mod glyphs;
 mod present;
 
-pub use present::Play;
+pub use present::{Play, stage};
 
 use std::collections::HashMap;
 use std::fmt;

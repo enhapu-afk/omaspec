@@ -500,10 +500,7 @@ fn rehearse(args: &Moving) -> Result<()> {
         if run.ended(&machine) || ways.is_empty() {
             break;
         }
-        let options: Vec<(String, String)> = ways
-            .iter()
-            .map(|&way| paper::option_of(&machine, way))
-            .collect();
+        let options: Vec<(String, String)> = ways.iter().map(|&way| machine.option(way)).collect();
         let Some(choice) = choose(&options, &args.events, step, &walked)? else {
             break;
         };

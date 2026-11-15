@@ -11,11 +11,16 @@ use super::Paper;
 use crate::worker::blocking;
 
 impl Paper {
-    /// Copies the diagram, with its source inside, to the clipboard; says
-    /// what it copied.
-    pub fn copy(&self, format: Format, file: &str) -> Task<Result<&'static str, String>> {
+    /// Copies the diagram, with its source inside, to the clipboard, a
+    /// presentation in `stage`; says what it copied.
+    pub fn copy(
+        &self,
+        format: Format,
+        file: &str,
+        stage: (omaspec_uml::Color, omaspec_uml::Color),
+    ) -> Task<Result<&'static str, String>> {
         // Pasted elsewhere, a link to a file beside it leads nowhere.
-        self.exported(format, file, None, None, move |bytes| {
+        self.exported(format, file, None, stage, move |bytes| {
             crate::files::copy_to_clipboard(&bytes, format.mime()).map_err(|e| format!("{e:#}"))?;
             Ok(match format {
                 Format::Png => "PNG",
@@ -38,7 +43,7 @@ impl Paper {
         out: PathBuf,
         stage: (omaspec_uml::Color, omaspec_uml::Color),
     ) -> Task<Result<String, String>> {
-        self.exported(format, file, own, Some(stage), move |bytes| {
+        self.exported(format, file, own, stage, move |bytes| {
             crate::files::write_atomic(&out, &bytes).map_err(|e| format!("{e:#}"))?;
             Ok(out.display().to_string())
         })
@@ -53,7 +58,7 @@ impl Paper {
         format: Format,
         file: &str,
         own: Option<String>,
-        stage: Option<(omaspec_uml::Color, omaspec_uml::Color)>,
+        (paper, accent): (omaspec_uml::Color, omaspec_uml::Color),
         then: impl FnOnce(Vec<u8>) -> Result<T, String> + Send + 'static,
     ) -> Task<Result<T, String>> {
         let Some(diagram) = &self.diagram else {
@@ -72,8 +77,9 @@ impl Paper {
         let file = file.to_owned();
         Task::perform(
             blocking(move || {
-                // A document's diagram without the empty lines around it.
-                let source = if document {
+                // A document's diagram without the empty lines around it;
+                // its play reads it whole, as the map's lines count.
+                let stored = if document {
                     source.trim_matches('\n')
                 } else {
                     &source
@@ -86,23 +92,17 @@ impl Paper {
                 let options = export::Options {
                     scale: 2.0,
                     source: (!made).then_some(export::Source {
-                        code: source,
+                        code: stored,
                         language,
                         file: Some(&file),
                     }),
                     links: &links,
                     up,
-                    play: (format == Format::Html).then(|| {
-                        let (paper, accent) = stage.unwrap_or((
-                            omaspec_uml::Color::WHITE,
-                            omaspec_uml::Color::hex(0x2F6FDB),
-                        ));
-                        export::Play {
-                            map: &map,
-                            code: (!made).then_some((source, language)),
-                            paper,
-                            accent,
-                        }
+                    play: (format == Format::Html).then(|| export::Play {
+                        map: &map,
+                        code: (!made).then_some((&*source, language)),
+                        paper,
+                        accent,
                     }),
                 };
                 // The picture as a file shows it: the pane's parts are its own.

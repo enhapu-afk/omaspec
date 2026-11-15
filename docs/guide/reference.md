@@ -77,7 +77,8 @@ by message, the one played lit, the ones to come veiled; a state machine plays b
 options, which stand under it. →, ↓, Space, PageDown, Enter or a click go on (a
 presenter's remote sends these), ←, ↑, PageUp or Backspace go back, Home starts again,
 1 to 9 take an option, F shows the page full screen. `#3` after the page's address opens
-a scenario at its third message.
+a scenario at its third message. The page keeps the diagram's source as an SVG does:
+`omaspec extract talk.html` gives it back.
 
 ### Project and tabs
 
@@ -712,7 +713,7 @@ omaspec check ~/specs/shop          # lint, the machines, the links and render -
 omaspec export ~/specs/shop         # every diagram as an SVG, linked, the map as index.svg, and shop.zip, in shop/export
 omaspec lint README.md              # each plantuml and mermaid block of a Markdown document, on its lines
 omaspec render README.md            # one image per block: README-1.svg, README-2.svg, …
-omaspec extract diagram.png         # the source stored in an exported PNG or SVG
+omaspec extract diagram.png         # the source stored in an exported PNG, SVG or presentation
 omaspec example                     # the examples of the gallery; `example NAME` prints one, --json
 omaspec theme                       # the palette Omaspec reads from your Omarchy theme
 ```

@@ -49,14 +49,15 @@ const Present = (() => {
       here() {
         return places[this.place];
       },
-      /// Takes option `i`: the routes to light, or null where it leads
-      /// nowhere (past the places worked out) or is no option.
+      /// Takes option `i`: what it takes to light, transitions by beats,
+      /// or null where it leads nowhere (past the places worked out) or is
+      /// no option.
       take(i) {
         const option = this.here().options[i];
         if (!option || option.next === null || option.next === undefined) return null;
         this.trail.push(this.place);
         this.place = option.next;
-        return option.routes;
+        return option.taken;
       },
       back() {
         if (this.trail.length === 0) return false;
@@ -98,26 +99,51 @@ if (typeof document !== "undefined") {
       if (parent) parent.appendChild(el);
       return el;
     };
+    // The picture on white, as the pane shows it; a picture in a look
+    // paints its own paper over it.
+    svg.insertBefore(
+      make("rect", { x: box.x, y: box.y, width: box.width, height: box.height, fill: "#ffffff" }),
+      svg.firstChild,
+    );
     const defs = make("defs", {}, svg);
-    const glow = make("filter", { id: "omaspec-glow", x: "-50%", y: "-50%", width: "200%", height: "200%" }, defs);
+    // In the picture's units: a straight line's own box has no height,
+    // and a filter in its units drew nothing.
+    const region = {
+      filterUnits: "userSpaceOnUse",
+      x: box.x - 40,
+      y: box.y - 40,
+      width: box.width + 80,
+      height: box.height + 80,
+    };
+    const glow = make("filter", { id: "omaspec-glow", ...region }, defs);
     make("feGaussianBlur", { stdDeviation: "3", result: "blur" }, glow);
     const merge = make("feMerge", {}, glow);
     make("feMergeNode", { in: "blur" }, merge);
     make("feMergeNode", { in: "SourceGraphic" }, merge);
-    const soft = make("filter", { id: "omaspec-soft", x: "-50%", y: "-50%", width: "200%", height: "200%" }, defs);
+    const soft = make("filter", { id: "omaspec-soft", ...region }, defs);
     make("feGaussianBlur", { stdDeviation: "8" }, soft);
-    const layer = make("g", { id: "omaspec-play" }, svg);
-    let gradients = 0;
+    // Over the picture, but its links take the clicks.
+    const layer = make("g", { id: "omaspec-play", "pointer-events": "none" }, svg);
+    let made = 0;
 
-    /// A veil from `edge` down, in `color`, its first SOFT units fading in.
-    const veil = (x, y, w, h, edge, color) => {
+    const rect = (x, y, w, h) => `M${x},${y}h${w}v${h}h${-w}z`;
+    /// A veil from `edge` down, in `color`, its first SOFT units fading
+    /// in; `holes` (boxes in their own veil) left out of it.
+    const veil = (x, y, w, h, edge, color, holes) => {
       const top = Math.max(y, edge);
-      if (top >= y + h) return;
-      const id = `omaspec-veil-${gradients++}`;
+      const bottom = y + h;
+      if (top >= bottom) return;
+      const id = `omaspec-veil-${made++}`;
       const fade = make("linearGradient", { id, gradientUnits: "userSpaceOnUse", x1: 0, y1: edge, x2: 0, y2: edge + Present.SOFT }, defs);
       make("stop", { offset: 0, "stop-color": color, "stop-opacity": 0 }, fade);
       make("stop", { offset: 1, "stop-color": color, "stop-opacity": Present.VEIL }, fade);
-      make("rect", { x, y: top, width: w, height: y + h - top, fill: `url(#${id})` }, layer);
+      let d = rect(x, top, w, bottom - top);
+      for (const [hx, hy, hw, hh] of holes || []) {
+        const from = Math.max(hy, top);
+        const to = Math.min(hy + hh, bottom);
+        if (to > from) d += rect(hx, from, hw, to - from);
+      }
+      make("path", { d, "fill-rule": "evenodd", fill: `url(#${id})` }, layer);
     };
     const line = (points) => points.map((p) => p.join(",")).join(" ");
     /// A light that runs along `points`, from `delay` milliseconds on.
@@ -146,10 +172,20 @@ if (typeof document !== "undefined") {
       }
       return delay;
     };
+    /// Lights the transitions `beats` takes, each beat's at once and the
+    /// next when the longest of them is through.
+    const lights = (beats) => {
+      let delay = 0;
+      for (const beat of beats || []) {
+        let end = delay;
+        for (const t of beat) end = Math.max(end, light(data.routes[t], delay));
+        delay = end;
+      }
+    };
     const clear = () => {
       layer.replaceChildren();
-      for (const old of defs.querySelectorAll("linearGradient")) old.remove();
-      gradients = 0;
+      for (const old of defs.querySelectorAll("linearGradient, mask")) old.remove();
+      made = 0;
     };
     const say = (...parts) => bar.replaceChildren(...parts);
     const span = (cls, text) => {
@@ -169,7 +205,9 @@ if (typeof document !== "undefined") {
       const draw = () => {
         clear();
         const edge = play.edge();
-        veil(box.x, box.y, box.width, box.height, edge, paper);
+        // A box dims toward its own fill, the rest toward the paper.
+        const grounds = data.grounds.map((ground) => ground.rect);
+        veil(box.x, box.y, box.width, box.height, edge, paper, grounds);
         for (const ground of data.grounds) {
           const [x, y, w, h] = ground.rect;
           veil(x, y, w, h, edge, ground.fill);
@@ -205,19 +243,22 @@ if (typeof document !== "undefined") {
       draw();
     } else if (data.kind === "machine") {
       const play = Present.machine(data.places);
-      const draw = (routes) => {
+      const draw = (beats) => {
         clear();
         const here = play.here();
-        // The veil, with the states the machine is in left out of it.
-        let d = `M${box.x},${box.y}h${box.width}v${box.height}h${-box.width}z`;
+        // The veil, with the states the machine is in left out of it, a
+        // state inside another as well.
+        const id = `omaspec-lit-${made++}`;
+        const area = { x: box.x, y: box.y, width: box.width, height: box.height };
+        const mask = make("mask", { id, maskUnits: "userSpaceOnUse", ...area }, defs);
+        make("rect", { ...area, fill: "#ffffff" }, mask);
         for (const index of here.lit) {
           const s = data.states[index];
           const [x, y, w, h] = s.rect;
-          const r = Math.min(s.radius, w / 2, h / 2);
-          d += `M${x + r},${y}h${w - 2 * r}a${r},${r} 0 0 1 ${r},${r}v${h - 2 * r}a${r},${r} 0 0 1 ${-r},${r}`
-            + `h${-(w - 2 * r)}a${r},${r} 0 0 1 ${-r},${-r}v${-(h - 2 * r)}a${r},${r} 0 0 1 ${r},${-r}z`;
+          const rx = Math.min(s.radius, w / 2, h / 2);
+          make("rect", { x, y, width: w, height: h, rx, fill: "#000000" }, mask);
         }
-        make("path", { d, "fill-rule": "evenodd", fill: paper, "fill-opacity": Present.VEIL }, layer);
+        make("rect", { ...area, fill: paper, "fill-opacity": Present.VEIL, mask: `url(#${id})` }, layer);
         for (const index of here.lit) {
           const s = data.states[index];
           const [x, y, w, h] = s.rect;
@@ -226,8 +267,7 @@ if (typeof document !== "undefined") {
             "stroke-width": 2.5, filter: "url(#omaspec-glow)",
           }, layer);
         }
-        let delay = 0;
-        for (const route of routes || []) delay = light(route, delay);
+        lights(beats);
         const parts = [span("at", `● ${here.ended ? "ended" : here.at}`)];
         here.options.forEach((option, i) => {
           const button = document.createElement("button");
@@ -246,8 +286,8 @@ if (typeof document !== "undefined") {
         say(...parts);
       };
       take = (i) => {
-        const routes = play.take(i);
-        if (routes) draw(routes);
+        const beats = play.take(i);
+        if (beats) draw(beats);
       };
       go = () => take(0);
       back = () => play.back() && draw();

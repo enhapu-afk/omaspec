@@ -383,13 +383,21 @@ impl Preview {
             Key::Character("c") => {
                 return self
                     .paper
-                    .copy(Format::Png, &self.name)
+                    .copy(
+                        Format::Png,
+                        &self.name,
+                        crate::look::palette_stage(&self.palette),
+                    )
                     .map(Message::Copied);
             }
             Key::Character("C") => {
                 return self
                     .paper
-                    .copy(Format::Svg, &self.name)
+                    .copy(
+                        Format::Svg,
+                        &self.name,
+                        crate::look::palette_stage(&self.palette),
+                    )
                     .map(Message::Copied);
             }
             Key::Character("r") => {

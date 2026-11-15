@@ -21,6 +21,8 @@ use std::path::{Path, PathBuf};
 use clap::ValueEnum;
 use omaspec_core::Language;
 use omaspec_core::skin::{self, Colors, Pack};
+pub use omaspec_core::skin::{DARK, LIGHT};
+use omaspec_render::export;
 use omaspec_render::{Place, RenderError, Rendered, Renderer};
 use omaspec_theme::Palette;
 
@@ -246,41 +248,21 @@ impl Pinned {
 /// The paper and the accent of `skin`, a presentation's veil and light
 /// (docs/adr/0031); the light palette's for the file's own colors.
 pub fn stage(skin: Option<&Skin>) -> (omaspec_uml::Color, omaspec_uml::Color) {
-    let (paper, accent) = match skin.map(|skin| &skin.kind) {
-        Some(Kind::Pack(pack)) => (pack.paper().to_owned(), LIGHT.accent.to_owned()),
-        Some(Kind::Colors(hex) | Kind::Auto(hex, _)) => {
-            (hex.background.clone(), hex.accent.clone())
-        }
-        None => (LIGHT.background.to_owned(), LIGHT.accent.to_owned()),
-    };
-    let color = |hex: &str, or: u32| {
-        omaspec_uml::parse_color(hex)
-            .ok()
-            .flatten()
-            .unwrap_or(omaspec_uml::Color::hex(or))
-    };
-    (color(&paper, 0xFFFFFF), color(&accent, 0x2F6FDB))
+    match skin.map(|skin| &skin.kind) {
+        Some(Kind::Pack(pack)) => export::stage(&Colors {
+            background: pack.paper(),
+            ..LIGHT
+        }),
+        Some(Kind::Colors(hex) | Kind::Auto(hex, _)) => export::stage(&hex.colors()),
+        None => export::stage(&LIGHT),
+    }
 }
 
-/// Omaspec's light palette: dark text on white, a blue accent.
-pub const LIGHT: Colors<'static> = Colors {
-    background: "#ffffff",
-    surface: "#f3f4f6",
-    text: "#1f2328",
-    accent: "#2f6fdb",
-    muted: "#6b7280",
-    note: "#fdf6d8",
-};
-
-/// Omaspec's dark palette: light text on near black, a lighter blue.
-pub const DARK: Colors<'static> = Colors {
-    background: "#16181d",
-    surface: "#23272f",
-    text: "#e3e5ea",
-    accent: "#79a6f0",
-    muted: "#8b93a1",
-    note: "#3a3526",
-};
+/// The paper and the accent of the window's palette `p`, a presentation's
+/// veil and light as the pane plays it.
+pub fn palette_stage(p: &Palette) -> (omaspec_uml::Color, omaspec_uml::Color) {
+    export::stage(&Hex::of(p).colors())
+}
 
 /// Colors as `#rrggbb`, for a skin pack: Omarchy's, or a look's.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -7,23 +7,11 @@ use iced::border::Radius;
 use iced::time::Instant;
 use iced::widget::canvas::{Frame, LineCap, LineJoin, Path, Stroke};
 use iced::{Color, Point, Rectangle, Size, Vector};
-use omaspec_model::Machine;
 use omaspec_uml::map::{Shape, Spot};
 
 use super::super::light::{ease_out, fraction};
 
 use super::*;
-
-/// How the play offers the transition `t` of `m`: its label, and the
-/// state it leads to.
-pub(crate) fn option_of(m: &Machine, t: usize) -> (String, String) {
-    m.option(t)
-}
-
-/// A state as its box shows it, or what a pseudo-state is.
-pub(super) fn name_of(m: &Machine, state: usize) -> String {
-    m.shown_name(state)
-}
 
 /// Notes that a state's light goes on or off at `at`; older notes go.
 pub(super) fn light(events: &mut Vec<(Instant, bool)>, at: Instant, on: bool) {
