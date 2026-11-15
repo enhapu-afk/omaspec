@@ -1228,7 +1228,10 @@ fn a_pan_that_stops_a_zoom_brings_the_held_picture_and_its_glide() {
     assert!(paper.arrival.fade().is_none());
     paper.send(Message::Pan(Vector::new(10.0, 0.0)));
     assert!(paper.held_overview.is_none());
-    assert!(paper.fading_lines(), "the boxes glide from the picture before");
+    assert!(
+        paper.fading_lines(),
+        "the boxes glide from the picture before"
+    );
 }
 
 #[test]
