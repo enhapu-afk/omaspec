@@ -12,6 +12,18 @@ use crate::style::{Element, Prop};
 use crate::svg::Stroke;
 use crate::text::Font;
 
+/// The mark of a component box (`skinparam componentStyle`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ComponentStyle {
+    /// UML 2: a small component icon at the top right.
+    #[default]
+    Uml2,
+    /// UML 1: two small boxes across the left edge.
+    Uml1,
+    /// A plain box.
+    Rectangle,
+}
+
 /// The look of a shape: its fill, its border, its name, its members and
 /// the stereotype above the name.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -43,6 +55,12 @@ pub struct Skin {
     pub round: f32,
     /// `minClassWidth`. Zero means the text decides.
     pub min_class: f32,
+    /// `skinparam componentStyle`: the mark a component box carries.
+    pub component_style: ComponentStyle,
+    /// `skinparam packageStyle`: the shape a package is drawn as, when
+    /// another than its tab (`rectangle`, `folder`, `frame`, `node`,
+    /// `cloud`, `database`).
+    pub package_style: Option<Shape>,
     pub class_box: Look,
     pub interface_box: Look,
     pub component: Look,
@@ -227,6 +245,8 @@ impl Default for Skin {
             background: None,
             round: 0.0,
             min_class: 0.0,
+            component_style: ComponentStyle::Uml2,
+            package_style: None,
             class_box: yellow,
             interface_box: yellow,
             component: yellow,
@@ -479,6 +499,36 @@ impl Skin {
                 }
                 "roundcorner" => skin.round = p.corner()?,
                 "minclasswidth" => skin.min_class = p.number(0.0, 2000.0)?,
+                "componentstyle" => {
+                    skin.component_style = match value.to_ascii_lowercase().as_str() {
+                        "uml2" => ComponentStyle::Uml2,
+                        "uml1" => ComponentStyle::Uml1,
+                        "rectangle" => ComponentStyle::Rectangle,
+                        _ => return Err(p.unsupported()),
+                    };
+                }
+                "packagestyle" => {
+                    skin.package_style = match value.to_ascii_lowercase().as_str() {
+                        "package" => None,
+                        "rectangle" | "rect" => Some(Shape::Rectangle),
+                        "folder" => Some(Shape::Folder),
+                        "frame" => Some(Shape::Frame),
+                        "node" => Some(Shape::Node),
+                        "cloud" => Some(Shape::Cloud),
+                        "database" => Some(Shape::Database),
+                        _ => return Err(p.unsupported()),
+                    };
+                }
+                // The members' marks are written as `+ - # ~` here at any
+                // size, as PlantUML writes them at size 0.
+                "classattributeiconsize" => {
+                    p.number(0.0, 100.0)?;
+                }
+                // How PlantUML lays out and keeps circle labels clear: the
+                // layout here does both its own way.
+                "svek" | "fixcirclelabeloverlapping" => {
+                    p.flag()?;
+                }
                 "backgroundcolor" => skin.background = p.paint()?,
                 "arrowcolor" => skin.arrow.color = p.solid()?,
                 "linetype" => skin.curve = crate::curve::linetype(p)?,
@@ -796,6 +846,38 @@ mod tests {
         assert_eq!(s.round, 4.0);
         assert_eq!(s.min_class, 80.0);
         assert!(s.strict);
+    }
+
+    /// REQ-055: the styles of a component and a package, and what
+    /// changes nothing here, are read; a style no shape draws declines.
+    #[test]
+    fn the_styles_of_components_and_packages() {
+        let s = skin(&[
+            ("componentStyle", "rectangle"),
+            ("packageStyle", "Folder"),
+            ("classAttributeIconSize", "0"),
+            ("svek", "true"),
+            ("FixCircleLabelOverlapping", "true"),
+        ])
+        .unwrap();
+        assert_eq!(s.component_style, ComponentStyle::Rectangle);
+        assert_eq!(s.package_style, Some(Shape::Folder));
+        let s = skin(&[("componentStyle", "uml1"), ("packageStyle", "package")]).unwrap();
+        assert_eq!(
+            (s.component_style, s.package_style),
+            (ComponentStyle::Uml1, None)
+        );
+        for (key, value) in [("componentStyle", "fancy"), ("packageStyle", "hexagon")] {
+            assert!(skin(&[(key, value)]).is_err(), "{key} {value}");
+        }
+        // Drawn: a plain component box has no icon, a package is a folder.
+        let svg = |style: &str| {
+            crate::render(&format!(
+                "@startuml\nskinparam componentStyle {style}\n[Web]\n@enduml\n"
+            ))
+            .unwrap()
+        };
+        assert!(svg("rectangle").matches("<rect").count() < svg("uml2").matches("<rect").count());
     }
 
     #[test]

@@ -2321,10 +2321,23 @@ fn field_line(text: &str, line: usize) -> Result<Option<(RawName, Member)>, Decl
 }
 
 fn member_from(text: &str, line: usize, slot: &mut Slot) -> Result<Option<Member>, Declined> {
-    let (italic, underline, forced, rest) = classifiers(text, line)?;
+    // `+{static} count`: the visibility may stand before the marks too,
+    // as PlantUML reads it; it is shown before the name all the same.
+    let trimmed = text.trim_start();
+    let (visibility, marked) = match trimmed.chars().next() {
+        Some(v @ ('+' | '-' | '#' | '~')) if trimmed[1..].trim_start().starts_with('{') => {
+            (Some(v), &trimmed[1..])
+        }
+        _ => (None, trimmed),
+    };
+    let (italic, underline, forced, rest) = classifiers(marked, line)?;
     if let Some(forced) = forced {
         *slot = forced;
     }
+    let rest = match visibility {
+        Some(v) => format!("{v}{}", rest.trim_start()),
+        None => rest.to_owned(),
+    };
     let rest = rest.trim();
     if rest.is_empty() {
         return Ok(None);
@@ -2744,6 +2757,37 @@ mod tests {
         assert_eq!(err.line, Some(3));
         let err = declined("@startuml\nclass A {\nnote left of A\n}\n@enduml\n");
         assert_eq!(err.line, Some(2));
+    }
+
+    /// REQ-055: the visibility may stand before a member's marks, as
+    /// PlantUML reads it, and is shown before the name.
+    #[test]
+    fn a_visibility_before_the_marks_is_read_too() {
+        let d = diagram(
+            "@startuml\nclass Shape {\n  +{static} count : int\n  #{abstract} draw()\n  -{static}{abstract} odd()\n}\n@enduml\n",
+        );
+        let shape = element(&d.root, "Shape");
+        let read: Vec<(String, bool, bool)> = shape
+            .members
+            .iter()
+            .map(|m| match m {
+                Member::Text {
+                    text,
+                    italic,
+                    underline,
+                    ..
+                } => (text.value.clone(), *italic, *underline),
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        assert_eq!(
+            read,
+            [
+                ("+count : int".to_owned(), false, true),
+                ("#draw()".to_owned(), true, false),
+                ("-odd()".to_owned(), true, true),
+            ]
+        );
     }
 
     #[test]

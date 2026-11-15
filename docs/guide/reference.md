@@ -822,7 +822,9 @@ line takes the shadows away. Graphviz and tree diagrams render through the optio
 `plantuml` package, confined with Landlock; PlantUML itself no longer draws a chronology,
 and Omaspec says so. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
-angles. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a
+angles. `skinparam componentStyle` (`uml2`, `uml1`, `rectangle`) and `packageStyle`
+(`rectangle`, `folder`, `frame`, `node`, `cloud`, `database`) draw as in PlantUML, and a
+member's visibility may stand before its marks (`+{static} count`). A Mermaid subgraph keeps its own `direction` (`direction TB` inside a
 `flowchart LR`), also when its nodes have lines to the outside, where Mermaid itself
 drops it and lays the subgraph out in the chart's direction. Omaspec also has a diagram
 of its own, signal flow (`@startflow`,

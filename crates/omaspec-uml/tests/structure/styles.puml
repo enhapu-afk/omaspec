@@ -1,0 +1,14 @@
+@startuml
+skinparam componentStyle uml1
+skinparam packageStyle folder
+skinparam classAttributeIconSize 0
+package Shop {
+  [Web]
+  [Api]
+}
+[Web] --> [Api]
+class Order {
+  +{static} count : int
+  #{abstract} total() : Money
+}
+@enduml

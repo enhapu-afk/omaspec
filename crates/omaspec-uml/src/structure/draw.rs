@@ -7,7 +7,7 @@
 
 use std::fmt::Write as _;
 
-use super::skin::Skin;
+use super::skin::{ComponentStyle, Skin};
 use super::{Crossing, Dash, Direction, Element, Group, Head, Link, Member, Shape, Side};
 use crate::Declined;
 use crate::annotations::Annotations;
@@ -71,6 +71,17 @@ pub fn draw_mapped(diagram: &super::Diagram) -> Result<(String, Map), Declined> 
 /// The SVG, and its map when `mapped` asks for one; an empty map else.
 fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
+    // `skinparam packageStyle`: a package drawn as another shape.
+    let restyled;
+    let diagram = match skin.package_style {
+        Some(shape) => {
+            let mut copy = diagram.clone();
+            packages_as(&mut copy.root, shape);
+            restyled = copy;
+            &restyled
+        }
+        None => diagram,
+    };
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
@@ -556,7 +567,9 @@ fn measure_element(
             _ => {
                 // The name is centered in the box, so the room the icon
                 // takes on the right is kept on the left as well.
-                let icon = if el.shape == Shape::Component {
+                let icon = if el.shape == Shape::Component
+                    && skin.component_style != ComponentStyle::Rectangle
+                {
                     (2.0 * (ICON_W + ICON_EDGE + ICON_AIR) - 2.0 * PAD_X).max(0.0)
                 } else {
                     0.0
@@ -1202,9 +1215,23 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
         }
     }
     if node.item.shape == Shape::Component {
-        component_icon(canvas, rect, node.item.border);
+        match skin.component_style {
+            ComponentStyle::Uml2 => component_icon(canvas, rect, node.item.border),
+            ComponentStyle::Uml1 => uml1_marks(canvas, rect, node.item.fill, node.item.border),
+            ComponentStyle::Rectangle => {}
+        }
     }
     paint_rows(canvas, node);
+}
+
+/// Each package of `group`, at any depth, as `shape`.
+fn packages_as(group: &mut Group, shape: Shape) {
+    for node in &mut group.nodes {
+        if node.shape == Shape::Package {
+            node.shape = shape;
+        }
+        packages_as(&mut node.children, shape);
+    }
 }
 
 /// The outline of `shape` in `rect`, as a box of a structure diagram is
@@ -1559,6 +1586,15 @@ fn component_icon(canvas: &mut Canvas, rect: Rect, stroke: Stroke) {
         None,
         Some(stroke),
     );
+}
+
+/// A UML 1 component's two small boxes across its left edge.
+fn uml1_marks(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
+    let (w, h) = (ICON_W, 5.0);
+    let x = rect.x - w / 2.0;
+    for y in [rect.y + 8.0, rect.y + 8.0 + h + 4.0] {
+        canvas.rect(Layer::Frames, (x, y, w, h), 0.0, fill, Some(stroke));
+    }
 }
 
 fn dog_ear(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
