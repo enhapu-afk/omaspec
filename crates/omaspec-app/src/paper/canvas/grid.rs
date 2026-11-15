@@ -130,15 +130,38 @@ pub fn fill_paper_band(
     bottom: f32,
     fill: impl Into<canvas::Fill>,
 ) {
+    fill_paper_band_across(frame, paper, scale, (top, bottom), (None, None), fill);
+}
+
+/// [`fill_paper_band`] between `left` and `right` alone, each on a whole
+/// device pixel, so pieces side by side meet without a seam; `None` is the
+/// paper's own side, its corners round as the band's.
+pub fn fill_paper_band_across(
+    frame: &mut Frame,
+    paper: Rectangle,
+    scale: f32,
+    (top, bottom): (f32, f32),
+    (left, right): (Option<f32>, Option<f32>),
+    fill: impl Into<canvas::Fill>,
+) {
     let Some(band) = band_rows(paper, scale, top, bottom) else {
         return;
     };
-    let out = 1.0 / if scale > 0.0 { scale } else { 1.0 };
+    let scale = if scale > 0.0 { scale } else { 1.0 };
+    let out = 1.0 / scale;
     let veil = Rectangle::new(
         paper.position() - Vector::new(out, out),
         paper.size() + Size::new(out * 2.0, out * 2.0),
     );
-    if let Some(shape) = rounded_band(veil, RADIUS + out, band.y, band.y + band.height) {
+    let column = |at: f32| (at * scale).round() / scale;
+    let across = (
+        left.map_or(f32::NEG_INFINITY, column),
+        right.map_or(f32::INFINITY, column),
+    );
+    if across.1 <= across.0 {
+        return;
+    }
+    if let Some(shape) = rounded_band(veil, RADIUS + out, band.y, band.y + band.height, across) {
         frame.fill(&shape, fill);
     }
 }
@@ -148,9 +171,16 @@ pub fn fill_paper_band(
 /// pixel off the arc.
 const ARC_PIECES: usize = 16;
 
-/// The part of the rounded rectangle `rect` from `top` to `bottom`: its
-/// sides, bent where they run round a corner.
-fn rounded_band(rect: Rectangle, radius: f32, top: f32, bottom: f32) -> Option<Path> {
+/// The part of the rounded rectangle `rect` from `top` to `bottom`, and
+/// from the left to the right of `across`: its sides, bent where they run
+/// round a corner, or straight where `across` cuts it short.
+fn rounded_band(
+    rect: Rectangle,
+    radius: f32,
+    top: f32,
+    bottom: f32,
+    across: (f32, f32),
+) -> Option<Path> {
     let (top, bottom) = (top.max(rect.y), bottom.min(rect.y + rect.height));
     if bottom <= top {
         return None;
@@ -176,13 +206,15 @@ fn rounded_band(rect: Rectangle, radius: f32, top: f32, bottom: f32) -> Option<P
     }
     heights.sort_by(f32::total_cmp);
     heights.dedup_by(|a, b| (*a - *b).abs() < 1e-4);
+    let left = |y: f32| (rect.x + inset(y)).max(across.0);
+    let right = |y: f32| (rect.x + rect.width - inset(y)).min(across.1);
     Some(Path::new(|b| {
-        b.move_to(Point::new(rect.x + inset(heights[0]), heights[0]));
+        b.move_to(Point::new(left(heights[0]), heights[0]));
         for &y in &heights[1..] {
-            b.line_to(Point::new(rect.x + inset(y), y));
+            b.line_to(Point::new(left(y), y));
         }
         for &y in heights.iter().rev() {
-            b.line_to(Point::new(rect.x + rect.width - inset(y), y));
+            b.line_to(Point::new(right(y), y));
         }
         b.close();
     }))
@@ -409,6 +441,9 @@ mod tests {
     }
 
     /// The points of a path, in order.
+    /// Across the whole band.
+    const WHOLE: (f32, f32) = (f32::NEG_INFINITY, f32::INFINITY);
+
     fn corners(path: &Path) -> Vec<Point> {
         use iced::widget::canvas::path::lyon_path::Event;
         path.raw()
@@ -425,7 +460,7 @@ mod tests {
         let rect = Rectangle::new(Point::new(10.0, 20.0), Size::new(200.0, 300.0));
         let radius = 8.0;
         // In the middle: a rectangle as wide as the paper, as high as the band.
-        let middle = corners(&rounded_band(rect, radius, 100.0, 140.0).unwrap());
+        let middle = corners(&rounded_band(rect, radius, 100.0, 140.0, WHOLE).unwrap());
         assert_eq!(middle.len(), 4);
         for at in &middle {
             assert!(at.y == 100.0 || at.y == 140.0, "{at:?}");
@@ -433,7 +468,7 @@ mod tests {
         }
         // At the top: from the paper's edge, round its corners. Every point
         // lies on the rounded outline, none above the paper or below the band.
-        let top = corners(&rounded_band(rect, radius, 0.0, 60.0).unwrap());
+        let top = corners(&rounded_band(rect, radius, 0.0, 60.0, WHOLE).unwrap());
         let (left, right) = (Point::new(18.0, 28.0), Point::new(202.0, 28.0));
         for at in &top {
             assert!((20.0..=60.0).contains(&at.y), "{at:?}");
@@ -446,6 +481,6 @@ mod tests {
         assert_eq!(highest, 20.0, "the band starts at the paper's edge");
         assert!(top.len() > 2 * ARC_PIECES, "the corner is bent, not cut");
         // Past the paper there is nothing.
-        assert!(rounded_band(rect, radius, 330.0, 400.0).is_none());
+        assert!(rounded_band(rect, radius, 330.0, 400.0, WHOLE).is_none());
     }
 }

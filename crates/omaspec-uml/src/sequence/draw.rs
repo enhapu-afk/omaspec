@@ -58,6 +58,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     drawer.run(&mut canvas);
     let map = Map {
         messages: std::mem::take(&mut drawer.steps),
+        grounds: std::mem::take(&mut drawer.grounds),
         ..Map::default()
     };
     let map = map.placed(canvas.fit(MARGIN));
@@ -316,6 +317,8 @@ struct Drawer<'a> {
     last_arrow: Option<(f32, [Option<usize>; 2])>,
     /// Each message's arrow and band, for the map.
     steps: Vec<Step>,
+    /// The boxes with a fill, for the map.
+    grounds: Vec<crate::map::Ground>,
     /// `rect` highlights open at the top, closed into [`Self::highlights`].
     open_rects: Vec<OpenRect>,
     /// Closed highlights, inner ones first. Drawn back to front.
@@ -613,6 +616,7 @@ impl<'a> Drawer<'a> {
             dividers: Vec::new(),
             last_arrow: None,
             steps: Vec::new(),
+            grounds: Vec::new(),
             open_rects: Vec::new(),
             highlights: Vec::new(),
             cols,
@@ -909,13 +913,26 @@ impl<'a> Drawer<'a> {
         for b in &self.boxes {
             let left = self.x[b.first] - self.cols[b.first].half() - self.pad_left[b.first];
             let right = self.x[b.last] + self.cols[b.last].half() + self.pad_right[b.last];
+            let rect = (left, boxes_top, right - left, bottom + 5.0 - boxes_top);
             canvas.rect(
                 Layer::Background,
-                (left, boxes_top, right - left, bottom + 5.0 - boxes_top),
+                rect,
                 skin.round,
                 b.look.fill,
                 Some(Stroke::new(b.look.border, b.look.thickness)),
             );
+            if let Some(fill) = b.look.fill {
+                self.grounds.push(crate::map::Ground {
+                    rect: crate::graph::Rect {
+                        x: rect.0,
+                        y: rect.1,
+                        w: rect.2,
+                        h: rect.3,
+                    },
+                    // As the canvas paints it: gray in monochrome.
+                    fill: if skin.monochrome { fill.gray() } else { fill },
+                });
+            }
             canvas.text(
                 Layer::Background,
                 &b.title,
@@ -2057,6 +2074,26 @@ fn participants_of(item: &Item) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A box with a fill is a ground of the map, where it is drawn and in
+    /// its color, the messages between its participants on it; a box
+    /// drawn without a fill is none.
+    #[test]
+    fn a_filled_box_is_a_ground_of_the_map() {
+        let source = "@startuml\nparticipant Alice\nbox \"Shop\" #E0E8FF\nparticipant Bob\nparticipant Carol\nend box\nAlice -> Bob : order\nBob -> Carol : total\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let [ground] = map.grounds[..] else {
+            panic!("one ground: {:?}", map.grounds);
+        };
+        assert_eq!(ground.fill, crate::color::Color::hex(0xE0E8FF));
+        let r = ground.rect;
+        let on = |(x, y): (f32, f32)| x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+        assert!(map.messages[1].points.iter().all(|&p| on(p)), "{r:?}");
+        assert!(map.messages[0].points[0].0 < r.x, "Alice is outside");
+        let clear = source.replace("#E0E8FF", "#transparent");
+        let (_, map) = crate::render_mapped(&clear, None).unwrap();
+        assert!(map.grounds.is_empty());
+    }
 
     /// Runs `source` through the layout; `check` sees the finished drawer.
     fn laid_out(source: &str, check: impl FnOnce(&Drawer)) {

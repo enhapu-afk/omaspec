@@ -32,7 +32,7 @@ mod marks;
 
 use input::touch;
 
-pub(super) use grid::{Grid, fill_paper_band, rounded, shadow};
+pub(super) use grid::{Grid, fill_paper_band, fill_paper_band_across, rounded, shadow};
 pub use marks::{BreathLight, LinkMarks, PaperEdge};
 
 const DOUBLE_CLICK: Duration = Duration::from_millis(350);

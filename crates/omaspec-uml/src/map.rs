@@ -24,8 +24,21 @@ pub struct Map {
     /// Entries of the block of lines by hand that did not hold: the
     /// zero-based line of each, and why.
     pub misses: Vec<(usize, String)>,
+    /// Areas filled with a color of their own under what is drawn on
+    /// them: a sequence diagram's boxes.
+    pub grounds: Vec<Ground>,
     /// How the drawing's units became the picture's.
     pub fit: Fit,
+}
+
+/// An area a diagram fills with one color under what lies on it, as a
+/// sequence diagram's box under its participants and messages. A play's
+/// veil dims what lies on it toward that color rather than the paper's, so
+/// the area stays as even as the paper.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Ground {
+    pub rect: Rect,
+    pub fill: crate::color::Color,
 }
 
 /// A line of a graph diagram, which the writer may shape by hand
@@ -317,6 +330,9 @@ impl Map {
         }
         for cell in &mut self.cells {
             cell.rect = fit.rect(cell.rect);
+        }
+        for ground in &mut self.grounds {
+            ground.rect = fit.rect(ground.rect);
         }
         for step in &mut self.messages {
             for point in &mut step.points {

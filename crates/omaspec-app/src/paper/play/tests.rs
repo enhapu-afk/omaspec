@@ -329,3 +329,106 @@ fn the_next_message_fades_the_line_it_leaves() {
         left.light.extra
     );
 }
+
+/// A box of a scenario under the veil keeps its color: the veil dims
+/// what lies on it toward the box's own fill, so the box is as even below
+/// the veil's edge as above it, and only the paper beside it darkens.
+#[test]
+fn a_box_under_a_scenario_s_veil_keeps_its_color() {
+    use iced::advanced::renderer::{Headless, Style};
+    use iced::widget::canvas::{Canvas, Geometry, Program};
+    use iced::{Element, Length, Renderer, Size, Theme, mouse};
+
+    let source = "@startuml\nparticipant Alice\nbox \"Shop\" #E0E8FF\nparticipant Bob\nparticipant Carol\nend box\nAlice -> Bob : order\nBob -> Carol : total\nCarol --> Bob : sum\nBob --> Alice : price\n@enduml\n";
+    let (svg, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let size = |name: &str| -> f32 {
+        let at = svg.find(&format!("{name}=\"")).unwrap() + name.len() + 2;
+        svg[at..].split('"').next().unwrap().parse().unwrap()
+    };
+    let paper = Rectangle::new(Point::ORIGIN, Size::new(size("width"), size("height")));
+    let ground = map.grounds[0];
+    let fill = Color::from_rgb8(ground.fill.0, ground.fill.1, ground.fill.2);
+    let t0 = Instant::now();
+    let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
+    play.ask(Ask::Next, t0);
+    let now = t0 + Duration::from_secs(10);
+
+    struct Painted<'a>(&'a dyn Fn(&mut Frame));
+    impl Program<()> for Painted<'_> {
+        type State = ();
+        fn draw(
+            &self,
+            _: &(),
+            renderer: &Renderer,
+            _: &Theme,
+            bounds: Rectangle,
+            _: mouse::Cursor,
+        ) -> Vec<Geometry> {
+            let mut frame = Frame::new(renderer, bounds.size());
+            (self.0)(&mut frame);
+            vec![frame.into_geometry()]
+        }
+    }
+    let paint = |frame: &mut Frame| {
+        // The picture: white paper, and the box on it.
+        frame.fill_rectangle(paper.position(), paper.size(), Color::WHITE);
+        let r = ground.rect;
+        frame.fill_rectangle(Point::new(r.x, r.y), Size::new(r.w, r.h), fill);
+        let place = |r: Rect| Rectangle::new(Point::new(r.x, r.y), Size::new(r.w, r.h));
+        let view = Viewer {
+            paper,
+            scale: 1.0,
+            place: &place,
+            paint: &|_, _, _| {},
+        };
+        let look = Look {
+            accent: Color::from_rgb8(0xff, 0x9e, 0x3b),
+            veil: Color::from_rgb8(0x1a, 0x1b, 0x26),
+            light: Color::WHITE,
+        };
+        play.draw_under(frame, &look, &view, now);
+    };
+    let mut renderer = iced::futures::executor::block_on(Renderer::new(
+        iced::Font::DEFAULT,
+        iced::Pixels(16.0),
+        Some("tiny-skia"),
+    ))
+    .expect("tiny-skia draws without a GPU");
+    let element: Element<'_, (), Theme, Renderer> = Canvas::new(Painted(&paint))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into();
+    let (w, h) = (paper.width.ceil() as u32, paper.height.ceil() as u32);
+    let mut ui = iced_runtime::UserInterface::build(
+        element,
+        Size::new(w as f32, h as f32),
+        Default::default(),
+        &mut renderer,
+    );
+    let style = Style {
+        text_color: Color::WHITE,
+    };
+    ui.draw(
+        &mut renderer,
+        &Theme::Dark,
+        &style,
+        mouse::Cursor::Unavailable,
+    );
+    let rgba = renderer.screenshot(iced::Size::new(w, h), 1.0, Color::BLACK);
+    let pixel = |x: f32, y: f32| {
+        let at = ((y as u32 * w + x as u32) * 4) as usize;
+        [rgba[at], rgba[at + 1], rgba[at + 2]]
+    };
+    // Far below the veil's edge: in the box, its own color; beside it, the
+    // paper dimmed toward the window's background.
+    let r = ground.rect;
+    let low = r.y + r.h - 12.0;
+    let in_box = pixel(r.x + r.w / 2.0, low);
+    let want = [0xE0, 0xE8, 0xFF];
+    assert!(
+        (0..3).all(|c| in_box[c].abs_diff(want[c]) <= 3),
+        "the box under the veil is {in_box:?}, not {want:?}"
+    );
+    let beside = pixel(r.x + r.w + 8.0, low);
+    assert!(beside[0] < 160, "the paper beside it is veiled: {beside:?}");
+}

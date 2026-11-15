@@ -4,12 +4,13 @@
 use std::time::Duration;
 
 use iced::time::Instant;
+use iced::widget::canvas;
 use iced::widget::canvas::gradient::Linear;
 use iced::widget::canvas::{Frame, Path};
-use iced::{Point, Rectangle, Size};
-use omaspec_uml::map::Step;
+use iced::{Color, Point, Rectangle, Size};
+use omaspec_uml::map::{Ground, Step};
 
-use super::super::canvas::fill_paper_band;
+use super::super::canvas::fill_paper_band_across;
 use super::super::light::{
     LINGER, Light, REVEAL, SCENARIO, appearance, draw_run, draw_run_over, ease_out, fraction,
     smooth, soft_spot,
@@ -20,6 +21,9 @@ use super::*;
 
 pub struct ScenarioPlay {
     pub(super) steps: Vec<Step>,
+    /// The diagram's boxes with a fill of their own: the veil dims what
+    /// lies on them toward their color ([`Ground`]).
+    pub(super) grounds: Vec<Ground>,
     /// How many messages are shown.
     pub(super) at: usize,
     /// When the veil last moved, and from where.
@@ -179,27 +183,93 @@ impl ScenarioPlay {
         pub(super) const SOFT: f32 = 56.0;
         let top = edge.max(paper.y);
         let soft_end = (top + SOFT).min(paper.y + paper.height);
+        let full = |color: Color| with_alpha(color, VEIL * veil);
         if soft_end > top {
-            let full = with_alpha(look.veil, VEIL * veil);
             // Eight stops: iced keeps no more, and a ninth, the full veil,
             // was dropped, so the edge ended in a step.
-            let mut fade = Linear::new(Point::new(paper.x, top), Point::new(paper.x, top + SOFT));
-            for i in 0..8 {
-                let t = i as f32 / 7.0;
-                fade = fade.add_stop(t, with_alpha(full, smooth(t)));
-            }
-            fill_paper_band(frame, paper, view.scale, top, soft_end, fade);
+            let fade = |color: Color| {
+                let mut fade =
+                    Linear::new(Point::new(paper.x, top), Point::new(paper.x, top + SOFT));
+                for i in 0..8 {
+                    let t = i as f32 / 7.0;
+                    fade = fade.add_stop(t, with_alpha(full(color), smooth(t)));
+                }
+                fade
+            };
+            self.veil_band(frame, look, view, (top, soft_end), fade);
         }
         let below = top + SOFT;
         if below < paper.y + paper.height {
-            fill_paper_band(
-                frame,
-                paper,
-                view.scale,
-                below,
-                paper.y + paper.height,
-                with_alpha(look.veil, VEIL * veil),
-            );
+            self.veil_band(frame, look, view, (below, paper.y + paper.height), full);
+        }
+    }
+
+    /// The veil from `top` to `bottom`, in `fill` of the color it dims
+    /// toward: the window's background over the paper, a box's own fill
+    /// over the box ([`Ground`]), so a box under the veil keeps one shade
+    /// and what lies on it is dimmed all the same. Side by side, the
+    /// pieces meet on whole pixels.
+    fn veil_band<F: Into<canvas::Fill>>(
+        &self,
+        frame: &mut Frame,
+        look: &Look,
+        view: &Viewer,
+        (top, bottom): (f32, f32),
+        fill: impl Fn(Color) -> F,
+    ) {
+        let paper = view.paper;
+        let grounds: Vec<(Rectangle, Color)> = self
+            .grounds
+            .iter()
+            .map(|ground| {
+                let (rect, fill) = ((view.place)(ground.rect), ground.fill);
+                (rect, Color::from_rgb8(fill.0, fill.1, fill.2))
+            })
+            .filter(|(rect, _)| {
+                rect.y < bottom
+                    && rect.y + rect.height > top
+                    && rect.x < paper.x + paper.width
+                    && rect.x + rect.width > paper.x
+            })
+            .collect();
+        let mut cuts: Vec<f32> = grounds
+            .iter()
+            .flat_map(|(rect, _)| [rect.x, rect.x + rect.width])
+            .filter(|x| *x > paper.x && *x < paper.x + paper.width)
+            .collect();
+        cuts.sort_by(f32::total_cmp);
+        cuts.dedup();
+        // Columns between the cuts; the outer ones end at the paper's side.
+        let mut edges: Vec<Option<f32>> = vec![None];
+        edges.extend(cuts.iter().copied().map(Some));
+        edges.push(None);
+        for pair in edges.windows(2) {
+            let (left, right) = (pair[0], pair[1]);
+            let middle = (left.unwrap_or(paper.x) + right.unwrap_or(paper.x + paper.width)) / 2.0;
+            let on = grounds
+                .iter()
+                .find(|(rect, _)| rect.x <= middle && middle <= rect.x + rect.width);
+            let mut piece = |from: f32, to: f32, color: Color| {
+                if to > from {
+                    fill_paper_band_across(
+                        frame,
+                        paper,
+                        view.scale,
+                        (from, to),
+                        (left, right),
+                        fill(color),
+                    );
+                }
+            };
+            match on {
+                Some((rect, color)) => {
+                    let (from, to) = (rect.y.max(top), (rect.y + rect.height).min(bottom));
+                    piece(top, from, look.veil);
+                    piece(from, to, *color);
+                    piece(to, bottom, look.veil);
+                }
+                None => piece(top, bottom, look.veil),
+            }
         }
     }
 

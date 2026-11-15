@@ -96,6 +96,7 @@ impl Play {
         }
         Ok(Play::Scenario(ScenarioPlay {
             steps: map.messages.clone(),
+            grounds: map.grounds.clone(),
             at: 0,
             moved: now,
             from_y: map.messages[0].top,
@@ -155,6 +156,7 @@ impl Play {
                 if map.messages.len() == play.steps.len() {
                     play.steps = map.messages.clone();
                 }
+                play.grounds = map.grounds.clone();
             }
         }
     }
