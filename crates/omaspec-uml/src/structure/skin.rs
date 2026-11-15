@@ -95,7 +95,7 @@ pub struct Rule {
 fn kind_of(shape: Shape) -> &'static str {
     match shape {
         Shape::Class | Shape::Abstract | Shape::Enum | Shape::Entity | Shape::Annotation => "class",
-        Shape::Interface => "interface",
+        Shape::Interface | Shape::Lollipop => "interface",
         Shape::Component => "component",
         Shape::UseCase => "usecase",
         Shape::Actor | Shape::Agent => "actor",
@@ -179,7 +179,7 @@ impl Skin {
             Shape::Class | Shape::Abstract | Shape::Enum | Shape::Entity | Shape::Annotation => {
                 &self.class_box
             }
-            Shape::Interface => &self.interface_box,
+            Shape::Interface | Shape::Lollipop => &self.interface_box,
             Shape::Component => &self.component,
             Shape::UseCase => &self.usecase,
             Shape::Actor | Shape::Agent => &self.actor,

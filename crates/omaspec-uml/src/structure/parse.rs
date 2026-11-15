@@ -345,6 +345,7 @@ impl Parser {
             self.place_link(from, to, &item)?;
         }
         self.place_notes()?;
+        lollipops(&mut self.root);
         if let Some(direction) = self.direction {
             run_all(&mut self.root, direction);
         }
@@ -720,7 +721,9 @@ impl Parser {
             return Ok(());
         };
         let node = self.node_mut(path);
-        if node.shape == shape {
+        // An interface and its circle are one ([`lollipops`]).
+        let circle = |s| matches!(s, Shape::Interface | Shape::Lollipop);
+        if node.shape == shape || circle(node.shape) && circle(shape) {
             return Ok(());
         }
         if node.explicit {
@@ -1127,6 +1130,7 @@ fn leading_shape(text: &str) -> Option<(Shape, Open, &str)> {
         ("enum", Shape::Enum, Open::Members),
         ("card", Shape::Card, Open::Group),
         ("file", Shape::File, Open::Group),
+        ("()", Shape::Lollipop, Open::None),
     ];
     for &(word, shape, open) in PHRASES {
         if let Some(rest) = phrase(text, word) {
@@ -1164,6 +1168,63 @@ fn phrase<'a>(text: &'a str, word: &str) -> Option<&'a str> {
     }
 }
 
+/// The interfaces of a component diagram as PlantUML draws them there: a
+/// circle, its name under it. A diagram with a component, a node, an actor
+/// or another element only a component, deployment or use case diagram
+/// has is one; an interface with members belongs to a class diagram.
+fn lollipops(root: &mut Group) {
+    fn described(group: &Group) -> bool {
+        group.nodes.iter().any(|node| {
+            matches!(
+                node.shape,
+                Shape::Lollipop
+                    | Shape::Component
+                    | Shape::UseCase
+                    | Shape::Actor
+                    | Shape::Node
+                    | Shape::Artifact
+                    | Shape::Cloud
+                    | Shape::Database
+                    | Shape::Folder
+                    | Shape::File
+                    | Shape::Card
+                    | Shape::Storage
+                    | Shape::Stack
+                    | Shape::Hexagon
+                    | Shape::Agent
+                    | Shape::Queue
+                    | Shape::Person
+            ) || described(&node.children)
+        })
+    }
+    fn circles(group: &mut Group) {
+        for node in &mut group.nodes {
+            if matches!(node.shape, Shape::Interface | Shape::Lollipop)
+                && node.members.is_empty()
+                && !node.composite
+            {
+                node.shape = Shape::Lollipop;
+                node.stereotypes.retain(|s| s.value != "interface");
+            }
+            circles(&mut node.children);
+        }
+    }
+    if described(root) {
+        circles(root);
+    } else {
+        // Without components, an interface is a class diagram's.
+        fn boxes(group: &mut Group) {
+            for node in &mut group.nodes {
+                if node.shape == Shape::Lollipop {
+                    node.shape = Shape::Interface;
+                }
+                boxes(&mut node.children);
+            }
+        }
+        boxes(root);
+    }
+}
+
 fn open_of(shape: Shape) -> Open {
     match shape {
         Shape::Class
@@ -1191,7 +1252,7 @@ fn default_stereo(shape: Shape) -> Option<&'static str> {
 fn shape_word(shape: Shape) -> &'static str {
     match shape {
         Shape::Class | Shape::Abstract => "class",
-        Shape::Interface => "interface",
+        Shape::Interface | Shape::Lollipop => "interface",
         Shape::Enum => "enum",
         Shape::Entity => "entity",
         Shape::Annotation => "annotation",
@@ -1233,6 +1294,10 @@ fn declaration(text: &str, line: usize) -> Result<Option<Decl>, Declined> {
     let Some((shape, open, rest)) = leading_shape(text) else {
         return Ok(None);
     };
+    // `() "Clipboard" --> [Renderer]` is a line, its end an interface.
+    if shape == Shape::Lollipop && find_arrow(text).is_some() {
+        return Ok(None);
+    }
     Ok(Some(parse_decl(shape, open, rest, line)?))
 }
 
@@ -1795,16 +1860,31 @@ fn relation(text: &str, line: usize) -> Result<RawRel, Declined> {
 }
 
 fn side(text: &str, card_last: bool, line: usize) -> Result<(RawName, Option<String>), Declined> {
-    let tokens = tokens_of(text, line)?;
-    match tokens.as_slice() {
-        [name] => Ok((raw_name(name, line)?, None)),
-        [name, card] if card_last => Ok((raw_name(name, line)?, Some(cardinality(card, line)?))),
-        [card, name] if !card_last => Ok((raw_name(name, line)?, Some(cardinality(card, line)?))),
-        _ => Err(Declined::at(
-            line,
-            format!("`{}` is not supported yet", snippet(text)),
-        )),
+    let mut tokens = tokens_of(text, line)?;
+    // `() "Clipboard"`: the interface a component diagram draws as a
+    // circle, `()` before its name.
+    let circle = tokens
+        .iter()
+        .position(|token| token == "()")
+        .filter(|&at| at + 1 < tokens.len());
+    if let Some(at) = circle {
+        tokens.remove(at);
     }
+    let (mut name, card) = match tokens.as_slice() {
+        [name] => (raw_name(name, line)?, None),
+        [name, card] if card_last => (raw_name(name, line)?, Some(cardinality(card, line)?)),
+        [card, name] if !card_last => (raw_name(name, line)?, Some(cardinality(card, line)?)),
+        _ => {
+            return Err(Declined::at(
+                line,
+                format!("`{}` is not supported yet", snippet(text)),
+            ));
+        }
+    };
+    if circle.is_some() {
+        name.shape = Some(Shape::Lollipop);
+    }
+    Ok((name, card))
 }
 
 fn cardinality(token: &str, line: usize) -> Result<String, Declined> {
@@ -2759,6 +2839,36 @@ mod tests {
         assert!(err.reason.contains("port"), "{}", err.reason);
         let err = declined("@startuml\nmap Data {\n}\n@enduml\n");
         assert!(err.reason.contains("Java"), "{}", err.reason);
+    }
+
+    /// REQ-060: `() "Clipboard"` is an interface a component diagram draws
+    /// as a circle, at a line's end and declared alone; an `interface`
+    /// without members beside components is one too, as PlantUML draws it.
+    /// Without components, or with members, an interface stays a class
+    /// diagram's box.
+    #[test]
+    fn an_interface_beside_components_is_a_lollipop() {
+        let d = diagram(
+            "@startuml\n[Renderer] ..> () \"Clipboard\"\n() \"Files\" as F\n() HTTP\n[Renderer] --> F\ninterface Plugin\ninterface Port {\n  +open()\n}\n() Cache --> [Renderer]\n@enduml\n",
+        );
+        for name in ["Clipboard", "F", "HTTP", "Plugin", "Cache"] {
+            let node = element(&d.root, name);
+            assert_eq!(node.shape, Shape::Lollipop, "{name}");
+            assert!(node.stereotypes.is_empty(), "{name}");
+        }
+        assert_eq!(element(&d.root, "F").label.value, "Files");
+        assert_eq!(element(&d.root, "Port").shape, Shape::Interface);
+        let dashed = d
+            .root
+            .edges
+            .iter()
+            .find(|e| d.root.nodes[e.to].key == "Clipboard")
+            .expect("the line to the clipboard");
+        assert_eq!((dashed.dash, dashed.to_head), (Dash::Dashed, Head::Arrow));
+        // A class diagram's interface keeps its box and its «interface».
+        let d = diagram("@startuml\ninterface Shape\nclass Circle\nShape <|.. Circle\n@enduml\n");
+        assert_eq!(element(&d.root, "Shape").shape, Shape::Interface);
+        assert!(crate::render("@startuml\n[Renderer] ..> () \"Clipboard\"\n@enduml\n").is_ok());
     }
 
     #[test]

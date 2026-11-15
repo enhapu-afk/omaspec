@@ -40,6 +40,7 @@ crates/omaspec-uml/tests/structure/class.puml 5 0 0 0 0 0 8 774 0 0.0
 crates/omaspec-uml/tests/structure/component.puml 3 0 0 0 0 0 2 269 0 28.8
 crates/omaspec-uml/tests/structure/deploy.puml 3 0 0 0 0 0 0 110 0 18.9
 crates/omaspec-uml/tests/structure/labels.puml 3 0 0 0 0 0 4 357 0 5.6
+crates/omaspec-uml/tests/structure/lollipop.puml 4 0 0 0 0 0 0 184 0 163.8
 crates/omaspec-uml/tests/structure/object.puml 2 0 0 0 0 0 2 92 0 30.7
 crates/omaspec-uml/tests/structure/usecase.puml 2 0 0 0 0 0 0 87 0 14.8
 examples/door/door.puml 7 0 0 0 0 0 8 507 0 16.7
@@ -63,4 +64,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 10.9
 examples/platform.mmd 17 1 0 0 4 0 36 5111 6 41.7
 examples/player.puml 8 0 0 0 0 0 14 916 0 15.1
 examples/shop.mmd 6 0 0 0 0 0 4 589 0 13.9
-total 565 9 0 1 13 0 510 73584 22 1055.1
+total 569 9 0 1 13 0 510 73768 22 1218.9

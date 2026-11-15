@@ -1,0 +1,9 @@
+@startuml
+title Interfaces as PlantUML draws them beside components
+[Renderer] ..> () "Clipboard"
+() "Files" as F
+[Renderer] --> F
+interface Plugin
+[Editor] --> Plugin
+() HTTP --> [Editor] : serves
+@enduml

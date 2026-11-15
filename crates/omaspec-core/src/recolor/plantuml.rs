@@ -351,7 +351,7 @@ fn element_line(shape: Shape, name: &str) -> Option<String> {
         Shape::UseCase => return Some(format!("({name})")),
         Shape::Note => return None,
         Shape::Class | Shape::Abstract => "class",
-        Shape::Interface => "interface",
+        Shape::Interface | Shape::Lollipop => "interface",
         Shape::Enum => "enum",
         Shape::Entity => "entity",
         Shape::Annotation => "annotation",

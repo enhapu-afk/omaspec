@@ -54,6 +54,9 @@ const CLOUD_DIP: f32 = 6.0;
 const CLOUD_BUMP: f32 = 26.0;
 const ACTOR_H: f32 = 50.0;
 const ACTOR_W: f32 = 40.0;
+/// How wide a lollipop's circle is, and the gap under it to its name.
+const LOLLIPOP: f32 = 16.0;
+const LOLLIPOP_GAP: f32 = 3.0;
 
 pub fn draw(diagram: &super::Diagram) -> Result<String, Declined> {
     drawn(diagram, false).map(|(svg, _)| svg)
@@ -413,7 +416,7 @@ fn measure_element(
     // read. An actor's name stands under the figure, on the page.
     if el.text_color.is_none()
         && el.fill.is_some()
-        && el.shape != Shape::Actor
+        && !matches!(el.shape, Shape::Actor | Shape::Lollipop)
         && let Some(ground) = fill
     {
         let far = if Color::WHITE.contrast(ground) > Color::BLACK.contrast(ground) {
@@ -426,7 +429,7 @@ fn measure_element(
         }
     }
     // An actor's and a use case's words belong to their figure.
-    let left = skin.left && !matches!(el.shape, Shape::Actor | Shape::UseCase);
+    let left = skin.left && !matches!(el.shape, Shape::Actor | Shape::UseCase | Shape::Lollipop);
     let (rows, body) = rows_of(el, &look, family, left)?;
     let children = if el.composite && !open {
         layout_group(&el.children, skin, family)?
@@ -488,6 +491,11 @@ fn measure_element(
             Shape::Actor => {
                 let width = all_w.max(ACTOR_W).max(min_w);
                 let height = ACTOR_H + all_h + 2.0;
+                (width, height, 0.0, 0.0)
+            }
+            Shape::Lollipop => {
+                let width = all_w.max(LOLLIPOP);
+                let height = LOLLIPOP + LOLLIPOP_GAP + all_h;
                 (width, height, 0.0, 0.0)
             }
             Shape::UseCase => {
@@ -1052,7 +1060,12 @@ fn name_band(node: &Placed) -> Rect {
 fn is_flat(shape: Shape) -> bool {
     !matches!(
         shape,
-        Shape::UseCase | Shape::Actor | Shape::Database | Shape::Storage | Shape::Hexagon
+        Shape::UseCase
+            | Shape::Actor
+            | Shape::Database
+            | Shape::Storage
+            | Shape::Hexagon
+            | Shape::Lollipop
     )
 }
 
@@ -1133,6 +1146,7 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
             );
         }
         Shape::Actor => paint_actor(canvas, rect, node.item.fill, node.item.border),
+        Shape::Lollipop => paint_lollipop(canvas, rect, node.item.fill, node.item.border),
         Shape::Node => paint_node(canvas, rect, node.item.fill, node.item.border),
         Shape::Database | Shape::Storage => {
             paint_cylinder(canvas, rect, node.item.fill, node.item.border)
@@ -1214,6 +1228,7 @@ pub(crate) fn paint_outline(
             Some(stroke),
         ),
         Shape::Actor => paint_actor(canvas, rect, fill, stroke),
+        Shape::Lollipop => paint_lollipop(canvas, rect, fill, stroke),
         Shape::Node => paint_node(canvas, rect, fill, stroke),
         Shape::Database | Shape::Storage => paint_cylinder(canvas, rect, fill, stroke),
         Shape::Cloud => canvas.path(
@@ -1256,6 +1271,11 @@ pub(crate) fn words_area(shape: Shape, rect: Rect) -> Rect {
             h: (rect.h - ACTOR_FIGURE).max(1.0),
             ..rect
         },
+        Shape::Lollipop => Rect {
+            y: rect.y + LOLLIPOP + LOLLIPOP_GAP,
+            h: (rect.h - LOLLIPOP - LOLLIPOP_GAP).max(1.0),
+            ..rect
+        },
         Shape::Person => shapes::body_of(rect),
         Shape::Queue => shapes::queue_area(rect),
         Shape::Database | Shape::Storage => {
@@ -1295,6 +1315,18 @@ fn paint_actor(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
     );
     canvas.line(Layer::Frames, (cx, hip), (cx - 10.0, hip + 14.0), stroke);
     canvas.line(Layer::Frames, (cx, hip), (cx + 10.0, hip + 14.0), stroke);
+}
+
+/// A lollipop's circle at the top of `rect`, its name under it.
+fn paint_lollipop(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
+    let r = LOLLIPOP / 2.0;
+    canvas.ellipse(
+        Layer::Frames,
+        (rect.x + rect.w / 2.0, rect.y + r),
+        (r, r),
+        fill,
+        Some(stroke),
+    );
 }
 
 fn paint_node(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
@@ -1738,7 +1770,8 @@ fn text_area(node: &Placed) -> (Rect, Place) {
             | Shape::Note
             | Shape::Person
             | Shape::Queue
-            | Shape::Actor => Place::Center,
+            | Shape::Actor
+            | Shape::Lollipop => Place::Center,
             _ => Place::Top,
         }
     };
@@ -1763,6 +1796,12 @@ fn text_area(node: &Placed) -> (Rect, Place) {
             y: rect.y + ACTOR_H,
             w: rect.w,
             h: (rect.h - ACTOR_H).max(1.0),
+        },
+        Shape::Lollipop => Rect {
+            x: rect.x,
+            y: rect.y + LOLLIPOP + LOLLIPOP_GAP,
+            w: rect.w,
+            h: (rect.h - LOLLIPOP - LOLLIPOP_GAP).max(1.0),
         },
         Shape::Person => shapes::body_of(rect),
         Shape::Queue => shapes::queue_area(rect),

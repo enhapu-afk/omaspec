@@ -265,10 +265,12 @@ stop
         "a branch label glows as words"
     );
 
+    // A class diagram's: beside a component the interface would be a
+    // circle without its «interface».
     let structure = "\
 @startuml
 interface Sellable
-component Billing <<service>>
+class Billing <<service>>
 @enduml
 ";
     show_source(&mut paper, structure, Language::PlantUml);

@@ -783,7 +783,9 @@ packets, radars, treemaps, sankeys, XY and quadrant charts, ZenUML,
 mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards and
 requirement diagrams. What a drawer leaves (a horizontal XY chart) is drawn by
 [mmdr](https://github.com/1jehuang/mermaid-rs-renderer), a Rust library, in the same
-process. A git graph shows the ids its writer gave its commits; an id Mermaid would make
+process. An interface beside components is a circle with its name under it, as PlantUML
+draws it there: `[Renderer] ..> () "Clipboard"`, `() HTTP`, or an `interface` without
+members; in a class diagram it keeps its box. A git graph shows the ids its writer gave its commits; an id Mermaid would make
 up is left out, since it says nothing and differs with every drawing. A YAML diagram is drawn as the
 JSON it stands for; anchors, aliases and tags, and a text over several lines outside a `|`
 or `>` block, are not read yet and name their line. A JSON or YAML diagram is drawn as

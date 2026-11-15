@@ -312,6 +312,10 @@ pub enum Shape {
     Agent,
     /// A note with no element of its own (`note "…" as N`).
     Note,
+    /// An interface as a component diagram draws it (`() "Name"`, or an
+    /// `interface` without members beside components): a small circle,
+    /// its name under it.
+    Lollipop,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
