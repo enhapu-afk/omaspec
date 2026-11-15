@@ -318,6 +318,8 @@ impl Builder {
             closed: Vec::new(),
             zoom: self.zoom,
             scale,
+            axis: super::Axis::default(),
+            verts: Vec::new(),
             frame: self.frame,
         })
     }

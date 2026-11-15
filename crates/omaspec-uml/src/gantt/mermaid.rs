@@ -11,9 +11,13 @@
 //! trailing excluded day, and the next task starts after it. `excludes`
 //! takes `weekends`, a weekday, or a `YYYY-MM-DD`; `includes` puts a date
 //! back. `weekend friday` makes the weekend Friday and Saturday, otherwise
-//! it is Saturday and Sunday. Another date format, and a duration in
-//! hours, minutes, months or years, are refused: each column is one day,
-//! and a wrong day would be a wrong chart.
+//! it is Saturday and Sunday. `axisFormat` names the axis's days in d3's
+//! format, `tickInterval` sets its ticks apart by days, weeks (from the
+//! day `weekday` names) or months ([`super::axis`]), and a `vert` task is
+//! a line down the chart, no row. Another date format, a tick finer than
+//! a day, a duration in hours, minutes, months or years, and `displayMode:
+//! compact` are refused: each column is one day, a wrong day would be a
+//! wrong chart, and a row holds one task with its name beside it.
 
 use super::date;
 use super::{Bar, Diagram, Marks, Row};
@@ -158,6 +162,8 @@ struct Chart {
     events: Vec<Item>,
     /// `click … href`: the tasks named, and the address.
     clicks: Vec<(String, crate::text::Link)>,
+    /// `axisFormat`, `tickInterval` and `weekday`.
+    axis: super::Axis,
 }
 
 /// Days a duration skips. Dates are absolute day counts, kept sorted.
@@ -249,6 +255,8 @@ struct Raw {
     label: String,
     line: usize,
     milestone: bool,
+    /// `vert`: a line down the chart where the task starts, no bar.
+    vert: bool,
     marks: Marks,
     start: Start,
     end: End,
@@ -283,6 +291,10 @@ impl Chart {
             tasks: Vec::new(),
             events: Vec::new(),
             clicks: Vec::new(),
+            axis: super::Axis {
+                week_start: 7,
+                ..super::Axis::default()
+            },
         }
     }
 
@@ -353,27 +365,30 @@ impl Chart {
             self.inclusive = true;
             return Ok(());
         }
-        if keyword(text, "axisFormat").is_some() {
-            return Err(Reason {
-                line,
-                what: "an axis format",
-            });
-        }
-        if keyword(text, "tickInterval").is_some() {
-            return Err(Reason {
-                line,
-                what: "a tick interval",
-            });
-        }
-        // The axis is one column per day, so where the week starts does
-        // not move a bar. A weekly tick would, and that still declines.
-        if let Some(rest) = keyword(text, "weekday") {
-            if weekday(rest).is_none() {
+        if let Some(rest) = keyword(text, "axisFormat") {
+            if rest.is_empty() || !super::axis::readable(rest) {
                 return Err(Reason {
                     line,
-                    what: "a weekday",
+                    what: "an axis format",
                 });
             }
+            self.axis.format = Some(rest.to_owned());
+            return Ok(());
+        }
+        // A tick finer than a day has no column of its own.
+        if let Some(rest) = keyword(text, "tickInterval") {
+            self.axis.every = Some(super::axis::every(rest).map_err(|()| Reason {
+                line,
+                what: "a tick interval",
+            })?);
+            return Ok(());
+        }
+        // Where a week starts moves no bar, only a weekly tick.
+        if let Some(rest) = keyword(text, "weekday") {
+            self.axis.week_start = weekday(rest).ok_or(Reason {
+                line,
+                what: "a weekday",
+            })?;
             return Ok(());
         }
         if let Some(rest) = keyword(text, "weekend") {
@@ -469,6 +484,7 @@ impl Chart {
         let mut parts: Vec<&str> = meta.split(',').map(str::trim).collect();
         let mut marks = Marks::default();
         let mut milestone = false;
+        let mut vert = false;
         while let Some(part) = parts.first().copied() {
             if part.is_empty() {
                 break;
@@ -478,12 +494,7 @@ impl Chart {
                 "active" => marks.active = true,
                 "crit" => marks.crit = true,
                 "milestone" => milestone = true,
-                "vert" => {
-                    return Err(Reason {
-                        line,
-                        what: "a vertical line",
-                    });
-                }
+                "vert" => vert = true,
                 _ => break,
             }
             parts.remove(0);
@@ -534,6 +545,7 @@ impl Chart {
             label: label.to_owned(),
             line,
             milestone,
+            vert,
             marks,
             start,
             end,
@@ -566,9 +578,18 @@ impl Chart {
         }
         let base = origin.unwrap_or(0);
         let mut rows = Vec::new();
+        let mut verts = Vec::new();
         for event in self.events {
             match event {
                 Item::Section { text, line } => rows.push(Row::Section { text, line }),
+                Item::Task(index) if self.tasks[index].vert => {
+                    let task = &self.tasks[index];
+                    verts.push(super::Vert {
+                        label: task.label.clone(),
+                        day: places[index].start - base,
+                        line: task.line,
+                    });
+                }
                 Item::Task(index) => {
                     let task = &self.tasks[index];
                     let place = &places[index];
@@ -602,6 +623,8 @@ impl Chart {
             closed: closed_days(&self.days, &places),
             zoom: 1.0,
             scale: super::Scale::Daily,
+            axis: self.axis,
+            verts,
             frame: Frame {
                 title: self.title,
                 ..Frame::default()
@@ -920,6 +943,30 @@ mod tests {
         assert!(from_mermaid(source).is_none(), "{source}");
     }
 
+    /// REQ-067: the axis named in `axisFormat`, its ticks `tickInterval`
+    /// apart from the week's first day `weekday` says, and a `vert` as a
+    /// line down the chart, no row of its own; `after` still finds it.
+    #[test]
+    fn the_axis_and_a_vertical_line_are_read() {
+        let d = chart(
+            "gantt\ndateFormat YYYY-MM-DD\naxisFormat %d.%m\ntickInterval 2week\nweekday monday\nsection A\nBuild :b, 2026-01-05, 20d\nFreeze :vert, f, after b, 0d\nShip :after f, 2d\n",
+        );
+        assert_eq!(d.axis.format.as_deref(), Some("%d.%m"));
+        assert_eq!(d.axis.every, Some(super::super::Every::Weeks(2)));
+        assert_eq!(d.axis.week_start, 1);
+        assert_eq!(d.verts.len(), 1);
+        assert_eq!((d.verts[0].label.as_str(), d.verts[0].day), ("Freeze", 20));
+        assert!(
+            d.rows
+                .iter()
+                .all(|row| !matches!(row, Row::Bar(bar) if bar.label == "Freeze"))
+        );
+        assert_eq!(bar(&d, "Ship").start, 20);
+        let svg = super::super::draw(&d).unwrap();
+        assert!(svg.contains(">05.01<") && svg.contains(">19.01<"), "{svg}");
+        assert!(svg.contains(">Freeze<"), "{svg}");
+    }
+
     #[test]
     fn the_fixture_schedules_ten_days_then_seven() {
         let source = include_str!("../../../omaspec-core/tests/fixtures/gantt.mmd");
@@ -1207,8 +1254,9 @@ mod tests {
             2,
             "a second date format",
         );
-        refuses("gantt\naxisFormat %d\n", 1, "an axis format");
-        refuses("gantt\ntickInterval 1week\n", 1, "a tick interval");
+        refuses("gantt\naxisFormat %Q\n", 1, "an axis format");
+        refuses("gantt\naxisFormat\n", 1, "an axis format");
+        refuses("gantt\ntickInterval 1hour\n", 1, "a tick interval");
         refuses("gantt\nweekday blursday\n", 1, "a weekday");
         refuses("gantt\nweekend sunday\n", 1, "a weekend");
         refuses(
@@ -1235,11 +1283,6 @@ mod tests {
             "gantt\ndateFormat YYYY-MM-DD\nHalf :2026-01-01, 1.5d\n",
             2,
             "a fraction",
-        );
-        refuses(
-            "gantt\ndateFormat YYYY-MM-DD\nLine :vert, 2026-01-01, 1d\n",
-            2,
-            "a vertical line",
         );
         refuses(
             "gantt\ndateFormat YYYY-MM-DD\nA :2026-02-31, 1d\n",

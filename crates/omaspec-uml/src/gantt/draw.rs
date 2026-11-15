@@ -7,10 +7,14 @@
 //! `yearly`) a column is a week from Monday, a month, a quarter or a year:
 //! the axis names each, with the months or years they fall in above, and
 //! runs from the first column's start to the last one's end.
+//!
+//! A Mermaid chart's `axisFormat` and `tickInterval` name its ticks and
+//! set them apart ([`super::axis`]); a `vert` is a dashed line down the
+//! rows, its name under them.
 
-use super::date;
 use super::skin::Skin;
 use super::{Bar, Diagram, Row, Scale};
+use super::{axis, date};
 use crate::Declined;
 use crate::annotations::Annotations;
 use crate::color::Color;
@@ -163,6 +167,17 @@ fn paint(
             }
         }
     }
+    // Mermaid's `vert`: a dashed line down the rows, its name under them.
+    for vert in &diagram.verts {
+        let x = x_of(&geom, vert.day);
+        let stroke = Stroke {
+            dash: Some((4.0, 3.0)),
+            ..Stroke::new(skin.label.color, 1.0)
+        };
+        canvas.line(Layer::Front, (x, rows_top), (x, bottom), stroke);
+        let label = block(&vert.label, skin.label, family, vert.line)?;
+        canvas.text(Layer::Front, &label, (x, bottom + 2.0), Align::Center);
+    }
     for (index, row) in diagram.rows.iter().enumerate() {
         let Row::Bar(bar) = row else { continue };
         let Some(pred) = bar.link_from.as_deref() else {
@@ -281,6 +296,11 @@ fn paint_axis(
         } else {
             0.0
         };
+    if diagram.axis.set()
+        && let Some(origin) = diagram.origin
+    {
+        return paint_named_ticks(canvas, diagram, skin, family, geom, origin, y);
+    }
     let span = geom.t1 - geom.t0;
     let mut step = if geom.day >= 14.0 && span <= 40 { 1 } else { 5 };
     // A theme font wider than a column would pile the day numbers up.
@@ -296,6 +316,44 @@ fn paint_axis(
         let label = block(&tick_text(day, diagram.origin), skin.header, family, 0)?;
         canvas.text(Layer::Front, &label, (x_of(geom, day), y), Align::Center);
         day += step;
+    }
+    Ok(())
+}
+
+/// The ticks of a Mermaid axis, each named in its `axisFormat`, as far
+/// apart as its `tickInterval` says or its names need.
+fn paint_named_ticks(
+    canvas: &mut Canvas,
+    diagram: &Diagram,
+    skin: &Skin,
+    family: Family,
+    geom: &Geom,
+    origin: i64,
+    y: f32,
+) -> Result<(), Declined> {
+    let format = diagram.axis.format();
+    let (t0, t1) = (origin + geom.t0, origin + geom.t1);
+    // The widest name of a day of the chart, a few hundred looked at.
+    let stride = ((t1 - t0) / 400).max(1);
+    let mut widest: f32 = 0.0;
+    let mut day = t0;
+    while day <= t1 {
+        widest = widest.max(block(&axis::name(format, day), skin.header, family, 0)?.width);
+        day += stride;
+    }
+    let room = if geom.day > 0.0 {
+        (widest + 6.0) / geom.day
+    } else {
+        1.0
+    };
+    for day in axis::ticks(&diagram.axis, t0, t1, room) {
+        let label = block(&axis::name(format, day), skin.header, family, 0)?;
+        canvas.text(
+            Layer::Front,
+            &label,
+            (x_of(geom, day - origin), y),
+            Align::Center,
+        );
     }
     Ok(())
 }
@@ -464,6 +522,13 @@ fn bounds(diagram: &Diagram) -> (i64, i64) {
         } else {
             t0 = t0.min(bar.start);
             t1 = t1.max(end);
+        }
+    }
+    // A `vert` stands on the chart too.
+    for vert in &diagram.verts {
+        if any {
+            t0 = t0.min(vert.day);
+            t1 = t1.max(vert.day);
         }
     }
     if t1 <= t0 {

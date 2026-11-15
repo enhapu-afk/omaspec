@@ -6,6 +6,7 @@
 //! subset declines and names the line. Mermaid `gantt` is read by
 //! [`from_mermaid`] into the same chart.
 
+mod axis;
 mod date;
 mod draw;
 mod mermaid;
@@ -13,6 +14,7 @@ mod parse;
 mod skin;
 
 pub use crate::common::Skinparam;
+pub use axis::{Axis, Every};
 pub use draw::draw;
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use parse::parse;
@@ -36,7 +38,22 @@ pub struct Diagram {
     pub zoom: f32,
     /// `printscale`: what a column of the axis is. Mermaid's is daily.
     pub scale: Scale,
+    /// Mermaid's `axisFormat` and `tickInterval`: how the days of the axis
+    /// are named, and how far apart; PlantUML's charts leave it unset.
+    pub axis: Axis,
+    /// Mermaid's `vert` tasks: lines down the chart.
+    pub verts: Vec<Vert>,
     pub frame: Frame,
+}
+
+/// Mermaid's `vert`: a line down the chart at the start of a day, its
+/// name under the chart.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Vert {
+    pub label: String,
+    /// From day 0.
+    pub day: i64,
+    pub line: usize,
 }
 
 /// `printscale` (or `projectscale`): a day, a week, a month, a quarter or a

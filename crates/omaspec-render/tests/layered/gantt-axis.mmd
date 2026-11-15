@@ -1,0 +1,16 @@
+---
+title: A sprint, its axis named in Mermaid's own format
+---
+gantt
+  dateFormat YYYY-MM-DD
+  axisFormat %d.%m
+  tickInterval 1week
+  weekday monday
+  excludes weekends
+  section Plan
+  Sketch :done, s1, 2026-01-05, 4d
+  Review :active, r1, after s1, 3d
+  section Build
+  Core :crit, c1, after r1, 8d
+  Code freeze :vert, f1, after c1, 0d
+  Ship :milestone, m1, after c1, 0d
