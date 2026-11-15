@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.9.8: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.9.9: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -83,6 +83,30 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   crosses less: on 300 random graphs 28 % fewer crossings.
 - **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
   matter, and a component's name keeps clear of its icon.
+
+## New in 0.9.9
+
+A tester's round of 0.9.8, taken in:
+
+- **Errors that name their cause.** An EBNF rule named `header` is the picture's header to
+  PlantUML, and the error says so; an empty file is empty; a first line no diagram knows
+  says that, not what a sequence diagram lacks; a Mermaid error names the line it is
+  about, not the front matter above it.
+- **Emoji drawn whole.** A family, a skin tone, a flag, a keycap or `🛋️` is one picture
+  in the pane and in every export, and the words around it keep their spacing.
+- **Interfaces as lollipops.** `[Renderer] ..> () "Clipboard"`, `() HTTP` and an
+  `interface` beside components are small circles with their names beside them, as
+  PlantUML draws them. `skinparam componentStyle` and `packageStyle`, and `+{static}`
+  members, draw without Java too.
+- **Mermaid Gantt charts** name their axis in `axisFormat`, tick by `tickInterval` and draw
+  `vert` lines natively.
+- **Steadier plays.** Options that would show their numbers alone take a second row, and
+  the bar has it from the start; a fold's inner end no longer glides onto the diagram's;
+  a box under a scenario's veil keeps its color. `omaspec play --colors 32 --lossy 15`
+  makes a GIF about a third smaller.
+- **Lint.** An Open Iconic name the set lacks (`<&camera>`) is drawn as nothing, as in
+  PlantUML, and lint names the icons that come close; `--strict` fails on a diagram only
+  the Java PlantUML draws.
 
 ## New in 0.9.8
 

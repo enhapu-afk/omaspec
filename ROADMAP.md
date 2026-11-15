@@ -1135,6 +1135,26 @@ diagrams* below.
         it curves as any corner does ([0016](docs/adr/0016-lines-by-hand.md)
         point 4), and the drag preview in the pane curves the same way
         instead of drawing the runs straight. Two Mermaid goldens changed.
+  - [ ] Two lines PlantUML draws across containers (REQ-055, 2026-11-15),
+        which go to the Java PlantUML now, said so by lint and failed by
+        `--strict`:
+        - a direction across the flow between boxes of different packages
+          (`[A] -right-> [B]` with A in P and B in Q, `-up->` under `left
+          to right direction`): Graphviz puts A and B in one rank and P
+          beside Q. Holds stop at a frame's edge (`hold::Unheld::Apart`);
+          what it takes is a rank shared across frames and the frames
+          ordered as the word says, in `graph::hold`, `graph::nest` and
+          the order of the frames.
+        - a line between a box and something inside it (`Server -->
+          [App]` with App in the node Server): the line runs from the
+          container's own border in to its member. `graph::across` routes
+          between boxes, not from a frame to what it holds.
+
+        Tried and left: the across line taking no part in the ranks (the
+        packages then stood one under the other, the line in a bow), and
+        a crossing from the container to its member (a stub at the
+        member's side). Both want an ADR of their own, on the shared layout
+        of states, structures and flowcharts.
 
 ### After the code review (2026-11-01)
 
@@ -1301,7 +1321,14 @@ words, and each glides as a picture of its own (states, structures, flowcharts,
 trees, JSON cards), the lines and their words with them, titles and legends too;
 how a new picture comes on screen is a state machine Omaspec checks; a recording
 and the tests take their pictures the window's way; and `--version` tells the
-commit a build comes from.
+commit a build comes from. 0.9.9 took in a tester's round of 0.9.8: errors that
+name their cause and their line, an emoji of several characters drawn whole, an
+Open Iconic name the set lacks drawn as nothing, a play's options in a second row
+rather than their numbers alone, a fold's inner end kept apart from the
+diagram's, interfaces as lollipops beside components, `componentStyle`,
+`packageStyle` and `+{static}` without Java, a Mermaid Gantt chart's axis and
+`vert` lines drawn natively, a GIF made smaller on request, `--strict` failing
+on a diagram only Java draws, and lines whose runs lie apart sharing a track.
 
 ### Step 0: the yardstick
 
