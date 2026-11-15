@@ -175,6 +175,18 @@ fn engine(code: &str) -> Option<Finding> {
     })
 }
 
+/// Whether `finding` says that only the Java PlantUML draws its diagram:
+/// a hint, which `--strict` holds as a failure, since such a diagram is
+/// not drawn where Java is not.
+pub fn only_java(finding: &Finding) -> bool {
+    finding.severity == Severity::Info && says_only_java(&finding.message)
+}
+
+/// Whether a finding's `message` says that only Java draws its diagram.
+pub fn says_only_java(message: &str) -> bool {
+    message.ends_with(JAVA_ONLY)
+}
+
 /// How [`engine`]'s finding ends when only Java draws the diagram.
 const JAVA_ONLY: &str = "only the Java PlantUML draws this diagram";
 
@@ -952,6 +964,12 @@ mod tests {
         assert_eq!(found.len(), 1, "{found:?}");
         assert_eq!((found[0].0, found[0].1), (1, Severity::Info));
         assert!(found[0].2.ends_with(JAVA_ONLY), "{found:?}");
+        assert!(only_java(&Finding::new(
+            1,
+            Severity::Info,
+            found[0].2.clone()
+        )));
+        assert!(!only_java(&Finding::new(1, Severity::Info, "a hint")));
         // What Omaspec draws itself says nothing.
         assert!(but_java("@startuml\nA -> B : hi\n@enduml\n").is_empty());
         // What PlantUML refuses too is an error: a rule PlantUML reads as

@@ -140,6 +140,15 @@ fn lint_fails_on_errors_and_with_strict_on_warnings() {
     assert!(stdout(&out).contains("warned.mmd:2: warning: Unclosed loop"));
     let out = omaspec(&["lint", "--strict", warned.to_str().unwrap()]);
     assert_eq!(out.status.code(), Some(1));
+    // A diagram only the Java PlantUML draws is a hint, and with --strict
+    // a failure: it is drawn nowhere Java is not.
+    let java = dir.join("java.puml");
+    fs::write(&java, "@startsalt\n{S\n  Line one\n}\n@endsalt\n").unwrap();
+    let out = omaspec(&["lint", java.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(0), "{}", stdout(&out));
+    assert!(stdout(&out).contains("only the Java PlantUML draws"));
+    let out = omaspec(&["lint", "--strict", java.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
 
     let out = omaspec(&["lint", "--json", broken.to_str().unwrap()]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();

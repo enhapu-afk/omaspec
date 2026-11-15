@@ -100,7 +100,8 @@ enum Command {
     /// A state diagram is checked as a state machine. A sequence diagram is
     /// checked against the state machines of its project: the messages a
     /// participant receives must be events its machine takes, in order.
-    /// Exits with 1 if a file has an error (with --strict also a warning).
+    /// Exits with 1 if a file has an error (with --strict also a warning,
+    /// and a diagram only the Java PlantUML draws).
     Lint {
         /// Files to check; `-` or none reads standard input.
         files: Vec<PathBuf>,
@@ -109,7 +110,8 @@ enum Command {
         /// Print the findings as JSON.
         #[arg(long)]
         json: bool,
-        /// Fail on warnings too.
+        /// Fail on warnings too, and on a diagram only the Java PlantUML
+        /// draws.
         #[arg(long)]
         strict: bool,
         /// Make every fix a finding carries in the files, then report
@@ -128,7 +130,8 @@ enum Command {
     /// including the checks against its state machines and links to
     /// diagrams it does not have, then holds each SVG against the one
     /// drawn now, as `render --check` does. Exits with 1 on an error or
-    /// an SVG that differs or is missing (with --strict also a warning).
+    /// an SVG that differs or is missing (with --strict also a warning, and
+    /// a diagram only the Java PlantUML draws).
     /// In GitHub Actions the annotations are printed too.
     Check {
         /// The project folder.
@@ -136,7 +139,8 @@ enum Command {
         /// Print the report as JSON.
         #[arg(long)]
         json: bool,
-        /// Fail on warnings too.
+        /// Fail on warnings too, and on a diagram only the Java PlantUML
+        /// draws.
         #[arg(long)]
         strict: bool,
         /// Print GitHub Actions annotations instead of the report.

@@ -95,7 +95,11 @@ pub fn check(dir: &Path, json: bool, strict: bool, github: bool) -> Result<ExitC
 
     let (errors, warnings, infos) = counts(&items);
     let differ = pictures.iter().filter(|p| !p.same).count();
-    let failed = errors > 0 || (strict && warnings > 0) || differ > 0;
+    // A diagram only the Java PlantUML draws is drawn nowhere else.
+    let java = items.iter().any(|item| {
+        item.severity == Severity::Info && omaspec_core::lint::says_only_java(&item.message)
+    });
+    let failed = errors > 0 || (strict && (warnings > 0 || java)) || differ > 0;
     let annotate = github || in_actions();
 
     if json {

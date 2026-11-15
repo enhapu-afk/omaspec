@@ -209,12 +209,13 @@ pub fn trace_timing(
 }
 
 /// Prints the findings of each file as `lint` does; fails on an error, or
-/// with `strict` on a warning.
+/// with `strict` on a warning and on a diagram only the Java PlantUML
+/// draws.
 fn report(all: &[(String, Vec<Finding>)], json: bool, strict: bool) -> Result<ExitCode> {
-    let failed = all
-        .iter()
-        .flat_map(|(_, findings)| findings)
-        .any(|f| f.severity == Severity::Error || (strict && f.severity == Severity::Warning));
+    let failed = all.iter().flat_map(|(_, findings)| findings).any(|f| {
+        f.severity == Severity::Error
+            || (strict && (f.severity == Severity::Warning || omaspec_core::lint::only_java(f)))
+    });
     let mut out = stdout();
     if json {
         let reported: Vec<Reported> = all
