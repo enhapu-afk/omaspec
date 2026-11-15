@@ -2822,6 +2822,18 @@ the ordering of the ranks grew far faster than the lines.
       tests/dense.rs` draws 50, 100 and 150 boxes and holds the last
       under a second; CI runs it in a release build. 100 boxes: 7.3 s
       to 0.19 s; 150: 53 s to 0.44 s.
+- [x] Half as tall (2026-11-15). The flowchart of the issue itself, 150
+      named boxes and 476 lines, 330 of them with words, was 71,715 units
+      tall: its 9,175 crossings make its lines step aside 6,572 times
+      across the gaps between ranks, and each step took a track of its own,
+      10 units, nine tenths of the height. Lines whose runs across a gap
+      lie apart now share a track; every two that overlap keep their order,
+      so they cross as they did. It is 36,655 units tall, and drawn in
+      1.2 s; thirty of the golden diagrams are shorter along their flow,
+      by up to a quarter. `tests/dense.rs` draws the issue's own flowchart
+      in a release build and holds its time, its lines, its words and its
+      height. One line of the delivery drone, routed around a container
+      afterwards, now crosses an arrow where it ran through an end mark.
 
 ### A glide that knows its parts (2026-11-14)
 

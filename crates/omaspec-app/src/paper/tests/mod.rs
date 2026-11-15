@@ -485,7 +485,9 @@ fn the_way_back_out_of_a_link_runs_on_when_the_pane_reports_its_size() {
     let back = View::fitted(paper.diagram_size(), Size::new(800.0, 540.0));
     let _ = paper.zoom_out_of(area, back, None);
     let started = paper.glide.expect("the way back runs");
-    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
+    // The pane's reports come while the way back runs, its pixels still
+    // on their way: run at once, they would wait out a zoom's delay.
+    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
     let glide = paper.glide.expect("the way back runs on");
     assert_ne!(glide, started);
     // It ends where the taller pane fits the diagram, and goes on from
@@ -496,7 +498,7 @@ fn the_way_back_out_of_a_link_runs_on_when_the_pane_reports_its_size() {
     assert!(glide.duration() <= started.duration());
 
     // The same size again changes nothing.
-    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
+    let _ = paper.update(Message::Viewport(Size::new(800.0, 600.0)));
     assert_eq!(paper.glide, Some(glide));
 }
 

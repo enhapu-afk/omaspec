@@ -19,9 +19,10 @@
 //!
 //! Every bend sits in a gap between two ranks, never inside a rank, so no
 //! line cuts through a box, however tall its neighbors are. A line bends a
-//! little after the rank it leaves, each on a track of its own where
-//! several run across the same gap, so none lies on another; the gap is
-//! made tall enough for the tracks. A back edge runs the same way, through the
+//! little after the rank it leaves, each on a track of its own where its
+//! run across the gap overlaps another's, so none lies on another; runs
+//! that lie apart share a track, and the gap is made tall enough for the
+//! tracks. A back edge runs the same way, through the
 //! ranks between its boxes, and is drawn backward, as Graphviz draws it:
 //! a transition and the one back lie side by side, not around the
 //! diagram. Lines that meet one side of a box share it, in the order of
@@ -1487,7 +1488,11 @@ fn place_along(slots: &mut [Slot], rows: &[Vec<usize>], gaps: &[f32]) -> Vec<(f3
 /// same way take tracks in the order that keeps one from crossing another:
 /// of two heading right, the one that ends further right runs first, and
 /// of two that end together the one that starts nearer; to the left the
-/// same, mirrored.
+/// same, mirrored. Lines whose runs across lie apart, [`TRACK`] at least,
+/// share a track: each takes the one after the last track of the lines
+/// before it whose runs its own overlaps, so every two that overlap keep
+/// that order and cross as they did, and a gap is as tall as the most
+/// runs that overlap there (a dense diagram's gaps half as tall).
 fn tracks(
     slots: &[Slot],
     edges: &[Edge],
@@ -1547,9 +1552,19 @@ fn tracks(
                 }
             })
         });
-        counts[gap] = lines.len();
-        for (track, (index, step, ..)) in lines.into_iter().enumerate() {
+        // The run of each line given a track so far, and its track.
+        let mut runs: Vec<(f32, f32, usize)> = Vec::with_capacity(lines.len());
+        for (index, step, start, end) in lines {
+            let (low, high) = (start.min(end), start.max(end));
+            let track = runs
+                .iter()
+                .filter(|run| run.0 < high + TRACK && low < run.1 + TRACK)
+                .map(|run| run.2 + 1)
+                .max()
+                .unwrap_or(0);
+            runs.push((low, high, track));
             tracks[index][step] = track;
+            counts[gap] = counts[gap].max(track + 1);
         }
     }
     (tracks, counts, into_box)
@@ -2506,24 +2521,65 @@ mod tests {
         }
     }
 
-    /// Two lines across one gap run on two tracks, and the gap grows for
-    /// the second; a hidden edge ranks its ends and takes none.
+    /// Two lines whose runs across one gap overlap run on two tracks; a
+    /// hidden edge ranks its ends and takes none, and has no route. Two
+    /// boxes each joined to both boxes below them: the two lines that cross
+    /// over cannot help it, and hiding one of them takes its track away.
     #[test]
     fn a_hidden_edge_takes_no_track() {
-        let nodes = [node(40.0, 20.0), node(40.0, 20.0), node(40.0, 20.0)];
+        let nodes = [node(40.0, 20.0); 4];
+        // The heights across the flow that some line runs at: its tracks.
+        let tracks = |edges: &[Edge]| {
+            let laid = layout(&nodes, edges, Direction::Down);
+            let mut heights: Vec<i32> = laid
+                .routes
+                .iter()
+                .flat_map(|route| route.points.windows(2))
+                .filter(|pair| (pair[0].1 - pair[1].1).abs() < 0.01)
+                .map(|pair| pair[0].1.round() as i32)
+                .collect();
+            heights.sort_unstable();
+            heights.dedup();
+            let routed = laid
+                .routes
+                .iter()
+                .filter(|route| route.points.len() >= 2)
+                .count();
+            (routed, heights.len())
+        };
+        let (drawn_routes, drawn) = tracks(&[edge(0, 2), edge(0, 3), edge(1, 2), edge(1, 3)]);
+        let (hidden_routes, hidden) = tracks(&[
+            edge(0, 2),
+            edge(0, 3),
+            Edge {
+                hidden: true,
+                ..edge(1, 2)
+            },
+            edge(1, 3),
+        ]);
+        assert_eq!((drawn_routes, hidden_routes), (4, 3));
+        assert_eq!(drawn, hidden + 1, "the hidden edge's track is gone");
+    }
+
+    /// Two lines that turn away from each other across one gap, a fork
+    /// from one box to two below it, share one track: their runs lie
+    /// apart, and the gap is as tall as for one.
+    #[test]
+    fn lines_whose_runs_lie_apart_share_a_track() {
+        let nodes = [node(40.0, 20.0); 3];
         let gap = |edges: &[Edge]| {
             let laid = layout(&nodes, edges, Direction::Down);
             laid.nodes[1].y - laid.nodes[0].bottom()
         };
-        let drawn = gap(&[edge(0, 1), edge(0, 2)]);
-        let hidden = gap(&[
+        let both = gap(&[edge(0, 1), edge(0, 2)]);
+        let one = gap(&[
             edge(0, 1),
             Edge {
                 hidden: true,
                 ..edge(0, 2)
             },
         ]);
-        assert!((drawn - hidden - TRACK).abs() < 0.1, "{drawn} {hidden}");
+        assert!((both - one).abs() < 0.1, "{both} {one}");
     }
 
     #[test]

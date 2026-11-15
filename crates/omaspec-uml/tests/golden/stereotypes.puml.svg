@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="223" height="548" viewBox="0 0 223 548">
+<svg xmlns="http://www.w3.org/2000/svg" width="223" height="518" viewBox="0 0 223 518">
 <g transform="translate(10,10)">
 <g>
 <rect x="30.68" y="54" width="106.01" height="205.87" rx="8" ry="8" fill="#E6F3F8" stroke="#00008B" stroke-width="1"/>
@@ -6,28 +6,28 @@
 <ellipse cx="83.69" cy="98.97" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 <rect x="42.68" y="141.97" width="82.01" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="48.35" y="217.9" width="70.67" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="4.24" y="351.84" width="78.01" height="41.61" rx="8" ry="8" fill="#FFB6C1" stroke="#FF0000" stroke-width="1"/>
-<rect x="107.57" y="439.42" width="77.34" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="4.24" y="321.84" width="78.01" height="41.61" rx="8" ry="8" fill="#FFB6C1" stroke="#FF0000" stroke-width="1"/>
+<rect x="107.57" y="409.42" width="77.34" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <ellipse cx="83.69" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="126.25" y="357.66" width="76.66" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<ellipse cx="146.25" cy="514.38" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
-<ellipse cx="146.25" cy="514.38" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="126.25" y="327.66" width="76.66" height="29.97" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="146.25" cy="484.38" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="146.25" cy="484.38" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g id="lines">
 <polyline points="83.69,22 83.69,44" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M124.7,259.87 L124.7,259.87 C124.7,266.5 130.07,271.87 136.7,271.87 L144.64,271.87 C155.65,271.87 164.58,280.8 164.58,291.81 L164.58,347.66" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="42.68,259.87 42.68,341.84" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="146.25,387.63 146.25,429.42" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="54.96,351.84 54.96,269.87" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="146.25,469.38 146.25,491.38" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M124.7,259.87 L124.7,259.87 C124.7,266.5 130.07,271.87 136.7,271.87 L144.64,271.87 C155.65,271.87 164.58,280.8 164.58,291.81 L164.58,317.66" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="42.68,259.87 42.68,311.84" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="146.25,357.63 146.25,399.42" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="54.96,321.84 54.96,269.87" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="146.25,439.38 146.25,461.38" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="83.69,109.97 83.69,131.97" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="83.69,171.94 83.69,207.9" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="79.69,44 83.69,54 87.69,44 83.69,48" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="160.58,347.66 164.58,357.66 168.58,347.66 164.58,351.66" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="38.68,341.84 42.68,351.84 46.68,341.84 42.68,345.84" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="142.25,429.42 146.25,439.42 150.25,429.42 146.25,433.42" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="160.58,317.66 164.58,327.66 168.58,317.66 164.58,321.66" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="38.68,311.84 42.68,321.84 46.68,311.84 42.68,315.84" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="142.25,399.42 146.25,409.42 150.25,399.42 146.25,403.42" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="58.96,269.87 54.96,259.87 50.96,269.87 54.96,265.87" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="142.25,491.38 146.25,501.38 150.25,491.38 146.25,495.38" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="142.25,461.38 146.25,471.38 150.25,461.38 146.25,465.38" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="79.69,131.97 83.69,141.97 87.69,131.97 83.69,135.97" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="79.69,207.9 83.69,217.9 87.69,207.9 83.69,211.9" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
@@ -45,28 +45,28 @@
 <tspan x="89.69" y="199.07" font-size="12" fill="#000000" textLength="12.67" lengthAdjust="spacing">ok</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="25.91" y="370.98" font-size="12" fill="#000000" font-weight="bold" textLength="34.68" lengthAdjust="spacing">Failed</tspan>
+<tspan x="25.91" y="340.98" font-size="12" fill="#000000" font-weight="bold" textLength="34.68" lengthAdjust="spacing">Failed</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="18.24" y="383.09" font-size="10" fill="#000000" textLength="50.01" lengthAdjust="spacing">retries later</tspan>
+<tspan x="18.24" y="353.09" font-size="10" fill="#000000" textLength="50.01" lengthAdjust="spacing">retries later</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="121.57" y="458.55" font-size="12" fill="#006400" font-weight="bold" textLength="49.34" lengthAdjust="spacing">Finished</tspan>
+<tspan x="121.57" y="428.55" font-size="12" fill="#006400" font-weight="bold" textLength="49.34" lengthAdjust="spacing">Finished</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="140.25" y="376.8" font-size="12" fill="#000000" font-weight="bold" textLength="48.66" lengthAdjust="spacing">Running</tspan>
+<tspan x="140.25" y="346.8" font-size="12" fill="#000000" font-weight="bold" textLength="48.66" lengthAdjust="spacing">Running</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="170.58" y="307.01" font-size="12" fill="#000000" textLength="23.34" lengthAdjust="spacing">start</tspan>
+<tspan x="170.58" y="287.01" font-size="12" fill="#000000" textLength="23.34" lengthAdjust="spacing">start</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="0" y="307.01" font-size="12" fill="#000000" textLength="36.68" lengthAdjust="spacing">broken</tspan>
+<tspan x="0" y="287.01" font-size="12" fill="#000000" textLength="36.68" lengthAdjust="spacing">broken</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="152.25" y="420.58" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
+<tspan x="152.25" y="390.58" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
 </text>
 <text font-family="sans-serif" xml:space="preserve">
-<tspan x="60.96" y="307.01" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">retry</tspan>
+<tspan x="60.96" y="287.01" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">retry</tspan>
 </text>
 </g>
 </g>
