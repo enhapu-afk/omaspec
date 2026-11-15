@@ -441,6 +441,17 @@ enum Command {
         /// Frames per second.
         #[arg(long, default_value_t = 20)]
         fps: u32,
+        /// The colors of the GIF, 2 to 255: fewer make a smaller file, a
+        /// glow and the veil's shades in steps (32 or 16 for a chat).
+        #[arg(long, default_value_t = 255, value_parser = clap::value_parser!(u8).range(2..=255))]
+        colors: u8,
+        /// How far a pixel's red, green and blue may stray from what is
+        /// shown: a pixel is drawn again when its color goes into another
+        /// step of this many and one. 0 draws every change; 15 or 31 make
+        /// a smaller file, a fade moving in a few even steps. With
+        /// `--colors 32 --lossy 15` a play is about a third smaller.
+        #[arg(long, default_value_t = 0, value_parser = clap::value_parser!(u8).range(0..=63))]
+        lossy: u8,
         /// Instead of a play: these containers fold to their boxes, one
         /// after another, and unfold again, the diagram gliding to each
         /// layout.
@@ -820,6 +831,8 @@ fn main() -> ExitCode {
             steps,
             width,
             fps,
+            colors,
+            lossy,
             fold,
             dive,
             theme,
@@ -836,6 +849,7 @@ fn main() -> ExitCode {
             theme,
             forced: lang.get(),
             renderer: None,
+            quality: editor::gifs::Quality { colors, lossy },
         })
         .map(|wrote| {
             eprintln!("{wrote}");

@@ -54,6 +54,8 @@ pub struct Moving {
     /// The renderer that draws (`tiny-skia`, without a GPU); `None` takes
     /// `ICED_TEST_BACKEND`, else the first that can.
     pub renderer: Option<&'static str>,
+    /// What the GIF gives up to be smaller: colors, steps of a fade.
+    pub quality: super::gifs::Quality,
 }
 
 /// The frames the first picture may take to fade in, before the frames
@@ -112,14 +114,14 @@ pub fn play(args: &Moving) -> Result<String> {
             _ => kept.push((frame.rgba, delay)),
         }
     }
-    let bytes = super::gifs::encode(w, h, &kept)?;
+    let (bytes, count) = super::gifs::encode(w, h, &kept, args.quality)?;
     crate::files::write_atomic(&args.output, &bytes)
         .with_context(|| format!("cannot write {}", args.output.display()))?;
     Ok(format!(
         "{} → {} ({} frames, {}×{}, {})",
         args.file.display(),
         args.output.display(),
-        kept.len(),
+        count,
         w,
         h,
         told
@@ -671,6 +673,7 @@ mod tests {
                 theme: Some("built-in".into()),
                 forced: None,
                 renderer: Some("tiny-skia"),
+                quality: super::super::gifs::Quality::default(),
             })
             .unwrap();
             (told, std::fs::read(output).unwrap())
@@ -738,6 +741,7 @@ mod tests {
             theme: Some("built-in".into()),
             forced: None,
             renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
         };
         rehearse(&moving(&["open", "close", "open"])).unwrap();
         let err = rehearse(&moving(&["open", "fly"])).unwrap_err().to_string();

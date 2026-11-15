@@ -5,6 +5,10 @@
 //! A table per frame, as `gif::Frame::from_rgba` makes one, costs its
 //! bytes each time and lets a color flicker from frame to frame; a whole
 //! frame each time is most of a file in which only a light moves.
+//!
+//! [`Quality`] makes it smaller still, at a cost the writer chooses: fewer
+//! colors, each pixel's code shorter, and a pixel drawn again only when
+//! its color goes into another step.
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -12,22 +16,52 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use color_quant::NeuQuant;
 
-/// The table's last place: a pixel that stays as it was.
-const CLEAR: u8 = 255;
 /// How many pixels the table of colors is learned from, about.
 const LEARNED: usize = 1 << 20;
 
+/// How a GIF trades its size for its look. The default keeps 255 colors
+/// and draws every change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Quality {
+    /// The colors of its table, 2 to 255. Fewer make each pixel's code
+    /// shorter and the file smaller; a light's glow and the veil's shades
+    /// come out in steps.
+    pub colors: u8,
+    /// How far each of red, green and blue may stray from what a pixel
+    /// shows: it is drawn again when its color goes into another step of
+    /// this many and one. 0 draws every change; a fade then moves in a few
+    /// even steps, and the file is much smaller.
+    pub lossy: u8,
+}
+
+impl Default for Quality {
+    fn default() -> Self {
+        Quality {
+            colors: 255,
+            lossy: 0,
+        }
+    }
+}
+
 /// The GIF of `frames` (RGBA, each with how long it stays, in hundredths
-/// of a second), looping.
-pub fn encode(width: u16, height: u16, frames: &[(Vec<u8>, u16)]) -> Result<Vec<u8>> {
+/// of a second), looping, in `quality`; and how many frames it has.
+pub fn encode(
+    width: u16,
+    height: u16,
+    frames: &[(Vec<u8>, u16)],
+    quality: Quality,
+) -> Result<(Vec<u8>, usize)> {
     let (w, h) = (usize::from(width), usize::from(height));
     anyhow::ensure!(
         frames.iter().all(|(rgba, _)| rgba.len() == w * h * 4),
         "a frame of another size"
     );
-    let mut flat = table(frames, w * h);
-    flat.resize(256 * 3, 0);
-    let colors = flat[..usize::from(CLEAR) * 3].to_vec();
+    // The place after the colors: a pixel that stays as it was. The table
+    // is as long as the colors and it need, so its codes are no longer.
+    let clear = quality.colors.clamp(2, 255);
+    let mut flat = table(frames, w * h, usize::from(clear));
+    flat.resize((usize::from(clear) + 1).next_power_of_two() * 3, 0);
+    let colors = flat[..usize::from(clear) * 3].to_vec();
     let mut near: HashMap<[u8; 3], u8> = HashMap::new();
     let mut index = |pixel: &[u8]| -> u8 {
         *near
@@ -35,51 +69,79 @@ pub fn encode(width: u16, height: u16, frames: &[(Vec<u8>, u16)]) -> Result<Vec<
             .or_insert_with(|| nearest(&colors, pixel))
     };
 
+    // What the picture shows so far, as the frames meant it: a pixel is
+    // drawn again once it strays from that, so small steps do not add up.
+    let mut shown: Option<Vec<u8>> = None;
+    let mut written: Vec<gif::Frame<'static>> = Vec::new();
+    for (rgba, stay) in frames {
+        // The part that changed: all of the first frame. A frame with
+        // nothing to draw only makes the one before it stay longer.
+        let part = match &shown {
+            None => Some((0, 0, w, h)),
+            Some(shown) => changed(shown, rgba, w, h, quality.lossy),
+        };
+        let Some((left, top, right, bottom)) = part else {
+            if let Some(last) = written.last_mut() {
+                last.delay = last.delay.saturating_add(*stay);
+            }
+            continue;
+        };
+        let first = shown.is_none();
+        let screen = shown.get_or_insert_with(|| rgba.clone());
+        let mut buffer = Vec::with_capacity((right - left) * (bottom - top));
+        for y in top..bottom {
+            for x in left..right {
+                let at = (y * w + x) * 4;
+                let pixel = &rgba[at..at + 4];
+                if !first && !differs(&screen[at..at + 4], pixel, quality.lossy) {
+                    buffer.push(clear);
+                } else {
+                    screen[at..at + 4].copy_from_slice(pixel);
+                    buffer.push(index(pixel));
+                }
+            }
+        }
+        written.push(gif::Frame {
+            delay: *stay,
+            dispose: gif::DisposalMethod::Keep,
+            transparent: (!first).then_some(clear),
+            left: u16::try_from(left).context("too wide for a GIF")?,
+            top: u16::try_from(top).context("too high for a GIF")?,
+            width: u16::try_from(right - left).context("too wide for a GIF")?,
+            height: u16::try_from(bottom - top).context("too high for a GIF")?,
+            buffer: Cow::Owned(buffer),
+            ..gif::Frame::default()
+        });
+    }
     let mut bytes = Vec::new();
     {
         let mut encoder = gif::Encoder::new(&mut bytes, width, height, &flat)?;
         encoder.set_repeat(gif::Repeat::Infinite)?;
-        let mut before: Option<&[u8]> = None;
-        for (rgba, stay) in frames {
-            // The part that changed: all of the first frame, and at least
-            // a pixel of one that only stays.
-            let (left, top, right, bottom) = match before {
-                None => (0, 0, w, h),
-                Some(before) => changed(before, rgba, w, h).unwrap_or((0, 0, 1, 1)),
-            };
-            let mut buffer = Vec::with_capacity((right - left) * (bottom - top));
-            for y in top..bottom {
-                for x in left..right {
-                    let at = (y * w + x) * 4;
-                    let pixel = &rgba[at..at + 4];
-                    let stays = before.is_some_and(|b| &b[at..at + 4] == pixel);
-                    buffer.push(if stays { CLEAR } else { index(pixel) });
-                }
-            }
-            let frame = gif::Frame {
-                delay: *stay,
-                dispose: gif::DisposalMethod::Keep,
-                transparent: before.is_some().then_some(CLEAR),
-                left: u16::try_from(left).context("too wide for a GIF")?,
-                top: u16::try_from(top).context("too high for a GIF")?,
-                width: u16::try_from(right - left).context("too wide for a GIF")?,
-                height: u16::try_from(bottom - top).context("too high for a GIF")?,
-                buffer: Cow::Owned(buffer),
-                ..gif::Frame::default()
-            };
-            encoder.write_frame(&frame)?;
-            before = Some(rgba);
+        for frame in &written {
+            encoder.write_frame(frame)?;
         }
     }
-    Ok(bytes)
+    Ok((bytes, written.len()))
 }
 
-/// At most 255 colors for all the frames, as RGB one after another,
+/// Whether `now` is in another step than `was` in a channel, the steps
+/// `lossy + 1` wide: then it strays by up to `lossy` at most. A pixel is
+/// judged by the step its color is in, not by the color it was drawn in,
+/// so pixels of one color change together, whenever each was drawn last,
+/// and a fade does not break into patches.
+fn differs(was: &[u8], now: &[u8], lossy: u8) -> bool {
+    let step = u16::from(lossy) + 1;
+    was.iter()
+        .zip(now)
+        .any(|(a, b)| u16::from(*a) / step != u16::from(*b) / step)
+}
+
+/// At most `most` colors for all the frames, as RGB one after another,
 /// from pixels spread over them: the colors themselves where they are
 /// that few, else learned. A color counts by the size of its number, not
 /// by the number, so the few pixels of a light keep their color beside
 /// the many of the background.
-fn table(frames: &[(Vec<u8>, u16)], pixels: usize) -> Vec<u8> {
+fn table(frames: &[(Vec<u8>, u16)], pixels: usize, most: usize) -> Vec<u8> {
     let step = (frames.len() * pixels / LEARNED).max(1);
     let mut seen: HashMap<[u8; 3], u32> = HashMap::new();
     let mut at = 0;
@@ -95,7 +157,7 @@ fn table(frames: &[(Vec<u8>, u16)], pixels: usize) -> Vec<u8> {
     // In one order every time, so the same frames give the same file.
     let mut seen: Vec<([u8; 3], u32)> = seen.into_iter().collect();
     seen.sort_unstable();
-    if seen.len() <= usize::from(CLEAR) {
+    if seen.len() <= most {
         return seen.iter().flat_map(|(color, _)| *color).collect();
     }
     let mut sample = Vec::new();
@@ -104,7 +166,7 @@ fn table(frames: &[(Vec<u8>, u16)], pixels: usize) -> Vec<u8> {
             sample.extend_from_slice(&[color[0], color[1], color[2], 255]);
         }
     }
-    NeuQuant::new(1, usize::from(CLEAR), &sample).color_map_rgb()
+    NeuQuant::new(1, most, &sample).color_map_rgb()
 }
 
 /// The place of the color of `colors` nearest to `pixel`.
@@ -123,20 +185,34 @@ fn nearest(colors: &[u8], pixel: &[u8]) -> u8 {
         .map_or(0, |(place, _)| place as u8)
 }
 
-/// The box around the pixels in which `now` differs from `before`: left,
-/// top, right and bottom, the last two past it.
-fn changed(before: &[u8], now: &[u8], w: usize, h: usize) -> Option<(usize, usize, usize, usize)> {
+/// The box around the pixels in which `now` strays from `before` by more
+/// than `lossy`: left, top, right and bottom, the last two past it.
+fn changed(
+    before: &[u8],
+    now: &[u8],
+    w: usize,
+    h: usize,
+    lossy: u8,
+) -> Option<(usize, usize, usize, usize)> {
     let row = |y: usize| y * w * 4..(y + 1) * w * 4;
-    let top = (0..h).find(|&y| before[row(y)] != now[row(y)])?;
-    let bottom = (top..h).rfind(|&y| before[row(y)] != now[row(y)])? + 1;
+    let row_differs = |y: usize| {
+        let (a, b) = (&before[row(y)], &now[row(y)]);
+        if lossy == 0 {
+            a != b
+        } else {
+            differs(a, b, lossy)
+        }
+    };
+    let top = (0..h).find(|&y| row_differs(y))?;
+    let bottom = (top..h).rfind(|&y| row_differs(y))? + 1;
     let (mut left, mut right) = (w, 0);
     for y in top..bottom {
         let (a, b) = (&before[row(y)], &now[row(y)]);
-        let differs = |x: &usize| a[x * 4..x * 4 + 4] != b[x * 4..x * 4 + 4];
-        if let Some(first) = (0..left).find(differs) {
+        let strays = |x: &usize| differs(&a[x * 4..x * 4 + 4], &b[x * 4..x * 4 + 4], lossy);
+        if let Some(first) = (0..left).find(strays) {
             left = first;
         }
-        if let Some(last) = (right..w).rfind(differs) {
+        if let Some(last) = (right..w).rfind(strays) {
             right = last + 1;
         }
     }
@@ -160,11 +236,12 @@ mod tests {
             let at = (y * w + x) * 4;
             second[at..at + 4].copy_from_slice(&[255, 158, 100, 255]);
         }
-        assert_eq!(changed(&first, &second, w, h), Some((10, 12, 18, 21)));
-        assert_eq!(changed(&first, &first, w, h), None);
+        assert_eq!(changed(&first, &second, w, h, 0), Some((10, 12, 18, 21)));
+        assert_eq!(changed(&first, &first, w, h, 0), None);
 
         let frames = vec![(first, 5), (second.clone(), 50), (second.clone(), 5)];
-        let bytes = encode(40, 30, &frames).unwrap();
+        let (bytes, count) = encode(40, 30, &frames, Quality::default()).unwrap();
+        assert_eq!(count, 2);
         let mut options = gif::DecodeOptions::new();
         options.set_color_output(gif::ColorOutput::Indexed);
         let mut decoder = options.read_info(bytes.as_slice()).unwrap();
@@ -183,12 +260,79 @@ mod tests {
                 screen[(y * w + x) * 3..(y * w + x) * 3 + 3].copy_from_slice(color);
             }
         }
-        assert_eq!(sizes, [(40, 30, 5), (8, 9, 50), (1, 1, 5)]);
+        // A frame like the one before it makes that one stay longer.
+        assert_eq!(sizes, [(40, 30, 5), (8, 9, 55)]);
         // Few colors come back as they were.
         for (shown, meant) in screen.chunks(3).zip(second.chunks(4)) {
             for c in 0..3 {
                 assert_eq!(shown[c], meant[c], "{shown:?} for {meant:?}");
             }
         }
+    }
+
+    /// Fewer colors make shorter codes, and a pixel that stays in its step
+    /// is not drawn again: a slow fade is a few frames, the file smaller,
+    /// and nothing drifts further than the steps allow.
+    #[test]
+    fn colors_and_steps_make_it_smaller() {
+        let (w, h) = (64, 48);
+        let mut frames = Vec::new();
+        for step in 0..40u8 {
+            let mut rgba = Vec::with_capacity(w * h * 4);
+            for y in 0..h {
+                for x in 0..w {
+                    let shade = ((x * 3 + y * 2) as u8).wrapping_add(step);
+                    rgba.extend_from_slice(&[shade, shade / 2, 255 - shade, 255]);
+                }
+            }
+            frames.push((rgba, 5));
+        }
+        let size = |quality: Quality| encode(64, 48, &frames, quality).unwrap().0.len();
+        let full = size(Quality::default());
+        let few = size(Quality {
+            colors: 32,
+            lossy: 0,
+        });
+        let steps = size(Quality {
+            colors: 255,
+            lossy: 12,
+        });
+        assert!(few < full, "{few} {full}");
+        assert!(steps < full * 2 / 3, "{steps} {full}");
+        // What the last frame shows strays from it by no more than the steps.
+        let (bytes, _) = encode(
+            64,
+            48,
+            &frames,
+            Quality {
+                colors: 255,
+                lossy: 12,
+            },
+        )
+        .unwrap();
+        let mut options = gif::DecodeOptions::new();
+        options.set_color_output(gif::ColorOutput::RGBA);
+        let mut decoder = options.read_info(bytes.as_slice()).unwrap();
+        let mut screen = vec![0u8; w * h * 4];
+        while let Some(frame) = decoder.read_next_frame().unwrap() {
+            let fw = usize::from(frame.width);
+            for (i, pixel) in frame.buffer.chunks(4).enumerate() {
+                if pixel[3] == 0 {
+                    continue;
+                }
+                let x = usize::from(frame.left) + i % fw;
+                let y = usize::from(frame.top) + i / fw;
+                screen[(y * w + x) * 4..(y * w + x) * 4 + 4].copy_from_slice(pixel);
+            }
+        }
+        let last = &frames.last().unwrap().0;
+        let worst = screen
+            .iter()
+            .zip(last)
+            .map(|(a, b)| a.abs_diff(*b))
+            .max()
+            .unwrap();
+        // The steps, and what the table's colors are off by.
+        assert!(worst <= 12 + 16, "{worst}");
     }
 }

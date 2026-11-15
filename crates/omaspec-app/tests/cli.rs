@@ -2375,3 +2375,19 @@ fn the_version_tells_the_commit_it_was_built_from() {
         "{told}"
     );
 }
+
+/// REQ-062: the help of `play` names what makes a GIF smaller, and asks
+/// for values it can take.
+#[test]
+fn play_names_how_a_gif_gets_smaller() {
+    let help = omaspec(&["play", "--help"]);
+    let said = String::from_utf8_lossy(&help.stdout);
+    assert!(
+        said.contains("--colors") && said.contains("--lossy"),
+        "{said}"
+    );
+    let wrong = omaspec(&["play", "x.puml", "-o", "x.gif", "--colors", "1"]);
+    assert!(!wrong.status.success());
+    let wrong = omaspec(&["play", "x.puml", "-o", "x.gif", "--lossy", "200"]);
+    assert!(!wrong.status.success());
+}

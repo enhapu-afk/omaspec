@@ -690,7 +690,7 @@ omaspec render flow.mmd             # flow.svg next to it, with the source insid
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
 omaspec render door.puml -o -  --format text   # its behavior, one fact a line, for an agent or a terminal; or -o door.txt
-omaspec play door.puml -o door.gif --events open,close   # the play as a GIF that moves, drawn as the window draws it; --steps, --width, --fps, --theme built-in
+omaspec play door.puml -o door.gif --events open,close   # the play as a GIF that moves, drawn as the window draws it; --steps, --width, --fps, --theme built-in; --colors 32 --lossy 15 a third smaller
 omaspec play coffee.puml -o fold.gif --fold Brewing      # a container folding to its box and unfolding again
 omaspec play omaspec-project.toml -o map.gif --dive Orders,Checkout   # the project's map zooming into these tiles and back out
 omaspec render flow.mmd --look auto # plain, sketch, vivid, omarchy, light or dark; auto: one SVG, dark under a dark scheme
