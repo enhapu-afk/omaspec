@@ -667,7 +667,7 @@ and only when the result means the same ([ADR 0009](../adr/0009-diff-and-convert
 omaspec new ~/specs/shop            # a project: omaspec-project.toml and shop.puml, its map made from them; --lang mermaid, --git (a pre-commit hook)
 omaspec lint diagrams/*.puml        # syntax, likely typos, specification checks; exit 1 on errors
 omaspec lint --project specs a.puml # sequences checked against the state machines in specs/, not the project
-omaspec lint --strict --json a.mmd  # warnings fail too; JSON for scripts
+omaspec lint --strict --json a.mmd  # warnings fail too, and a diagram only Java draws; JSON for scripts
 omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json
 omaspec trace run.jsonl --as timing -o run.svg   # the trace as a timing diagram; without -o its PlantUML source
 omaspec coverage door.puml --traces a.jsonl,b.jsonl -o door-cov.svg   # what the traces take of the machine; --json, --min 80

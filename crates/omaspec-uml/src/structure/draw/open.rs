@@ -107,7 +107,13 @@ impl<'a> Nested for Elements<'a> {
     }
 
     fn measure(&self, group: &'a Group, index: usize, open: bool) -> Result<Measured, Declined> {
-        measure_element(&group.nodes[index], self.skin, self.family, open)
+        measure_element(
+            &group.nodes[index],
+            self.skin,
+            self.family,
+            open,
+            group.direction,
+        )
     }
 
     fn frame(&self, _group: &'a Group, item: &Measured) -> graph::Frame {
@@ -164,6 +170,7 @@ impl<'a> Nested for Elements<'a> {
             };
             rooms.push((draft.target, room));
         }
+        rooms.extend(lollipop_rooms(group, self.skin, self.family)?);
         Ok(rooms)
     }
 
@@ -199,4 +206,31 @@ impl<'a> Nested for Elements<'a> {
         scene.notes = place_notes(&mut drafts, &rects, &scene.edges);
         Ok(())
     }
+}
+
+/// The room each lollipop of `group` keeps for its name, after it across
+/// the flow: beside the circle in a flow down the page, under it in one
+/// to the right.
+pub(super) fn lollipop_rooms(
+    group: &Group,
+    skin: &Skin,
+    family: Family,
+) -> Result<Vec<(usize, Room)>, Declined> {
+    let mut rooms = Vec::new();
+    for (index, node) in group.nodes.iter().enumerate() {
+        if node.shape != super::Shape::Lollipop {
+            continue;
+        }
+        let measured = measure_element(node, skin, family, false, group.direction)?;
+        let rows = &measured.item.rows;
+        let size = (
+            rows.iter().map(super::Row::width).fold(0.0, f32::max),
+            rows.iter().map(super::Row::height).sum(),
+        );
+        rooms.push((
+            index,
+            Room::After(super::lollipop_room(size, group.direction)),
+        ));
+    }
+    Ok(rooms)
 }

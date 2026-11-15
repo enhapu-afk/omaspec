@@ -445,10 +445,11 @@ enum Command {
         /// Frames per second.
         #[arg(long, default_value_t = 20)]
         fps: u32,
-        /// The colors of the GIF, 2 to 255: fewer make a smaller file, a
-        /// glow and the veil's shades in steps (32 or 16 for a chat).
-        #[arg(long, default_value_t = 255, value_parser = clap::value_parser!(u8).range(2..=255))]
-        colors: u8,
+        /// The places of the GIF's table of colors, 2 to 256, one of them
+        /// for a pixel that stays: fewer make a smaller file, a glow and
+        /// the veil's shades in steps (32 or 16 for a chat).
+        #[arg(long, default_value_t = 256, value_parser = clap::value_parser!(u16).range(2..=256))]
+        colors: u16,
         /// How far a pixel's red, green and blue may stray from what is
         /// shown: a pixel is drawn again when its color goes into another
         /// step of this many and one. 0 draws every change; 15 or 31 make

@@ -101,7 +101,7 @@ const MONTHS: [&str; 12] = [
 pub fn name(format: &str, day: i64) -> String {
     let (y, m, d) = date::civil_from_days(day);
     // 0 is Sunday, as d3's `%w`.
-    let weekday = (day + 4).rem_euclid(7) as usize;
+    let weekday = usize::from(date::iso_weekday(day)) % 7;
     let yday = day - date::days_from_civil(y, 1, 1);
     let mut out = String::new();
     let mut chars = format.chars();
@@ -136,11 +136,7 @@ pub fn name(format: &str, day: i64) -> String {
             Some('e') => out.push_str(&number(i64::from(d), 2, ' ')),
             Some('j') => out.push_str(&number(yday + 1, 3, '0')),
             Some('m') => out.push_str(&number(i64::from(m), 2, '0')),
-            Some('u') => out.push_str(&number(
-                if weekday == 0 { 7 } else { weekday as i64 },
-                1,
-                '0',
-            )),
+            Some('u') => out.push_str(&number(i64::from(date::iso_weekday(day)), 1, '0')),
             Some('w') => out.push_str(&number(weekday as i64, 1, '0')),
             Some('y') => out.push_str(&number(i64::from(y).rem_euclid(100), 2, '0')),
             Some('Y') => out.push_str(&number(i64::from(y), 4, '0')),
@@ -151,7 +147,7 @@ pub fn name(format: &str, day: i64) -> String {
                 let monday = (weekday as i64 + 6) % 7;
                 out.push_str(&number((yday + 7 - monday) / 7, 2, '0'));
             }
-            Some('V') => out.push_str(&number(iso_week(day), 2, '0')),
+            Some('V') => out.push_str(&number(date::iso_week(day), 2, '0')),
             Some('H' | 'M' | 'S') => out.push_str(&number(0, 2, '0')),
             Some('I') => out.push_str(&number(12, 2, '0')),
             Some('L') => out.push_str(&number(0, 3, '0')),
@@ -165,15 +161,6 @@ pub fn name(format: &str, day: i64) -> String {
         }
     }
     out
-}
-
-/// The ISO week of `day`: the week of its year's first Thursday is 1.
-fn iso_week(day: i64) -> i64 {
-    // Monday 0 to Sunday 6.
-    let monday = (day + 3).rem_euclid(7);
-    let thursday = day - monday + 3;
-    let (y, _, _) = date::civil_from_days(thursday);
-    (thursday - date::days_from_civil(y, 1, 1)) / 7 + 1
 }
 
 /// The finest a format names: by the day, the week, the month or only
@@ -213,6 +200,8 @@ pub fn ticks(axis: &Axis, t0: i64, t1: i64, room: f32) -> Vec<i64> {
             2 => Every::Days(2),
             3..=7 => Every::Weeks(1),
             8..=14 => Every::Weeks(2),
+            // A year's name on its first day, not a month later each year.
+            _ if need >= 365 => Every::Months(12 * need.div_ceil(365)),
             _ => Every::Months(need.div_ceil(30)),
         }
     });
@@ -226,8 +215,7 @@ pub fn ticks(axis: &Axis, t0: i64, t1: i64, room: f32) -> Vec<i64> {
             }
         }
         Every::Weeks(n) => {
-            // ISO weekday of `t0`, 1 Monday to 7 Sunday.
-            let iso = (t0 + 3).rem_euclid(7) + 1;
+            let iso = i64::from(date::iso_weekday(t0));
             let mut day = t0 + (i64::from(axis.week_start) - iso).rem_euclid(7);
             while day <= t1 {
                 out.push(day);
@@ -238,6 +226,10 @@ pub fn ticks(axis: &Axis, t0: i64, t1: i64, room: f32) -> Vec<i64> {
             let (mut y, mut m, d) = date::civil_from_days(t0);
             if d != 1 {
                 (y, m) = if m == 12 { (y + 1, 1) } else { (y, m + 1) };
+            }
+            // Years by their January.
+            if n % 12 == 0 && m != 1 {
+                (y, m) = (y + 1, 1);
             }
             loop {
                 let day = date::days_from_civil(y, m, 1);
@@ -250,6 +242,10 @@ pub fn ticks(axis: &Axis, t0: i64, t1: i64, room: f32) -> Vec<i64> {
                 m = (months % 12) as u32 + 1;
             }
         }
+    }
+    // A chart shorter than its ticks still names where it starts.
+    if out.is_empty() && axis.every.is_none() {
+        out.push(t0);
     }
     out
 }
@@ -310,7 +306,13 @@ mod tests {
             format: Some("%Y".into()),
             ..Axis::default()
         };
-        assert!(ticks(&years, t0, t0 + 800, 1.0).len() <= 3);
+        let ticked: Vec<String> = ticks(&years, t0, t0 + 800, 1.0)
+            .into_iter()
+            .map(|day| name("%Y-%m-%d", day))
+            .collect();
+        assert_eq!(ticked, ["2027-01-01", "2028-01-01"]);
+        // A chart that crosses no month start still names its start.
+        assert_eq!(ticks(&months, t0, t0 + 10, 1.0), [t0]);
         assert!(every("1hour").is_err() && every("0day").is_err() && every("day").is_err());
     }
 }

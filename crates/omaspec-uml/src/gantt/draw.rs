@@ -38,7 +38,7 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         [skin.title, skin.header, skin.footer, skin.caption],
         family,
     )?;
-    if !diagram.rows.is_empty() {
+    if !diagram.rows.is_empty() || !diagram.verts.is_empty() {
         paint(&mut canvas, diagram, &skin, family, notes.top())?;
     }
     notes.draw(&mut canvas);
@@ -106,7 +106,8 @@ fn paint(
         paint_columns(canvas, skin, family, &geom, &columns, &groups, top, line)?;
     }
     let right = x_of(&geom, geom.t1);
-    let bottom = rows_top + row_h * diagram.rows.len() as f32;
+    // A row at least, so a `vert` alone has a line to draw.
+    let bottom = rows_top + row_h * diagram.rows.len().max(1) as f32;
     let grid = Stroke::new(skin.grid, 1.0);
     canvas.begin_group(Layer::Background, crate::GRID);
     if columns.is_empty() {
@@ -524,11 +525,14 @@ fn bounds(diagram: &Diagram) -> (i64, i64) {
             t1 = t1.max(end);
         }
     }
-    // A `vert` stands on the chart too.
+    // A `vert` stands on the chart too, alone if it has no bars.
     for vert in &diagram.verts {
         if any {
             t0 = t0.min(vert.day);
             t1 = t1.max(vert.day);
+        } else {
+            (t0, t1) = (vert.day, vert.day);
+            any = true;
         }
     }
     if t1 <= t0 {

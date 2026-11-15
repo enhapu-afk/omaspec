@@ -19,14 +19,15 @@ use color_quant::NeuQuant;
 /// How many pixels the table of colors is learned from, about.
 const LEARNED: usize = 1 << 20;
 
-/// How a GIF trades its size for its look. The default keeps 255 colors
-/// and draws every change.
+/// How a GIF trades its size for its look. The default keeps 256 places
+/// in its table and draws every change.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Quality {
-    /// The colors of its table, 2 to 255. Fewer make each pixel's code
-    /// shorter and the file smaller; a light's glow and the veil's shades
-    /// come out in steps.
-    pub colors: u8,
+    /// The places of its table, 2 to 256, one of them for a pixel that
+    /// stays as it was: so 32 places are 31 colors and codes of 5 bits.
+    /// Fewer make each pixel's code shorter and the file smaller; a
+    /// light's glow and the veil's shades come out in steps.
+    pub colors: u16,
     /// How far each of red, green and blue may stray from what a pixel
     /// shows: it is drawn again when its color goes into another step of
     /// this many and one. 0 draws every change; a fade then moves in a few
@@ -37,7 +38,7 @@ pub struct Quality {
 impl Default for Quality {
     fn default() -> Self {
         Quality {
-            colors: 255,
+            colors: 256,
             lossy: 0,
         }
     }
@@ -56,11 +57,12 @@ pub fn encode(
         frames.iter().all(|(rgba, _)| rgba.len() == w * h * 4),
         "a frame of another size"
     );
-    // The place after the colors: a pixel that stays as it was. The table
-    // is as long as the colors and it need, so its codes are no longer.
-    let clear = quality.colors.clamp(2, 255);
+    // The last place: a pixel that stays as it was. The table is as long
+    // as the places asked for, rounded up to whole bits of a code.
+    let places = quality.colors.clamp(2, 256);
+    let clear = u8::try_from(places - 1).unwrap_or(u8::MAX);
     let mut flat = table(frames, w * h, usize::from(clear));
-    flat.resize((usize::from(clear) + 1).next_power_of_two() * 3, 0);
+    flat.resize(usize::from(places).next_power_of_two() * 3, 0);
     let colors = flat[..usize::from(clear) * 3].to_vec();
     let mut near: HashMap<[u8; 3], u8> = HashMap::new();
     let mut index = |pixel: &[u8]| -> u8 {
@@ -69,10 +71,15 @@ pub fn encode(
             .or_insert_with(|| nearest(&colors, pixel))
     };
 
+    let mut bytes = Vec::new();
+    let mut count = 0;
+    let mut encoder = gif::Encoder::new(&mut bytes, width, height, &flat)?;
+    encoder.set_repeat(gif::Repeat::Infinite)?;
     // What the picture shows so far, as the frames meant it: a pixel is
     // drawn again once it strays from that, so small steps do not add up.
     let mut shown: Option<Vec<u8>> = None;
-    let mut written: Vec<gif::Frame<'static>> = Vec::new();
+    // The frame before, held back until it is known how long it stays.
+    let mut held: Option<gif::Frame<'static>> = None;
     for (rgba, stay) in frames {
         // The part that changed: all of the first frame. A frame with
         // nothing to draw only makes the one before it stay longer.
@@ -81,7 +88,7 @@ pub fn encode(
             Some(shown) => changed(shown, rgba, w, h, quality.lossy),
         };
         let Some((left, top, right, bottom)) = part else {
-            if let Some(last) = written.last_mut() {
+            if let Some(last) = held.as_mut() {
                 last.delay = last.delay.saturating_add(*stay);
             }
             continue;
@@ -101,7 +108,11 @@ pub fn encode(
                 }
             }
         }
-        written.push(gif::Frame {
+        if let Some(before) = held.take() {
+            encoder.write_frame(&before)?;
+            count += 1;
+        }
+        held = Some(gif::Frame {
             delay: *stay,
             dispose: gif::DisposalMethod::Keep,
             transparent: (!first).then_some(clear),
@@ -113,15 +124,12 @@ pub fn encode(
             ..gif::Frame::default()
         });
     }
-    let mut bytes = Vec::new();
-    {
-        let mut encoder = gif::Encoder::new(&mut bytes, width, height, &flat)?;
-        encoder.set_repeat(gif::Repeat::Infinite)?;
-        for frame in &written {
-            encoder.write_frame(frame)?;
-        }
+    if let Some(last) = held {
+        encoder.write_frame(&last)?;
+        count += 1;
     }
-    Ok((bytes, written.len()))
+    drop(encoder);
+    Ok((bytes, count))
 }
 
 /// Whether `now` is in another step than `was` in a channel, the steps
@@ -294,10 +302,25 @@ mod tests {
             lossy: 0,
         });
         let steps = size(Quality {
-            colors: 255,
+            colors: 256,
             lossy: 12,
         });
         assert!(few < full, "{few} {full}");
+        // 32 places are 31 colors and the clear one, in codes of 5 bits.
+        let (bytes, _) = encode(
+            64,
+            48,
+            &frames,
+            Quality {
+                colors: 32,
+                lossy: 0,
+            },
+        )
+        .unwrap();
+        let decoder = gif::DecodeOptions::new()
+            .read_info(bytes.as_slice())
+            .unwrap();
+        assert_eq!(decoder.global_palette().unwrap().len(), 32 * 3);
         assert!(steps < full * 2 / 3, "{steps} {full}");
         // What the last frame shows strays from it by no more than the steps.
         let (bytes, _) = encode(

@@ -52,6 +52,10 @@ pub struct Finding {
     /// How to put it right, where that is sure.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fix: Option<Fix>,
+    /// That only the Java PlantUML draws the diagram: a hint, which
+    /// `--strict` holds as a failure ([`only_java`]).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub java_only: bool,
 }
 
 impl Finding {
@@ -61,6 +65,16 @@ impl Finding {
             severity,
             message: message.into(),
             fix: None,
+            java_only: false,
+        }
+    }
+
+    /// The hint that only the Java PlantUML draws the diagram, for
+    /// `reason` on `line`.
+    fn java(line: usize, reason: &str) -> Self {
+        Self {
+            java_only: true,
+            ..Self::new(line, Severity::Info, format!("{reason}: {JAVA_ONLY}"))
         }
     }
 
@@ -162,16 +176,33 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
 /// refuses too is a mistake, an error where the syntax rules do not name
 /// its line already.
 fn engine(code: &str) -> Option<Finding> {
-    let declined = omaspec_uml::parse(code).err()?;
+    said(omaspec_uml::parse(code).err()?)
+}
+
+/// What Omaspec's own engine says when it draws `code`, beyond what its
+/// reading says: a skinparam a drawer does not draw, a diagram the
+/// preprocessor writes. Too slow for every key typed, it is for `lint`
+/// and `check` on the command line. A diagram that includes others is
+/// left alone: where they are is not known here.
+pub fn drawing(code: &str) -> Option<Finding> {
+    let includes = code.lines().any(|line| {
+        let line = line.trim_start();
+        line.starts_with("!include") || line.starts_with("!import")
+    });
+    if includes {
+        return None;
+    }
+    said(omaspec_uml::render(code).err()?)
+}
+
+/// A refusal of the engine as a finding: a mistake PlantUML refuses too
+/// is an error, anything else is drawn by the Java PlantUML only.
+fn said(declined: omaspec_uml::Declined) -> Option<Finding> {
     let line = declined.line.unwrap_or(0);
     Some(if declined.refused {
         Finding::new(line, Severity::Error, declined.reason)
     } else {
-        Finding::new(
-            line,
-            Severity::Info,
-            format!("{}: {JAVA_ONLY}", declined.reason),
-        )
+        Finding::java(line, &declined.reason)
     })
 }
 
@@ -179,12 +210,7 @@ fn engine(code: &str) -> Option<Finding> {
 /// a hint, which `--strict` holds as a failure, since such a diagram is
 /// not drawn where Java is not.
 pub fn only_java(finding: &Finding) -> bool {
-    finding.severity == Severity::Info && says_only_java(&finding.message)
-}
-
-/// Whether a finding's `message` says that only Java draws its diagram.
-pub fn says_only_java(message: &str) -> bool {
-    message.ends_with(JAVA_ONLY)
+    finding.java_only
 }
 
 /// How [`engine`]'s finding ends when only Java draws the diagram.
@@ -947,6 +973,15 @@ mod tests {
         assert!(messages(flow, Language::Mermaid).is_empty());
     }
 
+    /// The hint on a Salt window, which only Java draws.
+    fn found_java() -> Finding {
+        lint(
+            "@startsalt\n{S\n  Line one\n}\n@endsalt\n",
+            Language::PlantUml,
+        )
+        .remove(0)
+    }
+
     /// The findings of `code` but the note that only Java draws it.
     fn but_java(code: &str) -> Vec<(usize, Severity, String)> {
         messages(code, Language::PlantUml)
@@ -964,12 +999,23 @@ mod tests {
         assert_eq!(found.len(), 1, "{found:?}");
         assert_eq!((found[0].0, found[0].1), (1, Severity::Info));
         assert!(found[0].2.ends_with(JAVA_ONLY), "{found:?}");
-        assert!(only_java(&Finding::new(
+        assert!(only_java(&found_java()));
+        // Said in other words, a hint is no such finding.
+        assert!(!only_java(&Finding::new(
             1,
             Severity::Info,
             found[0].2.clone()
         )));
-        assert!(!only_java(&Finding::new(1, Severity::Info, "a hint")));
+        // Drawing says what reading does not: a skinparam no drawer draws,
+        // a diagram the preprocessor writes. One that includes others is
+        // left alone.
+        let skin = "@startuml\nskinparam componentStyle fancy\n[Web] --> [Api]\n@enduml\n";
+        assert!(lint(skin, Language::PlantUml).iter().all(|f| !only_java(f)));
+        assert!(drawing(skin).is_some_and(|f| only_java(&f) && f.line == 1));
+        let written = "@startsalt\n!$a = 1\n{S\n  Line one\n}\n@endsalt\n";
+        assert!(drawing(written).is_some_and(|f| only_java(&f)));
+        assert!(drawing("@startuml\n!include other.puml\nA -> B\n@enduml\n").is_none());
+        assert!(drawing("@startuml\nA -> B\n@enduml\n").is_none());
         // What Omaspec draws itself says nothing.
         assert!(but_java("@startuml\nA -> B : hi\n@enduml\n").is_empty());
         // What PlantUML refuses too is an error: a rule PlantUML reads as

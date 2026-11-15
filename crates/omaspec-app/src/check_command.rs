@@ -21,6 +21,8 @@ struct Item {
     line: Option<usize>,
     severity: Severity,
     message: String,
+    /// Only the Java PlantUML draws the diagram (`--strict` fails on it).
+    java_only: bool,
 }
 
 #[derive(Serialize)]
@@ -66,6 +68,7 @@ pub fn check(dir: &Path, json: bool, strict: bool, github: bool) -> Result<ExitC
                 file: file.clone(),
                 line: Some(finding.line + 1),
                 severity: finding.severity,
+                java_only: finding.java_only,
                 message: finding.message,
             });
         }
@@ -80,6 +83,7 @@ pub fn check(dir: &Path, json: bool, strict: bool, github: bool) -> Result<ExitC
                     line: held.line,
                     severity: Severity::Error,
                     message,
+                    java_only: false,
                 });
             }
             continue;
@@ -96,9 +100,7 @@ pub fn check(dir: &Path, json: bool, strict: bool, github: bool) -> Result<ExitC
     let (errors, warnings, infos) = counts(&items);
     let differ = pictures.iter().filter(|p| !p.same).count();
     // A diagram only the Java PlantUML draws is drawn nowhere else.
-    let java = items.iter().any(|item| {
-        item.severity == Severity::Info && omaspec_core::lint::says_only_java(&item.message)
-    });
+    let java = items.iter().any(|item| item.java_only);
     let failed = errors > 0 || (strict && (warnings > 0 || java)) || differ > 0;
     let annotate = github || in_actions();
 

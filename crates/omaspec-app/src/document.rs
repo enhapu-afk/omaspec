@@ -160,6 +160,16 @@ impl Piece<'_> {
 /// ([`omaspec_render::by_hand_misses`]).
 pub(crate) fn findings_of(code: &str, language: Language, specs: &Specs) -> Vec<Finding> {
     let mut found = omaspec_model::findings_with(code, language, specs);
+    // What drawing it says beyond its reading, for the command line, where
+    // `--strict` fails on a diagram only the Java PlantUML draws.
+    if language == Language::PlantUml
+        && !found
+            .iter()
+            .any(|f| f.java_only || f.severity == Severity::Error)
+        && let Some(said) = omaspec_core::lint::drawing(code)
+    {
+        found.push(said);
+    }
     found.extend(
         omaspec_render::by_hand_misses(code, language)
             .into_iter()

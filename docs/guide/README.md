@@ -94,8 +94,8 @@ $ omaspec lint door.puml
 door.puml:8: warning: Nothing leaves Jammed. If the machine ends there, add Jammed --> [*].
 ```
 
-Warnings leave the exit code at 0; `--strict` makes them fail too, and `--json` is for
-scripts.
+Warnings leave the exit code at 0; `--strict` makes them fail too, and a diagram only the
+Java PlantUML draws, and `--json` is for scripts.
 
 ## 4. Play it
 

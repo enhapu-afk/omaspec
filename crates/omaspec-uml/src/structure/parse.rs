@@ -580,7 +580,8 @@ impl Parser {
                 format!("`{}` is already a {}", decl.key, shape_word(node.shape)),
             ));
         }
-        if !node.explicit || decl.shape == Shape::Abstract {
+        // `()` is a component diagram's: the interface is its circle.
+        if !node.explicit || matches!(decl.shape, Shape::Abstract | Shape::Lollipop) {
             node.shape = decl.shape;
         }
         node.explicit = true;
@@ -724,6 +725,9 @@ impl Parser {
         // An interface and its circle are one ([`lollipops`]).
         let circle = |s| matches!(s, Shape::Interface | Shape::Lollipop);
         if node.shape == shape || circle(node.shape) && circle(shape) {
+            if shape == Shape::Lollipop {
+                node.shape = shape;
+            }
             return Ok(());
         }
         if node.explicit {
@@ -1234,7 +1238,7 @@ fn open_of(shape: Shape) -> Open {
         | Shape::Entity
         | Shape::Annotation
         | Shape::Object => Open::Members,
-        Shape::UseCase | Shape::Actor | Shape::Note => Open::None,
+        Shape::UseCase | Shape::Actor | Shape::Note | Shape::Lollipop => Open::None,
         _ => Open::Group,
     }
 }
@@ -1283,7 +1287,10 @@ fn shape_word(shape: Shape) -> &'static str {
 fn compatible(a: Shape, b: Shape) -> bool {
     matches!(
         (a, b),
-        (Shape::Class, Shape::Abstract) | (Shape::Abstract, Shape::Class)
+        (Shape::Class, Shape::Abstract)
+            | (Shape::Abstract, Shape::Class)
+            | (Shape::Interface, Shape::Lollipop)
+            | (Shape::Lollipop, Shape::Interface)
     )
 }
 
@@ -2909,6 +2916,30 @@ mod tests {
             .find(|e| d.root.nodes[e.to].key == "Clipboard")
             .expect("the line to the clipboard");
         assert_eq!((dashed.dash, dashed.to_head), (Dash::Dashed, Head::Arrow));
+        // Declared once as an interface and once as a circle, it is one
+        // element, a circle; `{` after a circle opens nothing.
+        for source in [
+            "@startuml\ninterface F #FF0000\n() \"Files\" as F\n@enduml\n",
+            "@startuml\n() Files\ninterface Files\n@enduml\n",
+            "@startuml\ninterface F\n[A] --> () F\n@enduml\n",
+        ] {
+            let d = diagram(source);
+            assert_eq!(
+                d.root
+                    .nodes
+                    .iter()
+                    .filter(|n| n.shape == Shape::Lollipop)
+                    .count(),
+                1,
+                "{source}"
+            );
+        }
+        assert!(
+            parse(&lines_of(
+                "@startuml\n() Port\n{\n}\n[A] --> Port\n@enduml\n"
+            ))
+            .is_err()
+        );
         // A class diagram's interface keeps its box and its «interface».
         let d = diagram("@startuml\ninterface Shape\nclass Circle\nShape <|.. Circle\n@enduml\n");
         assert_eq!(element(&d.root, "Shape").shape, Shape::Interface);

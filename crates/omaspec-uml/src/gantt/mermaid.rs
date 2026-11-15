@@ -133,9 +133,12 @@ fn scan(source: &str) -> Scanned {
 /// The line without a `%%` comment. `None` when nothing is left.
 fn bare(raw: &str) -> Option<&str> {
     let text = raw.trim();
+    // A comment runs from `%%` to the end of the line, except in an
+    // `axisFormat`, whose `%%` is a percent sign, as Mermaid's lexer
+    // takes the whole line for the format.
     let text = match text.find("%%") {
-        Some(at) => text[..at].trim(),
-        None => text,
+        Some(at) if keyword(text, "axisFormat").is_none() || at == 0 => text[..at].trim(),
+        _ => text,
     };
     (!text.is_empty()).then_some(text)
 }
@@ -952,6 +955,9 @@ mod tests {
             "gantt\ndateFormat YYYY-MM-DD\naxisFormat %d.%m\ntickInterval 2week\nweekday monday\nsection A\nBuild :b, 2026-01-05, 20d\nFreeze :vert, f, after b, 0d\nShip :after f, 2d\n",
         );
         assert_eq!(d.axis.format.as_deref(), Some("%d.%m"));
+        // A percent sign in the format is the format's, not a comment.
+        let percent = chart("gantt\ndateFormat YYYY-MM-DD\naxisFormat %d%%\nA :2026-01-05, 3d\n");
+        assert_eq!(percent.axis.format.as_deref(), Some("%d%%"));
         assert_eq!(d.axis.every, Some(super::super::Every::Weeks(2)));
         assert_eq!(d.axis.week_start, 1);
         assert_eq!(d.verts.len(), 1);
@@ -965,6 +971,13 @@ mod tests {
         let svg = super::super::draw(&d).unwrap();
         assert!(svg.contains(">05.01<") && svg.contains(">19.01<"), "{svg}");
         assert!(svg.contains(">Freeze<"), "{svg}");
+        // A `vert` alone, without a bar, is drawn all the same.
+        let only = chart("gantt\ndateFormat YYYY-MM-DD\nFreeze :vert, f, 2026-01-05, 0d\n");
+        let svg = super::super::draw(&only).unwrap();
+        assert!(
+            svg.contains(">Freeze<") && svg.contains("stroke-dasharray"),
+            "{svg}"
+        );
     }
 
     #[test]

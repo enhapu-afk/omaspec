@@ -71,17 +71,6 @@ pub fn draw_mapped(diagram: &super::Diagram) -> Result<(String, Map), Declined> 
 /// The SVG, and its map when `mapped` asks for one; an empty map else.
 fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
-    // `skinparam packageStyle`: a package drawn as another shape.
-    let restyled;
-    let diagram = match skin.package_style {
-        Some(shape) => {
-            let mut copy = diagram.clone();
-            packages_as(&mut copy.root, shape);
-            restyled = copy;
-            &restyled
-        }
-        None => diagram,
-    };
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
@@ -322,6 +311,11 @@ struct Item {
     composite: bool,
     /// Followed on a click on the box and its words.
     link: Option<crate::text::Link>,
+    /// A lollipop's name stands beside its circle, across a flow down the
+    /// page; else under it. The box is the circle alone, so the lines end
+    /// on it, and the name has the room across the flow
+    /// ([`open::lollipop_rooms`]).
+    beside: bool,
 }
 
 /// What a line keeps for painting, besides its label.
@@ -404,6 +398,7 @@ fn measure_element(
     skin: &Skin,
     family: Family,
     open: bool,
+    direction: Direction,
 ) -> Result<Measured, Declined> {
     let mut look = skin.look(el.shape, el.stereotypes.iter().map(|s| s.value.as_str()));
     if let Some(value) = &el.text_color {
@@ -421,6 +416,12 @@ fn measure_element(
         look.stereo.color = color;
     }
     let (fill, border) = paints(el, &look)?;
+    // `skinparam packageStyle`: a package drawn as another shape, in its
+    // own look.
+    let shape = match el.shape {
+        Shape::Package => skin.package_style.unwrap_or(Shape::Package),
+        other => other,
+    };
     // A fill the writer gave a box may be anything under the skin's text:
     // light under the light text of a dark look. The words are moved
     // towards black or white, whichever reads better there, until they
@@ -451,8 +452,8 @@ fn measure_element(
     let header_h = rows[..body].iter().map(Row::height).sum::<f32>();
     let all_w = rows.iter().map(Row::width).fold(0.0, f32::max);
     let all_h = rows.iter().map(Row::height).sum::<f32>();
-    let min_w = min_width(el.shape, skin);
-    let divider = if !el.composite && (body < rows.len() || el.shape == Shape::Card) {
+    let min_w = min_width(shape, skin);
+    let divider = if !el.composite && (body < rows.len() || shape == Shape::Card) {
         RULE
     } else {
         0.0
@@ -461,7 +462,7 @@ fn measure_element(
     let gap = if empty { 0.0 } else { COMP_GAP };
 
     let (width, height, banner, gap) = if el.composite {
-        match el.shape {
+        match shape {
             Shape::Node => {
                 let banner = DEPTH + COMP_PAD + header_h;
                 let width = (header_w.max(children.width) + COMP_PAD * 2.0).max(min_w) + DEPTH;
@@ -498,17 +499,14 @@ fn measure_element(
             }
         }
     } else {
-        match el.shape {
+        match shape {
             Shape::Actor => {
                 let width = all_w.max(ACTOR_W).max(min_w);
                 let height = ACTOR_H + all_h + 2.0;
                 (width, height, 0.0, 0.0)
             }
-            Shape::Lollipop => {
-                let width = all_w.max(LOLLIPOP);
-                let height = LOLLIPOP + LOLLIPOP_GAP + all_h;
-                (width, height, 0.0, 0.0)
-            }
+            // The circle alone: its name has the room beside it.
+            Shape::Lollipop => (LOLLIPOP, LOLLIPOP, 0.0, 0.0),
             Shape::UseCase => {
                 let mut width = (all_w + PAD_X * 3.0).max(min_w.max(84.0));
                 let height = (all_h + PAD_Y * 3.0).max(40.0);
@@ -567,7 +565,7 @@ fn measure_element(
             _ => {
                 // The name is centered in the box, so the room the icon
                 // takes on the right is kept on the left as well.
-                let icon = if el.shape == Shape::Component
+                let icon = if shape == Shape::Component
                     && skin.component_style != ComponentStyle::Rectangle
                 {
                     (2.0 * (ICON_W + ICON_EDGE + ICON_AIR) - 2.0 * PAD_X).max(0.0)
@@ -584,11 +582,11 @@ fn measure_element(
     Ok(Measured {
         width,
         height,
-        flat: is_flat(el.shape),
+        flat: is_flat(shape),
         children,
         item: Item {
             name: el.key.clone(),
-            shape: el.shape,
+            shape,
             fill,
             border,
             rows,
@@ -597,6 +595,7 @@ fn measure_element(
             gap,
             composite: el.composite,
             link: el.link.clone(),
+            beside: direction == Direction::Down,
         },
     })
 }
@@ -1224,16 +1223,6 @@ fn paint_box(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     paint_rows(canvas, node);
 }
 
-/// Each package of `group`, at any depth, as `shape`.
-fn packages_as(group: &mut Group, shape: Shape) {
-    for node in &mut group.nodes {
-        if node.shape == Shape::Package {
-            node.shape = shape;
-        }
-        packages_as(&mut node.children, shape);
-    }
-}
-
 /// The outline of `shape` in `rect`, as a box of a structure diagram is
 /// drawn, without its words: what a network diagram's servers take. A
 /// package's tab is half its width.
@@ -1346,14 +1335,47 @@ fn paint_actor(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
 
 /// A lollipop's circle at the top of `rect`, its name under it.
 fn paint_lollipop(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
-    let r = LOLLIPOP / 2.0;
+    let r = rect.w.min(rect.h) / 2.0;
     canvas.ellipse(
         Layer::Frames,
-        (rect.x + rect.w / 2.0, rect.y + r),
+        (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0),
         (r, r),
         fill,
         Some(stroke),
     );
+}
+
+/// Where a lollipop's name stands: beside its circle, or under it.
+fn lollipop_name(node: &Placed) -> Rect {
+    let rect = node.rect;
+    let rows = &node.item.rows;
+    let w = rows.iter().map(Row::width).fold(0.0, f32::max);
+    let h: f32 = rows.iter().map(Row::height).sum();
+    if node.item.beside {
+        Rect {
+            x: rect.x + rect.w + LOLLIPOP_GAP,
+            y: rect.y + (rect.h - h) / 2.0,
+            w,
+            h,
+        }
+    } else {
+        Rect {
+            x: rect.x + (rect.w - w) / 2.0,
+            y: rect.y + rect.h + LOLLIPOP_GAP,
+            w,
+            h,
+        }
+    }
+}
+
+/// The room a lollipop's name takes across the flow `direction`: beside
+/// the circle, `rows` wide, or under it, as high.
+pub(super) fn lollipop_room(rows: (f32, f32), direction: Direction) -> f32 {
+    LOLLIPOP_GAP
+        + match direction {
+            Direction::Down => rows.0,
+            Direction::Right => rows.1,
+        }
 }
 
 fn paint_node(canvas: &mut Canvas, rect: Rect, fill: Paint, stroke: Stroke) {
@@ -1833,12 +1855,7 @@ fn text_area(node: &Placed) -> (Rect, Place) {
             w: rect.w,
             h: (rect.h - ACTOR_H).max(1.0),
         },
-        Shape::Lollipop => Rect {
-            x: rect.x,
-            y: rect.y + LOLLIPOP + LOLLIPOP_GAP,
-            w: rect.w,
-            h: (rect.h - LOLLIPOP - LOLLIPOP_GAP).max(1.0),
-        },
+        Shape::Lollipop => lollipop_name(node),
         Shape::Person => shapes::body_of(rect),
         Shape::Queue => shapes::queue_area(rect),
         Shape::Agent if !node.item.composite => Rect {
@@ -2255,6 +2272,45 @@ fn on_border(frame: Rect, rect: Rect) -> bool {
 mod tests {
     use super::super::parse::parse;
     use super::*;
+
+    /// A lollipop's box is its circle, so its lines end on it, whichever
+    /// way the flow runs; its name stands beside it or under it.
+    #[test]
+    fn a_lollipop_s_lines_end_on_its_circle() {
+        for source in [
+            "@startuml\n() \"Clipboard service\" --> [Editor]\n@enduml\n",
+            "@startuml\nleft to right direction\n() \"Clipboard service\" --> [Editor]\n@enduml\n",
+        ] {
+            let (svg, map) = crate::render_mapped(source, None).unwrap();
+            let circle = map
+                .places
+                .iter()
+                .find(|place| place.name.contains("Clipboard"))
+                .expect("the circle's place");
+            assert!((circle.rect.w - LOLLIPOP).abs() < 0.5, "{:?}", circle.rect);
+            let start = map.wires[0].points[0];
+            let (cx, cy) = (
+                circle.rect.x + circle.rect.w / 2.0,
+                circle.rect.y + circle.rect.h / 2.0,
+            );
+            let off = ((start.0 - cx).powi(2) + (start.1 - cy).powi(2)).sqrt();
+            assert!(
+                off <= LOLLIPOP / 2.0 + 1.0,
+                "{source}: {start:?} from ({cx}, {cy})"
+            );
+            assert!(svg.contains(">Clipboard service<"));
+        }
+    }
+
+    /// `packageStyle` changes a package's outline, not its look.
+    #[test]
+    fn a_package_drawn_as_a_rectangle_keeps_its_colors() {
+        let svg = crate::render(
+            "@startuml\nskinparam packageStyle rectangle\nskinparam packageBackgroundColor #FF0000\npackage Shop {\n  [Web]\n}\n@enduml\n",
+        )
+        .unwrap();
+        assert!(svg.contains("fill=\"#FF0000\""), "{svg}");
+    }
 
     use crate::part_groups;
 
