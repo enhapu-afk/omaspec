@@ -2974,10 +2974,15 @@ syntax is an `@start…` block, as signal flow is, and the portability lint
 says that PlantUML does not know it. In this order, as each one builds on
 the one before:
 
-- [ ] Save As and Open in the desktop's own dialog, as the export asks
+- [x] Save As and Open in the desktop's own dialog, as the export asks
       since 0.9.6: the folder and the name in xdg-desktop-portal's file
       chooser, the bottom line where none answers. A new project's
-      folder too.
+      folder too. Built (2026-11-15, `editor::dialogs`, `file_dialog`):
+      Save As offers the tab's own name and kind of file; Ctrl+O opens a
+      diagram, a document or a picture that carries its diagram, and
+      *Open folder* (Ctrl+Shift+O) a folder for the sidebar, since the
+      portal asks for one or the other; *New project* asks for its folder
+      beside the project the sidebar is in.
 - [ ] A presentation as one HTML file: *Export as › Presentation…*
       writes a page that needs nothing but a browser, offline, every
       picture and script inside it, and no request to anywhere. A

@@ -12,7 +12,7 @@ use omaspec_render::export::Format;
 use super::doc::Doc;
 use super::files::export_in;
 use super::{App, Command, Message, PROMPT};
-use crate::save_dialog::Answer;
+use crate::file_dialog::Answer;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Asking {
@@ -124,15 +124,7 @@ impl App {
             },
             Asking::Open => format!("{}/", folder.display()),
             // Beside the project the sidebar is in, not inside it.
-            Asking::NewProject { .. } => {
-                let base = self
-                    .folder
-                    .as_deref()
-                    .and_then(omaspec_render::project_root)
-                    .and_then(|root| root.parent().map(Path::to_path_buf))
-                    .unwrap_or(folder);
-                format!("{}/", base.display())
-            }
+            Asking::NewProject { .. } => format!("{}/", self.project_base().display()),
             Asking::Export(format) => suggested_export(doc, &folder, format),
             Asking::ExportProject => self
                 .project_to_export()
@@ -505,7 +497,17 @@ impl App {
             self.notice = Some("name a folder for the project".into());
             return Task::none();
         };
-        let made = match crate::project::create(&path, language, git) {
+        self.make_project(&path, language, git)
+    }
+
+    /// Makes a project in the folder `path` and opens its map.
+    pub(super) fn make_project(
+        &mut self,
+        path: &Path,
+        language: omaspec_core::Language,
+        git: bool,
+    ) -> Task<Message> {
+        let made = match crate::project::create(path, language, git) {
             Ok(made) => made,
             Err(err) => {
                 self.notice = Some(format!("{err:#}"));
@@ -537,6 +539,11 @@ impl App {
             return Task::none();
         };
         self.prompt = None;
+        self.open_path(path)
+    }
+
+    /// Opens `path`: a folder becomes the folder, a file opens in a tab.
+    pub(super) fn open_path(&mut self, path: PathBuf) -> Task<Message> {
         if path.is_dir() {
             self.notice = Some(format!("folder {}", path.display()));
             let scan = self.set_folder(Some(path));

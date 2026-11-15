@@ -145,9 +145,16 @@ use Menu::{Diagram, Edit, File, Help, Project, View};
 /// and `child` read against the entries of the same menu before it.
 pub const TABLE: &[Entry] = &[
     cmd("Find a file", "Ctrl+P", Command::Pick).menu(File),
-    cmd("Open a file, folder or image", "Ctrl+O", Command::Open)
+    cmd("Open a diagram, document or image", "Ctrl+O", Command::Open)
         .menu(File)
-        .short("Open a file, folder or image…"),
+        .short("Open…"),
+    cmd(
+        "Open a folder in the sidebar",
+        "Ctrl+Shift+O",
+        Command::OpenFolder,
+    )
+    .menu(File)
+    .short("Open folder…"),
     cmd("Recent files, the newest first", "", Command::OpenRecent)
         .menu(File)
         .short("Open recent…"),

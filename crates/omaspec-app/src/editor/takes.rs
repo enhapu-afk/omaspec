@@ -146,6 +146,7 @@ impl Command {
             | Command::OpenMenu(_)
             | Command::StartFrom(_)
             | Command::Open
+            | Command::OpenFolder
             | Command::NewProject
             | Command::Pick
             | Command::SwitchField

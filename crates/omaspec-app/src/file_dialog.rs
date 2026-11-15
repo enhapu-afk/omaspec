@@ -1,7 +1,8 @@
-//! The desktop's own dialog to save a file, as other programs open it: on
-//! Linux the FileChooser of xdg-desktop-portal, which Omarchy's GTK portal
-//! answers. It asks where, under which name, and the choices given
-//! (an export's colors), and confirms before it replaces a file.
+//! The desktop's own dialogs to save and to open, as other programs show
+//! them: on Linux the FileChooser of xdg-desktop-portal, which Omarchy's
+//! GTK portal answers. Saving asks where, under which name, and the
+//! choices given (an export's colors), and confirms before it replaces a
+//! file; opening asks for a file of the kinds given, or for a folder.
 //!
 //! Where no portal answers (another desktop, a system without one), the
 //! answer is [`Answer::Unavailable`] and the editor asks in its bottom line.
@@ -18,9 +19,26 @@ pub struct Asked {
     /// The folder it opens in, and the name it suggests.
     pub folder: PathBuf,
     pub name: String,
-    /// The kind of file: its label, MIME type and pattern (`*.svg`).
+    /// The kind of file: its label, MIME type (or none) and pattern
+    /// (`*.svg`).
     pub kind: (String, String, String),
     pub choices: Vec<Choice>,
+}
+
+/// What the dialog to open asks.
+#[derive(Debug, Clone)]
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+pub struct Opening {
+    pub title: String,
+    /// The button that opens (`Open`).
+    pub accept: String,
+    /// The folder it opens in.
+    pub folder: PathBuf,
+    /// The kinds of file offered, each its label and patterns (`*.puml`);
+    /// none when a folder is asked for.
+    pub kinds: Vec<(String, Vec<String>)>,
+    /// A folder is asked for, not a file.
+    pub directory: bool,
 }
 
 /// A choice beside the file's name: an id, a label, the options as keys
@@ -67,7 +85,10 @@ pub async fn save(asked: Asked) -> Answer {
     use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 
     let (label, mime, pattern) = &asked.kind;
-    let filter = FileFilter::new(label).mimetype(mime).glob(pattern);
+    let mut filter = FileFilter::new(label).glob(pattern);
+    if !mime.is_empty() {
+        filter = filter.mimetype(mime);
+    }
     let choices = asked.choices.iter().map(|choice| {
         choice.options.iter().fold(
             ashpd::desktop::file_chooser::Choice::new(&choice.id, &choice.label, &choice.initial),
@@ -110,6 +131,58 @@ pub async fn save(asked: Asked) -> Answer {
 #[cfg(not(target_os = "linux"))]
 pub async fn save(_asked: Asked) -> Answer {
     Answer::Unavailable("no save dialog on this system yet".into())
+}
+
+/// Opens the dialog to open a file or a folder and waits for its answer.
+#[cfg(target_os = "linux")]
+pub async fn open(asked: Opening) -> Answer {
+    use ashpd::desktop::ResponseError;
+    use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
+
+    let filters: Vec<FileFilter> = asked
+        .kinds
+        .iter()
+        .map(|(label, patterns)| {
+            patterns
+                .iter()
+                .fold(FileFilter::new(label), |filter, pattern| {
+                    filter.glob(pattern)
+                })
+        })
+        .collect();
+    let request = SelectedFiles::open_file()
+        .title(asked.title.as_str())
+        .accept_label(asked.accept.as_str())
+        .modal(true)
+        .multiple(false)
+        .directory(asked.directory)
+        .current_filter(filters.first().cloned())
+        .filters(filters);
+    let request = match request.current_folder::<&std::path::Path>(Some(asked.folder.as_path())) {
+        Ok(request) => request,
+        Err(why) => return Answer::Unavailable(why.to_string()),
+    };
+    let response = match request.send().await {
+        Ok(sent) => sent.response(),
+        Err(why) => return Answer::Unavailable(why.to_string()),
+    };
+    match response {
+        Ok(files) => match files.uris().first().and_then(|uri| file_path(uri.as_str())) {
+            Some(path) => Answer::Chosen {
+                path,
+                choices: Vec::new(),
+            },
+            None => Answer::Unavailable("the dialog named no local file".into()),
+        },
+        Err(ashpd::Error::Response(ResponseError::Cancelled)) => Answer::Cancelled,
+        Err(why) => Answer::Unavailable(why.to_string()),
+    }
+}
+
+/// Opens the dialog to open and waits for its answer: here there is none.
+#[cfg(not(target_os = "linux"))]
+pub async fn open(_asked: Opening) -> Answer {
+    Answer::Unavailable("no open dialog on this system yet".into())
 }
 
 /// The local path of a `file://` URI, its `%XX` escapes undone; `None`

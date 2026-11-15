@@ -420,9 +420,7 @@ impl App {
                 let colored = self.colored(&target, color.as_deref());
                 Task::batch([self.apply_keyboard_focus(), colored])
             }
-            Some(Choice::NewProject { language, git }) => {
-                self.ask(super::Asking::NewProject { language, git })
-            }
+            Some(Choice::NewProject { language, git }) => self.new_project(language, git),
             Some(Choice::Show { doc, range }) => {
                 let Some(index) = self.docs.iter().position(|d| d.key == doc) else {
                     return self.focus_editor();

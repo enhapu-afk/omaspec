@@ -7,6 +7,7 @@ mod coverage_command;
 mod diff_picture;
 mod document;
 mod editor;
+mod file_dialog;
 mod files;
 mod gallery;
 mod git;
@@ -26,7 +27,6 @@ mod project_export;
 mod render_command;
 #[cfg(target_os = "linux")]
 mod sandbox;
-mod save_dialog;
 #[cfg(test)]
 mod scale;
 mod specs;

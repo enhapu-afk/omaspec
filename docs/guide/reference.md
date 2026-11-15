@@ -30,7 +30,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+P | find a file in the folder by a few letters |
 | Ctrl+Shift+E | the examples, as tiles; Enter opens a copy, F5 plays it, Ctrl+Enter puts it in at the caret |
 | F5 | play the diagram (a state machine or a scenario) |
-| Ctrl+O | open a file, folder or image by path |
+| Ctrl+O, Ctrl+Shift+O | open a diagram, document or image; open a folder in the sidebar (in the desktop's own dialog) |
 | Ctrl+F in the source | find in this file |
 | Ctrl+Shift+F | find in every file of the project, the open tabs first; a hit opens its file |
 | Ctrl+Shift+H | replace in all tabs (each tab one undo step) |
@@ -40,7 +40,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Project › Check the project | lint every saved diagram of the project and list the findings |
 | Project › History of the diagram | the commits that changed the file and how much each changed in its behavior; Enter compares with one |
 | File › Open recent | the files opened last, the newest first |
-| Ctrl+S, Ctrl+Shift+S | save (atomic, keeps the line endings), save as |
+| Ctrl+S, Ctrl+Shift+S | save (atomic, keeps the line endings), save as (in the desktop's own dialog) |
 | Ctrl+Enter | render now |
 | F8 | jump to the next lint finding |
 | Ctrl+Shift+D | compare with another tab, a git commit, or the project since one |
@@ -94,9 +94,11 @@ A folder with `omaspec-project.toml` is a project: a diagram anywhere below it i
 checked against the state machines of the whole project, its `!include`s may reach into
 all of it, and it is the same project whether the diagram came from the sidebar, from
 Ctrl+O or from the command line. *New project* in the palette asks for PlantUML or
-Mermaid, with git or without, then for the folder; it writes the project file and a
+Mermaid, with git or without, then for the folder in the desktop's own dialog; it writes the project file and a
 first state machine named after the project, shows the folder and opens the project's
-map. A folder that is there keeps its files. The file names the project, which heads the
+map. A folder that is there keeps its files. Saving under a name, opening and an export
+ask in the desktop's dialog (xdg-desktop-portal, which Omarchy has); where none answers,
+the bottom line asks for the path. The file names the project, which heads the
 sidebar:
 
 ```toml

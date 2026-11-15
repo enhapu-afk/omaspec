@@ -12,7 +12,7 @@ use super::compare::Target;
 use super::doc::Doc;
 use super::prompt::{ExportLook, LOOK, format_name};
 use super::{App, Asking, Message, free_name, plural};
-use crate::save_dialog;
+use crate::file_dialog;
 
 /// Images larger than this are not searched for a diagram.
 const MAX_IMAGE: u64 = 64 << 20;
@@ -63,7 +63,7 @@ impl App {
         let key = self.doc().key;
         let asked = self.export_asked(format);
         self.close_picker();
-        Task::perform(save_dialog::save(asked), move |answer| {
+        Task::perform(file_dialog::save(asked), move |answer| {
             Message::ExportAnswered(key, format, answer)
         })
     }
@@ -71,7 +71,7 @@ impl App {
     /// What the save dialog asks for an export of the active tab: where
     /// (the name and folder the bottom line would suggest), the kind of
     /// file, and the colors to draw it in.
-    pub(super) fn export_asked(&self, format: Format) -> save_dialog::Asked {
+    pub(super) fn export_asked(&self, format: Format) -> file_dialog::Asked {
         let folder = self
             .folder
             .clone()
@@ -79,7 +79,7 @@ impl App {
             .unwrap_or_default();
         let suggested = PathBuf::from(super::prompt::suggested_export(self.doc(), &folder, format));
         let looks = self.export_looks(format);
-        let colors = (looks.len() > 1).then(|| save_dialog::Choice {
+        let colors = (looks.len() > 1).then(|| file_dialog::Choice {
             id: LOOK.into(),
             label: "Colors".into(),
             options: looks
@@ -89,7 +89,7 @@ impl App {
             initial: ExportLook::Shown.key().into(),
         });
         let name = format_name(format);
-        save_dialog::Asked {
+        file_dialog::Asked {
             title: format!("Export the diagram as {name}"),
             accept: "Export".into(),
             folder: suggested.parent().map_or(folder, Path::to_path_buf),
@@ -258,6 +258,8 @@ impl App {
     pub(super) fn save_tab(&mut self) -> Task<Message> {
         let doc = self.doc();
         match doc.path.clone() {
+            // The desktop's dialog asks before it replaces the file.
+            Some(path) if !doc.on_disk() && path.exists() && self.dialogs => self.save_as(),
             Some(path) if !doc.on_disk() && path.exists() => {
                 let task = self.ask(Asking::SaveAs);
                 self.notice = Some(format!(
@@ -273,7 +275,7 @@ impl App {
                 self.save(&path);
                 Task::none()
             }
-            None => self.ask(Asking::SaveAs),
+            None => self.save_as(),
         }
     }
 

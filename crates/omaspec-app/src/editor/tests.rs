@@ -1307,7 +1307,7 @@ fn a_markdown_document_shows_the_diagram_at_the_caret() {
 /// bottom line when no dialog came.
 #[test]
 fn an_export_asks_in_the_desktop_s_dialog() {
-    use crate::save_dialog::Answer;
+    use crate::file_dialog::Answer;
 
     let dir = temp_dir("export-dialog");
     let src = dir.join("flow.puml");
@@ -4688,7 +4688,7 @@ impl Live {
 fn what_is_typed_after_the_command_list_goes_to_the_prompt_only() {
     let enter = || iced_test::simulator::tap_key(Named::Enter, None).collect::<Vec<_>>();
     let typed = |text: &str| iced_test::simulator::typewrite(text).collect::<Vec<_>>();
-    for (command, lists) in [("new project", 2), ("open a file", 1)] {
+    for (command, lists) in [("new project", 2), ("open a diagram", 1)] {
         let mut app = open(&[]);
         let start = app.focus_editor();
         let mut live = Live::new(&mut app, start);

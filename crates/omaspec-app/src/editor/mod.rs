@@ -31,6 +31,7 @@
 mod anchored;
 mod assist;
 pub(crate) mod compare;
+mod dialogs;
 mod doc;
 mod files;
 mod fold;
@@ -234,7 +235,14 @@ pub enum Message {
     Exported(Result<String, String>),
     /// What the desktop's dialog answered to where the export of this tab
     /// in this format goes.
-    ExportAnswered(u64, Format, crate::save_dialog::Answer),
+    ExportAnswered(u64, Format, crate::file_dialog::Answer),
+    /// The desktop's dialog answered where to save a tab.
+    SaveAsAnswered(u64, crate::file_dialog::Answer),
+    /// The desktop's dialog answered which file (or, `true`, folder) to open.
+    OpenAnswered(bool, crate::file_dialog::Answer),
+    /// The desktop's dialog answered the folder of a new project, of this
+    /// language, with git or without.
+    NewProjectAnswered(Language, bool, crate::file_dialog::Answer),
     /// What a project's export wrote, or why it wrote nothing.
     ProjectExported(Result<String, String>),
     /// Commits of the file in a tab, for the compare picker.
@@ -307,6 +315,8 @@ pub enum Command {
     SaveAs,
     Revert,
     Open,
+    /// A folder for the sidebar.
+    OpenFolder,
     /// Asks how, then where, and makes a project there.
     NewProject,
     Pick,
@@ -548,6 +558,7 @@ fn window_key(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
             "." => Some(Command::Fix),
             "c" if mods.shift() => Some(Command::CopyPng),
             "s" => Some(Command::Save),
+            "o" if mods.shift() => Some(Command::OpenFolder),
             "o" => Some(Command::Open),
             "p" => Some(Command::Pick),
             "n" if mods.shift() => Some(Command::Detach),
@@ -583,6 +594,7 @@ fn blocks_while_asking(command: Command) -> bool {
             | Command::Save
             | Command::SaveAs
             | Command::Open
+            | Command::OpenFolder
             | Command::NewProject
             | Command::Quit
     )
@@ -705,7 +717,7 @@ struct App {
     /// The diagram takes the active Omarchy colors at render time. The
     /// file stays as it is.
     follow_theme: bool,
-    /// An export asks where in the desktop's own dialog ([`crate::save_dialog`]);
+    /// An export asks where in the desktop's own dialog ([`crate::file_dialog`]);
     /// without it, or where none answers, in the bottom line. Tests ask
     /// there.
     pub(super) dialogs: bool,
@@ -1300,6 +1312,11 @@ impl App {
             Message::ExportAnswered(key, format, answer) => {
                 self.export_answered(key, format, answer)
             }
+            Message::SaveAsAnswered(key, answer) => self.save_as_answered(key, answer),
+            Message::OpenAnswered(_, answer) => self.open_answered(answer),
+            Message::NewProjectAnswered(language, git, answer) => {
+                self.new_project_answered(language, git, answer)
+            }
             Message::Exported(result) => {
                 self.notice = Some(match result {
                     Ok(path) => {
@@ -1714,9 +1731,10 @@ impl App {
         match command {
             Command::Palette => self.open_palette(),
             Command::Save => self.save_tab(),
-            Command::SaveAs => self.ask(Asking::SaveAs),
+            Command::SaveAs => self.save_as(),
             Command::Revert => self.revert(),
-            Command::Open => self.ask(Asking::Open),
+            Command::Open => self.open_asking(false),
+            Command::OpenFolder => self.open_asking(true),
             Command::NewProject => self.ask_project_kind(),
             Command::Pick => {
                 self.picked = true;
