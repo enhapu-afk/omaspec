@@ -1022,6 +1022,10 @@ const MAX_DAYS: i64 = 3660;
 /// a day more). A date typed as `D+20200701` stays a mistake.
 const MAX_SPAN: i64 = 20 * 365 + 1;
 
+/// The farthest from 1970 a day of a message is named by its date, some
+/// 8,000 years: past it, the day by its number.
+const DATED: i64 = 3_000_000;
+
 /// Declines a chart wider than PlantUML draws, or than [`MAX_DAYS`] on a
 /// daily scale, naming the task farthest from day 0 and the last day the
 /// chart can reach: its date, when the chart has dates (`origin`, day 0).
@@ -1040,21 +1044,25 @@ fn check_span(
             .max_by_key(|&index| far(&solved[index]))
             .map_or(0, |index| tasks[index].line)
     };
-    // The last day a chart from its first day `low` can reach, in `days`.
-    let last = |days: i64| match origin {
-        Some(origin) => format!(
-            "its last day can be {}",
-            date::format(origin + low + days - 1)
-        ),
-        None => format!("its last day can be day {}", low + days - 1),
+    // The last day a chart from its first day `low` can reach, in `days`:
+    // a date where the chart has dates and the day is one of a calendar.
+    let last = |days: i64| {
+        let day = low.saturating_add(days - 1);
+        match origin
+            .and_then(|origin| origin.checked_add(day))
+            .filter(|at| at.abs() <= DATED)
+        {
+            Some(at) => format!("its last day can be {}", date::format(at)),
+            None => format!("its last day can be day {day}"),
+        }
     };
     if span > MAX_SPAN {
         return Err(Declined::refused(
             line(),
             format!(
-                "PlantUML draws a Gantt chart of {} days at most (20 × 365, a few days \
-                 short of 20 calendar years), and this task is past them: {}. A Mermaid \
-                 `timeline` tells a longer history",
+                "PlantUML draws a Gantt chart whose last day is {} days at most after its \
+                 first (20 × 365, a few days short of 20 calendar years), and this task is \
+                 past it: {}. A Mermaid `timeline` tells a longer history",
                 MAX_SPAN - 1,
                 last(MAX_SPAN)
             ),
@@ -1065,8 +1073,8 @@ fn check_span(
             line(),
             format!(
                 "a chart spans at most {MAX_DAYS} days on a daily scale, and this task is \
-                 past them: {}; `printscale weekly`, `monthly` or `yearly` draws up to {} \
-                 days",
+                 past them: {}; `printscale weekly`, `monthly` or `yearly` draws a last \
+                 day up to {} days after the first",
                 last(MAX_DAYS),
                 MAX_SPAN - 1
             ),
@@ -1262,6 +1270,8 @@ mod tests {
             "[B] requires 1000000000 days",
             "[M] happens D+20200701",
             "[M] happens D+9223372036854775807",
+            // Far before the first day: no date to name, and no overflow.
+            "[B] ends 2020-01-10 and requires 1000000000000 days",
         ] {
             let err = wide("daily", task).unwrap_err();
             assert_eq!(err.line, Some(4), "{task}");

@@ -9,15 +9,30 @@ use super::{Finding, Severity, distance};
 const OFFERED: usize = 3;
 
 /// A warning for each `<&name>` of a PlantUML diagram whose name Open
-/// Iconic does not have; comments are left alone.
+/// Iconic does not have, and each C4 sprite `"&name"`, which is drawn as
+/// one; comments are left alone, a block `/' … '/` too.
 pub(super) fn findings(lines: &[&str], findings: &mut Vec<Finding>) {
+    let mut in_block = false;
     for (row, line) in lines.iter().enumerate() {
-        if line.trim_start().starts_with('\'') {
+        let text = line.trim();
+        if in_block {
+            in_block = !text.ends_with("'/");
             continue;
         }
-        for (_, name) in omaspec_uml::unknown_open_iconic(line) {
+        if let Some(rest) = text.strip_prefix("/'") {
+            in_block = !rest.ends_with("'/");
+            continue;
+        }
+        if text.starts_with('\'') {
+            continue;
+        }
+        let tags = omaspec_uml::unknown_open_iconic(line)
+            .into_iter()
+            .map(|(_, name)| (format!("<&{name}>"), name));
+        let sprites = sprites(line).map(|name| (format!("\"&{name}\""), name));
+        for (written, name) in tags.chain(sprites) {
             let mut message = format!(
-                "`<&{name}>`: Open Iconic has no icon of that name, so nothing is drawn in its place"
+                "`{written}`: Open Iconic has no icon of that name, so nothing is drawn in its place"
             );
             let near = near(name);
             if !near.is_empty() {
@@ -27,6 +42,19 @@ pub(super) fn findings(lines: &[&str], findings: &mut Vec<Finding>) {
             findings.push(Finding::new(row, Severity::Warning, message));
         }
     }
+}
+
+/// The Open Iconic names that the quoted words of `line` give a C4 sprite
+/// (`$sprite="&camera"`) and the set does not have.
+fn sprites(line: &str) -> impl Iterator<Item = &str> {
+    line.match_indices("\"&").filter_map(move |(at, _)| {
+        let rest = &line[at + 2..];
+        let name = &rest[..rest
+            .find(|c: char| !(c.is_ascii_alphanumeric() || c == '-' || c == '_'))
+            .unwrap_or(rest.len())];
+        (!name.is_empty() && !omaspec_uml::unknown_open_iconic(&format!("<&{name}>")).is_empty())
+            .then_some(name)
+    })
 }
 
 /// The names of the set `name` may have meant: those that go on from it
@@ -78,6 +106,19 @@ mod tests {
         );
         assert!(messages[0].contains("`<&camera-slr>`"), "{}", messages[0]);
         assert!(messages[1].contains("`<&heart>`"), "{}", messages[1]);
+        // A C4 sprite is one too; a block comment is left alone.
+        let found = lint(
+            "@startuml\n!include <C4/C4_Container>\n/'\nPerson(a, \"A\", $sprite=\"&nothing\")\n'/\n/' <&nothing> '/\nPerson(u, \"User\", $sprite=\"&camera\")\nContainer(api, \"API\", \"Rust\", $sprite=\"&heart\")\n@enduml\n",
+            Language::PlantUml,
+        );
+        let named: Vec<(usize, &str)> = found
+            .iter()
+            .filter(|f| f.message.contains("Open Iconic"))
+            .map(|f| (f.line, f.message.as_str()))
+            .collect();
+        assert_eq!(named.len(), 1, "{found:?}");
+        assert_eq!(named[0].0, 6);
+        assert!(named[0].1.starts_with("`\"&camera\"`"), "{}", named[0].1);
         // A name the set has is no finding.
         assert!(
             lint(

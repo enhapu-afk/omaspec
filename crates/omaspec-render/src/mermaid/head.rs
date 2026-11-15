@@ -176,7 +176,7 @@ fn front_look(body: &str) -> Option<String> {
 
 /// The lines outside the front matter that are not empty: each with its
 /// index, as written, and trimmed.
-fn significant(body: &str) -> impl Iterator<Item = (usize, &str, &str)> {
+pub(super) fn significant(body: &str) -> impl Iterator<Item = (usize, &str, &str)> {
     let mut front = false;
     body.lines().enumerate().filter_map(move |(index, raw)| {
         let line = raw.trim();

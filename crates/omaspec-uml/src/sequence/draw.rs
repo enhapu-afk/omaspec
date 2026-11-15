@@ -442,18 +442,28 @@ impl<'a> Drawer<'a> {
             });
         }
         if cols.is_empty() {
-            // A diagram of nothing (no lines, or a title and settings
-            // only) is drawn as an empty sequence diagram, as in PlantUML;
-            // it is empty, whatever type it would become.
-            let empty = d.items.is_empty();
+            // A diagram of nothing is empty, whatever type it would become;
+            // PlantUML shows its welcome instead. A title, a header or a
+            // legend alone PlantUML draws, so the Java PlantUML may.
+            let f = &d.frame;
+            let words = f.title.is_some()
+                || f.header.is_some()
+                || f.footer.is_some()
+                || f.caption.is_some()
+                || f.legend.is_some()
+                || f.mainframe.is_some();
+            let (reason, refused) = match (d.items.is_empty(), words) {
+                (true, false) => ("the diagram is empty", true),
+                (true, true) => (
+                    "the diagram has nothing but its title, header or legend yet",
+                    false,
+                ),
+                (false, _) => ("a sequence diagram needs a participant", false),
+            };
             return Err(Declined {
                 line: None,
-                reason: if empty {
-                    "the diagram is empty".into()
-                } else {
-                    "a sequence diagram needs a participant".into()
-                },
-                refused: empty,
+                reason: reason.into(),
+                refused,
             });
         }
 
@@ -2243,7 +2253,8 @@ mod tests {
         for (source, line, part) in [
             ("A -> B : <img:x.png>", Some(0), "<img:x.png>"),
             ("participant A #red/blue", Some(0), "gradients"),
-            ("title alone", None, "the diagram is empty"),
+            ("title alone", None, "nothing but its title"),
+            ("skinparam shadowing false", None, "the diagram is empty"),
             ("", None, "the diagram is empty"),
             ("== Part ==", None, "needs a participant"),
             ("note over A\n== head\nend note", Some(0), "headings"),
@@ -2251,6 +2262,10 @@ mod tests {
             let err = crate::render(source).unwrap_err();
             assert_eq!(err.line, line, "{source}: {err:?}");
             assert!(err.reason.contains(part), "{source}: {}", err.reason);
+            // Nothing at all is a mistake PlantUML would only greet; a title
+            // alone PlantUML draws.
+            assert!(crate::render("").unwrap_err().refused);
+            assert!(!crate::render("title alone").unwrap_err().refused);
         }
     }
 

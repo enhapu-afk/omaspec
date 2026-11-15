@@ -205,18 +205,18 @@ impl Stage {
         }
         // The width asked for, else twice the diagram's size up to
         // WIDEST; the height from the diagram, with room for the bar a play
-        // has.
-        let bar = if args.folds.is_empty() && args.dives.is_empty() {
-            BAR
-        } else {
-            0.0
-        };
+        // has, in as many rows as its options will need.
         let drawn = app.doc().paper.diagram_size();
         let width = match args.width {
             Some(width) => width as f32,
             None => (drawn.width * 2.0 + 2.0 * MARGIN)
                 .clamp(320.0, WIDEST)
                 .round(),
+        };
+        let bar = if args.folds.is_empty() && args.dives.is_empty() {
+            BAR + paper::play_bar_extra(&text, language, width)
+        } else {
+            0.0
         };
         let height = (width * drawn.height / drawn.width.max(1.0) + bar)
             .clamp(width * LEAST_HEIGHT, width * MOST_HEIGHT)

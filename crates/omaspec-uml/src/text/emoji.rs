@@ -39,7 +39,9 @@ pub fn emoji(text: &str) -> Vec<Range<usize>> {
             match at(i) {
                 Some(next) if is_skin_tone(next) || is_tag(next) => i += 1,
                 Some(PICTURE | KEYCAP) => i += 1,
-                Some(JOINER) if at(i + 1).is_some() => i += 2,
+                // A joiner joins a picture or a sign (`♀`, `❤`), not the
+                // space or the word a stray one stands before.
+                Some(JOINER) if at(i + 1).is_some_and(joins) => i += 2,
                 _ => break,
             }
         }
@@ -54,6 +56,12 @@ pub fn emoji(text: &str) -> Vec<Range<usize>> {
 pub(super) fn is_picture(c: char) -> bool {
     let code = u32::from(c);
     matches!(code, 0x1F000..=0x1FAFF) || super::emoji_sign(code)
+}
+
+/// Whether a zero width joiner joins `c` to the picture before it: a
+/// picture, or a sign the emoji face draws as one (`♀`, `⚕`, `❤`, `⬛`).
+fn joins(c: char) -> bool {
+    is_picture(c) || matches!(u32::from(c), 0x2190..=0x2BFF)
 }
 
 fn is_regional(c: char) -> bool {
@@ -111,6 +119,10 @@ mod tests {
                 "\u{2705}"
             ]
         );
+        // A stray joiner joins no space or word after it.
+        assert_eq!(pictures("\u{1F408}\u{200D} cat"), ["\u{1F408}"]);
+        let runner = "\u{1F3C3}\u{200D}\u{2640}\u{FE0F}";
+        assert_eq!(pictures(runner), [runner]);
         // Letters, signs a text face draws and the mark asking for text
         // are none.
         assert!(emoji("plain \u{2192} \u{2713} \u{263A}\u{FE0E} \u{00E9}").is_empty());

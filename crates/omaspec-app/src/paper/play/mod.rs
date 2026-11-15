@@ -303,6 +303,14 @@ fn placed(machine: &Machine, map: &Map) -> Result<Placed, String> {
     Ok(placed)
 }
 
+/// Where the machine `source` draws can be and what it offers there, as a
+/// play of it finds them; `None` for a diagram that is no state machine.
+pub fn every_offer_of(source: &str, language: Language) -> Option<Vec<Offered>> {
+    let machine = Machine::read(source, language)?;
+    let (run, _) = Run::start(&machine)?;
+    Some(machine::every_offer(&machine, &run))
+}
+
 /// Where a machine is, by the names of its states, and its options there,
 /// each a label and the state it leads to.
 pub type Offered = (String, Vec<(String, String)>);

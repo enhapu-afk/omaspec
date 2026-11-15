@@ -187,15 +187,18 @@ unchanged, then changed as below in `src/text/layout.rs`; each change says
   a family joined by zero width joiners, a skin tone, a flag, a keycap and
   `🛋️` (with the mark that asks for a picture) as one glyph where a text
   face has one for each character, so every emoji of such a line was an
-  empty box (REQ-051). Where the counts differ, `merge_by_bytes` now lays
-  each of the fallback's clusters over the missing glyphs by the bytes they
-  cover, where both faces cut the text at the cluster's ends.
+  empty box (REQ-051). Where the two shapings do not stand glyph by glyph
+  on the same bytes (the counts differ, or a merge before changed them),
+  `merge_by_bytes` now lays each of the fallback's clusters over the
+  missing glyphs by the bytes they cover, where both faces cut the text at
+  the cluster's ends.
 - `process_chunk`: a run of words in another face (`<tspan
   font-weight="bold">`) replaces the glyphs of its clusters. A cluster's
   length is in bytes, and the package took it for a number of glyphs: for
   an emoji of four bytes a character it removed the glyphs after the
   cluster and could remove past the end, which ends the program. The
-  glyphs that go or come are now those whose bytes the cluster covers.
+  glyphs that go or come are now those whose bytes the cluster covers,
+  another glyph at its first byte (a base and its mark) among them.
 
 ```bash
 diff -ru ~/.cargo/registry/src/*/usvg-0.47.0/src vendor/usvg/src

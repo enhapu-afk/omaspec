@@ -60,6 +60,7 @@ use omaspec_theme::{Palette, Rgb};
 
 use crate::ui;
 use crate::worker::{Drawn, Linked, Ticket, Worker};
+pub use bar::extra_height as play_bar_extra;
 pub use hand::Gesture;
 use passage::Passage;
 pub use passage::Showing;

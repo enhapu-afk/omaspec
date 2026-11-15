@@ -944,9 +944,10 @@ fn process_chunk(
 
             // Omaspec addition to usvg 0.47.0: a cluster's length is in
             // bytes, not glyphs. The glyphs that go or come are those whose
-            // bytes the cluster covers, so an emoji of several characters
-            // (four bytes each) neither takes the glyphs after it nor
-            // removes past the end.
+            // bytes the cluster covers (another at its first byte too: a
+            // base and its mark), so an emoji of several characters (four
+            // bytes each) neither takes the glyphs after it nor removes
+            // past the end.
             let start = new_glyph.byte_idx.value();
             let prev_cluster_len = glyphs[idx].cluster_len;
             if prev_cluster_len < new_glyph.cluster_len {
@@ -955,7 +956,7 @@ fn process_chunk(
                 let end = start + new_glyph.cluster_len;
                 while glyphs
                     .get(idx + 1)
-                    .is_some_and(|g| (start + 1..end).contains(&g.byte_idx.value()))
+                    .is_some_and(|g| (start..end).contains(&g.byte_idx.value()))
                 {
                     glyphs.remove(idx + 1);
                 }
@@ -965,7 +966,7 @@ fn process_chunk(
                 let end = start + prev_cluster_len;
                 let mut j = 1;
                 while let Some(g) =
-                    iter.next_if(|g| (start + 1..end).contains(&g.byte_idx.value()))
+                    iter.next_if(|g| (start..end).contains(&g.byte_idx.value()))
                 {
                     glyphs.insert(idx + j, g);
                     j += 1;
@@ -1370,13 +1371,19 @@ pub(crate) fn shape_text(
             // We assume, that shaping with an any font will produce the same amount of glyphs.
             // This is incorrect, but good enough for now.
             //
-            // Omaspec addition to usvg 0.47.0: where the counts differ, the
-            // fallback's clusters are laid over the missing ones by the
-            // bytes they cover. An emoji face draws a family, a skin tone,
-            // a flag or `🛋️` as one glyph where a text face has one for
-            // each character; giving up left every emoji of the text an
-            // empty box.
-            if glyphs.len() != fallback_glyphs.len() {
+            // Omaspec addition to usvg 0.47.0: where the two do not stand
+            // glyph by glyph on the same bytes, the fallback's clusters are
+            // laid over the missing ones by the bytes they cover. An emoji
+            // face draws a family, a skin tone, a flag or `🛋️` as one glyph
+            // where a text face has one for each character; giving up left
+            // every emoji of the text an empty box. After such a merge an
+            // equal count is no sign the glyphs line up.
+            let aligned = glyphs.len() == fallback_glyphs.len()
+                && glyphs
+                    .iter()
+                    .zip(&fallback_glyphs)
+                    .all(|(a, b)| a.byte_idx == b.byte_idx);
+            if !aligned {
                 glyphs = merge_by_bytes(glyphs, &fallback_glyphs, text.len());
                 used_fonts.push(fallback_font.id);
                 continue 'outer;
