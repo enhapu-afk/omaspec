@@ -746,12 +746,15 @@ fn inline(line: &str, base: Style) -> Result<Vec<Piece>, String> {
             && let Some(icon) = crate::icons::tag(&rest[1..close], style.size)
         {
             flush(&mut out, &mut text, style);
-            out.push(Piece {
-                text: String::new(),
-                style,
-                link: None,
-                icon: Some(icon?),
-            });
+            // A name Open Iconic does not have is drawn as nothing.
+            if let Some(icon) = icon? {
+                out.push(Piece {
+                    text: String::new(),
+                    style,
+                    link: None,
+                    icon: Some(icon),
+                });
+            }
             i += close + 1;
             continue;
         }
@@ -1095,7 +1098,6 @@ mod tests {
         for (text, part) in [
             ("<img:x.png>", "<img:x.png>"),
             ("<$sprite>", "<$sprite>"),
-            ("<&kye>", "Open Iconic has no icon"),
             ("[[{tip} label]]", "no address"),
             ("[[\"a b label]]", "open quote"),
             ("----", "rules"),
@@ -1135,6 +1137,18 @@ mod tests {
         // The words start after the icon.
         let x = format!(r#"<tspan x="{}""#, crate::svg::n(icons[0]));
         assert!(svg.contains(&x), "{svg}");
+    }
+
+    /// A name Open Iconic does not have is drawn as nothing, as PlantUML
+    /// draws it; the words around it stay.
+    #[test]
+    fn an_icon_open_iconic_lacks_is_left_out() {
+        let line = &block("<&camera> photo", font(), Family::Sans)
+            .unwrap()
+            .lines[0];
+        assert!(line.runs.iter().all(|run| run.icon.is_none()));
+        let words: String = line.runs.iter().map(|run| run.text.as_str()).collect();
+        assert_eq!(words, " photo");
     }
 
     #[test]

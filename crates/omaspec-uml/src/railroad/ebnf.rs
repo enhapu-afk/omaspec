@@ -9,6 +9,29 @@ use crate::Declined;
 use crate::common::Frame;
 use crate::source::Line;
 
+/// A rule named as a line PlantUML takes for the picture's title, header,
+/// footer, caption or main frame (`header = "x" ;`): PlantUML draws
+/// `= "x" ;` as that text and the rule is gone, so the name has to change.
+fn frame_word(line: Line) -> Result<(), Declined> {
+    for (word, what) in [
+        ("title", "title"),
+        ("header", "header"),
+        ("footer", "footer"),
+        ("caption", "caption"),
+        ("mainframe", "main frame"),
+    ] {
+        if crate::common::keyword(line.text, word).is_some_and(|rest| rest.starts_with('=')) {
+            return Err(Declined::refused(
+                line.no,
+                format!(
+                    "a rule cannot be named `{word}`: PlantUML reads `{word} = …` as the picture's {what}, not as a rule; give the rule another name"
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
     Name(String),
@@ -24,6 +47,9 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
     let mut at = 0;
     let mut comment = false;
     while at < lines.len() {
+        if !open_rule && !comment {
+            frame_word(lines[at])?;
+        }
         if !open_rule
             && !comment
             && let Some(next) = frame.line(lines, at)?
@@ -281,5 +307,35 @@ mod tests {
             assert_eq!(err.line, Some(line), "{text}");
             assert!(err.reason.contains(part), "{text}: {}", err.reason);
         }
+    }
+
+    /// PlantUML reads `header = "x", body ;` as the picture's header, with
+    /// `= "x", body ;` its text; the error says so, not that a Creole
+    /// heading is not drawn.
+    #[test]
+    fn a_rule_named_as_the_frame_says_why_it_is_none() {
+        for word in ["header", "Title", "footer", "caption", "mainframe"] {
+            let text = format!("a = \"y\" ;\n{word} = \"x\", body ;\nbody = \"y\" ;");
+            let err = parse(&lines(&text)).unwrap_err();
+            assert_eq!(err.line, Some(1), "{word}");
+            assert!(err.refused, "{word}");
+            assert!(
+                err.reason
+                    .contains(&format!("named `{}`", word.to_ascii_lowercase())),
+                "{word}: {}",
+                err.reason
+            );
+        }
+        // Inside a rule the word is a name like any other, and a header
+        // stays a header.
+        let d = parse(&lines(
+            "header Grammar\nrule = header ;\nheader2 = \"x\" ;\nheader=\"y\" ;",
+        ))
+        .unwrap();
+        assert_eq!(d.rules.len(), 3);
+        assert_eq!(
+            d.frame.header.as_ref().map(|h| h.value.as_str()),
+            Some("Grammar")
+        );
     }
 }

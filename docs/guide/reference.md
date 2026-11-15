@@ -81,7 +81,11 @@ moves between them, and an accent border shows which one has the keys.
 Lint findings are underlined while you type (F8 jumps to the next); the diagram is drawn
 again after a short pause. A PlantUML line Omaspec's own engine does not draw yet is an
 *info*: the Java PlantUML draws that diagram where it is installed, and nothing does where
-it is not, so `omaspec lint` and `check` name the line before the diagram goes there. A click on a render error in the status bar jumps to its line;
+it is not, so `omaspec lint` and `check` name the line before the diagram goes there. A
+line PlantUML refuses too is an *error*, said as what it is: an EBNF rule named `header`
+is the picture's header to PlantUML. A line no diagram type knows says so, rather than
+what a sequence diagram lacks, and an empty file is empty. A Mermaid error names the line
+it is about, not front matter or a `%% skin:` line above it. A click on a render error in the status bar jumps to its line;
 so does Ctrl+click on a label, box, diamond or line in the diagram. Lines changed since the last
 save are marked beside the line numbers. The language is detected from the text and the
 file name unless `--lang` (or the palette) sets it.
@@ -473,7 +477,8 @@ puts the title in quotes.
 
 An icon drawn as the words are, in their color and so in any theme, is PlantUML's: one of
 the 223 of Open Iconic (`<&cloud>`, larger `<&cloud*2>`, in a color of its own
-`<#red&lock-locked>`), or a sprite the diagram defines (`sprite $bolt [16x16/16] { … }`,
+`<#red&lock-locked>`; a name it lacks is drawn as nothing, as in PlantUML, and lint
+names it with the icons that come close), or a sprite the diagram defines (`sprite $bolt [16x16/16] { … }`,
 as `plantuml -encodesprite` writes it, compressed too) and puts in its text (`<$bolt>`).
 In C4-PlantUML an element's `$sprite="&cog"` stands above its name. A sprite as a
 stereotype (`<<$bolt>>`), an SVG sprite and the icon libraries of the standard library are

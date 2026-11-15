@@ -95,9 +95,6 @@ pub(crate) fn mermaid_graph() -> &'static Regex {
 /// with a second Mermaid trait (`dateFormat`, `section`, `root((…))`).
 pub fn detect(code: &str, hint: Option<Language>) -> Language {
     let text = strip_bom(code);
-    if text.trim().is_empty() {
-        return Language::PlantUml;
-    }
     if re!(r"(?i)^\s*```(?:mermaid|mmd)\b").is_match(text) {
         return Language::Mermaid;
     }
@@ -204,7 +201,9 @@ mod tests {
         assert_eq!(detect("graph LR\n A-->B", None), Mermaid);
         assert_eq!(detect("```mermaid\npie\n```", None), Mermaid);
         assert_eq!(detect("%%{init: {}}%%\nflowchart TD", None), Mermaid);
-        assert_eq!(detect("", Some(Mermaid)), PlantUml);
+        // An empty file is in the language of its name.
+        assert_eq!(detect("", Some(Mermaid)), Mermaid);
+        assert_eq!(detect(" \n", None), PlantUml);
     }
 
     #[test]

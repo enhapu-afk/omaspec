@@ -442,10 +442,18 @@ impl<'a> Drawer<'a> {
             });
         }
         if cols.is_empty() {
+            // A diagram of nothing (no lines, or a title and settings
+            // only) is drawn as an empty sequence diagram, as in PlantUML;
+            // it is empty, whatever type it would become.
+            let empty = d.items.is_empty();
             return Err(Declined {
                 line: None,
-                reason: "a sequence diagram needs a participant".into(),
-                refused: false,
+                reason: if empty {
+                    "the diagram is empty".into()
+                } else {
+                    "a sequence diagram needs a participant".into()
+                },
+                refused: empty,
             });
         }
 
@@ -2235,7 +2243,9 @@ mod tests {
         for (source, line, part) in [
             ("A -> B : <img:x.png>", Some(0), "<img:x.png>"),
             ("participant A #red/blue", Some(0), "gradients"),
-            ("title alone", None, "participant"),
+            ("title alone", None, "the diagram is empty"),
+            ("", None, "the diagram is empty"),
+            ("== Part ==", None, "needs a participant"),
             ("note over A\n== head\nend note", Some(0), "headings"),
         ] {
             let err = crate::render(source).unwrap_err();

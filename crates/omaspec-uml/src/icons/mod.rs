@@ -6,7 +6,8 @@
 //! The tag is PlantUML's: `<&name>`, its size `<&name*2>`,
 //! `<&name{scale=2}>` or `<&name,scale=2>`, its color `<#red&name>` or
 //! `<&name,color=red>`. The icon stands on the baseline, as tall as a
-//! capital of the text at scale 1.
+//! capital of the text at scale 1. A name Open Iconic does not have is
+//! drawn as nothing, as PlantUML draws it; lint names it.
 
 pub(crate) mod archimate;
 mod open_iconic;
@@ -47,8 +48,9 @@ pub const SIDE: f32 = 8.0;
 const CAP: f32 = 0.78;
 
 /// The icon the tag `tag` (between `<` and `>`) asks for in text of
-/// `size`; `None` when it is no icon tag, an error when it names no icon.
-pub(crate) fn tag(tag: &str, size: f32) -> Option<Result<Icon, String>> {
+/// `size`; `None` when it is no icon tag, an error when it cannot be
+/// drawn, and no icon for a name Open Iconic does not have.
+pub(crate) fn tag(tag: &str, size: f32) -> Option<Result<Option<Icon>, String>> {
     let (color, rest) = match tag.strip_prefix('#') {
         Some(after) => {
             let end = after.find(['&', '$'])?;
@@ -57,7 +59,7 @@ pub(crate) fn tag(tag: &str, size: f32) -> Option<Result<Icon, String>> {
         None => (None, tag),
     };
     if let Some(rest) = rest.strip_prefix('$') {
-        return Some(sprite_tag(rest, color));
+        return Some(sprite_tag(rest, color).map(Some));
     }
     let rest = rest.strip_prefix('&')?;
     let end = rest
@@ -70,9 +72,9 @@ pub(crate) fn tag(tag: &str, size: f32) -> Option<Result<Icon, String>> {
     Some(icon(name, color, options, size))
 }
 
-fn icon(name: &str, color: Option<&str>, options: &str, size: f32) -> Result<Icon, String> {
-    let Ok(at) = open_iconic::ICONS.binary_search_by(|(n, ..)| n.cmp(&name)) else {
-        return Err(format!("`<&{name}>`: Open Iconic has no icon of that name"));
+fn icon(name: &str, color: Option<&str>, options: &str, size: f32) -> Result<Option<Icon>, String> {
+    let Some(at) = open_iconic_at(name) else {
+        return Ok(None);
     };
     let (_, d, dx, dy) = open_iconic::ICONS[at];
     let (scale, own) = options_of(options)?;
@@ -83,12 +85,53 @@ fn icon(name: &str, color: Option<&str>, options: &str, size: f32) -> Result<Ico
         None => None,
     };
     let side = size * CAP * scale;
-    Ok(Icon {
+    Ok(Some(Icon {
         picture: Picture::Path { d, dx, dy },
         width: side,
         height: side,
         color,
-    })
+    }))
+}
+
+fn open_iconic_at(name: &str) -> Option<usize> {
+    open_iconic::ICONS
+        .binary_search_by(|(n, ..)| n.cmp(&name))
+        .ok()
+}
+
+/// The names of Open Iconic's icons, as `<&name>` takes them, in order.
+pub fn open_iconic_names() -> impl Iterator<Item = &'static str> {
+    open_iconic::ICONS.iter().map(|(name, ..)| *name)
+}
+
+/// The Open Iconic names that `text` asks for and the set does not have,
+/// each with where its tag stands in `text` (`<&camera>`). PlantUML draws
+/// nothing in their place.
+pub fn unknown_open_iconic(text: &str) -> Vec<(std::ops::Range<usize>, &str)> {
+    let mut found = Vec::new();
+    let mut from = 0;
+    while let Some(open) = text[from..].find('<').map(|at| from + at) {
+        from = open + 1;
+        let Some(close) = text[open..].find('>').map(|at| open + at) else {
+            break;
+        };
+        let inside = &text[open + 1..close];
+        let Some(amp) = inside.find('&') else {
+            continue;
+        };
+        // `<&name…>` or `<#color&name…>`, nothing else between.
+        if amp > 0 && !inside.starts_with('#') {
+            continue;
+        }
+        let rest = &inside[amp + 1..];
+        let name = &rest[..rest
+            .find(|c: char| !(c.is_ascii_alphanumeric() || c == '-' || c == '_'))
+            .unwrap_or(rest.len())];
+        if !name.is_empty() && open_iconic_at(name).is_none() {
+            found.push((open..close + 1, name));
+        }
+    }
+    found
 }
 
 /// The sprite a use carries (`:16x16:00F…`, as [`sprite::take`] wrote
@@ -183,25 +226,43 @@ mod tests {
 
     #[test]
     fn an_icon_is_found_by_name_with_its_size_and_color() {
-        let heart = tag("&heart", 14.0).unwrap().unwrap();
+        let icon = |text: &str| tag(text, 14.0).unwrap().unwrap().unwrap();
+        let heart = icon("&heart");
         assert!(matches!(heart.picture, Picture::Path { dy: 1.0, .. }));
         assert!((heart.width - 14.0 * CAP).abs() < 1e-4);
         assert_eq!(heart.color, None);
-        let big = tag("&heart*2", 14.0).unwrap().unwrap();
+        let big = icon("&heart*2");
         assert!((big.width - 2.0 * heart.width).abs() < 1e-4);
-        let braced = tag("&heart{scale=2}", 14.0).unwrap().unwrap();
-        assert_eq!(braced.width, big.width);
-        let red = tag("#red&heart", 14.0).unwrap().unwrap();
-        assert_eq!(red.color, Some(Color::hex(0xFF0000)));
-        let own = tag("&heart,color=#00ff00", 14.0).unwrap().unwrap();
-        assert_eq!(own.color, Some(Color::hex(0x00FF00)));
+        assert_eq!(icon("&heart{scale=2}").width, big.width);
+        assert_eq!(icon("#red&heart").color, Some(Color::hex(0xFF0000)));
+        assert_eq!(
+            icon("&heart,color=#00ff00").color,
+            Some(Color::hex(0x00FF00))
+        );
         // Every icon of the table is found.
-        for (name, ..) in open_iconic::ICONS {
-            assert!(tag(&format!("&{name}"), 12.0).unwrap().is_ok(), "{name}");
+        for name in open_iconic_names() {
+            assert!(
+                matches!(tag(&format!("&{name}"), 12.0), Some(Ok(Some(_)))),
+                "{name}"
+            );
         }
-        assert!(tag("&hart", 14.0).unwrap().is_err());
+        // A name the set lacks is no icon, as PlantUML draws it; a size
+        // that is no number is still a mistake.
+        assert_eq!(tag("&hart", 14.0), Some(Ok(None)));
         assert!(tag("&heart*big", 14.0).unwrap().is_err());
         assert!(tag("b", 14.0).is_none());
         assert!(tag("&", 14.0).is_none());
+    }
+
+    #[test]
+    fn the_names_open_iconic_lacks_are_found_where_they_stand() {
+        let text = "<&camera> photo <&camera-slr> <#red&kye,scale=2> <b>x</b> a<&";
+        let found = unknown_open_iconic(text);
+        let names: Vec<&str> = found.iter().map(|(_, name)| *name).collect();
+        assert_eq!(names, ["camera", "kye"]);
+        assert_eq!(&text[found[0].0.clone()], "<&camera>");
+        assert_eq!(&text[found[1].0.clone()], "<#red&kye,scale=2>");
+        // A sprite and a tag of another kind are not Open Iconic's.
+        assert!(unknown_open_iconic("<$bolt> <color:red&x> <&heart>").is_empty());
     }
 }

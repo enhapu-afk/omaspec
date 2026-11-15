@@ -330,6 +330,17 @@ impl Parser {
                 Ok(at + 1)
             }
             Some(Err(reason)) => Err(Declined::at(no, reason)),
+            // Before any participant or message, the diagram is a
+            // sequence diagram only because no other type claims it.
+            None if self.diagram.participants.is_empty() && self.diagram.items.is_empty() => {
+                Err(Declined::at(
+                    no,
+                    format!(
+                        "`{}` starts no diagram the native engine knows",
+                        snippet(text)
+                    ),
+                ))
+            }
             None => Err(Declined::at(
                 no,
                 format!(
@@ -1725,8 +1736,10 @@ mod tests {
             ("A ->o ]", "without a space"),
             ("A -> ]", "without a space"),
             ("[ -> A", "without a space"),
-            ("\"A\"o-> B", "not part of"),
-            ("A o- B", "not part of"),
+            ("A -> B\n\"A\"o-> B", "not part of"),
+            ("A -> B\nA o- B", "not part of"),
+            // Before any message, no type claims the line.
+            ("A o- B", "starts no diagram"),
         ] {
             let err = declined(source);
             assert!(err.reason.contains(part), "{source}: {}", err.reason);

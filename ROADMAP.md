@@ -2655,7 +2655,10 @@ skin draws them by hand.
       (MIT, its notice beside them), each a path drawn after the text,
       as tall as a capital and standing on the baseline; `<&cloud*2>`,
       `{scale=2}` and a color (`<#red&lock-locked>`, `,color=red`) as
-      PlantUML reads them, and a tall icon lifts its line. A sprite the
+      PlantUML reads them, and a tall icon lifts its line. A name Open
+      Iconic lacks (`<&camera>`) is drawn as nothing, as PlantUML draws
+      it, and lint names it with the icons that come close
+      (`<&camera-slr>`; REQ-066, 2026-11-15). A sprite the
       diagram defines (`sprite $bolt [16x16/16] { … }`) is read in each
       form `plantuml -encodesprite` writes: 16 levels a hex digit a
       pixel, 8 levels two rows to a letter, 4 levels three, and each

@@ -8,10 +8,13 @@
 //! to a frequent one, an entry of the lines by hand that does not read or
 //! comes twice, two colors the writer set that hardly differ
 //! ([`crate::faint`]), a line of a Mermaid flowchart that mermaid.js would
-//! not read ([`portable`]), a PlantUML line Omaspec's own engine does not
-//! draw yet, so only the Java PlantUML draws the diagram ([`java_only`]).
+//! not read ([`portable`]), an Open Iconic name the set lacks
+//! ([`icons`]), a PlantUML line Omaspec's own engine does not draw yet, so
+//! only the Java PlantUML draws the diagram, and one it refuses as PlantUML
+//! does ([`engine`]).
 
 mod fix;
+mod icons;
 mod namesakes;
 mod portable;
 
@@ -80,6 +83,9 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
         Language::PlantUml => plantuml_syntax(&lines),
     };
     lines_by_hand(&code, &mut findings);
+    if lang == Language::PlantUml {
+        icons::findings(&lines, &mut findings);
+    }
     let faint = match lang {
         Language::PlantUml => crate::faint::plantuml(&lines),
         Language::Mermaid => crate::faint::mermaid(&lines),
@@ -112,14 +118,6 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
         // about names hold back once it runs.
         Language::PlantUml if lines.iter().any(|l| l.trim_start().starts_with('!')) => {}
         Language::PlantUml => {
-            // A line the syntax rules already name needs no second word.
-            if let Some(java) = java_only(&code)
-                && !findings
-                    .iter()
-                    .any(|f| f.line == java.line && f.severity >= Severity::Warning)
-            {
-                findings.push(java);
-            }
             let rows: Vec<Row> = element_lines(&code)
                 .unwrap_or_default()
                 .into_iter()
@@ -144,28 +142,40 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
                 }
                 _ => {}
             }
+            // A line the rules already name needs no second word.
+            if let Some(said) = engine(&code)
+                && !findings
+                    .iter()
+                    .any(|f| f.line == said.line && f.severity >= Severity::Warning)
+            {
+                findings.push(said);
+            }
         }
     }
     findings.sort_by_key(|f| f.line);
     findings
 }
 
-/// What Omaspec's own engine does not draw yet, though PlantUML does: the
-/// diagram is drawn by the Java PlantUML where it is installed, and not at
-/// all where it is not. Worth knowing before it goes where Java is not.
-/// What PlantUML refuses too is a mistake, which the syntax rules name.
-fn java_only(code: &str) -> Option<Finding> {
+/// What Omaspec's own engine does not read. What PlantUML draws is drawn by
+/// the Java PlantUML where it is installed, and not at all where it is
+/// not: worth knowing before it goes where Java is not. What PlantUML
+/// refuses too is a mistake, an error where the syntax rules do not name
+/// its line already.
+fn engine(code: &str) -> Option<Finding> {
     let declined = omaspec_uml::parse(code).err()?;
-    (!declined.refused).then(|| {
+    let line = declined.line.unwrap_or(0);
+    Some(if declined.refused {
+        Finding::new(line, Severity::Error, declined.reason)
+    } else {
         Finding::new(
-            declined.line.unwrap_or(0),
+            line,
             Severity::Info,
             format!("{}: {JAVA_ONLY}", declined.reason),
         )
     })
 }
 
-/// How [`java_only`]'s finding ends.
+/// How [`engine`]'s finding ends when only Java draws the diagram.
 const JAVA_ONLY: &str = "only the Java PlantUML draws this diagram";
 
 /// Entries of the block of lines by hand that do not read, and a second
@@ -944,6 +954,15 @@ mod tests {
         assert!(found[0].2.ends_with(JAVA_ONLY), "{found:?}");
         // What Omaspec draws itself says nothing.
         assert!(but_java("@startuml\nA -> B : hi\n@enduml\n").is_empty());
+        // What PlantUML refuses too is an error: a rule PlantUML reads as
+        // the picture's header.
+        let found = messages(
+            "@startebnf\nheader = \"x\", body ;\nbody = \"y\" ;\n@endebnf\n",
+            Language::PlantUml,
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!((found[0].0, found[0].1), (1, Severity::Error));
+        assert!(found[0].2.contains("named `header`"), "{found:?}");
         assert!(messages("@startuml\nA -> B : hi\n@enduml\n", Language::PlantUml).is_empty());
     }
 

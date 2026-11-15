@@ -7,6 +7,7 @@ mod c4;
 mod chart;
 mod class;
 mod er;
+mod failure;
 mod gantt;
 mod gitgraph;
 mod head;
@@ -241,11 +242,14 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
     }));
     match result {
         Ok(Ok(drawn)) => Ok(drawn),
-        Ok(Err(err)) => Err(RenderError::Diagram {
-            engine: Engine::Mermaid,
-            line: error_line(&err).map(|l| written_from(source, l + offset)),
-            message: err.to_string(),
-        }),
+        Ok(Err(err)) => {
+            let (line, message) = failure::said(&err, body);
+            Err(RenderError::Diagram {
+                engine: Engine::Mermaid,
+                line: line.map(|l| written_from(source, l + offset)),
+                message,
+            })
+        }
         Err(_) => Err(RenderError::Engine {
             engine: Engine::Mermaid,
             message: "mmdr crashed on this diagram".into(),

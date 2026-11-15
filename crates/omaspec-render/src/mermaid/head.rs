@@ -12,10 +12,15 @@ use serde_json::Value;
 /// The line that names the diagram's kind, in lower case: the first that
 /// is not empty, front matter or a comment.
 pub(super) fn header(body: &str) -> Option<String> {
+    header_at(body).map(|(_, line)| line.to_ascii_lowercase())
+}
+
+/// The line that names the diagram's kind, as written but trimmed, with
+/// its index in `body`.
+pub(super) fn header_at(body: &str) -> Option<(usize, &str)> {
     significant(body)
-        .map(|(_, _, line)| line)
-        .find(|line| !line.starts_with("%%"))
-        .map(str::to_ascii_lowercase)
+        .map(|(index, _, line)| (index, line))
+        .find(|(_, line)| !line.starts_with("%%"))
 }
 
 /// Whether `header` starts with `word` as a word of its own:
