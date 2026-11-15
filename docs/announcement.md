@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.9.7: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 0.9.8: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -83,6 +83,23 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   crosses less: on 300 random graphs 28 % fewer crossings.
 - **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
   matter, and a component's name keeps clear of its icon.
+
+## New in 0.9.8
+
+- **A fold that glides.** Fold a container and its boxes glide to their new places, each
+  drawn from a picture of its own that the engine marks as it draws: states, classes,
+  packages, components, use cases, C4, Mermaid flowcharts, mind maps, WBS and JSON or
+  YAML cards. Lines travel with their boxes and their words with them, the title and the
+  legend glide to where they go, and a JSON card keeps its rows where they are. Nothing
+  of one box is cut out of another any more, and the first frame is the picture before
+  to the pixel, the last the new one. A picture from the Java PlantUML fades.
+- **Steadier on screen.** The fold buttons wait until the boxes have arrived; folding at
+  the caret works while the last fold still glides; a pan that stops a zoom no longer
+  leaves the new picture behind the old one.
+- **Plays and folds recorded as the window draws them.** `omaspec play` takes its
+  pictures the way the window does, so a GIF shows what the window shows.
+- **`--version` tells the commit** a build comes from: `0.9.8+3b94dc3` for a build of
+  `main`, `0.9.8` for the release.
 
 ## New in 0.9.7
 

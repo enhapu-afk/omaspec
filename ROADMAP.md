@@ -1293,7 +1293,13 @@ Mermaid 11's thirty named shapes, generics in both languages, Salt trees with
 their columns, clouds, Sankey columns, timing names and state notes that keep
 clear of what is around them, a hyphen in Ditaa kept, lint naming what only Java
 draws, `render --fit` and the characters no installed font draws, and a play
-that checks its events first and keeps to its width.
+that checks its events first and keeps to its width. 0.9.8 made the glide of a
+fold or an edit know its parts: the engine marks each box, mark and line's
+words, and each glides as a picture of its own (states, structures, flowcharts,
+trees, JSON cards), the lines and their words with them, titles and legends too;
+how a new picture comes on screen is a state machine Omaspec checks; a recording
+and the tests take their pictures the window's way; and `--version` tells the
+commit a build comes from.
 
 ### Step 0: the yardstick
 
