@@ -7,7 +7,6 @@ use std::sync::Arc;
 use iced::Size;
 use omaspec_core::Language;
 use omaspec_render::RenderError;
-use omaspec_render::export::usvg;
 
 use super::view::Glide;
 use super::{Message, Paper, raster};
@@ -77,25 +76,19 @@ impl Paper {
         let old = self
             .previous
             .as_ref()
-            .and_then(|previous| Some((previous.bare.clone()?, previous.tree.clone())))
+            .and_then(|previous| previous.sheet.clone())
             .zip(self.bare_old.asked);
         let new = self
             .diagram
             .as_ref()
-            .and_then(|diagram| {
-                let full = diagram.drawn.parts.then(|| Arc::clone(&diagram.drawn.tree));
-                Some((diagram.drawn.bare.clone()?, full))
-            })
+            .and_then(|diagram| raster::Sheet::of(&diagram.drawn))
             .zip(self.bare_new.asked);
-        let draw = |(tree, full): (Arc<usvg::Tree>, Option<Arc<usvg::Tree>>), plan| {
-            raster::draw(&tree, full.as_deref(), plan)
-        };
-        if let Some((trees, plan)) = old {
-            let raster = draw(trees, plan);
+        if let Some((sheet, plan)) = old {
+            let raster = sheet.draw(plan);
             let _ = self.update(Message::BareOld(self.bare_old.seq(), raster));
         }
-        if let Some((trees, plan)) = new {
-            let raster = draw(trees, plan);
+        if let Some((sheet, plan)) = new {
+            let raster = sheet.draw(plan);
             let _ = self.update(Message::BareNew(self.bare_new.seq(), raster));
         }
     }
@@ -117,7 +110,6 @@ impl Paper {
         }
         if let Some(fade) = &self.fade {
             out.extend(fade.old.iter());
-            out.extend(fade.next.iter());
             if let Some((old, new)) = &fade.bare {
                 out.extend([old, new]);
             }
@@ -137,7 +129,7 @@ impl Paper {
             .flat_map(|fade| fade.morph.iter())
             .flat_map(|m| &m.moves);
         for step in moves {
-            for fill in [step.from_fill, step.to_fill].into_iter().flatten() {
+            for fill in step.looks.fill.into_iter().flatten() {
                 handles.push(raster::Raster::swatch(fill).handle);
             }
         }

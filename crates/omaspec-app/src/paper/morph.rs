@@ -50,27 +50,34 @@ pub struct Move {
     pub name: String,
     pub from: Rectangle,
     pub to: Rectangle,
-    /// Its fill before and after, when its own outline names one plain
-    /// color; worked out once a glide, from its part ([`prepare`]).
-    pub from_fill: Option<[f32; 3]>,
-    pub to_fill: Option<[f32; 3]>,
-    /// How its own outline bends before and after; none for a shape that
-    /// is no box ([`pick::Fills::bend`], [`prepare`]).
-    pub from_bend: Option<pick::Bend>,
-    pub to_bend: Option<pick::Bend>,
     /// The part it is drawn in, before and after ([`Side::part`]).
     pub parts: [String; 2],
     /// Its rows are laid out from its top left ([`Side::anchored`]).
     pub anchored: bool,
-    /// Its new picture covers its box (a card with a fill), so the old one
-    /// may stay opaque under it to the end; worked out once a glide
-    /// ([`prepare`]).
-    pub solid: bool,
+    /// How it is drawn, worked out once a glide ([`prepare`]).
+    pub looks: Looks,
     pub role: Role,
     /// The box of a tree it hangs below, which stays: where that one was
     /// and where it is. A box that leaves glides into it, one that
     /// arrives comes out of it ([`gather`]).
     pub into: Option<(Rectangle, Rectangle)>,
+}
+
+/// How a box of a glide is drawn, the same in every frame: worked out
+/// once, from the two sheets it glides between ([`prepare`]). Each pair
+/// is the picture before and the new one.
+#[derive(Clone, Debug, Default)]
+pub struct Looks {
+    /// Its fill, when its own outline names one plain color.
+    pub fill: [Option<[f32; 3]>; 2],
+    /// How its own outline bends; none for a shape that is no box
+    /// ([`pick::Fills::bend`]).
+    pub bend: [Option<pick::Bend>; 2],
+    /// The boxes inside it, each with its stroke ([`held`]).
+    pub held: [Vec<Rectangle>; 2],
+    /// Its new picture covers its box (a card with a fill), so the old one
+    /// may stay opaque under it to the end.
+    pub solid: bool,
 }
 
 /// The boxes of one glide.
@@ -92,7 +99,7 @@ pub struct Morph {
 pub struct Kept {
     pub name: String,
     /// Its new picture covers its place, as a card does and words do not
-    /// ([`Move::solid`]).
+    /// ([`Looks::solid`]).
     pub solid: bool,
 }
 
@@ -257,13 +264,9 @@ pub fn plan_with(
             name: to.name.clone(),
             from: to.rect,
             to: to.rect,
-            from_fill: None,
-            to_fill: None,
-            from_bend: None,
-            to_bend: None,
             parts: [to.part.clone(), to.part.clone()],
             anchored: to.anchored,
-            solid: false,
+            looks: Looks::default(),
             role: Role::Arrive,
             into: None,
         });
@@ -328,13 +331,9 @@ fn stay(from: &Side, to: &Side) -> Move {
         name: from.name.clone(),
         from: from.rect,
         to: to.rect,
-        from_fill: None,
-        to_fill: None,
-        from_bend: None,
-        to_bend: None,
         parts: [from.part.clone(), to.part.clone()],
         anchored: from.anchored || to.anchored,
-        solid: false,
+        looks: Looks::default(),
         role: Role::Stay,
         into: None,
     }
@@ -346,13 +345,9 @@ fn stay_move(from: &Move, to: &Side) -> Move {
         name: to.name.clone(),
         from: from.from,
         to: to.rect,
-        from_fill: None,
-        to_fill: None,
-        from_bend: None,
-        to_bend: None,
         parts: [from.parts[0].clone(), to.part.clone()],
         anchored: from.anchored || to.anchored,
-        solid: false,
+        looks: Looks::default(),
         role: Role::Stay,
         into: None,
     }
@@ -401,13 +396,9 @@ fn leave(from: &Side) -> Move {
         name: from.name.clone(),
         from: from.rect,
         to: from.rect,
-        from_fill: None,
-        to_fill: None,
-        from_bend: None,
-        to_bend: None,
         parts: [from.part.clone(), from.part.clone()],
         anchored: from.anchored,
-        solid: false,
+        looks: Looks::default(),
         role: Role::Leave,
         into: None,
     }
@@ -626,7 +617,7 @@ fn paint_box(
     // into a row of the card above, fades out over that part. One drawn
     // at its size ([`anchored`]) whose new picture does not cover the old
     // one fades out too, so nothing of it is left at the end.
-    let keeps = !anchored(paint, step) || step.solid || same_size(step.from, step.to);
+    let keeps = !anchored(paint, step) || step.looks.solid || same_size(step.from, step.to);
     let old_a = match step.role {
         Role::Leave => placed.out,
         Role::Stay if placed.t < 1.0 && drawn(paint, step, false) && keeps => 1.0,
@@ -641,8 +632,8 @@ fn paint_box(
     if old_a <= 0.02 && new_a <= 0.02 {
         return;
     }
-    // The holes of each picture filled with its own box's color: the
-    // container's, not the folded box's it becomes.
+    // The old picture of the box, then the new one over it, each from its
+    // own part.
     for (old, alpha) in [(true, old_a), (false, new_a)] {
         if alpha > 0.02 {
             paint_side(frame, local, paint, index, placed, dest, old, alpha);
@@ -692,16 +683,13 @@ fn paint_side(
     else {
         return;
     };
-    let (size, src, bend, fill) = if old {
-        (
-            paint.old_size,
-            grow(step.from),
-            step.from_bend,
-            step.from_fill,
-        )
+    let side = usize::from(!old);
+    let (size, src) = if old {
+        (paint.old_size, grow(step.from))
     } else {
-        (paint.new_size, grow(step.to), step.to_bend, step.to_fill)
+        (paint.new_size, grow(step.to))
     };
+    let looks = &step.looks;
     let natural = match step.role {
         Role::Stay => Some(placed.natural),
         // The eased sheet's scale for that picture.
@@ -717,15 +705,16 @@ fn paint_side(
     // keeps its title at the top.
     let fit = match natural {
         Some(natural) if anchored(paint, step) => sprite::anchored(src, dest, natural),
-        _ => {
-            let held: Vec<Rectangle> = held(&paint.morph.moves, index, old)
-                .into_iter()
-                .map(|(_, rect)| rect)
-                .collect();
-            sprite::fit(src, dest, natural, placed.pixel, bend, &held)
-        }
+        _ => sprite::fit(
+            src,
+            dest,
+            natural,
+            placed.pixel,
+            looks.bend[side],
+            &looks.held[side],
+        ),
     };
-    let swatch = fill.map(Raster::swatch);
+    let swatch = looks.fill[side].map(Raster::swatch);
     sprite::draw(frame, local, &part, &fit, swatch.as_ref(), alpha);
 }
 
@@ -734,9 +723,25 @@ fn paint_side(
 /// filled and bends, which parts no box and no line's words take, and
 /// which of them are in both pictures.
 pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&super::wires::Glide>) {
-    for step in &mut morph.moves {
-        (step.from_fill, step.from_bend) = old.outline(&step.parts[0], grow(step.from));
-        (step.to_fill, step.to_bend) = new.outline(&step.parts[1], grow(step.to));
+    let held: Vec<[Vec<Rectangle>; 2]> = (0..morph.moves.len())
+        .map(|index| {
+            [
+                held(&morph.moves, index, true),
+                held(&morph.moves, index, false),
+            ]
+        })
+        .collect();
+    for (step, held) in morph.moves.iter_mut().zip(held) {
+        let [from_looks, to_looks] = [
+            old.outline(&step.parts[0], step.from),
+            new.outline(&step.parts[1], step.to),
+        ];
+        step.looks = Looks {
+            fill: [from_looks.0, to_looks.0],
+            bend: [from_looks.1, to_looks.1],
+            held,
+            solid: step.anchored && covers(new, &step.parts[1]),
+        };
     }
     for (side, raster) in [(0, old), (1, new)] {
         let Some(parts) = &raster.parts else {
@@ -779,9 +784,6 @@ pub fn prepare(morph: &mut Morph, old: &Raster, new: &Raster, lines: Option<&sup
             name,
         })
         .collect();
-    for step in &mut morph.moves {
-        step.solid = step.anchored && covers(new, &step.parts[1]);
-    }
 }
 
 /// The parts in both pictures that no box takes ([`Morph::kept`]), each
@@ -886,9 +888,9 @@ fn parent_dest(step: &Move, paint: &Paint<'_>, placed: &Placed) -> Option<Rectan
     ))
 }
 
-/// The boxes inside box `index` in the picture before or the new one: each
-/// one's index, and its place with its stroke.
-fn held(moves: &[Move], index: usize, old: bool) -> Vec<(usize, Rectangle)> {
+/// The boxes inside box `index` in the picture before or the new one: the
+/// place of each, with its stroke.
+fn held(moves: &[Move], index: usize, old: bool) -> Vec<Rectangle> {
     let missing =
         |step: &Move| (old && step.role == Role::Arrive) || (!old && step.role == Role::Leave);
     let step = &moves[index];
@@ -902,7 +904,7 @@ fn held(moves: &[Move], index: usize, old: bool) -> Vec<(usize, Rectangle)> {
         .enumerate()
         .filter(|(other_i, other)| *other_i != index && !missing(other))
         .filter(|(_, other)| inside(rect(other), parent))
-        .map(|(other_i, other)| (other_i, grow(rect(other))))
+        .map(|(_, other)| grow(rect(other)))
         .collect()
 }
 

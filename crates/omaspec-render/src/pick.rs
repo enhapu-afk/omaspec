@@ -213,15 +213,8 @@ fn fits(shape: &Rect, label: &Rect) -> bool {
         && shape.height() + FIT >= label.height()
 }
 
-/// The fill of the shape drawn on the box `(x, y, w, h)`, when one sits
-/// there. A sketch's stroke bows, so the shape may miss the box by a little.
-/// For many boxes of one picture, [`fills`] reads the picture once.
-pub fn fill_of(tree: &Tree, x: f32, y: f32, w: f32, h: f32) -> Option<[f32; 3]> {
-    fills(tree).of(x, y, w, h)
-}
-
-/// The shapes of a picture, read once, to ask [`Fills::of`] and
-/// [`Fills::bend`] for many boxes.
+/// The shapes of a part of a picture, read once, to ask [`Fills::of`]
+/// and [`Fills::bend`] for its boxes ([`fills_of`]).
 #[derive(Debug, Clone, Default)]
 pub struct Fills(Vec<Outline>);
 
@@ -245,14 +238,10 @@ pub struct Bend {
     pub inset: f32,
 }
 
-/// The shapes of `tree` with a fill or an outline, and how they are filled.
-pub fn fills(tree: &Tree) -> Fills {
-    fills_of([tree.root()])
-}
-
-/// The shapes of `groups` alone, as [`fills`] reads a whole picture: the
-/// groups of one part of it, so that what is asked of a box is answered
-/// by its own outline and never by another's (docs/adr/0029).
+/// The shapes of `groups` alone with a fill or an outline, and how they
+/// are filled: the groups of one part of a picture, so that what is asked
+/// of a box is answered by its own outline and never by another's
+/// (docs/adr/0029).
 pub fn fills_of<'a>(groups: impl IntoIterator<Item = &'a usvg::Group>) -> Fills {
     let mut outlines = Vec::new();
     for group in groups {
@@ -285,7 +274,9 @@ fn collect_outlines(group: &usvg::Group, outlines: &mut Vec<Outline>) {
 }
 
 impl Fills {
-    /// What [`fill_of`] says for the box `(x, y, w, h)`.
+    /// The fill of the shape drawn on the box `(x, y, w, h)`, when one
+    /// sits there. A sketch's stroke bows, so the shape may miss the box
+    /// by a little.
     pub fn of(&self, x: f32, y: f32, w: f32, h: f32) -> Option<[f32; 3]> {
         self.nearest(x, y, w, h, |outline| outline.fill.is_some())
             .and_then(|outline| outline.fill)
@@ -574,7 +565,7 @@ mod tests {
 <polygon points="566,140 566,110 450,110 450,170 570,170 570,140" fill="#f1f1f1"/>
 </svg>"##;
         let tree = export::parse(svg).unwrap();
-        let fills = fills(&tree);
+        let fills = fills_of([tree.root()]);
         let radius = |x, y, w, h| fills.bend(x, y, w, h).map(|bend| bend.radius);
         let rounded = radius(10.0, 10.0, 80.0, 40.0).unwrap();
         assert!((rounded - 8.0).abs() < 0.5, "{rounded}");
@@ -825,12 +816,13 @@ mod tests {
     }
 
     #[test]
-    fn fill_of_reads_the_shape_on_the_box() {
+    fn fills_read_the_shape_on_the_box() {
         let tree = export::parse(SVG).unwrap();
-        let fill = fill_of(&tree, 10.0, 10.0, 120.0, 60.0).expect("the box");
+        let fills = fills_of([tree.root()]);
+        let fill = fills.of(10.0, 10.0, 120.0, 60.0).expect("the box");
         assert!((fill[0] - 238.0 / 255.0).abs() < 0.02, "{fill:?}");
         // A patch of empty paper is not the page behind it.
-        assert!(fill_of(&tree, 180.0, 100.0, 20.0, 20.0).is_none());
+        assert!(fills.of(180.0, 100.0, 20.0, 20.0).is_none());
     }
 
     #[test]

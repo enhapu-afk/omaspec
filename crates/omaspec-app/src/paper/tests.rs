@@ -1,4 +1,4 @@
-use super::testing::{answer, drawn};
+use super::testing::{answer, drawn, drawn_without_parts};
 use super::*;
 
 #[test]
@@ -895,7 +895,7 @@ fn a_json_card_folds_from_its_part_into_its_row() {
     // The home card, which grows by its folded row, is drawn at its size
     // and covers the old one.
     let home = morph.moves.iter().find(|m| m.name == "home").unwrap();
-    assert!(home.anchored && home.solid, "{home:?}");
+    assert!(home.anchored && home.looks.solid, "{home:?}");
     let lines = fade.lines.as_ref().expect("the arrows glide");
     assert!(
         lines
@@ -944,6 +944,52 @@ D --> E
     let fade = paper.fade.as_ref().expect("the fade starts without them");
     assert!(fade.morph.is_none());
     assert!(fade.lines.is_none() && fade.bare.is_none());
+}
+
+/// A picture that marks no parts, as the Java engine's does not, fades
+/// into the next, and the next into it: nothing of it is read for a
+/// glide, no sheet is asked for, and a fold's buttons wait for the new
+/// picture as they do while boxes glide (docs/adr/0029).
+#[test]
+fn a_picture_without_parts_fades() {
+    let first = "@startuml\nstate Big {\n  [*] --> A\n}\n[*] --> Big\n@enduml\n";
+    let next = "@startuml\nstate Big {\n  [*] --> A\n  A --> B\n  B --> C\n}\n[*] --> Big\nBig --> D\n@enduml\n";
+    let show = |paper: &mut Paper, source: &str, parts: bool| {
+        let drawn = if parts {
+            drawn(source, Language::PlantUml)
+        } else {
+            drawn_without_parts(source, Language::PlantUml)
+        };
+        assert_eq!(drawn.parts, parts);
+        let mut reply = answer(1, paper.pretend_next(), Ok(drawn));
+        reply.source = source.into();
+        reply.language = Language::PlantUml;
+        let _ = paper.rendered(reply);
+    };
+    for (from, to) in [(false, false), (true, false), (false, true)] {
+        let what = format!("parts {from} to {to}");
+        let mut paper = Paper {
+            folding: true,
+            ..Paper::default()
+        };
+        let _ = paper.update(Message::Viewport(Size::new(400.0, 300.0)));
+        show(&mut paper, first, from);
+        paper.deliver_overview();
+        let _ = paper.update(Message::Faded);
+        paper.set_fold("Big", true);
+        show(&mut paper, next, to);
+        assert_eq!(
+            paper.previous.as_ref().unwrap().boxes.is_empty(),
+            !from,
+            "{what}: its boxes read only for a glide"
+        );
+        paper.deliver_overview();
+        assert!(paper.bare_old.asked.is_none() && paper.bare_new.asked.is_none());
+        let fade = paper.fade.as_ref().expect("the fade starts at once");
+        assert!(fade.morph.is_none() && fade.bare.is_none(), "{what}");
+        assert!(fade.stands_in, "{what}: a fold that does not glide");
+        assert!(paper.fold_spots().is_empty(), "{what}: the buttons wait");
+    }
 }
 
 /// A tree of `branches` branches with `leaves` leaves each, and `more`

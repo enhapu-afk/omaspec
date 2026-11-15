@@ -683,14 +683,13 @@ mod tests {
             name: name.to_owned(),
             from,
             to,
-            from_fill: Some([0.9; 3]),
-            to_fill: Some([0.9; 3]),
-            from_bend: None,
-            to_bend: None,
             parts: Default::default(),
             role,
             anchored: false,
-            solid: false,
+            looks: super::super::morph::Looks {
+                fill: [Some([0.9; 3]); 2],
+                ..Default::default()
+            },
             into: None,
         }
     }

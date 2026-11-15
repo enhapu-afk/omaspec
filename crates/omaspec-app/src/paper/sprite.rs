@@ -68,19 +68,29 @@ pub(super) struct Piece {
     pub room: bool,
 }
 
-/// How a box's pixels fill a box on screen: its parts, and of them the
-/// inside, within its rim.
+/// How a box's pixels fill a box on screen: its parts, the inside within
+/// its rim.
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Fit {
     pub pieces: Vec<Piece>,
-    /// The index in `pieces` of the inside.
-    pub inside: usize,
 }
 
 impl Fit {
+    /// The inside: of the pieces that are not room, the one that holds the
+    /// middle of the box's pixels. A rim is at most a third of the box.
     #[cfg(test)]
     pub fn inside(&self) -> Piece {
-        self.pieces[self.inside]
+        let src = self
+            .pieces
+            .iter()
+            .map(|piece| piece.src)
+            .reduce(|a, b| a.union(&b))
+            .expect("a fit has pieces");
+        *self
+            .pieces
+            .iter()
+            .find(|piece| !piece.room && piece.src.contains(src.center()))
+            .expect("an inside")
     }
 }
 
@@ -91,7 +101,7 @@ impl Fit {
 /// of the boxes it holds. None for a shape that is no box, or a box too
 /// small or too full for a rim around its corners and [`NARROWEST_RIM`]
 /// past its sides.
-pub(super) fn rim(src: Rectangle, bend: Option<Bend>, children: &[Rectangle]) -> Option<f32> {
+fn rim(src: Rectangle, bend: Option<Bend>, children: &[Rectangle]) -> Option<f32> {
     let Bend { radius, inset } = bend?;
     let room = children
         .iter()
@@ -128,7 +138,6 @@ pub(super) fn fit(
             limit: dest,
             room: false,
         }],
-        inside: 0,
     };
     let Some(rim) = rim(src, bend, children) else {
         return plain();
@@ -180,12 +189,8 @@ pub(super) fn fit(
         holding,
     );
     let mut pieces = Vec::with_capacity(xs.len() * ys.len());
-    let mut inside = 0;
     for y in &ys {
         for x in &xs {
-            if x.part == Part::Inside && y.part == Part::Inside {
-                inside = pieces.len();
-            }
             pieces.push(Piece {
                 src: span(x.src, y.src),
                 dest: span(x.dest, y.dest),
@@ -196,7 +201,7 @@ pub(super) fn fit(
             });
         }
     }
-    Fit { pieces, inside }
+    Fit { pieces }
 }
 
 /// The box of pixels `src` drawn at `natural` pixels to a unit from the
@@ -219,11 +224,10 @@ pub(super) fn anchored(src: Rectangle, within: Rectangle, natural: f32) -> Fit {
             limit,
             room: false,
         }],
-        inside: 0,
     }
 }
 
-pub(super) fn inset(rect: Rectangle, by: f32) -> Rectangle {
+fn inset(rect: Rectangle, by: f32) -> Rectangle {
     Rectangle::new(
         Point::new(rect.x + by, rect.y + by),
         Size::new(

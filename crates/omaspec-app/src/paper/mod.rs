@@ -152,12 +152,10 @@ struct Previous {
     /// Its links and folds, whose marks stay on it.
     links: Vec<Link>,
     spots: Vec<fold::Spot>,
-    /// Its ground, without lines and parts, the plan its overview was
-    /// drawn to, and its map: its boxes and lines glide from these.
-    bare: Option<Arc<usvg::Tree>>,
-    /// The picture itself, when its parts are marked: they are drawn from
-    /// it, each on its own (docs/adr/0029).
-    tree: Option<Arc<usvg::Tree>>,
+    /// What its sheet of parts is drawn from ([`raster::Sheet::of`]), the plan
+    /// its overview was drawn to, and its map: its boxes and lines glide
+    /// from these.
+    sheet: Option<raster::Sheet>,
     plan: Option<raster::Plan>,
     map: Arc<omaspec_render::Map>,
 }
@@ -186,10 +184,7 @@ pub struct Fade {
     old_size: Size,
     /// The boxes gliding across, when the new picture moved them.
     morph: Option<morph::Morph>,
-    /// The picture this glide travels to, taken when the glide starts.
-    /// A later render must not swap it under the boxes.
-    next: Option<Raster>,
-    /// Where that picture sits. A pan or a zoom follows; the fit of a
+    /// Where the picture it travels to sits. A pan or a zoom follows; the fit of a
     /// newer diagram waits until this glide has ended.
     new_view: View,
     new_size: Size,
@@ -197,8 +192,9 @@ pub struct Fade {
     /// their lines ([`wires`]); none when the pictures keep their lines.
     lines: Option<wires::Glide>,
     bare: Option<(Raster, Raster)>,
-    /// The fade of a fold in a diagram of too many boxes to glide
-    /// ([`arrive::MOST_GLIDING`]): it stands in for the glide.
+    /// The fade of a fold that does not glide, in a diagram of too many
+    /// boxes ([`arrive::MOST_GLIDING`]) or one without a sheet of parts:
+    /// it stands in for the glide.
     stands_in: bool,
 }
 

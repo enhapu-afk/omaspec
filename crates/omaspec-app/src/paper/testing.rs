@@ -19,6 +19,17 @@ pub fn drawn(source: &str, language: Language) -> Drawn {
     Drawn::of(out).unwrap()
 }
 
+/// `source` drawn as it is, its parts not asked for: a picture that marks
+/// none, as the Java engine's does not.
+pub fn drawn_without_parts(source: &str, language: Language) -> Drawn {
+    let mut renderer = Renderer::new(&Config {
+        java_fallback: false,
+        ..Config::default()
+    });
+    let out = renderer.render(source, language).unwrap();
+    Drawn::of(out).unwrap()
+}
+
 /// Every diagram of the Markdown document `text`, one under another.
 pub fn drawn_document(text: &str) -> Drawn {
     let mut renderer = Renderer::new(&Config {

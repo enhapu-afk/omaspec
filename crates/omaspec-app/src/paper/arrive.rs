@@ -10,7 +10,7 @@ use iced::animation::Easing;
 use iced::time::Instant;
 use iced::{Animation, Point, Size, Task};
 
-use super::raster::{Plan, Raster};
+use super::raster::{Plan, Raster, Sheet};
 use super::view::View;
 use super::{Change, Diagram, Fade, Message, Paper, Previous, Status, cards, frames, morph, wires};
 use crate::worker::Answer;
@@ -95,17 +95,14 @@ impl Paper {
                         boxes: self
                             .diagram
                             .as_ref()
-                            .filter(|diagram| !too_many(&diagram.drawn.map))
+                            .filter(|diagram| {
+                                Sheet::of(&diagram.drawn).is_some() && !too_many(&diagram.drawn.map)
+                            })
                             .map(morph::sides)
                             .unwrap_or_default(),
                         links: self.followable().to_vec(),
                         spots: self.fold_spots(),
-                        bare: self.diagram.as_ref().and_then(|d| d.drawn.bare.clone()),
-                        tree: self
-                            .diagram
-                            .as_ref()
-                            .filter(|d| d.drawn.parts)
-                            .map(|d| Arc::clone(&d.drawn.tree)),
+                        sheet: self.diagram.as_ref().and_then(|d| Sheet::of(&d.drawn)),
                         plan: self.overview.asked,
                         map: self
                             .diagram
@@ -156,7 +153,7 @@ impl Paper {
                 // not the one a glide in flight is travelling to.
                 self.overview.forget();
                 self.detail.forget();
-                // Pictures without lines belong to one pair of diagrams.
+                // Sheets of parts belong to one pair of diagrams.
                 self.bare_old.clear();
                 self.bare_new.clear();
                 self.no_bare = false;
@@ -211,9 +208,12 @@ impl Paper {
     /// again when they come (docs/adr/0029). Otherwise, or when a sheet
     /// could not be drawn, the pictures fade, a fold longer than an edit.
     pub(super) fn start_fade(&mut self, now: Instant) -> Task<Message> {
-        let parts = self.diagram.as_ref().is_some_and(|d| d.drawn.parts);
+        let parts = self
+            .diagram
+            .as_ref()
+            .is_some_and(|d| Sheet::of(&d.drawn).is_some());
         let mut morph = match &self.previous {
-            Some(previous) if parts && previous.tree.is_some() => self
+            Some(previous) if parts && previous.sheet.is_some() => self
                 .morph_of(
                     &previous.pictures,
                     &previous.boxes,
@@ -245,18 +245,6 @@ impl Paper {
             self.change = Change::Edit;
         }
         let fold = fold.unwrap_or(false);
-        // A fold of too many boxes to glide: its fade stands in for the
-        // glide.
-        let stands_in = fold
-            && morph.is_none()
-            && (self
-                .previous
-                .as_ref()
-                .is_some_and(|previous| too_many(&previous.map))
-                || self
-                    .diagram
-                    .as_ref()
-                    .is_some_and(|diagram| too_many(&diagram.drawn.map)));
         self.fresh = false;
         self.landed = false;
         let previous = self.previous.take();
@@ -281,14 +269,15 @@ impl Paper {
             self.bare_old.shown.take(),
             self.bare_new.shown.take(),
         ) {
-            (Some(_), Some(old), Some(new)) if old.parts.is_some() && new.parts.is_some() => {
-                Some((old, new))
-            }
+            (Some(_), Some(old), Some(new)) => Some((old, new)),
             _ => None,
         };
         if bare.is_none() {
             morph = None;
         }
+        // A fold that fades, of too many boxes or of a picture without
+        // parts or a sheet: its fade stands in for the glide.
+        let stands_in = fold && morph.is_none();
         let (duration, easing) = if morph.is_some() {
             (MORPH, Easing::EaseInOut)
         } else if fold {
@@ -312,7 +301,6 @@ impl Paper {
             old_view,
             old_size,
             morph,
-            next: self.overview.shown.clone(),
             new_view: self.view,
             new_size: self.diagram_size(),
             lines,
@@ -327,33 +315,19 @@ impl Paper {
     }
 
     /// Asks for the sheets of the old picture and of the new one, at the
-    /// plans their overviews were drawn to; `None` when one of them has
-    /// no ground, so they fade.
+    /// plans their overviews were drawn to: each picture's ground, and
+    /// each of its parts on its own. `None` when one of them has no
+    /// sheet, so they fade.
     fn ask_bare(&mut self) -> Option<Task<Message>> {
         let previous = self.previous.as_ref()?;
-        let (old_tree, old_plan) = (previous.bare.clone()?, previous.plan?);
-        let old_full = previous.tree.clone();
-        let diagram = self.diagram.as_ref()?;
-        let new_tree = diagram.drawn.bare.clone()?;
-        let new_full = diagram.drawn.parts.then(|| Arc::clone(&diagram.drawn.tree));
+        let (old_sheet, old_plan) = (previous.sheet.clone()?, previous.plan?);
+        let new_sheet = Sheet::of(&self.diagram.as_ref()?.drawn)?;
         let new_plan = self.overview.asked?;
-        // With its parts marked, a picture is a sheet: its ground, and
-        // each part on its own.
         Some(Task::batch([
-            self.bare_old.ask_sheet(
-                Some(old_plan),
-                &old_tree,
-                old_full.as_ref(),
-                Duration::ZERO,
-                Message::BareOld,
-            ),
-            self.bare_new.ask_sheet(
-                Some(new_plan),
-                &new_tree,
-                new_full.as_ref(),
-                Duration::ZERO,
-                Message::BareNew,
-            ),
+            self.bare_old
+                .ask_sheet(Some(old_plan), old_sheet, Duration::ZERO, Message::BareOld),
+            self.bare_new
+                .ask_sheet(Some(new_plan), new_sheet, Duration::ZERO, Message::BareNew),
         ]))
     }
 
@@ -411,11 +385,12 @@ impl Paper {
             return None;
         }
         let diagram = self.diagram.as_ref()?;
-        // Each box of a glide is a picture of its own in every frame, cut
-        // out of the two it travels between. A tree of 2,800 boxes took
-        // 90 ms a frame that way, nine frames a second; one picture
-        // fading into the other stays at sixty. So does the way from an
-        // older drawing a comparison shows ([`Self::glide_from`]).
+        // Each box of a glide is a picture of its own in every frame,
+        // drawn from its part of the two sheets it travels between. A
+        // tree of 2,800 boxes took 90 ms a frame that way, nine frames a
+        // second; one picture fading into the other stays at sixty. So
+        // does the way from an older drawing a comparison shows
+        // ([`Self::glide_from`]).
         if too_many(old_map) || too_many(&diagram.drawn.map) {
             return None;
         }

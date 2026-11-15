@@ -355,12 +355,28 @@ fn sheet_gap(scale: f32) -> u32 {
     (SHEET_REACH * scale).ceil() as u32 + 3
 }
 
-/// The picture a layer asks for: `tree` at `plan`, or with `full`, the
-/// picture whose ground `tree` is, a [`sheet`] of the ground and its parts.
-pub fn draw(tree: &usvg::Tree, full: Option<&usvg::Tree>, plan: Plan) -> Option<Raster> {
-    match full {
-        Some(full) => sheet(tree, full, plan),
-        None => render(tree, plan),
+/// What a [`sheet`] is drawn from: the ground of a picture that marks its
+/// parts, and the picture itself, whose parts are drawn each on its own
+/// (docs/adr/0029).
+#[derive(Clone)]
+pub struct Sheet {
+    pub ground: Arc<usvg::Tree>,
+    pub full: Arc<usvg::Tree>,
+}
+
+impl Sheet {
+    /// The sheet of `drawn`; none when its parts are not marked, or its
+    /// ground could not be made, and it fades rather than glides.
+    pub fn of(drawn: &crate::worker::Drawn) -> Option<Self> {
+        Some(Self {
+            ground: Arc::clone(drawn.bare.as_ref().filter(|_| drawn.parts)?),
+            full: Arc::clone(&drawn.tree),
+        })
+    }
+
+    /// The sheet at `plan`.
+    pub fn draw(&self, plan: Plan) -> Option<Raster> {
+        sheet(&self.ground, &self.full, plan)
     }
 }
 
@@ -679,18 +695,27 @@ impl Layer {
         delay: Duration,
         done: fn(u64, Option<Raster>) -> Message,
     ) -> Task<Message> {
-        self.ask_sheet(plan, tree, None, delay, done)
+        let tree = Arc::clone(tree);
+        self.request(plan, delay, done, move |plan| render(&tree, plan))
     }
 
-    /// [`Self::ask`]; with `full`, the picture whose parts `tree` is the
-    /// ground of, a [`sheet`] of the ground and the parts.
+    /// [`Self::ask`] for the [`Sheet`] `sheet`.
     pub fn ask_sheet(
         &mut self,
         plan: Option<Plan>,
-        tree: &Arc<usvg::Tree>,
-        full: Option<&Arc<usvg::Tree>>,
+        sheet: Sheet,
         delay: Duration,
         done: fn(u64, Option<Raster>) -> Message,
+    ) -> Task<Message> {
+        self.request(plan, delay, done, move |plan| sheet.draw(plan))
+    }
+
+    fn request(
+        &mut self,
+        plan: Option<Plan>,
+        delay: Duration,
+        done: fn(u64, Option<Raster>) -> Message,
+        draw: impl FnOnce(Plan) -> Option<Raster> + Send + 'static,
     ) -> Task<Message> {
         if plan == self.asked {
             return Task::none();
@@ -702,15 +727,13 @@ impl Layer {
             return Task::none();
         };
         let latest = Arc::clone(&self.latest);
-        let tree = Arc::clone(tree);
-        let full = full.map(Arc::clone);
         Task::perform(
             blocking(move || {
                 std::thread::sleep(delay);
                 if latest.load(Ordering::Relaxed) != seq {
                     return None;
                 }
-                draw(&tree, full.as_deref(), plan)
+                draw(plan)
             }),
             Option::flatten,
         )
