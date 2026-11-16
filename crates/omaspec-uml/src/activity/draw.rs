@@ -21,6 +21,13 @@ const HEAD_LENGTH: f32 = 10.0;
 const HEAD_HALF: f32 = 4.0;
 
 pub fn draw(d: &Diagram) -> Result<String, Declined> {
+    draw_mapped(d).map(|(svg, _)| svg)
+}
+
+/// [`draw`], and the map: the swimlanes' titles across the top, which a
+/// pane keeps in sight as it scrolls past them ([`crate::map::Map::bands`],
+/// REQ-073).
+pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let skin = Skin::from_params(&d.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
@@ -151,7 +158,24 @@ pub fn draw(d: &Diagram) -> Result<String, Declined> {
         painter.shape(&mut canvas, shape);
     }
     annotations.draw(&mut canvas);
-    Ok(canvas.finish(MARGIN, skin.background))
+    let titles = match (columns.first(), columns.last()) {
+        (Some(&(left, _)), Some(&(_, right))) if !d.lanes.is_empty() => vec![crate::map::Band {
+            rect: crate::graph::Rect {
+                x: left,
+                y: lanes_top,
+                w: right - left,
+                h: content_top - lanes_top,
+            },
+            edge: crate::map::Edge::Top,
+        }],
+        _ => Vec::new(),
+    };
+    let map = crate::map::Map {
+        bands: titles,
+        ..crate::map::Map::default()
+    }
+    .placed(canvas.fit(MARGIN));
+    Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
 /// Draws shapes and lines moved into their swimlanes.

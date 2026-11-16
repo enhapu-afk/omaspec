@@ -46,6 +46,9 @@ pub struct Look {
     /// The caret glides and the list of what could be written arrives;
     /// off, both stand in their place at once.
     pub motion: bool,
+    /// The headings of a long diagram stay in sight at the pane's edge
+    /// (REQ-073): a sequence diagram's participants, a Gantt chart's tasks.
+    pub bands: bool,
     /// How diagrams are drawn besides their files: JSON and YAML nested,
     /// state machines as tables.
     pub views: crate::worker::Views,
@@ -60,6 +63,7 @@ impl Look {
             font,
             marks: MarkColors::new(palette, tweaks),
             motion: true,
+            bands: true,
             views: crate::worker::Views::default(),
         }
     }
@@ -307,6 +311,7 @@ impl Doc {
             folder: String::new(),
         };
         doc.paper.views = views;
+        doc.paper.keep_bands = look.bands;
         doc.analyze();
         doc
     }
@@ -569,6 +574,7 @@ impl Doc {
         self.editor.set_theme(look.tokens.clone());
         self.editor.set_motion(look.motion);
         self.paper.views = look.views;
+        self.paper.keep_bands = look.bands;
         self.tones = look.tones;
         self.marks = look.marks;
         self.edited();

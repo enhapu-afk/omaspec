@@ -358,6 +358,13 @@ pub const TABLE: &[Entry] = &[
         .menu(View)
         .short("Motion in the editor"),
     cmd(
+        "Headings of a long diagram kept in sight as it scrolls: on or off",
+        "",
+        Command::KeepBands,
+    )
+    .menu(View)
+    .short("Headings kept in sight"),
+    cmd(
         "JSON and YAML: as a tree or nested",
         "",
         Command::JsonLayout,

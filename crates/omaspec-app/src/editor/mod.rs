@@ -347,6 +347,8 @@ pub enum Command {
     Suggest,
     /// The caret glides and the list arrives, or both stand at once.
     Motion,
+    /// The headings of a long diagram kept in sight at the pane's edge.
+    KeepBands,
     /// JSON and YAML diagrams as a tree, or nested.
     JsonLayout,
     /// State machines shown as their tables of states and events, or as
@@ -805,6 +807,7 @@ impl App {
             palette,
             look: Look {
                 motion: session.motion,
+                bands: session.bands,
                 views: crate::worker::Views {
                     nested: session.nested,
                     table: session.table,
@@ -1852,6 +1855,7 @@ impl App {
                 self.render(key, false)
             }
             Command::Motion => self.toggle_motion(),
+            Command::KeepBands => self.toggle_bands(),
             Command::JsonLayout => self.toggle_json_layout(),
             Command::Outline => self.toggle_outline(),
             Command::StateTable => self.toggle_state_table(),

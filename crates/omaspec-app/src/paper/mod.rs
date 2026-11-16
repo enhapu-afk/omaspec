@@ -260,6 +260,9 @@ pub struct Paper {
     change: Change,
     /// A state machine or scenario being played.
     play: Option<Play>,
+    /// The headings of a long diagram stay in sight at the pane's edge as it
+    /// scrolls past them ([`omaspec_uml::map::Map::bands`], REQ-073).
+    pub keep_bands: bool,
     /// Whether the view follows the play (REQ-071): each step glides it to
     /// what the step takes, near enough to read, where the whole diagram
     /// is too large to; going back or again glides it out to the whole.
@@ -344,6 +347,7 @@ impl Default for Paper {
             change: Change::Edit,
             play: None,
             follow_play: false,
+            keep_bands: true,
             leaving: None,
             clock: None,
             breath: None,

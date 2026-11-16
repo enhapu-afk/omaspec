@@ -9,17 +9,18 @@
 use super::{font_name, plain_number};
 use mermaid_rs_renderer::Theme;
 use omaspec_uml::Color;
-use omaspec_uml::gantt::{Diagram, Marks, Row, Skinparam, draw, from_mermaid};
+use omaspec_uml::gantt::{Diagram, Marks, Row, Skinparam, draw_mapped, from_mermaid};
 use omaspec_uml::map::Map;
 
-/// The SVG, or `None` when this drawer leaves the diagram to mmdr.
-/// The map stays empty: a Gantt bar is not a message to jump to.
+/// The SVG, or `None` when this drawer leaves the diagram to mmdr. The map
+/// holds the bands a pane keeps in sight (the axis, the names); a Gantt
+/// bar is not a message to jump to.
 pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
     diagram.frame.skinparams = skin_of(theme)?;
     diagram.frame.skinparams.extend(super::sketch_param(source));
     paint(&mut diagram, theme)?;
-    draw(&diagram).ok().map(|svg| (svg, Map::default()))
+    draw_mapped(&diagram).ok()
 }
 
 fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {
@@ -144,7 +145,9 @@ Ship :milestone, m, 2026-01-06, 0d
         assert!(svg.contains(&done.to_string()), "{svg} missing {done}");
         assert!(svg.contains(&hot.to_string()), "{svg} missing {hot}");
         assert!(svg.contains("<polygon"), "{svg}");
-        assert_eq!(map, Map::default());
+        // Only the bands a pane keeps in sight: a bar is no message.
+        assert!(map.messages.is_empty() && map.transitions.is_empty());
+        assert_eq!(map.bands.len(), 2);
     }
 
     #[test]

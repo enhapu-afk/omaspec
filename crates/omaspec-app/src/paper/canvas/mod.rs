@@ -26,12 +26,14 @@ use super::raster::Raster;
 use super::view::{Glide, View};
 use super::{Fade, Message, Previous, link_rect, link_under};
 
+mod bands;
 mod grid;
 mod input;
 mod marks;
 
 use input::touch;
 
+pub use bands::KeptBands;
 pub(super) use grid::{Grid, fill_paper_band, fill_paper_band_across, rounded, shadow};
 pub use marks::{BreathLight, LinkMarks, PaperEdge};
 

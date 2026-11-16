@@ -49,6 +49,10 @@ pub struct Session {
     /// The caret glides and the list of what could be written arrives.
     #[serde(default = "shown")]
     pub motion: bool,
+    /// The headings of a long diagram stay in sight at the pane's edge as
+    /// it scrolls past them (REQ-073).
+    #[serde(default = "shown")]
+    pub bands: bool,
     /// JSON and YAML diagrams drawn nested, not as a tree.
     #[serde(default)]
     pub nested: bool,
@@ -76,6 +80,7 @@ impl Default for Session {
             menu_bar: false,
             toolbar: true,
             motion: true,
+            bands: true,
             nested: false,
             table: false,
             outline: false,
@@ -246,6 +251,7 @@ impl App {
             menu_bar: self.bar_shown,
             toolbar: self.toolbar,
             motion: self.look.motion,
+            bands: self.look.bands,
             nested: self.look.views.nested,
             table: self.look.views.table,
             outline: self.outline_shown,
@@ -323,6 +329,7 @@ mod tests {
             menu_bar: true,
             toolbar: false,
             motion: false,
+            bands: false,
             nested: false,
             table: false,
             outline: false,

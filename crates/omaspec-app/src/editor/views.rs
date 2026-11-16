@@ -1,6 +1,7 @@
 //! The editor's views, each a switch in the View menu kept in the
-//! session: motion, JSON and YAML nested or as a tree, the outline beside
-//! the source, state machines as tables, and colors that follow the theme.
+//! session: motion, headings kept in sight, JSON and YAML nested or as a
+//! tree, the outline beside the source, state machines as tables, and
+//! colors that follow the theme.
 
 use iced::Task;
 use omaspec_core::Language;
@@ -17,6 +18,20 @@ impl App {
             "the caret glides and the list arrives".into()
         } else {
             "no motion in the editor".into()
+        });
+        self.keep_session();
+        Task::none()
+    }
+
+    pub(super) fn toggle_bands(&mut self) -> Task<Message> {
+        self.look.bands = !self.look.bands;
+        for doc in &mut self.docs {
+            doc.set_look(&self.look);
+        }
+        self.notice = Some(if self.look.bands {
+            "a long diagram's participants, lanes and tasks stay in sight as it scrolls".into()
+        } else {
+            "a long diagram's headings scroll away with it".into()
         });
         self.keep_session();
         Task::none()

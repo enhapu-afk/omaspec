@@ -408,7 +408,7 @@ pub fn render_mapped(
             }
             state::draw_mapped(&d)
         }
-        Diagram::Activity(d) => unmapped(activity::draw(&d)),
+        Diagram::Activity(d) => activity::draw_mapped(&d),
         Diagram::MindMap(mut d) => {
             d.fold(&fold::read(source));
             d.frame.parts = fold::parts(source);
@@ -425,7 +425,7 @@ pub fn render_mapped(
             structure::draw_mapped(&d)
         }
         Diagram::Timing(d) => unmapped(timing::draw(&d)),
-        Diagram::Gantt(d) => unmapped(gantt::draw(&d)),
+        Diagram::Gantt(d) => gantt::draw_mapped(&d),
         Diagram::Flow(d) => unmapped(flow::draw(&d)),
         Diagram::Json(mut d) => {
             d.fold(&fold::read(source));

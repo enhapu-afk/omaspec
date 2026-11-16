@@ -59,6 +59,14 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     let map = Map {
         messages: std::mem::take(&mut drawer.steps),
         grounds: std::mem::take(&mut drawer.grounds),
+        bands: drawer
+            .band
+            .map(|rect| crate::map::Band {
+                rect,
+                edge: crate::map::Edge::Top,
+            })
+            .into_iter()
+            .collect(),
         ..Map::default()
     };
     let map = map.placed(canvas.fit(MARGIN));
@@ -319,6 +327,9 @@ struct Drawer<'a> {
     steps: Vec<Step>,
     /// The boxes with a fill, for the map.
     grounds: Vec<crate::map::Ground>,
+    /// The participants' heads at the top, and the boxes' titles over
+    /// them: what a pane keeps in sight ([`crate::map::Map::bands`]).
+    band: Option<crate::graph::Rect>,
     /// `rect` highlights open at the top, closed into [`Self::highlights`].
     open_rects: Vec<OpenRect>,
     /// Closed highlights, inner ones first. Drawn back to front.
@@ -635,6 +646,7 @@ impl<'a> Drawer<'a> {
             last_arrow: None,
             steps: Vec::new(),
             grounds: Vec::new(),
+            band: None,
             open_rects: Vec::new(),
             highlights: Vec::new(),
             cols,
@@ -886,6 +898,19 @@ impl<'a> Drawer<'a> {
             }
         }
         self.y = top + heads + 3.0;
+        let (mut left, mut right) = (f32::MAX, f32::MIN);
+        for i in 0..self.cols.len() {
+            left = left.min(self.x[i] - self.cols[i].half() - self.pad_left[i]);
+            right = right.max(self.x[i] + self.cols[i].half() + self.pad_right[i]);
+        }
+        if heads > 0.0 && left < right {
+            self.band = Some(crate::graph::Rect {
+                x: left,
+                y: boxes_top,
+                w: right - left,
+                h: top + heads - boxes_top,
+            });
+        }
 
         let mut k = 0;
         while k < self.d.items.len() {

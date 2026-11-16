@@ -82,6 +82,30 @@ impl Paper {
         .width(Length::Fill)
         .height(Length::Fill)
         .into();
+        // The headings of a long diagram, held at the edge it scrolled past
+        // (REQ-073); not while a glide or a fade changes the picture.
+        let kept = match (&self.diagram, self.overview.shown.as_ref()) {
+            (Some(diagram), Some(overview))
+                if self.keep_bands
+                    && !diagram.drawn.map.bands.is_empty()
+                    && held.is_none()
+                    && self.arrival.fade().is_none() =>
+            {
+                Some(
+                    Canvas::new(canvas::KeptBands {
+                        diagram: diagram.size,
+                        bands: &diagram.drawn.map.bands,
+                        overview,
+                        view: self.view,
+                        glide: self.glide,
+                    })
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .into(),
+                )
+            }
+            _ => None,
+        };
         // The lines of a glide, over the pictures and the boxes on their way.
         let lines = self
             .arrival
@@ -228,6 +252,7 @@ impl Paper {
             return container(Stack::with_children(
                 [
                     Some(canvas),
+                    kept,
                     lines,
                     veil,
                     glow,
@@ -279,6 +304,7 @@ impl Paper {
                 light,
                 Some(layer(false)),
                 Some(layer(true)),
+                kept,
                 edge,
             ]
             .into_iter()

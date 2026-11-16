@@ -28,6 +28,13 @@ const GAP: f32 = 16.0;
 const HEAD: f32 = 8.0;
 
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
+    draw_mapped(diagram).map(|(svg, _)| svg)
+}
+
+/// [`draw`], and the map: the axis across the top and the tasks' names
+/// down the left, which a pane keeps in sight as it scrolls past them
+/// ([`crate::map::Map::bands`], REQ-073).
+pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let skin = Skin::from_params(&diagram.frame.skinparams)?;
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
@@ -38,11 +45,17 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         [skin.title, skin.header, skin.footer, skin.caption],
         family,
     )?;
+    let mut bands = Vec::new();
     if !diagram.rows.is_empty() || !diagram.verts.is_empty() {
-        paint(&mut canvas, diagram, &skin, family, notes.top())?;
+        bands = paint(&mut canvas, diagram, &skin, family, notes.top())?;
     }
     notes.draw(&mut canvas);
-    Ok(canvas.finish(MARGIN, skin.background))
+    let map = crate::map::Map {
+        bands,
+        ..crate::map::Map::default()
+    }
+    .placed(canvas.fit(MARGIN));
+    Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
 struct Geom {
@@ -60,13 +73,14 @@ struct Column {
     name: String,
 }
 
+/// Paints the chart; the bands of its axis and of its names.
 fn paint(
     canvas: &mut Canvas,
     diagram: &Diagram,
     skin: &Skin,
     family: Family,
     top: f32,
-) -> Result<(), Declined> {
+) -> Result<Vec<crate::map::Band>, Declined> {
     let mut name_w: f32 = 0.0;
     for row in &diagram.rows {
         let (text, font, line) = match row {
@@ -196,7 +210,26 @@ fn paint(
             (x_of(&geom, bar.start), y1),
         );
     }
-    Ok(())
+    let band = |x: f32, y: f32, w: f32, h: f32, edge| crate::map::Band {
+        rect: crate::graph::Rect { x, y, w, h },
+        edge,
+    };
+    Ok(vec![
+        band(
+            geom.axis_x,
+            top,
+            right - geom.axis_x,
+            rows_top - top,
+            crate::map::Edge::Top,
+        ),
+        band(
+            0.0,
+            rows_top,
+            geom.axis_x,
+            bottom - rows_top,
+            crate::map::Edge::Left,
+        ),
+    ])
 }
 
 /// A task's name and its bar; a linked task's are links.

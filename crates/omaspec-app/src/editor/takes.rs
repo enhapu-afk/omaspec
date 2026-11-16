@@ -105,6 +105,7 @@ impl Command {
             | Command::Copy
             | Command::Paste
             | Command::Motion
+            | Command::KeepBands
             | Command::JsonLayout
             | Command::StateTable
             | Command::Outline

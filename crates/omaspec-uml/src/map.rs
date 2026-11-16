@@ -27,12 +27,34 @@ pub struct Map {
     /// Areas filled with a color of their own under what is drawn on
     /// them: a sequence diagram's boxes.
     pub grounds: Vec<Ground>,
+    /// Bands a pane keeps in sight as it scrolls past them (REQ-073): a
+    /// sequence diagram's participants across its top, a Gantt chart's
+    /// tasks down its left. What is drawn is the picture's; the pane only
+    /// holds them at its edge.
+    pub bands: Vec<Band>,
     /// Parts of their own that lie inside a box, as a note inside a state:
     /// each part's name and that of the box's part. A glide draws such a
     /// part over its box, not under it.
     pub inside: Vec<(String, String)>,
     /// How the drawing's units became the picture's.
     pub fit: Fit,
+}
+
+/// A band of the picture a pane keeps in sight ([`Map::bands`]): where it
+/// lies, and the edge of the pane it stays at.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Band {
+    pub rect: Rect,
+    pub edge: Edge,
+}
+
+/// An edge of the pane a [`Band`] stays at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Edge {
+    /// It scrolls up out of sight: the names over what lies under them.
+    Top,
+    /// It scrolls out to the left: the names beside what lies right of them.
+    Left,
 }
 
 /// An area a diagram fills with one color under what lies on it, as a
@@ -338,6 +360,9 @@ impl Map {
         for ground in &mut self.grounds {
             ground.rect = fit.rect(ground.rect);
         }
+        for band in &mut self.bands {
+            band.rect = fit.rect(band.rect);
+        }
         for step in &mut self.messages {
             for point in &mut step.points {
                 *point = fit.point(*point);
@@ -426,5 +451,41 @@ mod tests {
         .shifted(5);
         assert_eq!(map.transitions[0].line, usize::MAX);
         assert_eq!(map.transitions[1].line, 8);
+    }
+
+    /// REQ-073: a sequence diagram's participants, a swimlane's names and a
+    /// Gantt chart's axis and tasks are bands a pane keeps in sight; the
+    /// picture is the same with them or without.
+    #[test]
+    fn long_diagrams_name_the_bands_a_pane_keeps_in_sight() {
+        let bands = |source: &str| crate::render_mapped(source, None).unwrap().1.bands;
+        let sequence = bands("@startuml\nAlice -> Bob : hello\nBob -> Carol : hi\n@enduml\n");
+        assert_eq!(sequence.len(), 1);
+        assert_eq!(sequence[0].edge, Edge::Top);
+        assert!(
+            sequence[0].rect.h > 10.0 && sequence[0].rect.w > 100.0,
+            "{sequence:?}"
+        );
+        let lanes = bands("@startuml\n|Shop|\nstart\n:order;\n|Store|\n:pack;\nstop\n@enduml\n");
+        assert_eq!(
+            lanes.iter().map(|b| b.edge).collect::<Vec<_>>(),
+            [Edge::Top]
+        );
+        let gantt = bands("@startgantt\n[Design] lasts 3 days\n[Build] lasts 5 days\n@endgantt\n");
+        assert_eq!(
+            gantt.iter().map(|b| b.edge).collect::<Vec<_>>(),
+            [Edge::Top, Edge::Left]
+        );
+        // The names' band lies left of the axis', under it.
+        assert!(
+            gantt[1].rect.x + gantt[1].rect.w <= gantt[0].rect.x + 1.0,
+            "{gantt:?}"
+        );
+        assert!(
+            gantt[1].rect.y >= gantt[0].rect.y + gantt[0].rect.h - 1.0,
+            "{gantt:?}"
+        );
+        // Without lanes, an activity diagram has none.
+        assert!(bands("@startuml\nstart\n:a;\nstop\n@enduml\n").is_empty());
     }
 }

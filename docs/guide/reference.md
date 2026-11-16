@@ -474,6 +474,13 @@ The colors are the theme's; `name`, `event`, `guard` and `action` under `[syntax
 The caret glides to where it goes, and the list comes up rather than standing there at
 once; *Motion in the editor: on or off* in View turns both off, and stays off.
 
+A long diagram keeps its headings in sight as it scrolls past them: a sequence
+diagram's participants stay at the top of the pane over the messages under them, a
+swimlane's name over its lane, a Gantt chart's dates at the top and its tasks at the left
+beside their bars. Only the pane holds them so; the picture and every export are as
+drawn. *Headings of a long diagram kept in sight as it scrolls: on or off* in View turns
+it off, and stays off.
+
 Rest the pointer on a state, an event or a participant, and a card says what it is: the
 line a state first stands on, how many transitions go in and out and which events it
 takes; the transitions an event fires; what a participant sends and receives, and its

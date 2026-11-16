@@ -15,7 +15,7 @@ mod skin;
 
 pub use crate::common::Skinparam;
 pub use axis::{Axis, Every};
-pub use draw::draw;
+pub use draw::{draw, draw_mapped};
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use parse::parse;
 

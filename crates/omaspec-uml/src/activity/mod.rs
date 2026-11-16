@@ -15,7 +15,7 @@ mod tile;
 mod words;
 
 pub use crate::common::{Frame, Skinparam, Text};
-pub use draw::draw;
+pub use draw::{draw, draw_mapped};
 pub use parse::{is_activity, parse};
 pub use words::{action_end, action_start};
 
