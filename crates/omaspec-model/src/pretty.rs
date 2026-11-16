@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn a_state_machine_gets_its_arrows_and_colons_in_a_column() {
-        let code = "@startuml\n[*]-->Closed\nClosed -->   Opening:open [unlocked]\nOpening->Open :  end position   \n\n\n\nstate Open {\nOpen-->Closing : close\n}\n' a   comment  \nClosing --> Closed\n@enduml\n";
+        let code = "@startuml\n[*]-->Closed\nClosed -->   Opening :open [unlocked]\nOpening->Open :  end position   \n\n\n\nstate Open {\nOpen-->Closing : close\n}\n' a   comment  \nClosing --> Closed\n@enduml\n";
         let even = pretty(code, Language::PlantUml);
         assert_eq!(
             even,

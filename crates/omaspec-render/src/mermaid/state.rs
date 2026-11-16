@@ -177,15 +177,13 @@ mod tests {
         assert!(svg.to_ascii_lowercase().contains("#ff00aa"), "{svg}");
         assert!(svg.contains("quiet"));
         assert!(crate::mermaid::coverage(colored).unwrap().is_none());
-        for refused in [
-            "stateDiagram-v2\n[*] --> Idle\nstyle Idle fill:rgb(1,2,3)\n",
-            // A transition into the state's own nested state.
-            "stateDiagram-v2\nstate On {\n[*] --> Idle\n}\nOn --> Idle\n",
-        ] {
-            let declined = crate::mermaid::coverage(refused).unwrap().unwrap();
-            assert!(declined.reason.contains("state diagram"), "{refused}");
-            assert!(crate::mermaid::render(refused).is_ok());
-        }
+        // A transition into the state's own nested state is drawn too.
+        let nested = "stateDiagram-v2\nstate On {\n[*] --> Idle\n}\nOn --> Idle\n";
+        assert!(crate::mermaid::coverage(nested).unwrap().is_none());
+        let refused = "stateDiagram-v2\n[*] --> Idle\nstyle Idle fill:rgb(1,2,3)\n";
+        let declined = crate::mermaid::coverage(refused).unwrap().unwrap();
+        assert!(declined.reason.contains("state diagram"), "{refused}");
+        assert!(crate::mermaid::render(refused).is_ok());
     }
 
     #[test]

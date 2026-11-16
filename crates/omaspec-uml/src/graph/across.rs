@@ -125,13 +125,31 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
         };
         obstacles(top, Some(&link.from), Some(&link.to), &mut around);
         around.obstacles.extend(drawn.notes.iter().copied());
-        let end = |place: &Placement| End {
-            rect: place.rect,
-            flat: place.flat,
+        // A line between a state and a state inside it runs to the outer
+        // one's title from inside, or from it: the title is its end, no
+        // longer in its way (REQ-072).
+        let outer =
+            |path: &[usize], other: &[usize]| other.len() > path.len() && other.starts_with(path);
+        let mut title = |place: &Placement, own: bool| match place.title.filter(|_| own) {
+            Some(title) => {
+                around.obstacles.retain(|&rect| rect != title);
+                End {
+                    rect: title,
+                    flat: true,
+                }
+            }
+            None => End {
+                rect: place.rect,
+                flat: place.flat,
+            },
         };
+        let (from_end, to_end) = (
+            title(from, outer(&link.from, &link.to)),
+            title(to, outer(&link.to, &link.from)),
+        );
         let points = match &link.shape {
             Some(shape) => shape.clone(),
-            None => match route::route(end(from), end(to), &around) {
+            None => match route::route(from_end, to_end, &around) {
                 Some(points) => points,
                 None => continue,
             },

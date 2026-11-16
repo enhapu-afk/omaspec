@@ -76,11 +76,25 @@ impl<'a> Nested for States<'a> {
             hidden: false,
             against: against(edge.toward),
         });
-        let crossings = container.crossings.iter().map(|crossing| Line {
-            from: crossing.from.clone(),
-            to: crossing.to.clone(),
-            hidden: false,
-            against: against(crossing.arrow.toward),
+        // One between a state and a state inside it ranks nothing: it
+        // names no member here and is routed once everything is placed.
+        let crossings = container.crossings.iter().map(|crossing| {
+            let nested =
+                crossing.from.starts_with(&crossing.to) || crossing.to.starts_with(&crossing.from);
+            Line {
+                from: if nested {
+                    Vec::new()
+                } else {
+                    crossing.from.clone()
+                },
+                to: if nested {
+                    Vec::new()
+                } else {
+                    crossing.to.clone()
+                },
+                hidden: false,
+                against: against(crossing.arrow.toward),
+            }
         });
         edges.chain(crossings).collect()
     }

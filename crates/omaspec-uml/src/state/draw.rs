@@ -1261,6 +1261,41 @@ mod tests {
         );
     }
 
+    /// REQ-072: a transition from a state to the state it lies in runs
+    /// inside that state up to its title, and one from the state to a
+    /// state inside it comes down from there.
+    #[test]
+    fn a_transition_into_its_own_state_runs_to_its_title() {
+        let source = "@startuml\n[*] --> Playing\nstate Playing {\n  [*] --> Live\n  Live --> Extra\n}\nExtra --> Playing : again\nPlaying --> Live : restart\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let playing = map
+            .states
+            .iter()
+            .find(|s| s.name == "Playing")
+            .unwrap()
+            .rect;
+        let route = |line: usize| {
+            &map.transitions
+                .iter()
+                .find(|r| r.line == line)
+                .unwrap()
+                .points
+        };
+        let inside = |(x, y): (f32, f32)| {
+            x > playing.x && x < playing.x + playing.w && y > playing.y && y < playing.y + playing.h
+        };
+        let (again, restart) = (route(6), route(7));
+        // Inside the state all the way, its head at the title's foot.
+        assert!(again.iter().all(|&p| inside(p)), "{again:?} in {playing:?}");
+        let head = *again.last().unwrap();
+        assert!(
+            head.1 < playing.y + 50.0,
+            "{head:?} below the title of {playing:?}"
+        );
+        assert!(restart.iter().all(|&p| inside(p)), "{restart:?}");
+        assert!(restart[0].1 < playing.y + 50.0, "{restart:?}");
+    }
+
     /// A state whose name is that of another part (the title's, a
     /// mark's) or that has a name of its own besides its key is drawn in
     /// a part of its own, the one the map names.

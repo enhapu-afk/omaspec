@@ -22,8 +22,7 @@ use crate::common::{Frame, Skinparam, Text};
 use crate::graph::across::meeting;
 
 /// A Mermaid state diagram as the engine's state diagram; `None` when
-/// [`mermaid::read`] does not read it, or a transition joins a state with
-/// one it holds.
+/// [`mermaid::read`] does not read it.
 pub fn from_mermaid(source: &str) -> Option<Diagram> {
     let chart = mermaid::read(source)?;
     let (direction, mirrored) = match chart.direction {
@@ -64,8 +63,12 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
             container_mut(&mut root, home)?.edges.push(arrow);
             continue;
         }
-        // A state and one inside it: PlantUML's reader refuses that too.
-        let (depth, a, b) = meeting(from, to)?;
+        // A state and one inside it: the container around the outer one
+        // holds it, and it runs to that state's title or from it.
+        let (depth, a, b) = meeting(from, to).unwrap_or_else(|| {
+            let depth = from.len().min(to.len()) - 1;
+            (depth, from[depth], to[depth])
+        });
         arrow.from = a;
         arrow.to = b;
         let crossing = Crossing {
@@ -461,8 +464,14 @@ mod tests {
             d.root.crossings[0].arrow.label.as_ref().unwrap().value,
             "wake"
         );
-        // A state and one it holds: refused, as PlantUML's reader does.
-        assert!(from_mermaid("stateDiagram\nstate S {\n  A --> B\n}\nS --> A\n").is_none());
+        // A state and one it holds: the container around it holds the
+        // transition, as PlantUML's reader has it (REQ-072).
+        let d = lowered("stateDiagram\nstate S {\n  A --> B\n}\nS --> A\n");
+        let nested = d.root.crossings.last().unwrap();
+        assert_eq!(
+            (nested.from.as_slice(), nested.to.as_slice()),
+            (&[0][..], &[0, 0][..])
+        );
     }
 
     /// REQ-072: `state "Extra Ball" as ExtraBall` at the top, the state

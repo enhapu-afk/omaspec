@@ -149,8 +149,13 @@ impl Parser {
                 self.container_mut(home).edges.push(arrow);
                 continue;
             }
-            // `arrow` checked that neither end holds the other.
-            let (depth, a, b) = meeting(&from, &to).expect("ends apart");
+            // Where one end holds the other, the container around the
+            // outer one holds the transition, which runs to its title or
+            // from it once everything is placed (REQ-072).
+            let (depth, a, b) = meeting(&from, &to).unwrap_or_else(|| {
+                let depth = from.len().min(to.len()) - 1;
+                (depth, from[depth], to[depth])
+            });
             arrow.from = a;
             arrow.to = b;
             self.container_mut(&from[..depth]).crossings.push(Crossing {
@@ -369,13 +374,6 @@ impl Parser {
     fn arrow(&mut self, raw: RawArrow, line: usize) -> Result<(), Declined> {
         let from = self.endpoint(&raw.from, true, line)?;
         let to = self.endpoint(&raw.to, false, line)?;
-        let apart = from.len() != to.len() || from[..from.len() - 1] != to[..to.len() - 1];
-        if apart && meeting(&from, &to).is_none() {
-            return Err(Declined::at(
-                line,
-                "a transition between a state and a state inside it is not supported yet",
-            ));
-        }
         // PlantUML keeps a second or later concurrent region to itself.
         let region = self.late_region(&self.here());
         for (end, name) in [(&from, &raw.from), (&to, &raw.to)] {
@@ -1793,11 +1791,19 @@ mod tests {
     }
 
     #[test]
-    fn a_transition_into_its_own_state_declines() {
-        let err =
-            declined("@startuml\nstate Outer {\n  state Inner\n}\nInner --> Outer\n@enduml\n");
-        assert_eq!(err.line, Some(4));
-        assert!(err.reason.contains("inside it"), "{}", err.reason);
+    fn a_transition_into_its_own_state_is_held_around_it() {
+        // REQ-072: the container around the outer state holds it, as a
+        // crossing whose one end holds the other.
+        let d = diagram(
+            "@startuml\nstate Outer {\n  state Inner\n}\nInner --> Outer\nOuter --> Inner : again\n@enduml\n",
+        );
+        let ends: Vec<(&[usize], &[usize])> = d
+            .root
+            .crossings
+            .iter()
+            .map(|c| (c.from.as_slice(), c.to.as_slice()))
+            .collect();
+        assert_eq!(ends, [(&[0, 0][..], &[0][..]), (&[0][..], &[0, 0][..])]);
     }
 
     #[test]
