@@ -15,7 +15,7 @@
 use std::cell::RefCell;
 use std::sync::{Arc, Weak};
 
-use iced::widget::{button, column, container, mouse_area, row, text};
+use iced::widget::{Space, button, column, container, mouse_area, row, text};
 use iced::{Element, Font, Length, Theme, Vector};
 use omaspec_core::lint::Severity;
 use omaspec_theme::Palette;
@@ -68,6 +68,8 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
     // In rows of their own, should they need more than one.
     let mut offered: Vec<Vec<Element<'a, Message>>> = Vec::new();
     let mut rows = 1;
+    // The head in a row of its own, the tools beside it, the options below.
+    let mut stacked = false;
     let mut tools: Vec<Element<'a, Message>> = Vec::new();
     // A trace's second line: what its line says is wrong, or that it is not.
     let mut note: Option<(Option<Severity>, String)> = None;
@@ -81,22 +83,22 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             can_go_back,
             every,
         } => {
-            let (wide, kept_rows) = layout_of(every, pane);
-            inside = wide;
+            let layout = layout_of(every, pane);
+            (inside, stacked) = (layout.inside, layout.stacked);
             let back = (*can_go_back).then_some(("↶ back", "↶", Ask::Back));
             let again = (*steps > 0 || *ended).then_some(("⟲ again", "⟲", Ask::Restart));
             let head = if *ended {
                 "● ended".to_owned()
             } else {
-                head_of(at, inside)
+                head_of(at, inside, stacked)
             };
-            let (room, signs) = room_beside(&head, back.is_some(), again.is_some(), inside);
-            rows = kept_rows.max(rows_needed(options, room, signs).1);
+            let (room, signs) = room_for(&head, layout, back.is_some(), again.is_some());
+            rows = layout.rows.max(rows_needed(options, room, signs).1);
             items.push(words(head, accent).into());
             let fit = arranged(options, room, signs, rows);
             for (label, sign, ask) in back.into_iter().chain(again) {
                 tools.push(tool(
-                    if fit.signs { sign } else { label },
+                    if fit.signs || stacked { sign } else { label },
                     Some(ask),
                     p,
                     font,
@@ -210,17 +212,31 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             .align_y(iced::Alignment::Center)
             .into()
     });
-    items.push(
-        container(column(offered).spacing(ROW_GAP))
-            .width(Length::Fill)
-            .clip(true)
-            .into(),
-    );
-    items.extend(tools);
-    let line = container(row(items).spacing(GAP).align_y(iced::Alignment::Center))
-        .height(rows_height(rows))
-        .align_y(iced::Alignment::Center)
+    let offered = container(column(offered).spacing(ROW_GAP))
+        .width(Length::Fill)
         .clip(true);
+    let line: Element<'a, Message> = if stacked {
+        // The head and the tools above, the options across the whole bar.
+        items.push(Space::new().width(Length::Fill).into());
+        items.extend(tools);
+        let top = container(row(items).spacing(GAP).align_y(iced::Alignment::Center))
+            .height(ROW)
+            .align_y(iced::Alignment::Center)
+            .clip(true);
+        let below = container(offered)
+            .height(rows_height(rows))
+            .align_y(iced::Alignment::Center)
+            .clip(true);
+        column![top, below].spacing(ROW_GAP).into()
+    } else {
+        items.push(offered.into());
+        items.extend(tools);
+        container(row(items).spacing(GAP).align_y(iced::Alignment::Center))
+            .height(rows_height(rows))
+            .align_y(iced::Alignment::Center)
+            .clip(true)
+            .into()
+    };
     let content: Element<'a, Message> = match note {
         Some((severity, message)) => {
             let color = match severity {
@@ -233,7 +249,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                 .clip(true);
             column![line, note].spacing(6).into()
         }
-        None => line.into(),
+        None => line,
     };
     let bar = container(content)
         .padding([8, 12])
@@ -272,7 +288,12 @@ pub fn extra_height(source: &str, language: omaspec_core::Language, pane: f32) -
     let Some(every) = super::play::every_offer_of(source, language) else {
         return 0.0;
     };
-    rows_height(layout_of(&Arc::new(every), pane).1) - rows_height(1)
+    extra_height_of(layout_of(&Arc::new(every), pane))
+}
+
+/// How much higher than a row a bar laid out as `layout` is.
+fn extra_height_of(layout: Layout) -> f32 {
+    rows_height(layout.rows + usize::from(layout.stacked)) - rows_height(1)
 }
 
 /// How high `rows` rows of options are, with the gaps between them.
@@ -283,9 +304,25 @@ fn rows_height(rows: usize) -> f32 {
 /// What the bar says first of a machine at `at`: its states, cut to a
 /// third of the room `inside`, or of a bar [`WIDEST`] wide where it is
 /// wider (what more it has is the options').
-fn head_of(at: &str, inside: f32) -> String {
-    let third = inside.min(WIDEST - 2.0 * PADDING) / 3.0;
-    format!("● {}", cut(at, (third / (13.0 * CHAR)) as usize))
+fn head_of(at: &str, inside: f32, stacked: bool) -> String {
+    let room = if stacked {
+        // A row of its own, but for the tools at its end, by their signs.
+        inside - tool_width("↶") - tool_width("⟲") - tool_width("✕") - 3.0 * GAP
+    } else {
+        inside.min(WIDEST - 2.0 * PADDING) / 3.0
+    };
+    format!("● {}", cut(at, (room / (13.0 * CHAR)) as usize))
+}
+
+/// The room for a machine's options in `layout` beside `head` and the
+/// tools shown, and how much more the tools give when they show only their
+/// signs: the whole bar below a head in a row of its own.
+fn room_for(head: &str, layout: Layout, back: bool, again: bool) -> (f32, f32) {
+    if layout.stacked {
+        (layout.inside, 0.0)
+    } else {
+        room_beside(head, back, again, layout.inside)
+    }
 }
 
 /// The room left for a machine's options beside `head`, the tools shown
@@ -305,18 +342,30 @@ fn room_beside(head: &str, back: bool, again: bool, inside: f32) -> (f32, f32) {
     (inside - used, signs)
 }
 
-/// The room inside the bar of a play whose machine can be in each of
-/// `every` place, in a pane `pane` pixels wide, and the rows its options
-/// need, with both tools beside them as after a first step: as wide as
-/// [`WIDEST`] lets it where every place keeps its labels there, else as
-/// wide as the pane; as many rows as the place that needs most. They
-/// depend on the play and the width alone, so they are worked out once
-/// for each and kept.
-fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> (f32, usize) {
+/// How the bar of a machine's play is laid out, for the play and a width
+/// ([`layout_of`]): the room inside, the rows of options, and whether the
+/// head stands in a row of its own above them, the tools beside it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Layout {
+    inside: f32,
+    rows: usize,
+    stacked: bool,
+}
+
+/// The layout of the bar of a play whose machine can be in each of `every`
+/// place, in a pane `pane` pixels wide, with both tools shown as after a
+/// first step: as wide as [`WIDEST`] lets it where every place keeps its
+/// labels there, else as wide as the pane; as many rows as the place that
+/// needs most. Where the head beside the options would still cut their
+/// labels or itself, as in a narrow pane, it stands in a row of its own,
+/// should that show more at the place that shows least (REQ-045). It
+/// depends on the play and the width alone, so it is worked out once for
+/// each and kept.
+fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> Layout {
     // Each play by a weak hold on its places, which keeps their address
     // from going to another play's; a few, so the editor's play and that
     // of a diagram in its own window keep theirs.
-    type Kept = Vec<(Weak<Vec<Offered>>, u32, (f32, usize))>;
+    type Kept = Vec<(Weak<Vec<Offered>>, u32, Layout)>;
     thread_local! {
         static KEPT: RefCell<Kept> = const { RefCell::new(Vec::new()) };
     }
@@ -329,24 +378,55 @@ fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> (f32, usize) {
     if let Some(layout) = kept {
         return layout;
     }
-    // Whether every place keeps its labels in a bar `inside` wide, and
-    // the most rows a place needs there.
-    let needs = |inside: f32| {
+    // Whether every place keeps its labels in a bar laid out so, and the
+    // most rows a place needs there.
+    let needs = |inside: f32, stacked: bool| {
         every
             .iter()
             .fold((true, 1), |(labels, most), (at, options)| {
-                let (room, signs) = room_beside(&head_of(at, inside), true, true, inside);
+                let layout = Layout {
+                    inside,
+                    rows: 1,
+                    stacked,
+                };
+                let (room, signs) = room_for(&head_of(at, inside, stacked), layout, true, true);
                 let (kept, rows) = rows_needed(options, room, signs);
                 (labels && kept, most.max(rows))
             })
     };
     let narrow = inside_of(pane);
     let wide = pane - 2.0 * (MARGIN + PADDING);
-    let (labels, rows) = needs(narrow);
-    let layout = if labels || wide <= narrow {
-        (narrow, rows)
+    let (labels, rows) = needs(narrow, false);
+    let beside = if labels || wide <= narrow {
+        Layout {
+            inside: narrow,
+            rows,
+            stacked: false,
+        }
     } else {
-        (wide, needs(wide).1)
+        Layout {
+            inside: wide,
+            rows: needs(wide, false).1,
+            stacked: false,
+        }
+    };
+    // The labels cut, or the head: a row of its own may show more. Where
+    // only where an option leads is cut, the bar stays one block.
+    let shown = shown_by(every, beside);
+    let layout = if shown.0 < Shown::Targets || shown.2 {
+        let above = Layout {
+            inside: beside.inside,
+            rows: needs(beside.inside, true).1,
+            stacked: true,
+        };
+        let more = shown_by(every, above);
+        if (more.0, more.1) > (shown.0, shown.1) {
+            above
+        } else {
+            beside
+        }
+    } else {
+        beside
     };
     KEPT.with_borrow_mut(|kept| {
         kept.retain(|(play, _, _)| play.strong_count() > 0);
@@ -356,6 +436,32 @@ fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> (f32, usize) {
         kept.push((Arc::downgrade(every), width, layout));
     });
     layout
+}
+
+/// What `layout` shows of `every` place: how much of the options at the
+/// place that shows least, how many letters in all (the options' and the
+/// heads'), and whether a head is cut.
+fn shown_by(every: &[Offered], layout: Layout) -> (Shown, usize, bool) {
+    every.iter().fold(
+        (Shown::Whole, 0, false),
+        |(least, letters, cut_head), (at, options)| {
+            let head = head_of(at, layout.inside, layout.stacked);
+            let (room, signs) = room_for(&head, layout, true, true);
+            let fit = arranged(options, room, signs, layout.rows);
+            let words: usize = fit
+                .options
+                .iter()
+                .map(|(label, to)| {
+                    label.chars().count() + to.as_ref().map_or(0, |t| t.chars().count())
+                })
+                .sum();
+            (
+                least.min(fit.shown),
+                letters + words + head.chars().count(),
+                cut_head || head.ends_with('…'),
+            )
+        },
+    )
 }
 
 /// How many plays and widths [`layout_of`] keeps.
@@ -838,7 +944,7 @@ mod tests {
             ("Rust 1.100", "Stable"),
         ]);
         let inside = 800.0 - 2.0 * MARGIN - 2.0 * PADDING;
-        let (room, signs) = room_beside(&head_of("Unstable", inside), true, true, inside);
+        let (room, signs) = room_beside(&head_of("Unstable", inside, false), true, true, inside);
         assert_eq!(fitted(&unstable, room, signs, 1).shown, Shown::Numbers);
         assert_eq!(rows_needed(&unstable, room, signs), (true, 2));
         let fit = arranged(&unstable, room, signs, 2);
@@ -847,17 +953,26 @@ mod tests {
         assert_eq!(fit.options[5].0, "Rust 1.100");
         // At the start, without the tools, they fit in one; the bar keeps
         // the second row all the same.
-        let (first, signs_first) = room_beside(&head_of("Unstable", inside), false, false, inside);
+        let (first, signs_first) =
+            room_beside(&head_of("Unstable", inside, false), false, false, inside);
         assert!(fitted(&unstable, first, signs_first, 1).shown > Shown::Numbers);
         let reverted = options(&[("reverted", "Unstable")]);
         let attempt = ("Attempt 1".to_owned(), reverted.clone());
         let every = Arc::new(vec![("Unstable".to_owned(), unstable), attempt.clone()]);
-        assert_eq!(layout_of(&every, 800.0), (inside, 2));
+        let two = Layout {
+            inside,
+            rows: 2,
+            stacked: false,
+        };
+        assert_eq!(layout_of(&every, 800.0), two);
         // Kept for the play and the width; another play counts its own.
-        assert_eq!(layout_of(&every, 800.0), (inside, 2));
+        assert_eq!(layout_of(&every, 800.0), two);
         // A state with one option in a bar of two rows shows it in one.
         assert_eq!(arranged(&reverted, room, signs, 2).per_row, 1);
-        assert_eq!(layout_of(&Arc::new(vec![attempt]), 800.0), (inside, 1));
+        assert_eq!(
+            layout_of(&Arc::new(vec![attempt]), 800.0),
+            Layout { rows: 1, ..two }
+        );
         assert_eq!(rows_height(2), 2.0 * ROW + ROW_GAP);
     }
 
@@ -889,8 +1004,9 @@ mod tests {
     /// REQ-045, the Odyssey of 3,000 lines 1,400 pixels wide: seventeen
     /// options of regions side by side kept only their numbers in a bar
     /// 900 wide, and those in one row, clipped after the ninth. The bar is
-    /// as wide as the pane where its options need it, the states it names
-    /// no wider for that, and every option keeps its label.
+    /// as wide as the pane where its options need it, and where beside the
+    /// head they would still be cut, the head stands in a row of its own,
+    /// whole, the options across the bar below it, their labels longer.
     #[test]
     fn many_options_side_by_side_widen_the_bar_and_keep_their_labels() {
         let many: Vec<(String, String)> = (1..=17)
@@ -905,26 +1021,54 @@ mod tests {
         let every = Arc::new(vec![(at.to_owned(), many.clone())]);
         let narrow = inside_of(1400.0);
         assert_eq!(narrow, WIDEST - 2.0 * PADDING);
-        let (room, signs) = room_beside(&head_of(at, narrow), true, true, narrow);
+        let (room, signs) = room_beside(&head_of(at, narrow, false), true, true, narrow);
         assert!(!rows_needed(&many, room, signs).0);
-        let (inside, rows) = layout_of(&every, 1400.0);
-        assert_eq!(inside, 1400.0 - 2.0 * (MARGIN + PADDING));
-        assert_eq!(head_of(at, inside), head_of(at, narrow));
-        let (room, signs) = room_beside(&head_of(at, inside), true, true, inside);
-        let fit = arranged(&many, room, signs, rows);
+        let layout = layout_of(&every, 1400.0);
+        assert_eq!(layout.inside, 1400.0 - 2.0 * (MARGIN + PADDING));
+        assert!(layout.stacked && layout.rows <= MOST_ROWS, "{layout:?}");
+        let head = head_of(at, layout.inside, true);
+        assert_eq!(head, format!("● {at}"));
+        let (room, signs) = room_for(&head, layout, true, true);
+        let fit = arranged(&many, room, signs, layout.rows);
         assert!(fit.shown >= Shown::Labels, "{fit:?}");
-        assert!(rows <= MOST_ROWS);
-        // Without the room, a bar keeps the pane's width and its numbers
-        // take the rows they need, none clipped.
-        let (inside, rows) = layout_of(&Arc::new(vec![(at.to_owned(), many.clone())]), 800.0);
-        assert_eq!(inside, inside_of(800.0));
-        let (room, signs) = room_beside(&head_of(at, inside), true, true, inside);
-        assert_eq!(rows_needed(&many, room, signs), (false, rows));
-        assert!(rows > 1);
-        assert_eq!(arranged(&many, room, signs, rows).shown, Shown::Numbers);
-        assert_eq!(fitted(&many, room, signs, 1).shown, Shown::Clipped);
+        let beside = Layout {
+            stacked: false,
+            ..layout
+        };
+        let side = shown_by(&every, beside);
+        assert!(shown_by(&every, layout).1 > side.1);
+        // Without the room for even that, the numbers take the rows they
+        // need, none clipped: seventeen in three rows of six.
+        assert_eq!(rows_needed(&many, 320.0, 0.0), (false, 3));
+        assert_eq!(arranged(&many, 320.0, 0.0, 3).shown, Shown::Numbers);
+        assert_eq!(fitted(&many, 320.0, 0.0, 1).shown, Shown::Clipped);
         // Where even the most rows clip them, the bar keeps one.
         assert_eq!(rows_needed(&many, 60.0, 0.0), (false, 1));
+    }
+
+    /// REQ-045 at 400 pixels: beside the head, two options of a starship
+    /// were cut to eight letters and the head to fourteen, the ship's
+    /// branch gone. The head stands in a row of its own, whole, the tools
+    /// by their signs beside it, and the options keep nearly all of their
+    /// labels below it.
+    #[test]
+    fn a_narrow_bar_puts_its_head_above_its_options() {
+        let options = vec![
+            ("GNC checks passed".to_owned(), "Ascent".to_owned()),
+            ("26 Starlink deployed".to_owned(), "Coast".to_owned()),
+        ];
+        let at = "end of Booster, ShipCoast";
+        let every = Arc::new(vec![(at.to_owned(), options.clone())]);
+        let layout = layout_of(&every, 400.0);
+        assert!(layout.stacked, "{layout:?}");
+        let head = head_of(at, layout.inside, true);
+        assert_eq!(head, format!("● {at}"));
+        let (room, signs) = room_for(&head, layout, true, true);
+        let fit = arranged(&options, room, signs, layout.rows);
+        // Fifteen letters of each where beside the head eight were left.
+        assert!(fit.options[0].0.starts_with("GNC checks"), "{fit:?}");
+        assert!(fit.options[1].0.starts_with("26 Starlink"), "{fit:?}");
+        assert!(extra_height_of(layout) > 0.0);
     }
 
     #[test]
