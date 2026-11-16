@@ -9,6 +9,10 @@
 //! [`Quality`] makes it smaller still, at a cost the writer chooses: fewer
 //! colors, each pixel's code shorter, and a pixel drawn again only when
 //! its color goes into another step.
+//!
+//! The frames wait in [`Frames`] as they are drawn, each deflated, their
+//! colors counted for the table as each comes: a play of some hundred
+//! frames 1,400 pixels wide held them as they were, gigabytes (REQ-074).
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -16,8 +20,13 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use color_quant::NeuQuant;
 
-/// How many pixels the table of colors is learned from, about.
+/// How many pixels the table of colors is learned from, about, in a
+/// picture of [`FRAMES_LEARNED`] frames; each frame gives its share.
 const LEARNED: usize = 1 << 20;
+const FRAMES_LEARNED: usize = 256;
+/// How hard a frame is deflated while it waits: the fastest, which still
+/// packs a diagram's even colors some fifty times.
+const PACKED: u8 = 1;
 
 /// How a GIF trades its size for its look. The default keeps 256 places
 /// in its table and draws every change.
@@ -44,92 +53,167 @@ impl Default for Quality {
     }
 }
 
+/// The frames of a picture that moves, as they are drawn: each one unlike
+/// the one before it deflated, with how long it stays; and the colors
+/// seen, from pixels spread over them, for its table. One frame at a time
+/// is held as it is.
+#[derive(Default)]
+pub struct Frames {
+    width: usize,
+    height: usize,
+    /// Each frame unlike the one before it, deflated, and how long it
+    /// stays, in hundredths of a second.
+    kept: Vec<(Vec<u8>, u16)>,
+    /// The last frame as it is, to know one like it.
+    last: Vec<u8>,
+    /// Each color counted, how often.
+    seen: HashMap<[u8; 3], u32>,
+    /// Where in the next frame the next pixel counted lies.
+    at: usize,
+    /// A frame of another size than the first came.
+    mixed: bool,
+}
+
+impl Frames {
+    /// Adds a frame `width` by `height` pixels (RGBA) that stays `stay`
+    /// hundredths of a second; one like the frame before only makes that
+    /// one stay longer.
+    pub fn push(&mut self, width: usize, height: usize, rgba: &[u8], stay: u16) {
+        if self.kept.is_empty() {
+            (self.width, self.height) = (width, height);
+        }
+        if (width, height) != (self.width, self.height) || rgba.len() != width * height * 4 {
+            self.mixed = true;
+            return;
+        }
+        if let Some((_, last)) = self.kept.last_mut()
+            && rgba == self.last
+        {
+            *last = last.saturating_add(stay);
+            return;
+        }
+        let pixels = width * height;
+        let step = (pixels * FRAMES_LEARNED / LEARNED).max(1);
+        while self.at < pixels {
+            let at = self.at * 4;
+            *self
+                .seen
+                .entry([rgba[at], rgba[at + 1], rgba[at + 2]])
+                .or_default() += 1;
+            self.at += step;
+        }
+        self.at -= pixels;
+        self.kept
+            .push((miniz_oxide::deflate::compress_to_vec(rgba, PACKED), stay));
+        self.last.clear();
+        self.last.extend_from_slice(rgba);
+    }
+
+    /// The frames' size in pixels; `None` before the first.
+    pub fn size(&self) -> Option<(usize, usize)> {
+        (!self.kept.is_empty()).then_some((self.width, self.height))
+    }
+
+    /// The GIF of the frames, looping, in `quality`; and how many frames
+    /// it has.
+    pub fn encode(&self, quality: Quality) -> Result<(Vec<u8>, usize)> {
+        anyhow::ensure!(!self.mixed, "a frame of another size");
+        let (w, h) = (self.width, self.height);
+        let width = u16::try_from(w).context("too wide for a GIF")?;
+        let height = u16::try_from(h).context("too high for a GIF")?;
+        // The last place: a pixel that stays as it was. The table is as
+        // long as the places asked for, rounded up to whole bits of a code.
+        let places = quality.colors.clamp(2, 256);
+        let clear = u8::try_from(places - 1).unwrap_or(u8::MAX);
+        let mut flat = table(&self.seen, usize::from(clear));
+        flat.resize(usize::from(places).next_power_of_two() * 3, 0);
+        let colors = flat[..usize::from(clear) * 3].to_vec();
+        let mut near: HashMap<[u8; 3], u8> = HashMap::new();
+        let mut index = |pixel: &[u8]| -> u8 {
+            *near
+                .entry([pixel[0], pixel[1], pixel[2]])
+                .or_insert_with(|| nearest(&colors, pixel))
+        };
+
+        let mut bytes = Vec::new();
+        let mut count = 0;
+        let mut encoder = gif::Encoder::new(&mut bytes, width, height, &flat)?;
+        encoder.set_repeat(gif::Repeat::Infinite)?;
+        // What the picture shows so far, as the frames meant it: a pixel is
+        // drawn again once it strays from that, so small steps do not add
+        // up.
+        let mut shown: Option<Vec<u8>> = None;
+        // The frame before, held back until it is known how long it stays.
+        let mut held: Option<gif::Frame<'static>> = None;
+        for (packed, stay) in &self.kept {
+            let rgba = miniz_oxide::inflate::decompress_to_vec_with_limit(packed, w * h * 4)
+                .map_err(|e| anyhow::anyhow!("a frame does not unpack: {e}"))?;
+            // The part that changed: all of the first frame. A frame with
+            // nothing to draw only makes the one before it stay longer.
+            let part = match &shown {
+                None => Some((0, 0, w, h)),
+                Some(shown) => changed(shown, &rgba, w, h, quality.lossy),
+            };
+            let Some((left, top, right, bottom)) = part else {
+                if let Some(last) = held.as_mut() {
+                    last.delay = last.delay.saturating_add(*stay);
+                }
+                continue;
+            };
+            let first = shown.is_none();
+            let screen = shown.get_or_insert_with(|| rgba.clone());
+            let mut buffer = Vec::with_capacity((right - left) * (bottom - top));
+            for y in top..bottom {
+                for x in left..right {
+                    let at = (y * w + x) * 4;
+                    let pixel = &rgba[at..at + 4];
+                    if !first && !differs(&screen[at..at + 4], pixel, quality.lossy) {
+                        buffer.push(clear);
+                    } else {
+                        screen[at..at + 4].copy_from_slice(pixel);
+                        buffer.push(index(pixel));
+                    }
+                }
+            }
+            if let Some(before) = held.take() {
+                encoder.write_frame(&before)?;
+                count += 1;
+            }
+            held = Some(gif::Frame {
+                delay: *stay,
+                dispose: gif::DisposalMethod::Keep,
+                transparent: (!first).then_some(clear),
+                left: u16::try_from(left).context("too wide for a GIF")?,
+                top: u16::try_from(top).context("too high for a GIF")?,
+                width: u16::try_from(right - left).context("too wide for a GIF")?,
+                height: u16::try_from(bottom - top).context("too high for a GIF")?,
+                buffer: Cow::Owned(buffer),
+                ..gif::Frame::default()
+            });
+        }
+        if let Some(last) = held {
+            encoder.write_frame(&last)?;
+            count += 1;
+        }
+        drop(encoder);
+        Ok((bytes, count))
+    }
+}
+
 /// The GIF of `frames` (RGBA, each with how long it stays, in hundredths
 /// of a second), looping, in `quality`; and how many frames it has.
+#[cfg(test)]
 pub fn encode(
     width: u16,
     height: u16,
     frames: &[(Vec<u8>, u16)],
     quality: Quality,
 ) -> Result<(Vec<u8>, usize)> {
-    let (w, h) = (usize::from(width), usize::from(height));
-    anyhow::ensure!(
-        frames.iter().all(|(rgba, _)| rgba.len() == w * h * 4),
-        "a frame of another size"
-    );
-    // The last place: a pixel that stays as it was. The table is as long
-    // as the places asked for, rounded up to whole bits of a code.
-    let places = quality.colors.clamp(2, 256);
-    let clear = u8::try_from(places - 1).unwrap_or(u8::MAX);
-    let mut flat = table(frames, w * h, usize::from(clear));
-    flat.resize(usize::from(places).next_power_of_two() * 3, 0);
-    let colors = flat[..usize::from(clear) * 3].to_vec();
-    let mut near: HashMap<[u8; 3], u8> = HashMap::new();
-    let mut index = |pixel: &[u8]| -> u8 {
-        *near
-            .entry([pixel[0], pixel[1], pixel[2]])
-            .or_insert_with(|| nearest(&colors, pixel))
-    };
-
-    let mut bytes = Vec::new();
-    let mut count = 0;
-    let mut encoder = gif::Encoder::new(&mut bytes, width, height, &flat)?;
-    encoder.set_repeat(gif::Repeat::Infinite)?;
-    // What the picture shows so far, as the frames meant it: a pixel is
-    // drawn again once it strays from that, so small steps do not add up.
-    let mut shown: Option<Vec<u8>> = None;
-    // The frame before, held back until it is known how long it stays.
-    let mut held: Option<gif::Frame<'static>> = None;
+    let mut kept = Frames::default();
     for (rgba, stay) in frames {
-        // The part that changed: all of the first frame. A frame with
-        // nothing to draw only makes the one before it stay longer.
-        let part = match &shown {
-            None => Some((0, 0, w, h)),
-            Some(shown) => changed(shown, rgba, w, h, quality.lossy),
-        };
-        let Some((left, top, right, bottom)) = part else {
-            if let Some(last) = held.as_mut() {
-                last.delay = last.delay.saturating_add(*stay);
-            }
-            continue;
-        };
-        let first = shown.is_none();
-        let screen = shown.get_or_insert_with(|| rgba.clone());
-        let mut buffer = Vec::with_capacity((right - left) * (bottom - top));
-        for y in top..bottom {
-            for x in left..right {
-                let at = (y * w + x) * 4;
-                let pixel = &rgba[at..at + 4];
-                if !first && !differs(&screen[at..at + 4], pixel, quality.lossy) {
-                    buffer.push(clear);
-                } else {
-                    screen[at..at + 4].copy_from_slice(pixel);
-                    buffer.push(index(pixel));
-                }
-            }
-        }
-        if let Some(before) = held.take() {
-            encoder.write_frame(&before)?;
-            count += 1;
-        }
-        held = Some(gif::Frame {
-            delay: *stay,
-            dispose: gif::DisposalMethod::Keep,
-            transparent: (!first).then_some(clear),
-            left: u16::try_from(left).context("too wide for a GIF")?,
-            top: u16::try_from(top).context("too high for a GIF")?,
-            width: u16::try_from(right - left).context("too wide for a GIF")?,
-            height: u16::try_from(bottom - top).context("too high for a GIF")?,
-            buffer: Cow::Owned(buffer),
-            ..gif::Frame::default()
-        });
+        kept.push(usize::from(width), usize::from(height), rgba, *stay);
     }
-    if let Some(last) = held {
-        encoder.write_frame(&last)?;
-        count += 1;
-    }
-    drop(encoder);
-    Ok((bytes, count))
+    kept.encode(quality)
 }
 
 /// Whether `now` is in another step than `was` in a channel, the steps
@@ -145,25 +229,13 @@ fn differs(was: &[u8], now: &[u8], lossy: u8) -> bool {
 }
 
 /// At most `most` colors for all the frames, as RGB one after another,
-/// from pixels spread over them: the colors themselves where they are
-/// that few, else learned. A color counts by the size of its number, not
-/// by the number, so the few pixels of a light keep their color beside
-/// the many of the background.
-fn table(frames: &[(Vec<u8>, u16)], pixels: usize, most: usize) -> Vec<u8> {
-    let step = (frames.len() * pixels / LEARNED).max(1);
-    let mut seen: HashMap<[u8; 3], u32> = HashMap::new();
-    let mut at = 0;
-    for (rgba, _) in frames {
-        while at < pixels {
-            *seen
-                .entry([rgba[at * 4], rgba[at * 4 + 1], rgba[at * 4 + 2]])
-                .or_default() += 1;
-            at += step;
-        }
-        at -= pixels;
-    }
+/// from the colors `seen` in pixels spread over them: the colors
+/// themselves where they are that few, else learned. A color counts by the
+/// size of its number, not by the number, so the few pixels of a light
+/// keep their color beside the many of the background.
+fn table(seen: &HashMap<[u8; 3], u32>, most: usize) -> Vec<u8> {
     // In one order every time, so the same frames give the same file.
-    let mut seen: Vec<([u8; 3], u32)> = seen.into_iter().collect();
+    let mut seen: Vec<([u8; 3], u32)> = seen.iter().map(|(c, n)| (*c, *n)).collect();
     seen.sort_unstable();
     if seen.len() <= most {
         return seen.iter().flat_map(|(color, _)| *color).collect();

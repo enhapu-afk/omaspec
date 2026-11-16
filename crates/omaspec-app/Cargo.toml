@@ -25,6 +25,8 @@ notify = "8"
 gif = "0.14"
 # One table of colors for all the frames of such a GIF.
 color_quant = "1"
+# Its frames deflated while they wait; already in the tree, as the core's.
+miniz_oxide = "0.9"
 regex = "1"
 # `render --check` reads the SVGs it holds the new ones against.
 roxmltree = "0.21"

@@ -25,7 +25,7 @@ use omaspec_core::{Language, detect};
 use omaspec_render::{Place, Renderer};
 use omaspec_theme::Theme as Omarchy;
 
-use super::screen::{Screen, Shot, Shows};
+use super::screen::{Screen, Shows};
 use super::{App, Command, Message, Start};
 use crate::paper::{self, Ask, headless};
 use crate::worker::{self, Drawn};
@@ -98,23 +98,10 @@ pub fn play(args: &Moving) -> Result<String> {
         stage.play(args)?
     };
 
-    let Some(first) = stage.frames.first() else {
+    let Some((w, h)) = stage.frames.size() else {
         bail!("no frame was drawn");
     };
-    let (w, h) = (
-        u16::try_from(first.width).context("too wide for a GIF")?,
-        u16::try_from(first.height).context("too high for a GIF")?,
-    );
-    // A frame like the one before it only makes that one stay longer.
-    let delay = u16::try_from((100 / args.fps).max(2)).unwrap_or(5);
-    let mut kept: Vec<(Vec<u8>, u16)> = Vec::new();
-    for frame in stage.frames {
-        match kept.last_mut() {
-            Some((last, stay)) if *last == frame.rgba => *stay = stay.saturating_add(delay),
-            _ => kept.push((frame.rgba, delay)),
-        }
-    }
-    let (bytes, count) = super::gifs::encode(w, h, &kept, args.quality)?;
+    let (bytes, count) = stage.frames.encode(args.quality)?;
     crate::files::write_atomic(&args.output, &bytes)
         .with_context(|| format!("cannot write {}", args.output.display()))?;
     Ok(format!(
@@ -133,7 +120,9 @@ pub fn play(args: &Moving) -> Result<String> {
 struct Stage {
     app: App,
     screen: Screen,
-    frames: Vec<Shot>,
+    frames: super::gifs::Frames,
+    /// How long each frame stays, in hundredths of a second.
+    delay: u16,
     /// How long a frame stays.
     tick: Duration,
     key: u64,
@@ -247,7 +236,8 @@ impl Stage {
         Ok(Self {
             app,
             screen,
-            frames: Vec::new(),
+            frames: super::gifs::Frames::default(),
+            delay: u16::try_from((100 / args.fps).max(2)).unwrap_or(5),
             tick,
             key,
             text,
@@ -259,14 +249,10 @@ impl Stage {
     /// Draws frames for `most`, or until `done`.
     fn run(&mut self, most: Duration, done: impl Fn(&App) -> bool) {
         let count = (most.as_secs_f32() / self.tick.as_secs_f32()).ceil() as usize;
-        let frames = &mut self.frames;
+        let (frames, delay) = (&mut self.frames, self.delay);
         self.screen
             .run_frames(&mut self.app, count.max(1), self.tick, done, |shot| {
-                frames.push(Shot {
-                    width: shot.width,
-                    height: shot.height,
-                    rgba: shot.rgba.clone(),
-                });
+                frames.push(shot.width, shot.height, &shot.rgba, delay);
             });
     }
 

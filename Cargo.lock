@@ -2636,6 +2636,7 @@ dependencies = [
  "iced_runtime",
  "iced_test",
  "landlock",
+ "miniz_oxide 0.9.1",
  "notify",
  "omaspec-core",
  "omaspec-model",
