@@ -14,7 +14,8 @@
 use std::collections::{HashMap, HashSet};
 
 use super::{
-    Container, Crossing, Dash, Diagram, Direction, Kind, Node, Note, Side, Split, Text, Transition,
+    Container, Crossing, Dash, Diagram, Direction, Kind, Node, Note, Side, Split, Text, Toward,
+    Transition,
 };
 use crate::Declined;
 use crate::common::{Frame, block, keyword, snippet, squeezed_eq, take_link, text_at};
@@ -116,6 +117,8 @@ struct RawArrow {
     color: Option<String>,
     dash: Dash,
     bold: bool,
+    /// The way the arrow was turned (`-right->`), as written.
+    toward: Option<Toward>,
 }
 
 /// Gives every state and region inside `container` its direction where
@@ -403,6 +406,7 @@ impl Parser {
                 bold: raw.bold,
                 line,
                 label_before: None,
+                toward: raw.toward,
             },
         ));
         Ok(())
@@ -1055,23 +1059,25 @@ fn transition(text: &str, line: usize) -> Option<Result<RawArrow, Declined>> {
     if !forward && !backward {
         return None;
     }
-    // `A -left-> B`, `A <-up- B`.
-    let word = match forward {
-        true => left.rsplit_once('-').map(|(_, word)| word),
-        false => right.split_once('-').map(|(word, _)| word),
+    // `A -left-> B`, `A <-up- B`: the word between the dashes turns the
+    // arrow (docs/adr/0027); a name before it keeps what comes before.
+    let (left, right, toward) = match forward {
+        true => match left.rsplit_once('-') {
+            Some((name, word)) if Toward::of(word).is_some() && !name.trim().is_empty() => {
+                (name.trim_end(), right, Toward::of(word))
+            }
+            _ => (left, right, None),
+        },
+        false => match right.split_once('-') {
+            Some((word, name)) if Toward::of(word).is_some() && !name.trim().is_empty() => {
+                // `A <-up- B` sets B above A, and the transition runs from
+                // B: down to A.
+                let toward = Toward::of(word).map(Toward::opposite);
+                (left, name.trim_start(), toward)
+            }
+            _ => (left, right, None),
+        },
     };
-    if word.is_some_and(|word| {
-        let word = word.to_ascii_lowercase();
-        !word.is_empty()
-            && ["left", "right", "up", "down"]
-                .iter()
-                .any(|d| d.starts_with(&word))
-    }) {
-        return Some(Err(Declined::at(
-            line,
-            "arrows with a direction are not supported yet",
-        )));
-    }
     let dashes = |run: &str| !run.is_empty() && run.chars().all(|c| c == '-');
     let shaped = match forward {
         true => run.strip_suffix('>').is_some_and(dashes),
@@ -1083,55 +1089,69 @@ fn transition(text: &str, line: usize) -> Option<Result<RawArrow, Declined>> {
             format!("`{run}` is no arrow for PlantUML, which takes `->`, `-->` or `<--`"),
         )));
     }
-    Some(raw_arrow(
-        left,
-        right,
-        backward,
-        None,
-        Dash::Solid,
-        false,
-        line,
-    ))
+    Some(
+        raw_arrow(left, right, backward, None, Dash::Solid, false, line)
+            .map(|raw| RawArrow { toward, ..raw }),
+    )
 }
 
+/// A styled arrow, `-[#red]->` or `<-[dashed]-`, perhaps turned before
+/// or after its brackets (`-up[#red]->`, `-[#red]up->`); `None` where the
+/// line has none.
 fn bracket_arrow(text: &str, line: usize) -> Option<Result<RawArrow, Declined>> {
-    if let Some(at) = find_unquoted(text, "<-[") {
-        let after = at + 3;
-        if text[after..].contains("]->") {
+    // The first unquoted `[` right after a dash and perhaps a word: a
+    // `[*]` or a `[H]` is no style.
+    let mut from = 0;
+    let (open, start, backward, first) = loop {
+        let open = from + find_unquoted(&text[from..], "[")?;
+        let before = &text[..open];
+        let word = before.len()
+            - before
+                .trim_end_matches(|c: char| c.is_ascii_alphabetic())
+                .len();
+        let dash = &before[..before.len() - word];
+        if let Some(rest) = dash.strip_suffix('-') {
+            let backward = rest.ends_with('<');
+            let start = rest.len() - usize::from(backward);
+            break (open, start, backward, &before[before.len() - word..]);
+        }
+        from = open + 1;
+    };
+    let Some(close) = text[open..].find(']').map(|at| open + at) else {
+        return Some(Err(Declined::at(line, "an arrow has no end")));
+    };
+    let inside = &text[open + 1..close];
+    let after = &text[close + 1..];
+    let word = after.len()
+        - after
+            .trim_start_matches(|c: char| c.is_ascii_alphabetic())
+            .len();
+    let second = &after[..word];
+    let tail = &after[word..];
+    let end = match (backward, tail.starts_with("->"), tail.starts_with('-')) {
+        (true, true, _) => {
             return Some(Err(Declined::at(
                 line,
                 "bidirectional arrows are not supported yet",
             )));
         }
-        let end = text[after..].find("]-")?;
-        let inside = &text[after..after + end];
-        let left = text[..at].trim();
-        let right = text[after + end + 2..].trim();
-        if label_colon(left).is_some() {
-            return None;
-        }
-        if head_marker(text, at, after + end + 2) {
-            return Some(Err(Declined::at(line, "this arrow is not supported yet")));
-        }
-        return Some(styled(left, right, true, inside, line));
+        (true, false, true) => close + 1 + word + 1,
+        (false, true, _) => close + 1 + word + 2,
+        _ => return Some(Err(Declined::at(line, "an arrow has no end"))),
+    };
+    let toward = [first, second]
+        .into_iter()
+        .find_map(Toward::of)
+        .map(|toward| if backward { toward.opposite() } else { toward });
+    let left = text[..start].trim();
+    let right = text[end..].trim();
+    if label_colon(left).is_some() {
+        return None;
     }
-    if let Some(at) = find_unquoted(text, "-[") {
-        let after = at + 2;
-        let Some(end) = text[after..].find("]->") else {
-            return Some(Err(Declined::at(line, "an arrow has no end")));
-        };
-        let inside = &text[after..after + end];
-        let left = text[..at].trim();
-        let right = text[after + end + 3..].trim();
-        if label_colon(left).is_some() {
-            return None;
-        }
-        if head_marker(text, at, after + end + 3) {
-            return Some(Err(Declined::at(line, "this arrow is not supported yet")));
-        }
-        return Some(styled(left, right, false, inside, line));
+    if head_marker(text, start, end) {
+        return Some(Err(Declined::at(line, "this arrow is not supported yet")));
     }
-    None
+    Some(styled(left, right, backward, inside, line).map(|raw| RawArrow { toward, ..raw }))
 }
 
 fn styled(
@@ -1212,6 +1232,7 @@ fn raw_arrow(
         color,
         dash,
         bold,
+        toward: None,
     })
 }
 
@@ -1627,6 +1648,36 @@ mod tests {
         }
     }
 
+    /// REQ-075: an arrow turned with a word or a start of one, before or
+    /// after its style, says where its second state stands; one that
+    /// points back runs from that state, the other way.
+    #[test]
+    fn an_arrow_says_which_way_it_points() {
+        for (arrow, from, toward) in [
+            ("A -left-> B", "A", Toward::Left),
+            ("A -Up-> B", "A", Toward::Up),
+            ("A -d-> B", "A", Toward::Down),
+            ("A -ri-> B", "A", Toward::Right),
+            ("A <-l- B", "B", Toward::Right),
+            ("A -[#red]up-> B", "A", Toward::Up),
+            ("A -up[#red,dashed]-> B", "A", Toward::Up),
+            ("A <-[dashed]right- B", "B", Toward::Left),
+        ] {
+            let d = diagram(&format!("@startuml\n{arrow}\n@enduml\n"));
+            let edge = &d.root.edges[0];
+            assert_eq!(d.root.nodes[edge.from].key, from, "{arrow}");
+            assert_eq!(edge.toward, Some(toward), "{arrow}");
+        }
+        // A word after the dashes is a name, not a way.
+        let d = diagram("@startuml\nA --> up\nup --> B : left\n@enduml\n");
+        assert!(d.root.edges.iter().all(|edge| edge.toward.is_none()));
+        // As if the flow ran down, and turned with it.
+        assert_eq!(Toward::Right.laid(), (Some(true), false));
+        assert_eq!(Toward::Left.laid(), (Some(false), false));
+        assert_eq!(Toward::Up.laid(), (None, true));
+        assert_eq!(Toward::Down.laid(), (None, false));
+    }
+
     #[test]
     fn arrows_and_regions_as_plantuml_takes_them() {
         diagram("@startuml\nA -> B\nB ---> C\nA <-- C\nC -[#red,dashed]-> A\n@enduml\n");
@@ -1634,9 +1685,6 @@ mod tests {
             ("A ->> B", "`->>` is no arrow"),
             ("A -->--> B", "`-->-->` is no arrow"),
             ("A <<- B", "`<<-` is no arrow"),
-            ("A -left-> B", "with a direction"),
-            ("A -Up-> B", "with a direction"),
-            ("A <-l- B", "with a direction"),
             ("A -[red]-> B", "arrow style `red`"),
             ("A -[norank]-> B", "arrow style `norank`"),
         ] {

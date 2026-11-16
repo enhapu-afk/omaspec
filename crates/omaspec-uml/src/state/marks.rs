@@ -245,6 +245,7 @@ impl Diagram {
             bold: false,
             line: usize::MAX,
             label_before: None,
+            toward: None,
         };
         let home = &from[..from.len() - 1];
         if to.len() == from.len() && to.starts_with(home) {

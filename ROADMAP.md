@@ -773,8 +773,8 @@ diagrams alike.
       that PlantUML draws side by side, each from its own start, without a line between
       them (drawn so since 2026-11-05, in the order written; Mermaid has none); inside `state On {`, `On[H]` is another `On` in PlantUML, so it
       declines with the hint to write `[H]`; a stereotype comes after the alias. Each
-      of these declines naming the line, and arrows with a direction (`-left->`) still
-      decline. Mermaid→PlantUML conversion gives a Mermaid id PlantUML does not take a
+      of these declines naming the line; arrows with a direction (`-left->`) are read
+      since 2026-11-16 (REQ-075, [0027](docs/adr/0027-a-line-within-a-rank.md)). Mermaid→PlantUML conversion gives a Mermaid id PlantUML does not take a
       plain name and shows the id (`state "long-wait" as long_wait`); it quoted it in
       transitions before, which PlantUML refuses. In 4,000 changed diagrams no machine
       is read otherwise any more
@@ -2639,16 +2639,20 @@ skin draws them by hand.
 - [x] A line within a rank (2026-11-12,
       [0027](docs/adr/0027-a-line-within-a-rank.md)): `a -right-> b`
       puts `b` beside `a` in its rank and runs straight between the two,
-      its label over its middle; `-left->` puts it before, and where the
-      flow runs to the right `-down->` and `-up->` do the same. Along
+      its label over its middle; `-left->` puts it before; the words turn
+      with the flow as PlantUML turns them, so where it runs to the right
+      `-right->` puts `b` below `a` and `-down->` runs along the flow
+      (corrected 2026-11-16, read as the page showed them before). Along
       the flow `-up->` runs from its second box to its first. The layout
       holds the two as an entry of 0021 does, keeps room for the label
       and the heads, and routes the line itself (`graph::level_route`);
       where the two cannot share a rank the line is one like any other.
       Holds are placed anchor first, so a chain stands however it was
       written. The gallery's architecture puts its gateway beside the
-      user, its router beside the orchestrator. Structure diagrams
-      only; a state diagram's `-right->` stays declined.
+      user, its router beside the orchestrator. State diagrams too
+      since 2026-11-16 (REQ-075): a transition turned against the flow is
+      ranked from its second state to its first and drawn as written
+      (`graph::open::Line::against`).
 - [x] C4-PlantUML (2026-11-12), read into the structure engine
       (`omaspec_uml::structure::c4`), so it is laid out by its ranks as
       PlantUML lays it out. The library is not read: the include

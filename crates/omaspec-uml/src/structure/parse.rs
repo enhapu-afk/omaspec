@@ -812,11 +812,13 @@ impl Parser {
         // across it the second box stands in the rank of the first, on
         // that side: held there by a hidden line (docs/adr/0021), joined
         // there by one that is drawn (docs/adr/0027).
-        let down = self.direction.unwrap_or_default() == Direction::Down;
+        // The words are said as if the flow ran down, and turn with it:
+        // where it runs to the right, `-down->` runs along it, as the Java
+        // PlantUML lays it.
         let along = match item.toward {
             None => true,
             Some(ACROSS) => false,
-            Some(word) => matches!(word, "down" | "up") == down,
+            Some(word) => matches!(word, "down" | "up"),
         };
         let forward = item
             .toward

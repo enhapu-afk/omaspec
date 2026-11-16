@@ -65,18 +65,32 @@ impl<'a> Nested for States<'a> {
         (graph_direction(container.direction), container.mirrored)
     }
 
+    /// A transition turned against the flow (`-up->` where it runs down)
+    /// is ranked from its second state to its first (docs/adr/0027).
     fn lines(&self, container: &'a Container) -> Vec<Line> {
+        let against =
+            |toward: Option<super::super::Toward>| toward.is_some_and(|toward| toward.laid().1);
         let edges = container.edges.iter().map(|edge| Line {
             from: vec![edge.from],
             to: vec![edge.to],
             hidden: false,
+            against: against(edge.toward),
         });
         let crossings = container.crossings.iter().map(|crossing| Line {
             from: crossing.from.clone(),
             to: crossing.to.clone(),
             hidden: false,
+            against: against(crossing.arrow.toward),
         });
         edges.chain(crossings).collect()
+    }
+
+    /// A transition turned across the flow (`-right->` where it runs down)
+    /// runs within the rank, its second state right beside its first on
+    /// that side (docs/adr/0027); one between boxes of different states
+    /// is a line like any other.
+    fn level(&self, container: &'a Container, index: usize) -> Option<bool> {
+        container.edges.get(index)?.toward?.laid().0
     }
 
     fn measure(

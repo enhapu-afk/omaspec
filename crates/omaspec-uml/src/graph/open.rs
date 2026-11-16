@@ -122,6 +122,12 @@ pub struct Line {
     pub from: Vec<usize>,
     pub to: Vec<usize>,
     pub hidden: bool,
+    /// Ranked from its second box to its first, against the way it is
+    /// drawn: `-up->` where the flow runs down
+    /// ([0027](../../../../docs/adr/0027-a-line-within-a-rank.md)). It is
+    /// drawn from its first box to its second all the same, and stays out
+    /// of a bundle, its head at the end the layout takes for its start.
+    pub against: bool,
 }
 
 impl Line {
@@ -523,6 +529,8 @@ struct Pending<E> {
     ends: Option<(usize, usize)>,
     /// The paths to its ends, for a crossing drawn here.
     paths: Option<(Vec<usize>, Vec<usize>)>,
+    /// Ranked the other way ([`Line::against`]): its route runs back.
+    against: bool,
 }
 
 /// One layout, through the containers it opens.
@@ -679,6 +687,7 @@ impl<C: Nested> Flat<C> {
                 // A line the layout drops: it names no member.
                 _ => (usize::MAX, usize::MAX),
             };
+            let (from, to) = if line.against { (to, from) } else { (from, to) };
             if let Some((member, _)) = ends_at
                 && from == to
                 && from < self.nodes.len()
@@ -704,7 +713,7 @@ impl<C: Nested> Flat<C> {
                 label_width: label.width,
                 label_height: label.height,
                 hidden: !drawn,
-                apart: apart.contains(&from) || apart.contains(&to),
+                apart: line.against || apart.contains(&from) || apart.contains(&to),
                 marked: cx.marked(container, index),
                 arrival: cx.arrival(&look),
                 label_before: cx.label_before(container, index),
@@ -717,6 +726,7 @@ impl<C: Nested> Flat<C> {
                 look,
                 ends: ends_at,
                 paths,
+                against: line.against,
             });
         }
         for (member, room) in cx.rooms(container)? {
@@ -802,8 +812,12 @@ impl<C: Nested> Flat<C> {
         for line in level {
             let mut wire = if line.drawn {
                 let route = &laid.routes[line.at];
+                let mut points = route.points.clone();
+                if line.against {
+                    points.reverse();
+                }
                 Wire {
-                    points: route.points.clone(),
+                    points,
                     label: line.label,
                     label_at: route.label_at,
                     look: line.look,
@@ -1025,6 +1039,7 @@ mod tests {
 
     fn line(from: &[usize], to: &[usize], hidden: bool) -> Line {
         Line {
+            against: false,
             from: from.to_vec(),
             to: to.to_vec(),
             hidden,

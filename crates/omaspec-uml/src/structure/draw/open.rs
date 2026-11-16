@@ -93,15 +93,19 @@ impl<'a> Nested for Elements<'a> {
     }
 
     fn lines(&self, group: &'a Group) -> Vec<Line> {
+        // A line against the flow is turned when it is read, its heads
+        // with it.
         let edges = group.edges.iter().map(|edge| Line {
             from: vec![edge.from],
             to: vec![edge.to],
             hidden: false,
+            against: false,
         });
         let crossings = group.crossings.iter().map(|crossing| Line {
             from: crossing.from.clone(),
             to: crossing.to.clone(),
             hidden: false,
+            against: false,
         });
         edges.chain(crossings).collect()
     }

@@ -255,8 +255,9 @@ Rel_D(a, s, \"uses\")
     assert_eq!(d.root.notes.len(), 1);
     let s = find(&d.root, "s");
     assert_eq!(s.link.as_ref().unwrap().url, "https://example.org/s");
-    // Where the flow runs to the right, down is across it.
-    assert_eq!(d.root.edges[0].level, Some(true));
+    // Where the flow runs to the right, down runs along it, as the Java
+    // PlantUML lays `Rel_D` there too: the words turn with the flow.
+    assert_eq!(d.root.edges[0].level, None);
     let svg = crate::render(source).unwrap();
     assert!(svg.contains(">A<") && svg.contains(">S<"), "{svg}");
 }

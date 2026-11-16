@@ -308,6 +308,66 @@ pub struct Transition {
     /// by hand ([`crate::hand::Label`]): before the line across the flow,
     /// or after it.
     pub label_before: Option<bool>,
+    /// The way the writer turned the arrow (`-right->`, `-up->`), which
+    /// lays its states out (docs/adr/0027).
+    pub toward: Option<Toward>,
+}
+
+/// Which way a transition's arrow points on the page, as PlantUML writes
+/// it in the arrow: `-up->`, `-down->`, `-left->`, `-right->`, or a start
+/// of the word (`-u->`, `-ri->`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Toward {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+impl Toward {
+    /// The way a word in an arrow names, or a start of it.
+    pub fn of(word: &str) -> Option<Toward> {
+        let word = word.to_ascii_lowercase();
+        if word.is_empty() {
+            return None;
+        }
+        [
+            ("up", Toward::Up),
+            ("down", Toward::Down),
+            ("left", Toward::Left),
+            ("right", Toward::Right),
+        ]
+        .into_iter()
+        .find(|(name, _)| name.starts_with(&word))
+        .map(|(_, toward)| toward)
+    }
+
+    /// The other way: a word in an arrow that points back (`A <-up- B`)
+    /// says where the second state written stands, which is where the
+    /// transition comes from.
+    pub fn opposite(self) -> Toward {
+        match self {
+            Toward::Up => Toward::Down,
+            Toward::Down => Toward::Up,
+            Toward::Left => Toward::Right,
+            Toward::Right => Toward::Left,
+        }
+    }
+
+    /// How a line turned so lays out: within the rank right after its
+    /// first box across the flow (`Some(true)`) or right before it, ranked
+    /// against the way it is drawn (`None`, `true`), or as any other line.
+    /// The words are PlantUML's, said as if the flow ran down and turned
+    /// with it: where it runs to the right, `-down->` runs along it and
+    /// `-right->` across, as the Java PlantUML lays them (docs/adr/0027).
+    pub fn laid(self) -> (Option<bool>, bool) {
+        match self {
+            Toward::Right => (Some(true), false),
+            Toward::Left => (Some(false), false),
+            Toward::Up => (None, true),
+            Toward::Down => (None, false),
+        }
+    }
 }
 
 /// A transition whose ends lie in different boxes of one container. The

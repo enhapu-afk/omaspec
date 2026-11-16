@@ -742,6 +742,7 @@ impl Nested for Open<'_> {
                 from: wire.from.clone(),
                 to: wire.to.clone(),
                 hidden: false,
+                against: false,
             })
             .collect()
     }
