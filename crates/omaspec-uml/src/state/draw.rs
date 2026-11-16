@@ -39,6 +39,11 @@ const MIN_H: f32 = 28.0;
 const COMP_PAD: f32 = 12.0;
 /// Between a nested state's title and its children.
 const COMP_GAP: f32 = 8.0;
+/// Above a nested state's title and below it, down to the line under it.
+/// The words stand in the middle of their band as the eye has it: a line
+/// of text has more room above its letters than below.
+const HEAD_TOP: f32 = 8.0;
+const HEAD_FOOT: f32 = 11.0;
 const START: f32 = 22.0;
 const END: f32 = 26.0;
 /// A fork or join, long side then short side. The long side crosses the flow.
@@ -218,13 +223,21 @@ struct Item {
     mark: Color,
     title: Block,
     description: Vec<Block>,
-    /// The title band of a nested state; 0 for a leaf.
+    /// The words in the title band of a nested state; 0 for a leaf.
     header_h: f32,
     /// Between the title band and what a nested state holds.
     gap: f32,
     composite: bool,
     /// Followed on a click on the state and its words.
     link: Option<crate::text::Link>,
+}
+
+impl Item {
+    /// How high the title band of a nested state is, from its top border
+    /// to the line under its words.
+    fn band(&self) -> f32 {
+        HEAD_TOP + self.header_h + HEAD_FOOT
+    }
 }
 
 fn layout_container(container: &Container, skin: &Skin, family: Family) -> Result<Scene, Declined> {
@@ -274,7 +287,7 @@ fn measure_node(
         };
         return Ok(Measured {
             width: header_w.max(children.width) + COMP_PAD * 2.0,
-            height: COMP_PAD + header_h + gap + children.height + COMP_PAD,
+            height: HEAD_TOP + header_h + HEAD_FOOT + gap + children.height + COMP_PAD,
             flat: flat(node.kind),
             children,
             item: Item {
@@ -953,7 +966,7 @@ fn paint_divider(canvas: &mut Canvas, node: &Placed) {
     if node.item.header_h <= 0.0 {
         return;
     }
-    let y = node.rect.y + COMP_PAD + node.item.header_h;
+    let y = node.rect.y + node.item.band();
     canvas.line(
         Layer::Frames,
         (node.rect.x, y),
@@ -1081,7 +1094,7 @@ fn paint_words(canvas: &mut Canvas, node: &Placed) {
                 &node.item.title,
                 &node.item.description,
                 node.rect.x + node.rect.w / 2.0,
-                node.rect.y + COMP_PAD,
+                node.rect.y + HEAD_TOP,
             );
         }
         Kind::State => {
@@ -1932,7 +1945,7 @@ mod tests {
         let name = Rect {
             x: placed.rect.x + (placed.rect.w - placed.item.title.width) / 2.0,
             w: placed.item.title.width,
-            h: COMP_PAD + placed.item.header_h,
+            h: placed.item.band(),
             ..placed.rect
         };
         for pair in wake.windows(2) {

@@ -115,7 +115,7 @@ impl<'a> Nested for States<'a> {
             .fold(item.title.width, f32::max);
         let name = header_w + 8.0;
         let upward = container.mirrored && container.direction == Direction::Down;
-        let (top, bottom) = (COMP_PAD + item.header_h + COMP_GAP, COMP_PAD);
+        let (top, bottom) = (item.band() + COMP_GAP, COMP_PAD);
         let (top, bottom) = if upward { (bottom, top) } else { (top, bottom) };
         graph::Frame {
             parent: None,
@@ -131,7 +131,7 @@ impl<'a> Nested for States<'a> {
                     share: 0.5,
                     offset: -name / 2.0,
                     width: name,
-                    height: COMP_PAD + item.header_h,
+                    height: item.band(),
                 }
             },
         }
@@ -191,13 +191,9 @@ impl<'a> Nested for States<'a> {
             return;
         }
         let ox = rect.x + (rect.w - item.children.width) / 2.0;
-        let oy = rect.y + COMP_PAD + item.item.header_h + item.item.gap;
+        let oy = rect.y + item.item.band() + item.item.gap;
         item.children.offset(ox, oy);
-        fill_regions(
-            &mut item.children,
-            rect,
-            rect.y + COMP_PAD + item.item.header_h,
-        );
+        fill_regions(&mut item.children, rect, rect.y + item.item.band());
     }
 
     fn band(&self, node: &Placed) -> Rect {
@@ -212,7 +208,7 @@ impl<'a> Nested for States<'a> {
             x: node.rect.x + (node.rect.w - w) / 2.0,
             y: node.rect.y,
             w,
-            h: COMP_PAD + node.item.header_h,
+            h: node.item.band(),
         }
     }
 

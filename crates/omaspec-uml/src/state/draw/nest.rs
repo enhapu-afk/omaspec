@@ -2,7 +2,7 @@
 
 use super::super::{Container, Crossing, Direction, Kind, Split};
 use super::{
-    COMP_PAD, Item, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label, flat,
+    Item, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label, flat,
     layout_container,
 };
 use crate::Declined;
@@ -463,7 +463,7 @@ fn placements(nodes: &[Placed]) -> Vec<Placement> {
             let frame = item.composite && item.kind != Kind::Region;
             // The whole title band: lines come in below it.
             let title = (frame && item.header_h > 0.0).then_some(Rect {
-                h: COMP_PAD + item.header_h,
+                h: item.band(),
                 ..node.rect
             });
             Placement {
