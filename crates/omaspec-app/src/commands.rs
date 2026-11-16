@@ -76,6 +76,8 @@ pub(crate) fn language(input: &Input, forced: Option<Language>) -> Language {
 #[derive(Serialize)]
 pub(crate) struct Reported<'a> {
     file: String,
+    /// What kind of finding it is: the name a program holds on to.
+    code: &'static str,
     line: usize,
     severity: Severity,
     message: &'a str,
@@ -90,6 +92,7 @@ pub(crate) fn reported<'a>(file: &str, findings: &'a [Finding]) -> Vec<Reported<
         .iter()
         .map(|f| Reported {
             file: file.to_owned(),
+            code: f.code,
             line: f.line + 1,
             severity: f.severity,
             message: &f.message,

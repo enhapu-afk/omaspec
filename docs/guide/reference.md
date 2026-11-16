@@ -775,6 +775,33 @@ Other clients take the same command in their server list, for example
 `{"mcpServers": {"omaspec": {"command": "omaspec", "args": ["mcp"]}}}`. Relative paths
 are read from the folder the client starts the server in.
 
+### Findings by their code
+
+Every finding in a `--json` report and from the MCP tools carries a `code`: a short name
+of what kind it is. A program reads the code, not the message: the code stays, the
+message's words may change from one release to the next. New codes may come; one that is
+there keeps its meaning.
+
+| Code | What it says |
+|---|---|
+| `refused` | PlantUML or Mermaid does not take the diagram as written |
+| `java-only` | only the Java PlantUML draws it (`--strict` fails on it) |
+| `not-read` | Omaspec does not read the diagram as a specification |
+| `missing-end`, `unclosed-block`, `unknown-head` | a block or the diagram is not closed, or its first line names no diagram |
+| `declared-twice`, `undeclared-participant`, `unused-participant` | a scenario's participants |
+| `lane-spelling`, `lone-state`, `namesake-state` | a name that is probably another one misspelled, or one name for two states |
+| `no-start`, `entered-without-start` | a machine or a state with no `[*] --> …` to begin at |
+| `unreachable-state`, `dead-end` | a state nothing leads to, or nothing leaves |
+| `transition-twice`, `ambiguous-event` | a transition written twice, or one event leading to two states |
+| `scenario-mismatch` | a scenario's message its receiver's state machine does not take there |
+| `dead-link` | a link to a diagram the project does not have |
+| `trace-line`, `trace-deviation`, `trace-unchecked`, `trace-no-start`, `trace-too-many-ways` | a trace: a line not read, an event the machine does not take, and what could not be followed |
+| `stale-entry`, `by-hand-miss` | an entry by hand (a line, a held box) that no longer holds |
+| `unknown-icon`, `faint-color`, `unheeded-setting` | an icon the set does not have, a color too faint to read, a setting nothing heeds |
+| `not-mermaid-js` | Omaspec draws it, mermaid.js (GitHub) does not |
+| `project-file` | the project's file does not read |
+| `not-drawn` | `check`: no engine draws the diagram |
+
 ## Omarchy
 
 Omaspec follows theme switches and `omarchy font set` while it runs. Every bundled theme

@@ -397,7 +397,12 @@ pub fn unheeded(code: &str) -> Vec<Finding> {
             .iter()
             .any(|f| f.line == setting.line && f.message == message)
         {
-            out.push(Finding::new(setting.line, Severity::Info, message));
+            out.push(Finding::new(
+                "unheeded-setting",
+                setting.line,
+                Severity::Info,
+                message,
+            ));
         }
     }
     out

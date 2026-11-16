@@ -51,7 +51,7 @@ pub fn check(trace: &str, specs: &Specs) -> Vec<Finding> {
         let entry = match entry(line, text) {
             Ok(entry) => entry,
             Err(why) => {
-                out.push(finding(line, Severity::Error, why));
+                out.push(finding("trace-line", line, Severity::Error, why));
                 continue;
             }
         };
@@ -61,6 +61,7 @@ pub fn check(trace: &str, specs: &Specs) -> Vec<Finding> {
                 Ok(spec) => Some(Object::new(spec)),
                 Err(why) => {
                     out.push(finding(
+                        "trace-unchecked",
                         line,
                         Severity::Info,
                         format!("{why}, so the events of {} are not checked.", entry.object),
@@ -258,7 +259,8 @@ struct Outcome {
 
 impl Outcome {
     fn deviation(&mut self, line: usize, message: String) {
-        self.findings.push(finding(line, Severity::Error, message));
+        self.findings
+            .push(finding("trace-deviation", line, Severity::Error, message));
         self.deviated = true;
     }
 }
@@ -353,7 +355,7 @@ impl<'a> Object<'a> {
                         ways
                     }
                     None => {
-                        outcome.findings.push(finding(
+                        outcome.findings.push(finding("trace-no-start", 
                             entry.line,
                             Severity::Info,
                             format!(
@@ -478,7 +480,7 @@ impl<'a> Object<'a> {
             None => ways,
         };
         if ways.len() >= MAX_WAYS {
-            outcome.findings.push(finding(
+            outcome.findings.push(finding("trace-too-many-ways", 
                 entry.line,
                 Severity::Info,
                 format!(
@@ -676,8 +678,13 @@ fn can_be(m: &Machine, ways: &[Run]) -> Vec<bool> {
     can_be
 }
 
-fn finding(line: usize, severity: Severity, message: impl Into<String>) -> Finding {
-    Finding::new(line, severity, message)
+fn finding(
+    code: &'static str,
+    line: usize,
+    severity: Severity,
+    message: impl Into<String>,
+) -> Finding {
+    Finding::new(code, line, severity, message)
 }
 
 #[cfg(test)]

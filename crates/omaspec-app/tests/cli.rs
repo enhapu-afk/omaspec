@@ -265,6 +265,67 @@ fn render_writes_the_words_as_outlines() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// Every finding has a code a program can hold on to, and the guide
+/// lists each one: a new kind of finding is written down there too.
+#[test]
+fn every_finding_code_is_in_the_guide() {
+    fn sources(dir: &Path, out: &mut Vec<PathBuf>) {
+        for entry in fs::read_dir(dir).unwrap().flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                sources(&path, out);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                out.push(path);
+            }
+        }
+    }
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let guide = fs::read_to_string(root.join("docs/guide/reference.md")).unwrap();
+    let mut files = Vec::new();
+    for krate in ["omaspec-core", "omaspec-model", "omaspec-app"] {
+        sources(&root.join("crates").join(krate).join("src"), &mut files);
+    }
+    let mut codes = std::collections::BTreeSet::new();
+    for file in files {
+        let text = fs::read_to_string(&file).unwrap();
+        for call in ["Finding::new(", "finding("] {
+            for (at, _) in text.match_indices(call) {
+                let rest = text[at + call.len()..].trim_start();
+                let Some(code) = rest.strip_prefix('"').and_then(|r| r.split('"').next()) else {
+                    continue;
+                };
+                let kebab =
+                    !code.is_empty() && code.bytes().all(|b| b.is_ascii_lowercase() || b == b'-');
+                // The two a fix carries inside the lint are never reported.
+                if kebab && !matches!(code, "fix" | "nothing-to-fix") {
+                    codes.insert(code.to_owned());
+                }
+            }
+        }
+    }
+    for more in ["transition-twice", "ambiguous-event"] {
+        codes.insert(more.to_owned());
+    }
+    assert!(codes.len() >= 30, "{codes:?}");
+    for code in &codes {
+        assert!(
+            guide.contains(&format!("`{code}`")),
+            "{code} is not in the guide"
+        );
+    }
+    // The report carries it.
+    let dir = scratch("codes");
+    let file = dir.join("a.puml");
+    fs::write(&file, "@startuml\n[*] --> A\nA --> B\n@enduml\n").unwrap();
+    let out = omaspec(&["lint", "--json", file.to_str().unwrap()]);
+    assert!(
+        stdout(&out).contains(r#""code": "dead-end""#),
+        "{}",
+        stdout(&out)
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn render_names_the_characters_no_font_draws() {
     let dir = scratch("undrawable");

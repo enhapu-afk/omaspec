@@ -57,7 +57,7 @@ pub(super) fn namesakes(rows: &[Row], findings: &mut Vec<Finding>) {
             if !told.insert((name.clone(), place.clone())) {
                 continue;
             }
-            findings.push(Finding::new(
+            findings.push(Finding::new("namesake-state", 
                 r.row,
                 Severity::Warning,
                 format!(

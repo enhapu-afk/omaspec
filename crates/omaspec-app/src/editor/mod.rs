@@ -1441,6 +1441,7 @@ impl App {
                             .iter()
                             .map(|(line, why)| {
                                 omaspec_core::lint::Finding::new(
+                                    "by-hand-miss",
                                     *line,
                                     omaspec_core::lint::Severity::Warning,
                                     why.clone(),

@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn every_fix_is_made_from_the_bottom_and_one_for_a_line() {
-        let found = |fix: Fix| Finding::new(fix.line, Severity::Info, "").with(fix);
+        let found = |fix: Fix| Finding::new("fix", fix.line, Severity::Info, "").with(fix);
         let findings = [
             found(Fix::replace("", 1, "B")),
             found(Fix::replace("", 1, "other")),
@@ -150,7 +150,7 @@ mod tests {
             found(Fix::insert("", 1, "x")),
             found(Fix::remove("", 2)),
             found(Fix::insert("", 3, "end")),
-            Finding::new(0, Severity::Error, "nothing to do"),
+            Finding::new("nothing-to-fix", 0, Severity::Error, "nothing to do"),
         ];
         assert_eq!(
             fix_all("a\nb\nc\n", &findings),

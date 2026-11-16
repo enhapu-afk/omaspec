@@ -36,6 +36,8 @@ jobs:
       - run: cargo test --workspace
       - name: A dense flowchart in under a second, as a release build draws it
         run: cargo test --release -p omaspec-render --test dense
+      - name: A long play without a GPU within its budget of memory and time
+        run: cargo test --release -p omaspec-app --test budget -- --nocapture
 
   # Omaspec's reading of state and sequence diagrams against the Java
   # PlantUML's (docs/adr/0004), on Arch as Omarchy installs PlantUML.

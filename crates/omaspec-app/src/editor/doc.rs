@@ -760,6 +760,7 @@ impl Doc {
         self.findings = match omaspec_core::project::Project::parse(&text) {
             Ok(_) => Vec::new(),
             Err(err) => vec![Finding::new(
+                "project-file",
                 err.line.saturating_sub(1),
                 Severity::Error,
                 err.message,

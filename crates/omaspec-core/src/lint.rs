@@ -45,6 +45,10 @@ pub enum Severity {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Finding {
+    /// What kind of finding it is, for a program that reads the report:
+    /// a short name that stays while the message's words may change
+    /// (`dead-end`, `unreachable-state`; the guide lists them).
+    pub code: &'static str,
     /// Zero-based line.
     pub line: usize,
     pub severity: Severity,
@@ -59,8 +63,14 @@ pub struct Finding {
 }
 
 impl Finding {
-    pub fn new(line: usize, severity: Severity, message: impl Into<String>) -> Self {
+    pub fn new(
+        code: &'static str,
+        line: usize,
+        severity: Severity,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
+            code,
             line,
             severity,
             message: message.into(),
@@ -74,7 +84,12 @@ impl Finding {
     fn java(line: usize, reason: &str) -> Self {
         Self {
             java_only: true,
-            ..Self::new(line, Severity::Info, format!("{reason}: {JAVA_ONLY}"))
+            ..Self::new(
+                "java-only",
+                line,
+                Severity::Info,
+                format!("{reason}: {JAVA_ONLY}"),
+            )
         }
     }
 
@@ -107,7 +122,7 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     findings.extend(
         faint
             .into_iter()
-            .map(|f| Finding::new(f.line, Severity::Warning, f.message)),
+            .map(|f| Finding::new("faint-color", f.line, Severity::Warning, f.message)),
     );
     let kind = classify(&code, lang).kind;
     match lang {
@@ -200,7 +215,7 @@ pub fn drawing(code: &str) -> Option<Finding> {
 fn said(declined: omaspec_uml::Declined) -> Option<Finding> {
     let line = declined.line.unwrap_or(0);
     Some(if declined.refused {
-        Finding::new(line, Severity::Error, declined.reason)
+        Finding::new("refused", line, Severity::Error, declined.reason)
     } else {
         Finding::java(line, &declined.reason)
     })
@@ -260,7 +275,7 @@ fn lines_by_hand(code: &str, findings: &mut Vec<Finding>) {
         };
         if let Some(said) = said {
             findings.push(
-                Finding::new(entry.line, Severity::Warning, said)
+                Finding::new("stale-entry", entry.line, Severity::Warning, said)
                     .with(Fix::remove("Take the entry out", entry.line)),
             );
         }
@@ -336,6 +351,7 @@ fn mermaid_syntax(lines: &[&str]) -> Vec<Finding> {
         && !mermaid_graph().is_match(head)
     {
         findings.push(Finding::new(
+            "unknown-head",
             i,
             Severity::Warning,
             "Unknown diagram head — expected flowchart / sequenceDiagram / …",
@@ -368,6 +384,7 @@ fn mermaid_syntax(lines: &[&str]) -> Vec<Finding> {
     }
     for (row, kind) in stack {
         findings.push(Finding::new(
+            "unclosed-block",
             row,
             Severity::Warning,
             format!("Unclosed {kind}"),
@@ -398,6 +415,7 @@ fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
     for (row, kind) in starts {
         findings.push(
             Finding::new(
+                "missing-end",
                 row,
                 Severity::Error,
                 format!("@start{kind} without matching @end{kind}"),
@@ -486,6 +504,7 @@ fn plantuml_syntax(lines: &[&str]) -> Vec<Finding> {
     }
     for (row, kind) in stack {
         findings.push(Finding::new(
+            "unclosed-block",
             row,
             Severity::Warning,
             format!("Unclosed {kind}"),
@@ -657,6 +676,7 @@ fn sequence(parts: &SequenceParts, findings: &mut Vec<Finding>) {
     for (i, d) in parts.decls.iter().enumerate() {
         match declared.get(d.key.as_str()) {
             Some(&first) => findings.push(Finding::new(
+                "declared-twice",
                 d.row,
                 Severity::Warning,
                 format!(
@@ -687,7 +707,7 @@ fn sequence(parts: &SequenceParts, findings: &mut Vec<Finding>) {
                 continue;
             };
             warned.insert(end);
-            findings.push(Finding::new(
+            findings.push(Finding::new("undeclared-participant", 
                 m.row,
                 Severity::Warning,
                 format!(
@@ -703,6 +723,7 @@ fn sequence(parts: &SequenceParts, findings: &mut Vec<Finding>) {
         if !used.contains(d.key.as_str()) && !(!d.name.is_empty() && used.contains(d.name.as_str()))
         {
             findings.push(Finding::new(
+                "unused-participant",
                 d.row,
                 Severity::Info,
                 format!(
@@ -748,7 +769,7 @@ fn swimlanes(rows: &[Row], findings: &mut Vec<Finding>) {
         let main = counts[0].0;
         for &(raw, row) in list {
             if raw != main {
-                findings.push(Finding::new(
+                findings.push(Finding::new("lane-spelling", 
                     row,
                     Severity::Warning,
                     format!(
@@ -797,6 +818,7 @@ fn state_names(rows: &[Row], transition: &Regex, declaration: &Regex, findings: 
         }
         if let Some(near) = near.of(name) {
             findings.push(Finding::new(
+                "lone-state",
                 rows[0],
                 Severity::Info,
                 format!("State {name} appears only here. Did you mean {near}?"),
@@ -1002,6 +1024,7 @@ mod tests {
         assert!(only_java(&found_java()));
         // Said in other words, a hint is no such finding.
         assert!(!only_java(&Finding::new(
+            "refused",
             1,
             Severity::Info,
             found[0].2.clone()

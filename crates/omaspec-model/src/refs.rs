@@ -641,6 +641,7 @@ pub fn gone_links(
                 continue;
             }
             out.push(omaspec_core::lint::Finding::new(
+                "dead-link",
                 line,
                 omaspec_core::lint::Severity::Warning,
                 format!(

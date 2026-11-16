@@ -284,7 +284,7 @@ fn unread(code: &str, lang: Language) -> Vec<Finding> {
         ),
         _ => (None, Severity::Info, skipped(None)),
     };
-    let finding = Finding::new(line.unwrap_or(0), severity, message);
+    let finding = Finding::new("not-read", line.unwrap_or(0), severity, message);
     vec![finding]
 }
 
@@ -370,8 +370,8 @@ mod tests {
         // On a line the lint names at a warning already, as the lint holds
         // its own word back there, nor do the checks add one; on another
         // line they do, and what a read machine's checks find stays.
-        let warned = Finding::new(3, Severity::Warning, "a faint color");
-        let refusal = |line| Finding::new(line, Severity::Error, "A refusal.");
+        let warned = Finding::new("faint-color", 3, Severity::Warning, "a faint color");
+        let refusal = |line| Finding::new("refused", line, Severity::Error, "A refusal.");
         assert!(unsaid(std::slice::from_ref(&warned), vec![refusal(3)], false).is_empty());
         assert_eq!(
             unsaid(std::slice::from_ref(&warned), vec![refusal(4)], false).len(),

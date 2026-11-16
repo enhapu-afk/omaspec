@@ -39,7 +39,12 @@ pub(super) fn findings(lines: &[&str], findings: &mut Vec<Finding>) {
                 let names: Vec<String> = near.iter().map(|n| format!("`<&{n}>`")).collect();
                 message.push_str(&format!("; it has {}", names.join(", ")));
             }
-            findings.push(Finding::new(row, Severity::Warning, message));
+            findings.push(Finding::new(
+                "unknown-icon",
+                row,
+                Severity::Warning,
+                message,
+            ));
         }
     }
 }

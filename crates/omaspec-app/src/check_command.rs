@@ -18,6 +18,8 @@ use crate::specs::Projects;
 /// One finding, with a one-based line when it has one.
 struct Item {
     file: String,
+    /// What kind of finding it is; `not-drawn` for a diagram no engine draws.
+    code: &'static str,
     line: Option<usize>,
     severity: Severity,
     message: String,
@@ -66,6 +68,7 @@ pub fn check(dir: &Path, json: bool, strict: bool, github: bool) -> Result<ExitC
         for finding in projects.findings(&input, None, Some(dir)) {
             items.push(Item {
                 file: file.clone(),
+                code: finding.code,
                 line: Some(finding.line + 1),
                 severity: finding.severity,
                 java_only: finding.java_only,
@@ -80,6 +83,8 @@ pub fn check(dir: &Path, json: bool, strict: bool, github: bool) -> Result<ExitC
             if let Some(message) = held.message {
                 items.push(Item {
                     file: within(dir, &held.file),
+                    // A diagram that could not be drawn.
+                    code: "not-drawn",
                     line: held.line,
                     severity: Severity::Error,
                     message,
@@ -158,6 +163,7 @@ struct Report<'a> {
 #[derive(Serialize)]
 struct Found<'a> {
     file: &'a str,
+    code: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     line: Option<usize>,
     severity: Severity,
@@ -168,6 +174,7 @@ impl Item {
     fn found(&self) -> Found<'_> {
         Found {
             file: &self.file,
+            code: self.code,
             line: self.line,
             severity: self.severity,
             message: &self.message,

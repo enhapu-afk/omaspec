@@ -1,7 +1,8 @@
 # Omaspec
 
 Native PlantUML and Mermaid editor for Omarchy Linux, in Rust with iced. Plan
-and status: `ROADMAP.md`. Decisions: `docs/adr/`.
+and what is open: `ROADMAP.md`; what is built: `docs/DONE.md` (a finished item moves
+there). Decisions: `docs/adr/`.
 
 ```bash
 cargo test --workspace
@@ -43,6 +44,7 @@ OMASPEC_SNAPSHOT_DIR=/tmp cargo test --release -p omaspec-app snapshot_   # READ
 docs/images/update.sh                      # the README's and the guide's pictures into docs/images (ImageMagick)
 cargo bench -p omaspec-render              # render and export timings
 cargo test --release -p omaspec-render --test dense -- --nocapture   # 150 boxes, 476 lines in under a second (CI too)
+cargo test --release -p omaspec-app --test budget -- --nocapture     # a play of 600 frames without a GPU within 400 MiB (CI too)
 fuzz/run.sh [SECONDS] [TARGET...]          # coverage-guided fuzzing, nightly Rust and cargo-fuzz (fuzz/README.md); each night in CI
 cargo check --target x86_64-pc-windows-gnu -p omaspec-app -p omaspec-render -p omaspec-core -p omaspec-uml -p omaspec-model   # the engine and the binary stay buildable for Windows
 cargo run --release -p spike-editor          # editor spike window

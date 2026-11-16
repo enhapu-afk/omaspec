@@ -28,6 +28,7 @@ pub fn machine(m: &Machine) -> Vec<Finding> {
         None => {
             if let Some(first) = m.states.iter().find(|s| s.kind == Kind::State) {
                 out.push(finding(
+                    "no-start",
                     first.line,
                     Severity::Info,
                     "No [*] --> … says where the machine starts, so whether every \
@@ -49,8 +50,13 @@ fn word(name: &str) -> bool {
     name.chars().all(|c| c.is_alphanumeric() || c == '_')
 }
 
-fn finding(line: usize, severity: Severity, message: impl Into<String>) -> Finding {
-    Finding::new(line, severity, message)
+fn finding(
+    code: &'static str,
+    line: usize,
+    severity: Severity,
+    message: impl Into<String>,
+) -> Finding {
+    Finding::new(code, line, severity, message)
 }
 
 /// Which states a path from the top start reaches, or from the state the
@@ -125,6 +131,7 @@ fn unreachable(m: &Machine, reached: &[bool], out: &mut Vec<Finding>) {
     for (i, s) in m.states.iter().enumerate() {
         if named(m, i) && !reached[i] && m.ancestors(i).all(|a| reached[a]) {
             out.push(finding(
+                "unreachable-state",
                 s.line,
                 Severity::Warning,
                 format!("State {} cannot be reached from the start.", s.name),
@@ -151,6 +158,7 @@ fn dead_ends(m: &Machine, reached: Option<&[bool]>, out: &mut Vec<Finding>) {
         }
         let found = match s.kind {
             Kind::State if word(&s.name) => finding(
+                "dead-end",
                 s.line,
                 Severity::Warning,
                 format!(
@@ -164,6 +172,7 @@ fn dead_ends(m: &Machine, reached: Option<&[bool]>, out: &mut Vec<Finding>) {
                 format!("{} --> [*]", s.name),
             )),
             Kind::State => finding(
+                "dead-end",
                 s.line,
                 Severity::Warning,
                 format!(
@@ -172,6 +181,7 @@ fn dead_ends(m: &Machine, reached: Option<&[bool]>, out: &mut Vec<Finding>) {
                 ),
             ),
             _ => finding(
+                "dead-end",
                 s.line,
                 Severity::Warning,
                 format!("Nothing leaves {}.", s.name),
@@ -205,8 +215,9 @@ fn ambiguous(m: &Machine, out: &mut Vec<Finding>) {
             let other = &m.transitions[first];
             let target = |i: usize| target_name(m, i);
             let line = omaspec_core::lines_away(t.line, other.line);
-            let (severity, message) = if other.to == t.to {
+            let (code, severity, message) = if other.to == t.to {
                 (
+                    "transition-twice",
                     Severity::Warning,
                     format!(
                         "The transition from {} to {} is written twice (first {line}).",
@@ -233,6 +244,7 @@ fn ambiguous(m: &Machine, out: &mut Vec<Finding>) {
                     Severity::Warning
                 };
                 (
+                    "ambiguous-event",
                     severity,
                     format!(
                         "{what} to {} ({line}) and to {}, {choose}.",
@@ -241,7 +253,7 @@ fn ambiguous(m: &Machine, out: &mut Vec<Finding>) {
                     ),
                 )
             };
-            out.push(finding(t.line, severity, message));
+            out.push(finding(code, t.line, severity, message));
         }
     }
 }
@@ -288,6 +300,7 @@ fn entered_without_start(m: &Machine, out: &mut Vec<Finding>) {
                 "it".to_owned()
             };
             out.push(finding(
+                "entered-without-start",
                 line,
                 Severity::Warning,
                 format!(

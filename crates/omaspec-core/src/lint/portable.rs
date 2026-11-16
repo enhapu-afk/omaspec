@@ -80,6 +80,7 @@ pub(super) fn findings(lines: &[&str], rows: &[Row], findings: &mut Vec<Finding>
             };
             findings.push(
                 Finding::new(
+                    "not-mermaid-js",
                     row.row,
                     Severity::Info,
                     format!(

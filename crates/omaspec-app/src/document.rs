@@ -173,7 +173,7 @@ pub(crate) fn findings_of(code: &str, language: Language, specs: &Specs) -> Vec<
     found.extend(
         omaspec_render::by_hand_misses(code, language)
             .into_iter()
-            .map(|(line, message)| Finding::new(line, Severity::Warning, message)),
+            .map(|(line, message)| Finding::new("by-hand-miss", line, Severity::Warning, message)),
     );
     found.sort_by_key(|f| f.line);
     found
