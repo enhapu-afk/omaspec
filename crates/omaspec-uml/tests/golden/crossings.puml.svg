@@ -29,37 +29,37 @@
 <polygon points="70.75,288.82 66.75,278.82 62.75,288.82 66.75,284.82" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="98.76" y="74.99" font-size="14" fill="#000000" font-weight="bold" textLength="20.22" lengthAdjust="spacing">Off</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="45.1" y="167.26" font-size="14" fill="#000000" font-weight="bold" textLength="19.45" lengthAdjust="spacing">On</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="46.69" y="267.52" font-size="14" fill="#000000" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="33.85" y="345.78" font-size="14" fill="#000000" font-weight="bold" textLength="49.8" lengthAdjust="spacing">Playing</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="22.74" y="305.96" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">play</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="72.75" y="305.96" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="83.31" y="436.05" font-size="14" fill="#000000" font-weight="bold" textLength="34.23" lengthAdjust="spacing">Error</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="102.76" y="123.43" font-size="12" fill="#000000" textLength="32.68" lengthAdjust="spacing">power</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="159.65" y="305.96" font-size="12" fill="#000000" textLength="26.68" lengthAdjust="spacing">reset</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="56.97" y="396.22" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">fault</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="69.64" y="227.7" font-size="12" fill="#000000" textLength="28.01" lengthAdjust="spacing">wake</tspan>
 </text>
 </g>

@@ -17,23 +17,23 @@
 <polygon points="43.11,124.59 39.11,114.59 35.11,124.59 39.11,120.59" fill="#89B4FA" stroke="#89B4FA" stroke-width="1"/>
 </g>
 <g>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="19.05" y="103.29" font-size="14" fill="#CDD6F4" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="14" y="181.55" font-size="14" fill="#CDD6F4" font-weight="bold" textLength="34.23" lengthAdjust="spacing">Busy</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="1.11" y="141.73" font-size="12" fill="#CDD6F4" textLength="16.01" lengthAdjust="spacing">job</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="45.11" y="141.73" font-size="12" fill="#CDD6F4" textLength="26.69" lengthAdjust="spacing">done</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="-4" y="14.99" font-size="14" fill="#CDD6F4" textLength="56.81" lengthAdjust="spacing">state Job</tspan>
 </text>
 <rect x="-10" y="212.86" width="147.5" height="26.3" rx="7.5" ry="7.5" fill="#333446" stroke="#878CA5" stroke-width="1"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="-2" y="230.85" font-size="14" fill="#CDD6F4" font-style="italic" textLength="131.5" lengthAdjust="spacing">Idle until a job comes</tspan>
 </text>
 </g>

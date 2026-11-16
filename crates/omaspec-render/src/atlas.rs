@@ -335,9 +335,10 @@ fn nest(svg: &str, map: &Map, shown: &[(usize, Shown)], pictures: bool) -> Strin
             Shown::Words(words) => {
                 let _ = write!(
                     out,
-                    r##"<text x="{}" y="{}" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#888888">{}</text>"##,
+                    r##"<text x="{}" y="{}" text-anchor="middle" font-family="{}" font-size="11" fill="#888888">{}</text>"##,
                     room.0 + room.2 / 2.0,
                     room.1 + room.3 / 2.0,
+                    omaspec_uml::SANS_FACES,
                     escape(&shorten(words, room.2))
                 );
             }

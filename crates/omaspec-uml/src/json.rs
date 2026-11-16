@@ -863,7 +863,7 @@ mod tests {
             assert!(svg.contains(words), "{words}: {svg}");
         }
         assert!(svg.contains("fill=\"#F1F1F1\""));
-        assert!(svg.contains("font-family=\"sans-serif\""));
+        assert!(svg.contains(&format!("font-family=\"{}\"", crate::SANS_FACES)));
         assert!(svg.contains("stroke-dasharray=\"3,3\""), "{svg}");
         assert!(!svg.contains(">0</tspan>"), "an array has no index");
         // The array's card stands to the right of the table, apart.
@@ -1063,8 +1063,8 @@ title People
         assert!(svg.contains("fill=\"#F1F1F1\""));
         assert!(svg.contains("fill=\"#FFFFFF\""));
         assert!(svg.contains("font-size=\"14\""));
-        assert!(svg.contains("font-family=\"sans-serif\""));
-        assert!(!svg.contains("font-family=\"serif\""));
+        assert!(svg.contains(&format!("font-family=\"{}\"", crate::SANS_FACES)));
+        assert!(!svg.contains("Times"));
     }
 
     /// As in PlantUML: a style colors the page, the title, the cards and a

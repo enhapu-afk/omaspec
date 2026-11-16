@@ -290,7 +290,7 @@ fn text(
         r#"<text x="{}" y="{}" text-anchor="{anchor}" font-family="{}" font-size="{}"{weight} fill="{}">{}</text>"#,
         n(x),
         n(y),
-        escape(font),
+        escape(crate::svg::faces(font)),
         n(size),
         color,
         escape(words)

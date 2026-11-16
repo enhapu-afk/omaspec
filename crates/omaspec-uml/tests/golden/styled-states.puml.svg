@@ -21,26 +21,26 @@
 <polygon points="37.61,293.12 41.61,303.12 45.61,293.12 41.61,297.12" fill="#3C8D3C" stroke="#3C8D3C" stroke-width="1.5"/>
 </g>
 <g>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="27.22" y="103.29" font-size="14" fill="#000000" font-weight="bold" textLength="28.78" lengthAdjust="spacing">New</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="26.83" y="181.55" font-size="14" fill="#000000" font-weight="bold" textLength="29.57" lengthAdjust="spacing">Paid</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="14" y="259.82" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Shipped</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="47.61" y="141.73" font-size="12" fill="#000000" textLength="19.34" lengthAdjust="spacing">pay</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="47.61" y="219.99" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">ship</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="-4" y="14.99" font-size="14" fill="#000000" font-weight="bold" textLength="74.69" lengthAdjust="spacing">state Order</tspan>
 </text>
 <rect x="-10" y="349.12" width="117.16" height="26.3" fill="#FFFFFF" stroke="#3C8D3C" stroke-width="1"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="-2" y="367.11" font-size="14" fill="#000000" textLength="101.16" lengthAdjust="spacing">Happy path only</tspan>
 </text>
 </g>

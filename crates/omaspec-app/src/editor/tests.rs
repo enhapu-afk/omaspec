@@ -1085,6 +1085,7 @@ fn images_open_their_diagram_under_a_free_name() {
         links: &[],
         up: 0,
         play: None,
+        outline: false,
     };
     let png = export::export(&svg, Format::Png, &options).unwrap();
     std::fs::write(dir.join("flow.png"), &png).unwrap();

@@ -541,6 +541,7 @@ impl Tools {
                 links: &[],
                 up: 0,
                 play: None,
+                outline: false,
             };
             let picture = match format {
                 Format::Png | Format::Jpeg => {
@@ -593,6 +594,7 @@ impl Tools {
             .then(|| crate::look::drawn_text(&piece.code, lang, skin.as_ref()));
         let (paper, accent) = crate::look::stage(skin.as_ref());
         let options = export::Options {
+            outline: false,
             scale,
             // A map has no source of its own: it is made from the project.
             source: (args.flag("source")?.unwrap_or(true) && !is_map).then(|| export::Source {

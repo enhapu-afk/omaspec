@@ -36,56 +36,56 @@
 <ellipse cx="354.86" cy="85.86" rx="4" ry="4" fill="#000000"/>
 </g>
 <g>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="50.34" y="48.1" font-size="12" fill="#000000" textLength="16.67" lengthAdjust="spacing">a-z</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="50" y="62.07" font-size="12" fill="#000000" textLength="17.34" lengthAdjust="spacing">0-9</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="57" y="76.04" font-size="12" fill="#000000" textLength="3.34" lengthAdjust="spacing">.</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="55.33" y="90.01" font-size="12" fill="#000000" textLength="6.67" lengthAdjust="spacing">_</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="53.34" y="103.98" font-size="12" fill="#000000" textLength="10.67" lengthAdjust="spacing">%</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="55.17" y="117.94" font-size="12" fill="#000000" textLength="7.01" lengthAdjust="spacing">+</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="56.67" y="131.91" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">-</tspan>
 </text>
 <polygon points="55.17,23.97 61.67,20.97 61.67,26.97" fill="#000000"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="115.34" y="90.01" font-size="12" fill="#000000" textLength="12.18" lengthAdjust="spacing">@</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="175.86" y="69.06" font-size="12" fill="#000000" textLength="16.67" lengthAdjust="spacing">a-z</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="175.52" y="83.02" font-size="12" fill="#000000" textLength="17.34" lengthAdjust="spacing">0-9</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="182.52" y="96.99" font-size="12" fill="#000000" textLength="3.34" lengthAdjust="spacing">.</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="182.19" y="110.96" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">-</tspan>
 </text>
 <polygon points="180.69,44.92 187.19,41.92 187.19,47.92" fill="#000000"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="240.86" y="90.01" font-size="12" fill="#000000" textLength="3.34" lengthAdjust="spacing">.</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="292.2" y="90.01" font-size="12" fill="#000000" textLength="16.67" lengthAdjust="spacing">a-z</tspan>
 </text>
 <polygon points="297.03,65.87 303.53,62.87 303.53,68.87" fill="#000000"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="293.02" y="61.51" font-size="10" fill="#000000" textLength="15.02" lengthAdjust="spacing">{2,}</tspan>
 </text>
 <polygon points="350.36,85.86 343.86,82.86 343.86,88.86" fill="#000000"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="127.75" y="11.14" font-size="12" fill="#000000" font-weight="bold" textLength="103.37" lengthAdjust="spacing">An e-mail address</tspan>
 </text>
 </g>

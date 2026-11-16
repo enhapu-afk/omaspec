@@ -24,10 +24,10 @@
 </g>
 <g>
 <polygon points="155,24 145,20 145,28" fill="#000000"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="20" y="44.5" font-size="13" fill="#E6E6E6" textLength="33.23" lengthAdjust="spacing">Client</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="170" y="44.5" font-size="13" fill="#000000" textLength="31.07" lengthAdjust="spacing">Store</tspan>
 </text>
 </g>

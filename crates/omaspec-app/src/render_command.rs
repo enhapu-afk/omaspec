@@ -33,6 +33,9 @@ pub struct RenderArgs<'a> {
     /// The least size of a PNG's or JPEG's words, in pixels: shrunk to fit
     /// no further, and cut into tiles where it then does not fit (REQ-070).
     pub min_font: Option<f32>,
+    /// An SVG's words written as outlines, for a viewer without the faces
+    /// they were measured in (REQ-068).
+    pub text_as_paths: bool,
     /// Store the diagram source in SVG and PNG images.
     pub source: bool,
     pub copy: bool,
@@ -103,6 +106,11 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             "--check holds a file's SVG against the one beside it; standard input has none"
         );
     }
+    anyhow::ensure!(
+        !args.text_as_paths || format == Format::Svg,
+        "--text-as-paths writes an SVG's words as outlines; a {} has pixels or its own fonts",
+        format.extension().to_uppercase()
+    );
     if let Some(least) = args.min_font {
         anyhow::ensure!(
             matches!(format, Format::Png | Format::Jpeg),
@@ -177,6 +185,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 min_font: args.min_font,
                 // Tiles are files: not on the clipboard or standard output.
                 tiles: dest.is_some(),
+                outline: args.text_as_paths,
                 source: args.source,
                 look: args.look,
             },
@@ -568,6 +577,8 @@ struct Draw {
     min_font: Option<f32>,
     /// A picture may be cut into tiles: they go to files.
     tiles: bool,
+    /// An SVG's words as outlines ([`export::outlined`]).
+    outline: bool,
     source: bool,
     look: Option<crate::look::Look>,
 }
@@ -625,6 +636,7 @@ fn hold(
         fit: false,
         min_font: None,
         tiles: false,
+        outline: false,
         source,
         look,
     };
@@ -815,6 +827,7 @@ fn export_piece(
     let drawn = (draw.format == Format::Html && project.is_none())
         .then(|| crate::look::drawn_text(&piece.code, piece.language, skin.as_ref()));
     let options_at = |scale: f32| export::Options {
+        outline: draw.outline,
         scale,
         // A map has no source of its own: it is made from the project.
         source: (draw.source && project.is_none()).then(|| export::Source {

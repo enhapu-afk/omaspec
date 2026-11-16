@@ -25,22 +25,22 @@
 <polygon points="99.23,38.15 109.23,34.15 99.23,30.15 103.73,34.15" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="19.94" y="63.99" font-size="14" fill="#000000" textLength="37.35" lengthAdjust="spacing">Guest</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="128.66" y="38.99" font-size="14" fill="#000000" textLength="45.14" lengthAdjust="spacing">Refund</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="6" y="130.36" font-size="13" fill="#000000" textLength="59.23" lengthAdjust="spacing">remember</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="22.28" y="247.42" font-size="14" fill="#000000" textLength="32.66" lengthAdjust="spacing">Clerk</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="134.11" y="222.42" font-size="14" fill="#000000" textLength="34.24" lengthAdjust="spacing">Login</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="209.23" y="215.64" font-size="13" fill="#000000" textLength="55.63" lengthAdjust="spacing">password</tspan>
 </text>
 </g>

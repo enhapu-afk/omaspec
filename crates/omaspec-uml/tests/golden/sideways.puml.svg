@@ -20,28 +20,28 @@
 <line x1="237.04" y1="24.3" x2="227.04" y2="36.12" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="4,3"/>
 <path d="M237.04,-2.84 L237.04,24.3 L300.71,24.3 L300.71,7.16 L290.71,-2.84 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M290.71,-2.84 L290.71,7.16 L300.71,7.16" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="68" y="57.11" font-size="14" fill="#000000" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="178.81" y="57.11" font-size="14" fill="#000000" font-weight="bold" textLength="34.23" lengthAdjust="spacing">Busy</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="301.05" y="57.11" font-size="14" fill="#000000" font-weight="bold" textLength="35" lengthAdjust="spacing">Done</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="128.79" y="37.43" font-size="12" fill="#000000" textLength="13.34" lengthAdjust="spacing">go</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="122.12" y="75.4" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="243.04" y="45.43" font-size="12" fill="#000000" textLength="28.01" lengthAdjust="spacing">finish</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="243.04" y="15.23" font-size="13" fill="#000000" textLength="47.67" lengthAdjust="spacing">still right</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="143.12" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="63.81" lengthAdjust="spacing">Sideways</tspan>
 </text>
 </g>

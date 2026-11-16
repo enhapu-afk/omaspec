@@ -48,58 +48,58 @@
 <line x1="351.2" y1="138.89" x2="278.26" y2="128.89" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="4,3"/>
 <path d="M351.2,138.89 L351.2,166.02 L400.43,166.02 L400.43,148.89 L390.43,138.89 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <path d="M390.43,138.89 L390.43,148.89 L400.43,148.89" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="102.1" y="205.85" font-size="14" fill="#000000" font-weight="bold" textLength="87.15" lengthAdjust="spacing">Playing track</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="122.67" y="220.29" font-size="12" fill="#000000" textLength="46.02" lengthAdjust="spacing">the track</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="230.59" y="109.44" font-size="14" fill="#000000" textLength="26.45" lengthAdjust="spacing">Pick</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="308.38" y="308.08" font-size="14" fill="#000000" font-weight="bold" textLength="10.11" lengthAdjust="spacing">H</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="8.37" y="476.62" font-size="14" fill="#000000" font-weight="bold" textLength="15.55" lengthAdjust="spacing">H*</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="96.46" y="390.34" font-size="14" fill="#000000" font-weight="bold" textLength="62.22" lengthAdjust="spacing">Buffering</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="102.3" y="476.64" font-size="14" fill="#000000" font-weight="bold" textLength="50.55" lengthAdjust="spacing">Waiting</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="109.29" y="554.9" font-size="14" fill="#000000" font-weight="bold" textLength="36.57" lengthAdjust="spacing">Filled</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="133.57" y="515.08" font-size="12" fill="#000000" textLength="32.02" lengthAdjust="spacing">chunk</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="127.01" y="166.02" font-size="12" fill="#000000" textLength="12.67" lengthAdjust="spacing">ok</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="319.43" y="268.26" font-size="12" fill="#000000" textLength="25.34" lengthAdjust="spacing">back</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="44.52" y="268.26" font-size="12" fill="#000000" textLength="21.34" lengthAdjust="spacing">split</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="228.85" y="346.52" font-size="12" fill="#000000" textLength="29.35" lengthAdjust="spacing">again</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="223.25" y="212.14" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">loop</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="280.77" y="277.86" font-size="12" fill="#000000" textLength="26.66" lengthAdjust="spacing">mark</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="261.93" y="202.92" font-size="13" fill="#000000" textLength="26.01" lengthAdjust="spacing">here</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="357.2" y="156.95" font-size="13" fill="#000000" textLength="33.23" lengthAdjust="spacing">which</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="179.21" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="42.01" lengthAdjust="spacing">States</tspan>
 </text>
 </g>

@@ -10,22 +10,22 @@
 <rect x="72.46" y="48.26" width="44" height="21.13" rx="6" ry="6" fill="#FFFFFF" stroke="#000000" stroke-width="1.6"/>
 </g>
 <g>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="4" y="18.06" font-size="13" fill="#000000" textLength="31.8" lengthAdjust="spacing">Login</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="78.46" y="18.06" font-size="13" fill="#000000" textLength="52" lengthAdjust="spacing">MyName</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="4" y="40.2" font-size="13" fill="#000000" textLength="57.07" lengthAdjust="spacing">Password</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="78.46" y="40.2" font-size="13" fill="#000000" textLength="20.23" lengthAdjust="spacing">****</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="14" y="63.33" font-size="13" fill="#000000" textLength="40.46" lengthAdjust="spacing">Cancel</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="85.06" y="63.33" font-size="13" fill="#000000" textLength="18.78" lengthAdjust="spacing">OK</tspan>
 </text>
 </g>

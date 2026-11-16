@@ -109,6 +109,8 @@ pub struct Options<'a> {
     /// What a presentation plays, and in which colors; without it the page
     /// shows the picture alone.
     pub play: Option<Play<'a>>,
+    /// An SVG's words written as outlines ([`outlined`]).
+    pub outline: bool,
 }
 
 impl Default for Options<'_> {
@@ -119,6 +121,7 @@ impl Default for Options<'_> {
             links: &[],
             up: 0,
             play: None,
+            outline: false,
         }
     }
 }
@@ -209,7 +212,10 @@ pub fn export_planned(
 pub fn export(svg: &str, format: Format, options: &Options) -> Result<Vec<u8>, ExportError> {
     match format {
         Format::Svg => {
-            let svg = linked(svg, options)?;
+            let mut svg = linked(svg, options)?;
+            if options.outline {
+                svg = outlined(&svg)?;
+            }
             Ok(match options.source {
                 Some(s) => embed::svg_with_source(&svg, s.code, s.language, s.file),
                 None => svg,
@@ -382,6 +388,23 @@ fn generic_families(fonts: &mut usvg::fontdb::Database) {
     if let Some(name) = first(fonts, &MONO) {
         fonts.set_monospace_family(name);
     }
+}
+
+/// `svg` with its words written as the outlines of the faces installed
+/// here, sanitized once more: any viewer draws them as Omaspec does,
+/// whatever faces it has and whether or not it stretches words to their
+/// `textLength`, but they can no longer be selected or searched, and a
+/// link is no longer one (REQ-068).
+pub fn outlined(svg: &str) -> Result<String, ExportError> {
+    // Two places of a unit are a hundredth of a pixel at the scale an SVG
+    // is shown, and keep the outlines a sixth as long as at eight.
+    let options = usvg::WriteOptions {
+        coordinates_precision: 2,
+        transforms_precision: 4,
+        ..usvg::WriteOptions::default()
+    };
+    let written = parse(svg)?.to_string(&options);
+    crate::sanitize::sanitize(&written).map_err(|e| ExportError::Svg(e.to_string()))
 }
 
 /// Parses `svg` with Omaspec's fonts and image rules.
@@ -780,6 +803,38 @@ mod tests {
 
     const SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="20" height="10" fill="red"/><text x="2" y="18" font-size="8">hi</text></svg>"#;
 
+    /// REQ-068: `--text-as-paths` writes the words as outlines, sanitized,
+    /// with the source still inside; nothing is left for a viewer's own
+    /// faces to draw.
+    #[test]
+    fn words_as_outlines_keep_the_source() {
+        let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="40"><text x="4" y="20" font-family="Arial, Liberation Sans, sans-serif" font-size="14">Odysseus</text></svg>"#;
+        let source = Source {
+            code: "@startuml\nA -> B\n@enduml\n",
+            language: Language::PlantUml,
+            file: Some("a.puml"),
+        };
+        let options = Options {
+            source: Some(source),
+            outline: true,
+            ..Options::default()
+        };
+        let out = String::from_utf8(export(svg, Format::Svg, &options).unwrap()).unwrap();
+        assert!(!out.contains("<text"), "{out}");
+        assert!(out.contains("<path"), "{out}");
+        assert_eq!(
+            embed::source_from_svg(&out).unwrap().code,
+            "@startuml\nA -> B\n@enduml\n"
+        );
+        // Without it the words stay words.
+        let kept = export(svg, Format::Svg, &Options::default()).unwrap();
+        assert!(
+            String::from_utf8(kept)
+                .unwrap()
+                .contains(">Odysseus</text>")
+        );
+    }
+
     #[test]
     fn png_with_source() {
         let source = Source {
@@ -796,6 +851,7 @@ mod tests {
                 links: &[],
                 up: 0,
                 play: None,
+                outline: false,
             },
         )
         .unwrap();
@@ -922,6 +978,7 @@ mod tests {
                 links: &[],
                 up: 0,
                 play: None,
+                outline: false,
             },
         )
         .unwrap()
@@ -958,6 +1015,7 @@ mod tests {
             links: &[],
             up: 0,
             play: None,
+            outline: false,
         };
         let text = String::from_utf8(export(SVG, Format::Markdown, &options).unwrap()).unwrap();
         assert_eq!(text, "# pie\n\n```mermaid\npie\n  \"a\": 1\n```\n");

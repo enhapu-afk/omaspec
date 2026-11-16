@@ -90,6 +90,7 @@ impl Paper {
                     crate::specs::export_links(&links, &own, false)
                 });
                 let options = export::Options {
+                    outline: false,
                     scale: 2.0,
                     source: (!made).then_some(export::Source {
                         code: stored,

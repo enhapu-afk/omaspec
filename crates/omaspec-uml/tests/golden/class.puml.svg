@@ -28,79 +28,79 @@
 <polygon points="528.36,155.7 521.36,141.7 514.36,155.7" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="12" y="43.29" font-size="14" fill="#000000" textLength="45.14" lengthAdjust="spacing">catalog</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="172.47" y="77.58" font-size="14" fill="#000000" font-style="italic" textLength="48.24" lengthAdjust="spacing">Product</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="148" y="102.95" font-size="13" fill="#000000" textLength="42.63" lengthAdjust="spacing">- id : int</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="148" y="118.08" font-size="13" fill="#000000" text-decoration="underline" textLength="67.57" lengthAdjust="spacing">+ count : int</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="148" y="143.22" font-size="13" fill="#000000" font-style="italic" textLength="97.17" lengthAdjust="spacing">+ name() : String</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="175.27" y="158.35" font-size="13" fill="#000000" textLength="42.63" lengthAdjust="spacing">queries</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="148" y="173.48" font-size="13" fill="#000000" textLength="40.82" lengthAdjust="spacing">+ find()</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="521.36" y="116.57" font-size="12" fill="#000000" font-style="italic" textLength="59.36" lengthAdjust="spacing">«interface»</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="526.14" y="132.4" font-size="14" fill="#000000" textLength="49.8" lengthAdjust="spacing">Sellable</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="30.32" y="96.44" font-size="12" fill="#000000" font-style="italic" textLength="43.36" lengthAdjust="spacing">«enum»</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="32.15" y="112.27" font-size="14" fill="#000000" textLength="39.69" lengthAdjust="spacing">Status</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="24" y="137.63" font-size="13" fill="#000000" textLength="31.8" lengthAdjust="spacing">Open</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="24" y="152.77" font-size="13" fill="#000000" textLength="40.46" lengthAdjust="spacing">Closed</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="383.97" y="116.57" font-size="12" fill="#000000" font-style="italic" textLength="69.38" lengthAdjust="spacing">«annotation»</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="406.6" y="132.4" font-size="14" fill="#000000" textLength="24.12" lengthAdjust="spacing">Tag</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="731.99" y="125.41" font-size="14" fill="#000000" textLength="31.91" lengthAdjust="spacing">Point</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="376.05" y="243.54" font-size="14" fill="#000000" textLength="31.91" lengthAdjust="spacing">Book</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="338.72" y="355.8" font-size="14" fill="#000000" textLength="31.91" lengthAdjust="spacing">Shelf</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="291.99" y="301.98" font-size="12" fill="#000000" textLength="28.68" lengthAdjust="spacing">holds</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="219.5" y="194.7" font-size="12" fill="#000000" textLength="6.67" lengthAdjust="spacing">1</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="331.67" y="277" font-size="12" fill="#000000" textLength="29.34" lengthAdjust="spacing">many</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="376.34" y="301.98" font-size="12" fill="#000000" textLength="18" lengthAdjust="spacing">sits</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="273.17" y="76.66" font-size="13" fill="#000000" textLength="44.8" lengthAdjust="spacing">stocked</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="382.47" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="35" lengthAdjust="spacing">Shop</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="365.73" y="386.1" font-size="14" fill="#000000" textLength="68.49" lengthAdjust="spacing">the catalog</tspan>
 </text>
 </g>

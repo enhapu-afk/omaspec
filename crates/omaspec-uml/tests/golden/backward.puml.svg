@@ -30,45 +30,45 @@
 <ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
 <polygon points="-2,52 10,40 22,52 10,64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <polygon points="-29.82,203.94 -17.82,191.94 37.82,191.94 49.82,203.94 37.82,215.94 -17.82,215.94" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="-17.82" y="207.74" font-size="11" fill="#000000" textLength="55.64" lengthAdjust="spacing">more data?</tspan>
 </text>
 <rect x="96.36" y="110.98" width="109.35" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="106.36" y="132.12" font-size="12" fill="#000000" textLength="89.35" lengthAdjust="spacing">This is backward</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="51.82" y="200.34" font-size="11" fill="#000000" textLength="17.12" lengthAdjust="spacing">yes</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="14" y="227.14" font-size="11" fill="#000000" textLength="12.23" lengthAdjust="spacing">no</tspan>
 </text>
 <rect x="-37.69" y="84" width="95.38" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="-27.69" y="105.14" font-size="12" fill="#000000" textLength="75.38" lengthAdjust="spacing">Read the data</tspan>
 </text>
 <rect x="-61.36" y="137.97" width="142.72" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="-51.36" y="159.1" font-size="12" fill="#000000" textLength="122.72" lengthAdjust="spacing">Generate the diagrams</tspan>
 </text>
 <polygon points="-2,251.74 10,239.74 22,251.74 10,263.74" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <polygon points="-22.78,365.28 -10.78,353.28 30.78,353.28 42.78,365.28 30.78,377.28 -10.78,377.28" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="-10.78" y="369.09" font-size="11" fill="#000000" textLength="41.57" lengthAdjust="spacing">answer?</tspan>
 </text>
 <rect x="65.78" y="284.54" width="93.36" height="47.94" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="75.78" y="305.68" font-size="12" fill="#000000" textLength="73.36" lengthAdjust="spacing">Wait a minute</tspan>
 <tspan x="75.78" y="319.65" font-size="12" fill="#000000" textLength="69.37" lengthAdjust="spacing">and try again</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="118.46" y="344.69" font-size="11" fill="#000000" textLength="36.07" lengthAdjust="spacing">timeout</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="118.46" y="263.95" font-size="11" fill="#000000" textLength="22" lengthAdjust="spacing">retry</tspan>
 </text>
 <rect x="-10" y="283.74" width="40" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="0" y="304.88" font-size="12" fill="#000000" textLength="20" lengthAdjust="spacing">Ask</tspan>
 </text>
 <ellipse cx="10" cy="408.28" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>

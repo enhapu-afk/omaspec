@@ -228,6 +228,43 @@ fn a_refusal_points_at_its_other_line_in_any_look() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// REQ-068: `--text-as-paths` writes an SVG whose words are outlines; a
+/// PNG has pixels already and refuses it.
+#[test]
+fn render_writes_the_words_as_outlines() {
+    let dir = scratch("outlines");
+    let file = dir.join("door.puml");
+    fs::write(
+        &file,
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n",
+    )
+    .unwrap();
+    let svg = dir.join("door.svg");
+    let out = omaspec(&[
+        "render",
+        file.to_str().unwrap(),
+        "-o",
+        svg.to_str().unwrap(),
+        "--text-as-paths",
+    ]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let written = fs::read_to_string(&svg).unwrap();
+    assert!(!written.contains("<text") && written.contains("<path"));
+    let png = omaspec(&[
+        "render",
+        file.to_str().unwrap(),
+        "-o",
+        dir.join("door.png").to_str().unwrap(),
+        "--text-as-paths",
+    ]);
+    assert!(!png.status.success());
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn render_names_the_characters_no_font_draws() {
     let dir = scratch("undrawable");

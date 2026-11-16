@@ -223,6 +223,7 @@ pub fn export(
                 links: &links,
                 up: crate::specs::depth(own),
                 play: None,
+                outline: false,
             };
             Ok(export::export(&rendered.svg, Format::Svg, &options)?)
         };
@@ -256,6 +257,7 @@ pub fn export(
             links: &links,
             up: crate::specs::depth(&own),
             play: None,
+            outline: false,
         };
         pictures.push((own, export::export(&map.svg, Format::Svg, &options)?));
         for link in &map.links {

@@ -441,6 +441,7 @@ impl Drawn<'_> {
         let drawn = (format == Format::Html && self.map.is_none())
             .then(|| crate::look::drawn_text(self.text, self.language, skin.as_ref()));
         let options = omaspec_render::export::Options {
+            outline: false,
             scale: 2.0,
             source: self
                 .map

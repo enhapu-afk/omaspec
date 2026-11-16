@@ -515,6 +515,14 @@ enum Command {
         /// lines of words, at most 100 tiles). Where it fits, one file.
         #[arg(long, value_name = "PX", conflicts_with = "fit")]
         min_font: Option<f32>,
+        /// An SVG whose words are outlines, drawn here in the faces they
+        /// were measured in: any viewer shows them inside their boxes,
+        /// also one without Arial or Liberation Sans that does not stretch
+        /// words to their length (cairosvg, rsvg-convert on a bare
+        /// system). The words can no longer be selected or searched, and
+        /// links are no longer links.
+        #[arg(long)]
+        text_as_paths: bool,
         /// Do not store the diagram source in SVG and PNG images.
         #[arg(long)]
         no_source: bool,
@@ -885,6 +893,7 @@ fn main() -> ExitCode {
             scale,
             fit,
             min_font,
+            text_as_paths,
             no_source,
             copy,
             look,
@@ -899,6 +908,7 @@ fn main() -> ExitCode {
             scale,
             fit,
             min_font,
+            text_as_paths,
             source: !no_source,
             copy,
             look,

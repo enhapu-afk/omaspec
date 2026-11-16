@@ -3069,8 +3069,21 @@ screen, or than one picture file, stays readable.
       away the tiles an earlier one left. The tester's Odyssey of 3,000 lines: four
       tiles of 7,460 × 11,925 at words of 10 pixels, in 8 seconds,
       where `--fit` gives one of 3,939 × 25,186 at 5.
-- [ ] SVG words that stay in their box without `textLength`
-      (REQ-068), for viewers that do not stretch them.
+- [x] SVG words that stay in their box without `textLength` (REQ-068,
+      2026-11-16). cairosvg and rsvg-convert (pandoc's way to a PDF) do
+      not stretch words to their `textLength`; where the viewer's
+      sans-serif is wider than the Liberation Sans the words were
+      measured in (DejaVu Sans, some 13 %), they ran out of their boxes.
+      Words in the generic faces name the faces they were measured in
+      first (`faces`: Arial, Liberation Sans, Arimo, Helvetica, then
+      sans-serif; Times New Roman and the like for serif), so they are
+      as wide as measured wherever one is installed: Windows, macOS,
+      nearly every Linux desktop. For a bare system without them,
+      `render --text-as-paths` writes the words as outlines (usvg, two
+      places, sanitized, the source still inside): inside their boxes in
+      any viewer, but no longer selectable, links no longer links, and
+      the file some 25 times larger. Boxes wide enough for DejaVu were
+      the other way: every diagram some 10 % roomier, so not taken.
 - [ ] A dead end placed beside what leads to it, not far off in empty
       room (REQ-069).
 

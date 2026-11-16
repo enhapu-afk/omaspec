@@ -57,22 +57,22 @@
 <g>
 <polygon points="250,24 240,20 240,28" fill="#000000"/>
 <polygon points="305,88 301,98 309,98" fill="#000000"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="150" y="28.5" font-size="13" fill="#000000" textLength="28.18" lengthAdjust="spacing">ditaa</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="30" y="44.5" font-size="13" fill="#000000" textLength="25.28" lengthAdjust="spacing">Text</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="270" y="44.5" font-size="13" fill="#000000" textLength="46.96" lengthAdjust="spacing">diagram</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="10" y="60.5" font-size="13" fill="#000000" textLength="59.24" lengthAdjust="spacing">Document</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="140" y="60.5" font-size="13" fill="#000000" textLength="41.9" lengthAdjust="spacing">!magic!</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="120" y="124.5" font-size="13" fill="#000000" textLength="70.08" lengthAdjust="spacing">Lots of work</tspan>
 </text>
 </g>

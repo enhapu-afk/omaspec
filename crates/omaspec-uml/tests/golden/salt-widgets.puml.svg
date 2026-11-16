@@ -37,85 +37,85 @@
 <rect x="162.48" y="317.98" width="53.23" height="21.13" rx="6" ry="6" fill="#FFFFFF" stroke="#000000" stroke-width="1.6"/>
 </g>
 <g>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="9" y="12.06" font-size="13" fill="#000000" textLength="46.97" lengthAdjust="spacing">Account</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="6" y="33.2" font-size="13" fill="#000000" textLength="34.67" lengthAdjust="spacing">Name</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="54.67" y="33.2" font-size="13" fill="#000000" textLength="78.77" lengthAdjust="spacing">Ada Lovelace</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="6" y="55.33" font-size="13" fill="#000000" textLength="26.01" lengthAdjust="spacing">Plan</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="54.67" y="55.33" font-size="13" fill="#000000" textLength="20.23" lengthAdjust="spacing">Pro</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="17" y="79.46" font-size="13" fill="#000000" textLength="85.96" lengthAdjust="spacing">Remember me</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="17" y="97.59" font-size="13" fill="#000000" textLength="61.4" lengthAdjust="spacing">Newsletter</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="17" y="115.72" font-size="13" fill="#000000" textLength="45.51" lengthAdjust="spacing">Monthly</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="179.48" y="115.72" font-size="13" fill="#000000" textLength="36.84" lengthAdjust="spacing">Yearly</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="8" y="148.86" font-size="13" fill="#000000" textLength="25.28" lengthAdjust="spacing">Item</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="53.63" y="148.86" font-size="13" fill="#000000" textLength="29.61" lengthAdjust="spacing">Price</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="8" y="168.99" font-size="13" fill="#000000" textLength="29.63" lengthAdjust="spacing">Book</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="53.63" y="168.99" font-size="13" fill="#000000" textLength="14.46" lengthAdjust="spacing">12</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="8" y="189.12" font-size="13" fill="#000000" textLength="23.13" lengthAdjust="spacing">Pen</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="53.63" y="189.12" font-size="13" fill="#000000" textLength="7.23" lengthAdjust="spacing">2</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="6" y="224.25" font-size="13" fill="#000000" font-weight="bold" textLength="48.41" lengthAdjust="spacing">General</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="66.41" y="224.25" font-size="13" fill="#000000" textLength="32.51" lengthAdjust="spacing">Fonts</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="110.93" y="224.25" font-size="13" fill="#000000" textLength="37.56" lengthAdjust="spacing">Colors</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="6" y="247.38" font-size="13" fill="#000000" textLength="20.94" lengthAdjust="spacing">File</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="38.94" y="247.38" font-size="13" fill="#000000" textLength="22.4" lengthAdjust="spacing">Edit</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="73.34" y="247.38" font-size="13" fill="#000000" textLength="28.17" lengthAdjust="spacing">View</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="14" y="266.52" font-size="13" fill="#000000" textLength="46.96" lengthAdjust="spacing">Projects</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="28" y="281.65" font-size="13" fill="#000000" textLength="52.74" lengthAdjust="spacing">omaspec</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="42" y="296.78" font-size="13" fill="#000000" textLength="17.33" lengthAdjust="spacing">src</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="28" y="311.91" font-size="13" fill="#000000" textLength="31.8" lengthAdjust="spacing">notes</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="10" y="333.04" font-size="13" fill="#000000" textLength="29.63" lengthAdjust="spacing">Save</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="172.48" y="333.04" font-size="13" fill="#000000" textLength="33.23" lengthAdjust="spacing">Close</tspan>
 </text>
 </g>

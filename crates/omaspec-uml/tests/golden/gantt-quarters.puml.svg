@@ -23,49 +23,49 @@
 <rect x="279.46" y="98" width="60" height="14" fill="#8EB8D8" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="196.84" y="9.28" font-size="10" fill="#888888" textLength="22.24" lengthAdjust="spacing">2026</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="61.84" y="23.28" font-size="10" fill="#888888" textLength="17.23" lengthAdjust="spacing">Feb</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="91.35" y="23.28" font-size="10" fill="#888888" textLength="17.22" lengthAdjust="spacing">Mar</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="122.68" y="23.28" font-size="10" fill="#888888" textLength="15.56" lengthAdjust="spacing">Apr</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="151.51" y="23.28" font-size="10" fill="#888888" textLength="18.89" lengthAdjust="spacing">May</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="183.4" y="23.28" font-size="10" fill="#888888" textLength="16.12" lengthAdjust="spacing">Jun</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="215.57" y="23.28" font-size="10" fill="#888888" textLength="12.78" lengthAdjust="spacing">Jul</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="244.06" y="23.28" font-size="10" fill="#888888" textLength="17.79" lengthAdjust="spacing">Aug</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="274.56" y="23.28" font-size="10" fill="#888888" textLength="17.79" lengthAdjust="spacing">Sep</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="306.18" y="23.28" font-size="10" fill="#888888" textLength="15.56" lengthAdjust="spacing">Oct</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="335.57" y="23.28" font-size="10" fill="#888888" textLength="17.78" lengthAdjust="spacing">Nov</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="0" y="43.5" font-size="13" fill="#000000" textLength="26.01" lengthAdjust="spacing">Plan</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="0" y="65.5" font-size="13" fill="#000000" textLength="28.9" lengthAdjust="spacing">Build</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="0" y="87.5" font-size="13" fill="#000000" textLength="25.28" lengthAdjust="spacing">Pilot</tspan>
 </text>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="0" y="109.5" font-size="13" fill="#000000" textLength="40.46" lengthAdjust="spacing">Rollout</tspan>
 </text>
 </g>

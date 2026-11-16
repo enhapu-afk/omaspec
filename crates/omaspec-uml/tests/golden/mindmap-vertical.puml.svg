@@ -12,39 +12,39 @@
 </g>
 <g>
 <rect x="117.84" y="122.59" width="71.35" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="127.84" y="145.58" font-size="14" fill="#000000" textLength="51.35" lengthAdjust="spacing">Release</tspan>
 </text>
 <rect x="53.72" y="183.89" width="51.12" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="63.72" y="206.88" font-size="14" fill="#000000" textLength="31.12" lengthAdjust="spacing">Build</tspan>
 </text>
 <rect x="10" y="245.18" width="71.34" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="20" y="268.18" font-size="14" fill="#000000" textLength="51.34" lengthAdjust="spacing">Compile</tspan>
 </text>
 <rect x="101.34" y="245.18" width="47.23" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="111.34" y="268.18" font-size="14" fill="#000000" textLength="27.23" lengthAdjust="spacing">Test</tspan>
 </text>
 <rect x="208.8" y="183.89" width="48.01" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="218.8" y="206.88" font-size="14" fill="#000000" textLength="28.01" lengthAdjust="spacing">Ship</tspan>
 </text>
 <rect x="168.57" y="245.18" width="44.12" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="178.57" y="268.18" font-size="14" fill="#000000" textLength="24.12" lengthAdjust="spacing">Tag</tspan>
 </text>
 <rect x="232.69" y="245.18" width="64.35" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="242.69" y="268.18" font-size="14" fill="#000000" textLength="44.35" lengthAdjust="spacing">Upload</tspan>
 </text>
 <rect x="129.51" y="61.3" width="48.01" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="139.51" y="84.29" font-size="14" fill="#000000" textLength="28.01" lengthAdjust="spacing">Plan</tspan>
 </text>
 <rect x="123.68" y="0" width="59.69" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="133.68" y="22.99" font-size="14" fill="#000000" textLength="39.69" lengthAdjust="spacing">Scope</tspan>
 </text>
 </g>

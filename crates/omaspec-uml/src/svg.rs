@@ -672,7 +672,7 @@ impl Canvas {
         let _ = write!(
             out,
             r#"<text font-family="{}" xml:space="preserve">"#,
-            escape(&self.font)
+            escape(faces(&self.font))
         );
         let mut top = y;
         // Icons stand beside the words, drawn after the text element.
@@ -1338,6 +1338,28 @@ fn open_link(out: &mut String, link: &Link) {
     }
 }
 
+/// The faces a picture's words are named in. A generic sans-serif or serif
+/// names the faces the words were measured in first ([`crate::metrics`]:
+/// Liberation, as wide as Arial and Times), then those as wide, then the
+/// generic one: a viewer that does not stretch words to their
+/// `textLength` (rsvg-convert, cairosvg) draws them as wide as measured
+/// wherever one of them is installed, on Windows, macOS and nearly every
+/// Linux desktop (REQ-068). Arial comes first for the viewers that take
+/// only the first name; fontconfig gives Liberation Sans for it. A face
+/// the diagram names is written as named.
+pub fn faces(font: &str) -> &str {
+    match font.trim().to_ascii_lowercase().as_str() {
+        "sans-serif" | "sansserif" | "sans" | "dialog" => SANS_FACES,
+        "serif" => SERIF_FACES,
+        _ => font,
+    }
+}
+
+/// [`faces`] for the generic sans-serif.
+pub const SANS_FACES: &str = "Arial, Liberation Sans, Arimo, Helvetica, sans-serif";
+/// [`faces`] for the generic serif.
+const SERIF_FACES: &str = "Times New Roman, Liberation Serif, Tinos, Times, serif";
+
 pub(crate) fn escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -1603,6 +1625,28 @@ mod tests {
         assert!(svg.contains(r##"<rect x="5" y="5" width="20" height="10" rx="2.5" ry="2.5" fill="#FFFFFF" stroke="#000000" stroke-width="0.5"/>"##));
         assert!(svg.contains(r#"<g transform="translate(0,0)">"#), "{svg}");
         assert!(svg.contains("a &lt; b &amp; &quot;c&quot;\u{fffd}"));
+    }
+
+    /// REQ-068: words in the generic sans-serif or serif name the faces
+    /// they were measured in, and those as wide, before the generic one;
+    /// Arial first, for a viewer that takes only the first. A face the
+    /// diagram names stays as named.
+    #[test]
+    fn generic_words_name_the_faces_they_were_measured_in() {
+        for generic in ["sans-serif", "SansSerif", " sans "] {
+            assert_eq!(faces(generic), SANS_FACES);
+        }
+        assert!(SANS_FACES.starts_with("Arial, Liberation Sans"));
+        assert!(faces("serif").starts_with("Times New Roman, Liberation Serif"));
+        assert_eq!(faces("Inter"), "Inter");
+        let mut c = Canvas::new("sans-serif", false);
+        let word = block("Book", Font::new(12.0, Color::BLACK), Family::Sans).unwrap();
+        c.text(Layer::Front, &word, (4.0, 4.0), Align::Left);
+        let svg = c.finish(4.0, None);
+        assert!(
+            svg.contains(&format!(r#"font-family="{SANS_FACES}""#)),
+            "{svg}"
+        );
     }
 
     #[test]
