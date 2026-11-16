@@ -274,7 +274,7 @@ impl Stage {
     fn play(&mut self, args: &Moving) -> Result<String> {
         let moving = |app: &App| !app.doc().paper.play_moving(crate::clock::now());
         // Where the whole is too large to read, the view follows each step.
-        self.app.doc_mut().paper.follow = !args.whole;
+        self.app.doc_mut().paper.follow_play = !args.whole;
         self.send(Message::Command(Command::Play));
         if !self.app.doc().paper.playing() {
             bail!(
@@ -352,11 +352,15 @@ impl Stage {
             let paper = &app.doc().paper;
             paper.fading().is_none() && paper.glide().is_none()
         };
+        // Only where the camera moves does the picture wait for it: a
+        // diagram that reads whole folds as it did.
         let camera = |stage: &mut Self, name: Option<&String>| {
             if follow {
                 let ask = paper::Message::Camera(name.cloned());
                 stage.send(Message::Paper(stage.key, ask));
-                stage.step(still);
+                if stage.app.doc().paper.glide().is_some() {
+                    stage.step(still);
+                }
             }
         };
         for (name, fold) in folds.chain(unfolds) {

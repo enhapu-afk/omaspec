@@ -329,8 +329,13 @@ impl Parser {
             }
             Some(_) => {}
             None => {
-                let held = std::mem::take(container);
-                container.direction = held.direction;
+                // The state keeps the direction the writer set in it; what
+                // it held becomes its first region, which takes the
+                // state's, as the regions after it do.
+                let mut held = std::mem::take(container);
+                (container.direction, container.own_direction) =
+                    (held.direction, held.own_direction);
+                held.own_direction = false;
                 container.split = Some(split);
                 let first = region_node(held, line);
                 container.nodes.push(first);
@@ -2046,6 +2051,18 @@ mod tests {
         assert_eq!(
             node(&diagram.root, "Pad").children.direction,
             Direction::Down
+        );
+        // A state that sets its own and is split keeps it in every region.
+        let diagram = self::diagram(
+            "@startuml\nleft to right direction\nstate Flight {\n  top to bottom direction\n  [*] --> A\n  ||\n  [*] --> B\n}\n@enduml\n",
+        );
+        let flight = &node(&diagram.root, "Flight").children;
+        assert_eq!(flight.direction, Direction::Down);
+        assert!(
+            flight
+                .nodes
+                .iter()
+                .all(|region| region.children.direction == Direction::Down)
         );
     }
 }

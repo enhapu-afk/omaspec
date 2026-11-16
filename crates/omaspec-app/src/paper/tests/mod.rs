@@ -724,8 +724,6 @@ fn a_zoom_gliding_when_a_picture_comes_goes_on_to_its_end() {
     assert_eq!(glide.at(Instant::now() + glide.duration()), asked);
 }
 
-/// Puts `source` on the sheet, as a render would, and makes the pictures
-/// it asks for, as the window makes them.
 /// REQ-071: a play the view follows. A step glides it to what the step
 /// takes, near enough to read; again glides it out to the whole. A diagram
 /// that reads whole stays whole.
@@ -742,7 +740,7 @@ fn a_following_view_goes_with_the_play_and_back_to_the_whole() {
         paper.send(Message::Viewport(Size::new(600.0, 400.0)));
         show_source(&mut paper, source, Language::PlantUml);
         paper.send(Message::Faded);
-        paper.follow = true;
+        paper.follow_play = true;
         paper.start_play().unwrap();
         assert!(paper.view.fit);
         paper.send(Message::Play(Ask::Take(0)));
@@ -755,6 +753,8 @@ fn a_following_view_goes_with_the_play_and_back_to_the_whole() {
     }
 }
 
+/// Puts `source` on the sheet, as a render would, and makes the pictures
+/// it asks for, as the window makes them.
 fn show_source(paper: &mut Paper, source: &str, language: Language) {
     let task = draw_source(paper, source, language);
     paper.run(task);

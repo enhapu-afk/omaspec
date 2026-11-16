@@ -174,17 +174,7 @@ pub fn read(source: &str) -> Option<Chart> {
         }
         note = reader.line(l, no)?;
     }
-    (head && reader.open.is_empty() && note.is_none() && !hollow(&reader.chart))
-        .then_some(reader.chart)
-}
-
-/// Whether a state inside another that was opened holds nothing, as one
-/// left when what it held moved away: the drawer nests a state by what it
-/// holds, so it would be drawn at the top.
-fn hollow(chart: &Chart) -> bool {
-    chart.states.iter().enumerate().any(|(at, s)| {
-        s.composite && s.parent.is_some() && !chart.states.iter().any(|t| t.parent == Some(at))
-    })
+    (head && reader.open.is_empty() && note.is_none()).then_some(reader.chart)
 }
 
 #[derive(Default)]
@@ -249,11 +239,10 @@ impl Reader {
 
     fn statement(&mut self, l: &str, no: usize) -> Option<()> {
         if l == "}" {
-            let (state, _) = self.open.pop()?;
-            // The drawer nests a state by what it holds, so an empty one
-            // inside another would be drawn at the top.
-            let empty = !self.chart.states.iter().any(|s| s.parent == Some(state));
-            return (!empty || self.chart.states[state].parent.is_none()).then_some(());
+            // An empty state is a state with a body of its own, inside
+            // another too, as the lowering nests each by where it sits.
+            self.open.pop()?;
+            return Some(());
         }
         if l == "--" {
             self.open.last_mut()?.1 += 1;
@@ -659,6 +648,28 @@ mod tests {
         assert_eq!(chart.states[find(&chart, "A")].parent, Some(t));
     }
 
+    /// An empty state inside another, written so or left so when what it
+    /// held moved away, is a state of its own there.
+    #[test]
+    fn an_empty_state_inside_another_stays_there() {
+        let chart = read("stateDiagram\nstate S {\nstate T {\n}\n}").unwrap();
+        let t = &chart.states[find(&chart, "T")];
+        assert!(t.composite);
+        assert_eq!(t.parent, Some(find(&chart, "S")));
+        let chart = read(
+            "stateDiagram\n[*] --> P\nstate P {\n[*] --> S\nstate S {\nA\n}\n}\nstate T {\nA --> B\n}",
+        )
+        .unwrap();
+        assert_eq!(
+            chart.states[find(&chart, "S")].parent,
+            Some(find(&chart, "P"))
+        );
+        assert_eq!(
+            chart.states[find(&chart, "A")].parent,
+            Some(find(&chart, "T"))
+        );
+    }
+
     #[test]
     fn what_it_does_not_know_is_not_read() {
         for code in [
@@ -688,16 +699,12 @@ mod tests {
             "stateDiagram\nnote right of A\nend note",
             "stateDiagram\n}",
             "stateDiagram\n--",
-            // A state left empty inside another when what it held moved.
-            "stateDiagram\n[*] --> P\nstate P {\n[*] --> S\nstate S {\nA\n}\n}\nstate T {\nA --> B\n}",
             // Named again in another region of its state, or inside itself.
             "stateDiagram\nstate S {\n[*] --> A\n--\nA --> B\n}",
             "stateDiagram\nstate S {\nS --> A\n}",
             // Opened twice, or as a pseudo state.
             "stateDiagram\nstate S {\n[*] --> A\n}\nstate S {\n[*] --> B\n}",
             "stateDiagram\nstate c <<choice>>\nstate c {\n[*] --> A\n}",
-            // An empty state inside another.
-            "stateDiagram\nstate S {\nstate T {\n}\n}",
         ] {
             assert!(read(code).is_none(), "{code}");
         }

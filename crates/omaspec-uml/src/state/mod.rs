@@ -320,15 +320,7 @@ pub struct Crossing {
     pub arrow: Transition,
 }
 
-/// Where a note sits relative to its state. "Right" stays on the right
-/// of the drawn box, including when the container runs left to right.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Side {
-    Left,
-    Right,
-    Top,
-    Bottom,
-}
+pub use crate::graph::open::NoteSide as Side;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Note {

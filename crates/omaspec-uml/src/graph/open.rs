@@ -70,14 +70,36 @@ pub struct Note {
     pub h: f32,
     /// The member it is about, by its index in its container.
     pub target: usize,
-    /// The side of the member it stands on, by name (each drawer has sides
-    /// of its own), and its place among the notes on that side: what names
-    /// it from one picture to the next.
-    pub side: &'static str,
+    /// The side of the member it stands on, and its place among the notes
+    /// on that side: what names it from one picture to the next.
+    pub side: NoteSide,
     pub nth: usize,
     pub text: Block,
     /// A dashed line to its box, when it stands off it.
     pub tether: Option<(Point, Point)>,
+}
+
+/// Where a note sits relative to its box, in a state diagram or a
+/// structure. "Right" stays on the right of the drawn box, including when
+/// the container runs left to right.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NoteSide {
+    Left,
+    Right,
+    Top,
+    Bottom,
+}
+
+impl NoteSide {
+    /// The side as a note's part names it ([`crate::svg::note_part`]).
+    pub fn name(self) -> &'static str {
+        match self {
+            NoteSide::Left => "left",
+            NoteSide::Right => "right",
+            NoteSide::Top => "top",
+            NoteSide::Bottom => "bottom",
+        }
+    }
 }
 
 /// A box measured, before it is placed: a box of `children` laid out on
@@ -213,6 +235,53 @@ pub trait Nested {
 }
 
 impl<N, E> Scene<N, E> {
+    /// The part each of its notes is drawn in ([`crate::svg::note_part`]),
+    /// by the part of the box it is about, which `part` names for a member
+    /// at its path; `path` is where this scene is in the tree.
+    pub fn note_parts(
+        &self,
+        path: &[usize],
+        part: impl Fn(&Placed<N, E>, &[usize]) -> String,
+    ) -> Vec<String> {
+        self.notes
+            .iter()
+            .map(|note| {
+                let mut at = path.to_vec();
+                at.push(note.target);
+                let of = self
+                    .nodes
+                    .get(note.target)
+                    .map_or_else(String::new, |node| part(node, &at));
+                crate::svg::note_part(&of, note.side.name(), note.nth)
+            })
+            .collect()
+    }
+
+    /// Each note's part, here and in every box inside, with the part of
+    /// the box it lies inside, into `out` ([`crate::map::Map::inside`]): a
+    /// box's own part as `part` names it, or none for one, as a region,
+    /// that lies in the part of the box around it; `owner` is that of the
+    /// box around this scene, none at the top.
+    pub fn notes_inside(
+        &self,
+        path: &mut Vec<usize>,
+        owner: Option<&str>,
+        part: &impl Fn(&Placed<N, E>, &[usize]) -> Option<String>,
+        out: &mut Vec<(String, String)>,
+    ) {
+        if let Some(owner) = owner {
+            let notes = self.note_parts(path, |node, at| part(node, at).unwrap_or_default());
+            out.extend(notes.into_iter().map(|note| (note, owner.to_owned())));
+        }
+        for (index, node) in self.nodes.iter().enumerate() {
+            path.push(index);
+            let inner = part(node, path).or_else(|| owner.map(str::to_owned));
+            node.children
+                .notes_inside(path, inner.as_deref(), part, out);
+            path.pop();
+        }
+    }
+
     pub fn empty() -> Scene<N, E> {
         Scene {
             nodes: Vec::new(),

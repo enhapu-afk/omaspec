@@ -3,6 +3,7 @@
 
 use std::time::Duration;
 
+use iced::time::Instant;
 use iced::{Point, Rectangle, Size, Task, Vector};
 
 use super::raster::Plan;
@@ -12,9 +13,6 @@ use super::{Change, Message, Paper, RASTER_DELAY, frames};
 /// An overview twice as sharp as the view is drawn up to this many pixels
 /// (4 megapixels: about 30 ms in the background, 16 MB on the GPU).
 const SHARPER_PIXELS: f32 = 4_000_000.0;
-/// The room a play's bar takes at the foot of the pane, about: a following
-/// camera centers what it looks at above it.
-const PLAY_BAR: f32 = 90.0;
 
 impl Paper {
     pub fn set_scale_factor(&mut self, factor: f32) -> Task<Message> {
@@ -63,19 +61,23 @@ impl Paper {
         self.show_held()
     }
 
-    /// Glides a following play's camera ([`Paper::follow`]) to `area` of
-    /// the diagram, or out to the whole: on the shortest way, as a dive
-    /// goes, so a step far from the last one zooms out a little on the way.
-    pub(super) fn camera(&mut self, area: Option<Rectangle>) -> Task<Message> {
+    /// Glides a following play's camera ([`Paper::follow_play`]) to `area`
+    /// of the diagram, or out to the whole, from `now` on the play's clock:
+    /// on the shortest way, as a dive goes, so a step far from the last
+    /// one zooms out a little on the way. What it looks at stands above the
+    /// play's bar.
+    pub(super) fn camera(&mut self, area: Option<Rectangle>, now: Instant) -> Task<Message> {
         if self.diagram.is_none() || self.viewport == Size::ZERO {
             return Task::none();
         }
         let whole = View::fitted(self.diagram_size(), self.viewport);
+        let bar = self.play.as_ref().map_or(0.0, |play| {
+            super::bar::height(&play.offer(), self.viewport.width)
+        });
         let to = match area {
-            Some(area) => View::following(area, self.diagram_size(), self.viewport, PLAY_BAR),
+            Some(area) => View::following(area, self.diagram_size(), self.viewport, bar),
             None => whole,
         };
-        let now = crate::clock::now();
         let from = self.glide.map_or(self.view, |glide| glide.at(now));
         if from == to {
             return Task::none();

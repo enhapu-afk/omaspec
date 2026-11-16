@@ -102,7 +102,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         skin.strict,
     );
     map.places = nest::places(&diagram.root, &scene, &diagram.frame.held);
-    notes_inside(&scene, &mut Vec::new(), None, &mut map.inside);
+    notes_inside(&scene, &mut map.inside);
     map.misses = misses;
     map.misses.extend(crate::hand::said(
         &diagram.frame.held,
@@ -499,12 +499,7 @@ fn place_notes(
                 w: note.w,
                 h: note.h,
                 target,
-                side: match side {
-                    Side::Left => "left",
-                    Side::Right => "right",
-                    Side::Top => "top",
-                    Side::Bottom => "bottom",
-                },
+                side,
                 nth,
                 text: std::mem::replace(&mut note.text, Block::empty()),
                 tether: None,
@@ -843,19 +838,7 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 /// The part of each of `scene`'s notes, at `path` in the tree: a part of
 /// its own by its state's ([`crate::svg::note_part`]).
 fn note_parts(scene: &Scene, path: &[usize]) -> Vec<String> {
-    scene
-        .notes
-        .iter()
-        .map(|note| {
-            let name = scene
-                .nodes
-                .get(note.target)
-                .map_or("", |node| node.item.name.as_str());
-            let mut at = path.to_vec();
-            at.push(note.target);
-            crate::svg::note_part(&crate::svg::box_part(name, &at), note.side, note.nth)
-        })
-        .collect()
+    scene.note_parts(path, |node, at| crate::svg::box_part(&node.item.name, at))
 }
 
 /// Each state's shape, in its part; `path` is where `scene` is in the
@@ -992,31 +975,12 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
 }
 
 /// Each note's part with the part of the state it lies inside, a
-/// region's state for a region, into `out`; `path` is where `scene` is in
-/// the tree, `owner` the state around it, none at the top.
-fn notes_inside(
-    scene: &Scene,
-    path: &mut Vec<usize>,
-    owner: Option<&str>,
-    out: &mut Vec<(String, String)>,
-) {
-    if let Some(owner) = owner {
-        out.extend(
-            note_parts(scene, path)
-                .into_iter()
-                .map(|part| (part, owner.to_owned())),
-        );
-    }
-    for (index, node) in scene.nodes.iter().enumerate() {
-        path.push(index);
-        let inner = if node.item.kind == Kind::Region {
-            owner.map(str::to_owned)
-        } else {
-            Some(crate::svg::box_part(&node.item.name, path))
-        };
-        notes_inside(&node.children, path, inner.as_deref(), out);
-        path.pop();
-    }
+/// region's state for a region, into `out`.
+fn notes_inside(scene: &Scene, out: &mut Vec<(String, String)>) {
+    let part = |node: &Placed, at: &[usize]| {
+        (node.item.kind != Kind::Region).then(|| crate::svg::box_part(&node.item.name, at))
+    };
+    scene.notes_inside(&mut Vec::new(), None, &part, out);
 }
 
 /// Each note, in a part of its own; `path` is where `scene` is in the

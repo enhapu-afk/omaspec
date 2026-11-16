@@ -20,10 +20,13 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use color_quant::NeuQuant;
 
-/// How many pixels the table of colors is learned from, about, in a
-/// picture of [`FRAMES_LEARNED`] frames; each frame gives its share.
+/// How many pixels of the first frame the table of colors learns from, at
+/// most: every one of a frame up to a megapixel.
 const LEARNED: usize = 1 << 20;
-const FRAMES_LEARNED: usize = 256;
+/// How many of the pixels that changed it learns from in each later frame,
+/// at most: a light, its glow, a fade, where the colors the first frame
+/// lacks come.
+const CHANGED: usize = 1 << 16;
 /// How hard a frame is deflated while it waits: the fastest, which still
 /// packs a diagram's even colors some fifty times.
 const PACKED: u8 = 1;
@@ -66,10 +69,9 @@ pub struct Frames {
     kept: Vec<(Vec<u8>, u16)>,
     /// The last frame as it is, to know one like it.
     last: Vec<u8>,
-    /// Each color counted, how often.
+    /// Each color counted, how often: of the first frame, and of what
+    /// changed in each one after it.
     seen: HashMap<[u8; 3], u32>,
-    /// Where in the next frame the next pixel counted lies.
-    at: usize,
     /// A frame of another size than the first came.
     mixed: bool,
 }
@@ -92,21 +94,30 @@ impl Frames {
             *last = last.saturating_add(stay);
             return;
         }
-        let pixels = width * height;
-        let step = (pixels * FRAMES_LEARNED / LEARNED).max(1);
-        while self.at < pixels {
-            let at = self.at * 4;
-            *self
-                .seen
-                .entry([rgba[at], rgba[at + 1], rgba[at + 2]])
-                .or_default() += 1;
-            self.at += step;
-        }
-        self.at -= pixels;
+        self.count(rgba);
         self.kept
             .push((miniz_oxide::deflate::compress_to_vec(rgba, PACKED), stay));
         self.last.clear();
         self.last.extend_from_slice(rgba);
+    }
+
+    /// Counts the colors of `rgba` for the table: those of the first frame,
+    /// else those of the pixels that changed since the frame before, spread
+    /// over them where there are many.
+    fn count(&mut self, rgba: &[u8]) {
+        let pixels = rgba.as_chunks::<4>().0;
+        let before = self.last.as_chunks::<4>().0;
+        let count = |pixel: &[u8; 4]| {
+            *self.seen.entry([pixel[0], pixel[1], pixel[2]]).or_default() += 1;
+        };
+        if self.kept.is_empty() {
+            let step = (pixels.len() / LEARNED).max(1);
+            pixels.iter().step_by(step).for_each(count);
+            return;
+        }
+        let changed = || pixels.iter().zip(before).filter(|(now, was)| now != was);
+        let step = (changed().count() / CHANGED).max(1);
+        changed().map(|(now, _)| now).step_by(step).for_each(count);
     }
 
     /// The frames' size in pixels; `None` before the first.

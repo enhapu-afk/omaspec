@@ -1,323 +1,110 @@
-//! The bar under a playing diagram: where the machine is and what can
-//! happen next, how far the scenario is, or the trace's line; the way
-//! back, and out.
-//!
-//! It keeps its height and its width for the whole play, so the diagram
-//! above it never moves: one row (a trace has a second line for what its
-//! line says), as wide as the pane allows up to [`WIDEST`]. A machine's
-//! options take a second or third row where one would leave only their
-//! numbers, wherever in the play that is: the bar has those rows from the
-//! start. Where not even three rows keep their labels, the bar is as wide
-//! as the pane; where that does not either, the numbers take the rows
-//! they need, and one where even three would clip them. Else what does
-//! not fit is cut short with `…`.
+//! How a play's bar fits what it says into its width: the room inside it,
+//! where the head stands, how many rows the options take and how much of
+//! each label and target they keep, for a play and a width at once
+//! ([`layout_of`]), so the bar keeps its size while the play runs.
 
 use std::cell::RefCell;
 use std::sync::{Arc, Weak};
 
-use iced::widget::{Space, button, column, container, mouse_area, row, text};
-use iced::{Element, Font, Length, Theme, Vector};
-use omaspec_core::lint::Severity;
-use omaspec_theme::Palette;
-
-use super::Message;
-use super::play::{Ask, Offer, Offered};
-use crate::ui;
+use super::Offered;
 
 /// The widest the bar gets, but for a machine whose options would keep
 /// only their numbers in it.
-const WIDEST: f32 = 900.0;
+pub(super) const WIDEST: f32 = 900.0;
 /// Around the bar in the pane, across.
-const MARGIN: f32 = 18.0;
+pub(super) const MARGIN: f32 = 18.0;
 /// Inside the bar, across: its padding and its edge.
-const PADDING: f32 = 13.0;
+pub(super) const PADDING: f32 = 13.0;
 /// Between the bar's items.
-const GAP: f32 = 8.0;
+pub(super) const GAP: f32 = 8.0;
 /// The row's height: a chip's, a line of text and its padding.
-const ROW: f32 = 26.0;
+pub(super) const ROW: f32 = 26.0;
 /// The height of a trace's second line.
-const NOTE: f32 = 18.0;
+pub(super) const NOTE: f32 = 18.0;
 /// How wide a character is, as a share of its text's size. The bar's font
 /// is the monospace one, 0.6 of its size wide (JetBrains Mono, DejaVu Sans
 /// Mono, Fira Mono; Iosevka less); a little more, so a label is cut before
 /// the row would run out.
-const CHAR: f32 = 0.605;
+pub(super) const CHAR: f32 = 0.605;
 /// The fewest characters a label or a state is cut to.
-const SHORTEST: usize = 6;
+pub(super) const SHORTEST: usize = 6;
 /// The most rows of options the bar takes; past them the chips show their
 /// numbers alone.
-const MOST_ROWS: usize = 3;
+pub(super) const MOST_ROWS: usize = 3;
 /// Between two rows of options.
-const ROW_GAP: f32 = 4.0;
-
-/// The bar for `offer`, in a pane `pane` pixels wide.
-pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Element<'a, Message> {
-    let accent = ui::color(p.accent);
-    let muted = ui::color(p.dark_foreground);
-    let words = move |s: String, color: iced::Color| {
-        text(s)
-            .font(font)
-            .size(13)
-            .color(color)
-            .wrapping(text::Wrapping::None)
-    };
-    let mut inside = inside_of(pane);
-    // What the bar says on the left; what is offered, in the room between,
-    // clipped there should it not fit after all; the tools on the right.
-    let mut items: Vec<Element<'a, Message>> = Vec::new();
-    // In rows of their own, should they need more than one.
-    let mut offered: Vec<Vec<Element<'a, Message>>> = Vec::new();
-    let mut rows = 1;
-    // The head in a row of its own, the tools beside it, the options below.
-    let mut stacked = false;
-    let mut tools: Vec<Element<'a, Message>> = Vec::new();
-    // A trace's second line: what its line says is wrong, or that it is not.
-    let mut note: Option<(Option<Severity>, String)> = None;
-    match offer {
-        Offer::Machine {
-            options,
-            hover,
-            at,
-            steps,
-            ended,
-            can_go_back,
-            every,
-        } => {
-            let layout = layout_of(every, pane);
-            (inside, stacked) = (layout.inside, layout.stacked);
-            let back = (*can_go_back).then_some(("↶ back", "↶", Ask::Back));
-            let again = (*steps > 0 || *ended).then_some(("⟲ again", "⟲", Ask::Restart));
-            let head = if *ended {
-                "● ended".to_owned()
-            } else {
-                head_of(at, inside, stacked)
-            };
-            let (room, signs) = room_for(&head, layout, back.is_some(), again.is_some());
-            rows = layout.rows.max(rows_needed(options, room, signs).1);
-            items.push(words(head, accent).into());
-            let fit = arranged(options, room, signs, rows);
-            for (label, sign, ask) in back.into_iter().chain(again) {
-                tools.push(tool(
-                    if fit.signs || stacked { sign } else { label },
-                    Some(ask),
-                    p,
-                    font,
-                ));
-            }
-            let per_row = fit.per_row;
-            let mut chips = fit.options.into_iter().enumerate().peekable();
-            while chips.peek().is_some() {
-                let line: Vec<Element<'a, Message>> = chips
-                    .by_ref()
-                    .take(per_row)
-                    .map(|(i, (label, to))| {
-                        let chip = chip(i, &label, to.as_deref(), *hover == Some(i), p, font);
-                        mouse_area(chip)
-                            .on_enter(Message::Play(Ask::Hover(Some(i))))
-                            .on_exit(Message::Play(Ask::Hover(None)))
-                            .into()
-                    })
-                    .collect();
-                offered.push(line);
-            }
-            if options.is_empty() && !*ended {
-                offered.push(vec![words("nothing can happen here".into(), muted).into()]);
-            }
-        }
-        Offer::Scenario { at, of } => {
-            items.push(words(format!("● {at} / {of}"), accent).into());
-            tools.push(tool("‹ back", (*at > 0).then_some(Ask::Back), p, font));
-            tools.push(chip_next((*at < *of).then_some(Ask::Next), p, font));
-            tools.push(tool("⟲ again", (*at > 0).then_some(Ask::Restart), p, font));
-        }
-        Offer::Trace {
-            name,
-            object,
-            played,
-            of,
-            line,
-            time,
-            said,
-            at,
-            finding,
-        } => {
-            let third = (inside / 3.0 / (13.0 * CHAR)) as usize;
-            let (head, color) = if at.is_empty() {
-                (format!("○ {object}: not followed here"), muted)
-            } else {
-                (format!("● {object}: {at}"), accent)
-            };
-            let head = cut(&head, third);
-            let place = match line {
-                Some(line) => format!("{name}:{line} · {played} / {of}"),
-                None => format!("{name} · {played} / {of}"),
-            };
-            let place = cut(&place, third);
-            let used = width_of(head.chars().count() + place.chars().count(), 13.0)
-                + tool_width("‹ back")
-                + 28.0
-                + width_of(6, 13.0)
-                + tool_width("⟲ again")
-                + tool_width("✕")
-                + 6.0 * GAP;
-            items.push(words(head, color).into());
-            items.push(words(place, muted).into());
-            if !said.is_empty() {
-                let said = match time {
-                    Some(time) => format!("{time}  {said}"),
-                    None => said.clone(),
-                };
-                let room = ((inside - used) / (13.0 * CHAR)).max(0.0) as usize;
-                offered.push(vec![
-                    words(cut(&said, room), ui::color(p.bright_foreground)).into(),
-                ]);
-            }
-            tools.push(tool("‹ back", (*played > 0).then_some(Ask::Back), p, font));
-            tools.push(chip_next((*played < *of).then_some(Ask::Next), p, font));
-            tools.push(tool(
-                "⟲ again",
-                (*played > 0).then_some(Ask::Restart),
-                p,
-                font,
-            ));
-            note = Some(match finding {
-                Some((severity, message)) => (Some(*severity), message.clone()),
-                None if *played > 0 => (None, "as the machine allows".to_owned()),
-                None => (None, String::new()),
-            });
-        }
-    }
-    let accent_rgb = p.accent;
-    let close = button(words("✕".into(), muted))
-        .on_press(Message::StopPlay)
-        .padding([3, 8])
-        .style(move |_: &Theme, status| quiet(status, accent_rgb));
-    tools.push(close.into());
-    let fill = ui::color(p.dark_background);
-    let wrong = note
-        .as_ref()
-        .is_some_and(|(severity, _)| *severity == Some(Severity::Error));
-    let edge = if wrong {
-        iced::Color {
-            a: 0.8,
-            ..ui::color(p.red)
-        }
-    } else {
-        iced::Color { a: 0.45, ..accent }
-    };
-    // The tools at the right end, whatever is offered before them.
-    let offered = offered.into_iter().map(|line| {
-        row(line)
-            .spacing(GAP)
-            .align_y(iced::Alignment::Center)
-            .into()
-    });
-    let offered = container(column(offered).spacing(ROW_GAP))
-        .width(Length::Fill)
-        .clip(true);
-    let line: Element<'a, Message> = if stacked {
-        // The head and the tools above, the options across the whole bar.
-        items.push(Space::new().width(Length::Fill).into());
-        items.extend(tools);
-        let top = container(row(items).spacing(GAP).align_y(iced::Alignment::Center))
-            .height(ROW)
-            .align_y(iced::Alignment::Center)
-            .clip(true);
-        let below = container(offered)
-            .height(rows_height(rows))
-            .align_y(iced::Alignment::Center)
-            .clip(true);
-        column![top, below].spacing(ROW_GAP).into()
-    } else {
-        items.push(offered.into());
-        items.extend(tools);
-        container(row(items).spacing(GAP).align_y(iced::Alignment::Center))
-            .height(rows_height(rows))
-            .align_y(iced::Alignment::Center)
-            .clip(true)
-            .into()
-    };
-    let content: Element<'a, Message> = match note {
-        Some((severity, message)) => {
-            let color = match severity {
-                Some(Severity::Error) => ui::color(p.red),
-                Some(_) | None => muted,
-            };
-            let room = (inside / (13.0 * CHAR)) as usize;
-            let note = container(words(cut(&message, room), color))
-                .height(NOTE)
-                .clip(true);
-            column![line, note].spacing(6).into()
-        }
-        None => line,
-    };
-    let bar = container(content)
-        .padding([8, 12])
-        .width(Length::Fill)
-        .max_width(inside + 2.0 * PADDING)
-        .style(move |_: &Theme| {
-            container::Style::default()
-                .background(iced::Color { a: 0.94, ..fill })
-                .border(iced::Border {
-                    color: edge,
-                    width: 1.0,
-                    radius: 14.0.into(),
-                })
-                .shadow(iced::Shadow {
-                    color: iced::Color::from_rgba(0.0, 0.0, 0.0, 0.35),
-                    offset: Vector::new(0.0, 4.0),
-                    blur_radius: 18.0,
-                })
-        });
-    container(bar)
-        .width(Length::Fill)
-        .align_x(iced::Alignment::Center)
-        .padding([10.0, MARGIN])
-        .into()
-}
+pub(super) const ROW_GAP: f32 = 4.0;
 
 /// The room inside the bar in a pane `pane` pixels wide.
-fn inside_of(pane: f32) -> f32 {
+pub(super) fn inside_of(pane: f32) -> f32 {
     (pane - 2.0 * MARGIN).min(WIDEST) - 2.0 * PADDING
 }
 
-/// How much higher than a row the bar of a play of `source` is in a pane
-/// `pane` pixels wide: the rows its options will need, as the play finds
-/// them, so a recording leaves the room.
-pub fn extra_height(source: &str, language: omaspec_core::Language, pane: f32) -> f32 {
-    let Some(every) = super::play::every_offer_of(source, language) else {
-        return 0.0;
-    };
-    extra_height_of(layout_of(&Arc::new(every), pane))
-}
-
 /// How much higher than a row a bar laid out as `layout` is.
-fn extra_height_of(layout: Layout) -> f32 {
+pub(super) fn extra_height_of(layout: Layout) -> f32 {
     rows_height(layout.rows + usize::from(layout.stacked)) - rows_height(1)
 }
 
 /// How high `rows` rows of options are, with the gaps between them.
-fn rows_height(rows: usize) -> f32 {
+pub(super) fn rows_height(rows: usize) -> f32 {
     rows as f32 * ROW + rows.saturating_sub(1) as f32 * ROW_GAP
 }
 
 /// What the bar says first of a machine at `at`: its states, cut to a
 /// third of the room `inside`, or of a bar [`WIDEST`] wide where it is
 /// wider (what more it has is the options').
-fn head_of(at: &str, inside: f32, stacked: bool) -> String {
+pub(super) fn head_of(at: &str, inside: f32, stacked: bool) -> String {
     let room = if stacked {
-        // A row of its own, but for the tools at its end, by their signs.
-        inside - tool_width("↶") - tool_width("⟲") - tool_width("✕") - 3.0 * GAP
+        // A row of its own, but for its mark, the filler and the tools at
+        // its end by their signs, with a gap before each.
+        inside - width_of(2, 13.0) - tool_width("↶") - tool_width("⟲") - tool_width("✕") - 4.0 * GAP
     } else {
         inside.min(WIDEST - 2.0 * PADDING) / 3.0
     };
     format!("● {}", cut(at, (room / (13.0 * CHAR)) as usize))
 }
 
+/// What the bar of a machine says and where ([`machine_fit`]).
+pub(super) struct Machine {
+    pub(super) layout: Layout,
+    pub(super) head: String,
+    /// The room for the options, and how much more the tools give when
+    /// they show only their signs.
+    pub(super) room: f32,
+    pub(super) signs: f32,
+    pub(super) rows: usize,
+}
+
+/// What the bar of a play of `every` place says at `at` (none once the
+/// machine has ended) with the tools `(back, again)` shown, in a pane
+/// `pane` pixels wide: its layout, its head, the room for `options` and
+/// their rows.
+pub(super) fn machine_fit(
+    every: &Arc<Vec<Offered>>,
+    pane: f32,
+    at: Option<&str>,
+    (back, again): (bool, bool),
+    options: &[(String, String)],
+) -> Machine {
+    let layout = layout_of(every, pane);
+    let head = match at {
+        Some(at) => head_of(at, layout.inside, layout.stacked),
+        None => "● ended".to_owned(),
+    };
+    let (room, signs) = room_for(&head, layout, back, again);
+    let rows = layout.rows.max(rows_needed(options, room, signs).1);
+    Machine {
+        layout,
+        head,
+        room,
+        signs,
+        rows,
+    }
+}
+
 /// The room for a machine's options in `layout` beside `head` and the
 /// tools shown, and how much more the tools give when they show only their
 /// signs: the whole bar below a head in a row of its own.
-fn room_for(head: &str, layout: Layout, back: bool, again: bool) -> (f32, f32) {
+pub(super) fn room_for(head: &str, layout: Layout, back: bool, again: bool) -> (f32, f32) {
     if layout.stacked {
         (layout.inside, 0.0)
     } else {
@@ -328,7 +115,7 @@ fn room_for(head: &str, layout: Layout, back: bool, again: bool) -> (f32, f32) {
 /// The room left for a machine's options beside `head`, the tools shown
 /// and the close, in a bar `inside` pixels wide inside; and how much more
 /// the tools give when they show only their signs.
-fn room_beside(head: &str, back: bool, again: bool, inside: f32) -> (f32, f32) {
+pub(super) fn room_beside(head: &str, back: bool, again: bool, inside: f32) -> (f32, f32) {
     // The close, and the gap before it.
     let mut used = tool_width("✕") + GAP;
     let mut signs = 0.0;
@@ -346,10 +133,10 @@ fn room_beside(head: &str, back: bool, again: bool, inside: f32) -> (f32, f32) {
 /// ([`layout_of`]): the room inside, the rows of options, and whether the
 /// head stands in a row of its own above them, the tools beside it.
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct Layout {
-    inside: f32,
-    rows: usize,
-    stacked: bool,
+pub(super) struct Layout {
+    pub(super) inside: f32,
+    pub(super) rows: usize,
+    pub(super) stacked: bool,
 }
 
 /// The layout of the bar of a play whose machine can be in each of `every`
@@ -361,7 +148,7 @@ struct Layout {
 /// should that show more at the place that shows least (REQ-045). It
 /// depends on the play and the width alone, so it is worked out once for
 /// each and kept.
-fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> Layout {
+pub(super) fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> Layout {
     // Each play by a weak hold on its places, which keeps their address
     // from going to another play's; a few, so the editor's play and that
     // of a diagram in its own window keep theirs.
@@ -441,7 +228,7 @@ fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> Layout {
 /// What `layout` shows of `every` place: how much of the options at the
 /// place that shows least, how many letters in all (the options' and the
 /// heads'), and whether a head is cut.
-fn shown_by(every: &[Offered], layout: Layout) -> (Shown, usize, bool) {
+pub(super) fn shown_by(every: &[Offered], layout: Layout) -> (Shown, usize, bool) {
     every.iter().fold(
         (Shown::Whole, 0, false),
         |(least, letters, cut_head), (at, options)| {
@@ -465,14 +252,14 @@ fn shown_by(every: &[Offered], layout: Layout) -> (Shown, usize, bool) {
 }
 
 /// How many plays and widths [`layout_of`] keeps.
-const KEPT_PLAYS: usize = 4;
+pub(super) const KEPT_PLAYS: usize = 4;
 
 /// The fewest rows, up to [`MOST_ROWS`], in which `options` keep their
 /// labels, if cut, and whether they do; where not even the most do, the
 /// fewest in which their numbers stand, none clipped; one where even
 /// those do not, as in a narrow pane, where more rows would cover the
 /// diagram and show hardly more (the keys 1 to 9 take them all).
-fn rows_needed(options: &[(String, String)], room: f32, signs: f32) -> (bool, usize) {
+pub(super) fn rows_needed(options: &[(String, String)], room: f32, signs: f32) -> (bool, usize) {
     let shown: Vec<Shown> = (1..=MOST_ROWS)
         .map(|rows| fitted(options, room, signs, rows).shown)
         .collect();
@@ -485,7 +272,7 @@ fn rows_needed(options: &[(String, String)], room: f32, signs: f32) -> (bool, us
 
 /// The options in at most `rows` rows: in as many as show the most of
 /// them, the fewest of those.
-fn arranged(options: &[(String, String)], room: f32, signs: f32, rows: usize) -> Fit {
+pub(super) fn arranged(options: &[(String, String)], room: f32, signs: f32, rows: usize) -> Fit {
     // How much a fit shows: how far it went, then the letters it keeps.
     let shows = |fit: &Fit| {
         let letters: usize = fit
@@ -508,18 +295,18 @@ fn arranged(options: &[(String, String)], room: f32, signs: f32, rows: usize) ->
 }
 
 /// How wide `chars` characters of text `size` pixels high are.
-fn width_of(chars: usize, size: f32) -> f32 {
+pub(super) fn width_of(chars: usize, size: f32) -> f32 {
     chars as f32 * size * CHAR
 }
 
 /// How wide a tool of the bar is with `label`.
-fn tool_width(label: &str) -> f32 {
+pub(super) fn tool_width(label: &str) -> f32 {
     16.0 + width_of(label.chars().count(), 13.0)
 }
 
 /// How wide the chip of option `number` is, with a label and a target of
 /// these lengths (one of none is not shown).
-fn chip_width(number: usize, label: usize, to: usize) -> f32 {
+pub(super) fn chip_width(number: usize, label: usize, to: usize) -> f32 {
     let badge = 12.0 + width_of(number.to_string().len(), 11.0);
     let shown = |chars: usize, size: f32, extra: usize| {
         if chars == 0 {
@@ -534,7 +321,7 @@ fn chip_width(number: usize, label: usize, to: usize) -> f32 {
 /// How wide a row of chips is, each given by the lengths of its label and
 /// its target, with the gaps between them; the first is option `first`
 /// (from 0), whose number its badge shows one higher.
-fn chips_width(first: usize, chips: impl Iterator<Item = (usize, usize)>) -> f32 {
+pub(super) fn chips_width(first: usize, chips: impl Iterator<Item = (usize, usize)>) -> f32 {
     let all: f32 = chips
         .enumerate()
         .map(|(i, (label, to))| GAP + chip_width(first + i + 1, label, to))
@@ -543,7 +330,7 @@ fn chips_width(first: usize, chips: impl Iterator<Item = (usize, usize)>) -> f32
 }
 
 /// `text` in at most `most` characters, cut with `…`.
-fn cut(text: &str, most: usize) -> String {
+pub(super) fn cut(text: &str, most: usize) -> String {
     let most = most.max(SHORTEST);
     if text.chars().count() <= most {
         return text.to_owned();
@@ -556,16 +343,16 @@ fn cut(text: &str, most: usize) -> String {
 /// leads; whether the tools beside them show only their signs; how many
 /// stand in a row; and how much of them is shown.
 #[derive(Debug, PartialEq)]
-struct Fit {
-    options: Vec<(String, Option<String>)>,
-    signs: bool,
-    per_row: usize,
-    shown: Shown,
+pub(super) struct Fit {
+    pub(super) options: Vec<(String, Option<String>)>,
+    pub(super) signs: bool,
+    pub(super) per_row: usize,
+    pub(super) shown: Shown,
 }
 
 /// How much of its options a [`Fit`] shows, least first.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum Shown {
+pub(super) enum Shown {
     /// Their numbers, some clipped at the bar's end.
     Clipped,
     /// Their numbers alone.
@@ -584,7 +371,7 @@ enum Shown {
 /// even the shortest do not fit, the chips show their numbers alone (the
 /// keys 1 to 9 take them). What still does not fit is clipped at the bar's
 /// end ([`Shown::Clipped`]).
-fn fitted(options: &[(String, String)], room: f32, signs: f32, rows: usize) -> Fit {
+pub(super) fn fitted(options: &[(String, String)], room: f32, signs: f32, rows: usize) -> Fit {
     let per_row = options.len().div_ceil(rows.max(1)).max(1);
     let count = |s: &str| s.chars().count();
     let width = |label_most: usize, to_most: Option<usize>| -> f32 {
@@ -653,158 +440,6 @@ fn fitted(options: &[(String, String)], room: f32, signs: f32, rows: usize) -> F
         } else {
             Shown::Clipped
         },
-    }
-}
-
-/// An option of a playing machine: its number, its event, where it leads.
-fn chip<'a>(
-    index: usize,
-    event: &str,
-    to: Option<&str>,
-    hot: bool,
-    p: &Palette,
-    font: Font,
-) -> Element<'a, Message> {
-    let accent = ui::color(p.accent);
-    let on_accent = ui::color(p.background);
-    let number = container(
-        text((index + 1).to_string())
-            .font(font)
-            .size(11)
-            .color(on_accent),
-    )
-    .padding([0, 6])
-    .style(move |_: &Theme| {
-        container::Style::default()
-            .background(accent)
-            .border(iced::Border {
-                radius: 999.0.into(),
-                ..iced::Border::default()
-            })
-    });
-    let mut content = row![number].spacing(7).align_y(iced::Alignment::Center);
-    if !event.is_empty() {
-        content = content.push(
-            text(event.to_owned())
-                .font(font)
-                .size(13)
-                .color(ui::color(p.bright_foreground))
-                .wrapping(text::Wrapping::None),
-        );
-    }
-    if let Some(to) = to {
-        content = content.push(
-            text(format!("→ {to}"))
-                .font(font)
-                .size(12)
-                .color(ui::color(p.dark_foreground))
-                .wrapping(text::Wrapping::None),
-        );
-    }
-    let (lighter, accent_rgb) = (p.lighter_background, p.accent);
-    button(content)
-        .on_press(Message::Play(Ask::Take(index)))
-        .padding([4, 10])
-        .style(move |_: &Theme, status| {
-            let hovered =
-                hot || matches!(status, button::Status::Hovered | button::Status::Pressed);
-            let base = ui::color(lighter);
-            let glow = ui::color(accent_rgb);
-            button::Style {
-                background: Some(
-                    if hovered {
-                        iced::Color { a: 0.22, ..glow }
-                    } else {
-                        base
-                    }
-                    .into(),
-                ),
-                border: iced::Border {
-                    color: if hovered {
-                        glow
-                    } else {
-                        iced::Color { a: 0.0, ..glow }
-                    },
-                    width: 1.0,
-                    radius: 999.0.into(),
-                },
-                ..button::Style::default()
-            }
-        })
-        .into()
-}
-
-/// The scenario's step forward, the bar's main button.
-fn chip_next<'a>(ask: Option<Ask>, p: &Palette, font: Font) -> Element<'a, Message> {
-    let accent = p.accent;
-    let on_accent = ui::color(p.background);
-    let muted = ui::color(p.dark_foreground);
-    let enabled = ask.is_some();
-    button(
-        text("next ›")
-            .font(font)
-            .size(13)
-            .color(if enabled { on_accent } else { muted }),
-    )
-    .on_press_maybe(ask.map(Message::Play))
-    .padding([4, 14])
-    .style(move |_: &Theme, status| {
-        let glow = ui::color(accent);
-        let strong = matches!(status, button::Status::Hovered | button::Status::Pressed);
-        button::Style {
-            background: enabled.then(|| {
-                if strong {
-                    glow.into()
-                } else {
-                    iced::Color { a: 0.85, ..glow }.into()
-                }
-            }),
-            border: iced::Border {
-                color: if enabled { glow } else { muted },
-                width: 1.0,
-                radius: 999.0.into(),
-            },
-            ..button::Style::default()
-        }
-    })
-    .into()
-}
-
-/// A small text button of the bar; greyed out without `ask`.
-fn tool<'a>(label: &str, ask: Option<Ask>, p: &Palette, font: Font) -> Element<'a, Message> {
-    let color = if ask.is_some() {
-        ui::color(p.foreground)
-    } else {
-        iced::Color {
-            a: 0.4,
-            ..ui::color(p.dark_foreground)
-        }
-    };
-    let accent = p.accent;
-    button(
-        text(label.to_owned())
-            .font(font)
-            .size(13)
-            .color(color)
-            .wrapping(text::Wrapping::None),
-    )
-    .on_press_maybe(ask.map(Message::Play))
-    .padding([3, 8])
-    .style(move |_: &Theme, status| quiet(status, accent))
-    .into()
-}
-
-/// A button that shows only when the pointer is on it.
-fn quiet(status: button::Status, accent: omaspec_theme::Rgb) -> button::Style {
-    let glow = ui::color(accent);
-    button::Style {
-        background: matches!(status, button::Status::Hovered | button::Status::Pressed)
-            .then(|| iced::Color { a: 0.16, ..glow }.into()),
-        border: iced::Border {
-            radius: 999.0.into(),
-            ..iced::Border::default()
-        },
-        ..button::Style::default()
     }
 }
 

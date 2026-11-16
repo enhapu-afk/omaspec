@@ -215,9 +215,7 @@ fn paint_orphans(
     if alpha <= 0.02 {
         return;
     }
-    let orphans = paint.morph.orphans[usize::from(!old)]
-        .iter()
-        .filter(|orphan| orphan.over == over);
+    let orphans = lying_over(&paint.morph.orphans[usize::from(!old)], over, |o| o.over);
     for orphan in orphans {
         let Some((part, at)) = raster.part(&orphan.name) else {
             continue;
@@ -470,14 +468,17 @@ pub fn prepare(
     old_names.retain(|name| kept.binary_search(name).is_err());
     new_names.retain(|name| kept.binary_search(name).is_err());
     let moves = &morph.moves;
+    // By the box each lies over, so a frame draws those of a box at once.
     for (side, names) in names.into_iter().enumerate() {
-        morph.orphans[side] = names
+        let mut orphans: Vec<Loose> = names
             .into_iter()
             .map(|name| Loose {
                 over: lies_in(moves, maps[side], side, &name),
                 name,
             })
             .collect();
+        orphans.sort_by_key(|orphan| orphan.over);
+        morph.orphans[side] = orphans;
     }
     morph.kept = kept
         .into_iter()
@@ -487,6 +488,15 @@ pub fn prepare(
             name,
         })
         .collect();
+    morph.kept.sort_by_key(|kept| kept.over);
+}
+
+/// The ones of `parts`, sorted by the box they lie over, that lie `over`
+/// that one.
+fn lying_over<T>(parts: &[T], over: Option<usize>, of: impl Fn(&T) -> Option<usize>) -> &[T] {
+    let start = parts.partition_point(|part| of(part) < over);
+    let end = parts.partition_point(|part| of(part) <= over);
+    &parts[start..end]
 }
 
 /// The move whose box, in the picture before (`side` 0) or the new one,
@@ -519,7 +529,7 @@ fn paint_kept(
     placed: &Placed,
     over: Option<usize>,
 ) {
-    for kept in paint.morph.kept.iter().filter(|kept| kept.over == over) {
+    for kept in lying_over(&paint.morph.kept, over, |kept| kept.over) {
         let (Some((old, was)), Some((new, is))) =
             (paint.old.part(&kept.name), paint.new.part(&kept.name))
         else {

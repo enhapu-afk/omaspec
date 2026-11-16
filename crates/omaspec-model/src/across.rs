@@ -382,14 +382,22 @@ fn takes(m: &Machine, s: usize, fired: &[usize]) -> bool {
     })
 }
 
-/// Where the machine is once started: the top start entered.
+/// Where the machine is once started: the top start entered, or the one
+/// state alone at the top where there is none ([`Machine::alone_at_top`]).
 fn started(m: &Machine) -> Vec<bool> {
     let mut at = vec![false; m.states.len()];
     let mut seen = vec![false; m.states.len()];
-    for (i, s) in m.states.iter().enumerate() {
-        if s.kind == Kind::Start && s.parent.is_none() {
-            enter(m, i, &mut at, &mut seen);
+    let mut starts = (0..m.states.len())
+        .filter(|&i| m.states[i].kind == Kind::Start && m.states[i].parent.is_none())
+        .peekable();
+    if starts.peek().is_none() {
+        if let Some(alone) = m.alone_at_top() {
+            enter(m, alone, &mut at, &mut seen);
         }
+        return at;
+    }
+    for start in starts {
+        enter(m, start, &mut at, &mut seen);
     }
     at
 }

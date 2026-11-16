@@ -128,7 +128,7 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
             },
             inside: {
                 let mut inside = Vec::new();
-                notes_inside(&scene, &mut Vec::new(), &mut inside);
+                notes_inside(&scene, &mut inside);
                 inside
             },
             ..Map::default()
@@ -893,12 +893,7 @@ fn place_notes(drafts: &mut [Draft], rects: &[Rect], edges: &[PlacedEdge]) -> Ve
                 w: note.w,
                 h: note.h,
                 target,
-                side: match side {
-                    Side::Left => "left",
-                    Side::Right => "right",
-                    Side::Top => "top",
-                    Side::Bottom => "bottom",
-                },
+                side,
                 nth,
                 text: std::mem::replace(&mut note.text, Block::empty()),
                 tether: None,
@@ -1919,33 +1914,14 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
 /// The part of each of `scene`'s notes, at `path` in the tree: a part of
 /// its own by its element's ([`crate::svg::note_part`]).
 fn note_parts(scene: &Scene, path: &[usize]) -> Vec<String> {
-    scene
-        .notes
-        .iter()
-        .map(|note| {
-            let mut at = path.to_vec();
-            at.push(note.target);
-            crate::svg::note_part(&crate::svg::place_part(&at), note.side, note.nth)
-        })
-        .collect()
+    scene.note_parts(path, |_, at| crate::svg::place_part(at))
 }
 
-/// Each note's part with the part of the element it lies inside into
-/// `out`; `path` is where `scene` is in the tree, none at the top.
-fn notes_inside(scene: &Scene, path: &mut Vec<usize>, out: &mut Vec<(String, String)>) {
-    if !path.is_empty() {
-        let owner = crate::svg::place_part(path);
-        out.extend(
-            note_parts(scene, path)
-                .into_iter()
-                .map(|part| (part, owner.clone())),
-        );
-    }
-    for (index, node) in scene.nodes.iter().enumerate() {
-        path.push(index);
-        notes_inside(&node.children, path, out);
-        path.pop();
-    }
+/// Each note's part with the part of the element it lies inside, into
+/// `out`.
+fn notes_inside(scene: &Scene, out: &mut Vec<(String, String)>) {
+    let part = |_: &Placed, at: &[usize]| Some(crate::svg::place_part(at));
+    scene.notes_inside(&mut Vec::new(), None, &part, out);
 }
 
 /// Each note, in a part of its own; `path` is where `scene` is in the

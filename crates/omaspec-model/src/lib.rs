@@ -230,10 +230,9 @@ pub fn check(code: &str, lang: Language) -> Vec<Finding> {
     }
 }
 
-/// Why the state diagram `code` is not checked: what Omaspec does not read
-/// yet is told once, so that no state machine passes unchecked in silence.
-/// A mistake PlantUML refuses too the lint says on its line already
-/// (`omaspec_core::lint`), so it is not said twice.
+/// Why the state diagram `code` is not checked: a mistake PlantUML refuses
+/// too is an error on its line; what Omaspec does not read yet is told
+/// once, so that no state machine passes unchecked in silence.
 fn unread(code: &str, lang: Language) -> Vec<Finding> {
     if classify(code, lang).kind != DiagramKind::State {
         return Vec::new();
@@ -245,7 +244,11 @@ fn unread(code: &str, lang: Language) -> Vec<Finding> {
         None => "Omaspec does not read this state machine fully, so its checks skip it.".to_owned(),
     };
     let (line, severity, message) = match (lang, omaspec_uml::parse(code)) {
-        (Language::PlantUml, Err(declined)) if declined.refused => return Vec::new(),
+        (Language::PlantUml, Err(declined)) if declined.refused => (
+            declined.line,
+            Severity::Error,
+            format!("{}.", diff::capital(&declined.reason)),
+        ),
         (Language::PlantUml, Err(declined)) => (
             declined.line,
             Severity::Info,
@@ -285,8 +288,43 @@ pub fn follow_trace(trace: &str, spec: &Spec, object: &str) -> Followed {
 /// project it belongs to (`specs`), in line order.
 pub fn findings_with(code: &str, lang: Language, specs: &Specs) -> Vec<Finding> {
     let mut all = lint::lint(code, lang);
-    all.extend(check(code, lang));
+    // A refusal the lint says already, the checks do not say again; the
+    // lint holds back where the preprocessor runs, and then they say it.
+    let said = |f: &Finding| {
+        (
+            f.line,
+            f.severity,
+            f.message.trim_end_matches('.').to_lowercase(),
+        )
+    };
+    let lint_said: Vec<_> = all.iter().map(said).collect();
+    all.extend(
+        check(code, lang)
+            .into_iter()
+            .filter(|f| !lint_said.contains(&said(f))),
+    );
     all.extend(across::check(code, lang, specs));
     all.sort_by_key(|f| f.line);
     all
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A refusal is said once, by the lint where it looks, else by the
+    /// checks: where a preprocessor line holds the lint back, they say it.
+    #[test]
+    fn a_refusal_is_said_once_with_the_preprocessor_or_without() {
+        let refused = "state \"Engine cut off\" as Cutoff\n[*] --> Flight\nstate Flight {\n  [*] --> Ascent\n  ||\n  [*] --> Idle\n  Idle --> Cutoff\n}";
+        for head in ["", "!$x = 1\n"] {
+            let code = format!("@startuml\n{head}{refused}\n@enduml\n");
+            let errors: Vec<Finding> = findings(&code, Language::PlantUml)
+                .into_iter()
+                .filter(|f| f.severity == Severity::Error)
+                .collect();
+            assert_eq!(errors.len(), 1, "{head:?}: {errors:?}");
+            assert!(errors[0].message.contains("Cutoff"), "{errors:?}");
+        }
+    }
 }

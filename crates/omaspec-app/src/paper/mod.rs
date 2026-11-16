@@ -123,7 +123,7 @@ pub enum Message {
     Fold(String),
     /// A click on a folded box: it unfolds.
     Unfold(String),
-    /// A following camera ([`Paper::follow`]) to the box of that name, a
+    /// A following camera ([`Paper::follow_play`]) to the box of that name, a
     /// container or a state, near enough to read, or out to the whole.
     Camera(Option<String>),
     /// Shift and a click at this point of the pane: the box there comes
@@ -264,7 +264,7 @@ pub struct Paper {
     /// what the step takes, near enough to read, where the whole diagram
     /// is too large to; going back or again glides it out to the whole.
     /// `omaspec play` asks for it.
-    pub follow: bool,
+    pub follow_play: bool,
     /// When a stopped play began to fade away.
     leaving: Option<Instant>,
     /// The moment a play is drawn at, for pictures of one moment; `None`
@@ -343,7 +343,7 @@ impl Default for Paper {
             trace: arrival::Trace::default(),
             change: Change::Edit,
             play: None,
-            follow: false,
+            follow_play: false,
             leaving: None,
             clock: None,
             breath: None,
@@ -642,11 +642,14 @@ impl Paper {
                 self.set_fold(&name, false);
                 Task::none()
             }
-            Message::Camera(None) => self.camera(None),
-            Message::Camera(Some(name)) => match self.box_area(&name) {
-                Some(area) => self.camera(Some(area)),
-                None => Task::none(),
-            },
+            Message::Camera(name) => {
+                let now = self.clock.unwrap_or_else(crate::clock::now);
+                match name.map(|name| self.box_area(&name)) {
+                    None => self.camera(None, now),
+                    Some(Some(area)) => self.camera(Some(area), now),
+                    Some(None) => Task::none(),
+                }
+            }
             Message::FocusAt(at) => {
                 self.focus_at(at);
                 Task::none()
@@ -661,11 +664,11 @@ impl Paper {
                 play.ask(ask, now);
                 let focus = play.focus();
                 match ask {
-                    _ if !self.follow => Task::none(),
+                    _ if !self.follow_play => Task::none(),
                     Ask::Next | Ask::Take(_) => {
-                        focus.map_or_else(Task::none, |area| self.camera(Some(area)))
+                        focus.map_or_else(Task::none, |area| self.camera(Some(area), now))
                     }
-                    Ask::Back | Ask::Restart => self.camera(None),
+                    Ask::Back | Ask::Restart => self.camera(None, now),
                     Ask::Hover(_) => Task::none(),
                 }
             }
