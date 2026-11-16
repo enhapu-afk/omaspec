@@ -122,7 +122,11 @@ fn rim(src: Rectangle, bend: Option<Bend>, children: &[Rectangle]) -> Option<f32
 /// `pixel` wide; without `natural`, it is stretched as the sheet under it
 /// is. `bend` is how its outline bends, none for a shape that is no box;
 /// `children` are the boxes it holds, in the picture's units. A box
-/// holding others is a container: its title stays at the top.
+/// holding others is a container: its title stays at the top. So do the
+/// words of a box that is a container in its other picture (`titled`), a
+/// folded box on its way to or from its container's place: its name
+/// meets the container's title there rather than standing in the middle
+/// beside it (REQ-063).
 pub(super) fn fit(
     src: Rectangle,
     dest: Rectangle,
@@ -130,6 +134,7 @@ pub(super) fn fit(
     pixel: f32,
     bend: Option<Bend>,
     children: &[Rectangle],
+    titled: bool,
 ) -> Fit {
     let plain = || Fit {
         pieces: vec![Piece {
@@ -166,7 +171,7 @@ pub(super) fn fit(
     let (across, down) = (room_w / src_w, room_h / src_h);
     // A container as wide as there is room, cut short below; a plain box
     // whole, in the middle. Never larger than the picture draws it.
-    let holding = !children.is_empty();
+    let holding = titled || !children.is_empty();
     let scale = if holding {
         natural.min(across)
     } else {
@@ -584,7 +589,7 @@ mod tests {
     fn a_box_that_keeps_its_shape_is_only_scaled() {
         let src = rect(10.0, 20.0, 100.0, 40.0);
         let dest = rect(5.0, 5.0, 200.0, 80.0);
-        let fit = fit(src, dest, Some(2.0), 1.0, Some(BENT), &[]);
+        let fit = fit(src, dest, Some(2.0), 1.0, Some(BENT), &[], false);
         assert_eq!(fit.pieces.len(), 1);
         assert!(close(fit.inside().dest, dest));
         assert_eq!(rim(src, Some(BENT), &[]), Some(bent_rim()));
@@ -594,7 +599,7 @@ mod tests {
     }
 
     fn fit_of(src: Rectangle, dest: Rectangle) -> Fit {
-        fit(src, dest, Some(2.0), 1.0, Some(BENT), &[])
+        fit(src, dest, Some(2.0), 1.0, Some(BENT), &[], false)
     }
 
     #[test]
@@ -602,7 +607,7 @@ mod tests {
         // A small box on its way into a tall container's place.
         let src = rect(0.0, 0.0, 150.0, 50.0);
         let dest = rect(0.0, 0.0, 150.0, 200.0);
-        let fit = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[]);
+        let fit = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[], false);
         tiles(&fit, dest);
         let inside = fit.inside();
         // Its words as large as the picture draws them, in the middle.
@@ -618,13 +623,27 @@ mod tests {
         );
     }
 
+    /// REQ-063: a folded box on its way into its container's place, or
+    /// out of it, keeps its words at the top, where the container's title
+    /// stands, not in the middle beside it.
+    #[test]
+    fn a_folded_box_keeps_its_name_where_its_container_has_its_title() {
+        let src = rect(0.0, 0.0, 150.0, 50.0);
+        let dest = rect(0.0, 0.0, 150.0, 200.0);
+        let fit = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[], true);
+        tiles(&fit, dest);
+        let inside = fit.inside();
+        assert!((inside.dest.height / inside.src.height - 1.0).abs() < 1e-3);
+        assert!(inside.dest.y < 20.0, "at the top: {inside:?}");
+    }
+
     #[test]
     fn a_container_folding_rolls_up_from_below() {
         // A tall container on its way into a short wide box.
         let src = rect(0.0, 0.0, 110.0, 350.0);
         let dest = rect(0.0, 0.0, 130.0, 120.0);
         let child = rect(20.0, 40.0, 60.0, 30.0);
-        let fit = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[child]);
+        let fit = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[child], false);
         tiles(&fit, dest);
         let inside = fit.inside();
         // As large as drawn, its title at the top, cut short below.
@@ -644,7 +663,7 @@ mod tests {
     fn a_box_drawn_narrower_shrinks_whole() {
         let src = rect(0.0, 0.0, 200.0, 50.0);
         let dest = rect(0.0, 0.0, 100.0, 50.0);
-        let fit = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[]);
+        let fit = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[], false);
         tiles(&fit, dest);
         let inside = fit.inside();
         let (kx, ky) = (
@@ -660,19 +679,19 @@ mod tests {
         let src = rect(0.0, 0.0, 110.0, 350.0);
         let dest = rect(0.0, 0.0, 130.0, 120.0);
         // A diamond, a circle: no corners to keep.
-        let shape = fit(src, dest, Some(1.0), 1.0, None, &[]);
+        let shape = fit(src, dest, Some(1.0), 1.0, None, &[], false);
         assert_eq!(shape.pieces.len(), 1);
         assert!(rim(src, None, &[]).is_none());
         // Corners that bend further than a third of the box.
         assert_eq!(
-            fit(src, dest, Some(1.0), 1.0, round(40.0), &[])
+            fit(src, dest, Some(1.0), 1.0, round(40.0), &[], false)
                 .pieces
                 .len(),
             1
         );
         // A box held at its edge would be drawn out with the rim.
         let lane = rect(4.0, 40.0, 100.0, 30.0);
-        let held = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[lane]);
+        let held = fit(src, dest, Some(1.0), 1.0, Some(BENT), &[lane], false);
         assert_eq!(held.pieces.len(), 1);
         assert!(rim(src, Some(BENT), &[lane]).is_none());
     }
@@ -700,6 +719,7 @@ mod tests {
             1.0,
             round(10.0),
             &[child],
+            false,
         );
         assert!(fit.pieces.len() > 1, "drawn in parts: {fit:?}");
         // A box held closer than its corners leaves no rim: stretched.
@@ -713,10 +733,17 @@ mod tests {
         // 1.4 units taller: within a pixel and a half at scale 1, not at 2.
         let dest = rect(0.0, 0.0, 100.0, 41.4);
         assert_eq!(
-            fit(src, dest, Some(1.0), 1.0, Some(BENT), &[]).pieces.len(),
+            fit(src, dest, Some(1.0), 1.0, Some(BENT), &[], false)
+                .pieces
+                .len(),
             1
         );
-        assert!(fit(src, dest, Some(1.0), 0.5, Some(BENT), &[]).pieces.len() > 1);
+        assert!(
+            fit(src, dest, Some(1.0), 0.5, Some(BENT), &[], false)
+                .pieces
+                .len()
+                > 1
+        );
     }
 
     /// A box's words reach up to its inside's first row: drawn taller, the
@@ -733,7 +760,15 @@ mod tests {
                 }
             });
             let dest = rect(100.0, 40.0, 60.0, 120.0);
-            let fit = fit(picture.region, dest, Some(1.0), 1.0, square(0.0), &[]);
+            let fit = fit(
+                picture.region,
+                dest,
+                Some(1.0),
+                1.0,
+                square(0.0),
+                &[],
+                false,
+            );
             let swatch = Raster::painted(4, 4, |_, _| [0, 255, 255, 255]);
             draw(
                 frame,
@@ -764,7 +799,15 @@ mod tests {
                     if rim || word { [255; 4] } else { inside }
                 });
                 let dest = rect(100.0, 40.0, 60.0, 120.0);
-                let fit = fit(picture.region, dest, Some(1.0), 1.0, square(0.0), &[]);
+                let fit = fit(
+                    picture.region,
+                    dest,
+                    Some(1.0),
+                    1.0,
+                    square(0.0),
+                    &[],
+                    false,
+                );
                 draw(frame, local, &picture, &fit, None, 1.0);
             })
         };
@@ -841,7 +884,7 @@ mod tests {
             // A square picture in a box three times as tall: its inside in
             // the middle, its own rows drawn out above and below.
             let picture = Raster::blank(40, 40);
-            let fit = fit(picture.region, dest, Some(1.0), 1.0, Some(BENT), &[]);
+            let fit = fit(picture.region, dest, Some(1.0), 1.0, Some(BENT), &[], false);
             assert!(fit.pieces.len() > 9, "{fit:?}");
             draw(frame, local, &picture, &fit, None, 1.0);
         });

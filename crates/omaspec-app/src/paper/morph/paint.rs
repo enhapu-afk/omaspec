@@ -374,6 +374,7 @@ fn box_picture(
             placed.pixel,
             looks.bend[side],
             &looks.held[side],
+            !looks.held[0].is_empty() || !looks.held[1].is_empty(),
         ),
     };
     Some(BoxPicture {
