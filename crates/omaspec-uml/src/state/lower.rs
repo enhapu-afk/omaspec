@@ -111,9 +111,12 @@ impl Lowering<'_> {
     /// The container of the state `parent` (the diagram for `None`), at
     /// `path`: its states, or its regions when `--` divides it.
     fn container(&mut self, parent: Option<usize>, path: &mut Vec<usize>) -> Container {
-        let members: Vec<usize> = (0..self.chart.states.len())
+        let mut members: Vec<usize> = (0..self.chart.states.len())
             .filter(|&i| self.chart.states[i].parent == parent)
             .collect();
+        // In the order they were named there: a state that moved in comes
+        // where it moved.
+        members.sort_by_key(|&i| self.chart.states[i].order);
         let mut regions: Vec<usize> = members
             .iter()
             .map(|&i| self.chart.states[i].region)
@@ -459,6 +462,21 @@ mod tests {
         );
         // A state and one it holds: refused, as PlantUML's reader does.
         assert!(from_mermaid("stateDiagram\nstate S {\n  A --> B\n}\nS --> A\n").is_none());
+    }
+
+    /// REQ-072: `state "Extra Ball" as ExtraBall` at the top, the state
+    /// then used in `Playing`: it moves there as Mermaid moves it, and
+    /// stands among `Playing`'s states where it was first named there, not
+    /// before the start's state.
+    #[test]
+    fn a_state_that_moved_in_stands_where_it_moved() {
+        let d = lowered(
+            "stateDiagram-v2\nstate \"Extra Ball\" as ExtraBall\n[*] --> Playing\nstate Playing {\n  [*] --> Plunge\n  Plunge --> Live\n  Live --> ExtraBall\n  ExtraBall --> Live\n}\n",
+        );
+        assert_eq!(keys(&d.root), ["", "Playing"]);
+        let playing = &d.root.nodes[1].children;
+        assert_eq!(keys(playing), ["", "Plunge", "Live", "ExtraBall"]);
+        assert_eq!(playing.nodes[3].label.value, "Extra Ball");
     }
 
     #[test]

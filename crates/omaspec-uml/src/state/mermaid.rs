@@ -52,6 +52,9 @@ pub struct State {
     pub region: usize,
     /// Zero-based line where it is first named.
     pub line: usize,
+    /// Where it stands among the states of its parent: the line it was
+    /// first named on there (one that moved there comes where it moved).
+    pub order: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -404,12 +407,21 @@ impl Reader {
     }
 
     /// The state called `name`, made in the open container at its first
-    /// mention. Named again, it must be at the top or in its own container.
+    /// mention. Named again inside another state, it moves there, as
+    /// Mermaid moves it: a state lives in the last state that names it,
+    /// and named at the top again it stays where it is. A state that holds
+    /// others does not move, nor one into another region of its own state.
     fn state(&mut self, name: &str, no: usize) -> Option<usize> {
         let here = self.here();
         if let Some(&state) = self.by_name.get(name) {
-            let s = &self.chart.states[state];
-            return (here.0.is_none() || (s.parent, s.region) == here).then_some(state);
+            let s = &mut self.chart.states[state];
+            if here.0.is_some() && (s.parent, s.region) != here {
+                if s.composite || s.parent == here.0 {
+                    return None;
+                }
+                (s.parent, s.region, s.order) = (here.0, here.1, no);
+            }
+            return Some(state);
         }
         // The drawer names starts, ends and regions so.
         if name.starts_with("__") {
@@ -431,6 +443,7 @@ impl Reader {
             parent,
             region,
             line,
+            order: line,
         });
         self.chart.states.len() - 1
     }
@@ -611,6 +624,26 @@ mod tests {
         assert_eq!(chart.states[find(&chart, "Off")].parent, None);
     }
 
+    /// REQ-072: named inside another state after its first mention, a
+    /// state moves there, as Mermaid moves it; `state "Extra Ball" as
+    /// ExtraBall` at the top before the state is used in `Playing` keeps
+    /// its label.
+    #[test]
+    fn a_state_named_inside_another_moves_there_as_mermaid_moves_it() {
+        let chart = read(
+            "stateDiagram-v2\nstate \"Extra Ball\" as ExtraBall\n[*] --> Playing\nstate Playing {\n[*] --> Live\nLive --> ExtraBall\nExtraBall --> Live\n}\n",
+        )
+        .unwrap();
+        let playing = find(&chart, "Playing");
+        let extra = &chart.states[find(&chart, "ExtraBall")];
+        assert_eq!(extra.parent, Some(playing));
+        assert_eq!(extra.label.as_deref(), Some("Extra Ball"));
+        // From one state into another: the last that names it.
+        let chart = read("stateDiagram\nstate S {\n[*] --> A\n}\nstate T {\nA --> B\n}\n").unwrap();
+        let t = find(&chart, "T");
+        assert_eq!(chart.states[find(&chart, "A")].parent, Some(t));
+    }
+
     #[test]
     fn what_it_does_not_know_is_not_read() {
         for code in [
@@ -640,9 +673,7 @@ mod tests {
             "stateDiagram\nnote right of A\nend note",
             "stateDiagram\n}",
             "stateDiagram\n--",
-            // Named again inside another state: Mermaid moves it there.
-            "stateDiagram\n[*] --> A\nstate S {\nA --> B\n}",
-            "stateDiagram\nstate S {\n[*] --> A\n}\nstate T {\nA --> B\n}",
+            // Named again in another region of its state, or inside itself.
             "stateDiagram\nstate S {\n[*] --> A\n--\nA --> B\n}",
             "stateDiagram\nstate S {\nS --> A\n}",
             // Opened twice, or as a pseudo state.
