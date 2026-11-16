@@ -436,10 +436,9 @@ impl Drawn<'_> {
         let links = self.own.map_or_else(Vec::new, |own| {
             crate::specs::export_links(&rendered.links, own, false)
         });
-        // The text as drawn, whose lines the map's are: a presentation's
-        // play is read from it.
-        let drawn = (format == Format::Html && self.map.is_none())
-            .then(|| crate::look::drawn_text(self.text, self.language, skin.as_ref()));
+        // A presentation's play is read from the text; the map's lines are
+        // the file's, with a look or without ([`crate::look::render`]).
+        let played = (format == Format::Html && self.map.is_none()).then_some(self.text);
         let options = omaspec_render::export::Options {
             outline: false,
             scale: 2.0,
@@ -457,7 +456,7 @@ impl Drawn<'_> {
                 let (paper, accent) = crate::look::stage(skin.as_ref());
                 omaspec_render::export::Play {
                     map: &rendered.map,
-                    code: drawn.as_deref().map(|drawn| (drawn, self.language)),
+                    code: played.map(|text| (text, self.language)),
                     paper,
                     accent,
                 }

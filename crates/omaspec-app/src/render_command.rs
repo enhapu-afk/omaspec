@@ -822,10 +822,9 @@ fn export_piece(
         crate::specs::export_links(&rendered.links, &own, false)
     });
     let source_name = piece.source_name();
-    // The text as drawn, whose lines the map's are: a presentation's play
-    // is read from it.
-    let drawn = (draw.format == Format::Html && project.is_none())
-        .then(|| crate::look::drawn_text(&piece.code, piece.language, skin.as_ref()));
+    // A presentation's play is read from the text; the map's lines are the
+    // file's, with a look or without ([`crate::look::render`]).
+    let played = (draw.format == Format::Html && project.is_none()).then_some(&*piece.code);
     let options_at = |scale: f32| export::Options {
         outline: draw.outline,
         scale,
@@ -841,7 +840,7 @@ fn export_piece(
             let (paper, accent) = crate::look::stage(skin.as_ref());
             export::Play {
                 map: &rendered.map,
-                code: drawn.as_deref().map(|drawn| (drawn, piece.language)),
+                code: played.map(|text| (text, piece.language)),
                 paper,
                 accent,
             }

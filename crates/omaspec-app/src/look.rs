@@ -366,19 +366,6 @@ pub fn apply(text: &str, language: Language, skin: &Skin) -> (String, Option<Lin
     }
 }
 
-/// `text` as it is drawn in `skin`: the pack laid over it, its lines the
-/// map's; the text itself in the file's own colors.
-pub fn drawn_text<'a>(
-    text: &'a str,
-    language: Language,
-    skin: Option<&Skin>,
-) -> std::borrow::Cow<'a, str> {
-    match skin {
-        Some(skin) => std::borrow::Cow::Owned(apply(text, language, skin).0),
-        None => std::borrow::Cow::Borrowed(text),
-    }
-}
-
 /// `text` drawn in `skin` as `maps` draws it; a line the engine names is
 /// a line of the file. `auto` draws the light and the dark one and makes
 /// one SVG of them.
@@ -428,13 +415,11 @@ pub fn render(
         });
     }
     let (shown, shift) = apply(text, language, skin);
-    maps.render(renderer, &shown, language, path, place)
-        .map_err(|mut err| {
-            if let Some(shift) = shift {
-                shift.remap(&mut err);
-            }
-            err
-        })
+    let mut result = maps.render(renderer, &shown, language, path, place);
+    if let Some(shift) = shift {
+        shift.settle(&mut result);
+    }
+    result
 }
 
 /// The look a map that is made takes its colors from: a WBS of one box,
@@ -524,11 +509,96 @@ impl LineShift {
             *line = self.file_line(at);
         }
     }
+
+    /// `map` with the lines its states, transitions, messages and lines
+    /// come from read as lines of the file, where a play and a Ctrl+click
+    /// look for them.
+    pub fn map(self, map: &omaspec_render::Map) -> omaspec_render::Map {
+        let mut map = map.clone();
+        let lines = map
+            .states
+            .iter_mut()
+            .map(|spot| &mut spot.line)
+            .chain(map.transitions.iter_mut().map(|route| &mut route.line))
+            .chain(map.messages.iter_mut().map(|step| &mut step.line))
+            .chain(map.cells.iter_mut().map(|cell| &mut cell.line))
+            .chain(map.misses.iter_mut().map(|(line, _)| line))
+            .chain(
+                map.wires
+                    .iter_mut()
+                    .flat_map(|wire| [wire.line.as_mut(), wire.entry.as_mut()])
+                    .flatten(),
+            );
+        for line in lines {
+            if let Some(file) = self.file_line(*line) {
+                *line = file;
+            }
+        }
+        map
+    }
+
+    /// What was drawn from the source with the pack laid over it, told in
+    /// the file's lines: the map of a picture, the line of an error. The
+    /// one place a look's lines are taken out again; who draws through
+    /// [`render`] never sees them.
+    pub fn settle(self, result: &mut Result<Rendered, RenderError>) {
+        match result {
+            Ok(rendered) => rendered.map = self.map(&rendered.map),
+            Err(err) => self.remap(err),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A look lays its skin before the diagram, some seventy lines of it;
+    /// what is drawn through [`render`] tells the file's lines all the
+    /// same: the map's, which a play and a click read, and an error's.
+    #[test]
+    fn a_look_gives_the_files_lines_back() {
+        let text =
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+        let mut maps = Maps::default();
+        let mut renderer = Renderer::new(&crate::commands::render_config());
+        let mut draw = |text: &str, look: Option<Look>| {
+            let skin = look.and_then(Look::skin);
+            render(
+                &mut maps,
+                &mut renderer,
+                text,
+                Language::PlantUml,
+                None,
+                None,
+                skin.as_ref(),
+            )
+        };
+        let lines = |rendered: &Rendered| -> Vec<usize> {
+            let map = &rendered.map;
+            map.states
+                .iter()
+                .map(|spot| spot.line)
+                .chain(map.transitions.iter().map(|route| route.line))
+                .collect()
+        };
+        let plain = lines(&draw(text, None).unwrap());
+        assert!(
+            plain.iter().all(|&line| (1..=3).contains(&line)),
+            "{plain:?}"
+        );
+        for look in [Look::Light, Look::Plain] {
+            assert_eq!(lines(&draw(text, Some(look)).unwrap()), plain, "{look:?}");
+        }
+        // Refused by Omaspec's own engine, on its eighth line.
+        let broken = "@startuml\nstate \"Engine cut off\" as Cutoff\n[*] --> Flight\nstate Flight {\n  [*] --> Ascent\n  ||\n  [*] --> Idle\n  Idle --> Cutoff\n}\n@enduml\n";
+        let mut line = |look| match draw(broken, look) {
+            Err(RenderError::Diagram { line, .. } | RenderError::Unavailable { line, .. }) => line,
+            other => panic!("{:?}", other.map(|r| r.engine)),
+        };
+        assert_eq!(line(None), Some(7));
+        assert_eq!(line(Some(Look::Light)), Some(7));
+    }
 
     #[test]
     fn a_pinned_look_is_read_again_only_when_its_file_changed() {

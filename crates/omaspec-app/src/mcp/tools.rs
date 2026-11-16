@@ -588,10 +588,9 @@ impl Tools {
             crate::specs::export_links(&rendered.links, &own, false)
         });
         let source_name = piece.source_name();
-        // A presentation plays the text as drawn, whose lines the map's are;
-        // a project's map plays nothing.
-        let drawn = (format == Format::Html && !is_map)
-            .then(|| crate::look::drawn_text(&piece.code, lang, skin.as_ref()));
+        // A presentation plays the text, whose lines the map's are with a
+        // look or without; a project's map plays nothing.
+        let played = (format == Format::Html && !is_map).then_some(&*piece.code);
         let (paper, accent) = crate::look::stage(skin.as_ref());
         let options = export::Options {
             outline: false,
@@ -606,7 +605,7 @@ impl Tools {
             up,
             play: (format == Format::Html).then(|| export::Play {
                 map: &rendered.map,
-                code: drawn.as_deref().map(|drawn| (drawn, lang)),
+                code: played.map(|text| (text, lang)),
                 paper,
                 accent,
             }),

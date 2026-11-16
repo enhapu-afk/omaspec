@@ -77,7 +77,6 @@ use omaspec_core::skin::{self, Pack};
 use omaspec_model::Specs;
 use omaspec_render::export::Format;
 use omaspec_theme::{Palette, Theme as Omarchy};
-use omaspec_uml::map::Map;
 
 use crate::icons::Icons;
 use crate::look::{Hex, LineShift};
@@ -1684,7 +1683,7 @@ impl App {
         self.pending
             .retain(|&(doc, id), _| doc != key.0 || id > key.1);
         match &mut answer.result {
-            Ok(drawn) => drawn.map = Arc::new(remap_map(&drawn.map, pending.shift)),
+            Ok(drawn) => drawn.map = Arc::new(pending.shift.map(&drawn.map)),
             Err(err) => pending.shift.remap(err),
         }
         answer.source = pending.original;
@@ -2284,33 +2283,6 @@ impl App {
 struct Pending {
     original: Arc<str>,
     shift: LineShift,
-}
-
-/// Moves the lines a drawn diagram's states, transitions, messages and
-/// lines come from back to the file, where a play and a Ctrl+click look
-/// for them.
-fn remap_map(map: &Map, shift: LineShift) -> Map {
-    let mut map = map.clone();
-    let lines = map
-        .states
-        .iter_mut()
-        .map(|spot| &mut spot.line)
-        .chain(map.transitions.iter_mut().map(|route| &mut route.line))
-        .chain(map.messages.iter_mut().map(|step| &mut step.line))
-        .chain(map.cells.iter_mut().map(|cell| &mut cell.line))
-        .chain(map.misses.iter_mut().map(|(line, _)| line))
-        .chain(
-            map.wires
-                .iter_mut()
-                .flat_map(|wire| [wire.line.as_mut(), wire.entry.as_mut()])
-                .flatten(),
-        );
-    for line in lines {
-        if let Some(file) = shift.file_line(*line) {
-            *line = file;
-        }
-    }
-    map
 }
 
 /// Drops the keyboard focus, so typing does not change the source while
