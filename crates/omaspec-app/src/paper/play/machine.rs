@@ -29,6 +29,9 @@ pub struct MachinePlay {
     /// The source line of each step scheduled, from when its light sets
     /// off; the editor lights each in turn.
     pub(super) lines: Vec<(Instant, usize)>,
+    /// What the steps scheduled last leave and enter, and the ways between
+    /// them, in diagram units: where a following camera looks.
+    pub(super) focus: Option<iced::Rectangle>,
 }
 
 pub(super) enum Driver {
@@ -95,6 +98,40 @@ pub(super) fn every_offer(m: &Machine, graph: &Graph) -> Vec<Offered> {
     offers
 }
 
+/// What `steps` leave and enter and the ways they take, as `placed` has
+/// them: where a following camera looks.
+fn focus_of(placed: &Placed, steps: &[Taken]) -> Option<iced::Rectangle> {
+    let rect = |x: f32, y: f32, w: f32, h: f32| {
+        iced::Rectangle::new(
+            iced::Point::new(x, y),
+            iced::Size::new(w.max(1.0), h.max(1.0)),
+        )
+    };
+    let mut boxes = Vec::new();
+    for step in steps {
+        for &state in step.left.iter().chain(&step.entered) {
+            if let Some(spot) = &placed.states[state] {
+                boxes.push(rect(spot.rect.x, spot.rect.y, spot.rect.w, spot.rect.h));
+            }
+        }
+        if let Some(points) = &placed.routes[step.transition] {
+            let (xs, ys): (Vec<f32>, Vec<f32>) = points.iter().copied().unzip();
+            let (left, top) = (
+                xs.iter().copied().fold(f32::MAX, f32::min),
+                ys.iter().copied().fold(f32::MAX, f32::min),
+            );
+            let (right, bottom) = (
+                xs.iter().copied().fold(f32::MIN, f32::max),
+                ys.iter().copied().fold(f32::MIN, f32::max),
+            );
+            if left <= right && top <= bottom {
+                boxes.push(rect(left, top, right - left, bottom - top));
+            }
+        }
+    }
+    boxes.into_iter().reduce(|a, b| a.union(&b))
+}
+
 impl MachinePlay {
     pub(super) fn new(machine: Machine, placed: Placed, driver: Driver, now: Instant) -> Self {
         MachinePlay {
@@ -106,6 +143,7 @@ impl MachinePlay {
             free_at: now + VEIL_FADE / 2,
             begun: now,
             lines: Vec::new(),
+            focus: None,
         }
     }
 
@@ -270,6 +308,7 @@ impl MachinePlay {
         }
         if !steps.is_empty() {
             self.free_at = began + Duration::from_millis(through);
+            self.focus = focus_of(&self.placed, steps).or(self.focus);
         }
         // What has finished long ago is not drawn again.
         let old = now.checked_sub(Duration::from_secs(5)).unwrap_or(now);

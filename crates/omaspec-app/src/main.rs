@@ -466,6 +466,11 @@ enum Command {
         /// these tiles, one after another, and back out.
         #[arg(long, value_delimiter = ',', value_name = "TILE", conflicts_with_all = ["events", "steps", "fold"])]
         dive: Vec<String>,
+        /// The whole diagram in every frame. Without it, a play or a fold
+        /// of a diagram too large to read whole follows each step or each
+        /// container, near enough to read, and ends on the whole.
+        #[arg(long, conflicts_with = "dive")]
+        whole: bool,
         /// The colors: `built-in` for the palette Omaspec ships, or a
         /// theme's colors.toml; the active Omarchy theme without it.
         #[arg(long, value_name = "built-in|FILE")]
@@ -843,6 +848,7 @@ fn main() -> ExitCode {
             lossy,
             fold,
             dive,
+            whole,
             theme,
             lang,
         }) => editor::moving::play(&editor::moving::Moving {
@@ -854,6 +860,7 @@ fn main() -> ExitCode {
             fps,
             folds: fold,
             dives: dive,
+            whole,
             theme,
             forced: lang.get(),
             renderer: None,

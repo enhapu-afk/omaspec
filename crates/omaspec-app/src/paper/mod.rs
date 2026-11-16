@@ -123,6 +123,9 @@ pub enum Message {
     Fold(String),
     /// A click on a folded box: it unfolds.
     Unfold(String),
+    /// A following camera ([`Paper::follow`]) to the box of that name, a
+    /// container or a state, near enough to read, or out to the whole.
+    Camera(Option<String>),
     /// Shift and a click at this point of the pane: the box there comes
     /// into focus, or the focus ends.
     FocusAt(Point),
@@ -257,6 +260,11 @@ pub struct Paper {
     change: Change,
     /// A state machine or scenario being played.
     play: Option<Play>,
+    /// Whether the view follows the play (REQ-071): each step glides it to
+    /// what the step takes, near enough to read, where the whole diagram
+    /// is too large to; going back or again glides it out to the whole.
+    /// `omaspec play` asks for it.
+    pub follow: bool,
     /// When a stopped play began to fade away.
     leaving: Option<Instant>,
     /// The moment a play is drawn at, for pictures of one moment; `None`
@@ -335,6 +343,7 @@ impl Default for Paper {
             trace: arrival::Trace::default(),
             change: Change::Edit,
             play: None,
+            follow: false,
             leaving: None,
             clock: None,
             breath: None,
@@ -633,6 +642,11 @@ impl Paper {
                 self.set_fold(&name, false);
                 Task::none()
             }
+            Message::Camera(None) => self.camera(None),
+            Message::Camera(Some(name)) => match self.box_area(&name) {
+                Some(area) => self.camera(Some(area)),
+                None => Task::none(),
+            },
             Message::FocusAt(at) => {
                 self.focus_at(at);
                 Task::none()
@@ -641,10 +655,19 @@ impl Paper {
                 // On the clock the play is drawn at, so that a picture of
                 // one moment takes its steps at that moment too.
                 let now = self.clock.unwrap_or_else(crate::clock::now);
-                if let Some(play) = self.play.as_mut().filter(|_| self.leaving.is_none()) {
-                    play.ask(ask, now);
+                let Some(play) = self.play.as_mut().filter(|_| self.leaving.is_none()) else {
+                    return Task::none();
+                };
+                play.ask(ask, now);
+                let focus = play.focus();
+                match ask {
+                    _ if !self.follow => Task::none(),
+                    Ask::Next | Ask::Take(_) => {
+                        focus.map_or_else(Task::none, |area| self.camera(Some(area)))
+                    }
+                    Ask::Back | Ask::Restart => self.camera(None),
+                    Ask::Hover(_) => Task::none(),
                 }
-                Task::none()
             }
             Message::StopPlay => {
                 if self.play.is_some() && self.leaving.is_none() {

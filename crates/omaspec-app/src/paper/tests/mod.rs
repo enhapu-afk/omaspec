@@ -726,6 +726,35 @@ fn a_zoom_gliding_when_a_picture_comes_goes_on_to_its_end() {
 
 /// Puts `source` on the sheet, as a render would, and makes the pictures
 /// it asks for, as the window makes them.
+/// REQ-071: a play the view follows. A step glides it to what the step
+/// takes, near enough to read; again glides it out to the whole. A diagram
+/// that reads whole stays whole.
+#[test]
+fn a_following_view_goes_with_the_play_and_back_to_the_whole() {
+    let mut tall = String::from("@startuml\n[*] --> S0\n");
+    for i in 0..12 {
+        tall.push_str(&format!("S{i} --> S{} : next\n", i + 1));
+    }
+    tall.push_str("@enduml\n");
+    let door = "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n";
+    for (source, follows) in [(tall.as_str(), true), (door, false)] {
+        let mut paper = Paper::default();
+        paper.send(Message::Viewport(Size::new(600.0, 400.0)));
+        show_source(&mut paper, source, Language::PlantUml);
+        paper.send(Message::Faded);
+        paper.follow = true;
+        paper.start_play().unwrap();
+        assert!(paper.view.fit);
+        paper.send(Message::Play(Ask::Take(0)));
+        assert_eq!(!paper.view.fit, follows, "{source}");
+        if follows {
+            assert_eq!(paper.view.zoom, view::READ_ZOOM);
+            paper.send(Message::Play(Ask::Restart));
+            assert!(paper.view.fit);
+        }
+    }
+}
+
 fn show_source(paper: &mut Paper, source: &str, language: Language) {
     let task = draw_source(paper, source, language);
     paper.run(task);

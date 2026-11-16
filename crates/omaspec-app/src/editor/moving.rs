@@ -47,6 +47,9 @@ pub struct Moving {
     pub folds: Vec<String>,
     /// The tiles of a project's map to zoom into and back out of.
     pub dives: Vec<String>,
+    /// The whole diagram in every frame, rather than a camera that follows
+    /// the play where the whole is too large to read (REQ-071).
+    pub whole: bool,
     /// The colors: `None` the active theme's, `built-in` the palette
     /// Omaspec ships, else a theme's `colors.toml`.
     pub theme: Option<String>,
@@ -93,7 +96,7 @@ pub fn play(args: &Moving) -> Result<String> {
     let told = if !args.dives.is_empty() {
         stage.dive(&args.dives)?
     } else if !args.folds.is_empty() {
-        stage.fold(&args.folds)?
+        stage.fold(&args.folds, !args.whole)?
     } else {
         stage.play(args)?
     };
@@ -270,6 +273,8 @@ impl Stage {
     /// Runs the play; the events it took.
     fn play(&mut self, args: &Moving) -> Result<String> {
         let moving = |app: &App| !app.doc().paper.play_moving(crate::clock::now());
+        // Where the whole is too large to read, the view follows each step.
+        self.app.doc_mut().paper.follow = !args.whole;
         self.send(Message::Command(Command::Play));
         if !self.app.doc().paper.playing() {
             bail!(
@@ -306,8 +311,14 @@ impl Stage {
             self.step(moving);
         }
         // The picture ends on the state the play reached, held a moment
-        // longer, and loops from there: the play's leaving is not in it.
+        // longer, and loops from there: the play's leaving is not in it. A
+        // camera that followed it goes back to the whole as the play starts
+        // again, so the loop begins where it ends.
         self.run(HOLD, |_| false);
+        if !self.app.doc().paper.view.fit {
+            self.send(Message::Command(Command::PlayAsk(Ask::Restart)));
+            self.step(moving);
+        }
         Ok(if taken.is_empty() {
             "played".to_owned()
         } else {
@@ -318,7 +329,10 @@ impl Stage {
     /// Folds the containers `names` one after another, as a click on
     /// their buttons does, and unfolds them the other way round, so the
     /// picture ends as it began; what it folded.
-    fn fold(&mut self, names: &[String]) -> Result<String> {
+    /// With `follow`, where the whole is too large to read, the view goes
+    /// to each container before it folds and to its box after, as a play's
+    /// camera follows its steps, and ends on the whole (REQ-071).
+    fn fold(&mut self, names: &[String], follow: bool) -> Result<String> {
         let offered = self.app.doc().paper.containers();
         for name in names {
             anyhow::ensure!(
@@ -334,7 +348,19 @@ impl Stage {
         self.run(HOLD, |_| false);
         let folds = names.iter().map(|name| (name, true));
         let unfolds = names.iter().rev().map(|name| (name, false));
+        let still = |app: &App| {
+            let paper = &app.doc().paper;
+            paper.fading().is_none() && paper.glide().is_none()
+        };
+        let camera = |stage: &mut Self, name: Option<&String>| {
+            if follow {
+                let ask = paper::Message::Camera(name.cloned());
+                stage.send(Message::Paper(stage.key, ask));
+                stage.step(still);
+            }
+        };
         for (name, fold) in folds.chain(unfolds) {
+            camera(self, Some(name));
             let ask = if fold {
                 paper::Message::Fold(name.clone())
             } else {
@@ -349,11 +375,10 @@ impl Stage {
                 self.language,
                 &self.file,
             )?;
-            self.step(|app| {
-                let paper = &app.doc().paper;
-                paper.fading().is_none() && paper.glide().is_none()
-            });
+            self.step(still);
+            camera(self, Some(name));
         }
+        camera(self, None);
         Ok(format!("{} folded and unfolded", names.join(", ")))
     }
     /// Zooms into each of the map's tiles `names` and back out, as a
@@ -653,6 +678,7 @@ mod tests {
                 fps: 5,
                 folds: Vec::new(),
                 dives: Vec::new(),
+                whole: false,
                 theme: Some("built-in".into()),
                 forced: None,
                 renderer: Some("tiny-skia"),
@@ -721,6 +747,7 @@ mod tests {
             fps: 10,
             folds: Vec::new(),
             dives: Vec::new(),
+            whole: false,
             theme: Some("built-in".into()),
             forced: None,
             renderer: Some("tiny-skia"),

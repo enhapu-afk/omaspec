@@ -148,6 +148,16 @@ impl Play {
         }
     }
 
+    /// Where a following camera looks ([`super::Paper::follow`]): what the
+    /// last steps of a machine left and entered and the ways between them,
+    /// or the message just played; none before the first.
+    pub fn focus(&self) -> Option<iced::Rectangle> {
+        match self {
+            Play::Machine(play) => play.focus,
+            Play::Scenario(play) => play.focus(),
+        }
+    }
+
     /// Takes the places of a diagram drawn again: the same diagram in
     /// another theme or font.
     pub fn remap(&mut self, map: &Map) {

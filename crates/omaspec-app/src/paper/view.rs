@@ -13,6 +13,9 @@ const FIT_MARGIN: f32 = 24.0;
 /// A fitted diagram grows at most this much: a small one fills the pane,
 /// but its words stay within three times their size.
 pub const MAX_FIT: f32 = 3.0;
+/// How near a following play's camera comes: the diagram at its size,
+/// where its words read as the window reads them.
+pub const READ_ZOOM: f32 = 1.0;
 /// Closer than this, a two-finger span is not a pinch.
 const MIN_PINCH_SPAN: f32 = 1.0;
 /// How long a stepped zoom glides.
@@ -76,6 +79,45 @@ impl View {
         Self {
             zoom,
             center: area.center(),
+            fit: false,
+        }
+    }
+
+    /// Where a following play's camera stands for `area` of a `diagram`
+    /// (REQ-071): the area in the middle of what the play's `bar` at the
+    /// foot leaves, as near as reads well ([`READ_ZOOM`]) and no nearer,
+    /// never further out than the whole diagram fits; the whole where that
+    /// reads well already. It shows no more than a margin past the
+    /// diagram's edge where the diagram is larger than the view.
+    pub fn following(area: Rectangle, diagram: Size, viewport: Size, bar: f32) -> Self {
+        let whole = Self::fitted(diagram, viewport);
+        if whole.zoom >= READ_ZOOM {
+            return whole;
+        }
+        let room = Size::new(
+            (viewport.width - 2.0 * FIT_MARGIN).max(1.0),
+            (viewport.height - bar - 2.0 * FIT_MARGIN).max(1.0),
+        );
+        let zoom = (room.width / area.width.max(1.0))
+            .min(room.height / area.height.max(1.0))
+            .min(READ_ZOOM)
+            .max(whole.zoom);
+        // The view's center, so that the area's lies in the middle above the bar.
+        let center = area.center() + Vector::new(0.0, bar / 2.0 / zoom);
+        let along = |center: f32, seen: f32, size: f32, below: f32| {
+            let margin = FIT_MARGIN / zoom;
+            if size + 2.0 * margin <= seen - below {
+                size / 2.0 + below / 2.0
+            } else {
+                center.clamp(seen / 2.0 - margin, size + margin - seen / 2.0 + below)
+            }
+        };
+        Self {
+            zoom,
+            center: Point::new(
+                along(center.x, viewport.width / zoom, diagram.width, 0.0),
+                along(center.y, viewport.height / zoom, diagram.height, bar / zoom),
+            ),
             fit: false,
         }
     }
@@ -375,6 +417,31 @@ impl Flight {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A following camera (REQ-071) comes as near as reads well, its area
+    /// in the middle above the bar, a narrow diagram in the middle across,
+    /// and shows no more than a margin past the diagram's top; an area too
+    /// large comes no further out than the whole, and a diagram that
+    /// reads whole stays whole.
+    #[test]
+    fn a_following_camera_reads_its_area_and_stays_on_the_diagram() {
+        let (diagram, viewport, bar) = (Size::new(1000.0, 9000.0), Size::new(1400.0, 1960.0), 90.0);
+        let area = |x, y, w, h| Rectangle::new(Point::new(x, y), Size::new(w, h));
+        let at = View::following(area(100.0, 4000.0, 200.0, 100.0), diagram, viewport, bar);
+        assert_eq!(at.zoom, READ_ZOOM);
+        assert!(!at.fit);
+        assert_eq!(at.center, Point::new(500.0, 4050.0 + bar / 2.0));
+        let top = View::following(area(0.0, 0.0, 100.0, 50.0), diagram, viewport, bar);
+        assert_eq!(top.center.y, viewport.height / 2.0 - FIT_MARGIN);
+        let whole = View::fitted(diagram, viewport);
+        let all = View::following(area(0.0, 0.0, 1000.0, 9000.0), diagram, viewport, bar);
+        assert_eq!(all.zoom, whole.zoom);
+        let small = Size::new(300.0, 200.0);
+        assert_eq!(
+            View::following(area(0.0, 0.0, 50.0, 50.0), small, viewport, bar),
+            View::fitted(small, viewport)
+        );
+    }
 
     #[test]
     fn a_glide_keeps_the_point_under_the_pointer() {

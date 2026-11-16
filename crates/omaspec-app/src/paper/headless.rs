@@ -32,9 +32,11 @@ impl Paper {
         self.play.as_ref().map(super::Play::offer)
     }
 
-    /// Whether the play's light is still on its way at `now`.
+    /// Whether the play's light is still on its way at `now`, or the view
+    /// glides with it.
     pub fn play_moving(&self, now: std::time::Instant) -> bool {
         self.play.as_ref().is_some_and(|play| play.animating(now))
+            || self.glide.is_some_and(|glide| !glide.done(now))
     }
 
     /// The containers the picture offers to fold, and those folded in it.

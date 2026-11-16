@@ -73,6 +73,23 @@ pub(super) fn spot_of(step: &Step) -> Spot4 {
 }
 
 impl ScenarioPlay {
+    /// The message played last, from end to end and top to bottom, in
+    /// diagram units: where a following camera looks. None before the
+    /// first.
+    pub(super) fn focus(&self) -> Option<iced::Rectangle> {
+        let step = &self.steps[self.at.checked_sub(1)?];
+        let (left, right) = step
+            .points
+            .iter()
+            .fold((f32::MAX, f32::MIN), |(l, r), p| (l.min(p.0), r.max(p.0)));
+        (left <= right).then(|| {
+            iced::Rectangle::new(
+                iced::Point::new(left, step.top),
+                iced::Size::new((right - left).max(1.0), (step.bottom - step.top).max(1.0)),
+            )
+        })
+    }
+
     pub(super) fn ask(&mut self, ask: Ask, now: Instant) {
         let to = match ask {
             Ask::Next | Ask::Take(_) => (self.at + 1).min(self.steps.len()),
