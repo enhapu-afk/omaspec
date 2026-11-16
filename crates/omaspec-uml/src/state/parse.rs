@@ -118,12 +118,26 @@ struct RawArrow {
     bold: bool,
 }
 
+/// Gives every state and region inside `container` its direction where
+/// the writer set none there: `left to right direction` at the top lays
+/// out the regions and states inside too, as PlantUML lays them (REQ-075).
+fn inherit_direction(container: &mut Container) {
+    let direction = container.direction;
+    for node in &mut container.nodes {
+        if !node.children.own_direction {
+            node.children.direction = direction;
+        }
+        inherit_direction(&mut node.children);
+    }
+}
+
 impl Parser {
     fn finish(mut self) -> Result<Diagram, Declined> {
         // A state without its `}` ends with the diagram, as PlantUML has
         // it; lint names it.
         self.open.clear();
         empty_region(&self.root)?;
+        inherit_direction(&mut self.root);
         for (from, to, mut arrow) in std::mem::take(&mut self.arrows) {
             let (home, rest) = from.split_at(from.len() - 1);
             if to.len() == from.len() && to.starts_with(home) {
@@ -186,13 +200,15 @@ impl Parser {
 
     fn line(&mut self, lines: &[Line], at: usize) -> Result<usize, Declined> {
         let Line { no, text, .. } = lines[at];
-        if squeezed_eq(text, "lefttorightdirection") {
-            self.current_mut().direction = Direction::Right;
-            return Ok(at + 1);
-        }
-        if squeezed_eq(text, "toptobottomdirection") {
-            self.current_mut().direction = Direction::Down;
-            return Ok(at + 1);
+        for (words, direction) in [
+            ("lefttorightdirection", Direction::Right),
+            ("toptobottomdirection", Direction::Down),
+        ] {
+            if squeezed_eq(text, words) {
+                let here = self.current_mut();
+                (here.direction, here.own_direction) = (direction, true);
+                return Ok(at + 1);
+            }
         }
         if squeezed_eq(text, "hideemptydescription") {
             return Ok(at + 1);
@@ -356,12 +372,17 @@ impl Parser {
         let region = self.late_region(&self.here());
         for (end, name) in [(&from, &raw.from), (&to, &raw.to)] {
             if self.late_region(end) != region {
-                return Err(Declined::refused(
-                    line,
+                let first = self.node_mut(end).line + 1;
+                let why = if region.is_empty() || end.starts_with(&region) {
                     format!(
-                        "PlantUML takes no transition into or out of a second concurrent region (`{name}`); a name is one state in the whole diagram, so a state of that name elsewhere is this one"
-                    ),
-                ));
+                        "`{name}` stands in a second concurrent region, where line {first} names it first, and PlantUML takes no transition into one from outside it"
+                    )
+                } else {
+                    format!(
+                        "`{name}` stands outside this second concurrent region, where line {first} names it first, and PlantUML takes no transition out of one; a name is one state in the whole diagram, so declare `{name}` inside this region instead (move that line here, before the first transition that names it)"
+                    )
+                };
+                return Err(Declined::refused(line, why));
             }
         }
         let label = raw.label.map(|value| text_at(&value, line));
@@ -1640,6 +1661,18 @@ mod tests {
                 err.reason
             );
         }
+        // An alias declared at the top and named in a later region: the
+        // refusal says where it was declared and how to keep it there.
+        let err = declined(
+            "@startuml\nstate \"Engine cut off\" as Cutoff\n[*] --> Flight\nstate Flight {\n  [*] --> Ascent\n  ||\n  [*] --> Idle\n  Idle --> Cutoff\n}\n@enduml\n",
+        );
+        assert_eq!(err.line, Some(7));
+        assert!(
+            err.reason.contains("line 2 names it first")
+                && err.reason.contains("declare `Cutoff` inside this region"),
+            "{}",
+            err.reason
+        );
     }
 
     #[test]
@@ -1996,6 +2029,23 @@ mod tests {
         assert_eq!(
             node(&diagram.root, "Box").children.direction,
             Direction::Right
+        );
+        // At the top, it lays out what states and their regions hold too,
+        // but for a state that says otherwise.
+        let diagram = self::diagram(
+            "@startuml\nleft to right direction\nstate Flight {\n  [*] --> Ascent\n  ||\n  [*] --> Idle\n}\nstate Pad {\n  top to bottom direction\n  [*] --> Fuel\n}\n@enduml\n",
+        );
+        let flight = &node(&diagram.root, "Flight").children;
+        assert_eq!(flight.direction, Direction::Right);
+        assert!(
+            flight
+                .nodes
+                .iter()
+                .all(|region| region.children.direction == Direction::Right)
+        );
+        assert_eq!(
+            node(&diagram.root, "Pad").children.direction,
+            Direction::Down
         );
     }
 }

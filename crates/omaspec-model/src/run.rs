@@ -79,13 +79,14 @@ impl Clock {
 
 impl Run {
     /// The machine started: the ways out of its top start taken, and what
-    /// followed by itself. `None` without a start.
+    /// followed by itself; without a start at the top, the one state alone
+    /// there entered ([`Machine::alone_at_top`]). `None` without either.
     pub fn start(m: &Machine) -> Option<(Run, Vec<Taken>)> {
         let starts: Vec<usize> = (0..m.states.len())
             .filter(|&s| m.states[s].kind == Kind::Start && m.states[s].parent.is_none())
             .collect();
         if starts.is_empty() {
-            return None;
+            return Run::entering(m, m.alone_at_top()?);
         }
         let mut run = Run::empty();
         let mut steps = Vec::new();
@@ -103,6 +104,11 @@ impl Run {
     /// and what follows by itself taken. `None` unless `state` is a state,
     /// not a start, an end or another mark.
     pub(crate) fn at(m: &Machine, state: usize) -> Option<Run> {
+        Run::entering(m, state).map(|(run, _)| run)
+    }
+
+    /// [`Run::at`], with the steps that followed by themselves.
+    fn entering(m: &Machine, state: usize) -> Option<(Run, Vec<Taken>)> {
         if m.states.get(state)?.kind != Kind::State {
             return None;
         }
@@ -119,7 +125,7 @@ impl Run {
         let mut clock = Clock::new();
         run.start_all(m, after, &mut steps, &mut clock);
         run.settle(m, &mut steps, &mut clock);
-        Some(run)
+        Some((run, steps))
     }
 
     fn empty() -> Run {
@@ -638,6 +644,21 @@ mod tests {
             .position(|l| l == label)
             .unwrap_or_else(|| panic!("{label} not in {:?}", labels(m, &options)));
         run.take(m, options[at])
+    }
+
+    /// REQ-076: one state alone at the top with a start of its own and none
+    /// around it: the machine begins in it, as PlantUML draws it, its start
+    /// taken; with two states there and no start, it has none.
+    #[test]
+    fn a_state_alone_at_the_top_is_where_the_machine_begins() {
+        let m = machine("state Mission {\n  [*] --> Countdown\n  Countdown --> Liftoff : go\n}");
+        let (mut run, steps) = Run::start(&m).unwrap();
+        assert_eq!(names(&m, run.active()), ["Countdown"]);
+        assert_eq!(steps.len(), 1);
+        take(&mut run, &m, "go");
+        assert_eq!(names(&m, run.active()), ["Liftoff"]);
+        let two = machine("state A\nstate B\nA --> B");
+        assert!(Run::start(&two).is_none());
     }
 
     #[test]

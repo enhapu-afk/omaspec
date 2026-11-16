@@ -53,7 +53,9 @@ fn finding(line: usize, severity: Severity, message: impl Into<String>) -> Findi
     Finding::new(line, severity, message)
 }
 
-/// Which states a path from the top start reaches; `None` without a start.
+/// Which states a path from the top start reaches, or from the one state
+/// alone at the top where there is none ([`Machine::alone_at_top`]);
+/// `None` without either.
 ///
 /// Being in a state means being in every state around it, and entering a
 /// composite state enters the start of each of its regions; a region with
@@ -65,7 +67,7 @@ fn reachable(m: &Machine) -> Option<Vec<bool>> {
         .filter(|&i| m.states[i].kind == Kind::Start && m.states[i].parent.is_none())
         .collect();
     if todo.is_empty() {
-        return None;
+        todo.push(m.alone_at_top()?);
     }
     let mut out: Vec<Vec<usize>> = vec![Vec::new(); m.states.len()];
     for t in &m.transitions {
@@ -317,6 +319,28 @@ mod tests {
 
     fn mmd(body: &str) -> Vec<(usize, Severity, String)> {
         check(&format!("stateDiagram-v2\n{body}\n"), Language::Mermaid)
+    }
+
+    /// REQ-076: one state alone at the top is where the machine begins, so
+    /// nothing says it has no start, and what it cannot reach is said.
+    #[test]
+    fn a_state_alone_at_the_top_begins_the_machine() {
+        let findings = puml(
+            "state Mission {\n  [*] --> Countdown\n  Countdown --> Liftoff : go\n  Liftoff --> [*]\n  state Scrubbed\n}",
+        );
+        assert_eq!(
+            findings,
+            [(
+                6,
+                Severity::Warning,
+                "State Scrubbed cannot be reached from the start.".to_owned()
+            )]
+        );
+        let two = puml("state A\nstate B\nA --> B\nB --> [*]");
+        assert!(
+            two.iter().any(|(_, _, m)| m.starts_with("No [*] --> …")),
+            "{two:?}"
+        );
     }
 
     #[test]

@@ -43,6 +43,9 @@ pub struct Container {
     pub crossings: Vec<Crossing>,
     pub notes: Vec<Note>,
     pub direction: Direction,
+    /// The writer set the direction here (`left to right direction` inside
+    /// the state); else it takes the one of the container around it.
+    pub own_direction: bool,
     /// Laid out against its direction: up for `Down`, leftwards for
     /// `Right` (Mermaid's `BT` and `RL`).
     pub mirrored: bool,
@@ -216,6 +219,7 @@ impl Default for Container {
             crossings: Vec::new(),
             notes: Vec::new(),
             direction: Direction::Down,
+            own_direction: false,
             mirrored: false,
             split: None,
             held: Vec::new(),

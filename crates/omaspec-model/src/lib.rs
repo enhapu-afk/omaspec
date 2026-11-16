@@ -131,6 +131,17 @@ impl Machine {
         std::iter::successors(self.states[state].parent, |&p| self.states[p].parent)
     }
 
+    /// The one state alone at the top where no start is there: the machine
+    /// begins in it, as a picture of one state with a start of its own
+    /// reads and PlantUML draws it (REQ-076). None with a start at the top,
+    /// or with more than that state there (an end aside).
+    pub fn alone_at_top(&self) -> Option<usize> {
+        let mut top = (0..self.states.len())
+            .filter(|&s| self.states[s].parent.is_none() && self.states[s].kind != Kind::End);
+        let state = top.next()?;
+        (top.next().is_none() && self.states[state].kind == Kind::State).then_some(state)
+    }
+
     /// Whether other states sit inside `state`.
     pub fn is_composite(&self, state: usize) -> bool {
         self.states.iter().any(|s| s.parent == Some(state))
@@ -219,9 +230,10 @@ pub fn check(code: &str, lang: Language) -> Vec<Finding> {
     }
 }
 
-/// Why the state diagram `code` is not checked: a mistake PlantUML refuses
-/// too is an error on its line; what Omaspec does not read yet is told
-/// once, so that no state machine passes unchecked in silence.
+/// Why the state diagram `code` is not checked: what Omaspec does not read
+/// yet is told once, so that no state machine passes unchecked in silence.
+/// A mistake PlantUML refuses too the lint says on its line already
+/// (`omaspec_core::lint`), so it is not said twice.
 fn unread(code: &str, lang: Language) -> Vec<Finding> {
     if classify(code, lang).kind != DiagramKind::State {
         return Vec::new();
@@ -233,11 +245,7 @@ fn unread(code: &str, lang: Language) -> Vec<Finding> {
         None => "Omaspec does not read this state machine fully, so its checks skip it.".to_owned(),
     };
     let (line, severity, message) = match (lang, omaspec_uml::parse(code)) {
-        (Language::PlantUml, Err(declined)) if declined.refused => (
-            declined.line,
-            Severity::Error,
-            format!("{}.", diff::capital(&declined.reason)),
-        ),
+        (Language::PlantUml, Err(declined)) if declined.refused => return Vec::new(),
         (Language::PlantUml, Err(declined)) => (
             declined.line,
             Severity::Info,
