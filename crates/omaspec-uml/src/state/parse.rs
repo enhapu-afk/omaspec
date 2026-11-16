@@ -375,14 +375,14 @@ impl Parser {
         let region = self.late_region(&self.here());
         for (end, name) in [(&from, &raw.from), (&to, &raw.to)] {
             if self.late_region(end) != region {
-                let first = self.node_mut(end).line + 1;
+                let first = crate::common::lines_away(line, self.node_mut(end).line);
                 let why = if region.is_empty() || end.starts_with(&region) {
                     format!(
-                        "`{name}` stands in a second concurrent region, where line {first} names it first, and PlantUML takes no transition into one from outside it"
+                        "`{name}` stands in a second concurrent region, named there first {first}, and PlantUML takes no transition into one from outside it"
                     )
                 } else {
                     format!(
-                        "`{name}` stands outside this second concurrent region, where line {first} names it first, and PlantUML takes no transition out of one; a name is one state in the whole diagram, so declare `{name}` inside this region instead (move that line here, before the first transition that names it)"
+                        "`{name}` stands outside this second concurrent region, named first {first}, and PlantUML takes no transition out of one; a name is one state in the whole diagram, so declare `{name}` inside this region instead (move that line here, before the first transition that names it)"
                     )
                 };
                 return Err(Declined::refused(line, why));
@@ -1785,7 +1785,7 @@ mod tests {
         );
         assert_eq!(err.line, Some(7));
         assert!(
-            err.reason.contains("line 2 names it first")
+            err.reason.contains("named first 6 lines above")
                 && err.reason.contains("declare `Cutoff` inside this region"),
             "{}",
             err.reason

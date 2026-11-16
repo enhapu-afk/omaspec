@@ -131,15 +131,30 @@ impl Machine {
         std::iter::successors(self.states[state].parent, |&p| self.states[p].parent)
     }
 
-    /// The one state alone at the top where no start is there: the machine
-    /// begins in it, as a picture of one state with a start of its own
-    /// reads and PlantUML draws it (REQ-076). None with a start at the top,
-    /// or with more than that state there (an end aside).
-    pub fn alone_at_top(&self) -> Option<usize> {
-        let mut top = (0..self.states.len())
-            .filter(|&s| self.states[s].parent.is_none() && self.states[s].kind != Kind::End);
-        let state = top.next()?;
-        (top.next().is_none() && self.states[state].kind == Kind::State).then_some(state)
+    /// The state the machine begins in where no start stands at the top
+    /// (REQ-076): the one state there (an end aside), or else the one state
+    /// there with a start of its own, where the picture shows its only
+    /// start, as PlantUML draws it. None with a start at the top, or where
+    /// no one state is that.
+    pub fn begins_in(&self) -> Option<usize> {
+        let top: Vec<usize> = (0..self.states.len())
+            .filter(|&s| self.states[s].parent.is_none() && self.states[s].kind != Kind::End)
+            .collect();
+        if let [only] = top[..] {
+            return (self.states[only].kind == Kind::State).then_some(only);
+        }
+        if top.iter().any(|&s| self.states[s].kind == Kind::Start) {
+            return None;
+        }
+        let mut starting = top.into_iter().filter(|&s| {
+            self.states[s].kind == Kind::State
+                && self
+                    .states
+                    .iter()
+                    .any(|inner| inner.parent == Some(s) && inner.kind == Kind::Start)
+        });
+        let state = starting.next()?;
+        starting.next().is_none().then_some(state)
     }
 
     /// Whether other states sit inside `state`.

@@ -53,8 +53,8 @@ fn finding(line: usize, severity: Severity, message: impl Into<String>) -> Findi
     Finding::new(line, severity, message)
 }
 
-/// Which states a path from the top start reaches, or from the one state
-/// alone at the top where there is none ([`Machine::alone_at_top`]);
+/// Which states a path from the top start reaches, or from the state the
+/// machine begins in where there is none ([`Machine::begins_in`]);
 /// `None` without either.
 ///
 /// Being in a state means being in every state around it, and entering a
@@ -67,7 +67,7 @@ fn reachable(m: &Machine) -> Option<Vec<bool>> {
         .filter(|&i| m.states[i].kind == Kind::Start && m.states[i].parent.is_none())
         .collect();
     if todo.is_empty() {
-        todo.push(m.alone_at_top()?);
+        todo.push(m.begins_in()?);
     }
     let mut out: Vec<Vec<usize>> = vec![Vec::new(); m.states.len()];
     for t in &m.transitions {
@@ -340,6 +340,25 @@ mod tests {
         assert!(
             two.iter().any(|(_, _, m)| m.starts_with("No [*] --> …")),
             "{two:?}"
+        );
+        // Beside another state at the top, the one with a start of its own
+        // begins it, and what nothing leads to is said.
+        let beside = puml(
+            "state Mission {\n  [*] --> Countdown\n  Countdown --> [*]\n}\nMission --> Debrief\nDebrief --> [*]\nstate Spare",
+        );
+        assert_eq!(
+            beside,
+            [(
+                8,
+                Severity::Warning,
+                "State Spare cannot be reached from the start.".to_owned()
+            )]
+        );
+        // Two with starts of their own: which begins is not said.
+        let both = puml("state A {\n  [*] --> A1\n}\nstate B {\n  [*] --> B1\n}");
+        assert!(
+            both.iter().any(|(_, _, m)| m.starts_with("No [*] --> …")),
+            "{both:?}"
         );
     }
 

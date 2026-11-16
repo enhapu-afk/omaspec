@@ -186,6 +186,37 @@ fn render_keeps_words_readable_with_min_font() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// REQ-065: a refusal that points at another line counts the way there,
+/// which holds where a look lays its skin before the diagram; it said
+/// "line 75" of a file of ten.
+#[test]
+fn a_refusal_points_at_its_other_line_in_any_look() {
+    let dir = scratch("other-line");
+    let file = dir.join("flight.puml");
+    fs::write(
+        &file,
+        "@startuml\nstate \"Engine cut off\" as Cutoff\n[*] --> Flight\nstate Flight {\n  [*] --> Ascent\n  ||\n  [*] --> Idle\n  Idle --> Cutoff\n}\n@enduml\n",
+    )
+    .unwrap();
+    let png = dir.join("flight.png");
+    for look in ["light", "plain"] {
+        let out = omaspec(&[
+            "render",
+            "--json",
+            "--look",
+            look,
+            file.to_str().unwrap(),
+            "-o",
+            png.to_str().unwrap(),
+        ]);
+        let report: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        assert_eq!(report[0]["line"].as_u64(), Some(8), "{report}");
+        let message = report[0]["message"].as_str().unwrap();
+        assert!(message.contains("named first 6 lines above"), "{message}");
+    }
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn render_names_the_characters_no_font_draws() {
     let dir = scratch("undrawable");

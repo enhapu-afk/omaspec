@@ -64,9 +64,15 @@ impl Default for Quality {
 pub struct Frames {
     width: usize,
     height: usize,
-    /// Each frame unlike the one before it, deflated, and how long it
-    /// stays, in hundredths of a second.
-    kept: Vec<(Vec<u8>, u16)>,
+    /// Each frame unlike the one before it: where it lies deflated in
+    /// `packed`, and how long it stays, in hundredths of a second.
+    kept: Vec<(std::ops::Range<usize>, u16)>,
+    /// The deflated frames, one after another, in one buffer. A buffer
+    /// each, small and kept, lay between the large ones a frame drawn
+    /// without a GPU takes and frees, and glibc's heap grew past them by
+    /// megabytes a frame (REQ-074); one buffer that grows by doubling
+    /// does not.
+    packed: Vec<u8>,
     /// The last frame as it is, to know one like it.
     last: Vec<u8>,
     /// Each color counted, how often: of the first frame, and of what
@@ -106,8 +112,10 @@ impl Frames {
             return;
         }
         self.count(rgba, changed);
-        self.kept
-            .push((miniz_oxide::deflate::compress_to_vec(rgba, PACKED), stay));
+        let deflated = miniz_oxide::deflate::compress_to_vec(rgba, PACKED);
+        let at = self.packed.len();
+        self.packed.extend_from_slice(&deflated);
+        self.kept.push((at..self.packed.len(), stay));
         self.last.clear();
         self.last.extend_from_slice(rgba);
     }
@@ -176,9 +184,12 @@ impl Frames {
         let mut shown: Option<Vec<u8>> = None;
         // The frame before, held back until it is known how long it stays.
         let mut held: Option<gif::Frame<'static>> = None;
-        for (packed, stay) in &self.kept {
-            let rgba = miniz_oxide::inflate::decompress_to_vec_with_limit(packed, w * h * 4)
-                .map_err(|e| anyhow::anyhow!("a frame does not unpack: {e}"))?;
+        for (at, stay) in &self.kept {
+            let rgba = miniz_oxide::inflate::decompress_to_vec_with_limit(
+                &self.packed[at.clone()],
+                w * h * 4,
+            )
+            .map_err(|e| anyhow::anyhow!("a frame does not unpack: {e}"))?;
             // The part that changed: all of the first frame. A frame with
             // nothing to draw only makes the one before it stay longer.
             let part = match &shown {

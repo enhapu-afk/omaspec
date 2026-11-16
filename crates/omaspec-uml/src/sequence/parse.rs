@@ -508,8 +508,8 @@ impl Parser {
                     return Err(Declined::at(
                         no,
                         format!(
-                            "declaring `{code}` again empties the box of line {}, which is not supported yet",
-                            b.line + 1
+                            "declaring `{code}` again empties its box, which begins {}; that is not supported yet",
+                            crate::common::lines_away(no, b.line)
                         ),
                     ));
                 }
@@ -1859,7 +1859,12 @@ mod tests {
         assert_eq!(d.boxes[1].participants, [1, 2, 3]);
         let err = declined("box X\nparticipant A\nend box\nparticipant A");
         assert_eq!(err.line, Some(3), "{err:?}");
-        assert!(err.reason.contains("empties the box"), "{}", err.reason);
+        assert!(
+            err.reason
+                .contains("empties its box, which begins 3 lines above"),
+            "{}",
+            err.reason
+        );
         // Names as PlantUML takes them.
         for (source, part) in [
             ("participant ->Api", "`->Api` is no participant name"),

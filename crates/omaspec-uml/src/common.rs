@@ -521,6 +521,21 @@ fn scale(rest: &str) -> Result<Scale, String> {
 
 /// `text` without the keyword `word` (any case) at its start, if it is
 /// there as a whole word; trimmed.
+/// Where zero-based line `there` lies from line `here`, as a message says
+/// it: "on the line above", "6 lines above", "3 lines below". Not a line's
+/// number: what the engine reads may not begin where the file does (a
+/// look's skin before it, a Markdown document around it), and a count
+/// between two lines holds either way.
+pub(crate) fn lines_away(here: usize, there: usize) -> String {
+    match (there < here, here.abs_diff(there)) {
+        (_, 0) => "on the same line".to_owned(),
+        (true, 1) => "on the line above".to_owned(),
+        (false, 1) => "on the line below".to_owned(),
+        (true, n) => format!("{n} lines above"),
+        (false, n) => format!("{n} lines below"),
+    }
+}
+
 pub fn keyword<'a>(text: &'a str, word: &str) -> Option<&'a str> {
     if !starts_with_ci(text, word) {
         return None;

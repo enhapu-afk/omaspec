@@ -79,14 +79,14 @@ impl Clock {
 
 impl Run {
     /// The machine started: the ways out of its top start taken, and what
-    /// followed by itself; without a start at the top, the one state alone
-    /// there entered ([`Machine::alone_at_top`]). `None` without either.
+    /// followed by itself; without a start at the top, the state it begins
+    /// in entered ([`Machine::begins_in`]). `None` without either.
     pub fn start(m: &Machine) -> Option<(Run, Vec<Taken>)> {
         let starts: Vec<usize> = (0..m.states.len())
             .filter(|&s| m.states[s].kind == Kind::Start && m.states[s].parent.is_none())
             .collect();
         if starts.is_empty() {
-            return Run::entering(m, m.alone_at_top()?);
+            return Run::entering(m, m.begins_in()?);
         }
         let mut run = Run::empty();
         let mut steps = Vec::new();
@@ -659,6 +659,15 @@ mod tests {
         assert_eq!(names(&m, run.active()), ["Liftoff"]);
         let two = machine("state A\nstate B\nA --> B");
         assert!(Run::start(&two).is_none());
+        // Beside another state, the one with a start of its own, in its
+        // regions too.
+        let beside = machine(
+            "state Flight {\n  [*] --> Booster\n  --\n  [*] --> Ship\n}\nFlight --> Landed : touchdown",
+        );
+        let (mut run, _) = Run::start(&beside).unwrap();
+        assert_eq!(names(&beside, run.active()), ["Booster", "Ship"]);
+        take(&mut run, &beside, "touchdown");
+        assert_eq!(names(&beside, run.active()), ["Landed"]);
     }
 
     #[test]
