@@ -134,6 +134,13 @@ impl Line {
     fn direct(&self) -> bool {
         self.from.len() == 1 && self.to.len() == 1
     }
+
+    /// One end holds the other, a state and a state inside it: the line
+    /// opens nothing and ranks nothing, and [`super::across`] routes it once
+    /// everything is placed, to the outer box's title or from it.
+    fn nested(&self) -> bool {
+        !self.direct() && (self.from.starts_with(&self.to) || self.to.starts_with(&self.from))
+    }
 }
 
 /// Room a box keeps across the flow for a note: `Before` it, or `After`
@@ -475,7 +482,10 @@ fn mark<C: Nested>(
     open: &mut HashSet<Vec<usize>>,
 ) {
     for line in cx.lines(container) {
-        if line.hidden || !openable(cx, container, &line.from) || !openable(cx, container, &line.to)
+        if line.hidden
+            || line.nested()
+            || !openable(cx, container, &line.from)
+            || !openable(cx, container, &line.to)
         {
             continue;
         }
@@ -673,6 +683,8 @@ impl<C: Nested> Flat<C> {
                 let (from, to) = (line.from[0], line.to[0]);
                 let ends = (self.index(&child(path, from)), self.index(&child(path, to)));
                 (ends, !line.hidden, Some((from, to)), None)
+            } else if line.nested() {
+                ((None, None), false, None, None)
             } else {
                 let (from, whole_from) = self.resolve(path, &line.from);
                 let (to, whole_to) = self.resolve(path, &line.to);

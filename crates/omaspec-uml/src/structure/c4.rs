@@ -142,8 +142,6 @@ type Sort = (Level, bool);
 #[derive(Default)]
 struct Writer<'a> {
     out: Vec<(Line<'a>, String)>,
-    /// The flow runs to the right (`LAYOUT_LEFT_RIGHT()`).
-    right: bool,
     /// The blocks open now: a boundary by its alias, any other block (a
     /// `package`, a `skinparam` block) as none.
     open: Vec<Option<String>>,
@@ -169,9 +167,6 @@ impl<'a> Writer<'a> {
             self.push(line, "skinparam roundCorner 16");
         }
         let text = line.text;
-        if text.eq_ignore_ascii_case("left to right direction") {
-            self.right = true;
-        }
         if text == "}" {
             self.open.pop();
             self.push(line, text);
@@ -212,7 +207,6 @@ impl<'a> Writer<'a> {
                 | "show_person_portrait"
                 | "show_element_descriptions" => {}
                 "layout_left_right" | "layout_landscape" => {
-                    self.right = true;
                     self.push(line, "left to right direction");
                 }
                 "layout_as_sketch" => self.push(line, "skinparam handwritten true"),
@@ -468,10 +462,13 @@ impl<'a> Writer<'a> {
     }
 
     /// The direction a line keeps: one across the flow between elements
-    /// of different boundaries holds no rank, so it is dropped there.
+    /// of different boundaries holds no rank, so it is dropped there. The
+    /// words turn with the flow, as the Java PlantUML lays `Rel_R` under
+    /// `LAYOUT_LEFT_RIGHT()` (docs/adr/0027): `left` and `right` are
+    /// across it, whichever way it runs.
     fn toward(&self, word: Option<&'static str>, from: &str, to: &str) -> Option<&'static str> {
         let word = word?;
-        let across = matches!(word, "left" | "right") != self.right;
+        let across = matches!(word, "left" | "right");
         let apart = match (self.home.get(from), self.home.get(to)) {
             (Some(a), Some(b)) => a != b,
             _ => false,

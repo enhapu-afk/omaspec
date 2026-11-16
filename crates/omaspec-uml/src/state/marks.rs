@@ -253,7 +253,8 @@ impl Diagram {
             container_at(&mut self.root, home).edges.push(arrow(a, b));
             return;
         }
-        if let Some((depth, a, b)) = crate::graph::across::meeting(&from, &to) {
+        // One between a state and a state inside it too (REQ-072).
+        if let Some((depth, a, b)) = crate::graph::across::holding(&from, &to) {
             container_at(&mut self.root, &from[..depth])
                 .crossings
                 .push(super::Crossing {
@@ -363,6 +364,32 @@ mod tests {
             (node("Hot").border_dash, node("Hot").border_bold),
             (Dash::Dashed, false)
         );
+    }
+
+    /// REQ-072: a transition that went between a state and the state it
+    /// lies in is drawn as the others that went, inside the outer state.
+    #[test]
+    fn a_transition_that_went_into_its_own_state_is_drawn_too() {
+        let source = "@startuml\n[*] --> Outer\nstate Outer {\n  [*] --> Inner\n}\n@enduml\n";
+        let crate::Diagram::State(mut d) = crate::parse(source).unwrap() else {
+            panic!("a state diagram");
+        };
+        let ghost = |from: &str, to: &str| Ghost {
+            from: from.to_owned(),
+            to: to.to_owned(),
+            label: Some("gone".to_owned()),
+        };
+        d.mark(&Marks {
+            ghosts: vec![ghost("Inner", "Outer"), ghost("Outer", "Inner")],
+            ..Marks::default()
+        });
+        let nested: Vec<(&[usize], &[usize])> = d
+            .root
+            .crossings
+            .iter()
+            .map(|c| (c.from.as_slice(), c.to.as_slice()))
+            .collect();
+        assert_eq!(nested, [(&[1, 1][..], &[1][..]), (&[1][..], &[1, 1][..])]);
     }
 
     #[test]

@@ -175,10 +175,7 @@ impl ToMermaid {
             let from = self.end(&c.nodes[edge.from], edge.line)?;
             let to = self.end(&c.nodes[edge.to], edge.line)?;
             let label = self.label(edge.label.as_ref().map(|t| t.value.as_str()), edge.line)?;
-            self.look(
-                edge.color.is_some() || edge.dash != Dash::Solid || edge.bold,
-                edge.line,
-            );
+            self.look(edge);
             self.out.push(format!("{pad}{from} --> {to}{label}"));
         }
         for crossing in &c.crossings {
@@ -195,6 +192,7 @@ impl ToMermaid {
                 crossing.arrow.label.as_ref().map(|t| t.value.as_str()),
                 line,
             )?;
+            self.look(&crossing.arrow);
             self.crossings.push(format!("    {from} --> {to}{label}"));
         }
         for note in &c.notes {
@@ -236,13 +234,16 @@ impl ToMermaid {
             }
             _ => self.ids[&node.key].clone(),
         };
-        self.look(
-            node.fill.is_some()
-                || node.line_color.is_some()
-                || node.border_dash != Dash::Solid
-                || node.border_bold,
-            node.line,
-        );
+        if node.fill.is_some()
+            || node.line_color.is_some()
+            || node.border_dash != Dash::Solid
+            || node.border_bold
+        {
+            self.notice(
+                Some(node.line),
+                "Colors and line styles are not carried over",
+            );
+        }
         if let Some(own) = &node.stereotype {
             self.notice(
                 Some(node.line),
@@ -343,9 +344,21 @@ impl ToMermaid {
         to_mermaid_text(&text.replace(';', ","))
     }
 
-    fn look(&mut self, styled: bool, line: usize) {
-        if styled {
-            self.notice(Some(line), "Colors and line styles are not carried over");
+    /// Tells what of how `arrow` is drawn Mermaid cannot write: its
+    /// colors and line style, and the way it was turned (`-right->`),
+    /// which Mermaid's lines have none of (docs/adr/0027).
+    fn look(&mut self, arrow: &omaspec_uml::state::Transition) {
+        if arrow.color.is_some() || arrow.dash != Dash::Solid || arrow.bold {
+            self.notice(
+                Some(arrow.line),
+                "Colors and line styles are not carried over",
+            );
+        }
+        if arrow.toward.is_some() {
+            self.notice(
+                Some(arrow.line),
+                "The way the arrow is turned (-right->, -up->) is not carried over: Mermaid has none",
+            );
         }
     }
 }
@@ -661,10 +674,11 @@ mod tests {
 
     #[test]
     fn looks_are_left_out_and_told() {
-        let code = "@startuml\nskinparam state { BackgroundColor pink }\n[*] --> A\nstate A #pink\nA -[#red]-> B : go\nnote top of B : up here\n@enduml\n";
+        let code = "@startuml\nskinparam state { BackgroundColor pink }\n[*] --> A\nstate A #pink\nA -[#red]-> B : go\nB -right-> C\nnote top of B : up here\n@enduml\n";
         let mermaid = both(code, Language::PlantUml, Language::Mermaid).unwrap();
         let said: Vec<&str> = mermaid.notices.iter().map(|n| n.message.as_str()).collect();
         assert!(said.iter().any(|m| m.contains("Colors")), "{said:?}");
+        assert!(said.iter().any(|m| m.contains("turned")), "{said:?}");
         assert!(
             said.iter().any(|m| m.contains("only left and right")),
             "{said:?}"

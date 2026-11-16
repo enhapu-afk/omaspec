@@ -26,7 +26,6 @@ use crate::ui;
 mod fit;
 use fit::*;
 
-/// The bar for `offer`, in a pane `pane` pixels wide.
 /// Inside the bar, above and below what it says.
 const PAD_Y: f32 = 8.0;
 /// Around the bar in the pane, above and below.
@@ -61,6 +60,7 @@ pub fn height(offer: &Offer, pane: f32) -> f32 {
     said + 2.0 * (PAD_Y + AROUND_Y)
 }
 
+/// The bar for `offer`, in a pane `pane` pixels wide.
 pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Element<'a, Message> {
     let accent = ui::color(p.accent);
     let muted = ui::color(p.dark_foreground);

@@ -208,6 +208,12 @@ impl Machine {
 /// The findings of a specification check on `code`, in line order; for a
 /// state diagram the readers do not take, why it goes unchecked.
 pub fn check(code: &str, lang: Language) -> Vec<Finding> {
+    checked(code, lang).0
+}
+
+/// [`check`], and whether the machine was read: where it was not, the
+/// findings say why.
+fn checked(code: &str, lang: Language) -> (Vec<Finding>, bool) {
     match Machine::read(code, lang) {
         Some(m) => {
             let mut found = check::machine(&m);
@@ -224,9 +230,9 @@ pub fn check(code: &str, lang: Language) -> Vec<Finding> {
                     }
                 }
             }
-            found
+            (found, true)
         }
-        None => unread(code, lang),
+        None => (unread(code, lang), false),
     }
 }
 
@@ -284,12 +290,12 @@ pub fn follow_trace(trace: &str, spec: &Spec, object: &str) -> Followed {
     trace::follow(trace, spec, object)
 }
 
-/// Every finding for `code`, also against the state machines of the
-/// project it belongs to (`specs`), in line order.
-pub fn findings_with(code: &str, lang: Language, specs: &Specs) -> Vec<Finding> {
-    let mut all = lint::lint(code, lang);
-    // A refusal the lint says already, the checks do not say again; the
-    // lint holds back where the preprocessor runs, and then they say it.
+/// Of the checks' findings, those the lint's (`lint`) do not say already.
+/// Why a machine is not read (where it is not, `read`) they say where the
+/// lint does not: not what it says already, nor on a line it names at a
+/// warning or more, as the lint holds its own word back there. Where it
+/// holds back for the preprocessor, they say it.
+fn unsaid(lint: &[Finding], checked: Vec<Finding>, read: bool) -> Vec<Finding> {
     let said = |f: &Finding| {
         (
             f.line,
@@ -297,12 +303,25 @@ pub fn findings_with(code: &str, lang: Language, specs: &Specs) -> Vec<Finding> 
             f.message.trim_end_matches('.').to_lowercase(),
         )
     };
-    let lint_said: Vec<_> = all.iter().map(said).collect();
-    all.extend(
-        check(code, lang)
-            .into_iter()
-            .filter(|f| !lint_said.contains(&said(f))),
-    );
+    let lint_said: Vec<_> = lint.iter().map(said).collect();
+    let named: Vec<usize> = lint
+        .iter()
+        .filter(|f| f.severity >= Severity::Warning)
+        .map(|f| f.line)
+        .collect();
+    checked
+        .into_iter()
+        .filter(|f| !lint_said.contains(&said(f)) && (read || !named.contains(&f.line)))
+        .collect()
+}
+
+/// Every finding for `code`, also against the state machines of the
+/// project it belongs to (`specs`), in line order.
+pub fn findings_with(code: &str, lang: Language, specs: &Specs) -> Vec<Finding> {
+    let mut all = lint::lint(code, lang);
+    let (checked, read) = checked(code, lang);
+    let unsaid = unsaid(&all, checked, read);
+    all.extend(unsaid);
     all.extend(across::check(code, lang, specs));
     all.sort_by_key(|f| f.line);
     all
@@ -326,5 +345,16 @@ mod tests {
             assert_eq!(errors.len(), 1, "{head:?}: {errors:?}");
             assert!(errors[0].message.contains("Cutoff"), "{errors:?}");
         }
+        // On a line the lint names at a warning already, as the lint holds
+        // its own word back there, nor do the checks add one; on another
+        // line they do, and what a read machine's checks find stays.
+        let warned = Finding::new(3, Severity::Warning, "a faint color");
+        let refusal = |line| Finding::new(line, Severity::Error, "A refusal.");
+        assert!(unsaid(std::slice::from_ref(&warned), vec![refusal(3)], false).is_empty());
+        assert_eq!(
+            unsaid(std::slice::from_ref(&warned), vec![refusal(4)], false).len(),
+            1
+        );
+        assert_eq!(unsaid(&[warned], vec![refusal(3)], true).len(), 1);
     }
 }

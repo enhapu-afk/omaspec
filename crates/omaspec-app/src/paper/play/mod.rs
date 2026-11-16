@@ -148,7 +148,7 @@ impl Play {
         }
     }
 
-    /// Where a following camera looks ([`super::Paper::follow`]): what the
+    /// Where a following camera looks ([`super::Paper::follow_play`]): what the
     /// last steps of a machine left and entered and the ways between them,
     /// or the message just played; none before the first.
     pub fn focus(&self) -> Option<iced::Rectangle> {

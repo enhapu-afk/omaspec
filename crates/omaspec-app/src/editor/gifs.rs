@@ -88,13 +88,24 @@ impl Frames {
             self.mixed = true;
             return;
         }
-        if let Some((_, last)) = self.kept.last_mut()
-            && rgba == self.last
+        // How many pixels changed since the frame before: none makes that
+        // one stay longer.
+        let changed = (!self.kept.is_empty()).then(|| {
+            let before = self.last.as_chunks::<4>().0;
+            rgba.as_chunks::<4>()
+                .0
+                .iter()
+                .zip(before)
+                .filter(|(now, was)| now != was)
+                .count()
+        });
+        if changed == Some(0)
+            && let Some((_, last)) = self.kept.last_mut()
         {
             *last = last.saturating_add(stay);
             return;
         }
-        self.count(rgba);
+        self.count(rgba, changed);
         self.kept
             .push((miniz_oxide::deflate::compress_to_vec(rgba, PACKED), stay));
         self.last.clear();
@@ -102,22 +113,31 @@ impl Frames {
     }
 
     /// Counts the colors of `rgba` for the table: those of the first frame,
-    /// else those of the pixels that changed since the frame before, spread
-    /// over them where there are many.
-    fn count(&mut self, rgba: &[u8]) {
+    /// at most [`LEARNED`] of them, else those of the `changed` pixels that
+    /// changed since the frame before, at most [`CHANGED`], spread over
+    /// them where there are more.
+    fn count(&mut self, rgba: &[u8], changed: Option<usize>) {
         let pixels = rgba.as_chunks::<4>().0;
         let before = self.last.as_chunks::<4>().0;
         let count = |pixel: &[u8; 4]| {
             *self.seen.entry([pixel[0], pixel[1], pixel[2]]).or_default() += 1;
         };
-        if self.kept.is_empty() {
-            let step = (pixels.len() / LEARNED).max(1);
-            pixels.iter().step_by(step).for_each(count);
-            return;
+        match changed {
+            None => {
+                let step = pixels.len().div_ceil(LEARNED).max(1);
+                pixels.iter().step_by(step).for_each(count);
+            }
+            Some(changed) => {
+                let step = changed.div_ceil(CHANGED).max(1);
+                pixels
+                    .iter()
+                    .zip(before)
+                    .filter(|(now, was)| now != was)
+                    .map(|(now, _)| now)
+                    .step_by(step)
+                    .for_each(count);
+            }
         }
-        let changed = || pixels.iter().zip(before).filter(|(now, was)| now != was);
-        let step = (changed().count() / CHANGED).max(1);
-        changed().map(|(now, _)| now).step_by(step).for_each(count);
     }
 
     /// The frames' size in pixels; `None` before the first.

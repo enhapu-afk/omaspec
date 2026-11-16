@@ -75,6 +75,41 @@ pub fn meeting(from: &[usize], to: &[usize]) -> Option<(usize, usize, usize)> {
     (a != b).then_some((depth, a, b))
 }
 
+/// Where a line between the paths `from` and `to` is held: as [`meeting`]
+/// finds it, or, where one end holds the other, by the container around
+/// the outer one, both boxes the outer state; the line runs inside that
+/// state to its title or from it ([`link`]). `None` for an empty path.
+pub fn holding(from: &[usize], to: &[usize]) -> Option<(usize, usize, usize)> {
+    meeting(from, to).or_else(|| {
+        let depth = from.len().min(to.len()).checked_sub(1)?;
+        Some((depth, from[depth], to[depth]))
+    })
+}
+
+/// The box the end of a line at `path` meets, whose other end is at
+/// `other`: the box at `path`, or its title where the other end lies inside
+/// it, as a line from a state to the state it lies in ends at that state's
+/// title from inside (REQ-072); and whether it is that title.
+pub fn end_at(place: &Placement, path: &[usize], other: &[usize]) -> (End, bool) {
+    let holds = other.len() > path.len() && other.starts_with(path);
+    match place.title.filter(|_| holds) {
+        Some(title) => (
+            End {
+                rect: title,
+                flat: true,
+            },
+            true,
+        ),
+        None => (
+            End {
+                rect: place.rect,
+                flat: place.flat,
+            },
+            false,
+        ),
+    }
+}
+
 /// Routes `links`, the shortest first so it gets the straightest line.
 /// `None` for a link whose end is missing or that found no way through.
 pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Linked>> {
@@ -128,25 +163,13 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
         // A line between a state and a state inside it runs to the outer
         // one's title from inside, or from it: the title is its end, no
         // longer in its way (REQ-072).
-        let outer =
-            |path: &[usize], other: &[usize]| other.len() > path.len() && other.starts_with(path);
-        let mut title = |place: &Placement, own: bool| match place.title.filter(|_| own) {
-            Some(title) => {
-                around.obstacles.retain(|&rect| rect != title);
-                End {
-                    rect: title,
-                    flat: true,
-                }
+        let (from_end, from_title) = end_at(from, &link.from, &link.to);
+        let (to_end, to_title) = end_at(to, &link.to, &link.from);
+        for (end, title) in [(from_end, from_title), (to_end, to_title)] {
+            if title {
+                around.obstacles.retain(|&rect| rect != end.rect);
             }
-            None => End {
-                rect: place.rect,
-                flat: place.flat,
-            },
-        };
-        let (from_end, to_end) = (
-            title(from, outer(&link.from, &link.to)),
-            title(to, outer(&link.to, &link.from)),
-        );
+        }
         let points = match &link.shape {
             Some(shape) => shape.clone(),
             None => match route::route(from_end, to_end, &around) {

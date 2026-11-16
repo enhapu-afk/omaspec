@@ -262,6 +262,26 @@ Rel_D(a, s, \"uses\")
     assert!(svg.contains(">A<") && svg.contains(">S<"), "{svg}");
 }
 
+/// Under `LAYOUT_LEFT_RIGHT()`, `Rel_R` into a boundary runs across the
+/// flow, as the Java PlantUML lays it; between boundaries it holds no rank
+/// and is a line like any other, drawn natively.
+#[test]
+fn a_rel_across_a_boundary_left_to_right_is_drawn() {
+    let source = "@startuml
+!include <C4/C4_Context>
+LAYOUT_LEFT_RIGHT()
+Person(u, \"U\")
+System_Boundary(b, \"B\") {
+  System(w, \"W\")
+}
+Rel_R(u, w, \"uses\")
+Rel_U(u, w, \"sees\")
+@enduml
+";
+    let svg = crate::render(source).unwrap_or_else(|err| panic!("{err:?}"));
+    assert!(svg.contains(">uses<") && svg.contains(">sees<"), "{svg}");
+}
+
 #[test]
 fn every_border_reads_on_a_light_page_and_a_dark_one() {
     // White and Catppuccin Latte's page; Tokyo Night's and Everforest's.

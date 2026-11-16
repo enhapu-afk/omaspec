@@ -19,7 +19,7 @@ use super::{
 };
 use crate::Declined;
 use crate::common::{Frame, block, keyword, snippet, squeezed_eq, take_link, text_at};
-use crate::graph::across::meeting;
+use crate::graph::across::holding;
 use crate::source::Line;
 
 /// Whether the lines of an `@startuml` diagram are a state diagram.
@@ -152,10 +152,7 @@ impl Parser {
             // Where one end holds the other, the container around the
             // outer one holds the transition, which runs to its title or
             // from it once everything is placed (REQ-072).
-            let (depth, a, b) = meeting(&from, &to).unwrap_or_else(|| {
-                let depth = from.len().min(to.len()) - 1;
-                (depth, from[depth], to[depth])
-            });
+            let (depth, a, b) = holding(&from, &to).expect("a transition has two ends");
             arrow.from = a;
             arrow.to = b;
             self.container_mut(&from[..depth]).crossings.push(Crossing {
@@ -1057,21 +1054,46 @@ fn transition(text: &str, line: usize) -> Option<Result<RawArrow, Declined>> {
     if !forward && !backward {
         return None;
     }
-    // `A -left-> B`, `A <-up- B`: the word between the dashes turns the
-    // arrow (docs/adr/0027); a name before it keeps what comes before.
+    // `A -left-> B`, `A <-up- B`, with as many dashes as PlantUML takes
+    // (`A --left-> B`): the word between them turns the arrow
+    // (docs/adr/0027).
+    // A word turns the arrow only where it holds on to it, no space
+    // between: `A-B --> C` names `A-B`.
+    let attached = match forward {
+        true => !text[..start].ends_with(char::is_whitespace),
+        false => !text[end..].starts_with(char::is_whitespace),
+    };
+    let word = match forward {
+        true => left.rsplit_once('-').map(|(_, word)| word),
+        false => right.split_once('-').map(|(word, _)| word),
+    }
+    .filter(|_| attached);
+    if let Some(word) = word
+        && !word.is_empty()
+        && word.chars().all(|c| c.is_ascii_alphabetic())
+        && Toward::of(word).is_none()
+    {
+        return Some(Err(Declined::refused(
+            line,
+            format!(
+                "`{word}` turns no arrow: PlantUML takes up, down, left and right, and u, d, do, l, le, r and ri"
+            ),
+        )));
+    }
     let (left, right, toward) = match forward {
-        true => match left.rsplit_once('-') {
-            Some((name, word)) if Toward::of(word).is_some() && !name.trim().is_empty() => {
-                (name.trim_end(), right, Toward::of(word))
+        true => match left.rsplit_once('-').filter(|_| attached) {
+            Some((name, word)) if Toward::of(word).is_some() => {
+                let name = name.trim_end_matches('-').trim_end();
+                (name, right, Toward::of(word))
             }
             _ => (left, right, None),
         },
-        false => match right.split_once('-') {
-            Some((word, name)) if Toward::of(word).is_some() && !name.trim().is_empty() => {
+        false => match right.split_once('-').filter(|_| attached) {
+            Some((word, name)) if Toward::of(word).is_some() => {
                 // `A <-up- B` sets B above A, and the transition runs from
                 // B: down to A.
-                let toward = Toward::of(word).map(Toward::opposite);
-                (left, name.trim_start(), toward)
+                let name = name.trim_start_matches('-').trim_start();
+                (left, name, Toward::of(word).map(Toward::opposite))
             }
             _ => (left, right, None),
         },
@@ -1093,22 +1115,27 @@ fn transition(text: &str, line: usize) -> Option<Result<RawArrow, Declined>> {
     )
 }
 
-/// A styled arrow, `-[#red]->` or `<-[dashed]-`, perhaps turned before
-/// or after its brackets (`-up[#red]->`, `-[#red]up->`); `None` where the
-/// line has none.
+/// A styled arrow, `-[#red]->` or `<-[dashed]-`, with as many dashes as
+/// PlantUML takes (`--[#red]-->`), perhaps turned before or after its
+/// brackets (`-up[#red]->`, `-[#red]up->`); `None` where the line has
+/// none before its label or description, whose words may hold a `[`
+/// (`time-out[5s]`).
 fn bracket_arrow(text: &str, line: usize) -> Option<Result<RawArrow, Declined>> {
+    let before_label = &text[..label_colon(text).unwrap_or(text.len())];
     // The first unquoted `[` right after a dash and perhaps a word: a
     // `[*]` or a `[H]` is no style.
     let mut from = 0;
     let (open, start, backward, first) = loop {
-        let open = from + find_unquoted(&text[from..], "[")?;
+        let open = from + find_unquoted(&before_label[from..], "[")?;
         let before = &text[..open];
         let word = before.len()
             - before
                 .trim_end_matches(|c: char| c.is_ascii_alphabetic())
                 .len();
-        let dash = &before[..before.len() - word];
-        if let Some(rest) = dash.strip_suffix('-') {
+        let dashes = &before[..before.len() - word];
+        let run = dashes.len() - dashes.trim_end_matches('-').len();
+        if run > 0 {
+            let rest = &dashes[..dashes.len() - run];
             let backward = rest.ends_with('<');
             let start = rest.len() - usize::from(backward);
             break (open, start, backward, &before[before.len() - word..]);
@@ -1126,21 +1153,34 @@ fn bracket_arrow(text: &str, line: usize) -> Option<Result<RawArrow, Declined>> 
             .len();
     let second = &after[..word];
     let tail = &after[word..];
-    let end = match (backward, tail.starts_with("->"), tail.starts_with('-')) {
-        (true, true, _) => {
+    let run = tail.len() - tail.trim_start_matches('-').len();
+    let head = tail[run..].starts_with('>');
+    let end = match (backward, run > 0, head) {
+        (true, _, true) => {
             return Some(Err(Declined::at(
                 line,
                 "bidirectional arrows are not supported yet",
             )));
         }
-        (true, false, true) => close + 1 + word + 1,
-        (false, true, _) => close + 1 + word + 2,
+        (true, true, false) => close + 1 + word + run,
+        (false, true, true) => close + 1 + word + run + 1,
         _ => return Some(Err(Declined::at(line, "an arrow has no end"))),
     };
-    let toward = [first, second]
-        .into_iter()
-        .find_map(Toward::of)
-        .map(|toward| if backward { toward.opposite() } else { toward });
+    let mut toward = None;
+    for word in [first, second].into_iter().filter(|word| !word.is_empty()) {
+        match Toward::of(word) {
+            Some(way) => toward = Some(way),
+            None => {
+                return Some(Err(Declined::refused(
+                    line,
+                    format!(
+                        "`{word}` turns no arrow: PlantUML takes up, down, left and right, and u, d, do, l, le, r and ri"
+                    ),
+                )));
+            }
+        }
+    }
+    let toward = toward.map(|way| if backward { way.opposite() } else { way });
     let left = text[..start].trim();
     let right = text[end..].trim();
     if label_colon(left).is_some() {
@@ -1669,6 +1709,32 @@ mod tests {
         // A word after the dashes is a name, not a way.
         let d = diagram("@startuml\nA --> up\nup --> B : left\n@enduml\n");
         assert!(d.root.edges.iter().all(|edge| edge.toward.is_none()));
+        // As many dashes as PlantUML takes, around a word or a style.
+        for (arrow, from, toward) in [
+            ("A --left-> B", "A", Some(Toward::Left)),
+            ("A <-up-- B", "B", Some(Toward::Down)),
+            ("A -[#red]--> B", "A", None),
+            ("A --[#red]-> B", "A", None),
+        ] {
+            let d = diagram(&format!("@startuml\n{arrow}\n@enduml\n"));
+            let edge = &d.root.edges[0];
+            assert_eq!(d.root.nodes[edge.from].key, from, "{arrow}");
+            assert_eq!(edge.toward, toward, "{arrow}");
+        }
+        // A `[` in a label or a description is no style.
+        let d = diagram("@startuml\nA --> B : time-out[5s]\nA : entry / re-try[3]\n@enduml\n");
+        assert_eq!(
+            d.root.edges[0].label.as_ref().unwrap().value,
+            "time-out[5s]"
+        );
+        // A word PlantUML does not take, as it refuses it.
+        for arrow in ["A -dow-> B", "A -lef-> B", "A -foo[#red]-> B", "A <-rig- B"] {
+            let err = declined(&format!("@startuml\n{arrow}\n@enduml\n"));
+            assert!(
+                err.refused && err.reason.contains("turns no arrow"),
+                "{arrow}: {err:?}"
+            );
+        }
         // As if the flow ran down, and turned with it.
         assert_eq!(Toward::Right.laid(), (Some(true), false));
         assert_eq!(Toward::Left.laid(), (Some(false), false));

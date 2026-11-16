@@ -314,8 +314,8 @@ pub struct Transition {
 }
 
 /// Which way a transition's arrow points on the page, as PlantUML writes
-/// it in the arrow: `-up->`, `-down->`, `-left->`, `-right->`, or a start
-/// of the word (`-u->`, `-ri->`).
+/// it in the arrow: `-up->`, `-down->`, `-left->`, `-right->`, or one of
+/// the short forms it takes (`-u->`, `-do->`, `-ri->`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Toward {
     Up,
@@ -325,21 +325,16 @@ pub enum Toward {
 }
 
 impl Toward {
-    /// The way a word in an arrow names, or a start of it.
+    /// The way a word in an arrow names: PlantUML's words and the short
+    /// forms it takes, no other start of them.
     pub fn of(word: &str) -> Option<Toward> {
-        let word = word.to_ascii_lowercase();
-        if word.is_empty() {
-            return None;
+        match word.to_ascii_lowercase().as_str() {
+            "u" | "up" => Some(Toward::Up),
+            "d" | "do" | "down" => Some(Toward::Down),
+            "l" | "le" | "left" => Some(Toward::Left),
+            "r" | "ri" | "right" => Some(Toward::Right),
+            _ => None,
         }
-        [
-            ("up", Toward::Up),
-            ("down", Toward::Down),
-            ("left", Toward::Left),
-            ("right", Toward::Right),
-        ]
-        .into_iter()
-        .find(|(name, _)| name.starts_with(&word))
-        .map(|(_, toward)| toward)
     }
 
     /// The other way: a word in an arrow that points back (`A <-up- B`)

@@ -19,7 +19,7 @@ use super::{
     Container, Crossing, Dash, Diagram, Direction, Kind, Node, Note, Side, Split, Transition,
 };
 use crate::common::{Frame, Skinparam, Text};
-use crate::graph::across::meeting;
+use crate::graph::across::holding;
 
 /// A Mermaid state diagram as the engine's state diagram; `None` when
 /// [`mermaid::read`] does not read it.
@@ -65,10 +65,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         }
         // A state and one inside it: the container around the outer one
         // holds it, and it runs to that state's title or from it.
-        let (depth, a, b) = meeting(from, to).unwrap_or_else(|| {
-            let depth = from.len().min(to.len()) - 1;
-            (depth, from[depth], to[depth])
-        });
+        let (depth, a, b) = holding(from, to)?;
         arrow.from = a;
         arrow.to = b;
         let crossing = Crossing {

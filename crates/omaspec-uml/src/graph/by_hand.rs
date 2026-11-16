@@ -100,6 +100,12 @@ pub fn lay(
         let Some((from, to)) = ends else {
             continue;
         };
+        // A line from a state to the state it lies in ends at its title,
+        // and corners inside it are the line's own (REQ-072).
+        let (from, to) = (
+            across::end_at(from, &arrow.from, &arrow.to).0,
+            across::end_at(to, &arrow.to, &arrow.from).0,
+        );
         let Some(laid) = laid.line_mut(&arrow.path, arrow.slot) else {
             continue;
         };
@@ -207,10 +213,11 @@ pub fn places(
     out
 }
 
-fn end(place: &Placement) -> hand::End {
+/// The end of a line as the hand tool shapes it ([`across::end_at`]).
+fn end(at: super::route::End) -> hand::End {
     hand::End {
-        rect: place.rect,
-        flat: place.flat,
+        rect: at.rect,
+        flat: at.flat,
     }
 }
 
@@ -238,8 +245,8 @@ pub fn wires(
         .iter()
         .filter_map(|(arrow, key)| {
             let points = laid.points(&arrow.path, arrow.slot)?;
-            let from = across::find(top, &arrow.from)?;
-            let to = across::find(top, &arrow.to)?;
+            let from = across::end_at(across::find(top, &arrow.from)?, &arrow.from, &arrow.to).0;
+            let to = across::end_at(across::find(top, &arrow.to)?, &arrow.to, &arrow.from).0;
             if points.len() < 2 {
                 return None;
             }

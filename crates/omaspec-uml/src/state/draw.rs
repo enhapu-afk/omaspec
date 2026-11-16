@@ -1294,6 +1294,14 @@ mod tests {
         );
         assert!(restart.iter().all(|&p| inside(p)), "{restart:?}");
         assert!(restart[0].1 < playing.y + 50.0, "{restart:?}");
+        // Its end on the map, which the hand tool shapes it to, is the
+        // title too, not the whole state.
+        let wire = map.wires.iter().find(|w| w.line == Some(6)).unwrap();
+        assert!(
+            wire.to.rect.h < playing.h / 2.0,
+            "{:?} of {playing:?}",
+            wire.to.rect
+        );
     }
 
     /// A state whose name is that of another part (the title's, a
