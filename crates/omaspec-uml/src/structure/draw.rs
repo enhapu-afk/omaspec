@@ -887,6 +887,7 @@ fn place_notes(drafts: &mut [Draft], rects: &[Rect], edges: &[PlacedEdge]) -> Ve
                 y,
                 w: note.w,
                 h: note.h,
+                target,
                 text: std::mem::replace(&mut note.text, Block::empty()),
                 tether: None,
             });
@@ -1112,8 +1113,8 @@ fn drawn_in(scene: &Scene, drawn: &mut Drawn) {
 fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     paint_shapes(canvas, skin, scene, &mut Vec::new());
     paint_edges(canvas, scene, skin.curve);
-    paint_notes(canvas, skin, scene, &mut Vec::new(), None);
-    paint_labels(canvas, scene, &containers(scene), &mut Vec::new(), None);
+    paint_notes(canvas, skin, scene, &mut Vec::new());
+    paint_labels(canvas, scene, &containers(scene), &mut Vec::new());
     paint_heads(canvas, skin, scene);
 }
 
@@ -1903,17 +1904,21 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
     }
 }
 
-/// Each note, in the part of the element it lies in; `path` is where
-/// `scene` is in the tree, `owner` the element around it.
-fn paint_notes(
-    canvas: &mut Canvas,
-    skin: &Skin,
-    scene: &Scene,
-    path: &mut Vec<usize>,
-    owner: Option<&str>,
-) {
-    for note in &scene.notes {
-        canvas.within(owner, |canvas| {
+/// The part of each of `scene`'s notes, at `path` in the tree: a part of
+/// its own by its element's ([`crate::svg::note_part`]).
+fn note_parts(scene: &Scene, path: &[usize]) -> Vec<String> {
+    crate::svg::note_parts(scene.notes.iter().map(|note| note.target), |target| {
+        let mut at = path.to_vec();
+        at.push(target);
+        crate::svg::place_part(&at)
+    })
+}
+
+/// Each note, in a part of its own; `path` is where `scene` is in the
+/// tree.
+fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
+    for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
+        canvas.part(&part, |canvas| {
             dog_ear(
                 canvas,
                 Rect {
@@ -1929,23 +1934,15 @@ fn paint_notes(
     }
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        let inner = crate::svg::place_part(path);
-        paint_notes(canvas, skin, &node.children, path, Some(&inner));
+        paint_notes(canvas, skin, &node.children, path);
         path.pop();
     }
 }
 
-/// Each line's words in a part of their own, and each note's in the part
-/// of the element it lies in. `containers` are those of the whole
-/// diagram, whose borders the multiplicities keep off; `path` is where
-/// `scene` is in the tree, `owner` the element around it.
-fn paint_labels(
-    canvas: &mut Canvas,
-    scene: &Scene,
-    containers: &[Rect],
-    path: &mut Vec<usize>,
-    owner: Option<&str>,
-) {
+/// Each line's words and each note's in a part of their own.
+/// `containers` are those of the whole diagram, whose borders the
+/// multiplicities keep off; `path` is where `scene` is in the tree.
+fn paint_labels(canvas: &mut Canvas, scene: &Scene, containers: &[Rect], path: &mut Vec<usize>) {
     for (slot, edge) in scene.edges.iter().enumerate() {
         let words = crate::svg::words_part(path, slot);
         canvas.part(&words, |canvas| {
@@ -1959,8 +1956,8 @@ fn paint_labels(
             });
         }
     }
-    for note in &scene.notes {
-        canvas.within(owner, |canvas| {
+    for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
+        canvas.part(&part, |canvas| {
             canvas.text(
                 Layer::Front,
                 &note.text,
@@ -1971,8 +1968,7 @@ fn paint_labels(
     }
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        let inner = crate::svg::place_part(path);
-        paint_labels(canvas, &node.children, containers, path, Some(&inner));
+        paint_labels(canvas, &node.children, containers, path);
         path.pop();
     }
 }
@@ -2341,12 +2337,18 @@ mod tests {
                 "{group}"
             );
         }
-        // The note inside Lending is drawn in Lending's part.
+        // The note inside Lending is drawn in a part of its own, by
+        // Copy's, and Lending's holds nothing of it.
         assert!(
-            groups
+            groups.iter().any(|(n, g)| n.starts_with("note:box:")
+                && n.ends_with("#0")
+                && g.contains("shelf")),
+            "the note in a part of its own: {groups:?}"
+        );
+        assert!(
+            !groups
                 .iter()
-                .any(|(n, g)| n == lending && g.contains("shelf")),
-            "the note in Lending's part"
+                .any(|(n, g)| n == lending && g.contains("shelf"))
         );
         let ground = crate::without_parts(&svg).unwrap();
         assert!(!ground.contains("shelf"), "{ground}");

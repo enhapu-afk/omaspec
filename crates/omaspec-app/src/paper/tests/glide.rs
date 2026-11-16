@@ -624,3 +624,33 @@ fn an_inner_end_s_line_does_not_glide_to_the_diagram_s_end() {
         .count();
     assert_eq!(onto_end, 1, "one line ends on the diagram's end");
 }
+
+/// REQ-063: a note beside a state that folds is a part of its own in
+/// both pictures, and glides from where it was to where it is; inside the
+/// picture of the state around it, its old place and its new one showed
+/// both at once.
+#[test]
+fn a_note_glides_on_its_own_when_its_state_folds() {
+    let open = "stateDiagram-v2\n[*] --> Playing\nstate Playing {\n  [*] --> Live\n  Live --> Multiball\n  state Multiball {\n    [*] --> Three\n    Three --> Two\n  }\n}\nnote right of Multiball\n  then the drain anyway\nend note\n%% parts (Omaspec)\n";
+    let folded = format!("{open}%% fold (Omaspec) Multiball\n");
+    let mut paper = Paper::default();
+    paper.send(Message::Viewport(Size::new(800.0, 600.0)));
+    show_source(&mut paper, open, Language::Mermaid);
+    paper.send(Message::Faded);
+    assert!(paper.diagram.as_ref().unwrap().drawn.parts);
+    paper.set_fold("Multiball", true);
+    show_source(&mut paper, &folded, Language::Mermaid);
+    let fade = paper.arrival.fade().expect("the fold glides");
+    let morph = fade.morph.as_ref().expect("the boxes move");
+    let (old, new) = fade.bare.as_ref().expect("both sheets");
+    let note = "note:state:Multiball#0";
+    assert!(old.part(note).is_some() && new.part(note).is_some());
+    let kept = morph
+        .kept
+        .iter()
+        .find(|kept| kept.name == note)
+        .unwrap_or_else(|| panic!("kept {:?}, orphans {:?}", morph.kept, morph.orphans));
+    // Drawn over Playing, which holds it, not under its picture.
+    let over = kept.over.expect("a box holds it");
+    assert_eq!(morph.moves[over].name, "Playing");
+}

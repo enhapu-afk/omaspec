@@ -1282,6 +1282,31 @@ pub(crate) fn box_part(key: &str, path: &[usize]) -> String {
     }
 }
 
+/// The part a note is drawn in: the `nth` note of the box drawn in the
+/// part `of`. It glides from where it was to where it is, as its box
+/// does, rather than inside the picture of the box around it.
+pub(crate) fn note_part(of: &str, nth: usize) -> String {
+    format!("note:{of}#{nth}")
+}
+
+/// The part of each of `targets`' notes, in their order: the `nth` note of
+/// the box `part(target)` names.
+pub(crate) fn note_parts(
+    targets: impl IntoIterator<Item = usize>,
+    part: impl Fn(usize) -> String,
+) -> Vec<String> {
+    let mut counted: std::collections::HashMap<usize, usize> = Default::default();
+    targets
+        .into_iter()
+        .map(|target| {
+            let nth = counted.entry(target).or_default();
+            let name = note_part(&part(target), *nth);
+            *nth += 1;
+            name
+        })
+        .collect()
+}
+
 fn part_path(path: &[usize]) -> String {
     path.iter()
         .map(usize::to_string)

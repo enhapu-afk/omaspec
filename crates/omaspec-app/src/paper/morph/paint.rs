@@ -123,9 +123,10 @@ pub fn paint(frame: &mut Frame, grid: Grid, local: Rectangle, paint: &Paint<'_>)
     }
     paint_ground(frame, local, paint, true, &placed);
     paint_ground(frame, local, paint, false, &placed);
-    paint_kept(frame, local, paint, &placed);
+    paint_kept(frame, local, paint, &placed, None);
     for index in 0..paint.morph.moves.len() {
         paint_box(frame, local, paint, index, &placed);
+        paint_kept(frame, local, paint, &placed, Some(index));
     }
 }
 
@@ -444,10 +445,36 @@ pub fn prepare(
         .into_iter()
         .map(|name| Kept {
             solid: covers(new, &name),
+            over: over(&morph.moves, old.part(&name), new.part(&name)),
             name,
         })
         .collect();
 }
+
+/// The last of `moves` whose box holds a part at `was` before and at `is`
+/// now ([`Kept::over`]): a box holds it where it lies within the box in a
+/// picture the box is in.
+fn over(
+    moves: &[Move],
+    was: Option<(Raster, Rectangle)>,
+    is: Option<(Raster, Rectangle)>,
+) -> Option<usize> {
+    let holds = |outer: Rectangle, inner: Rectangle| {
+        inner.x >= outer.x - RIM_SLACK
+            && inner.y >= outer.y - RIM_SLACK
+            && inner.x + inner.width <= outer.x + outer.width + RIM_SLACK
+            && inner.y + inner.height <= outer.y + outer.height + RIM_SLACK
+    };
+    let (was, is) = (was.map(|(_, at)| at), is.map(|(_, at)| at));
+    moves.iter().rposition(|step| {
+        let before = step.role != Role::Arrive && was.is_some_and(|at| holds(step.from, at));
+        let now = step.role != Role::Leave && is.is_some_and(|at| holds(step.to, at));
+        before || now
+    })
+}
+
+/// How far past a box a part it holds may reach: the stroke of the box.
+const RIM_SLACK: f32 = 2.0;
 
 /// The parts in both pictures that no box takes ([`Morph::kept`]), each
 /// from its old place to its new one. Each picture of it is as large as
@@ -455,10 +482,17 @@ pub fn prepare(
 /// and within it, so the rows of a card that changes size stay where they
 /// are. The old pixels stay opaque where the new ones will cover them (a
 /// card, or one that keeps its size), the new ones come over them; words
-/// that change fade from the old to the new. Under the boxes, so a card
-/// that holds others is under them.
-fn paint_kept(frame: &mut Frame, local: Rectangle, paint: &Paint<'_>, placed: &Placed) {
-    for kept in &paint.morph.kept {
+/// that change fade from the old to the new. Those `over` the box of that
+/// index, right after it ([`Kept::over`]); the rest under every box, so a
+/// card that holds others is under them.
+fn paint_kept(
+    frame: &mut Frame,
+    local: Rectangle,
+    paint: &Paint<'_>,
+    placed: &Placed,
+    over: Option<usize>,
+) {
+    for kept in paint.morph.kept.iter().filter(|kept| kept.over == over) {
         let (Some((old, was)), Some((new, is))) =
             (paint.old.part(&kept.name), paint.new.part(&kept.name))
         else {

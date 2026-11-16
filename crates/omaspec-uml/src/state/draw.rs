@@ -497,6 +497,7 @@ fn place_notes(
                 y,
                 w: note.w,
                 h: note.h,
+                target,
                 text: std::mem::replace(&mut note.text, Block::empty()),
                 tether: None,
             });
@@ -826,19 +827,23 @@ fn stack_height(title: &Block, description: &[Block]) -> f32 {
 fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
     paint_shapes(canvas, skin, scene, &mut Vec::new());
     paint_edges(canvas, scene, skin.curve);
-    paint_notes(canvas, skin, scene, &mut Vec::new(), None);
-    paint_labels(canvas, scene, &mut Vec::new(), None);
+    paint_notes(canvas, skin, scene, &mut Vec::new());
+    paint_labels(canvas, scene, &mut Vec::new());
     paint_heads(canvas, skin, scene);
 }
 
-/// The part a note inside `node` is drawn in: the state's, a region's
-/// state's for a region; `owner` is the one around it.
-fn owner_of(node: &Placed, path: &[usize], owner: Option<&str>) -> Option<String> {
-    if node.item.kind == Kind::Region {
-        owner.map(str::to_owned)
-    } else {
-        Some(crate::svg::box_part(&node.item.name, path))
-    }
+/// The part of each of `scene`'s notes, at `path` in the tree: a part of
+/// its own by its state's ([`crate::svg::note_part`]).
+fn note_parts(scene: &Scene, path: &[usize]) -> Vec<String> {
+    crate::svg::note_parts(scene.notes.iter().map(|note| note.target), |target| {
+        let name = scene
+            .nodes
+            .get(target)
+            .map_or("", |node| node.item.name.as_str());
+        let mut at = path.to_vec();
+        at.push(target);
+        crate::svg::box_part(name, &at)
+    })
 }
 
 /// Each state's shape, in its part; `path` is where `scene` is in the
@@ -974,22 +979,15 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
     }
 }
 
-/// Each note, in the part of the state it lies in; `path` is where
-/// `scene` is in the tree, `owner` the state around it.
-fn paint_notes(
-    canvas: &mut Canvas,
-    skin: &Skin,
-    scene: &Scene,
-    path: &mut Vec<usize>,
-    owner: Option<&str>,
-) {
-    for note in &scene.notes {
-        canvas.within(owner, |canvas| note_box(canvas, skin, note));
+/// Each note, in a part of its own; `path` is where `scene` is in the
+/// tree.
+fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
+    for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
+        canvas.part(&part, |canvas| note_box(canvas, skin, note));
     }
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        let inner = owner_of(node, path, owner);
-        paint_notes(canvas, skin, &node.children, path, inner.as_deref());
+        paint_notes(canvas, skin, &node.children, path);
         path.pop();
     }
 }
@@ -1040,10 +1038,9 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
     );
 }
 
-/// Each state's words in its part, each line's in a part of their own,
-/// and each note's in the part of the state it lies in; `path` is where
-/// `scene` is in the tree, `owner` the state around it.
-fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>, owner: Option<&str>) {
+/// Each state's words in its part, each line's and each note's in a part
+/// of their own; `path` is where `scene` is in the tree.
+fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
         canvas.part(&crate::svg::box_part(&node.item.name, path), |canvas| {
@@ -1051,8 +1048,7 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>, owner
                 paint_words(canvas, node);
             });
         });
-        let inner = owner_of(node, path, owner);
-        paint_labels(canvas, &node.children, path, inner.as_deref());
+        paint_labels(canvas, &node.children, path);
         path.pop();
     }
     for (slot, edge) in scene.edges.iter().enumerate() {
@@ -1060,8 +1056,8 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>, owner
             canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
         });
     }
-    for note in &scene.notes {
-        canvas.within(owner, |canvas| {
+    for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
+        canvas.part(&part, |canvas| {
             canvas.text(
                 Layer::Front,
                 &note.text,
@@ -1208,23 +1204,36 @@ mod tests {
         (diagram.root, scene)
     }
 
-    /// A note inside a state is drawn in that state's part, so it goes
-    /// where the state goes; a note at the top lies on the ground.
+    /// Each note is drawn in a part of its own, by its state's, inside a
+    /// state or at the top: a fold glides it from where it was to where
+    /// it is, rather than inside the picture of the state around it, where
+    /// its old place and its new one showed both at once (REQ-063).
     #[test]
-    fn a_note_inside_a_state_is_drawn_in_its_part() {
-        let source = "@startuml\nstate Brewing {\n  state Grind\n  note right of Grind : fine\n}\nstate Idle\nnote left of Idle : coarse\n' parts (Omaspec)\n@enduml\n";
+    fn a_note_is_drawn_in_a_part_of_its_own() {
+        let source = "@startuml\nstate Brewing {\n  state Grind\n  note right of Grind : fine\n  note left of Grind : dark\n}\nstate Idle\nnote left of Idle : coarse\n' parts (Omaspec)\n@enduml\n";
         let (svg, _) = crate::render_mapped(source, None).unwrap();
         let ground = crate::without_parts(&svg).unwrap();
-        // The note inside Brewing left the ground with Brewing's part; the
-        // one at the top stayed.
-        let notes = |svg: &str| svg.matches("<path d=\"M").count();
-        assert!(notes(&ground) < notes(&svg), "{ground}");
-        let brewing: String = crate::part_groups(&svg)
-            .into_iter()
-            .filter(|(name, _)| name == "state:Brewing")
-            .map(|(_, group)| group)
-            .collect();
-        assert!(brewing.contains("<path"), "Brewing's note: {brewing}");
+        assert!(!ground.contains("<path d=\"M"), "{ground}");
+        let groups = crate::part_groups(&svg);
+        let part = |name: &str| -> String {
+            groups
+                .iter()
+                .filter(|(n, _)| n == name)
+                .map(|(_, group)| *group)
+                .collect()
+        };
+        for (name, words) in [
+            ("note:state:Grind#0", "fine"),
+            ("note:state:Grind#1", "dark"),
+            ("note:state:Idle#0", "coarse"),
+        ] {
+            let group = part(name);
+            assert!(
+                group.contains("<path") && group.contains(words),
+                "{name}: {group}"
+            );
+        }
+        assert!(!part("state:Brewing").contains("fine"));
     }
 
     /// A state whose name is that of another part (the title's, a

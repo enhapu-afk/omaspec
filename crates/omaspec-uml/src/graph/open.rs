@@ -68,6 +68,8 @@ pub struct Note {
     pub y: f32,
     pub w: f32,
     pub h: f32,
+    /// The member it is about, by its index in its container.
+    pub target: usize,
     pub text: Block,
     /// A dashed line to its box, when it stands off it.
     pub tether: Option<(Point, Point)>,

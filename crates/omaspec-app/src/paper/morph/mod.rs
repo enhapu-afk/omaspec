@@ -102,6 +102,10 @@ pub struct Kept {
     /// Its new picture covers its place, as a card does and words do not
     /// ([`Looks::solid`]).
     pub solid: bool,
+    /// The last box around it (by its index among the moves), which it is
+    /// drawn over: a note inside a state, over that state's picture. None
+    /// for one no box holds, as a title, drawn under every box.
+    pub over: Option<usize>,
 }
 
 /// How far a box may sit, as a share of the picture, and still count as
