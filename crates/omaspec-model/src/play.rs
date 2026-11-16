@@ -11,6 +11,61 @@ use crate::{Kind, Machine, Run, Taken, Trigger};
 /// shown by the first of them, the options past them leading nowhere.
 pub const VISITED: usize = 256;
 
+/// Between the arrival of a beat's longest light and the next beat, in
+/// milliseconds.
+pub const STEP_GAP: u64 = 70;
+
+/// How long a light takes along `points` (diagram units), in
+/// milliseconds: longer ways a little longer, never so long that the
+/// writer waits.
+pub fn travel_millis(points: &[(f32, f32)]) -> u64 {
+    let length: f32 = points
+        .windows(2)
+        .map(|w| ((w[1].0 - w[0].0).powi(2) + (w[1].1 - w[0].1).powi(2)).sqrt())
+        .sum();
+    (280.0 + length * 1.1).clamp(380.0, 980.0) as u64
+}
+
+/// A step of a play in time ([`timed`]): the step of what was taken at
+/// `index`, when its light sets off after the first one's, and how long
+/// it travels, in milliseconds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Timed {
+    pub index: usize,
+    pub at: u64,
+    pub took: u64,
+}
+
+/// The steps of `taken` in time, as a play shows them, the pane and a
+/// presentation alike: the steps of one beat set off at once (the arms of a
+/// fork, the starts of a state's regions), the next beat when the longest
+/// of them has arrived and [`STEP_GAP`] after; `took` says how long each
+/// travels. And when all is through, the last gap with it.
+pub fn timed(taken: &[Taken], took: impl Fn(&Taken) -> u64) -> (Vec<Timed>, u64) {
+    let mut beats: Vec<u32> = Vec::new();
+    for step in taken {
+        if !beats.contains(&step.beat) {
+            beats.push(step.beat);
+        }
+    }
+    let mut out = Vec::with_capacity(taken.len());
+    let mut began = 0;
+    for beat in beats {
+        let mut longest = 0;
+        for (index, step) in taken.iter().enumerate().filter(|(_, s)| s.beat == beat) {
+            let travels = took(step);
+            longest = longest.max(travels);
+            out.push(Timed {
+                index,
+                at: began,
+                took: travels,
+            });
+        }
+        began += longest + STEP_GAP;
+    }
+    (out, began)
+}
+
 impl Machine {
     /// How a play offers the transition `t`: its label, and the state it
     /// leads to.
@@ -160,5 +215,27 @@ mod tests {
         assert_eq!(m.option(back.transition).0, "close [nobody inside] / beep");
         assert_eq!(back.next, Some(0));
         assert_eq!(back.taken.len(), 1);
+    }
+
+    /// The arms of a fork set off at once; what follows them waits for the
+    /// longest and the gap.
+    #[test]
+    fn one_beat_sets_off_at_once_the_next_after_the_longest() {
+        let taken = |transition, beat| Taken {
+            transition,
+            left: Vec::new(),
+            entered: Vec::new(),
+            beat,
+        };
+        let steps = [taken(0, 0), taken(1, 1), taken(2, 1), taken(3, 2)];
+        let (timed, total) = timed(&steps, |step| 100 * (step.transition as u64 + 1));
+        let at: Vec<(usize, u64, u64)> = timed.iter().map(|t| (t.index, t.at, t.took)).collect();
+        assert_eq!(
+            at,
+            [(0, 0, 100), (1, 170, 200), (2, 170, 300), (3, 540, 400)]
+        );
+        assert_eq!(total, 1010);
+        assert_eq!(travel_millis(&[(0.0, 0.0), (0.0, 10.0)]), 380);
+        assert_eq!(travel_millis(&[(0.0, 0.0), (0.0, 2000.0)]), 980);
     }
 }

@@ -239,15 +239,18 @@ fn xml_escape(s: &str, attribute: bool) -> String {
 /// `<?plantuml-src …?>` (which has no comments and no `@startuml`; both
 /// are added back).
 pub fn source_from_svg(svg: &str) -> Option<Source> {
-    if let Some(source) = own_source(svg) {
-        return Some(source);
-    }
-    // A page is no XML; the SVG in it is.
-    if let (Some(start), Some(end)) = (svg.find("<svg"), svg.rfind("</svg>"))
-        && start < end
-        && let Some(source) = own_source(&svg[start..end + "</svg>".len()])
-    {
-        return Some(source);
+    match own_source(svg) {
+        Ok(Some(source)) => return Some(source),
+        Ok(None) => {}
+        // A page is no XML; the SVG in it is.
+        Err(()) => {
+            if let (Some(start), Some(end)) = (svg.find("<svg"), svg.rfind("</svg>"))
+                && start < end
+                && let Ok(Some(source)) = own_source(&svg[start..end + "</svg>".len()])
+            {
+                return Some(source);
+            }
+        }
     }
 
     let encoded = re!(r"<\?plantuml-src\s+([0-9A-Za-z_-]+)\s*\?>").captures(svg)?;
@@ -266,32 +269,35 @@ pub fn source_from_svg(svg: &str) -> Option<Source> {
     })
 }
 
-/// Omaspec's own `<sf:source>` element in `xml`, if it parses.
-fn own_source(xml: &str) -> Option<Source> {
+/// Omaspec's own `<sf:source>` element in `xml`, if it has one; `Err`
+/// when `xml` does not parse, as a page does not.
+fn own_source(xml: &str) -> Result<Option<Source>, ()> {
     let options = roxmltree::ParsingOptions {
         allow_dtd: true,
         nodes_limit: 4_000_000,
         // No resolver: external entities are never loaded.
         ..Default::default()
     };
-    let doc = roxmltree::Document::parse_with_options(xml, options).ok()?;
-    let el = doc.descendants().find(|n| {
+    let doc = roxmltree::Document::parse_with_options(xml, options).map_err(|_| ())?;
+    let Some(el) = doc.descendants().find(|n| {
         matches!(n.tag_name().namespace(), Some(NAMESPACE | OLD_NAMESPACE))
             && n.tag_name().name() == "source"
-    })?;
+    }) else {
+        return Ok(None);
+    };
     let code: String = el
         .descendants()
         .filter(|n| n.is_text())
         .filter_map(|n| n.text())
         .collect();
-    (!code.trim().is_empty()).then(|| Source {
+    Ok((!code.trim().is_empty()).then(|| Source {
         code,
         language: el.attribute("lang").and_then(Language::from_id),
         file: el
             .attribute("file")
             .filter(|f| !f.is_empty())
             .map(str::to_owned),
-    })
+    }))
 }
 
 /// PlantUML's base64 variant: `0-9A-Za-z-_` for 0..63.

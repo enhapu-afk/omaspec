@@ -54,14 +54,10 @@ pub(super) fn level(events: &[(Instant, bool)], now: Instant) -> f32 {
     value(since, now)
 }
 
-/// How long a light takes along `points` (diagram units): longer ways a
-/// little longer, never so long that the writer waits.
+/// How long a light takes along `points` (diagram units), as a play's
+/// model says ([`omaspec_model::play::travel_millis`]).
 pub(super) fn travel_time(points: &[(f32, f32)]) -> Duration {
-    let length: f32 = points
-        .windows(2)
-        .map(|w| ((w[1].0 - w[0].0).powi(2) + (w[1].1 - w[0].1).powi(2)).sqrt())
-        .sum();
-    Duration::from_millis((280.0 + length * 1.1).clamp(380.0, 980.0) as u64)
+    Duration::from_millis(omaspec_model::play::travel_millis(points))
 }
 
 pub(super) fn ramp(now: Instant, since: Instant, over: Duration) -> f32 {

@@ -70,6 +70,11 @@ pub struct Note {
     pub h: f32,
     /// The member it is about, by its index in its container.
     pub target: usize,
+    /// The side of the member it stands on, by name (each drawer has sides
+    /// of its own), and its place among the notes on that side: what names
+    /// it from one picture to the next.
+    pub side: &'static str,
+    pub nth: usize,
     pub text: Block,
     /// A dashed line to its box, when it stands off it.
     pub tether: Option<(Point, Point)>,

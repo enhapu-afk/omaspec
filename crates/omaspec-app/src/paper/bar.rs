@@ -8,8 +8,9 @@
 //! options take a second or third row where one would leave only their
 //! numbers, wherever in the play that is: the bar has those rows from the
 //! start. Where not even three rows keep their labels, the bar is as wide
-//! as the pane; where that does not either, the numbers take the rows.
-//! Else what does not fit is cut short with `…`.
+//! as the pane; where that does not either, the numbers take the rows
+//! they need, and one where even three would clip them. Else what does
+//! not fit is cut short with `…`.
 
 use std::cell::RefCell;
 use std::sync::{Arc, Weak};
@@ -312,16 +313,17 @@ fn room_beside(head: &str, back: bool, again: bool, inside: f32) -> (f32, f32) {
 /// depend on the play and the width alone, so they are worked out once
 /// for each and kept.
 fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> (f32, usize) {
-    // The play by a weak hold on its places, which keeps their address
-    // from going to another play's.
-    type Kept = Option<(Weak<Vec<Offered>>, u32, (f32, usize))>;
+    // Each play by a weak hold on its places, which keeps their address
+    // from going to another play's; a few, so the editor's play and that
+    // of a diagram in its own window keep theirs.
+    type Kept = Vec<(Weak<Vec<Offered>>, u32, (f32, usize))>;
     thread_local! {
-        static KEPT: RefCell<Kept> = const { RefCell::new(None) };
+        static KEPT: RefCell<Kept> = const { RefCell::new(Vec::new()) };
     }
     let width = pane.to_bits();
     let kept = KEPT.with_borrow(|kept| {
-        kept.as_ref()
-            .filter(|(play, at, _)| *at == width && play.ptr_eq(&Arc::downgrade(every)))
+        kept.iter()
+            .find(|(play, at, _)| *at == width && play.ptr_eq(&Arc::downgrade(every)))
             .map(|&(_, _, layout)| layout)
     });
     if let Some(layout) = kept {
@@ -346,23 +348,33 @@ fn layout_of(every: &Arc<Vec<Offered>>, pane: f32) -> (f32, usize) {
     } else {
         (wide, needs(wide).1)
     };
-    KEPT.set(Some((Arc::downgrade(every), width, layout)));
+    KEPT.with_borrow_mut(|kept| {
+        kept.retain(|(play, _, _)| play.strong_count() > 0);
+        if kept.len() >= KEPT_PLAYS {
+            kept.remove(0);
+        }
+        kept.push((Arc::downgrade(every), width, layout));
+    });
     layout
 }
 
+/// How many plays and widths [`layout_of`] keeps.
+const KEPT_PLAYS: usize = 4;
+
 /// The fewest rows, up to [`MOST_ROWS`], in which `options` keep their
 /// labels, if cut, and whether they do; where not even the most do, the
-/// fewest in which their numbers stand, none clipped (the most, should
-/// even those not do).
+/// fewest in which their numbers stand, none clipped; one where even
+/// those do not, as in a narrow pane, where more rows would cover the
+/// diagram and show hardly more (the keys 1 to 9 take them all).
 fn rows_needed(options: &[(String, String)], room: f32, signs: f32) -> (bool, usize) {
-    let shown = |rows: usize| fitted(options, room, signs, rows).shown;
-    if let Some(rows) = (1..=MOST_ROWS).find(|&rows| shown(rows) > Shown::Numbers) {
-        return (true, rows);
+    let shown: Vec<Shown> = (1..=MOST_ROWS)
+        .map(|rows| fitted(options, room, signs, rows).shown)
+        .collect();
+    let fewest = |enough: fn(Shown) -> bool| shown.iter().position(|&s| enough(s)).map(|at| at + 1);
+    match fewest(|s| s > Shown::Numbers) {
+        Some(rows) => (true, rows),
+        None => (false, fewest(|s| s == Shown::Numbers).unwrap_or(1)),
     }
-    let rows = (1..=MOST_ROWS)
-        .find(|&rows| shown(rows) == Shown::Numbers)
-        .unwrap_or(MOST_ROWS);
-    (false, rows)
 }
 
 /// The options in at most `rows` rows: in as many as show the most of
@@ -911,8 +923,8 @@ mod tests {
         assert!(rows > 1);
         assert_eq!(arranged(&many, room, signs, rows).shown, Shown::Numbers);
         assert_eq!(fitted(&many, room, signs, 1).shown, Shown::Clipped);
-        // Where even the most rows clip them, the bar takes the most.
-        assert_eq!(rows_needed(&many, 60.0, 0.0), (false, MOST_ROWS));
+        // Where even the most rows clip them, the bar keeps one.
+        assert_eq!(rows_needed(&many, 60.0, 0.0), (false, 1));
     }
 
     #[test]

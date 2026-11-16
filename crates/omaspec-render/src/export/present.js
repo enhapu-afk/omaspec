@@ -49,7 +49,7 @@ const Present = (() => {
       here() {
         return places[this.place];
       },
-      /// Takes option `i`: what it takes to light, transitions by beats,
+      /// Takes option `i`: the steps it takes, each with when it lights,
       /// or null where it leads nowhere (past the places worked out) or is
       /// no option.
       take(i) {
@@ -100,9 +100,12 @@ if (typeof document !== "undefined") {
       return el;
     };
     // The picture on white, as the pane shows it; a picture in a look
-    // paints its own paper over it.
+    // paints its own paper over it, and one whose root has a background of
+    // its own (as the Java PlantUML writes it) keeps that.
+    const own = getComputedStyle(svg).backgroundColor;
+    const bare = !own || own === "transparent" || /^rgba\(.*,\s*0\)$/.test(own);
     svg.insertBefore(
-      make("rect", { x: box.x, y: box.y, width: box.width, height: box.height, fill: "#ffffff" }),
+      make("rect", { x: box.x, y: box.y, width: box.width, height: box.height, fill: bare ? "#ffffff" : own }),
       svg.firstChild,
     );
     const defs = make("defs", {}, svg);
@@ -146,8 +149,9 @@ if (typeof document !== "undefined") {
       make("path", { d, "fill-rule": "evenodd", fill: `url(#${id})` }, layer);
     };
     const line = (points) => points.map((p) => p.join(",")).join(" ");
-    /// A light that runs along `points`, from `delay` milliseconds on.
-    const light = (points, delay) => {
+    /// A light that runs along `points` from `delay` milliseconds on, for
+    /// `duration` (as the pane's, worked out with the play).
+    const light = (points, delay, duration) => {
       const run = make("polyline", {
         points: line(points),
         fill: "none",
@@ -161,28 +165,19 @@ if (typeof document !== "undefined") {
       if (length > 0 && run.animate) {
         run.setAttribute("stroke-dasharray", `${length} ${length}`);
         run.setAttribute("stroke-dashoffset", length);
-        const duration = Math.max(300, Math.min(1200, length * 2));
         run.animate([{ strokeDashoffset: length }, { strokeDashoffset: 0 }], {
-          duration,
+          duration: Math.max(1, duration),
           delay,
           fill: "forwards",
-          easing: "ease-out",
+          easing: "ease-in-out",
         });
-        return delay + duration;
-      }
-      return delay;
-    };
-    /// Lights the transitions `beats` takes, each beat's at once and the
-    /// next when the longest of them is through.
-    const lights = (beats) => {
-      let delay = 0;
-      for (const beat of beats || []) {
-        let end = delay;
-        for (const t of beat) end = Math.max(end, light(data.routes[t], delay));
-        delay = end;
       }
     };
+    // What waits to happen on the page: a state lit as its light arrives.
+    let timers = [];
     const clear = () => {
+      for (const timer of timers) clearTimeout(timer);
+      timers = [];
       layer.replaceChildren();
       for (const old of defs.querySelectorAll("linearGradient, mask")) old.remove();
       made = 0;
@@ -225,7 +220,7 @@ if (typeof document !== "undefined") {
             "fill-opacity": 0.09,
             filter: "url(#omaspec-soft)",
           }, layer);
-          light(step.points, 0);
+          light(step.points, 0, step.took);
         }
         say(
           span("at", `${play.at} / ${play.count}`),
@@ -243,31 +238,57 @@ if (typeof document !== "undefined") {
       draw();
     } else if (data.kind === "machine") {
       const play = Present.machine(data.places);
-      const draw = (beats) => {
-        clear();
-        const here = play.here();
-        // The veil, with the states the machine is in left out of it, a
-        // state inside another as well.
+      // The states lit: the veil leaves them out, a state inside another
+      // as well, and each shines in the accent.
+      const shine = (group, lit) => {
+        group.replaceChildren();
+        for (const old of defs.querySelectorAll("mask")) old.remove();
         const id = `omaspec-lit-${made++}`;
         const area = { x: box.x, y: box.y, width: box.width, height: box.height };
         const mask = make("mask", { id, maskUnits: "userSpaceOnUse", ...area }, defs);
         make("rect", { ...area, fill: "#ffffff" }, mask);
-        for (const index of here.lit) {
+        for (const index of lit) {
           const s = data.states[index];
           const [x, y, w, h] = s.rect;
           const rx = Math.min(s.radius, w / 2, h / 2);
           make("rect", { x, y, width: w, height: h, rx, fill: "#000000" }, mask);
         }
-        make("rect", { ...area, fill: paper, "fill-opacity": Present.VEIL, mask: `url(#${id})` }, layer);
-        for (const index of here.lit) {
+        make("rect", { ...area, fill: paper, "fill-opacity": Present.VEIL, mask: `url(#${id})` }, group);
+        for (const index of lit) {
           const s = data.states[index];
           const [x, y, w, h] = s.rect;
           make("rect", {
             x, y, width: w, height: h, rx: s.radius, fill: "none", stroke: accent,
             "stroke-width": 2.5, filter: "url(#omaspec-glow)",
-          }, layer);
+          }, group);
         }
-        lights(beats);
+      };
+      /// The place the machine is at, reached by `steps` from where the
+      /// states `before` were lit: each step's light sets off and travels
+      /// when the play worked out, the states it leaves go dark as it sets
+      /// off, those it enters light as it arrives, as in the pane. Without
+      /// steps, the place as it is.
+      const draw = (steps, before) => {
+        clear();
+        const here = play.here();
+        const group = make("g", {}, layer);
+        const moving = steps && steps.length > 0;
+        const lit = new Set(moving ? before : here.lit);
+        shine(group, lit);
+        let through = 0;
+        for (const step of steps || []) {
+          light(data.routes[step.t], step.at, step.took);
+          through = Math.max(through, step.at + step.took);
+          timers.push(setTimeout(() => {
+            for (const state of step.left) lit.delete(state);
+            shine(group, lit);
+          }, step.at));
+          timers.push(setTimeout(() => {
+            for (const state of step.entered) lit.add(state);
+            shine(group, lit);
+          }, step.at + step.took));
+        }
+        if (moving) timers.push(setTimeout(() => shine(group, here.lit), through));
         const parts = [span("at", `● ${here.ended ? "ended" : here.at}`)];
         here.options.forEach((option, i) => {
           const button = document.createElement("button");
@@ -286,17 +307,19 @@ if (typeof document !== "undefined") {
         say(...parts);
       };
       take = (i) => {
-        const beats = play.take(i);
-        if (beats) draw(beats);
+        const before = play.here().lit;
+        const steps = play.take(i);
+        if (steps) draw(steps, before);
       };
       go = () => take(0);
       back = () => play.back() && draw();
       home = () => {
         play.home();
-        draw(data.begun);
+        draw(data.begun, []);
       };
       play.go(parseInt(location.hash.slice(1), 10) || 0);
-      draw(play.place === 0 ? data.begun : []);
+      if (play.place === 0) draw(data.begun, []);
+      else draw();
     } else {
       say(span("help", "F full screen"));
     }

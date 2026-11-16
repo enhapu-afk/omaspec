@@ -52,8 +52,9 @@ pub struct State {
     pub region: usize,
     /// Zero-based line where it is first named.
     pub line: usize,
-    /// Where it stands among the states of its parent: the line it was
-    /// first named on there (one that moved there comes where it moved).
+    /// Where it stands among the states of its parent: when it took its
+    /// place there, counted over all states (one that moved there comes
+    /// where it moved, after every state named before it, on its line too).
     pub order: usize,
 }
 
@@ -173,7 +174,17 @@ pub fn read(source: &str) -> Option<Chart> {
         }
         note = reader.line(l, no)?;
     }
-    (head && reader.open.is_empty() && note.is_none()).then_some(reader.chart)
+    (head && reader.open.is_empty() && note.is_none() && !hollow(&reader.chart))
+        .then_some(reader.chart)
+}
+
+/// Whether a state inside another that was opened holds nothing, as one
+/// left when what it held moved away: the drawer nests a state by what it
+/// holds, so it would be drawn at the top.
+fn hollow(chart: &Chart) -> bool {
+    chart.states.iter().enumerate().any(|(at, s)| {
+        s.composite && s.parent.is_some() && !chart.states.iter().any(|t| t.parent == Some(at))
+    })
 }
 
 #[derive(Default)]
@@ -184,6 +195,8 @@ struct Reader {
     open: Vec<(usize, usize)>,
     /// The start and the end of each container: its state, its region.
     markers: HashMap<(Option<usize>, usize, bool), usize>,
+    /// How many states took their place so far ([`State::order`]).
+    placed: usize,
 }
 
 impl Reader {
@@ -419,7 +432,8 @@ impl Reader {
                 if s.composite || s.parent == here.0 {
                     return None;
                 }
-                (s.parent, s.region, s.order) = (here.0, here.1, no);
+                (s.parent, s.region, s.order) = (here.0, here.1, self.placed);
+                self.placed += 1;
             }
             return Some(state);
         }
@@ -443,8 +457,9 @@ impl Reader {
             parent,
             region,
             line,
-            order: line,
+            order: self.placed,
         });
+        self.placed += 1;
         self.chart.states.len() - 1
     }
 
@@ -673,6 +688,8 @@ mod tests {
             "stateDiagram\nnote right of A\nend note",
             "stateDiagram\n}",
             "stateDiagram\n--",
+            // A state left empty inside another when what it held moved.
+            "stateDiagram\n[*] --> P\nstate P {\n[*] --> S\nstate S {\nA\n}\n}\nstate T {\nA --> B\n}",
             // Named again in another region of its state, or inside itself.
             "stateDiagram\nstate S {\n[*] --> A\n--\nA --> B\n}",
             "stateDiagram\nstate S {\nS --> A\n}",

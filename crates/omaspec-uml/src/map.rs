@@ -27,6 +27,10 @@ pub struct Map {
     /// Areas filled with a color of their own under what is drawn on
     /// them: a sequence diagram's boxes.
     pub grounds: Vec<Ground>,
+    /// Parts of their own that lie inside a box, as a note inside a state:
+    /// each part's name and that of the box's part. A glide draws such a
+    /// part over its box, not under it.
+    pub inside: Vec<(String, String)>,
     /// How the drawing's units became the picture's.
     pub fit: Fit,
 }

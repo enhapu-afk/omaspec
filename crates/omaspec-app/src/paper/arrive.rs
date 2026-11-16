@@ -305,16 +305,19 @@ impl Paper {
         } else {
             (DIAGRAM_FADE, Easing::EaseOut)
         };
-        let lines = match (&morph, &bare, old_map, &self.diagram) {
+        let lines = match (&morph, &bare, &old_map, &self.diagram) {
             (Some(morph), Some(_), Some(old_map), Some(diagram)) => {
-                Some(wires::plan(&old_map, &diagram.drawn.map, &morph.moves))
+                Some(wires::plan(old_map, &diagram.drawn.map, &morph.moves))
             }
             _ => None,
         };
         self.bare_old.clear();
         self.bare_new.clear();
-        if let (Some(morph), Some((old, new))) = (morph.as_mut(), &bare) {
-            morph::prepare(morph, old, new, lines.as_ref());
+        if let (Some(morph), Some((old, new)), Some(old_map), Some(diagram)) =
+            (morph.as_mut(), &bare, &old_map, &self.diagram)
+        {
+            let maps = [&**old_map, &*diagram.drawn.map];
+            morph::prepare(morph, (old, new), maps, lines.as_ref());
         }
         let fade = Fade {
             old,

@@ -87,8 +87,9 @@ pub struct Morph {
     pub moves: Vec<Move>,
     /// The parts of the picture before and of the new one that no box and
     /// no line's words take ([`prepare`]): they go and come with the
-    /// ground, so a part named otherwise than its box is never lost.
-    pub orphans: [Vec<String>; 2],
+    /// ground, so a part named otherwise than its box is never lost; one
+    /// inside a box over that box.
+    pub orphans: [Vec<Loose>; 2],
     /// The parts no box takes that are in both pictures, as a title or
     /// the top card of a JSON diagram: each glides from where it was to
     /// where it is ([`paint_kept`]).
@@ -102,9 +103,18 @@ pub struct Kept {
     /// Its new picture covers its place, as a card does and words do not
     /// ([`Looks::solid`]).
     pub solid: bool,
-    /// The last box around it (by its index among the moves), which it is
-    /// drawn over: a note inside a state, over that state's picture. None
-    /// for one no box holds, as a title, drawn under every box.
+    /// The box it lies inside (by its index among the moves), which it is
+    /// drawn over: a note inside a state, over that state's picture, as
+    /// the map says ([`omaspec_uml::map::Map::inside`]). None for one no
+    /// box holds, as a title, drawn under every box.
+    pub over: Option<usize>,
+}
+
+/// A part of one picture alone that no box takes ([`Morph::orphans`]).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Loose {
+    pub name: String,
+    /// The box it lies inside, drawn over it ([`Kept::over`]).
     pub over: Option<usize>,
 }
 

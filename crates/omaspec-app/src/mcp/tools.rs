@@ -594,14 +594,12 @@ impl Tools {
         let (paper, accent) = crate::look::stage(skin.as_ref());
         let options = export::Options {
             scale,
-            source: args
-                .flag("source")?
-                .unwrap_or(true)
-                .then(|| export::Source {
-                    code: &piece.code,
-                    language: lang,
-                    file: source_name.as_deref(),
-                }),
+            // A map has no source of its own: it is made from the project.
+            source: (args.flag("source")?.unwrap_or(true) && !is_map).then(|| export::Source {
+                code: &piece.code,
+                language: lang,
+                file: source_name.as_deref(),
+            }),
             links: &links,
             up,
             play: (format == Format::Html).then(|| export::Play {

@@ -127,6 +127,8 @@ pub fn paint(frame: &mut Frame, grid: Grid, local: Rectangle, paint: &Paint<'_>)
     for index in 0..paint.morph.moves.len() {
         paint_box(frame, local, paint, index, &placed);
         paint_kept(frame, local, paint, &placed, Some(index));
+        paint_orphans(frame, local, paint, true, &placed, Some(index));
+        paint_orphans(frame, local, paint, false, &placed, Some(index));
     }
 }
 
@@ -191,8 +193,33 @@ fn paint_ground(
             alpha,
         },
     );
-    for name in &paint.morph.orphans[usize::from(!old)] {
-        let Some((part, at)) = raster.part(name) else {
+    paint_orphans(frame, local, paint, old, placed, None);
+}
+
+/// The parts of the picture before or of the new one alone that lie
+/// `over` the box of that index, or on the ground ([`Morph::orphans`]):
+/// where that picture has them, at its strength.
+fn paint_orphans(
+    frame: &mut Frame,
+    local: Rectangle,
+    paint: &Paint<'_>,
+    old: bool,
+    placed: &Placed,
+    over: Option<usize>,
+) {
+    let (raster, size, alpha) = if old {
+        (paint.old, placed.old_size, placed.out)
+    } else {
+        (paint.new, placed.new_size, placed.inn)
+    };
+    if alpha <= 0.02 {
+        return;
+    }
+    let orphans = paint.morph.orphans[usize::from(!old)]
+        .iter()
+        .filter(|orphan| orphan.over == over);
+    for orphan in orphans {
+        let Some((part, at)) = raster.part(&orphan.name) else {
             continue;
         };
         let dest = onto(at, size, placed.paper);
@@ -383,8 +410,8 @@ pub(in crate::paper) fn box_pictures_of(
 /// which of them are in both pictures.
 pub fn prepare(
     morph: &mut Morph,
-    old: &Raster,
-    new: &Raster,
+    (old, new): (&Raster, &Raster),
+    maps: [&omaspec_uml::map::Map; 2],
     lines: Option<&super::super::wires::Glide>,
 ) {
     let held: Vec<[Vec<Rectangle>; 2]> = (0..morph.moves.len())
@@ -407,6 +434,7 @@ pub fn prepare(
             solid: step.anchored && covers(new, &step.parts[1]),
         };
     }
+    let mut names: [Vec<String>; 2] = Default::default();
     for (side, raster) in [(0, old), (1, new)] {
         let Some(parts) = &raster.parts else {
             continue;
@@ -430,51 +458,50 @@ pub fn prepare(
             .cloned()
             .collect();
         orphans.sort();
-        morph.orphans[side] = orphans;
+        names[side] = orphans;
     }
     // A part in both pictures that no box takes glides on its own.
-    let [old_orphans, new_orphans] = &mut morph.orphans;
-    let kept: Vec<String> = old_orphans
+    let [old_names, new_names] = &mut names;
+    let kept: Vec<String> = old_names
         .iter()
-        .filter(|name| new_orphans.binary_search(name).is_ok())
+        .filter(|name| new_names.binary_search(name).is_ok())
         .cloned()
         .collect();
-    old_orphans.retain(|name| kept.binary_search(name).is_err());
-    new_orphans.retain(|name| kept.binary_search(name).is_err());
+    old_names.retain(|name| kept.binary_search(name).is_err());
+    new_names.retain(|name| kept.binary_search(name).is_err());
+    let moves = &morph.moves;
+    for (side, names) in names.into_iter().enumerate() {
+        morph.orphans[side] = names
+            .into_iter()
+            .map(|name| Loose {
+                over: lies_in(moves, maps[side], side, &name),
+                name,
+            })
+            .collect();
+    }
     morph.kept = kept
         .into_iter()
         .map(|name| Kept {
             solid: covers(new, &name),
-            over: over(&morph.moves, old.part(&name), new.part(&name)),
+            over: lies_in(moves, maps[1], 1, &name).or_else(|| lies_in(moves, maps[0], 0, &name)),
             name,
         })
         .collect();
 }
 
-/// The last of `moves` whose box holds a part at `was` before and at `is`
-/// now ([`Kept::over`]): a box holds it where it lies within the box in a
-/// picture the box is in.
-fn over(
-    moves: &[Move],
-    was: Option<(Raster, Rectangle)>,
-    is: Option<(Raster, Rectangle)>,
-) -> Option<usize> {
-    let holds = |outer: Rectangle, inner: Rectangle| {
-        inner.x >= outer.x - RIM_SLACK
-            && inner.y >= outer.y - RIM_SLACK
-            && inner.x + inner.width <= outer.x + outer.width + RIM_SLACK
-            && inner.y + inner.height <= outer.y + outer.height + RIM_SLACK
+/// The move whose box, in the picture before (`side` 0) or the new one,
+/// is the one `map` says the part `name` lies inside
+/// ([`omaspec_uml::map::Map::inside`]).
+fn lies_in(moves: &[Move], map: &omaspec_uml::map::Map, side: usize, name: &str) -> Option<usize> {
+    let (_, owner) = map.inside.iter().find(|(part, _)| part == name)?;
+    let there = |step: &Move| match side {
+        0 => step.role != Role::Arrive,
+        _ => step.role != Role::Leave,
     };
-    let (was, is) = (was.map(|(_, at)| at), is.map(|(_, at)| at));
-    moves.iter().rposition(|step| {
-        let before = step.role != Role::Arrive && was.is_some_and(|at| holds(step.from, at));
-        let now = step.role != Role::Leave && is.is_some_and(|at| holds(step.to, at));
-        before || now
-    })
+    moves
+        .iter()
+        .position(|step| there(step) && step.parts[side] == *owner)
 }
-
-/// How far past a box a part it holds may reach: the stroke of the box.
-const RIM_SLACK: f32 = 2.0;
 
 /// The parts in both pictures that no box takes ([`Morph::kept`]), each
 /// from its old place to its new one. Each picture of it is as large as

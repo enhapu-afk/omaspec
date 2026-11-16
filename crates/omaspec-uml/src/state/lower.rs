@@ -477,6 +477,9 @@ mod tests {
         let playing = &d.root.nodes[1].children;
         assert_eq!(keys(playing), ["", "Plunge", "Live", "ExtraBall"]);
         assert_eq!(playing.nodes[3].label.value, "Extra Ball");
+        // Moved on the line that first names another: after that one.
+        let d = lowered("stateDiagram-v2\nstate \"M\" as Moved\nstate P {\n  New --> Moved\n}\n");
+        assert_eq!(keys(&d.root.nodes[0].children), ["New", "Moved"]);
     }
 
     #[test]

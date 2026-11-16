@@ -236,45 +236,40 @@ impl MachinePlay {
         }
     }
 
-    /// Lines the steps up after what is already on screen. One beat
-    /// travels at once; the next beat waits until the longest of them
-    /// has arrived.
+    /// Lines the steps up after what is already on screen, in the model's
+    /// time ([`omaspec_model::play::timed`]): one beat travels at once; the
+    /// next beat waits until the longest of them has arrived.
     pub(super) fn schedule(&mut self, steps: &[Taken], now: Instant) {
-        let mut began = now.max(self.free_at);
-        let mut beats: Vec<u32> = Vec::new();
-        for step in steps {
-            if !beats.contains(&step.beat) {
-                beats.push(step.beat);
+        let began = now.max(self.free_at);
+        let routes = &self.placed.routes;
+        let (timed, through) = omaspec_model::play::timed(steps, |step| {
+            routes[step.transition]
+                .as_deref()
+                .map_or(0, omaspec_model::play::travel_millis)
+        });
+        for omaspec_model::play::Timed { index, at, took } in timed {
+            let step = &steps[index];
+            let (at, took) = (
+                began + Duration::from_millis(at),
+                Duration::from_millis(took),
+            );
+            for &state in &step.left {
+                light(&mut self.lights[state], at, false);
             }
-        }
-        for beat in beats {
-            let mut longest = Duration::ZERO;
-            for step in steps.iter().filter(|s| s.beat == beat) {
-                let route = self.placed.routes[step.transition].clone();
-                let took = route
-                    .as_ref()
-                    .map_or(Duration::ZERO, |points| travel_time(points));
-                longest = longest.max(took);
-                let at = began;
-                for &state in &step.left {
-                    light(&mut self.lights[state], at, false);
-                }
-                for &state in &step.entered {
-                    light(&mut self.lights[state], at + took, true);
-                }
-                self.shown.push(Travel {
-                    route,
-                    start: at,
-                    took,
-                    entered: step.entered.clone(),
-                });
-                self.lines
-                    .push((at, self.machine.transitions[step.transition].line));
+            for &state in &step.entered {
+                light(&mut self.lights[state], at + took, true);
             }
-            began += longest + STEP_GAP;
+            self.shown.push(Travel {
+                route: self.placed.routes[step.transition].clone(),
+                start: at,
+                took,
+                entered: step.entered.clone(),
+            });
+            self.lines
+                .push((at, self.machine.transitions[step.transition].line));
         }
         if !steps.is_empty() {
-            self.free_at = began;
+            self.free_at = began + Duration::from_millis(through);
         }
         // What has finished long ago is not drawn again.
         let old = now.checked_sub(Duration::from_secs(5)).unwrap_or(now);

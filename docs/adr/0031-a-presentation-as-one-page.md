@@ -30,9 +30,12 @@ the project as a page).
    places are `omaspec_model::play::Graph`, every run its start can reach
    (the first 256), each with the states it is in, named as the play bar
    names them, its options as the bar says them, the place each leads to
-   and the transitions it takes in beats: the steps of one beat (a fork's
-   arms, the starts of a state's regions) light at once, as in the pane.
-   Each transition's route is written once.
+   and the steps it takes in time, as `omaspec_model::play::timed` lays
+   them out for the pane too: one beat's at once (a fork's arms, the
+   starts of a state's regions), the next when the longest has arrived
+   and a short gap after; each light as long as the pane's on its way; a
+   state dark as its light sets off and lit as it arrives. Each
+   transition's route is written once.
    The page's script has no reading of PlantUML or Mermaid and no rules of
    a machine; it steps through the table. Nothing is decided twice.
 3. **The pane's light.** The picture lies on white, as the pane shows

@@ -46,8 +46,6 @@ const VEIL_FADE: Duration = Duration::from_millis(320);
 pub(super) const VEIL: f32 = 0.62;
 /// How long a state's light takes to come on or go out.
 const LIGHT_FADE: Duration = Duration::from_millis(420);
-/// A pause between two steps that follow each other by themselves.
-const STEP_GAP: Duration = Duration::from_millis(70);
 /// How long the ripple of an arrival spreads.
 const RIPPLE: Duration = Duration::from_millis(620);
 /// Steps a machine remembers for going back.

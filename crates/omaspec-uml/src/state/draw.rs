@@ -102,6 +102,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         skin.strict,
     );
     map.places = nest::places(&diagram.root, &scene, &diagram.frame.held);
+    notes_inside(&scene, &mut Vec::new(), None, &mut map.inside);
     map.misses = misses;
     map.misses.extend(crate::hand::said(
         &diagram.frame.held,
@@ -476,7 +477,7 @@ fn place_notes(
             Side::Bottom => rect.y + rect.h + NOTE_GAP,
             Side::Left | Side::Right => rect.y,
         };
-        for index in indices {
+        for (nth, index) in indices.into_iter().enumerate() {
             let note = &mut sized[index];
             let (x, y) = match side {
                 Side::Right => (rect.x + rect.w + NOTE_GAP, cursor),
@@ -498,6 +499,13 @@ fn place_notes(
                 w: note.w,
                 h: note.h,
                 target,
+                side: match side {
+                    Side::Left => "left",
+                    Side::Right => "right",
+                    Side::Top => "top",
+                    Side::Bottom => "bottom",
+                },
+                nth,
                 text: std::mem::replace(&mut note.text, Block::empty()),
                 tether: None,
             });
@@ -835,15 +843,19 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 /// The part of each of `scene`'s notes, at `path` in the tree: a part of
 /// its own by its state's ([`crate::svg::note_part`]).
 fn note_parts(scene: &Scene, path: &[usize]) -> Vec<String> {
-    crate::svg::note_parts(scene.notes.iter().map(|note| note.target), |target| {
-        let name = scene
-            .nodes
-            .get(target)
-            .map_or("", |node| node.item.name.as_str());
-        let mut at = path.to_vec();
-        at.push(target);
-        crate::svg::box_part(name, &at)
-    })
+    scene
+        .notes
+        .iter()
+        .map(|note| {
+            let name = scene
+                .nodes
+                .get(note.target)
+                .map_or("", |node| node.item.name.as_str());
+            let mut at = path.to_vec();
+            at.push(note.target);
+            crate::svg::note_part(&crate::svg::box_part(name, &at), note.side, note.nth)
+        })
+        .collect()
 }
 
 /// Each state's shape, in its part; `path` is where `scene` is in the
@@ -976,6 +988,34 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
     }
     for node in &scene.nodes {
         paint_edges(canvas, &node.children, curve);
+    }
+}
+
+/// Each note's part with the part of the state it lies inside, a
+/// region's state for a region, into `out`; `path` is where `scene` is in
+/// the tree, `owner` the state around it, none at the top.
+fn notes_inside(
+    scene: &Scene,
+    path: &mut Vec<usize>,
+    owner: Option<&str>,
+    out: &mut Vec<(String, String)>,
+) {
+    if let Some(owner) = owner {
+        out.extend(
+            note_parts(scene, path)
+                .into_iter()
+                .map(|part| (part, owner.to_owned())),
+        );
+    }
+    for (index, node) in scene.nodes.iter().enumerate() {
+        path.push(index);
+        let inner = if node.item.kind == Kind::Region {
+            owner.map(str::to_owned)
+        } else {
+            Some(crate::svg::box_part(&node.item.name, path))
+        };
+        notes_inside(&node.children, path, inner.as_deref(), out);
+        path.pop();
     }
 }
 
@@ -1223,9 +1263,9 @@ mod tests {
                 .collect()
         };
         for (name, words) in [
-            ("note:state:Grind#0", "fine"),
-            ("note:state:Grind#1", "dark"),
-            ("note:state:Idle#0", "coarse"),
+            ("note:state:Grind#right0", "fine"),
+            ("note:state:Grind#left0", "dark"),
+            ("note:state:Idle#left0", "coarse"),
         ] {
             let group = part(name);
             assert!(
@@ -1234,6 +1274,27 @@ mod tests {
             );
         }
         assert!(!part("state:Brewing").contains("fine"));
+        // The map says which state each note lies inside.
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let inside = |part: &str| {
+            map.inside
+                .iter()
+                .find(|(note, _)| note == part)
+                .map(|(_, owner)| owner.as_str())
+        };
+        assert_eq!(inside("note:state:Grind#right0"), Some("state:Brewing"));
+        assert_eq!(inside("note:state:Idle#left0"), None);
+        // A note added before it on another side renames it not.
+        let added = source.replace(
+            "  note right of Grind : fine\n",
+            "  note left of Grind : first\n  note right of Grind : fine\n",
+        );
+        let (svg, _) = crate::render_mapped(&added, None).unwrap();
+        assert!(
+            crate::part_groups(&svg)
+                .iter()
+                .any(|(n, g)| n == "note:state:Grind#right0" && g.contains("fine"))
+        );
     }
 
     /// A state whose name is that of another part (the title's, a

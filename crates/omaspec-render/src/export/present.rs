@@ -6,7 +6,7 @@
 use omaspec_core::Language;
 use omaspec_core::embed;
 use omaspec_core::skin::{Colors, LIGHT};
-use omaspec_model::play::Graph;
+use omaspec_model::play::{self, Graph};
 use omaspec_model::{Machine, Taken};
 use omaspec_uml::Color;
 use omaspec_uml::map::Map;
@@ -25,12 +25,15 @@ pub struct Play<'a> {
     pub accent: Color,
 }
 
-/// The paper and the accent of `colors`: a presentation's veil and light.
+/// The paper and the accent of `colors`: a presentation's veil and light;
+/// Omaspec's light palette's for one that does not read.
 pub fn stage(colors: &Colors) -> (Color, Color) {
-    let color = |hex: &str, or: Color| omaspec_uml::parse_color(hex).ok().flatten().unwrap_or(or);
+    let color = |hex: &str| omaspec_uml::parse_color(hex).ok().flatten();
+    let paper = color(colors.background).or_else(|| color(LIGHT.background));
+    let accent = color(colors.accent).or_else(|| color(LIGHT.accent));
     (
-        color(colors.background, Color::WHITE),
-        color(colors.accent, Color::BLACK),
+        paper.unwrap_or(Color::WHITE),
+        accent.unwrap_or(Color::BLACK),
     )
 }
 
@@ -111,6 +114,7 @@ fn scenario_data(map: &Map) -> Value {
                 "points": step.points.iter().copied().map(point).collect::<Vec<_>>(),
                 "top": round(step.top),
                 "bottom": round(step.bottom),
+                "took": play::travel_millis(&step.points),
             })
         })
         .collect();
@@ -130,9 +134,9 @@ fn scenario_data(map: &Map) -> Value {
 
 /// A state machine: every state's box and every transition's route, and
 /// every place its start reaches ([`Graph`]), with the states it is in and
-/// its options, each with what it takes in beats (the steps of one beat
-/// travel at once, as in the pane); `None` where the picture does not show
-/// every state and transition, as the pane refuses to play it.
+/// its options, each with the steps it takes in time as the pane takes
+/// them ([`play::timed`]); `None` where the picture does not show every
+/// state and transition, as the pane refuses to play it.
 fn machine_data(m: &Machine, map: &Map) -> Option<Value> {
     let placed = m.place(map);
     let states = placed
@@ -170,7 +174,7 @@ fn machine_data(m: &Machine, map: &Map) -> Option<Value> {
                         "label": label,
                         "to": to,
                         "next": way.next,
-                        "taken": beats(&way.taken),
+                        "taken": steps(&way.taken, &placed.routes),
                     })
                 })
                 .collect();
@@ -187,21 +191,32 @@ fn machine_data(m: &Machine, map: &Map) -> Option<Value> {
         "states": states,
         "routes": routes,
         "places": places,
-        "begun": beats(&graph.begun),
+        "begun": steps(&graph.begun, &placed.routes),
     }))
 }
 
-/// The transitions of `taken` by their beats, in the order they come.
-fn beats(taken: &[Taken]) -> Vec<Vec<usize>> {
-    let mut out: Vec<(u32, Vec<usize>)> = Vec::new();
-    for step in taken {
-        match out.iter_mut().find(|(beat, _)| *beat == step.beat) {
-            Some((_, transitions)) => transitions.push(step.transition),
-            None => out.push((step.beat, vec![step.transition])),
-        }
-    }
-    out.into_iter()
-        .map(|(_, transitions)| transitions)
+/// The steps of `taken` in time, as the pane takes them: each its
+/// transition, when its light sets off and how long it travels, in
+/// milliseconds, and the states it leaves (dark as it sets off) and enters
+/// (lit as it arrives).
+fn steps(taken: &[Taken], routes: &[Option<Vec<(f32, f32)>>]) -> Vec<Value> {
+    let (timed, _) = play::timed(taken, |step| {
+        routes[step.transition]
+            .as_deref()
+            .map_or(0, play::travel_millis)
+    });
+    timed
+        .into_iter()
+        .map(|play::Timed { index, at, took }| {
+            let step = &taken[index];
+            json!({
+                "t": step.transition,
+                "at": at,
+                "took": took,
+                "left": step.left,
+                "entered": step.entered,
+            })
+        })
         .collect()
 }
 
@@ -378,27 +393,16 @@ mod tests {
         let next = places[0]["options"][0]["next"].as_u64().unwrap() as usize;
         assert_eq!(places[next]["at"], "Open");
         assert_eq!(places[next]["options"][0]["next"], 0);
-        // What an option takes, by beats of transitions, each transition's
+        // What an option takes, step by step in time, each transition's
         // route written once.
-        let taken = places[0]["options"][0]["taken"][0][0].as_u64().unwrap() as usize;
+        let step = &places[0]["options"][0]["taken"][0];
+        let taken = step["t"].as_u64().unwrap() as usize;
         assert!(data["routes"][taken].as_array().unwrap().len() >= 2);
         assert_eq!(data["routes"].as_array().unwrap().len(), 3);
-        assert_eq!(data["begun"], json!([[0]]));
-    }
-
-    /// Steps of one beat light at once: a fork's arms are one beat.
-    #[test]
-    fn the_arms_of_a_fork_are_one_beat() {
-        let taken = |transition, beat| Taken {
-            transition,
-            left: Vec::new(),
-            entered: Vec::new(),
-            beat,
-        };
-        assert_eq!(
-            beats(&[taken(0, 0), taken(1, 1), taken(2, 1), taken(3, 2)]),
-            vec![vec![0], vec![1, 2], vec![3]]
-        );
+        assert_eq!(step["at"], 0);
+        assert!(step["took"].as_u64().unwrap() >= 380);
+        assert_eq!(step["entered"].as_array().unwrap().len(), 1);
+        assert_eq!(data["begun"][0]["t"], 0);
     }
 
     /// The page's script steps as the pane does, run where Node is: a
@@ -443,6 +447,19 @@ console.log("stepped");
             "{}",
             String::from_utf8_lossy(&ran.stderr)
         );
+    }
+
+    /// A look whose colors do not read plays in Omaspec's light ones, its
+    /// light blue rather than black.
+    #[test]
+    fn a_stage_that_does_not_read_is_omaspec_s() {
+        let colors = Colors {
+            background: "paper",
+            accent: "#12",
+            ..LIGHT
+        };
+        assert_eq!(stage(&colors), stage(&LIGHT));
+        assert_eq!(stage(&LIGHT).1, Color::hex(0x2F6FDB));
     }
 
     /// Without a play a page shows the picture alone.
