@@ -91,6 +91,11 @@ struct Parser {
     /// States only a transition named so far. PlantUML moves one into the
     /// state where it is declared or described next.
     implicit: HashSet<String>,
+    /// Every name as its line writes it ([`Diagram::names`]).
+    written: Vec<crate::Mention>,
+    /// The states open around the line being read, by the names they were
+    /// opened with, each with its region.
+    place: Vec<(String, usize)>,
 }
 
 struct Decl {
@@ -164,6 +169,7 @@ impl Parser {
         Ok(Diagram {
             root: self.root,
             frame: self.frame,
+            names: self.written,
         })
     }
 
@@ -255,6 +261,7 @@ impl Parser {
         if self.open.pop().is_none() {
             return Err(Declined::at(line, "a `}` has no state to close"));
         }
+        self.place.pop();
         Ok(())
     }
 
@@ -265,6 +272,9 @@ impl Parser {
                 "`[*]` is the start or the end, not a state name",
             ));
         }
+        let written = decl.key.clone();
+        self.written
+            .push(crate::Mention::declared(&written, &decl.label, decl.line).within(&self.place));
         // A state written again, here or inside another, is the same state.
         let path = match self.find(&decl.key) {
             Some(path) => self.settle(&decl.key, path, decl.line)?,
@@ -299,6 +309,7 @@ impl Parser {
         self.node_mut(&path).composite = true;
         self.opened.insert(decl.key.clone());
         self.open.push((path, decl.line));
+        self.place.push((written, 0));
         Ok(())
     }
 
@@ -315,6 +326,9 @@ impl Parser {
         } else {
             return Err(Declined::at(line, "a separator mixes `-` and `|`"));
         };
+        if let Some((_, region)) = self.place.last_mut() {
+            *region += 1;
+        }
         let (path, split) = match self.open.last() {
             Some((path, _)) => (path.clone(), split),
             None => (self.top.clone(), Split::Beside),
@@ -369,6 +383,12 @@ impl Parser {
     }
 
     fn arrow(&mut self, raw: RawArrow, line: usize) -> Result<(), Declined> {
+        for name in [&raw.from, &raw.to] {
+            if name != "[*]" && history(name).is_none() {
+                self.written
+                    .push(crate::Mention::used(name, line).within(&self.place));
+            }
+        }
         let from = self.endpoint(&raw.from, true, line)?;
         let to = self.endpoint(&raw.to, false, line)?;
         // PlantUML keeps a second or later concurrent region to itself.
@@ -459,6 +479,8 @@ impl Parser {
                 "a description on `[*]` is not supported yet",
             ));
         }
+        self.written
+            .push(crate::Mention::used(name, line).within(&self.place));
         if let Some(path) = self.find(name) {
             self.settle(name, path, line)?;
         }
@@ -1740,6 +1762,34 @@ mod tests {
         assert_eq!(Toward::Left.laid(), (Some(false), false));
         assert_eq!(Toward::Up.laid(), (None, true));
         assert_eq!(Toward::Down.laid(), (None, false));
+    }
+
+    /// The tree holds a name once; where its lines write it is kept
+    /// beside it, with the states around each line.
+    #[test]
+    fn every_line_that_names_a_state_is_kept() {
+        let d = diagram(
+            "@startuml\nstate \"Long\" as P {\n  [*] --> X\n  --\n  Y <-- X2 : back\n}\nP : busy\n@enduml\n",
+        );
+        let names: Vec<(&str, usize, bool, String)> = d
+            .names
+            .iter()
+            .map(|m| {
+                let place: Vec<String> = m.place.iter().map(|(s, r)| format!("{s}/{r}")).collect();
+                (m.name.as_str(), m.line, m.declares, place.join(" "))
+            })
+            .collect();
+        assert_eq!(
+            names,
+            [
+                ("P", 1, true, String::new()),
+                ("X", 2, false, "P/0".to_owned()),
+                ("X2", 4, false, "P/1".to_owned()),
+                ("Y", 4, false, "P/1".to_owned()),
+                ("P", 6, false, String::new()),
+            ]
+        );
+        assert_eq!(d.names[0].shown, "Long");
     }
 
     #[test]

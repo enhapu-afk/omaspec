@@ -93,6 +93,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
     Some(Diagram {
         root,
         frame: lowering.frame,
+        names: chart.names.clone(),
     })
 }
 

@@ -60,7 +60,7 @@ pub mod yaml;
 // graph and draws with the same canvas. The modules stay private.
 pub use annotations::TITLE_PART;
 pub use color::{Color, Paint, parse as parse_color};
-pub use common::lines_away;
+pub use common::{Mention, lines_away};
 pub use icons::{open_iconic_names, unknown_open_iconic};
 pub use svg::{
     Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, PART, SANS_FACES, Stroke, card_part, faces,

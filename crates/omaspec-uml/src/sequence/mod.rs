@@ -32,6 +32,9 @@ pub struct Diagram {
     /// Title, header, footer, caption, legend, main frame, scale and
     /// skinparams.
     pub frame: Frame,
+    /// Each participant's name where a line declares or uses it, in the
+    /// order written.
+    pub names: Vec<crate::Mention>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

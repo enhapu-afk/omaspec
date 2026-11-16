@@ -33,6 +33,9 @@ pub struct Chart {
     pub classes: Vec<(String, String)>,
     /// `style Id style`: each state's id and its style, in order.
     pub styles: Vec<(String, String)>,
+    /// Each state's name where a line declares, describes, joins or
+    /// notes it, in the order written.
+    pub names: Vec<crate::Mention>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -325,6 +328,10 @@ impl Reader {
         }
         let here = self.here();
         let state = self.state(name, no)?;
+        if let Some(written) = self.chart.names.last_mut() {
+            written.declares = true;
+            written.shown = label.unwrap_or_default().to_owned();
+        }
         let s = &mut self.chart.states[state];
         if let Some(label) = label {
             s.label = Some(label.to_owned());
@@ -414,6 +421,14 @@ impl Reader {
     /// and named at the top again it stays where it is. A state that holds
     /// others does not move, nor one into another region of its own state.
     fn state(&mut self, name: &str, no: usize) -> Option<usize> {
+        let place: Vec<(String, usize)> = self
+            .open
+            .iter()
+            .map(|&(state, region)| (self.chart.states[state].id.clone(), region))
+            .collect();
+        self.chart
+            .names
+            .push(crate::Mention::used(name, no).within(&place));
         let here = self.here();
         if let Some(&state) = self.by_name.get(name) {
             let s = &mut self.chart.states[state];

@@ -519,6 +519,61 @@ fn scale(rest: &str) -> Result<Scale, String> {
     }
 }
 
+/// A name as a line writes it. A tree holds each name once, whichever
+/// lines write it; the rules about names (lint: a name declared twice, one
+/// that appears once, a namesake in another state) read the writing, and
+/// read it here, as the reader of the diagram took it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Mention {
+    /// The name as other lines use it: a participant's code, a state's
+    /// name, with its dots.
+    pub name: String,
+    /// What a declaration shows instead, where it has both (`"Web app" as
+    /// Web`: `Web app`); empty otherwise.
+    pub shown: String,
+    /// Zero-based line.
+    pub line: usize,
+    /// Whether the line declares the name; it uses it otherwise.
+    pub declares: bool,
+    /// The composite states around the line, outermost first, each with
+    /// its concurrent region (0 before any `--` or `||`). Empty outside
+    /// any state, and in a sequence diagram.
+    pub place: Vec<(String, usize)>,
+}
+
+impl Mention {
+    /// `name` used on `line`, outside any state.
+    pub fn used(name: &str, line: usize) -> Self {
+        Self {
+            name: name.to_owned(),
+            shown: String::new(),
+            line,
+            declares: false,
+            place: Vec::new(),
+        }
+    }
+
+    /// `name` declared on `line`, shown as `shown`, outside any state.
+    pub fn declared(name: &str, shown: &str, line: usize) -> Self {
+        Self {
+            shown: if shown == name {
+                String::new()
+            } else {
+                shown.to_owned()
+            },
+            declares: true,
+            ..Self::used(name, line)
+        }
+    }
+
+    /// The same, written inside the states of `place`.
+    #[must_use]
+    pub fn within(mut self, place: &[(String, usize)]) -> Self {
+        self.place = place.to_vec();
+        self
+    }
+}
+
 /// Where zero-based line `there` lies from line `here`, as a message says
 /// it: "on the line above", "6 lines above", "3 lines below". Not a line's
 /// number: what is read may not begin where the file does (a look's skin

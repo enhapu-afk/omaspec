@@ -30,6 +30,9 @@ pub use table::draw_table;
 pub struct Diagram {
     pub root: Container,
     pub frame: Frame,
+    /// Each state's name where a line declares, describes or joins it, in
+    /// the order written, with the states around that line.
+    pub names: Vec<crate::Mention>,
 }
 
 /// The states and transitions written directly inside one state (or the

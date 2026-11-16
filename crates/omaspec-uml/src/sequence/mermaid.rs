@@ -68,6 +68,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         boxes: Vec::new(),
         footbox: false,
         hide_unlinked: false,
+        names: Vec::new(),
         // The front matter's title, unless a `title` line follows.
         frame: Frame {
             title: crate::front_title(source).map(|(line, title)| words(line, title)),
@@ -362,7 +363,12 @@ fn place(
     declared: &Declared,
     line: usize,
 ) -> usize {
-    let at = ensure(
+    diagram.names.push(crate::Mention::declared(
+        &declared.code,
+        &declared.label,
+        line,
+    ));
+    let at = enter(
         diagram,
         index,
         &declared.code,
@@ -1009,7 +1015,22 @@ fn autonumber(rest: &str) -> Option<Option<(usize, usize)>> {
     Some(Some((start, step)))
 }
 
+/// The participant a line uses by its `code`, made if it is new.
 fn ensure(
+    diagram: &mut Diagram,
+    index: &mut HashMap<String, usize>,
+    code: &str,
+    label: &str,
+    shape: Shape,
+    line: usize,
+) -> usize {
+    diagram.names.push(crate::Mention::used(code, line));
+    enter(diagram, index, code, label, shape, line)
+}
+
+/// The participant called `code`, made if it is new, without a word on
+/// who names it.
+fn enter(
     diagram: &mut Diagram,
     index: &mut HashMap<String, usize>,
     code: &str,

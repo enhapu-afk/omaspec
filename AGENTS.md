@@ -84,6 +84,10 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
   state, class and flowchart diagrams, and lines into closed ones are
   routed by `graph::across`: a fix to either goes there, not into a
   drawer.
+- A lint rule about names (declared twice, written once, a namesake)
+  reads `omaspec_uml::Mention`s, which the engine's readers keep as they
+  read (`Diagram::names`): a new line that names something is recorded
+  there. `lint/written.rs` reads by pattern only what the engine declines.
 
 ## Omarchy facts the code relies on
 

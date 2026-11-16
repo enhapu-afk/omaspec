@@ -17,20 +17,19 @@ mod fix;
 mod icons;
 mod namesakes;
 mod portable;
+mod written;
 
 pub use portable::portable;
 
 use std::collections::{HashMap, HashSet};
 
-use omaspec_uml::element_lines;
+use omaspec_uml::{Mention, element_lines};
 use regex::Regex;
 use serde::Serialize;
 
 use crate::kind::{Kind, classify};
 use crate::lang::{Language, mermaid_graph, mermaid_head, puml_start};
-use crate::text::{
-    is_note_block_open, is_note_closer, is_note_one_line, normalize_newlines, re, unquote,
-};
+use crate::text::{is_note_block_open, is_note_closer, is_note_one_line, normalize_newlines, re};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -132,47 +131,39 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
             if portable::is_flowchart(&code) {
                 portable::findings(&lines, &rows, &mut findings);
             }
+            // The engine's reader says where each name is written; the
+            // lines are read by pattern where it declines.
             match kind {
-                Kind::Sequence => sequence(&mermaid_parts(&rows), &mut findings),
-                Kind::State => state_names(
-                    &rows,
-                    re!(r"^([\w.]+|\[\*\])\s*-->\s*([\w.]+|\[\*\])"),
-                    re!(r#"^state\s+(?:"[^"]*"\s+as\s+)?([\w.]+)"#),
-                    &mut findings,
-                ),
+                Kind::Sequence => {
+                    let names = omaspec_uml::sequence::from_mermaid(&code)
+                        .map_or_else(|| written::mermaid_sequence(&rows), |d| d.names);
+                    sequence(&names, &mut findings);
+                }
+                Kind::State => {
+                    let names = omaspec_uml::state::mermaid::read(&code).map_or_else(
+                        || {
+                            written::states(
+                                &rows,
+                                re!(r"^([\w.]+|\[\*\])\s*-->\s*([\w.]+|\[\*\])"),
+                                re!(r#"^state\s+(?:"[^"]*"\s+as\s+)?([\w.]+)"#),
+                            )
+                        },
+                        |chart| chart.names,
+                    );
+                    state_names(&names, &mut findings);
+                }
                 _ => {}
             }
         }
         // The preprocessor can write, hide and repeat lines, so the rules
-        // about names hold back once it runs.
+        // about names hold back once it runs, and the engine's word with
+        // them ([`drawing`] has it, where the preprocessor has run).
         Language::PlantUml if lines.iter().any(|l| l.trim_start().starts_with('!')) => {}
         Language::PlantUml => {
-            let rows: Vec<Row> = element_lines(&code)
-                .unwrap_or_default()
-                .into_iter()
-                .map(|line| Row {
-                    row: line.no,
-                    text: line.text,
-                })
-                .collect();
-            match kind {
-                Kind::Sequence => sequence(&plantuml_parts(&rows), &mut findings),
-                Kind::Activity => swimlanes(&rows, &mut findings),
-                Kind::State => {
-                    state_names(
-                        &rows,
-                        re!(
-                            r#"^("[^"]+"|[\w.]+|\[\*\])\s*-[-\w\[\],#]*>\s*("[^"]+"|[\w.]+|\[\*\])"#
-                        ),
-                        re!(r#"(?i)^state\s+(?:"[^"]*"\s+as\s+)?([\w.]+)"#),
-                        &mut findings,
-                    );
-                    namesakes::namesakes(&rows, &mut findings);
-                }
-                _ => {}
-            }
+            let read = omaspec_uml::parse(&code);
+            plantuml_names(&code, kind, read.as_ref().ok(), &mut findings);
             // A line the rules already name needs no second word.
-            if let Some(said) = engine(&code)
+            if let Some(said) = read.err().and_then(said)
                 && !findings
                     .iter()
                     .any(|f| f.line == said.line && f.severity >= Severity::Warning)
@@ -185,13 +176,49 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     findings
 }
 
-/// What Omaspec's own engine does not read. What PlantUML draws is drawn by
-/// the Java PlantUML where it is installed, and not at all where it is
-/// not: worth knowing before it goes where Java is not. What PlantUML
-/// refuses too is a mistake, an error where the syntax rules do not name
-/// its line already.
-fn engine(code: &str) -> Option<Finding> {
-    said(omaspec_uml::parse(code).err()?)
+/// The rules about the names of a PlantUML diagram of `kind`. Where each
+/// name is written says the engine's reader (`read`, what it made of the
+/// text); the lines are read by pattern where it declined.
+fn plantuml_names(
+    code: &str,
+    kind: Kind,
+    read: Option<&omaspec_uml::Diagram>,
+    findings: &mut Vec<Finding>,
+) {
+    let rows = || -> Vec<Row> {
+        element_lines(code)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|line| Row {
+                row: line.no,
+                text: line.text,
+            })
+            .collect()
+    };
+    match (kind, read) {
+        (Kind::Sequence, Some(omaspec_uml::Diagram::Sequence(d))) => sequence(&d.names, findings),
+        (Kind::Sequence, _) => sequence(&written::plantuml_sequence(&rows()), findings),
+        (Kind::Activity, _) => swimlanes(&rows(), findings),
+        (Kind::State, read) => {
+            let by_pattern;
+            let names = match read {
+                Some(omaspec_uml::Diagram::State(d)) => &d.names,
+                _ => {
+                    by_pattern = written::states(
+                        &rows(),
+                        re!(
+                            r#"^("[^"]+"|[\w.]+|\[\*\])\s*-[-\w\[\],#]*>\s*("[^"]+"|[\w.]+|\[\*\])"#
+                        ),
+                        re!(r#"(?i)^state\s+(?:"[^"]*"\s+as\s+)?([\w.]+)"#),
+                    );
+                    &by_pattern
+                }
+            };
+            state_names(names, findings);
+            namesakes::namesakes(names, findings);
+        }
+        _ => {}
+    }
 }
 
 /// What Omaspec's own engine says when it draws `code`, beyond what its
@@ -210,8 +237,10 @@ pub fn drawing(code: &str) -> Option<Finding> {
     said(omaspec_uml::render(code).err()?)
 }
 
-/// A refusal of the engine as a finding: a mistake PlantUML refuses too
-/// is an error, anything else is drawn by the Java PlantUML only.
+/// A refusal of the engine as a finding. A mistake PlantUML refuses too
+/// is an error. Anything else is drawn by the Java PlantUML where it is
+/// installed, and not at all where it is not: worth knowing before the
+/// diagram goes where Java is not.
 fn said(declined: omaspec_uml::Declined) -> Option<Finding> {
     let line = declined.line.unwrap_or(0);
     Some(if declined.refused {
@@ -566,169 +595,69 @@ fn mermaid_rows<'a>(lines: &[&'a str]) -> Vec<Row<'a>> {
     rows
 }
 
-struct Decl {
-    /// The name messages use: the alias if there is one.
-    key: String,
-    /// The other name, if any.
-    name: String,
-    row: usize,
-}
-
-struct Message {
-    from: String,
-    to: String,
-    row: usize,
-}
-
-#[derive(Default)]
-struct SequenceParts {
-    decls: Vec<Decl>,
-    messages: Vec<Message>,
-    uses: Vec<String>,
-}
-
-fn plantuml_parts(rows: &[Row]) -> SequenceParts {
-    let mut parts = SequenceParts::default();
-    for r in rows {
-        if let Some(c) = re!(r"(?i)^(?:create\s+)?(?:actor|participant|boundary|control|entity|database|collections|queue)\s+(.+)$")
-            .captures(r.text)
-        {
-            let Some(d) = re!(r#"(?i)^(?:"([^"]+)"|([^\s"<#]+))(?:\s+as\s+(?:"([^"]+)"|([^\s"<#]+)))?"#)
-                .captures(&c[1])
-            else {
-                continue;
-            };
-            let g = |i: usize| d.get(i).map_or("", |m| m.as_str()).to_owned();
-            let (key, name) = if d.get(1).is_some() {
-                let alias = if d.get(3).is_some() { g(3) } else { g(4) };
-                (if alias.is_empty() { g(1) } else { alias }, g(1))
-            } else if d.get(3).is_some() {
-                (g(2), g(3))
-            } else if d.get(4).is_some() {
-                (g(4), g(2))
-            } else {
-                (g(2), String::new())
-            };
-            parts.decls.push(Decl { key, name, row: r.row });
-        } else if let Some(c) = re!(r#"(?i)^(?:activate|deactivate|destroy)\s+("[^"]+"|\S+)"#).captures(r.text) {
-            parts.uses.push(unquote(&c[1]).to_owned());
-        } else if let Some(c) = re!(r"(?i)^[hr]?note\s+(?:over|left of|right of)\s+([^:]+)")
-            .captures(r.text)
-            .or_else(|| re!(r"(?i)^ref\s+over\s+([^:]+)").captures(r.text))
-        {
-            parts.uses.extend(c[1].split(',').map(|k| unquote(k).to_owned()));
-        } else if let Some(c) = re!(r#"^("[^"]+"|[\p{L}\p{N}_.@]+)\s*([ox]?<{0,2}-+(?:\[[^\]]*\])?-*(?:>{1,2}|\\{1,2}|/{1,2})?[ox]?)\s*("[^"]+"|[\p{L}\p{N}_.@]+)\s*(?:\+\+|--|\*\*|!!)?\s*(?::\s*(.*))?$"#)
-            .captures(r.text)
-        {
-            let left = unquote(&c[1]).to_owned();
-            let right = unquote(&c[3]).to_owned();
-            let back = c[2].contains('<') && !c[2].contains('>');
-            let (from, to) = if back { (right, left) } else { (left, right) };
-            parts.messages.push(Message { from, to, row: r.row });
-        }
-    }
-    parts
-}
-
-fn mermaid_parts(rows: &[Row]) -> SequenceParts {
-    let mut parts = SequenceParts::default();
-    for r in rows {
-        if let Some(c) = re!(r"(?i)^(?:create\s+)?(?:participant|actor)\s+(.+?)(?:\s+as\s+(.+))?$")
-            .captures(r.text)
-        {
-            let key = re!(r"@\{.*\}\s*$").replace(&c[1], "").trim().to_owned();
-            let name = c.get(2).map_or("", |m| m.as_str().trim()).to_owned();
-            parts.decls.push(Decl {
-                key,
-                name,
-                row: r.row,
-            });
-        } else if let Some(c) =
-            re!(r"(?i)^(?:activate|deactivate|destroy)\s+(.+)$").captures(r.text)
-        {
-            parts.uses.push(c[1].trim().to_owned());
-        } else if let Some(c) =
-            re!(r"(?i)^note\s+(?:over|left of|right of)\s+([^:]+):").captures(r.text)
-        {
-            parts
-                .uses
-                .extend(c[1].split(',').map(|k| k.trim().to_owned()));
-        } else if let Some(c) = re!(
-            r"^([^:;,<>+\s][^:;,<>+]*?)\s*(<<)?--?(?:>>|>|x|\))\s*[+-]?\s*([^:;,<>+]+?)\s*:\s*(.*)$"
-        )
-        .captures(r.text)
-        {
-            let (a, b) = (c[1].trim().to_owned(), c[3].trim().to_owned());
-            let (from, to) = if c.get(2).is_some() { (b, a) } else { (a, b) };
-            parts.messages.push(Message {
-                from,
-                to,
-                row: r.row,
-            });
-        }
-    }
-    parts
-}
-
-fn sequence(parts: &SequenceParts, findings: &mut Vec<Finding>) {
+/// The rules about a sequence diagram's participants, from where each
+/// name is written.
+fn sequence(names: &[Mention], findings: &mut Vec<Finding>) {
+    let decls: Vec<&Mention> = names.iter().filter(|m| m.declares).collect();
     // Name → index of the declaration that owns it.
     let mut declared: HashMap<&str, usize> = HashMap::new();
-    for (i, d) in parts.decls.iter().enumerate() {
-        match declared.get(d.key.as_str()) {
+    for (i, d) in decls.iter().enumerate() {
+        match declared.get(d.name.as_str()) {
             Some(&first) => findings.push(Finding::new(
                 "declared-twice",
-                d.row,
+                d.line,
                 Severity::Warning,
                 format!(
                     "{} is declared twice (first {}).",
-                    d.key,
-                    crate::lines_away(d.row, parts.decls[first].row)
+                    d.name,
+                    crate::lines_away(d.line, decls[first].line)
                 ),
             )),
             None => {
-                declared.insert(&d.key, i);
+                declared.insert(&d.name, i);
             }
         }
-        if !d.name.is_empty() && d.name != d.key {
-            declared.entry(&d.name).or_insert(i);
+        if !d.shown.is_empty() && d.shown != d.name {
+            declared.entry(&d.shown).or_insert(i);
         }
     }
-    let keys: Vec<&str> = parts.decls.iter().map(|d| d.key.as_str()).collect();
+    let keys: Vec<&str> = decls.iter().map(|d| d.name.as_str()).collect();
     let near = Near::new(&keys);
-    let mut used: HashSet<&str> = parts.uses.iter().map(String::as_str).collect();
+    let mut used: HashSet<&str> = HashSet::new();
     let mut warned: HashSet<&str> = HashSet::new();
-    for m in &parts.messages {
-        for end in [m.from.as_str(), m.to.as_str()] {
-            used.insert(end);
-            if declared.contains_key(end) || parts.decls.is_empty() || warned.contains(end) {
-                continue;
-            }
-            let Some(near) = near.of(end) else {
-                continue;
-            };
-            warned.insert(end);
-            findings.push(Finding::new("undeclared-participant", 
-                m.row,
-                Severity::Warning,
-                format!(
-                    "{end} is not declared. Did you mean {near}? PlantUML and Mermaid would draw a new participant."
-                ),
-            ));
-        }
-    }
-    for (i, d) in parts.decls.iter().enumerate() {
-        if declared.get(d.key.as_str()) != Some(&i) {
+    for m in names.iter().filter(|m| !m.declares) {
+        let name = m.name.as_str();
+        used.insert(name);
+        if declared.contains_key(name) || decls.is_empty() || warned.contains(name) {
             continue;
         }
-        if !used.contains(d.key.as_str()) && !(!d.name.is_empty() && used.contains(d.name.as_str()))
+        let Some(near) = near.of(name) else {
+            continue;
+        };
+        warned.insert(name);
+        findings.push(Finding::new(
+            "undeclared-participant",
+            m.line,
+            Severity::Warning,
+            format!(
+                "{name} is not declared. Did you mean {near}? PlantUML and Mermaid would draw a new participant."
+            ),
+        ));
+    }
+    for (i, d) in decls.iter().enumerate() {
+        if declared.get(d.name.as_str()) != Some(&i) {
+            continue;
+        }
+        if !used.contains(d.name.as_str())
+            && !(!d.shown.is_empty() && used.contains(d.shown.as_str()))
         {
             findings.push(Finding::new(
                 "unused-participant",
-                d.row,
+                d.line,
                 Severity::Info,
                 format!(
                     "{} is declared but never sends or receives a message.",
-                    d.key
+                    d.name
                 ),
             ));
         }
@@ -781,35 +710,28 @@ fn swimlanes(rows: &[Row], findings: &mut Vec<Finding>) {
     }
 }
 
-fn state_names(rows: &[Row], transition: &Regex, declaration: &Regex, findings: &mut Vec<Finding>) {
+/// A state named once whose name is near one named often: a typo, mostly.
+fn state_names(names: &[Mention], findings: &mut Vec<Finding>) {
     // State name → rows it appears on, in order of first appearance.
-    let mut seen: Vec<(String, Vec<usize>)> = Vec::new();
-    let mut index: HashMap<String, usize> = HashMap::new();
-    let mut note = |name: &str, row: usize| {
-        let name = unquote(name);
+    let mut seen: Vec<(&str, Vec<usize>)> = Vec::new();
+    let mut index: HashMap<&str, usize> = HashMap::new();
+    for m in names {
+        let name = m.name.as_str();
         if name.is_empty() || name == "[*]" {
-            return;
+            continue;
         }
         match index.get(name) {
-            Some(&i) => seen[i].1.push(row),
+            Some(&i) => seen[i].1.push(m.line),
             None => {
-                index.insert(name.to_owned(), seen.len());
-                seen.push((name.to_owned(), vec![row]));
+                index.insert(name, seen.len());
+                seen.push((name, vec![m.line]));
             }
-        }
-    };
-    for r in rows {
-        if let Some(c) = declaration.captures(r.text) {
-            note(&c[1], r.row);
-        } else if let Some(c) = transition.captures(r.text) {
-            note(&c[1], r.row);
-            note(&c[2], r.row);
         }
     }
     let frequent: Vec<&str> = seen
         .iter()
         .filter(|(_, rows)| rows.len() > 1)
-        .map(|(n, _)| n.as_str())
+        .map(|(n, _)| *n)
         .collect();
     let near = Near::new(&frequent);
     for (name, rows) in &seen {
@@ -948,6 +870,55 @@ mod tests {
             .into_iter()
             .map(|f| (f.line, f.severity, f.message))
             .collect()
+    }
+
+    fn codes(code: &str, lang: Language) -> Vec<(usize, &'static str)> {
+        lint(code, lang)
+            .into_iter()
+            .map(|f| (f.line, f.code))
+            .collect()
+    }
+
+    /// The rules about names read what the engine read, so they know
+    /// every line that names something, not the two a pattern knew.
+    #[test]
+    fn the_names_are_the_ones_the_engine_read() {
+        // A transition written backwards and a description name the state
+        // too: `Runing` is the one written once.
+        let state = "@startuml\n[*] --> Running\nStopped <-- Running : stop\nStopped : at rest\nRuning --> Stopped\n@enduml\n";
+        assert_eq!(codes(state, Language::PlantUml), [(4, "lone-state")]);
+        // A note and an activation use a participant as a message does.
+        let sequence = "@startuml\nparticipant Alice\nparticipant Bob\nparticipant Carol\nAlice -> Bob : hi\nnote over Carol : waits\nactivate Alise\n@enduml\n";
+        assert_eq!(
+            codes(sequence, Language::PlantUml),
+            [(6, "undeclared-participant")]
+        );
+        let mermaid = "sequenceDiagram\n  participant Alice\n  participant Bob\n  participant Alice\n  Alice->>Bobb: hi\n";
+        assert_eq!(
+            codes(mermaid, Language::Mermaid),
+            [
+                (2, "unused-participant"),
+                (3, "declared-twice"),
+                (4, "undeclared-participant")
+            ]
+        );
+        let chart = "stateDiagram-v2\n  [*] --> Running\n  Running --> Stopped\n  Stopped: at rest\n  note right of Stopped: done\n  Runing --> Stopped\n";
+        assert_eq!(codes(chart, Language::Mermaid), [(5, "lone-state")]);
+    }
+
+    /// A diagram the engine declines keeps its rules about names: its
+    /// lines are read by pattern.
+    #[test]
+    fn a_declined_diagram_has_its_names_read_by_pattern() {
+        let state = "@startuml\n[*] --> Running\nRunning --> Stopped\nStopped --> Running\nRuning --> Stopped\nnewpage\n@enduml\n";
+        assert!(omaspec_uml::parse(state).is_err());
+        let found = codes(state, Language::PlantUml);
+        assert!(found.contains(&(4, "lone-state")), "{found:?}");
+        let sequence = "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bobb : hi\nautoactivate on\n@enduml\n";
+        assert!(omaspec_uml::parse(sequence).is_err());
+        let found = codes(sequence, Language::PlantUml);
+        assert!(found.contains(&(3, "undeclared-participant")), "{found:?}");
+        assert!(found.contains(&(2, "unused-participant")), "{found:?}");
     }
 
     #[test]

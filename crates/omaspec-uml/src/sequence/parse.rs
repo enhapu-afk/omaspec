@@ -85,6 +85,7 @@ impl Default for Parser {
                 footbox: true,
                 hide_unlinked: false,
                 frame: Frame::default(),
+                names: Vec::new(),
             },
             frame: Frame::styled(super::skin::STYLE),
             used: Vec::new(),
@@ -385,6 +386,7 @@ impl Parser {
     fn participant_as(&mut self, code: &str, label: Option<&str>, line: usize) -> usize {
         let index = self.find_or_add(code, label, line);
         self.used[index] = true;
+        self.diagram.names.push(crate::Mention::used(code, line));
         index
     }
 
@@ -486,6 +488,9 @@ impl Parser {
             }
         }
 
+        self.diagram
+            .names
+            .push(crate::Mention::declared(&code, &label, no));
         let existing = self
             .diagram
             .participants
@@ -761,6 +766,7 @@ impl Parser {
                 let index = self.find_or_add(&code, label.as_deref(), no);
                 self.created(index, no)?;
                 self.used[index] = true;
+                self.diagram.names.push(crate::Mention::used(&code, no));
                 End::Participant(index)
             }
             other => self.end(other, Side::Right, no),

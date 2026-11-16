@@ -6,8 +6,9 @@
 
 use std::collections::{HashMap, HashSet};
 
-use super::{Finding, Row, Severity};
-use crate::text::re;
+use omaspec_uml::Mention;
+
+use super::{Finding, Severity};
 
 /// Where a line stands: the composite states around it, outermost first,
 /// each with its region (0 before any `--` or `||`).
@@ -15,61 +16,36 @@ type Place = Vec<(String, usize)>;
 
 /// A warning where a state's name stands in a composite state or region
 /// that neither holds nor lies in the one it was first written in.
-pub(super) fn namesakes(rows: &[Row], findings: &mut Vec<Finding>) {
-    let mut place: Place = Vec::new();
+pub(super) fn namesakes(names: &[Mention], findings: &mut Vec<Finding>) {
     // Each name's first place and its line.
-    let mut home: HashMap<String, (Place, usize)> = HashMap::new();
-    let mut told: HashSet<(String, Place)> = HashSet::new();
-    for r in rows {
-        let text = r.text.trim();
-        if text == "}" {
-            place.pop();
-            continue;
-        }
-        if text.len() >= 2 && (text.chars().all(|c| c == '-') || text.chars().all(|c| c == '|')) {
-            if let Some((_, region)) = place.last_mut() {
-                *region += 1;
-            }
-            continue;
-        }
-        let mut names = Vec::new();
-        let mut opens = None;
-        if let Some(c) = re!(r#"(?i)^state\s+(?:"[^"]*"\s+as\s+)?([\w.]+)"#).captures(text) {
-            names.push(c[1].to_owned());
-            if text.ends_with('{') {
-                opens = Some(c[1].to_owned());
-            }
-        } else if let Some(c) =
-            re!(r"^([\w.]+|\[\*\])\s*-[-\w\[\],#]*>\s*([\w.]+|\[\*\])").captures(text)
-        {
-            names.push(c[1].to_owned());
-            names.push(c[2].to_owned());
-        }
+    let mut home: HashMap<&str, (&Place, usize)> = HashMap::new();
+    let mut told: HashSet<(&str, &Place)> = HashSet::new();
+    for m in names {
+        let (name, place) = (m.name.as_str(), &m.place);
         // `P.X` says which one it means.
-        for name in names.into_iter().filter(|n| n != "[*]" && !n.contains('.')) {
-            let Some((first, line)) = home.get(&name) else {
-                home.insert(name, (place.clone(), r.row));
-                continue;
-            };
-            if place.starts_with(first) || first.starts_with(&place) {
-                continue;
-            }
-            if !told.insert((name.clone(), place.clone())) {
-                continue;
-            }
-            findings.push(Finding::new("namesake-state", 
-                r.row,
-                Severity::Warning,
-                format!(
-                    "{name} here is the state {name} {} ({}): a name is one state in the whole diagram. If this is another state, give it a name of its own",
-                    where_(first, &place),
-                    crate::lines_away(r.row, *line)
-                ),
-            ));
+        if name.is_empty() || name == "[*]" || name.contains('.') {
+            continue;
         }
-        if let Some(name) = opens {
-            place.push((name, 0));
+        let Some(&(first, line)) = home.get(name) else {
+            home.insert(name, (place, m.line));
+            continue;
+        };
+        if place.starts_with(first) || first.starts_with(place) {
+            continue;
         }
+        if !told.insert((name, place)) {
+            continue;
+        }
+        findings.push(Finding::new(
+            "namesake-state",
+            m.line,
+            Severity::Warning,
+            format!(
+                "{name} here is the state {name} {} ({}): a name is one state in the whole diagram. If this is another state, give it a name of its own",
+                where_(first, place),
+                crate::lines_away(m.line, line)
+            ),
+        ));
     }
 }
 
