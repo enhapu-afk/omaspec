@@ -10,7 +10,7 @@ mod present;
 mod tiles;
 
 pub use present::{Play, stage};
-pub use tiles::{Plan, TILE_SIDE, plan, smallest_words};
+pub use tiles::{MOST_TILES, Plan, plan};
 
 use std::collections::HashMap;
 use std::fmt;
@@ -181,21 +181,21 @@ fn linked(svg: &str, options: &Options) -> Result<String, ExportError> {
         .map_err(|e| ExportError::Svg(e.to_string()))
 }
 
-/// `svg` drawn as `plan` says, each of its parts a PNG or JPEG file, in
-/// its order; each PNG stores the source, so a tile dropped on Omaspec
-/// opens the diagram.
-pub fn export_tiles(
-    svg: &str,
+/// `tree`, parsed once ([`parse`]), drawn as `plan` says, each of its
+/// parts a PNG or JPEG file, in its order; each PNG stores the `source`,
+/// so a tile dropped on Omaspec opens the diagram. A plan of one part is
+/// the whole picture.
+pub fn export_planned(
+    tree: &usvg::Tree,
     format: Format,
-    options: &Options,
+    source: Option<Source<'_>>,
     plan: &Plan,
 ) -> Result<Vec<Vec<u8>>, ExportError> {
-    let tree = parse(svg)?;
     plan.parts
         .iter()
         .map(|&part| {
-            let bytes = tiles::tile(&tree, plan.scale, part, format)?;
-            Ok(match (format, options.source) {
+            let bytes = tiles::tile(tree, plan.scale, part, format)?;
+            Ok(match (format, source) {
                 (Format::Png, Some(s)) => {
                     embed::png_with_source(&bytes, s.code, s.language, s.file)
                         .expect("resvg writes valid PNGs")
@@ -403,7 +403,12 @@ pub fn color_emoji() -> bool {
 /// The characters of `svg`'s words that no installed face draws, each
 /// once: a PNG, JPEG or PDF of it shows an empty box for each.
 pub fn undrawable(svg: &str) -> Result<Vec<char>, ExportError> {
-    Ok(glyphs::undrawable(&parse(svg)?, fonts()))
+    Ok(undrawable_in(&parse(svg)?))
+}
+
+/// [`undrawable`] of a picture parsed already.
+pub fn undrawable_in(tree: &usvg::Tree) -> Vec<char> {
+    glyphs::undrawable(tree, fonts())
 }
 
 /// Rasterizes `tree` at `scale` on white paper.

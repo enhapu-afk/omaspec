@@ -368,6 +368,7 @@ impl App {
         a.set_baseline(Some(text.clone()));
         let mut compare = Compare::new(key, target, title, text, language);
         compare.paper.views = self.look.views;
+        compare.paper.keep_bands = self.look.bands;
         compare.refresh(&a.text(), a.current_language(), &a.specs);
         let (source, pending) = self.diagram_source(&compare.text, language);
         let place = self.place_of(key);

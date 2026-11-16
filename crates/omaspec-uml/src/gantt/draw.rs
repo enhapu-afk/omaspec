@@ -210,19 +210,28 @@ fn paint(
             (x_of(&geom, bar.start), y1),
         );
     }
-    let band = |x: f32, y: f32, w: f32, h: f32, edge| crate::map::Band {
+    // Both head the rows: the dates over them, the names beside them; a
+    // `vert`'s name under them and a footer are not theirs.
+    let rows = crate::graph::Rect {
+        x: geom.axis_x,
+        y: rows_top,
+        w: right - geom.axis_x,
+        h: bottom - rows_top,
+    };
+    let heading = |x: f32, y: f32, w: f32, h: f32, edge| crate::map::Band {
         rect: crate::graph::Rect { x, y, w, h },
         edge,
+        over: rows,
     };
     Ok(vec![
-        band(
+        heading(
             geom.axis_x,
             top,
             right - geom.axis_x,
             rows_top - top,
             crate::map::Edge::Top,
         ),
-        band(
+        heading(
             0.0,
             rows_top,
             geom.axis_x,

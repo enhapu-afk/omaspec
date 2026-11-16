@@ -75,7 +75,12 @@ impl Paper {
             super::bar::height(&play.offer(), self.viewport.width)
         });
         let to = match area {
-            Some(area) => View::following(area, self.diagram_size(), self.viewport, bar),
+            Some(area) => View::following(
+                self.under_headings(area),
+                self.diagram_size(),
+                self.viewport,
+                bar,
+            ),
             None => whole,
         };
         let from = self.glide.map_or(self.view, |glide| glide.at(now));
@@ -85,6 +90,44 @@ impl Paper {
         self.view = to;
         self.glide = Some(Glide::dive(from, to, self.viewport, now));
         self.rasterize(RASTER_DELAY)
+    }
+
+    /// Holds a long diagram's headings at the pane's edge, or lets them
+    /// scroll away (REQ-073), and asks their sharp pixels once held.
+    pub fn hold_headings(&mut self, on: bool) -> Task<Message> {
+        if self.keep_bands == on {
+            return Task::none();
+        }
+        self.keep_bands = on;
+        self.band_top.clear();
+        self.band_left.clear();
+        self.rasterize(Duration::ZERO)
+    }
+
+    /// `area` with room for the headings the pane holds over it (REQ-073):
+    /// as high again as the band across the top where the area lies under
+    /// it, as wide again as the one down the left where it lies right of
+    /// it, so the camera keeps a step out from under them.
+    fn under_headings(&self, area: Rectangle) -> Rectangle {
+        let Some(diagram) = self.diagram.as_ref().filter(|_| self.keep_bands) else {
+            return area;
+        };
+        let mut room = area;
+        for band in &diagram.drawn.map.bands {
+            let rect = band.rect;
+            match band.edge {
+                omaspec_uml::map::Edge::Top if area.y >= rect.y + rect.h => {
+                    room.y -= rect.h;
+                    room.height += rect.h;
+                }
+                omaspec_uml::map::Edge::Left if area.x >= rect.x + rect.w => {
+                    room.x -= rect.w;
+                    room.width += rect.w;
+                }
+                _ => {}
+            }
+        }
+        room
     }
 
     /// Where the box called `name` is in the picture, a state or a
@@ -164,6 +207,8 @@ impl Paper {
         self.held_detail = None;
         self.overview.clear();
         self.detail.clear();
+        self.band_top.clear();
+        self.band_left.clear();
         if !matches!(self.arrival, super::arrival::Arrival::Still) {
             self.arrive(
                 super::arrival::Event::Released,
@@ -207,10 +252,30 @@ impl Paper {
             },
         );
         let detail = Plan::detail(diagram.size, scale, visible, self.detail.asked);
+        // The headings held at the edges, sharp too: the first band across
+        // the top and the first down the left.
+        let band = |edge: omaspec_uml::map::Edge, current: Option<Plan>| {
+            let band = diagram
+                .drawn
+                .map
+                .bands
+                .iter()
+                .find(|band| band.edge == edge && self.keep_bands)?;
+            let rect = Rectangle::new(
+                Point::new(band.rect.x, band.rect.y),
+                Size::new(band.rect.w, band.rect.h),
+            );
+            let top = edge == omaspec_uml::map::Edge::Top;
+            Plan::band(diagram.size, scale, rect, top, visible, current)
+        };
+        let top = band(omaspec_uml::map::Edge::Top, self.band_top.asked);
+        let left = band(omaspec_uml::map::Edge::Left, self.band_left.asked);
         Task::batch([
             parse,
             self.overview.ask(overview, &tree, delay, Message::Overview),
             self.detail.ask(detail, &tree, delay, Message::Detail),
+            self.band_top.ask(top, &tree, delay, Message::BandTop),
+            self.band_left.ask(left, &tree, delay, Message::BandLeft),
         ])
     }
 }

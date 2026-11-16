@@ -1,6 +1,6 @@
 == sequence-login.puml: PlantUML / Sequence (Sequence diagram)
 == lint
-   9 Warning: Auth is declared twice (first on line 8).
+   9 Warning: Auth is declared twice (first on the line above).
   12 Info: Logger is declared but never sends or receives a message.
   21 Warning: Auht is not declared. Did you mean Auth? PlantUML and Mermaid would draw a new participant.
   38 Warning: Unclosed group

@@ -71,6 +71,50 @@ impl Plan {
         })
     }
 
+    /// The stretch of `band`, a heading the pane holds at its `edge`
+    /// (REQ-073), that lies along what is `visible`, at `scale`, when the
+    /// overview is not sharp there: the band itself has scrolled out of
+    /// sight, so the detail never shows it. Keeps `current` while it still
+    /// covers that stretch.
+    pub fn band(
+        diagram: Size,
+        scale: f32,
+        band: Rectangle,
+        top: bool,
+        visible: Rectangle,
+        current: Option<Self>,
+    ) -> Option<Self> {
+        if scale <= overview_limit(diagram) {
+            return None;
+        }
+        let along = |margin: f32| match top {
+            true => Rectangle::new(
+                Point::new(visible.x - margin, band.y),
+                Size::new(visible.width + 2.0 * margin, band.height),
+            ),
+            false => Rectangle::new(
+                Point::new(band.x, visible.y - margin),
+                Size::new(band.width, visible.height + 2.0 * margin),
+            ),
+        };
+        let seen = pixels(along(0.0).intersection(&band)?, diagram, scale)?;
+        if let Some(current) = current
+            && current.scale == scale
+            && current.part.contains(&seen)
+        {
+            return Some(current);
+        }
+        let margin = MARGIN
+            * match top {
+                true => visible.width,
+                false => visible.height,
+            };
+        Some(Self {
+            scale,
+            part: pixels(along(margin).intersection(&band)?, diagram, scale)?,
+        })
+    }
+
     /// The area of the diagram the pixels show, in diagram units.
     pub fn region(self) -> Rectangle {
         let s = self.scale;

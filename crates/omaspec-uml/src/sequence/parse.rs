@@ -495,21 +495,22 @@ impl Parser {
             // PlantUML keeps how it first appeared and moves it to the
             // end, out of its box (into the open one, below).
             Some(index) => {
-                for b in &mut self.diagram.boxes {
+                // Only a box it leaves can be emptied by it: one that was
+                // empty from the start stays as PlantUML draws it.
+                let mut emptied = None;
+                for (at, b) in self.diagram.boxes.iter_mut().enumerate() {
+                    let held = b.participants.contains(&index);
                     b.participants.retain(|&i| i != index);
+                    if held && b.participants.is_empty() && Some(at) != self.open_box {
+                        emptied = Some(b.line);
+                    }
                 }
-                let emptied = self
-                    .diagram
-                    .boxes
-                    .iter()
-                    .enumerate()
-                    .find(|(at, b)| b.participants.is_empty() && Some(*at) != self.open_box);
-                if let Some((_, b)) = emptied {
+                if let Some(line) = emptied {
                     return Err(Declined::at(
                         no,
                         format!(
                             "declaring `{code}` again empties its box, which begins {}; that is not supported yet",
-                            crate::common::lines_away(no, b.line)
+                            crate::common::lines_away(no, line)
                         ),
                     ));
                 }
@@ -1859,6 +1860,19 @@ mod tests {
         assert_eq!(d.boxes[1].participants, [1, 2, 3]);
         let err = declined("box X\nparticipant A\nend box\nparticipant A");
         assert_eq!(err.line, Some(3), "{err:?}");
+        // A box empty from the start is not one it empties.
+        let other = parse(
+            &body("box X\nend box\nparticipant A\nparticipant A")
+                .unwrap()
+                .1,
+        );
+        assert!(
+            other
+                .as_ref()
+                .err()
+                .is_none_or(|err| !err.reason.contains("empties its box")),
+            "{other:?}"
+        );
         assert!(
             err.reason
                 .contains("empties its box, which begins 3 lines above"),

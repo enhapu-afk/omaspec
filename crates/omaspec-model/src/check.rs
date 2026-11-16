@@ -204,12 +204,12 @@ fn ambiguous(m: &Machine, out: &mut Vec<Finding>) {
             };
             let other = &m.transitions[first];
             let target = |i: usize| target_name(m, i);
-            let line = other.line + 1;
+            let line = omaspec_core::lines_away(t.line, other.line);
             let (severity, message) = if other.to == t.to {
                 (
                     Severity::Warning,
                     format!(
-                        "The transition from {} to {} is written twice (first on line {line}).",
+                        "The transition from {} to {} is written twice (first {line}).",
                         from.name,
                         target(t.to)
                     ),
@@ -235,7 +235,7 @@ fn ambiguous(m: &Machine, out: &mut Vec<Finding>) {
                 (
                     severity,
                     format!(
-                        "{what} to {} (line {line}) and to {}, {choose}.",
+                        "{what} to {} ({line}) and to {}, {choose}.",
                         target(other.to),
                         target(t.to)
                     ),
@@ -354,6 +354,17 @@ mod tests {
                 "State Spare cannot be reached from the start.".to_owned()
             )]
         );
+        // One that another state leads into is entered later: where the
+        // machine begins is not said.
+        let entered = puml(
+            "Idle --> Active : go\nstate Active {\n  [*] --> Running\n}\nActive --> Idle : stop",
+        );
+        assert!(
+            entered
+                .iter()
+                .any(|(_, _, m)| m.starts_with("No [*] --> …")),
+            "{entered:?}"
+        );
         // Two with starts of their own: which begins is not said.
         let both = puml("state A {\n  [*] --> A1\n}\nstate B {\n  [*] --> B1\n}");
         assert!(
@@ -368,7 +379,7 @@ mod tests {
             (
                 4,
                 Severity::Error,
-                "Event job leads from Idle to Busy (line 3) and to Error, and no guard [...] chooses between them.",
+                "Event job leads from Idle to Busy (on the line above) and to Error, and no guard [...] chooses between them.",
             ),
             (
                 4,
@@ -422,12 +433,12 @@ mod tests {
                 (
                     4,
                     Severity::Warning,
-                    "The transition from A to B is written twice (first on line 3).".to_owned()
+                    "The transition from A to B is written twice (first on the line above).".to_owned()
                 ),
                 (
                     8,
                     Severity::Warning,
-                    "Choice c leads to A (line 7) and to the end [*], and no guard [...] chooses between them."
+                    "Choice c leads to A (on the line above) and to the end [*], and no guard [...] chooses between them."
                         .to_owned()
                 ),
             ]
@@ -457,7 +468,7 @@ mod tests {
             [(
                 5,
                 Severity::Error,
-                "Event go leads from c to A (line 4) and to B, and no guard [...] chooses between them."
+                "Event go leads from c to A (on the line above) and to B, and no guard [...] chooses between them."
                     .to_owned()
             )]
         );

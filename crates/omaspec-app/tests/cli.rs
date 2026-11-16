@@ -81,8 +81,9 @@ fn render_fits_a_picture_too_large_with_fit() {
 
 /// REQ-070: `--min-font` keeps a picture's words at least so many pixels
 /// high. One that fits stays one file; one that does not is cut into
-/// tiles, `NAME-1.png` and on, each within one file's size, the source in
-/// each; `--fit` alone is as it was.
+/// tiles, `NAME-tiles/1.png` and on, each within one file's size, the
+/// source in each, and one drawn as one file again takes them away;
+/// `--fit` alone is as it was.
 #[test]
 fn render_keeps_words_readable_with_min_font() {
     let dir = scratch("min-font");
@@ -136,6 +137,12 @@ fn render_keeps_words_readable_with_min_font() {
     ]);
     assert!(!svg.status.success());
     assert!(String::from_utf8_lossy(&svg.stderr).contains("PNG or JPEG"));
+    // Nor has text; and --fit is what --min-font does already.
+    let text = run("10", &["-f", "text"]);
+    assert!(!text.status.success());
+    let both = run("10", &["--fit"]);
+    assert!(!both.status.success());
+    assert!(String::from_utf8_lossy(&both.stderr).contains("cannot be used with"));
     // A debug build takes minutes for a few hundred million pixels.
     if cfg!(debug_assertions) {
         let _ = fs::remove_dir_all(&dir);
@@ -157,7 +164,7 @@ fn render_keeps_words_readable_with_min_font() {
     let mut height = 0;
     for (n, tile) in tiles.iter().enumerate() {
         let path = PathBuf::from(tile.as_str().unwrap());
-        assert_eq!(path, dir.join(format!("long-{}.png", n + 1)));
+        assert_eq!(path, dir.join("long-tiles").join(format!("{}.png", n + 1)));
         let bytes = fs::read(&path).unwrap();
         let side = |at: usize| u32::from_be_bytes(bytes[at..at + 4].try_into().unwrap());
         assert!(u64::from(side(16)) * u64::from(side(20)) <= 100_000_000);
@@ -171,6 +178,10 @@ fn render_keeps_words_readable_with_min_font() {
     if columns == 1 {
         assert!(height > 16_384, "{height}");
     }
+    // Drawn again as one file, the tiles are taken away, their folder too.
+    let one = run("10", &[]);
+    assert!(one.status.success());
+    assert!(!dir.join("long-tiles").exists());
     // Tiles are files, not something to paste.
     let copied = omaspec(&[
         "render",

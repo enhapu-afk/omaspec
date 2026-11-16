@@ -508,11 +508,12 @@ enum Command {
         #[arg(long)]
         fit: bool,
         /// A PNG or JPEG whose smallest words are at least this many pixels
-        /// high (their font size): shrunk to fit as --fit does, but no
-        /// further, and cut into tiles where it then does not fit in one
-        /// file (NAME-1.png, NAME-2.png, …, each cut between two lines of
-        /// words). A picture that fits at --scale stays one file.
-        #[arg(long, value_name = "PX")]
+        /// high (their font size): drawn at --scale, shrunk to fit as --fit
+        /// does but not below that size, raised to it where --scale is
+        /// below it; where it then does not fit in one file, cut into tiles
+        /// in a folder beside it (NAME-tiles/1.png, …, each cut between two
+        /// lines of words, at most 100 tiles). Where it fits, one file.
+        #[arg(long, value_name = "PX", conflicts_with = "fit")]
         min_font: Option<f32>,
         /// Do not store the diagram source in SVG and PNG images.
         #[arg(long)]

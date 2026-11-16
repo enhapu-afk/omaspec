@@ -167,6 +167,13 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
                 h: content_top - lanes_top,
             },
             edge: crate::map::Edge::Top,
+            // The lanes under their names, to their foot.
+            over: crate::graph::Rect {
+                x: left,
+                y: content_top,
+                w: right - left,
+                h: bottom - content_top,
+            },
         }],
         _ => Vec::new(),
     };

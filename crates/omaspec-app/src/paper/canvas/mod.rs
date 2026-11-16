@@ -33,7 +33,7 @@ mod marks;
 
 use input::touch;
 
-pub use bands::KeptBands;
+pub use bands::{Headings, KeptBands};
 pub(super) use grid::{Grid, fill_paper_band, fill_paper_band_across, rounded, shadow};
 pub use marks::{BreathLight, LinkMarks, PaperEdge};
 
@@ -77,9 +77,20 @@ pub struct DiagramCanvas<'a> {
     pub folds: Vec<super::fold::Spot>,
     /// Whether Shift and a click focus a box.
     pub focusing: bool,
+    /// The headings held at the pane's edge: a point in one is the
+    /// heading's own ([`bands::through`]).
+    pub headings: Option<Headings<'a>>,
 }
 
 impl DiagramCanvas<'_> {
+    /// Where the point `at` of a pane this large lies in the picture: in a
+    /// held heading, the heading's own point.
+    fn through(&self, at: Point, pane: Size) -> Point {
+        self.headings.map_or(at, |headings| {
+            headings.through(at, Rectangle::with_size(pane))
+        })
+    }
+
     /// The link at `at`, a point of the pane.
     fn link_at(&self, at: Point, viewport: Size) -> Option<&Link> {
         link_under(self.links, self.view.to_diagram(at, viewport))
@@ -437,11 +448,12 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
             }
             Event::Mouse(mouse::Event::ButtonPressed(Button::Left)) => {
                 let at = cursor.position_in(bounds)?;
+                let picked = self.through(at, bounds.size());
                 if state.modifiers.control() {
-                    return Some(Action::publish(Message::Pick(at)).and_capture());
+                    return Some(Action::publish(Message::Pick(picked)).and_capture());
                 }
                 if state.modifiers.shift() && self.focusing && self.overview.is_some() {
-                    return Some(Action::publish(Message::FocusAt(at)).and_capture());
+                    return Some(Action::publish(Message::FocusAt(picked)).and_capture());
                 }
                 let now = crate::clock::now();
                 state.hand_click = None;
@@ -459,7 +471,7 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
                 Some(Action::request_redraw().and_capture())
             }
             Event::Mouse(mouse::Event::ButtonPressed(Button::Right)) => {
-                let at = cursor.position_in(bounds)?;
+                let at = self.through(cursor.position_in(bounds)?, bounds.size());
                 let in_window = cursor.position()?;
                 Some(Action::publish(Message::Context(at, in_window)).and_capture())
             }
@@ -474,7 +486,11 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
             }
             Event::Mouse(mouse::Event::ButtonReleased(Button::Left)) => {
                 state.drag.take()?;
-                let press = state.press.take();
+                // Where it was pressed, in a held heading the heading's.
+                let press = state
+                    .press
+                    .take()
+                    .map(|(at, moved)| (self.through(at, bounds.size()), moved));
                 // A click on a fold button or a folded box (docs/adr/0024).
                 let fold = match press {
                     Some((at, false)) => {
@@ -553,6 +569,7 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
             && self.overview.is_some()
             && (state.modifiers.control()
                 || cursor.position_in(bounds).is_some_and(|at| {
+                    let at = self.through(at, bounds.size());
                     self.link_at(at, bounds.size()).is_some()
                         || super::fold::click(&self.folds, self.view, at, bounds.size()).is_some()
                 }))

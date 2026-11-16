@@ -477,8 +477,9 @@ once; *Motion in the editor: on or off* in View turns both off, and stays off.
 A long diagram keeps its headings in sight as it scrolls past them: a sequence
 diagram's participants stay at the top of the pane over the messages under them, a
 swimlane's name over its lane, a Gantt chart's dates at the top and its tasks at the left
-beside their bars. Only the pane holds them so; the picture and every export are as
-drawn. *Headings of a long diagram kept in sight as it scrolls: on or off* in View turns
+beside their bars. Ctrl+click on a held heading jumps to its line, as on the heading
+itself. Only the pane holds them so; the picture and every export are as drawn.
+*Headings of a long diagram kept in sight as it scrolls: on or off* in View turns
 it off, and stays off.
 
 Rest the pointer on a state, an event or a participant, and a card says what it is: the
@@ -709,7 +710,7 @@ omaspec render flow.mmd             # flow.svg next to it, with the source insid
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
 omaspec render odyssey.puml -o odyssey.png --fit          # a picture past 100 million pixels, shrunk into one file
-omaspec render odyssey.puml -o odyssey.png --min-font 10  # its words at least 10 px high: too large for one file, it is cut into tiles, odyssey-1.png, …, between lines of words
+omaspec render odyssey.puml -o odyssey.png --min-font 10  # its words at least 10 px high: too large for one file, it is cut into tiles between lines of words, odyssey-tiles/1.png, …
 omaspec render door.puml -o door.html --look dark   # a presentation: one page that plays it, offline
 omaspec render door.puml -o -  --format text   # its behavior, one fact a line, for an agent or a terminal; or -o door.txt
 omaspec play door.puml -o door.gif --events open,close   # the play as a GIF that moves, drawn as the window draws it; --steps, --width, --fps, --theme built-in; --colors 32 --lossy 15 a third smaller

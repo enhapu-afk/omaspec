@@ -133,9 +133,11 @@ impl Machine {
 
     /// The state the machine begins in where no start stands at the top
     /// (REQ-076): the one state there (an end aside), or else the one state
-    /// there with a start of its own, where the picture shows its only
-    /// start, as PlantUML draws it. None with a start at the top, or where
-    /// no one state is that.
+    /// there with a start of its own that no transition enters from
+    /// outside it, where the picture shows its only start, as PlantUML
+    /// draws it. None with a start at the top, or where no one state is
+    /// that: a state another one leads into is entered later, and the
+    /// machine's beginning is not said.
     pub fn begins_in(&self) -> Option<usize> {
         let top: Vec<usize> = (0..self.states.len())
             .filter(|&s| self.states[s].parent.is_none() && self.states[s].kind != Kind::End)
@@ -146,12 +148,17 @@ impl Machine {
         if top.iter().any(|&s| self.states[s].kind == Kind::Start) {
             return None;
         }
+        let within = |state: usize, s: usize| state == s || self.ancestors(state).any(|a| a == s);
         let mut starting = top.into_iter().filter(|&s| {
             self.states[s].kind == Kind::State
                 && self
                     .states
                     .iter()
                     .any(|inner| inner.parent == Some(s) && inner.kind == Kind::Start)
+                && !self
+                    .transitions
+                    .iter()
+                    .any(|t| within(t.to, s) && !within(t.from, s))
         });
         let state = starting.next()?;
         starting.next().is_none().then_some(state)

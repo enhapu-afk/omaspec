@@ -41,11 +41,16 @@ pub struct Map {
 }
 
 /// A band of the picture a pane keeps in sight ([`Map::bands`]): where it
-/// lies, and the edge of the pane it stays at.
+/// lies, the edge of the pane it stays at, and what it heads, which it
+/// stays over until that has gone by too.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Band {
     pub rect: Rect,
     pub edge: Edge,
+    /// What the band heads: a sequence diagram's lifelines under its
+    /// participants, a Gantt chart's rows beside its names and under its
+    /// dates; not what comes after them, a footer or the feet.
+    pub over: Rect,
 }
 
 /// An edge of the pane a [`Band`] stays at.
@@ -362,6 +367,7 @@ impl Map {
         }
         for band in &mut self.bands {
             band.rect = fit.rect(band.rect);
+            band.over = fit.rect(band.over);
         }
         for step in &mut self.messages {
             for point in &mut step.points {
@@ -466,6 +472,13 @@ mod tests {
             sequence[0].rect.h > 10.0 && sequence[0].rect.w > 100.0,
             "{sequence:?}"
         );
+        // It heads the lifelines under it, not the feet under them.
+        let heads = sequence[0];
+        assert!(
+            (heads.over.y - (heads.rect.y + heads.rect.h)).abs() < 0.5,
+            "{heads:?}"
+        );
+        assert!(heads.over.h > 30.0, "{heads:?}");
         let lanes = bands("@startuml\n|Shop|\nstart\n:order;\n|Store|\n:pack;\nstop\n@enduml\n");
         assert_eq!(
             lanes.iter().map(|b| b.edge).collect::<Vec<_>>(),

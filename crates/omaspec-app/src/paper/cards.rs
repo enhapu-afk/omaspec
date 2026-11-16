@@ -109,6 +109,8 @@ impl Paper {
             self.on_pictures = full;
             self.overview.forget();
             self.detail.forget();
+            self.band_top.forget();
+            self.band_left.forget();
         }
         (parse, self.shown_tree().cloned())
     }

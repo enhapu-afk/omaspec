@@ -167,6 +167,8 @@ impl Paper {
                 // not the one a glide in flight is travelling to.
                 self.overview.forget();
                 self.detail.forget();
+                self.band_top.forget();
+                self.band_left.forget();
                 // Sheets of parts belong to one pair of diagrams.
                 self.bare_old.clear();
                 self.bare_new.clear();

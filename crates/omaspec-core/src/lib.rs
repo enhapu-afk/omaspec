@@ -28,3 +28,4 @@ pub mod skin;
 
 pub use kind::{DiagramKind, Kind, classify};
 pub use lang::{Language, detect};
+pub use omaspec_uml::lines_away;

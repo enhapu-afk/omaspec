@@ -548,10 +548,24 @@ pub(crate) fn findings(old: Vec<Finding>, new: Vec<Finding>) -> Vec<Change> {
     out
 }
 
-/// `message` with the number after each `line ` left out.
+/// `message` with the lines it names left out: the number after each
+/// `line `, and the way to another line (`2 lines above`, `on the line
+/// below`, [`omaspec_core::lines_away`]).
 pub(crate) fn without_lines(message: &str) -> String {
+    let mut message = message.to_owned();
+    for near in ["on the line above", "on the line below", "on the same line"] {
+        message = message.replace(near, "lines away");
+    }
+    for far in [" lines above", " lines below"] {
+        while let Some(at) = message.find(far) {
+            let digits = message[..at]
+                .trim_end_matches(|c: char| c.is_ascii_digit())
+                .len();
+            message.replace_range(digits..at + far.len(), "lines away");
+        }
+    }
     let mut out = String::with_capacity(message.len());
-    let mut rest = message;
+    let mut rest = message.as_str();
     while let Some(at) = rest.find("line ") {
         let (head, tail) = rest.split_at(at + "line ".len());
         out.push_str(head);

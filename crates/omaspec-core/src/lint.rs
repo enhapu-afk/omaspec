@@ -660,9 +660,9 @@ fn sequence(parts: &SequenceParts, findings: &mut Vec<Finding>) {
                 d.row,
                 Severity::Warning,
                 format!(
-                    "{} is declared twice (first on line {}).",
+                    "{} is declared twice (first {}).",
                     d.key,
-                    parts.decls[first].row + 1
+                    crate::lines_away(d.row, parts.decls[first].row)
                 ),
             )),
             None => {
@@ -1116,7 +1116,7 @@ mod tests {
         assert!(found.contains(&(
             3,
             Severity::Warning,
-            "Client is declared twice (first on line 3).".into()
+            "Client is declared twice (first on the line above).".into()
         )));
         assert!(found.iter().any(|f| {
             f.0 == 5

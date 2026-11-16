@@ -59,14 +59,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     let map = Map {
         messages: std::mem::take(&mut drawer.steps),
         grounds: std::mem::take(&mut drawer.grounds),
-        bands: drawer
-            .band
-            .map(|rect| crate::map::Band {
-                rect,
-                edge: crate::map::Edge::Top,
-            })
-            .into_iter()
-            .collect(),
+        bands: drawer.band.into_iter().collect(),
         ..Map::default()
     };
     let map = map.placed(canvas.fit(MARGIN));
@@ -328,8 +321,9 @@ struct Drawer<'a> {
     /// The boxes with a fill, for the map.
     grounds: Vec<crate::map::Ground>,
     /// The participants' heads at the top, and the boxes' titles over
-    /// them: what a pane keeps in sight ([`crate::map::Map::bands`]).
-    band: Option<crate::graph::Rect>,
+    /// them, over the lifelines: what a pane keeps in sight
+    /// ([`crate::map::Map::bands`]).
+    band: Option<crate::map::Band>,
     /// `rect` highlights open at the top, closed into [`Self::highlights`].
     open_rects: Vec<OpenRect>,
     /// Closed highlights, inner ones first. Drawn back to front.
@@ -903,14 +897,12 @@ impl<'a> Drawer<'a> {
             left = left.min(self.x[i] - self.cols[i].half() - self.pad_left[i]);
             right = right.max(self.x[i] + self.cols[i].half() + self.pad_right[i]);
         }
-        if heads > 0.0 && left < right {
-            self.band = Some(crate::graph::Rect {
-                x: left,
-                y: boxes_top,
-                w: right - left,
-                h: top + heads - boxes_top,
-            });
-        }
+        let heads_band = (heads > 0.0 && left < right).then_some(crate::graph::Rect {
+            x: left,
+            y: boxes_top,
+            w: right - left,
+            h: top + heads - boxes_top,
+        });
 
         let mut k = 0;
         while k < self.d.items.len() {
@@ -919,6 +911,17 @@ impl<'a> Drawer<'a> {
 
         // Unclosed bars run to the end.
         let end = self.y + 10.0;
+        // The heads stay over the lifelines, not over the feet below them.
+        self.band = heads_band.map(|rect| crate::map::Band {
+            rect,
+            edge: crate::map::Edge::Top,
+            over: crate::graph::Rect {
+                x: rect.x,
+                y: rect.y + rect.h,
+                w: rect.w,
+                h: (end - rect.y - rect.h).max(0.0),
+            },
+        });
         for (column, open) in self.open_bars.iter_mut().enumerate() {
             for (depth, (start, fill)) in open.drain(..).enumerate() {
                 self.bars.push(Bar {

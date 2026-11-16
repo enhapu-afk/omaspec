@@ -3048,17 +3048,25 @@ screen, or than one picture file, stays readable.
 - [x] Headings kept in sight (REQ-073, 2026-11-16): a sequence
       diagram's participants, a swimlane's name and a Gantt chart's
       dates stay at the pane's top as it scrolls past them, a Gantt
-      chart's tasks at its left, and go with the diagram's end. The
-      drawers name the bands (`Map::bands`), the pane draws them again
-      from the picture on screen (`paper/canvas/bands.rs`), so every
-      export is as drawn. A switch in View, kept by the session.
+      chart's tasks at its left, and go once what they head has gone by
+      (the lifelines, the rows; not a footer). The drawers name the
+      bands and what they head (`Map::bands`); the pane draws them again
+      from the picture on screen, sharp from pixels of their own where
+      the overview is not (`paper/canvas/bands.rs`, `Plan::band`), so
+      every export is as drawn. Like a sheet's frozen rows they lie over
+      what marks the picture, a play's light and veil too, and the
+      camera keeps a step out from under them; a click on one picks the
+      heading. A heading over a third of the pane scrolls away. A switch
+      in View, kept by the session, Compare's pane too.
 - [x] Words of a least size in a PNG or JPEG (REQ-070, 2026-11-16):
       `render --min-font PX` shrinks a picture too large for one file as
       `--fit` does, but not below where its smallest words are `PX`
       pixels high, and cuts it into tiles where it then does not fit,
       each within 100 million pixels and 16,384 a side, each cut between
       two lines of words where there is room, the source in each
-      (`export/tiles.rs`). The tester's Odyssey of 3,000 lines: four
+      (`export/tiles.rs`), at most 100 of them, in a folder of their own
+      beside the picture (`odyssey-tiles/1.png`), where a drawing takes
+      away the tiles an earlier one left. The tester's Odyssey of 3,000 lines: four
       tiles of 7,460 × 11,925 at words of 10 pixels, in 8 seconds,
       where `--fit` gives one of 3,939 × 25,186 at 5.
 - [ ] SVG words that stay in their box without `textLength`

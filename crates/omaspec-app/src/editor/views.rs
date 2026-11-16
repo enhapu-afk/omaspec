@@ -25,16 +25,33 @@ impl App {
 
     pub(super) fn toggle_bands(&mut self) -> Task<Message> {
         self.look.bands = !self.look.bands;
+        let on = self.look.bands;
+        let mut tasks = Vec::new();
         for doc in &mut self.docs {
             doc.set_look(&self.look);
+            let key = doc.key;
+            tasks.push(
+                doc.paper
+                    .hold_headings(on)
+                    .map(move |m| Message::Paper(key, m)),
+            );
         }
-        self.notice = Some(if self.look.bands {
+        // Compare's pane too.
+        if let Some(compare) = &mut self.compare {
+            tasks.push(
+                compare
+                    .paper
+                    .hold_headings(on)
+                    .map(|m| Message::Paper(super::compare::KEY, m)),
+            );
+        }
+        self.notice = Some(if on {
             "a long diagram's participants, lanes and tasks stay in sight as it scrolls".into()
         } else {
             "a long diagram's headings scroll away with it".into()
         });
         self.keep_session();
-        Task::none()
+        Task::batch(tasks)
     }
 
     pub(super) fn toggle_json_layout(&mut self) -> Task<Message> {

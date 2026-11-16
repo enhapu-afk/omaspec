@@ -12,7 +12,10 @@ use super::{ExportError, Format, MAX_PIXELS, MAX_SIDE};
 
 /// The longest side of a tile, in pixels: what an image viewer or a
 /// graphics card shows whole.
-pub const TILE_SIDE: u32 = 16_384;
+const TILE_SIDE: u32 = 16_384;
+/// The most tiles one picture is cut into: past that, words this large ask
+/// for more than any poster or document takes, and hours of drawing.
+pub const MOST_TILES: usize = 100;
 /// The largest scale a picture is drawn at for its smallest words, as
 /// `--scale` allows.
 const MAX_SCALE: f32 = 16.0;
@@ -62,7 +65,10 @@ pub fn plan(tree: &usvg::Tree, format: Format, scale: f32, least: f32) -> Plan {
         (size.height() * scale).ceil().max(1.0) as u32,
     );
     let smallest = smallest.map(|size| size * scale);
-    if scale <= fits {
+    // One file where its pixels, as they are rounded up, fit in one.
+    let one =
+        u64::from(width) * u64::from(height) <= MAX_PIXELS && width.max(height) as f32 <= side;
+    if one {
         let whole =
             tiny_skia::IntRect::from_xywh(0, 0, width, height).expect("a picture that fits");
         return Plan {
@@ -94,8 +100,9 @@ pub(super) fn fitting(tree: &usvg::Tree, side: f32) -> f32 {
 }
 
 /// The size of the smallest words drawn in `tree`, in its units, as they
-/// are drawn: a group's scale shrinks or grows them.
-pub fn smallest_words(tree: &usvg::Tree) -> Option<f32> {
+/// are drawn: a group's scale shrinks or grows them. Words no one sees, in
+/// a group or a paint of no opacity, are not counted.
+fn smallest_words(tree: &usvg::Tree) -> Option<f32> {
     let mut smallest: Option<f32> = None;
     each_text(tree.root(), &mut |text| {
         let t = text.abs_transform();
@@ -103,7 +110,8 @@ pub fn smallest_words(tree: &usvg::Tree) -> Option<f32> {
         for chunk in text.chunks() {
             for span in chunk.spans() {
                 let words = chunk.text().get(span.start()..span.end()).unwrap_or("");
-                let seen = span.fill().is_some() || span.stroke().is_some();
+                let seen = span.fill().is_some_and(|f| f.opacity().get() > 0.0)
+                    || span.stroke().is_some_and(|s| s.opacity().get() > 0.0);
                 if !seen || words.trim().is_empty() {
                     continue;
                 }
@@ -117,10 +125,12 @@ pub fn smallest_words(tree: &usvg::Tree) -> Option<f32> {
     smallest
 }
 
+/// Hands each text of `group` that can be seen to `each`: not one inside
+/// a group of no opacity.
 fn each_text(group: &usvg::Group, each: &mut impl FnMut(&usvg::Text)) {
     for node in group.children() {
         match node {
-            usvg::Node::Group(group) => each_text(group, each),
+            usvg::Node::Group(group) if group.opacity().get() > 0.0 => each_text(group, each),
             usvg::Node::Text(text) => each(text),
             _ => {}
         }
@@ -274,6 +284,34 @@ mod tests {
         // 545, the gap at 546 is nearer, but the first tile would be 546
         // long, past 540; the gap above it is taken.
         assert_eq!(cuts(1000.0, 2, 540.0, &[(470.0, 545.0)]), [0, 469, 1000]);
+    }
+
+    fn tree(width: f32, height: f32, words: &str) -> usvg::Tree {
+        super::super::parse(&format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">{words}</svg>"#
+        ))
+        .unwrap()
+    }
+
+    /// A scale that fits to two places may not, its pixels rounded up: the
+    /// picture is cut, not refused. Words no one sees size nothing; words
+    /// this large on a picture this large ask for more tiles than are
+    /// written.
+    #[test]
+    fn the_pixels_decide_and_unseen_words_do_not() {
+        let words = r#"<text x="10" y="20" font-size="12">a</text>"#;
+        let edge = tree(7071.07, 14142.13, words);
+        let cut = plan(&edge, Format::Png, 2.0, 1.0);
+        assert!(cut.tiled(), "{:?}", cut.parts);
+        assert!(
+            cut.parts
+                .iter()
+                .all(|p| u64::from(p.width()) * u64::from(p.height()) <= MAX_PIXELS)
+        );
+        let hidden = r#"<text x="10" y="20" font-size="12">a</text><g opacity="0"><text x="10" y="40" font-size="1">b</text></g><text x="10" y="60" font-size="1" fill-opacity="0">c</text>"#;
+        assert_eq!(smallest_words(&tree(400.0, 300.0, hidden)), Some(12.0));
+        let huge = plan(&tree(100_000.0, 100_000.0, words), Format::Png, 2.0, 12.0);
+        assert!(huge.parts.len() > MOST_TILES, "{}", huge.parts.len());
     }
 
     /// Every tile stays within the size of one file and they cover the

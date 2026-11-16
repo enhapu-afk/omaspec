@@ -77,6 +77,10 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     );
     if args.text || txt {
         anyhow::ensure!(
+            args.min_font.is_none(),
+            "--min-font sizes the words of a PNG or JPEG; text has no pixels"
+        );
+        anyhow::ensure!(
             !args.check,
             "--check holds each diagram's SVG; text is not drawn"
         );
@@ -144,18 +148,8 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
         if args.json {
             reports.push(Report {
                 file: input.name(),
-                ok: false,
-                output: None,
-                copied: false,
-                engine: None,
-                elapsed_ms: None,
-                line: None,
                 message: Some(message),
-                same: None,
-                undrawable: Vec::new(),
-                fitted_scale: None,
-                sized: None,
-                tiles: Vec::new(),
+                ..Report::default()
             });
         } else {
             eprintln!("{}: error: {message}", input.name());
@@ -163,6 +157,14 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     }
     for piece in &pieces {
         let input = piece.input;
+        // Where the picture goes: a file, else the clipboard or standard
+        // output.
+        let dest = match (args.output, &input.path) {
+            _ if args.copy => None,
+            (Some(out), _) if out.as_os_str() != "-" => Some(out.to_owned()),
+            (Some(_), _) | (None, None) => None,
+            (None, Some(_)) => piece.image_path(format.extension()),
+        };
         let exported = match export_piece(
             piece,
             &mut maps,
@@ -174,11 +176,7 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 fit: args.fit,
                 min_font: args.min_font,
                 // Tiles are files: not on the clipboard or standard output.
-                tiles: !args.copy
-                    && match args.output {
-                        Some(out) => out.as_os_str() != "-",
-                        None => input.path.is_some(),
-                    },
+                tiles: dest.is_some(),
                 source: args.source,
                 look: args.look,
             },
@@ -191,18 +189,10 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 if args.json {
                     reports.push(Report {
                         file: input.name(),
-                        ok: false,
-                        output: None,
-                        copied: false,
                         engine,
-                        elapsed_ms: None,
                         line,
                         message: Some(message),
-                        same: None,
-                        undrawable: Vec::new(),
-                        fitted_scale: None,
-                        sized: None,
-                        tiles: Vec::new(),
+                        ..Report::default()
                     });
                 } else {
                     let at = line.map(|l| format!(":{l}")).unwrap_or_default();
@@ -216,116 +206,70 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             exported.engine,
             exported.elapsed.as_secs_f64() * 1000.0
         );
-        let dest = match (args.output, &input.path) {
-            (Some(out), _) if out.as_os_str() != "-" => Some(out.to_owned()),
-            (Some(_), _) | (None, None) => None,
-            (None, Some(_)) => piece.image_path(format.extension()),
+        let done = Report {
+            file: input.name(),
+            ok: true,
+            engine: Some(exported.engine),
+            elapsed_ms: Some(millis(exported.elapsed)),
+            undrawable: exported.undrawable.iter().map(char::to_string).collect(),
+            fitted_scale: exported.fitted,
+            sized: exported.sized,
+            ..Report::default()
         };
-        if !exported.tiles.is_empty() {
-            let dest = dest.expect("tiles only where they are files");
-            let paths = tile_paths(&dest, exported.tiles.len());
-            for (path, bytes) in paths.iter().zip(&exported.tiles) {
-                anyhow::ensure!(
-                    input.path.as_deref() != Some(path.as_path()),
-                    "{} would overwrite the diagram itself",
-                    path.display()
-                );
-                write_atomic(path, bytes)?;
+        // Where it went, and what it says besides, on standard error.
+        let said = |to: String| {
+            eprintln!("{} {to} ({took})", input.name());
+            warn_undrawable(&input.name(), &exported.undrawable);
+            say_fitted(&input.name(), exported.fitted);
+            say_sized(&input.name(), exported.sized);
+        };
+        match (exported.picture, dest) {
+            (Picture::Tiles(tiles), Some(dest)) => {
+                let paths = write_tiles(&dest, &tiles, input.path.as_deref())?;
+                match args.json {
+                    true => reports.push(Report {
+                        tiles: paths.iter().map(|p| p.display().to_string()).collect(),
+                        ..done
+                    }),
+                    false => said(format!(
+                        "→ {} … {}, {} tiles",
+                        paths[0].display(),
+                        paths[paths.len() - 1].display(),
+                        paths.len()
+                    )),
+                }
             }
-            if args.json {
-                reports.push(Report {
-                    file: input.name(),
-                    ok: true,
-                    output: None,
-                    copied: false,
-                    engine: Some(exported.engine),
-                    elapsed_ms: Some(millis(exported.elapsed)),
-                    line: None,
-                    message: None,
-                    same: None,
-                    undrawable: exported.undrawable.iter().map(char::to_string).collect(),
-                    fitted_scale: None,
-                    sized: exported.sized,
-                    tiles: paths.iter().map(|p| p.display().to_string()).collect(),
-                });
-            } else {
-                let (first, last) = (&paths[0], &paths[paths.len() - 1]);
-                eprintln!(
-                    "{} → {} … {}, {} tiles ({took})",
-                    input.name(),
-                    first.display(),
-                    last.display(),
-                    paths.len()
-                );
-                warn_undrawable(&input.name(), &exported.undrawable);
-                say_sized(&input.name(), exported.sized);
+            (Picture::Tiles(_), None) => anyhow::bail!("tiles are files"),
+            (Picture::One(bytes), _) if args.copy => {
+                copy_to_clipboard(&bytes, format.mime())?;
+                match args.json {
+                    true => reports.push(Report {
+                        copied: true,
+                        ..done
+                    }),
+                    false => said(format!("copied as {}", format.extension().to_uppercase())),
+                }
             }
-            continue;
-        }
-        let bytes = exported.bytes;
-
-        if args.copy {
-            copy_to_clipboard(&bytes, format.mime())?;
-            if args.json {
-                reports.push(Report {
-                    file: input.name(),
-                    ok: true,
-                    output: None,
-                    copied: true,
-                    engine: Some(exported.engine),
-                    elapsed_ms: Some(millis(exported.elapsed)),
-                    line: None,
-                    message: None,
-                    same: None,
-                    undrawable: exported.undrawable.iter().map(char::to_string).collect(),
-                    fitted_scale: exported.fitted,
-                    sized: exported.sized,
-                    tiles: Vec::new(),
-                });
-            } else {
-                eprintln!(
-                    "{} copied as {} ({took})",
-                    input.name(),
-                    format.extension().to_uppercase()
-                );
-                warn_undrawable(&input.name(), &exported.undrawable);
-                say_fitted(&input.name(), exported.fitted);
-                say_sized(&input.name(), exported.sized);
-            }
-            continue;
-        }
-        match dest {
-            Some(dest) => {
+            (Picture::One(bytes), Some(dest)) => {
                 anyhow::ensure!(
                     input.path.as_deref() != Some(dest.as_path()),
                     "{} would overwrite the diagram itself",
                     dest.display()
                 );
                 write_atomic(&dest, &bytes)?;
-                if args.json {
-                    reports.push(Report {
-                        file: input.name(),
-                        ok: true,
+                // Tiles an earlier drawing cut it into are gone now.
+                if args.min_font.is_some() {
+                    clear_tiles(&tiles_folder(&dest), &[])?;
+                }
+                match args.json {
+                    true => reports.push(Report {
                         output: Some(dest.display().to_string()),
-                        copied: false,
-                        engine: Some(exported.engine),
-                        elapsed_ms: Some(millis(exported.elapsed)),
-                        line: None,
-                        message: None,
-                        same: None,
-                        undrawable: exported.undrawable.iter().map(char::to_string).collect(),
-                        fitted_scale: exported.fitted,
-                        sized: exported.sized,
-                        tiles: Vec::new(),
-                    });
-                } else {
-                    eprintln!("{} → {} ({took})", input.name(), dest.display());
-                    warn_undrawable(&input.name(), &exported.undrawable);
-                    say_fitted(&input.name(), exported.fitted);
-                    say_sized(&input.name(), exported.sized);
+                        ..done
+                    }),
+                    false => said(format!("→ {}", dest.display())),
                 }
             }
-            None => stdout().write_all(&bytes)?,
+            (Picture::One(bytes), None) => stdout().write_all(&bytes)?,
         }
     }
     if args.json {
@@ -372,15 +316,8 @@ fn render_text(
                 ok: message.is_none(),
                 output,
                 copied,
-                engine: None,
-                elapsed_ms: None,
-                line: None,
                 message,
-                same: None,
-                undrawable: Vec::new(),
-                fitted_scale: None,
-                sized: None,
-                tiles: Vec::new(),
+                ..Report::default()
             });
         };
     for input in empty {
@@ -444,7 +381,7 @@ fn render_text(
     })
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 struct Report {
     file: String,
     ok: bool,
@@ -482,7 +419,7 @@ struct Report {
 }
 
 /// How `--min-font` drew a picture.
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize)]
 struct Sizing {
     scale: f32,
     /// The font size of the smallest words, in pixels; none without words.
@@ -492,20 +429,66 @@ struct Sizing {
     columns: usize,
 }
 
-/// `dest` with each tile's number before its extension, `odyssey-1.png`,
-/// as many digits each as the last has, so they sort.
-fn tile_paths(dest: &Path, count: usize) -> Vec<PathBuf> {
-    let digits = count.to_string().len();
-    let stem = dest
-        .file_stem()
-        .map_or_else(String::new, |s| s.to_string_lossy().into_owned());
+/// The folder the tiles of a picture meant for `dest` go into, beside it:
+/// `odyssey.png`'s are `odyssey-tiles/1.png` and on. A folder of their own
+/// cannot take the name of another diagram's picture, and holds what an
+/// earlier drawing left, to take away.
+fn tiles_folder(dest: &Path) -> PathBuf {
+    let stem = dest.file_stem().unwrap_or_default().to_string_lossy();
+    dest.with_file_name(format!("{stem}-tiles"))
+}
+
+/// `tiles` written into the folder for `dest` ([`tiles_folder`]), each
+/// named by its number, with as many digits as the last has, so they sort;
+/// the tiles an earlier drawing left there past these taken away. Their
+/// paths. Not over the `diagram` itself.
+fn write_tiles(dest: &Path, tiles: &[Vec<u8>], diagram: Option<&Path>) -> Result<Vec<PathBuf>> {
+    let folder = tiles_folder(dest);
+    std::fs::create_dir_all(&folder)?;
     let ext = dest
         .extension()
-        .map(|e| format!(".{}", e.to_string_lossy()))
-        .unwrap_or_default();
-    (1..=count)
-        .map(|n| dest.with_file_name(format!("{stem}-{n:0digits$}{ext}")))
-        .collect()
+        .map_or_else(|| "png".into(), |e| e.to_string_lossy());
+    let digits = tiles.len().to_string().len();
+    let paths: Vec<PathBuf> = (1..=tiles.len())
+        .map(|n| folder.join(format!("{n:0digits$}.{ext}")))
+        .collect();
+    for (path, bytes) in paths.iter().zip(tiles) {
+        anyhow::ensure!(
+            diagram != Some(path.as_path()),
+            "{} would overwrite the diagram itself",
+            path.display()
+        );
+        write_atomic(path, bytes)?;
+    }
+    clear_tiles(&folder, &paths)?;
+    Ok(paths)
+}
+
+/// Takes the tiles in `folder` that are not among `keep` away: files named
+/// by a number alone, PNG or JPEG, as only a drawing of tiles names them
+/// there; the folder too, once nothing else is in it.
+fn clear_tiles(folder: &Path, keep: &[PathBuf]) -> Result<()> {
+    let Ok(entries) = std::fs::read_dir(folder) else {
+        return Ok(());
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let tile =
+            path.file_stem()
+                .and_then(|s| s.to_str())
+                .is_some_and(|stem| !stem.is_empty() && stem.bytes().all(|b| b.is_ascii_digit()))
+                && path.extension().and_then(|e| e.to_str()).is_some_and(|e| {
+                    matches!(e.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg")
+                });
+        if tile && !keep.contains(&path) {
+            std::fs::remove_file(&path)?;
+        }
+    }
+    if keep.is_empty() {
+        // Left where something else is in it.
+        let _ = std::fs::remove_dir(folder);
+    }
+    Ok(())
 }
 
 /// Says the scale `--min-font` drew a picture at, and how large its
@@ -517,10 +500,7 @@ fn say_sized(name: &str, sized: Option<Sizing>) {
         Some(px) => format!(", its smallest words {:.1} px high", px),
         None => ", without words".to_owned(),
     };
-    let plural = |n: usize, one: &str| match n {
-        1 => format!("1 {one}"),
-        n => format!("{n} {one}s"),
-    };
+    let plural = |n: usize, one: &str| format!("{n} {}", crate::editor::plural(n, one));
     let grid = if sized.rows * sized.columns > 1 {
         format!(
             ", cut into {} × {}",
@@ -559,7 +539,7 @@ fn skip_false(copied: &bool) -> bool {
 
 /// One diagram drawn as `render` draws it, or why it was not.
 struct Exported {
-    bytes: Vec<u8>,
+    picture: Picture,
     engine: &'static str,
     elapsed: std::time::Duration,
     /// The characters no installed font draws, in a PNG, JPEG or PDF.
@@ -568,9 +548,13 @@ struct Exported {
     fitted: Option<f32>,
     /// How `--min-font` drew it.
     sized: Option<Sizing>,
-    /// The tiles `--min-font` cut it into, in their order; `bytes` is
-    /// empty then.
-    tiles: Vec<Vec<u8>>,
+}
+
+/// What a diagram was drawn as: one file, or the tiles `--min-font` cut
+/// it into, in their order.
+enum Picture {
+    One(Vec<u8>),
+    Tiles(Vec<Vec<u8>>),
 }
 
 /// How [`export_piece`] draws.
@@ -674,12 +658,14 @@ fn hold(
             }
             Ok(exported) => {
                 let dest = piece.image_path("svg").expect("a file's diagram");
+                // An SVG is one file: no --min-font here.
+                let Picture::One(drawn) = &exported.picture else {
+                    anyhow::bail!("an SVG is one picture");
+                };
                 let verdict = match std::fs::read_to_string(&dest) {
-                    Ok(old) => crate::check::compare(
-                        &old,
-                        &String::from_utf8_lossy(&exported.bytes),
-                        &piece.code,
-                    ),
+                    Ok(old) => {
+                        crate::check::compare(&old, &String::from_utf8_lossy(drawn), &piece.code)
+                    }
                     Err(_) => Some("not there; `omaspec render` draws it".to_owned()),
                 };
                 held.push(Held {
@@ -755,16 +741,12 @@ fn report_of(item: &Held) -> Report {
         file: item.file.clone(),
         ok: item.ok,
         output: item.output.clone(),
-        copied: false,
         engine: item.engine,
         elapsed_ms: item.elapsed_ms,
         line: item.line,
         message: item.message.clone(),
         same: item.same,
-        undrawable: Vec::new(),
-        fitted_scale: None,
-        sized: None,
-        tiles: Vec::new(),
+        ..Report::default()
     }
 }
 
@@ -854,39 +836,44 @@ fn export_piece(
     };
     let export_at = |scale: f32| export::export(&rendered.svg, draw.format, &options_at(scale));
     if let Some(least) = draw.min_font {
-        let plan = export::plan(
-            &export::parse(&rendered.svg)?,
-            draw.format,
-            draw.scale,
-            least,
+        // Parsed once: the words measured, the tiles cut and drawn from it.
+        let tree = export::parse(&rendered.svg)?;
+        let plan = export::plan(&tree, draw.format, draw.scale, least);
+        let units = plan.smallest.map(|px| px / plan.scale);
+        anyhow::ensure!(
+            plan.parts.len() <= export::MOST_TILES,
+            "{}: words {least} px high would take {} tiles of up to 100 million pixels, and at most {} are written{}; take a smaller --min-font, or an SVG or a PDF, which keep the words at any size",
+            input.name(),
+            plan.parts.len(),
+            export::MOST_TILES,
+            units.map_or_else(String::new, |units| format!(
+                " (its smallest words are {units:.1} units high)"
+            ))
         );
-        let sized = Some(Sizing {
-            scale: plan.scale,
-            smallest_text_px: plan.smallest,
-            rows: plan.rows,
-            columns: plan.columns,
-        });
         anyhow::ensure!(
             draw.tiles || !plan.tiled(),
             "{}: --min-font cuts it into {} tiles, which are files; leave out --copy, or name one with --output",
             input.name(),
             plan.parts.len()
         );
-        let (bytes, tiles) = if plan.tiled() {
-            let options = options_at(plan.scale);
-            let tiles = export::export_tiles(&rendered.svg, draw.format, &options, &plan)?;
-            (Vec::new(), tiles)
-        } else {
-            (export_at(plan.scale)?, Vec::new())
+        let mut files =
+            export::export_planned(&tree, draw.format, options_at(plan.scale).source, &plan)?;
+        let picture = match plan.tiled() {
+            true => Picture::Tiles(files),
+            false => Picture::One(files.pop().expect("a plan of one part")),
         };
         return Ok(Ok(Exported {
-            bytes,
+            picture,
             engine: rendered.engine.name(),
             elapsed: rendered.elapsed,
-            undrawable: export::undrawable(&rendered.svg).unwrap_or_default(),
+            undrawable: export::undrawable_in(&tree),
             fitted: None,
-            sized,
-            tiles,
+            sized: Some(Sizing {
+                scale: plan.scale,
+                smallest_text_px: plan.smallest,
+                rows: plan.rows,
+                columns: plan.columns,
+            }),
         }));
     }
     let (bytes, fitted) = match export_at(draw.scale) {
@@ -907,13 +894,12 @@ fn export_piece(
         _ => Vec::new(),
     };
     Ok(Ok(Exported {
-        bytes,
+        picture: Picture::One(bytes),
         engine: rendered.engine.name(),
         elapsed: rendered.elapsed,
         undrawable,
         fitted,
         sized: None,
-        tiles: Vec::new(),
     }))
 }
 

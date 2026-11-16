@@ -61,9 +61,9 @@ pub(super) fn namesakes(rows: &[Row], findings: &mut Vec<Finding>) {
                 r.row,
                 Severity::Warning,
                 format!(
-                    "{name} here is the state {name} {} (line {}): a name is one state in the whole diagram. If this is another state, give it a name of its own",
+                    "{name} here is the state {name} {} ({}): a name is one state in the whole diagram. If this is another state, give it a name of its own",
                     where_(first, &place),
-                    line + 1
+                    crate::lines_away(r.row, *line)
                 ),
             ));
         }
@@ -111,7 +111,7 @@ mod tests {
             found,
             [(
                 10,
-                "X here is the state X in P (line 6): a name is one state in the whole diagram. If this is another state, give it a name of its own".to_owned()
+                "X here is the state X in P (4 lines above): a name is one state in the whole diagram. If this is another state, give it a name of its own".to_owned()
             )]
         );
     }
@@ -124,7 +124,9 @@ mod tests {
         assert_eq!(found.len(), 1, "{found:?}");
         assert_eq!(found[0].0, 7);
         assert!(
-            found[0].1.contains("in another region of S (line 3)"),
+            found[0]
+                .1
+                .contains("in another region of S (4 lines above)"),
             "{}",
             found[0].1
         );

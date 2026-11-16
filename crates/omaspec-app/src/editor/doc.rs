@@ -574,7 +574,6 @@ impl Doc {
         self.editor.set_theme(look.tokens.clone());
         self.editor.set_motion(look.motion);
         self.paper.views = look.views;
-        self.paper.keep_bands = look.bands;
         self.tones = look.tones;
         self.marks = look.marks;
         self.edited();

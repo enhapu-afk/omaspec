@@ -53,6 +53,34 @@ impl Paper {
         } else {
             (links, spots.clone())
         };
+        // The headings of a long diagram held at the edge they scrolled past
+        // (REQ-073): the picture's on screen, and while a new one is on its
+        // way the old one's, which moves as it does, so they stay through
+        // an edit. Sharp pixels of them are the picture's on screen only.
+        let headings = match (held, &self.diagram, self.overview.shown.as_ref()) {
+            _ if !self.keep_bands => None,
+            (Some(previous), _, _) => previous.pictures.first().map(|overview| {
+                let headings = canvas::Headings {
+                    bands: &previous.map.bands,
+                    diagram: previous.size,
+                    view: mark_view,
+                    glide: mark_glide,
+                };
+                (headings, overview, [None, None])
+            }),
+            (None, Some(diagram), Some(overview)) => {
+                let headings = canvas::Headings {
+                    bands: &diagram.drawn.map.bands,
+                    diagram: diagram.size,
+                    view: self.view,
+                    glide: self.glide,
+                };
+                let sharp = [self.band_top.shown.as_ref(), self.band_left.shown.as_ref()];
+                Some((headings, overview, sharp))
+            }
+            _ => None,
+        }
+        .filter(|(headings, ..)| !headings.bands.is_empty());
         let canvas: Element<'_, Message> = Canvas::new(
             Timed::new(canvas::DiagramCanvas {
                 diagram: self.diagram.as_ref().map(|d| d.size),
@@ -76,36 +104,26 @@ impl Paper {
                 links: click_links,
                 folds: click_folds,
                 focusing: self.folding && !self.document && self.play.is_none(),
+                headings: headings.map(|(headings, ..)| headings),
             })
             .driving(motion),
         )
         .width(Length::Fill)
         .height(Length::Fill)
         .into();
-        // The headings of a long diagram, held at the edge it scrolled past
-        // (REQ-073); not while a glide or a fade changes the picture.
-        let kept = match (&self.diagram, self.overview.shown.as_ref()) {
-            (Some(diagram), Some(overview))
-                if self.keep_bands
-                    && !diagram.drawn.map.bands.is_empty()
-                    && held.is_none()
-                    && self.arrival.fade().is_none() =>
-            {
-                Some(
-                    Canvas::new(canvas::KeptBands {
-                        diagram: diagram.size,
-                        bands: &diagram.drawn.map.bands,
-                        overview,
-                        view: self.view,
-                        glide: self.glide,
-                    })
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .into(),
-                )
-            }
-            _ => None,
-        };
+        // Over all that marks the picture, as a sheet's frozen rows lie
+        // over what scrolls under them, with a play or without one; they
+        // move with a glide.
+        let kept = headings.map(|(headings, overview, sharp)| {
+            Canvas::new(canvas::KeptBands {
+                headings,
+                overview,
+                sharp,
+            })
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+        });
         // The lines of a glide, over the pictures and the boxes on their way.
         let lines = self
             .arrival
@@ -252,13 +270,13 @@ impl Paper {
             return container(Stack::with_children(
                 [
                     Some(canvas),
-                    kept,
                     lines,
                     veil,
                     glow,
                     marks,
                     folds,
                     light,
+                    kept,
                     hand,
                     grab,
                     passage,

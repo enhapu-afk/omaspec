@@ -76,6 +76,9 @@ const RASTER_DELAY: Duration = Duration::from_millis(120);
 pub enum Message {
     Overview(u64, Option<Raster>),
     Detail(u64, Option<Raster>),
+    /// Sharp pixels of the heading held at the top, and at the left.
+    BandTop(u64, Option<Raster>),
+    BandLeft(u64, Option<Raster>),
     /// The sheets of the old picture and of the new one: the ground,
     /// without lines and parts, and each part on its own, for a glide
     /// (docs/adr/0029).
@@ -237,6 +240,11 @@ pub struct Paper {
     scale_factor: f32,
     overview: Layer,
     detail: Layer,
+    /// The headings held at the pane's top and at its left (REQ-073), as
+    /// sharp as the view, where the overview is not
+    /// ([`raster::Plan::band`]).
+    band_top: Layer,
+    band_left: Layer,
     /// The sheets of the old and the new picture, for a glide.
     bare_old: Layer,
     bare_new: Layer,
@@ -336,6 +344,8 @@ impl Default for Paper {
             scale_factor: 1.0,
             overview: Layer::default(),
             detail: Layer::default(),
+            band_top: Layer::default(),
+            band_left: Layer::default(),
             bare_old: Layer::default(),
             bare_new: Layer::default(),
             made: false,
@@ -539,6 +549,14 @@ impl Paper {
             Message::Pictures(id, tree) => self.pictures_came(id, tree),
             Message::Detail(seq, raster) => {
                 self.show_detail(seq, raster);
+                Task::none()
+            }
+            Message::BandTop(seq, raster) => {
+                self.band_top.receive(seq, raster);
+                Task::none()
+            }
+            Message::BandLeft(seq, raster) => {
+                self.band_left.receive(seq, raster);
                 Task::none()
             }
             Message::Half(of, at, copy) => {
