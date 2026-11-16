@@ -507,6 +507,13 @@ enum Command {
         /// pixels) is drawn at the largest scale that fits, not refused.
         #[arg(long)]
         fit: bool,
+        /// A PNG or JPEG whose smallest words are at least this many pixels
+        /// high (their font size): shrunk to fit as --fit does, but no
+        /// further, and cut into tiles where it then does not fit in one
+        /// file (NAME-1.png, NAME-2.png, …, each cut between two lines of
+        /// words). A picture that fits at --scale stays one file.
+        #[arg(long, value_name = "PX")]
+        min_font: Option<f32>,
         /// Do not store the diagram source in SVG and PNG images.
         #[arg(long)]
         no_source: bool,
@@ -876,6 +883,7 @@ fn main() -> ExitCode {
             format,
             scale,
             fit,
+            min_font,
             no_source,
             copy,
             look,
@@ -889,6 +897,7 @@ fn main() -> ExitCode {
             text: matches!(format, Some(FormatChoice::Text)),
             scale,
             fit,
+            min_font,
             source: !no_source,
             copy,
             look,

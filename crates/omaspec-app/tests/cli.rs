@@ -79,6 +79,113 @@ fn render_fits_a_picture_too_large_with_fit() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// REQ-070: `--min-font` keeps a picture's words at least so many pixels
+/// high. One that fits stays one file; one that does not is cut into
+/// tiles, `NAME-1.png` and on, each within one file's size, the source in
+/// each; `--fit` alone is as it was.
+#[test]
+fn render_keeps_words_readable_with_min_font() {
+    let dir = scratch("min-font");
+    let long = dir.join("long.puml");
+    let mut source = String::from("@startuml\n");
+    for i in 1..=60 {
+        source.push_str(&format!(
+            "Alice -> Bob : message number {i} with some words\n"
+        ));
+    }
+    source.push_str("@enduml\n");
+    fs::write(&long, &source).unwrap();
+    let png = dir.join("long.png");
+    let run = |least: &str, more: &[&str]| {
+        let mut args = vec![
+            "render",
+            "--json",
+            long.to_str().unwrap(),
+            "-o",
+            png.to_str().unwrap(),
+            "--min-font",
+            least,
+        ];
+        args.extend_from_slice(more);
+        omaspec(&args)
+    };
+    // It fits at scale 2: one file, its words larger than asked.
+    let one = run("10", &[]);
+    assert!(
+        one.status.success(),
+        "{}",
+        String::from_utf8_lossy(&one.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&one.stdout).unwrap();
+    assert_eq!(report[0]["scale"].as_f64(), Some(2.0));
+    assert!(report[0]["smallest_text_px"].as_f64().unwrap() >= 10.0);
+    assert!(report[0]["tiles"].is_null() && png.exists());
+    // A scale below what the words need is raised to it.
+    let raised = run("10", &["--scale", "0.2"]);
+    let report: serde_json::Value = serde_json::from_slice(&raised.stdout).unwrap();
+    let px = report[0]["smallest_text_px"].as_f64().unwrap();
+    assert!((10.0..10.5).contains(&px), "{px}");
+    // Only a PNG or a JPEG has pixels to size.
+    let svg = omaspec(&[
+        "render",
+        long.to_str().unwrap(),
+        "-o",
+        dir.join("long.svg").to_str().unwrap(),
+        "--min-font",
+        "10",
+    ]);
+    assert!(!svg.status.success());
+    assert!(String::from_utf8_lossy(&svg.stderr).contains("PNG or JPEG"));
+    // A debug build takes minutes for a few hundred million pixels.
+    if cfg!(debug_assertions) {
+        let _ = fs::remove_dir_all(&dir);
+        return;
+    }
+    let cut = run("190", &[]);
+    assert!(
+        cut.status.success(),
+        "{}",
+        String::from_utf8_lossy(&cut.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&cut.stdout).unwrap();
+    let tiles = report[0]["tiles"].as_array().unwrap();
+    assert!(tiles.len() > 1, "{report}");
+    assert!(report[0]["smallest_text_px"].as_f64().unwrap() >= 189.9);
+    let rows = report[0]["rows"].as_u64().unwrap() as usize;
+    let columns = report[0]["columns"].as_u64().unwrap() as usize;
+    assert!(tiles.len() <= rows * columns);
+    let mut height = 0;
+    for (n, tile) in tiles.iter().enumerate() {
+        let path = PathBuf::from(tile.as_str().unwrap());
+        assert_eq!(path, dir.join(format!("long-{}.png", n + 1)));
+        let bytes = fs::read(&path).unwrap();
+        let side = |at: usize| u32::from_be_bytes(bytes[at..at + 4].try_into().unwrap());
+        assert!(u64::from(side(16)) * u64::from(side(20)) <= 100_000_000);
+        assert!(side(16) <= 16_384 && side(20) <= 16_384);
+        if columns == 1 {
+            height += side(20);
+        }
+        let stored = embed::source_from_png(&bytes).expect("each tile holds the source");
+        assert_eq!(stored.code, source);
+    }
+    if columns == 1 {
+        assert!(height > 16_384, "{height}");
+    }
+    // Tiles are files, not something to paste.
+    let copied = omaspec(&[
+        "render",
+        long.to_str().unwrap(),
+        "--min-font",
+        "190",
+        "--copy",
+        "-f",
+        "png",
+    ]);
+    assert!(!copied.status.success());
+    assert!(String::from_utf8_lossy(&copied.stderr).contains("tiles"));
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn render_names_the_characters_no_font_draws() {
     let dir = scratch("undrawable");

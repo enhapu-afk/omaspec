@@ -7,8 +7,10 @@
 
 mod glyphs;
 mod present;
+mod tiles;
 
 pub use present::{Play, stage};
+pub use tiles::{Plan, TILE_SIDE, plan, smallest_words};
 
 use std::collections::HashMap;
 use std::fmt;
@@ -177,6 +179,31 @@ fn linked(svg: &str, options: &Options) -> Result<String, ExportError> {
     let links = crate::sanitize::Links { up: options.up };
     crate::sanitize::sanitize_with(&crate::anchors::lay(&faced, options.links), links)
         .map_err(|e| ExportError::Svg(e.to_string()))
+}
+
+/// `svg` drawn as `plan` says, each of its parts a PNG or JPEG file, in
+/// its order; each PNG stores the source, so a tile dropped on Omaspec
+/// opens the diagram.
+pub fn export_tiles(
+    svg: &str,
+    format: Format,
+    options: &Options,
+    plan: &Plan,
+) -> Result<Vec<Vec<u8>>, ExportError> {
+    let tree = parse(svg)?;
+    plan.parts
+        .iter()
+        .map(|&part| {
+            let bytes = tiles::tile(&tree, plan.scale, part, format)?;
+            Ok(match (format, options.source) {
+                (Format::Png, Some(s)) => {
+                    embed::png_with_source(&bytes, s.code, s.language, s.file)
+                        .expect("resvg writes valid PNGs")
+                }
+                _ => bytes,
+            })
+        })
+        .collect()
 }
 
 pub fn export(svg: &str, format: Format, options: &Options) -> Result<Vec<u8>, ExportError> {
@@ -408,10 +435,7 @@ fn pixels(tree: &usvg::Tree, scale: f32) -> Result<(u32, u32), ExportError> {
 /// to two places, at which it fits in [`MAX_PIXELS`] and `side` pixels a
 /// side.
 fn too_large(tree: &usvg::Tree, width: u32, height: u32, side: f32) -> ExportError {
-    let size = tree.size();
-    let by_area = (MAX_PIXELS as f32 / (size.width() * size.height())).sqrt();
-    let by_side = side / size.width().max(size.height());
-    let fits = (by_area.min(by_side) * 100.0).floor() / 100.0;
+    let fits = tiles::fitting(tree, side);
     ExportError::TooLarge {
         width,
         height,
@@ -465,7 +489,16 @@ fn png(tree: &usvg::Tree, scale: f32) -> Result<Vec<u8>, ExportError> {
 
 fn jpeg(tree: &usvg::Tree, scale: f32) -> Result<Vec<u8>, ExportError> {
     let pixmap = rasterize(tree, scale)?;
-    let side = || too_large(tree, pixmap.width(), pixmap.height(), f32::from(u16::MAX));
+    encode_jpeg(&pixmap, || {
+        too_large(tree, pixmap.width(), pixmap.height(), f32::from(u16::MAX))
+    })
+}
+
+/// `pixmap` as a JPEG; `side` is the error for one too large for it.
+fn encode_jpeg(
+    pixmap: &tiny_skia::Pixmap,
+    side: impl Fn() -> ExportError,
+) -> Result<Vec<u8>, ExportError> {
     let width = u16::try_from(pixmap.width()).map_err(|_| side())?;
     let height = u16::try_from(pixmap.height()).map_err(|_| side())?;
     // JPEG has no alpha. Edges are premultiplied against the white paper.

@@ -708,6 +708,8 @@ omaspec convert door.puml -o door.mmd  # the same machine or scenario in Mermaid
 omaspec render flow.mmd             # flow.svg next to it, with the source inside
 omaspec render flow.mmd --json      # where the image went, or the error and its line, as JSON
 omaspec render flow.mmd -o flow.png # PNG (2x), JPEG, PDF, Markdown or ZIP by extension; --copy for the clipboard
+omaspec render odyssey.puml -o odyssey.png --fit          # a picture past 100 million pixels, shrunk into one file
+omaspec render odyssey.puml -o odyssey.png --min-font 10  # its words at least 10 px high: too large for one file, it is cut into tiles, odyssey-1.png, …, between lines of words
 omaspec render door.puml -o door.html --look dark   # a presentation: one page that plays it, offline
 omaspec render door.puml -o -  --format text   # its behavior, one fact a line, for an agent or a terminal; or -o door.txt
 omaspec play door.puml -o door.gif --events open,close   # the play as a GIF that moves, drawn as the window draws it; --steps, --width, --fps, --theme built-in; --colors 32 --lossy 15 a third smaller

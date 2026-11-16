@@ -30,6 +30,9 @@ pub struct RenderArgs<'a> {
     pub scale: f32,
     /// A picture too large at `scale` is drawn at the largest that fits.
     pub fit: bool,
+    /// The least size of a PNG's or JPEG's words, in pixels: shrunk to fit
+    /// no further, and cut into tiles where it then does not fit (REQ-070).
+    pub min_font: Option<f32>,
     /// Store the diagram source in SVG and PNG images.
     pub source: bool,
     pub copy: bool,
@@ -96,6 +99,17 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             "--check holds a file's SVG against the one beside it; standard input has none"
         );
     }
+    if let Some(least) = args.min_font {
+        anyhow::ensure!(
+            matches!(format, Format::Png | Format::Jpeg),
+            "--min-font sizes the words of a PNG or JPEG; an {} keeps them as they are, at any zoom",
+            format.extension().to_uppercase()
+        );
+        anyhow::ensure!(
+            least > 0.0 && least <= 200.0,
+            "--min-font must be between 0 and 200 pixels"
+        );
+    }
     anyhow::ensure!(
         args.look != Some(crate::look::Look::Auto) || format == Format::Svg,
         "--look auto makes an SVG, which a viewer turns dark with its own scheme; for {} take light or dark",
@@ -140,6 +154,8 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 same: None,
                 undrawable: Vec::new(),
                 fitted_scale: None,
+                sized: None,
+                tiles: Vec::new(),
             });
         } else {
             eprintln!("{}: error: {message}", input.name());
@@ -156,6 +172,13 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 format,
                 scale: args.scale,
                 fit: args.fit,
+                min_font: args.min_font,
+                // Tiles are files: not on the clipboard or standard output.
+                tiles: !args.copy
+                    && match args.output {
+                        Some(out) => out.as_os_str() != "-",
+                        None => input.path.is_some(),
+                    },
                 source: args.source,
                 look: args.look,
             },
@@ -178,6 +201,8 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                         same: None,
                         undrawable: Vec::new(),
                         fitted_scale: None,
+                        sized: None,
+                        tiles: Vec::new(),
                     });
                 } else {
                     let at = line.map(|l| format!(":{l}")).unwrap_or_default();
@@ -186,12 +211,58 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 continue;
             }
         };
-        let bytes = exported.bytes;
         let took = format!(
             "{}, {:.1} ms",
             exported.engine,
             exported.elapsed.as_secs_f64() * 1000.0
         );
+        let dest = match (args.output, &input.path) {
+            (Some(out), _) if out.as_os_str() != "-" => Some(out.to_owned()),
+            (Some(_), _) | (None, None) => None,
+            (None, Some(_)) => piece.image_path(format.extension()),
+        };
+        if !exported.tiles.is_empty() {
+            let dest = dest.expect("tiles only where they are files");
+            let paths = tile_paths(&dest, exported.tiles.len());
+            for (path, bytes) in paths.iter().zip(&exported.tiles) {
+                anyhow::ensure!(
+                    input.path.as_deref() != Some(path.as_path()),
+                    "{} would overwrite the diagram itself",
+                    path.display()
+                );
+                write_atomic(path, bytes)?;
+            }
+            if args.json {
+                reports.push(Report {
+                    file: input.name(),
+                    ok: true,
+                    output: None,
+                    copied: false,
+                    engine: Some(exported.engine),
+                    elapsed_ms: Some(millis(exported.elapsed)),
+                    line: None,
+                    message: None,
+                    same: None,
+                    undrawable: exported.undrawable.iter().map(char::to_string).collect(),
+                    fitted_scale: None,
+                    sized: exported.sized,
+                    tiles: paths.iter().map(|p| p.display().to_string()).collect(),
+                });
+            } else {
+                let (first, last) = (&paths[0], &paths[paths.len() - 1]);
+                eprintln!(
+                    "{} → {} … {}, {} tiles ({took})",
+                    input.name(),
+                    first.display(),
+                    last.display(),
+                    paths.len()
+                );
+                warn_undrawable(&input.name(), &exported.undrawable);
+                say_sized(&input.name(), exported.sized);
+            }
+            continue;
+        }
+        let bytes = exported.bytes;
 
         if args.copy {
             copy_to_clipboard(&bytes, format.mime())?;
@@ -208,6 +279,8 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                     same: None,
                     undrawable: exported.undrawable.iter().map(char::to_string).collect(),
                     fitted_scale: exported.fitted,
+                    sized: exported.sized,
+                    tiles: Vec::new(),
                 });
             } else {
                 eprintln!(
@@ -217,14 +290,10 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                 );
                 warn_undrawable(&input.name(), &exported.undrawable);
                 say_fitted(&input.name(), exported.fitted);
+                say_sized(&input.name(), exported.sized);
             }
             continue;
         }
-        let dest = match (args.output, &input.path) {
-            (Some(out), _) if out.as_os_str() != "-" => Some(out.to_owned()),
-            (Some(_), _) | (None, None) => None,
-            (None, Some(_)) => piece.image_path(format.extension()),
-        };
         match dest {
             Some(dest) => {
                 anyhow::ensure!(
@@ -246,11 +315,14 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                         same: None,
                         undrawable: exported.undrawable.iter().map(char::to_string).collect(),
                         fitted_scale: exported.fitted,
+                        sized: exported.sized,
+                        tiles: Vec::new(),
                     });
                 } else {
                     eprintln!("{} → {} ({took})", input.name(), dest.display());
                     warn_undrawable(&input.name(), &exported.undrawable);
                     say_fitted(&input.name(), exported.fitted);
+                    say_sized(&input.name(), exported.sized);
                 }
             }
             None => stdout().write_all(&bytes)?,
@@ -307,6 +379,8 @@ fn render_text(
                 same: None,
                 undrawable: Vec::new(),
                 fitted_scale: None,
+                sized: None,
+                tiles: Vec::new(),
             });
         };
     for input in empty {
@@ -398,6 +472,65 @@ struct Report {
     /// With `--fit`: the scale the picture was drawn at to fit.
     #[serde(skip_serializing_if = "Option::is_none")]
     fitted_scale: Option<f32>,
+    /// With `--min-font`: the scale, the size of the smallest words and
+    /// the grid of tiles.
+    #[serde(skip_serializing_if = "Option::is_none", flatten)]
+    sized: Option<Sizing>,
+    /// With `--min-font`, where the picture is cut: the tiles, row by row.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tiles: Vec<String>,
+}
+
+/// How `--min-font` drew a picture.
+#[derive(Debug, Clone, Copy, Serialize)]
+struct Sizing {
+    scale: f32,
+    /// The font size of the smallest words, in pixels; none without words.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    smallest_text_px: Option<f32>,
+    rows: usize,
+    columns: usize,
+}
+
+/// `dest` with each tile's number before its extension, `odyssey-1.png`,
+/// as many digits each as the last has, so they sort.
+fn tile_paths(dest: &Path, count: usize) -> Vec<PathBuf> {
+    let digits = count.to_string().len();
+    let stem = dest
+        .file_stem()
+        .map_or_else(String::new, |s| s.to_string_lossy().into_owned());
+    let ext = dest
+        .extension()
+        .map(|e| format!(".{}", e.to_string_lossy()))
+        .unwrap_or_default();
+    (1..=count)
+        .map(|n| dest.with_file_name(format!("{stem}-{n:0digits$}{ext}")))
+        .collect()
+}
+
+/// Says the scale `--min-font` drew a picture at, and how large its
+/// smallest words are.
+fn say_sized(name: &str, sized: Option<Sizing>) {
+    let Some(sized) = sized else { return };
+    let scale = (sized.scale * 100.0).round() / 100.0;
+    let words = match sized.smallest_text_px {
+        Some(px) => format!(", its smallest words {:.1} px high", px),
+        None => ", without words".to_owned(),
+    };
+    let plural = |n: usize, one: &str| match n {
+        1 => format!("1 {one}"),
+        n => format!("{n} {one}s"),
+    };
+    let grid = if sized.rows * sized.columns > 1 {
+        format!(
+            ", cut into {} × {}",
+            plural(sized.rows, "row"),
+            plural(sized.columns, "column")
+        )
+    } else {
+        String::new()
+    };
+    eprintln!("{name}: drawn at scale {scale}{words}{grid} (--min-font)");
 }
 
 /// Says the scale a picture was drawn at to fit, when `--fit` lowered it.
@@ -433,6 +566,11 @@ struct Exported {
     undrawable: Vec<char>,
     /// The scale a picture was drawn at to fit, when `--fit` lowered it.
     fitted: Option<f32>,
+    /// How `--min-font` drew it.
+    sized: Option<Sizing>,
+    /// The tiles `--min-font` cut it into, in their order; `bytes` is
+    /// empty then.
+    tiles: Vec<Vec<u8>>,
 }
 
 /// How [`export_piece`] draws.
@@ -442,6 +580,10 @@ struct Draw {
     scale: f32,
     /// A picture too large at `scale` is drawn at the largest that fits.
     fit: bool,
+    /// The least size of a picture's words, in pixels.
+    min_font: Option<f32>,
+    /// A picture may be cut into tiles: they go to files.
+    tiles: bool,
     source: bool,
     look: Option<crate::look::Look>,
 }
@@ -497,6 +639,8 @@ fn hold(
         format: Format::Svg,
         scale,
         fit: false,
+        min_font: None,
+        tiles: false,
         source,
         look,
     };
@@ -619,6 +763,8 @@ fn report_of(item: &Held) -> Report {
         same: item.same,
         undrawable: Vec::new(),
         fitted_scale: None,
+        sized: None,
+        tiles: Vec::new(),
     }
 }
 
@@ -686,32 +832,63 @@ fn export_piece(
     // is read from it.
     let drawn = (draw.format == Format::Html && project.is_none())
         .then(|| crate::look::drawn_text(&piece.code, piece.language, skin.as_ref()));
-    let export_at = |scale: f32| {
-        export::export(
-            &rendered.svg,
-            draw.format,
-            &export::Options {
-                scale,
-                // A map has no source of its own: it is made from the project.
-                source: (draw.source && project.is_none()).then(|| export::Source {
-                    code: &piece.code,
-                    language: piece.language,
-                    file: source_name.as_deref(),
-                }),
-                links: &links,
-                up,
-                play: (draw.format == Format::Html).then(|| {
-                    let (paper, accent) = crate::look::stage(skin.as_ref());
-                    export::Play {
-                        map: &rendered.map,
-                        code: drawn.as_deref().map(|drawn| (drawn, piece.language)),
-                        paper,
-                        accent,
-                    }
-                }),
-            },
-        )
+    let options_at = |scale: f32| export::Options {
+        scale,
+        // A map has no source of its own: it is made from the project.
+        source: (draw.source && project.is_none()).then(|| export::Source {
+            code: &piece.code,
+            language: piece.language,
+            file: source_name.as_deref(),
+        }),
+        links: &links,
+        up,
+        play: (draw.format == Format::Html).then(|| {
+            let (paper, accent) = crate::look::stage(skin.as_ref());
+            export::Play {
+                map: &rendered.map,
+                code: drawn.as_deref().map(|drawn| (drawn, piece.language)),
+                paper,
+                accent,
+            }
+        }),
     };
+    let export_at = |scale: f32| export::export(&rendered.svg, draw.format, &options_at(scale));
+    if let Some(least) = draw.min_font {
+        let plan = export::plan(
+            &export::parse(&rendered.svg)?,
+            draw.format,
+            draw.scale,
+            least,
+        );
+        let sized = Some(Sizing {
+            scale: plan.scale,
+            smallest_text_px: plan.smallest,
+            rows: plan.rows,
+            columns: plan.columns,
+        });
+        anyhow::ensure!(
+            draw.tiles || !plan.tiled(),
+            "{}: --min-font cuts it into {} tiles, which are files; leave out --copy, or name one with --output",
+            input.name(),
+            plan.parts.len()
+        );
+        let (bytes, tiles) = if plan.tiled() {
+            let options = options_at(plan.scale);
+            let tiles = export::export_tiles(&rendered.svg, draw.format, &options, &plan)?;
+            (Vec::new(), tiles)
+        } else {
+            (export_at(plan.scale)?, Vec::new())
+        };
+        return Ok(Ok(Exported {
+            bytes,
+            engine: rendered.engine.name(),
+            elapsed: rendered.elapsed,
+            undrawable: export::undrawable(&rendered.svg).unwrap_or_default(),
+            fitted: None,
+            sized,
+            tiles,
+        }));
+    }
     let (bytes, fitted) = match export_at(draw.scale) {
         Err(export::ExportError::TooLarge {
             fits: Some(fits), ..
@@ -735,6 +912,8 @@ fn export_piece(
         elapsed: rendered.elapsed,
         undrawable,
         fitted,
+        sized: None,
+        tiles: Vec::new(),
     }))
 }
 
