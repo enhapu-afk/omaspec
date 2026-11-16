@@ -63,7 +63,8 @@ pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
             // mixes the two stays on one scale. A clock that goes back by
             // more than a few minutes went past midnight. A line a moment
             // out of order stays on its day, at the time before it, so the
-            // lines keep the trace's order.
+            // lines keep the trace's order; so does one written a moment
+            // before midnight after a line just past it.
             let dated = moments.iter().all(|m| m.at.is_some());
             let mut day = 0.0;
             let mut before = f64::NEG_INFINITY;
@@ -74,10 +75,16 @@ pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
                         Some(at) if dated => at,
                         _ => m.clock,
                     };
-                    if !dated && t + day < before - JITTER {
+                    let mut here = t + day;
+                    if !dated && here < before - JITTER {
                         day += 86_400.0;
+                        here += 86_400.0;
+                    } else if !dated && (before - JITTER..before).contains(&(here - 86_400.0)) {
+                        // Written a moment before a line just past
+                        // midnight: out of order, not a day later.
+                        here -= 86_400.0;
                     }
-                    before = before.max(t + day);
+                    before = before.max(here);
                     before
                 })
                 .collect();

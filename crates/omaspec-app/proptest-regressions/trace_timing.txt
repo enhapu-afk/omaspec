@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 4a8fe64fbf7d8d9fadd8634fd20faebbb0ac11839ed254f4c36ec6fdbca44bb1 # shrinks to start = 0, steps = [(1, 0, 0), (1, 2, 0)]
+cc 2c7060c52a339e295f663df601c21a7e43f40ee74b19d887b6986c6b89ad5eef # shrinks to start = 43484, steps = [(63169, 0, 0), (66147, 2, 0), (0, 0, 0)]
