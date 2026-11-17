@@ -287,32 +287,76 @@ impl App {
                 .view(&self.palette, self.font, false)
                 .map(|m| Message::Paper(compare::KEY, m))
         };
+        // A switch of the bar: a pill, framed in the accent while it is
+        // on, so it reads as something to press and tells what is shown.
         let toggle = |on: bool, label: &'static str, command| {
-            button(self.label(label, if on { p.accent } else { p.dark_foreground }))
-                .padding([0, 6])
+            let ink = if on { p.accent } else { p.dark_foreground };
+            button(self.label(label, ink))
+                .padding([1, 8])
                 .on_press(Message::Command(command))
-                .style(|_: &Theme, _| button::Style::default())
+                .style(move |_: &Theme, status| button::Style {
+                    background: Some(
+                        ui::color(match status {
+                            button::Status::Hovered | button::Status::Pressed => p.selection,
+                            _ => p.lighter_background,
+                        })
+                        .into(),
+                    ),
+                    border: iced::Border {
+                        radius: 9.0.into(),
+                        width: if on { 1.0 } else { 0.0 },
+                        color: ui::color(p.accent),
+                    },
+                    ..button::Style::default()
+                })
         };
         let a_bar = row![
             self.label("A", p.accent),
             container(self.label(self.doc().name(), p.foreground)).clip(true),
         ]
         .spacing(8);
+        // What B shows is one of three: pressing the one that is on again
+        // goes back to the diagram, as the commands do.
+        let diagram = !c.show_diff && !c.show_behavior;
+        let back = if c.show_behavior {
+            Command::CompareBehavior
+        } else {
+            Command::CompareDiff
+        };
+        let shows: Element<'_, Message> = if diagram {
+            toggle(true, "diagram", Command::CompareSync)
+                .on_press_maybe(None)
+                .into()
+        } else {
+            toggle(false, "diagram", back).into()
+        };
         let b_bar = row![
             self.label("B", p.accent),
             container(self.label(c.title.clone(), p.foreground))
                 .width(Length::Fill)
                 .clip(true),
-            toggle(c.show_diff, "diff", Command::CompareDiff),
+            shows,
+            toggle(c.show_diff, "lines", Command::CompareDiff),
             toggle(c.show_behavior, "behavior", Command::CompareBehavior),
-            toggle(c.sync, "sync", Command::CompareSync),
+            Space::new().width(8),
+            toggle(c.sync, "zoom together", Command::CompareSync),
             toggle(false, "×", Command::StopCompare),
         ]
         .spacing(4)
         .align_y(Alignment::Center);
-        row![side(a_bar.into(), a), side(b_bar.into(), b)]
-            .spacing(2)
-            .into()
+        // Two wide pictures lie one above the other, where each has the
+        // pane's whole width; tall ones stand side by side.
+        let size = paper.diagram_size();
+        let stacked = diagram && size.width > size.height * WIDE;
+        let (a, b) = (
+            side(a_bar.into(), a, stacked),
+            side(b_bar.into(), b, stacked),
+        );
+        if stacked {
+            column![a, b].spacing(2).into()
+        } else {
+            row![a, b].spacing(2).into()
+        }
     }
 
     /// B as the lines changed from B to A; a click goes to the line in A.
@@ -1709,11 +1753,23 @@ mod tab_wheel {
     }
 }
 
-/// One half of A|B: its title bar above its body.
-fn side<'a>(bar: Element<'a, Message>, body: Element<'a, Message>) -> Element<'a, Message> {
-    column![container(bar).padding([2, 8]).width(Length::Fill), body]
-        .width(Length::FillPortion(1))
-        .into()
+/// How much wider than high a diagram is before A and B lie one above the
+/// other.
+const WIDE: f32 = 1.3;
+
+/// One half of A|B: its title bar above its body. The halves share the
+/// pane's height when `stacked`, its width otherwise.
+fn side<'a>(
+    bar: Element<'a, Message>,
+    body: Element<'a, Message>,
+    stacked: bool,
+) -> Element<'a, Message> {
+    let half = column![container(bar).padding([3, 8]).width(Length::Fill), body];
+    if stacked {
+        half.height(Length::FillPortion(1)).into()
+    } else {
+        half.width(Length::FillPortion(1)).into()
+    }
 }
 
 /// Keys of the diagram, where it has the keyboard: Ctrl+F finds a label
