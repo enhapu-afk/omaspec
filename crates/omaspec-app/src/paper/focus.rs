@@ -27,6 +27,9 @@ use super::{Message, Paper};
 
 /// How much of the paper's color lies over what is not in focus.
 const VEIL: f32 = 0.76;
+/// How far past its outline a box without a rim on it is let through, in
+/// the diagram's units: its rim is drawn beside it, by hand.
+const RIM_BY_HAND: f32 = 2.0;
 /// How far around a line's words the veil stays away, in screen pixels.
 const WORDS_AIR: f32 = 2.0;
 
@@ -102,8 +105,29 @@ impl Outline {
     }
 
     /// The outline on screen, as one more shape of `builder`.
-    fn trace(&self, builder: &mut path::Builder, place: &dyn Fn((f32, f32)) -> Point) {
-        trace(&self.segments, builder, place);
+    /// The outline `by` units larger on every side, on screen, as one
+    /// more shape of `builder`: stretched from its middle, which keeps a
+    /// box's sides straight and a diamond a diamond.
+    fn trace_grown(
+        &self,
+        builder: &mut path::Builder,
+        place: &dyn Fn((f32, f32)) -> Point,
+        by: f32,
+    ) {
+        let b = self.bounds;
+        let (cx, cy) = (b.x + b.w / 2.0, b.y + b.h / 2.0);
+        let (kx, ky) = (
+            (b.w + 2.0 * by) / b.w.max(1e-3),
+            (b.h + 2.0 * by) / b.h.max(1e-3),
+        );
+        let grown = |(x, y): (f32, f32)| place((cx + (x - cx) * kx, cy + (y - cy) * ky));
+        trace(&self.segments, builder, &grown);
+    }
+
+    /// How far the rim reaches past the outline, in the diagram's units,
+    /// and a little more: one drawn by hand strays from it.
+    fn rim_reach(&self) -> f32 {
+        self.rim.map_or(RIM_BY_HAND, |(_, width)| width / 2.0 + 0.5)
     }
 }
 
@@ -431,31 +455,46 @@ impl canvas::Program<Message> for FocusLayer<'_> {
             .enumerate()
             .map(|(at, spot)| (spot, self.lit.outlines.get(at).and_then(Option::as_ref)))
             .collect();
+        // A box with its rim: `more` pixels larger than that.
         let shape =
-            |builder: &mut path::Builder, spot: &Spot, outline: Option<&Outline>| match outline {
-                Some(outline) => outline.trace(builder, &point),
-                None => Glow::of(spot, &viewer).trace(builder),
+            |builder: &mut path::Builder, spot: &Spot, outline: Option<&Outline>, more: f32| {
+                match outline {
+                    Some(outline) => outline.trace_grown(
+                        builder,
+                        &point,
+                        outline.rim_reach() + more / unit.max(1e-3),
+                    ),
+                    None => Glow::of(spot, &viewer).trace(builder, 0.5 + more),
+                }
             };
         if self.over {
-            // The light on the box in focus, along its own shape.
+            // The light on the box in focus, around its own shape and
+            // not on it: rings between the shape and the shape grown, the
+            // nearer the stronger, then a crisp one.
             let (spot, outline) = boxes[0];
-            let around = Path::new(|builder| shape(builder, spot, outline));
-            const LAYERS: usize = 6;
+            let ring = |frame: &mut Frame, to: f32, color: Color| {
+                let band = Path::new(|builder| {
+                    shape(builder, spot, outline, to);
+                    shape(builder, spot, outline, 0.0);
+                });
+                frame.fill(
+                    &band,
+                    canvas::Fill {
+                        style: canvas::Style::Solid(color),
+                        rule: canvas::fill::Rule::EvenOdd,
+                    },
+                );
+            };
+            const LAYERS: usize = 7;
             for layer in 0..LAYERS {
                 let k = 1.0 - layer as f32 / LAYERS as f32;
-                frame.stroke(
-                    &around,
-                    Stroke::default()
-                        .with_color(with_alpha(self.accent, 0.2 * k.powf(1.6)))
-                        .with_width(4.0 + layer as f32 * 3.2),
+                ring(
+                    &mut frame,
+                    3.0 + layer as f32 * 2.0,
+                    with_alpha(self.accent, 0.13 * k.powf(1.5)),
                 );
             }
-            frame.stroke(
-                &around,
-                Stroke::default()
-                    .with_color(with_alpha(self.accent, 0.95))
-                    .with_width(2.2),
-            );
+            ring(&mut frame, 2.5, with_alpha(self.accent, 0.95));
         } else {
             let ground = Color {
                 a: 1.0,
@@ -505,26 +544,14 @@ impl canvas::Program<Message> for FocusLayer<'_> {
                 with_alpha(ground, VEIL),
                 |builder| {
                     for (spot, outline) in &holes {
-                        shape(builder, spot, *outline);
+                        shape(builder, spot, *outline, 0.0);
                     }
                     for word in &words {
                         builder.rectangle(word.position(), word.size());
                     }
                 },
             );
-            // The rims, half of which the veil took, and the lines.
-            for (_, outline) in &holes {
-                if let Some(outline) = outline
-                    && let Some((color, width)) = outline.rim
-                {
-                    frame.stroke(
-                        &Path::new(|builder| outline.trace(builder, &point)),
-                        Stroke::default()
-                            .with_color(color)
-                            .with_width((width * unit).max(0.75)),
-                    );
-                }
-            }
+            // The lines, over the veil.
             for line in &self.lit.lines {
                 let width = (line.width * unit).max(0.75);
                 let segments;

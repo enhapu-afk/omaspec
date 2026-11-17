@@ -178,15 +178,24 @@ impl Glow {
         }
     }
 
-    /// The outline as one more shape of `builder`.
-    pub(in crate::paper) fn trace(&self, builder: &mut iced::widget::canvas::path::Builder) {
+    /// The outline `out` pixels larger as one more shape of `builder`.
+    pub(in crate::paper) fn trace(
+        &self,
+        builder: &mut iced::widget::canvas::path::Builder,
+        out: f32,
+    ) {
         match *self {
             Glow::Box(r, radius) => {
-                let radius = radius.min(r.width / 2.0).min(r.height / 2.0).max(0.0);
+                let r = grow(r, out);
+                let radius = (radius + out)
+                    .min(r.width / 2.0)
+                    .min(r.height / 2.0)
+                    .max(0.0);
                 builder.rounded_rectangle(r.position(), r.size(), radius.into());
             }
-            Glow::Ring(c, radius) => builder.circle(c, radius),
+            Glow::Ring(c, radius) => builder.circle(c, radius + out),
             Glow::Diamond(r) => {
+                let r = grow(r, out);
                 let c = r.center();
                 builder.move_to(Point::new(c.x, r.y));
                 builder.line_to(Point::new(r.x + r.width, c.y));

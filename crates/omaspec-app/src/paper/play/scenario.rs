@@ -5,7 +5,6 @@ use std::time::Duration;
 
 use iced::time::Instant;
 use iced::widget::canvas;
-use iced::widget::canvas::gradient::Linear;
 use iced::widget::canvas::{Frame, Path};
 use iced::{Color, Point, Rectangle, Size};
 use omaspec_uml::map::{Ground, Step};
@@ -201,19 +200,20 @@ impl ScenarioPlay {
         let top = edge.max(paper.y);
         let soft_end = (top + SOFT).min(paper.y + paper.height);
         let full = |color: Color| with_alpha(color, VEIL * veil);
-        if soft_end > top {
-            // Eight stops: iced keeps no more, and a ninth, the full veil,
-            // was dropped, so the edge ended in a step.
-            let fade = |color: Color| {
-                let mut fade =
-                    Linear::new(Point::new(paper.x, top), Point::new(paper.x, top + SOFT));
-                for i in 0..8 {
-                    let t = i as f32 / 7.0;
-                    fade = fade.add_stop(t, with_alpha(full(color), smooth(t)));
-                }
-                fade
-            };
-            self.veil_band(frame, look, view, (top, soft_end), fade);
+        // The edge in steps of one color each, on whole pixels: as the
+        // veil under it is drawn. A gradient showed a line at each of its
+        // stops in some windows, a band where the reader looks.
+        const STEPS: usize = 28;
+        for step in 0..STEPS {
+            let from = top + SOFT * step as f32 / STEPS as f32;
+            let to = (top + SOFT * (step + 1) as f32 / STEPS as f32).min(soft_end);
+            if to <= from {
+                break;
+            }
+            let share = smooth((step as f32 + 0.5) / STEPS as f32);
+            self.veil_band(frame, look, view, (from, to), |color| {
+                with_alpha(full(color), share)
+            });
         }
         let below = top + SOFT;
         if below < paper.y + paper.height {

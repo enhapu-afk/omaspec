@@ -3152,12 +3152,26 @@ fn snapshot_focus_looks() {
     let moving = app.doc().paper.screen_of_box("Moving");
     let _ = app.update(Message::Paper(key, paper::Message::FocusAt(moving)));
     shoot(&mut app, &dir, "focus-sketch");
+    // Nearer, on a choice and on a small state.
+    let small = "@startuml\nskinparam handwritten true\nstate Check <<choice>>\n[*] --> Idle\nIdle --> Check : call\nCheck --> Closing : [doors open]\nCheck --> Moving : [doors closed]\nClosing --> Moving : closed\n@enduml\n";
+    let file = work.join("small.puml");
+    std::fs::write(&file, small).unwrap();
+    for name in ["Check", "Closing"] {
+        let mut app = open(std::slice::from_ref(&file));
+        follow_theme(&mut app, false);
+        show(&mut app, small, Language::PlantUml);
+        let key = app.doc().key;
+        let at = app.doc().paper.screen_of_box(name);
+        let _ = app.update(Message::Paper(key, paper::Message::FocusAt(at)));
+        shoot(&mut app, &dir, &format!("focus-sketch-{name}"));
+    }
 }
 
 /// Writes headless screenshots of a scenario's play in the file's own
 /// colors and in the theme's when OMASPEC_SNAPSHOT_DIR is set: four
 /// messages played, the rest under the veil, zoomed so that the paper is
-/// larger than the pane.
+/// larger than the pane; in the file's colors also as a window between
+/// one and two pixels a unit shows it.
 #[test]
 fn snapshot_play_looks() {
     let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
@@ -3172,7 +3186,7 @@ fn snapshot_play_looks() {
         let mut app = open(std::slice::from_ref(&file));
         follow_theme(&mut app, colors);
         show(&mut app, checkout, Language::PlantUml);
-        for _ in 0..4 {
+        for _ in 0..2 {
             let _ = app.doc_mut().paper.zoom(1.2);
         }
         let _ = app.update(Message::Command(Command::Play));
@@ -3182,6 +3196,18 @@ fn snapshot_play_looks() {
         }
         app.doc_mut().paper.freeze_play(Duration::from_secs(3));
         shoot(&mut app, &dir, name);
+        if !colors {
+            // As a window between one and two pixels a unit shows it.
+            for scale in [1.25, 1.6] {
+                let main = app.main;
+                let _ = app.update(Message::ScaleFactor(main, scale));
+                settle(&mut app);
+                let mut screen = Screen::new(&app, scale).unwrap();
+                screen
+                    .shoot(&app)
+                    .save(&dir.join(format!("{name}-{scale}.png")));
+            }
+        }
     }
 }
 

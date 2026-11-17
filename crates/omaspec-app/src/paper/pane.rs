@@ -121,6 +121,7 @@ impl Paper {
                 headings,
                 overview,
                 sharp,
+                scale: self.scale_factor,
             })
             .width(Length::Fill)
             .height(Length::Fill)

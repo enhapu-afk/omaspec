@@ -12,7 +12,6 @@
 //! click there picks the participant, not the message under it.
 
 use iced::mouse::Cursor;
-use iced::widget::canvas::gradient::Linear;
 use iced::widget::canvas::{self, Frame, Geometry};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme, Vector};
 use omaspec_uml::map::{Band, Edge, Ground};
@@ -131,6 +130,8 @@ pub struct KeptBands<'a> {
     /// Sharper pixels of the band across the top and of the one down the
     /// left, where the overview is not sharp at this zoom.
     pub sharp: [Option<&'a Raster>; 2],
+    /// How many pixels of the screen a unit of the pane is.
+    pub scale: f32,
 }
 
 impl canvas::Program<Message> for KeptBands<'_> {
@@ -181,7 +182,9 @@ impl canvas::Program<Message> for KeptBands<'_> {
                 };
                 sprite::blit(&mut frame, local, &blit);
             }
-            fade(&mut frame, band.strip, band.edge, paper, &grounds);
+            fade(
+                &mut frame, band.strip, band.edge, paper, &grounds, self.scale,
+            );
         }
         // Where headings across the top and down the left meet, the corner
         // is the paper's, as a sheet's is.
@@ -252,21 +255,17 @@ fn fade(
     edge: Edge,
     paper: Color,
     grounds: &[(Rectangle, Color)],
+    scale: f32,
 ) {
-    let (zone, to) = match edge {
-        Edge::Top => (
-            Rectangle::new(
-                Point::new(strip.x, strip.y + strip.height),
-                Size::new(strip.width, FADE),
-            ),
-            Vector::new(0.0, FADE),
+    let scale = if scale > 0.0 { scale } else { 1.0 };
+    let zone = match edge {
+        Edge::Top => Rectangle::new(
+            Point::new(strip.x, strip.y + strip.height),
+            Size::new(strip.width, FADE),
         ),
-        Edge::Left => (
-            Rectangle::new(
-                Point::new(strip.x + strip.width, strip.y),
-                Size::new(FADE, strip.height),
-            ),
-            Vector::new(FADE, 0.0),
+        Edge::Left => Rectangle::new(
+            Point::new(strip.x + strip.width, strip.y),
+            Size::new(FADE, strip.height),
         ),
     };
     // Along the band: the pieces between the sides of the grounds the
@@ -315,20 +314,32 @@ fn fade(
                 Size::new(zone.width, pair[1] - pair[0]),
             ),
         };
-        // Eight stops, the most iced keeps: dense at first, then a tail.
-        let mut thinning = Linear::new(position, position + to);
-        for stop in 0..8 {
-            let t = stop as f32 / 7.0;
-            let k = 1.0 - t;
-            thinning = thinning.add_stop(
-                t,
-                Color {
-                    a: k * k * (3.0 - 2.0 * k),
-                    ..color
-                },
+        // In steps of one color each, on whole pixels of the screen: a
+        // gradient showed a line at each of its stops in some windows.
+        let snap = |at: f32| (at * scale).round() / scale;
+        let steps = (FADE * scale).round().max(1.0) as usize;
+        for step in 0..steps {
+            let k = 1.0 - (step as f32 + 0.5) / steps as f32;
+            let shade = Color {
+                a: k * k * (3.0 - 2.0 * k),
+                ..color
+            };
+            let (from, to) = (
+                snap(step as f32 / steps as f32 * FADE),
+                snap((step + 1) as f32 / steps as f32 * FADE),
             );
+            let (at, size) = match edge {
+                Edge::Top => (
+                    Point::new(position.x, snap(position.y) + from),
+                    Size::new(size.width, to - from),
+                ),
+                Edge::Left => (
+                    Point::new(snap(position.x) + from, position.y),
+                    Size::new(to - from, size.height),
+                ),
+            };
+            frame.fill_rectangle(at, size, shade);
         }
-        frame.fill_rectangle(position, size, thinning);
     }
 }
 

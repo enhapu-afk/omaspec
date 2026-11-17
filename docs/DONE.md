@@ -2650,19 +2650,30 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       is drawn over the veil along the picture's own curve
       (`focus::route`), with its marks, where a row of rectangles let
       the picture through; its words stand in a hole that the paper's
-      color hides. The light on the box in focus follows its shape. A
+      color hides. The light on the box in focus lies around its shape
+      and not on it (rings between the shape and the shape grown), so
+      the box keeps its own fill; strokes along the outline filled a
+      small box, or one drawn by hand, in a dull tan. A box comes
+      through a little larger than its outline, with its rim on it. A
       picture that marks no parts keeps the shapes the map knows.
 - [x] A play's veil has the color of the picture's own paper
       (2026-11-17), as the focus's: what is still to come pales into the
       paper, white on a white card. It was the window's dark over a
       white card too, where a box with a fill of its own (which dims
-      toward that fill) stood out as a bright stripe.
+      toward that fill) stood out as a bright stripe. The paper's
+      color is the one most pixels along the picture's four sides have
+      (`raster::paper_of`), where it was the first corner's alone, which
+      a skin's picture had a shade off. The veil's soft edge is 28 steps
+      of one color each on whole pixels: as a gradient it showed a line
+      at each of its stops in the tester's window.
 - [x] What scrolls under the participants held at the top fades out
       (2026-11-17): the paper goes on for 30 pixels below the band and
       thins out, in a box's own fill where the band lies over one
       (`map.grounds`), so a message dissolves before it goes under the
       band. It was cut off at the band's edge, with a gray shade of 6
-      pixels under it. The same beside a band held at the left.
+      pixels under it. The same beside a band held at the left. In
+      steps of one color on whole pixels of the screen, for the same
+      reason as the veil's edge.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 

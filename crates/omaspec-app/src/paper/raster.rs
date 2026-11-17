@@ -289,12 +289,51 @@ pub fn ask_halves(
     )
 }
 
+/// The color of the paper `pixmap` is drawn on (opaque, on white): the one
+/// most of the pixels along its sides have. One corner alone may lie on a
+/// frame's line, a rounded ground's corner or a title's rule.
+fn paper_of(pixmap: &export::tiny_skia::Pixmap) -> Color {
+    /// How many pixels are looked at along each side.
+    const ALONG: u32 = 24;
+    let (w, h) = (pixmap.width(), pixmap.height());
+    let mut seen: Vec<([u8; 3], u32)> = Vec::new();
+    let mut count = |x: u32, y: u32| {
+        let Some(p) = pixmap.pixel(x.min(w.saturating_sub(1)), y.min(h.saturating_sub(1))) else {
+            return;
+        };
+        let color = [p.red(), p.green(), p.blue()];
+        match seen.iter_mut().find(|(c, _)| *c == color) {
+            Some((_, n)) => *n += 1,
+            None => seen.push((color, 1)),
+        }
+    };
+    for step in 0..=ALONG {
+        let (x, y) = (
+            (w.saturating_sub(1)) * step / ALONG,
+            (h.saturating_sub(1)) * step / ALONG,
+        );
+        // A pixel in from each side: a frame may run along the very edge.
+        for inset in [0, 2] {
+            count(x, inset);
+            count(x, h.saturating_sub(1 + inset));
+            count(inset, y);
+            count(w.saturating_sub(1 + inset), y);
+        }
+    }
+    // The first seen among those seen as often, so the answer is the same
+    // each time.
+    let mut best: Option<([u8; 3], u32)> = None;
+    for (color, n) in seen {
+        if best.is_none_or(|(_, most)| n > most) {
+            best = Some((color, n));
+        }
+    }
+    best.map_or(Color::WHITE, |([r, g, b], _)| Color::from_rgb8(r, g, b))
+}
+
 pub fn render(tree: &usvg::Tree, plan: Plan) -> Option<Raster> {
     let pixmap = export::rasterize_part(tree, plan.scale, plan.part).ok()?;
-    // Opaque, on white.
-    let paper = pixmap.pixel(0, 0).map_or(Color::WHITE, |p| {
-        Color::from_rgb8(p.red(), p.green(), p.blue())
-    });
+    let paper = paper_of(&pixmap);
     Some(Raster {
         paper,
         handle: image::Handle::from_rgba(pixmap.width(), pixmap.height(), pixmap.take()),
@@ -428,6 +467,30 @@ impl Layer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The paper's color is the one most of the picture's sides have: a
+    /// frame's line in a corner, or along one side, does not give its own.
+    #[test]
+    fn the_paper_is_what_most_of_the_sides_show() {
+        use export::tiny_skia::{Color as Ink, Paint, Pixmap, Rect, Transform};
+        let mut pixmap = Pixmap::new(200, 120).unwrap();
+        pixmap.fill(Ink::from_rgba8(254, 251, 255, 255));
+        let mut line = Paint::default();
+        line.set_color_rgba8(30, 30, 30, 255);
+        // A rule across the top and a mark in the first corner.
+        for rect in [(0.0, 0.0, 200.0, 1.0), (0.0, 0.0, 6.0, 6.0)] {
+            pixmap.fill_rect(
+                Rect::from_xywh(rect.0, rect.1, rect.2, rect.3).unwrap(),
+                &line,
+                Transform::identity(),
+                None,
+            );
+        }
+        assert_eq!(paper_of(&pixmap), Color::from_rgb8(254, 251, 255));
+        let mut dark = Pixmap::new(40, 40).unwrap();
+        dark.fill(Ink::from_rgba8(26, 27, 38, 255));
+        assert_eq!(paper_of(&dark), Color::from_rgb8(26, 27, 38));
+    }
 
     /// A long sequence diagram: 34 million units², more than the overview holds.
     const TALL: Size = Size::new(2850.0, 12093.0);
