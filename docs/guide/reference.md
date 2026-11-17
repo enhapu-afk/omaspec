@@ -62,13 +62,20 @@ omaspec ~/diagrams           # with that folder in the sidebar
 
 The status bar shows the Omaspec mark and `Ctrl+Shift+P`; a click opens the command
 list. To export, right-click the diagram and pick *Export as ›* and a format (SVG, PNG,
-JPEG, PDF, Markdown, ZIP, Presentation), or take it from File › Export as. The desktop's own save
+JPEG, PDF, Markdown, ZIP, Presentation, Animation), or take it from File › Export as. The desktop's own save
 dialog opens (Omarchy's, through xdg-desktop-portal): the folder, the name, and beside
 them *Colors*: as the diagram shows, in the file's own colors, plain, light, dark, or
 for an SVG auto. It asks before it replaces a file. Where no such dialog answers, the
 status line asks for the path instead (Enter writes it, a second Enter replaces a file
 that is already there; Tab takes the next look, a click takes one). The image keeps
 the file's own source whatever the look.
+
+*Animation* writes a container folding to its box and unfolding again as a picture
+that moves, as `omaspec play --fold` does: the dialog asks beside the name which
+container (*Fold*), and the name's ending says what is written: `.webp` (full color,
+the smallest of the two without loss), `.png` (an animated PNG) or `.gif` (256 colors,
+about half the size). It is drawn in the background from the text in the tab, saved or
+not, and the status bar says when it is written; Omaspec waits for it before it quits.
 
 *Presentation* writes one HTML page that plays the diagram as the pane does, in any
 browser and offline: it holds the picture, the play and a small script, and fetches

@@ -26,6 +26,9 @@ pub(super) enum Asking {
     /// Where to write this export. Enter writes it; an existing file asks
     /// once more.
     Export(Format),
+    /// Where to write a container folding and unfolding
+    /// ([`super::animate`]); Tab takes the next container.
+    Animation,
     /// The folder to export the project into. A folder that is there asks
     /// once more.
     ExportProject,
@@ -43,6 +46,8 @@ pub(super) struct Prompt {
     pub(super) doc: u64,
     /// What an export is drawn in; Tab takes the next.
     pub(super) look: ExportLook,
+    /// The container an animation folds; Tab takes the next.
+    pub(super) fold: String,
 }
 
 /// What an export is drawn in.
@@ -127,6 +132,7 @@ impl App {
             // Beside the project the sidebar is in, not inside it.
             Asking::NewProject { .. } => format!("{}/", self.project_base().display()),
             Asking::Export(format) => suggested_export(doc, &folder, format),
+            Asking::Animation => self.suggested_animation().display().to_string(),
             Asking::ExportProject => self
                 .project_to_export()
                 .unwrap_or(folder)
@@ -154,6 +160,11 @@ impl App {
             overwrite: false,
             doc: key,
             look: ExportLook::Shown,
+            fold: self
+                .foldable()
+                .ok()
+                .and_then(|containers| containers.into_iter().next())
+                .unwrap_or_default(),
         });
         let focus = iced::widget::operation::focus(PROMPT);
         if from_diagram {

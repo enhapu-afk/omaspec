@@ -29,6 +29,7 @@
 //! finding, Ctrl+Z undo.
 
 mod anchored;
+mod animate;
 mod assist;
 pub(crate) mod compare;
 mod dialogs;
@@ -177,7 +178,11 @@ pub fn run(start: Start) -> iced::Result {
     for font in scrive_iced::required_fonts() {
         app = app.font(*font);
     }
-    app.run()
+    let ran = app.run();
+    // An animation still being drawn is finished and written, not cut
+    // off with the GPU under it.
+    animate::finish();
+    ran
 }
 
 #[derive(Debug, Clone)]
@@ -218,6 +223,8 @@ pub enum Message {
     PromptSubmit,
     /// A click on a look of the export prompt.
     PromptLook(ExportLook),
+    /// The container the bottom line's animation folds.
+    PromptFold(String),
     PickerInput(String),
     /// The clipboard's text, for *Paste* of the Edit menu.
     Pasted(Option<String>),
@@ -236,6 +243,9 @@ pub enum Message {
     /// What the desktop's dialog answered to where the export of this tab
     /// in this format goes.
     ExportAnswered(u64, Format, crate::file_dialog::Answer),
+    /// What the desktop's dialog answered to where the animation of this
+    /// tab goes, and which container folds in it.
+    AnimationAnswered(u64, crate::file_dialog::Answer),
     /// The desktop's dialog answered where to save a tab.
     SaveAsAnswered(u64, crate::file_dialog::Answer),
     /// The desktop's dialog answered which file (or, `true`, folder) to open.
@@ -381,6 +391,8 @@ pub enum Command {
     ExportZip,
     /// A page that plays the diagram (docs/adr/0031).
     ExportPresentation,
+    /// A container folding and unfolding, as a picture that moves.
+    ExportAnimation,
     /// Asks where, then writes the project as SVGs linked to one another
     /// and a ZIP of them.
     ExportProject,
@@ -1256,6 +1268,7 @@ impl App {
                     self.new_project_submitted(language, git)
                 }
                 Some(Asking::Export(_)) => self.export_submitted(),
+                Some(Asking::Animation) => self.animation_submitted(),
                 Some(Asking::ExportProject) => self.export_project_submitted(),
                 Some(Asking::Rename) => self.rename_submitted(),
                 None => Task::none(),
@@ -1316,6 +1329,11 @@ impl App {
             }
             Message::ExportAnswered(key, format, answer) => {
                 self.export_answered(key, format, answer)
+            }
+            Message::AnimationAnswered(key, answer) => self.animation_answered(key, answer),
+            Message::PromptFold(name) => {
+                self.next_fold(Some(name));
+                Task::none()
             }
             Message::SaveAsAnswered(key, answer) => self.save_as_answered(key, answer),
             Message::OpenAnswered(_, answer) => self.open_answered(answer),
@@ -1773,6 +1791,7 @@ impl App {
             Command::FindInDiagram => self.find_in_diagram(),
             Command::SwitchField => self.switch_field(),
             Command::NextLook => {
+                self.next_fold(None);
                 self.next_export_look(None);
                 Task::none()
             }
@@ -1819,6 +1838,7 @@ impl App {
             Command::ExportMarkdown => self.export(Format::Markdown),
             Command::ExportZip => self.export(Format::Zip),
             Command::ExportPresentation => self.export(Format::Html),
+            Command::ExportAnimation => self.export_animation(),
             Command::ExportProject => self.export_project(),
             Command::CloseOthers => self.close_others(),
             Command::RenderNow => self.render(key, true),

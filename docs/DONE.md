@@ -2489,6 +2489,17 @@ is open and the reasoning around it.
       machine's Brewing folding and unfolding, 1200 wide: 4.3 MB as
       WebP, 5.1 MB as PNG, 2.1 MB as GIF at 50. The glide was eased in
       and out already, as the pane's is.
+- [x] *Export as › Animation…* (2026-11-17), in File and in the
+      diagram's menu: a container folding and unfolding, written as
+      `omaspec play --fold` writes it. The desktop's save dialog asks for
+      the file and beside its name for the container (*Fold*); the
+      ending says what is written, `.webp` where it names none. Without
+      a dialog the bottom line asks, Tab or a click taking the next
+      container. Drawn on a thread of its own from the tab's text, saved
+      or not, in the theme's colors or the file's as the pane has them
+      (`editor/animate.rs`; `Moving::text`, `file_colors`); the program's
+      end waits for one that is being drawn. A diagram without a
+      container, or one that plays, says so.
 
 ### Long and large diagrams, readable (2026-11-16)
 

@@ -123,6 +123,7 @@ impl Command {
             | Command::ExportMarkdown
             | Command::ExportZip
             | Command::ExportPresentation
+            | Command::ExportAnimation
             | Command::RenderNow
             | Command::Detach
             | Command::FindInDiagram

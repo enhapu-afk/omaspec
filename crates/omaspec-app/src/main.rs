@@ -881,6 +881,8 @@ fn main() -> ExitCode {
             dives: dive,
             whole,
             theme,
+            text: None,
+            file_colors: false,
             forced: lang.get(),
             renderer: None,
             quality: editor::gifs::Quality { colors, lossy },

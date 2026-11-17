@@ -1303,6 +1303,103 @@ fn a_markdown_document_shows_the_diagram_at_the_caret() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// *Export as › Animation…* asks in the desktop's dialog where the fold
+/// goes and, beside the name, which container folds; the file's ending
+/// says what is written. Without a dialog the bottom line asks, Tab
+/// taking the next container. A diagram without a container says so.
+#[test]
+fn an_animation_asks_for_its_file_and_its_container() {
+    use crate::file_dialog::Answer;
+    let dir = std::env::temp_dir().join(format!("omaspec-animate-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let src = dir.join("coffee.puml");
+    let text = "@startuml\n[*] --> Off\nstate Ready {\n  [*] --> Idle\n}\nstate Brewing {\n  [*] --> Grinding\n}\nOff --> Ready : power on\nReady --> Brewing : start\n@enduml\n";
+    std::fs::write(&src, text).unwrap();
+    let mut app = open(std::slice::from_ref(&src));
+    show(&mut app, text, Language::PlantUml);
+    let key = app.doc().key;
+    assert_eq!(app.foldable().unwrap(), ["Ready", "Brewing"]);
+
+    let asked = app.animation_asked(&app.foldable().unwrap());
+    assert_eq!(
+        (asked.folder.as_path(), asked.name.as_str()),
+        (dir.as_path(), "coffee-fold.webp")
+    );
+    assert_eq!(asked.kind.2, "*.webp *.png *.apng *.gif");
+    let fold = &asked.choices[0];
+    assert_eq!((fold.id.as_str(), fold.initial.as_str()), ("fold", "Ready"));
+    let names: Vec<&str> = fold.options.iter().map(|(key, _)| key.as_str()).collect();
+    assert_eq!(names, ["Ready", "Brewing"]);
+
+    // A file chosen is drawn in the background; the bar says what.
+    let chosen = |path: PathBuf, fold: &str| Answer::Chosen {
+        path,
+        choices: vec![("fold".into(), fold.into())],
+    };
+    let _ = app.update(Message::AnimationAnswered(
+        key,
+        chosen(dir.join("gone").join("fold.webp"), "Brewing"),
+    ));
+    assert!(
+        app.notice
+            .as_deref()
+            .is_some_and(|n| n.contains("not a folder")),
+        "{:?}",
+        app.notice
+    );
+    let _ = app.update(Message::AnimationAnswered(
+        key,
+        chosen(src.clone(), "Ready"),
+    ));
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("drawing Ready folding and unfolding…"),
+        "a name without a film's ending gets .webp"
+    );
+    assert_eq!(std::fs::read_to_string(&src).unwrap(), text);
+    assert_eq!(
+        super::animate::film_path(dir.join("fold")),
+        dir.join("fold.webp")
+    );
+    assert_eq!(
+        super::animate::film_path(dir.join("fold.gif")),
+        dir.join("fold.gif")
+    );
+
+    // No dialog: the bottom line, the first container, Tab the next.
+    press(&mut app, Command::ExportAnimation);
+    let prompt = app.prompt.as_ref().unwrap();
+    assert!(matches!(prompt.asking, Asking::Animation));
+    assert_eq!(
+        prompt.input,
+        dir.join("coffee-fold.webp").display().to_string()
+    );
+    assert_eq!(prompt.fold, "Ready");
+    press(&mut app, Command::NextLook);
+    assert_eq!(app.prompt.as_ref().unwrap().fold, "Brewing");
+    press(&mut app, Command::NextLook);
+    assert_eq!(app.prompt.as_ref().unwrap().fold, "Ready");
+    let _ = app.update(Message::PromptFold("Brewing".into()));
+    assert_eq!(app.prompt.as_ref().unwrap().fold, "Brewing");
+    let _ = app.update(Message::PromptSubmit);
+    assert!(app.prompt.is_none());
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("drawing Brewing folding and unfolding…")
+    );
+
+    // Nothing to fold: said, and nothing asked.
+    let flat = "@startuml\n[*] --> Off\nOff --> On : power on\n@enduml\n";
+    show(&mut app, flat, Language::PlantUml);
+    press(&mut app, Command::ExportAnimation);
+    assert!(app.prompt.is_none());
+    assert_eq!(
+        app.notice.as_deref(),
+        Some("nothing folds here: the diagram has no container")
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// The desktop's dialog asks where the export goes, under the name the
 /// bottom line would suggest, for the one kind of file, with the colors
 /// to draw it in beside; its answer is written, refused, or handed to the
@@ -1414,7 +1511,8 @@ fn the_diagram_s_menu_exports_as_every_format() {
             "PDF…",
             "Markdown…",
             "ZIP…",
-            "Presentation…"
+            "Presentation…",
+            "Animation…"
         ]
     );
 }

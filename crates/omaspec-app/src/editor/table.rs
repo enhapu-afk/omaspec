@@ -502,6 +502,15 @@ pub const TABLE: &[Entry] = &[
     .short("Presentation…")
     .at(Spot::Diagram),
     cmd(
+        "Export a container folding and unfolding as an animation",
+        "",
+        Command::ExportAnimation,
+    )
+    .menu(File)
+    .child("Export as")
+    .short("Animation…")
+    .at(Spot::Diagram),
+    cmd(
         "Check the project: lint every diagram and list the findings",
         "",
         Command::CheckProject,
@@ -737,7 +746,7 @@ mod tests {
         else {
             unreachable!()
         };
-        assert_eq!(children.len(), 7);
+        assert_eq!(children.len(), 8);
         assert!(gap, "a line before Export");
         assert!(rows.len() < entries(Menu::File).count());
     }

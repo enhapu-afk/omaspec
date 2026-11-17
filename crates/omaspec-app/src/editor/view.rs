@@ -45,6 +45,11 @@ fn prompt_text(asking: Asking) -> (&'static str, &'static str, &'static str) {
             "folder for the project",
             "Enter makes it · a folder that is there keeps its files · Esc cancels",
         ),
+        Asking::Animation => (
+            "Export an animation",
+            "where to write it: .webp, .png or .gif",
+            "Enter exports · Tab the next container · Esc cancels",
+        ),
         Asking::Export(format) => match format {
             Format::Svg => ("Export SVG", "where to write the SVG", EXPORT_HINT),
             Format::Png => ("Export PNG", "where to write the PNG", EXPORT_HINT),
@@ -978,7 +983,40 @@ impl App {
         if looks.len() > 1 {
             bar = bar.push(self.look_chips(&looks, prompt.look));
         }
+        if prompt.asking == Asking::Animation
+            && let Ok(containers) = self.foldable()
+        {
+            bar = bar.push(self.fold_chips(containers, &prompt.fold));
+        }
         ui::bar(bar.push(self.label(note, p.dark_foreground)).into(), p)
+    }
+
+    /// The containers an animation can fold, the chosen one lit; a click
+    /// takes one.
+    fn fold_chips(&self, containers: Vec<String>, chosen: &str) -> Element<'_, Message> {
+        let p = &self.palette;
+        let chips = containers.into_iter().map(|name| {
+            let on = name == chosen;
+            let words = self.small(
+                name.clone(),
+                if on {
+                    p.bright_foreground
+                } else {
+                    p.dark_foreground
+                },
+            );
+            let chip = ui::pill(
+                words,
+                on.then(|| ui::color(p.lighter_background)),
+                on.then(|| ui::alpha(p.accent, 0.7)),
+            )
+            .padding([1, 8]);
+            mouse_area(chip)
+                .on_press(Message::PromptFold(name))
+                .interaction(iced::mouse::Interaction::Pointer)
+                .into()
+        });
+        row(chips).spacing(4).align_y(Alignment::Center).into()
     }
 
     /// The looks an export can take, the chosen one lit; a click takes one.

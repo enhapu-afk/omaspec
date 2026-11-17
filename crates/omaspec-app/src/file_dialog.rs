@@ -20,7 +20,7 @@ pub struct Asked {
     pub folder: PathBuf,
     pub name: String,
     /// The kind of file: its label, MIME type (or none) and pattern
-    /// (`*.svg`).
+    /// (`*.svg`), or patterns with spaces between them.
     pub kind: (String, String, String),
     pub choices: Vec<Choice>,
 }
@@ -85,7 +85,9 @@ pub async fn save(asked: Asked) -> Answer {
     use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 
     let (label, mime, pattern) = &asked.kind;
-    let mut filter = FileFilter::new(label).glob(pattern);
+    let mut filter = pattern
+        .split_whitespace()
+        .fold(FileFilter::new(label), |filter, one| filter.glob(one));
     if !mime.is_empty() {
         filter = filter.mimetype(mime);
     }

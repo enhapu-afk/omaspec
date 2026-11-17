@@ -36,6 +36,8 @@ use crate::worker::{self, Drawn};
 #[derive(Debug, Clone)]
 pub struct Moving {
     pub file: PathBuf,
+    /// The diagram's text where it is not the file's: a tab not saved.
+    pub text: Option<String>,
     pub output: PathBuf,
     /// The events to take, in order; empty takes the first offered.
     pub events: Vec<String>,
@@ -56,6 +58,9 @@ pub struct Moving {
     /// The colors: `None` the active theme's, `built-in` the palette
     /// Omaspec ships, else a theme's `colors.toml`.
     pub theme: Option<String>,
+    /// In the file's own colors, not the theme's, as the window draws it
+    /// with *Diagram in Omarchy's colors* off.
+    pub file_colors: bool,
     pub forced: Option<Language>,
     /// The renderer that draws (`tiny-skia`, without a GPU); `None` takes
     /// `ICED_TEST_BACKEND`, else the first that can.
@@ -63,6 +68,17 @@ pub struct Moving {
     /// What a GIF gives up to be smaller: colors, steps of a fade. A
     /// picture in full color gives up nothing.
     pub quality: super::gifs::Quality,
+}
+
+impl Moving {
+    /// The diagram's text: the one given, else the file's.
+    fn read(&self) -> Result<String> {
+        match &self.text {
+            Some(text) => Ok(text.clone()),
+            None => std::fs::read_to_string(&self.file)
+                .with_context(|| format!("cannot read {}", self.file.display())),
+        }
+    }
 }
 
 /// The frames the first picture may take to fade in, before the frames
@@ -163,8 +179,7 @@ impl Stage {
     /// The diagram of `args.file` drawn in a pane of its size, in the
     /// theme asked for.
     fn new(args: &Moving, film: Film, fps: u32) -> Result<Self> {
-        let text = std::fs::read_to_string(&args.file)
-            .with_context(|| format!("cannot read {}", args.file.display()))?;
+        let text = args.read()?;
         let name = args
             .file
             .file_name()
@@ -197,6 +212,7 @@ impl Stage {
             forced: args.forced,
         };
         let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
+        app.follow_theme = !args.file_colors;
         let key = app.doc().key;
         // The pane's pictures go up to this screen's GPU as they are made,
         // as the window's go up to its own.
@@ -521,8 +537,7 @@ fn rehearse(args: &Moving) -> Result<()> {
     if args.events.is_empty() || !args.folds.is_empty() || !args.dives.is_empty() {
         return Ok(());
     }
-    let text = std::fs::read_to_string(&args.file)
-        .with_context(|| format!("cannot read {}", args.file.display()))?;
+    let text = args.read()?;
     let name = args
         .file
         .file_name()
@@ -703,6 +718,7 @@ mod tests {
             let output = work.join(name);
             let told = play(&Moving {
                 file: file.clone(),
+                text: None,
                 output: output.clone(),
                 events: vec!["open".into()],
                 steps: 1,
@@ -712,6 +728,7 @@ mod tests {
                 dives: Vec::new(),
                 whole: false,
                 theme: Some("built-in".into()),
+                file_colors: false,
                 forced: None,
                 renderer: Some("tiny-skia"),
                 quality: super::super::gifs::Quality::default(),
@@ -751,6 +768,7 @@ mod tests {
         .unwrap();
         let moving = |name: &str, fps: Option<u32>| Moving {
             file: file.clone(),
+            text: None,
             output: work.join(name),
             events: vec!["open".into()],
             steps: 1,
@@ -760,6 +778,7 @@ mod tests {
             dives: Vec::new(),
             whole: false,
             theme: Some("built-in".into()),
+            file_colors: false,
             forced: None,
             renderer: Some("tiny-skia"),
             quality: super::super::gifs::Quality::default(),
@@ -785,6 +804,44 @@ mod tests {
         let err = play(&moving("door.gif", Some(60))).unwrap_err().to_string();
         assert_eq!(err, "--fps takes 1 to 50 for a GIF");
         assert!(play(&moving("door.webp", Some(61))).is_err());
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// A fold of a text that is in no file, as the editor hands over a tab
+    /// not saved: drawn from the text, the file only its name.
+    #[test]
+    fn a_fold_is_drawn_from_the_text_given() {
+        let work = std::env::temp_dir().join(format!("omaspec-fold-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let moving = |fold: &str| {
+            Moving {
+            file: work.join("never-saved.puml"),
+            text: Some(
+                "@startuml\n[*] --> Off\nstate Brewing {\n  [*] --> Grinding\n}\nOff --> Brewing : start\n@enduml\n"
+                    .into(),
+            ),
+            output: work.join("fold.webp"),
+            events: Vec::new(),
+            steps: 0,
+            width: Some(240),
+            fps: Some(10),
+            folds: vec![fold.to_owned()],
+            dives: Vec::new(),
+            whole: true,
+            theme: Some("built-in".into()),
+            file_colors: false,
+            forced: Some(Language::PlantUml),
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        }
+        };
+        let told = play(&moving("Brewing")).unwrap();
+        assert!(told.contains("Brewing folded and unfolded"), "{told}");
+        let bytes = std::fs::read(work.join("fold.webp")).unwrap();
+        let webp = image_webp::WebPDecoder::new(std::io::Cursor::new(&bytes)).unwrap();
+        assert!(webp.num_frames() >= 8, "{}", webp.num_frames());
+        let err = play(&moving("Milk")).unwrap_err().to_string();
+        assert_eq!(err, "Milk is no container to fold; the diagram has Brewing");
         let _ = std::fs::remove_dir_all(&work);
     }
 
@@ -824,6 +881,7 @@ mod tests {
         .unwrap();
         let moving = |events: &[&str]| Moving {
             file: file.clone(),
+            text: None,
             output: work.join("never.gif"),
             events: events.iter().map(|e| (*e).to_owned()).collect(),
             steps: 8,
@@ -833,6 +891,7 @@ mod tests {
             dives: Vec::new(),
             whole: false,
             theme: Some("built-in".into()),
+            file_colors: false,
             forced: None,
             renderer: Some("tiny-skia"),
             quality: super::super::gifs::Quality::default(),
