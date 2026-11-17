@@ -2477,6 +2477,18 @@ is open and the reasoning around it.
       the page has no rules of its own; `omaspec render FILE -o x.html`
       writes one too. A test runs the script's stepping in Node where
       it is installed; headless Chromium showed the light and the veil.
+- [x] A picture that moves in full color (2026-11-17): `omaspec play
+      FILE -o fold.webp` writes an animated WebP and `-o fold.png` an
+      animated PNG, by the output's ending, where `.gif` has 256 colors
+      and bands in a glow or a fade; at 60 frames a second unless
+      `--fps` says otherwise (a GIF holds 50). Both without loss, and as
+      the GIF is written: of each frame the box around what changed, the
+      rest left clear and laid over what is shown (`editor/films.rs`; the
+      WebP's frames by `image-webp`, the container around them our own;
+      libwebp and ffmpeg read them back pixel for pixel). The coffee
+      machine's Brewing folding and unfolding, 1200 wide: 4.3 MB as
+      WebP, 5.1 MB as PNG, 2.1 MB as GIF at 50. The glide was eased in
+      and out already, as the pane's is.
 
 ### Long and large diagrams, readable (2026-11-16)
 

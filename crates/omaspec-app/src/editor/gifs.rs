@@ -65,7 +65,7 @@ pub struct Frames {
     width: usize,
     height: usize,
     /// Each frame unlike the one before it: where it lies deflated in
-    /// `packed`, and how long it stays, in hundredths of a second.
+    /// `packed`, and how long it stays.
     kept: Vec<(std::ops::Range<usize>, u16)>,
     /// The deflated frames, one after another, in one buffer. A buffer
     /// each, small and kept, lay between the large ones a frame drawn
@@ -83,9 +83,10 @@ pub struct Frames {
 }
 
 impl Frames {
-    /// Adds a frame `width` by `height` pixels (RGBA) that stays `stay`
-    /// hundredths of a second; one like the frame before only makes that
-    /// one stay longer.
+    /// Adds a frame `width` by `height` pixels (RGBA) that stays `stay`:
+    /// hundredths of a second for a GIF ([`Self::encode`]), ticks for a
+    /// picture in full color ([`super::films`]). One like the frame before
+    /// only makes that one stay longer.
     pub fn push(&mut self, width: usize, height: usize, rgba: &[u8], stay: u16) {
         if self.kept.is_empty() {
             (self.width, self.height) = (width, height);
@@ -146,6 +147,26 @@ impl Frames {
                     .for_each(count);
             }
         }
+    }
+
+    /// How many frames are kept: each unlike the one before it.
+    pub fn len(&self) -> usize {
+        self.kept.len()
+    }
+
+    /// Hands each frame kept to `take` as it was drawn (RGBA), with how
+    /// long it stays, in order.
+    pub fn each(&self, mut take: impl FnMut(&[u8], u16) -> Result<()>) -> Result<()> {
+        anyhow::ensure!(!self.mixed, "a frame of another size");
+        for (at, stay) in &self.kept {
+            let rgba = miniz_oxide::inflate::decompress_to_vec_with_limit(
+                &self.packed[at.clone()],
+                self.width * self.height * 4,
+            )
+            .map_err(|e| anyhow::anyhow!("a frame does not unpack: {e}"))?;
+            take(&rgba, *stay)?;
+        }
+        Ok(())
     }
 
     /// The frames' size in pixels; `None` before the first.
@@ -309,7 +330,7 @@ fn nearest(colors: &[u8], pixel: &[u8]) -> u8 {
 
 /// The box around the pixels in which `now` strays from `before` by more
 /// than `lossy`: left, top, right and bottom, the last two past it.
-fn changed(
+pub(super) fn changed(
     before: &[u8],
     now: &[u8],
     w: usize,

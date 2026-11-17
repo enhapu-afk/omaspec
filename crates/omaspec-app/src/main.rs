@@ -419,7 +419,8 @@ enum Command {
         lang: LangArg,
     },
     /// Write a play of a state machine or a scenario, a fold or a zoom into
-    /// a project's map as a GIF that moves.
+    /// a project's map as a picture that moves: a GIF, or in full color an
+    /// animated WebP or PNG, by the output's ending.
     ///
     /// The diagram's pane is drawn as the window draws it, on the GPU
     /// without a window, in the active theme: the light runs along each
@@ -429,7 +430,8 @@ enum Command {
     /// messages in order. For a presentation or a pull request.
     Play {
         file: PathBuf,
-        /// The GIF to write.
+        /// The picture to write: `.gif`; `.webp` or `.png` (an animated
+        /// PNG) in full color and without loss, some twice a GIF's size.
         #[arg(short, long)]
         output: PathBuf,
         /// The events to take, in order, with commas between them.
@@ -442,9 +444,10 @@ enum Command {
         /// Without it, twice the diagram's size, up to 1200.
         #[arg(long)]
         width: Option<u32>,
-        /// Frames per second.
-        #[arg(long, default_value_t = 20)]
-        fps: u32,
+        /// Frames per second: 20 without it and up to 50 in a GIF, 60 in
+        /// full color.
+        #[arg(long)]
+        fps: Option<u32>,
         /// The places of the GIF's table of colors, 2 to 256, one of them
         /// for a pixel that stays: fewer make a smaller file, a glow and
         /// the veil's shades in steps (32 or 16 for a chat).

@@ -597,10 +597,8 @@ the one before:
 
 - [ ] A fold and an unfold as a moving picture, from the diagram's menu
       (*Export as › Animation…*, the container to fold chosen there),
-      not only from `omaspec play --fold`: animated WebP or APNG in full
-      color at 60 frames a second instead of GIF's 256 colors and
-      banded gradients, the glide eased in and out; and in the HTML
-      page as vectors, sharp at any size.
+      not only from `omaspec play --fold`; and in the HTML page as
+      vectors, sharp at any size. (The full color is in docs/DONE.md.)
 - [ ] Orbit: a state machine's life cycle on a circle, the way through
       it round the ring, a way back as an arc inside it, an end where
       the ring opens, from the machines that are there with no syntax

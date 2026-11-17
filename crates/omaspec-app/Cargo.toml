@@ -25,6 +25,10 @@ notify = "8"
 gif = "0.14"
 # One table of colors for all the frames of such a GIF.
 color_quant = "1"
+# The same frames in full color, as an animated PNG or WebP; both already
+# in the tree, as the renderer's.
+png = "0.18"
+image-webp = "0.2"
 # Its frames deflated while they wait; already in the tree, as the core's.
 miniz_oxide = "0.9"
 regex = "1"

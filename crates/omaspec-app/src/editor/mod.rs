@@ -34,6 +34,7 @@ pub(crate) mod compare;
 mod dialogs;
 mod doc;
 mod files;
+pub(crate) mod films;
 mod fold;
 pub(crate) mod folder;
 mod gallery;

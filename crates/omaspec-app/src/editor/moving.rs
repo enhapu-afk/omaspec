@@ -1,7 +1,8 @@
 //! A play as a picture that moves: `omaspec play FILE -o play.gif`
 //! draws the diagram's pane headless, as the window draws it, runs the
-//! play on it and writes the frames as a GIF ([`super::gifs`]), for a
-//! presentation or a pull request.
+//! play on it and writes the frames as a GIF ([`super::gifs`]), or in
+//! full color as an animated WebP or PNG ([`super::films`]), by the
+//! file's ending, for a presentation or a pull request.
 //!
 //! The pane is the editor's own ([`super::screen`]), drawn on the GPU
 //! without a window (by tiny-skia where there is none), so the light
@@ -25,6 +26,7 @@ use omaspec_core::{Language, detect};
 use omaspec_render::{Place, Renderer};
 use omaspec_theme::Theme as Omarchy;
 
+use super::films::Film;
 use super::screen::{Screen, Shows};
 use super::{App, Command, Message, Start};
 use crate::paper::{self, Ask, headless};
@@ -42,7 +44,8 @@ pub struct Moving {
     /// The picture's width in pixels, the height following the diagram;
     /// `None` takes twice the diagram's size, up to [`WIDEST`].
     pub width: Option<u32>,
-    pub fps: u32,
+    /// Frames a second; `None` takes what the picture's kind usually has.
+    pub fps: Option<u32>,
     /// The containers to fold and unfold instead of a play.
     pub folds: Vec<String>,
     /// The tiles of a project's map to zoom into and back out of.
@@ -57,7 +60,8 @@ pub struct Moving {
     /// The renderer that draws (`tiny-skia`, without a GPU); `None` takes
     /// `ICED_TEST_BACKEND`, else the first that can.
     pub renderer: Option<&'static str>,
-    /// What the GIF gives up to be smaller: colors, steps of a fade.
+    /// What a GIF gives up to be smaller: colors, steps of a fade. A
+    /// picture in full color gives up nothing.
     pub quality: super::gifs::Quality,
 }
 
@@ -81,7 +85,23 @@ const BAR: f32 = 90.0;
 
 /// Writes the play, or the fold; says what it wrote.
 pub fn play(args: &Moving) -> Result<String> {
-    anyhow::ensure!(args.fps >= 1 && args.fps <= 50, "--fps takes 1 to 50");
+    let film = Film::of(&args.output).with_context(|| {
+        format!(
+            "{} is no picture that moves: .gif, .webp, or .png (an animated PNG)",
+            args.output.display()
+        )
+    })?;
+    let fps = args.fps.unwrap_or(film.usual_fps());
+    anyhow::ensure!(
+        fps >= 1 && fps <= film.most_fps(),
+        "--fps takes 1 to {} for {}",
+        film.most_fps(),
+        match film {
+            Film::Gif => "a GIF",
+            Film::Apng => "an animated PNG",
+            Film::Webp => "a WebP",
+        }
+    );
     anyhow::ensure!(
         args.width.is_none_or(|width| (200..=4000).contains(&width)),
         "--width takes 200 to 4000"
@@ -92,7 +112,7 @@ pub fn play(args: &Moving) -> Result<String> {
     // Each frame a tick later than the one before, however long drawing it
     // took: every frame is in the picture, and none waits.
     let _clock = crate::clock::Recording::start();
-    let mut stage = Stage::new(args)?;
+    let mut stage = Stage::new(args, film, fps)?;
     let told = if !args.dives.is_empty() {
         stage.dive(&args.dives)?
     } else if !args.folds.is_empty() {
@@ -104,7 +124,11 @@ pub fn play(args: &Moving) -> Result<String> {
     let Some((w, h)) = stage.frames.size() else {
         bail!("no frame was drawn");
     };
-    let (bytes, count) = stage.frames.encode(args.quality)?;
+    let (bytes, count) = match film {
+        Film::Gif => stage.frames.encode(args.quality)?,
+        Film::Apng => super::films::apng(&stage.frames, fps)?,
+        Film::Webp => super::films::webp(&stage.frames, fps)?,
+    };
     crate::files::write_atomic(&args.output, &bytes)
         .with_context(|| format!("cannot write {}", args.output.display()))?;
     Ok(format!(
@@ -124,7 +148,8 @@ struct Stage {
     app: App,
     screen: Screen,
     frames: super::gifs::Frames,
-    /// How long each frame stays, in hundredths of a second.
+    /// How long each frame stays: hundredths of a second in a GIF, one
+    /// tick in a picture in full color.
     delay: u16,
     /// How long a frame stays.
     tick: Duration,
@@ -137,7 +162,7 @@ struct Stage {
 impl Stage {
     /// The diagram of `args.file` drawn in a pane of its size, in the
     /// theme asked for.
-    fn new(args: &Moving) -> Result<Self> {
+    fn new(args: &Moving, film: Film, fps: u32) -> Result<Self> {
         let text = std::fs::read_to_string(&args.file)
             .with_context(|| format!("cannot read {}", args.file.display()))?;
         let name = args
@@ -225,7 +250,7 @@ impl Stage {
         );
         screen.size = size;
         screen.shows = Shows::Diagram;
-        let tick = Duration::from_micros(1_000_000 / u64::from(args.fps));
+        let tick = Duration::from_micros(1_000_000 / u64::from(fps));
         // The picture stands from the first frame kept: it fades in over
         // frames that are drawn and left out, as it has faded in by the
         // time a window's reader looks at it.
@@ -240,7 +265,10 @@ impl Stage {
             app,
             screen,
             frames: super::gifs::Frames::default(),
-            delay: u16::try_from((100 / args.fps).max(2)).unwrap_or(5),
+            delay: match film {
+                Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
+                Film::Apng | Film::Webp => 1,
+            },
             tick,
             key,
             text,
@@ -679,7 +707,7 @@ mod tests {
                 events: vec!["open".into()],
                 steps: 1,
                 width: Some(200),
-                fps: 5,
+                fps: Some(5),
                 folds: Vec::new(),
                 dives: Vec::new(),
                 whole: false,
@@ -705,6 +733,58 @@ mod tests {
         assert!(first == second, "two recordings of one play differ");
         // As wide as asked, though the door drawn twice would be wider.
         assert_eq!(u16::from_le_bytes([first[6], first[7]]), 200);
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// The same play in full color: as many frames as the GIF's, each as
+    /// long as a tick, in a WebP and in an animated PNG; another ending is
+    /// refused before anything is drawn.
+    #[test]
+    fn a_play_is_written_in_full_color_by_its_ending() {
+        let work = std::env::temp_dir().join(format!("omaspec-films-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("door.puml");
+        std::fs::write(
+            &file,
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        )
+        .unwrap();
+        let moving = |name: &str, fps: Option<u32>| Moving {
+            file: file.clone(),
+            output: work.join(name),
+            events: vec!["open".into()],
+            steps: 1,
+            width: Some(200),
+            fps,
+            folds: Vec::new(),
+            dives: Vec::new(),
+            whole: false,
+            theme: Some("built-in".into()),
+            forced: None,
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        };
+        play(&moving("door.webp", Some(5))).unwrap();
+        let bytes = std::fs::read(work.join("door.webp")).unwrap();
+        let webp = image_webp::WebPDecoder::new(std::io::Cursor::new(&bytes)).unwrap();
+        assert_eq!(webp.dimensions().0, 200);
+        assert!(webp.num_frames() >= 4, "{}", webp.num_frames());
+
+        play(&moving("door.png", Some(5))).unwrap();
+        let bytes = std::fs::read(work.join("door.png")).unwrap();
+        let png = png::Decoder::new(std::io::Cursor::new(&bytes))
+            .read_info()
+            .unwrap();
+        assert_eq!(
+            png.info().animation_control.unwrap().num_frames,
+            webp.num_frames()
+        );
+
+        let err = play(&moving("door.mp4", None)).unwrap_err().to_string();
+        assert!(err.contains("is no picture that moves"), "{err}");
+        let err = play(&moving("door.gif", Some(60))).unwrap_err().to_string();
+        assert_eq!(err, "--fps takes 1 to 50 for a GIF");
+        assert!(play(&moving("door.webp", Some(61))).is_err());
         let _ = std::fs::remove_dir_all(&work);
     }
 
@@ -748,7 +828,7 @@ mod tests {
             events: events.iter().map(|e| (*e).to_owned()).collect(),
             steps: 8,
             width: None,
-            fps: 10,
+            fps: Some(10),
             folds: Vec::new(),
             dives: Vec::new(),
             whole: false,
