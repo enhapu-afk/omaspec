@@ -133,6 +133,36 @@ pub fn fill_paper_band(
     fill_paper_band_across(frame, paper, scale, (top, bottom), (None, None), fill);
 }
 
+/// Lays `fill` over the whole of `paper`, as [`fill_paper_band`] does,
+/// but for the shapes `holes` adds: what lies in one is left as it is.
+/// The shapes must not lie on one another, or what they share is filled
+/// again.
+pub fn fill_paper_holed(
+    frame: &mut Frame,
+    paper: Rectangle,
+    scale: f32,
+    fill: Color,
+    holes: impl FnOnce(&mut canvas::path::Builder),
+) {
+    let scale = if scale > 0.0 { scale } else { 1.0 };
+    let out = 1.0 / scale;
+    let veil = Rectangle::new(
+        paper.position() - Vector::new(out, out),
+        paper.size() + Size::new(out * 2.0, out * 2.0),
+    );
+    let shape = Path::new(|builder| {
+        builder.rounded_rectangle(veil.position(), veil.size(), (RADIUS + out).into());
+        holes(builder);
+    });
+    frame.fill(
+        &shape,
+        canvas::Fill {
+            style: canvas::Style::Solid(fill),
+            rule: canvas::fill::Rule::EvenOdd,
+        },
+    );
+}
+
 /// [`fill_paper_band`] between `left` and `right` alone, each on a whole
 /// device pixel, so pieces side by side meet without a seam; `None` is the
 /// paper's own side, its corners round as the band's.

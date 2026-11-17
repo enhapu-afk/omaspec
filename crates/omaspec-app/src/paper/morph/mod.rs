@@ -160,7 +160,10 @@ pub fn sides_of(map: &omaspec_uml::map::Map) -> Vec<Side> {
 
 /// The part the box at `place` is drawn in: that of the state drawn
 /// there, else the one the map gives it, else the box's own name.
-fn map_part(map: &omaspec_uml::map::Map, place: &omaspec_uml::map::Place) -> String {
+pub(in crate::paper) fn map_part(
+    map: &omaspec_uml::map::Map,
+    place: &omaspec_uml::map::Place,
+) -> String {
     let same = |a: omaspec_uml::graph::Rect, b: omaspec_uml::graph::Rect| {
         (a.x - b.x).abs() < 0.5
             && (a.y - b.y).abs() < 0.5

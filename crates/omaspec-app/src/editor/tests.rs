@@ -3111,6 +3111,49 @@ fn snapshot_fold_and_focus() {
     shoot(&mut app, &dir, "folded");
 }
 
+/// Writes headless screenshots of the focus when OMASPEC_SNAPSHOT_DIR is
+/// set: a flowchart's box between two diamonds, in the file's own colors
+/// on a white card and in the theme's, and a state of a machine drawn by
+/// hand. Each box comes through the veil in its own shape.
+#[test]
+fn snapshot_focus_looks() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("focus-shots");
+    let friday = include_str!("../../../../examples/gallery/friday.mmd");
+    let file = work.join("friday.mmd");
+    std::fs::write(&file, friday).unwrap();
+    for (colors, name) in [(false, "focus-flow-file"), (true, "focus-flow-theme")] {
+        let mut app = open(std::slice::from_ref(&file));
+        follow_theme(&mut app, colors);
+        show(&mut app, friday, Language::Mermaid);
+        let key = app.doc().key;
+        let buddy = app.doc().paper.screen_of_box("Buddy");
+        let _ = app.update(Message::Paper(key, paper::Message::FocusAt(buddy)));
+        assert!(
+            app.doc()
+                .paper
+                .lit()
+                .is_some_and(|lit| lit.outlines.iter().all(Option::is_some)),
+            "each box in its own shape"
+        );
+        shoot(&mut app, &dir, name);
+    }
+    let elevator = include_str!("../../../../examples/gallery/elevator.puml");
+    let sketched = elevator.replacen("@startuml\n", "@startuml\nskinparam handwritten true\n", 1);
+    let file = work.join("elevator.puml");
+    std::fs::write(&file, &sketched).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    follow_theme(&mut app, false);
+    show(&mut app, &sketched, Language::PlantUml);
+    let key = app.doc().key;
+    let moving = app.doc().paper.screen_of_box("Moving");
+    let _ = app.update(Message::Paper(key, paper::Message::FocusAt(moving)));
+    shoot(&mut app, &dir, "focus-sketch");
+}
+
 /// Writes headless screenshots of a fold's glide when OMASPEC_SNAPSHOT_DIR
 /// is set (docs/adr/0024, addendum): as it starts, with the lines drawn
 /// over the pictures without them, and half way, the lines on their way

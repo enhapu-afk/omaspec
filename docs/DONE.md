@@ -2634,6 +2634,25 @@ is open and the reasoning around it.
       pictures mmdr and the Java PlantUML draw, which measure in the
       fonts installed. The plain look no longer names `sans-serif`.
 
+### The three diagrams first (2026-11-17)
+
+The sequence diagram, the state machine and the activity diagram are what
+Omaspec is seen by. Until they are elegant and without a flaw in any
+theme, the roadmap waits (what is open is at the top of ROADMAP.md).
+
+- [x] The focus on a box no longer cuts rectangles out of its veil
+      (2026-11-17). The veil has the color of the picture's own paper, so
+      the rest pales into it on a white card as on a dark one, where it
+      was the window's dark over both. A box comes through in the shape
+      its picture draws (`focus::Outline`: the largest shape its part
+      fills, docs/adr/0029), a diamond as a diamond, a box drawn by hand
+      with its bowed sides; its rim is drawn again over the veil. A line
+      is drawn over the veil along the picture's own curve
+      (`focus::route`), with its marks, where a row of rectangles let
+      the picture through; its words stand in a hole that the paper's
+      color hides. The light on the box in focus follows its shape. A
+      picture that marks no parts keeps the shapes the map knows.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 - [x] The engine and the binary type-check for Windows (2026-11-08): `cargo check

@@ -14,6 +14,29 @@ Decisions live in [docs/adr](docs/adr). Releases go to the AUR early, starting
 with the preview window (v0.1), so the community can try it while the editor
 grows.
 
+
+## First: the three diagrams (2026-11-17)
+
+Before anything below: the sequence diagram, the state machine and the
+activity diagram elegant, modern and without a flaw in any theme, in the
+theme's colors and in the file's own. What is done is in docs/DONE.md.
+
+- [ ] A scenario's play in the file's own colors: the veil's edge is a
+      hard band, and the window's dark veil lies on a white card. The
+      veil in the paper's color, as the focus has it, and a soft edge.
+- [ ] The participants that stay at the top while a sequence diagram
+      scrolls look cut off and frozen.
+- [ ] A state machine's play: the states lit through the veil in their
+      own shapes, as the focus's boxes are.
+- [ ] An activity diagram marks its parts (docs/adr/0029), so its boxes
+      glide and come through a veil in their own shapes.
+- [ ] REQ-076: a parallel region that enters a composite state takes its
+      inner start, or a play stops half way.
+- [ ] REQ-077: an embedded diagram (`{{ … }}`) is drawn as text; at
+      least a lint hint on the line with `{{`.
+- [ ] The focus in a real window, and at small zooms, where a lit line
+      is never thinner than three quarters of a pixel.
+
 ## Architecture
 
 ```

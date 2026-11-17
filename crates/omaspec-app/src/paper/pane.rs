@@ -173,11 +173,9 @@ impl Paper {
                         lit: lit.clone(),
                         diagram: diagram.size,
                         overview,
-                        detail: self.detail.shown.as_ref(),
                         view: self.view,
                         glide: self.glide,
                         accent: ui::color(p.accent),
-                        veil: ui::color(p.background),
                         over,
                         scale: self.scale_factor,
                     }))
