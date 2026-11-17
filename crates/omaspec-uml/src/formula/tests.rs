@@ -78,7 +78,7 @@ fn glyph_text(node: &Node) -> Option<&str> {
 fn an_integral_keeps_tau_and_sets_the_italic() {
     let svg = drawn(&latex(r"f(t) = \int_{0}^{t} h(\tau)\,d\tau"));
     assert!(
-        svg.contains("font-family=\"Times New Roman, Liberation Serif, Tinos, Times, serif\""),
+        svg.contains(&format!("font-family=\"{}\"", crate::SERIF_FACES)),
         "{svg}"
     );
     assert!(svg.contains(">τ</tspan>"), "{svg}");

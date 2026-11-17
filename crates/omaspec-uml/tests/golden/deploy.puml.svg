@@ -40,49 +40,49 @@
 <polygon points="48.4,122.89 52.4,132.89 56.4,122.89 52.4,127.39" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="31.78" y="55.29" font-size="14" fill="#000000" textLength="41.23" lengthAdjust="spacing">Server</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="44.62" y="91.58" font-size="14" fill="#000000" textLength="15.55" lengthAdjust="spacing">jar</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="160.88" font-size="14" fill="#000000" textLength="56.8" lengthAdjust="spacing">Sessions</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="42.24" y="264" font-size="14" fill="#000000" textLength="30.32" lengthAdjust="spacing">CDN</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="39.45" y="330.14" font-size="14" fill="#000000" textLength="31.89" lengthAdjust="spacing">Docs</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="170.8" y="113.58" font-size="14" fill="#000000" textLength="35.8" lengthAdjust="spacing">Panel</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="274.6" y="113.58" font-size="14" fill="#000000" textLength="52.91" lengthAdjust="spacing">Readme</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="395.5" y="108.58" font-size="14" fill="#000000" textLength="37.34" lengthAdjust="spacing">Ticket</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="500.84" y="118.58" font-size="14" fill="#000000" textLength="44.34" lengthAdjust="spacing">Cluster</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="636.34" y="113.58" font-size="14" fill="#000000" textLength="25.68" lengthAdjust="spacing">Hub</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="743.18" y="119.58" font-size="14" fill="#000000" textLength="45.11" lengthAdjust="spacing">Worker</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="865.68" y="113.58" font-size="14" fill="#000000" textLength="27.22" lengthAdjust="spacing">Disk</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="970.29" y="113.58" font-size="14" fill="#000000" textLength="31.89" lengthAdjust="spacing">Rack</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="63.4" y="218.32" font-size="12" fill="#000000" textLength="28.01" lengthAdjust="spacing">ships</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="478.7" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="56.78" lengthAdjust="spacing">Platform</tspan>
 </text>
 </g>

@@ -32,48 +32,48 @@
 <ellipse cx="287.16" cy="331.33" rx="32" ry="9" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="51.54" y="182.97" font-size="13" fill="#000000" textLength="24.56" lengthAdjust="spacing">dmz</tspan>
 <tspan x="6" y="198.1" font-size="13" fill="#000000" textLength="70.1" lengthAdjust="spacing">210.x.x.x/24</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="157.51" y="176.44" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">210.x.x.1</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="157.51" y="203.24" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">210.x.x.2</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="292.16" y="203.24" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">210.x.x.3</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="33.47" y="285.26" font-size="13" fill="#000000" textLength="42.63" lengthAdjust="spacing">internal</tspan>
 <tspan x="6" y="300.4" font-size="13" fill="#000000" textLength="70.1" lengthAdjust="spacing">172.x.x.x/24</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="157.51" y="278.74" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">172.x.x.1</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="292.16" y="278.74" font-size="11" fill="#000000" textLength="44.64" lengthAdjust="spacing">172.x.x.2</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="129.17" y="62.86" font-size="14" fill="#000000" textLength="46.69" lengthAdjust="spacing">internet</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="134.23" y="139.73" font-size="14" fill="#000000" textLength="36.57" lengthAdjust="spacing">router</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="131.89" y="242.03" font-size="14" fill="#000000" textLength="41.24" lengthAdjust="spacing">web01</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="252.93" y="242.03" font-size="14" fill="#000000" textLength="68.46" lengthAdjust="spacing">web server</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="136.94" y="359.82" font-size="14" fill="#000000" textLength="31.14" lengthAdjust="spacing">db01</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="271.59" y="359.82" font-size="14" fill="#000000" textLength="31.14" lengthAdjust="spacing">db02</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="128.07" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="97.24" lengthAdjust="spacing">Office network</tspan>
 </text>
 </g>

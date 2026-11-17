@@ -224,6 +224,12 @@ impl Paper {
             .map_or(Size::new(1.0, 1.0), |d| d.size)
     }
 
+    /// How much wider than high the diagram is; none while there is none.
+    pub fn shape(&self) -> Option<f32> {
+        let size = self.diagram.as_ref()?.size;
+        (size.height > 0.0).then(|| size.width / size.height)
+    }
+
     /// Rasterizes what the view needs sharp, after `delay` (see
     /// [`super::raster`]); asks nothing when the rasters in hand will do. A map
     /// zoomed in until its tiles can be read has its pictures parsed first.

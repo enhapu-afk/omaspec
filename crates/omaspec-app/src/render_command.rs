@@ -140,7 +140,14 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
     }
 
     if args.check {
-        let held = hold(&pieces, empty, args.look, args.scale, args.source)?;
+        let held = hold(
+            &pieces,
+            empty,
+            args.look,
+            args.scale,
+            args.source,
+            args.text_as_paths,
+        )?;
         return report_held(args.json, &held);
     }
 
@@ -614,18 +621,21 @@ pub(crate) fn hold_files(files: &[PathBuf]) -> Result<Vec<Held>> {
         .collect();
     let pieces: Vec<crate::document::Piece> =
         read.into_iter().flat_map(|(_, pieces)| pieces).collect();
-    hold(&pieces, empty, None, 2.0, true)
+    hold(&pieces, empty, None, 2.0, true, false)
 }
 
 /// Each diagram of `pieces` drawn as `render --check` draws it, at
 /// `scale` and with the source stored when `source`, held against the SVG
-/// beside it. `empty` are documents with no diagram.
+/// beside it. `empty` are documents with no diagram. An SVG whose words
+/// are outlines (`--text-as-paths`) is held against one drawn so, with
+/// `outline` or without.
 fn hold(
     pieces: &[crate::document::Piece],
     empty: Vec<&crate::files::Input>,
     look: Option<crate::look::Look>,
     scale: f32,
     source: bool,
+    outline: bool,
 ) -> Result<Vec<Held>> {
     let mut renderer = Renderer::new(&render_config());
     let mut maps = crate::specs::Maps::default();
@@ -636,7 +646,7 @@ fn hold(
         fit: false,
         min_font: None,
         tiles: false,
-        outline: false,
+        outline,
         source,
         look,
     };
@@ -668,13 +678,29 @@ fn hold(
                     same: None,
                 });
             }
-            Ok(exported) => {
+            Ok(mut exported) => {
                 let dest = piece.image_path("svg").expect("a file's diagram");
+                let old = std::fs::read_to_string(&dest);
+                // The one beside it has outlines where this one has words:
+                // it was written with --text-as-paths, and is drawn so.
+                let words = |svg: &str| svg.contains("<text");
+                let outlined = old.as_deref().is_ok_and(|old| !words(old))
+                    && matches!(&exported.picture, Picture::One(drawn) if words(&String::from_utf8_lossy(drawn)));
+                if outlined && !draw.outline {
+                    let draw = Draw {
+                        outline: true,
+                        ..draw
+                    };
+                    match export_piece(piece, &mut maps, &mut renderer, &mut skins, draw)? {
+                        Ok(again) => exported = again,
+                        Err(err) => anyhow::bail!("{}: {}", piece.input.name(), failure(&err).2),
+                    }
+                }
                 // An SVG is one file: no --min-font here.
                 let Picture::One(drawn) = &exported.picture else {
                     anyhow::bail!("an SVG is one picture");
                 };
-                let verdict = match std::fs::read_to_string(&dest) {
+                let verdict = match old {
                     Ok(old) => {
                         crate::check::compare(&old, &String::from_utf8_lossy(drawn), &piece.code)
                     }

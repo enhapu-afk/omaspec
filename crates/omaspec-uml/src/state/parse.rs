@@ -459,6 +459,8 @@ impl Parser {
         if head.target == "[*]" {
             return Err(Declined::at(no, "a note on `[*]` is not supported yet"));
         }
+        self.written
+            .push(crate::Mention::used(&head.target, no).within(&self.place));
         let path = self.resolve(&head.target, no);
         let (target, home) = path.split_last().expect("a node has a path");
         let target = *target;

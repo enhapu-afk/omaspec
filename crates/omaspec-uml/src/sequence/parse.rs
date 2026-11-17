@@ -558,6 +558,13 @@ impl Parser {
                 if !tail.trim().is_empty() {
                     return Err(Declined::at(no, "`create` takes one participant"));
                 }
+                // The line that creates a participant declares it, unless
+                // one above did.
+                let known = self.diagram.participants.iter().any(|p| p.code == code);
+                self.diagram.names.push(match known {
+                    true => crate::Mention::used(&code, no),
+                    false => crate::Mention::declared(&code, &code, no),
+                });
                 self.find_or_add(&code, None, no)
             }
         };

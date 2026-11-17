@@ -35,46 +35,46 @@
 <polygon points="94.88,505.96 98.88,515.96 102.88,505.96 98.88,509.96" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="130.85" y="101.29" font-size="14" fill="#0F172A" font-weight="bold" textLength="50.57" lengthAdjust="spacing">CarsGo</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="14" y="197.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="63.8" lengthAdjust="spacing">CarsSlow</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="83.61" y="278.47" font-size="14" fill="#0F172A" font-weight="bold" textLength="62.23" lengthAdjust="spacing">CarsStop</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="82.54" y="375.77" font-size="14" fill="#0F172A" font-weight="bold" textLength="32.68" lengthAdjust="spacing">Walk</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="80.21" y="456.36" font-size="14" fill="#0F172A" font-weight="bold" textLength="37.34" lengthAdjust="spacing">Hurry</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="104.88" y="416.06" font-size="14" fill="#0F172A" textLength="58.37" lengthAdjust="spacing">after 10 s</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="104.88" y="496.66" font-size="14" fill="#0F172A" textLength="50.58" lengthAdjust="spacing">after 5 s</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="193.8" y="197.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Blinking</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="0.98" y="141.58" font-size="14" fill="#0F172A" textLength="38.92" lengthAdjust="spacing">button</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="23.22" y="238.18" font-size="14" fill="#0F172A" textLength="50.58" lengthAdjust="spacing">after 3 s</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="128.72" y="238.18" font-size="14" fill="#0F172A" textLength="86.35" lengthAdjust="spacing">crossing clear</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="155.95" y="141.58" font-size="14" fill="#0F172A" textLength="30.35" lengthAdjust="spacing">night</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="242.15" y="141.58" font-size="14" fill="#0F172A" textLength="50.57" lengthAdjust="spacing">morning</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="72.84" y="12.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="147.04" lengthAdjust="spacing">A pedestrian crossing</tspan>
 </text>
 </g>

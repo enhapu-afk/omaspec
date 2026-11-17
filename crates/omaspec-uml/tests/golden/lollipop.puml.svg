@@ -23,28 +23,28 @@
 <polygon points="256.64,90.56 260.64,100.56 264.64,90.56 260.64,95.06" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="19.9" y="119.55" font-size="14" fill="#000000" textLength="29.55" lengthAdjust="spacing">Files</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="271.64" y="173.7" font-size="14" fill="#000000" textLength="38.91" lengthAdjust="spacing">Plugin</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="26" y="45.29" font-size="14" fill="#000000" textLength="58.35" lengthAdjust="spacing">Renderer</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="112.45" y="119.55" font-size="14" fill="#000000" textLength="59.91" lengthAdjust="spacing">Clipboard</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="242.36" y="119.55" font-size="14" fill="#000000" textLength="36.57" lengthAdjust="spacing">Editor</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="271.64" y="45.29" font-size="14" fill="#000000" textLength="36.55" lengthAdjust="spacing">HTTP</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="266.64" y="81.73" font-size="12" fill="#000000" textLength="35.34" lengthAdjust="spacing">serves</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="371.1" lengthAdjust="spacing">Interfaces as PlantUML draws them beside components</tspan>
 </text>
 </g>

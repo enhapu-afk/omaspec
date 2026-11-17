@@ -30,54 +30,54 @@
 <ellipse cx="281.18" cy="159.3" rx="41.62" ry="9" fill="#F8F9FA" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="306.64" y="96.43" font-size="12" fill="#000000" textLength="58.69" lengthAdjust="spacing">app cluster</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="23.36" y="0.93" font-size="13" fill="#000000" textLength="47.7" lengthAdjust="spacing">frontend</tspan>
 <tspan x="6" y="16.06" font-size="13" fill="#000000" textLength="65.05" lengthAdjust="spacing">10.0.1.0/24</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="155.3" y="21.21" font-size="11" fill="#000000" textLength="15.29" lengthAdjust="spacing">.10</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="286.18" y="21.21" font-size="11" fill="#000000" textLength="15.29" lengthAdjust="spacing">.21</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="395.8" y="21.21" font-size="11" fill="#000000" textLength="15.29" lengthAdjust="spacing">.22</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="21.91" y="113.23" font-size="13" fill="#000000" textLength="49.14" lengthAdjust="spacing">backend</tspan>
 <tspan x="6" y="128.36" font-size="13" fill="#000000" textLength="65.05" lengthAdjust="spacing">10.0.2.0/24</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="286.18" y="106.7" font-size="11" fill="#000000" textLength="15.29" lengthAdjust="spacing">.21</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="395.8" y="106.7" font-size="11" fill="#000000" textLength="15.29" lengthAdjust="spacing">.22</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="286.18" y="133.5" font-size="11" fill="#000000" textLength="15.29" lengthAdjust="spacing">.40</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="126.97" y="64.99" font-size="14" fill="#000000" textLength="57.58" lengthAdjust="spacing"> balancer</tspan>
 </text>
 <g id="icon">
 <path d="M6 0v1h-6v1h6v1l2-1.5-2-1.5zm-4 4l-2 1.5 2 1.5v-1h6v-1h-6v-1z" transform="translate(116.05 54.07) scale(1.365) translate(0 0)" fill="#000000"/>
 </g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="265.61" y="64.99" font-size="14" fill="#000000" textLength="31.14" lengthAdjust="spacing">app1</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="375.23" y="64.99" font-size="14" fill="#000000" textLength="31.14" lengthAdjust="spacing">app2</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="131.63" y="183.29" font-size="14" fill="#000000" textLength="37.35" lengthAdjust="spacing">cache</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="253.55" y="187.79" font-size="14" fill="#000000" textLength="55.24" lengthAdjust="spacing">Postgres</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="141.43" y="227.58" font-size="14" fill="#000000" textLength="157.95" lengthAdjust="spacing">two networks, one cluster</tspan>
 </text>
 </g>

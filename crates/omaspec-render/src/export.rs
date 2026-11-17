@@ -344,31 +344,20 @@ fn fallback(
 /// Times New Roman and Courier New, which Linux rarely has; without them
 /// usvg falls back to whichever font comes first.
 fn generic_families(fonts: &mut usvg::fontdb::Database) {
-    const SANS: [&str; 7] = [
-        "Liberation Sans",
-        "Arimo",
-        "Arial",
-        "Helvetica",
-        "Nimbus Sans",
-        "DejaVu Sans",
-        "Noto Sans",
-    ];
-    const SERIF: [&str; 6] = [
-        "Liberation Serif",
-        "Tinos",
-        "Times New Roman",
-        "Nimbus Roman",
-        "DejaVu Serif",
-        "Noto Serif",
-    ];
-    const MONO: [&str; 6] = [
-        "Liberation Mono",
-        "Cousine",
-        "Courier New",
-        "Nimbus Mono PS",
-        "DejaVu Sans Mono",
-        "Noto Sans Mono",
-    ];
+    // The faces an SVG names for a generic family (`omaspec_uml::faces`),
+    // in their order, so that a picture is drawn here in the face a
+    // viewer takes for it; then faces of other widths, rather than none.
+    let listed = |faces: &'static str, more: [&'static str; 2]| -> Vec<&'static str> {
+        let named = faces.split(", ").collect::<Vec<_>>();
+        let (_generic, named) = named.split_last().expect("a list ends in its generic name");
+        named.iter().copied().chain(more).collect()
+    };
+    let sans = listed(omaspec_uml::SANS_FACES, ["DejaVu Sans", "Noto Sans"]);
+    let serif = listed(omaspec_uml::SERIF_FACES, ["DejaVu Serif", "Noto Serif"]);
+    let mono = listed(
+        omaspec_uml::MONO_FACES,
+        ["DejaVu Sans Mono", "Noto Sans Mono"],
+    );
     let first = |fonts: &usvg::fontdb::Database, names: &[&str]| {
         names
             .iter()
@@ -379,13 +368,13 @@ fn generic_families(fonts: &mut usvg::fontdb::Database) {
             })
             .map(|name| (*name).to_owned())
     };
-    if let Some(name) = first(fonts, &SANS) {
+    if let Some(name) = first(fonts, &sans) {
         fonts.set_sans_serif_family(name);
     }
-    if let Some(name) = first(fonts, &SERIF) {
+    if let Some(name) = first(fonts, &serif) {
         fonts.set_serif_family(name);
     }
-    if let Some(name) = first(fonts, &MONO) {
+    if let Some(name) = first(fonts, &mono) {
         fonts.set_monospace_family(name);
     }
 }
@@ -394,8 +383,19 @@ fn generic_families(fonts: &mut usvg::fontdb::Database) {
 /// here, sanitized once more: any viewer draws them as Omaspec does,
 /// whatever faces it has and whether or not it stretches words to their
 /// `textLength`, but they can no longer be selected or searched, and a
-/// link is no longer one (REQ-068).
+/// link is no longer one (REQ-068). A picture in two schemes
+/// ([`crate::schemes::both`]) keeps both: each is outlined, and the two
+/// are made one again.
 pub fn outlined(svg: &str) -> Result<String, ExportError> {
+    let Some(dark) = crate::schemes::dark(svg) else {
+        return outlined_one(svg);
+    };
+    crate::schemes::both(&outlined_one(svg)?, &outlined_one(&dark)?)
+        .map_err(|e| ExportError::Svg(format!("the two schemes as outlines: {e}")))
+}
+
+/// [`outlined`] for a picture in one scheme, or the light one of two.
+fn outlined_one(svg: &str) -> Result<String, ExportError> {
     // Two places of a unit are a hundredth of a pixel at the scale an SVG
     // is shown, and keep the outlines a sixth as long as at eight.
     let options = usvg::WriteOptions {

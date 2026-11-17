@@ -16,55 +16,55 @@
 <polygon points="214.11,125.48 218.11,135.48 222.11,125.48 218.11,129.98" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="59.66" y="18.99" font-size="14" fill="#0F172A" textLength="42.78" lengthAdjust="spacing">Library</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="12" y="45.29" font-size="14" fill="#0F172A" textLength="83.65" lengthAdjust="spacing">+String name</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="12" y="61.58" font-size="14" fill="#0F172A" textLength="107" lengthAdjust="spacing">+add(Book book)</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="12" y="77.88" font-size="14" fill="#0F172A" textLength="138.11" lengthAdjust="spacing">+find(String title) Book</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="165.24" y="154.47" font-size="14" fill="#0F172A" textLength="31.91" lengthAdjust="spacing">Book</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="137.03" y="180.77" font-size="14" fill="#0F172A" textLength="70.42" lengthAdjust="spacing">+String title</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="137.03" y="197.06" font-size="14" fill="#0F172A" textLength="88.33" lengthAdjust="spacing">+String author</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="137.03" y="213.36" font-size="14" fill="#0F172A" textLength="54.08" lengthAdjust="spacing">+int year</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="255.66" y="27.14" font-size="14" fill="#0F172A" textLength="51.34" lengthAdjust="spacing">Member</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="218.11" y="53.44" font-size="14" fill="#0F172A" textLength="83.65" lengthAdjust="spacing">+String name</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="218.11" y="69.73" font-size="14" fill="#0F172A" textLength="126.43" lengthAdjust="spacing">+borrow(Book book)</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="153.11" y="110.6" font-size="14" fill="#0F172A" textLength="33.46" lengthAdjust="spacing">holds</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="139.33" y="114.03" font-size="14" fill="#0F172A" textLength="7.78" lengthAdjust="spacing">1</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="153.11" y="132.32" font-size="14" fill="#0F172A" textLength="5.45" lengthAdjust="spacing">*</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="221.11" y="102.69" font-size="14" fill="#0F172A" textLength="49.78" lengthAdjust="spacing">borrows</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="207.33" y="91.88" font-size="14" fill="#0F172A" textLength="7.78" lengthAdjust="spacing">1</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="221.11" y="122.32" font-size="14" fill="#0F172A" textLength="5.45" lengthAdjust="spacing">*</tspan>
 </text>
 </g>

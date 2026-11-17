@@ -37,46 +37,46 @@
 <polygon points="431.45,219.89 427.45,209.89 423.45,219.89 427.45,215.89" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="31.78" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="31.12" lengthAdjust="spacing">Dark</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="38.78" y="179.55" font-size="14" fill="#000000" font-weight="bold" textLength="17.11" lengthAdjust="spacing">Lit</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="139.73" font-size="12" fill="#000000" textLength="33.34" lengthAdjust="spacing">switch</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="61.34" y="139.73" font-size="12" fill="#000000" textLength="33.34" lengthAdjust="spacing">switch</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="198.14" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="35.78" lengthAdjust="spacing">Quiet</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="183.75" y="179.55" font-size="14" fill="#000000" font-weight="bold" textLength="64.55" lengthAdjust="spacing">Humming</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="122.67" y="139.73" font-size="12" fill="#000000" textLength="79.36" lengthAdjust="spacing">compressor on</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="230.03" y="139.73" font-size="12" fill="#000000" textLength="65.38" lengthAdjust="spacing">cold enough</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="396.27" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="35.01" lengthAdjust="spacing">Oven</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="409.34" y="198.58" font-size="14" fill="#000000" font-weight="bold" textLength="20.22" lengthAdjust="spacing">Off</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="393.78" y="276.85" font-size="14" fill="#000000" font-weight="bold" textLength="51.34" lengthAdjust="spacing">Heating</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="335.4" y="237.02" font-size="12" fill="#000000" textLength="70.04" lengthAdjust="spacing">turn the knob</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="433.45" y="237.02" font-size="12" fill="#000000" textLength="58.69" lengthAdjust="spacing">turn it back</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="193.34" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="117.46" lengthAdjust="spacing">A kitchen at night</tspan>
 </text>
 </g>

@@ -1785,57 +1785,15 @@ fn ports(
         .iter()
         .map(|slot| slot.real.is_some_and(|real| nodes[real].flat))
         .collect();
-    // At each slot, the lines leaving it and those arriving: (edge, the
-    // slot at the other end of the step, the box at the other end of the
-    // line, the slot it heads for), in the order of the other ends of the
-    // steps. A line from one rank of boxes to the next with no label heads
-    // for the box at its other end, as if the point between were not
-    // there; that point moves onto the line afterwards ([`point_wants`]).
-    let mut sides: Vec<[Vec<Meeting>; 2]> = (0..slots.len()).map(|_| Default::default()).collect();
-    for (index, chain) in chains.iter().enumerate() {
-        if chain.len() < 2 || edges[index].hidden {
-            continue;
-        }
-        let last = chain.len() - 1;
-        let plain = chain.len() == 3 && labels[index].is_none();
-        let (ahead, behind) = if plain {
-            (chain[last], chain[0])
-        } else {
-            (chain[1], chain[last - 1])
-        };
-        sides[chain[0]][0].push((index, chain[1], chain[last], ahead));
-        sides[chain[last]][1].push((index, chain[last - 1], chain[0], behind));
-    }
-    for side in sides.iter_mut().flatten() {
-        side.sort_by(|a, b| {
-            center(&slots[a.1])
-                .total_cmp(&center(&slots[b.1]))
-                .then(a.0.cmp(&b.0))
-        });
-    }
-    let between = |first, second| label_between(slots, chains, labels, first, second);
-    // How far apart neighbors on each side keep. On a circle or a
-    // diamond, lines to other boxes meet in the middle unless lines side by
-    // side would cross them.
+    let sides = meetings(slots.len(), chains, edges, labels, |slot| {
+        center(&slots[slot])
+    });
     let steps: Vec<[Vec<f32>; 2]> = sides
         .iter()
-        .enumerate()
-        .map(|(slot, pair)| {
-            let flat = flat[slot];
-            pair.clone().map(|side| {
-                let paired = side.windows(2).any(|lines| lines[0].2 == lines[1].2);
-                side.windows(2)
-                    .map(|lines| match (flat, lines[0].2 == lines[1].2) {
-                        // Side by side between the same two boxes, with a
-                        // label between them: its room, so both run
-                        // straight past it.
-                        (_, true) => PORT_STEP.max(between(lines[0].0, lines[1].0)),
-                        (true, false) => PORT_STEP,
-                        (false, false) if paired => PORT_STEP / 2.0,
-                        (false, false) => 0.0,
-                    })
-                    .collect()
-            })
+        .zip(&flat)
+        .map(|(pair, &flat)| {
+            pair.each_ref()
+                .map(|side| port_steps(side, flat, slots, chains, labels))
         })
         .collect();
     // How far from its middle a line may meet each side.
@@ -1944,46 +1902,24 @@ fn room_for_labels(
     edges: &[Edge],
     labels: &[Option<usize>],
 ) {
-    let mut place = vec![0; slots.len()];
+    // Nothing is placed yet: a point lies where it stands in its rank.
+    let mut place = vec![0.0; slots.len()];
     for row in rows {
         for (at, &slot) in row.iter().enumerate() {
-            place[slot] = at;
+            place[slot] = at as f32;
         }
     }
-    // At each slot, the lines leaving it and those arriving: the line,
-    // where its next point lies in its rank, and the box at its other end.
-    let mut sides: Vec<[Vec<(usize, usize, usize)>; 2]> =
-        (0..slots.len()).map(|_| Default::default()).collect();
-    for (index, chain) in chains.iter().enumerate() {
-        if chain.len() < 3 || edges[index].hidden {
-            continue;
-        }
-        let last = chain.len() - 1;
-        sides[chain[0]][0].push((index, place[chain[1]], chain[last]));
-        sides[chain[last]][1].push((index, place[chain[last - 1]], chain[0]));
-    }
-    for (slot, pair) in sides.iter_mut().enumerate() {
+    let sides = meetings(slots.len(), chains, edges, labels, |slot| place[slot]);
+    for (slot, pair) in sides.iter().enumerate() {
+        // A circle or a diamond is met wherever its lines ask.
         if !slots[slot].real.is_some_and(|real| nodes[real].flat) {
             continue;
         }
         let mut need: f32 = 0.0;
         for side in pair {
-            side.sort_by_key(|&(index, at, _)| (at, index));
-            let mut labelled = false;
-            let steps: f32 = side
-                .windows(2)
-                .map(|lines| {
-                    let room = if lines[0].2 == lines[1].2 {
-                        label_between(slots, chains, labels, lines[0].0, lines[1].0)
-                    } else {
-                        0.0
-                    };
-                    labelled |= room > 0.0;
-                    PORT_STEP.max(room)
-                })
-                .sum();
-            if labelled {
-                need = need.max(steps + 2.0 * PORT_CORNER);
+            let steps = port_steps(side, true, slots, chains, labels);
+            if steps.iter().any(|&step| step > PORT_STEP) {
+                need = need.max(steps.iter().sum::<f32>() + 2.0 * PORT_CORNER);
             }
         }
         let more = need - slots[slot].box_cross;
@@ -1992,6 +1928,67 @@ fn room_for_labels(
             slots[slot].pack_cross += more;
         }
     }
+}
+
+/// At each slot, the lines leaving it and those arriving: (edge, the slot
+/// at the other end of the step, the box at the other end of the line, the
+/// slot it heads for), in the order of the other ends of the steps, each
+/// where `at` says it lies. A line from one rank of boxes to the next with
+/// no label heads for the box at its other end, as if the point between
+/// were not there; that point moves onto the line afterwards
+/// ([`point_wants`]). One reading for [`ports`] and for the room they
+/// need ([`room_for_labels`]).
+fn meetings(
+    slots: usize,
+    chains: &[Vec<usize>],
+    edges: &[Edge],
+    labels: &[Option<usize>],
+    at: impl Fn(usize) -> f32,
+) -> Vec<[Vec<Meeting>; 2]> {
+    let mut sides: Vec<[Vec<Meeting>; 2]> = (0..slots).map(|_| Default::default()).collect();
+    for (index, chain) in chains.iter().enumerate() {
+        if chain.len() < 2 || edges[index].hidden {
+            continue;
+        }
+        let last = chain.len() - 1;
+        let plain = chain.len() == 3 && labels[index].is_none();
+        let (ahead, behind) = if plain {
+            (chain[last], chain[0])
+        } else {
+            (chain[1], chain[last - 1])
+        };
+        sides[chain[0]][0].push((index, chain[1], chain[last], ahead));
+        sides[chain[last]][1].push((index, chain[last - 1], chain[0], behind));
+    }
+    for side in sides.iter_mut().flatten() {
+        side.sort_by(|a, b| at(a.1).total_cmp(&at(b.1)).then(a.0.cmp(&b.0)));
+    }
+    sides
+}
+
+/// How far apart the neighbors on `side` of a box keep. On a circle or a
+/// diamond (not `flat`), lines to other boxes meet in the middle unless
+/// lines side by side would cross them.
+fn port_steps(
+    side: &[Meeting],
+    flat: bool,
+    slots: &[Slot],
+    chains: &[Vec<usize>],
+    labels: &[Option<usize>],
+) -> Vec<f32> {
+    let paired = side.windows(2).any(|lines| lines[0].2 == lines[1].2);
+    side.windows(2)
+        .map(|lines| match (flat, lines[0].2 == lines[1].2) {
+            // Side by side between the same two boxes, with a label
+            // between them: its room, so both run straight past it.
+            (_, true) => {
+                PORT_STEP.max(label_between(slots, chains, labels, lines[0].0, lines[1].0))
+            }
+            (true, false) => PORT_STEP,
+            (false, false) if paired => PORT_STEP / 2.0,
+            (false, false) => 0.0,
+        })
+        .collect()
 }
 
 /// Offsets from `-half` to `half` for lines along a side, in the order

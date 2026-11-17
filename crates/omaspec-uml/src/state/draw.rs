@@ -236,8 +236,13 @@ impl Item {
     /// How high the title band of a nested state is, from its top border
     /// to the line under its words.
     fn band(&self) -> f32 {
-        HEAD_TOP + self.header_h + HEAD_FOOT
+        band(self.header_h)
     }
+}
+
+/// [`Item::band`] for words `header_h` high.
+fn band(header_h: f32) -> f32 {
+    HEAD_TOP + header_h + HEAD_FOOT
 }
 
 fn layout_container(container: &Container, skin: &Skin, family: Family) -> Result<Scene, Declined> {
@@ -287,7 +292,7 @@ fn measure_node(
         };
         return Ok(Measured {
             width: header_w.max(children.width) + COMP_PAD * 2.0,
-            height: HEAD_TOP + header_h + HEAD_FOOT + gap + children.height + COMP_PAD,
+            height: band(header_h) + gap + children.height + COMP_PAD,
             flat: flat(node.kind),
             children,
             item: Item {

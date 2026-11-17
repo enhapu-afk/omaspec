@@ -15,25 +15,25 @@
 <polygon points="176.49,90.26 180.49,100.26 184.49,90.26 180.49,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="144.7" y="119.26" font-size="14" fill="#000000" textLength="35.78" lengthAdjust="spacing">Order</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12" y="18.99" font-size="14" fill="#000000" textLength="60.68" lengthAdjust="spacing">Customer</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="140.68" y="18.99" font-size="14" fill="#000000" textLength="44.35" lengthAdjust="spacing">Invoice</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="253.03" y="18.99" font-size="14" fill="#000000" textLength="59.14" lengthAdjust="spacing">Shipment</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="100.4" y="67.83" font-size="12" fill="#000000" textLength="34.68" lengthAdjust="spacing">places</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="159.08" y="55.43" font-size="12" fill="#000000" textLength="20.66" lengthAdjust="spacing">bills</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="259.03" y="55.43" font-size="12" fill="#000000" textLength="41.34" lengthAdjust="spacing">delivers</tspan>
 </text>
 </g>

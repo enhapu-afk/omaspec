@@ -27,37 +27,37 @@
 <polygon points="246.82,161.71 250.82,171.71 254.82,161.71 250.82,165.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="102.61" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="56" lengthAdjust="spacing">Stopped</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="14" y="189.55" font-size="14" fill="#000000" font-weight="bold" textLength="49.8" lengthAdjust="spacing">Playing</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="108.07" y="293.82" font-size="14" fill="#000000" font-weight="bold" textLength="49.8" lengthAdjust="spacing">Paused</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="2.89" y="149.73" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">play</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="70.94" y="247.35" font-size="12" fill="#000000" textLength="32.69" lengthAdjust="spacing">pause</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="130.19" y="237.99" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">play</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="52.9" y="161.96" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="165.87" y="237.99" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="97.8" y="188.86" font-size="12" fill="#000000" textLength="52.02" lengthAdjust="spacing">next track</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="256.82" y="149.73" font-size="12" fill="#000000" textLength="28.01" lengthAdjust="spacing">close</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="92.61" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="99.6" lengthAdjust="spacing">A media player</tspan>
 </text>
 </g>

@@ -161,7 +161,9 @@ pub fn both(light: &str, dark: &str) -> Result<String, Mismatch> {
         .rfind("</")
         .ok_or_else(|| Mismatch("the picture does not close".into()))?;
     out.push_str(&light[at..end]);
-    out.push_str("<style>@media (prefers-color-scheme: dark) { ");
+    out.push_str("<style>");
+    out.push_str(DARK);
+    out.push(' ');
     for rule in &rules {
         out.push_str(rule);
         out.push(' ');
@@ -173,6 +175,18 @@ pub fn both(light: &str, dark: &str) -> Result<String, Mismatch> {
     out.push_str("}</style>");
     out.push_str(&light[end..]);
     Ok(sanitize::sanitize(&out)?)
+}
+
+/// What opens the sheet of the dark colors in a picture [`both`] made.
+const DARK: &str = "@media (prefers-color-scheme: dark) {";
+
+/// The dark picture of `svg`, one that [`both`] made: its dark colors
+/// hold whatever the scheme. None when `svg` has one scheme only.
+pub fn dark(svg: &str) -> Option<String> {
+    let start = svg.rfind(DARK)?;
+    let rules = start + DARK.len();
+    let end = rules + svg[rules..].find("}</style>")?;
+    Some([&svg[..start], &svg[rules..end], &svg[end + 1..]].concat())
 }
 
 /// Walks `l` and `d` together: they may differ in colors only.

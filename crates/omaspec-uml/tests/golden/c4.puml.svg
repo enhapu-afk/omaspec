@@ -45,92 +45,92 @@
 <polygon points="713.88,411.55 709.88,401.55 705.88,411.55 709.88,407.05" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="289.79" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="40.9" lengthAdjust="spacing">Rider</tspan>
 <tspan x="237.26" y="158.19" font-size="13" fill="#FFFFFF" textLength="145.96" lengthAdjust="spacing">Rents a bike with the app</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="586.7" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="72.91" lengthAdjust="spacing">Mechanic</tspan>
 <tspan x="542.21" y="158.19" font-size="13" fill="#FFFFFF" textLength="161.88" lengthAdjust="spacing">Keeps the bikes on the road</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="483" y="288.44" font-size="14" fill="#000000" font-weight="bold" textLength="71.58" lengthAdjust="spacing">Bike rental</tspan>
 <tspan x="495.45" y="304.74" font-size="12" fill="#000000" textLength="46.68" lengthAdjust="spacing">[System]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="273.35" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="73.79" lengthAdjust="spacing">Rider app</tspan>
 <tspan x="246.22" y="359.66" font-size="12" fill="#FFFFFF" textLength="128.05" lengthAdjust="spacing">[Container: Kotlin, Swift]</tspan>
 <tspan x="227.15" y="392.25" font-size="13" fill="#FFFFFF" textLength="166.18" lengthAdjust="spacing">Finds a bike, unlocks it, pays</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="250.17" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="80.02" lengthAdjust="spacing">Rental API</tspan>
 <tspan x="227.15" y="508.1" font-size="12" fill="#FFFFFF" textLength="126.05" lengthAdjust="spacing">[Container: Rust, axum]</tspan>
 <tspan x="228.41" y="540.7" font-size="13" fill="#FFFFFF" textLength="123.54" lengthAdjust="spacing">Rentals, prices, bikes</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="555.99" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="57.79" lengthAdjust="spacing">Rentals</tspan>
 <tspan x="519.53" y="508.1" font-size="12" fill="#FFFFFF" textLength="130.73" lengthAdjust="spacing">[Container: PostgreSQL]</tspan>
 <tspan x="515.9" y="540.7" font-size="13" fill="#FFFFFF" textLength="137.98" lengthAdjust="spacing">Riders, rentals, invoices</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="546.8" y="655.78" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="88.93" lengthAdjust="spacing">Bike events</tspan>
 <tspan x="542.58" y="672.55" font-size="12" fill="#FFFFFF" textLength="97.37" lengthAdjust="spacing">[Container: NATS]</tspan>
 <tspan x="512.52" y="705.14" font-size="13" fill="#FFFFFF" textLength="157.49" lengthAdjust="spacing">Where each bike is, its lock</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="628.01" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="78.22" lengthAdjust="spacing">Workshop</tspan>
 <tspan x="610.43" y="359.66" font-size="12" fill="#FFFFFF" textLength="113.39" lengthAdjust="spacing">[Container: Web app]</tspan>
 <tspan x="597.76" y="392.25" font-size="13" fill="#FFFFFF" textLength="138.72" lengthAdjust="spacing">Repairs and spare parts</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12" y="663.93" font-size="16" fill="#000000" font-weight="bold" textLength="135.15" lengthAdjust="spacing">Payment provider</tspan>
 <tspan x="27.92" y="697" font-size="13" fill="#000000" textLength="103.31" lengthAdjust="spacing">Cards and wallets</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="790.9" y="114.13" font-size="16" fill="#000000" font-weight="bold" textLength="90.7" lengthAdjust="spacing">Smart locks</tspan>
 <tspan x="778.09" y="147.19" font-size="13" fill="#000000" textLength="116.32" lengthAdjust="spacing">A lock on every bike</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="991.53" y="45.29" font-size="14" fill="#000000" font-weight="bold" textLength="49.78" lengthAdjust="spacing">Legend</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="998.08" y="81.58" font-size="12" fill="#FFFFFF" textLength="36.68" lengthAdjust="spacing">person</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="974.41" y="141.88" font-size="12" fill="#000000" textLength="84.02" lengthAdjust="spacing">external system</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="991.75" y="202.18" font-size="12" fill="#FFFFFF" textLength="49.36" lengthAdjust="spacing">container</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="316.24" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="28.68" lengthAdjust="spacing">Uses</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="744.15" y="440.19" font-size="12" fill="#000000" font-weight="bold" textLength="45.34" lengthAdjust="spacing">Reports</tspan>
 <tspan x="744.15" y="454.16" font-size="12" fill="#000000" font-style="italic" textLength="40.67" lengthAdjust="spacing">[MQTT]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="25.56" y="586.14" font-size="12" fill="#000000" font-weight="bold" textLength="48.01" lengthAdjust="spacing">Charges</tspan>
 <tspan x="25.56" y="600.1" font-size="12" fill="#000000" font-style="italic" textLength="46.01" lengthAdjust="spacing">[HTTPS]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="673.12" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="28.68" lengthAdjust="spacing">Uses</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="296.18" y="428.69" font-size="12" fill="#000000" font-weight="bold" textLength="28.68" lengthAdjust="spacing">Calls</tspan>
 <tspan x="296.18" y="442.66" font-size="12" fill="#000000" font-style="italic" textLength="81.35" lengthAdjust="spacing">[JSON/HTTPS]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="385.2" y="489.44" font-size="12" fill="#000000" font-weight="bold" textLength="98.7" lengthAdjust="spacing">Reads and writes</tspan>
 <tspan x="385.2" y="503.41" font-size="12" fill="#000000" font-style="italic" textLength="30.68" lengthAdjust="spacing">[SQL]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="540.04" y="593.12" font-size="12" fill="#000000" font-weight="bold" textLength="56.68" lengthAdjust="spacing">Listens to</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="614.71" y="608.81" font-size="12" fill="#000000" font-weight="bold" textLength="117.36" lengthAdjust="spacing">Low battery, flat tyre</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="465.75" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="150.93" lengthAdjust="spacing">Bike rental: containers</tspan>
 </text>
 </g>

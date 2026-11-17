@@ -2510,14 +2510,19 @@ is open and the reasoning around it.
       sans-serif is wider than the Liberation Sans the words were
       measured in (DejaVu Sans, some 13 %), they ran out of their boxes.
       Words in the generic faces name the faces they were measured in
-      first (`faces`: Arial, Liberation Sans, Arimo, Helvetica, then
-      sans-serif; Times New Roman and the like for serif), so they are
+      first (`faces`: Arial, Liberation Sans, Arimo, Helvetica, Nimbus
+      Sans, then sans-serif; Times New Roman and the like for serif,
+      Courier New and the like for monospace; a list such as `Inter,
+      sans-serif` has them behind its own; Omaspec's exports look for
+      the same faces in the same order), so they are
       as wide as measured wherever one is installed: Windows, macOS,
       nearly every Linux desktop. For a bare system without them,
       `render --text-as-paths` writes the words as outlines (usvg, two
       places, sanitized, the source still inside): inside their boxes in
       any viewer, but no longer selectable, links no longer links, and
-      the file some 25 times larger. Boxes wide enough for DejaVu were
+      the file some 25 times larger. `--look auto` keeps both color
+      schemes as outlines, and `render --check` draws an SVG that has
+      outlines with outlines. Boxes wide enough for DejaVu were
       the other way: every diagram some 10 % roomier, so not taken.
 
 ## Other desktops, and a face for the mouse (2026-11-08)

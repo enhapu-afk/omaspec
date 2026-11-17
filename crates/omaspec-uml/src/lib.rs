@@ -63,9 +63,9 @@ pub use color::{Color, Paint, parse as parse_color};
 pub use common::{Mention, lines_away};
 pub use icons::{open_iconic_names, unknown_open_iconic};
 pub use svg::{
-    Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, PART, SANS_FACES, Stroke, card_part, faces,
-    has_parts, part_groups, part_name, place_part, unmarked, without_lines, without_parts,
-    words_part,
+    Align, Canvas, GRID, HAND_FONT, ICON, LINES, Layer, MONO_FACES, PART, SANS_FACES, SERIF_FACES,
+    Stroke, card_part, faces, has_parts, part_groups, part_name, place_part, unmarked,
+    without_lines, without_parts, words_part,
 };
 pub use text::{
     Block, Family, Font, Link, Style, block as measure_text, creole_link, emoji,

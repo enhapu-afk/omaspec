@@ -21,19 +21,19 @@
 <polygon points="148.18,46.3 144.18,36.3 140.18,46.3 144.18,42.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="102.05" y="227.88" font-size="14" fill="#0F172A" textLength="46.69" lengthAdjust="spacing">Ground</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="96.23" y="159.58" font-size="14" fill="#0F172A" textLength="58.34" lengthAdjust="spacing">First floor</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="16" y="91.29" font-size="14" fill="#0F172A" textLength="78.6" lengthAdjust="spacing">Second floor</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="170.6" y="91.29" font-size="14" fill="#0F172A" textLength="49.8" lengthAdjust="spacing">Balcony</tspan>
 </text>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
 <tspan x="110.61" y="22.99" font-size="14" fill="#0F172A" textLength="29.57" lengthAdjust="spacing">Roof</tspan>
 </text>
 </g>

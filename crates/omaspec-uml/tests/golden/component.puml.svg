@@ -32,31 +32,31 @@
 <polygon points="48.4,96.56 52.4,106.56 56.4,96.56 52.4,101.06" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12" y="16.99" font-size="14" fill="#000000" textLength="30.35" lengthAdjust="spacing">shop</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="38.01" y="51.29" font-size="14" fill="#000000" textLength="28.78" lengthAdjust="spacing">Web</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="162.79" y="51.29" font-size="14" fill="#000000" textLength="20.23" lengthAdjust="spacing">Api</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="24" y="134.55" font-size="14" fill="#000000" textLength="56.8" lengthAdjust="spacing">Sessions</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="291.02" y="125.71" font-size="12" fill="#000000" font-style="italic" textLength="51.35" lengthAdjust="spacing">«service»</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="298.03" y="141.54" font-size="14" fill="#000000" textLength="37.34" lengthAdjust="spacing">Billing</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="438.37" y="134.55" font-size="14" fill="#000000" textLength="35.01" lengthAdjust="spacing">Lamp</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="419.31" y="51.29" font-size="14" fill="#000000" textLength="73.14" lengthAdjust="spacing">Light switch</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="322.69" y="87.73" font-size="12" fill="#000000" textLength="36.68" lengthAdjust="spacing">charge</tspan>
 </text>
 </g>

@@ -82,82 +82,82 @@
 <ellipse cx="86.02" cy="490.52" rx="4" ry="4" fill="#000000"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="35.1" font-size="12" fill="#000000" font-weight="bold" textLength="63.36" lengthAdjust="spacing">expression</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="30" y="59.07" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">term</tspan>
 </text>
 <polygon points="175,54.92 168.5,51.92 168.5,57.92" fill="#000000"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="142" y="88.06" font-size="12" fill="#000000" textLength="7.01" lengthAdjust="spacing">+</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="142" y="119.02" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">-</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="197.01" y="88.06" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">term</tspan>
 </text>
 <polygon points="168,63.92 174.5,60.92 174.5,66.92" fill="#000000"/>
 <polygon points="282.51,54.92 276.01,51.92 276.01,57.92" fill="#000000"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="158.99" font-size="12" fill="#000000" font-weight="bold" textLength="26" lengthAdjust="spacing">term</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="30" y="182.96" font-size="12" fill="#000000" textLength="30.01" lengthAdjust="spacing">factor</tspan>
 </text>
 <polygon points="182.85,178.81 176.35,175.81 176.35,181.81" fill="#000000"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="148.01" y="211.94" font-size="12" fill="#000000" textLength="4.67" lengthAdjust="spacing">*</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="148.01" y="242.91" font-size="12" fill="#000000" textLength="3.34" lengthAdjust="spacing">/</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="200.68" y="211.94" font-size="12" fill="#000000" textLength="30.01" lengthAdjust="spacing">factor</tspan>
 </text>
 <polygon points="175.85,187.81 182.35,184.81 182.35,190.81" fill="#000000"/>
 <polygon points="292.19,178.81 285.69,175.81 285.69,181.81" fill="#000000"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="282.88" font-size="12" fill="#000000" font-weight="bold" textLength="33.34" lengthAdjust="spacing">factor</tspan>
 </text>
 <polygon points="55.5,302.7 49,299.7 49,305.7" fill="#000000"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="50" y="326.83" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">-</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="122" y="306.85" font-size="12" fill="#000000" textLength="40.68" lengthAdjust="spacing">number</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="122" y="337.82" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">(</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="153.99" y="337.82" font-size="12" fill="#000000" textLength="58.02" lengthAdjust="spacing">expression</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="240.01" y="337.82" font-size="12" fill="#000000" textLength="4" lengthAdjust="spacing">)</tspan>
 </text>
 <polygon points="285.51,302.7 279.01,299.7 279.01,305.7" fill="#000000"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="377.78" font-size="12" fill="#000000" font-weight="bold" textLength="44" lengthAdjust="spacing">number</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="30" y="401.75" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">digit</tspan>
 </text>
 <polygon points="134.51,397.6 128.01,394.6 128.01,400.6" fill="#000000"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="120.01" y="430.74" font-size="12" fill="#000000" textLength="22.01" lengthAdjust="spacing">digit</tspan>
 </text>
 <polygon points="127.51,406.6 134.01,403.6 134.01,409.6" fill="#000000"/>
 <polygon points="203.52,397.6 197.02,394.6 197.02,400.6" fill="#000000"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="470.7" font-size="12" fill="#000000" font-weight="bold" textLength="25.33" lengthAdjust="spacing">digit</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="30" y="494.67" font-size="12" fill="#000000" textLength="30.02" lengthAdjust="spacing">0 to 9</tspan>
 </text>
 <polygon points="81.52,490.52 75.02,487.52 75.02,493.52" fill="#000000"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="120.68" y="11.14" font-size="12" fill="#000000" font-weight="bold" textLength="59.34" lengthAdjust="spacing">Arithmetic</tspan>
 </text>
 </g>

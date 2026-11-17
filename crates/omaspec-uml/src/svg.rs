@@ -1,6 +1,7 @@
 //! A small SVG writer: shapes on layers, text from measured [`Block`]s,
 //! the size taken from what was drawn.
 
+use std::borrow::Cow;
 use std::fmt::Write as _;
 
 use crate::color::{Color, Paint};
@@ -672,7 +673,7 @@ impl Canvas {
         let _ = write!(
             out,
             r#"<text font-family="{}" xml:space="preserve">"#,
-            escape(faces(&self.font))
+            escape(&faces(&self.font))
         );
         let mut top = y;
         // Icons stand beside the words, drawn after the text element.
@@ -875,7 +876,7 @@ impl Canvas {
                 out.push_str(r#" font-style="italic""#);
             }
             if s.mono {
-                out.push_str(r#" font-family="monospace""#);
+                let _ = write!(out, r#" font-family="{MONO_FACES}""#);
             }
             match (s.underline, s.strike) {
                 (true, true) => out.push_str(r#" text-decoration="underline line-through""#),
@@ -1338,27 +1339,53 @@ fn open_link(out: &mut String, link: &Link) {
     }
 }
 
-/// The faces a picture's words are named in. A generic sans-serif or serif
-/// names the faces the words were measured in first ([`crate::metrics`]:
-/// Liberation, as wide as Arial and Times), then those as wide, then the
+/// The faces a picture's words are named in. A generic sans-serif, serif
+/// or monospace, alone or in a list of faces, names the faces the words were measured in first ([`crate::metrics`]:
+/// Liberation, as wide as Arial, Times and Courier), then those as wide, then the
 /// generic one: a viewer that does not stretch words to their
 /// `textLength` (rsvg-convert, cairosvg) draws them as wide as measured
 /// wherever one of them is installed, on Windows, macOS and nearly every
 /// Linux desktop (REQ-068). Arial comes first for the viewers that take
 /// only the first name; fontconfig gives Liberation Sans for it. A face
 /// the diagram names is written as named.
-pub fn faces(font: &str) -> &str {
-    match font.trim().to_ascii_lowercase().as_str() {
-        "sans-serif" | "sansserif" | "sans" | "dialog" => SANS_FACES,
-        "serif" => SERIF_FACES,
-        _ => font,
+pub fn faces(font: &str) -> Cow<'_, str> {
+    if !font.contains(',') {
+        return Cow::Borrowed(generic(font).unwrap_or(font));
+    }
+    // A list (`Inter, sans-serif`): its generic names give their faces.
+    if font.split(',').all(|one| generic(one).is_none()) {
+        return Cow::Borrowed(font);
+    }
+    let named: Vec<&str> = font
+        .split(',')
+        .map(|one| generic(one).unwrap_or(one.trim()))
+        .collect();
+    Cow::Owned(named.join(", "))
+}
+
+/// The faces of the generic family `name`, or none when it names a face.
+fn generic(name: &str) -> Option<&'static str> {
+    let name = name.trim();
+    let one_of = |names: &[&str]| names.iter().any(|n| name.eq_ignore_ascii_case(n));
+    if one_of(&["sans-serif", "sansserif", "sans", "dialog"]) {
+        Some(SANS_FACES)
+    } else if one_of(&["serif"]) {
+        Some(SERIF_FACES)
+    } else if one_of(&["monospace", "monospaced"]) {
+        Some(MONO_FACES)
+    } else {
+        None
     }
 }
 
-/// [`faces`] for the generic sans-serif.
-pub const SANS_FACES: &str = "Arial, Liberation Sans, Arimo, Helvetica, sans-serif";
+/// [`faces`] for the generic sans-serif. Omaspec's own exports look for
+/// the same faces in the same order (`omaspec_render::export`).
+pub const SANS_FACES: &str = "Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif";
 /// [`faces`] for the generic serif.
-const SERIF_FACES: &str = "Times New Roman, Liberation Serif, Tinos, Times, serif";
+pub const SERIF_FACES: &str =
+    "Times New Roman, Liberation Serif, Tinos, Times, Nimbus Roman, serif";
+/// [`faces`] for the generic monospace.
+pub const MONO_FACES: &str = "Courier New, Liberation Mono, Cousine, Nimbus Mono PS, monospace";
 
 pub(crate) fn escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -1639,6 +1666,10 @@ mod tests {
         assert!(SANS_FACES.starts_with("Arial, Liberation Sans"));
         assert!(faces("serif").starts_with("Times New Roman, Liberation Serif"));
         assert_eq!(faces("Inter"), "Inter");
+        assert!(faces("Monospace").starts_with("Courier New, Liberation Mono"));
+        // A list keeps its faces; its generic name gives those behind it.
+        assert_eq!(faces("Inter, sans-serif"), format!("Inter, {SANS_FACES}"));
+        assert_eq!(faces("Inter, \"Segoe UI\""), "Inter, \"Segoe UI\"");
         let mut c = Canvas::new("sans-serif", false);
         let word = block("Book", Font::new(12.0, Color::BLACK), Family::Sans).unwrap();
         c.text(Layer::Front, &word, (4.0, 4.0), Align::Left);
@@ -1673,7 +1704,10 @@ mod tests {
         c.sketch(true);
         c.text(Layer::Front, &code, (4.0, 4.0), Align::Left);
         let svg = c.finish(4.0, None);
-        assert!(svg.contains(r#"font-family="monospace""#), "{svg}");
+        assert!(
+            svg.contains(&format!(r#"font-family="{MONO_FACES}""#)),
+            "{svg}"
+        );
     }
 
     #[test]

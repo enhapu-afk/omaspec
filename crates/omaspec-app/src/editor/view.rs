@@ -344,10 +344,7 @@ impl App {
         ]
         .spacing(4)
         .align_y(Alignment::Center);
-        // Two wide pictures lie one above the other, where each has the
-        // pane's whole width; tall ones stand side by side.
-        let size = paper.diagram_size();
-        let stacked = diagram && size.width > size.height * WIDE;
+        let stacked = c.lies_stacked(paper.shape());
         let (a, b) = (
             side(a_bar.into(), a, stacked),
             side(b_bar.into(), b, stacked),
@@ -1756,10 +1753,6 @@ mod tab_wheel {
         }
     }
 }
-
-/// How much wider than high a diagram is before A and B lie one above the
-/// other.
-const WIDE: f32 = 1.3;
 
 /// One half of A|B: its title bar above its body. The halves share the
 /// pane's height when `stacked`, its width otherwise.

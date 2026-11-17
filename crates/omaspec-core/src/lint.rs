@@ -698,7 +698,8 @@ fn swimlanes(rows: &[Row], findings: &mut Vec<Finding>) {
         let main = counts[0].0;
         for &(raw, row) in list {
             if raw != main {
-                findings.push(Finding::new("lane-spelling", 
+                findings.push(Finding::new(
+                    "lane-spelling",
                     row,
                     Severity::Warning,
                     format!(
@@ -904,6 +905,12 @@ mod tests {
         );
         let chart = "stateDiagram-v2\n  [*] --> Running\n  Running --> Stopped\n  Stopped: at rest\n  note right of Stopped: done\n  Runing --> Stopped\n";
         assert_eq!(codes(chart, Language::Mermaid), [(5, "lone-state")]);
+        // A note names its state in PlantUML as well.
+        let noted = "@startuml\n[*] --> Running\nRunning --> Runing\nnote right of Runing : on purpose\nRunning --> [*]\n@enduml\n";
+        assert_eq!(codes(noted, Language::PlantUml), []);
+        // `create` declares the participant it creates.
+        let created = "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bob : hi\ncreate Bobb\nAlice -> Bobb : new\n@enduml\n";
+        assert_eq!(codes(created, Language::PlantUml), []);
     }
 
     /// A diagram the engine declines keeps its rules about names: its

@@ -49,52 +49,52 @@
 <polygon points="186.65,704.24 190.65,714.24 194.65,704.24 190.65,708.24" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="116.37" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="42.01" lengthAdjust="spacing">Active</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="92.7" y="198.58" font-size="14" fill="#000000" font-weight="bold" textLength="84" lengthAdjust="spacing">NumLockOff</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="93.08" y="276.85" font-size="14" fill="#000000" font-weight="bold" textLength="83.23" lengthAdjust="spacing">NumLockOn</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12" y="237.02" font-size="12" fill="#000000" textLength="108.7" lengthAdjust="spacing">EvNumLockPressed</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="148.7" y="237.02" font-size="12" fill="#000000" textLength="108.7" lengthAdjust="spacing">EvNumLockPressed</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="93.81" y="391.14" font-size="14" fill="#000000" font-weight="bold" textLength="87.12" lengthAdjust="spacing">CapsLockOff</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="94.2" y="469.41" font-size="14" fill="#000000" font-weight="bold" textLength="86.35" lengthAdjust="spacing">CapsLockOn</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="12" y="429.58" font-size="12" fill="#000000" textLength="111.37" lengthAdjust="spacing">EvCapsLockPressed</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="151.37" y="429.58" font-size="12" fill="#000000" textLength="111.37" lengthAdjust="spacing">EvCapsLockPressed</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="112.47" y="559.67" font-size="14" fill="#000000" font-weight="bold" textLength="49.8" lengthAdjust="spacing">Paused</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="52.99" y="656.97" font-size="14" fill="#000000" font-weight="bold" textLength="50.55" lengthAdjust="spacing">Waiting</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="159.54" y="656.97" font-size="14" fill="#000000" font-weight="bold" textLength="62.22" lengthAdjust="spacing">Buffering</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="169.64" y="735.23" font-size="14" fill="#000000" font-weight="bold" textLength="42.01" lengthAdjust="spacing">Ready</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="196.65" y="695.41" font-size="12" fill="#000000" textLength="15.34" lengthAdjust="spacing">full</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="143.37" y="519.85" font-size="12" fill="#000000" textLength="32.69" lengthAdjust="spacing">pause</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="85.24" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="104.26" lengthAdjust="spacing">Keyboard locks</tspan>
 </text>
 </g>

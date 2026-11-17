@@ -271,20 +271,23 @@ fn unread(code: &str, lang: Language) -> Vec<Finding> {
         ),
         None => "Omaspec does not read this state machine fully, so its checks skip it.".to_owned(),
     };
-    let (line, severity, message) = match (lang, omaspec_uml::parse(code)) {
+    let (code, line, severity, message) = match (lang, omaspec_uml::parse(code)) {
+        // The code the lint gives a diagram PlantUML refuses.
         (Language::PlantUml, Err(declined)) if declined.refused => (
+            "refused",
             declined.line,
             Severity::Error,
             format!("{}.", diff::capital(&declined.reason)),
         ),
         (Language::PlantUml, Err(declined)) => (
+            "not-read",
             declined.line,
             Severity::Info,
             skipped(Some(&declined.reason)),
         ),
-        _ => (None, Severity::Info, skipped(None)),
+        _ => ("not-read", None, Severity::Info, skipped(None)),
     };
-    let finding = Finding::new("not-read", line.unwrap_or(0), severity, message);
+    let finding = Finding::new(code, line.unwrap_or(0), severity, message);
     vec![finding]
 }
 

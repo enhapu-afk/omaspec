@@ -69,9 +69,36 @@ pub struct Compare {
     pub rows: Option<Vec<Row>>,
     /// What changed in the behavior from B to A, or why that is not told.
     pub behavior: Result<Vec<Change>, String>,
+    /// Whether A and B lay one above the other when last shown: the view
+    /// keeps them so until the pictures are clearly of the other shape.
+    pub stacked: std::cell::Cell<bool>,
 }
 
+/// How much wider than high both diagrams are before A and B lie one
+/// above the other.
+const WIDE: f32 = 1.3;
+/// How far past [`WIDE`] the shape has to go before the halves change
+/// places: a diagram at the border does not flip them as it is typed.
+const SLACK: f32 = 0.1;
+
 impl Compare {
+    /// Whether A, of the shape `a`, and B lie one above the other: when
+    /// both are wide, so that each has the pane's whole width; side by
+    /// side when one is tall. Whatever B shows, so that its lists do not
+    /// move the halves.
+    pub fn lies_stacked(&self, a: Option<f32>) -> bool {
+        let shapes = [a, self.paper.shape()];
+        let Some(least) = shapes.into_iter().flatten().reduce(f32::min) else {
+            return self.stacked.get();
+        };
+        let border = match self.stacked.get() {
+            true => WIDE - SLACK,
+            false => WIDE + SLACK,
+        };
+        self.stacked.set(least > border);
+        self.stacked.get()
+    }
+
     pub fn new(a: u64, target: Target, title: String, text: String, language: Language) -> Self {
         Self {
             a,
@@ -85,6 +112,7 @@ impl Compare {
             sync: true,
             rows: Some(Vec::new()),
             behavior: Ok(Vec::new()),
+            stacked: std::cell::Cell::new(false),
         }
     }
 
@@ -596,6 +624,26 @@ fn severity_word(severity: omaspec_core::lint::Severity) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A and B lie one above the other when wide, and a shape at the
+    /// border does not flip them.
+    #[test]
+    fn wide_pictures_lie_stacked_and_stay_so_at_the_border() {
+        let c = Compare::new(
+            0,
+            Target::Tab(1),
+            String::new(),
+            String::new(),
+            Language::PlantUml,
+        );
+        assert!(!c.lies_stacked(None));
+        assert!(!c.lies_stacked(Some(1.0)));
+        assert!(!c.lies_stacked(Some(1.35)));
+        assert!(c.lies_stacked(Some(2.0)));
+        assert!(c.lies_stacked(Some(1.25)));
+        assert!(c.lies_stacked(None));
+        assert!(!c.lies_stacked(Some(1.1)));
+    }
 
     const B: &str = "@startuml\nA -> B : one\nB -> C : two\nC -> D : three\nD -> E : four\nE -> F : five\nF -> G : six\nG -> H : seven\nH -> I : eight\nI -> J : nine\n@enduml\n";
 

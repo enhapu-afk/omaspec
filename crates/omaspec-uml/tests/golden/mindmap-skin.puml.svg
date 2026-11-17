@@ -8,20 +8,20 @@
 </g>
 <g>
 <rect x="77" y="46.3" width="70.58" height="36.3" rx="4" ry="4" fill="#1E1E1E" stroke="#E68E0D" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="87" y="69.29" font-size="14" fill="#BEBEBE" textLength="50.58" lengthAdjust="spacing">Skinned</tspan>
 </text>
 <rect x="197.58" y="10" width="86.15" height="52.59" rx="4" ry="4" fill="#1E1E1E" stroke="#E68E0D" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="207.58" y="32.99" font-size="14" fill="#BEBEBE" textLength="66.15" lengthAdjust="spacing">a centered</tspan>
 <tspan x="225.87" y="49.29" font-size="14" fill="#BEBEBE" textLength="29.57" lengthAdjust="spacing">label</tspan>
 </text>
 <rect x="197.58" y="82.59" width="27.78" height="36.3" rx="4" ry="4" fill="#1E1E1E" stroke="#E68E0D" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="207.58" y="105.58" font-size="14" fill="#BEBEBE" textLength="7.78" lengthAdjust="spacing">b</tspan>
 </text>
 <rect x="0" y="46.3" width="27" height="36.3" rx="4" ry="4" fill="#1E1E1E" stroke="#E68E0D" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="10" y="69.29" font-size="14" fill="#BEBEBE" textLength="7" lengthAdjust="spacing">c</tspan>
 </text>
 </g>

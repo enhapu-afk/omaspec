@@ -29,40 +29,40 @@
 <polygon points="84.23,323.53 74.23,327.53 84.23,331.53 80.23,327.53" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="52.73" y="91.84" font-size="14" fill="#000000" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="47.29" y="186.96" font-size="14" fill="#000000" font-weight="bold" textLength="35" lengthAdjust="spacing">Done</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="46.12" y="265.22" font-size="14" fill="#000000" font-weight="bold" textLength="37.34" lengthAdjust="spacing">Outer</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="26" y="315.37" font-size="14" fill="#000000" font-weight="bold" textLength="34.23" lengthAdjust="spacing">Inner</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="94.23" y="314.68" font-size="12" fill="#000000" textLength="6.67" lengthAdjust="spacing">a</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="110.9" y="314.68" font-size="12" fill="#000000" textLength="6.67" lengthAdjust="spacing">b</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="110.85" y="91.15" font-size="12" fill="#000000" textLength="18.67" lengthAdjust="spacing">poll</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="139.52" y="91.15" font-size="12" fill="#000000" textLength="85.38" lengthAdjust="spacing">heartbeat [alive]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="234.9" y="91.15" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">retry</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="70.79" y="147.14" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="70.79" y="225.4" font-size="12" fill="#000000" textLength="29.35" lengthAdjust="spacing">again</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="116.29" y="186.27" font-size="12" fill="#000000" textLength="20" lengthAdjust="spacing">rest</tspan>
 </text>
 </g>

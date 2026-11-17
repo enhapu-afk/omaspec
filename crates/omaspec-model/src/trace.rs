@@ -355,7 +355,8 @@ impl<'a> Object<'a> {
                         ways
                     }
                     None => {
-                        outcome.findings.push(finding("trace-no-start", 
+                        outcome.findings.push(finding(
+                            "trace-no-start",
                             entry.line,
                             Severity::Info,
                             format!(
@@ -480,7 +481,8 @@ impl<'a> Object<'a> {
             None => ways,
         };
         if ways.len() >= MAX_WAYS {
-            outcome.findings.push(finding("trace-too-many-ways", 
+            outcome.findings.push(finding(
+                "trace-too-many-ways",
                 entry.line,
                 Severity::Info,
                 format!(

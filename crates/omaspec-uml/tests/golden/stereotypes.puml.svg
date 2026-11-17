@@ -32,40 +32,40 @@
 <polygon points="79.69,214.9 83.69,224.9 87.69,214.9 83.69,218.9" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="45.01" y="73.14" font-size="12" fill="#000000" font-weight="bold" textLength="77.35" lengthAdjust="spacing">Getting ready</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="56.68" y="168.1" font-size="12" fill="#000000" font-weight="bold" textLength="54.01" lengthAdjust="spacing">Checking</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="62.35" y="244.04" font-size="12" fill="#000000" font-weight="bold" textLength="42.67" lengthAdjust="spacing">Loaded</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="89.69" y="206.07" font-size="12" fill="#000000" textLength="12.67" lengthAdjust="spacing">ok</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="25.91" y="347.98" font-size="12" fill="#000000" font-weight="bold" textLength="34.68" lengthAdjust="spacing">Failed</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="18.24" y="360.09" font-size="10" fill="#000000" textLength="50.01" lengthAdjust="spacing">retries later</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="121.57" y="435.55" font-size="12" fill="#006400" font-weight="bold" textLength="49.34" lengthAdjust="spacing">Finished</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="140.25" y="353.8" font-size="12" fill="#000000" font-weight="bold" textLength="48.66" lengthAdjust="spacing">Running</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="170.58" y="294.01" font-size="12" fill="#000000" textLength="23.34" lengthAdjust="spacing">start</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="0" y="294.01" font-size="12" fill="#000000" textLength="36.68" lengthAdjust="spacing">broken</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="152.25" y="397.58" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
+<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="60.96" y="294.01" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">retry</tspan>
 </text>
 </g>

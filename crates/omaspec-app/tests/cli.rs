@@ -262,6 +262,31 @@ fn render_writes_the_words_as_outlines() {
         "--text-as-paths",
     ]);
     assert!(!png.status.success());
+    // The check draws the one beside the diagram as it was written: with
+    // outlines, asked for or not.
+    let beside = |more: &[&str]| {
+        let mut args = vec!["render", file.to_str().unwrap()];
+        args.extend(more);
+        omaspec(&args)
+    };
+    for more in [&["--check"][..], &["--check", "--text-as-paths"]] {
+        let held = beside(more);
+        assert!(
+            held.status.success(),
+            "{more:?}: {}",
+            String::from_utf8_lossy(&held.stderr)
+        );
+    }
+    // Both color schemes keep their colors as outlines.
+    let auto = beside(&["--look", "auto", "--text-as-paths"]);
+    assert!(auto.status.success());
+    let written = fs::read_to_string(&svg).unwrap();
+    assert!(!written.contains("<text"));
+    assert!(written.contains("prefers-color-scheme: dark"), "{written}");
+    assert!(beside(&["--check", "--look", "auto"]).status.success());
+    // Words where outlines are asked for differ.
+    assert!(beside(&[]).status.success());
+    assert!(!beside(&["--check", "--text-as-paths"]).status.success());
     let _ = fs::remove_dir_all(&dir);
 }
 

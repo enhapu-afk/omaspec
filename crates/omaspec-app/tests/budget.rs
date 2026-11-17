@@ -62,6 +62,14 @@ fn a_long_play_without_a_gpu_stays_within_its_budget() {
         .stderr(Stdio::piped())
         .spawn()
         .expect("omaspec runs");
+    // Read as it is written: a child that says more than a pipe holds
+    // would wait for its reader, and the play would seem to hang.
+    let mut stderr = child.stderr.take().expect("a piped stderr");
+    let reader = std::thread::spawn(move || {
+        let mut said = String::new();
+        let _ = std::io::Read::read_to_string(&mut stderr, &mut said);
+        said
+    });
     let mut most = 0;
     let status = loop {
         if let Some(now) = peak(child.id()) {
@@ -76,10 +84,7 @@ fn a_long_play_without_a_gpu_stays_within_its_budget() {
         );
         std::thread::sleep(Duration::from_millis(50));
     };
-    let said = child
-        .wait_with_output()
-        .map(|out| String::from_utf8_lossy(&out.stderr).into_owned())
-        .unwrap_or_default();
+    let said = reader.join().unwrap_or_default();
     assert!(status.success(), "{said}");
     // Enough frames for a leak by the frame to show.
     let frames: usize = said
