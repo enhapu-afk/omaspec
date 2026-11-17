@@ -3167,6 +3167,69 @@ fn snapshot_focus_looks() {
     }
 }
 
+/// A zoom in steps with the focus on a box, drawn frame by frame on the
+/// wall clock as a window draws it, the sharper pixels coming in on the
+/// side, then the pointer across the picture: in no frame is the picture
+/// gone from its paper. (A window showed such frames, 2026-11-17; here
+/// they have not come yet.)
+#[test]
+fn a_zoom_never_shows_the_paper_alone() {
+    let work = temp_dir("zoom-flicker");
+    let elevator = include_str!("../../../../examples/gallery/elevator.puml");
+    let elevator = &elevator.replacen("@startuml\n", "@startuml\nskinparam handwritten true\n", 1);
+    let file = work.join("elevator.puml");
+    std::fs::write(&file, elevator).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    follow_theme(&mut app, false);
+    show(&mut app, elevator, Language::PlantUml);
+    settle(&mut app);
+    let Ok(mut screen) = Screen::new(&app, 1.0) else {
+        return;
+    };
+    let key = app.doc().key;
+    let at = app.doc().paper.screen_of_box("Closing");
+    let _ = app.update(Message::Paper(key, paper::Message::FocusAt(at)));
+    // How much of the picture is in a frame: the pixels that are neither
+    // the window's dark nor the paper's white.
+    let inked = |shot: &Shot| {
+        shot.rgba
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .filter(|p| {
+                let (low, high) = (p[0].min(p[1]).min(p[2]), p[0].max(p[1]).max(p[2]));
+                high > 90 && low < 235
+            })
+            .count()
+    };
+    let tick = Duration::from_millis(16);
+    let mut seen: Vec<usize> = Vec::new();
+    screen.run_frames(&mut app, 6, tick, |_| false, |shot| seen.push(inked(shot)));
+    for step in 0..4 {
+        let factor = if step < 2 { 1.25 } else { 0.8 };
+        let at = iced::Point::new(900.0, 320.0);
+        screen.send(
+            &mut app,
+            Message::Paper(key, paper::Message::ZoomStep(factor, at)),
+        );
+        screen.run_frames(&mut app, 24, tick, |_| false, |shot| seen.push(inked(shot)));
+    }
+    // The pointer across the picture, over its boxes and off them.
+    for step in 0..80 {
+        let x = 620.0 + (step as f32 * 7.0) % 560.0;
+        let y = 200.0 + ((step / 6) as f32 * 11.0) % 260.0;
+        screen.pointer = Some(iced::Point::new(x, y));
+        screen.run_frames(&mut app, 1, tick, |_| false, |shot| seen.push(inked(shot)));
+    }
+    let gone: Vec<(usize, usize, usize)> = seen
+        .windows(3)
+        .enumerate()
+        .filter(|(_, w)| w[1] * 3 < w[0] && w[1] * 3 < w[2])
+        .map(|(at, w)| (at + 1, w[0], w[1]))
+        .collect();
+    assert!(gone.is_empty(), "frames with the picture gone: {gone:?}");
+}
+
 /// Writes headless screenshots of a scenario's play in the file's own
 /// colors and in the theme's when OMASPEC_SNAPSHOT_DIR is set: four
 /// messages played, the rest under the veil, zoomed so that the paper is

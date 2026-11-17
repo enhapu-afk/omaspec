@@ -535,10 +535,39 @@ impl canvas::Program<Message> for DiagramCanvas<'_> {
         let now = crate::clock::now();
         let view = self.glide.map_or(self.view, |g| g.at(now));
         if self.paint_morph(&mut frame, grid, local, now) {
+            told(|| "draw: a glide by parts".to_owned());
             return vec![frame.into_geometry()];
         }
         match self.sheets(view, now) {
             Some(sheets) => {
+                told(|| {
+                    let sheets: Vec<String> = sheets
+                        .iter()
+                        .map(|sheet| {
+                            let pictures: Vec<String> = sheet
+                                .pictures
+                                .iter()
+                                .map(|(raster, opacity)| {
+                                    format!(
+                                        "{:.0}x{:.0}@{opacity:.2} #{:02x}{:02x}{:02x}",
+                                        raster.region.width,
+                                        raster.region.height,
+                                        (raster.paper.r * 255.0) as u8,
+                                        (raster.paper.g * 255.0) as u8,
+                                        (raster.paper.b * 255.0) as u8,
+                                    )
+                                })
+                                .collect();
+                            format!("sheet alpha {:.2} [{}]", sheet.alpha, pictures.join(", "))
+                        })
+                        .collect();
+                    format!(
+                        "draw: previous {}, fade {}, {}",
+                        self.previous.is_some(),
+                        self.fade.is_some(),
+                        sheets.join("; ")
+                    )
+                });
                 ground_under(&mut frame, grid, local, &sheets);
                 for sheet in sheets {
                     draw_sheet(&mut frame, grid, self.background, local, sheet);
@@ -660,4 +689,17 @@ fn draw_sheet(
             )
         }),
     );
+}
+
+/// Says what the diagram's canvas draws in a frame, on standard error,
+/// where `OMASPEC_DRAWS` is set: to find a frame in which the picture is
+/// gone. Each line with the milliseconds since the first.
+fn told(what: impl FnOnce() -> String) {
+    use std::sync::OnceLock;
+    static ON: OnceLock<Option<std::time::Instant>> = OnceLock::new();
+    let since =
+        ON.get_or_init(|| std::env::var_os("OMASPEC_DRAWS").map(|_| std::time::Instant::now()));
+    if let Some(since) = since {
+        eprintln!("{:>8} {}", since.elapsed().as_millis(), what());
+    }
 }

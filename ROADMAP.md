@@ -25,6 +25,15 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
       real window: the snapshots show the veil in the paper's color and
       what scrolls under the participants fading out, but not the band
       at the veil's edge the tester's window showed.
+- [ ] A flicker in the window since 2026-11-17 (not in 0.9.7): with
+      the focus on a box, the picture is gone for one frame, its paper
+      and the focus's veil, lines and light still there. In the tester's
+      recording eleven times in 46 seconds, each as the pointer came
+      over a box that folds (its button appeared in that frame), the
+      view at rest. Not reproduced without a window
+      (`a_zoom_never_shows_the_paper_alone` draws frame by frame with a
+      pointer and passes). `OMASPEC_DRAWS=1` says on standard error what
+      the diagram's canvas draws in each frame.
 - [ ] A state machine's play: the states lit through the veil in their
       own shapes, as the focus's boxes are.
 - [ ] An activity diagram marks its parts (docs/adr/0029), so its boxes

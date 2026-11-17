@@ -25,6 +25,9 @@ pub struct Screen {
     pub scale: f32,
     pub size: Size,
     pub shows: Shows,
+    /// Where the pointer is, for a redraw to tell the layers; nowhere
+    /// without one.
+    pub pointer: Option<iced::Point>,
     /// A snapshot drew its first frame, and the pictures it asked for are
     /// on the GPU.
     #[cfg(test)]
@@ -79,6 +82,7 @@ impl Screen {
             scale,
             size: Self::SIZE,
             shows: Shows::Window,
+            pointer: None,
             #[cfg(test)]
             warm: false,
             cache: None,
@@ -114,6 +118,14 @@ impl Screen {
         crate::at_once::run(&self.renderer, task, |message| app.update(message));
     }
 
+    /// Hands `message` to the editor as a window does: its task goes on
+    /// its way on the side while [`Self::run_frames`] draws.
+    #[cfg(test)]
+    pub fn send(&mut self, app: &mut App, message: Message) {
+        let task = app.update(message);
+        self.background.add(task);
+    }
+
     #[cfg(test)]
     pub fn frame(&mut self, app: &App) -> Shot {
         self.cache = None;
@@ -138,10 +150,20 @@ impl Screen {
         );
         let built = start.elapsed();
         let redraw = iced::Event::Window(iced::window::Event::RedrawRequested(crate::clock::now()));
-        let cursor = iced::mouse::Cursor::Unavailable;
+        let cursor = self.pointer.map_or(
+            iced::mouse::Cursor::Unavailable,
+            iced::mouse::Cursor::Available,
+        );
+        let mut events = Vec::new();
+        if let Some(position) = self.pointer {
+            events.push(iced::Event::Mouse(iced::mouse::Event::CursorMoved {
+                position,
+            }));
+        }
+        events.push(redraw);
         let mut published = Vec::new();
         let _ = ui.update(
-            &[redraw],
+            &events,
             cursor,
             &mut self.renderer,
             &mut iced::advanced::clipboard::Null,
