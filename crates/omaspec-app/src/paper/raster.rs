@@ -292,7 +292,7 @@ pub fn ask_halves(
 /// The color of the paper `pixmap` is drawn on (opaque, on white): the one
 /// most of the pixels along its sides have. One corner alone may lie on a
 /// frame's line, a rounded ground's corner or a title's rule.
-fn paper_of(pixmap: &export::tiny_skia::Pixmap) -> Color {
+pub(super) fn paper_of(pixmap: &export::tiny_skia::Pixmap) -> Color {
     /// How many pixels are looked at along each side.
     const ALONG: u32 = 24;
     let (w, h) = (pixmap.width(), pixmap.height());
@@ -353,10 +353,19 @@ fn upload(raster: Raster) -> Task<Option<Raster>> {
     })
 }
 
+/// How long the raster before stays under a new one ([`Layer::under`]).
+const UNDER: Duration = Duration::from_millis(400);
+
 /// One layer: the raster on screen and the newest request for it.
 #[derive(Default)]
 pub struct Layer {
     pub shown: Option<Raster>,
+    /// The raster shown before the one on screen, and since when it is
+    /// not: drawn under the new one for a moment ([`Self::under`]).
+    before: Option<(Raster, iced::time::Instant)>,
+    /// The diagram changed since the raster on screen was asked for: the
+    /// next one is another picture and takes nothing under it.
+    changed: bool,
     /// What the newest request asks for.
     pub asked: Option<Plan>,
     /// Numbers the requests; one that is no longer the newest gives up.
@@ -396,6 +405,9 @@ impl Layer {
         done: fn(u64, Option<Raster>) -> Message,
         draw: impl FnOnce(Plan) -> Option<Raster> + Send + 'static,
     ) -> Task<Message> {
+        if self.under(crate::clock::now()).is_none() {
+            self.before = None;
+        }
         if plan == self.asked {
             return Task::none();
         }
@@ -403,6 +415,7 @@ impl Layer {
         let seq = self.latest.fetch_add(1, Ordering::Relaxed) + 1;
         let Some(plan) = plan else {
             self.shown = None;
+            self.before = None;
             return Task::none();
         };
         let latest = Arc::clone(&self.latest);
@@ -433,10 +446,26 @@ impl Layer {
         if let Some(raster) = raster
             && seq == self.latest.load(Ordering::Relaxed)
         {
-            self.shown = Some(raster);
+            let before = self.shown.replace(raster);
+            self.before = before
+                .filter(|_| !self.changed)
+                .map(|before| (before, crate::clock::now()));
+            self.changed = false;
             return true;
         }
         false
+    }
+
+    /// The raster shown before the one on screen, for [`UNDER`] after it
+    /// was replaced: drawn under the new one, which covers it. Sharper
+    /// pixels of the same picture come in after a zoom, and for the frame
+    /// in which they did not reach the screen yet the pane showed its
+    /// paper alone, a flicker with every zoom.
+    pub fn under(&self, now: iced::time::Instant) -> Option<&Raster> {
+        self.before
+            .as_ref()
+            .filter(|(_, since)| now.saturating_duration_since(*since) < UNDER)
+            .map(|(raster, _)| raster)
     }
 
     /// Whether `seq` is the raster asked for last.
@@ -448,6 +477,8 @@ impl Layer {
     /// diagram changed.
     pub fn forget(&mut self) {
         self.asked = None;
+        self.before = None;
+        self.changed = true;
     }
 
     /// Empties the layer; rasters still on their way are dropped.
@@ -455,6 +486,8 @@ impl Layer {
         self.latest.fetch_add(1, Ordering::Relaxed);
         self.asked = None;
         self.shown = None;
+        self.before = None;
+        self.changed = false;
     }
 
     /// The number the newest request carries.
@@ -467,6 +500,37 @@ impl Layer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Sharper pixels of the same picture come in over the ones before,
+    /// which stay under them for a moment; a new picture takes nothing
+    /// under it, and an emptied layer keeps nothing.
+    #[test]
+    fn the_raster_before_stays_under_a_new_one_of_the_same_picture() {
+        let raster = || {
+            Raster::new(
+                image::Handle::from_rgba(1, 1, vec![0, 0, 0, 255]),
+                Rectangle::with_size(SMALL),
+                Color::WHITE,
+            )
+        };
+        let now = crate::clock::now();
+        let mut layer = Layer::default();
+        let seq = layer.seq();
+        assert!(layer.receive(seq, Some(raster())));
+        assert!(layer.under(now).is_none(), "nothing was shown before");
+        assert!(layer.receive(seq, Some(raster())));
+        assert!(layer.under(now).is_some());
+        assert!(layer.under(now + UNDER * 2).is_none(), "only for a moment");
+        // The diagram changed: the next raster is another picture.
+        layer.forget();
+        assert!(layer.under(now).is_none());
+        assert!(layer.receive(seq, Some(raster())));
+        assert!(layer.under(now).is_none());
+        assert!(layer.receive(seq, Some(raster())));
+        assert!(layer.under(now).is_some());
+        layer.clear();
+        assert!(layer.under(now).is_none() && layer.shown.is_none());
+    }
 
     /// The paper's color is the one most of the picture's sides have: a
     /// frame's line in a corner, or along one side, does not give its own.

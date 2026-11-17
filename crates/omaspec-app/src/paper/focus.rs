@@ -378,6 +378,10 @@ impl Paper {
 /// focus (`over: true`).
 pub struct FocusLayer<'a> {
     pub lit: Lit,
+    /// The picture stands where the map has it. While it glides or fades
+    /// in, the veil alone is drawn: the boxes and lines in focus would
+    /// stand at their new places beside the ones on their way.
+    pub still: bool,
     pub diagram: Size,
     pub overview: &'a Raster,
     pub view: View,
@@ -467,6 +471,22 @@ impl canvas::Program<Message> for FocusLayer<'_> {
                     None => Glow::of(spot, &viewer).trace(builder, 0.5 + more),
                 }
             };
+        if !self.still {
+            if !self.over {
+                let ground = Color {
+                    a: 1.0,
+                    ..self.overview.paper
+                };
+                fill_paper_holed(
+                    &mut frame,
+                    paper,
+                    grid.scale,
+                    with_alpha(ground, VEIL),
+                    |_| {},
+                );
+            }
+            return vec![frame.into_geometry()];
+        }
         if self.over {
             // The light on the box in focus, around its own shape and
             // not on it: rings between the shape and the shape grown, the

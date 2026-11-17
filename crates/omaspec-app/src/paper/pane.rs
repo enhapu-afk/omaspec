@@ -88,6 +88,10 @@ impl Paper {
                 diagram: self.diagram.as_ref().map(|d| d.size),
                 overview: self.overview.shown.as_ref(),
                 detail: self.detail.shown.as_ref(),
+                under: [
+                    self.overview.under(crate::clock::now()),
+                    self.detail.under(crate::clock::now()),
+                ],
                 fade: self.arrival.fade(),
                 previous: held,
                 view: self.view,
@@ -174,6 +178,9 @@ impl Paper {
                 let layer = |over: bool| -> Element<'_, Message> {
                     Canvas::new(Timed::new(focus::FocusLayer {
                         lit: lit.clone(),
+                        // While a new picture glides or fades in, its
+                        // boxes are not where the map has them yet.
+                        still: self.arrival.fade().is_none() && held.is_none(),
                         diagram: diagram.size,
                         overview,
                         view: self.view,

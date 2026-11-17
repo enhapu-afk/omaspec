@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use iced::widget::image;
-use iced::{Color, Point, Rectangle, Size};
+use iced::{Point, Rectangle, Size};
 use omaspec_render::export::{self, tiny_skia::IntRect, usvg};
 use omaspec_render::pick;
 
@@ -315,9 +315,9 @@ pub fn sheet(ground: &usvg::Tree, full: &usvg::Tree, plan: Plan) -> Option<Raste
             },
         );
     }
-    let paper = base.pixel(0, 0).map_or(Color::WHITE, |p| {
-        Color::from_rgb8(p.red(), p.green(), p.blue())
-    });
+    // As the picture's own overview tells it, so the sheet under a glide
+    // has the color the paper has before and after.
+    let paper = super::raster::paper_of(&base);
     // The screen takes colors as they are, not multiplied by how much is
     // seen of them: the parts' blurred edges are.
     let (width, height) = (pixmap.width(), pixmap.height());

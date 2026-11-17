@@ -54,6 +54,9 @@ pub struct DiagramCanvas<'a> {
     /// The whole diagram, and when zoomed in far, the visible part sharp.
     pub overview: Option<&'a Raster>,
     pub detail: Option<&'a Raster>,
+    /// The overview and the detail shown just before these, drawn under
+    /// them for a moment ([`super::raster::Layer::under`]).
+    pub under: [Option<&'a Raster>; 2],
     /// The pictures before, while the new one fades in over them.
     pub fade: Option<&'a Fade>,
     /// The pictures still on screen, where they were drawn, until the new
@@ -154,7 +157,7 @@ impl DiagramCanvas<'_> {
             .fade
             .map_or(1.0, |fade| fade.shown.interpolate(0.0, 1.0, now));
         let at = |opacity: f32| -> Vec<(&Raster, f32)> {
-            [Some(overview), self.detail]
+            [self.under[0], Some(overview), self.under[1], self.detail]
                 .into_iter()
                 .flatten()
                 .map(|raster| (raster, opacity))

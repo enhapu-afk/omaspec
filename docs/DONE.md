@@ -2675,6 +2675,18 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       steps of one color on whole pixels of the screen, for the same
       reason as the veil's edge.
 
+- [x] No flicker when sharper pixels come in after a zoom (2026-11-17):
+      the raster shown before stays under the new one for 400 ms
+      (`raster::Layer::under`), where the tester's recording showed the
+      paper alone for one frame as overview and detail were replaced.
+      Only for the same picture: a new diagram takes nothing under it.
+      Not reproduced without a window; found frame by frame in the
+      recording.
+- [x] The focus while a picture glides or fades in (2026-11-17): the
+      veil alone is drawn. The boxes and lines in focus stood at their
+      new places at once, beside the ones still on their way, so a fold
+      showed them twice.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 - [x] The engine and the binary type-check for Windows (2026-11-08): `cargo check
