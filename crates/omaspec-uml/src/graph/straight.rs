@@ -35,6 +35,19 @@ const CORNER: f32 = 8.0;
 const ROOM: f32 = 10.0;
 /// Its label keeps this far from other words and from boxes.
 const MARGIN: f32 = 4.0;
+/// A moved run keeps this far from the label of another line, or the
+/// label's words read on into what is beside the run.
+const OFF: f32 = 6.0;
+
+/// A label with the room another line leaves around it.
+fn around(label: Rect) -> Rect {
+    Rect {
+        x: label.x - OFF,
+        y: label.y - OFF,
+        w: label.w + 2.0 * OFF,
+        h: label.h + 2.0 * OFF,
+    }
+}
 
 /// One end of a line: the box it meets, and whether lines may meet that
 /// box anywhere along a side.
@@ -65,7 +78,7 @@ pub(super) fn unjog(
                 .iter()
                 .enumerate()
                 .filter(|&(other, _)| other != index)
-                .filter_map(|(_, label)| *label)
+                .filter_map(|(_, label)| label.map(around))
                 .chain(boxes.iter().copied())
                 .collect();
             let own = |points: &[Point]| label(index, points);
@@ -212,7 +225,7 @@ pub(super) fn merge(
             .iter()
             .enumerate()
             .filter(|&(other, _)| other != index)
-            .filter_map(|(_, label)| *label)
+            .filter_map(|(_, label)| label.map(around))
             .chain(boxes.iter().copied())
             .collect();
         // The shortest step first, into a longer one beside it; each step

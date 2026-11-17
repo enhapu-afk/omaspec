@@ -1221,6 +1221,44 @@ mod tests {
         (diagram.root, scene)
     }
 
+    /// Lines side by side between two states with a label between them:
+    /// each runs straight, the box they meet is wide enough for that, and
+    /// the label keeps off the line that is not its own. `start` read on
+    /// into `cup full` before, or its neighbor bent around it just before
+    /// its arrowhead.
+    #[test]
+    fn a_label_between_two_lines_keeps_off_the_other_one() {
+        let (_, scene) = laid(
+            "@startuml\n[*] --> Ready\nReady --> Brewing : start\nBrewing --> Ready : cup full\nBrewing --> Ready : cancel\n@enduml\n",
+        );
+        let labelled: Vec<&PlacedEdge> = scene
+            .edges
+            .iter()
+            .filter(|edge| !edge.label.is_empty())
+            .collect();
+        assert_eq!(labelled.len(), 3);
+        for edge in &labelled {
+            let word = block_text(&edge.label);
+            let x = edge.points[0].0;
+            assert!(
+                edge.points.iter().all(|point| (point.0 - x).abs() < 0.1),
+                "{word} bends: {:?}",
+                edge.points
+            );
+            let (left, right) = (edge.label_at.0, edge.label_at.0 + edge.label.width);
+            for other in labelled
+                .iter()
+                .filter(|other| !std::ptr::eq(**other, *edge))
+            {
+                let line = other.points[0].0;
+                assert!(
+                    line < left - 6.0 || line > right + 6.0,
+                    "{word} at {left}..{right} lies on the line at {line}"
+                );
+            }
+        }
+    }
+
     /// Each note is drawn in a part of its own, by its state's, inside a
     /// state or at the top: a fold glides it from where it was to where
     /// it is, rather than inside the picture of the state around it, where

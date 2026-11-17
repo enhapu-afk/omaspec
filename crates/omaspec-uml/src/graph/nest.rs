@@ -480,7 +480,7 @@ pub(super) fn sort_row(
 fn gap(slots: &[Slot], a: usize, b: usize, border: bool) -> f32 {
     let anchored = slots[a].anchor.is_some() || slots[b].anchor.is_some();
     if !border && slots[a].meets.is_some() && slots[a].meets == slots[b].meets {
-        0.0
+        super::together(slots, a, b)
     } else if !border && (anchored || slots[a].real.is_none() && slots[b].real.is_none()) {
         DUMMY_GAP
     } else {

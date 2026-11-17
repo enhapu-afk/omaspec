@@ -1,104 +1,104 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="540" height="1167" viewBox="0 0 540 1167">
+<svg xmlns="http://www.w3.org/2000/svg" width="556" height="1147" viewBox="0 0 556 1147">
 <g transform="translate(83.02,10)">
 <g>
-<ellipse cx="298.45" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="256.83" y="54" width="83.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="36.67" y="152.26" width="238.45" height="301.82" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
-<line x1="36.67" y1="187.56" x2="275.12" y2="187.56" fill="none" stroke="#181818" stroke-width="1"/>
-<ellipse cx="157.9" cy="206.56" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="116.67" y="263.53" width="82.46" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="48.67" y="341.79" width="105.77" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="201.67" y="341.79" width="61.45" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<ellipse cx="101.55" cy="429.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
-<ellipse cx="101.55" cy="429.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="0" y="486.09" width="446.05" height="659.94" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
+<ellipse cx="315.95" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="274.34" y="54" width="83.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="54.17" y="152.26" width="238.45" height="301.82" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
+<line x1="54.17" y1="187.56" x2="292.62" y2="187.56" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="175.4" cy="206.56" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="134.17" y="263.53" width="82.46" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="66.17" y="341.79" width="105.77" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="219.18" y="341.79" width="61.45" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="119.06" cy="429.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="119.06" cy="429.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="486.09" width="446.05" height="639.94" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
 <line x1="0" y1="521.38" x2="446.05" y2="521.38" fill="none" stroke="#181818" stroke-width="1"/>
 <ellipse cx="165.97" cy="540.38" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="139.91" y="597.35" width="52.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="12" y="721.62" width="155.53" height="412.42" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
-<line x1="12" y1="756.91" x2="167.53" y2="756.91" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="12" y1="943.47" x2="167.53" y2="943.47" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
-<ellipse cx="110.02" cy="775.91" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="64.52" y="818.91" width="91.01" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="68.41" y="897.18" width="83.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<ellipse cx="87.36" cy="968.47" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="45.75" y="1011.47" width="83.22" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="44.19" y="1089.74" width="86.34" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="211.53" y="911.68" width="101.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<ellipse cx="332.12" cy="429.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
-<ellipse cx="332.12" cy="429.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="108.3" y="597.35" width="115.35" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="12" y="701.62" width="155.53" height="412.42" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
+<line x1="12" y1="736.91" x2="167.53" y2="736.91" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="12" y1="923.47" x2="167.53" y2="923.47" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="5,4"/>
+<ellipse cx="110.02" cy="755.91" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="64.52" y="798.91" width="91.01" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="68.41" y="877.18" width="83.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="87.36" cy="948.47" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="45.75" y="991.47" width="83.22" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="44.19" y="1069.74" width="86.34" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="211.53" y="891.68" width="101.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="349.62" cy="429.09" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="349.62" cy="429.09" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g id="lines">
-<polyline points="298.45,22 298.45,44" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M268.83,86.3 L268.83,87.44 C268.83,93.43 263.97,98.3 257.97,98.3 L257.97,98.3 C251.97,98.3 247.11,103.16 247.11,109.16 L247.11,142.26" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="227.48,454.09 227.48,476.09" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M389.12,486.09 L389.12,128.82 C389.12,111.96 375.45,98.3 358.59,98.3 L330.06,98.3 C328.96,98.3 328.06,97.4 328.06,96.3 L328.06,96.3" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M68.41,907.18 L36,907.18 C9.49,907.18 -12,885.69 -12,859.18 L-12,514.09 C-12,487.58 9.49,466.09 36,466.09 L163.67,466.09 C190.18,466.09 211.67,444.6 211.67,418.09 L211.67,384.09" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M300.65,911.68 L300.65,699.75 C300.65,695.26 304.29,691.62 308.79,691.62 L308.79,691.62 C313.28,691.62 316.92,687.97 316.92,683.48 L316.92,436.99 C316.92,414.4 298.61,396.09 276.02,396.09 L247.12,396.09 C240.49,396.09 235.12,390.72 235.12,384.09 L235.12,384.09" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M241.75,341.79 L241.75,251.1 C241.75,239.2 251.39,229.56 263.29,229.56 L263.29,229.56 C275.19,229.56 284.83,219.92 284.83,208.02 L284.83,96.3" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M251.12,374.09 L251.12,374.09 C251.12,380.72 256.49,386.09 263.12,386.09 L312.12,386.09 C323.16,386.09 332.12,395.04 332.12,406.09 L332.12,406.09" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="157.9,217.56 157.9,253.53" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="128.67,295.82 128.67,331.79" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M187.13,295.82 L187.13,295.82 C187.13,302.45 192.5,307.82 199.13,307.82 L206.44,307.82 C217.1,307.82 225.75,316.47 225.75,327.14 L225.75,331.79" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="101.55,374.09 101.55,406.09" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="315.95,22 315.95,44" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M286.34,86.3 L286.34,87.44 C286.34,93.43 281.48,98.3 275.48,98.3 L275.48,98.3 C269.48,98.3 264.62,103.16 264.62,109.16 L264.62,142.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="244.99,454.09 244.99,476.09" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M406.62,486.09 L406.62,128.82 C406.62,111.96 392.96,98.3 376.1,98.3 L347.57,98.3 C346.46,98.3 345.57,97.4 345.57,96.3 L345.57,96.3" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M68.41,887.18 L36,887.18 C9.49,887.18 -12,865.69 -12,839.18 L-12,514.09 C-12,487.58 9.49,466.09 36,466.09 L181.18,466.09 C207.69,466.09 229.18,444.6 229.18,418.09 L229.18,384.09" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M300.65,891.68 L300.65,420.1 C300.65,406.84 289.9,396.09 276.64,396.09 L264.62,396.09 C258,396.09 252.62,390.72 252.62,384.09 L252.62,384.09" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M259.26,341.79 L259.26,251.1 C259.26,239.2 268.9,229.56 280.8,229.56 L280.8,229.56 C292.69,229.56 302.34,219.92 302.34,208.02 L302.34,96.3" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M268.62,374.09 L268.62,374.09 C268.62,380.72 274,386.09 280.62,386.09 L329.62,386.09 C340.67,386.09 349.62,395.04 349.62,406.09 L349.62,406.09" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="175.4,217.56 175.4,253.53" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="146.17,295.82 146.17,331.79" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M204.63,295.82 L204.63,295.82 C204.63,302.45 210.01,307.82 216.63,307.82 L223.94,307.82 C234.61,307.82 243.26,316.47 243.26,327.14 L243.26,331.79" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="119.06,374.09 119.06,406.09" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="165.97,551.38 165.97,587.35" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M151.91,629.65 L151.91,685.43 C151.91,688.84 149.14,691.62 145.72,691.62 L145.72,691.62 C142.3,691.62 139.53,694.39 139.53,697.81 L139.53,711.62" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="157.91,721.62 157.91,639.65" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M170.66,629.65 L170.66,632.54 C170.66,643.09 179.22,651.65 189.77,651.65 L189.77,651.65 C200.33,651.65 208.88,660.2 208.88,670.76 L208.88,684.29 C208.88,688.34 212.16,691.62 216.21,691.62 L216.21,691.62 C220.25,691.62 223.53,694.89 223.53,698.94 L223.53,901.68" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M272.23,911.68 L272.23,687.75 C272.23,662.29 251.59,641.65 226.13,641.65 L182.03,641.65 C180.93,641.65 180.03,640.75 180.03,639.65 L180.03,639.65" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="110.02,786.91 110.02,808.91" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="102.02,851.21 102.02,887.18" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="118.02,897.18 118.02,861.21" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="87.36,979.47 87.36,1001.47" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="79.36,1043.77 79.36,1079.74" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="95.36,1089.74 95.36,1053.77" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="294.45,44 298.45,54 302.45,44 298.45,48" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="243.11,142.26 247.11,152.26 251.11,142.26 247.11,146.26" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="223.48,476.09 227.48,486.09 231.48,476.09 227.48,480.09" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="332.06,96.3 328.06,86.3 324.06,96.3 328.06,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="215.67,384.09 211.67,374.09 207.67,384.09 211.67,380.09" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="239.12,384.09 235.12,374.09 231.12,384.09 235.12,380.09" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="288.83,96.3 284.83,86.3 280.83,96.3 284.83,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="328.12,406.09 332.12,416.09 336.12,406.09 332.12,410.09" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="153.9,253.53 157.9,263.53 161.9,253.53 157.9,257.53" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="124.67,331.79 128.67,341.79 132.67,331.79 128.67,335.79" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="221.75,331.79 225.75,341.79 229.75,331.79 225.75,335.79" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="97.55,406.09 101.55,416.09 105.55,406.09 101.55,410.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="120.3,629.65 120.3,691.62" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="128.3,701.62 128.3,639.65" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M152.3,629.65 L152.3,629.65 C152.3,641.8 162.15,651.65 174.3,651.65 L187.91,651.65 C207.59,651.65 223.53,667.59 223.53,687.26 L223.53,881.68" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M282.88,891.68 L282.88,677.26 C282.88,657.59 266.93,641.65 247.26,641.65 L213.65,641.65 C212.54,641.65 211.65,640.75 211.65,639.65 L211.65,639.65" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="110.02,766.91 110.02,788.91" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="102.02,831.21 102.02,867.18" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="118.02,877.18 118.02,841.21" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="87.36,959.47 87.36,981.47" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="79.36,1023.77 79.36,1059.74" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="95.36,1069.74 95.36,1033.77" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="311.95,44 315.95,54 319.95,44 315.95,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="260.62,142.26 264.62,152.26 268.62,142.26 264.62,146.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="240.99,476.09 244.99,486.09 248.99,476.09 244.99,480.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="349.57,96.3 345.57,86.3 341.57,96.3 345.57,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="233.18,384.09 229.18,374.09 225.18,384.09 229.18,380.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="256.62,384.09 252.62,374.09 248.62,384.09 252.62,380.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="306.34,96.3 302.34,86.3 298.34,96.3 302.34,92.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="345.62,406.09 349.62,416.09 353.62,406.09 349.62,410.09" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="171.4,253.53 175.4,263.53 179.4,253.53 175.4,257.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="142.17,331.79 146.17,341.79 150.17,331.79 146.17,335.79" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="239.26,331.79 243.26,341.79 247.26,331.79 243.26,335.79" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="115.06,406.09 119.06,416.09 123.06,406.09 119.06,410.09" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="161.97,587.35 165.97,597.35 169.97,587.35 165.97,591.35" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="135.53,711.62 139.53,721.62 143.53,711.62 139.53,715.62" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="161.91,639.65 157.91,629.65 153.91,639.65 157.91,635.65" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="219.53,901.68 223.53,911.68 227.53,901.68 223.53,905.68" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="184.03,639.65 180.03,629.65 176.03,639.65 180.03,635.65" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="106.02,808.91 110.02,818.91 114.02,808.91 110.02,812.91" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="98.02,887.18 102.02,897.18 106.02,887.18 102.02,891.18" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="122.02,861.21 118.02,851.21 114.02,861.21 118.02,857.21" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="83.36,1001.47 87.36,1011.47 91.36,1001.47 87.36,1005.47" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="75.36,1079.74 79.36,1089.74 83.36,1079.74 79.36,1083.74" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="99.36,1053.77 95.36,1043.77 91.36,1053.77 95.36,1049.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="116.3,691.62 120.3,701.62 124.3,691.62 120.3,695.62" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="132.3,639.65 128.3,629.65 124.3,639.65 128.3,635.65" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="219.53,881.68 223.53,891.68 227.53,881.68 223.53,885.68" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="215.65,639.65 211.65,629.65 207.65,639.65 211.65,635.65" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="106.02,788.91 110.02,798.91 114.02,788.91 110.02,792.91" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="98.02,867.18 102.02,877.18 106.02,867.18 102.02,871.18" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="122.02,841.21 118.02,831.21 114.02,841.21 118.02,837.21" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="83.36,981.47 87.36,991.47 91.36,981.47 87.36,985.47" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="75.36,1059.74 79.36,1069.74 83.36,1059.74 79.36,1063.74" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="99.36,1033.77 95.36,1023.77 91.36,1033.77 95.36,1029.77" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<path d="M322.65,911.68 L322.65,938.81 L434.05,938.81 L434.05,921.68 L424.05,911.68 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
-<path d="M424.05,911.68 L424.05,921.68 L434.05,921.68" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M322.65,891.68 L322.65,918.81 L434.05,918.81 L434.05,901.68 L424.05,891.68 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M424.05,891.68 L424.05,901.68 L434.05,901.68" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="270.83" y="74.99" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Standby</tspan>
+<tspan x="288.34" y="74.99" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Standby</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="129.45" y="173.26" font-size="14" fill="#000000" font-weight="bold" textLength="52.88" lengthAdjust="spacing">Booting</tspan>
+<tspan x="146.96" y="173.26" font-size="14" fill="#000000" font-weight="bold" textLength="52.88" lengthAdjust="spacing">Booting</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="130.67" y="284.52" font-size="14" fill="#000000" font-weight="bold" textLength="54.46" lengthAdjust="spacing">SelfTest</tspan>
+<tspan x="148.17" y="284.52" font-size="14" fill="#000000" font-weight="bold" textLength="54.46" lengthAdjust="spacing">SelfTest</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="62.67" y="362.78" font-size="14" fill="#000000" font-weight="bold" textLength="77.77" lengthAdjust="spacing">LoadConfig</tspan>
+<tspan x="80.17" y="362.78" font-size="14" fill="#000000" font-weight="bold" textLength="77.77" lengthAdjust="spacing">LoadConfig</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="215.67" y="362.78" font-size="14" fill="#000000" font-weight="bold" textLength="33.45" lengthAdjust="spacing">Fault</tspan>
+<tspan x="233.18" y="362.78" font-size="14" fill="#000000" font-weight="bold" textLength="33.45" lengthAdjust="spacing">Fault</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="83.98" y="322.96" font-size="12" fill="#000000" textLength="38.69" lengthAdjust="spacing">passed</tspan>
+<tspan x="101.48" y="322.96" font-size="12" fill="#000000" textLength="38.69" lengthAdjust="spacing">passed</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="191.07" y="325.31" font-size="12" fill="#000000" textLength="28.68" lengthAdjust="spacing">failed</tspan>
+<tspan x="208.58" y="325.31" font-size="12" fill="#000000" textLength="28.68" lengthAdjust="spacing">failed</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
 <tspan x="184.12" y="507.08" font-size="14" fill="#000000" font-weight="bold" textLength="77.8" lengthAdjust="spacing">Operational</tspan>
@@ -107,64 +107,64 @@
 <tspan x="153.91" y="618.34" font-size="14" fill="#000000" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="54.76" y="742.61" font-size="14" fill="#000000" font-weight="bold" textLength="70.01" lengthAdjust="spacing">Measuring</tspan>
+<tspan x="54.76" y="722.61" font-size="14" fill="#000000" font-weight="bold" textLength="70.01" lengthAdjust="spacing">Measuring</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="78.52" y="839.9" font-size="14" fill="#000000" font-weight="bold" textLength="63.01" lengthAdjust="spacing">Sampling</tspan>
+<tspan x="78.52" y="819.9" font-size="14" fill="#000000" font-weight="bold" textLength="63.01" lengthAdjust="spacing">Sampling</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="82.41" y="918.17" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Filtering</tspan>
+<tspan x="82.41" y="898.17" font-size="14" fill="#000000" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Filtering</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="24" y="878.34" font-size="12" fill="#000000" textLength="72.02" lengthAdjust="spacing">sample ready</tspan>
+<tspan x="24" y="858.34" font-size="12" fill="#000000" textLength="72.02" lengthAdjust="spacing">sample ready</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="124.02" y="878.34" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">next</tspan>
+<tspan x="124.02" y="858.34" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">next</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="59.75" y="1032.46" font-size="14" fill="#000000" font-weight="bold" textLength="55.22" lengthAdjust="spacing">Logging</tspan>
+<tspan x="59.75" y="1012.46" font-size="14" fill="#000000" font-weight="bold" textLength="55.22" lengthAdjust="spacing">Logging</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="58.19" y="1110.73" font-size="14" fill="#000000" font-weight="bold" textLength="58.34" lengthAdjust="spacing">Flushing</tspan>
+<tspan x="58.19" y="1090.73" font-size="14" fill="#000000" font-weight="bold" textLength="58.34" lengthAdjust="spacing">Flushing</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="24" y="1070.9" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">buffer full</tspan>
+<tspan x="24" y="1050.9" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">buffer full</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="101.36" y="1070.9" font-size="12" fill="#000000" textLength="38.69" lengthAdjust="spacing">flushed</tspan>
+<tspan x="101.36" y="1050.9" font-size="12" fill="#000000" textLength="38.69" lengthAdjust="spacing">flushed</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="225.53" y="932.67" font-size="14" fill="#000000" font-weight="bold" textLength="73.12" lengthAdjust="spacing">Calibrating</tspan>
+<tspan x="225.53" y="912.67" font-size="14" fill="#000000" font-weight="bold" textLength="73.12" lengthAdjust="spacing">Calibrating</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="122.57" y="676.78" font-size="12" fill="#000000" textLength="23.34" lengthAdjust="spacing">start</tspan>
+<tspan x="90.96" y="666.78" font-size="12" fill="#000000" textLength="23.34" lengthAdjust="spacing">start</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="163.91" y="676.78" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
+<tspan x="134.3" y="666.78" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="214.88" y="676.78" font-size="12" fill="#000000" textLength="45.35" lengthAdjust="spacing">calibrate</tspan>
+<tspan x="229.53" y="666.78" font-size="12" fill="#000000" textLength="45.35" lengthAdjust="spacing">calibrate</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="278.23" y="676.78" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
+<tspan x="253.19" y="729.14" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="328.65" y="929.74" font-size="13" fill="#000000" textLength="95.39" lengthAdjust="spacing">takes about 30 s</tspan>
+<tspan x="328.65" y="909.74" font-size="13" fill="#000000" textLength="95.39" lengthAdjust="spacing">takes about 30 s</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="191.76" y="123.43" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">power on</tspan>
+<tspan x="209.26" y="123.43" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">power on</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="395.12" y="322.96" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">power off</tspan>
+<tspan x="412.62" y="322.96" font-size="12" fill="#000000" textLength="49.36" lengthAdjust="spacing">power off</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="-73.02" y="580.51" font-size="12" fill="#000000" textLength="58.02" lengthAdjust="spacing">sensor lost</tspan>
+<tspan x="-73.02" y="557.97" font-size="12" fill="#000000" textLength="58.02" lengthAdjust="spacing">sensor lost</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="322.92" y="578.52" font-size="12" fill="#000000" textLength="64.04" lengthAdjust="spacing">out of range</tspan>
+<tspan x="306.65" y="578.52" font-size="12" fill="#000000" textLength="64.04" lengthAdjust="spacing">out of range</tspan>
 </text>
 <text font-family="Arial, Liberation Sans, Arimo, Helvetica, sans-serif" xml:space="preserve">
-<tspan x="247.75" y="248.44" font-size="12" fill="#000000" textLength="26.68" lengthAdjust="spacing">reset</tspan>
+<tspan x="265.26" y="248.44" font-size="12" fill="#000000" textLength="26.68" lengthAdjust="spacing">reset</tspan>
 </text>
 </g>
 </g>

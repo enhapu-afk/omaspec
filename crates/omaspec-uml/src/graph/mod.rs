@@ -509,6 +509,7 @@ fn in_ranks(
         .collect();
     doubled::order_ranks(&mut rows, &mut slots, framing, &holds);
     let flips = doubled::label_sides(&mut slots, &rows, &chains, &labels, edges, direction);
+    room_for_labels(nodes, &mut slots, &rows, &chains, edges, &labels);
     match &mut tree {
         Some(tree) => {
             // A frame too narrow for the lines to pass its name grows, once.
@@ -1581,11 +1582,30 @@ fn row_width(slots: &[Slot], row: &[usize]) -> f32 {
     width
 }
 
+/// Between a label and the line beside it that is not its own, where two
+/// lines run together.
+const LABEL_CLEAR: f32 = 8.0;
+
+/// Between two neighbors of a rank whose lines run together into a box
+/// met in the middle: nothing, but where a label lies between the two
+/// lines, what keeps it off the one that is not its own. Without it the
+/// label's words read on into the next label's.
+fn together(slots: &[Slot], a: usize, b: usize) -> f32 {
+    let (a, b) = (&slots[a], &slots[b]);
+    let after_a = a.real.is_none() && a.pack_cross > 0.0 && a.before == 0.0;
+    let before_b = b.real.is_none() && b.before > 0.0;
+    if after_a || before_b {
+        LABEL_CLEAR
+    } else {
+        0.0
+    }
+}
+
 /// Between two neighbors of a rank: less between two lines passing by,
 /// none between two that run together into a box met in the middle.
 fn gap(slots: &[Slot], a: usize, b: usize) -> f32 {
     if slots[a].meets.is_some() && slots[a].meets == slots[b].meets {
-        0.0
+        together(slots, a, b)
     } else if slots[a].real.is_none() && slots[b].real.is_none() {
         DUMMY_GAP
     } else {
@@ -1793,6 +1813,7 @@ fn ports(
                 .then(a.0.cmp(&b.0))
         });
     }
+    let between = |first, second| label_between(slots, chains, labels, first, second);
     // How far apart neighbors on each side keep. On a circle or a
     // diamond, lines to other boxes meet in the middle unless lines side by
     // side would cross them.
@@ -1805,7 +1826,11 @@ fn ports(
                 let paired = side.windows(2).any(|lines| lines[0].2 == lines[1].2);
                 side.windows(2)
                     .map(|lines| match (flat, lines[0].2 == lines[1].2) {
-                        (true, _) | (false, true) => PORT_STEP,
+                        // Side by side between the same two boxes, with a
+                        // label between them: its room, so both run
+                        // straight past it.
+                        (_, true) => PORT_STEP.max(between(lines[0].0, lines[1].0)),
+                        (true, false) => PORT_STEP,
                         (false, false) if paired => PORT_STEP / 2.0,
                         (false, false) => 0.0,
                     })
@@ -1879,6 +1904,94 @@ fn ports(
         }
     }
     ports
+}
+
+/// The room of the labels that lie between two lines side by side, the
+/// line `first` before the line `second` across the flow, with what keeps
+/// each off the line that is not its own; nothing where no label lies
+/// between them.
+fn label_between(
+    slots: &[Slot],
+    chains: &[Vec<usize>],
+    labels: &[Option<usize>],
+    first: usize,
+    second: usize,
+) -> f32 {
+    let point = |index: usize| labels[index].map(|at| &slots[chains[index][at]]);
+    let after = point(first)
+        .filter(|slot| slot.before == 0.0)
+        .map_or(0.0, |slot| slot.pack_cross);
+    let before = point(second).map_or(0.0, |slot| slot.before);
+    if after + before > 0.0 {
+        after + before + LABEL_CLEAR
+    } else {
+        0.0
+    }
+}
+
+/// Widens each box with flat sides to what the lines on one side of it
+/// need, where labels lie between lines that run side by side to the same
+/// box: [`PORT_STEP`] between two lines, the label's room where one lies
+/// between them, and the corners. A box too narrow for that would squeeze
+/// its lines together, and a line would bend around the label just before
+/// its arrowhead. Once the ranks are ordered and the labels have their
+/// sides, before anything is placed.
+fn room_for_labels(
+    nodes: &[Node],
+    slots: &mut [Slot],
+    rows: &[Vec<usize>],
+    chains: &[Vec<usize>],
+    edges: &[Edge],
+    labels: &[Option<usize>],
+) {
+    let mut place = vec![0; slots.len()];
+    for row in rows {
+        for (at, &slot) in row.iter().enumerate() {
+            place[slot] = at;
+        }
+    }
+    // At each slot, the lines leaving it and those arriving: the line,
+    // where its next point lies in its rank, and the box at its other end.
+    let mut sides: Vec<[Vec<(usize, usize, usize)>; 2]> =
+        (0..slots.len()).map(|_| Default::default()).collect();
+    for (index, chain) in chains.iter().enumerate() {
+        if chain.len() < 3 || edges[index].hidden {
+            continue;
+        }
+        let last = chain.len() - 1;
+        sides[chain[0]][0].push((index, place[chain[1]], chain[last]));
+        sides[chain[last]][1].push((index, place[chain[last - 1]], chain[0]));
+    }
+    for (slot, pair) in sides.iter_mut().enumerate() {
+        if !slots[slot].real.is_some_and(|real| nodes[real].flat) {
+            continue;
+        }
+        let mut need: f32 = 0.0;
+        for side in pair {
+            side.sort_by_key(|&(index, at, _)| (at, index));
+            let mut labelled = false;
+            let steps: f32 = side
+                .windows(2)
+                .map(|lines| {
+                    let room = if lines[0].2 == lines[1].2 {
+                        label_between(slots, chains, labels, lines[0].0, lines[1].0)
+                    } else {
+                        0.0
+                    };
+                    labelled |= room > 0.0;
+                    PORT_STEP.max(room)
+                })
+                .sum();
+            if labelled {
+                need = need.max(steps + 2.0 * PORT_CORNER);
+            }
+        }
+        let more = need - slots[slot].box_cross;
+        if more > 0.0 {
+            slots[slot].box_cross += more;
+            slots[slot].pack_cross += more;
+        }
+    }
 }
 
 /// Offsets from `-half` to `half` for lines along a side, in the order
