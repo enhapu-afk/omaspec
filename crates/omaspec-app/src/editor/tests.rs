@@ -2861,6 +2861,16 @@ fn a_container_folds_from_the_caret_and_unfolds_with_a_click() {
     act(&mut app, Action::PlaceCaret(u32::try_from(at).unwrap()));
     press(&mut app, Command::FoldBox);
     assert_eq!(app.doc().paper.folded(), ["Brewing"]);
+    // The menus say what the command does now.
+    let words = |app: &App, command: Command| {
+        let entry = table::TABLE.iter().find(|e| e.command == command).unwrap();
+        app.menu_words(entry)
+    };
+    assert_eq!(
+        words(&app, Command::FoldBox),
+        "Fold or unfold this container"
+    );
+    assert_eq!(words(&app, Command::FocusBox), "Focus on this box");
     assert_eq!(app.notice.as_deref(), Some("Brewing folded"));
     show_folded(&mut app, BREWER, &["Brewing"]);
     // Drawn as a box: its states are gone, a line to one ends on it.

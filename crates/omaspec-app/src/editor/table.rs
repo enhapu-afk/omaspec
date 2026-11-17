@@ -324,7 +324,7 @@ pub const TABLE: &[Entry] = &[
     )
     .menu(Diagram)
     .gap()
-    .short("Focus on this box, or end it")
+    .short("Focus on this box")
     .at(Spot::Both),
     cmd(
         "Fold the container at the caret to its box, or unfold it",
@@ -332,7 +332,7 @@ pub const TABLE: &[Entry] = &[
         Command::FoldBox,
     )
     .menu(Diagram)
-    .short("Fold this container, or unfold it")
+    .short("Fold this container")
     .at(Spot::Both),
     cmd(
         "Label of the line at the caret to the other side",

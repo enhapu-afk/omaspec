@@ -478,6 +478,21 @@ impl App {
         col.into()
     }
 
+    /// What a menu says for `entry`. A command that turns something on
+    /// and off again says what it does now, not both: *End the focus*
+    /// while a box is in focus, not *Focus on this box, or end it*.
+    pub(super) fn menu_words(&self, entry: &Entry) -> &'static str {
+        let paper = &self.doc().paper;
+        match entry.command {
+            Command::FocusBox if paper.focused().is_some() => "End the focus",
+            Command::FocusBox => "Focus on this box",
+            Command::FoldBox if paper.folded().is_empty() => "Fold this container",
+            Command::FoldBox => "Fold or unfold this container",
+            Command::Detach if self.detached.is_some() => "Diagram back into this window",
+            _ => entry.menu_label(),
+        }
+    }
+
     /// An entry's label, and its keys at the right.
     fn entry_line<'a>(&'a self, entry: &Entry, chosen: bool) -> Element<'a, Message> {
         let p = &self.palette;
@@ -487,7 +502,7 @@ impl App {
             p.foreground
         };
         let mut parts: Vec<Element<'a, Message>> = vec![
-            container(self.label(entry.menu_label(), ink))
+            container(self.label(self.menu_words(entry), ink))
                 .width(Length::Fill)
                 .clip(true)
                 .into(),
