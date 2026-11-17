@@ -1524,22 +1524,26 @@ impl App {
             None => count,
         };
         let replace: Element<'_, Message> = match &picker.replace {
+            // The arrow stands where the field above has its glass: what
+            // is typed here is what the hits turn into, not one of them.
             Some(with) => ui::pill(
-                self.field(
-                    text_input("replace with", with)
-                        .id(REPLACE)
-                        .on_input(Message::ReplaceInput)
-                        .on_submit(Message::ReplaceSubmit),
-                ),
+                row![
+                    container(self.label("→", quiet))
+                        .width(icons::SIZE)
+                        .align_x(Alignment::Center),
+                    self.field(
+                        text_input("replace with", with)
+                            .id(REPLACE)
+                            .on_input(Message::ReplaceInput)
+                            .on_submit(Message::ReplaceSubmit),
+                    ),
+                ]
+                .spacing(8)
+                .align_y(Alignment::Center),
                 Some(lighter),
                 None,
             )
-            .padding(Padding {
-                top: 3.0,
-                right: 12.0,
-                bottom: 3.0,
-                left: 12.0 + icons::SIZE + 8.0,
-            })
+            .padding([3, 12])
             .into(),
             None => column![].into(),
         };
