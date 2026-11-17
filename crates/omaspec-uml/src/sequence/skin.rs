@@ -87,7 +87,7 @@ impl Default for Skin {
             font: Font::new(14.0, black),
         };
         Skin {
-            font_name: "sans-serif".into(),
+            font_name: crate::FACE.into(),
             monochrome: false,
             sketch: false,
             shadow: false,

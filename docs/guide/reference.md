@@ -125,13 +125,16 @@ and CI alike. The file and the source stored in an image stay as written.
 [look]
 pack = "light"        # plain, spec, presentation, sketch, vivid, light, dark, or auto (light, and dark under a dark scheme)
 accent = "#d73a49"    # with light or dark: background, surface, text, accent, muted, note
-font = "Inter"        # skinparam defaultFontName, Mermaid's fontFamily
+font = "Lato"         # skinparam defaultFontName, Mermaid's fontFamily; Inter without it
 ```
 
 A line that does not hold is named. `omarchy` is refused there, as it differs from
 machine to machine; `render --look` still takes it, and `--look file` the file's own
-colors. An SVG is laid out the same on every machine (text is measured on built-in
-metrics); a PNG depends on the fonts installed. The layout keeps improving, so an update
+colors. A diagram is set in Inter, which ships with Omaspec, unless it names another
+font: a picture is the same on every machine, and an exported SVG or presentation
+carries the cuts of Inter it uses (16 KB each), so a browser without Inter shows it as
+drawn. With a font of your own, an SVG is still laid out the same everywhere (text is
+measured on built-in metrics), and a PNG depends on the fonts installed. The layout keeps improving, so an update
 may draw a project otherwise: `omaspec render --check .` draws every diagram and holds it
 against the SVG beside it, writing nothing, and names what changed: the diagram changed
 since its SVG was drawn, or the same diagram drawn differently (its size, words new or
@@ -227,7 +230,7 @@ way both languages already ask for it. Every line, border and fill is drawn by h
 little bowed, and a card that had no border gains a light rim. A label's ground and a
 highlight stay straight, so they still cover what is under them. A fill that only sits
 inside another shape stays straight as well. The words are set in a handwriting
-face, still measured as the plain font, so a box stays the size it was. The hand
+face, still measured as the font it replaces, so a box stays the size it was. The hand
 is steady: a box takes its strokes
 from its name, so the same file draws the same picture every time, and a box keeps its
 strokes when the layout moves it.

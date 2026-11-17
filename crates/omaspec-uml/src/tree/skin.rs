@@ -249,7 +249,7 @@ impl Skin {
             TreeKind::Wbs => (12.0, 0.0, 15.0, 1.5),
         };
         Skin {
-            font_name: "sans-serif".into(),
+            font_name: crate::FACE.into(),
             monochrome: false,
             sketch: false,
             shadow: false,

@@ -118,7 +118,7 @@ pub struct Look {
 impl Default for Look {
     fn default() -> Self {
         Self {
-            font_name: "sans-serif".into(),
+            font_name: crate::FACE.into(),
             sketch: false,
             label_size: 14.0,
             title_size: 20.0,

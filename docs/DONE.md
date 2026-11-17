@@ -2575,6 +2575,19 @@ is open and the reasoning around it.
       is a white card in a dark window only where *Diagram in Omarchy's
       colors* is turned off or the file has a skin, which is on by
       default and the writer's choice.
+- [x] A face of its own for the diagrams (2026-11-17,
+      [0032](adr/0032-a-face-of-its-own.md)): a diagram that names no
+      font is set in Inter 4.1, which ships with the program in four cuts
+      (regular, bold, italic, bold italic; subsets, 0.6 MB in all), and
+      is measured on Inter's widths (`Family::Inter`, `metrics.rs`). The
+      cuts are loaded before the system's fonts, so the pane, a PNG and a
+      PDF are the same on every machine. An exported SVG and a
+      presentation carry the cuts their words use as `@font-face`s (21 KB
+      each), and name the sans-serif's faces behind Inter, which are
+      narrower. Without Inter's contextual alternates: `->` stays as
+      written. `sans-serif` and any named font are as before; so are the
+      pictures mmdr and the Java PlantUML draw, which measure in the
+      fonts installed. The plain look no longer names `sans-serif`.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 

@@ -94,7 +94,7 @@ impl Look {
                 Font::new(FONT, Color::BLACK),
             ],
             sketch: false,
-            font_name: "sans-serif".to_owned(),
+            font_name: crate::FACE.to_owned(),
         };
         for p in params {
             match normalize_key(&p.key).as_str() {
@@ -863,7 +863,7 @@ mod tests {
             assert!(svg.contains(words), "{words}: {svg}");
         }
         assert!(svg.contains("fill=\"#F1F1F1\""));
-        assert!(svg.contains(&format!("font-family=\"{}\"", crate::SANS_FACES)));
+        assert!(svg.contains(&format!("font-family=\"{}\"", crate::INTER_FACES)));
         assert!(svg.contains("stroke-dasharray=\"3,3\""), "{svg}");
         assert!(!svg.contains(">0</tspan>"), "an array has no index");
         // The array's card stands to the right of the table, apart.
@@ -1063,7 +1063,7 @@ title People
         assert!(svg.contains("fill=\"#F1F1F1\""));
         assert!(svg.contains("fill=\"#FFFFFF\""));
         assert!(svg.contains("font-size=\"14\""));
-        assert!(svg.contains(&format!("font-family=\"{}\"", crate::SANS_FACES)));
+        assert!(svg.contains(&format!("font-family=\"{}\"", crate::INTER_FACES)));
         assert!(!svg.contains("Times"));
     }
 

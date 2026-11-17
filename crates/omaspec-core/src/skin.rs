@@ -413,7 +413,6 @@ fn plantuml(pack: Pack, c: &Colors, font: Option<&str>) -> String {
             let mut lines = vec![
                 "skinparam monochrome true".into(),
                 "skinparam shadowing false".into(),
-                "skinparam defaultFontName sans-serif".into(),
             ];
             lines.extend(painted(&PLAIN));
             lines

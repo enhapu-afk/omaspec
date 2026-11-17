@@ -1588,7 +1588,7 @@ fn a_project_s_look_draws_its_diagrams_unless_another_is_asked_for() {
         .unwrap()
         .to_ascii_lowercase();
     assert!(svg.contains("#16181d") && svg.contains("#d73a49"), "{svg}");
-    assert!(svg.contains(r#"font-family="inter""#), "{svg}");
+    assert!(svg.contains(r#"font-family="inter, arial, "#), "{svg}");
     // The file and the source stored in the picture stay as written.
     assert_eq!(fs::read_to_string(&door).unwrap(), text);
     assert_eq!(

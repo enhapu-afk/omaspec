@@ -1,11 +1,27 @@
+This file covers the two faces in this folder.
+
+Excalifont
+----------
+
 Copyright (c) 2024 by Excalidraw. All rights reserved.
 
 Excalifont is a trademark of Excalidraw.
 Designed by Your Own Font Foundry (Virgil) and Ján Filípek / DizajnDesign
 (Excalifont, modifications of Virgil). https://dizajndesign.sk
 
-This file is the Latin subset of Excalifont Regular (U+0020-007E, Latin-1
-and the punctuation of that subset).
+Excalifont-Regular here is the Latin subset of Excalifont Regular
+(U+0020-007E, Latin-1 and the punctuation of that subset).
+
+Inter
+-----
+
+Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
+
+Inter-Regular, -Bold, -Italic and -BoldItalic here are subsets of the
+static faces of Inter 4.1, without hinting and with the layout features
+kern, mark, mkmk, ccmp and locl only. The .ttf files have Latin up to
+Extended-B, Greek, Cyrillic, punctuation, arrows and signs; the .woff2
+files Latin up to Extended-A and the common punctuation and arrows.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

@@ -1,40 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="345" height="149" viewBox="0 0 345 149">
+<svg xmlns="http://www.w3.org/2000/svg" width="355" height="149" viewBox="0 0 355 149">
 <g transform="translate(10,10)">
 <g>
-<rect x="132.7" y="100.26" width="59.78" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
-<rect x="0" y="0" width="84.68" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
-<rect x="128.68" y="0" width="68.35" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
-<rect x="241.03" y="0" width="83.14" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="137.15" y="100.26" width="61.97" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="0" width="88.55" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="132.55" y="0" width="71.85" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="248.41" y="0" width="86.5" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
 </g>
 <g id="lines">
-<path d="M72.68,28.3 L72.68,28.3 C72.68,34.92 78.05,40.3 84.68,40.3 L106.88,40.3 C125.76,40.3 141.08,55.61 141.08,74.5 L141.08,90.26" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="153.08,28.3 153.08,90.26" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M253.03,28.3 L253.03,33.99 C253.03,54.03 236.79,70.26 216.76,70.26 L200.49,70.26 C189.44,70.26 180.49,79.22 180.49,90.26 L180.49,90.26" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="137.08,90.26 141.08,100.26 145.08,90.26 141.08,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="149.08,90.26 153.08,100.26 157.08,90.26 153.08,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="176.49,90.26 180.49,100.26 184.49,90.26 180.49,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M76.55,28.3 L76.55,28.3 C76.55,34.92 81.93,40.3 88.55,40.3 L111.12,40.3 C130.2,40.3 145.68,55.77 145.68,74.86 L145.68,90.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="157.68,28.3 157.68,90.26" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M260.41,28.3 L260.41,33.62 C260.41,53.86 244,70.26 223.76,70.26 L207.12,70.26 C196.08,70.26 187.12,79.22 187.12,90.26 L187.12,90.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="141.68,90.26 145.68,100.26 149.68,90.26 145.68,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="153.68,90.26 157.68,100.26 161.68,90.26 157.68,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="183.12,90.26 187.12,100.26 191.12,90.26 187.12,94.76" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="144.7" y="119.26" font-size="14" fill="#000000" textLength="35.78" lengthAdjust="spacing">Order</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="149.15" y="119.26" font-size="14" fill="#000000" textLength="37.97" lengthAdjust="spacing">Order</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="12" y="18.99" font-size="14" fill="#000000" textLength="60.68" lengthAdjust="spacing">Customer</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="12" y="18.99" font-size="14" fill="#000000" textLength="64.55" lengthAdjust="spacing">Customer</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="140.68" y="18.99" font-size="14" fill="#000000" textLength="44.35" lengthAdjust="spacing">Invoice</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="144.55" y="18.99" font-size="14" fill="#000000" textLength="47.85" lengthAdjust="spacing">Invoice</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="253.03" y="18.99" font-size="14" fill="#000000" textLength="59.14" lengthAdjust="spacing">Shipment</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="260.41" y="18.99" font-size="14" fill="#000000" textLength="62.5" lengthAdjust="spacing">Shipment</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="100.4" y="67.83" font-size="12" fill="#000000" textLength="34.68" lengthAdjust="spacing">places</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="102.5" y="68.09" font-size="12" fill="#000000" textLength="37.18" lengthAdjust="spacing">places</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="159.08" y="55.43" font-size="12" fill="#000000" textLength="20.66" lengthAdjust="spacing">bills</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="163.68" y="55.43" font-size="12" fill="#000000" textLength="22.39" lengthAdjust="spacing">bills</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="259.03" y="55.43" font-size="12" fill="#000000" textLength="41.34" lengthAdjust="spacing">delivers</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="266.41" y="55.43" font-size="12" fill="#000000" textLength="44.74" lengthAdjust="spacing">delivers</tspan>
 </text>
 </g>
 </g>

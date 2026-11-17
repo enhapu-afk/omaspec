@@ -1,66 +1,66 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="159" height="516" viewBox="0 0 159 516">
-<rect x="0" y="0" width="159" height="516" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="163" height="516" viewBox="0 0 163 516">
+<rect x="0" y="0" width="163" height="516" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
-<ellipse cx="69.17" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
-<rect x="38.83" y="54" width="60.66" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="0" y="134.59" width="138.33" height="222.18" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
-<line x1="0" y1="169.89" x2="138.33" y2="169.89" fill="none" stroke="#94A3B8" stroke-width="1"/>
-<ellipse cx="69.55" cy="188.89" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
-<rect x="27.94" y="231.89" width="83.23" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="12.78" y="312.48" width="113.55" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="30.27" y="405.07" width="77.78" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<ellipse cx="69.17" cy="482.37" rx="13" ry="13" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
-<ellipse cx="69.17" cy="482.37" rx="5.46" ry="5.46" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+<ellipse cx="71.27" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+<rect x="39.95" y="54" width="62.64" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="0" y="134.59" width="142.54" height="222.18" rx="8" ry="8" fill="#FDFEFE" stroke="#94A3B8" stroke-width="1"/>
+<line x1="0" y1="169.89" x2="142.54" y2="169.89" fill="none" stroke="#94A3B8" stroke-width="1"/>
+<ellipse cx="72.51" cy="188.89" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+<rect x="30.58" y="231.89" width="83.86" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="14.48" y="312.48" width="116.06" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="30.72" y="405.07" width="81.1" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<ellipse cx="71.27" cy="482.37" rx="13" ry="13" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<ellipse cx="71.27" cy="482.37" rx="5.46" ry="5.46" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
 </g>
 <g id="lines">
-<polyline points="69.17,22 69.17,44" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="61.17,86.3 61.17,124.59" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="77.17,134.59 77.17,96.3" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="69.17,356.78 69.17,395.07" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="69.17,437.37 69.17,459.37" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="69.55,199.89 69.55,221.89" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="61.55,264.18 61.55,302.48" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="77.55,312.48 77.55,274.18" fill="none" stroke="#64748B" stroke-width="1"/>
-<polygon points="65.17,44 69.17,54 73.17,44 69.17,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="57.17,124.59 61.17,134.59 65.17,124.59 61.17,128.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="81.17,96.3 77.17,86.3 73.17,96.3 77.17,92.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="65.17,395.07 69.17,405.07 73.17,395.07 69.17,399.07" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="65.17,459.37 69.17,469.37 73.17,459.37 69.17,463.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="65.55,221.89 69.55,231.89 73.55,221.89 69.55,225.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="57.55,302.48 61.55,312.48 65.55,302.48 61.55,306.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="81.55,274.18 77.55,264.18 73.55,274.18 77.55,270.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polyline points="71.27,22 71.27,44" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="63.27,86.3 63.27,124.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="79.27,134.59 79.27,96.3" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="71.27,356.78 71.27,395.07" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="71.27,437.37 71.27,459.37" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="72.51,199.89 72.51,221.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="64.51,264.18 64.51,302.48" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="80.51,312.48 80.51,274.18" fill="none" stroke="#64748B" stroke-width="1"/>
+<polygon points="67.27,44 71.27,54 75.27,44 71.27,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="59.27,124.59 63.27,134.59 67.27,124.59 63.27,128.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="83.27,96.3 79.27,86.3 75.27,96.3 79.27,92.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="67.27,395.07 71.27,405.07 75.27,395.07 71.27,399.07" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="67.27,459.37 71.27,469.37 75.27,459.37 71.27,463.37" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="68.51,221.89 72.51,231.89 76.51,221.89 72.51,225.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="60.51,302.48 64.51,312.48 68.51,302.48 64.51,306.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="84.51,274.18 80.51,264.18 76.51,274.18 80.51,270.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 <g>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="52.83" y="74.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="32.66" lengthAdjust="spacing">Draft</tspan>
+<tspan x="53.95" y="74.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="34.64" lengthAdjust="spacing">Draft</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="45.04" y="155.58" font-size="14" fill="#0F172A" font-weight="bold" textLength="48.24" lengthAdjust="spacing">Review</tspan>
+<tspan x="46.28" y="155.58" font-size="14" fill="#0F172A" font-weight="bold" textLength="49.98" lengthAdjust="spacing">Review</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="41.94" y="252.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="55.23" lengthAdjust="spacing">Reading</tspan>
+<tspan x="44.58" y="252.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="55.86" lengthAdjust="spacing">Reading</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="26.78" y="333.47" font-size="14" fill="#0F172A" font-weight="bold" textLength="85.55" lengthAdjust="spacing">Commenting</tspan>
+<tspan x="28.48" y="333.47" font-size="14" fill="#0F172A" font-weight="bold" textLength="88.06" lengthAdjust="spacing">Commenting</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="12" y="293.18" font-size="14" fill="#0F172A" textLength="43.55" lengthAdjust="spacing">remark</tspan>
+<tspan x="12" y="293.18" font-size="14" fill="#0F172A" textLength="46.51" lengthAdjust="spacing">remark</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="83.55" y="293.18" font-size="14" fill="#0F172A" textLength="26.46" lengthAdjust="spacing">next</tspan>
+<tspan x="86.51" y="293.18" font-size="14" fill="#0F172A" textLength="28.66" lengthAdjust="spacing">next</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="44.27" y="426.06" font-size="14" fill="#0F172A" font-weight="bold" textLength="49.78" lengthAdjust="spacing">Merged</tspan>
+<tspan x="44.72" y="426.06" font-size="14" fill="#0F172A" font-weight="bold" textLength="53.1" lengthAdjust="spacing">Merged</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="13.94" y="115.29" font-size="14" fill="#0F172A" textLength="41.23" lengthAdjust="spacing">submit</tspan>
+<tspan x="12.8" y="115.29" font-size="14" fill="#0F172A" textLength="44.46" lengthAdjust="spacing">submit</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="83.17" y="115.29" font-size="14" fill="#0F172A" textLength="52.92" lengthAdjust="spacing">changes</tspan>
+<tspan x="85.27" y="115.29" font-size="14" fill="#0F172A" textLength="56.55" lengthAdjust="spacing">changes</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="75.17" y="385.77" font-size="14" fill="#0F172A" textLength="50.58" lengthAdjust="spacing">approve</tspan>
+<tspan x="77.27" y="385.77" font-size="14" fill="#0F172A" textLength="54.7" lengthAdjust="spacing">approve</tspan>
 </text>
 </g>
 </g>

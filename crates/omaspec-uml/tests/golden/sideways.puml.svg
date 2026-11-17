@@ -1,48 +1,48 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="371" height="102" viewBox="0 0 371 102">
+<svg xmlns="http://www.w3.org/2000/svg" width="377" height="102" viewBox="0 0 377 102">
 <g transform="translate(10,12.84)">
 <g>
 <ellipse cx="11" cy="52.26" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="54" y="36.12" width="52.12" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="164.81" y="36.12" width="62.23" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="287.05" y="36.12" width="63" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="54" y="36.12" width="52.89" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="167.52" y="36.12" width="62.26" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="292.55" y="36.12" width="63.76" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g id="lines">
 <polyline points="22,52.26 44,52.26" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="106.12,44.26 154.81,44.26" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="164.81,60.26 116.12,60.26" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="227.04,52.26 277.05,52.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="106.89,44.26 157.52,44.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="167.52,60.26 116.89,60.26" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="229.78,52.26 282.55,52.26" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="44,56.26 54,52.26 44,48.26 48,52.26" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="154.81,48.26 164.81,44.26 154.81,40.26 158.81,44.26" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="116.12,56.26 106.12,60.26 116.12,64.26 112.12,60.26" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="277.05,56.26 287.05,52.26 277.05,48.26 281.05,52.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="157.52,48.26 167.52,44.26 157.52,40.26 161.52,44.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="116.89,56.26 106.89,60.26 116.89,64.26 112.89,60.26" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="282.55,56.26 292.55,52.26 282.55,48.26 286.55,52.26" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<line x1="237.04" y1="24.3" x2="227.04" y2="36.12" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="4,3"/>
-<path d="M237.04,-2.84 L237.04,24.3 L300.71,24.3 L300.71,7.16 L290.71,-2.84 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
-<path d="M290.71,-2.84 L290.71,7.16 L300.71,7.16" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="68" y="57.11" font-size="14" fill="#000000" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
+<line x1="239.78" y1="24.3" x2="229.78" y2="36.12" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="4,3"/>
+<path d="M239.78,-2.84 L239.78,24.3 L307.92,24.3 L307.92,7.16 L297.92,-2.84 Z" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<path d="M297.92,-2.84 L297.92,7.16 L307.92,7.16" fill="#FEFFDD" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="68" y="57.11" font-size="14" fill="#000000" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="178.81" y="57.11" font-size="14" fill="#000000" font-weight="bold" textLength="34.23" lengthAdjust="spacing">Busy</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="181.52" y="57.11" font-size="14" fill="#000000" font-weight="bold" textLength="34.26" lengthAdjust="spacing">Busy</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="301.05" y="57.11" font-size="14" fill="#000000" font-weight="bold" textLength="35" lengthAdjust="spacing">Done</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="306.55" y="57.11" font-size="14" fill="#000000" font-weight="bold" textLength="35.76" lengthAdjust="spacing">Done</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="128.79" y="37.43" font-size="12" fill="#000000" textLength="13.34" lengthAdjust="spacing">go</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="129.93" y="37.43" font-size="12" fill="#000000" textLength="14.56" lengthAdjust="spacing">go</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="122.12" y="75.4" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">done</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="122.89" y="75.4" font-size="12" fill="#000000" textLength="28.63" lengthAdjust="spacing">done</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="243.04" y="45.43" font-size="12" fill="#000000" textLength="28.01" lengthAdjust="spacing">finish</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="245.78" y="45.43" font-size="12" fill="#000000" textLength="30.77" lengthAdjust="spacing">finish</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="243.04" y="15.23" font-size="13" fill="#000000" textLength="47.67" lengthAdjust="spacing">still right</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="245.78" y="15.23" font-size="13" fill="#000000" textLength="52.14" lengthAdjust="spacing">still right</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="143.12" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="63.81" lengthAdjust="spacing">Sideways</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="144.94" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="66.43" lengthAdjust="spacing">Sideways</tspan>
 </text>
 </g>
 </g>

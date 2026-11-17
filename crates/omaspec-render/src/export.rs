@@ -170,8 +170,8 @@ impl fmt::Display for ExportError {
 
 impl std::error::Error for ExportError {}
 
-/// `svg`, sanitized, with `options.links` laid over it and the handwriting
-/// face embedded when its words ask for it, and the whole sanitized once
+/// `svg`, sanitized, with `options.links` laid over it and the faces of
+/// ours its words are set in embedded ([`crate::fonts::embed`]), and the whole sanitized once
 /// more with links that may go up to the project. Every exported SVG is
 /// this; only the embedded source is written after it.
 fn linked(svg: &str, options: &Options) -> Result<String, ExportError> {
@@ -252,8 +252,9 @@ pub fn export(svg: &str, format: Format, options: &Options) -> Result<Vec<u8>, E
 /// System fonts, loaded once (about 150 ms) and shared by every export.
 static SVG_OPTIONS: LazyLock<usvg::Options<'static>> = LazyLock::new(|| {
     let mut fonts = usvg::fontdb::Database::new();
-    fonts.load_system_fonts();
+    // Ours first: an Inter installed here does not draw in their place.
     crate::fonts::load(&mut fonts);
+    fonts.load_system_fonts();
     generic_families(&mut fonts);
     usvg::Options {
         fontdb: Arc::new(fonts),

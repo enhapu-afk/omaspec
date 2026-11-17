@@ -270,7 +270,7 @@ fn baseline(svg: &str, word: &str) -> f32 {
 
 #[test]
 fn the_font_list_keeps_a_family_that_is_installed() {
-    // mmdr asks for Inter first; on most systems the list's sans-serif draws.
+    // mmdr asks for Inter first, which ships with Omaspec.
     let list =
         super::font_name("Inter, ui-sans-serif, \"Segoe UI\", \"Liberation Sans\", sans-serif")
             .unwrap();

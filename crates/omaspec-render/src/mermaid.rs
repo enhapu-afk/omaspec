@@ -232,10 +232,11 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
                 declined: None,
             });
         }
-        let mut layout = compute_layout(&parsed.graph, &options.theme, &options.layout);
+        let theme = without_our_face(&options.theme);
+        let mut layout = compute_layout(&parsed.graph, &theme, &options.layout);
         repair::repair(&mut layout);
         Ok(Drawn {
-            svg: render_svg(&layout, &options.theme, &options.layout),
+            svg: render_svg(&layout, &theme, &options.layout),
             map: Map::default(),
             declined: Some(declined_by(parsed.graph.kind, body, source, offset)),
         })
@@ -515,6 +516,29 @@ fn font_name(family: &str) -> Option<String> {
         return None;
     }
     Some(names.join(", "))
+}
+
+/// `theme` for a picture mmdr draws: its faces without Inter. mmdr
+/// measures words in the fonts installed, which rarely have an Inter, and
+/// the one shipped with the program would draw them wider than measured.
+fn without_our_face(theme: &Theme) -> Theme {
+    let others: Vec<&str> = theme
+        .font_family
+        .split(',')
+        .map(str::trim)
+        .filter(|name| {
+            !name
+                .trim_matches(['"', '\''])
+                .eq_ignore_ascii_case(crate::fonts::FACE)
+        })
+        .collect();
+    let mut theme = theme.clone();
+    theme.font_family = if others.is_empty() {
+        "sans-serif".to_owned()
+    } else {
+        others.join(", ")
+    };
+    theme
 }
 
 /// `skinparam handwritten true` for a drawer that reads skinparams, when

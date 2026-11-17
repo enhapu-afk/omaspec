@@ -38,7 +38,7 @@ impl Default for Skin {
         let black = Color::BLACK;
         let gray = Color::hex(0x888888);
         Skin {
-            font_name: "sans-serif".into(),
+            font_name: crate::FACE.into(),
             monochrome: false,
             sketch: false,
             shadow: false,

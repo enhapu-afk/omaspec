@@ -41,7 +41,9 @@ A native engine also gives:
   built-in advance widths of the Liberation fonts, which share Arial's and
   Times' metrics (and are `sans-serif` and `serif` on Omarchy). Every run of
   text carries its measured `textLength`, so the layout holds with another
-  font too, as PlantUML's own SVGs do.
+  font too, as PlantUML's own SVGs do. (Since
+  [0032](0032-a-face-of-its-own.md) a diagram that names no font is
+  measured and drawn in Inter, whose widths are built in the same way.)
 - **Skinparams decline too.** One that would change the diagram but is not
   drawn yet declines it like an unknown construct; those for other diagram
   types are ignored. Mind maps and WBS diagrams take their look from

@@ -1,73 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="762" height="262" viewBox="0 0 762 262">
+<svg xmlns="http://www.w3.org/2000/svg" width="792" height="262" viewBox="0 0 792 262">
 <g transform="translate(10,10)">
 <g id="lines">
-<path d="M497.65,82.59 L507.65,82.59 C522.65,82.59 522.65,54.44 537.65,54.44 L547.65,54.44" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M497.65,82.59 L507.65,82.59 C522.65,82.59 522.65,110.74 537.65,110.74 L547.65,110.74" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M391.08,138.89 L401.08,138.89 C416.08,138.89 416.08,82.59 431.08,82.59 L441.08,82.59" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M520.98,195.18 L530.98,195.18 C545.98,195.18 545.98,167.04 560.98,167.04 L570.98,167.04" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M520.98,195.18 L530.98,195.18 C545.98,195.18 545.98,223.33 560.98,223.33 L570.98,223.33" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M391.08,138.89 L401.08,138.89 C416.08,138.89 416.08,195.18 431.08,195.18 L441.08,195.18" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M391.08,138.89 L401.08,138.89 C416.08,138.89 416.08,232.48 431.08,232.48 L441.08,232.48" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M190.61,110.74 L180.61,110.74 C165.61,110.74 165.61,82.59 150.61,82.59 L140.61,82.59" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M190.61,110.74 L180.61,110.74 C165.61,110.74 165.61,138.89 150.61,138.89 L140.61,138.89" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M292.5,138.89 L282.5,138.89 C267.5,138.89 267.5,110.74 252.5,110.74 L242.5,110.74" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M157.14,195.18 L147.14,195.18 C132.14,195.18 132.14,195.18 117.14,195.18 L107.14,195.18" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M292.5,138.89 L282.5,138.89 C267.5,138.89 267.5,195.18 252.5,195.18 L242.5,195.18" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M515.95,82.59 L525.95,82.59 C540.95,82.59 540.95,54.44 555.95,54.44 L565.95,54.44" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M515.95,82.59 L525.95,82.59 C540.95,82.59 540.95,110.74 555.95,110.74 L565.95,110.74" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M407.34,138.89 L417.34,138.89 C432.34,138.89 432.34,82.59 447.34,82.59 L457.34,82.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M540.07,195.18 L550.07,195.18 C565.07,195.18 565.07,167.04 580.07,167.04 L590.07,167.04" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M540.07,195.18 L550.07,195.18 C565.07,195.18 565.07,223.33 580.07,223.33 L590.07,223.33" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M407.34,138.89 L417.34,138.89 C432.34,138.89 432.34,195.18 447.34,195.18 L457.34,195.18" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M407.34,138.89 L417.34,138.89 C432.34,138.89 432.34,232.48 447.34,232.48 L457.34,232.48" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M200.19,110.74 L190.19,110.74 C175.19,110.74 175.19,82.59 160.19,82.59 L150.19,82.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M200.19,110.74 L190.19,110.74 C175.19,110.74 175.19,138.89 160.19,138.89 L150.19,138.89" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M304.08,138.89 L294.08,138.89 C279.08,138.89 279.08,110.74 264.08,110.74 L254.08,110.74" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M164.89,195.18 L154.89,195.18 C139.89,195.18 139.89,195.18 124.89,195.18 L114.89,195.18" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M304.08,138.89 L294.08,138.89 C279.08,138.89 279.08,195.18 264.08,195.18 L254.08,195.18" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<rect x="292.5" y="120.74" width="98.58" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="302.5" y="143.73" font-size="14" fill="#000000" textLength="78.58" lengthAdjust="spacing">Next release</tspan>
+<rect x="304.08" y="120.74" width="103.26" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="314.08" y="143.73" font-size="14" fill="#000000" textLength="83.26" lengthAdjust="spacing">Next release</tspan>
 </text>
-<rect x="441.08" y="64.44" width="56.57" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="451.08" y="87.44" font-size="14" fill="#000000" textLength="36.57" lengthAdjust="spacing">Editor</tspan>
+<rect x="457.34" y="64.44" width="58.61" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="467.34" y="87.44" font-size="14" fill="#000000" textLength="38.61" lengthAdjust="spacing">Editor</tspan>
 </text>
-<rect x="547.65" y="36.3" width="74.47" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="557.65" y="59.29" font-size="14" fill="#000000" textLength="54.47" lengthAdjust="spacing">Snippets</tspan>
+<rect x="565.95" y="36.3" width="77.92" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="575.95" y="59.29" font-size="14" fill="#000000" textLength="57.92" lengthAdjust="spacing">Snippets</tspan>
 </text>
-<rect x="547.65" y="92.59" width="110.26" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="557.65" y="115.58" font-size="14" fill="#000000" textLength="90.26" lengthAdjust="spacing">Find in all tabs</tspan>
+<rect x="565.95" y="92.59" width="115" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="575.95" y="115.58" font-size="14" fill="#000000" textLength="95" lengthAdjust="spacing">Find in all tabs</tspan>
 </text>
-<rect x="441.08" y="177.04" width="79.89" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="451.08" y="200.03" font-size="14" fill="#000000" textLength="59.89" lengthAdjust="spacing">Diagrams</tspan>
+<rect x="457.34" y="177.04" width="82.73" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="467.34" y="200.03" font-size="14" fill="#000000" textLength="62.73" lengthAdjust="spacing">Diagrams</tspan>
 </text>
-<rect x="570.98" y="148.89" width="170.16" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="580.98" y="171.88" font-size="14" fill="#000000" textLength="150.16" lengthAdjust="spacing">Mind maps without Java</tspan>
+<rect x="590.07" y="148.89" width="181.31" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="600.07" y="171.88" font-size="14" fill="#000000" textLength="161.31" lengthAdjust="spacing">Mind maps without Java</tspan>
 </text>
-<rect x="570.98" y="205.18" width="133.6" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="580.98" y="228.18" font-size="14" fill="#000000" textLength="113.6" lengthAdjust="spacing">WBS without Java</tspan>
+<rect x="590.07" y="205.18" width="140.34" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="600.07" y="228.18" font-size="14" fill="#000000" textLength="120.34" lengthAdjust="spacing">WBS without Java</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="444.08" y="237.32" font-size="14" fill="#000000" textLength="73.14" lengthAdjust="spacing">Maybe later</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="460.34" y="237.32" font-size="14" fill="#000000" textLength="78.3" lengthAdjust="spacing">Maybe later</tspan>
 </text>
-<rect x="190.61" y="92.59" width="51.89" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="200.61" y="115.58" font-size="14" fill="#000000" textLength="31.89" lengthAdjust="spacing">Docs</tspan>
+<rect x="200.19" y="92.59" width="53.89" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="210.19" y="115.58" font-size="14" fill="#000000" textLength="33.89" lengthAdjust="spacing">Docs</tspan>
 </text>
-<rect x="5.43" y="64.44" width="135.18" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="15.43" y="87.44" font-size="14" fill="#000000" textLength="115.18" lengthAdjust="spacing">A tour of the editor</tspan>
+<rect x="5.32" y="64.44" width="144.87" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="15.32" y="87.44" font-size="14" fill="#000000" textLength="124.87" lengthAdjust="spacing">A tour of the editor</tspan>
 </text>
-<rect x="0" y="120.74" width="140.61" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="10" y="143.73" font-size="14" fill="#000000" textLength="120.61" lengthAdjust="spacing">Keyboard shortcuts</tspan>
+<rect x="0" y="120.74" width="150.19" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="10" y="143.73" font-size="14" fill="#000000" textLength="130.19" lengthAdjust="spacing">Keyboard shortcuts</tspan>
 </text>
-<rect x="157.14" y="177.04" width="85.37" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="167.14" y="200.03" font-size="14" fill="#000000" textLength="65.37" lengthAdjust="spacing">Packaging</tspan>
+<rect x="164.89" y="177.04" width="89.19" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="174.89" y="200.03" font-size="14" fill="#000000" textLength="69.19" lengthAdjust="spacing">Packaging</tspan>
 </text>
-<rect x="41.23" y="177.04" width="65.91" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="51.23" y="200.03" font-size="14" fill="#000000" textLength="45.91" lengthAdjust="spacing">Flatpak</tspan>
+<rect x="46.68" y="177.04" width="68.22" height="36.3" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="56.68" y="200.03" font-size="14" fill="#000000" textLength="48.22" lengthAdjust="spacing">Flatpak</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="286.54" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="168.07" lengthAdjust="spacing">Ideas for the next release</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="299.09" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="173.19" lengthAdjust="spacing">Ideas for the next release</tspan>
 </text>
 </g>
 </g>

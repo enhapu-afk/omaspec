@@ -517,9 +517,9 @@ enum Command {
         min_font: Option<f32>,
         /// An SVG whose words are outlines, drawn here in the faces they
         /// were measured in: any viewer shows them inside their boxes,
-        /// also one without Arial or Liberation Sans that does not stretch
-        /// words to their length (cairosvg, rsvg-convert on a bare
-        /// system). The words can no longer be selected or searched, and
+        /// also one that takes no face from the picture, has none as wide
+        /// and does not stretch words to their length (cairosvg,
+        /// rsvg-convert on a bare system). The words can no longer be selected or searched, and
         /// links are no longer links.
         #[arg(long)]
         text_as_paths: bool,

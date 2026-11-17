@@ -527,7 +527,7 @@ impl Look {
         let mut page: Paint = None;
         let mut ink = black;
         let mut size = 14.0;
-        let mut font_name = "sans-serif".to_owned();
+        let mut font_name = crate::FACE.to_owned();
         let mut sketch = false;
         let mut round = 4.0;
         // What a style or a skinparam of the network diagram says.

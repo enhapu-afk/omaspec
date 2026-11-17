@@ -193,4 +193,7 @@ Independent JPEG Group's software. The words of a sketch are set in
 [Excalifont](https://plus.excalidraw.com/excalifont), copyright 2024 Excalidraw, built
 into the binary as its Latin subset under the SIL Open Font License 1.1
 ([OFL.txt](crates/omaspec-render/fonts/OFL.txt)); Excalifont is a trademark of
-Excalidraw. A diagram drawn or exported with it is not bound by that license.
+Excalidraw. The words of every other diagram are set in
+[Inter](https://rsms.me/inter/), copyright 2016 The Inter Project Authors, built in as
+subsets of four cuts under the same license (the same file). A diagram drawn or
+exported with either is not bound by that license.

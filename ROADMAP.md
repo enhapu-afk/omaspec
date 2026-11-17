@@ -648,10 +648,10 @@ applies, the field that replaces, round areas, a play's next steps, the
 sidebar's heading, a block left open, a menu's marks, the editor's scroll
 bar) is in docs/DONE.md.
 
-- [ ] A face of its own for the diagrams: the window is set in a modern
-      monospace, the diagrams in bold Liberation Sans. A bundled face
-      changes every diagram and every golden SVG, and the list of faces an
-      SVG names (REQ-068) has to follow; waits for a decision.
+- [ ] An SVG carries only the letters of Inter it uses: a subset made
+      for each picture is a few KB where the fixed one is 21 KB a cut
+      ([0032](docs/adr/0032-a-face-of-its-own.md)). Needs a subsetter
+      that writes a face a browser accepts.
 - [ ] In a real window, which the snapshots do not show: whether the
       comparison's pictures take the pane's width and B the colors of A;
       and the focus on a box, a frame and a glow in the snapshots, where

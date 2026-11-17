@@ -578,7 +578,7 @@ impl Look {
         let mut page: Paint = None;
         let mut ink = Color::BLACK;
         let mut size = 13.0;
-        let mut font_name = "sans-serif".to_owned();
+        let mut font_name = crate::FACE.to_owned();
         let mut sketch = false;
         for p in params {
             match normalize_key(&p.key).as_str() {

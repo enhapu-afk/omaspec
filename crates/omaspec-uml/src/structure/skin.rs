@@ -236,7 +236,7 @@ impl Default for Skin {
             ..yellow
         };
         Skin {
-            font_name: "sans-serif".into(),
+            font_name: crate::FACE.into(),
             monochrome: false,
             sketch: false,
             shadow: false,

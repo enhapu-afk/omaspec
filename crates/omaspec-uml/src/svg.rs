@@ -44,6 +44,12 @@ pub const GRID: &str = "grid";
 /// seen as the words beside it are, against what lies under it.
 pub const ICON: &str = "icon";
 
+/// The face a diagram's words are set in unless it names another: Inter,
+/// shipped with the program (`omaspec-render/fonts`), so a picture looks
+/// the same on every machine and its words are measured in the face they
+/// are drawn in ([`crate::metrics`]).
+pub const FACE: &str = "Inter";
+
 /// The handwriting face a sketched diagram's words are set in. Measured
 /// widths stay those of the canvas font; each run is locked to its width.
 pub const HAND_FONT: &str = "Excalifont";
@@ -1347,9 +1353,13 @@ fn open_link(out: &mut String, link: &Link) {
 /// wherever one of them is installed, on Windows, macOS and nearly every
 /// Linux desktop (REQ-068). Arial comes first for the viewers that take
 /// only the first name; fontconfig gives Liberation Sans for it. A face
-/// the diagram names is written as named.
+/// the diagram names is written as named. [`FACE`] alone has the generic
+/// sans-serif's faces behind it ([`INTER_FACES`]).
 pub fn faces(font: &str) -> Cow<'_, str> {
     if !font.contains(',') {
+        if font.trim().eq_ignore_ascii_case(FACE) {
+            return Cow::Borrowed(INTER_FACES);
+        }
         return Cow::Borrowed(generic(font).unwrap_or(font));
     }
     // A list (`Inter, sans-serif`): its generic names give their faces.
@@ -1381,6 +1391,12 @@ fn generic(name: &str) -> Option<&'static str> {
 /// [`faces`] for the generic sans-serif. Omaspec's own exports look for
 /// the same faces in the same order (`omaspec_render::export`).
 pub const SANS_FACES: &str = "Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif";
+/// [`faces`] for [`FACE`]. An exported SVG carries the face
+/// (`omaspec_render::fonts`); where a viewer does not take it from there
+/// and has no Inter, the faces behind it are narrower, so the words keep
+/// to their boxes.
+pub const INTER_FACES: &str =
+    "Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif";
 /// [`faces`] for the generic serif.
 pub const SERIF_FACES: &str =
     "Times New Roman, Liberation Serif, Tinos, Times, Nimbus Roman, serif";
@@ -1665,7 +1681,10 @@ mod tests {
         }
         assert!(SANS_FACES.starts_with("Arial, Liberation Sans"));
         assert!(faces("serif").starts_with("Times New Roman, Liberation Serif"));
-        assert_eq!(faces("Inter"), "Inter");
+        assert_eq!(faces("Lato"), "Lato");
+        // The face of our own has the sans-serif's faces behind it.
+        assert_eq!(faces(FACE), INTER_FACES);
+        assert_eq!(INTER_FACES, format!("{FACE}, {SANS_FACES}"));
         assert!(faces("Monospace").starts_with("Courier New, Liberation Mono"));
         // A list keeps its faces; its generic name gives those behind it.
         assert_eq!(faces("Inter, sans-serif"), format!("Inter, {SANS_FACES}"));

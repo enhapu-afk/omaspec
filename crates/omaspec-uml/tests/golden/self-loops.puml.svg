@@ -1,69 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="279" height="366" viewBox="0 0 279 366">
+<svg xmlns="http://www.w3.org/2000/svg" width="292" height="366" viewBox="0 0 292 366">
 <g transform="translate(10,10)">
 <g>
-<ellipse cx="64.79" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
-<rect x="38.73" y="54" width="52.12" height="66" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="33.29" y="165.97" width="63" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="0" y="244.23" width="129.57" height="101.3" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
-<line x1="0" y1="279.53" x2="129.57" y2="279.53" fill="none" stroke="#181818" stroke-width="1"/>
-<rect x="12" y="287.53" width="62.23" height="46" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="65.75" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="39.31" y="54" width="52.89" height="66" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="33.88" y="165.97" width="63.76" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="244.23" width="131.51" height="101.3" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
+<line x1="0" y1="279.53" x2="131.51" y2="279.53" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="12" y="287.53" width="63.42" height="46" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 </g>
 <g id="lines">
-<polyline points="64.79,22 64.79,44" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M90.85,80 L99.85,80 C103.71,80 106.85,83.13 106.85,87 L106.85,88 C106.85,91.31 104.16,94 100.85,94 L100.85,94" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M90.85,70 L118.52,70 C127.91,70 135.52,77.61 135.52,87 L135.52,87 C135.52,96.39 127.91,104 118.52,104 L100.85,104" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M90.85,60 L203.9,60 C218.81,60 230.9,72.09 230.9,87 L230.9,87 C230.9,101.91 218.81,114 203.9,114 L100.85,114" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="64.79,120 64.79,155.97" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="64.79,198.26 64.79,234.23" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M96.29,175.12 L105.29,175.12 C109.15,175.12 112.29,178.25 112.29,182.12 L112.29,183.12 C112.29,186.43 109.6,189.12 106.29,189.12 L106.29,189.12" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M74.23,303.53 L83.23,303.53 C87.1,303.53 90.23,306.66 90.23,310.53 L90.23,311.53 C90.23,314.84 87.54,317.53 84.23,317.53 L84.23,317.53" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M74.23,293.53 L89.9,293.53 C99.29,293.53 106.9,301.14 106.9,310.53 L106.9,310.53 C106.9,319.92 99.29,327.53 89.9,327.53 L84.23,327.53" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="60.79,44 64.79,54 68.79,44 64.79,48" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="100.85,90 90.85,94 100.85,98 96.85,94" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="100.85,100 90.85,104 100.85,108 96.85,104" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="100.85,110 90.85,114 100.85,118 96.85,114" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="60.79,155.97 64.79,165.97 68.79,155.97 64.79,159.97" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="60.79,234.23 64.79,244.23 68.79,234.23 64.79,238.23" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="106.29,185.12 96.29,189.12 106.29,193.12 102.29,189.12" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="84.23,313.53 74.23,317.53 84.23,321.53 80.23,317.53" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="84.23,323.53 74.23,327.53 84.23,331.53 80.23,327.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="65.75,22 65.75,44" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M92.2,80 L101.2,80 C105.07,80 108.2,83.13 108.2,87 L108.2,88 C108.2,91.31 105.51,94 102.2,94 L102.2,94" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M92.2,70 L121.55,70 C130.94,70 138.55,77.61 138.55,87 L138.55,87 C138.55,96.39 130.94,104 121.55,104 L102.2,104" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M92.2,60 L214.25,60 C229.16,60 241.25,72.09 241.25,87 L241.25,87 C241.25,101.91 229.16,114 214.25,114 L102.2,114" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="65.75,120 65.75,155.97" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="65.75,198.26 65.75,234.23" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M97.63,175.12 L106.63,175.12 C110.5,175.12 113.63,178.25 113.63,182.12 L113.63,183.12 C113.63,186.43 110.95,189.12 107.63,189.12 L107.63,189.12" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M75.42,303.53 L84.42,303.53 C88.29,303.53 91.42,306.66 91.42,310.53 L91.42,311.53 C91.42,314.84 88.73,317.53 85.42,317.53 L85.42,317.53" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M75.42,293.53 L91.16,293.53 C100.55,293.53 108.16,301.14 108.16,310.53 L108.16,310.53 C108.16,319.92 100.55,327.53 91.16,327.53 L85.42,327.53" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="61.75,44 65.75,54 69.75,44 65.75,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="102.2,90 92.2,94 102.2,98 98.2,94" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="102.2,100 92.2,104 102.2,108 98.2,104" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="102.2,110 92.2,114 102.2,118 98.2,114" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="61.75,155.97 65.75,165.97 69.75,155.97 65.75,159.97" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="61.75,234.23 65.75,244.23 69.75,234.23 65.75,238.23" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="107.63,185.12 97.63,189.12 107.63,193.12 103.63,189.12" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="85.42,313.53 75.42,317.53 85.42,321.53 81.42,317.53" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="85.42,323.53 75.42,327.53 85.42,331.53 81.42,327.53" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="52.73" y="91.84" font-size="14" fill="#000000" font-weight="bold" textLength="24.12" lengthAdjust="spacing">Idle</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="53.31" y="91.84" font-size="14" fill="#000000" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="47.29" y="186.96" font-size="14" fill="#000000" font-weight="bold" textLength="35" lengthAdjust="spacing">Done</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="47.88" y="186.96" font-size="14" fill="#000000" font-weight="bold" textLength="35.76" lengthAdjust="spacing">Done</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="46.12" y="265.22" font-size="14" fill="#000000" font-weight="bold" textLength="37.34" lengthAdjust="spacing">Outer</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="46.41" y="265.22" font-size="14" fill="#000000" font-weight="bold" textLength="38.68" lengthAdjust="spacing">Outer</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="26" y="315.37" font-size="14" fill="#000000" font-weight="bold" textLength="34.23" lengthAdjust="spacing">Inner</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="26" y="315.37" font-size="14" fill="#000000" font-weight="bold" textLength="35.42" lengthAdjust="spacing">Inner</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="94.23" y="314.68" font-size="12" fill="#000000" textLength="6.67" lengthAdjust="spacing">a</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="95.42" y="314.68" font-size="12" fill="#000000" textLength="6.74" lengthAdjust="spacing">a</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="110.9" y="314.68" font-size="12" fill="#000000" textLength="6.67" lengthAdjust="spacing">b</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="112.16" y="314.68" font-size="12" fill="#000000" textLength="7.34" lengthAdjust="spacing">b</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="110.85" y="91.15" font-size="12" fill="#000000" textLength="18.67" lengthAdjust="spacing">poll</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="112.2" y="91.15" font-size="12" fill="#000000" textLength="20.35" lengthAdjust="spacing">poll</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="139.52" y="91.15" font-size="12" fill="#000000" textLength="85.38" lengthAdjust="spacing">heartbeat [alive]</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="142.55" y="91.15" font-size="12" fill="#000000" textLength="92.7" lengthAdjust="spacing">heartbeat [alive]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="234.9" y="91.15" font-size="12" fill="#000000" textLength="24" lengthAdjust="spacing">retry</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="245.25" y="91.15" font-size="12" fill="#000000" textLength="26.69" lengthAdjust="spacing">retry</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="70.79" y="147.14" font-size="12" fill="#000000" textLength="22.68" lengthAdjust="spacing">stop</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="71.75" y="147.14" font-size="12" fill="#000000" textLength="24.8" lengthAdjust="spacing">stop</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="70.79" y="225.4" font-size="12" fill="#000000" textLength="29.35" lengthAdjust="spacing">again</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="71.75" y="225.4" font-size="12" fill="#000000" textLength="30.84" lengthAdjust="spacing">again</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="116.29" y="186.27" font-size="12" fill="#000000" textLength="20" lengthAdjust="spacing">rest</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="117.63" y="186.27" font-size="12" fill="#000000" textLength="21.77" lengthAdjust="spacing">rest</tspan>
 </text>
 </g>
 </g>

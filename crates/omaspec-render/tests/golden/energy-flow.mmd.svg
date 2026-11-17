@@ -23,46 +23,46 @@
 <rect x="628" y="151.84" width="12" height="32.49" fill="#9C6B3F"/>
 </g>
 <g>
-<rect x="15" y="108.62" width="54.41" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
-<rect x="224.33" y="203.39" width="55.85" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
-<rect x="15" y="258" width="53.68" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
-<rect x="15" y="366.77" width="47.91" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
-<rect x="433.67" y="101.85" width="65.24" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
-<rect x="433.67" y="258" width="70.31" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
-<rect x="433.67" y="373.54" width="65.25" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
-<rect x="549.63" y="78.83" width="75.37" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
-<rect x="573.47" y="160.52" width="51.53" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="15" y="108.62" width="57.4" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="224.33" y="203.39" width="56.87" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="15" y="258" width="57.84" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="15" y="366.77" width="49.76" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="433.67" y="101.85" width="68.36" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="433.67" y="258" width="75.69" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="433.67" y="373.54" width="68.61" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="544.09" y="78.83" width="80.91" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
+<rect x="573.33" y="160.52" width="51.67" height="15.13" rx="3" ry="3" fill="#FFFFFF"/>
 </g>
 <g>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="220.97" y="16.7" font-size="18" fill="#0F172A" font-weight="bold" textLength="198.05" lengthAdjust="spacing">Where the energy goes</tspan>
+<tspan x="217.28" y="16.7" font-size="18" fill="#0F172A" font-weight="bold" textLength="205.43" lengthAdjust="spacing">Where the energy goes</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="18" y="120.68" font-size="13" fill="#0F172A" textLength="48.41" lengthAdjust="spacing">Solar 60</tspan>
+<tspan x="18" y="120.68" font-size="13" fill="#0F172A" textLength="51.4" lengthAdjust="spacing">Solar 60</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="227.33" y="215.45" font-size="13" fill="#0F172A" textLength="49.85" lengthAdjust="spacing">Grid 130</tspan>
+<tspan x="227.33" y="215.45" font-size="13" fill="#0F172A" textLength="50.87" lengthAdjust="spacing">Grid 130</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="18" y="270.07" font-size="13" fill="#0F172A" textLength="47.68" lengthAdjust="spacing">Wind 40</tspan>
+<tspan x="18" y="270.07" font-size="13" fill="#0F172A" textLength="51.84" lengthAdjust="spacing">Wind 40</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="18" y="378.83" font-size="13" fill="#0F172A" textLength="41.91" lengthAdjust="spacing">Gas 30</tspan>
+<tspan x="18" y="378.83" font-size="13" fill="#0F172A" textLength="43.76" lengthAdjust="spacing">Gas 30</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="436.67" y="113.91" font-size="13" fill="#0F172A" textLength="59.24" lengthAdjust="spacing">Homes 55</tspan>
+<tspan x="436.67" y="113.91" font-size="13" fill="#0F172A" textLength="62.36" lengthAdjust="spacing">Homes 55</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="436.67" y="270.07" font-size="13" fill="#0F172A" textLength="64.31" lengthAdjust="spacing">Industry 50</tspan>
+<tspan x="436.67" y="270.07" font-size="13" fill="#0F172A" textLength="69.69" lengthAdjust="spacing">Industry 50</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="436.67" y="385.6" font-size="13" fill="#0F172A" textLength="59.25" lengthAdjust="spacing">Losses 25</tspan>
+<tspan x="436.67" y="385.6" font-size="13" fill="#0F172A" textLength="62.61" lengthAdjust="spacing">Losses 25</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="552.63" y="90.9" font-size="13" fill="#0F172A" textLength="69.37" lengthAdjust="spacing">Products 38</tspan>
+<tspan x="547.09" y="90.9" font-size="13" fill="#0F172A" textLength="74.91" lengthAdjust="spacing">Products 38</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="576.47" y="172.59" font-size="13" fill="#0F172A" textLength="45.53" lengthAdjust="spacing">Heat 12</tspan>
+<tspan x="576.33" y="172.59" font-size="13" fill="#0F172A" textLength="45.67" lengthAdjust="spacing">Heat 12</tspan>
 </text>
 </g>
 </g>

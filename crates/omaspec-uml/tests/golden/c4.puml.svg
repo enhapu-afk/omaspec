@@ -1,137 +1,137 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1103" height="747" viewBox="0 0 1103 747">
+<svg xmlns="http://www.w3.org/2000/svg" width="1141" height="747" viewBox="0 0 1141 747">
 <g transform="translate(10,10)">
 <g>
-<ellipse cx="310.24" cy="92.28" rx="13" ry="13" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
-<rect x="219.26" y="101.28" width="181.96" height="69.22" rx="24" ry="24" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
-<ellipse cx="623.15" cy="92.28" rx="13" ry="13" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
-<rect x="524.21" y="101.28" width="197.88" height="69.22" rx="24" ry="24" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
-<rect x="203.15" y="269.45" width="631.29" height="457" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,5"/>
-<rect x="215.15" y="322.04" width="190.18" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
-<rect x="215.15" y="470.49" width="150.05" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
-<ellipse cx="584.89" cy="550" rx="80.99" ry="9" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
-<rect x="503.9" y="470.49" width="161.98" height="79.51" fill="#2C76BF"/>
-<line x1="503.9" y1="470.49" x2="503.9" y2="550" fill="none" stroke="#4A8BCB" stroke-width="1"/>
-<line x1="665.88" y1="470.49" x2="665.88" y2="550" fill="none" stroke="#4A8BCB" stroke-width="1"/>
-<ellipse cx="584.89" cy="470.49" rx="80.99" ry="9" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
-<ellipse cx="500.52" cy="674.69" rx="10" ry="39.76" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
-<rect x="500.52" y="634.94" width="191.5" height="79.51" fill="#2C76BF"/>
-<line x1="500.52" y1="634.94" x2="692.01" y2="634.94" fill="none" stroke="#4A8BCB" stroke-width="1"/>
-<line x1="500.52" y1="714.45" x2="692.01" y2="714.45" fill="none" stroke="#4A8BCB" stroke-width="1"/>
-<ellipse cx="692.01" cy="674.69" rx="10" ry="39.76" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
-<rect x="585.76" y="322.04" width="162.72" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
-<rect x="0" y="643.08" width="159.15" height="63.22" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
-<rect x="766.09" y="93.28" width="140.32" height="63.22" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
-<rect x="950.41" y="26.3" width="132.02" height="197.18" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,4"/>
-<rect x="986.08" y="62.59" width="60.68" height="28.3" rx="8" ry="8" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
-<rect x="962.41" y="122.89" width="108.02" height="28.3" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
-<rect x="979.75" y="183.18" width="73.36" height="28.3" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="319.9" cy="92.28" rx="13" ry="13" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="224.61" y="101.28" width="190.58" height="69.22" rx="24" ry="24" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="641.52" cy="92.28" rx="13" ry="13" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="537.46" y="101.28" width="208.12" height="69.22" rx="24" ry="24" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="207.52" y="269.45" width="652.04" height="457" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="7,5"/>
+<rect x="219.52" y="322.04" width="200.76" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="219.52" y="470.49" width="157.62" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="602.86" cy="550" rx="85.13" ry="9" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="517.72" y="470.49" width="170.26" height="79.51" fill="#2C76BF"/>
+<line x1="517.72" y1="470.49" x2="517.72" y2="550" fill="none" stroke="#4A8BCB" stroke-width="1"/>
+<line x1="687.99" y1="470.49" x2="687.99" y2="550" fill="none" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="602.86" cy="470.49" rx="85.13" ry="9" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="513.54" cy="674.69" rx="10" ry="39.76" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="513.54" y="634.94" width="202.13" height="79.51" fill="#2C76BF"/>
+<line x1="513.54" y1="634.94" x2="715.67" y2="634.94" fill="none" stroke="#4A8BCB" stroke-width="1"/>
+<line x1="513.54" y1="714.45" x2="715.67" y2="714.45" fill="none" stroke="#4A8BCB" stroke-width="1"/>
+<ellipse cx="715.67" cy="674.69" rx="10" ry="39.76" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="603.51" y="322.04" width="169.87" height="79.51" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="0" y="643.08" width="163.52" height="63.22" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
+<rect x="789.58" y="93.28" width="149.05" height="63.22" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
+<rect x="982.63" y="26.3" width="137.94" height="197.18" rx="8" ry="8" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,4"/>
+<rect x="1019.86" y="62.59" width="63.48" height="28.3" rx="8" ry="8" fill="#08427B" stroke="#4A8BCB" stroke-width="1"/>
+<rect x="994.63" y="122.89" width="113.94" height="28.3" rx="8" ry="8" fill="#999999" stroke="#888888" stroke-width="1"/>
+<rect x="1012.94" y="183.18" width="77.32" height="28.3" rx="8" ry="8" fill="#2C76BF" stroke="#4A8BCB" stroke-width="1"/>
 </g>
 <g id="lines">
-<polyline points="310.24,170.5 310.24,312.04" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M792.48,156.5 L792.48,566.94 C792.48,593.45 770.99,614.94 744.48,614.94 L700.01,614.94 C694.49,614.94 690.01,619.41 690.01,624.94 L690.01,624.94" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M227.15,550 L227.15,550 C227.15,561.6 217.75,571 206.15,571 L127.58,571 C101.07,571 79.58,592.49 79.58,619 L79.58,633.08" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="667.12,170.5 667.12,312.04" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="290.18,401.55 290.18,460.49" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="365.2,510.24 493.9,510.24" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M353.2,550 L353.2,550 C353.2,561.6 362.6,571 374.2,571 L486.04,571 C512.55,571 534.04,592.49 534.04,619 L534.04,624.94" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M709.88,411.55 L709.88,523 C709.88,549.51 688.39,571 661.88,571 L656.71,571 C630.2,571 608.71,592.49 608.71,619 L608.71,634.94" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="306.24,312.04 310.24,322.04 314.24,312.04 310.24,316.54" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="686.01,624.94 690.01,634.94 694.01,624.94 690.01,629.44" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="75.58,633.08 79.58,643.08 83.58,633.08 79.58,637.58" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="663.12,312.04 667.12,322.04 671.12,312.04 667.12,316.54" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="286.18,460.49 290.18,470.49 294.18,460.49 290.18,464.99" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="493.9,514.24 503.9,510.24 493.9,506.24 498.4,510.24" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="530.04,624.94 534.04,634.94 538.04,624.94 534.04,629.44" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="713.88,411.55 709.88,401.55 705.88,411.55 709.88,407.05" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="319.9,170.5 319.9,312.04" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M817.38,156.5 L817.38,566.94 C817.38,593.45 795.89,614.94 769.38,614.94 L723.67,614.94 C718.15,614.94 713.67,619.41 713.67,624.94 L713.67,624.94" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M231.52,550 L231.52,550 C231.52,561.6 222.12,571 210.52,571 L129.76,571 C103.25,571 81.76,592.49 81.76,619 L81.76,633.08" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="688.45,170.5 688.45,312.04" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="298.33,401.55 298.33,460.49" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="377.14,510.24 507.72,510.24" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M365.14,550 L365.14,550 C365.14,561.6 374.54,571 386.14,571 L504.72,571 C531.23,571 552.72,592.49 552.72,619 L552.72,624.94" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M731.99,411.55 L731.99,523 C731.99,549.51 710.5,571 683.99,571 L675.8,571 C649.29,571 627.8,592.49 627.8,619 L627.8,634.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="315.9,312.04 319.9,322.04 323.9,312.04 319.9,316.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="709.67,624.94 713.67,634.94 717.67,624.94 713.67,629.44" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="77.76,633.08 81.76,643.08 85.76,633.08 81.76,637.58" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="684.45,312.04 688.45,322.04 692.45,312.04 688.45,316.54" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="294.33,460.49 298.33,470.49 302.33,460.49 298.33,464.99" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="507.72,514.24 517.72,510.24 507.72,506.24 512.22,510.24" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="548.72,624.94 552.72,634.94 556.72,624.94 552.72,629.44" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="735.99,411.55 731.99,401.55 727.99,411.55 731.99,407.05" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="289.79" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="40.9" lengthAdjust="spacing">Rider</tspan>
-<tspan x="237.26" y="158.19" font-size="13" fill="#FFFFFF" textLength="145.96" lengthAdjust="spacing">Rents a bike with the app</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="299.41" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="40.98" lengthAdjust="spacing">Rider</tspan>
+<tspan x="242.61" y="158.19" font-size="13" fill="#FFFFFF" textLength="154.58" lengthAdjust="spacing">Rents a bike with the app</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="586.7" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="72.91" lengthAdjust="spacing">Mechanic</tspan>
-<tspan x="542.21" y="158.19" font-size="13" fill="#FFFFFF" textLength="161.88" lengthAdjust="spacing">Keeps the bikes on the road</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="603.1" y="125.13" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="76.83" lengthAdjust="spacing">Mechanic</tspan>
+<tspan x="555.46" y="158.19" font-size="13" fill="#FFFFFF" textLength="172.12" lengthAdjust="spacing">Keeps the bikes on the road</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="483" y="288.44" font-size="14" fill="#000000" font-weight="bold" textLength="71.58" lengthAdjust="spacing">Bike rental</tspan>
-<tspan x="495.45" y="304.74" font-size="12" fill="#000000" textLength="46.68" lengthAdjust="spacing">[System]</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="497.21" y="288.44" font-size="14" fill="#000000" font-weight="bold" textLength="72.66" lengthAdjust="spacing">Bike rental</tspan>
+<tspan x="508.05" y="304.74" font-size="12" fill="#000000" textLength="50.98" lengthAdjust="spacing">[System]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="273.35" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="73.79" lengthAdjust="spacing">Rider app</tspan>
-<tspan x="246.22" y="359.66" font-size="12" fill="#FFFFFF" textLength="128.05" lengthAdjust="spacing">[Container: Kotlin, Swift]</tspan>
-<tspan x="227.15" y="392.25" font-size="13" fill="#FFFFFF" textLength="166.18" lengthAdjust="spacing">Finds a bike, unlocks it, pays</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="282.79" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="74.22" lengthAdjust="spacing">Rider app</tspan>
+<tspan x="250.64" y="359.66" font-size="12" fill="#FFFFFF" textLength="138.52" lengthAdjust="spacing">[Container: Kotlin, Swift]</tspan>
+<tspan x="231.52" y="392.25" font-size="13" fill="#FFFFFF" textLength="176.76" lengthAdjust="spacing">Finds a bike, unlocks it, pays</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="250.17" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="80.02" lengthAdjust="spacing">Rental API</tspan>
-<tspan x="227.15" y="508.1" font-size="12" fill="#FFFFFF" textLength="126.05" lengthAdjust="spacing">[Container: Rust, axum]</tspan>
-<tspan x="228.41" y="540.7" font-size="13" fill="#FFFFFF" textLength="123.54" lengthAdjust="spacing">Rentals, prices, bikes</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="258.27" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="80.11" lengthAdjust="spacing">Rental API</tspan>
+<tspan x="231.52" y="508.1" font-size="12" fill="#FFFFFF" textLength="133.62" lengthAdjust="spacing">[Container: Rust, axum]</tspan>
+<tspan x="233.06" y="540.7" font-size="13" fill="#FFFFFF" textLength="130.53" lengthAdjust="spacing">Rentals, prices, bikes</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="555.99" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="57.79" lengthAdjust="spacing">Rentals</tspan>
-<tspan x="519.53" y="508.1" font-size="12" fill="#FFFFFF" textLength="130.73" lengthAdjust="spacing">[Container: PostgreSQL]</tspan>
-<tspan x="515.9" y="540.7" font-size="13" fill="#FFFFFF" textLength="137.98" lengthAdjust="spacing">Riders, rentals, invoices</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="573.62" y="491.34" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="58.46" lengthAdjust="spacing">Rentals</tspan>
+<tspan x="533.62" y="508.1" font-size="12" fill="#FFFFFF" textLength="138.47" lengthAdjust="spacing">[Container: PostgreSQL]</tspan>
+<tspan x="529.72" y="540.7" font-size="13" fill="#FFFFFF" textLength="146.26" lengthAdjust="spacing">Riders, rentals, invoices</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="546.8" y="655.78" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="88.93" lengthAdjust="spacing">Bike events</tspan>
-<tspan x="542.58" y="672.55" font-size="12" fill="#FFFFFF" textLength="97.37" lengthAdjust="spacing">[Container: NATS]</tspan>
-<tspan x="512.52" y="705.14" font-size="13" fill="#FFFFFF" textLength="157.49" lengthAdjust="spacing">Where each bike is, its lock</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="564.11" y="655.78" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="90.99" lengthAdjust="spacing">Bike events</tspan>
+<tspan x="557.81" y="672.55" font-size="12" fill="#FFFFFF" textLength="103.58" lengthAdjust="spacing">[Container: NATS]</tspan>
+<tspan x="525.54" y="705.14" font-size="13" fill="#FFFFFF" textLength="168.13" lengthAdjust="spacing">Where each bike is, its lock</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="628.01" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="78.22" lengthAdjust="spacing">Workshop</tspan>
-<tspan x="610.43" y="359.66" font-size="12" fill="#FFFFFF" textLength="113.39" lengthAdjust="spacing">[Container: Web app]</tspan>
-<tspan x="597.76" y="392.25" font-size="13" fill="#FFFFFF" textLength="138.72" lengthAdjust="spacing">Repairs and spare parts</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="647.94" y="342.89" font-size="16" fill="#FFFFFF" font-weight="bold" textLength="81.02" lengthAdjust="spacing">Workshop</tspan>
+<tspan x="627.56" y="359.66" font-size="12" fill="#FFFFFF" textLength="121.78" lengthAdjust="spacing">[Container: Web app]</tspan>
+<tspan x="615.51" y="392.25" font-size="13" fill="#FFFFFF" textLength="145.87" lengthAdjust="spacing">Repairs and spare parts</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="12" y="663.93" font-size="16" fill="#000000" font-weight="bold" textLength="135.15" lengthAdjust="spacing">Payment provider</tspan>
-<tspan x="27.92" y="697" font-size="13" fill="#000000" textLength="103.31" lengthAdjust="spacing">Cards and wallets</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="12" y="663.93" font-size="16" fill="#000000" font-weight="bold" textLength="139.52" lengthAdjust="spacing">Payment provider</tspan>
+<tspan x="26.92" y="697" font-size="13" fill="#000000" textLength="109.68" lengthAdjust="spacing">Cards and wallets</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="790.9" y="114.13" font-size="16" fill="#000000" font-weight="bold" textLength="90.7" lengthAdjust="spacing">Smart locks</tspan>
-<tspan x="778.09" y="147.19" font-size="13" fill="#000000" textLength="116.32" lengthAdjust="spacing">A lock on every bike</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="817.94" y="114.13" font-size="16" fill="#000000" font-weight="bold" textLength="92.34" lengthAdjust="spacing">Smart locks</tspan>
+<tspan x="801.58" y="147.19" font-size="13" fill="#000000" textLength="125.05" lengthAdjust="spacing">A lock on every bike</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="991.53" y="45.29" font-size="14" fill="#000000" font-weight="bold" textLength="49.78" lengthAdjust="spacing">Legend</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1026.1" y="45.29" font-size="14" fill="#000000" font-weight="bold" textLength="50.99" lengthAdjust="spacing">Legend</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="998.08" y="81.58" font-size="12" fill="#FFFFFF" textLength="36.68" lengthAdjust="spacing">person</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1031.86" y="81.58" font-size="12" fill="#FFFFFF" textLength="39.48" lengthAdjust="spacing">person</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="974.41" y="141.88" font-size="12" fill="#000000" textLength="84.02" lengthAdjust="spacing">external system</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1006.63" y="141.88" font-size="12" fill="#000000" textLength="89.94" lengthAdjust="spacing">external system</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="991.75" y="202.18" font-size="12" fill="#FFFFFF" textLength="49.36" lengthAdjust="spacing">container</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1024.94" y="202.18" font-size="12" fill="#FFFFFF" textLength="53.32" lengthAdjust="spacing">container</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="316.24" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="28.68" lengthAdjust="spacing">Uses</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="325.9" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="29.38" lengthAdjust="spacing">Uses</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="744.15" y="440.19" font-size="12" fill="#000000" font-weight="bold" textLength="45.34" lengthAdjust="spacing">Reports</tspan>
-<tspan x="744.15" y="454.16" font-size="12" fill="#000000" font-style="italic" textLength="40.67" lengthAdjust="spacing">[MQTT]</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="768.44" y="440.19" font-size="12" fill="#000000" font-weight="bold" textLength="45.95" lengthAdjust="spacing">Reports</tspan>
+<tspan x="768.44" y="454.16" font-size="12" fill="#000000" font-style="italic" textLength="44.28" lengthAdjust="spacing">[MQTT]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="25.56" y="586.14" font-size="12" fill="#000000" font-weight="bold" textLength="48.01" lengthAdjust="spacing">Charges</tspan>
-<tspan x="25.56" y="600.1" font-size="12" fill="#000000" font-style="italic" textLength="46.01" lengthAdjust="spacing">[HTTPS]</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="26.09" y="586.14" font-size="12" fill="#000000" font-weight="bold" textLength="49.67" lengthAdjust="spacing">Charges</tspan>
+<tspan x="26.09" y="600.1" font-size="12" fill="#000000" font-style="italic" textLength="48.55" lengthAdjust="spacing">[HTTPS]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="673.12" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="28.68" lengthAdjust="spacing">Uses</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="694.45" y="250.62" font-size="12" fill="#000000" font-weight="bold" textLength="29.38" lengthAdjust="spacing">Uses</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="296.18" y="428.69" font-size="12" fill="#000000" font-weight="bold" textLength="28.68" lengthAdjust="spacing">Calls</tspan>
-<tspan x="296.18" y="442.66" font-size="12" fill="#000000" font-style="italic" textLength="81.35" lengthAdjust="spacing">[JSON/HTTPS]</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="304.33" y="428.69" font-size="12" fill="#000000" font-weight="bold" textLength="29.08" lengthAdjust="spacing">Calls</tspan>
+<tspan x="304.33" y="442.66" font-size="12" fill="#000000" font-style="italic" textLength="85.64" lengthAdjust="spacing">[JSON/HTTPS]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="385.2" y="489.44" font-size="12" fill="#000000" font-weight="bold" textLength="98.7" lengthAdjust="spacing">Reads and writes</tspan>
-<tspan x="385.2" y="503.41" font-size="12" fill="#000000" font-style="italic" textLength="30.68" lengthAdjust="spacing">[SQL]</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="397.14" y="489.44" font-size="12" fill="#000000" font-weight="bold" textLength="100.58" lengthAdjust="spacing">Reads and writes</tspan>
+<tspan x="397.14" y="503.41" font-size="12" fill="#000000" font-style="italic" textLength="32.42" lengthAdjust="spacing">[SQL]</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="540.04" y="593.12" font-size="12" fill="#000000" font-weight="bold" textLength="56.68" lengthAdjust="spacing">Listens to</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="558.72" y="593.12" font-size="12" fill="#000000" font-weight="bold" textLength="57.08" lengthAdjust="spacing">Listens to</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="614.71" y="608.81" font-size="12" fill="#000000" font-weight="bold" textLength="117.36" lengthAdjust="spacing">Low battery, flat tyre</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="633.8" y="608.81" font-size="12" fill="#000000" font-weight="bold" textLength="122.5" lengthAdjust="spacing">Low battery, flat tyre</tspan>
 </text>
-<text font-family="Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="465.75" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="150.93" lengthAdjust="spacing">Bike rental: containers</tspan>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="483.36" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="153.85" lengthAdjust="spacing">Bike rental: containers</tspan>
 </text>
 </g>
 </g>

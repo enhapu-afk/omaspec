@@ -20,6 +20,10 @@ pub use emoji::emoji;
 /// The font family of the whole diagram, by its metrics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Family {
+    /// Inter, the face shipped with the program ([`crate::FACE`]), which a
+    /// diagram is set in unless it names another.
+    Inter,
+    /// Any other sans-serif, as wide as Arial.
     Sans,
     Serif,
     Mono,
@@ -29,7 +33,8 @@ impl Family {
     /// The family whose metrics fit the font `name` best. `name` may be a
     /// CSS font list (`Inter, "Segoe UI", sans-serif`): the first name that
     /// tells a family decides, as the first one installed draws, and a name
-    /// that tells none passes on to the next. Sans when none does.
+    /// that tells none passes on to the next. Sans when none does: a face
+    /// nobody knows is drawn by the viewer's own sans-serif.
     pub fn of(name: &str) -> Family {
         name.split(',')
             .find_map(|one| Family::named(one.trim().trim_matches(['"', '\''])))
@@ -42,7 +47,9 @@ impl Family {
             n.split(|c: char| !c.is_ascii_alphanumeric())
                 .any(|w| words.contains(&w))
         };
-        if n.contains("mono") || n.contains("courier") || n.contains("consol") {
+        if n == "inter" {
+            Some(Family::Inter)
+        } else if n.contains("mono") || n.contains("courier") || n.contains("consol") {
             Some(Family::Mono)
         } else if (n.contains("serif") && !n.contains("sans")) || word(&["times", "georgia"]) {
             Some(Family::Serif)
@@ -416,6 +423,8 @@ fn advance(c: char, family: Family, bold: bool) -> u32 {
     let table: &[u16] = match (family, bold) {
         (Family::Serif, false) => &metrics::SERIF,
         (Family::Serif, true) => &metrics::SERIF_BOLD,
+        (Family::Inter, false) => &metrics::INTER,
+        (Family::Inter, true) => &metrics::INTER_BOLD,
         (_, false) => &metrics::SANS,
         (_, true) => &metrics::SANS_BOLD,
     };
@@ -428,6 +437,7 @@ fn advance(c: char, family: Family, bold: bool) -> u32 {
         Some(i) => u32::from(table[i]),
         // Greek, Cyrillic and the rest: an average letter.
         None if family == Family::Serif => 500,
+        None if family == Family::Inter => 580,
         None => 556,
     }
 }
@@ -1003,13 +1013,18 @@ mod tests {
         assert_eq!(Family::of("sans-serif"), Family::Sans);
         assert_eq!(Family::of("JetBrains Mono"), Family::Mono);
         assert_eq!(Family::of("Fira Sans"), Family::Sans);
+        // The face of our own, wider than Arial: "Hi" = 743 + 242.
+        assert_eq!(Family::of(crate::FACE), Family::Inter);
+        assert!((measure("Hi", &style, Family::Inter) - 9.85).abs() < 0.01);
+        assert!(measure("Hi", &bold, Family::Inter) > measure("Hi", &style, Family::Inter));
+        assert_eq!(Family::of("Inter Display"), Family::Sans);
     }
 
     #[test]
     fn a_font_list_takes_the_family_of_its_first_telling_name() {
         // mmdr's list, with a mono fallback: Inter tells Sans first.
         let mmdr = "Inter, ui-sans-serif, \"Segoe UI\", \"Liberation Sans\", monospace";
-        assert_eq!(Family::of(mmdr), Family::Sans);
+        assert_eq!(Family::of(mmdr), Family::Inter);
         // A name that tells nothing passes on to the generic family.
         assert_eq!(Family::of("Georgia Pro, serif"), Family::Serif);
         assert_eq!(Family::of("'Fira Code', monospace"), Family::Mono);
