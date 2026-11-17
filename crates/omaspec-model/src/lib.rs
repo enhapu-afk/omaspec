@@ -178,6 +178,9 @@ pub struct Placed {
     pub states: Vec<Option<Spot>>,
     /// By transition index: from the source to the tip of the head.
     pub routes: Vec<Option<Vec<(f32, f32)>>>,
+    /// By transition index: where its words are, its event, guard and
+    /// action; none where the picture's map does not say.
+    pub words: Vec<Vec<omaspec_uml::graph::Rect>>,
 }
 
 impl Machine {
@@ -213,7 +216,7 @@ impl Machine {
             })
             .collect();
         let mut used = vec![false; map.transitions.len()];
-        let routes = self
+        let routes: Vec<Option<Vec<(f32, f32)>>> = self
             .transitions
             .iter()
             .map(|t| {
@@ -223,7 +226,22 @@ impl Machine {
                 Some(map.transitions[at].points.clone())
             })
             .collect();
-        Placed { states, routes }
+        // A transition's words are those of the line drawn along its route.
+        let words = routes
+            .iter()
+            .map(|route| {
+                route
+                    .as_ref()
+                    .and_then(|points| map.wires.iter().find(|wire| &wire.points == points))
+                    .map(|wire| wire.labels.clone())
+                    .unwrap_or_default()
+            })
+            .collect();
+        Placed {
+            states,
+            routes,
+            words,
+        }
     }
 }
 

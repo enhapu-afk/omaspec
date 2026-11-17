@@ -407,6 +407,29 @@ impl MachinePlay {
                 (view.paint)(frame, clip, lit);
             }
         }
+        // So do the words of what can happen next: they are read now.
+        let offered = self.offered_words(now);
+        if offered > 0.004
+            && let Driver::Writer(writer) = &self.driver
+        {
+            for way in writer.run.options(&self.machine) {
+                for words in &self.placed.words[way] {
+                    let on_screen = grow((view.place)(*words), WORDS_AIR);
+                    if let Some(clip) = on_screen.intersection(&view.paper) {
+                        (view.paint)(frame, clip, offered);
+                    }
+                }
+            }
+        }
+    }
+
+    /// How far the words of the transitions offered have come through the
+    /// veil: once the steps scheduled are done, as fast as a state lights.
+    fn offered_words(&self, now: Instant) -> f32 {
+        if now < self.free_at {
+            return 0.0;
+        }
+        ramp(now, self.free_at, LIGHT_FADE)
     }
 
     pub(super) fn draw_over(&self, frame: &mut Frame, look: &Look, view: &Viewer, now: Instant) {

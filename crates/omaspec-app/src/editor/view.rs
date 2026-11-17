@@ -79,6 +79,13 @@ fn prompt_text(asking: Asking) -> (&'static str, &'static str, &'static str) {
 /// and the diagram paint their own background across every pixel they are
 /// given, and a border drawn underneath would disappear.
 const FRAME: f32 = 1.0;
+/// How round the corners of an area and of its focus frame are: as the
+/// pills and the cards of the window.
+const AREA_RADIUS: f32 = 8.0;
+/// How far an area's content keeps from its edge, so that the corners it
+/// paints stay inside the round frame: where the frame's arc is furthest
+/// from the corner it is `AREA_RADIUS * (√2 − 1) + FRAME` away, across.
+const AREA_INSET: f32 = 3.0;
 /// How much of the accent the focus frame takes: a hint, not a fence.
 const FOCUS: f32 = 0.6;
 
@@ -90,6 +97,21 @@ pub(super) fn focus_color(p: &Palette, quiet: Rgb) -> Rgb {
     ui::mix(quiet, p.accent, FOCUS)
         .legible_on(&around, p.accent, tokens::MIN_CONTRAST)
         .legible_on(&around, p.foreground, tokens::MIN_CONTRAST)
+}
+
+/// The size of the sidebar's heading.
+const HEADING: f32 = 10.5;
+
+/// `words` as they fit `width` set in the window's monospace face at
+/// `size` (a character is 0.6 of the size wide): whole, or cut with an
+/// ellipsis in place of what does not fit.
+fn shortened(words: &str, width: f32, size: f32) -> String {
+    let fit = (width / (size * 0.6)).floor() as usize;
+    if words.chars().count() <= fit {
+        return words.to_owned();
+    }
+    let kept: String = words.chars().take(fit.saturating_sub(1)).collect();
+    format!("{}…", kept.trim_end())
 }
 
 impl App {
@@ -524,14 +546,14 @@ impl App {
         container(body)
             .width(Length::Fill)
             .height(Length::Fill)
-            .padding(FRAME)
+            .padding(AREA_INSET)
             .clip(true)
             .style(move |_: &Theme| container::Style {
                 background: Some(fill.into()),
                 border: iced::Border {
                     color: frame,
                     width: FRAME,
-                    radius: 0.0.into(),
+                    radius: AREA_RADIUS.into(),
                 },
                 ..container::Style::default()
             })
@@ -585,17 +607,23 @@ impl App {
         }
     }
 
-    /// The sidebar's heading: a folder and its name, small and quiet.
+    /// The sidebar's heading: a folder and its name, small and quiet. A
+    /// name too long for the sidebar ends in an ellipsis.
     fn heading(&self, title: &str) -> Element<'_, Message> {
         let quiet = ui::quiet(&self.palette);
+        let title = title.to_uppercase();
+        let name = responsive(move |size| {
+            text(shortened(&title, size.width, HEADING))
+                .font(self.font)
+                .size(HEADING)
+                .color(ui::color(quiet))
+                .wrapping(text::Wrapping::None)
+                .into()
+        });
         container(
             row![
                 self.icon(Icon::Folder, quiet),
-                text(title.to_uppercase())
-                    .font(self.font)
-                    .size(10.5)
-                    .color(ui::color(quiet))
-                    .wrapping(text::Wrapping::None),
+                container(name).height(HEADING * 1.3)
             ]
             .spacing(8)
             .align_y(Alignment::Center),
@@ -1812,6 +1840,18 @@ mod tests {
     use iced::keyboard::{Key, Modifiers, key::Named};
 
     use super::*;
+
+    #[test]
+    fn a_name_too_long_ends_in_an_ellipsis() {
+        // 63 units hold ten characters of 6.3.
+        assert_eq!(shortened("OMASPEC", 63.0, 10.5), "OMASPEC");
+        assert_eq!(shortened("TEN LETTER", 63.0, 10.5), "TEN LETTER");
+        assert_eq!(shortened("SPECIFICATIONS", 63.0, 10.5), "SPECIFICA…");
+        // No blank before the ellipsis, and nothing where nothing fits.
+        assert_eq!(shortened("MY PROJECT FOLDER", 63.0, 10.5), "MY PROJEC…");
+        assert_eq!(shortened("A VERY LONG NAME", 25.2, 10.5), "A V…");
+        assert_eq!(shortened("NAME", 0.0, 10.5), "…");
+    }
 
     #[test]
     fn the_diagram_window_has_the_preview_keys() {

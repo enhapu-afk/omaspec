@@ -170,11 +170,18 @@ fn machine_data(m: &Machine, map: &Map) -> Option<Value> {
                 .iter()
                 .map(|way| {
                     let (label, to) = m.option(way.transition);
+                    // Where its words are: read through the veil while
+                    // it is offered, as in the pane.
+                    let words: Vec<Value> = placed.words[way.transition]
+                        .iter()
+                        .map(|r| json!([round(r.x), round(r.y), round(r.w), round(r.h)]))
+                        .collect();
                     json!({
                         "label": label,
                         "to": to,
                         "next": way.next,
                         "taken": steps(&way.taken, &placed.routes),
+                        "words": words,
                     })
                 })
                 .collect();
@@ -390,6 +397,10 @@ mod tests {
         assert_eq!(places[0]["at"], "Closed");
         assert_eq!(places[0]["options"][0]["label"], "open");
         assert_eq!(places[0]["options"][0]["to"], "Open");
+        // Where the option's word is, to read it through the veil.
+        let words = places[0]["options"][0]["words"].as_array().unwrap();
+        assert_eq!(words.len(), 1, "{words:?}");
+        assert!(words[0][2].as_f64().unwrap() > 10.0, "{words:?}");
         let next = places[0]["options"][0]["next"].as_u64().unwrap() as usize;
         assert_eq!(places[next]["at"], "Open");
         assert_eq!(places[next]["options"][0]["next"], 0);

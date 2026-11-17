@@ -240,7 +240,7 @@ if (typeof document !== "undefined") {
       const play = Present.machine(data.places);
       // The states lit: the veil leaves them out, a state inside another
       // as well, and each shines in the accent.
-      const shine = (group, lit) => {
+      const shine = (group, lit, words) => {
         group.replaceChildren();
         for (const old of defs.querySelectorAll("mask")) old.remove();
         const id = `omaspec-lit-${made++}`;
@@ -252,6 +252,10 @@ if (typeof document !== "undefined") {
           const [x, y, w, h] = s.rect;
           const rx = Math.min(s.radius, w / 2, h / 2);
           make("rect", { x, y, width: w, height: h, rx, fill: "#000000" }, mask);
+        }
+        // The words of what can happen next come through as well.
+        for (const [x, y, w, h] of words || []) {
+          make("rect", { x: x - 2, y: y - 2, width: w + 4, height: h + 4, fill: "#000000" }, mask);
         }
         make("rect", { ...area, fill: paper, "fill-opacity": Present.VEIL, mask: `url(#${id})` }, group);
         for (const index of lit) {
@@ -274,7 +278,8 @@ if (typeof document !== "undefined") {
         const group = make("g", {}, layer);
         const moving = steps && steps.length > 0;
         const lit = new Set(moving ? before : here.lit);
-        shine(group, lit);
+        const offered = here.options.flatMap((option) => option.words || []);
+        shine(group, lit, moving ? [] : offered);
         let through = 0;
         for (const step of steps || []) {
           light(data.routes[step.t], step.at, step.took);
@@ -288,7 +293,7 @@ if (typeof document !== "undefined") {
             shine(group, lit);
           }, step.at + step.took));
         }
-        if (moving) timers.push(setTimeout(() => shine(group, here.lit), through));
+        if (moving) timers.push(setTimeout(() => shine(group, here.lit, offered), through));
         const parts = [span("at", `● ${here.ended ? "ended" : here.at}`)];
         here.options.forEach((option, i) => {
           const button = document.createElement("button");

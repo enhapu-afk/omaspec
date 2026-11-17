@@ -638,6 +638,33 @@ screen, or than one picture file, stays readable.
 - [ ] A dead end placed beside what leads to it, not far off in empty
       room (REQ-069).
 
+### A window that looks of one piece (2026-11-16)
+
+From a look at twenty snapshots of the window, in dark and light themes:
+it reads as a good developer's tool, not yet as an elegant one. What was
+set right the next day (a nested state's title in its band, a label
+between two lines, the comparison's switches, menus that name what
+applies, the field that replaces, round areas, a play's next steps, the
+sidebar's heading, a block left open) is in docs/DONE.md.
+
+- [ ] A face of its own for the diagrams: the window is set in a modern
+      monospace, the diagrams in bold Liberation Sans. A bundled face
+      changes every diagram and every golden SVG, and the list of faces an
+      SVG names (REQ-068) has to follow; waits for a decision.
+- [ ] Menus in fewer words (`Find in the project and all tabs`), and the
+      skin that applies marked in its submenu.
+- [ ] The focus on a box as a frame and a glow in every case: one way
+      fills the box in a dull tan; not reproduced yet.
+- [ ] A diagram in its file's colors in a dark window is a glaring white
+      card.
+- [ ] The editor's scroll bar, thick and gray (the widget under
+      `vendor/`).
+- [ ] The comparison in a real window: whether the pictures take the
+      pane's width, and B the colors of A.
+- [ ] What is not there: a settings dialog, scroll bars or an overview
+      in the diagram, a grip between the panes, a hint at each tool's
+      icon, sizes of type in an order.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 Omaspec's engine is plain Rust; what ties the program to Linux is at the

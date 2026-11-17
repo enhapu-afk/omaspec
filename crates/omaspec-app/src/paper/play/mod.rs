@@ -44,6 +44,8 @@ const AHEAD: f32 = 0.6;
 const VEIL_FADE: Duration = Duration::from_millis(320);
 /// How dark the veil gets, over the paper.
 pub(super) const VEIL: f32 = 0.62;
+/// How far around the words of a transition offered the veil is open.
+const WORDS_AIR: f32 = 2.0;
 /// How long a state's light takes to come on or go out.
 const LIGHT_FADE: Duration = Duration::from_millis(420);
 /// How long the ripple of an arrival spreads.

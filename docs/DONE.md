@@ -2525,6 +2525,44 @@ is open and the reasoning around it.
       outlines with outlines. Boxes wide enough for DejaVu were
       the other way: every diagram some 10 % roomier, so not taken.
 
+### A window that looks of one piece (2026-11-16)
+
+- [x] A nested state's title in the middle of its band (2026-11-17): it
+      sat on the line under it, 12 units above and none below; the band
+      has 8 above and 11 below.
+- [x] A label between two lines keeps off the one that is not its own
+      (2026-11-17): lines side by side into one box keep the label's
+      room and 8 units between them, a box too narrow for them grows,
+      and a run straightened afterwards keeps 6 units off other lines'
+      labels (`graph::together`, `room_for_labels`).
+- [x] The comparison's switches (2026-11-17): pills, the one that is on
+      framed in the accent; B shows one of `diagram`, `lines`,
+      `behavior`; two diagrams wider than high lie one above the other.
+- [x] Menus that name what applies (2026-11-17): `End the focus` while
+      a box is in focus, `Fold this container` while nothing is folded
+      (`App::menu_words`); the field that replaces carries an arrow.
+- [x] The areas of the window are round (2026-11-17): the source, the
+      diagram and the sidebar have corners of 8 units, and so has the
+      frame around the one that has the keys, which was a thin square
+      in the accent among pills.
+- [x] A play's next steps stay readable (2026-11-17): the words of the
+      transitions a state machine offers come through the veil while it
+      rests, as the states it is in do, in the pane and in a
+      presentation's page (`Placed::words`).
+- [x] A folder's name too long for the sidebar ends in an ellipsis
+      (2026-11-17). The hint `Ctrl+P finds diagrams` already goes once
+      the picker has been used.
+- [x] A block left open draws (2026-11-17): PlantUML ends an `alt`, a
+      `box`, an `if`, a `while`, a `repeat`, a `fork`, a `split` or a
+      partition that has no closing line with the diagram, the
+      innermost first, and so do the engine's readers now; lint warns
+      of each (`unclosed-block`), an activity diagram's from the
+      reader's own list. The engine had declined such a diagram and
+      advised the Java PlantUML for a typing mistake. A closing line
+      without its block (`end`, `else`, `endif`, `end fork`, `}`) is a
+      mistake PlantUML refuses too, and is said as one, without that
+      advice.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 - [x] The engine and the binary type-check for Windows (2026-11-08): `cargo check
