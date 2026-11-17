@@ -254,7 +254,7 @@ pub fn gone(now: Instant, since: Instant) -> bool {
 #[derive(Debug, Clone, Copy)]
 pub struct Look {
     pub accent: Color,
-    /// The veil's color: the window's background.
+    /// The veil's color: the picture's own paper.
     pub veil: Color,
     pub light: Color,
 }

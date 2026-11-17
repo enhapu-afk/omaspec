@@ -21,11 +21,10 @@ Before anything below: the sequence diagram, the state machine and the
 activity diagram elegant, modern and without a flaw in any theme, in the
 theme's colors and in the file's own. What is done is in docs/DONE.md.
 
-- [ ] A scenario's play in the file's own colors: the veil's edge is a
-      hard band, and the window's dark veil lies on a white card. The
-      veil in the paper's color, as the focus has it, and a soft edge.
-- [ ] The participants that stay at the top while a sequence diagram
-      scrolls look cut off and frozen.
+- [ ] A scenario's play and the participants held at the top, in a
+      real window: the snapshots show the veil in the paper's color and
+      what scrolls under the participants fading out, but not the band
+      at the veil's edge the tester's window showed.
 - [ ] A state machine's play: the states lit through the veil in their
       own shapes, as the focus's boxes are.
 - [ ] An activity diagram marks its parts (docs/adr/0029), so its boxes

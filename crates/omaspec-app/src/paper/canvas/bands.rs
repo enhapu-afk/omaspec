@@ -12,19 +12,20 @@
 //! click there picks the participant, not the message under it.
 
 use iced::mouse::Cursor;
+use iced::widget::canvas::gradient::Linear;
 use iced::widget::canvas::{self, Frame, Geometry};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme, Vector};
-use omaspec_uml::map::{Band, Edge};
+use omaspec_uml::map::{Band, Edge, Ground};
 
 use super::super::Message;
 use super::super::raster::Raster;
 use super::super::sprite;
 use super::super::view::{Glide, View};
 
-/// How far the shade under a band held at the top reaches, or beside one
-/// held at the left, in pixels; and how dark it starts.
-const SHADE: f32 = 6.0;
-const SHADE_ALPHA: f32 = 0.16;
+/// How far the paper under a band held at the top goes on, thinning out,
+/// or beside one held at the left, in pixels: what scrolls under the band
+/// fades into the paper there, where a hard edge cut it off.
+const FADE: f32 = 30.0;
 /// The most of the pane a held band may take, across it: a heading larger
 /// than that, zoomed in, scrolls away with what it heads.
 const MOST: f32 = 1.0 / 3.0;
@@ -92,6 +93,10 @@ pub fn through(held: &[Held], at: Point) -> Point {
 #[derive(Debug, Clone, Copy)]
 pub struct Headings<'a> {
     pub bands: &'a [Band],
+    /// The areas the picture fills with a color of their own under what
+    /// lies on them: what scrolls under a band there fades into that
+    /// color, not the paper's.
+    pub grounds: &'a [Ground],
     /// The diagram's size, in its units.
     pub diagram: Size,
     pub view: View,
@@ -142,6 +147,22 @@ impl canvas::Program<Message> for KeptBands<'_> {
         let local = Rectangle::new(Point::ORIGIN, bounds.size());
         let mut frame = Frame::new(renderer, bounds.size());
         let held = self.headings.held(local);
+        let view = self
+            .headings
+            .glide
+            .map_or(self.headings.view, |glide| glide.at(crate::clock::now()));
+        let grounds: Vec<(Rectangle, Color)> = self
+            .headings
+            .grounds
+            .iter()
+            .map(|ground| {
+                let omaspec_uml::Color(r, g, b) = ground.fill;
+                (
+                    view.on_screen(rectangle(ground.rect), local),
+                    Color::from_rgb8(r, g, b),
+                )
+            })
+            .collect();
         for band in &held {
             let paper = self.overview.paper;
             frame.fill_rectangle(band.strip.position(), band.strip.size(), paper);
@@ -160,7 +181,7 @@ impl canvas::Program<Message> for KeptBands<'_> {
                 };
                 sprite::blit(&mut frame, local, &blit);
             }
-            shade(&mut frame, band.strip, band.edge);
+            fade(&mut frame, band.strip, band.edge, paper, &grounds);
         }
         // Where headings across the top and down the left meet, the corner
         // is the paper's, as a sheet's is.
@@ -221,25 +242,93 @@ fn strip(dest: Rectangle, edge: Edge, paper: Rectangle, local: Rectangle) -> Rec
     }
 }
 
-/// A soft shade under a band held at the top, or beside one at the left,
-/// so what scrolls under it reads as under it.
-fn shade(frame: &mut Frame, strip: Rectangle, edge: Edge) {
-    let steps = 4;
-    for step in 0..steps {
-        let alpha = SHADE_ALPHA * (1.0 - step as f32 / steps as f32);
-        let reach = SHADE / steps as f32;
-        let at = reach * step as f32;
+/// The paper going on past a band held at the top, or beside one at the
+/// left, and thinning out: what scrolls toward the band fades into the
+/// paper before it goes under it; over one of the `grounds` (an area with
+/// a fill of its own, on screen), into that fill.
+fn fade(
+    frame: &mut Frame,
+    strip: Rectangle,
+    edge: Edge,
+    paper: Color,
+    grounds: &[(Rectangle, Color)],
+) {
+    let (zone, to) = match edge {
+        Edge::Top => (
+            Rectangle::new(
+                Point::new(strip.x, strip.y + strip.height),
+                Size::new(strip.width, FADE),
+            ),
+            Vector::new(0.0, FADE),
+        ),
+        Edge::Left => (
+            Rectangle::new(
+                Point::new(strip.x + strip.width, strip.y),
+                Size::new(FADE, strip.height),
+            ),
+            Vector::new(FADE, 0.0),
+        ),
+    };
+    // Along the band: the pieces between the sides of the grounds the
+    // zone lies in, each in the color under it.
+    let along = |r: Rectangle| match edge {
+        Edge::Top => (r.x, r.x + r.width),
+        Edge::Left => (r.y, r.y + r.height),
+    };
+    let across = |r: Rectangle| match edge {
+        Edge::Top => (r.y, r.y + r.height),
+        Edge::Left => (r.x, r.x + r.width),
+    };
+    let (from, until) = along(zone);
+    let (near, far) = across(zone);
+    let under: Vec<(f32, f32, Color)> = grounds
+        .iter()
+        .filter(|(rect, _)| {
+            let (a, b) = across(*rect);
+            a <= near + 0.5 && b >= far - 0.5
+        })
+        .map(|(rect, color)| {
+            let (a, b) = along(*rect);
+            (a.max(from).round(), b.min(until).round(), *color)
+        })
+        .filter(|(a, b, _)| b > a)
+        .collect();
+    let mut cuts: Vec<f32> = under.iter().flat_map(|(a, b, _)| [*a, *b]).collect();
+    cuts.extend([from, until]);
+    cuts.sort_by(f32::total_cmp);
+    cuts.dedup();
+    for pair in cuts.windows(2) {
+        let middle = (pair[0] + pair[1]) / 2.0;
+        // The smallest ground there: a box in a box shows its own fill.
+        let color = under
+            .iter()
+            .filter(|(a, b, _)| *a <= middle && middle <= *b)
+            .min_by(|x, y| (x.1 - x.0).total_cmp(&(y.1 - y.0)))
+            .map_or(paper, |(_, _, color)| *color);
         let (position, size) = match edge {
             Edge::Top => (
-                Point::new(strip.x, strip.y + strip.height + at),
-                Size::new(strip.width, reach),
+                Point::new(pair[0], zone.y),
+                Size::new(pair[1] - pair[0], zone.height),
             ),
             Edge::Left => (
-                Point::new(strip.x + strip.width + at, strip.y),
-                Size::new(reach, strip.height),
+                Point::new(zone.x, pair[0]),
+                Size::new(zone.width, pair[1] - pair[0]),
             ),
         };
-        frame.fill_rectangle(position, size, Color::from_rgba(0.0, 0.0, 0.0, alpha));
+        // Eight stops, the most iced keeps: dense at first, then a tail.
+        let mut thinning = Linear::new(position, position + to);
+        for stop in 0..8 {
+            let t = stop as f32 / 7.0;
+            let k = 1.0 - t;
+            thinning = thinning.add_stop(
+                t,
+                Color {
+                    a: k * k * (3.0 - 2.0 * k),
+                    ..color
+                },
+            );
+        }
+        frame.fill_rectangle(position, size, thinning);
     }
 }
 

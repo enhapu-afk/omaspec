@@ -2,7 +2,7 @@
 //! what a missing picture says, and the bar under a play.
 
 use iced::widget::{Canvas, Stack, column, container};
-use iced::{Element, Font, Length};
+use iced::{Color, Element, Font, Length};
 use omaspec_theme::Palette;
 
 use super::frames::{Motion, Timed};
@@ -62,6 +62,7 @@ impl Paper {
             (Some(previous), _, _) => previous.pictures.first().map(|overview| {
                 let headings = canvas::Headings {
                     bands: &previous.map.bands,
+                    grounds: &previous.map.grounds,
                     diagram: previous.size,
                     view: mark_view,
                     glide: mark_glide,
@@ -71,6 +72,7 @@ impl Paper {
             (None, Some(diagram), Some(overview)) => {
                 let headings = canvas::Headings {
                     bands: &diagram.drawn.map.bands,
+                    grounds: &diagram.drawn.map.grounds,
                     diagram: diagram.size,
                     view: self.view,
                     glide: self.glide,
@@ -297,7 +299,12 @@ impl Paper {
                     play,
                     look: play::Look {
                         accent: ui::color(p.accent),
-                        veil: ui::color(p.background),
+                        // The picture's own paper: what is still to come
+                        // pales into it, on a white card as on a dark one.
+                        veil: Color {
+                            a: 1.0,
+                            ..overview.paper
+                        },
                         light: ui::color(p.bright_foreground),
                     },
                     over,

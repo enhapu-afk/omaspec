@@ -2652,6 +2652,17 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       the picture through; its words stand in a hole that the paper's
       color hides. The light on the box in focus follows its shape. A
       picture that marks no parts keeps the shapes the map knows.
+- [x] A play's veil has the color of the picture's own paper
+      (2026-11-17), as the focus's: what is still to come pales into the
+      paper, white on a white card. It was the window's dark over a
+      white card too, where a box with a fill of its own (which dims
+      toward that fill) stood out as a bright stripe.
+- [x] What scrolls under the participants held at the top fades out
+      (2026-11-17): the paper goes on for 30 pixels below the band and
+      thins out, in a box's own fill where the band lies over one
+      (`map.grounds`), so a message dissolves before it goes under the
+      band. It was cut off at the band's edge, with a gray shade of 6
+      pixels under it. The same beside a band held at the left.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 

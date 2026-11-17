@@ -3154,6 +3154,37 @@ fn snapshot_focus_looks() {
     shoot(&mut app, &dir, "focus-sketch");
 }
 
+/// Writes headless screenshots of a scenario's play in the file's own
+/// colors and in the theme's when OMASPEC_SNAPSHOT_DIR is set: four
+/// messages played, the rest under the veil, zoomed so that the paper is
+/// larger than the pane.
+#[test]
+fn snapshot_play_looks() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("play-looks");
+    let checkout = include_str!("../../../../examples/gallery/checkout.puml");
+    let file = work.join("checkout.puml");
+    std::fs::write(&file, checkout).unwrap();
+    for (colors, name) in [(false, "play-scenario-file"), (true, "play-scenario-theme")] {
+        let mut app = open(std::slice::from_ref(&file));
+        follow_theme(&mut app, colors);
+        show(&mut app, checkout, Language::PlantUml);
+        for _ in 0..4 {
+            let _ = app.doc_mut().paper.zoom(1.2);
+        }
+        let _ = app.update(Message::Command(Command::Play));
+        assert!(app.doc().paper.playing(), "{:?}", app.notice);
+        for _ in 0..4 {
+            let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Next)));
+        }
+        app.doc_mut().paper.freeze_play(Duration::from_secs(3));
+        shoot(&mut app, &dir, name);
+    }
+}
+
 /// Writes headless screenshots of a fold's glide when OMASPEC_SNAPSHOT_DIR
 /// is set (docs/adr/0024, addendum): as it starts, with the lines drawn
 /// over the pictures without them, and half way, the lines on their way
