@@ -198,7 +198,28 @@ fn plantuml_names(
     match (kind, read) {
         (Kind::Sequence, Some(omaspec_uml::Diagram::Sequence(d))) => sequence(&d.names, findings),
         (Kind::Sequence, _) => sequence(&written::plantuml_sequence(&rows()), findings),
-        (Kind::Activity, _) => swimlanes(&rows(), findings),
+        (Kind::Activity, read) => {
+            swimlanes(&rows(), findings);
+            // PlantUML ends a block left open with the diagram, and so
+            // does the engine, which says which ones.
+            if let Some(omaspec_uml::Diagram::Activity(d)) = read {
+                for (line, keyword) in &d.unclosed {
+                    // A `group {` is told by its brace already.
+                    if findings
+                        .iter()
+                        .any(|f| f.line == *line && f.code == "unclosed-block")
+                    {
+                        continue;
+                    }
+                    findings.push(Finding::new(
+                        "unclosed-block",
+                        *line,
+                        Severity::Warning,
+                        format!("Unclosed {keyword}"),
+                    ));
+                }
+            }
+        }
         (Kind::State, read) => {
             let by_pattern;
             let names = match read {
@@ -1063,6 +1084,25 @@ mod tests {
             )
             .is_empty()
         );
+    }
+
+    /// PlantUML draws a block left open, ended by the diagram, and so
+    /// does the engine: lint names the block, and no engine to install.
+    #[test]
+    fn a_block_left_open_is_a_warning_and_is_drawn() {
+        for (code, said) in [
+            (
+                "@startuml\nstart\nif (x) then (y)\n  :a;\nstop\n@enduml\n",
+                (2, Severity::Warning, "Unclosed if".to_owned()),
+            ),
+            (
+                "@startuml\nAlice -> Bob : hi\nalt ok\n  Bob -> Alice : yes\n@enduml\n",
+                (2, Severity::Warning, "Unclosed alt".to_owned()),
+            ),
+        ] {
+            assert!(omaspec_uml::render(code).is_ok(), "{code}");
+            assert_eq!(messages(code, Language::PlantUml), [said], "{code}");
+        }
     }
 
     #[test]

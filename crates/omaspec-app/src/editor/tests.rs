@@ -4166,14 +4166,14 @@ fn shown(file: &Path) -> App {
     act(&mut app, Action::PlaceCaret(at("else wrong")));
     act(&mut app, Action::DeleteLine);
     act(&mut app, Action::PlaceCaret(at("alt password")));
-    paste(&mut app, "User -> App : remember me\n");
+    paste(&mut app, "User -> App : remember me\nend\n");
     let key = app.doc().key;
     due(&mut app, Alarm::Lint(key));
     let mut renderer = omaspec_render::Renderer::new(&omaspec_render::Config {
         java_fallback: false,
         ..Default::default()
     });
-    // The `alt` has no `end`.
+    // An `end` before any group: a mistake PlantUML refuses too.
     let Err(err) = renderer.render(&app.doc().text(), Language::PlantUml) else {
         panic!("the unfinished login draws");
     };

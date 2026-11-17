@@ -27,6 +27,10 @@ pub struct Diagram {
     pub lanes: Vec<Lane>,
     pub flow: Flow,
     pub frame: Frame,
+    /// The blocks the diagram's end closed, as PlantUML closes them: the
+    /// zero-based line each opens at and its keyword, the innermost
+    /// first. Lint says so.
+    pub unclosed: Vec<(usize, &'static str)>,
 }
 
 /// `|Name|`, `|#color|Name|` or `|Name| shown`.

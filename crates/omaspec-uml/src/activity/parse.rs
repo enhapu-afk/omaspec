@@ -385,11 +385,21 @@ impl Parser {
     }
 
     fn finish(mut self) -> Result<Diagram, Declined> {
-        if let Some(open) = self.blocks.last() {
-            return Err(Declined::at(
-                open.line,
-                format!("`{}` has no `{}`", open.keyword(), open.closer()),
-            ));
+        // A block left open ends with the diagram, the innermost first, as
+        // PlantUML ends it: an `if` at its `endif`, a `repeat` back to its
+        // start without a test. Lint says which one is not closed.
+        let mut unclosed = Vec::new();
+        while let Some(open) = self.blocks.last() {
+            let no = open.line;
+            unclosed.push((no, open.keyword()));
+            match open.keyword() {
+                "if" => self.end_if(no)?,
+                "while" => self.end_while("", no)?,
+                "repeat" => self.end_repeat("", no)?,
+                "split" => self.end_parallel(Parallel::Split, no)?,
+                "fork" => self.end_parallel(Parallel::Fork, no)?,
+                _ => self.end_group(no)?,
+            }
         }
         if self.root.steps.is_empty() {
             return Err(Declined {
@@ -403,6 +413,7 @@ impl Parser {
             lanes: self.lanes,
             flow: self.root,
             frame: self.frame,
+            unclosed,
         })
     }
 
@@ -479,11 +490,15 @@ impl Parser {
     fn innermost(&self, keyword: &str, no: usize) -> Result<&Open, Declined> {
         match self.blocks.last() {
             Some(open) if open.keyword() == keyword => Ok(open),
-            Some(open) => Err(Declined::at(
+            // Mistakes PlantUML refuses too.
+            Some(open) => Err(Declined::refused(
                 no,
                 format!("`{}` needs its `{}` first", open.keyword(), open.closer()),
             )),
-            None => Err(Declined::at(no, format!("no `{keyword}` is open here"))),
+            None => Err(Declined::refused(
+                no,
+                format!("no `{keyword}` is open here"),
+            )),
         }
     }
 
@@ -765,7 +780,7 @@ impl Parser {
             unreachable!("checked by innermost");
         };
         if *otherwise {
-            return Err(Declined::at(no, format!("`{keyword}` after `else`")));
+            return Err(Declined::refused(no, format!("`{keyword}` after `else`")));
         }
         branches.push(std::mem::replace(current, branch));
         *otherwise = is_else;
@@ -1381,12 +1396,33 @@ mod tests {
         }
     }
 
+    /// PlantUML ends a block left open with the diagram, the innermost
+    /// first; the diagram is the one with every block closed, and says
+    /// which ones were not.
+    #[test]
+    fn a_block_left_open_ends_with_the_diagram() {
+        let open = diagram("start\nif (a)\n:x;\nelse\nwhile (b)\n:y;");
+        let closed = diagram("start\nif (a)\n:x;\nelse\nwhile (b)\n:y;\nendwhile\nendif");
+        assert_eq!(open.flow, closed.flow);
+        let keywords: Vec<&str> = open.unclosed.iter().map(|(_, k)| *k).collect();
+        assert_eq!(keywords, ["while", "if"]);
+        assert!(open.unclosed[0].0 > open.unclosed[1].0);
+        assert!(closed.unclosed.is_empty());
+        for source in [
+            "start\nrepeat\n:x;",
+            "start\nfork\n:x;\nfork again\n:y;",
+            "start\nsplit\n:x;",
+            "start\npartition P {\n:x;",
+        ] {
+            assert_eq!(diagram(source).unclosed.len(), 1, "{source}");
+        }
+    }
+
     #[test]
     fn declines_what_it_does_not_draw() {
         let deep = "if (x)\n".repeat(101);
         for (source, line, part) in [
             ("start\nendif", 1, "no `if` is open"),
-            ("if (a)\n:x;", 0, "`if` has no `endif`"),
             ("if (a)\nelse\nelse\nendif", 2, "`else` after `else`"),
             ("if (a)\nfork\nendif", 2, "`fork` needs its `end fork`"),
             ("while (a)\nrepeat while", 1, "`while` needs its `endwhile`"),

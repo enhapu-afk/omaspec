@@ -178,14 +178,14 @@ impl Parser {
             }
             "end" => {
                 if self.groups.pop().is_none() {
-                    return Err(Declined::at(no, "`end` without an open group"));
+                    return Err(Declined::refused(no, "`end` without an open group"));
                 }
                 self.diagram.items.push(Item::GroupEnd { line: no });
                 return Ok(at + 1);
             }
             "endbox" => {
                 if self.open_box.take().is_none() {
-                    return Err(Declined::at(no, "`end box` without a `box`"));
+                    return Err(Declined::refused(no, "`end box` without a `box`"));
                 }
                 return Ok(at + 1);
             }
@@ -353,16 +353,12 @@ impl Parser {
     }
 
     fn finish(mut self) -> Result<Diagram, Declined> {
-        if let Some(&(kind, line)) = self.groups.last() {
-            return Err(Declined::at(
-                line,
-                format!("`{}` has no `end`", kind.keyword()),
-            ));
+        // A group or a box left open ends with the diagram, as PlantUML
+        // ends it; lint says which one has no `end`.
+        while let Some((_, line)) = self.groups.pop() {
+            self.diagram.items.push(Item::GroupEnd { line });
         }
-        if self.open_box.is_some() {
-            let line = self.diagram.boxes.last().map_or(0, |b| b.line);
-            return Err(Declined::at(line, "`box` has no `end box`"));
-        }
+        self.open_box = None;
         if let Some((participant, line)) = self.pending_create {
             let code = &self.diagram.participants[participant].code;
             return Err(Declined::at(
@@ -1042,7 +1038,7 @@ impl Parser {
         }
         if let Some(rest) = keyword(text, "else") {
             if self.groups.is_empty() {
-                return Err(Declined::at(no, "`else` outside a group"));
+                return Err(Declined::refused(no, "`else` outside a group"));
             }
             self.diagram.items.push(Item::GroupElse {
                 label: (!rest.is_empty()).then(|| text_at(rest, no)),
@@ -2032,9 +2028,23 @@ mod tests {
                 "ref [1] two",
             ]
         );
-        let unclosed = declined("@startuml\nalt x\nA -> B\n@enduml");
-        assert_eq!(unclosed.line, Some(1));
-        assert!(unclosed.reason.contains("`alt` has no `end`"));
+        // A group left open ends with the diagram, as PlantUML ends it.
+        let ends = |source: &str| {
+            let d = diagram(source);
+            let count = |end: bool| {
+                d.items
+                    .iter()
+                    .filter(|item| match item {
+                        Item::GroupEnd { .. } => end,
+                        Item::GroupStart { .. } => !end,
+                        _ => false,
+                    })
+                    .count()
+            };
+            (count(false), count(true))
+        };
+        assert_eq!(ends("alt x\nA -> B\nloop y\nB -> A"), (2, 2));
+        assert_eq!(ends("alt x\nA -> B\nend"), (1, 1));
         assert!(declined("end").reason.contains("without an open group"));
         assert!(declined("else").reason.contains("outside a group"));
         assert!(declined("alt#Gold x\nend").reason.contains("group colors"));

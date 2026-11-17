@@ -738,7 +738,12 @@ fn from_sequence(d: &sequence::Diagram) -> Reading {
                 ..
             } => {
                 let (operator, guard) = match kind {
-                    GroupKind::Group => (text(label), text(secondary)),
+                    // PlantUML's XMI names a group by its label only where
+                    // a second one follows in brackets; a group with one
+                    // label is a `group` guarded by it.
+                    GroupKind::Group if secondary.is_some() => (text(label), text(secondary)),
+                    GroupKind::Group if label.is_some() => ("group".to_owned(), text(label)),
+                    GroupKind::Group => ("group".to_owned(), "group".to_owned()),
                     _ => (kind.keyword().to_owned(), text(label)),
                 };
                 open.push(groups.len());
