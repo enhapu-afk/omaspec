@@ -5,6 +5,7 @@
 //! as attachments, plus a title. The ZIP holds the SVG, the source file and
 //! that PDF. JPEG is the picture only.
 
+pub mod folding;
 mod glyphs;
 mod present;
 mod tiles;

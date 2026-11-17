@@ -2500,6 +2500,28 @@ is open and the reasoning around it.
       (`editor/animate.rs`; `Moving::text`, `file_colors`); the program's
       end waits for one that is being drawn. A diagram without a
       container, or one that plays, says so.
+- [x] A fold as a page, in vectors (2026-11-17): `omaspec play FILE -o
+      fold.html --fold Brewing,Ready`, and the menu's animation with a
+      name ending in `.html`, write one page as a presentation is
+      ([0031](adr/0031-a-presentation-as-one-page.md)), sharp at any size
+      and some 120 KB where the WebP has 4 MB. It holds the picture
+      before the first fold and the one after each, their parts marked
+      ([0029](adr/0029-a-glide-by-parts.md)), and the glide from each to
+      the next as the pane works it out (`paper::headless::fold_glide`:
+      `morph::plan_with`, `gather`, `wires::plan`), as data
+      (`omaspec_render::export::folding`). The script only walks it
+      (`Present.frame`, tested in Node): the sheet eases from one size to
+      the other, each box's own groups travel, the old picture under the
+      new, what goes fades before what comes, each line is drawn between
+      its two routes with its marks, its words with it; a part no box
+      takes that is in both pictures, as the title, travels too. Words
+      keep their size where a box changes its own. It plays by itself,
+      back and forth; → or a click steps, ← unfolds, Home plays again,
+      `#1` opens it folded and still. Drawn without a GPU. The first
+      and the last frame of a glide lie on the standing pictures (0.02 %
+      and 0.07 % of the pixels differ, at edges). A presentation's
+      picture in a look no longer has a white hairline at its edges: no
+      ground is laid under a picture that paints its own.
 
 ### Long and large diagrams, readable (2026-11-16)
 

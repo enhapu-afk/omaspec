@@ -103,7 +103,7 @@ const BAR: f32 = 90.0;
 pub fn play(args: &Moving) -> Result<String> {
     let film = Film::of(&args.output).with_context(|| {
         format!(
-            "{} is no picture that moves: .gif, .webp, or .png (an animated PNG)",
+            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold as a page)",
             args.output.display()
         )
     })?;
@@ -116,8 +116,12 @@ pub fn play(args: &Moving) -> Result<String> {
             Film::Gif => "a GIF",
             Film::Apng => "an animated PNG",
             Film::Webp => "a WebP",
+            Film::Page => "a page",
         }
     );
+    if film == Film::Page {
+        return fold_page(args);
+    }
     anyhow::ensure!(
         args.width.is_none_or(|width| (200..=4000).contains(&width)),
         "--width takes 200 to 4000"
@@ -144,6 +148,7 @@ pub fn play(args: &Moving) -> Result<String> {
         Film::Gif => stage.frames.encode(args.quality)?,
         Film::Apng => super::films::apng(&stage.frames, fps)?,
         Film::Webp => super::films::webp(&stage.frames, fps)?,
+        Film::Page => unreachable!("a page is written before a frame is drawn"),
     };
     crate::files::write_atomic(&args.output, &bytes)
         .with_context(|| format!("cannot write {}", args.output.display()))?;
@@ -155,6 +160,119 @@ pub fn play(args: &Moving) -> Result<String> {
         w,
         h,
         told
+    ))
+}
+
+/// Writes the fold of `args.folds` as a page that plays it in vectors
+/// ([`omaspec_render::export::folding`]): the picture before the first
+/// fold and the one after each, drawn here in the theme's colors with
+/// their parts marked, and the glide from each to the next as the pane
+/// works it out. Nothing is drawn in pixels, so it needs no GPU.
+fn fold_page(args: &Moving) -> Result<String> {
+    use omaspec_render::export::folding;
+
+    anyhow::ensure!(
+        !args.folds.is_empty() && args.dives.is_empty(),
+        "a page plays a fold: name the containers with --fold (a play as a page is \
+         `omaspec render FILE -o play.html`)"
+    );
+    let text = args.read()?;
+    let name = args
+        .file
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let language = args
+        .forced
+        .unwrap_or_else(|| detect(&text, Language::from_file_name(&name)));
+    let start = Start {
+        files: vec![args.file.clone()],
+        folder: None,
+        forced: args.forced,
+    };
+    let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
+    app.follow_theme = !args.file_colors;
+    let (source, _) = app.diagram_source(&text, language);
+    let place = Place::of(&args.file, None);
+    let mut renderer = Renderer::new(&crate::commands::render_config());
+    let mut maps = Vec::new();
+    let mut pictures = Vec::new();
+    for folded in 0..=args.folds.len() {
+        let asked = crate::worker::folded(
+            &source,
+            language,
+            &args.folds[..folded],
+            crate::worker::Views::default(),
+        );
+        let rendered = renderer
+            .render_at(&asked, language, place.as_ref())
+            .map_err(|err| anyhow::anyhow!("{err}"))?;
+        if folded == 0 {
+            let offered: Vec<&str> = rendered
+                .map
+                .places
+                .iter()
+                .filter(|place| place.frame)
+                .map(|place| place.name.as_str())
+                .collect();
+            for name in &args.folds {
+                anyhow::ensure!(
+                    offered.contains(&name.as_str()),
+                    "{name} is no container to fold; the diagram has {}",
+                    if offered.is_empty() {
+                        "none".to_owned()
+                    } else {
+                        offered.join(", ")
+                    }
+                );
+            }
+            anyhow::ensure!(
+                omaspec_uml::has_parts(&rendered.svg),
+                "this kind of diagram does not glide by its parts yet: write the fold as .webp, .png or .gif"
+            );
+        }
+        let size = omaspec_render::export::parse(&rendered.svg)
+            .map_err(|err| anyhow::anyhow!("{err}"))?
+            .size();
+        pictures.push(folding::Picture {
+            svg: rendered.svg,
+            size: (size.width(), size.height()),
+        });
+        maps.push(rendered.map);
+    }
+    let glides = maps
+        .windows(2)
+        .zip(pictures.windows(2))
+        .map(|(maps, pictures)| {
+            paper::headless::fold_glide(&maps[0], &maps[1], pictures[0].size, pictures[1].size)
+        })
+        .collect();
+    let (paper, accent) = crate::look::palette_stage(&app.palette);
+    let page = folding::page(
+        &folding::Folding {
+            names: args.folds.clone(),
+            pictures,
+            glides,
+            paper,
+            accent,
+        },
+        Some(omaspec_render::export::Source {
+            code: &text,
+            language,
+            file: Some(&name),
+        }),
+        name.rsplit_once('.')
+            .map_or(name.as_str(), |(stem, _)| stem),
+    )
+    .map_err(|err| anyhow::anyhow!("{err}"))?;
+    crate::files::write_atomic(&args.output, page.as_bytes())
+        .with_context(|| format!("cannot write {}", args.output.display()))?;
+    Ok(format!(
+        "{} → {} (a page, {} KB, {} folded and unfolded in vectors)",
+        args.file.display(),
+        args.output.display(),
+        page.len().div_ceil(1024),
+        args.folds.join(", ")
     ))
 }
 
@@ -283,7 +401,7 @@ impl Stage {
             frames: super::gifs::Frames::default(),
             delay: match film {
                 Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
-                Film::Apng | Film::Webp => 1,
+                Film::Apng | Film::Webp | Film::Page => 1,
             },
             tick,
             key,
@@ -841,6 +959,73 @@ mod tests {
         let webp = image_webp::WebPDecoder::new(std::io::Cursor::new(&bytes)).unwrap();
         assert!(webp.num_frames() >= 8, "{}", webp.num_frames());
         let err = play(&moving("Milk")).unwrap_err().to_string();
+        assert_eq!(err, "Milk is no container to fold; the diagram has Brewing");
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// A fold as a page: both pictures in it, each with ids of its own,
+    /// the glide between them as data, the source in the first, and no
+    /// address the page would fetch. A play is refused there.
+    #[test]
+    fn a_fold_is_a_page_in_vectors() {
+        let work = std::env::temp_dir().join(format!("omaspec-fold-page-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let text = "@startuml\n[*] --> Off\nstate Brewing {\n  [*] --> Grinding\n}\nOff --> Brewing : start\n@enduml\n";
+        let moving = |folds: &[&str]| Moving {
+            file: work.join("coffee.puml"),
+            text: Some(text.into()),
+            output: work.join("fold.html"),
+            events: Vec::new(),
+            steps: 0,
+            width: None,
+            fps: None,
+            folds: folds.iter().map(|f| (*f).to_owned()).collect(),
+            dives: Vec::new(),
+            whole: false,
+            theme: Some("built-in".into()),
+            file_colors: false,
+            forced: Some(Language::PlantUml),
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        };
+        let told = play(&moving(&["Brewing"])).unwrap();
+        assert!(
+            told.contains("Brewing folded and unfolded in vectors"),
+            "{told}"
+        );
+        let page = std::fs::read_to_string(work.join("fold.html")).unwrap();
+        assert_eq!(page.matches("<svg ").count(), 2);
+        assert!(page.contains(r#"id="p0-part-"#) && page.contains(r#"id="p1-part-"#));
+        assert!(!page.contains(r#"id="part-"#), "an id two pictures share");
+        assert!(page.contains("default-src 'none'"));
+        let kept = omaspec_core::embed::source_from_svg(&page).unwrap();
+        assert_eq!(kept.code, text);
+        let json = page
+            .split(r#"<script type="application/json" id="play">"#)
+            .nth(1)
+            .and_then(|rest| rest.split("</script>").next())
+            .unwrap();
+        let data: serde_json::Value = serde_json::from_str(json).unwrap();
+        assert_eq!(data["kind"], "fold");
+        assert_eq!(data["names"][0], "Brewing");
+        assert_eq!(data["sizes"].as_array().unwrap().len(), 2);
+        let boxes = data["glides"][0]["boxes"].as_array().unwrap();
+        // Brewing stays, another size; Grinding, inside it, leaves.
+        let part = |name: &str| format!("p0-{}-", omaspec_uml::part_id(name));
+        let of = |name: &str| {
+            boxes
+                .iter()
+                .find(|b| b["parts"][0] == part(name).as_str())
+                .unwrap_or_else(|| panic!("{name} in {boxes:?}"))
+        };
+        assert_eq!(of("state:Brewing")["role"], "stay");
+        assert_ne!(of("state:Brewing")["from"], of("state:Brewing")["to"]);
+        assert_eq!(of("state:Grinding")["role"], "leave");
+        assert!(!data["glides"][0]["lines"].as_array().unwrap().is_empty());
+
+        let err = play(&moving(&[])).unwrap_err().to_string();
+        assert!(err.starts_with("a page plays a fold"), "{err}");
+        let err = play(&moving(&["Milk"])).unwrap_err().to_string();
         assert_eq!(err, "Milk is no container to fold; the diagram has Brewing");
         let _ = std::fs::remove_dir_all(&work);
     }

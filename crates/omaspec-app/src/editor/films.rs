@@ -6,7 +6,8 @@
 //! each frame only the box around what differs from the one before, the
 //! pixels that stayed left clear in it, laid over what is shown. A WebP is
 //! the smaller file; an animated PNG is shown as a still picture by a
-//! viewer that does not know it moves.
+//! viewer that does not know it moves. A fold can also be a page that
+//! plays it in vectors ([`Film::Page`]).
 
 use std::path::Path;
 
@@ -20,6 +21,8 @@ pub enum Film {
     Gif,
     Apng,
     Webp,
+    /// A page that plays a fold in vectors ([`super::moving::fold_page`]).
+    Page,
 }
 
 impl Film {
@@ -30,6 +33,7 @@ impl Film {
             "gif" => Some(Film::Gif),
             "png" | "apng" => Some(Film::Apng),
             "webp" => Some(Film::Webp),
+            "html" | "htm" => Some(Film::Page),
             _ => None,
         }
     }
@@ -39,7 +43,7 @@ impl Film {
     pub fn usual_fps(self) -> u32 {
         match self {
             Film::Gif => 20,
-            Film::Apng | Film::Webp => 60,
+            Film::Apng | Film::Webp | Film::Page => 60,
         }
     }
 
@@ -48,7 +52,7 @@ impl Film {
     pub fn most_fps(self) -> u32 {
         match self {
             Film::Gif => 50,
-            Film::Apng | Film::Webp => 60,
+            Film::Apng | Film::Webp | Film::Page => 60,
         }
     }
 }
@@ -266,6 +270,7 @@ mod tests {
         assert_eq!(Film::of(Path::new("fold.PNG")), Some(Film::Apng));
         assert_eq!(Film::of(Path::new("fold.apng")), Some(Film::Apng));
         assert_eq!(Film::of(Path::new("a/fold.webp")), Some(Film::Webp));
+        assert_eq!(Film::of(Path::new("fold.html")), Some(Film::Page));
         assert_eq!(Film::of(Path::new("fold.mp4")), None);
         assert_eq!(Film::of(Path::new("fold")), None);
     }

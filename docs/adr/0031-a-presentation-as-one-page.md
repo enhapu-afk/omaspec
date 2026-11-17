@@ -63,3 +63,22 @@ offers the first of them; an option past them is shown but leads nowhere.
 The page is as large as its picture and a few kilobytes more. Its script
 is tested by the data it is given (`present` in `omaspec-render`) and,
 where Node is installed, by running it.
+
+## Addendum, 2026-11-17: a fold is a page too
+
+`omaspec play FILE -o fold.html --fold NAME` writes the same kind of page
+for a fold. It holds one picture for each step (nothing folded, then one
+container more each time), drawn with their parts marked
+([0029](0029-a-glide-by-parts.md)), each with ids of its own (`p0-`,
+`p1-`), and the glide between each two as the pane plans it: the boxes
+with their places before and after and whether they stay, go or come, the
+lines with their routes. Point 2 holds: the planning is the pane's own
+code, called once when the page is written; the script has one function
+that says where everything is at a moment of the glide (`Present.frame`)
+and draws that with the pictures' own groups. What it measures itself is
+only where a group of words lies in its picture, which the browser knows
+and the map does not say.
+
+A box that changes its size is stretched to its place of the moment, its
+words moved and not stretched; the pane keeps a box's corners instead,
+from a picture of it. That is the one thing the page does more simply.

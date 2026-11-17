@@ -244,11 +244,19 @@ pub fn source_from_svg(svg: &str) -> Option<Source> {
         Ok(None) => {}
         // A page is no XML; the SVG in it is.
         Err(()) => {
-            if let (Some(start), Some(end)) = (svg.find("<svg"), svg.rfind("</svg>"))
-                && start < end
-                && let Ok(Some(source)) = own_source(&svg[start..end + "</svg>".len()])
-            {
-                return Some(source);
+            // Its one picture, to the last end of one; where it has
+            // several side by side, as a fold's page, the first of them.
+            let start = svg.find("<svg");
+            let ends = [
+                svg.rfind("</svg>"),
+                start.and_then(|start| svg[start..].find("</svg>").map(|end| start + end)),
+            ];
+            for end in ends.into_iter().flatten() {
+                if let Some(start) = start.filter(|start| *start < end)
+                    && let Ok(Some(source)) = own_source(&svg[start..end + "</svg>".len()])
+                {
+                    return Some(source);
+                }
             }
         }
     }

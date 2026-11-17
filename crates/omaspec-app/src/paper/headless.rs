@@ -67,3 +67,72 @@ impl Paper {
         self.viewport
     }
 }
+
+/// The glide from the picture `old` is of to the one `new` is of, as the
+/// pane works it out when a container folds ([`super::morph`],
+/// [`super::wires`]), for a page that plays it in vectors
+/// ([`omaspec_render::export::folding`]). The sizes are the pictures' own.
+/// Empty where no box moved, came or went.
+pub fn fold_glide(
+    old: &omaspec_uml::map::Map,
+    new: &omaspec_uml::map::Map,
+    old_size: (f32, f32),
+    new_size: (f32, f32),
+) -> omaspec_render::export::folding::Glide {
+    use omaspec_render::export::folding;
+
+    use super::morph::{self, Role};
+
+    let size = |(w, h): (f32, f32)| Size::new(w, h);
+    let Some(mut morph) = morph::plan_with(
+        &morph::sides_of(old),
+        &morph::sides_of(new),
+        size(old_size),
+        size(new_size),
+        true,
+    ) else {
+        return folding::Glide::default();
+    };
+    morph::gather(&mut morph, old, new);
+    let lines = super::wires::plan(old, new, &morph.moves);
+    let rect = |r: iced::Rectangle| [r.x, r.y, r.width, r.height];
+    let role = |role: Role| match role {
+        Role::Stay => folding::Role::Stay,
+        Role::Arrive => folding::Role::Arrive,
+        Role::Leave => folding::Role::Leave,
+    };
+    let color = |c: iced::Color| {
+        let [r, g, b, _] = c.into_rgba8();
+        omaspec_uml::Color(r, g, b)
+    };
+    let route = |shape: super::wires::Shape| folding::Route {
+        points: shape.points,
+        heads: shape.heads,
+    };
+    folding::Glide {
+        boxes: morph
+            .moves
+            .into_iter()
+            .map(|step| folding::Moved {
+                parts: step.parts,
+                from: rect(step.from),
+                to: rect(step.to),
+                role: role(step.role),
+                into: step.into.map(|(was, is)| (rect(was), rect(is))),
+            })
+            .collect(),
+        lines: lines
+            .lines
+            .into_iter()
+            .map(|line| folding::Line {
+                from: line.from.map(route),
+                to: line.to.map(route),
+                colors: [color(line.colors.0), color(line.colors.1)],
+                width: line.width,
+                dash: line.dash,
+                fold: line.fold.map(role),
+                words: line.words,
+            })
+            .collect(),
+    }
+}

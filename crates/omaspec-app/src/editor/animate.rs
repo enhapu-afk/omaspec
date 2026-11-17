@@ -102,9 +102,9 @@ impl App {
                 .map(|name| name.to_string_lossy().into_owned())
                 .unwrap_or_default(),
             kind: (
-                "Animation (WebP, animated PNG, GIF)".into(),
+                "Animation (WebP, animated PNG, GIF, or a page)".into(),
                 String::new(),
-                "*.webp *.png *.apng *.gif".into(),
+                "*.webp *.png *.apng *.gif *.html".into(),
             ),
             choices: vec![file_dialog::Choice {
                 id: FOLD.into(),

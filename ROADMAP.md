@@ -595,11 +595,12 @@ syntax is an `@start…` block, as signal flow is, and the portability lint
 says that PlantUML does not know it. In this order, as each one builds on
 the one before:
 
-- [ ] A fold and an unfold in the HTML page as vectors, sharp at any
-      size. (The full color and the menu's *Export as › Animation…* are
-      in docs/DONE.md.) The animation from the menu is drawn in the
-      editor's own process, on a second GPU device; in a real window it
-      is not tried yet.
+- [ ] Left from the fold as a moving picture (in docs/DONE.md): the
+      animation from the menu is drawn in the editor's own process, on a
+      second GPU device, and is not tried in a real window yet; a fold's
+      page was looked at in Chromium alone, not in Firefox or Safari; in
+      the page a box that changes its size is stretched (its words are
+      not), where the pane keeps its corners.
 - [ ] Orbit: a state machine's life cycle on a circle, the way through
       it round the ring, a way back as an arc inside it, an end where
       the ring opens, from the machines that are there with no syntax

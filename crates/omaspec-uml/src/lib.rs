@@ -64,7 +64,7 @@ pub use common::{Mention, lines_away};
 pub use icons::{open_iconic_names, unknown_open_iconic};
 pub use svg::{
     Align, Canvas, FACE, GRID, HAND_FONT, ICON, INTER_FACES, LINES, Layer, MONO_FACES, PART,
-    SANS_FACES, SERIF_FACES, Stroke, card_part, faces, has_parts, part_groups, part_name,
+    SANS_FACES, SERIF_FACES, Stroke, card_part, faces, has_parts, part_groups, part_id, part_name,
     place_part, unmarked, without_lines, without_parts, words_part,
 };
 pub use text::{

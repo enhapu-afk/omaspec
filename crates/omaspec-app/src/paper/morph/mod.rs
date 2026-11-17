@@ -134,24 +134,27 @@ const LINE_IN: f32 = 0.55;
 /// The named boxes of `diagram`, in the picture's units. A start or an end
 /// travels too: it would otherwise vanish with the lines and pop back.
 pub fn sides(diagram: &Diagram) -> Vec<Side> {
-    let mut out: Vec<Side> = diagram
-        .drawn
-        .map
+    sides_of(&diagram.drawn.map)
+}
+
+/// [`sides`] of the picture `map` is of.
+pub fn sides_of(map: &omaspec_uml::map::Map) -> Vec<Side> {
+    let mut out: Vec<Side> = map
         .places
         .iter()
         .filter(|place| !place.name.is_empty() && !place.name.starts_with('['))
         .map(|place| {
             // The part of the state drawn at the place: a history mark is
             // `Brewing[H]` on the map and a mark among the parts.
-            let part = map_part(&diagram.drawn.map, place);
+            let part = map_part(map, place);
             Side {
                 anchored: place.fixed,
                 ..side_at(&place.name, &part, place.rect)
             }
         })
         .collect();
-    push_marks(diagram, omaspec_uml::map::Shape::Start, "start", &mut out);
-    push_marks(diagram, omaspec_uml::map::Shape::End, "end", &mut out);
+    push_marks(map, omaspec_uml::map::Shape::Start, "start", &mut out);
+    push_marks(map, omaspec_uml::map::Shape::End, "end", &mut out);
     out
 }
 
@@ -185,10 +188,13 @@ fn side_at(name: &str, part: &str, rect: omaspec_uml::graph::Rect) -> Side {
 /// Starts, or ends, each named by the state it sits in and its place
 /// among that state's, so the same dot matches next time: a start that
 /// folds away with its state is never taken for one beside it.
-fn push_marks(diagram: &Diagram, shape: omaspec_uml::map::Shape, label: &str, out: &mut Vec<Side>) {
-    let marks: Vec<_> = diagram
-        .drawn
-        .map
+fn push_marks(
+    map: &omaspec_uml::map::Map,
+    shape: omaspec_uml::map::Shape,
+    label: &str,
+    out: &mut Vec<Side>,
+) {
+    let marks: Vec<_> = map
         .states
         .iter()
         .filter(|spot| spot.shape == shape && spot.rect.w >= 1.0 && spot.rect.h >= 1.0)

@@ -1325,7 +1325,7 @@ fn an_animation_asks_for_its_file_and_its_container() {
         (asked.folder.as_path(), asked.name.as_str()),
         (dir.as_path(), "coffee-fold.webp")
     );
-    assert_eq!(asked.kind.2, "*.webp *.png *.apng *.gif");
+    assert_eq!(asked.kind.2, "*.webp *.png *.apng *.gif *.html");
     let fold = &asked.choices[0];
     assert_eq!((fold.id.as_str(), fold.initial.as_str()), ("fold", "Ready"));
     let names: Vec<&str> = fold.options.iter().map(|(key, _)| key.as_str()).collect();

@@ -50,12 +50,23 @@ pub fn page(svg: &str, play: Option<Play>, source: Option<Source>, title: &str) 
         None => json!({ "kind": "picture" }),
     };
     let (paper, accent) = play.map_or_else(|| stage(&LIGHT), |p| (p.paper, p.accent));
-    let ink = ink_on(paper);
     // The source as an SVG export keeps it, which `omaspec extract` reads.
     let svg = match source {
         Some(s) => embed::svg_with_source(svg, s.code, s.language, s.file),
         None => svg.to_owned(),
     };
+    written(&svg, &data, (paper, accent), title)
+}
+
+/// The page around the pictures `svg` (one, or several one after
+/// another) that plays `data`, on `paper` with its light in `accent`.
+pub(super) fn written(
+    svg: &str,
+    data: &Value,
+    (paper, accent): (Color, Color),
+    title: &str,
+) -> String {
+    let ink = ink_on(paper);
     let mut out = String::with_capacity(svg.len() + SCRIPT.len() + 4096);
     out.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
     // Nothing from anywhere: what the page shows is in it.
@@ -70,7 +81,7 @@ pub fn page(svg: &str, play: Option<Play>, source: Option<Source>, title: &str) 
         "<style>\n:root {{ --paper: {paper}; --ink: {ink}; --accent: {accent}; }}\n{STYLE}</style>\n"
     ));
     out.push_str("</head>\n<body>\n<main id=\"diagram\">\n");
-    out.push_str(&svg);
+    out.push_str(svg);
     out.push_str("\n</main>\n<nav id=\"bar\" aria-live=\"polite\"></nav>\n");
     out.push_str(&format!(
         "<script type=\"application/json\" id=\"play\">{}</script>\n",
@@ -442,6 +453,41 @@ assert.strictEqual(m.take(1), null); assert.strictEqual(m.take(5), null); assert
 assert.deepStrictEqual(m.take(0), [[1], [2, 3]]); assert.strictEqual(m.here().at, "Open");
 m.take(0); assert.strictEqual(m.place, 0); assert.ok(m.back()); assert.strictEqual(m.place, 1);
 assert.ok(m.back()); assert.ok(!m.back()); m.go(1); m.home(); assert.strictEqual(m.place, 0);
+// A glide: the first frame is the picture before, the last the new one.
+const glide = {{
+  boxes: [
+    {{parts: ["a", "b"], from: [10, 10, 40, 20], to: [60, 30, 20, 20], role: "stay", into: null}},
+    {{parts: ["c", "c"], from: [0, 0, 10, 10], to: [0, 0, 10, 10], role: "leave", into: null}},
+    {{parts: ["d", "d"], from: [5, 5, 10, 10], to: [5, 5, 10, 10], role: "arrive", into: null}},
+  ],
+  lines: [
+    {{from: {{points: [[0, 0], [10, 0]], heads: []}}, to: {{points: [[0, 10], [20, 10]], heads: []}}, colors: ["red", "blue"], width: 1, dash: null, fold: null, words: [[null, null, null], [null, null, null]]}},
+    {{from: {{points: [[0, 0], [10, 0]], heads: []}}, to: null, colors: ["red", "red"], width: 1, dash: null, fold: null, words: [[null, null, null], [null, null, null]]}},
+  ],
+}};
+const sizes = [[100, 50], [200, 50]];
+const view = [400, 200];
+const first = P.frame(glide, sizes, view, 0);
+const last = P.frame(glide, sizes, view, 1);
+const mid = P.frame(glide, sizes, view, 0.5);
+// 100 by 50 fits 400 by 200 four times as large; 200 by 50 twice, in the middle.
+assert.deepStrictEqual(first.paper, [0, 0, 400, 200]);
+assert.deepStrictEqual(last.paper, [0, 50, 400, 100]);
+assert.deepStrictEqual(first.boxes[0], {{rect: [40, 40, 160, 80], old: 1, now: 0, scale: 4}});
+assert.deepStrictEqual(last.boxes[0], {{rect: [120, 110, 40, 40], old: 1, now: 1, scale: 2}});
+assert.deepStrictEqual(first.grounds, [1, 0]); assert.deepStrictEqual(last.grounds, [0, 1]);
+assert.deepStrictEqual(mid.grounds, [0, 0]);
+assert.strictEqual(first.boxes[1].old, 1); assert.strictEqual(last.boxes[1].old, 0);
+assert.strictEqual(first.boxes[2].now, 0); assert.strictEqual(last.boxes[2].now, 1);
+assert.deepStrictEqual(first.lines[0].points, [[0, 0], [40, 0]]);
+assert.deepStrictEqual(last.lines[0].points, [[0, 70], [40, 70]]);
+assert.strictEqual(first.lines[0].color, "red"); assert.strictEqual(last.lines[0].color, "blue");
+assert.strictEqual(first.lines[1].alpha, 1); assert.strictEqual(mid.lines[1].alpha, 0);
+// Words a line keeps travel, the new over the old; others go with their picture.
+const kept = P.words(glide.lines[0], [0, 0, 10, 5], [10, 0, 10, 5], sizes, view, 0.5);
+assert.deepStrictEqual(kept.old.rect, kept.now.rect); assert.strictEqual(kept.old.alpha, 1); assert.strictEqual(kept.now.alpha, 0.5);
+const lost = P.words(glide.lines[1], [0, 0, 10, 5], null, sizes, view, 0);
+assert.strictEqual(lost.now, null); assert.strictEqual(lost.old.alpha, 1);
 console.log("stepped");
 "#,
             script = script.display().to_string()

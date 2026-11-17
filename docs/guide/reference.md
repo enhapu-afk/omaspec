@@ -74,7 +74,8 @@ the file's own source whatever the look.
 that moves, as `omaspec play --fold` does: the dialog asks beside the name which
 container (*Fold*), and the name's ending says what is written: `.webp` (full color,
 the smallest of the two without loss), `.png` (an animated PNG) or `.gif` (256 colors,
-about half the size). It is drawn in the background from the text in the tab, saved or
+about half the size), or `.html`: a page that plays the fold in vectors, sharp at any
+size and a fraction of the others' size, by itself or step by step with → and ←. It is drawn in the background from the text in the tab, saved or
 not, and the status bar says when it is written; Omaspec waits for it before it quits.
 
 *Presentation* writes one HTML page that plays the diagram as the pane does, in any
@@ -726,6 +727,7 @@ omaspec render door.puml -o door.html --look dark   # a presentation: one page t
 omaspec render door.puml -o -  --format text   # its behavior, one fact a line, for an agent or a terminal; or -o door.txt
 omaspec play door.puml -o door.gif --events open,close   # the play as a GIF that moves, drawn as the window draws it; --steps, --width, --fps, --theme built-in; --colors 32 --lossy 15 a third smaller
 omaspec play coffee.puml -o fold.gif --fold Brewing      # a container folding to its box and unfolding again
+omaspec play coffee.puml -o fold.html --fold Brewing,Ready   # the folds as one page in vectors, played by a browser: sharp at any size, some 120 KB
 omaspec play coffee.puml -o fold.webp --fold Brewing     # the same in full color at 60 frames a second, without loss: an animated WebP, or .png an animated PNG; some twice a GIF's size
 omaspec play odyssey.puml -o odyssey.gif --steps 12      # a diagram too large to read whole: the view follows each step near enough to read, and ends on the whole; --whole keeps it whole
 omaspec play omaspec-project.toml -o map.gif --dive Orders,Checkout   # the project's map zooming into these tiles and back out

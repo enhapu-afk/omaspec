@@ -1295,8 +1295,9 @@ fn part_path(path: &[usize]) -> String {
         .join(".")
 }
 
-/// What the ids of the groups of the part `name` start with.
-fn part_id(name: &str) -> String {
+/// What the ids of the groups of the part `name` start with; a `-` and
+/// the group's layer follow.
+pub fn part_id(name: &str) -> String {
     let mut id = String::with_capacity(PART.len() + name.len() * 2);
     id.push_str(PART);
     for byte in name.bytes() {
