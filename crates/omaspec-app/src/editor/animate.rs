@@ -3,10 +3,10 @@
 //!
 //! The save dialog asks for the file and, beside its name, for the
 //! container; the file's ending says what is written (`.webp`, `.png` an
-//! animated PNG, `.gif`). Where no dialog answers, the bottom line asks,
-//! Tab taking the next container. The picture is drawn as `omaspec play
-//! --fold` draws it ([`super::moving`]), on a thread of its own, from the
-//! text in the tab, saved or not.
+//! animated PNG, `.gif`, or `.html` a page in vectors). Where no dialog
+//! answers, the bottom line asks, Tab taking the next container. The
+//! picture is drawn as `omaspec play --fold` draws it ([`super::moving`]),
+//! on a thread of its own, from the text in the tab, saved or not.
 
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
@@ -178,6 +178,15 @@ impl App {
             return Task::none();
         }
         let path = film_path(typed);
+        let Some(index) = self.docs.iter().position(|doc| doc.key == key) else {
+            self.prompt = None;
+            return Task::none();
+        };
+        // Asked again, the line still open, as an export's is.
+        if let Err(why) = self.export_target(index, &path) {
+            self.notice = Some(why);
+            return Task::none();
+        }
         if path.exists() && !overwrite {
             if let Some(prompt) = &mut self.prompt {
                 prompt.overwrite = true;
@@ -197,20 +206,15 @@ impl App {
     /// first where none is named) and writes it to `path`, in the
     /// background; [`Message::Exported`] says how it went.
     fn write_animation(&mut self, key: u64, path: PathBuf, fold: Option<String>) -> Task<Message> {
-        let Some(doc) = self.docs.iter().find(|doc| doc.key == key) else {
+        let Some(index) = self.docs.iter().position(|doc| doc.key == key) else {
             return Task::none();
         };
         let path = film_path(path);
-        if doc.path.as_deref() == Some(path.as_path()) {
-            self.notice = Some("that file is the diagram source; choose another name".into());
+        if let Err(why) = self.export_target(index, &path) {
+            self.notice = Some(why);
             return Task::none();
         }
-        if let Some(parent) = path.parent().filter(|dir| !dir.as_os_str().is_empty())
-            && !parent.is_dir()
-        {
-            self.notice = Some(format!("{} is not a folder", parent.display()));
-            return Task::none();
-        }
+        let doc = &self.docs[index];
         let containers = doc.paper.containers();
         let Some(fold) = fold
             .filter(|name| containers.contains(name))
@@ -235,6 +239,7 @@ impl App {
             whole: false,
             theme: None,
             file_colors: !self.follow_theme,
+            root: self.place_of(key).map(|place| place.root),
             forced: Some(doc.language),
             renderer: None,
             quality: super::gifs::Quality::default(),

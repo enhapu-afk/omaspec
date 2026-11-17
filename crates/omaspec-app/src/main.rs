@@ -883,6 +883,7 @@ fn main() -> ExitCode {
             theme,
             text: None,
             file_colors: false,
+            root: None,
             forced: lang.get(),
             renderer: None,
             quality: editor::gifs::Quality { colors, lossy },

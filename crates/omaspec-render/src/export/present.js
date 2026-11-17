@@ -207,7 +207,8 @@ if (typeof document !== "undefined") {
     const bare = !own || own === "transparent" || /^rgba\(.*,\s*0\)$/.test(own);
     /// Lays the ground under `picture`, whose own box is `size`; none
     /// under one that paints its whole box itself, as a picture in a look
-    /// does: the ground's edge would show around that paper.
+    /// does: the ground's edge would show around that paper. The color
+    /// the picture stands on.
     const grounded = (picture, size) => {
       const first = [...picture.children].find((el) => !["metadata", "style", "defs", "title"].includes(el.tagName));
       const length = (name) => (first.getAttribute(name) === null ? 0 : Number(first.getAttribute(name)));
@@ -216,13 +217,15 @@ if (typeof document !== "undefined") {
         && length("x") <= size.x && length("y") <= size.y
         && length("x") + length("width") >= size.x + size.width
         && length("y") + length("height") >= size.y + size.height;
-      if (painted) return null;
-      return picture.insertBefore(
-        make("rect", { x: size.x, y: size.y, width: size.width, height: size.height, fill: bare ? "#ffffff" : own }),
+      if (painted) return first.getAttribute("fill");
+      const fill = bare ? "#ffffff" : own;
+      picture.insertBefore(
+        make("rect", { x: size.x, y: size.y, width: size.width, height: size.height, fill }),
         picture.firstChild,
       );
+      return fill;
     };
-    grounded(svg, box);
+    const under = grounded(svg, box);
     const defs = make("defs", {}, svg);
     // In the picture's units: a straight line's own box has no height,
     // and a filter in its units drew nothing.
@@ -450,7 +453,8 @@ if (typeof document !== "undefined") {
       const calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const TOOK = 400;
       const HOLD = 900;
-      pictures.slice(1).forEach((picture) => grounded(picture, picture.viewBox.baseVal));
+      // What each picture stands on: a mark that is hollow is filled with it.
+      const unders = [under, ...pictures.slice(1).map((picture) => grounded(picture, picture.viewBox.baseVal))];
       /// What moves the groups around `group` in its picture: the
       /// `transform`s of those above it, the outermost first, as one text
       /// and as one matrix.
@@ -471,9 +475,11 @@ if (typeof document !== "undefined") {
       /// The groups of the part whose ids start with `prefix`.
       const groups = (picture, prefix) => [...picture.querySelectorAll(`[id^="${prefix}"]`)];
       /// Where a part lies in its picture: the box around its groups.
-      const lies = (picture, prefix) => {
+      const lies = (picture, prefix) => around(picture, groups(picture, prefix));
+      /// The box around `some` groups of `picture`, in its units.
+      const around = (picture, some) => {
         let found = null;
-        for (const group of groups(picture, prefix)) {
+        for (const group of some) {
           const b = group.getBBox();
           if (b.width <= 0 && b.height <= 0) continue;
           const { matrix } = lifted(picture, group);
@@ -504,7 +510,9 @@ if (typeof document !== "undefined") {
           const { text } = lifted(picture, group);
           const copy = group.cloneNode(true);
           const only = group.children.length > 0 && [...group.children].every((el) => el.tagName === "text");
-          const at = only && lies(picture, group.id);
+          // This group alone: the id of another of the part's may start
+          // with this one's (`…-1`, `…-12`).
+          const at = only && around(picture, [group]);
           const into = at ? make("g", { opacity: 0 }, wrap) : shapes;
           if (at) worded.push({ into, at });
           if (text) make("g", { transform: text }, into).appendChild(copy);
@@ -570,8 +578,10 @@ if (typeof document !== "undefined") {
         const top = make("svg", { id: "glide", viewBox: `0 0 ${view[0]} ${view[1]}` }, stage);
         const grounds = sides.map((picture, side) => {
           const ground = make("g", {}, top);
+          // A style holds for the whole page from where it is: the faces
+          // in it are not copied for each glide.
           for (const child of picture.children) {
-            if (child.tagName !== "defs" && child.tagName !== "metadata") ground.appendChild(child.cloneNode(true));
+            if (!["defs", "metadata", "style"].includes(child.tagName)) ground.appendChild(child.cloneNode(true));
           }
           for (const marked of [...ground.querySelectorAll("[id]")]) {
             if (marked.id === data.lines[index + side] || taken[side].has(prefixOf(marked.id))) marked.remove();
@@ -610,6 +620,8 @@ if (typeof document !== "undefined") {
         return {
           draw(t) {
             const now = Present.frame(moving, sizes, view, t);
+            // The ground of the picture nearer, as a mark changes with it.
+            const hollow = unders[index + (t < 0.5 ? 0 : 1)];
             grounds.forEach((ground, side) => {
               const [x, y, w, h] = now.paper;
               ground.setAttribute("opacity", now.grounds[side]);
@@ -638,7 +650,7 @@ if (typeof document !== "undefined") {
                 if (!head) return mark.setAttribute("opacity", 0);
                 set(mark, {
                   d: `M${head.points.map((p) => p.join(",")).join("L")}${head.closed ? "z" : ""}`,
-                  fill: head.fill === "ink" ? line.color : head.fill === "paper" ? paper : "none",
+                  fill: head.fill === "ink" ? line.color : head.fill === "paper" ? hollow : "none",
                   stroke: line.color,
                   "stroke-width": line.width,
                   "stroke-linejoin": "round",
@@ -668,8 +680,15 @@ if (typeof document !== "undefined") {
           span("help", auto ? "plays by itself · → or a click steps · F full screen" : "→ fold · ← unfold · Home plays again · F full screen"),
         );
       };
+      /// Stops the step that waits to be taken by itself.
+      const still = () => {
+        for (const timer of timers) clearTimeout(timer);
+        timers = [];
+      };
       const wait = () => {
         if (!auto) return;
+        // One step waits at a time: Home while one waits starts no second.
+        still();
         timers.push(setTimeout(() => {
           if (play.at === play.count) down = true;
           if (play.at === 0) down = false;
@@ -710,8 +729,7 @@ if (typeof document !== "undefined") {
       };
       const hand = (by) => {
         auto = false;
-        for (const timer of timers) clearTimeout(timer);
-        timers = [];
+        still();
         move(by);
         tell();
       };

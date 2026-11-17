@@ -3,11 +3,11 @@
 //! the handwriting face of a sketched diagram
 //! ([ADR 0023](../../../docs/adr/0023-sketch-look.md)).
 //!
-//! Both are subsets (SIL Open Font License, `fonts/OFL.txt` and
-//! `fonts/OFL-Inter.txt`). They are loaded into the font database usvg
-//! draws with, and written into an exported SVG as `@font-face`s, so a
-//! browser that has never heard of a face still sets the words in it. The
-//! picture on screen does not carry those bytes.
+//! Both are subsets (SIL Open Font License, `fonts/OFL.txt`, which covers
+//! the two). They are loaded into the font database usvg draws with, and
+//! written into an exported SVG as `@font-face`s, so a browser that has
+//! never heard of a face still sets the words in it. The picture on screen
+//! does not carry those bytes.
 //!
 //! Inter comes in four cuts. The ones drawn with (`.ttf`) have Latin,
 //! Greek, Cyrillic, arrows and signs; the ones an SVG carries (`.woff2`,
@@ -75,11 +75,26 @@ pub fn load(fonts: &mut usvg::fontdb::Database) {
 /// `<svg>` tag: the handwriting face, and each cut of Inter that words
 /// are set in. The caller sanitizes the result, as any SVG it exports.
 pub fn embed(svg: &str) -> String {
+    embed_with(svg, &[])
+}
+
+/// [`embed`], with the faces the words of `others` ask for as well:
+/// pictures that stand in one page with `svg`, which carries the faces for
+/// all of them. A face is found by its family, so a cut only a later
+/// picture is set in would otherwise be drawn in a cut the first one has.
+pub fn embed_with(svg: &str, others: &[&str]) -> String {
+    let all = || std::iter::once(svg).chain(others.iter().copied());
     let mut faces = String::new();
-    if svg.contains(&format!("font-family=\"{HAND_FONT}\"")) {
+    let hand = format!("font-family=\"{HAND_FONT}\"");
+    if all().any(|svg| svg.contains(&hand)) {
         faces.push_str(&HAND);
     }
-    let used = cuts(svg);
+    let mut used = Vec::new();
+    for cut in all().flat_map(cuts) {
+        if !used.contains(&cut) {
+            used.push(cut);
+        }
+    }
     for (cut, face) in CUTS.iter().zip(INTER.iter()) {
         if used.contains(&(cut.bold, cut.italic)) {
             faces.push_str(face);
@@ -223,6 +238,17 @@ mod tests {
         // A text without runs is set in the regular cut.
         let bare = picture(r#"<text font-family="Inter, sans-serif">Idle</text>"#);
         assert_eq!(cuts(&bare), [(false, false)]);
+
+        // A picture that stands in a page with others carries their cuts
+        // too, each once: a fold's box says in the regular cut what it
+        // holds, beside names that are all bold.
+        let bold = picture(&format!(
+            r#"<text font-family="{faces}"><tspan font-weight="bold">Idle</tspan></text>"#
+        ));
+        let carried = embed_with(&bold, &[&plain, &mixed]);
+        assert_eq!(carried.matches("@font-face").count(), 3, "{carried}");
+        assert!(carried.contains("font-weight:400;font-style:normal;"));
+        assert_eq!(embed_with(&bold, &[]), embed(&bold));
     }
 
     /// The cuts are the ones drawn with, whatever is installed, and each

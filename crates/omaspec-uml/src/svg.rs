@@ -1296,7 +1296,7 @@ fn part_path(path: &[usize]) -> String {
 }
 
 /// What the ids of the groups of the part `name` start with; a `-` and
-/// the group's layer follow.
+/// the group's number among the picture's follow.
 pub fn part_id(name: &str) -> String {
     let mut id = String::with_capacity(PART.len() + name.len() * 2);
     id.push_str(PART);

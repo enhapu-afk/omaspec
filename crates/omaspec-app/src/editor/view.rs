@@ -47,7 +47,7 @@ fn prompt_text(asking: Asking) -> (&'static str, &'static str, &'static str) {
         ),
         Asking::Animation => (
             "Export an animation",
-            "where to write it: .webp, .png or .gif",
+            "where to write it: .webp, .png, .gif or .html",
             "Enter exports · Tab the next container · Esc cancels",
         ),
         Asking::Export(format) => match format {

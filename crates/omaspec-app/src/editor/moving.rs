@@ -61,6 +61,10 @@ pub struct Moving {
     /// In the file's own colors, not the theme's, as the window draws it
     /// with *Diagram in Omarchy's colors* off.
     pub file_colors: bool,
+    /// The project the diagram is of, whose pinned look it is drawn in as
+    /// the pane draws it; `None` draws in the theme's colors, as
+    /// `omaspec play` does.
+    pub root: Option<PathBuf>,
     pub forced: Option<Language>,
     /// The renderer that draws (`tiny-skia`, without a GPU); `None` takes
     /// `ICED_TEST_BACKEND`, else the first that can.
@@ -79,6 +83,41 @@ impl Moving {
                 .with_context(|| format!("cannot read {}", self.file.display())),
         }
     }
+
+    /// The file's name, and the language of `text`: the one forced, else
+    /// what its words and the name say.
+    fn named(&self, text: &str) -> (String, Language) {
+        let name = self
+            .file
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let language = self
+            .forced
+            .unwrap_or_else(|| detect(text, Language::from_file_name(&name)));
+        (name, language)
+    }
+}
+
+/// Each of `names` is a container the diagram `offered` to fold; else
+/// which it has.
+fn offered_all<S: AsRef<str>>(names: &[String], offered: &[S]) -> Result<()> {
+    for name in names {
+        anyhow::ensure!(
+            offered.iter().any(|one| one.as_ref() == name),
+            "{name} is no container to fold; the diagram has {}",
+            if offered.is_empty() {
+                "none".to_owned()
+            } else {
+                offered
+                    .iter()
+                    .map(AsRef::as_ref)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            }
+        );
+    }
+    Ok(())
 }
 
 /// The frames the first picture may take to fade in, before the frames
@@ -177,14 +216,7 @@ fn fold_page(args: &Moving) -> Result<String> {
          `omaspec render FILE -o play.html`)"
     );
     let text = args.read()?;
-    let name = args
-        .file
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
-    let language = args
-        .forced
-        .unwrap_or_else(|| detect(&text, Language::from_file_name(&name)));
+    let (name, language) = args.named(&text);
     let start = Start {
         files: vec![args.file.clone()],
         folder: None,
@@ -192,7 +224,7 @@ fn fold_page(args: &Moving) -> Result<String> {
     };
     let (mut app, _) = App::themed(start, None, theme(args.theme.as_deref())?);
     app.follow_theme = !args.file_colors;
-    let (source, _) = app.diagram_source(&text, language);
+    let (source, _) = app.diagram_source_in(args.root.as_deref(), &text, language);
     let place = Place::of(&args.file, None);
     let mut renderer = Renderer::new(&crate::commands::render_config());
     let mut maps = Vec::new();
@@ -215,17 +247,7 @@ fn fold_page(args: &Moving) -> Result<String> {
                 .filter(|place| place.frame)
                 .map(|place| place.name.as_str())
                 .collect();
-            for name in &args.folds {
-                anyhow::ensure!(
-                    offered.contains(&name.as_str()),
-                    "{name} is no container to fold; the diagram has {}",
-                    if offered.is_empty() {
-                        "none".to_owned()
-                    } else {
-                        offered.join(", ")
-                    }
-                );
-            }
+            offered_all(&args.folds, &offered)?;
             anyhow::ensure!(
                 omaspec_uml::has_parts(&rendered.svg),
                 "this kind of diagram does not glide by its parts yet: write the fold as .webp, .png or .gif"
@@ -291,6 +313,8 @@ struct Stage {
     text: String,
     language: Language,
     file: PathBuf,
+    /// The project whose look the diagram is drawn in ([`Moving::root`]).
+    root: Option<PathBuf>,
 }
 
 impl Stage {
@@ -298,14 +322,7 @@ impl Stage {
     /// theme asked for.
     fn new(args: &Moving, film: Film, fps: u32) -> Result<Self> {
         let text = args.read()?;
-        let name = args
-            .file
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        let language = args
-            .forced
-            .unwrap_or_else(|| detect(&text, Language::from_file_name(&name)));
+        let (name, language) = args.named(&text);
         let project = name == omaspec_core::project::FILE;
         anyhow::ensure!(
             project || args.dives.is_empty(),
@@ -354,7 +371,15 @@ impl Stage {
             );
             map(&mut app, &screen, key)?;
         } else {
-            shown(&mut app, &screen, key, &text, language, &file)?;
+            shown(
+                &mut app,
+                &screen,
+                key,
+                &text,
+                language,
+                &file,
+                args.root.as_deref(),
+            )?;
         }
         // The width asked for, else twice the diagram's size up to
         // WIDEST; the height from the diagram, with room for the bar a play
@@ -408,6 +433,7 @@ impl Stage {
             text,
             language,
             file,
+            root: args.root.clone(),
         })
     }
 
@@ -496,17 +522,7 @@ impl Stage {
     /// camera follows its steps, and ends on the whole (REQ-071).
     fn fold(&mut self, names: &[String], follow: bool) -> Result<String> {
         let offered = self.app.doc().paper.containers();
-        for name in names {
-            anyhow::ensure!(
-                offered.contains(name),
-                "{name} is no container to fold; the diagram has {}",
-                if offered.is_empty() {
-                    "none".to_owned()
-                } else {
-                    offered.join(", ")
-                }
-            );
-        }
+        offered_all(names, &offered)?;
         self.run(HOLD, |_| false);
         let folds = names.iter().map(|name| (name, true));
         let unfolds = names.iter().rev().map(|name| (name, false));
@@ -540,6 +556,7 @@ impl Stage {
                 &self.text,
                 self.language,
                 &self.file,
+                self.root.as_deref(),
             )?;
             self.step(still);
             camera(self, Some(name));
@@ -656,14 +673,7 @@ fn rehearse(args: &Moving) -> Result<()> {
         return Ok(());
     }
     let text = args.read()?;
-    let name = args
-        .file
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
-    let language = args
-        .forced
-        .unwrap_or_else(|| detect(&text, Language::from_file_name(&name)));
+    let (_, language) = args.named(&text);
     let Some(machine) = omaspec_model::Machine::read(&text, language) else {
         return Ok(());
     };
@@ -784,8 +794,9 @@ fn shown(
     text: &str,
     language: Language,
     file: &std::path::Path,
+    root: Option<&std::path::Path>,
 ) -> Result<()> {
-    let (source, pending) = app.diagram_source(text, language);
+    let (source, pending) = app.diagram_source_in(root, text, language);
     let place = Place::of(file, None);
     let mut renderer = Renderer::new(&crate::commands::render_config());
     let rendered = renderer
@@ -847,6 +858,7 @@ mod tests {
                 whole: false,
                 theme: Some("built-in".into()),
                 file_colors: false,
+                root: None,
                 forced: None,
                 renderer: Some("tiny-skia"),
                 quality: super::super::gifs::Quality::default(),
@@ -897,6 +909,7 @@ mod tests {
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
+            root: None,
             forced: None,
             renderer: Some("tiny-skia"),
             quality: super::super::gifs::Quality::default(),
@@ -948,6 +961,7 @@ mod tests {
             whole: true,
             theme: Some("built-in".into()),
             file_colors: false,
+            root: None,
             forced: Some(Language::PlantUml),
             renderer: Some("tiny-skia"),
             quality: super::super::gifs::Quality::default(),
@@ -984,6 +998,7 @@ mod tests {
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
+            root: None,
             forced: Some(Language::PlantUml),
             renderer: Some("tiny-skia"),
             quality: super::super::gifs::Quality::default(),
@@ -1077,6 +1092,7 @@ mod tests {
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
+            root: None,
             forced: None,
             renderer: Some("tiny-skia"),
             quality: super::super::gifs::Quality::default(),

@@ -1381,6 +1381,22 @@ fn an_animation_asks_for_its_file_and_its_container() {
     assert_eq!(app.prompt.as_ref().unwrap().fold, "Ready");
     let _ = app.update(Message::PromptFold("Brewing".into()));
     assert_eq!(app.prompt.as_ref().unwrap().fold, "Brewing");
+    // A folder that is not there is said, the line still open to mend it.
+    let _ = app.update(Message::PromptInput(
+        dir.join("gone").join("fold.webp").display().to_string(),
+    ));
+    let _ = app.update(Message::PromptSubmit);
+    assert!(app.prompt.is_some(), "{:?}", app.notice);
+    assert!(
+        app.notice
+            .as_deref()
+            .is_some_and(|n| n.contains("not a folder")),
+        "{:?}",
+        app.notice
+    );
+    let _ = app.update(Message::PromptInput(
+        dir.join("coffee-fold.webp").display().to_string(),
+    ));
     let _ = app.update(Message::PromptSubmit);
     assert!(app.prompt.is_none());
     assert_eq!(

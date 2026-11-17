@@ -96,18 +96,24 @@ pub struct Route {
 }
 
 /// The page that plays `folding`, called `title`, the diagram's `source`
-/// in its first picture. Each picture is sanitized, its ids made its own;
-/// the first carries the faces the words are set in.
+/// in its first picture. Each picture's ids are made its own and it is
+/// sanitized; the first carries the faces the words of all of them are
+/// set in.
 pub fn page(folding: &Folding, source: Option<Source>, title: &str) -> Result<String, ExportError> {
     let mut pictures = String::new();
     for (at, picture) in folding.pictures.iter().enumerate() {
         let svg = if at == 0 {
-            crate::fonts::embed(&picture.svg)
+            let others: Vec<&str> = folding.pictures[1..]
+                .iter()
+                .map(|picture| picture.svg.as_str())
+                .collect();
+            crate::fonts::embed_with(&picture.svg, &others)
         } else {
             picture.svg.clone()
         };
-        let svg = crate::sanitize::sanitize(&svg).map_err(|e| ExportError::Svg(e.to_string()))?;
+        // Only the source is written after the picture is sanitized.
         let svg = crate::atlas::own_ids(&svg, &prefix(at));
+        let svg = crate::sanitize::sanitize(&svg).map_err(|e| ExportError::Svg(e.to_string()))?;
         let svg = match (at, source) {
             (0, Some(s)) => omaspec_core::embed::svg_with_source(&svg, s.code, s.language, s.file),
             _ => svg,

@@ -308,7 +308,7 @@ impl App {
 
     /// Why the export of the tab at `index` cannot go to `path`: it is the
     /// diagram's own source, or its folder is not there.
-    fn export_target(&self, index: usize, path: &Path) -> Result<(), String> {
+    pub(super) fn export_target(&self, index: usize, path: &Path) -> Result<(), String> {
         if self.docs[index].path.as_deref() == Some(path) {
             return Err("that file is the diagram source; choose another name".into());
         }
