@@ -645,22 +645,17 @@ it reads as a good developer's tool, not yet as an elegant one. What was
 set right the next day (a nested state's title in its band, a label
 between two lines, the comparison's switches, menus that name what
 applies, the field that replaces, round areas, a play's next steps, the
-sidebar's heading, a block left open) is in docs/DONE.md.
+sidebar's heading, a block left open, a menu's marks, the editor's scroll
+bar) is in docs/DONE.md.
 
 - [ ] A face of its own for the diagrams: the window is set in a modern
       monospace, the diagrams in bold Liberation Sans. A bundled face
       changes every diagram and every golden SVG, and the list of faces an
       SVG names (REQ-068) has to follow; waits for a decision.
-- [ ] Menus in fewer words (`Find in the project and all tabs`), and the
-      skin that applies marked in its submenu.
-- [ ] The focus on a box as a frame and a glow in every case: one way
-      fills the box in a dull tan; not reproduced yet.
-- [ ] A diagram in its file's colors in a dark window is a glaring white
-      card.
-- [ ] The editor's scroll bar, thick and gray (the widget under
-      `vendor/`).
-- [ ] The comparison in a real window: whether the pictures take the
-      pane's width, and B the colors of A.
+- [ ] In a real window, which the snapshots do not show: whether the
+      comparison's pictures take the pane's width and B the colors of A;
+      and the focus on a box, a frame and a glow in the snapshots, where
+      one view showed the box filled in a dull tan.
 - [ ] What is not there: a settings dialog, scroll bars or an overview
       in the diagram, a grip between the panes, a hint at each tool's
       icon, sizes of type in an order.

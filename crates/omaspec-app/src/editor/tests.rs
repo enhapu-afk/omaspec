@@ -1984,6 +1984,41 @@ fn the_preview_window_draws_no_line_by_hand() {
     assert!(paper.take_by_hand().is_none());
 }
 
+/// A menu marks the choice and the switch that is on: the skin the
+/// diagram has, its language, a setting of the View menu.
+#[test]
+fn a_menu_marks_what_is_on() {
+    let mut app = open(&[]);
+    let ticked = |app: &App, command: Command| {
+        let entry = table::TABLE.iter().find(|e| e.command == command).unwrap();
+        app.ticked(entry)
+    };
+    let skins = |app: &App| -> Vec<Pack> {
+        [Pack::Plain, Pack::Spec, Pack::Presentation, Pack::Omarchy]
+            .into_iter()
+            .filter(|pack| ticked(app, Command::Skin(Some(*pack))))
+            .collect()
+    };
+    assert!(skins(&app).is_empty());
+    press(&mut app, Command::Skin(Some(Pack::Spec)));
+    assert_eq!(skins(&app), [Pack::Spec]);
+    press(&mut app, Command::Skin(Some(Pack::Omarchy)));
+    assert_eq!(skins(&app), [Pack::Omarchy]);
+    press(&mut app, Command::Skin(None));
+    assert!(skins(&app).is_empty());
+    assert!(!ticked(&app, Command::Skin(None)));
+    // One language of the two, and a switch as it stands.
+    assert_ne!(
+        ticked(&app, Command::LanguagePlantUml),
+        ticked(&app, Command::LanguageMermaid)
+    );
+    let outline = ticked(&app, Command::Outline);
+    press(&mut app, Command::Outline);
+    assert_eq!(ticked(&app, Command::Outline), !outline);
+    // A command that is no switch has no mark.
+    assert!(!ticked(&app, Command::Save));
+}
+
 #[test]
 fn skin_packs_go_in_and_out_as_one_step() {
     let mut app = open(&[]);
@@ -6071,6 +6106,9 @@ fn snapshot_menu() {
     let _ = app.update(Message::MenuPoint(skin));
     let _ = app.update(Message::MenuPointChild(4));
     shoot(&mut app, &dir, "menu");
+    // View: its switches, each marked where it is on.
+    let _ = app.update(Message::OpenMenu(table::Menu::View));
+    shoot(&mut app, &dir, "menu-view");
 }
 
 /// The skin the menu points at shows in the pane before it is chosen,

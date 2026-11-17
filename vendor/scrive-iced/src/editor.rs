@@ -115,6 +115,8 @@ const LINE_HIGHLIGHT_A: f32 = 0.05;
 /// Exposed so app chrome (e.g. a floating find bar) can inset itself clear of
 /// the scrollbar lane.
 pub const SCROLLBAR_WIDTH: f32 = 12.0;
+/// Omaspec addition to scrive 0.3.0: how thick the thumb is drawn in its lane.
+const SCROLLBAR_PILL: f32 = 6.0;
 /// Minimum scrollbar thumb height (px), so a huge file still has a grabbable thumb.
 const SCROLLBAR_MIN_THUMB: f32 = 24.0;
 /// Height (px) of a scrollbar overview marker tick (diagnostics / find matches).
@@ -2013,7 +2015,9 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Editor<'_, Messag
                 }
             });
             let thumb = if state.scrollbar_grab.is_some() { SCROLLBAR_THUMB_ACTIVE } else { SCROLLBAR_THUMB };
-            fill(renderer, Rectangle { x: sb.x, y: sb.thumb_y, width: SCROLLBAR_WIDTH, height: sb.thumb_h }, thumb);
+            // Omaspec addition to scrive 0.3.0: a slim pill in the lane, as the
+            // window's other scrollers; the lane takes the pointer as before.
+            fill_rounded(renderer, Rectangle { x: sb.x + (SCROLLBAR_WIDTH - SCROLLBAR_PILL) / 2.0, y: sb.thumb_y, width: SCROLLBAR_PILL, height: sb.thumb_h }, thumb, SCROLLBAR_PILL / 2.0);
         }
 
         // Horizontal scrollbar thumb (bottom edge, only on horizontal overflow) —
@@ -2021,7 +2025,7 @@ impl<Message> Widget<Message, iced::Theme, iced::Renderer> for Editor<'_, Messag
         // track stops at the vertical bar, so the two meet at the corner cleanly.
         if let Some(hb) = self.hscrollbar(bounds, advance, line_h, scroll_x, state.scroll.rows(line_h)) {
             let thumb = if state.hscrollbar_grab.is_some() { SCROLLBAR_THUMB_ACTIVE } else { SCROLLBAR_THUMB };
-            fill(renderer, Rectangle { x: hb.thumb_x, y: hb.y, width: hb.thumb_w, height: SCROLLBAR_WIDTH }, thumb);
+            fill_rounded(renderer, Rectangle { x: hb.thumb_x, y: hb.y + (SCROLLBAR_WIDTH - SCROLLBAR_PILL) / 2.0, width: hb.thumb_w, height: SCROLLBAR_PILL }, thumb, SCROLLBAR_PILL / 2.0);
         }
 
         // Hover popup — a markdown box at the hovered word.

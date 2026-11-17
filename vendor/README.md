@@ -64,6 +64,9 @@ files keep their CRLF line endings.
   110 ms, faint and a little low at first. `CodeEditor::set_motion` and
   `Editor::motion` turn both off. The widget asks for frames while either
   runs, from its `RedrawRequested`.
+- `scrive-iced`: the scroll bars' thumbs are drawn as pills of 6 px in
+  their lanes of 12, as the window's other scrollers; the lanes take the
+  pointer as before.
 
 To see the changes:
 

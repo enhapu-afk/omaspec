@@ -2563,6 +2563,19 @@ is open and the reasoning around it.
       mistake PlantUML refuses too, and is said as one, without that
       advice.
 
+- [x] A menu marks what is on (2026-11-17): the skin the diagram has,
+      its language and each switch of the View menu carry a check in
+      the accent (`App::ticked`), so `Sidebar`, `Menu bar` and `Toolbar`
+      lost their `on/off`, and `Find in the project and all tabs…` is
+      `Find in the project…`. The snapshot `menu-view`.
+- [x] The editor's scroll bars are slim pills (2026-11-17), 6 units in
+      their lanes of 12, as the window's other scrollers; they were
+      thick gray bars. A change to the widget under `vendor/`.
+- [x] Looked at and left (2026-11-17): a diagram in its file's colors
+      is a white card in a dark window only where *Diagram in Omarchy's
+      colors* is turned off or the file has a skin, which is on by
+      default and the writer's choice.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 - [x] The engine and the binary type-check for Windows (2026-11-08): `cargo check

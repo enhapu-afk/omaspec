@@ -193,7 +193,7 @@ pub const TABLE: &[Entry] = &[
         Command::FindAll,
     )
     .menu(Edit)
-    .short("Find in the project and all tabs…")
+    .short("Find in the project…")
     .at(Spot::Editor),
     cmd("Replace in all tabs", "Ctrl+Shift+H", Command::ReplaceAll)
         .menu(Edit)
@@ -387,7 +387,8 @@ pub const TABLE: &[Entry] = &[
     .short("Outline beside the source"),
     cmd("Diagram theme: follow Omarchy", "", Command::FollowTheme)
         .menu(View)
-        .gap(),
+        .gap()
+        .short("Diagram in Omarchy's colors"),
     cmd("Collapse the block", "Ctrl+Shift+[", Command::Collapse)
         .menu(Edit)
         .gap()
@@ -539,21 +540,22 @@ pub const TABLE: &[Entry] = &[
     cmd("Previous tab", "Ctrl+PageUp", Command::PreviousTab).menu(View),
     cmd("Sidebar on/off", "Ctrl+B", Command::ToggleSidebar)
         .menu(View)
-        .gap(),
+        .gap()
+        .short("Sidebar"),
     cmd(
         "Menu bar on/off, as a tap on Alt",
         "",
         Command::ToggleMenuBar,
     )
     .menu(View)
-    .short("Menu bar on/off"),
+    .short("Menu bar"),
     cmd(
         "Toolbar over the diagram on/off",
         "",
         Command::ToggleToolbar,
     )
     .menu(View)
-    .short("Toolbar on/off"),
+    .short("Toolbar"),
     cmd(
         "Focus the area to the left",
         "Ctrl+Alt+Left",

@@ -493,7 +493,29 @@ impl App {
         }
     }
 
-    /// An entry's label, and its keys at the right.
+    /// Whether `entry` is a choice or a switch that is on now: the skin
+    /// the diagram has, its language, a setting of the View menu. A menu
+    /// marks it.
+    pub(super) fn ticked(&self, entry: &Entry) -> bool {
+        let doc = self.doc();
+        match entry.command {
+            Command::Skin(Some(pack)) => omaspec_core::skin::current(&doc.text()) == Some(pack),
+            Command::LanguagePlantUml => doc.language == omaspec_core::Language::PlantUml,
+            Command::LanguageMermaid => doc.language == omaspec_core::Language::Mermaid,
+            Command::Motion => self.look.motion,
+            Command::KeepBands => self.look.bands,
+            Command::JsonLayout => self.look.views.nested,
+            Command::StateTable => self.look.views.table,
+            Command::Outline => self.outline_shown,
+            Command::FollowTheme => self.follow_theme,
+            Command::ToggleSidebar => self.sidebar_open(),
+            Command::ToggleMenuBar => self.bar_shown,
+            Command::ToggleToolbar => self.toolbar,
+            _ => false,
+        }
+    }
+
+    /// An entry's label, a mark where it is on, and its keys at the right.
     fn entry_line<'a>(&'a self, entry: &Entry, chosen: bool) -> Element<'a, Message> {
         let p = &self.palette;
         let ink = if chosen {
@@ -507,6 +529,9 @@ impl App {
                 .clip(true)
                 .into(),
         ];
+        if self.ticked(entry) {
+            parts.push(self.label("✓", p.accent).into());
+        }
         if !entry.keys.is_empty() {
             parts.push(self.keys(entry.keys));
         }
