@@ -172,7 +172,13 @@ impl Writer {
                             format!("over {},{}", self.id(d, a), self.id(d, b))
                         }
                         NotePlace::Across => {
-                            let last = d.participants.len().saturating_sub(1);
+                            // Across nobody: the diagram draws nothing.
+                            let Some(last) = d.participants.len().checked_sub(1) else {
+                                return Err(self.refuse(
+                                    note.line,
+                                    "a note across the diagram needs a participant",
+                                ));
+                            };
                             format!("over {},{}", self.id(d, 0), self.id(d, last))
                         }
                         NotePlace::Message(_) => {
@@ -638,6 +644,16 @@ mod tests {
     use super::*;
 
     const SHOP: &str = "@startuml\ntitle Checkout\nactor Alice\nbox \"Back end\" #LightBlue\nparticipant Shop\ndatabase Store\nend box\nAlice -> Shop : order(cart)\nactivate Shop\nShop -> Store : reserve\nStore --> Shop : ok\nalt paid\nShop -> Alice : receipt\nelse declined\nShop ->x Alice : retry\nend\nloop every day\nShop ->> Store : sync\nend\nnote over Shop, Store : nightly\ndeactivate Shop\n== later ==\n@enduml\n";
+
+    /// Found by fuzzing (2026-11-18): a note across a diagram without a
+    /// participant has nobody to stand over; it panicked.
+    #[test]
+    fn a_note_across_nobody_is_refused() {
+        let code = "@startuml\ntitle Events\nrnote across : a\n@enduml\n";
+        let err = both(code, Language::PlantUml, Language::Mermaid).unwrap_err();
+        assert_eq!(err.line, Some(2), "{err:?}");
+        assert!(err.reason.contains("needs a participant"), "{err:?}");
+    }
 
     #[test]
     fn a_plantuml_scenario_reads_the_same_in_mermaid_and_back() {

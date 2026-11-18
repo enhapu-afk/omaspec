@@ -186,7 +186,7 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
 
     // mmdr is young and has panicking code paths; a bad diagram must not
     // take the editor down with it.
-    let result = catch_unwind(AssertUnwindSafe(|| -> Result<Drawn, ParseError> {
+    let result = catch_unwind(AssertUnwindSafe(|| -> Result<Drawn, Refused> {
         // A directive that is no JSON is the error; then the front
         // matter's settings and the directives' over them.
         head::init(body)?;
@@ -232,6 +232,11 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
                 declined: None,
             });
         }
+        if let Some(name) = holds_itself(&parsed.graph) {
+            return Err(Refused::Said(format!(
+                "`{name}` holds itself: a box cannot stand inside itself"
+            )));
+        }
         let theme = without_our_face(&options.theme);
         let mut layout = compute_layout(&parsed.graph, &theme, &options.layout);
         repair::repair(&mut layout);
@@ -243,7 +248,12 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
     }));
     match result {
         Ok(Ok(drawn)) => Ok(drawn),
-        Ok(Err(err)) => {
+        Ok(Err(Refused::Said(message))) => Err(RenderError::Diagram {
+            engine: Engine::Mermaid,
+            line: None,
+            message,
+        }),
+        Ok(Err(Refused::Parse(err))) => {
             let (line, message) = failure::said(&err, body);
             Err(RenderError::Diagram {
                 engine: Engine::Mermaid,
@@ -256,6 +266,30 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
             message: "mmdr crashed on this diagram".into(),
         }),
     }
+}
+
+/// Why a Mermaid diagram is not drawn: what mmdr says of its text, or what
+/// Omaspec says of what mmdr read.
+enum Refused {
+    Parse(ParseError),
+    Said(String),
+}
+
+impl From<ParseError> for Refused {
+    fn from(err: ParseError) -> Self {
+        Refused::Parse(err)
+    }
+}
+
+/// The name of a container of `graph` that is among its own members: a
+/// state or a subgraph written inside itself. mmdr lays such a graph out
+/// on a grid without an end, some gigabytes of it (found by fuzzing,
+/// 2026-11-18), so it is refused before the layout.
+fn holds_itself(graph: &mermaid_rs_renderer::Graph) -> Option<&str> {
+    graph.subgraphs.iter().find_map(|subgraph| {
+        let id = subgraph.id.as_deref()?;
+        subgraph.nodes.iter().any(|node| node == id).then_some(id)
+    })
 }
 
 /// What a drawer gets: the theme, the text as mmdr would read it (a
@@ -913,6 +947,26 @@ fn error_line(err: &ParseError) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Found by fuzzing (2026-11-18): a state written inside itself, in a
+    /// diagram Omaspec's own engine declines, is refused by name; mmdr
+    /// took more than four gigabytes laying it out. The same state twice,
+    /// each time with states of its own, is drawn.
+    #[test]
+    fn a_state_inside_itself_is_refused_before_mmdr_lays_it_out() {
+        let nested = "stateDiagram-v1\n    direct] --> Draft\n    Draft --> Review : submit\n    state Review {\n        [*] --> Reading\n    Draft --> Review : again\n    state Review {\n        Reading --> Done\n";
+        match render(nested) {
+            Err(RenderError::Diagram { message, .. }) => {
+                assert_eq!(
+                    message,
+                    "`Review` holds itself: a box cannot stand inside itself"
+                );
+            }
+            other => panic!("{other:?}"),
+        }
+        let twice = "stateDiagram-v1\n    direct] --> Draft\n    state Review {\n        [*] --> A\n    }\n    state Review {\n        [*] --> B\n    }\n";
+        assert!(render(twice).is_ok());
+    }
 
     #[test]
     fn renders_a_sequence() {

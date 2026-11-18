@@ -257,6 +257,12 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] Two finds of the nightly fuzzing (2026-11-18). A Mermaid state or subgraph written
+      inside itself, in a diagram Omaspec's own engines decline, sent mmdr's label
+      placement onto a grid without an end, more than 4 GB of it; such a graph is refused
+      before mmdr's layout, by the box's name (`mermaid::holds_itself`). And a PlantUML
+      `note across` in a sequence diagram without a participant panicked the conversion
+      to Mermaid, which now refuses it on its line.
 - [x] V1 check state machines, in PlantUML (from the native parse) and Mermaid (from the
       reading the Mermaid drawer draws from). Transition labels read as UML writes
       them: `event [guard] / action`, several events with commas, line breaks as
