@@ -257,6 +257,12 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] Every mention of a participant lights its head (2026-11-18). The second mention
+      and every later one lit the foot of the lifeline, the second copy drawn, so a
+      click on a name in a message sent the light to the bottom of the diagram. A
+      drawer now says where it draws a name again for what is drawn already
+      (`Canvas::echo`, `Map::echoes`), and a pane counts the first drawing only; a
+      click on the foot lands where one on the head does
 - [x] *Color the box at the caret* colors the bar on a lifeline too (2026-11-18): with
       the caret on an `activate` line of a PlantUML sequence diagram the color is
       written after the participant (`activate Bob #f7768e`), another takes its

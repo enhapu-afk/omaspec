@@ -43,6 +43,11 @@ pub struct Map {
     /// on that line and that line's light on them, whatever else reads the
     /// same; words tied to no line are found by counting.
     pub tied: Vec<Tied>,
+    /// Where words are drawn a second time for what is drawn already
+    /// ([`crate::svg::Canvas::echo`]): the name at the foot of a sequence
+    /// diagram's lifeline, which repeats its head. They are no mention's
+    /// own: every mention of the name is the first one drawn.
+    pub echoes: Vec<Rect>,
     /// Parts of their own that lie inside a box, as a note inside a state:
     /// each part's name and that of the box's part. A glide draws such a
     /// part over its box, not under it.
@@ -402,6 +407,9 @@ impl Map {
         }
         for tied in &mut self.tied {
             tied.rect = fit.rect(tied.rect);
+        }
+        for echo in &mut self.echoes {
+            *echo = fit.rect(*echo);
         }
         for head in &mut self.heads {
             head.rect = fit.rect(head.rect);

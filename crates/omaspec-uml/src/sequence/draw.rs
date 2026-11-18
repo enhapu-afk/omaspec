@@ -62,6 +62,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
         messages: std::mem::take(&mut drawer.steps),
         grounds: std::mem::take(&mut drawer.grounds),
         tied: canvas.tied(),
+        echoes: canvas.echoes(),
         heads: if drawer.band.is_some() {
             std::mem::take(&mut drawer.heads)
         } else {
@@ -2008,10 +2009,13 @@ impl<'a> Drawer<'a> {
         // A participant's name is no one line's: many mention it, also
         // where a message's line creates it.
         let line = canvas.tie(None);
+        // At the foot it is the head's name again.
+        let before = canvas.echo(bottom);
         let mut name = (crate::graph::Rect::default(), None);
         canvas.linked(self.cols[c].link.as_ref(), &[Layer::Front], |canvas| {
             name = self.head_shape(canvas, c, top, bottom);
         });
+        canvas.echo(before);
         canvas.tie(line);
         name
     }

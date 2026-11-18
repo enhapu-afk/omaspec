@@ -46,14 +46,14 @@ fn words_one_line_draws_belong_to_that_line() {
             .unwrap()
     };
     let (head, first, divider, second, note) = (at(2), at(3), at(4), at(5), at(6));
-    // The declaration is the head; both messages, before the divider and
-    // after it, are the foot; the divider and the note are themselves.
+    // The declaration and both messages, before the divider and after
+    // it, are the head: the foot only repeats it. The divider and the
+    // note are themselves.
+    assert_eq!((first, second), (head, head));
     assert!(
-        head.y < divider.y && divider.y < first.y,
-        "{head:?} {divider:?} {first:?}"
+        head.y < divider.y && divider.y < note.y,
+        "{head:?} {divider:?} {note:?}"
     );
-    assert_eq!(first, second);
-    assert!(note.y > divider.y && note.y < first.y, "{note:?}");
     // And back: each copy drawn is written on its own line.
     let lines: Vec<Option<usize>> = paper
         .labels()
@@ -61,9 +61,11 @@ fn words_one_line_draws_belong_to_that_line() {
         .filter(|(text, ..)| text == "Payment")
         .map(|(.., line)| line)
         .collect();
+    // The head and the foot on the declaration, the divider and the
+    // note on their own lines.
     let mut sorted = lines.clone();
     sorted.sort_unstable();
-    assert_eq!(sorted, [Some(2), Some(3), Some(4), Some(6)], "{lines:?}");
+    assert_eq!(sorted, [Some(2), Some(2), Some(4), Some(6)], "{lines:?}");
 }
 
 #[test]

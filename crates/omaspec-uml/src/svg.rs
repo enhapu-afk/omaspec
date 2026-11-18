@@ -118,6 +118,9 @@ pub struct Canvas {
     tie: Option<usize>,
     /// The words drawn for a line, each where it stands.
     ties: Vec<crate::map::Tied>,
+    /// Words are being drawn again ([`Self::echo`]), and where such were.
+    echo: bool,
+    echoes: Vec<crate::graph::Rect>,
 }
 
 /// How far a shadow lies to the right of its shape and below it.
@@ -169,6 +172,8 @@ impl Canvas {
             groups: 0,
             tie: None,
             ties: Vec::new(),
+            echo: false,
+            echoes: Vec::new(),
         }
     }
 
@@ -469,6 +474,19 @@ impl Canvas {
         std::mem::replace(&mut self.tie, line)
     }
 
+    /// From here on, while `on`, the words drawn repeat what is drawn
+    /// already: a drawer says so where it draws one thing twice, as a
+    /// lifeline's foot after its head. The map tells them
+    /// ([`crate::map::Map::echoes`]), and a pane counts the first only.
+    pub fn echo(&mut self, on: bool) -> bool {
+        std::mem::replace(&mut self.echo, on)
+    }
+
+    /// Where words were drawn again so far ([`Self::echo`]), for the map.
+    pub fn echoes(&mut self) -> Vec<crate::graph::Rect> {
+        std::mem::take(&mut self.echoes)
+    }
+
     /// The words drawn for a line so far ([`Self::tie`]), for the map.
     pub fn tied(&mut self) -> Vec<crate::map::Tied> {
         std::mem::take(&mut self.ties)
@@ -698,21 +716,23 @@ impl Canvas {
         if block.is_empty() {
             return;
         }
-        if let Some(line) = self.tie {
+        if self.echo || self.tie.is_some() {
             let left = match align {
                 Align::Left => x,
                 Align::Center => x - block.width / 2.0,
                 Align::Right => x - block.width,
             };
-            self.ties.push(crate::map::Tied {
-                rect: crate::graph::Rect {
-                    x: left,
-                    y,
-                    w: block.width,
-                    h: block.height,
-                },
-                line,
-            });
+            let rect = crate::graph::Rect {
+                x: left,
+                y,
+                w: block.width,
+                h: block.height,
+            };
+            if self.echo {
+                self.echoes.push(rect);
+            } else if let Some(line) = self.tie {
+                self.ties.push(crate::map::Tied { rect, line });
+            }
         }
         let mut out = String::new();
         let _ = write!(
