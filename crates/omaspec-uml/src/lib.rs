@@ -410,7 +410,10 @@ pub fn render_mapped(
             }
             state::draw_mapped(&d)
         }
-        Diagram::Activity(d) => activity::draw_mapped(&d),
+        Diagram::Activity(mut d) => {
+            d.frame.parts = fold::parts(source);
+            activity::draw_mapped(&d)
+        }
         Diagram::MindMap(mut d) => {
             d.fold(&fold::read(source));
             d.frame.parts = fold::parts(source);

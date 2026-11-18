@@ -32,6 +32,9 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
     canvas.sketch(skin.sketch);
     canvas.shadows(skin.shadow);
+    if d.frame.parts {
+        canvas.mark_parts();
+    }
     let family = canvas.family();
     let annotations = Annotations::new(
         &d.frame,
@@ -128,21 +131,29 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
                     );
                 });
             }
-            canvas.text(
-                Layer::Front,
-                &titles[lane],
-                ((left + right) / 2.0, lanes_top),
-                Align::Center,
-            );
+            // A swimlane's name and each line between two are parts no
+            // box takes: they glide on their own (docs/adr/0029).
+            canvas.part(&format!("lane:{lane}"), |canvas| {
+                canvas.text(
+                    Layer::Front,
+                    &titles[lane],
+                    ((left + right) / 2.0, lanes_top),
+                    Align::Center,
+                );
+            });
             if lane == 0 {
-                canvas.line(Layer::Lifelines, (left, lanes_top), (left, bottom), stroke);
+                canvas.part("border:left", |canvas| {
+                    canvas.line(Layer::Lifelines, (left, lanes_top), (left, bottom), stroke);
+                });
             }
-            canvas.line(
-                Layer::Lifelines,
-                (right, lanes_top),
-                (right, bottom),
-                stroke,
-            );
+            canvas.part(&format!("border:{lane}"), |canvas| {
+                canvas.line(
+                    Layer::Lifelines,
+                    (right, lanes_top),
+                    (right, bottom),
+                    stroke,
+                );
+            });
         }
     }
 
@@ -151,11 +162,17 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
         dx: &dx,
         dy,
     };
-    for edge in &tile.edges {
-        painter.edge(&mut canvas, edge);
-    }
+    // Each shape in its part, and each line told to the map from the shape
+    // it leaves to the one it enters (docs/adr/0029).
+    let mut found = super::parts::Found::default();
     for shape in &tile.shapes {
-        painter.shape(&mut canvas, shape);
+        let part = found.shape(shape, painter.rect(shape));
+        canvas.part(&part, |canvas| painter.shape(canvas, shape));
+    }
+    for edge in &tile.edges {
+        if let Some((points, head)) = painter.edge(&mut canvas, edge) {
+            found.run(points, head, edge.stroke);
+        }
     }
     annotations.draw(&mut canvas);
     let titles = match (columns.first(), columns.last()) {
@@ -179,6 +196,8 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     };
     let map = crate::map::Map {
         bands: titles,
+        wires: found.wires(),
+        places: found.places,
         ..crate::map::Map::default()
     }
     .placed(canvas.fit(MARGIN));
@@ -237,12 +256,42 @@ impl Painter<'_> {
         out
     }
 
-    fn edge(&self, canvas: &mut Canvas, edge: &Edge) {
+    /// Where `shape` is drawn: its box, moved into its swimlane.
+    fn rect(&self, shape: &Shape) -> crate::graph::Rect {
+        let (left, top, right, bottom) = shape.bounds();
+        let (left, right) = match shape {
+            Shape::Bar { spans, .. } => spans
+                .iter()
+                .flat_map(|&(lo, hi, lane)| [self.at(lane, lo, 0.0).0, self.at(lane, hi, 0.0).0])
+                .fold((f32::INFINITY, f32::NEG_INFINITY), |(lo, hi), x| {
+                    (lo.min(x), hi.max(x))
+                }),
+            _ => {
+                let dx = self.at(shape.lane().unwrap_or(0), 0.0, 0.0).0;
+                (left + dx, right + dx)
+            }
+        };
+        crate::graph::Rect {
+            x: left,
+            y: top + self.dy,
+            w: (right - left).max(0.0),
+            h: bottom - top,
+        }
+    }
+
+    /// Draws `edge`; its points and those of its head, as drawn.
+    #[allow(clippy::type_complexity)]
+    fn edge(
+        &self,
+        canvas: &mut Canvas,
+        edge: &Edge,
+    ) -> Option<(Vec<(f32, f32)>, Option<Vec<(f32, f32)>>)> {
         let points = self.route(edge);
         if points.len() < 2 {
-            return;
+            return None;
         }
-        canvas.polyline(Layer::Frames, &points, edge.stroke);
+        canvas.polyline(Layer::Lines, &points, edge.stroke);
+        let mut drawn = None;
         if edge.head {
             let tip = points[points.len() - 1];
             let from = points[points.len() - 2];
@@ -252,7 +301,7 @@ impl Painter<'_> {
                 (len, vx / len.max(0.001), vy / len.max(0.001))
             };
             if len < 0.01 {
-                return;
+                return Some((points, None));
             }
             let back = (tip.0 - ux * HEAD_LENGTH, tip.1 - uy * HEAD_LENGTH);
             let side = (-uy * HEAD_HALF, ux * HEAD_HALF);
@@ -269,8 +318,10 @@ impl Painter<'_> {
             if !self.skin.strict {
                 head.push((tip.0 - ux * 6.0, tip.1 - uy * 6.0));
             }
-            canvas.polygon(Layer::Front, &head, Some(edge.stroke.color), Some(solid));
+            canvas.polygon(Layer::Lines, &head, Some(edge.stroke.color), Some(solid));
+            drawn = Some(head);
         }
+        Some((points, drawn))
     }
 
     fn shape(&self, canvas: &mut Canvas, shape: &Shape) {

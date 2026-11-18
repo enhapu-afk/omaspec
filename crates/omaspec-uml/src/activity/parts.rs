@@ -1,0 +1,351 @@
+//! What a pane needs of an activity diagram to glide its boxes and let
+//! them through a veil in their own shapes (docs/adr/0029): a name for
+//! each shape, the part it is drawn in, and each line from the shape it
+//! leaves to the one it enters.
+//!
+//! The layout knows no names: an action is its words, and a line runs from
+//! point to point, often to a point where lines meet and on from there. So
+//! a shape is named by its kind and its words, the second of the same name
+//! counted, and a line is followed through such points to the next shape:
+//! the line the map tells is the whole way from one shape to another.
+
+use std::collections::HashMap;
+
+use super::tile::Shape;
+use crate::graph::Rect;
+use crate::hand::{End, Key};
+use crate::map::{Head, HeadFill, Place, Wire};
+use crate::svg::Stroke;
+use crate::text::Block;
+
+/// How far from a shape's box a line may end and still end on it.
+const REACH: f32 = 1.5;
+/// How many ways through points where lines meet are followed for each
+/// line drawn, before the rest is told run by run.
+const WAYS: usize = 8;
+
+#[derive(Default)]
+pub(super) struct Found {
+    seen: HashMap<String, usize>,
+    pub places: Vec<Place>,
+    runs: Vec<Run>,
+}
+
+/// One line as drawn, between two points.
+struct Run {
+    points: Vec<(f32, f32)>,
+    head: Option<Vec<(f32, f32)>>,
+    stroke: Stroke,
+}
+
+/// Where a run ends: on a shape, or at a point.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+enum Node {
+    Shape(usize),
+    Point(i32, i32),
+}
+
+fn words(text: &Block) -> String {
+    text.lines
+        .iter()
+        .map(|line| {
+            line.runs
+                .iter()
+                .map(|run| run.text.as_str())
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+impl Found {
+    /// The part `shape`, drawn at `rect`, is drawn in. A shape a line may
+    /// end on is a place of the map; a partition and a label are parts
+    /// only.
+    pub fn shape(&mut self, shape: &Shape, rect: Rect) -> String {
+        let (kind, said, place) = match shape {
+            Shape::Box { text, .. } => ("action", words(text), true),
+            Shape::Diamond { text, .. } => ("test", words(text), true),
+            Shape::Start { .. } => ("start", String::new(), true),
+            Shape::Stop { .. } => ("stop", String::new(), true),
+            Shape::End { .. } => ("end", String::new(), true),
+            Shape::Bar { .. } => ("bar", String::new(), true),
+            Shape::Note { text, .. } => ("note", words(text), false),
+            Shape::Frame { title, .. } => ("partition", words(title), false),
+            Shape::Label { text, .. } => ("label", words(text), false),
+        };
+        let mut name = if said.is_empty() {
+            kind.to_owned()
+        } else {
+            format!("{kind}:{said}")
+        };
+        let nth = self.seen.entry(name.clone()).or_insert(0);
+        *nth += 1;
+        if *nth > 1 {
+            name.push_str(&format!(" #{nth}"));
+        }
+        if place {
+            self.places.push(Place {
+                name: name.clone(),
+                rect,
+                within: Vec::new(),
+                across: false,
+                entry: None,
+                frame: false,
+                fixed: true,
+                part: Some(name.clone()),
+            });
+        }
+        name
+    }
+
+    /// A line as drawn, with its head.
+    pub fn run(&mut self, points: Vec<(f32, f32)>, head: Option<Vec<(f32, f32)>>, stroke: Stroke) {
+        self.runs.push(Run {
+            points,
+            head,
+            stroke,
+        });
+    }
+
+    fn node(&self, (x, y): (f32, f32)) -> Node {
+        self.places
+            .iter()
+            .enumerate()
+            .filter(|(_, place)| {
+                let r = place.rect;
+                x >= r.x - REACH
+                    && x <= r.x + r.w + REACH
+                    && y >= r.y - REACH
+                    && y <= r.y + r.h + REACH
+            })
+            .min_by(|(_, a), (_, b)| (a.rect.w * a.rect.h).total_cmp(&(b.rect.w * b.rect.h)))
+            .map_or(
+                Node::Point((x * 2.0).round() as i32, (y * 2.0).round() as i32),
+                |(at, _)| Node::Shape(at),
+            )
+    }
+
+    /// The lines from shape to shape: each run that leaves a shape,
+    /// followed through the points where runs meet. A run no such way
+    /// takes is a line of its own.
+    pub fn wires(&self) -> Vec<Wire> {
+        let ends: Vec<(Node, Node)> = self
+            .runs
+            .iter()
+            .map(|run| {
+                (
+                    self.node(run.points[0]),
+                    self.node(run.points[run.points.len() - 1]),
+                )
+            })
+            .collect();
+        let mut leaving: HashMap<Node, Vec<usize>> = HashMap::new();
+        for (at, (from, _)) in ends.iter().enumerate() {
+            leaving.entry(*from).or_default().push(at);
+        }
+        let mut ways: Vec<Vec<usize>> = Vec::new();
+        let mut taken = vec![false; self.runs.len()];
+        let budget = self.runs.len() * WAYS;
+        // Each way a list of runs, the first leaving a shape.
+        let mut open: Vec<Vec<usize>> = ends
+            .iter()
+            .enumerate()
+            .filter(|(_, (from, _))| matches!(from, Node::Shape(_)))
+            .map(|(at, _)| vec![at])
+            .rev()
+            .collect();
+        while let Some(way) = open.pop() {
+            let last = way[way.len() - 1];
+            let next: Vec<usize> = match ends[last].1 {
+                Node::Shape(_) => Vec::new(),
+                point => leaving
+                    .get(&point)
+                    .into_iter()
+                    .flatten()
+                    .copied()
+                    .filter(|run| !way.contains(run))
+                    .collect(),
+            };
+            if next.is_empty() || ways.len() + open.len() >= budget {
+                for &run in &way {
+                    taken[run] = true;
+                }
+                ways.push(way);
+                continue;
+            }
+            for run in next.into_iter().rev() {
+                let mut longer = way.clone();
+                longer.push(run);
+                open.push(longer);
+            }
+        }
+        ways.extend(
+            (0..self.runs.len())
+                .filter(|&run| !taken[run])
+                .map(|run| vec![run]),
+        );
+
+        let mut nth: HashMap<(String, String), usize> = HashMap::new();
+        ways.iter()
+            .map(|way| {
+                let (first, last) = (way[0], way[way.len() - 1]);
+                let mut points: Vec<(f32, f32)> = Vec::new();
+                for &run in way {
+                    for &p in &self.runs[run].points {
+                        if points.last() != Some(&p) {
+                            points.push(p);
+                        }
+                    }
+                }
+                let end = |node: Node, at: (f32, f32)| match node {
+                    Node::Shape(place) => {
+                        (self.places[place].name.clone(), self.places[place].rect)
+                    }
+                    Node::Point(..) => (
+                        String::new(),
+                        Rect {
+                            x: at.0,
+                            y: at.1,
+                            w: 0.0,
+                            h: 0.0,
+                        },
+                    ),
+                };
+                let (from, from_rect) = end(ends[first].0, points[0]);
+                let (to, to_rect) = end(ends[last].1, points[points.len() - 1]);
+                let count = nth.entry((from.clone(), to.clone())).or_insert(0);
+                let key = Key {
+                    from,
+                    to,
+                    nth: *count,
+                };
+                *count += 1;
+                Wire {
+                    key,
+                    line: None,
+                    path: points.clone(),
+                    points,
+                    from: End {
+                        rect: from_rect,
+                        flat: false,
+                    },
+                    to: End {
+                        rect: to_rect,
+                        flat: false,
+                    },
+                    entry: None,
+                    labels: Vec::new(),
+                    stroke: self.runs[first].stroke,
+                    heads: self.runs[last]
+                        .head
+                        .iter()
+                        .map(|points| Head {
+                            points: points.clone(),
+                            closed: true,
+                            fill: HeadFill::Ink,
+                        })
+                        .collect(),
+                    fixed: true,
+                    words: Default::default(),
+                }
+            })
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    const PARTS: &str = "\n' parts (Omaspec)\n";
+
+    fn mapped(source: &str) -> (String, crate::map::Map) {
+        crate::render_mapped(&format!("{source}{PARTS}"), None).unwrap()
+    }
+
+    /// Asked for its parts, an activity diagram draws each shape in a part
+    /// the map names, and tells each line from the shape it leaves to the
+    /// one it enters; a picture for a file has no parts and is the same.
+    #[test]
+    fn shapes_are_parts_and_lines_run_from_shape_to_shape() {
+        let source = "@startuml\nstart\n:Build;\nif (green?) then (yes)\n  :Publish;\nelse (no)\n  :Fix;\n  stop\nendif\n:Build;\nstop\n@enduml";
+        let (svg, map) = mapped(source);
+        let names: Vec<&str> = map.places.iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(
+            names,
+            [
+                "start",
+                "action:Build",
+                "test:green?",
+                "action:Publish",
+                "action:Fix",
+                "stop",
+                "action:Build #2",
+                "stop #2"
+            ]
+        );
+        let drawn: HashSet<String> = crate::part_groups(&svg)
+            .into_iter()
+            .map(|(n, _)| n)
+            .collect();
+        for place in &map.places {
+            assert!(place.fixed && !place.frame);
+            assert!(
+                drawn.contains(place.part.as_deref().unwrap()),
+                "{}",
+                place.name
+            );
+        }
+        assert!(drawn.contains("label:yes") && drawn.contains("label:no"));
+        let lines: Vec<(&str, &str)> = map
+            .wires
+            .iter()
+            .map(|w| (w.key.from.as_str(), w.key.to.as_str()))
+            .collect();
+        for line in [
+            ("start", "action:Build"),
+            ("test:green?", "action:Publish"),
+            ("test:green?", "action:Fix"),
+            ("action:Fix", "stop"),
+            ("action:Publish", "action:Build #2"),
+            ("action:Build #2", "stop #2"),
+        ] {
+            assert!(lines.contains(&line), "{line:?} not in {lines:?}");
+        }
+        for wire in &map.wires {
+            assert!(wire.fixed && wire.heads.len() <= 1 && wire.points.len() >= 2);
+        }
+
+        let plain = crate::render(source).unwrap();
+        assert!(!plain.contains("part-"));
+        assert_eq!(crate::unmarked(&svg), plain);
+    }
+
+    /// Every line of every activity diagram of the tests is told once or
+    /// on a way through a point where lines meet, with a key of its own.
+    #[test]
+    fn every_line_has_a_key_of_its_own() {
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/activity");
+        for file in std::fs::read_dir(dir).unwrap() {
+            let path = file.unwrap().path();
+            let source = std::fs::read_to_string(&path).unwrap();
+            let Ok((svg, map)) = crate::render_mapped(&format!("{source}{PARTS}"), None) else {
+                continue;
+            };
+            let mut keys = HashSet::new();
+            for wire in &map.wires {
+                assert!(
+                    keys.insert(wire.key.clone()),
+                    "{path:?}: {:?} twice",
+                    wire.key
+                );
+            }
+            let mut names = HashSet::new();
+            for place in &map.places {
+                assert!(names.insert(&place.name), "{path:?}: {} twice", place.name);
+            }
+            assert!(!map.places.is_empty() && crate::has_parts(&svg), "{path:?}");
+        }
+    }
+}

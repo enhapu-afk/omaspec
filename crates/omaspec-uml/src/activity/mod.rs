@@ -10,6 +10,7 @@ mod branch;
 mod draw;
 mod layout;
 mod parse;
+mod parts;
 mod skin;
 mod tile;
 mod words;

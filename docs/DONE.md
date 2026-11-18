@@ -2699,6 +2699,22 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       veil alone is drawn. The boxes and lines in focus stood at their
       new places at once, beside the ones still on their way, so a fold
       showed them twice.
+- [x] An activity diagram marks its parts (2026-11-18,
+      [0029](adr/0029-a-glide-by-parts.md),
+      `omaspec-uml/src/activity/parts.rs`). Each action, test, start,
+      stop, end and bar is a place of the map and is drawn in a part of
+      its own, named by its kind and its words (`action:Build and test`,
+      the second of a name counted); notes, partitions and the words
+      beside a line are parts without a place, a swimlane's name and each
+      line between two as well. Its lines are drawn in the lines' group
+      and told to the map from the shape they leave to the one they
+      enter, followed through the points where lines meet. So the focus
+      takes an action, lets it, the shapes its lines lead to and those
+      lines through the veil in their own shapes, a test as its diamond,
+      and after an edit the boxes glide to their new places, the lines
+      with them, the swimlanes' names and borders standing. A picture
+      for a file is the same to the pixel. Not yet: the words beside a
+      line (`yes`, `no`) are not lit with their line.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 

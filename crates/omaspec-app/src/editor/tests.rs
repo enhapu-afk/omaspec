@@ -2773,6 +2773,7 @@ fn the_drawers_that_mark_parts_are_asked_for_them() {
     for (source, language) in [
         ("@startuml\n[*] --> A\n@enduml\n", Language::PlantUml),
         ("@startuml\nclass A\n@enduml\n", Language::PlantUml),
+        ("@startuml\nstart\n:a;\nstop\n@enduml\n", Language::PlantUml),
         ("@startmindmap\n* A\n@endmindmap\n", Language::PlantUml),
         ("@startwbs\n* A\n@endwbs\n", Language::PlantUml),
         ("@startjson\n{\"a\": 1}\n@endjson\n", Language::PlantUml),
@@ -2786,7 +2787,6 @@ fn the_drawers_that_mark_parts_are_asked_for_them() {
     }
     for (source, language) in [
         ("@startuml\nA -> B\n@enduml\n", Language::PlantUml),
-        ("@startuml\nstart\n:a;\nstop\n@enduml\n", Language::PlantUml),
         (
             "@startgantt\n[A] lasts 1 day\n@endgantt\n",
             Language::PlantUml,
@@ -3165,6 +3165,83 @@ fn snapshot_focus_looks() {
         let _ = app.update(Message::Paper(key, paper::Message::FocusAt(at)));
         shoot(&mut app, &dir, &format!("focus-sketch-{name}"));
     }
+}
+
+/// An activity diagram takes the focus (docs/adr/0029): an action, the
+/// test before it and the bar after it come through the veil in their own
+/// shapes, with the lines between them.
+#[test]
+fn an_activity_diagram_takes_the_focus() {
+    let work = temp_dir("activity-focus");
+    let release = include_str!("../../../../examples/release.puml");
+    let file = work.join("release.puml");
+    std::fs::write(&file, release).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, release, Language::PlantUml);
+    let key = app.doc().key;
+    let at = app.doc().paper.screen_of_box("action:Publish packages");
+    let _ = app.update(Message::Paper(key, paper::Message::FocusAt(at)));
+    let lit = app.doc().paper.lit().expect("the action is in focus");
+    let mut around: Vec<&str> = lit.neighbors.iter().map(|s| s.name.as_str()).collect();
+    around.sort_unstable();
+    assert_eq!(around, ["bar", "test:all green?"]);
+    assert_eq!(lit.lines.len(), 2);
+    assert!(
+        lit.outlines.iter().all(Option::is_some),
+        "each in its own shape: {:?}",
+        lit.parts
+    );
+}
+
+/// Writes headless screenshots of an activity diagram when
+/// OMASPEC_SNAPSHOT_DIR is set: the focus on an action, in the file's own
+/// colors and in the theme's, and its boxes on their way after a step was
+/// written into it.
+#[test]
+fn snapshot_activity() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("activity-shots");
+    let release = include_str!("../../../../examples/release.puml");
+    let file = work.join("release.puml");
+    std::fs::write(&file, release).unwrap();
+    for (colors, name) in [
+        (false, "activity-focus-file"),
+        (true, "activity-focus-theme"),
+    ] {
+        let mut app = open(std::slice::from_ref(&file));
+        follow_theme(&mut app, colors);
+        show(&mut app, release, Language::PlantUml);
+        let key = app.doc().key;
+        let at = app.doc().paper.screen_of_box("action:Publish packages");
+        let _ = app.update(Message::Paper(key, paper::Message::FocusAt(at)));
+        shoot(&mut app, &dir, name);
+    }
+    let mut app = open(std::slice::from_ref(&file));
+    show(&mut app, release, Language::PlantUml);
+    app.doc_mut().paper.send(paper::Message::Faded);
+    let longer = release.replace(
+        ":Tag the version;\n",
+        ":Tag the version;\n:Sign the tag;\n:Push it;\n",
+    );
+    assert_ne!(longer, release);
+    // As `show` draws it, without the end of the motion.
+    let key = app.doc().key;
+    let (shown, _) = app.diagram_source(&longer, Language::PlantUml);
+    let id = app.doc_mut().paper.pretend_next();
+    let mut reply = answer(key, id, Ok(drawn(&shown, Language::PlantUml)));
+    reply.language = Language::PlantUml;
+    reply.source = longer.as_str().into();
+    let task = app.doc_mut().paper.rendered(reply);
+    run_pane(&mut app, key, task);
+    let paper = &mut app.doc_mut().paper;
+    assert!(paper.fading_lines(), "the boxes glide, the lines with them");
+    paper.stretch_fade(Duration::from_secs(20));
+    shoot(&mut app, &dir, "activity-glide-start");
+    std::thread::sleep(Duration::from_secs(6));
+    shoot(&mut app, &dir, "activity-glide");
 }
 
 /// A zoom in steps with the focus on a box, drawn frame by frame on the

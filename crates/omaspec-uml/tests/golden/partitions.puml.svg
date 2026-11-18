@@ -27,19 +27,30 @@
 <line x1="165.72" y1="0" x2="165.72" y2="711.94" fill="none" stroke="#000000" stroke-width="1.5"/>
 <line x1="409.45" y1="0" x2="409.45" y2="711.94" fill="none" stroke="#000000" stroke-width="1.5"/>
 </g>
-<g>
+<g id="lines">
 <polyline points="86.21,50.95 86.21,97.25" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="82.21,87.25 86.21,97.25 90.21,87.25 86.21,91.25" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="86.21,131.22 86.21,151.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="82.21,141.22 86.21,151.22 90.21,141.22 86.21,145.22" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="86.21,185.18 86.21,210.18 335.47,210.18 335.47,251.48" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="331.47,241.48 335.47,251.48 339.47,241.48 335.47,245.48" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="335.47,285.45 335.47,305.45" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="331.47,295.45 335.47,305.45 339.47,295.45 335.47,299.45" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="302.38,317.45 277.97,317.45 277.97,375.74" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="273.97,365.74 277.97,375.74 281.97,365.74 277.97,369.74" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="277.97,409.71 277.97,453.71 323.47,453.71" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="313.47,457.71 323.47,453.71 313.47,449.71 317.47,453.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="368.56,317.45 387.66,317.45 387.66,453.71 347.47,453.71" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="357.47,449.71 347.47,453.71 357.47,457.71 353.47,453.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="335.47,465.71 335.47,485.71" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="331.47,475.71 335.47,485.71 339.47,475.71 335.47,479.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="335.47,519.68 335.47,549.68" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="331.47,539.68 335.47,549.68 339.47,539.68 335.47,543.68" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="335.47,549.68 335.47,605.98" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="335.47,605.98 335.47,625.98" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="331.47,615.98 335.47,625.98 339.47,615.98 335.47,619.98" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="335.47,659.94 335.47,679.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="331.47,669.94 335.47,679.94 339.47,669.94 335.47,673.94" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -48,17 +59,6 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="265.58" y="16.7" font-size="18" fill="#000000" textLength="44.01" lengthAdjust="spacing">Shop</tspan>
 </text>
-<polygon points="82.21,87.25 86.21,97.25 90.21,87.25 86.21,91.25" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="82.21,141.22 86.21,151.22 90.21,141.22 86.21,145.22" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="331.47,241.48 335.47,251.48 339.47,241.48 335.47,245.48" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="331.47,295.45 335.47,305.45 339.47,295.45 335.47,299.45" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="273.97,365.74 277.97,375.74 281.97,365.74 277.97,369.74" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="313.47,457.71 323.47,453.71 313.47,449.71 317.47,453.71" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="357.47,449.71 347.47,453.71 357.47,457.71 353.47,453.71" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="331.47,475.71 335.47,485.71 339.47,475.71 335.47,479.71" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="331.47,539.68 335.47,549.68 339.47,539.68 335.47,543.68" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="331.47,615.98 335.47,625.98 339.47,615.98 335.47,619.98" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="331.47,669.94 335.47,679.94 339.47,669.94 335.47,673.94" fill="#181818" stroke="#181818" stroke-width="1"/>
 <ellipse cx="86.21" cy="40.95" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
 <rect x="26.71" y="97.25" width="119.01" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">

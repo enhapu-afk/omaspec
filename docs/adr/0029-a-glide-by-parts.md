@@ -76,7 +76,8 @@ words it draws for which state, which words belong to which line.
    the other.
 7. **One drawer at a time, then no cutting.** State diagrams of both
    languages marked their parts first, then structure, flowcharts and
-   trees. Every drawer whose boxes glide marks them now, and the cutting
+   trees, activity diagrams on 2026-11-18 (their shapes named by kind
+   and words, as their layout knows no names). Every drawer whose boxes glide marks them now, and the cutting
    and its guesses are gone: the holes cut into the picture, the columns
    that filled them, the faded inside of a folding container, the search
    of the whole picture for each box's outline. A glide runs only between

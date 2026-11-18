@@ -36,8 +36,9 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
       the diagram's canvas draws in each frame.
 - [ ] A state machine's play: the states lit through the veil in their
       own shapes, as the focus's boxes are.
-- [ ] An activity diagram marks its parts (docs/adr/0029), so its boxes
-      glide and come through a veil in their own shapes.
+- [ ] An activity diagram's words beside a line (`yes`, `no`, an
+      arrow's label) belong to that line: lit with it in the focus,
+      gliding with it.
 - [ ] REQ-076: a parallel region that enters a composite state takes its
       inner start, or a play stops half way.
 - [ ] REQ-077: an embedded diagram (`{{ … }}`) is drawn as text; at
