@@ -257,6 +257,9 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] On a laptop with two graphics cards Omaspec draws with the one that takes
+      little power (2026-11-18): iced asked for the strong one, which stayed awake while
+      the editor was open. `WGPU_POWER_PREF=high` asks for it still
 - [x] Bands in a real window where a color thins out (2026-11-18): under the
       participants held at the top four bands with a ramp in each stood where what
       scrolls under them fades out, and a play's veil was gray with a band at its edge.

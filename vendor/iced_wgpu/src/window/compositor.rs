@@ -82,8 +82,12 @@ impl Compositor {
             .and_then(|window| instance.create_surface(window).ok());
 
         let adapter_options = wgpu::RequestAdapterOptions {
+            // Omaspec: the card that takes little power, where there are
+            // two. The package asked for the strong one, which a laptop
+            // then keeps awake for as long as the editor is open;
+            // `WGPU_POWER_PREF=high` asks for it still.
             power_preference: wgpu::PowerPreference::from_env()
-                .unwrap_or(wgpu::PowerPreference::HighPerformance),
+                .unwrap_or(wgpu::PowerPreference::LowPower),
             compatible_surface: compatible_surface.as_ref(),
             force_fallback_adapter: false,
         };

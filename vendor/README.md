@@ -180,7 +180,7 @@ again and applying it. `paper::sprite`'s tests
 iced's renderer on the GPU, by Héctor Ramón and the iced contributors, MIT
 (`LICENSE`, from the `iced` 0.14.0 package of the same repository; this
 package ships none). Copied from the crates.io package unchanged, then
-changed as below; the change says "Omaspec" in a comment.
+changed as below; each change says "Omaspec" in a comment.
 
 - `src/window/compositor.rs`: a window's surface takes only a format with
   eight bits to each of red, green, blue and alpha. The package took the
@@ -196,11 +196,17 @@ changed as below; the change says "Omaspec" in a comment.
   such format, and a picture drawn without a window has eight bits, so no
   snapshot shows it.
 
+- `src/window/compositor.rs`: where a machine has two graphics cards, the
+  one that takes little power is asked for. The package asked for the
+  strong one, which a laptop then keeps awake for as long as the editor is
+  open. `WGPU_POWER_PREF=high` asks for the strong one still. Both cards'
+  drivers are still loaded to tell them apart.
+
 ```bash
 diff -ru ~/.cargo/registry/src/*/iced_wgpu-0.14.0/src vendor/iced_wgpu/src
 ```
 
-The change may go upstream; a new release is taken by copying it here
+The first change may go upstream; a new release is taken by copying it here
 again and applying it. No test fails without it: it shows only in a window
 under Vulkan, on a desktop that offers the format.
 
