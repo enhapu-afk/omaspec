@@ -875,12 +875,13 @@ impl Paper {
     pub fn start_play(&mut self) -> Result<(), String> {
         let diagram = self.diagram.as_ref().ok_or("no diagram yet")?;
         tabled(diagram)?;
-        let play = Play::new(
+        let mut play = Play::new(
             &diagram.source,
             diagram.language,
             &diagram.drawn.map,
             crate::clock::now(),
         )?;
+        play.shape(&diagram.drawn.tree);
         self.play = Some(play);
         self.leaving = None;
         // A play has lights of its own.
@@ -899,7 +900,7 @@ impl Paper {
     ) -> Result<(), String> {
         let diagram = self.diagram.as_ref().ok_or("no diagram yet")?;
         tabled(diagram)?;
-        let play = Play::trace(
+        let mut play = Play::trace(
             &diagram.source,
             diagram.language,
             &diagram.drawn.map,
@@ -909,6 +910,7 @@ impl Paper {
             object,
             crate::clock::now(),
         )?;
+        play.shape(&diagram.drawn.tree);
         self.play = Some(play);
         self.leaving = None;
         self.set_breath(None);

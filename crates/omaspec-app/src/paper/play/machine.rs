@@ -11,12 +11,17 @@ use omaspec_model::{Followed, Machine, Placed, Run, Taken};
 use super::super::canvas::fill_paper_band;
 use super::super::light::{LINGER, MACHINE, appearance, draw_run, ease_out, fraction};
 
+use super::super::focus::Outline;
 use super::draw::*;
 use super::*;
+use omaspec_uml::map::Spot;
 
 pub struct MachinePlay {
     pub(super) machine: Machine,
     pub(super) placed: Placed,
+    /// By state index: its outline as the picture draws it, where the
+    /// picture marks its parts ([`Play::shape`]); its light follows it.
+    pub(in crate::paper) outlines: Vec<Option<Outline>>,
     /// What moves the machine.
     pub(super) driver: Driver,
     /// The transitions on screen and when each one's light travels.
@@ -138,6 +143,7 @@ impl MachinePlay {
             lights: vec![Vec::new(); machine.states.len()],
             machine,
             placed,
+            outlines: Vec::new(),
             driver,
             shown: Vec::new(),
             free_at: now + VEIL_FADE / 2,
@@ -382,6 +388,16 @@ impl MachinePlay {
         }
     }
 
+    /// The outline the light of `state` follows: its own shape where the
+    /// picture says it, else the one the map knows.
+    fn glow(&self, state: usize, spot: &Spot, view: &Viewer) -> Glow {
+        Glow::shaped(
+            spot,
+            self.outlines.get(state).and_then(Option::as_ref),
+            view,
+        )
+    }
+
     pub(super) fn levels(&self, now: Instant) -> Vec<f32> {
         self.lights.iter().map(|l| level(l, now)).collect()
     }
@@ -402,7 +418,7 @@ impl MachinePlay {
             let Some(spot) = self.placed.states[state].as_ref().filter(|_| lit > 0.004) else {
                 continue;
             };
-            let glow = Glow::of(spot, view);
+            let glow = self.glow(state, spot, view);
             if let Some(clip) = glow.bounds().intersection(&view.paper) {
                 (view.paint)(frame, clip, lit);
             }
@@ -441,7 +457,7 @@ impl MachinePlay {
         let veil = ramp(now, self.begun, VEIL_FADE);
         for (state, &lit) in levels.iter().enumerate() {
             if let Some(spot) = self.placed.states[state].as_ref().filter(|_| lit > 0.004) {
-                let glow = Glow::of(spot, view);
+                let glow = self.glow(state, spot, view);
                 if glow.bounds().intersects(&view.paper) {
                     glow.mask(frame, with_alpha(look.veil, VEIL * veil * lit));
                 }
@@ -487,7 +503,7 @@ impl MachinePlay {
         }
         for (state, &lit) in levels.iter().enumerate() {
             if let Some(spot) = self.placed.states[state].as_ref().filter(|_| lit > 0.004) {
-                Glow::of(spot, view).draw(frame, look.accent, lit);
+                self.glow(state, spot, view).draw(frame, look.accent, lit);
             }
         }
         for travel in &self.shown {
@@ -518,7 +534,7 @@ impl MachinePlay {
             let k = ease_out(fraction(now - arrived, RIPPLE));
             for &state in &t.entered {
                 if let Some(spot) = &self.placed.states[state] {
-                    Glow::of(spot, view).ripple(frame, look.accent, k);
+                    self.glow(state, spot, view).ripple(frame, look.accent, k);
                 }
             }
         }

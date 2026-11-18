@@ -58,7 +58,7 @@ pub struct Outline {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum Segment {
+pub(in crate::paper) enum Segment {
     Move((f32, f32)),
     Line((f32, f32)),
     Quad((f32, f32), (f32, f32)),
@@ -122,6 +122,44 @@ impl Outline {
         );
         let grown = |(x, y): (f32, f32)| place((cx + (x - cx) * kx, cy + (y - cy) * ky));
         trace(&self.segments, builder, &grown);
+    }
+
+    /// The outline on screen, where `place` puts the diagram: its
+    /// segments, the box around it and how far its rim reaches past it,
+    /// in pixels. A play's light follows it ([`Glow::Own`]).
+    pub(in crate::paper) fn on_screen(
+        &self,
+        place: &dyn Fn(Rect) -> Rectangle,
+    ) -> (Vec<Segment>, Rectangle, f32) {
+        let point = |(x, y): (f32, f32)| {
+            let at = place(Rect {
+                x,
+                y,
+                w: 0.0,
+                h: 0.0,
+            })
+            .position();
+            (at.x, at.y)
+        };
+        let unit = place(Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 1.0,
+            h: 0.0,
+        })
+        .width;
+        let segments = self
+            .segments
+            .iter()
+            .map(|segment| match *segment {
+                Segment::Move(p) => Segment::Move(point(p)),
+                Segment::Line(p) => Segment::Line(point(p)),
+                Segment::Quad(c, p) => Segment::Quad(point(c), point(p)),
+                Segment::Cubic(a, b, p) => Segment::Cubic(point(a), point(b), point(p)),
+                Segment::Close => Segment::Close,
+            })
+            .collect();
+        (segments, place(self.bounds), self.rim_reach() * unit)
     }
 
     /// How far the rim reaches past the outline, in the diagram's units,
@@ -191,7 +229,11 @@ fn segments_of(path: &usvg::Path) -> Vec<Segment> {
 }
 
 /// Traces `segments` on screen as one more shape of `builder`.
-fn trace(segments: &[Segment], builder: &mut path::Builder, place: &dyn Fn((f32, f32)) -> Point) {
+pub(in crate::paper) fn trace(
+    segments: &[Segment],
+    builder: &mut path::Builder,
+    place: &dyn Fn((f32, f32)) -> Point,
+) {
     for segment in segments {
         match *segment {
             Segment::Move(p) => builder.move_to(place(p)),

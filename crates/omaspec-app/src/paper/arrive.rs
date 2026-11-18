@@ -67,6 +67,7 @@ impl Paper {
                     });
                     if same {
                         play.remap(&drawn.map);
+                        play.shape(&drawn.tree);
                     } else {
                         self.play = None;
                     }

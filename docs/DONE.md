@@ -2715,6 +2715,14 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       with them, the swimlanes' names and borders standing. A picture
       for a file is the same to the pixel. Not yet: the words beside a
       line (`yes`, `no`) are not lit with their line.
+- [x] A state machine's play lights each state in its own shape
+      (2026-11-18): the state's outline as its picture draws it
+      (`focus::Outline`, the one the focus lets a box through in) is what
+      the veil opens along, what the glow hugs and what the ripple
+      spreads from (`play::Glow::Own`), a state drawn by hand with its
+      bowed sides and its rim, a choice as its diamond. A start, an end
+      and a bar keep the shape the map knows, as does a picture without
+      parts.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 

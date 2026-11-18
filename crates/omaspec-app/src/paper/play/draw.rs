@@ -9,6 +9,7 @@ use iced::widget::canvas::{Frame, LineCap, LineJoin, Path, Stroke};
 use iced::{Color, Point, Rectangle, Size, Vector};
 use omaspec_uml::map::{Shape, Spot};
 
+use super::super::focus::{Outline, Segment, trace};
 use super::super::light::{ease_out, fraction};
 
 use super::*;
@@ -137,9 +138,43 @@ pub(in crate::paper) enum Glow {
     Box(Rectangle, f32),
     Ring(Point, f32),
     Diamond(Rectangle),
+    /// The state's own outline as its picture draws it (docs/adr/0029),
+    /// on screen: a state drawn by hand keeps its bowed sides. With the
+    /// box around it and how far its rim reaches past it.
+    Own(Vec<Segment>, Rectangle, f32),
 }
 
 impl Glow {
+    /// [`Self::of`], in the state's own shape where the picture says it:
+    /// a state or a choice whose part has an outline.
+    pub(in crate::paper) fn shaped(spot: &Spot, outline: Option<&Outline>, view: &Viewer) -> Glow {
+        match (outline, spot.shape) {
+            (Some(outline), Shape::State | Shape::Choice) => {
+                let (segments, bounds, reach) = outline.on_screen(view.place);
+                Glow::Own(segments, bounds, reach)
+            }
+            _ => Glow::of(spot, view),
+        }
+    }
+
+    /// Its own outline `out` pixels larger on every side, stretched from
+    /// its middle, as one more shape of `builder`.
+    fn trace_own(
+        segments: &[Segment],
+        bounds: Rectangle,
+        builder: &mut iced::widget::canvas::path::Builder,
+        out: f32,
+    ) {
+        let c = bounds.center();
+        let (kx, ky) = (
+            (bounds.width + 2.0 * out) / bounds.width.max(1e-3),
+            (bounds.height + 2.0 * out) / bounds.height.max(1e-3),
+        );
+        trace(segments, builder, &|(x, y)| {
+            Point::new(c.x + (x - c.x) * kx, c.y + (y - c.y) * ky)
+        });
+    }
+
     pub(in crate::paper) fn of(spot: &Spot, view: &Viewer) -> Glow {
         let r = (view.place)(spot.rect);
         let radius = spot.radius * zoom(spot, view);
@@ -154,6 +189,8 @@ impl Glow {
     pub(in crate::paper) fn bounds(&self) -> Rectangle {
         match *self {
             Glow::Box(r, _) | Glow::Diamond(r) => r,
+            // With its rim, which is the state's too.
+            Glow::Own(_, r, reach) => grow(r, reach),
             Glow::Ring(c, radius) => Rectangle::new(
                 c - Vector::new(radius, radius),
                 Size::new(2.0 * radius, 2.0 * radius),
@@ -163,6 +200,9 @@ impl Glow {
 
     pub(super) fn path(&self, out: f32) -> Path {
         match *self {
+            Glow::Own(ref segments, bounds, reach) => {
+                Path::new(|b| Self::trace_own(segments, bounds, b, reach + out))
+            }
             Glow::Box(r, radius) => rounded(grow(r, out), radius + out),
             Glow::Ring(c, radius) => Path::circle(c, radius + out),
             Glow::Diamond(r) => {
@@ -185,6 +225,9 @@ impl Glow {
         out: f32,
     ) {
         match *self {
+            Glow::Own(ref segments, bounds, reach) => {
+                Self::trace_own(segments, bounds, builder, reach + out);
+            }
             Glow::Box(r, radius) => {
                 let r = grow(r, out);
                 let radius = (radius + out)
@@ -210,6 +253,21 @@ impl Glow {
     /// the corners a rectangular clip lets through.
     pub(in crate::paper) fn mask(&self, frame: &mut Frame, color: Color) {
         let r = self.bounds();
+        if let Glow::Own(segments, bounds, reach) = self {
+            // Between the box let through and the outline with its rim.
+            let around = Path::new(|b| {
+                b.rectangle(r.position(), r.size());
+                Self::trace_own(segments, *bounds, b, *reach);
+            });
+            frame.fill(
+                &around,
+                iced::widget::canvas::Fill {
+                    style: iced::widget::canvas::Style::Solid(color),
+                    rule: iced::widget::canvas::fill::Rule::EvenOdd,
+                },
+            );
+            return;
+        }
         let (x0, y0, x1, y1) = (r.x, r.y, r.x + r.width, r.y + r.height);
         match *self {
             Glow::Box(_, radius) | Glow::Ring(_, radius) => {
@@ -250,6 +308,8 @@ impl Glow {
                     frame.fill(&path, color);
                 }
             }
+            // Drawn above.
+            Glow::Own(..) => {}
             Glow::Diamond(_) => {
                 let c = r.center();
                 for corner in [

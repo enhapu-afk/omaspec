@@ -119,6 +119,15 @@ impl Paper {
         self.play.as_ref()?.arrived()
     }
 
+    /// For each state of the machine played, whether its light follows
+    /// its own outline; empty when no machine plays.
+    pub fn play_shapes(&self) -> Vec<bool> {
+        match self.play.as_ref() {
+            Some(Play::Machine(play)) => play.outlines.iter().map(Option::is_some).collect(),
+            _ => Vec::new(),
+        }
+    }
+
     /// What the detail layer asked for, and whether one is shown.
     pub fn detail(&self) -> (Option<Plan>, bool) {
         (self.detail.asked, self.detail.shown.is_some())

@@ -3392,6 +3392,39 @@ fn snapshot_glide() {
     shoot(&mut app, &dir, "glide");
 }
 
+/// A state machine's play takes each state's own shape from the picture
+/// (docs/adr/0029): a state drawn by hand comes through the veil with its
+/// bowed sides, a choice as its diamond. Written with OMASPEC_SNAPSHOT_DIR:
+/// the play in the file's own colors, by hand and plain.
+#[test]
+fn a_play_lights_each_state_in_its_own_shape() {
+    let work = temp_dir("play-shapes");
+    let plain = "@startuml\nstate Check <<choice>>\n[*] --> Idle\nIdle --> Check : call\nCheck --> Closing : [doors open]\nCheck --> Moving : [doors closed]\nClosing --> Moving : closed\nMoving --> Idle : arrived\n@enduml\n";
+    let sketched = plain.replacen("@startuml\n", "@startuml\nskinparam handwritten true\n", 1);
+    for (source, name) in [
+        (plain, "play-shape-plain"),
+        (sketched.as_str(), "play-shape-sketch"),
+    ] {
+        let file = work.join(format!("{name}.puml"));
+        std::fs::write(&file, source).unwrap();
+        let mut app = open(std::slice::from_ref(&file));
+        follow_theme(&mut app, false);
+        show(&mut app, source, Language::PlantUml);
+        let _ = app.update(Message::Command(Command::Play));
+        assert!(app.doc().paper.playing(), "{:?}", app.notice);
+        let shapes = app.doc().paper.play_shapes();
+        // The start, Idle, Check, Closing and Moving.
+        assert_eq!(shapes, [true; 5]);
+        let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+            continue;
+        };
+        // On to the choice, which offers two ways.
+        let _ = app.update(Message::Command(Command::PlayAsk(paper::Ask::Take(0))));
+        app.doc_mut().paper.freeze_play(Duration::from_secs(4));
+        shoot(&mut app, &PathBuf::from(dir), name);
+    }
+}
+
 /// Writes headless screenshots of a play when OMASPEC_SNAPSHOT_DIR
 /// is set: a state machine at rest, a light on its way and arriving,
 /// a scenario half unfolded.

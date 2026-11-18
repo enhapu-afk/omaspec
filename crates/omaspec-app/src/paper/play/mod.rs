@@ -160,6 +160,20 @@ impl Play {
         }
     }
 
+    /// Takes each state's own shape from the picture `tree` it is played
+    /// on, where the picture marks its parts (docs/adr/0029): a state comes
+    /// through the veil as it is drawn, as the focus lets a box through.
+    pub fn shape(&mut self, tree: &omaspec_render::export::usvg::Tree) {
+        if let Play::Machine(play) = self {
+            play.outlines = play
+                .placed
+                .states
+                .iter()
+                .map(|spot| super::focus::Outline::of(tree, &spot.as_ref()?.part))
+                .collect();
+        }
+    }
+
     /// Takes the places of a diagram drawn again: the same diagram in
     /// another theme or font.
     pub fn remap(&mut self, map: &Map) {

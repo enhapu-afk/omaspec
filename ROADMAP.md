@@ -34,8 +34,6 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
       (`a_zoom_never_shows_the_paper_alone` draws frame by frame with a
       pointer and passes). `OMASPEC_DRAWS=1` says on standard error what
       the diagram's canvas draws in each frame.
-- [ ] A state machine's play: the states lit through the veil in their
-      own shapes, as the focus's boxes are.
 - [ ] An activity diagram's words beside a line (`yes`, `no`, an
       arrow's label) belong to that line: lit with it in the focus,
       gliding with it.
