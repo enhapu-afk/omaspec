@@ -287,24 +287,68 @@ pub(super) fn task_at(line: &str, col: usize) -> Option<Target> {
         .map(|(_, name)| Target::Named((*name).to_owned()))
 }
 
-/// `activate` and what follows it on `line`, if that is what the line is:
-/// the bytes of the participant and those of a color after it.
-fn activate_parts(line: &str) -> Option<(Range<usize>, Option<Range<usize>>)> {
-    let caps = re!(r#"(?i)^\s*activate\s+("[^"]*"|[^\s#]+)(?:\s+(#\S+))?\s*$"#).captures(line)?;
-    Some((caps.get(1)?.range(), caps.get(2).map(|m| m.range())))
+/// What on `line` opens a bar on a lifeline: after which byte its color
+/// is written, the bytes of a color written there, and whose bar it is,
+/// if the line says. An `activate` line, or a message with `++`.
+struct Opens {
+    after: usize,
+    color: Option<Range<usize>>,
+    whose: Option<Range<usize>>,
+    /// The bytes that say so: the caret on them means the bar.
+    sign: Range<usize>,
 }
 
-/// The bar an `activate` line opens, if the zero-based `row` is one.
-pub(super) fn activation_at(line: &str, row: usize) -> Option<Target> {
-    let (name, _) = activate_parts(line)?;
-    Some(Target::Line {
-        line: row,
-        label: format!("the bar on {}", line[name].trim_matches('"')),
+fn opens(line: &str) -> Option<Opens> {
+    if let Some(caps) =
+        re!(r#"(?i)^\s*activate\s+("[^"]*"|[^\s#]+)(?:\s+(#\S+))?\s*$"#).captures(line)
+    {
+        let name = caps.get(1)?.range();
+        return Some(Opens {
+            after: name.end,
+            color: caps.get(2).map(|m| m.range()),
+            whose: Some(name),
+            sign: 0..line.len(),
+        });
+    }
+    // After the second end of a message and before its text: `++`, also
+    // with a `--` beside it, and a color.
+    let mut quoted = false;
+    let colon = line.char_indices().find_map(|(at, c)| {
+        quoted ^= c == '"';
+        (c == ':' && !quoted).then_some(at)
+    });
+    let head = &line[..colon.unwrap_or(line.len())];
+    let caps = re!(r"(\+\+--|--\+\+|\+\+)(?:\s*(#[0-9A-Za-z]+))?").captures(head)?;
+    let sign = caps.get(1)?.range();
+    let color = caps.get(2).map(|m| m.range());
+    Some(Opens {
+        after: sign.end,
+        sign: sign.start..color.as_ref().map_or(sign.end, |c| c.end),
+        color,
+        whose: None,
     })
 }
 
-/// The color of the bar an `activate` line opens on a lifeline: after
-/// the participant, as PlantUML writes it (`activate Bob #f7768e`).
+/// The bar the line at the zero-based `row` opens, if the caret at the
+/// byte `col` means it: anywhere on an `activate` line, on the `++` of a
+/// message or on its color.
+pub(super) fn activation_at(line: &str, row: usize, col: usize) -> Option<Target> {
+    let opens = opens(line)?;
+    if col < opens.sign.start || col > opens.sign.end {
+        return None;
+    }
+    Some(Target::Line {
+        line: row,
+        label: match opens.whose {
+            Some(name) => format!("the bar on {}", line[name].trim_matches('"')),
+            None => "the bar this message opens".to_owned(),
+        },
+    })
+}
+
+/// The color of the bar a line opens on a lifeline, as PlantUML writes
+/// it: after the participant (`activate Bob #f7768e`), or after a
+/// message's `++` (`Alice -> Bob ++ #f7768e : hi`).
 pub(super) fn activation(
     code: &str,
     no: usize,
@@ -312,15 +356,15 @@ pub(super) fn activation(
     color: Option<&str>,
 ) -> Result<Edit, String> {
     let (range, line, newline) = line_at(code, no)?;
-    let (name, old) = activate_parts(line).ok_or("that line opens no bar on a lifeline")?;
-    let new = match (color, old) {
+    let opens = opens(line).ok_or("that line opens no bar on a lifeline")?;
+    let new = match (color, opens.color) {
         (Some(color), Some(old)) => {
             Some(format!("{}{color}{}", &line[..old.start], &line[old.end..]))
         }
         (Some(color), None) => Some(format!(
             "{} {color}{}",
-            &line[..name.end],
-            &line[name.end..]
+            &line[..opens.after],
+            &line[opens.after..]
         )),
         (None, Some(old)) => Some(format!(
             "{}{}",

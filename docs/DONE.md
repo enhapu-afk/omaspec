@@ -257,6 +257,15 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] The right mouse button on a bar of a lifeline colors the bar (2026-11-18). A
+      drawer tells a shape without words with the line that draws it
+      (`Canvas::shape_of`, `Map::shapes`); a click on a bar puts the caret on the line
+      that opens it, and *Color the box at the caret* writes the color there: after
+      the participant of an `activate`, after the `++` of a message
+      (`Alice -> Bob ++ #f7768e : hi`). And the lines a drawer ties words or shapes to
+      are read as the file's lines where a look lays its skin before the source: they
+      were some seventy lines off in the window under a theme's look, so words tied to
+      a line were not found there
 - [x] Every mention of a participant lights its head (2026-11-18). The second mention
       and every later one lit the foot of the lifeline, the second copy drawn, so a
       click on a name in a message sent the light to the bottom of the diagram. A

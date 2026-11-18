@@ -139,9 +139,8 @@ pub fn target(code: &str, language: Language, row: usize, col: usize) -> Option<
         Flavor::Gantt => lines::task_at(line, col),
         // The bar an `activate` line opens on a lifeline, before the
         // participant the line names.
-        Flavor::Sequence => {
-            lines::activation_at(line, row).or_else(|| plantuml::participant_at(code, row, col))
-        }
+        Flavor::Sequence => lines::activation_at(line, row, col)
+            .or_else(|| plantuml::participant_at(code, row, col)),
         Flavor::Timing => plantuml::row_at(code, row, col),
         Flavor::C4 => mermaid::c4_at(code, row, col),
         Flavor::Style { er: true } => mermaid::entity_at(code, row, col),
@@ -364,6 +363,32 @@ mod tests {
         );
         // What is written is drawn: the engine reads it.
         assert!(omaspec_uml::parse(&colored).is_ok());
+        // A message's `++` opens a bar too: the caret on it means the bar,
+        // and the color stands between it and the message's text.
+        let short = "@startuml\nShop -> Cart +^+ : total\nreturn ok\n@enduml\n";
+        let (_, target) = aimed(short, p);
+        assert_eq!(
+            target,
+            Some(Target::Line {
+                line: 1,
+                label: "the bar this message opens".into()
+            })
+        );
+        let colored = at_caret(short, p, Some("#f7768e"));
+        assert!(
+            colored.contains("\nShop -> Cart ++ #f7768e : total\n"),
+            "{colored}"
+        );
+        assert!(omaspec_uml::parse(&colored).is_ok());
+        let bar = Target::Line {
+            line: 1,
+            label: String::new(),
+        };
+        let none = put(&colored, p, &bar, None);
+        assert!(none.contains("\nShop -> Cart ++ : total\n"), "{none}");
+        // A `++` in a message's text is its text.
+        let (_, target) = aimed("@startuml\nA -> B : i+^+\n@enduml\n", p);
+        assert_eq!(target, None);
         // On a message's line the participant is colored, as before.
         let (_, target) = aimed("@startuml\nUser -> ^A : work\nactivate A\n@enduml\n", p);
         assert_eq!(target, Some(named("A")));

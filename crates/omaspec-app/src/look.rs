@@ -510,9 +510,9 @@ impl LineShift {
         }
     }
 
-    /// `map` with the lines its states, transitions, messages and lines
-    /// come from read as lines of the file, where a play and a Ctrl+click
-    /// look for them.
+    /// `map` with the lines its states, transitions, messages, lines and
+    /// the words and shapes tied to a line come from read as lines of the
+    /// file, where a play and a Ctrl+click look for them.
     pub fn map(self, map: &omaspec_render::Map) -> omaspec_render::Map {
         let mut map = map.clone();
         let lines = map
@@ -523,6 +523,8 @@ impl LineShift {
             .chain(map.messages.iter_mut().map(|step| &mut step.line))
             .chain(map.cells.iter_mut().map(|cell| &mut cell.line))
             .chain(map.misses.iter_mut().map(|(line, _)| line))
+            .chain(map.tied.iter_mut().map(|tied| &mut tied.line))
+            .chain(map.shapes.iter_mut().map(|shape| &mut shape.line))
             .chain(
                 map.wires
                     .iter_mut()

@@ -43,6 +43,10 @@ pub struct Map {
     /// on that line and that line's light on them, whatever else reads the
     /// same; words tied to no line are found by counting.
     pub tied: Vec<Tied>,
+    /// Shapes without words the drawer ties to the line that draws them
+    /// ([`crate::svg::Canvas::shape_of`]): the bar on a sequence diagram's
+    /// lifeline, for the line that opens it. A click on one lands there.
+    pub shapes: Vec<Tied>,
     /// Where words are drawn a second time for what is drawn already
     /// ([`crate::svg::Canvas::echo`]): the name at the foot of a sequence
     /// diagram's lifeline, which repeats its head. They are no mention's
@@ -69,8 +73,8 @@ pub struct Band {
     pub over: Rect,
 }
 
-/// Words drawn at `rect` for the zero-based `line` of the source
-/// ([`Map::tied`]).
+/// Words, or a shape without any, drawn at `rect` for the zero-based
+/// `line` of the source ([`Map::tied`], [`Map::shapes`]).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Tied {
     pub rect: Rect,
@@ -411,6 +415,9 @@ impl Map {
         for echo in &mut self.echoes {
             *echo = fit.rect(*echo);
         }
+        for shape in &mut self.shapes {
+            shape.rect = fit.rect(shape.rect);
+        }
         for head in &mut self.heads {
             head.rect = fit.rect(head.rect);
             head.label = fit.rect(head.label);
@@ -459,7 +466,7 @@ impl Map {
     /// Every line moved down by `lines`: for a diagram read from inside a
     /// longer text.
     pub fn shifted(mut self, lines: usize) -> Map {
-        for tied in &mut self.tied {
+        for tied in self.tied.iter_mut().chain(&mut self.shapes) {
             tied.line = tied.line.saturating_add(lines);
         }
         for spot in &mut self.states {

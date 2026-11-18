@@ -2626,6 +2626,60 @@ fn pick_red(app: &mut App, name: &str) {
     let _ = app.update(Message::PickerClick(at));
 }
 
+/// In the window a look's skin stands before the source that is drawn:
+/// the lines a drawer ties words to are the file's all the same, so a
+/// divider named as a participant is found on its own line.
+#[test]
+fn words_tied_to_a_line_are_tied_to_the_file_s_line_under_a_look() {
+    let source = "@startuml\nparticipant Shop\nparticipant Payment\nShop -> Payment : total\n== Payment ==\nShop -> Payment : charge\n@enduml\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, source);
+    show(&mut app, source, Language::PlantUml);
+    let mut lines: Vec<Option<usize>> = app
+        .doc()
+        .paper
+        .labels()
+        .into_iter()
+        .filter(|(text, ..)| text == "Payment")
+        .map(|(.., line)| line)
+        .collect();
+    lines.sort_unstable();
+    // The head and the foot on the declaration, the divider on its line.
+    assert_eq!(lines, [Some(2), Some(2), Some(4)]);
+}
+
+/// The right mouse button on a bar of a lifeline puts the caret on the
+/// line that opens it, and the color picked there is the bar's: after the
+/// participant of an `activate`, after the `++` of a message.
+#[test]
+fn a_bar_on_a_lifeline_takes_a_color_from_the_diagram() {
+    let source = "@startuml\nUser -> A : work\nactivate A\nA -> B ++ : ask\nB --> A -- : done\ndeactivate A\n@enduml\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, source);
+    show(&mut app, source, Language::PlantUml);
+    let key = app.doc().key;
+    for (line, name, written) in [
+        (2, "the bar on A", "\nactivate A #e5484d\n"),
+        (
+            3,
+            "the bar this message opens",
+            "\nA -> B ++ #e5484d : ask\n",
+        ),
+    ] {
+        let at = app.doc().paper.screen_of_shape(line);
+        let _ = app.update(Message::Paper(
+            key,
+            paper::Message::Context(at, iced::Point::new(700.0, 200.0)),
+        ));
+        app.close_menu();
+        press(&mut app, Command::ColorBox);
+        pick_red(&mut app, name);
+        assert!(app.doc().text().contains(written), "{}", app.doc().text());
+        let drawn = app.doc().text();
+        show(&mut app, &drawn, Language::PlantUml);
+    }
+}
+
 #[test]
 fn a_box_of_any_diagram_takes_a_color() {
     // A WBS: the node on the caret's line.

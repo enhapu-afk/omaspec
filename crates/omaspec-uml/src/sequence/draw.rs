@@ -63,6 +63,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
         grounds: std::mem::take(&mut drawer.grounds),
         tied: canvas.tied(),
         echoes: canvas.echoes(),
+        shapes: canvas.shapes(),
         heads: if drawer.band.is_some() {
             std::mem::take(&mut drawer.heads)
         } else {
@@ -284,6 +285,8 @@ struct Bar {
     start: f32,
     end: f32,
     fill: Paint,
+    /// The line that opened it.
+    line: usize,
 }
 
 struct OpenGroup {
@@ -317,7 +320,7 @@ struct Drawer<'a> {
     right_edge: f32,
 
     y: f32,
-    open_bars: Vec<Vec<(f32, Paint)>>,
+    open_bars: Vec<Vec<(f32, Paint, usize)>>,
     bars: Vec<Bar>,
     life_start: Vec<f32>,
     life_end: Vec<Option<f32>>,
@@ -1139,13 +1142,14 @@ impl<'a> Drawer<'a> {
             },
         });
         for (column, open) in self.open_bars.iter_mut().enumerate() {
-            for (depth, (start, fill)) in open.drain(..).enumerate() {
+            for (depth, (start, fill, line)) in open.drain(..).enumerate() {
                 self.bars.push(Bar {
                     column,
                     depth,
                     start,
                     end,
                     fill,
+                    line,
                 });
             }
         }
@@ -1153,13 +1157,15 @@ impl<'a> Drawer<'a> {
         self.bars.sort_by_key(|b| b.depth);
         for bar in &self.bars {
             let x = self.x[bar.column] - BAR / 2.0 + BAR_SHIFT * bar.depth as f32;
+            let rect = (x, bar.start, BAR, (bar.end - bar.start).max(4.0));
             canvas.rect(
                 Layer::Bars,
-                (x, bar.start, BAR, (bar.end - bar.start).max(4.0)),
+                rect,
                 0.0,
                 bar.fill,
                 Some(Stroke::new(skin.lifeline, 1.0)),
             );
+            canvas.shape_of(bar.line, rect);
         }
         let mut bottom = end;
         if self.d.footbox {
@@ -1325,19 +1331,21 @@ impl<'a> Drawer<'a> {
             }
             Item::Space { height, .. } => self.y += height.unwrap_or(20.0),
             Item::Ref { over, .. } => self.reference(canvas, k, over),
-            Item::Activate { participant, .. } => {
+            Item::Activate {
+                participant, line, ..
+            } => {
                 let c = self.col(*participant);
                 let start = self.lifecycle_y(c);
                 let fill = match self.measured[k] {
                     Measured::Activate { fill } => fill,
                     _ => self.skin.activation_fill,
                 };
-                self.open_bars[c].push((start, fill));
+                self.open_bars[c].push((start, fill, *line));
             }
             Item::Deactivate { participant, .. } => {
                 let c = self.col(*participant);
                 let end = self.lifecycle_y(c);
-                if let Some((start, fill)) = self.open_bars[c].pop() {
+                if let Some((start, fill, line)) = self.open_bars[c].pop() {
                     let depth = self.open_bars[c].len();
                     self.bars.push(Bar {
                         column: c,
@@ -1345,6 +1353,7 @@ impl<'a> Drawer<'a> {
                         start,
                         end,
                         fill,
+                        line,
                     });
                 }
             }
@@ -1389,13 +1398,14 @@ impl<'a> Drawer<'a> {
                     (x + 9.0, at - 9.0),
                     stroke,
                 );
-                for (depth, (start, fill)) in self.open_bars[c].drain(..).enumerate() {
+                for (depth, (start, fill, line)) in self.open_bars[c].drain(..).enumerate() {
                     self.bars.push(Bar {
                         column: c,
                         depth,
                         start,
                         end: at,
                         fill,
+                        line,
                     });
                 }
                 if self.life_end[c].is_none() {
@@ -2445,6 +2455,13 @@ mod tests {
         let mut lines: Vec<usize> = map.tied.iter().map(|tied| tied.line).collect();
         lines.sort_unstable();
         assert_eq!(lines, [2, 3, 4]);
+        // A bar on a lifeline is the shape of the line that opens it,
+        // an `activate` or a message with `++`.
+        let bars = "@startuml\nA -> B : go\nactivate B\nB -> C ++ : on\ndeactivate C\ndeactivate B\n@enduml\n";
+        let (_, map) = crate::render_mapped(bars, None).unwrap();
+        let mut lines: Vec<usize> = map.shapes.iter().map(|shape| shape.line).collect();
+        lines.sort_unstable();
+        assert_eq!(lines, [2, 3]);
         // A Mermaid sequence diagram names them alike.
         let d = super::super::mermaid::from_mermaid(
             "sequenceDiagram\n  actor A\n  participant B\n  A->>B: hi\n",

@@ -121,6 +121,8 @@ pub struct Canvas {
     /// Words are being drawn again ([`Self::echo`]), and where such were.
     echo: bool,
     echoes: Vec<crate::graph::Rect>,
+    /// Shapes without words, each with the line that draws it.
+    shapes: Vec<crate::map::Tied>,
 }
 
 /// How far a shadow lies to the right of its shape and below it.
@@ -174,6 +176,7 @@ impl Canvas {
             ties: Vec::new(),
             echo: false,
             echoes: Vec::new(),
+            shapes: Vec::new(),
         }
     }
 
@@ -485,6 +488,22 @@ impl Canvas {
     /// Where words were drawn again so far ([`Self::echo`]), for the map.
     pub fn echoes(&mut self) -> Vec<crate::graph::Rect> {
         std::mem::take(&mut self.echoes)
+    }
+
+    /// The shape at `rect`, which has no words, is drawn for the
+    /// zero-based `line` of the source: a drawer says so for what a pane
+    /// should find by a click on it. The map tells them
+    /// ([`crate::map::Map::shapes`]).
+    pub fn shape_of(&mut self, line: usize, (x, y, w, h): (f32, f32, f32, f32)) {
+        self.shapes.push(crate::map::Tied {
+            rect: crate::graph::Rect { x, y, w, h },
+            line,
+        });
+    }
+
+    /// The shapes told so far ([`Self::shape_of`]), for the map.
+    pub fn shapes(&mut self) -> Vec<crate::map::Tied> {
+        std::mem::take(&mut self.shapes)
     }
 
     /// The words drawn for a line so far ([`Self::tie`]), for the map.

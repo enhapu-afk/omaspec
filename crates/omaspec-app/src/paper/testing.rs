@@ -196,6 +196,23 @@ impl Paper {
 
     /// Where the line `key` draws runs, half way along its longest run,
     /// in the pane; and the way down the pane, across that run.
+    /// Where the middle of the shape the zero-based `line` draws is on
+    /// screen: a bar on a lifeline.
+    pub fn screen_of_shape(&self, line: usize) -> Point {
+        let map = &self.diagram.as_ref().unwrap().drawn.map;
+        let r = map
+            .shapes
+            .iter()
+            .find(|shape| shape.line == line)
+            .unwrap_or_else(|| panic!("no shape of line {line}: {:?}", map.shapes))
+            .rect;
+        let middle = Point::new(r.x + r.w / 2.0, r.y + r.h / 2.0);
+        let pane = iced::Rectangle::with_size(self.viewport);
+        self.view
+            .on_screen(iced::Rectangle::new(middle, Size::ZERO), pane)
+            .position()
+    }
+
     /// Where the middle of the box `name` is on screen.
     pub fn screen_of_box(&self, name: &str) -> Point {
         let map = &self.diagram.as_ref().unwrap().drawn.map;

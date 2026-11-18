@@ -814,6 +814,24 @@ impl Paper {
         map.wires.get(index)
     }
 
+    /// The line of the source that draws the shape without words at `at`
+    /// ([`omaspec_uml::map::Map::shapes`]): a bar on a lifeline. Of two
+    /// that lie over each other there, the one drawn last, on top.
+    pub fn shape_at(&self, at: Point) -> Option<usize> {
+        let map = &self.diagram.as_ref()?.drawn.map;
+        let p = self.view.to_diagram(at, self.viewport);
+        // A bar is narrow: a little room beside it, as a finger needs.
+        let reach = 2.0 / self.view.zoom.max(0.1);
+        map.shapes
+            .iter()
+            .rev()
+            .find(|shape| {
+                let r = shape.rect;
+                r.x - reach <= p.x && p.x <= r.x + r.w + reach && r.y <= p.y && p.y <= r.y + r.h
+            })
+            .map(|shape| shape.line)
+    }
+
     /// The line of the source that the line of a table's cell at `at` says
     /// (a state machine shown as its table).
     pub fn cell_at(&self, at: Point) -> Option<usize> {
