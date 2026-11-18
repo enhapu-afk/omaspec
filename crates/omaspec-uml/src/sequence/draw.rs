@@ -61,6 +61,11 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     let map = Map {
         messages: std::mem::take(&mut drawer.steps),
         grounds: std::mem::take(&mut drawer.grounds),
+        heads: if drawer.band.is_some() {
+            std::mem::take(&mut drawer.heads)
+        } else {
+            Vec::new()
+        },
         bands: drawer.band.into_iter().collect(),
         ..Map::default()
     };
@@ -332,6 +337,9 @@ struct Drawer<'a> {
     /// them, over the lifelines: what a pane keeps in sight
     /// ([`crate::map::Map::bands`]).
     band: Option<crate::map::Band>,
+    /// The participants at the top and the names of the boxes, each on
+    /// its own, for the map.
+    heads: Vec<crate::graph::Rect>,
     /// `rect` highlights open at the top, closed into [`Self::highlights`].
     open_rects: Vec<OpenRect>,
     /// Closed highlights, inner ones first. Drawn back to front.
@@ -716,6 +724,7 @@ impl<'a> Drawer<'a> {
             steps: Vec::new(),
             grounds: Vec::new(),
             band: None,
+            heads: Vec::new(),
             open_rects: Vec::new(),
             highlights: Vec::new(),
             cols,
@@ -1065,6 +1074,12 @@ impl<'a> Drawer<'a> {
             if self.cols[i].created_by.is_none() {
                 let head_top = top + heads - self.cols[i].height;
                 self.head(canvas, i, head_top, false);
+                self.heads.push(crate::graph::Rect {
+                    x: self.x[i] - self.cols[i].half(),
+                    y: head_top,
+                    w: self.cols[i].width,
+                    h: self.cols[i].height,
+                });
                 self.life_start[i] = top + heads;
                 self.head_drawn[i] = true;
             }
@@ -1163,6 +1178,14 @@ impl<'a> Drawer<'a> {
                 ((left + right) / 2.0, boxes_top + 4.0),
                 Align::Center,
             );
+            if b.title.width > 0.0 {
+                self.heads.push(crate::graph::Rect {
+                    x: (left + right - b.title.width) / 2.0,
+                    y: boxes_top + 4.0,
+                    w: b.title.width,
+                    h: b.title.height,
+                });
+            }
         }
         // After the boxes: both sit on the background layer, and a box is
         // a full-height fill. Later in that layer paints on top, still
@@ -2323,6 +2346,19 @@ mod tests {
         let on = |(x, y): (f32, f32)| x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
         assert!(map.messages[1].points.iter().all(|&p| on(p)), "{r:?}");
         assert!(map.messages[0].points[0].0 < r.x, "Alice is outside");
+        // The participants at the top and the box's name, each on its
+        // own: what a pane holds of the band across the top.
+        let band = map.bands[0].rect;
+        assert_eq!(map.heads.len(), 4, "{:?}", map.heads);
+        for head in &map.heads {
+            assert!(
+                head.x >= band.x
+                    && head.x + head.w <= band.x + band.w
+                    && head.y >= band.y
+                    && head.y + head.h <= band.y + band.h + 0.01,
+                "{head:?} in {band:?}"
+            );
+        }
         let clear = source.replace("#E0E8FF", "#transparent");
         let (_, map) = crate::render_mapped(&clear, None).unwrap();
         assert!(map.grounds.is_empty());

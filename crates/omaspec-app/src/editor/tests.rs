@@ -3191,6 +3191,34 @@ fn snapshot_focus_small() {
     }
 }
 
+/// Writes headless screenshots of a sequence diagram scrolled past its
+/// participants when OMASPEC_SNAPSHOT_DIR is set: each participant and
+/// the name of the box held on its own, what scrolls by seen between them.
+#[test]
+fn snapshot_heads() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("heads");
+    let checkout = include_str!("../../../../examples/gallery/checkout.puml");
+    let file = work.join("checkout.puml");
+    std::fs::write(&file, checkout).unwrap();
+    for (colors, name) in [(false, "heads-file"), (true, "heads-theme")] {
+        let mut app = open(std::slice::from_ref(&file));
+        follow_theme(&mut app, colors);
+        show(&mut app, checkout, Language::PlantUml);
+        let key = app.doc().key;
+        let at = app.doc().paper.screen_of("Cart");
+        let _ = app.update(Message::Paper(key, paper::Message::ZoomAt(2.6, at)));
+        let _ = app.update(Message::Paper(
+            key,
+            paper::Message::Pan(iced::Vector::new(0.0, -430.0)),
+        ));
+        shoot_at(&mut app, &dir, name, Size::new(1920.0, 1080.0));
+    }
+}
+
 /// An activity diagram takes the focus (docs/adr/0029): an action, the
 /// test before it and the bar after it come through the veil in their own
 /// shapes, with the lines between them.

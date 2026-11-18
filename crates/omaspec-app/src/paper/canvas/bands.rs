@@ -29,8 +29,17 @@ const FADE: f32 = 30.0;
 /// than that, zoomed in, scrolls away with what it heads.
 const MOST: f32 = 1.0 / 3.0;
 
+/// How far past its own box a head held on its own is drawn, so that the
+/// line round it is whole.
+const RIM: f32 = 1.5;
+/// How far the paper round a head held on its own thins out, in pixels:
+/// what scrolls by goes under it softly, on every side.
+const HALO: f32 = 9.0;
+/// The layers that halo is drawn in, each as thin as the others.
+const HALO_LAYERS: u8 = 9;
+
 /// A band held at its edge of the pane.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Held {
     pub edge: Edge,
     /// The band, in the diagram's units.
@@ -42,16 +51,41 @@ pub struct Held {
     /// From a point drawn in the band to where that point of the picture
     /// lies, scrolled out of sight.
     pub back: Vector,
+    /// Where each of the band's heads is drawn, in the pane, where they
+    /// alone are held ([`omaspec_uml::map::Map::heads`]): the band is not
+    /// drawn whole then, and what scrolls by is seen between them.
+    pub heads: Vec<Rectangle>,
+}
+
+impl Held {
+    /// Whether the point `at` of the pane is the band's own: in it, or in
+    /// one of its heads where they alone are held.
+    fn holds(&self, at: Point) -> bool {
+        if self.heads.is_empty() {
+            self.strip.contains(at)
+        } else {
+            self.heads.iter().any(|head| head.contains(at))
+        }
+    }
 }
 
 /// The bands of a `diagram` this large, seen in `view` in the pane
 /// `local`, that are held at their edge: across the top first, then down
 /// the left over them, as a sheet holds its headings.
-pub fn held(bands: &[Band], diagram: Size, view: View, local: Rectangle) -> Vec<Held> {
+///
+/// `heads` are the parts of the first band across the top that alone are
+/// held, if it is not held whole.
+pub fn held(
+    bands: &[Band],
+    heads: &[omaspec_uml::graph::Rect],
+    diagram: Size,
+    view: View,
+    local: Rectangle,
+) -> Vec<Held> {
     let paper = view.diagram_rect(diagram, local);
     let mut out = Vec::new();
     for edge in [Edge::Top, Edge::Left] {
-        for band in bands.iter().filter(|band| band.edge == edge) {
+        for (nth, band) in bands.iter().filter(|band| band.edge == edge).enumerate() {
             let src = rectangle(band.rect);
             let on = view.on_screen(src, local);
             let over = view.on_screen(rectangle(band.over), local);
@@ -65,12 +99,24 @@ pub fn held(bands: &[Band], diagram: Size, view: View, local: Rectangle) -> Vec<
             let Some(dest) = held_at(on, edge, over, local) else {
                 continue;
             };
+            let back = on.position() - dest.position();
+            let heads = match (edge, nth) {
+                (Edge::Top, 0) => heads
+                    .iter()
+                    .map(|head| {
+                        let on = view.on_screen(rectangle(*head), local);
+                        Rectangle::new(on.position() - back, on.size())
+                    })
+                    .collect(),
+                _ => Vec::new(),
+            };
             out.push(Held {
                 edge,
                 src,
                 dest,
                 strip: strip(dest, edge, paper, local),
-                back: on.position() - dest.position(),
+                back,
+                heads,
             });
         }
     }
@@ -83,7 +129,7 @@ pub fn held(bands: &[Band], diagram: Size, view: View, local: Rectangle) -> Vec<
 pub fn through(held: &[Held], at: Point) -> Point {
     held.iter()
         .rev()
-        .find(|band| band.strip.contains(at))
+        .find(|band| band.holds(at))
         .map_or(at, |band| at + band.back)
 }
 
@@ -92,6 +138,8 @@ pub fn through(held: &[Held], at: Point) -> Point {
 #[derive(Debug, Clone, Copy)]
 pub struct Headings<'a> {
     pub bands: &'a [Band],
+    /// The heads of the first band across the top that alone are held.
+    pub heads: &'a [omaspec_uml::graph::Rect],
     /// The areas the picture fills with a color of their own under what
     /// lies on them: what scrolls under a band there fades into that
     /// color, not the paper's.
@@ -108,7 +156,7 @@ impl Headings<'_> {
         let view = self
             .glide
             .map_or(self.view, |glide| glide.at(crate::clock::now()));
-        held(self.bands, self.diagram, view, local)
+        held(self.bands, self.heads, self.diagram, view, local)
     }
 
     /// [`through`] the bands held now.
@@ -166,6 +214,10 @@ impl canvas::Program<Message> for KeptBands<'_> {
             .collect();
         for band in &held {
             let paper = self.overview.paper;
+            if !band.heads.is_empty() {
+                self.heads(&mut frame, local, band, &grounds);
+                continue;
+            }
             frame.fill_rectangle(band.strip.position(), band.strip.size(), paper);
             let sharp = self.sharp[match band.edge {
                 Edge::Top => 0,
@@ -196,6 +248,61 @@ impl canvas::Program<Message> for KeptBands<'_> {
             }
         }
         vec![frame.into_geometry()]
+    }
+}
+
+impl KeptBands<'_> {
+    /// The heads of `band`, each on its own: the paper round it thinning
+    /// out, in the color it stands on, and the head from the picture.
+    fn heads(
+        &self,
+        frame: &mut Frame,
+        local: Rectangle,
+        band: &Held,
+        grounds: &[(Rectangle, Color)],
+    ) {
+        let scale = if self.scale > 0.0 { self.scale } else { 1.0 };
+        let snap = |at: f32| (at * scale).round() / scale;
+        for head in &band.heads {
+            // Where it stands in the picture: on a box's fill, or the paper.
+            let stands = Rectangle::new(head.position() + band.back, head.size());
+            let color = grounds
+                .iter()
+                .filter(|(ground, _)| ground.contains(stands.center()))
+                .min_by(|a, b| (a.0.width * a.0.height).total_cmp(&(b.0.width * b.0.height)))
+                .map_or(self.overview.paper, |(_, color)| *color);
+            let (left, top) = (snap(head.x - RIM), snap(head.y - RIM));
+            let (right, bottom) = (
+                snap(head.x + head.width + RIM),
+                snap(head.y + head.height + RIM),
+            );
+            let own = Rectangle::new(Point::new(left, top), Size::new(right - left, bottom - top));
+            // Layers that grow by whole pixels, each as thin: many lie
+            // near the head, so the color is whole there and gone at the
+            // halo's edge.
+            let alpha = 1.0 - 0.04_f32.powf(1.0 / f32::from(HALO_LAYERS));
+            for layer in 0..HALO_LAYERS {
+                let grow = snap(HALO * (1.0 - f32::from(layer) / f32::from(HALO_LAYERS)).powi(2));
+                let path = canvas::Path::rounded_rectangle(
+                    own.position() - Vector::new(grow, grow),
+                    own.size() + Size::new(grow * 2.0, grow * 2.0),
+                    (grow + 3.0).into(),
+                );
+                frame.fill(&path, Color { a: alpha, ..color });
+            }
+            frame.fill_rectangle(own.position(), own.size(), color);
+            let sharp = self.sharp[0].filter(|raster| raster.region.intersects(&band.src));
+            for raster in std::iter::once(self.overview).chain(sharp) {
+                let blit = sprite::Blit {
+                    raster,
+                    src: band.src,
+                    dest: band.dest,
+                    limit: own,
+                    alpha: 1.0,
+                };
+                sprite::blit(frame, local, &blit);
+            }
+        }
     }
 }
 
@@ -415,7 +522,7 @@ mod tests {
             center: Point::new(200.0, 1500.0),
             fit: false,
         };
-        let kept = held(&[band], diagram, view(1.0), local);
+        let kept = held(&[band], &[], diagram, view(1.0), local);
         assert_eq!(kept.len(), 1);
         assert_eq!(kept[0].dest.y, 0.0);
         // A click on the held heading picks the heading, 1200 pixels up.
@@ -426,6 +533,29 @@ mod tests {
             Point::new(400.0, 300.0)
         );
         // Zoomed in six times, the heading is 240 pixels high: too high.
-        assert!(held(&[band], diagram, view(6.0), local).is_empty());
+        assert!(held(&[band], &[], diagram, view(6.0), local).is_empty());
+
+        // Its heads alone held: a click on one picks it, a click between
+        // two of them what scrolls by there.
+        let head = |x: f32| omaspec_uml::graph::Rect {
+            x,
+            y: 10.0,
+            w: 80.0,
+            h: 30.0,
+        };
+        let kept = held(
+            &[band],
+            &[head(20.0), head(300.0)],
+            diagram,
+            view(1.0),
+            local,
+        );
+        // The diagram's left side is at 200 in the pane.
+        assert_eq!(kept[0].heads[0], rect(220.0, 10.0, 80.0, 30.0));
+        assert_eq!(kept[0].heads[1], rect(500.0, 10.0, 80.0, 30.0));
+        let on = Point::new(240.0, 20.0);
+        assert_eq!(through(&kept, on), Point::new(240.0, 20.0 - 1200.0));
+        let between = Point::new(400.0, 20.0);
+        assert_eq!(through(&kept, between), between);
     }
 }

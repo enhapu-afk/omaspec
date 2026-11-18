@@ -257,6 +257,12 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] A sequence diagram scrolled past its participants holds each of them on its
+      own, and the names of its boxes, not the whole band across the top (2026-11-18):
+      what scrolls by is seen between them and goes under each softly, into the paper's
+      color or the box's. The map names them (`Map::heads`); a click on one picks the
+      participant, a click between two what scrolls by there. Swimlanes and a Gantt
+      chart keep their band whole, a row of its own (`snapshot_heads`)
 - [x] On a laptop with two graphics cards Omaspec draws with the one that takes
       little power (2026-11-18): iced asked for the strong one, which stayed awake while
       the editor was open. `WGPU_POWER_PREF=high` asks for it still

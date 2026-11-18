@@ -32,6 +32,11 @@ pub struct Map {
     /// tasks down its left. What is drawn is the picture's; the pane only
     /// holds them at its edge.
     pub bands: Vec<Band>,
+    /// What of the first band across the top a pane holds, where it is
+    /// not the whole band: a sequence diagram's participants and the
+    /// names of its boxes, each on its own, so that what scrolls by is
+    /// seen between them. Empty where the band is held whole.
+    pub heads: Vec<Rect>,
     /// Parts of their own that lie inside a box, as a note inside a state:
     /// each part's name and that of the box's part. A glide draws such a
     /// part over its box, not under it.
@@ -364,6 +369,9 @@ impl Map {
         }
         for ground in &mut self.grounds {
             ground.rect = fit.rect(ground.rect);
+        }
+        for head in &mut self.heads {
+            *head = fit.rect(*head);
         }
         for band in &mut self.bands {
             band.rect = fit.rect(band.rect);

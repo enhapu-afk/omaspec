@@ -62,6 +62,7 @@ impl Paper {
             (Some(previous), _, _) => previous.pictures.first().map(|overview| {
                 let headings = canvas::Headings {
                     bands: &previous.map.bands,
+                    heads: &previous.map.heads,
                     grounds: &previous.map.grounds,
                     diagram: previous.size,
                     view: mark_view,
@@ -72,6 +73,7 @@ impl Paper {
             (None, Some(diagram), Some(overview)) => {
                 let headings = canvas::Headings {
                     bands: &diagram.drawn.map.bands,
+                    heads: &diagram.drawn.map.heads,
                     grounds: &diagram.drawn.map.grounds,
                     diagram: diagram.size,
                     view: self.view,
