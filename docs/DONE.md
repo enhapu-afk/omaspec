@@ -257,6 +257,12 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] The light on the name under the caret goes to a participant's head from its
+      declaration, also where a line before it holds the letters of its alias
+      (2026-11-18): with `title Reviewing an AI-written PR` over
+      `participant "Claude" as AI` the title counted as the first mention of Claude, so
+      the declaration was the second and lit the foot. An alias counts from the line
+      that declares it
 - [x] A sequence diagram scrolled past its participants holds each of them as a
       pill at the top of the pane, PlantUML's and Mermaid's alike, not the whole band
       across the top (2026-11-18). As a participant, an actor, a database or a queue

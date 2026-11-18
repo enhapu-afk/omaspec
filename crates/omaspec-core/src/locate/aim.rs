@@ -213,10 +213,11 @@ pub fn aimed<'a>(
     Some((chosen.text.to_owned(), nth))
 }
 
-/// `(alias, label)` in file order. The first declaration of a name wins.
-fn alias_map<'a>(source: &str, prep: &Prep<'a>) -> Vec<(String, &'a str)> {
+/// `(alias, label, row)` in file order, the row the one where it is
+/// declared. The first declaration of a name wins.
+fn alias_map<'a>(source: &str, prep: &Prep<'a>) -> Vec<(String, &'a str, usize)> {
     let mut aliases = Vec::new();
-    for line in source.split('\n') {
+    for (row, line) in source.split('\n').enumerate() {
         if text::comment(line) || !has_as_word(line) {
             continue;
         }
@@ -225,10 +226,10 @@ fn alias_map<'a>(source: &str, prep: &Prep<'a>) -> Vec<(String, &'a str)> {
                 continue;
             };
             let name = &line[from..to];
-            if aliases.iter().any(|(have, _)| have == name) {
+            if aliases.iter().any(|(have, _, _)| have == name) {
                 continue;
             }
-            aliases.push((name.to_owned(), occ.text));
+            aliases.push((name.to_owned(), occ.text, row));
         }
     }
     aliases
@@ -241,17 +242,20 @@ fn count_before(
     row: usize,
     label: &str,
     start: usize,
-    aliases: &[(String, &str)],
+    aliases: &[(String, &str, usize)],
     prep: &Prep<'_>,
     wrapped: &[super::wrap::Run<'_>],
 ) -> usize {
     let Some(index) = prep.labels.iter().position(|text| *text == label) else {
         return 0;
     };
+    // The alias and the row that declares it: the same letters in a line
+    // before that (`AI` in a title over `participant "Claude" as AI`) are
+    // words of that line, not a mention.
     let alias = aliases
         .iter()
-        .find(|(_, text)| *text == label)
-        .map(|(name, _)| name.as_str());
+        .find(|(_, text, _)| *text == label)
+        .map(|(name, _, declared)| (name.as_str(), *declared));
     let mut seen = 0;
     for (at_row, line) in source.split('\n').enumerate() {
         if at_row > row {
@@ -270,6 +274,9 @@ fn count_before(
             continue;
         }
         let holds = worth(line, index, prep);
+        let alias = alias
+            .filter(|(_, declared)| at_row >= *declared)
+            .map(|(name, _)| name);
         let alias_here = alias.is_some_and(|name| line.contains(name));
         if !alias_here && !holds {
             continue;
@@ -729,10 +736,14 @@ fn token_at(line: &str, at: usize) -> Option<(usize, usize)> {
 }
 
 /// The caret is on a use of an alias, on a line that does not draw the label.
-fn alias_use<'a>(line: &str, col: usize, aliases: &[(String, &'a str)]) -> Option<Chosen<'a>> {
+fn alias_use<'a>(
+    line: &str,
+    col: usize,
+    aliases: &[(String, &'a str, usize)],
+) -> Option<Chosen<'a>> {
     let (from, to) = super::word_range(line, col)?;
     let name = &line[from..to];
-    let text = aliases.iter().find(|(alias, _)| alias == name)?.1;
+    let text = aliases.iter().find(|(alias, _, _)| alias == name)?.1;
     Some(Chosen { text, start: from })
 }
 
@@ -1081,6 +1092,21 @@ A -> B : a rather long message text
         assert_eq!(aim(source, 1, "Pick", 0, &texts), Some(("Pick".into(), 0)));
         assert_eq!(aim(source, 1, "go", 0, &texts), Some(("go".into(), 0)));
         assert_eq!(aim(source, 1, "-->", 0, &texts), None);
+    }
+
+    /// The letters of an alias in a line before the one that declares it
+    /// are that line's words: the declaration is the first mention, and
+    /// the light goes to the participant's head, not its foot.
+    #[test]
+    fn an_alias_s_letters_before_its_declaration_are_no_mention() {
+        let source =
+            "title Reviewing an AI-written PR\nparticipant \"Claude\" as AI\nAI -> AI : go\n";
+        let texts = ["Reviewing an AI-written PR", "Claude", "go", "Claude"];
+        assert_eq!(
+            aim(source, 1, "Claude", 0, &texts),
+            Some(("Claude".into(), 0))
+        );
+        assert_eq!(aim(source, 2, "AI", 0, &texts), Some(("Claude".into(), 1)));
     }
 
     #[test]
