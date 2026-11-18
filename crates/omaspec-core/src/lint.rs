@@ -13,6 +13,7 @@
 //! only the Java PlantUML draws the diagram, and one it refuses as PlantUML
 //! does ([`engine`]).
 
+mod embedded;
 mod fix;
 mod icons;
 mod namesakes;
@@ -114,6 +115,7 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     lines_by_hand(&code, &mut findings);
     unseen::findings(&lines, &mut findings);
     if lang == Language::PlantUml {
+        embedded::findings(&lines, &mut findings);
         icons::findings(&lines, &mut findings);
     }
     let faint = match lang {

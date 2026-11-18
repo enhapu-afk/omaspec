@@ -2730,6 +2730,10 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       regions as a whole and offered only its own transitions, so it
       stood half way. Lint and the scenario check already took such a
       region as entered.
+- [x] REQ-077, the hint (2026-11-18): lint's `embedded-diagram` says on
+      the line that opens a diagram inside a diagram (`{{`, or `{{wbs`,
+      where a later line closes it) that Omaspec writes it as its text
+      and the Java PlantUML draws it.
 - [x] A state machine's play lights each state in its own shape
       (2026-11-18): the state's outline as its picture draws it
       (`focus::Outline`, the one the focus lets a box through in) is what

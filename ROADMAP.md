@@ -34,8 +34,9 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
       (`a_zoom_never_shows_the_paper_alone` draws frame by frame with a
       pointer and passes). `OMASPEC_DRAWS=1` says on standard error what
       the diagram's canvas draws in each frame.
-- [ ] REQ-077: an embedded diagram (`{{ … }}`) is drawn as text; at
-      least a lint hint on the line with `{{`.
+- [ ] REQ-077: an embedded diagram (`{{ … }}`) is drawn as text. Lint
+      says so on the line with `{{` (`embedded-diagram`); drawing it as a
+      picture inside the note is open.
 - [ ] REQ-079: a line from a subgraph to its own child (`Sub --> In`) is
       a stub of eight pixels at the picture's left edge.
 - [ ] The focus in a real window, and at small zooms, where a lit line
