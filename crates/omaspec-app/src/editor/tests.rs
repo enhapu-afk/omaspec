@@ -3167,6 +3167,30 @@ fn snapshot_focus_looks() {
     }
 }
 
+/// Writes a headless screenshot of the focus at a small zoom when
+/// OMASPEC_SNAPSHOT_DIR is set: a large machine in a small window, where a
+/// lit line is still three quarters of a pixel wide.
+#[test]
+fn snapshot_focus_small() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("focus-small");
+    let elevator = include_str!("../../../../examples/gallery/elevator.puml");
+    let file = work.join("elevator.puml");
+    std::fs::write(&file, elevator).unwrap();
+    for (colors, name) in [(false, "focus-small-file"), (true, "focus-small-theme")] {
+        let mut app = open(std::slice::from_ref(&file));
+        follow_theme(&mut app, colors);
+        show(&mut app, elevator, Language::PlantUml);
+        let key = app.doc().key;
+        let at = app.doc().paper.screen_of_box("Moving");
+        let _ = app.update(Message::Paper(key, paper::Message::FocusAt(at)));
+        shoot_at(&mut app, &dir, name, Size::new(760.0, 360.0));
+    }
+}
+
 /// An activity diagram takes the focus (docs/adr/0029): an action, the
 /// test before it and the bar after it come through the veil in their own
 /// shapes, with the lines between them.
