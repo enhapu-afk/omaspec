@@ -581,10 +581,8 @@ impl Run {
         } else if let Some(inner) = m.region_begins_in(state, region) {
             // No start of its own: the one state in it that has one is
             // where it begins (REQ-076), its regions started in turn.
-            let regions: Vec<(usize, usize)> = self.regions(m, inner).map(|r| (inner, r)).collect();
-            let mut entered = Vec::new();
-            self.stand_in(m, &regions, &mut entered);
-            for (inner, r) in regions {
+            let regions: Vec<usize> = self.regions(m, inner).collect();
+            for r in regions {
                 self.start_region(m, inner, r, steps, clock, beat);
             }
         }

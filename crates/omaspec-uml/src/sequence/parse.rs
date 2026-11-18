@@ -11,26 +11,17 @@ use crate::source::{Line, starts_with_ci};
 
 /// Parses a sequence diagram from the lines [`crate::source::body`] gives.
 pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
-    // `& A -> B` and `/ note over B`: the line without its sign, and
-    // that it had one.
-    let mut together = vec![false; lines.len()];
-    let lines: Vec<Line> = lines
-        .iter()
-        .zip(&mut together)
-        .map(|(line, together)| match beside(line.text) {
-            Some(text) => {
-                *together = true;
-                Line { text, ..*line }
-            }
-            None => *line,
-        })
-        .collect();
+    let mut lines = lines.to_vec();
     let mut parser = Parser::default();
     let mut at = 0;
     while at < lines.len() {
+        // `& A -> B` and `/ note over B`: the line is read without its
+        // sign. Only a line that begins something has one: a `&` in the
+        // text of a note over several lines is its text.
+        let together = beside(lines[at].text).map(|text| lines[at].text = text);
         let before = parser.diagram.items.len();
         let next = parser.line(&lines, at)?;
-        if together[at] {
+        if together.is_some() {
             parser.together(before, lines[at].no)?;
         }
         at = next;
@@ -1587,6 +1578,23 @@ mod tests {
         assert_eq!(e.line, Some(2));
     }
 
+    /// A `&` or a `/` that begins a line of a note's text is its text.
+    #[test]
+    fn a_sign_in_a_note_over_lines_is_its_text() {
+        let d = diagram("@startuml\nA -> B\nnote over A\n& more\n/ note this\nend note\n@enduml");
+        let notes: Vec<&Note> = d
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Note(note) => Some(note),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].text.value, "& more\n/ note this");
+        assert!(!notes[0].together);
+    }
+
     /// REQ-080: `title` and a no-break space is a title that shows
     /// nothing, and a character nobody sees is written out in a message.
     #[test]
@@ -1596,6 +1604,12 @@ mod tests {
         // At the end of a word it is no text: the name is `A`.
         let d = diagram("@startuml\nparticipant A\u{a0}\nA -> B\n@enduml");
         assert_eq!(codes(&d), ["A", "B"]);
+        // Nor after a space at the end of any other line.
+        let d = diagram("@startuml\nparticipant A \u{a0}\nA -> B : hi \u{a0}\n@enduml");
+        assert_eq!(codes(&d), ["A", "B"]);
+        assert_eq!(messages(&d)[0].text.as_ref().unwrap().value, "hi");
+        let d = diagram("@startuml\nHeader \u{a0}\nA -> B\n@enduml");
+        assert_eq!(d.frame.header.as_ref().unwrap().value, "\u{a0}");
         let e = declined("@startuml\ntitle\nA -> B\n@enduml");
         assert!(e.reason.contains("has no end line"), "{e:?}");
 

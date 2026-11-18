@@ -234,7 +234,7 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
         }
         if let Some(name) = holds_itself(&parsed.graph) {
             return Err(Refused::Said(format!(
-                "`{name}` holds itself: a box cannot stand inside itself"
+                "`{name}` is opened inside itself: a box cannot stand inside itself"
             )));
         }
         let theme = without_our_face(&options.theme);
@@ -281,15 +281,30 @@ impl From<ParseError> for Refused {
     }
 }
 
-/// The name of a container of `graph` that is among its own members: a
-/// state or a subgraph written inside itself. mmdr lays such a graph out
-/// on a grid without an end, some gigabytes of it (found by fuzzing,
-/// 2026-11-18), so it is refused before the layout.
+/// The name of a container of `graph` that is written more than once and
+/// is among its own members: a state or a subgraph opened inside itself,
+/// with a line to it there. mmdr lays such a graph out on a grid that
+/// grows with each time it is opened, to some gigabytes (found by
+/// fuzzing, 2026-11-18), so it is refused before the layout.
+///
+/// A container written once with a line to itself inside
+/// (`state Review { Draft --> Review }`) is among its own members too,
+/// and mmdr draws it in no time: that one is let through. A circle of
+/// two containers needs no rule of its own: mmdr gives the outer one
+/// every member of the inner ones, so it holds itself.
 fn holds_itself(graph: &mermaid_rs_renderer::Graph) -> Option<&str> {
-    graph.subgraphs.iter().find_map(|subgraph| {
-        let id = subgraph.id.as_deref()?;
-        subgraph.nodes.iter().any(|node| node == id).then_some(id)
-    })
+    let holding = |id: &str| {
+        graph
+            .subgraphs
+            .iter()
+            .filter(|s| s.id.as_deref() == Some(id) && s.nodes.iter().any(|node| node == id))
+            .count()
+    };
+    graph
+        .subgraphs
+        .iter()
+        .filter_map(|subgraph| subgraph.id.as_deref())
+        .find(|id| holding(id) > 1)
 }
 
 /// What a drawer gets: the theme, the text as mmdr would read it (a
@@ -954,18 +969,21 @@ mod tests {
     /// each time with states of its own, is drawn.
     #[test]
     fn a_state_inside_itself_is_refused_before_mmdr_lays_it_out() {
-        let nested = "stateDiagram-v1\n    direct] --> Draft\n    Draft --> Review : submit\n    state Review {\n        [*] --> Reading\n    Draft --> Review : again\n    state Review {\n        Reading --> Done\n";
+        let nested = "stateDiagram-v1\n    direct] --> Draft\n    state Review {\n    state Review {\n    state Review {\n    state Review {\n    state Review {\n        [*] --> Readin[g\n        Reading --> Cobmit\n    statmmenting : remark\n    Draft --> Review : submit\n    state Review {\n    Re%iew --> Merged : approve\n";
         match render(nested) {
             Err(RenderError::Diagram { message, .. }) => {
                 assert_eq!(
                     message,
-                    "`Review` holds itself: a box cannot stand inside itself"
+                    "`Review` is opened inside itself: a box cannot stand inside itself"
                 );
             }
             other => panic!("{other:?}"),
         }
         let twice = "stateDiagram-v1\n    direct] --> Draft\n    state Review {\n        [*] --> A\n    }\n    state Review {\n        [*] --> B\n    }\n";
         assert!(render(twice).is_ok());
+        // Written once with a line to itself inside: mmdr draws it.
+        let once = "stateDiagram-v1\n    direct] --> Draft\n    state Review {\n        [*] --> Reading\n        Reading --> Review : again\n    }\n";
+        assert!(render(once).is_ok());
     }
 
     #[test]

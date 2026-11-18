@@ -38,9 +38,9 @@ const BAR_SHIFT: f32 = 5.0;
 const OVER: f32 = 15.0;
 /// A frame's margin around what it holds.
 const FRAME: f32 = 10.0;
-/// Arrow heads.
 /// Between two notes at one height.
 const NOTE_GAP: f32 = 10.0;
+/// Arrow heads.
 const HEAD_LENGTH: f32 = 10.0;
 const HEAD_HALF: f32 = 4.0;
 
@@ -321,6 +321,9 @@ struct Drawer<'a> {
     /// Where the last message or note began, for the ones a `&` or a `/`
     /// puts beside it.
     level: Option<Level>,
+    /// By item: whether it stands at the height of the one before
+    /// ([`beside`]).
+    beside: Vec<bool>,
     /// Each message's arrow and band, for the map.
     steps: Vec<Step>,
     /// The boxes with a fill, for the map.
@@ -343,6 +346,51 @@ struct Level {
     top: f32,
     /// From there down to the arrows, under the tallest of their texts.
     drop: f32,
+}
+
+/// By item, whether it stands at the height of the one before: a message
+/// or a note with `&` or `/`. A note that would lie on a note of that
+/// height (both over one participant, or one of them across them all)
+/// does not: it stands below, where it can be read.
+fn beside(d: &Diagram, col_of: &[Option<usize>], n: usize) -> Vec<bool> {
+    let col = |p: usize| col_of.get(p).copied().flatten().unwrap_or(0);
+    // Three places to each column: left of its lifeline, on it, right of it.
+    let mut row: Vec<(usize, usize)> = Vec::new();
+    d.items
+        .iter()
+        .map(|item| match item {
+            Item::Note(note) => {
+                let span = match note.place {
+                    NotePlace::LeftOf(p) => (3 * col(p), 3 * col(p)),
+                    NotePlace::RightOf(p) => (3 * col(p) + 2, 3 * col(p) + 2),
+                    NotePlace::Over(a, b) => {
+                        let (a, b) = (col(a), col(b));
+                        (3 * a.min(b) + 1, 3 * a.max(b) + 1)
+                    }
+                    NotePlace::Across => (0, 3 * n.saturating_sub(1) + 2),
+                    // Beside its message, whose height it has anyway.
+                    NotePlace::Message(_) => return note.together,
+                };
+                let fits = note.together && row.iter().all(|old| old.1 < span.0 || span.1 < old.0);
+                if !fits {
+                    row.clear();
+                }
+                row.push(span);
+                fits
+            }
+            Item::Message(m) => {
+                if !m.together {
+                    row.clear();
+                }
+                m.together
+            }
+            Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. } => false,
+            _ => {
+                row.clear();
+                false
+            }
+        })
+        .collect()
 }
 
 /// The columns a note covers, and how far it reaches past the first to
@@ -640,6 +688,7 @@ impl<'a> Drawer<'a> {
             annotations.width()
         };
 
+        let beside = beside(d, &col_of, n);
         Ok(Drawer {
             d,
             skin,
@@ -663,6 +712,7 @@ impl<'a> Drawer<'a> {
             dividers: Vec::new(),
             last_arrow: None,
             level: None,
+            beside,
             steps: Vec::new(),
             grounds: Vec::new(),
             band: None,
@@ -715,9 +765,11 @@ impl<'a> Drawer<'a> {
         let beside = self.d.items[k + 1..]
             .iter()
             .enumerate()
-            .take_while(|(_, item)| match item {
-                Item::Message(m) => m.together,
-                Item::Note(note) => note.together || matches!(note.place, NotePlace::Message(_)),
+            .take_while(|(i, item)| match item {
+                Item::Message(_) => self.beside[k + 1 + *i],
+                Item::Note(note) => {
+                    self.beside[k + 1 + *i] || matches!(note.place, NotePlace::Message(_))
+                }
                 Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. } => true,
                 _ => false,
             })
@@ -924,7 +976,7 @@ impl<'a> Drawer<'a> {
         for (k, item) in d.items.iter().enumerate() {
             match item {
                 Item::Note(note) => {
-                    if !note.together {
+                    if !self.beside[k] {
                         row.clear();
                     }
                     let Measured::Note { width, .. } = self.measured[k] else {
@@ -958,7 +1010,7 @@ impl<'a> Drawer<'a> {
                     }
                     row.push(new);
                 }
-                Item::Message(m) if m.together => {}
+                Item::Message(_) if self.beside[k] => {}
                 Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. } => {}
                 _ => row.clear(),
             }
@@ -1152,13 +1204,13 @@ impl<'a> Drawer<'a> {
                     }
                     _ => None,
                 };
-                let below = self.share(k, m.together);
+                let below = self.share(k, self.beside[k]);
                 self.message(canvas, k, m, note);
                 self.y = self.y.max(below.unwrap_or(self.y));
                 return k + if note.is_some() { 2 } else { 1 };
             }
             Item::Note(note) => {
-                let below = self.share(k, note.together);
+                let below = self.share(k, self.beside[k]);
                 self.note(canvas, k, note);
                 self.y = self.y.max(below.unwrap_or(self.y));
             }
@@ -2436,6 +2488,23 @@ mod tests {
         });
         laid_out("note over C : c\\nc\\nc\\nc", |d| heights.1 = d.y);
         assert_eq!(heights.0, heights.1);
+    }
+
+    /// A note that would lie on the note before it stands below it.
+    #[test]
+    fn a_note_on_the_note_before_stands_below() {
+        let height = |body: &str| {
+            let mut y = 0.0;
+            laid_out(body, |d| y = d.y);
+            y
+        };
+        let below = height("note over A : one\nnote over A : two");
+        assert_eq!(height("note over A : one\n/ note over A : two"), below);
+        assert_eq!(height("note over A : one\n/ note across : two"), below);
+        assert_eq!(height("note over A, B : one\n/ note over B : two"), below);
+        // Left and right of one lifeline there is room for both.
+        assert!(height("note left of A : one\n/ note right of A : two") < below);
+        assert!(height("note over A : one\n/ note over B : two") < below);
     }
 
     /// Notes at one height stand beside one another, however wide.

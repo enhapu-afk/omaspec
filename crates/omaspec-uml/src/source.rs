@@ -192,25 +192,36 @@ fn has_special_comment(text: &str) -> bool {
     })
 }
 
-/// Whitespace, a carriage return and byte order marks off both ends. A
-/// no-break space that ends the line as a word of its own stays: `title`
-/// and one of them is a title that shows nothing, as in PlantUML, not the
-/// first line of a block.
+/// Whitespace, a carriage return and byte order marks off both ends.
+///
+/// One line keeps a no-break space: `title`, `header` or `footer` and
+/// nothing after it but spaces with one of them among them. That is a
+/// text that shows nothing, as in PlantUML, not the first line of a block
+/// ([`shows_nothing`] reads it). Every other line ends with its last word.
 fn trim(line: &str) -> &str {
-    let text = line.trim_matches(|c: char| c.is_whitespace() || c == '\u{feff}');
-    if text.is_empty() {
-        return text;
-    }
-    let start = text.as_ptr() as usize - line.as_ptr() as usize;
+    let blank = |c: char| c.is_whitespace() || c == '\u{feff}';
+    let text = line.trim_matches(blank);
+    let start = line.len() - line.trim_start_matches(blank).len();
     let after = &line[start + text.len()..];
+    let frame = ["title", "header", "footer"]
+        .iter()
+        .any(|word| text.eq_ignore_ascii_case(word));
     match after.find(NO_BREAK_SPACE) {
-        Some(at) if at > 0 => &line[start..start + text.len() + at + NO_BREAK_SPACE.len_utf8()],
+        Some(at) if frame && at > 0 => {
+            &line[start..start + text.len() + at + NO_BREAK_SPACE.len_utf8()]
+        }
         _ => text,
     }
 }
 
 /// U+00A0: a space that is a text.
 pub(crate) const NO_BREAK_SPACE: char = '\u{a0}';
+
+/// Whether `text`, a line of the body that begins with a word for a
+/// title, header or footer, gives it a no-break space as its whole text.
+pub(crate) fn shows_nothing(text: &str) -> bool {
+    text.ends_with(NO_BREAK_SPACE)
+}
 
 /// The `title:` of the front matter a Mermaid diagram may start with,
 /// unquoted, and its zero-based line.

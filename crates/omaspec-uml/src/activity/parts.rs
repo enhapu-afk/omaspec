@@ -9,7 +9,7 @@
 //! counted, and a line is followed through such points to the next shape:
 //! the line the map tells is the whole way from one shape to another.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::tile::Shape;
 use crate::graph::Rect;
@@ -50,7 +50,10 @@ fn away(rect: Rect, points: &[(f32, f32)]) -> f32 {
 
 #[derive(Default)]
 pub(super) struct Found {
+    /// How many shapes of each kind and words there were.
     seen: HashMap<String, usize>,
+    /// The names given: no two shapes share one.
+    used: HashSet<String>,
     pub places: Vec<Place>,
     runs: Vec<Run>,
     /// The words beside lines: each one's part and where it is drawn.
@@ -100,16 +103,26 @@ impl Found {
             Shape::Frame { title, .. } => ("partition", words(title), false),
             Shape::Label { text, .. } => ("label", words(text), false),
         };
-        let mut name = if said.is_empty() {
+        let base = if said.is_empty() {
             kind.to_owned()
         } else {
             format!("{kind}:{said}")
         };
-        let nth = self.seen.entry(name.clone()).or_insert(0);
-        *nth += 1;
-        if *nth > 1 {
-            name.push_str(&format!(" #{nth}"));
-        }
+        // The second of a name is counted; a count that is another
+        // shape's own words (`A #2`) is passed over.
+        let mut nth = self.seen.get(&base).copied().unwrap_or(0);
+        let name = loop {
+            nth += 1;
+            let name = if nth > 1 {
+                format!("{base} #{nth}")
+            } else {
+                base.clone()
+            };
+            if self.used.insert(name.clone()) {
+                break name;
+            }
+        };
+        self.seen.insert(base, nth);
         if matches!(shape, Shape::Label { .. }) {
             self.labels.push((name.clone(), rect));
         }
@@ -317,6 +330,26 @@ impl Found {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
+
+    /// An action whose words are another one's name with its count keeps
+    /// a name of its own.
+    #[test]
+    fn no_two_shapes_share_a_name() {
+        let source = "@startuml\nstart\n:A;\n:A #2;\n:A;\n:A;\nstop\n@enduml";
+        let (_, map) = mapped(source);
+        let names: Vec<&str> = map.places.iter().map(|p| p.name.as_str()).collect();
+        assert_eq!(
+            names,
+            [
+                "start",
+                "action:A",
+                "action:A #2",
+                "action:A #3",
+                "action:A #4",
+                "stop"
+            ]
+        );
+    }
 
     const PARTS: &str = "\n' parts (Omaspec)\n";
 

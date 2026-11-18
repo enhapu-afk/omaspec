@@ -467,7 +467,16 @@ fn enter(m: &Machine, state: usize, at: &mut [bool], seen: &mut [bool]) {
                     .copied()
                     .filter(|&c| m.states[c].kind == Kind::Start)
                     .collect();
-                for c in if starts.is_empty() { members } else { starts } {
+                // Its starts; without one the one state it begins in
+                // (REQ-076), or anywhere.
+                let first = if !starts.is_empty() {
+                    starts
+                } else if let Some(first) = m.region_begins_in(state, region) {
+                    vec![first]
+                } else {
+                    members
+                };
+                for c in first {
                     enter(m, c, at, seen);
                 }
             }

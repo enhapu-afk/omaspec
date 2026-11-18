@@ -65,7 +65,9 @@ fn finding(
 ///
 /// Being in a state means being in every state around it, and entering a
 /// composite state enters the start of each of its regions; a region with
-/// no start (reported on its own) counts as entered everywhere. A
+/// no start begins in its one state that has one
+/// ([`Machine::region_begins_in`]), and without such a state (reported on
+/// its own) counts as entered everywhere. A
 /// transition from a composite state leaves any state inside it. This errs
 /// towards reaching too much, so a state reported unreachable surely is.
 fn reachable(m: &Machine) -> Option<Vec<bool>> {
@@ -101,7 +103,11 @@ fn reachable(m: &Machine) -> Option<Vec<bool>> {
                 .copied()
                 .collect();
             if starts.is_empty() {
-                todo.extend(members);
+                // The one state it begins in (REQ-076), or anywhere.
+                match m.region_begins_in(state, region) {
+                    Some(first) => todo.push(first),
+                    None => todo.extend(members),
+                }
             } else {
                 todo.extend(starts);
             }

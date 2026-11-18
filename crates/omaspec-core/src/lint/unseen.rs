@@ -2,29 +2,13 @@
 //! another name, and every message about it reads as if nothing were
 //! wrong. Lint says where one stands and takes it out.
 //!
-//! A no-break space is not one of them (it is a way to write a text that
-//! shows nothing), nor are the joiners and direction marks that scripts
-//! and emoji need (U+200C to U+200F), nor a byte order mark at the very
-//! start.
+//! Which characters those are is `omaspec_uml::common::unseen`'s list,
+//! the one a message quoting the source writes as code points. A byte
+//! order mark at the very start is none here.
+
+use omaspec_uml::unseen as name;
 
 use super::{Finding, Fix, Severity};
-
-/// What `c` is called, if it is a character that leaves no mark and has
-/// no place in a diagram's text.
-fn name(c: char) -> Option<&'static str> {
-    Some(match c {
-        '\u{ad}' => "soft hyphen",
-        '\u{200b}' => "zero-width space",
-        '\u{2060}' => "word joiner",
-        '\u{feff}' => "zero-width no-break space",
-        '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' => {
-            "a mark that turns the direction of the text"
-        }
-        '\t' => return None,
-        c if c.is_control() => "a control character",
-        _ => return None,
-    })
-}
 
 /// A warning for each line that holds such a character, naming the first
 /// and what stands before it.

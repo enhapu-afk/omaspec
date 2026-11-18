@@ -273,7 +273,9 @@ impl Frame {
             ("footer", "endfooter"),
         ] {
             if let Some(rest) = keyword(text, word) {
-                let (value, next) = if rest.is_empty() {
+                let (value, next) = if rest.is_empty() && crate::source::shows_nothing(text) {
+                    (crate::source::NO_BREAK_SPACE.to_string(), at + 1)
+                } else if rest.is_empty() {
                     block(lines, at, word, |l| squeezed_eq(l, end))?
                 } else {
                     (rest.to_owned(), at + 1)
@@ -598,14 +600,7 @@ pub fn keyword<'a>(text: &'a str, word: &str) -> Option<&'a str> {
     let rest = &text[word.len()..];
     match rest.chars().next() {
         None => Some(rest),
-        Some(c) if c.is_whitespace() => Some(match rest.trim() {
-            // Nothing but spaces, one of them a no-break space: that one
-            // is the text (`title` and a no-break space).
-            "" => rest.find(crate::source::NO_BREAK_SPACE).map_or("", |at| {
-                &rest[at..at + crate::source::NO_BREAK_SPACE.len_utf8()]
-            }),
-            rest => rest,
-        }),
+        Some(c) if c.is_whitespace() => Some(rest.trim()),
         _ => None,
     }
 }
@@ -843,7 +838,7 @@ pub fn snippet(text: &str) -> String {
     };
     let mut out = String::with_capacity(shown.len() + more.len());
     for c in shown.chars() {
-        if unseen(c) {
+        if unseen(c).is_some() {
             out.push_str(&format!("<U+{:04X}>", c as u32));
         } else {
             out.push(c);
@@ -853,23 +848,27 @@ pub fn snippet(text: &str) -> String {
     out
 }
 
-/// Whether `c` leaves no mark where it is written, or the mark of a plain
-/// space though it is none: controls, zero-width and directional marks,
-/// and every space but the space itself.
-pub fn unseen(c: char) -> bool {
-    match c {
-        ' ' => false,
-        '\u{ad}'
-        | '\u{34f}'
-        | '\u{61c}'
-        | '\u{180e}'
-        | '\u{200b}'..='\u{200f}'
-        | '\u{202a}'..='\u{202e}'
-        | '\u{2060}'..='\u{2064}'
-        | '\u{2066}'..='\u{206f}'
-        | '\u{feff}' => true,
-        c => c.is_control() || c.is_whitespace(),
-    }
+/// What `c` is called, if it is a character that leaves no mark and has
+/// no place in a diagram's text. The one list of them: a message writes
+/// such a character as its code point, and lint's `unseen-character`
+/// warns of it.
+///
+/// A tab and a no-break space are none (the one is a space, the other a
+/// way to write a text that shows nothing), nor are the joiners and
+/// direction marks that scripts and emoji need (U+200C to U+200F).
+pub fn unseen(c: char) -> Option<&'static str> {
+    Some(match c {
+        '\u{ad}' => "soft hyphen",
+        '\u{200b}' => "zero-width space",
+        '\u{2060}' => "word joiner",
+        '\u{feff}' => "zero-width no-break space",
+        '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' => {
+            "a mark that turns the direction of the text"
+        }
+        '\t' => return None,
+        c if c.is_control() => "a control character",
+        _ => return None,
+    })
 }
 
 /// PlantUML's skinparam key normalization: case, `_`, `.` and spaces do
@@ -904,6 +903,15 @@ pub fn normalize_key(key: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// What nobody sees is written as its code point; a tab, a no-break
+    /// space and the joiner of an emoji are left as they are.
+    #[test]
+    fn a_snippet_names_what_nobody_sees() {
+        assert_eq!(snippet("Al\u{200b}ice"), "Al<U+200B>ice");
+        let kept = "a\tb\u{a0}c \u{1f468}\u{200d}\u{1f469}";
+        assert_eq!(snippet(kept), kept);
+    }
 
     #[test]
     fn an_element_s_link_comes_out_of_its_declaration() {

@@ -257,10 +257,23 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
-- [x] Two finds of the nightly fuzzing (2026-11-18). A Mermaid state or subgraph written
-      inside itself, in a diagram Omaspec's own engines decline, sent mmdr's label
-      placement onto a grid without an end, more than 4 GB of it; such a graph is refused
-      before mmdr's layout, by the box's name (`mermaid::holds_itself`). And a PlantUML
+- [x] What the review of 2026-11-18 found in that day's work. A `&` or `/` at the start
+      of a line of a note over several lines is the note's text again, not a sign. A
+      no-break space stays at the end of a line only after a bare `title`, `header` or
+      `footer`; every other line ends with its last word as before. Lint and the
+      messages that quote the source share one list of characters nobody sees
+      (`omaspec_uml::unseen`), so a tab, a no-break space and an emoji's joiner are
+      written as they are. A note with `/` that would lie on the note before it stands
+      below it. No two shapes of an activity diagram share a part's name (`:A #2;`
+      beside two `:A;`). The checks and the reading across machines begin a region
+      without a start where a play does (`Machine::region_begins_in`). An activity
+      diagram follows its lines from shape to shape only when a pane asks for the parts
+- [x] Two finds of the nightly fuzzing (2026-11-18). A Mermaid state or subgraph opened
+      more than once inside itself, with a line to it there, in a diagram Omaspec's own
+      engines decline, sent mmdr's label placement onto a grid that grows each time,
+      more than 4 GB of it; such a graph is refused before mmdr's layout, by the box's
+      name (`mermaid::holds_itself`). One written once with a line to itself inside is
+      drawn: mmdr takes milliseconds for it. And a PlantUML
       `note across` in a sequence diagram without a participant panicked the conversion
       to Mermaid, which now refuses it on its line.
 - [x] V1 check state machines, in PlantUML (from the native parse) and Mermaid (from the
