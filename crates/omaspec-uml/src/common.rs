@@ -598,7 +598,14 @@ pub fn keyword<'a>(text: &'a str, word: &str) -> Option<&'a str> {
     let rest = &text[word.len()..];
     match rest.chars().next() {
         None => Some(rest),
-        Some(c) if c.is_whitespace() => Some(rest.trim()),
+        Some(c) if c.is_whitespace() => Some(match rest.trim() {
+            // Nothing but spaces, one of them a no-break space: that one
+            // is the text (`title` and a no-break space).
+            "" => rest.find(crate::source::NO_BREAK_SPACE).map_or("", |at| {
+                &rest[at..at + crate::source::NO_BREAK_SPACE.len_utf8()]
+            }),
+            rest => rest,
+        }),
         _ => None,
     }
 }
@@ -826,11 +833,42 @@ pub fn split_pair(text: &str) -> Option<(&str, &str)> {
     (!value.is_empty()).then_some((key, value))
 }
 
-/// The start of a line for a message, at most 40 characters.
+/// The start of a line for a message, at most 40 characters. A character
+/// nobody sees is written as its code point (`Al<U+200B>ice`): it is often
+/// what the message is about.
 pub fn snippet(text: &str) -> String {
-    match text.char_indices().nth(40) {
-        Some((cut, _)) => format!("{}…", &text[..cut]),
-        None => text.to_owned(),
+    let (shown, more) = match text.char_indices().nth(40) {
+        Some((cut, _)) => (&text[..cut], "…"),
+        None => (text, ""),
+    };
+    let mut out = String::with_capacity(shown.len() + more.len());
+    for c in shown.chars() {
+        if unseen(c) {
+            out.push_str(&format!("<U+{:04X}>", c as u32));
+        } else {
+            out.push(c);
+        }
+    }
+    out.push_str(more);
+    out
+}
+
+/// Whether `c` leaves no mark where it is written, or the mark of a plain
+/// space though it is none: controls, zero-width and directional marks,
+/// and every space but the space itself.
+pub fn unseen(c: char) -> bool {
+    match c {
+        ' ' => false,
+        '\u{ad}'
+        | '\u{34f}'
+        | '\u{61c}'
+        | '\u{180e}'
+        | '\u{200b}'..='\u{200f}'
+        | '\u{202a}'..='\u{202e}'
+        | '\u{2060}'..='\u{2064}'
+        | '\u{2066}'..='\u{206f}'
+        | '\u{feff}' => true,
+        c => c.is_control() || c.is_whitespace(),
     }
 }
 

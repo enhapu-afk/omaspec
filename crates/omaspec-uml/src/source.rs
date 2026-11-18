@@ -192,10 +192,25 @@ fn has_special_comment(text: &str) -> bool {
     })
 }
 
-/// Whitespace, a carriage return and byte order marks off both ends.
+/// Whitespace, a carriage return and byte order marks off both ends. A
+/// no-break space that ends the line as a word of its own stays: `title`
+/// and one of them is a title that shows nothing, as in PlantUML, not the
+/// first line of a block.
 fn trim(line: &str) -> &str {
-    line.trim_matches(|c: char| c.is_whitespace() || c == '\u{feff}')
+    let text = line.trim_matches(|c: char| c.is_whitespace() || c == '\u{feff}');
+    if text.is_empty() {
+        return text;
+    }
+    let start = text.as_ptr() as usize - line.as_ptr() as usize;
+    let after = &line[start + text.len()..];
+    match after.find(NO_BREAK_SPACE) {
+        Some(at) if at > 0 => &line[start..start + text.len() + at + NO_BREAK_SPACE.len_utf8()],
+        _ => text,
+    }
 }
+
+/// U+00A0: a space that is a text.
+pub(crate) const NO_BREAK_SPACE: char = '\u{a0}';
 
 /// The `title:` of the front matter a Mermaid diagram may start with,
 /// unquoted, and its zero-based line.

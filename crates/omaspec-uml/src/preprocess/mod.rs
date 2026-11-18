@@ -307,6 +307,16 @@ impl Machine<'_> {
                     self.include(&word, rest, line, frame, out)?;
                 }
                 "theme" => self.theme(rest, line, frame, out)?,
+                // PlantUML's other engine for sequence diagrams, which
+                // `&` needs there. Here one engine draws both.
+                "pragma"
+                    if matches!(
+                        rest.split_whitespace().collect::<Vec<_>>()[..],
+                        [name, value] if name.eq_ignore_ascii_case("teoz")
+                            && ["true", "false", "on", "off"]
+                                .iter()
+                                .any(|v| value.eq_ignore_ascii_case(v))
+                    ) => {}
                 // Debug output, and the markers `!includesub` looks for.
                 "log" | "dump_memory" | "startsub" | "endsub" => {}
                 "elseif" | "else" | "endif" | "endwhile" | "endfunction" | "endprocedure"
@@ -1630,6 +1640,16 @@ mod tests {
         assert!(table.contains("<line "), "{table}");
     }
 
+    /// `!pragma teoz true` goes before every `&` in PlantUML: it is read
+    /// and changes nothing, one engine draws both ways here.
+    #[test]
+    fn the_teoz_pragma_is_taken() {
+        for value in ["true", "false", "ON"] {
+            let source = format!("@startuml\n!pragma teoz {value}\nA -> B\n& B -> C\n@enduml");
+            assert!(crate::render(&source).is_ok(), "{value}");
+        }
+    }
+
     #[test]
     fn declines_what_it_cannot_do_and_names_the_line() {
         for (source, line, part) in [
@@ -1637,7 +1657,8 @@ mod tests {
             ("!includeurl https://example.com/x.puml", 0, "!includeurl"),
             ("!import lib.zip", 0, "!import"),
             ("!theme cerulean", 0, "!theme"),
-            ("!pragma teoz true", 0, "!pragma"),
+            ("!pragma layout smetana", 0, "!pragma"),
+            ("!pragma teoz perhaps", 0, "!pragma"),
             ("!foreach $x in [1]", 0, "!foreach"),
             ("title %date()", 0, "%date"),
             ("!if $nope\n!endif", 0, "`$nope` is not defined"),

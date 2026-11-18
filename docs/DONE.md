@@ -391,8 +391,13 @@ is open and the reasoning around it.
       bold, `\|` a bar in a cell); skinparams for the colors, fonts and sizes of
       every sequence element,
       `monochrome`, `style strictuml`, so every skin pack but the sketched one draws.
-      Declines, naming the line: `newpage`, `autoactivate`, teoz and
-      parallel messages, `handwritten`, `shadowing true`,
+      Messages and notes at one height since 2026-11-18 (REQ-078): `&` before a
+      message or a note, `/` before a note, puts it at the height of the one before.
+      The arrows of such a row lie on one line, under the tallest of their texts, and
+      notes of one row make room for one another. `!pragma teoz true`, which PlantUML
+      needs for `&`, is read and changes nothing. `&` before anything else declines.
+      Converted to Mermaid, each stands at a height of its own, with a note saying so.
+      Declines, naming the line: `newpage`, `autoactivate`, `handwritten`, `shadowing true`,
       `maxMessageSize`, gradients, images, links, Creole lists, headings and rules.
       Golden SVGs (`crates/omaspec-uml/tests/golden`), 1000 mutated diagrams per test run
       (none may panic, all must pass the sanitizer unchanged), Ctrl+click finds the line of
@@ -635,6 +640,16 @@ is open and the reasoning around it.
       plain name and shows the id (`state "long-wait" as long_wait`); it quoted it in
       transitions before, which PlantUML refuses. In 4,000 changed diagrams no machine
       is read otherwise any more
+- [x] Characters nobody sees (REQ-080, 2026-11-18): `title` and one no-break space is
+      a title that shows nothing, as in PlantUML, not the first line of a block without
+      its end (a no-break space that ends a line as a word of its own stays; at the
+      end of a word it is trimmed as before). A message that quotes the source writes
+      a zero-width space, a direction mark or any space but the plain one as its code
+      point (`Al<U+200B>ice` is no participant name). Lint's `unseen-character` warns
+      on each line that holds a zero-width space, a word joiner, a soft hyphen, a
+      direction override or a control character, says after which word, and its fix
+      takes them out; a no-break space, the joiners of emoji and scripts and a byte
+      order mark at the start are left alone.
 - [x] Sequence diagrams read as PlantUML 1.2026.8 reads them, found by the oracle:
       declaring a participant again, or after a message named it, moves it to the end and
       out of its box, into the one open then, and changes nothing else (its name, shape,

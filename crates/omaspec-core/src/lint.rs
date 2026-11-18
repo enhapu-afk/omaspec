@@ -17,6 +17,7 @@ mod fix;
 mod icons;
 mod namesakes;
 mod portable;
+mod unseen;
 mod written;
 
 pub use portable::portable;
@@ -111,6 +112,7 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
         Language::PlantUml => plantuml_syntax(&lines),
     };
     lines_by_hand(&code, &mut findings);
+    unseen::findings(&lines, &mut findings);
     if lang == Language::PlantUml {
         icons::findings(&lines, &mut findings);
     }

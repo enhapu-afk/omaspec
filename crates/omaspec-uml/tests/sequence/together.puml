@@ -1,0 +1,22 @@
+@startuml
+' REQ-078: `&` and `/` put a message or a note at the height of the one before.
+!pragma teoz true
+participant Client
+participant Gateway
+participant Orders
+participant Stock
+Client -> Gateway : order
+& Gateway -> Orders ++ : place\nthe order
+& Orders -> Stock ++ : reserve
+note over Client : waits
+/ note over Gateway : forwards
+/ hnote over Stock : locked
+Stock --> Orders -- : reserved
+& note left of Client : nothing yet
+Orders --> Gateway -- : placed
+& Gateway --> Client : confirmed
+alt paid
+  Client -> Gateway : pay
+  & Gateway -> Orders : paid
+end
+@enduml

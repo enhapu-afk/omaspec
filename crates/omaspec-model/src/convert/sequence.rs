@@ -16,6 +16,8 @@ use super::{
 };
 use crate::{across, diff};
 
+/// What a `&` or a `/` before a message or a note loses.
+const TOGETHER: &str = "Mermaid draws each message and note at a height of its own";
 const UNREAD: &str = "Omaspec does not fully read this sequence diagram, so it cannot convert it";
 
 pub(super) fn convert(code: &str, from: Language, to: Language) -> Result<Converted, Refused> {
@@ -129,6 +131,9 @@ impl Writer {
                             "Mermaid has no message from or to the edge of the diagram",
                         ));
                     };
+                    if m.together {
+                        self.notice(Some(m.line), TOGETHER);
+                    }
                     if let Some((at, participant)) = destroy_after(d, i, m) {
                         let id = self.id(d, participant);
                         self.out.push(format!("    destroy {id}"));
@@ -150,6 +155,9 @@ impl Writer {
                     }
                 }
                 Item::Note(note) => {
+                    if note.together {
+                        self.notice(Some(note.line), TOGETHER);
+                    }
                     if note.shape != NoteShape::Note || note.color.is_some() {
                         self.notice(
                             Some(note.line),

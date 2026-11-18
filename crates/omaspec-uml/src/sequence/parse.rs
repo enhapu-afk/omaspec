@@ -11,12 +11,45 @@ use crate::source::{Line, starts_with_ci};
 
 /// Parses a sequence diagram from the lines [`crate::source::body`] gives.
 pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
+    // `& A -> B` and `/ note over B`: the line without its sign, and
+    // that it had one.
+    let mut together = vec![false; lines.len()];
+    let lines: Vec<Line> = lines
+        .iter()
+        .zip(&mut together)
+        .map(|(line, together)| match beside(line.text) {
+            Some(text) => {
+                *together = true;
+                Line { text, ..*line }
+            }
+            None => *line,
+        })
+        .collect();
     let mut parser = Parser::default();
     let mut at = 0;
     while at < lines.len() {
-        at = parser.line(lines, at)?;
+        let before = parser.diagram.items.len();
+        let next = parser.line(&lines, at)?;
+        if together[at] {
+            parser.together(before, lines[at].no)?;
+        }
+        at = next;
     }
     parser.finish()
+}
+
+/// The rest of a line that puts what it holds at the height of the line
+/// before: `&` before anything (PlantUML's teoz), `/` before a note.
+fn beside(text: &str) -> Option<&str> {
+    if let Some(rest) = text.strip_prefix('&') {
+        let rest = rest.trim_start();
+        return (!rest.is_empty()).then_some(rest);
+    }
+    let rest = text.strip_prefix('/')?.trim_start();
+    ["note", "hnote", "rnote"]
+        .iter()
+        .any(|word| keyword(rest, word).is_some())
+        .then_some(rest)
 }
 
 const SHAPES: [(&str, Shape); 8] = [
@@ -352,6 +385,29 @@ impl Parser {
         }
     }
 
+    /// The line at `no` began with `&` or `/` and gave the items from
+    /// `from` on: its message or note stands at the height of the one
+    /// before.
+    fn together(&mut self, from: usize, no: usize) -> Result<(), Declined> {
+        let (earlier, new) = self.diagram.items.split_at_mut(from);
+        // Without a message or a note before it there is no height to
+        // share: the line is drawn as if it had no sign.
+        let follows = earlier
+            .iter()
+            .any(|item| matches!(item, Item::Message(_) | Item::Note(_)));
+        match new.first_mut() {
+            Some(Item::Message(message)) => message.together = follows,
+            Some(Item::Note(note)) => note.together = follows,
+            _ => {
+                return Err(Declined::at(
+                    no,
+                    "`&` and `/` go before a message or a note",
+                ));
+            }
+        }
+        Ok(())
+    }
+
     fn finish(mut self) -> Result<Diagram, Declined> {
         // A group or a box left open ends with the diagram, as PlantUML
         // ends it; lint says which one has no `end`.
@@ -675,6 +731,7 @@ impl Parser {
             text: (!label.is_empty()).then(|| text_at(label, no)),
             number,
             creates,
+            together: false,
             line: no,
         }));
         self.last_message = Some((End::Participant(participant), caller));
@@ -820,6 +877,7 @@ impl Parser {
             text: text.filter(|t| !t.is_empty()).map(|t| text_at(t, no)),
             number,
             creates,
+            together: false,
             line: no,
         }));
         self.last_message = Some((from, to));
@@ -930,6 +988,7 @@ impl Parser {
             place,
             text: Text { value, line: no },
             color,
+            together: false,
             line: no,
         }));
         Ok(Some(next))
@@ -1489,6 +1548,63 @@ mod tests {
 
     fn codes(d: &Diagram) -> Vec<&str> {
         d.participants.iter().map(|p| p.code.as_str()).collect()
+    }
+
+    #[test]
+    fn a_sign_puts_a_line_at_the_height_of_the_one_before() {
+        let d = diagram(
+            "@startuml\nA -> B : one\n& B -> C ++ : two\nnote over A : a\n/ hnote over B\nb\nend note\n&note over C : c\nA -> B : alone\n@enduml",
+        );
+        let together: Vec<bool> = d
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Message(m) => Some(m.together),
+                Item::Note(note) => Some(note.together),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(together, [false, true, false, true, true, false]);
+        // The line is read as it is without its sign.
+        assert_eq!(messages(&d)[1].text.as_ref().unwrap().value, "two");
+        assert!(matches!(d.items[2], Item::Activate { .. }));
+
+        // Nothing before it: no height to share.
+        let d = diagram("@startuml\n& A -> B\n@enduml");
+        assert!(!messages(&d)[0].together);
+
+        for source in [
+            "A -> B\n& alt x\nend",
+            "A -> B\n& activate B",
+            "A -> B\n& ...",
+        ] {
+            let e = declined(&format!("@startuml\n{source}\n@enduml"));
+            assert_eq!(e.line, Some(2), "{source}");
+            assert!(e.reason.contains("before a message or a note"), "{e:?}");
+        }
+        // `/` alone is no sign: only before a note.
+        let e = declined("@startuml\nA -> B\n/ A -> B\n@enduml");
+        assert_eq!(e.line, Some(2));
+    }
+
+    /// REQ-080: `title` and a no-break space is a title that shows
+    /// nothing, and a character nobody sees is written out in a message.
+    #[test]
+    fn spaces_and_marks_nobody_sees() {
+        let d = diagram("@startuml\ntitle \u{a0}\nA -> B\n@enduml");
+        assert_eq!(d.frame.title.as_ref().unwrap().value, "\u{a0}");
+        // At the end of a word it is no text: the name is `A`.
+        let d = diagram("@startuml\nparticipant A\u{a0}\nA -> B\n@enduml");
+        assert_eq!(codes(&d), ["A", "B"]);
+        let e = declined("@startuml\ntitle\nA -> B\n@enduml");
+        assert!(e.reason.contains("has no end line"), "{e:?}");
+
+        let e = declined("@startuml\nparticipant Al\u{200b}ice\n@enduml");
+        assert!(
+            e.reason
+                .starts_with("`Al<U+200B>ice` is no participant name"),
+            "{e:?}"
+        );
     }
 
     #[test]

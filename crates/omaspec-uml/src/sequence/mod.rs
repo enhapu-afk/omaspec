@@ -184,6 +184,9 @@ pub struct Message {
     /// It creates its receiver (`create` before it, `**` on it): the
     /// receiver's head is drawn at this arrow, not at the top.
     pub creates: bool,
+    /// `&` before it: its arrow lies at the height of the message or the
+    /// note before it.
+    pub together: bool,
     pub line: usize,
 }
 
@@ -252,6 +255,9 @@ pub struct Note {
     pub place: NotePlace,
     pub text: Text,
     pub color: Option<String>,
+    /// `/` or `&` before it: it starts at the height of the note or the
+    /// message before it.
+    pub together: bool,
     pub line: usize,
 }
 

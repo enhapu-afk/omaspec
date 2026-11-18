@@ -622,6 +622,7 @@ fn message(
             text: label.map(|value| words(line, &value)),
             number,
             creates: false,
+            together: false,
             line,
         },
         life,
@@ -895,6 +896,7 @@ fn note(
         place,
         text: words(line, &label),
         color: None,
+        together: false,
         line,
     }))
 }

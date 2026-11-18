@@ -39,6 +39,8 @@ const OVER: f32 = 15.0;
 /// A frame's margin around what it holds.
 const FRAME: f32 = 10.0;
 /// Arrow heads.
+/// Between two notes at one height.
+const NOTE_GAP: f32 = 10.0;
 const HEAD_LENGTH: f32 = 10.0;
 const HEAD_HALF: f32 = 4.0;
 
@@ -316,6 +318,9 @@ struct Drawer<'a> {
     /// The arrow height of the last message and its columns, while only
     /// activations follow it.
     last_arrow: Option<(f32, [Option<usize>; 2])>,
+    /// Where the last message or note began, for the ones a `&` or a `/`
+    /// puts beside it.
+    level: Option<Level>,
     /// Each message's arrow and band, for the map.
     steps: Vec<Step>,
     /// The boxes with a fill, for the map.
@@ -328,6 +333,25 @@ struct Drawer<'a> {
     open_rects: Vec<OpenRect>,
     /// Closed highlights, inner ones first. Drawn back to front.
     highlights: Vec<Highlight>,
+}
+
+/// The height messages and notes share: one line, and each `&` or `/`
+/// line after it.
+#[derive(Clone, Copy)]
+struct Level {
+    /// Where the first of them began.
+    top: f32,
+    /// From there down to the arrows, under the tallest of their texts.
+    drop: f32,
+}
+
+/// The columns a note covers, and how far it reaches past the first to
+/// the left and past the last to the right.
+struct Reach {
+    lo: usize,
+    hi: usize,
+    left: f32,
+    right: f32,
 }
 
 /// A `rect` waiting for its `end`.
@@ -638,6 +662,7 @@ impl<'a> Drawer<'a> {
             groups: Vec::new(),
             dividers: Vec::new(),
             last_arrow: None,
+            level: None,
             steps: Vec::new(),
             grounds: Vec::new(),
             band: None,
@@ -671,6 +696,62 @@ impl<'a> Drawer<'a> {
             }
             _ => 0.0,
         }
+    }
+
+    /// From where a message begins down to its arrow: its text is above.
+    fn arrow_drop(&self, k: usize) -> Option<f32> {
+        match &self.measured[k] {
+            Measured::Message { text, number, .. } => {
+                let height = text.height.max(number.height);
+                Some(height + if height > 0.0 { 2.0 } else { 3.0 })
+            }
+            _ => None,
+        }
+    }
+
+    /// The deepest [`Self::arrow_drop`] of the item at `k` and of those a
+    /// `&` puts beside it.
+    fn shared_drop(&self, k: usize) -> f32 {
+        let beside = self.d.items[k + 1..]
+            .iter()
+            .enumerate()
+            .take_while(|(_, item)| match item {
+                Item::Message(m) => m.together,
+                Item::Note(note) => note.together || matches!(note.place, NotePlace::Message(_)),
+                Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. } => true,
+                _ => false,
+            })
+            .map(|(i, _)| k + 1 + i);
+        std::iter::once(k)
+            .chain(beside)
+            .filter_map(|i| self.arrow_drop(i))
+            .fold(0.0, f32::max)
+    }
+
+    /// Before the message or note at `k` is drawn: with `together` it goes
+    /// back up to the height of the one before, and what is returned is
+    /// how far down the others reach; otherwise a new height begins here.
+    /// A message starts lower by what its text is shorter than the
+    /// tallest, so that the arrows lie on one line.
+    fn share(&mut self, k: usize, together: bool) -> Option<f32> {
+        let below = match self.level {
+            Some(level) if together => {
+                let below = self.y;
+                self.y = level.top;
+                Some(below)
+            }
+            _ => {
+                self.level = Some(Level {
+                    top: self.y,
+                    drop: self.shared_drop(k),
+                });
+                None
+            }
+        };
+        if let (Some(own), Some(level)) = (self.arrow_drop(k), self.level) {
+            self.y += (level.drop - own).max(0.0);
+        }
+        below
     }
 
     /// Places the columns.
@@ -835,6 +916,51 @@ impl<'a> Drawer<'a> {
                     }
                 }
                 _ => {}
+            }
+        }
+
+        // Notes at one height stand beside one another.
+        let mut row: Vec<Reach> = Vec::new();
+        for (k, item) in d.items.iter().enumerate() {
+            match item {
+                Item::Note(note) => {
+                    if !note.together {
+                        row.clear();
+                    }
+                    let Measured::Note { width, .. } = self.measured[k] else {
+                        continue;
+                    };
+                    let (lo, hi, left, right) = match note.place {
+                        NotePlace::LeftOf(p) => (self.col(p), self.col(p), width + BAR, 0.0),
+                        NotePlace::RightOf(p) => (self.col(p), self.col(p), 0.0, width + 2.0 * BAR),
+                        NotePlace::Over(a, b) if a == b => {
+                            (self.col(a), self.col(a), width / 2.0, width / 2.0)
+                        }
+                        NotePlace::Over(a, b) => {
+                            let (a, b) = (self.col(a), self.col(b));
+                            (a.min(b), a.max(b), OVER, OVER)
+                        }
+                        NotePlace::Across => (0, n - 1, OVER, OVER),
+                        NotePlace::Message(_) => continue,
+                    };
+                    let new = Reach {
+                        lo,
+                        hi,
+                        left,
+                        right,
+                    };
+                    for old in &row {
+                        if old.hi < new.lo {
+                            space.need(old.hi, new.lo, old.right + new.left + NOTE_GAP);
+                        } else if new.hi < old.lo {
+                            space.need(new.hi, old.lo, new.right + old.left + NOTE_GAP);
+                        }
+                    }
+                    row.push(new);
+                }
+                Item::Message(m) if m.together => {}
+                Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. } => {}
+                _ => row.clear(),
             }
         }
 
@@ -1014,6 +1140,9 @@ impl<'a> Drawer<'a> {
             Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. }
         ) {
             self.last_arrow = None;
+            if !matches!(item, Item::Message(_) | Item::Note(_)) {
+                self.level = None;
+            }
         }
         match item {
             Item::Message(m) => {
@@ -1023,10 +1152,16 @@ impl<'a> Drawer<'a> {
                     }
                     _ => None,
                 };
+                let below = self.share(k, m.together);
                 self.message(canvas, k, m, note);
+                self.y = self.y.max(below.unwrap_or(self.y));
                 return k + if note.is_some() { 2 } else { 1 };
             }
-            Item::Note(note) => self.note(canvas, k, note),
+            Item::Note(note) => {
+                let below = self.share(k, note.together);
+                self.note(canvas, k, note);
+                self.y = self.y.max(below.unwrap_or(self.y));
+            }
             Item::GroupStart { .. } => {
                 if let Measured::Group { header, label } = &self.measured[k] {
                     let (header, label) = (header.clone(), label.clone());
@@ -2274,6 +2409,48 @@ mod tests {
                 assert!(d.groups.is_empty());
             },
         );
+    }
+
+    /// `&` puts a message at the height of the one before: the arrows
+    /// lie on one line, under the taller text, and what follows comes
+    /// after both.
+    #[test]
+    fn messages_together_share_their_arrow_height() {
+        let arrows = |source: &str| {
+            let mut ys = Vec::new();
+            laid_out(source, |d| {
+                ys = d.steps.iter().map(|step| step.points[0].1).collect();
+            });
+            ys
+        };
+        let ys = arrows("A -> B : one\n& B -> C : two\\nlines\n& C -> D\nA -> B : next");
+        assert_eq!(ys[0], ys[1]);
+        assert_eq!(ys[0], ys[2]);
+        let alone = arrows("B -> C : two\\nlines\nA -> B : next");
+        assert_eq!(&ys[2..], &alone[..], "as far down as the tallest alone");
+
+        // A note beside a message begins where the message begins.
+        let mut heights = (0.0, 0.0);
+        laid_out("A -> B : one\n& note over C : c\\nc\\nc\\nc", |d| {
+            heights.0 = d.y
+        });
+        laid_out("note over C : c\\nc\\nc\\nc", |d| heights.1 = d.y);
+        assert_eq!(heights.0, heights.1);
+    }
+
+    /// Notes at one height stand beside one another, however wide.
+    #[test]
+    fn notes_together_make_room_for_one_another() {
+        let wide = "a note that is wide enough";
+        let half = width(wide, 13.0) / 2.0;
+        let apart = columns(&format!("note over A : {wide}\n/ note over B : {wide}"));
+        assert!(apart[1] - apart[0] >= 2.0 * half + NOTE_GAP, "{apart:?}");
+        let stacked = columns(&format!("note over A : {wide}\nnote over B : {wide}"));
+        assert!(stacked[1] - stacked[0] < apart[1] - apart[0]);
+        let sides = columns(&format!(
+            "note right of A : {wide}\n/ note left of B : {wide}"
+        ));
+        assert!(sides[1] - sides[0] >= 4.0 * half + NOTE_GAP, "{sides:?}");
     }
 
     #[test]
