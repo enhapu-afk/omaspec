@@ -33,10 +33,10 @@ pub struct Map {
     /// holds them at its edge.
     pub bands: Vec<Band>,
     /// What of the first band across the top a pane holds, where it is
-    /// not the whole band: a sequence diagram's participants and the
-    /// names of its boxes, each on its own, so that what scrolls by is
-    /// seen between them. Empty where the band is held whole.
-    pub heads: Vec<Rect>,
+    /// not the whole band: a sequence diagram's participants, each on its
+    /// own and small, so that what scrolls by is seen between them. Empty
+    /// where the band is held whole.
+    pub heads: Vec<Heading>,
     /// Parts of their own that lie inside a box, as a note inside a state:
     /// each part's name and that of the box's part. A glide draws such a
     /// part over its box, not under it.
@@ -56,6 +56,22 @@ pub struct Band {
     /// participants, a Gantt chart's rows beside its names and under its
     /// dates; not what comes after them, a footer or the feet.
     pub over: Rect,
+}
+
+/// A participant at the top of a sequence diagram ([`Map::heads`]): a
+/// pane that has scrolled past it holds its name at the top, small.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Heading {
+    /// The whole of it: its box, or its figure with its name.
+    pub rect: Rect,
+    /// Its name as drawn, all lines of it.
+    pub label: Rect,
+    /// How high one line of the name is.
+    pub line: f32,
+    /// What the name stands on: the fill of its box, or none where it
+    /// stands on the paper, under a figure.
+    pub fill: Option<crate::color::Color>,
+    pub border: crate::color::Color,
 }
 
 /// An edge of the pane a [`Band`] stays at.
@@ -371,7 +387,9 @@ impl Map {
             ground.rect = fit.rect(ground.rect);
         }
         for head in &mut self.heads {
-            *head = fit.rect(*head);
+            head.rect = fit.rect(head.rect);
+            head.label = fit.rect(head.label);
+            head.line *= fit.sy;
         }
         for band in &mut self.bands {
             band.rect = fit.rect(band.rect);

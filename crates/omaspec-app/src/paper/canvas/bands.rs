@@ -14,7 +14,7 @@
 use iced::mouse::Cursor;
 use iced::widget::canvas::{self, Frame, Geometry};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme, Vector};
-use omaspec_uml::map::{Band, Edge, Ground};
+use omaspec_uml::map::{Band, Edge, Ground, Heading};
 
 use super::super::Message;
 use super::super::raster::Raster;
@@ -29,14 +29,18 @@ const FADE: f32 = 30.0;
 /// than that, zoomed in, scrolls away with what it heads.
 const MOST: f32 = 1.0 / 3.0;
 
-/// How far past its own box a head held on its own is drawn, so that the
-/// line round it is whole.
-const RIM: f32 = 1.5;
-/// How far the paper round a head held on its own thins out, in pixels:
-/// what scrolls by goes under it softly, on every side.
-const HALO: f32 = 9.0;
+/// From the pane's top to the pills a sequence diagram's participants
+/// turn into as they scroll past it.
+const PILL_TOP: f32 = 6.0;
+/// The most a line of a pill's name is high, in pixels.
+const PILL_LINE: f32 = 17.0;
+/// A pill's room beside its name and over it, to the height of a line.
+const PILL_PAD: (f32, f32) = (0.6, 0.22);
+/// How far the paper round a pill thins out, in pixels: what scrolls by
+/// goes under it softly, on every side.
+const HALO: f32 = 7.0;
 /// The layers that halo is drawn in, each as thin as the others.
-const HALO_LAYERS: u8 = 9;
+const HALO_LAYERS: u8 = 7;
 
 /// A band held at its edge of the pane.
 #[derive(Debug, Clone, PartialEq)]
@@ -51,20 +55,89 @@ pub struct Held {
     /// From a point drawn in the band to where that point of the picture
     /// lies, scrolled out of sight.
     pub back: Vector,
-    /// Where each of the band's heads is drawn, in the pane, where they
+    /// The band's heads that have scrolled past the pane's top, where they
     /// alone are held ([`omaspec_uml::map::Map::heads`]): the band is not
     /// drawn whole then, and what scrolls by is seen between them.
-    pub heads: Vec<Rectangle>,
+    pub heads: Vec<Pill>,
+    /// Whether the heads alone are held, also while none has gone yet.
+    pub apart: bool,
+}
+
+/// A participant on its way from its place in the picture to a pill at
+/// the pane's top, as far as it has scrolled past it: the way hangs on
+/// the scrolling alone, so it glides as the diagram does.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Pill {
+    pub head: Heading,
+    /// How far it is: from 0, its own shape at the top, to 1, the pill.
+    pub gone: f32,
+    /// Where it is drawn, in the pane.
+    pub shape: Rectangle,
+    /// Where its name is drawn.
+    pub name: Rectangle,
+    /// Where it lies in the picture, scrolled out of sight.
+    pub on: Rectangle,
+}
+
+impl Pill {
+    /// The pill of `head`, now `on` screen with its name at `name`, held
+    /// under `top`; none while it has not reached it.
+    fn of(head: Heading, on: Rectangle, name: Rectangle, zoom: f32, top: f32) -> Option<Pill> {
+        if on.y >= top || on.height <= 0.0 {
+            return None;
+        }
+        let k = ((top - on.y) / on.height).clamp(0.0, 1.0);
+        let gone = k * k * (3.0 - 2.0 * k);
+        // The name no larger than it is drawn, and no line of it higher
+        // than a pill's.
+        let line = (head.line * zoom).max(1e-3);
+        let small = (PILL_LINE / line).min(1.0);
+        let line = line * small;
+        let size = Size::new(name.width * small, name.height * small);
+        let pill = Rectangle::new(
+            Point::new(on.center_x() - size.width / 2.0 - line * PILL_PAD.0, top),
+            size + Size::new(line * PILL_PAD.0 * 2.0, line * PILL_PAD.1 * 2.0),
+        );
+        let lerp = |a: f32, b: f32| a + (b - a) * gone;
+        let between = |a: Rectangle, b: Rectangle| {
+            Rectangle::new(
+                Point::new(lerp(a.x, b.x), lerp(a.y, b.y)),
+                Size::new(lerp(a.width, b.width), lerp(a.height, b.height)),
+            )
+        };
+        // Its own shape, kept at the top, and its name in it.
+        let down = Vector::new(0.0, top - on.y);
+        let own = Rectangle::new(on.position() + down, on.size());
+        let name_own = Rectangle::new(name.position() + down, name.size());
+        let name_pill = Rectangle::new(
+            Point::new(
+                pill.center_x() - size.width / 2.0,
+                pill.center_y() - size.height / 2.0,
+            ),
+            size,
+        );
+        Some(Pill {
+            head,
+            gone,
+            shape: between(own, pill),
+            name: between(name_own, name_pill),
+            on,
+        })
+    }
 }
 
 impl Held {
-    /// Whether the point `at` of the pane is the band's own: in it, or in
-    /// one of its heads where they alone are held.
-    fn holds(&self, at: Point) -> bool {
-        if self.heads.is_empty() {
-            self.strip.contains(at)
+    /// Where the point `at` of the pane lies in the picture, if it is the
+    /// band's own: in the band, or in a pill where the heads alone are
+    /// held, which is the middle of its participant.
+    fn own(&self, at: Point) -> Option<Point> {
+        if self.apart {
+            self.heads
+                .iter()
+                .find(|pill| pill.shape.contains(at))
+                .map(|pill| pill.on.center())
         } else {
-            self.heads.iter().any(|head| head.contains(at))
+            self.strip.contains(at).then(|| at + self.back)
         }
     }
 }
@@ -77,7 +150,7 @@ impl Held {
 /// held, if it is not held whole.
 pub fn held(
     bands: &[Band],
-    heads: &[omaspec_uml::graph::Rect],
+    heads: &[Heading],
     diagram: Size,
     view: View,
     local: Rectangle,
@@ -93,22 +166,28 @@ pub fn held(
                 Edge::Top => on.height / local.height.max(1.0),
                 Edge::Left => on.width / local.width.max(1.0),
             };
-            if thick > MOST {
+            // Pills are small however far the view is zoomed in.
+            let apart = edge == Edge::Top && nth == 0 && !heads.is_empty();
+            if thick > MOST && !apart {
                 continue;
             }
             let Some(dest) = held_at(on, edge, over, local) else {
                 continue;
             };
             let back = on.position() - dest.position();
-            let heads = match (edge, nth) {
-                (Edge::Top, 0) => heads
+            // Pushed up by the end of what the band heads, as it is.
+            let top = local.y + PILL_TOP + (dest.y - local.y).min(0.0);
+            let heads = if apart {
+                heads
                     .iter()
-                    .map(|head| {
-                        let on = view.on_screen(rectangle(*head), local);
-                        Rectangle::new(on.position() - back, on.size())
+                    .filter_map(|head| {
+                        let on = view.on_screen(rectangle(head.rect), local);
+                        let name = view.on_screen(rectangle(head.label), local);
+                        Pill::of(*head, on, name, view.zoom, top)
                     })
-                    .collect(),
-                _ => Vec::new(),
+                    .collect()
+            } else {
+                Vec::new()
             };
             out.push(Held {
                 edge,
@@ -117,6 +196,7 @@ pub fn held(
                 strip: strip(dest, edge, paper, local),
                 back,
                 heads,
+                apart,
             });
         }
     }
@@ -129,8 +209,8 @@ pub fn held(
 pub fn through(held: &[Held], at: Point) -> Point {
     held.iter()
         .rev()
-        .find(|band| band.holds(at))
-        .map_or(at, |band| at + band.back)
+        .find_map(|band| band.own(at))
+        .unwrap_or(at)
 }
 
 /// The headings of the picture on screen, and how it is seen: what
@@ -139,7 +219,7 @@ pub fn through(held: &[Held], at: Point) -> Point {
 pub struct Headings<'a> {
     pub bands: &'a [Band],
     /// The heads of the first band across the top that alone are held.
-    pub heads: &'a [omaspec_uml::graph::Rect],
+    pub heads: &'a [Heading],
     /// The areas the picture fills with a color of their own under what
     /// lies on them: what scrolls under a band there fades into that
     /// color, not the paper's.
@@ -214,8 +294,8 @@ impl canvas::Program<Message> for KeptBands<'_> {
             .collect();
         for band in &held {
             let paper = self.overview.paper;
-            if !band.heads.is_empty() {
-                self.heads(&mut frame, local, band, &grounds);
+            if band.apart {
+                self.pills(&mut frame, local, band, &grounds);
                 continue;
             }
             frame.fill_rectangle(band.strip.position(), band.strip.size(), paper);
@@ -252,9 +332,10 @@ impl canvas::Program<Message> for KeptBands<'_> {
 }
 
 impl KeptBands<'_> {
-    /// The heads of `band`, each on its own: the paper round it thinning
-    /// out, in the color it stands on, and the head from the picture.
-    fn heads(
+    /// The pills of `band`: each participant that has scrolled past the
+    /// top on its way from its own shape to a pill with its name, the
+    /// paper round it thinning out in the color it stands on.
+    fn pills(
         &self,
         frame: &mut Frame,
         local: Rectangle,
@@ -263,44 +344,71 @@ impl KeptBands<'_> {
     ) {
         let scale = if self.scale > 0.0 { self.scale } else { 1.0 };
         let snap = |at: f32| (at * scale).round() / scale;
-        for head in &band.heads {
-            // Where it stands in the picture: on a box's fill, or the paper.
-            let stands = Rectangle::new(head.position() + band.back, head.size());
-            let color = grounds
+        let rgb = |omaspec_uml::Color(r, g, b)| Color::from_rgb8(r, g, b);
+        let sharp = self.sharp[0].filter(|raster| raster.region.intersects(&band.src));
+        for pill in &band.heads {
+            // What it stands on in the picture: a box's fill, or the paper.
+            let ground = grounds
                 .iter()
-                .filter(|(ground, _)| ground.contains(stands.center()))
+                .filter(|(ground, _)| ground.contains(pill.on.center()))
                 .min_by(|a, b| (a.0.width * a.0.height).total_cmp(&(b.0.width * b.0.height)))
                 .map_or(self.overview.paper, |(_, color)| *color);
-            let (left, top) = (snap(head.x - RIM), snap(head.y - RIM));
+            let fill = pill.head.fill.map_or(ground, rgb);
+            // What is still in sight of the participant itself, on its way
+            // out under the top, is covered: it is the pill now.
+            let rim = Vector::new(1.5, 1.5);
+            let left_over = Rectangle::new(
+                pill.on.position() - rim,
+                pill.on.size() + Size::new(3.0, 3.0),
+            );
+            if let Some(cover) = left_over.intersection(&local) {
+                frame.fill_rectangle(cover.position(), cover.size(), ground);
+            }
+            let (left, top) = (snap(pill.shape.x), snap(pill.shape.y));
             let (right, bottom) = (
-                snap(head.x + head.width + RIM),
-                snap(head.y + head.height + RIM),
+                snap(pill.shape.x + pill.shape.width),
+                snap(pill.shape.y + pill.shape.height),
             );
             let own = Rectangle::new(Point::new(left, top), Size::new(right - left, bottom - top));
+            // From its own corners to a pill's round ends.
+            let round = 3.0 + (own.height / 2.0 - 3.0).max(0.0) * pill.gone;
             // Layers that grow by whole pixels, each as thin: many lie
-            // near the head, so the color is whole there and gone at the
-            // halo's edge.
+            // near it, so the color is whole there and gone at the edge.
             let alpha = 1.0 - 0.04_f32.powf(1.0 / f32::from(HALO_LAYERS));
             for layer in 0..HALO_LAYERS {
                 let grow = snap(HALO * (1.0 - f32::from(layer) / f32::from(HALO_LAYERS)).powi(2));
                 let path = canvas::Path::rounded_rectangle(
                     own.position() - Vector::new(grow, grow),
                     own.size() + Size::new(grow * 2.0, grow * 2.0),
-                    (grow + 3.0).into(),
+                    (round + grow).into(),
                 );
-                frame.fill(&path, Color { a: alpha, ..color });
+                frame.fill(&path, Color { a: alpha, ..ground });
             }
-            frame.fill_rectangle(own.position(), own.size(), color);
-            let sharp = self.sharp[0].filter(|raster| raster.region.intersects(&band.src));
-            for raster in std::iter::once(self.overview).chain(sharp) {
-                let blit = sprite::Blit {
-                    raster,
-                    src: band.src,
-                    dest: band.dest,
-                    limit: own,
-                    alpha: 1.0,
-                };
-                sprite::blit(frame, local, &blit);
+            let body = canvas::Path::rounded_rectangle(own.position(), own.size(), round.into());
+            frame.fill(&body, fill);
+            frame.stroke(
+                &body,
+                canvas::Stroke::default().with_width(1.0).with_color(Color {
+                    a: pill.gone,
+                    ..rgb(pill.head.border)
+                }),
+            );
+            // Its own shape from the picture, going, and its name, coming.
+            let pictures = [
+                (rectangle(pill.head.rect), pill.shape, 1.0 - pill.gone),
+                (rectangle(pill.head.label), pill.name, pill.gone),
+            ];
+            for (src, dest, alpha) in pictures {
+                for raster in std::iter::once(self.overview).chain(sharp) {
+                    let blit = sprite::Blit {
+                        raster,
+                        src,
+                        dest,
+                        limit: own,
+                        alpha,
+                    };
+                    sprite::blit(frame, local, &blit);
+                }
             }
         }
     }
@@ -535,13 +643,24 @@ mod tests {
         // Zoomed in six times, the heading is 240 pixels high: too high.
         assert!(held(&[band], &[], diagram, view(6.0), local).is_empty());
 
-        // Its heads alone held: a click on one picks it, a click between
-        // two of them what scrolls by there.
-        let head = |x: f32| omaspec_uml::graph::Rect {
-            x,
-            y: 10.0,
-            w: 80.0,
-            h: 30.0,
+        // Its heads alone held: one that has scrolled past the top is a
+        // pill there, and a click on it picks its participant.
+        let head = |x: f32| Heading {
+            rect: omaspec_uml::graph::Rect {
+                x,
+                y: 10.0,
+                w: 80.0,
+                h: 30.0,
+            },
+            label: omaspec_uml::graph::Rect {
+                x: x + 20.0,
+                y: 18.0,
+                w: 40.0,
+                h: 14.0,
+            },
+            line: 14.0,
+            fill: None,
+            border: omaspec_uml::Color(0, 0, 0),
         };
         let kept = held(
             &[band],
@@ -550,12 +669,21 @@ mod tests {
             view(1.0),
             local,
         );
-        // The diagram's left side is at 200 in the pane.
-        assert_eq!(kept[0].heads[0], rect(220.0, 10.0, 80.0, 30.0));
-        assert_eq!(kept[0].heads[1], rect(500.0, 10.0, 80.0, 30.0));
-        let on = Point::new(240.0, 20.0);
-        assert_eq!(through(&kept, on), Point::new(240.0, 20.0 - 1200.0));
-        let between = Point::new(400.0, 20.0);
+        let pills = &kept[0].heads;
+        assert_eq!(pills.len(), 2);
+        assert_eq!(pills[0].gone, 1.0);
+        // Its name as large as drawn, with room round it, under the top
+        // and in the middle of its participant, 260 in the pane.
+        let shape = pills[0].shape;
+        assert_eq!((shape.y, shape.center_x()), (PILL_TOP, 260.0));
+        assert!(shape.width > 40.0 && shape.width < 80.0 && shape.height < 30.0);
+        assert_eq!(pills[0].name.size(), Size::new(40.0, 14.0));
+        let at = shape.center();
+        assert_eq!(through(&kept, at), Point::new(260.0, 25.0 - 1200.0));
+        let between = Point::new(400.0, 12.0);
         assert_eq!(through(&kept, between), between);
+        // Zoomed in, the name is as small as a pill's.
+        let kept = held(&[band], &[head(20.0)], diagram, view(6.0), local);
+        assert!((kept[0].heads[0].name.height - PILL_LINE).abs() < 0.01);
     }
 }

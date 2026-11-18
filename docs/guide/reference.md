@@ -487,7 +487,7 @@ once; *Motion in the editor: on or off* in View turns both off, and stays off.
 
 A long diagram keeps its headings in sight as it scrolls past them: a sequence
 diagram's participants stay at the top of the pane over the messages under them, each
-on its own with what scrolls by seen between them, a
+as a small pill with its name and what scrolls by seen between them, a
 swimlane's name over its lane, a Gantt chart's dates at the top and its tasks at the left
 beside their bars. Ctrl+click on a held heading jumps to its line, as on the heading
 itself. Only the pane holds them so; the picture and every export are as drawn.

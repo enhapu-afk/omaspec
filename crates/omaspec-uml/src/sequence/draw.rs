@@ -339,7 +339,7 @@ struct Drawer<'a> {
     band: Option<crate::map::Band>,
     /// The participants at the top and the names of the boxes, each on
     /// its own, for the map.
-    heads: Vec<crate::graph::Rect>,
+    heads: Vec<crate::map::Heading>,
     /// `rect` highlights open at the top, closed into [`Self::highlights`].
     open_rects: Vec<OpenRect>,
     /// Closed highlights, inner ones first. Drawn back to front.
@@ -1073,12 +1073,30 @@ impl<'a> Drawer<'a> {
         for i in 0..self.cols.len() {
             if self.cols[i].created_by.is_none() {
                 let head_top = top + heads - self.cols[i].height;
-                self.head(canvas, i, head_top, false);
-                self.heads.push(crate::graph::Rect {
-                    x: self.x[i] - self.cols[i].half(),
-                    y: head_top,
-                    w: self.cols[i].width,
-                    h: self.cols[i].height,
+                let (label, fill) = self.head(canvas, i, head_top, false);
+                let col = &self.cols[i];
+                let gray = |color: Color| {
+                    if self.skin.monochrome {
+                        color.gray()
+                    } else {
+                        color
+                    }
+                };
+                self.heads.push(crate::map::Heading {
+                    rect: crate::graph::Rect {
+                        x: self.x[i] - col.half(),
+                        y: head_top,
+                        w: col.width,
+                        h: col.height,
+                    },
+                    label,
+                    line: col
+                        .label
+                        .lines
+                        .first()
+                        .map_or(col.label.height, |line| line.height),
+                    fill: fill.map(gray),
+                    border: gray(col.look.border),
                 });
                 self.life_start[i] = top + heads;
                 self.head_drawn[i] = true;
@@ -1178,14 +1196,6 @@ impl<'a> Drawer<'a> {
                 ((left + right) / 2.0, boxes_top + 4.0),
                 Align::Center,
             );
-            if b.title.width > 0.0 {
-                self.heads.push(crate::graph::Rect {
-                    x: (left + right - b.title.width) / 2.0,
-                    y: boxes_top + 4.0,
-                    w: b.title.width,
-                    h: b.title.height,
-                });
-            }
         }
         // After the boxes: both sit on the background layer, and a box is
         // a full-height fill. Later in that layer paints on top, still
@@ -1957,13 +1967,35 @@ impl<'a> Drawer<'a> {
 
     /// Draws column `c`'s head with its top at `top`; at the bottom the
     /// label of an icon goes above it. A linked head is a link.
-    fn head(&self, canvas: &mut Canvas, c: usize, top: f32, bottom: bool) {
+    /// Draws the head of column `c`; where its name stands, and the fill
+    /// under the name (none under a figure, where it stands on the paper).
+    fn head(
+        &self,
+        canvas: &mut Canvas,
+        c: usize,
+        top: f32,
+        bottom: bool,
+    ) -> (crate::graph::Rect, Paint) {
+        let mut name = (crate::graph::Rect::default(), None);
         canvas.linked(self.cols[c].link.as_ref(), &[Layer::Front], |canvas| {
-            self.head_shape(canvas, c, top, bottom);
+            name = self.head_shape(canvas, c, top, bottom);
         });
+        name
     }
 
-    fn head_shape(&self, canvas: &mut Canvas, c: usize, top: f32, bottom: bool) {
+    fn head_shape(
+        &self,
+        canvas: &mut Canvas,
+        c: usize,
+        top: f32,
+        bottom: bool,
+    ) -> (crate::graph::Rect, Paint) {
+        let named = |cx: f32, top: f32, col: &Column| crate::graph::Rect {
+            x: cx - col.label.width / 2.0,
+            y: top,
+            w: col.label.width,
+            h: col.label.height,
+        };
         let col = &self.cols[c];
         let skin = self.skin;
         let cx = self.x[c];
@@ -1985,7 +2017,7 @@ impl<'a> Drawer<'a> {
                 (cx, text_top + col.stereo_h),
                 Align::Center,
             );
-            return;
+            return (named(cx, text_top + col.stereo_h, col), None);
         }
         let rx = skin.round;
         let (w, h) = (col.width, col.height);
@@ -2057,6 +2089,7 @@ impl<'a> Drawer<'a> {
             (middle, text_top + col.stereo_h),
             Align::Center,
         );
+        (named(middle, text_top + col.stereo_h, col), look.fill)
     }
 }
 
@@ -2346,19 +2379,36 @@ mod tests {
         let on = |(x, y): (f32, f32)| x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
         assert!(map.messages[1].points.iter().all(|&p| on(p)), "{r:?}");
         assert!(map.messages[0].points[0].0 < r.x, "Alice is outside");
-        // The participants at the top and the box's name, each on its
-        // own: what a pane holds of the band across the top.
+        // The participants at the top, each on its own with where its
+        // name stands: what a pane holds of the band across the top.
         let band = map.bands[0].rect;
-        assert_eq!(map.heads.len(), 4, "{:?}", map.heads);
+        assert_eq!(map.heads.len(), 3, "{:?}", map.heads);
         for head in &map.heads {
+            let (r, l) = (head.rect, head.label);
             assert!(
-                head.x >= band.x
-                    && head.x + head.w <= band.x + band.w
-                    && head.y >= band.y
-                    && head.y + head.h <= band.y + band.h + 0.01,
-                "{head:?} in {band:?}"
+                r.x >= band.x
+                    && r.x + r.w <= band.x + band.w
+                    && r.y >= band.y
+                    && r.y + r.h <= band.y + band.h + 0.01,
+                "{r:?} in {band:?}"
             );
+            assert!(
+                l.x >= r.x && l.x + l.w <= r.x + r.w && l.y >= r.y && l.y + l.h <= r.y + r.h,
+                "{l:?} in {r:?}"
+            );
+            assert!(head.fill.is_some() && head.line > 0.0);
         }
+        // A Mermaid sequence diagram names them alike.
+        let d = super::super::mermaid::from_mermaid(
+            "sequenceDiagram\n  actor A\n  participant B\n  A->>B: hi\n",
+        )
+        .unwrap();
+        let (_, mermaid) = draw_mapped(&d).unwrap();
+        assert_eq!(mermaid.heads.len(), 2);
+        assert!(
+            mermaid.heads[0].fill.is_none(),
+            "an actor's name is on the paper"
+        );
         let clear = source.replace("#E0E8FF", "#transparent");
         let (_, map) = crate::render_mapped(&clear, None).unwrap();
         assert!(map.grounds.is_empty());

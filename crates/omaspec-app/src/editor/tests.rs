@@ -3192,8 +3192,9 @@ fn snapshot_focus_small() {
 }
 
 /// Writes headless screenshots of a sequence diagram scrolled past its
-/// participants when OMASPEC_SNAPSHOT_DIR is set: each participant and
-/// the name of the box held on its own, what scrolls by seen between them.
+/// participants when OMASPEC_SNAPSHOT_DIR is set: each participant on its
+/// way to a pill at the top of the pane, and there, what scrolls by seen
+/// between them.
 #[test]
 fn snapshot_heads() {
     let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
@@ -3211,11 +3212,19 @@ fn snapshot_heads() {
         let key = app.doc().key;
         let at = app.doc().paper.screen_of("Cart");
         let _ = app.update(Message::Paper(key, paper::Message::ZoomAt(2.6, at)));
-        let _ = app.update(Message::Paper(
-            key,
-            paper::Message::Pan(iced::Vector::new(0.0, -430.0)),
-        ));
-        shoot_at(&mut app, &dir, name, Size::new(1920.0, 1080.0));
+        // On their way, half there, and pills.
+        for (step, by) in [-270.0, -40.0, -120.0].into_iter().enumerate() {
+            let _ = app.update(Message::Paper(
+                key,
+                paper::Message::Pan(iced::Vector::new(0.0, by)),
+            ));
+            shoot_at(
+                &mut app,
+                &dir,
+                &format!("{name}-{step}"),
+                Size::new(1920.0, 1080.0),
+            );
+        }
     }
 }
 
