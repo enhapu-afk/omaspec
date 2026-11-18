@@ -21,10 +21,6 @@ Before anything below: the sequence diagram, the state machine and the
 activity diagram elegant, modern and without a flaw in any theme, in the
 theme's colors and in the file's own. What is done is in docs/DONE.md.
 
-- [ ] A scenario's play and the participants held at the top, in a
-      real window: the snapshots show the veil in the paper's color and
-      what scrolls under the participants fading out, but not the band
-      at the veil's edge the tester's window showed.
 - [ ] A flicker in the window since 2026-11-17 (not in 0.9.7): with
       the focus on a box, the picture is gone for one frame, its paper
       and the focus's veil, lines and light still there. In the tester's

@@ -257,6 +257,18 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] Bands in a real window where a color thins out (2026-11-18): under the
+      participants held at the top four bands with a ramp in each stood where what
+      scrolls under them fades out, and a play's veil was gray with a band at its edge.
+      iced took `Rgb10a2Unorm` for the window's surface, the first format that is not
+      sRGB a desktop with ten bits of color offers under Vulkan, and its two bits of
+      alpha left every fill that lets something through four strengths, as the meshes
+      are drawn on a layer of that format and blended from it. The vendored `iced_wgpu`
+      takes a format with eight bits to each channel (`vendor/README.md`). Found in a
+      window on a monitor of Hyprland's that shows nothing (`hyprctl output create
+      headless`), captured with grim: right under OpenGL, wrong under Vulkan, right
+      with the change. No snapshot shows it, as a picture drawn without a window has
+      eight bits
 - [x] What the review of 2026-11-18 found in that day's work. A `&` or `/` at the start
       of a line of a note over several lines is the note's text again, not a sign. A
       no-break space stays at the end of a line only after a bare `title`, `header` or

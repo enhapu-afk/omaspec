@@ -57,6 +57,7 @@ codegen-units = 1
 scrive-core = { path = "vendor/scrive-core" }
 scrive-iced = { path = "vendor/scrive-iced" }
 iced_tiny_skia = { path = "vendor/iced_tiny_skia" }
+iced_wgpu = { path = "vendor/iced_wgpu" }
 smithay-clipboard = { path = "vendor/smithay-clipboard" }
 winit = { path = "vendor/winit" }
 usvg = { path = "vendor/usvg" }

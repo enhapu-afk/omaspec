@@ -175,6 +175,35 @@ again and applying it. `paper::sprite`'s tests
 `a_box_s_parts_keep_to_the_box_without_a_gpu` and
 `parts_side_by_side_draw_each_pixel_once` fail without it.
 
+## iced_wgpu 0.14.0
+
+iced's renderer on the GPU, by Héctor Ramón and the iced contributors, MIT
+(`LICENSE`, from the `iced` 0.14.0 package of the same repository; this
+package ships none). Copied from the crates.io package unchanged, then
+changed as below; the change says "Omaspec" in a comment.
+
+- `src/window/compositor.rs`: a window's surface takes only a format with
+  eight bits to each of red, green, blue and alpha. The package took the
+  first format that is not sRGB (Omaspec builds iced with `web-colors`),
+  and a Wayland compositor that shows ten bits of color offers
+  `Rgb10a2Unorm` before the eight-bit ones under Vulkan. That format has
+  two bits of alpha. With anti-aliasing on, the meshes of a canvas are
+  drawn on a layer of the surface's format and blended from it, so every
+  fill that lets something through had one of four strengths: the fade
+  under the participants held at the top came out as four bands with a
+  ramp in each, and a play's veil gray instead of the paper's color
+  (Hyprland 0.56, Mesa 26.2 and NVIDIA 580, 2026-11-18). OpenGL offers no
+  such format, and a picture drawn without a window has eight bits, so no
+  snapshot shows it.
+
+```bash
+diff -ru ~/.cargo/registry/src/*/iced_wgpu-0.14.0/src vendor/iced_wgpu/src
+```
+
+The change may go upstream; a new release is taken by copying it here
+again and applying it. No test fails without it: it shows only in a window
+under Vulkan, on a desktop that offers the format.
+
 ## usvg 0.47.0
 
 resvg's SVG reader, by Yevhenii Reizner and the resvg contributors,
