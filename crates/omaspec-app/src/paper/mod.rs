@@ -41,6 +41,7 @@ mod play;
 mod raster;
 mod sheet;
 mod sprite;
+mod tied;
 pub(crate) mod view;
 mod wash;
 mod wires;

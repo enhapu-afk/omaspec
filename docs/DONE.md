@@ -257,6 +257,17 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] Words one line alone draws belong to that line, whatever else reads the same
+      (2026-11-18). A label in the picture was matched to the source by its words and
+      by how many came before, so with `== Payment ==` in a diagram that has a
+      participant `Payment` a click on the divider landed on the next message, and
+      that message's line lit the divider. A drawer now says for which line it draws
+      words (`Canvas::tie`), the map tells them (`Map::tied`), and a pane takes such
+      words by their line, in both directions, and counts only the others
+      (`paper/tied.rs`). The sequence drawer ties its messages, notes, dividers,
+      delays, references and the words of its groups; a participant's name, which
+      many lines mention, is counted as before. Other drawers tie nothing yet and are
+      counted throughout
 - [x] The light on the name under the caret goes to a participant's head from its
       declaration, also where a line before it holds the letters of its alias
       (2026-11-18): with `title Reviewing an AI-written PR` over

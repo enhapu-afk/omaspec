@@ -2092,7 +2092,8 @@ impl App {
         let Some((label, source)) = self.doc().paper.label_at(at) else {
             return Err("no label there to find in the source".into());
         };
-        match omaspec_core::locate::column_of(&source, &label.text, label.nth) {
+        let written = self.doc().paper.written_at(&source, &label.text, label.nth);
+        match written {
             Some((line, column)) => Ok(self.jump_to_at(line, column)),
             None => Err(format!("“{}” is not in the source", label.text)),
         }

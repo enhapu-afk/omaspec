@@ -5,7 +5,6 @@
 use std::sync::Arc;
 
 use iced::{Point, Rectangle, Size, Task};
-use omaspec_core::locate;
 use omaspec_render::pick;
 
 use super::view::View;
@@ -26,7 +25,9 @@ impl Paper {
             .map(|text| {
                 let nth = seen.iter().filter(|s| **s == text).count();
                 seen.push(text.clone());
-                let line = locate::line_of(&diagram.source, &text, nth);
+                let line = self
+                    .written_at(&diagram.source, &text, nth)
+                    .map(|(line, _)| line);
                 (text, nth, line)
             })
             .collect()

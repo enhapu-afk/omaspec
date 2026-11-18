@@ -61,6 +61,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     let map = Map {
         messages: std::mem::take(&mut drawer.steps),
         grounds: std::mem::take(&mut drawer.grounds),
+        tied: canvas.tied(),
         heads: if drawer.band.is_some() {
             std::mem::take(&mut drawer.heads)
         } else {
@@ -288,7 +289,10 @@ struct OpenGroup {
     top: f32,
     header: Block,
     label: Block,
-    elses: Vec<(f32, Block)>,
+    /// The line that opens it.
+    line: usize,
+    /// Each `else`: where, its words and its line.
+    elses: Vec<(f32, Block, usize)>,
     /// What it holds, left and right.
     lo: f32,
     hi: f32,
@@ -319,7 +323,7 @@ struct Drawer<'a> {
     head_drawn: Vec<bool>,
     delays: Vec<(f32, f32)>,
     groups: Vec<OpenGroup>,
-    dividers: Vec<(f32, Block)>,
+    dividers: Vec<(f32, Block, usize)>,
     /// The arrow height of the last message and its columns, while only
     /// activations follow it.
     last_arrow: Option<(f32, [Option<usize>; 2])>,
@@ -1211,9 +1215,11 @@ impl<'a> Drawer<'a> {
         canvas.include(right, content_top);
         self.annotations.draw(canvas);
         let dividers = std::mem::take(&mut self.dividers);
-        for (cy, label) in dividers {
+        for (cy, label, line) in dividers {
+            canvas.tie(Some(line));
             self.divider(canvas, cy, &label, left, right);
         }
+        canvas.tie(None);
     }
 
     /// Draws the item at `k` (and the note beside it); the next item.
@@ -1229,6 +1235,23 @@ impl<'a> Drawer<'a> {
                 self.level = None;
             }
         }
+        // What this line alone draws is tied to it; a group's words are
+        // drawn where it ends, and tied there.
+        canvas.tie(match item {
+            Item::Message(m) => Some(m.line),
+            Item::Note(note) => Some(note.line),
+            Item::Delay { line, .. } => Some(*line),
+            Item::Ref { text, .. } => Some(text.line),
+            _ => None,
+        });
+        let next = self.item_of(canvas, k);
+        canvas.tie(None);
+        next
+    }
+
+    fn item_of(&mut self, canvas: &mut Canvas, k: usize) -> usize {
+        let d = self.d;
+        let item = &d.items[k];
         match item {
             Item::Message(m) => {
                 let note = match d.items.get(k + 1) {
@@ -1247,7 +1270,7 @@ impl<'a> Drawer<'a> {
                 self.note(canvas, k, note);
                 self.y = self.y.max(below.unwrap_or(self.y));
             }
-            Item::GroupStart { .. } => {
+            Item::GroupStart { line, .. } => {
                 if let Measured::Group { header, label } = &self.measured[k] {
                     let (header, label) = (header.clone(), label.clone());
                     let top = self.y + 7.0;
@@ -1257,13 +1280,14 @@ impl<'a> Drawer<'a> {
                         top,
                         header,
                         label,
+                        line: *line,
                         elses: Vec::new(),
                         lo: f32::INFINITY,
                         hi: f32::NEG_INFINITY,
                     });
                 }
             }
-            Item::GroupElse { .. } => {
+            Item::GroupElse { line, .. } => {
                 if let Measured::Else { label } = &self.measured[k] {
                     let label = label.clone();
                     let y = self.y + 7.0;
@@ -1273,17 +1297,17 @@ impl<'a> Drawer<'a> {
                         label.height + 2.0
                     };
                     if let Some(g) = self.groups.last_mut() {
-                        g.elses.push((y, label));
+                        g.elses.push((y, label, *line));
                     }
                 }
             }
             Item::GroupEnd { .. } => self.group_end(canvas),
-            Item::Divider { .. } => {
+            Item::Divider { label: written } => {
                 if let Measured::Label(label) = &self.measured[k] {
                     let label = label.clone();
                     let h = label.height + 6.0;
                     let cy = self.y + 10.0 + h / 2.0;
-                    self.dividers.push((cy, label));
+                    self.dividers.push((cy, label, written.line));
                     self.y = cy + h / 2.0 + 7.0;
                 }
             }
@@ -1612,6 +1636,8 @@ impl<'a> Drawer<'a> {
             }) = self.measured.get(k + 1)
             && let NotePlace::Message(side) = note.place
         {
+            // The note's words are its own line's, not the message's.
+            canvas.tie(Some(note.line));
             let (width, height) = (*width, *height);
             let nx = match side {
                 Side::Left => lo - 5.0 - width,
@@ -1861,7 +1887,7 @@ impl<'a> Drawer<'a> {
         if !g.label.is_empty() {
             right = right.max(left + tab_w + 5.0 + g.label.width + 10.0);
         }
-        for (_, label) in &g.elses {
+        for (_, label, _) in &g.elses {
             right = right.max(left + label.width + 15.0);
         }
         let border = Stroke::new(skin.group_border, skin.group_thickness);
@@ -1879,6 +1905,7 @@ impl<'a> Drawer<'a> {
             skin.group_header_fill,
             Some(border),
         );
+        canvas.tie(Some(g.line));
         canvas.text(
             Layer::Front,
             &g.header,
@@ -1894,15 +1921,17 @@ impl<'a> Drawer<'a> {
             ),
             Align::Left,
         );
-        for (y, label) in &g.elses {
+        for (y, label, line) in &g.elses {
             canvas.line(
                 Layer::Frames,
                 (left, *y),
                 (right, *y),
                 Stroke::new(skin.group_border, 1.0).dashed(2.0, 2.0),
             );
+            canvas.tie(Some(*line));
             canvas.text(Layer::Front, label, (left + 5.0, *y + 1.0), Align::Left);
         }
+        canvas.tie(None);
         self.y = bottom;
         self.touch(left, right);
     }
@@ -1976,10 +2005,14 @@ impl<'a> Drawer<'a> {
         top: f32,
         bottom: bool,
     ) -> (crate::graph::Rect, Paint) {
+        // A participant's name is no one line's: many mention it, also
+        // where a message's line creates it.
+        let line = canvas.tie(None);
         let mut name = (crate::graph::Rect::default(), None);
         canvas.linked(self.cols[c].link.as_ref(), &[Layer::Front], |canvas| {
             name = self.head_shape(canvas, c, top, bottom);
         });
+        canvas.tie(line);
         name
     }
 
@@ -2398,6 +2431,16 @@ mod tests {
             );
             assert!(head.fill.is_some() && head.line > 0.0);
         }
+        // What one line alone draws is tied to it; the participants'
+        // names are not.
+        let lines: Vec<usize> = map.tied.iter().map(|tied| tied.line).collect();
+        assert_eq!(lines, [6, 7], "{:?}", map.tied);
+        let divided =
+            "@startuml\nparticipant Pay\nA -> Pay : go\n== Pay ==\nnote over A : Pay\n@enduml\n";
+        let (_, map) = crate::render_mapped(divided, None).unwrap();
+        let mut lines: Vec<usize> = map.tied.iter().map(|tied| tied.line).collect();
+        lines.sort_unstable();
+        assert_eq!(lines, [2, 3, 4]);
         // A Mermaid sequence diagram names them alike.
         let d = super::super::mermaid::from_mermaid(
             "sequenceDiagram\n  actor A\n  participant B\n  A->>B: hi\n",

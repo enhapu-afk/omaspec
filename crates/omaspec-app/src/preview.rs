@@ -147,8 +147,8 @@ impl Preview {
                 // No editor here to jump in; say where it is.
                 self.notice = Some(match self.paper.label_at(at) {
                     Some((label, source)) => {
-                        match omaspec_core::locate::line_of(&source, &label.text, label.nth) {
-                            Some(line) => format!("line {}: {}", line + 1, label.text),
+                        match self.paper.written_at(&source, &label.text, label.nth) {
+                            Some((line, _)) => format!("line {}: {}", line + 1, label.text),
                             None => format!("“{}” is not in the source", label.text),
                         }
                     }

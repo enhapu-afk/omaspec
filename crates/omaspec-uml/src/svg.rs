@@ -114,6 +114,10 @@ pub struct Canvas {
     links: Vec<Option<String>>,
     /// How many groups of parts were opened, to keep their ids apart.
     groups: usize,
+    /// The line of the source whose words are being drawn ([`Self::tie`]).
+    tie: Option<usize>,
+    /// The words drawn for a line, each where it stands.
+    ties: Vec<crate::map::Tied>,
 }
 
 /// How far a shadow lies to the right of its shape and below it.
@@ -163,6 +167,8 @@ impl Canvas {
             open_shades: Default::default(),
             links: Vec::new(),
             groups: 0,
+            tie: None,
+            ties: Vec::new(),
         }
     }
 
@@ -451,6 +457,23 @@ impl Canvas {
         self.at(layer).push_str("</g>");
     }
 
+    /// From here on the words drawn are those of the zero-based `line` of
+    /// the source, until another line is given or none: a drawer says so
+    /// for what one line alone draws (a message, a note, a divider), not
+    /// for a name many lines mention. What was said before is returned.
+    ///
+    /// The map tells them ([`crate::map::Map::tied`]): a pane then knows
+    /// the line of such words without counting, also where the same words
+    /// are drawn for something else.
+    pub fn tie(&mut self, line: Option<usize>) -> Option<usize> {
+        std::mem::replace(&mut self.tie, line)
+    }
+
+    /// The words drawn for a line so far ([`Self::tie`]), for the map.
+    pub fn tied(&mut self) -> Vec<crate::map::Tied> {
+        std::mem::take(&mut self.ties)
+    }
+
     /// Draws with `paint`; with a `link`, what it draws into each of
     /// `layers` is a link a click follows, one on each layer an element is
     /// drawn on.
@@ -674,6 +697,22 @@ impl Canvas {
     pub fn text(&mut self, layer: Layer, block: &Block, (x, y): (f32, f32), align: Align) {
         if block.is_empty() {
             return;
+        }
+        if let Some(line) = self.tie {
+            let left = match align {
+                Align::Left => x,
+                Align::Center => x - block.width / 2.0,
+                Align::Right => x - block.width,
+            };
+            self.ties.push(crate::map::Tied {
+                rect: crate::graph::Rect {
+                    x: left,
+                    y,
+                    w: block.width,
+                    h: block.height,
+                },
+                line,
+            });
         }
         let mut out = String::new();
         let _ = write!(

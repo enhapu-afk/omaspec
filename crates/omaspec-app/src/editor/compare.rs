@@ -483,8 +483,8 @@ impl App {
         if let paper::Message::Pick(at) = message {
             self.notice = Some(match c.paper.label_at(at) {
                 Some((label, source)) => {
-                    match omaspec_core::locate::line_of(&source, &label.text, label.nth) {
-                        Some(line) => format!("B line {}: {}", line + 1, label.text),
+                    match c.paper.written_at(&source, &label.text, label.nth) {
+                        Some((line, _)) => format!("B line {}: {}", line + 1, label.text),
                         None => format!("“{}” is not in B", label.text),
                     }
                 }

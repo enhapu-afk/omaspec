@@ -31,6 +31,41 @@ fn a_new_diagram_fades_in_over_the_one_before() {
     assert_eq!(paper.fading(), None);
 }
 
+/// What one line alone draws belongs to that line, whatever else reads
+/// the same: a divider named as a participant is lit from its own line
+/// and found on it, and the participant's mentions keep its head and foot.
+#[test]
+fn words_one_line_draws_belong_to_that_line() {
+    let source = "@startuml\nparticipant Shop\nparticipant Payment\nShop -> Payment : total\n== Payment ==\nShop -> Payment : charge\nnote over Shop : Payment\n@enduml\n";
+    let mut paper = Paper::default();
+    show_source(&mut paper, source, Language::PlantUml);
+    let at = |row: usize| {
+        let line = source.lines().nth(row).unwrap();
+        paper
+            .place_of(source, row, line.rfind("Payment").unwrap())
+            .unwrap()
+    };
+    let (head, first, divider, second, note) = (at(2), at(3), at(4), at(5), at(6));
+    // The declaration is the head; both messages, before the divider and
+    // after it, are the foot; the divider and the note are themselves.
+    assert!(
+        head.y < divider.y && divider.y < first.y,
+        "{head:?} {divider:?} {first:?}"
+    );
+    assert_eq!(first, second);
+    assert!(note.y > divider.y && note.y < first.y, "{note:?}");
+    // And back: each copy drawn is written on its own line.
+    let lines: Vec<Option<usize>> = paper
+        .labels()
+        .into_iter()
+        .filter(|(text, ..)| text == "Payment")
+        .map(|(.., line)| line)
+        .collect();
+    let mut sorted = lines.clone();
+    sorted.sort_unstable();
+    assert_eq!(sorted, [Some(2), Some(3), Some(4), Some(6)], "{lines:?}");
+}
+
 #[test]
 fn the_caret_aims_at_that_occurrence() {
     let source = "%% Edit\nflowchart LR\n  A[Edit] --> B[Edit]\n";

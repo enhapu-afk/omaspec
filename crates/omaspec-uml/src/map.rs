@@ -37,6 +37,12 @@ pub struct Map {
     /// own and small, so that what scrolls by is seen between them. Empty
     /// where the band is held whole.
     pub heads: Vec<Heading>,
+    /// Words the drawer ties to the line that writes them
+    /// ([`crate::svg::Canvas::tie`]): what one line alone draws, as a
+    /// sequence diagram's message, note or divider. A click on them lands
+    /// on that line and that line's light on them, whatever else reads the
+    /// same; words tied to no line are found by counting.
+    pub tied: Vec<Tied>,
     /// Parts of their own that lie inside a box, as a note inside a state:
     /// each part's name and that of the box's part. A glide draws such a
     /// part over its box, not under it.
@@ -56,6 +62,14 @@ pub struct Band {
     /// participants, a Gantt chart's rows beside its names and under its
     /// dates; not what comes after them, a footer or the feet.
     pub over: Rect,
+}
+
+/// Words drawn at `rect` for the zero-based `line` of the source
+/// ([`Map::tied`]).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Tied {
+    pub rect: Rect,
+    pub line: usize,
 }
 
 /// A participant at the top of a sequence diagram ([`Map::heads`]): a
@@ -386,6 +400,9 @@ impl Map {
         for ground in &mut self.grounds {
             ground.rect = fit.rect(ground.rect);
         }
+        for tied in &mut self.tied {
+            tied.rect = fit.rect(tied.rect);
+        }
         for head in &mut self.heads {
             head.rect = fit.rect(head.rect);
             head.label = fit.rect(head.label);
@@ -434,6 +451,9 @@ impl Map {
     /// Every line moved down by `lines`: for a diagram read from inside a
     /// longer text.
     pub fn shifted(mut self, lines: usize) -> Map {
+        for tied in &mut self.tied {
+            tied.line = tied.line.saturating_add(lines);
+        }
         for spot in &mut self.states {
             spot.line = spot.line.saturating_add(lines);
         }
