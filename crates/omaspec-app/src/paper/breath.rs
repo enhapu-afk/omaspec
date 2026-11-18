@@ -382,7 +382,7 @@ impl Paper {
         if copies == 0 {
             return None;
         }
-        let nth = self.copy_of(source, &text, nth, row).min(copies - 1);
+        let nth = self.copy_of(source, &text, nth, (row, col)).min(copies - 1);
         let (x, y, w, h) = pick::spot(tree, &text, nth)?;
         if w <= 0.0 || h <= 0.0 {
             return None;
@@ -405,7 +405,7 @@ impl Paper {
         if copies == 0 {
             return None;
         }
-        let nth = self.copy_of(source, &text, nth, row).min(copies - 1);
+        let nth = self.copy_of(source, &text, nth, (row, col)).min(copies - 1);
         let seat = pick::seat(tree, &text, nth)?;
         let (_, _, w, h) = seat.bounds();
         (w > 0.0 && h > 0.0).then_some((text, seat))

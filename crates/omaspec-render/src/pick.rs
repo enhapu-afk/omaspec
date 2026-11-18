@@ -87,6 +87,22 @@ pub fn label_at(tree: &Tree, x: f32, y: f32) -> Option<Label> {
     Some(Label { text, nth })
 }
 
+/// Where the words of each label that reads exactly `text` are drawn, in
+/// the order drawn: `(x, y, width, height)` of the words themselves, not
+/// of a box they name.
+pub fn words(tree: &Tree, text: &str) -> Vec<(f32, f32, f32, f32)> {
+    let mut texts = Vec::new();
+    collect(tree.root(), &mut texts, &mut Vec::new());
+    texts
+        .iter()
+        .filter(|label| label.text == text)
+        .map(|label| {
+            let r = &label.rect;
+            (r.left(), r.top(), r.width(), r.height())
+        })
+        .collect()
+}
+
 /// Every label's text, in the order it is drawn. Repeated names stay
 /// repeated, so the nth copy is the nth entry with that text.
 pub fn texts(tree: &Tree) -> Vec<String> {

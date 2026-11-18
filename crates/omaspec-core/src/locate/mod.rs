@@ -51,6 +51,40 @@ pub fn column_of(code: &str, label: &str, nth: usize) -> Option<(usize, usize)> 
         .find_map(|label| by_words(&shown, &plain, label, nth))
 }
 
+/// Every line that writes `label`, with the byte on it where the matched
+/// text starts, in the order written: what [`column_of`] gives for each
+/// `nth` in turn, read in one pass.
+pub fn columns_of(code: &str, label: &str) -> Vec<(usize, usize)> {
+    let shown: Vec<Option<text::Norm>> = code
+        .split('\n')
+        .map(|line| text::read(line, false))
+        .collect();
+    let plain: Vec<Option<text::Norm>> = code
+        .split('\n')
+        .map(|line| text::read(line, true))
+        .collect();
+    let bare = label
+        .strip_prefix(['[', '(', '"', '«', '<'])
+        .and_then(|l| l.strip_suffix([']', ')', '"', '»', '>']))
+        .filter(|l| !l.trim().is_empty());
+    std::iter::once(label)
+        .chain(bare)
+        .find_map(|label| {
+            let words: Vec<&str> = label.split_whitespace().collect();
+            (1..=words.len()).rev().find_map(|n| {
+                let wanted = words[..n].join(" ");
+                if n < words.len() && wanted.chars().count() < 3 {
+                    return None;
+                }
+                [&shown, &plain].into_iter().find_map(|lines| {
+                    let hits = all(lines, &wanted);
+                    (!hits.is_empty()).then_some(hits)
+                })
+            })
+        })
+        .unwrap_or_default()
+}
+
 fn by_words(
     lines: &[Option<text::Norm>],
     plain: &[Option<text::Norm>],
@@ -82,22 +116,44 @@ enum Tier {
 
 const TIERS: [Tier; 4] = [Tier::Word, Tier::Part, Tier::WordAnyCase, Tier::PartAnyCase];
 
-fn find(lines: &[Option<text::Norm>], wanted: &str, nth: usize) -> Option<(usize, usize)> {
+/// The lines of the first tier that holds `wanted` at all: each with
+/// where the match starts and ends in the line as read.
+fn hits(lines: &[Option<text::Norm>], wanted: &str) -> Vec<(usize, usize, usize)> {
     let lower = wanted.to_lowercase();
-    TIERS.iter().find_map(|tier| {
-        let hits: Vec<(usize, usize, usize)> = lines
-            .iter()
-            .enumerate()
-            .filter_map(|(index, norm)| {
-                // A comment is `None` and draws nothing, so it never matches.
-                let (from, to) = span_in(&norm.as_ref()?.text, wanted, &lower, *tier)?;
-                Some((index, from, to))
-            })
-            .collect();
-        let (index, from, to) = hits.get(nth).copied().or_else(|| hits.last().copied())?;
-        let (start, _) = lines.get(index)?.as_ref()?.map(from, to)?;
-        Some((index, start))
-    })
+    TIERS
+        .iter()
+        .map(|tier| {
+            lines
+                .iter()
+                .enumerate()
+                .filter_map(|(index, norm)| {
+                    // A comment is `None` and draws nothing, so it never
+                    // matches.
+                    let (from, to) = span_in(&norm.as_ref()?.text, wanted, &lower, *tier)?;
+                    Some((index, from, to))
+                })
+                .collect::<Vec<_>>()
+        })
+        .find(|hits| !hits.is_empty())
+        .unwrap_or_default()
+}
+
+/// Every line that holds `wanted`, with the byte on it where it starts.
+fn all(lines: &[Option<text::Norm>], wanted: &str) -> Vec<(usize, usize)> {
+    hits(lines, wanted)
+        .into_iter()
+        .filter_map(|(index, from, to)| {
+            let (start, _) = lines.get(index)?.as_ref()?.map(from, to)?;
+            Some((index, start))
+        })
+        .collect()
+}
+
+fn find(lines: &[Option<text::Norm>], wanted: &str, nth: usize) -> Option<(usize, usize)> {
+    let hits = hits(lines, wanted);
+    let (index, from, to) = hits.get(nth).copied().or_else(|| hits.last().copied())?;
+    let (start, _) = lines.get(index)?.as_ref()?.map(from, to)?;
+    Some((index, start))
 }
 
 /// Where `wanted` sits in the normalized `line`, in that line's own bytes.
@@ -208,6 +264,24 @@ pub(super) fn floor_char(line: &str, mut col: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every mention read in one pass is what the count gives one by one.
+    #[test]
+    fn all_mentions_are_those_counted_one_by_one() {
+        let code = "@startuml\nparticipant \"Web shop\" as Shop\n' Web shop\nShop -> Cart : total\n== Web shop ==\nnote over Cart : the Web shop\n@enduml\n";
+        for label in ["Web shop", "Cart", "total", "nothing here"] {
+            let all = columns_of(code, label);
+            let mut one_by_one = Vec::new();
+            for nth in 0..10 {
+                match column_of(code, label, nth) {
+                    Some(at) if one_by_one.last() != Some(&at) => one_by_one.push(at),
+                    _ => break,
+                }
+            }
+            assert_eq!(all, one_by_one, "{label}");
+        }
+        assert_eq!(columns_of(code, "Web shop").len(), 3);
+    }
 
     #[test]
     fn the_nth_label_is_the_nth_line() {

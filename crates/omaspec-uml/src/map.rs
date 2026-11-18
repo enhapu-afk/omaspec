@@ -79,6 +79,10 @@ pub struct Band {
 pub struct Tied {
     pub rect: Rect,
     pub line: usize,
+    /// How many lines the words are drawn on: what a block of the source
+    /// writes (a note up to its `end note`) stands on as many lines after
+    /// `line`, not on it. None for a shape.
+    pub span: usize,
 }
 
 /// A participant at the top of a sequence diagram ([`Map::heads`]): a

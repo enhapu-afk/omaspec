@@ -75,8 +75,10 @@ pub struct Pill {
     pub shape: Rectangle,
     /// Where its name is drawn.
     pub name: Rectangle,
-    /// Where it lies in the picture, scrolled out of sight.
+    /// Where it lies in the picture, scrolled out of sight, and its name
+    /// there: a click on the pill is a click on that name.
     pub on: Rectangle,
+    pub name_on: Rectangle,
 }
 
 impl Pill {
@@ -122,6 +124,7 @@ impl Pill {
             shape: between(own, pill),
             name: between(name_own, name_pill),
             on,
+            name_on: name,
         })
     }
 }
@@ -129,13 +132,13 @@ impl Pill {
 impl Held {
     /// Where the point `at` of the pane lies in the picture, if it is the
     /// band's own: in the band, or in a pill where the heads alone are
-    /// held, which is the middle of its participant.
+    /// held, which is the middle of its participant's name.
     fn own(&self, at: Point) -> Option<Point> {
         if self.apart {
             self.heads
                 .iter()
                 .find(|pill| pill.shape.contains(at))
-                .map(|pill| pill.on.center())
+                .map(|pill| pill.name_on.center())
         } else {
             self.strip.contains(at).then(|| at + self.back)
         }
@@ -171,7 +174,11 @@ pub fn held(
             if thick > MOST && !apart {
                 continue;
             }
-            let Some(dest) = held_at(on, edge, over, local) else {
+            // A pill forms as its head reaches the line under the top it
+            // will stand on, not the pane's edge some pixels on.
+            let reach = if apart { PILL_TOP } else { 0.0 };
+            let reaching = Rectangle::new(on.position() - Vector::new(0.0, reach), on.size());
+            let Some(dest) = held_at(reaching, edge, over, local) else {
                 continue;
             };
             let back = on.position() - dest.position();
@@ -345,33 +352,45 @@ impl KeptBands<'_> {
         let scale = if self.scale > 0.0 { self.scale } else { 1.0 };
         let snap = |at: f32| (at * scale).round() / scale;
         let rgb = |omaspec_uml::Color(r, g, b)| Color::from_rgb8(r, g, b);
-        let sharp = self.sharp[0].filter(|raster| raster.region.intersects(&band.src));
-        for pill in &band.heads {
-            // What it stands on in the picture: a box's fill, or the paper.
-            let ground = grounds
+        let sharp = self.sharp[0];
+        // What each stands on in the picture: a box's fill, or the paper.
+        let ground = |pill: &Pill| {
+            grounds
                 .iter()
                 .filter(|(ground, _)| ground.contains(pill.on.center()))
                 .min_by(|a, b| (a.0.width * a.0.height).total_cmp(&(b.0.width * b.0.height)))
-                .map_or(self.overview.paper, |(_, color)| *color);
-            let fill = pill.head.fill.map_or(ground, rgb);
-            // What is still in sight of the participant itself, on its way
-            // out under the top, is covered: it is the pill now.
-            let rim = Vector::new(1.5, 1.5);
-            let left_over = Rectangle::new(
-                pill.on.position() - rim,
-                pill.on.size() + Size::new(3.0, 3.0),
-            );
-            if let Some(cover) = left_over.intersection(&local) {
-                frame.fill_rectangle(cover.position(), cover.size(), ground);
-            }
+                .map_or(self.overview.paper, |(_, color)| *color)
+        };
+        let own = |pill: &Pill| {
             let (left, top) = (snap(pill.shape.x), snap(pill.shape.y));
             let (right, bottom) = (
                 snap(pill.shape.x + pill.shape.width),
                 snap(pill.shape.y + pill.shape.height),
             );
-            let own = Rectangle::new(Point::new(left, top), Size::new(right - left, bottom - top));
-            // From its own corners to a pill's round ends.
-            let round = 3.0 + (own.height / 2.0 - 3.0).max(0.0) * pill.gone;
+            Rectangle::new(Point::new(left, top), Size::new(right - left, bottom - top))
+        };
+        // From its own corners to a pill's round ends.
+        let round =
+            |pill: &Pill, own: Rectangle| 3.0 + (own.height / 2.0 - 3.0).max(0.0) * pill.gone;
+        // All that lies under the pills first, then the pills: the halo of
+        // one does not wash over its neighbor.
+        for pill in &band.heads {
+            let ground = ground(pill);
+            // What is still in sight of the participant itself, on its way
+            // out under the top, is covered: it is the pill now. Its
+            // shadow too, which lies right of it and below.
+            let zoom = pill.on.height / pill.head.rect.h.max(1e-3);
+            let (rim, shadow) = (1.5, 4.0 * zoom);
+            let left_over = Rectangle::new(
+                pill.on.position() - Vector::new(rim, rim),
+                pill.on.size() + Size::new(2.0 * rim + shadow, 2.0 * rim + shadow),
+            );
+            if let Some(cover) = left_over.intersection(&local) {
+                frame.fill_rectangle(cover.position(), cover.size(), ground);
+            }
+        }
+        for pill in &band.heads {
+            let (ground, own) = (ground(pill), own(pill));
             // Layers that grow by whole pixels, each as thin: many lie
             // near it, so the color is whole there and gone at the edge.
             let alpha = 1.0 - 0.04_f32.powf(1.0 / f32::from(HALO_LAYERS));
@@ -380,11 +399,19 @@ impl KeptBands<'_> {
                 let path = canvas::Path::rounded_rectangle(
                     own.position() - Vector::new(grow, grow),
                     own.size() + Size::new(grow * 2.0, grow * 2.0),
-                    (round + grow).into(),
+                    (round(pill, own) + grow).into(),
                 );
                 frame.fill(&path, Color { a: alpha, ..ground });
             }
-            let body = canvas::Path::rounded_rectangle(own.position(), own.size(), round.into());
+        }
+        for pill in &band.heads {
+            let (ground, own) = (ground(pill), own(pill));
+            let fill = pill.head.fill.map_or(ground, rgb);
+            let body = canvas::Path::rounded_rectangle(
+                own.position(),
+                own.size(),
+                round(pill, own).into(),
+            );
             frame.fill(&body, fill);
             frame.stroke(
                 &body,
@@ -399,16 +426,25 @@ impl KeptBands<'_> {
                 (rectangle(pill.head.label), pill.name, pill.gone),
             ];
             for (src, dest, alpha) in pictures {
-                for raster in std::iter::once(self.overview).chain(sharp) {
-                    let blit = sprite::Blit {
-                        raster,
-                        src,
-                        dest,
-                        limit: own,
-                        alpha,
-                    };
-                    sprite::blit(frame, local, &blit);
-                }
+                // One picture at that strength: the sharp one where it
+                // holds all of it, or the overview. Both would show
+                // stronger than asked, the blurred under the sharp.
+                let covers = |raster: &&Raster| {
+                    let r = raster.region;
+                    r.x <= src.x
+                        && r.y <= src.y
+                        && r.x + r.width >= src.x + src.width
+                        && r.y + r.height >= src.y + src.height
+                };
+                let raster = sharp.filter(covers).unwrap_or(self.overview);
+                let blit = sprite::Blit {
+                    raster,
+                    src,
+                    dest,
+                    limit: own,
+                    alpha,
+                };
+                sprite::blit(frame, local, &blit);
             }
         }
     }

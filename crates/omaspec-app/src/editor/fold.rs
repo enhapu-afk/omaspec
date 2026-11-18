@@ -119,7 +119,7 @@ fn offered(palette: &Palette) -> Vec<(String, Rgb)> {
 
 impl App {
     /// The source on screen and where the caret is in it.
-    fn caret_in_source(&self) -> (String, usize, usize) {
+    pub(super) fn caret_in_source(&self) -> (String, usize, usize) {
         let doc = self.doc();
         let cursor = doc.editor.cursor();
         (doc.shown_source(), cursor.row as usize, cursor.col as usize)

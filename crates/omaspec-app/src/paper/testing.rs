@@ -194,8 +194,6 @@ impl Paper {
         on_screen.position()
     }
 
-    /// Where the line `key` draws runs, half way along its longest run,
-    /// in the pane; and the way down the pane, across that run.
     /// Where the middle of the shape the zero-based `line` draws is on
     /// screen: a bar on a lifeline.
     pub fn screen_of_shape(&self, line: usize) -> Point {
@@ -229,6 +227,8 @@ impl Paper {
             .position()
     }
 
+    /// Where the line `key` draws runs, half way along its longest run,
+    /// in the pane; and the way down the pane, across that run.
     pub fn screen_of_line(&self, key: &str) -> (Point, Vector) {
         let map = &self.diagram.as_ref().unwrap().drawn.map;
         let wire = map

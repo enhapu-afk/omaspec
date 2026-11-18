@@ -298,7 +298,23 @@ struct Opens {
     sign: Range<usize>,
 }
 
-fn opens(line: &str) -> Option<Opens> {
+/// Whether the zero-based `row` of `code` opens a bar, as the engine
+/// reads it: a `++` in a name, a title or a note's text opens none.
+fn opens_a_bar(code: &str, row: usize) -> bool {
+    let Ok(Diagram::Sequence(diagram)) = omaspec_uml::parse(code) else {
+        return false;
+    };
+    diagram.items.iter().any(
+        |item| matches!(item, omaspec_uml::sequence::Item::Activate { line, .. } if *line == row),
+    )
+}
+
+fn opens(code: &str, row: usize) -> Option<Opens> {
+    let line = code.split('\n').nth(row)?;
+    let line = line.strip_suffix('\r').unwrap_or(line);
+    if !opens_a_bar(code, row) {
+        return None;
+    }
     if let Some(caps) =
         re!(r#"(?i)^\s*activate\s+("[^"]*"|[^\s#]+)(?:\s+(#\S+))?\s*$"#).captures(line)
     {
@@ -311,14 +327,30 @@ fn opens(line: &str) -> Option<Opens> {
         });
     }
     // After the second end of a message and before its text: `++`, also
-    // with a `--` beside it, and a color.
+    // with a `--` beside it, and a color. What stands in quotes is a
+    // name, whatever it holds: it is read as letters here.
     let mut quoted = false;
-    let colon = line.char_indices().find_map(|(at, c)| {
-        quoted ^= c == '"';
-        (c == ':' && !quoted).then_some(at)
-    });
-    let head = &line[..colon.unwrap_or(line.len())];
-    let caps = re!(r"(\+\+--|--\+\+|\+\+)(?:\s*(#[0-9A-Za-z]+))?").captures(head)?;
+    let mut colon = None;
+    let masked: String = line
+        .char_indices()
+        .map(|(at, c)| {
+            if c == '"' {
+                quoted = !quoted;
+                return c;
+            }
+            if c == ':' && !quoted && colon.is_none() {
+                colon = Some(at);
+            }
+            // One byte for each byte, so that what is found lies where it
+            // lies in the line.
+            if quoted && c.is_ascii() { 'x' } else { c }
+        })
+        .collect();
+    let head = &masked[..colon.unwrap_or(masked.len())];
+    // The last one: the ends of the message come before it.
+    let caps = re!(r"(\+\+--|--\+\+|\+\+)(?:\s*(#[0-9A-Za-z]+))?")
+        .captures_iter(head)
+        .last()?;
     let sign = caps.get(1)?.range();
     let color = caps.get(2).map(|m| m.range());
     Some(Opens {
@@ -329,11 +361,19 @@ fn opens(line: &str) -> Option<Opens> {
     })
 }
 
+/// Where the zero-based `row` of `code` says that it opens a bar on a
+/// lifeline: the bytes of its `++` and the color after it, or the whole
+/// of an `activate` line. A caret there means the bar.
+pub fn bar_sign(code: &str, row: usize) -> Option<Range<usize>> {
+    opens(code, row).map(|opens| opens.sign)
+}
+
 /// The bar the line at the zero-based `row` opens, if the caret at the
 /// byte `col` means it: anywhere on an `activate` line, on the `++` of a
 /// message or on its color.
-pub(super) fn activation_at(line: &str, row: usize, col: usize) -> Option<Target> {
-    let opens = opens(line)?;
+pub(super) fn activation_at(code: &str, row: usize, col: usize) -> Option<Target> {
+    let opens = opens(code, row)?;
+    let line = code.split('\n').nth(row)?;
     if col < opens.sign.start || col > opens.sign.end {
         return None;
     }
@@ -356,7 +396,7 @@ pub(super) fn activation(
     color: Option<&str>,
 ) -> Result<Edit, String> {
     let (range, line, newline) = line_at(code, no)?;
-    let opens = opens(line).ok_or("that line opens no bar on a lifeline")?;
+    let opens = opens(code, no).ok_or("that line opens no bar on a lifeline")?;
     let new = match (color, opens.color) {
         (Some(color), Some(old)) => {
             Some(format!("{}{color}{}", &line[..old.start], &line[old.end..]))

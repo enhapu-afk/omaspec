@@ -68,6 +68,38 @@ fn words_one_line_draws_belong_to_that_line() {
     assert_eq!(sorted, [Some(2), Some(2), Some(4), Some(6)], "{lines:?}");
 }
 
+/// A line that names a participant and draws the same words keeps them
+/// apart by where the caret is, and the words of a block are found on the
+/// lines after the one it begins on.
+#[test]
+fn a_name_and_the_same_words_on_one_line_and_a_block_s_words() {
+    let source = "@startuml\nparticipant Login\nUser -> Login : Login\nnote over User\n  Login\nend note\n@enduml\n";
+    let mut paper = Paper::default();
+    show_source(&mut paper, source, Language::PlantUml);
+    let line = source.lines().nth(2).unwrap();
+    let head = paper.place_of(source, 1, 13).unwrap();
+    let named = paper
+        .place_of(source, 2, line.find("Login").unwrap() + 1)
+        .unwrap();
+    let said = paper
+        .place_of(source, 2, line.rfind("Login").unwrap() + 1)
+        .unwrap();
+    let noted = paper.place_of(source, 4, 3).unwrap();
+    assert_eq!(named, head, "the name is the participant");
+    assert!(
+        said.y > head.y + head.height,
+        "the message's words: {said:?}"
+    );
+    assert!(noted.y > said.y, "the note's words: {noted:?}");
+    // And back: the message's words on their line after the name, the
+    // note's on the line that writes them.
+    let mut at: Vec<(usize, usize)> = (0..4)
+        .filter_map(|copy| paper.written_at(source, "Login", copy))
+        .collect();
+    at.sort_unstable();
+    assert_eq!(at, [(1, 12), (1, 12), (2, 16), (4, 2)]);
+}
+
 #[test]
 fn the_caret_aims_at_that_occurrence() {
     let source = "%% Edit\nflowchart LR\n  A[Edit] --> B[Edit]\n";

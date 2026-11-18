@@ -2648,6 +2648,27 @@ fn words_tied_to_a_line_are_tied_to_the_file_s_line_under_a_look() {
     assert_eq!(lines, [Some(2), Some(2), Some(4)]);
 }
 
+/// Words drawn over a bar of a lifeline are found before the bar: a click
+/// on a note that lies on one lands on the note's line.
+#[test]
+fn words_over_a_bar_are_found_before_the_bar() {
+    let source =
+        "@startuml\nA -> B : go\nactivate B\nnote over B : working\ndeactivate B\n@enduml\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, source);
+    show(&mut app, source, Language::PlantUml);
+    let at = app.doc().paper.screen_of("working");
+    let _ = app.land_on(at).unwrap();
+    assert_eq!(app.caret_in_source().1, 3);
+    // On the bar alone, under the note: the line that opens it.
+    let bar = app.doc().paper.screen_of_shape(2);
+    let under = iced::Point::new(bar.x, at.y + (at.y - bar.y).abs() + 24.0);
+    if app.doc().paper.shape_at(under).is_some() {
+        let _ = app.land_on(under).unwrap();
+        assert_eq!(app.caret_in_source().1, 2);
+    }
+}
+
 /// The right mouse button on a bar of a lifeline puts the caret on the
 /// line that opens it, and the color picked there is the bar's: after the
 /// participant of an `activate`, after the `++` of a message.

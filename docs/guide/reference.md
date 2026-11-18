@@ -841,6 +841,11 @@ Copies to the clipboard and exports send an Omarchy notification. Window classes
 Hyprland rules: `omaspec` (editor), `omaspec-preview` (preview window and the editor's
 diagram window).
 
+On a machine with two graphics cards Omaspec draws with the one that takes little
+power, so a laptop's strong card can sleep while the editor is open. Start it as
+`WGPU_POWER_PREF=high omaspec` for the strong one, where the monitors hang on it or a
+large diagram moves more smoothly with it.
+
 ## What Omaspec draws
 
 Mermaid renders natively, and so do most PlantUML diagrams, with Omaspec's own engines:

@@ -1083,13 +1083,6 @@ impl<'a> Drawer<'a> {
                 let head_top = top + heads - self.cols[i].height;
                 let (label, fill) = self.head(canvas, i, head_top, false);
                 let col = &self.cols[i];
-                let gray = |color: Color| {
-                    if self.skin.monochrome {
-                        color.gray()
-                    } else {
-                        color
-                    }
-                };
                 self.heads.push(crate::map::Heading {
                     rect: crate::graph::Rect {
                         x: self.x[i] - col.half(),
@@ -1103,8 +1096,8 @@ impl<'a> Drawer<'a> {
                         .lines
                         .first()
                         .map_or(col.label.height, |line| line.height),
-                    fill: fill.map(gray),
-                    border: gray(col.look.border),
+                    fill: fill.map(|fill| canvas.color(fill)),
+                    border: canvas.color(col.look.border),
                 });
                 self.life_start[i] = top + heads;
                 self.head_drawn[i] = true;
@@ -2006,9 +1999,9 @@ impl<'a> Drawer<'a> {
     }
 
     /// Draws column `c`'s head with its top at `top`; at the bottom the
-    /// label of an icon goes above it. A linked head is a link.
-    /// Draws the head of column `c`; where its name stands, and the fill
-    /// under the name (none under a figure, where it stands on the paper).
+    /// label of an icon goes above it. A linked head is a link. Gives
+    /// where its name stands, and the fill under the name (none under a
+    /// figure, where it stands on the paper).
     fn head(
         &self,
         canvas: &mut Canvas,

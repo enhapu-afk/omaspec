@@ -2089,25 +2089,23 @@ impl App {
         if let Some(line) = self.doc().paper.wire_at(at).and_then(|w| w.line) {
             return Ok(self.jump_to(line));
         }
+        // Words: where they are written. Words drawn over a shape, a
+        // note on a bar, are found before the shape.
+        if let Some((label, source)) = self.doc().paper.label_at(at) {
+            let written = self.doc().paper.written_at(&source, &label.text, label.nth);
+            return match written {
+                Some((line, column)) => Ok(self.jump_to_at(line, column)),
+                None => Err(format!("“{}” is not in the source", label.text)),
+            };
+        }
         // A shape without words, a bar on a lifeline: the line that opens
         // it, at the `++` of a message that does.
         if let Some(line) = self.doc().paper.shape_at(at) {
-            let text = self.doc().text();
-            let column = text
-                .split('\n')
-                .nth(line)
-                .and_then(|written| written.find("++"))
-                .map_or(0, |at| at + 2);
+            let column = omaspec_core::recolor::bar_sign(&self.doc().text(), line)
+                .map_or(0, |sign| sign.start);
             return Ok(self.jump_to_at(line, column));
         }
-        let Some((label, source)) = self.doc().paper.label_at(at) else {
-            return Err("no label there to find in the source".into());
-        };
-        let written = self.doc().paper.written_at(&source, &label.text, label.nth);
-        match written {
-            Some((line, column)) => Ok(self.jump_to_at(line, column)),
-            None => Err(format!("“{}” is not in the source", label.text)),
-        }
+        Err("no label there to find in the source".into())
     }
 
     fn jump_to(&mut self, line: usize) -> Task<Message> {

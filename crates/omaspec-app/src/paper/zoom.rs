@@ -107,18 +107,35 @@ impl Paper {
     /// `area` with room for the headings the pane holds over it (REQ-073):
     /// as high again as the band across the top where the area lies under
     /// it, as wide again as the one down the left where it lies right of
-    /// it, so the camera keeps a step out from under them.
+    /// it, so the camera keeps a step out from under them. Under a
+    /// sequence diagram's pills it is as high as they are.
     fn under_headings(&self, area: Rectangle) -> Rectangle {
         let Some(diagram) = self.diagram.as_ref().filter(|_| self.keep_bands) else {
             return area;
         };
         let mut room = area;
+        // Where a band's heads alone are held, as pills, they take the
+        // height of a name with its room, not the band's.
+        let pills = diagram
+            .drawn
+            .map
+            .heads
+            .iter()
+            .map(|head| head.line * 2.0)
+            .fold(0.0, f32::max);
+        let mut tops = 0;
         for band in &diagram.drawn.map.bands {
             let rect = band.rect;
             match band.edge {
                 omaspec_uml::map::Edge::Top if area.y >= rect.y + rect.h => {
-                    room.y -= rect.h;
-                    room.height += rect.h;
+                    tops += 1;
+                    let high = if tops == 1 && pills > 0.0 {
+                        pills.min(rect.h)
+                    } else {
+                        rect.h
+                    };
+                    room.y -= high;
+                    room.height += high;
                 }
                 omaspec_uml::map::Edge::Left if area.x >= rect.x + rect.w => {
                     room.x -= rect.w;

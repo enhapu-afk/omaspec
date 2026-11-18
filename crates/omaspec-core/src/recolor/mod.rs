@@ -17,6 +17,8 @@ mod lines;
 mod mermaid;
 mod plantuml;
 
+pub use lines::bar_sign;
+
 use std::ops::Range;
 
 use crate::Kind;
@@ -139,7 +141,7 @@ pub fn target(code: &str, language: Language, row: usize, col: usize) -> Option<
         Flavor::Gantt => lines::task_at(line, col),
         // The bar an `activate` line opens on a lifeline, before the
         // participant the line names.
-        Flavor::Sequence => lines::activation_at(line, row, col)
+        Flavor::Sequence => lines::activation_at(code, row, col)
             .or_else(|| plantuml::participant_at(code, row, col)),
         Flavor::Timing => plantuml::row_at(code, row, col),
         Flavor::C4 => mermaid::c4_at(code, row, col),
@@ -386,6 +388,24 @@ mod tests {
         };
         let none = put(&colored, p, &bar, None);
         assert!(none.contains("\nShop -> Cart ++ : total\n"), "{none}");
+        // A `++` in a name, a title or a note is letters: the participant
+        // is colored, or nothing, and a bar's sign is the last on its line.
+        let named_so = "@startuml\ntitle C++ build\nparticipant \"C+^+ compiler\" as CC\n\"C++\" -> CC ++ : go\nnote over CC : i++\n@enduml\n";
+        let (code, target) = aimed(named_so, p);
+        assert_eq!(target, Some(named("CC")));
+        assert_eq!(bar_sign(&code, 1), None);
+        assert_eq!(bar_sign(&code, 4), None);
+        let sign = bar_sign(&code, 3).unwrap();
+        assert_eq!(&code.lines().nth(3).unwrap()[sign], "++");
+        let bar = Target::Line {
+            line: 3,
+            label: String::new(),
+        };
+        let colored = put(&code, p, &bar, Some("#f7768e"));
+        assert!(
+            colored.contains("\n\"C++\" -> CC ++ #f7768e : go\n"),
+            "{colored}"
+        );
         // A `++` in a message's text is its text.
         let (_, target) = aimed("@startuml\nA -> B : i+^+\n@enduml\n", p);
         assert_eq!(target, None);

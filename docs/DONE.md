@@ -257,6 +257,21 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] What the review of 2026-11-18 (evening) found in the day's later work. A `++` in
+      a quoted name, a title or a note is letters: the bar's sign is read where the
+      engine reads an activation, in one place (`recolor::bar_sign`), where *color the
+      box* wrote a color into a participant's name. A click finds words before a shape
+      under them, a note on a bar. Tied words are told by the words themselves, not by
+      a box they name; a line that names a participant and draws the same words
+      (`User -> Login : Login`) keeps them apart by where the caret is; the words of a
+      block are found on the lines after the one it begins on (`note … end note`). All
+      mentions of a text are read in one pass (`locate::columns_of`): each caret move
+      read the whole source once per mention, two seconds in a diagram of 800 lines. A
+      click on a pill is a click on the participant's name, also under a figure; a
+      pill begins to form as its head reaches the line it will stand on, without a
+      jump at the pane's edge; halos lie under all pills; one picture is drawn at the
+      cross-fade's strength, not the overview under the sharp one; a head's shadow is
+      covered with it; a camera step keeps the pills' height free, not the band's
 - [x] The right mouse button on a bar of a lifeline colors the bar (2026-11-18). A
       drawer tells a shape without words with the line that draws it
       (`Canvas::shape_of`, `Map::shapes`); a click on a bar puts the caret on the line

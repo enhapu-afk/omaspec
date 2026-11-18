@@ -390,7 +390,8 @@ impl Canvas {
         }
     }
 
-    fn color(&self, c: Color) -> Color {
+    /// `c` as it is painted: gray in monochrome.
+    pub fn color(&self, c: Color) -> Color {
         if self.monochrome { c.gray() } else { c }
     }
 
@@ -498,6 +499,7 @@ impl Canvas {
         self.shapes.push(crate::map::Tied {
             rect: crate::graph::Rect { x, y, w, h },
             line,
+            span: 0,
         });
     }
 
@@ -750,7 +752,11 @@ impl Canvas {
             if self.echo {
                 self.echoes.push(rect);
             } else if let Some(line) = self.tie {
-                self.ties.push(crate::map::Tied { rect, line });
+                self.ties.push(crate::map::Tied {
+                    rect,
+                    line,
+                    span: block.lines.len(),
+                });
             }
         }
         let mut out = String::new();
