@@ -77,6 +77,9 @@ pub struct Note {
     pub text: Block,
     /// A dashed line to its box, when it stands off it.
     pub tether: Option<(Point, Point)>,
+    /// The zero-based line of the source that writes it: its words are
+    /// that line's ([`crate::svg::Canvas::tie`]).
+    pub line: usize,
 }
 
 /// Where a note sits relative to its box, in a state diagram or a

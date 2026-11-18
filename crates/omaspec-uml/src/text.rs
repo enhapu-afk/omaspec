@@ -201,6 +201,11 @@ pub struct Block {
     pub lines: Vec<Line>,
     pub width: f32,
     pub height: f32,
+    /// The zero-based line of the source that alone writes these words,
+    /// where the drawer says so ([`Block::written_on`]): an action, a
+    /// label, a note. Drawn, they are tied to it
+    /// ([`crate::svg::Canvas::tie`]). None for a name many lines mention.
+    pub written: Option<usize>,
 }
 
 impl Block {
@@ -209,7 +214,14 @@ impl Block {
             lines: Vec::new(),
             width: 0.0,
             height: 0.0,
+            written: None,
         }
+    }
+
+    /// These words as the ones the zero-based `line` alone writes.
+    pub fn written_on(mut self, line: usize) -> Block {
+        self.written = Some(line);
+        self
     }
 
     pub fn is_empty(&self) -> bool {
@@ -377,6 +389,7 @@ fn stack(lines: Vec<Line>) -> Block {
         lines,
         width,
         height,
+        written: None,
     }
 }
 

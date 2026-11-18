@@ -100,6 +100,68 @@ fn a_name_and_the_same_words_on_one_line_and_a_block_s_words() {
     assert_eq!(at, [(1, 12), (1, 12), (2, 16), (4, 2)]);
 }
 
+/// A state, a transition's label, a description and a note that all read
+/// `Busy` keep apart: each lights from its own line and is found on it.
+#[test]
+fn a_state_and_words_that_read_as_it_keep_apart() {
+    let source = "@startuml\n[*] --> Idle\nIdle --> Busy : Busy\nIdle : Busy\nnote right of Busy : Busy\nBusy --> Idle\n@enduml\n";
+    let mut paper = Paper::default();
+    show_source(&mut paper, source, Language::PlantUml);
+    let line = |row: usize| source.lines().nth(row).unwrap();
+    let at = |row: usize, col: usize| paper.place_of(source, row, col).unwrap();
+    let state = at(2, line(2).find("Busy").unwrap() + 1);
+    let label = at(2, line(2).rfind("Busy").unwrap() + 1);
+    let described = at(3, line(3).rfind("Busy").unwrap() + 1);
+    let noted = at(4, line(4).rfind("Busy").unwrap() + 1);
+    let later = at(5, 1);
+    assert_eq!(later, state, "a later mention is the state");
+    for (what, place) in [
+        ("label", label),
+        ("description", described),
+        ("note", noted),
+    ] {
+        assert_ne!(place, state, "{what}");
+    }
+    assert!(
+        described.width < state.width * 3.0,
+        "the description's words: {described:?}"
+    );
+    // And back: every copy drawn on the line that writes it.
+    let mut lines: Vec<usize> = paper
+        .labels()
+        .into_iter()
+        .filter(|(text, ..)| text == "Busy")
+        .filter_map(|(.., line)| line)
+        .collect();
+    lines.sort_unstable();
+    assert_eq!(lines, [2, 2, 3, 4], "the state on its first mention");
+}
+
+/// A swimlane and actions that read as it keep apart: the lane lights
+/// from every `|lane|` line, each action from its own.
+#[test]
+fn a_swimlane_and_actions_that_read_as_it_keep_apart() {
+    let source =
+        "@startuml\n|Build|\nstart\n:Build;\n|Test|\n:Test;\n|Build|\n:Build;\nstop\n@enduml\n";
+    let mut paper = Paper::default();
+    show_source(&mut paper, source, Language::PlantUml);
+    let at = |row: usize| paper.place_of(source, row, 2).unwrap();
+    let (lane, first, again, second) = (at(1), at(3), at(6), at(7));
+    assert_eq!(again, lane, "the second `|Build|` is the lane");
+    assert!(
+        first.y > lane.y && second.y > first.y,
+        "{lane:?} {first:?} {second:?}"
+    );
+    let mut lines: Vec<usize> = paper
+        .labels()
+        .into_iter()
+        .filter(|(text, ..)| text == "Build")
+        .filter_map(|(.., line)| line)
+        .collect();
+    lines.sort_unstable();
+    assert_eq!(lines, [1, 3, 7]);
+}
+
 #[test]
 fn the_caret_aims_at_that_occurrence() {
     let source = "%% Edit\nflowchart LR\n  A[Edit] --> B[Edit]\n";

@@ -41,10 +41,12 @@ pub fn draw_table(diagram: &Diagram, table: &Table) -> Result<(String, Map), Dec
     };
     let cells = table::draw(&mut canvas, table, &look, family, annotations.top());
     annotations.draw(&mut canvas);
-    let map = Map {
-        cells,
-        ..Map::default()
-    }
-    .placed(canvas.fit(MARGIN));
+    let map = canvas.place(
+        Map {
+            cells,
+            ..Map::default()
+        },
+        MARGIN,
+    );
     Ok((canvas.finish(MARGIN, skin.background), map))
 }

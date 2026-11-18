@@ -61,9 +61,6 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
     let map = Map {
         messages: std::mem::take(&mut drawer.steps),
         grounds: std::mem::take(&mut drawer.grounds),
-        tied: canvas.tied(),
-        echoes: canvas.echoes(),
-        shapes: canvas.shapes(),
         heads: if drawer.band.is_some() {
             std::mem::take(&mut drawer.heads)
         } else {
@@ -72,7 +69,7 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
         bands: drawer.band.into_iter().collect(),
         ..Map::default()
     };
-    let map = map.placed(canvas.fit(MARGIN));
+    let map = canvas.place(map, MARGIN);
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 

@@ -138,7 +138,7 @@ pub fn try_draw(
     map.misses
         .extend(hand::said(held, &unplaced, &scene.all_unheld()));
     map.misses.sort();
-    let map = map.placed(canvas.fit(MARGIN));
+    let map = canvas.place(map, MARGIN);
     Some((canvas.finish(MARGIN, Some(palette.background)), map))
 }
 

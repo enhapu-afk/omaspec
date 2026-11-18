@@ -291,7 +291,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Decli
         family,
     );
     notes.draw(&mut canvas);
-    let map = map.placed(canvas.fit(10.0));
+    let map = canvas.place(map, 10.0);
     Ok((canvas.finish(10.0, look.page), map))
 }
 

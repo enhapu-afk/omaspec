@@ -54,7 +54,7 @@ pub fn draw_mapped(d: &MindMap) -> Result<(String, map::Map), Declined> {
         top += geometry.draw_map(&mut canvas, map, family, top, &mut found)?;
     }
     annotations.draw(&mut canvas);
-    let map = found.placed(canvas.fit(MARGIN));
+    let map = canvas.place(found, MARGIN);
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 

@@ -50,11 +50,13 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Decli
         bands = paint(&mut canvas, diagram, &skin, family, notes.top())?;
     }
     notes.draw(&mut canvas);
-    let map = crate::map::Map {
-        bands,
-        ..crate::map::Map::default()
-    }
-    .placed(canvas.fit(MARGIN));
+    let map = canvas.place(
+        crate::map::Map {
+            bands,
+            ..crate::map::Map::default()
+        },
+        MARGIN,
+    );
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 

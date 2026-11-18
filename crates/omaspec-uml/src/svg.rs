@@ -471,7 +471,7 @@ impl Canvas {
     /// for what one line alone draws (a message, a note, a divider), not
     /// for a name many lines mention. What was said before is returned.
     ///
-    /// The map tells them ([`crate::map::Map::tied`]): a pane then knows
+    /// The map tells them ([`crate::map::Map::tied`], through [`Self::place`]): a pane then knows
     /// the line of such words without counting, also where the same words
     /// are drawn for something else.
     pub fn tie(&mut self, line: Option<usize>) -> Option<usize> {
@@ -486,11 +486,6 @@ impl Canvas {
         std::mem::replace(&mut self.echo, on)
     }
 
-    /// Where words were drawn again so far ([`Self::echo`]), for the map.
-    pub fn echoes(&mut self) -> Vec<crate::graph::Rect> {
-        std::mem::take(&mut self.echoes)
-    }
-
     /// The shape at `rect`, which has no words, is drawn for the
     /// zero-based `line` of the source: a drawer says so for what a pane
     /// should find by a click on it. The map tells them
@@ -501,16 +496,6 @@ impl Canvas {
             line,
             span: 0,
         });
-    }
-
-    /// The shapes told so far ([`Self::shape_of`]), for the map.
-    pub fn shapes(&mut self) -> Vec<crate::map::Tied> {
-        std::mem::take(&mut self.shapes)
-    }
-
-    /// The words drawn for a line so far ([`Self::tie`]), for the map.
-    pub fn tied(&mut self) -> Vec<crate::map::Tied> {
-        std::mem::take(&mut self.ties)
     }
 
     /// Draws with `paint`; with a `link`, what it draws into each of
@@ -737,7 +722,9 @@ impl Canvas {
         if block.is_empty() {
             return;
         }
-        if self.echo || self.tie.is_some() {
+        // What the drawer said, or what the words say of themselves.
+        let tie = self.tie.or(block.written);
+        if self.echo || tie.is_some() {
             let left = match align {
                 Align::Left => x,
                 Align::Center => x - block.width / 2.0,
@@ -751,7 +738,7 @@ impl Canvas {
             };
             if self.echo {
                 self.echoes.push(rect);
-            } else if let Some(line) = self.tie {
+            } else if let Some(line) = tie {
                 self.ties.push(crate::map::Tied {
                     rect,
                     line,
@@ -1017,6 +1004,17 @@ impl Canvas {
 
     /// How what was drawn so far lands in the picture [`Self::finish`]
     /// makes with `margin`.
+    /// `map`, as the drawer made it, with what was told while drawing
+    /// (the words and shapes tied to a line, the words drawn again),
+    /// placed as the picture is with `margin` around what was drawn. Every
+    /// drawer ends its map here, so what one ties reaches the pane.
+    pub fn place(&mut self, mut map: crate::map::Map, margin: f32) -> crate::map::Map {
+        map.tied.append(&mut self.ties);
+        map.echoes.append(&mut self.echoes);
+        map.shapes.append(&mut self.shapes);
+        map.placed(self.fit(margin))
+    }
+
     pub fn fit(&self, margin: f32) -> Fit {
         let (width, height, shown_width, shown_height, dx, dy) = self.frame(margin);
         Fit {

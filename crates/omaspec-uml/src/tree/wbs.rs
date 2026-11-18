@@ -70,12 +70,14 @@ pub fn draw_mapped(d: &Wbs) -> Result<(String, Map), Declined> {
     drawer.root(&root, &row, annotations.top());
     let (places, wires) = (drawer.places, drawer.wires);
     annotations.draw(&mut canvas);
-    let map = Map {
-        places,
-        wires,
-        ..Map::default()
-    }
-    .placed(canvas.fit(MARGIN));
+    let map = canvas.place(
+        Map {
+            places,
+            wires,
+            ..Map::default()
+        },
+        MARGIN,
+    );
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 

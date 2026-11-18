@@ -257,6 +257,18 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] State and activity diagrams tie what one line writes, as the sequence diagram
+      does (2026-11-18). A state diagram, PlantUML's and Mermaid's, ties a transition's
+      label, each line of a state's description and a note; an activity diagram its
+      actions, tests, labels, notes and partitions, each with the lines it spans. A
+      state's name and a swimlane's, which many lines mention, are counted: a second
+      `|Build|` lights the lane, not the action `:Build;` after it. A measured block
+      carries the line that alone writes it (`Block::written_on`), and every drawer
+      ends its map with `Canvas::place`, which hands what was tied to the pane; the
+      rule is in AGENTS.md. A line that names a state and labels a transition with the
+      same words still counts as the state's mention. Mermaid flowcharts are laid out
+      from mmdr's graph, which knows no source lines, and class diagrams tie only
+      their notes so far: both are counted as before
 - [x] What the review of 2026-11-18 (evening) found in the day's later work. A `++` in
       a quoted name, a title or a note is letters: the bar's sign is read where the
       engine reads an activation, in one place (`recolor::bar_sign`), where *color the

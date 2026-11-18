@@ -38,6 +38,7 @@ impl Elements<'_> {
             w,
             h,
             text,
+            line: note.line,
         })
     }
 }

@@ -38,8 +38,13 @@ pub struct Layout<'a> {
 }
 
 impl Layout<'_> {
+    /// `text` measured: words its line alone writes, an action, a test, a
+    /// label, a note, a partition's name. A swimlane's name, which many
+    /// lines name, is measured where the lanes are drawn.
     pub(super) fn measure(&self, text: &Text, font: Font) -> Result<Block, Declined> {
-        text::block(&text.value, font, self.family).map_err(|e| Declined::at(text.line, e))
+        text::block(&text.value, font, self.family)
+            .map(|block| block.written_on(text.line))
+            .map_err(|e| Declined::at(text.line, e))
     }
 
     pub(super) fn measure_opt(&self, text: Option<&Text>, font: Font) -> Result<Block, Declined> {

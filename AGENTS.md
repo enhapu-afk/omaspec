@@ -88,6 +88,13 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
   reads `omaspec_uml::Mention`s, which the engine's readers keep as they
   read (`Diagram::names`): a new line that names something is recorded
   there. `lint/written.rs` reads by pattern only what the engine declines.
+- Words one line of the source alone writes (a message, an action, a
+  transition's label, a note) are tied to that line as they are drawn:
+  measured with `Block::written_on`, or drawn inside `Canvas::tie`. A
+  name many lines mention is not; a name drawn a second time (a
+  lifeline's foot) is drawn inside `Canvas::echo`. Every drawer ends its
+  map with `Canvas::place`, which hands these to the pane: a click and
+  the caret's light take tied words by their line, not by counting.
 
 ## Omarchy facts the code relies on
 

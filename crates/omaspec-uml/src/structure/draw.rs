@@ -106,34 +106,36 @@ fn drawn(diagram: &super::Diagram, mapped: bool) -> Result<(String, Map), Declin
     annotations.draw(&mut canvas);
     let map = if mapped {
         let top = placements(&scene.nodes);
-        Map {
-            places: places(&diagram.root, &top, &diagram.frame.held),
-            wires: by_hand::wires(
-                &top,
-                &arrows,
-                &scene,
-                hands,
-                |points| crate::curve::flatten(points, skin.curve),
-                |path, slot, drawn| dress(&scene, path, slot, drawn, skin.strict),
-            ),
-            misses: {
-                let mut misses = misses;
-                misses.extend(crate::hand::said(
-                    &diagram.frame.held,
-                    &diagram.frame.unplaced,
-                    &scene.all_unheld(),
-                ));
-                misses.sort();
-                misses
+        canvas.place(
+            Map {
+                places: places(&diagram.root, &top, &diagram.frame.held),
+                wires: by_hand::wires(
+                    &top,
+                    &arrows,
+                    &scene,
+                    hands,
+                    |points| crate::curve::flatten(points, skin.curve),
+                    |path, slot, drawn| dress(&scene, path, slot, drawn, skin.strict),
+                ),
+                misses: {
+                    let mut misses = misses;
+                    misses.extend(crate::hand::said(
+                        &diagram.frame.held,
+                        &diagram.frame.unplaced,
+                        &scene.all_unheld(),
+                    ));
+                    misses.sort();
+                    misses
+                },
+                inside: {
+                    let mut inside = Vec::new();
+                    notes_inside(&scene, &mut inside);
+                    inside
+                },
+                ..Map::default()
             },
-            inside: {
-                let mut inside = Vec::new();
-                notes_inside(&scene, &mut inside);
-                inside
-            },
-            ..Map::default()
-        }
-        .placed(canvas.fit(MARGIN))
+            MARGIN,
+        )
     } else {
         Map::default()
     };
@@ -840,6 +842,7 @@ struct Draft {
     w: f32,
     h: f32,
     text: Block,
+    line: usize,
 }
 
 fn note_size(text: &Block) -> (f32, f32) {
@@ -897,6 +900,7 @@ fn place_notes(drafts: &mut [Draft], rects: &[Rect], edges: &[PlacedEdge]) -> Ve
                 nth,
                 text: std::mem::replace(&mut note.text, Block::empty()),
                 tether: None,
+                line: note.line,
             });
             nudge(placed.last_mut().expect("just pushed"), side, edges);
         }

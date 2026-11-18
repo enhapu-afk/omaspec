@@ -527,6 +527,54 @@ mod tests {
     /// REQ-073: a sequence diagram's participants, a swimlane's names and a
     /// Gantt chart's axis and tasks are bands a pane keeps in sight; the
     /// picture is the same with them or without.
+    /// An activity diagram ties its actions, tests, labels, notes and
+    /// partitions to their lines; a swimlane's name, which every `|lane|`
+    /// line names, is not.
+    #[test]
+    fn an_activity_diagram_ties_what_one_line_writes() {
+        let source = "@startuml\n|Build|\nstart\n:Build;\nif (ok?) then (yes)\n  :ship;\n  note right: Build\nelse (no)\nendif\npartition Wrap {\n  :pack\n  it;\n}\nstop\n@enduml\n";
+        let map = crate::render_mapped(source, None).unwrap().1;
+        let mut lines: Vec<(usize, usize)> =
+            map.tied.iter().map(|tied| (tied.line, tied.span)).collect();
+        lines.sort_unstable();
+        assert_eq!(
+            lines,
+            [
+                (3, 1),
+                (4, 1),
+                (4, 1),
+                (5, 1),
+                (6, 1),
+                (7, 1),
+                (9, 1),
+                (10, 2)
+            ]
+        );
+    }
+
+    /// What one line alone writes is tied to it in a state diagram too, in
+    /// PlantUML and in Mermaid: a transition's label, a line of a state's
+    /// description, a note. A state's name, which many lines mention, is
+    /// not.
+    #[test]
+    fn a_state_diagram_ties_what_one_line_writes() {
+        let lines = |source: &str| {
+            let map = crate::render_mapped(source, None).unwrap().1;
+            let mut lines: Vec<usize> = map.tied.iter().map(|tied| tied.line).collect();
+            lines.sort_unstable();
+            lines
+        };
+        let plantuml = "@startuml\n[*] --> Idle\nIdle --> Busy : Busy\nIdle : Busy\nnote right of Busy : Busy\nBusy --> Idle\n@enduml\n";
+        assert_eq!(lines(plantuml), [2, 3, 4]);
+        let mermaid = "stateDiagram-v2\n  [*] --> Idle\n  Idle --> Busy : Busy\n  state Outer {\n    A --> B : go\n  }\n";
+        let map = crate::state::from_mermaid(mermaid)
+            .map(|d| crate::state::draw_mapped(&d).unwrap().1)
+            .unwrap();
+        let mut found: Vec<usize> = map.tied.iter().map(|tied| tied.line).collect();
+        found.sort_unstable();
+        assert_eq!(found, [2, 4]);
+    }
+
     #[test]
     fn long_diagrams_name_the_bands_a_pane_keeps_in_sight() {
         let bands = |source: &str| crate::render_mapped(source, None).unwrap().1.bands;

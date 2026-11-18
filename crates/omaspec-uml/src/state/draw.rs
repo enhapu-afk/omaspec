@@ -88,7 +88,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
     scene.offset(0.0, annotations.top());
-    paint(&mut canvas, &skin, &scene);
+    paint(&mut canvas, &skin, &diagram.root, &scene);
     annotations.draw(&mut canvas);
     let mut map = Map::default();
     chart(
@@ -115,7 +115,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         &scene.all_unheld(),
     ));
     map.misses.sort();
-    let map = map.placed(canvas.fit(MARGIN));
+    let map = canvas.place(map, MARGIN);
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
@@ -458,6 +458,7 @@ fn place_notes(
         w: f32,
         h: f32,
         text: Block,
+        line: usize,
     }
     let mut sized = Vec::with_capacity(container.notes.len());
     for note in &container.notes {
@@ -472,6 +473,7 @@ fn place_notes(
             w,
             h,
             text,
+            line: note.line,
         });
     }
     let mut groups: Vec<(usize, Side, Vec<usize>)> = Vec::new();
@@ -521,6 +523,7 @@ fn place_notes(
                 nth,
                 text: std::mem::replace(&mut note.text, Block::empty()),
                 tether: None,
+                line: note.line,
             });
             let last = placed.len() - 1;
             // An edge label can sit in the same gap. Step the note off it,
@@ -845,11 +848,11 @@ fn stack_height(title: &Block, description: &[Block]) -> f32 {
         .fold(title.height, |height, block| height + block.height)
 }
 
-fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
+fn paint(canvas: &mut Canvas, skin: &Skin, root: &Container, scene: &Scene) {
     paint_shapes(canvas, skin, scene, &mut Vec::new());
     paint_edges(canvas, scene, skin.curve);
     paint_notes(canvas, skin, scene, &mut Vec::new());
-    paint_labels(canvas, scene, &mut Vec::new());
+    paint_labels(canvas, root, scene, &mut Vec::new());
     paint_heads(canvas, skin, scene);
 }
 
@@ -1061,43 +1064,70 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
 }
 
 /// Each state's words in its part, each line's and each note's in a part
-/// of their own; `path` is where `scene` is in the tree.
-fn paint_labels(canvas: &mut Canvas, scene: &Scene, path: &mut Vec<usize>) {
+/// of their own; `path` is where `scene` is in the tree. `container` is
+/// what `scene` lays out: the lines of the source its words come from.
+///
+/// What one line alone writes is tied to it ([`Canvas::tie`]): a
+/// transition's label, a line of a state's description, a note. A state's
+/// name, which many lines mention, is not.
+fn paint_labels(canvas: &mut Canvas, container: &Container, scene: &Scene, path: &mut Vec<usize>) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
+        let written = container.nodes.get(index);
         canvas.part(&crate::svg::box_part(&node.item.name, path), |canvas| {
             canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
-                paint_words(canvas, node);
+                paint_words(canvas, node, written);
             });
         });
-        paint_labels(canvas, &node.children, path);
+        if let Some(written) = written {
+            paint_labels(canvas, &written.children, &node.children, path);
+        }
         path.pop();
     }
+    // The scene holds the container's edges, then its crossings.
+    let lines: Vec<usize> = container
+        .edges
+        .iter()
+        .chain(container.crossings.iter().map(|c| &c.arrow))
+        .map(|arrow| arrow.line)
+        .collect();
     for (slot, edge) in scene.edges.iter().enumerate() {
         canvas.part(&crate::svg::words_part(path, slot), |canvas| {
+            let before = canvas.tie(lines.get(slot).copied());
             canvas.text(Layer::Front, &edge.label, edge.label_at, Align::Left);
+            canvas.tie(before);
         });
     }
     for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
         canvas.part(&part, |canvas| {
+            let before = canvas.tie(Some(note.line));
             canvas.text(
                 Layer::Front,
                 &note.text,
                 (note.x + NOTE_PAD, note.y + NOTE_PAD),
                 Align::Left,
             );
+            canvas.tie(before);
         });
     }
 }
 
 /// A node's own words: a state's title and description, a choice's label.
-fn paint_words(canvas: &mut Canvas, node: &Placed) {
+/// `written` is the state as read, whose description lines are each one
+/// line's.
+fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>) {
+    let lines: Vec<Option<usize>> = written.map_or_else(Vec::new, |written| {
+        written
+            .description
+            .iter()
+            .map(|text| Some(text.line))
+            .collect()
+    });
     match node.item.kind {
         Kind::State if node.item.composite => {
             paint_stack(
                 canvas,
-                &node.item.title,
-                &node.item.description,
+                (&node.item.title, &node.item.description, &lines),
                 node.rect.x + node.rect.w / 2.0,
                 node.rect.y + HEAD_TOP,
             );
@@ -1106,8 +1136,7 @@ fn paint_words(canvas: &mut Canvas, node: &Placed) {
             let height = stack_height(&node.item.title, &node.item.description);
             paint_stack(
                 canvas,
-                &node.item.title,
-                &node.item.description,
+                (&node.item.title, &node.item.description, &lines),
                 node.rect.x + node.rect.w / 2.0,
                 node.rect.y + (node.rect.h - height) / 2.0,
             );
@@ -1125,13 +1154,22 @@ fn paint_words(canvas: &mut Canvas, node: &Placed) {
     }
 }
 
-fn paint_stack(canvas: &mut Canvas, title: &Block, description: &[Block], x: f32, mut y: f32) {
+/// A state's title, and under it its description, each block tied to
+/// the line of `lines` that writes it.
+fn paint_stack(
+    canvas: &mut Canvas,
+    (title, description, lines): (&Block, &[Block], &[Option<usize>]),
+    x: f32,
+    mut y: f32,
+) {
     if !title.is_empty() {
         canvas.text(Layer::Front, title, (x, y), Align::Center);
         y += title.height;
     }
-    for block in description {
+    for (index, block) in description.iter().enumerate() {
+        let before = canvas.tie(lines.get(index).copied().flatten());
         canvas.text(Layer::Front, block, (x, y), Align::Center);
+        canvas.tie(before);
         y += block.height;
     }
 }

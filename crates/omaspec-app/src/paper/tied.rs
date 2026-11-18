@@ -32,6 +32,9 @@ pub(super) struct Copies {
     pub drawn: Vec<Drawn>,
     /// For each line that writes it, the line and the byte on it.
     pub written: Vec<(usize, usize)>,
+    /// The lines that write it more than once: what such a line itself
+    /// draws is the last, and the mentions before it are counted.
+    pub twice: Vec<usize>,
 }
 
 impl Copies {
@@ -46,6 +49,14 @@ impl Copies {
         };
         let on = |row: usize| self.written.iter().copied().find(|(at, _)| *at == row);
         on(line).or_else(|| (line + 1..=line + span).find_map(on))
+    }
+
+    /// The lines whose mention is a tied copy's and no other's: those the
+    /// count passes over.
+    fn taken(&self) -> Vec<usize> {
+        let mut rows = self.homes();
+        rows.retain(|row| !self.twice.contains(row));
+        rows
     }
 
     /// The lines tied copies are written on, each once, in order.
@@ -77,7 +88,7 @@ impl Copies {
         {
             return copy;
         }
-        let before = nth.saturating_sub(self.homes().iter().filter(|at| **at < row).count());
+        let before = nth.saturating_sub(self.taken().iter().filter(|at| **at < row).count());
         let counted = self.counted();
         match counted.get(before).or(counted.last()) {
             Some(&copy) => copy,
@@ -103,11 +114,11 @@ impl Copies {
             // The first drawn again repeats the first counted.
             Drawn::Again => among(Drawn::Again).min(self.counted().len().saturating_sub(1)),
         };
-        let homes = self.homes();
+        let taken = self.taken();
         self.written
             .iter()
             .copied()
-            .filter(|(line, _)| !homes.contains(line))
+            .filter(|(line, _)| !taken.contains(line))
             .nth(before)
     }
 }
@@ -160,9 +171,21 @@ impl Paper {
         if drawn.iter().all(|copy| *copy == Drawn::Counted) {
             return None;
         }
+        let written = locate::columns_of(source, text);
+        let lines: Vec<&str> = source.split('\n').collect();
+        let twice = written
+            .iter()
+            .filter(|(row, _)| {
+                lines
+                    .get(*row)
+                    .is_some_and(|line| line.matches(text).count() > 1)
+            })
+            .map(|(row, _)| *row)
+            .collect();
         Some(Copies {
             drawn,
-            written: locate::columns_of(source, text),
+            written,
+            twice,
         })
     }
 
@@ -219,6 +242,7 @@ mod tests {
             // Drawn: the head, the foot, then the divider over them.
             drawn: vec![Drawn::Counted, Drawn::Again, tied(26)],
             written: vec![(10, 12), (26, 3), (27, 8), (29, 2)],
+            twice: Vec::new(),
         };
         // The divider's line is the divider; the declaration and every
         // other mention, before the divider or after it, is the head.
@@ -238,6 +262,7 @@ mod tests {
         let unread = Copies {
             drawn: vec![tied(5)],
             written: Vec::new(),
+            twice: Vec::new(),
         };
         assert_eq!(unread.written_at(0), Some((5, 0)));
     }
@@ -249,6 +274,7 @@ mod tests {
         let copies = Copies {
             drawn: vec![Drawn::Counted, Drawn::Tied { line: 4, span: 2 }],
             written: vec![(1, 12), (6, 2), (9, 0)],
+            twice: Vec::new(),
         };
         assert_eq!(copies.written_at(1), Some((6, 2)));
         assert_eq!(copies.copy_of(1, 6, true), 1);
@@ -263,10 +289,24 @@ mod tests {
         let copies = Copies {
             drawn: vec![Drawn::Counted, Drawn::Counted],
             written: vec![(1, 0), (4, 2), (6, 2)],
+            twice: Vec::new(),
         };
         assert_eq!(copies.copy_of(1, 4, true), 1);
         assert_eq!(copies.copy_of(2, 6, true), 1);
         assert_eq!(copies.written_at(1), Some((4, 2)));
+    }
+
+    /// A line that names a state and labels its line with the same words
+    /// is the state's first mention all the same.
+    #[test]
+    fn a_line_that_writes_it_twice_still_counts() {
+        let copies = Copies {
+            drawn: vec![Drawn::Counted, tied(2), tied(3)],
+            written: vec![(2, 9), (3, 7), (5, 0)],
+            twice: vec![2],
+        };
+        assert_eq!(copies.written_at(0), Some((2, 9)));
+        assert_eq!(copies.copy_of(2, 5, true), 0);
     }
 
     #[test]

@@ -194,19 +194,21 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
         }],
         _ => Vec::new(),
     };
-    let map = crate::map::Map {
-        bands: titles,
-        // Only a pane that glides asks for the parts, and only it reads
-        // the lines.
-        wires: if d.frame.parts {
-            found.wires()
-        } else {
-            Vec::new()
+    let map = canvas.place(
+        crate::map::Map {
+            bands: titles,
+            // Only a pane that glides asks for the parts, and only it reads
+            // the lines.
+            wires: if d.frame.parts {
+                found.wires()
+            } else {
+                Vec::new()
+            },
+            places: found.places,
+            ..crate::map::Map::default()
         },
-        places: found.places,
-        ..crate::map::Map::default()
-    }
-    .placed(canvas.fit(MARGIN));
+        MARGIN,
+    );
     Ok((canvas.finish(MARGIN, skin.background), map))
 }
 
