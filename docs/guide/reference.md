@@ -263,6 +263,7 @@ source as the language writes it, as one undo step, so every other tool draws it
 | --- | --- | --- |
 | State, class, component, use case, deployment, object | a state or an element | `state Busy #f7768e`, `class Order #ffcc00`, `[Billing] #ffcc00` |
 | Sequence | a participant | `participant Bob #f7768e` |
+| Sequence | the bar on a lifeline, with the caret on its `activate` line | `activate Bob #f7768e` |
 | Activity | an action, a swimlane | `#f7768e:Bake;`, `\|#f7768e\|Kitchen\|` |
 | Mind map, WBS | a node | `**[#f7768e] Tests` |
 | Gantt | a task | `[Design] is colored in #f7768e` |

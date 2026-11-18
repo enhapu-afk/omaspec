@@ -287,6 +287,51 @@ pub(super) fn task_at(line: &str, col: usize) -> Option<Target> {
         .map(|(_, name)| Target::Named((*name).to_owned()))
 }
 
+/// `activate` and what follows it on `line`, if that is what the line is:
+/// the bytes of the participant and those of a color after it.
+fn activate_parts(line: &str) -> Option<(Range<usize>, Option<Range<usize>>)> {
+    let caps = re!(r#"(?i)^\s*activate\s+("[^"]*"|[^\s#]+)(?:\s+(#\S+))?\s*$"#).captures(line)?;
+    Some((caps.get(1)?.range(), caps.get(2).map(|m| m.range())))
+}
+
+/// The bar an `activate` line opens, if the zero-based `row` is one.
+pub(super) fn activation_at(line: &str, row: usize) -> Option<Target> {
+    let (name, _) = activate_parts(line)?;
+    Some(Target::Line {
+        line: row,
+        label: format!("the bar on {}", line[name].trim_matches('"')),
+    })
+}
+
+/// The color of the bar an `activate` line opens on a lifeline: after
+/// the participant, as PlantUML writes it (`activate Bob #f7768e`).
+pub(super) fn activation(
+    code: &str,
+    no: usize,
+    label: &str,
+    color: Option<&str>,
+) -> Result<Edit, String> {
+    let (range, line, newline) = line_at(code, no)?;
+    let (name, old) = activate_parts(line).ok_or("that line opens no bar on a lifeline")?;
+    let new = match (color, old) {
+        (Some(color), Some(old)) => {
+            Some(format!("{}{color}{}", &line[..old.start], &line[old.end..]))
+        }
+        (Some(color), None) => Some(format!(
+            "{} {color}{}",
+            &line[..name.end],
+            &line[name.end..]
+        )),
+        (None, Some(old)) => Some(format!(
+            "{}{}",
+            line[..old.start].trim_end(),
+            &line[old.end..]
+        )),
+        (None, None) => None,
+    };
+    changed(label, range, line, new, newline)
+}
+
 /// The color of a Gantt task: its `is colored in` clause, or a line of
 /// its own after the last line that is about the task.
 pub(super) fn task(code: &str, name: &str, color: Option<&str>) -> Result<Edit, String> {

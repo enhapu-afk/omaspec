@@ -257,6 +257,11 @@ is open and the reasoning around it.
 
 ## Track V: behavior specifications, understood (`omaspec-model`)
 
+- [x] *Color the box at the caret* colors the bar on a lifeline too (2026-11-18): with
+      the caret on an `activate` line of a PlantUML sequence diagram the color is
+      written after the participant (`activate Bob #f7768e`), another takes its
+      place, and none takes it away. On any other line the participant under the
+      caret is colored, as before. Mermaid writes no color for a bar
 - [x] Words one line alone draws belong to that line, whatever else reads the same
       (2026-11-18). A label in the picture was matched to the source by its words and
       by how many came before, so with `== Payment ==` in a diagram that has a

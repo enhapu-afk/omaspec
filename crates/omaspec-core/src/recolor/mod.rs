@@ -1,7 +1,8 @@
 //! A color for one box, kept in the source as the language writes it: on
 //! a declaration in PlantUML (`state Idle #f7768e`, `participant Bob
 //! #f7768e`), in the box's own line of a tree or an activity
-//! (`**[#f7768e] Tests`, `#f7768e:work;`), as a clause of a Gantt task, as
+//! (`**[#f7768e] Tests`, `#f7768e:work;`), on the line that opens a bar
+//! on a lifeline (`activate Bob #f7768e`), as a clause of a Gantt task, as
 //! a `style` line in Mermaid (`style Idle fill:#f7768e`). The skins color
 //! by kind, so every state of a machine is one color; this is for the one
 //! box a writer points at.
@@ -136,7 +137,11 @@ pub fn target(code: &str, language: Language, row: usize, col: usize) -> Option<
         Flavor::Tree => lines::tree_at(code, row),
         Flavor::Activity => lines::activity_at(code, row),
         Flavor::Gantt => lines::task_at(line, col),
-        Flavor::Sequence => plantuml::participant_at(code, row, col),
+        // The bar an `activate` line opens on a lifeline, before the
+        // participant the line names.
+        Flavor::Sequence => {
+            lines::activation_at(line, row).or_else(|| plantuml::participant_at(code, row, col))
+        }
         Flavor::Timing => plantuml::row_at(code, row, col),
         Flavor::C4 => mermaid::c4_at(code, row, col),
         Flavor::Style { er: true } => mermaid::entity_at(code, row, col),
@@ -162,6 +167,9 @@ pub fn edit(
         (Flavor::State, Target::Named(name)) => plantuml::state(code, name, color),
         (Flavor::Structure, Target::Named(name)) => plantuml::structure(code, name, color),
         (Flavor::Sequence, Target::Named(name)) => plantuml::participant(code, name, color),
+        (Flavor::Sequence, Target::Line { line, label }) => {
+            lines::activation(code, *line, label, color)
+        }
         (Flavor::Timing, Target::Named(name)) => plantuml::row(code, name, color),
         (Flavor::Style { .. }, Target::Named(name)) => mermaid::style(code, name, color),
         (Flavor::C4, Target::Named(name)) => mermaid::c4(code, name, color),
@@ -320,6 +328,45 @@ mod tests {
         let col = at - code[..at].rfind('\n').map_or(0, |i| i + 1);
         let target = target(&code, language, row, col);
         (code, target)
+    }
+
+    /// The bar an `activate` line opens on a lifeline takes a color after
+    /// the participant, as PlantUML writes it; on any other line the
+    /// participant under the caret is what is colored.
+    #[test]
+    fn a_lifeline_s_bar_takes_a_color_on_its_activate_line() {
+        let p = Language::PlantUml;
+        let code = "@startuml\nUser -> A : work\nacti^vate A\nA -> \"Web shop\" : go\nactivate \"Web shop\" #FFBBBB\ndeactivate A\n@enduml\n";
+        let (plain, target) = aimed(code, p);
+        assert_eq!(
+            target,
+            Some(Target::Line {
+                line: 2,
+                label: "the bar on A".into()
+            })
+        );
+        let colored = at_caret(code, p, Some("#f7768e"));
+        assert!(colored.contains("\nactivate A #f7768e\n"), "{colored}");
+        // Another color takes the place of the one written; none takes it away.
+        let bar = Target::Line {
+            line: 4,
+            label: "the bar on Web shop".into(),
+        };
+        let other = put(&plain, p, &bar, Some("#7aa2f7"));
+        assert!(
+            other.contains("\nactivate \"Web shop\" #7aa2f7\n"),
+            "{other}"
+        );
+        let none = put(&plain, p, &bar, None);
+        assert!(
+            none.contains("\nactivate \"Web shop\"\ndeactivate"),
+            "{none}"
+        );
+        // What is written is drawn: the engine reads it.
+        assert!(omaspec_uml::parse(&colored).is_ok());
+        // On a message's line the participant is colored, as before.
+        let (_, target) = aimed("@startuml\nUser -> ^A : work\nactivate A\n@enduml\n", p);
+        assert_eq!(target, Some(named("A")));
     }
 
     #[test]
