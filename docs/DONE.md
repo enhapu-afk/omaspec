@@ -2717,6 +2717,13 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-076, the rest (2026-11-18): a region without a start of its
+      own begins in the one state in it that has one and that no
+      transition enters from outside (`Machine::region_begins_in`), as
+      the machine does at its top. A play entered the state around such
+      regions as a whole and offered only its own transitions, so it
+      stood half way. Lint and the scenario check already took such a
+      region as entered.
 - [x] A state machine's play lights each state in its own shape
       (2026-11-18): the state's outline as its picture draws it
       (`focus::Outline`, the one the focus lets a box through in) is what

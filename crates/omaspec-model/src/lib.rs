@@ -148,8 +148,29 @@ impl Machine {
         if top.iter().any(|&s| self.states[s].kind == Kind::Start) {
             return None;
         }
+        self.the_one_with_a_start(top)
+    }
+
+    /// The state `region` of `state` begins in where it has no start of
+    /// its own (REQ-076): the one state in it with a start of its own that
+    /// no transition enters from outside it, as [`Self::begins_in`] has it
+    /// at the top. None with a start in the region, or where no one state
+    /// is that.
+    pub fn region_begins_in(&self, state: usize, region: usize) -> Option<usize> {
+        let members: Vec<usize> = (0..self.states.len())
+            .filter(|&s| self.states[s].parent == Some(state) && self.states[s].region == region)
+            .collect();
+        if members.iter().any(|&s| self.states[s].kind == Kind::Start) {
+            return None;
+        }
+        self.the_one_with_a_start(members)
+    }
+
+    /// The one of `states` that holds a start of its own and that no
+    /// transition enters from outside it; none where two are that.
+    fn the_one_with_a_start(&self, states: Vec<usize>) -> Option<usize> {
         let within = |state: usize, s: usize| state == s || self.ancestors(state).any(|a| a == s);
-        let mut starting = top.into_iter().filter(|&s| {
+        let mut starting = states.into_iter().filter(|&s| {
             self.states[s].kind == Kind::State
                 && self
                     .states

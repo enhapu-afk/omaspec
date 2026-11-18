@@ -34,8 +34,6 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
       (`a_zoom_never_shows_the_paper_alone` draws frame by frame with a
       pointer and passes). `OMASPEC_DRAWS=1` says on standard error what
       the diagram's canvas draws in each frame.
-- [ ] REQ-076: a parallel region that enters a composite state takes its
-      inner start, or a play stops half way.
 - [ ] REQ-077: an embedded diagram (`{{ … }}`) is drawn as text; at
       least a lint hint on the line with `{{`.
 - [ ] REQ-079: a line from a subgraph to its own child (`Sub --> In`) is

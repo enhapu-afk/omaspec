@@ -523,9 +523,10 @@ impl Run {
     /// lit, and its own transitions are offered.
     fn stand_in(&mut self, m: &Machine, after: &[(usize, usize)], entered: &mut Vec<usize>) {
         for &(state, _) in after {
-            let begins = after
-                .iter()
-                .any(|&(s, region)| s == state && start_of(m, s, region).is_some());
+            let begins = after.iter().any(|&(s, region)| {
+                s == state
+                    && (start_of(m, s, region).is_some() || m.region_begins_in(s, region).is_some())
+            });
             let inside = self
                 .active
                 .iter()
@@ -577,6 +578,15 @@ impl Run {
     ) {
         if let Some(start) = start_of(m, state, region) {
             self.leave_start(m, start, steps, clock, beat);
+        } else if let Some(inner) = m.region_begins_in(state, region) {
+            // No start of its own: the one state in it that has one is
+            // where it begins (REQ-076), its regions started in turn.
+            let regions: Vec<(usize, usize)> = self.regions(m, inner).map(|r| (inner, r)).collect();
+            let mut entered = Vec::new();
+            self.stand_in(m, &regions, &mut entered);
+            for (inner, r) in regions {
+                self.start_region(m, inner, r, steps, clock, beat);
+            }
         }
     }
 
@@ -668,6 +678,38 @@ mod tests {
         assert_eq!(names(&beside, run.active()), ["Booster", "Ship"]);
         take(&mut run, &beside, "touchdown");
         assert_eq!(names(&beside, run.active()), ["Landed"]);
+    }
+
+    /// REQ-076: a region without a start of its own begins in the one
+    /// state in it that has one, as the machine does at its top; a play
+    /// stood in the state around them and offered nothing.
+    #[test]
+    fn a_region_without_a_start_begins_in_the_state_that_has_one() {
+        let m = machine(
+            "[*] --> Flight\nstate Flight {\n  state Booster {\n    [*] --> Burn\n    Burn --> Sep : cut\n  }\n  --\n  state Ship {\n    [*] --> Coast\n    Coast --> Land : flip\n  }\n}\nFlight --> Done : over",
+        );
+        let (mut run, _) = Run::start(&m).unwrap();
+        assert_eq!(names(&m, run.active()), ["Burn", "Coast"]);
+        assert_eq!(labels(&m, &run.options(&m)), ["cut", "flip", "over"]);
+        take(&mut run, &m, "cut");
+        take(&mut run, &m, "flip");
+        assert_eq!(names(&m, run.active()), ["Sep", "Land"]);
+        take(&mut run, &m, "over");
+        assert_eq!(names(&m, run.active()), ["Done"]);
+
+        // One region with a start, one without and two states that have
+        // one: which begins is not said, and the other region still runs.
+        let two = machine(
+            "[*] --> Flight\nstate Flight {\n  [*] --> Pad\n  Pad --> Up : go\n  --\n  state A {\n    [*] --> A1\n  }\n  state B {\n    [*] --> B1\n  }\n}",
+        );
+        let (run, _) = Run::start(&two).unwrap();
+        assert_eq!(names(&two, run.active()), ["Pad"]);
+        // A state another one leads into is entered later.
+        let later = machine(
+            "[*] --> Flight\nstate Flight {\n  [*] --> Pad\n  --\n  state Wait\n  Wait --> Ship : go\n  state Ship {\n    [*] --> Coast\n  }\n}",
+        );
+        let (run, _) = Run::start(&later).unwrap();
+        assert_eq!(names(&later, run.active()), ["Pad"]);
     }
 
     #[test]
