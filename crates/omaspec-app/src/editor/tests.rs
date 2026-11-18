@@ -3186,6 +3186,7 @@ fn an_activity_diagram_takes_the_focus() {
     around.sort_unstable();
     assert_eq!(around, ["bar", "test:all green?"]);
     assert_eq!(lit.lines.len(), 2);
+    assert_eq!(lit.words.len(), 1, "`yes`, beside the line from the test");
     assert!(
         lit.outlines.iter().all(Option::is_some),
         "each in its own shape: {:?}",

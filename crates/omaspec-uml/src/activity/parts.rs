@@ -24,11 +24,37 @@ const REACH: f32 = 1.5;
 /// line drawn, before the rest is told run by run.
 const WAYS: usize = 8;
 
+/// How far from a line its words may stand and still be its words.
+const BESIDE: f32 = 14.0;
+
+/// How far `rect` is from the line through `points`.
+fn away(rect: Rect, points: &[(f32, f32)]) -> f32 {
+    let to = |(x, y): (f32, f32)| {
+        let dx = (rect.x - x).max(0.0).max(x - rect.x - rect.w);
+        let dy = (rect.y - y).max(0.0).max(y - rect.y - rect.h);
+        dx.hypot(dy)
+    };
+    points
+        .windows(2)
+        .flat_map(|pair| {
+            let (a, b) = (pair[0], pair[1]);
+            let steps = ((b.0 - a.0).hypot(b.1 - a.1) / 3.0).ceil().max(1.0) as usize;
+            (0..=steps).map(move |i| {
+                let t = i as f32 / steps as f32;
+                (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t)
+            })
+        })
+        .map(to)
+        .fold(f32::INFINITY, f32::min)
+}
+
 #[derive(Default)]
 pub(super) struct Found {
     seen: HashMap<String, usize>,
     pub places: Vec<Place>,
     runs: Vec<Run>,
+    /// The words beside lines: each one's part and where it is drawn.
+    labels: Vec<(String, Rect)>,
 }
 
 /// One line as drawn, between two points.
@@ -84,6 +110,9 @@ impl Found {
         if *nth > 1 {
             name.push_str(&format!(" #{nth}"));
         }
+        if matches!(shape, Shape::Label { .. }) {
+            self.labels.push((name.clone(), rect));
+        }
         if place {
             self.places.push(Place {
                 name: name.clone(),
@@ -124,6 +153,22 @@ impl Found {
                 Node::Point((x * 2.0).round() as i32, (y * 2.0).round() as i32),
                 |(at, _)| Node::Shape(at),
             )
+    }
+
+    /// The run each label stands beside: the nearest, within [`BESIDE`].
+    fn labelled(&self) -> Vec<Option<usize>> {
+        self.labels
+            .iter()
+            .map(|(_, rect)| {
+                self.runs
+                    .iter()
+                    .enumerate()
+                    .map(|(at, run)| (at, away(*rect, &run.points)))
+                    .filter(|(_, d)| *d <= BESIDE)
+                    .min_by(|a, b| a.1.total_cmp(&b.1))
+                    .map(|(at, _)| at)
+            })
+            .collect()
     }
 
     /// The lines from shape to shape: each run that leaves a shape,
@@ -186,9 +231,24 @@ impl Found {
                 .map(|run| vec![run]),
         );
 
+        // A line's words are lit with it; they travel with the first line
+        // that takes their run.
+        let labelled = self.labelled();
+        let mut given = vec![false; self.labels.len()];
         let mut nth: HashMap<(String, String), usize> = HashMap::new();
         ways.iter()
             .map(|way| {
+                let mut labels = Vec::new();
+                let mut words: [Option<String>; 3] = Default::default();
+                for (label, run) in labelled.iter().enumerate() {
+                    if run.is_some_and(|run| way.contains(&run)) {
+                        labels.push(self.labels[label].1);
+                        if !given[label] && words[crate::map::WORDS].is_none() {
+                            words[crate::map::WORDS] = Some(self.labels[label].0.clone());
+                            given[label] = true;
+                        }
+                    }
+                }
                 let (first, last) = (way[0], way[way.len() - 1]);
                 let mut points: Vec<(f32, f32)> = Vec::new();
                 for &run in way {
@@ -235,7 +295,7 @@ impl Found {
                         flat: false,
                     },
                     entry: None,
-                    labels: Vec::new(),
+                    labels,
                     stroke: self.runs[first].stroke,
                     heads: self.runs[last]
                         .head
@@ -247,7 +307,7 @@ impl Found {
                         })
                         .collect(),
                     fixed: true,
-                    words: Default::default(),
+                    words,
                 }
             })
             .collect()
@@ -316,6 +376,24 @@ mod tests {
         for wire in &map.wires {
             assert!(wire.fixed && wire.heads.len() <= 1 && wire.points.len() >= 2);
         }
+        // The words beside a line are its words.
+        let words = |from: &str, to: &str| {
+            let wire = map
+                .wires
+                .iter()
+                .find(|w| w.key.from == from && w.key.to == to)
+                .unwrap();
+            (wire.words[crate::map::WORDS].clone(), wire.labels.len())
+        };
+        assert_eq!(
+            words("test:green?", "action:Publish"),
+            (Some("label:yes".to_owned()), 1)
+        );
+        assert_eq!(
+            words("test:green?", "action:Fix"),
+            (Some("label:no".to_owned()), 1)
+        );
+        assert_eq!(words("start", "action:Build"), (None, 0));
 
         let plain = crate::render(source).unwrap();
         assert!(!plain.contains("part-"));

@@ -2713,8 +2713,10 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       lines through the veil in their own shapes, a test as its diamond,
       and after an edit the boxes glide to their new places, the lines
       with them, the swimlanes' names and borders standing. A picture
-      for a file is the same to the pixel. Not yet: the words beside a
-      line (`yes`, `no`) are not lit with their line.
+      for a file is the same to the pixel. The words beside a line
+      (`yes`, `no`, an arrow's label) are that line's words, the nearest
+      within 14 units: lit with it in the focus, travelling with it in a
+      glide.
 - [x] A state machine's play lights each state in its own shape
       (2026-11-18): the state's outline as its picture draws it
       (`focus::Outline`, the one the focus lets a box through in) is what
