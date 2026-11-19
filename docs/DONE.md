@@ -2897,6 +2897,11 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A Mermaid sequence's bars on a lifeline in the colors of a look (2026-11-19,
+      from the review sheet, F2): a look's `%%{init}%%` set no `activationBkgColor`,
+      so the bars kept mmdr's near white (`#F4F4F4`) on a dark paper. Every pack now
+      writes them as the PlantUML packs write `SequenceLifeLineBackgroundColor`: the
+      boxes' fill (Omarchy: its surface), the muted line around them
 - [x] A line back up into a box ends on a bend, not on a hook (2026-11-19, from the
       review sheet, F3): the sheet showed the media player's back-and-forth lines as
       crossing, which the picture at full size does not; what it does show is the

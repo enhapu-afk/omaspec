@@ -225,7 +225,7 @@ fn painted(s: &Swatch) -> Vec<String> {
 /// terminals when a pack is in the file.
 fn mermaid_painted(s: &Swatch) -> String {
     format!(
-        r#""theme": "base", "themeVariables": {{"background": "{paper}", "primaryColor": "{fill}", "primaryTextColor": "{text}", "primaryBorderColor": "{border}", "lineColor": "{line}", "secondaryColor": "{decision}", "secondaryBorderColor": "{decision_border}", "tertiaryColor": "{stores}", "tertiaryBorderColor": "{stores_border}", "textColor": "{text}", "clusterBkg": "{cluster}", "clusterBorder": "{cluster_border}", "edgeLabelBackground": "{paper}", "actorBkg": "{people}", "actorBorder": "{people_border}", "actorLine": "{muted}", "noteBkg": "{note}", "noteBorderColor": "{note_border}"}}"#,
+        r#""theme": "base", "themeVariables": {{"background": "{paper}", "primaryColor": "{fill}", "primaryTextColor": "{text}", "primaryBorderColor": "{border}", "lineColor": "{line}", "secondaryColor": "{decision}", "secondaryBorderColor": "{decision_border}", "tertiaryColor": "{stores}", "tertiaryBorderColor": "{stores_border}", "textColor": "{text}", "clusterBkg": "{cluster}", "clusterBorder": "{cluster_border}", "edgeLabelBackground": "{paper}", "actorBkg": "{people}", "actorBorder": "{people_border}", "actorLine": "{muted}", "activationBkgColor": "{fill}", "activationBorderColor": "{muted}", "noteBkg": "{note}", "noteBorderColor": "{note_border}"}}"#,
         paper = s.paper,
         fill = s.boxes.0,
         text = s.text,
@@ -599,7 +599,7 @@ fn mermaid(pack: Pack, c: &Colors, font: Option<&str>) -> String {
         Pack::Sketch => format!(r#"{{"look": "handDrawn", {}}}"#, mermaid_painted(&SKETCH)),
         Pack::Vivid => format!("{{{}}}", mermaid_painted(&VIVID)),
         Pack::Omarchy => format!(
-            r#"{{"theme": "base", "themeVariables": {{"background": "{bg}", "primaryColor": "{surface}", "primaryTextColor": "{text}", "primaryBorderColor": "{accent}", "lineColor": "{accent}", "secondaryColor": "{surface}", "tertiaryColor": "{bg}", "textColor": "{text}", "clusterBkg": "{bg}", "clusterBorder": "{muted}", "edgeLabelBackground": "{bg}", "actorBkg": "{surface}", "actorBorder": "{accent}", "actorLine": "{muted}", "noteBkg": "{note}", "noteBorderColor": "{muted}"}}}}"#,
+            r#"{{"theme": "base", "themeVariables": {{"background": "{bg}", "primaryColor": "{surface}", "primaryTextColor": "{text}", "primaryBorderColor": "{accent}", "lineColor": "{accent}", "secondaryColor": "{surface}", "tertiaryColor": "{bg}", "textColor": "{text}", "clusterBkg": "{bg}", "clusterBorder": "{muted}", "edgeLabelBackground": "{bg}", "actorBkg": "{surface}", "actorBorder": "{accent}", "actorLine": "{muted}", "activationBkgColor": "{surface}", "activationBorderColor": "{muted}", "noteBkg": "{note}", "noteBorderColor": "{muted}"}}}}"#,
             bg = c.background,
             surface = c.surface,
             text = c.text,
