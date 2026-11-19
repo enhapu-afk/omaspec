@@ -670,6 +670,44 @@ bar) is in docs/DONE.md.
       in the diagram, a grip between the panes, a hint at each tool's
       icon, sizes of type in an order.
 
+### Animations that show what a diagram means (2026-11-19)
+
+Wished for on 2026-11-19: the GIF of a sequence's play no longer
+surprises anyone. A highlight that people pass on shows what only
+Omaspec knows of a diagram: that its scenarios and its machines agree,
+how it grew, which ways are taken. After the three diagrams (First,
+above). Each exports as GIF, WebP and an HTML page, as a play does, and
+gets a gallery example. In this order: the first makes the README's
+picture, the second is the highlight.
+
+- [ ] Code becomes a picture: the source on the left, the diagram on the
+      right building itself up line by line, each line setting down what
+      it draws as the caret passes it (the words tied to their lines,
+      `Canvas::tie`, give the order), boxes growing in, lines drawing
+      themselves to their heads (`omaspec play FILE --build`).
+- [ ] Lockstep: a sequence played beside the state machines of its
+      participants, each message switching the receiver's machine on
+      the same beat, the transition it fires lit, a message no machine
+      takes flashing red; from the trace against the project's machines
+      (`omaspec trace`) and the arrival's panes (docs/adr/0030). What
+      no other tool can show: that a scenario and the behavior agree.
+- [ ] A time-lapse of a diagram's history: every commit `omaspec log`
+      lists gliding into the next (the glide by parts, docs/adr/0029),
+      what is new growing in, what goes fading, the commit's message as
+      a caption; Time travel above, from two commits to all of them.
+- [ ] Traffic: many recorded traces flowing through a machine at once
+      as dots, the ways taken often glowing as they fill, those never
+      taken staying grey and blinking at the end; the Trace river above,
+      moving, from what coverage counts.
+- [ ] A flight through the project: one camera move from the map into a
+      tile, into its diagram, and on along a link into the next one
+      (docs/adr/0018), and back out; the dive into one tile, chained.
+- [ ] A theme sweep: one diagram gliding through every bundled Omarchy
+      theme, its colors crossing over, the theme's name as a caption.
+- [ ] From sketch to ink: a diagram in the sketch look (docs/adr/0023)
+      drawn stroke by stroke as with a pen, then inked into the clean
+      look.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 Omaspec's engine is plain Rust; what ties the program to Linux is at the
