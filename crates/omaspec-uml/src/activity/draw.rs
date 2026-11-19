@@ -298,7 +298,7 @@ impl Painter<'_> {
         if points.len() < 2 {
             return None;
         }
-        canvas.polyline(Layer::Lines, &points, edge.stroke);
+        canvas.curve(Layer::Lines, &points, self.skin.curve, edge.stroke);
         let mut drawn = None;
         if edge.head {
             let tip = points[points.len() - 1];
@@ -611,6 +611,36 @@ fn action_shape(
 #[cfg(test)]
 mod tests {
     use crate::render;
+
+    #[test]
+    fn lines_round_their_corners_unless_ortho() {
+        let body = "start\nif (ok?) then (yes)\n:a;\nelse (no)\n:b long;\nendif\nstop";
+        // A rounded corner is a cubic in a path; a right angle is not.
+        let curves = |svg: &str| svg.matches(" C").count();
+        let round = render(body).unwrap();
+        assert!(curves(&round) > 0, "{round}");
+        let ortho = render(&format!("skinparam linetype ortho\n{body}")).unwrap();
+        assert_eq!(curves(&ortho), 0, "{ortho}");
+    }
+
+    #[test]
+    fn an_elseif_label_stands_off_the_way_its_line_turns() {
+        // The `bug` branch turns right below its diamond toward the next
+        // swimlane: its label stands left of the way down.
+        let svg = render(
+            "|Support|\nstart\nif (Known issue?) then (yes)\n:Send article;\nelseif (Bug?) then (bug)\n|Engineering|\n:Reproduce;\n|Support|\nelse (no)\n:Ask;\nendif\nstop",
+        )
+        .unwrap();
+        let x_of = |words: &str| -> f32 {
+            svg.split("<tspan ")
+                .find(|tspan| tspan.contains(&format!(">{words}<")))
+                .and_then(|tspan| tspan.split("x=\"").nth(1)?.split('"').next()?.parse().ok())
+                .unwrap()
+        };
+        let label = x_of("bug");
+        let diamond = x_of("Bug?");
+        assert!(label < diamond, "{label} {diamond}");
+    }
 
     #[test]
     fn the_deepest_nesting_draws_on_a_thread_of_its_own() {

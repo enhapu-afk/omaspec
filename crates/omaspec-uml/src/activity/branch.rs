@@ -258,7 +258,21 @@ impl Layout<'_> {
                 text: test,
                 lane,
             });
-            shapes.extend(self.beside(label, x - 2.0, y + h + 1.0, lane));
+            // Its label beside the way down, on the side the line does
+            // not turn to below the diamond: right, toward a swimlane
+            // further right or a place further right in its own.
+            let entry = tiles[i].entry;
+            let rightward = entry.lane > lane || (entry.lane == lane && entry.x > x + 0.5);
+            if rightward && !label.is_empty() {
+                shapes.push(Shape::Label {
+                    at: (x - 4.0, y + h + 1.0),
+                    text: label,
+                    align: Align::Right,
+                    lane,
+                });
+            } else {
+                shapes.extend(self.beside(label, x - 2.0, y + h + 1.0, lane));
+            }
             let right = pt(x + w / 2.0, cy, lane);
             let on_line = &between[i];
             if !on_line.is_empty() {

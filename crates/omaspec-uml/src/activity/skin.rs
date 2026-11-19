@@ -46,6 +46,9 @@ pub struct Skin {
     /// line, not in a diamond.
     pub merge_line: bool,
     pub arrow: Stroke,
+    /// How far a line's corners curve; none with `linetype ortho`. Less
+    /// than a state's, as an activity's runs are short.
+    pub curve: f32,
     pub arrow_font: Font,
     pub start: Color,
     /// `stop` and `end`.
@@ -92,6 +95,7 @@ impl Default for Skin {
             test_in_diamond: false,
             merge_line: false,
             arrow: Stroke::new(dark, 1.0),
+            curve: CURVE,
             arrow_font: Font::new(11.0, black),
             start: Color::hex(0x222222),
             end: Color::hex(0x222222),
@@ -119,9 +123,12 @@ impl Default for Skin {
     }
 }
 
+/// How far an activity's line curves at a corner at most.
+pub const CURVE: f32 = 16.0;
+
 /// Skinparams of other diagram types, by the start of their key, and of
 /// the legend and the main frame, which every type draws the same way.
-const OTHER_TYPES: [&str; 44] = [
+const OTHER_TYPES: [&str; 43] = [
     "actor",
     "agent",
     "artifact",
@@ -144,7 +151,6 @@ const OTHER_TYPES: [&str; 44] = [
     "label",
     "legend",
     "lifeline",
-    "linetype",
     "mainframe",
     "map",
     "maxmessagesize",
@@ -210,6 +216,7 @@ impl Skin {
             }
             match key.as_str() {
                 "monochrome" => skin.monochrome = p.flag()?,
+                "linetype" => skin.curve = crate::curve::linetype(p)?,
                 "handwritten" => skin.sketch = p.flag()?,
                 "shadowing" | "activityshadowing" => skin.shadow = p.flag()?,
                 "style" => {

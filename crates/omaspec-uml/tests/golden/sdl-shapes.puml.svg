@@ -10,9 +10,9 @@
 <polygon points="6,83.97 10,93.97 14,83.97 10,87.97" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="10,127.94 10,147.94" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,137.94 10,147.94 14,137.94 10,141.94" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="-28.84,164.74 -53.25,164.74 -53.25,191.54" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M-28.84,164.74 L-37.25,164.74 C-46.08,164.74 -53.25,171.9 -53.25,180.74 L-53.25,191.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-57.25,181.54 -53.25,191.54 -49.25,181.54 -53.25,185.54" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="48.84,164.74 67.95,164.74 67.95,191.54" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M48.84,164.74 L51.95,164.74 C60.78,164.74 67.95,171.9 67.95,180.74 L67.95,191.54" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="63.95,181.54 67.95,191.54 71.95,181.54 67.95,185.54" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="-53.25,279.48 -53.25,291.48" fill="none" stroke="#181818" stroke-width="1"/>
 <polyline points="67.95,279.48 67.95,291.48" fill="none" stroke="#181818" stroke-width="1"/>

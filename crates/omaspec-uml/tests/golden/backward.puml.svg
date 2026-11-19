@@ -7,9 +7,9 @@
 <polygon points="6,74 10,84 14,74 10,78" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="10,171.94 10,191.94" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,181.94 10,191.94 14,181.94 10,185.94" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="51.1,203.94 157.72,203.94 157.72,144.95" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M51.1,203.94 L141.72,203.94 C150.55,203.94 157.72,196.77 157.72,187.94 L157.72,144.95" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="161.72,154.95 157.72,144.95 153.72,154.95 157.72,150.95" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="157.72,110.98 157.72,52 22,52" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M157.72,110.98 L157.72,68 C157.72,59.16 150.55,52 141.72,52 L22,52" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="32,48 22,52 32,56 28,52" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="10,117.97 10,137.97" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,127.97 10,137.97 14,127.97 10,131.97" fill="#181818" stroke="#181818" stroke-width="1"/>
@@ -19,9 +19,9 @@
 <polygon points="6,273.74 10,283.74 14,273.74 10,277.74" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="10,317.71 10,353.28" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,343.28 10,353.28 14,343.28 10,347.28" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="43.83,365.28 115.53,365.28 115.53,332.48" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M43.83,365.28 L99.53,365.28 C108.37,365.28 115.53,358.12 115.53,349.28 L115.53,332.48" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="119.53,342.48 115.53,332.48 111.53,342.48 115.53,338.48" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="115.53,284.54 115.53,251.74 22,251.74" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M115.53,284.54 L115.53,267.74 C115.53,258.9 108.37,251.74 99.53,251.74 L22,251.74" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="32,247.74 22,251.74 32,255.74 28,251.74" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="10,377.28 10,397.28" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="6,387.28 10,397.28 14,387.28 10,391.28" fill="#181818" stroke="#181818" stroke-width="1"/>

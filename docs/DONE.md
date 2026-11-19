@@ -2897,6 +2897,14 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] An activity's lines round their corners (2026-11-19, from the review sheet, Q1,
+      decided so): they bent at right angles, as PlantUML draws them, where the lines
+      of states and boxes curve. They now round their corners as those do, by 16 at
+      most (`activity::skin::CURVE`; a state's reach 48, an activity's runs are
+      short), and `skinparam linetype ortho` keeps right angles. A branch of an
+      `elseif` chain whose line turns right below its diamond, toward a swimlane
+      further right or further right in its own, has its label left of the way down:
+      `bug` lay on its line, the curve made it plain
 - [x] The media player's `failed` into Off without a hook (2026-11-19, from the review
       sheet, F12): the sheet showed the line bending into its head a few units under
       Off. The line back up into a box that F3 gave a bend of its own

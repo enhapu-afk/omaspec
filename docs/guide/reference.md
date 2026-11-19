@@ -898,7 +898,8 @@ document, `{s}` storage, `{io}`, `{c}`, `{o}`, `{tr}`), and `--no-shadows` on th
 line takes the shadows away. Graphviz and tree diagrams render through the optional
 `plantuml` package, confined with Landlock; PlantUML itself no longer draws a chronology,
 and Omaspec says so. Lines between states and between
-boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
+boxes curve, as PlantUML and Mermaid draw them, and an activity's lines round their
+corners a little, as Omaspec's other lines do; `skinparam linetype ortho` keeps right
 angles. `skinparam componentStyle` (`uml2`, `uml1`, `rectangle`) and `packageStyle`
 (`rectangle`, `folder`, `frame`, `node`, `cloud`, `database`) draw as in PlantUML, and a
 member's visibility may stand before its marks (`+{static} count`). A diagram inside a
