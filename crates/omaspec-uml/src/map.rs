@@ -79,6 +79,10 @@ pub struct Band {
 pub struct Tied {
     pub rect: Rect,
     pub line: usize,
+    /// The byte on `line` where the words start, where the drawer knows
+    /// it ([`crate::Written::col`]); without it they are the last
+    /// such words there. None for a shape.
+    pub col: Option<usize>,
     /// How many lines the words are drawn on: what a block of the source
     /// writes (a note up to its `end note`) stands on as many lines after
     /// `line`, not on it. None for a shape.
@@ -574,8 +578,11 @@ mod tests {
 
     /// A class diagram ties what one line writes, in PlantUML and in
     /// Mermaid: a member, a heading among them, a stereotype, a line's
-    /// label and its multiplicities, a note, a note of its own. A class's
-    /// name, which many lines mention, is not.
+    /// label and its multiplicities, a note, a note of its own, a note's
+    /// block from the line its words start on. A class's name, which many
+    /// lines mention, is not. Words written amid others say where they
+    /// stand: the multiplicities, also of a line turned, and a note's
+    /// words before its alias.
     #[test]
     fn a_class_diagram_ties_what_one_line_writes() {
         let lines = |map: Map| {
@@ -597,9 +604,22 @@ mod tests {
                 (7, 1),
                 (8, 1),
                 (9, 1),
-                (11, 2)
+                (12, 2)
             ]
         );
+        let cols = |source: &str| {
+            let map = crate::render_mapped(source, None).unwrap().1;
+            let mut cols: Vec<(usize, usize)> = map
+                .tied
+                .iter()
+                .filter_map(|tied| Some((tied.line, tied.col?)))
+                .collect();
+            cols.sort_unstable();
+            cols
+        };
+        assert_eq!(cols(plantuml), [(7, 7), (7, 15), (9, 6)]);
+        let turned = "@startuml\nclass A\nclass B\nA \"1\" -up-> \"2\" B\n@enduml\n";
+        assert_eq!(cols(turned), [(3, 3), (3, 13)]);
         let mermaid = "classDiagram\n  class Order {\n    +id int\n  }\n  Order \"1\" --> \"*\" Money : total\n";
         let map = crate::structure::from_mermaid(mermaid)
             .map(|d| crate::structure::draw_mapped(&d).unwrap().1)

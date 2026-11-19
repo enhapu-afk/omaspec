@@ -271,11 +271,10 @@ is open and the reasoning around it.
 - [x] Class diagrams tie what one line writes, too (2026-11-19): a member, a heading
       among the members, a stereotype, a line's label and both its multiplicities, a
       note and a note of its own (`note "…" as N`), in PlantUML and in Mermaid, and so
-      component, use case, deployment and object diagrams. A class's name, which many
-      lines mention, is counted. The `"1"` of one line no longer lights the `"1"` of
-      another, and a label or a note that reads as a class keeps apart from it. On one
-      line, words are where they stand as a word (`locate::spans_on`): `Busy` is not
-      written in `BusyBox`
+      component, use case, deployment, object, C4, ArchiMate and requirement diagrams.
+      A class's name, which many lines mention, is counted. The `"1"` of one line no
+      longer lights the `"1"` of another, and a label or a note that reads as a class
+      keeps apart from it
 - [x] Mermaid flowcharts tie what one line writes, too (2026-11-19): a line's label
       (`-->|yes|`, `-- yes -->`), a node's label where a line gives it one
       (`A[Start]`), and a subgraph's title of its own. mmdr's graph keeps no lines, so
@@ -285,10 +284,32 @@ is open and the reasoning around it.
       subgraph no longer takes the light of a `yes` written above it. A node that
       shows its id, which every line naming it writes, is counted; so is a line a
       folded subgraph ends on. The reading costs nothing measurable: 150 boxes and
-      476 lines draw in 0.41 s as before. And the pane takes the words of one line
-      in order (`A[Edit] --> B[Edit]`, `"1" --> "1"`): of the writings on a line,
-      the last are the copies tied to it, in the order drawn, and those before them
-      are mentions, counted
+      476 lines draw in 0.41 s as before
+- [x] What the reviews of the tied words found (2026-11-19). The pane guessed which of
+      the same words on one line was which copy: the last ones, in the order drawn.
+      A flowchart's label stands between its ends (`A -->|Done| Done`), nodes are
+      drawn before lines, and a line turned `-up->` draws its multiplicities the
+      other way round, so the light and the click went to the other copy. Words
+      written amid others now say where they stand (`Block::written_at`, `Tied::col`):
+      a flowchart's label and a node's, found by mmdr itself (each place of the
+      words written as a mark of its own, the line read again), a multiplicity and a
+      note's words before its alias. Words without a place close their line, as a
+      message after its colon, and take the last places left there; what no tied
+      copy takes is a mention, counted. Worked out once per text, not per copy. A
+      caret on an alias before a message that reads as its participant lights the
+      participant again. A note over several lines is tied to the line its words
+      start on, not to the head that names its target (`block_text`), in sequence,
+      state and class diagrams. A stereotype is found in its angles (`<<Entity>>`),
+      not in the class's name before it. The flowchart reader skips `accTitle`,
+      `accDescr` and the lines of `accDescr { … }`, but not a node named `access`;
+      a label two lines give one node is counted, not tied to the last; and a line
+      moved onto a folded subgraph keeps its line, one that stands for several
+      alike none. mmdr's panics the engine catches no longer print on every redraw
+      (`caught::quiet`, the app's panic hook). An activity tile boxes its arrows: a
+      hundred nested blocks drew on the 2 MiB of a plain thread only just, and the
+      tied place tipped it over; they now draw on 1.4 MiB. Reading where 2,000
+      flowchart lines are written takes 22 ms, 39 ms where every line writes its
+      label twice
 - [x] What the review of 2026-11-18 (evening) found in the day's later work. A `++` in
       a quoted name, a title or a note is letters: the bar's sign is read where the
       engine reads an activation, in one place (`recolor::bar_sign`), where *color the

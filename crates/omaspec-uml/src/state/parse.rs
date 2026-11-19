@@ -454,7 +454,14 @@ impl Parser {
                 return Err(Declined::at(no, "a note needs text"));
             }
             let line = lines.get(at + 1).map_or(no, |line| line.no);
-            (Text { value: body, line }, next)
+            (
+                Text {
+                    value: body,
+                    line,
+                    col: None,
+                },
+                next,
+            )
         };
         if head.target == "[*]" {
             return Err(Declined::at(no, "a note on `[*]` is not supported yet"));

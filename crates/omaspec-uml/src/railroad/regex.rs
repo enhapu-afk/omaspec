@@ -252,6 +252,7 @@ mod tests {
         let lines = [Line {
             no: 0,
             text,
+            at: 0,
             indent: 0,
             blank_before: 0,
         }];

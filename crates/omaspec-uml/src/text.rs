@@ -201,11 +201,23 @@ pub struct Block {
     pub lines: Vec<Line>,
     pub width: f32,
     pub height: f32,
-    /// The zero-based line of the source that alone writes these words,
-    /// where the drawer says so ([`Block::written_on`]): an action, a
-    /// label, a note. Drawn, they are tied to it
+    /// Where one line of the source alone writes these words, where the
+    /// drawer says so ([`Block::written_on`], [`Block::written_at`]): an
+    /// action, a label, a note. Drawn, they are tied to it
     /// ([`crate::svg::Canvas::tie`]). None for a name many lines mention.
-    pub written: Option<usize>,
+    pub written: Option<Written>,
+}
+
+/// Where one line of the source alone writes words that are drawn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Written {
+    /// The zero-based line.
+    pub line: usize,
+    /// The byte on it where the words start, where the drawer knows it:
+    /// words written amid others (a line's label between its ends, a
+    /// multiplicity). Words without it close their line, as a message
+    /// does after its colon: they are the last such words there.
+    pub col: Option<usize>,
 }
 
 impl Block {
@@ -218,9 +230,17 @@ impl Block {
         }
     }
 
-    /// These words as the ones the zero-based `line` alone writes.
+    /// These words as the ones the zero-based `line` alone writes, the
+    /// last such words on it.
     pub fn written_on(mut self, line: usize) -> Block {
-        self.written = Some(line);
+        self.written = Some(Written { line, col: None });
+        self
+    }
+
+    /// These words as the ones the zero-based `line` alone writes, from
+    /// its byte `col` on, where that is known.
+    pub fn written_at(mut self, line: usize, col: Option<usize>) -> Block {
+        self.written = Some(Written { line, col });
         self
     }
 

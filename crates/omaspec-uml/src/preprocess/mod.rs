@@ -62,6 +62,7 @@ pub struct Included {
 pub struct Owned {
     pub no: usize,
     pub text: String,
+    pub at: usize,
     pub indent: usize,
     pub blank_before: usize,
 }
@@ -71,6 +72,7 @@ impl From<Line<'_>> for Owned {
         Owned {
             no: line.no,
             text: line.text.to_owned(),
+            at: line.at,
             indent: line.indent,
             blank_before: line.blank_before,
         }
@@ -82,6 +84,7 @@ impl Owned {
         Line {
             no: self.no,
             text: &self.text,
+            at: self.at,
             indent: self.indent,
             blank_before: self.blank_before,
         }
@@ -234,6 +237,7 @@ impl Out {
             self.lines.push(Owned {
                 no: call.unwrap_or(line.no),
                 text: part.to_owned(),
+                at: line.at,
                 indent: line.indent,
                 blank_before: std::mem::take(&mut blanks),
             });
@@ -1305,6 +1309,7 @@ fn plain_theme(no: usize) -> Vec<Line<'static>> {
         .map(|text| Line {
             no,
             text,
+            at: 0,
             indent: 0,
             blank_before: 0,
         })

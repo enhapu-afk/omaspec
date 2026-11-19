@@ -332,6 +332,7 @@ fn node(label: String, shape: NodeShape, color: Option<String>, no: usize) -> No
         text: Text {
             value: label,
             line: no,
+            col: None,
         },
         shape,
         color,

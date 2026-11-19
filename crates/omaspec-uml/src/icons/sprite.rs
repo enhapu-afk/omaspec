@@ -347,6 +347,7 @@ mod tests {
             .map(|(no, text)| Line {
                 no,
                 text: text.trim(),
+                at: 0,
                 indent: 0,
                 blank_before: 0,
             })
@@ -408,6 +409,7 @@ mod tests {
         let raw = [Line {
             no: 0,
             text: "A : <$nothing>",
+            at: 0,
             indent: 0,
             blank_before: 0,
         }];
@@ -416,6 +418,7 @@ mod tests {
         let svg = [Line {
             no: 0,
             text: "sprite $s <svg viewBox=\"0 0 1 1\"/>",
+            at: 0,
             indent: 0,
             blank_before: 0,
         }];

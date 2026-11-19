@@ -459,6 +459,7 @@ mod tests {
             .map(|(no, text)| Line {
                 no,
                 text: text.trim(),
+                at: 0,
                 indent: 0,
                 blank_before: 0,
             })

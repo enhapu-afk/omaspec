@@ -235,6 +235,7 @@ fn marker(kind: Kind, line: usize) -> Node {
         label: Text {
             value: String::new(),
             line,
+            col: None,
         },
         description: Vec::new(),
         kind,
@@ -341,6 +342,7 @@ pub(crate) fn text(raw: &str, line: usize) -> Text {
     Text {
         value: markup(raw),
         line,
+        col: None,
     }
 }
 

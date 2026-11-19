@@ -45,7 +45,7 @@ impl Layout<'_> {
         let mut ends = Vec::new();
         let mut lowest: f32 = 0.0;
         for (tile, start) in ways {
-            let label = self.arrow_label(tile.arrow_out.as_ref())?;
+            let label = self.arrow_label(tile.arrow_out.as_deref())?;
             let room = if label.is_empty() {
                 0.0
             } else {
@@ -54,10 +54,10 @@ impl Layout<'_> {
             if tile.empty {
                 let last = *start.last().expect("a line starts somewhere");
                 lowest = lowest.max(last.y + room);
-                ends.push((start.clone(), tile.arrow_out.as_ref(), label));
+                ends.push((start.clone(), tile.arrow_out.as_deref(), label));
             } else if let Some(exit) = tile.exit {
                 lowest = lowest.max(tile.bounds.3 + room);
-                ends.push((vec![exit], tile.arrow_out.as_ref(), label));
+                ends.push((vec![exit], tile.arrow_out.as_deref(), label));
             } else {
                 lowest = lowest.max(tile.bounds.3);
             }
@@ -376,7 +376,7 @@ impl Layout<'_> {
         let mut lowest: f32 = 0.0;
         let mut ends = Vec::new();
         for (tile, start) in ways {
-            let label = self.arrow_label(tile.arrow_out.as_ref())?;
+            let label = self.arrow_label(tile.arrow_out.as_deref())?;
             let room = if label.is_empty() {
                 0.0
             } else {
@@ -417,7 +417,7 @@ impl Layout<'_> {
             edges.push(Edge::new(
                 points,
                 bar > 0.0,
-                self.stroke(tile.arrow_out.as_ref())?,
+                self.stroke(tile.arrow_out.as_deref())?,
             ));
         }
         if bar == 0.0 {

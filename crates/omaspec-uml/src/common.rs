@@ -10,7 +10,7 @@ use crate::color::{self, Color, Paint};
 use crate::source::{Line, starts_with_ci};
 use crate::style::{self, Element};
 use crate::svg::Align;
-use crate::text::Link;
+use crate::text::{Block, Family, Font, Link};
 
 /// Text as written, `\n` escapes and markup still in it; lines of a
 /// multi-line block joined with newlines.
@@ -19,6 +19,29 @@ pub struct Text {
     pub value: String,
     /// The line it starts on.
     pub line: usize,
+    /// The byte on that line where it starts, where the reader keeps it:
+    /// words written amid others on their line, as a multiplicity
+    /// ([`crate::Written::col`]).
+    pub col: Option<usize>,
+}
+
+impl Text {
+    /// The words measured in `font`; an empty block where there are
+    /// none.
+    pub fn measure(&self, font: Font, family: Family) -> Result<Block, Declined> {
+        if self.value.is_empty() {
+            return Ok(Block::empty());
+        }
+        crate::text::block(&self.value, font, family).map_err(|err| Declined::at(self.line, err))
+    }
+
+    /// The words measured as the ones their line alone writes, where they
+    /// stand on it if the reader kept that ([`Block::written_at`]): drawn,
+    /// they are tied to that line.
+    pub fn measure_written(&self, font: Font, family: Family) -> Result<Block, Declined> {
+        self.measure(font, family)
+            .map(|block| block.written_at(self.line, self.col))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -286,7 +309,11 @@ impl Frame {
                     "header" => (&mut self.header, one_page(&value)),
                     _ => (&mut self.footer, one_page(&value)),
                 };
-                *slot = Some(Text { value, line: no });
+                *slot = Some(Text {
+                    value,
+                    line: no,
+                    col: None,
+                });
                 return Ok(Some(next));
             }
         }
@@ -302,7 +329,11 @@ impl Frame {
         {
             let (value, next) = block(lines, at, "legend", |l| squeezed_eq(l, "endlegend"))?;
             self.legend = Some(Legend {
-                text: Text { value, line: no },
+                text: Text {
+                    value,
+                    line: no,
+                    col: None,
+                },
                 top,
                 align,
             });
@@ -767,6 +798,7 @@ pub fn text_at(value: &str, line: usize) -> Text {
     Text {
         value: value.to_owned(),
         line,
+        col: None,
     }
 }
 
@@ -819,6 +851,26 @@ pub fn block(
     Err(Declined::at(
         lines[at].no,
         format!("`{what}` has no end line"),
+    ))
+}
+
+/// The words of a block, as [`block`] reads them, where they start: on
+/// the line after the one at `at`, which opens it.
+pub fn block_text(
+    lines: &[Line],
+    at: usize,
+    what: &str,
+    is_end: impl Fn(&str) -> bool,
+) -> Result<(Text, usize), Declined> {
+    let (value, next) = block(lines, at, what, is_end)?;
+    let line = lines.get(at + 1).map_or(lines[at].no, |line| line.no);
+    Ok((
+        Text {
+            value,
+            line,
+            col: None,
+        },
+        next,
     ))
 }
 

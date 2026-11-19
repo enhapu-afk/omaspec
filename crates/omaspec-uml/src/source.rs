@@ -44,6 +44,10 @@ pub struct Line<'a> {
     pub no: usize,
     /// The text, trimmed, with comments taken out.
     pub text: &'a str,
+    /// The byte in its line of the source where `text` starts, as
+    /// written: a reader that keeps where words stand on their line
+    /// counts from here ([`crate::common::Text::col`]).
+    pub at: usize,
     /// Spaces and tabs before the text, each one counting one: mind maps
     /// and WBS diagrams take levels from them.
     pub indent: usize,
@@ -146,11 +150,19 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
         lines.push(Line {
             no,
             text,
+            at: offset_in(full[no], text),
             indent,
             blank_before: std::mem::take(&mut blanks),
         });
     }
     Ok((kind, lines))
+}
+
+/// The byte in `whole` where `part`, a slice of it, starts.
+pub(crate) fn offset_in(whole: &str, part: &str) -> usize {
+    (part.as_ptr() as usize)
+        .saturating_sub(whole.as_ptr() as usize)
+        .min(whole.len())
 }
 
 fn leading_blanks(line: &str) -> usize {

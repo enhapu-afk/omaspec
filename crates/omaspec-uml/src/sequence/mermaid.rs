@@ -168,7 +168,11 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
                 Some(Open::Frame(_)) => diagram.items.push(Item::GroupEnd { line }),
                 Some(Open::Box(color, label, participants)) => {
                     diagram.boxes.push(ParticipantBox {
-                        title: label.map(|value| Text { value, line }),
+                        title: label.map(|value| Text {
+                            value,
+                            line,
+                            col: None,
+                        }),
                         color,
                         line,
                         participants,
@@ -1138,6 +1142,7 @@ fn words(line: usize, text: &str) -> Text {
     Text {
         value: breaks(text),
         line,
+        col: None,
     }
 }
 

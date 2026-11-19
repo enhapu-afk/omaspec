@@ -14,7 +14,8 @@ pub(super) fn laid(source: &str) -> Scene {
     let mut repaired = None;
     let (graph, fix) = super::flowchart::apply(&graph, source, &mut repaired).unwrap();
     let theme = RenderOptions::default().theme;
-    let tree = prepare(graph, source, &fix).unwrap();
+    let written = super::written::read(graph, source, &fix.invisible);
+    let tree = prepare(graph, source, &fix, written).unwrap();
     let palette = palette(&theme, source).unwrap();
     let family = Family::of(&theme.font_family);
     let mut scene = layout_spot(&tree, Spot::Root, &palette, family).unwrap();

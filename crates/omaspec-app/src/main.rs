@@ -720,6 +720,14 @@ impl LangArg {
 }
 
 fn main() -> ExitCode {
+    // A panic the engine catches and answers for (mmdr's, on a diagram
+    // or a line it fails on) is said where it is answered, not here too.
+    let said = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        if !omaspec_render::caught::quiet() {
+            said(info);
+        }
+    }));
     let cli = Cli::parse();
     let result = match cli.command {
         Some(Command::New {

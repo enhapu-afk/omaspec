@@ -87,24 +87,33 @@ pub fn columns_of(code: &str, label: &str) -> Vec<(usize, usize)> {
 
 /// Each place `label` is written on the one `line`, as the bytes it
 /// spans there, in order: as a whole word where it stands as one on the
-/// line, else as a part of one, as [`columns_of`] reads it. None on a
-/// comment.
+/// line, else as a part of one, as [`columns_of`] reads it; and as
+/// [`columns_of`], without the marks around it (`«Entity»` written
+/// `<<Entity>>`) where it is not written with them. None on a comment.
 pub fn spans_on(line: &str, label: &str) -> Vec<(usize, usize)> {
     let Some(norm) = text::read(line, false) else {
         return Vec::new();
     };
-    if label.is_empty() {
-        return Vec::new();
-    }
-    let mut found = text::locate_in(&norm.text, label, false);
-    if found.is_empty() {
-        found = norm
-            .text
-            .match_indices(label)
-            .map(|(at, part)| (at, at + part.len()))
-            .collect();
-    }
-    found
+    let bare = label
+        .strip_prefix(['[', '(', '"', '«', '<'])
+        .and_then(|l| l.strip_suffix([']', ')', '"', '»', '>']))
+        .filter(|l| !l.trim().is_empty());
+    std::iter::once(label)
+        .chain(bare)
+        .filter(|label| !label.is_empty())
+        .map(|label| {
+            let found = text::locate_in(&norm.text, label, false);
+            if found.is_empty() {
+                norm.text
+                    .match_indices(label)
+                    .map(|(at, part)| (at, at + part.len()))
+                    .collect()
+            } else {
+                found
+            }
+        })
+        .find(|found: &Vec<(usize, usize)>| !found.is_empty())
+        .unwrap_or_default()
         .into_iter()
         .filter_map(|(from, to)| norm.map(from, to))
         .collect()
@@ -317,6 +326,11 @@ mod tests {
         assert_eq!(spans_on("BusyBox --> Idle", "Busy"), [(0, 4)]);
         assert!(spans_on("' Busy --> Busy", "Busy").is_empty());
         assert!(spans_on(line, "").is_empty());
+        // A stereotype is drawn in guillemets and written in angles.
+        assert_eq!(
+            spans_on("class Entity <<Entity>>", "«Entity»"),
+            [(6, 12), (15, 21)]
+        );
     }
 
     #[test]

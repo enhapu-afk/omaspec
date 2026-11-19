@@ -714,9 +714,9 @@ fn rows_of(
         look.font
     };
     let mut name = if el.shape == Shape::Note {
-        written_block(&el.label, name_font, family)?
+        el.label.measure_written(name_font, family)?
     } else {
-        text_block(&el.label, name_font, family)?
+        el.label.measure(name_font, family)?
     };
     if el.shape == Shape::Object {
         name = restyle(name, name_font, family, false, true);
@@ -733,7 +733,7 @@ fn rows_of(
                 underline,
                 ..
             } => {
-                let block = written_block(text, look.member, family)?;
+                let block = text.measure_written(look.member, family)?;
                 let block = restyle(block, look.member, family, *italic, *underline);
                 if !block.is_empty() {
                     rows.push(Row::Left(block));
@@ -741,7 +741,7 @@ fn rows_of(
             }
             Member::Rule(dash) => rows.push(Row::Rule(*dash)),
             Member::Heading(text) => {
-                let block = written_block(text, look.member, family)?;
+                let block = text.measure_written(look.member, family)?;
                 if !block.is_empty() {
                     rows.push(Row::Center(block));
                 }
@@ -807,7 +807,7 @@ fn paints(el: &Element, look: &super::skin::Look) -> Result<(Paint, Stroke), Dec
 fn link_blocks(link: &Link, skin: &Skin, family: Family) -> Result<Labeled, Declined> {
     // A hidden line says nothing: no label keeps room beside it.
     let block = |text: &Option<crate::common::Text>| match text {
-        Some(text) if !link.hidden => written_block(text, skin.arrow_font, family),
+        Some(text) if !link.hidden => text.measure_written(skin.arrow_font, family),
         _ => Ok(Block::empty()),
     };
     Ok(Labeled {
@@ -815,23 +815,6 @@ fn link_blocks(link: &Link, skin: &Skin, family: Family) -> Result<Labeled, Decl
         from_card: block(&link.from_card)?,
         to_card: block(&link.to_card)?,
     })
-}
-
-fn text_block(text: &crate::common::Text, font: Font, family: Family) -> Result<Block, Declined> {
-    if text.value.is_empty() {
-        return Ok(Block::empty());
-    }
-    text::block(&text.value, font, family).map_err(|err| Declined::at(text.line, err))
-}
-
-/// `text` measured as the words its line alone writes
-/// ([`Block::written_on`]): drawn, they are tied to that line.
-fn written_block(
-    text: &crate::common::Text,
-    font: Font,
-    family: Family,
-) -> Result<Block, Declined> {
-    text_block(text, font, family).map(|block| block.written_on(text.line))
 }
 
 fn arrow_stroke(skin: &Skin, edge: &Link) -> Result<Stroke, Declined> {

@@ -281,7 +281,7 @@ fn measure_node(
         } else {
             layout_container(&node.children, every, family)?
         };
-        let title = text_block(&node.label, name_font(skin), family)?;
+        let title = node.label.measure(name_font(skin), family)?;
         let description = text_blocks(&node.description, desc_font(skin), family)?;
         let header_h = stack_height(&title, &description);
         let header_w = stack_width(&title, &description);
@@ -313,14 +313,14 @@ fn measure_node(
 
     let (width, height, title, description) = match node.kind {
         Kind::State => {
-            let title = text_block(&node.label, name_font(skin), family)?;
+            let title = node.label.measure(name_font(skin), family)?;
             let description = text_blocks(&node.description, desc_font(skin), family)?;
             let width = (stack_width(&title, &description) + PAD_X * 2.0).max(MIN_W);
             let height = (stack_height(&title, &description) + PAD_Y * 2.0).max(MIN_H);
             (width, height, title, description)
         }
         Kind::Choice => {
-            let title = text_block(&node.label, skin.state.font, family)?;
+            let title = node.label.measure(skin.state.font, family)?;
             let width = (title.width * 2.0 + 16.0).max(CHOICE_MIN);
             let height = (title.height * 2.0 + 16.0).max(CHOICE_MIN);
             (width, height, title, Vec::new())
@@ -413,7 +413,7 @@ fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color), Declined> 
 
 fn edge_label(edge: &Transition, skin: &Skin, family: Family) -> Result<Block, Declined> {
     match &edge.label {
-        Some(text) => text_block(text, skin.arrow_font, family),
+        Some(text) => text.measure(skin.arrow_font, family),
         None => Ok(Block::empty()),
     }
 }
@@ -465,7 +465,7 @@ fn place_notes(
         if note.target >= rects.len() {
             return Err(Declined::at(note.line, "a note needs a state"));
         }
-        let text = text_block(&note.text, skin.note.font, family)?;
+        let text = note.text.measure_written(skin.note.font, family)?;
         let (w, h) = note_size(&text);
         sized.push(Draft {
             target: note.target,
@@ -822,17 +822,10 @@ fn desc_font(skin: &Skin) -> Font {
     }
 }
 
-fn text_block(text: &super::Text, font: Font, family: Family) -> Result<Block, Declined> {
-    if text.value.is_empty() {
-        return Ok(Block::empty());
-    }
-    text::block(&text.value, font, family).map_err(|err| Declined::at(text.line, err))
-}
-
 fn text_blocks(items: &[super::Text], font: Font, family: Family) -> Result<Vec<Block>, Declined> {
     items
         .iter()
-        .map(|text| text_block(text, font, family))
+        .map(|text| text.measure(font, family))
         .collect()
 }
 
@@ -1111,14 +1104,12 @@ fn paint_labels(
     }
     for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
         canvas.part(&part, |canvas| {
-            let before = canvas.tie(Some(note.line));
             canvas.text(
                 Layer::Front,
                 &note.text,
                 (note.x + NOTE_PAD, note.y + NOTE_PAD),
                 Align::Left,
             );
-            canvas.tie(before);
         });
     }
 }

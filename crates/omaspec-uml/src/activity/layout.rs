@@ -43,7 +43,7 @@ impl Layout<'_> {
     /// lines name, is measured where the lanes are drawn.
     pub(super) fn measure(&self, text: &Text, font: Font) -> Result<Block, Declined> {
         text::block(&text.value, font, self.family)
-            .map(|block| block.written_on(text.line))
+            .map(|block| block.written_at(text.line, text.col))
             .map_err(|e| Declined::at(text.line, e))
     }
 
@@ -106,12 +106,12 @@ impl Layout<'_> {
             let mut next = self.step(step)?;
             tile = Some(match tile {
                 None => {
-                    next.arrow_in = step.arrow.clone().or(next.arrow_in.take());
+                    next.arrow_in = step.arrow.clone().map(Box::new).or(next.arrow_in.take());
                     next
                 }
                 Some(prev) => {
-                    let arrow = step.arrow.clone().or(next.arrow_in.take());
-                    self.join(prev, next, arrow.as_ref())?
+                    let arrow = step.arrow.clone().map(Box::new).or(next.arrow_in.take());
+                    self.join(prev, next, arrow.as_deref())?
                 }
             });
         }
@@ -125,7 +125,7 @@ impl Layout<'_> {
             empty.empty = true;
             empty
         });
-        tile.arrow_out = flow.out.clone();
+        tile.arrow_out = flow.out.clone().map(Box::new);
         Ok(tile)
     }
 
@@ -332,7 +332,7 @@ impl Layout<'_> {
         if tile.empty {
             return Ok(None);
         }
-        let arrow = tile.arrow_in.as_ref();
+        let arrow = tile.arrow_in.as_deref();
         let last = *start.last().expect("a line starts somewhere");
         let mut points = start;
         points.push(tile.entry);
@@ -393,7 +393,7 @@ impl Layout<'_> {
                     pt(-dw / 2.0, cy, lane),
                 ],
                 true,
-                self.stroke(body.arrow_out.as_ref())?,
+                self.stroke(body.arrow_out.as_deref())?,
             ));
         }
         if !out.is_empty() {
@@ -484,7 +484,7 @@ impl Layout<'_> {
             edges.push(Edge::new(
                 points,
                 true,
-                self.stroke(body.arrow_out.as_ref())?,
+                self.stroke(body.arrow_out.as_deref())?,
             ));
         }
         shapes.push(Shape::Diamond {

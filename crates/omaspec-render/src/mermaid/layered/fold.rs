@@ -9,15 +9,28 @@ use mermaid_rs_renderer::{Graph, Node, NodeShape};
 use omaspec_uml::hand;
 
 use super::flowchart::Fix;
+use super::written::Written;
 
-/// `graph` and `fix` with the subgraphs whose ids `names` holds folded,
-/// and the ids of the nodes they held; `None` when none of them is a
-/// subgraph to fold.
+/// A graph with subgraphs folded, and what goes with it.
+pub(super) struct Folded {
+    pub graph: Graph,
+    pub fix: Fix,
+    /// Where its parts are written: a folded box's title where the
+    /// subgraph's is, a line moved onto it where it was written, and one
+    /// that stands for several lines alike on none.
+    pub written: Written,
+    /// The ids of the nodes the folded subgraphs held.
+    pub hidden: HashSet<String>,
+}
+
+/// `graph`, `fix` and `written` with the subgraphs whose ids `names`
+/// holds folded; `None` when none of them is a subgraph to fold.
 pub(super) fn fold(
     graph: &Graph,
     fix: &Fix,
+    written: &Written,
     names: &[String],
-) -> Option<(Graph, Fix, HashSet<String>)> {
+) -> Option<Folded> {
     // The outer one first, so one folded inside it folds nothing more.
     let mut chosen: Vec<usize> = graph
         .subgraphs
@@ -92,12 +105,13 @@ pub(super) fn fold(
         );
     }
     let to = |node: &String| redirect.get(node).unwrap_or(node).clone();
-    out.subgraphs = graph
-        .subgraphs
+    let kept_subgraphs: Vec<usize> = (0..graph.subgraphs.len())
+        .filter(|index| !folded.contains(index) && !gone.contains(index))
+        .collect();
+    out.subgraphs = kept_subgraphs
         .iter()
-        .enumerate()
-        .filter(|(index, _)| !folded.contains(index) && !gone.contains(index))
-        .map(|(_, sub)| {
+        .map(|&index| &graph.subgraphs[index])
+        .map(|sub| {
             let mut sub = sub.clone();
             let mut seen = HashSet::new();
             sub.nodes = sub
@@ -110,7 +124,8 @@ pub(super) fn fold(
         })
         .collect();
     let mut kept = HashMap::new();
-    let mut moved: HashSet<String> = HashSet::new();
+    let mut moved: HashMap<String, usize> = HashMap::new();
+    let mut edges_written = Vec::with_capacity(graph.edges.len());
     out.edges = Vec::with_capacity(graph.edges.len());
     for (index, edge) in graph.edges.iter().enumerate() {
         let (from, end) = (to(&edge.from), to(&edge.to));
@@ -122,13 +137,37 @@ pub(super) fn fold(
         let mut edge = edge.clone();
         edge.from = from;
         edge.to = end;
-        // Of the lines moved onto a folded box, one of those alike.
-        if shifted && !moved.insert(format!("{edge:?}")) {
-            continue;
+        // Of the lines moved onto a folded box, one of those alike, whose
+        // words then no one line writes.
+        if shifted {
+            let key = format!("{edge:?}");
+            if let Some(&first) = moved.get(&key) {
+                edges_written[first] = None;
+                continue;
+            }
+            moved.insert(key, out.edges.len());
         }
         kept.insert(index, out.edges.len());
+        edges_written.push(written.edges.get(index).copied().flatten());
         out.edges.push(edge);
     }
+    let mut nodes = written.nodes.clone();
+    nodes.retain(|id, _| !hidden.contains(id));
+    for &index in &folded {
+        if let (Some(id), Some(Some(at))) =
+            (&graph.subgraphs[index].id, written.subgraphs.get(index))
+        {
+            nodes.insert(id.clone(), *at);
+        }
+    }
+    let written = Written {
+        edges: edges_written,
+        nodes,
+        subgraphs: kept_subgraphs
+            .iter()
+            .map(|&index| written.subgraphs.get(index).copied().flatten())
+            .collect(),
+    };
     let fix = Fix {
         invisible: fix
             .invisible
@@ -154,7 +193,12 @@ pub(super) fn fold(
             .map(|(n, form)| (n.clone(), *form))
             .collect(),
     };
-    Some((out, fix, hidden))
+    Some(Folded {
+        graph: out,
+        fix,
+        written,
+        hidden,
+    })
 }
 
 /// The entries of lines by hand that name no hidden node.

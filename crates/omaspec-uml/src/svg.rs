@@ -494,6 +494,7 @@ impl Canvas {
         self.shapes.push(crate::map::Tied {
             rect: crate::graph::Rect { x, y, w, h },
             line,
+            col: None,
             span: 0,
         });
     }
@@ -723,7 +724,10 @@ impl Canvas {
             return;
         }
         // What the drawer said, or what the words say of themselves.
-        let tie = self.tie.or(block.written);
+        let tie = self
+            .tie
+            .map(|line| crate::text::Written { line, col: None })
+            .or(block.written);
         if self.echo || tie.is_some() {
             let left = match align {
                 Align::Left => x,
@@ -738,10 +742,11 @@ impl Canvas {
             };
             if self.echo {
                 self.echoes.push(rect);
-            } else if let Some(line) = tie {
+            } else if let Some(written) = tie {
                 self.ties.push(crate::map::Tied {
                     rect,
-                    line,
+                    line: written.line,
+                    col: written.col,
                     span: block.lines.len(),
                 });
             }

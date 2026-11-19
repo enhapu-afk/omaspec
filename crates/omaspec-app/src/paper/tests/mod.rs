@@ -202,6 +202,59 @@ fn a_flowchart_s_labels_that_read_alike_keep_apart() {
     assert_eq!(lines, [4, 6, 8, 11]);
 }
 
+/// A flowchart's label written between the names of its line, before a
+/// name that reads the same (`A -->|Done| Done`), lights from its own place
+/// and the name from its: neither takes the other's light, whichever is
+/// drawn first. A node's label one line gives is that line's.
+#[test]
+fn a_label_amid_the_names_keeps_its_own_place() {
+    let source = "flowchart LR\n  A -->|Done| Done\n  Done --> C[Done]\n";
+    let mut paper = Paper::default();
+    show_source(&mut paper, source, Language::Mermaid);
+    let at = |row: usize, col: usize| paper.place_of(source, row, col).unwrap();
+    // From left to right: the label, the node Done, the node C.
+    let (label, node, labelled) = (at(1, 9), at(1, 15), at(2, 16));
+    assert!(
+        label.x < node.x && node.x < labelled.x,
+        "{label:?} {node:?} {labelled:?}"
+    );
+    assert_eq!(at(2, 3), node, "a later mention is the node");
+    let mut lines: Vec<usize> = paper
+        .labels()
+        .into_iter()
+        .filter(|(text, ..)| text == "Done")
+        .filter_map(|(.., line)| line)
+        .collect();
+    lines.sort_unstable();
+    assert_eq!(lines, [1, 1, 2]);
+}
+
+/// The multiplicities of a line turned (`-up->`) are drawn in the other
+/// order than written; each still lights from where it is written.
+#[test]
+fn a_turned_line_s_multiplicities_keep_their_places() {
+    let source = "@startuml\nclass A\nclass B\nA \"1\" -up-> \"1\" B\n@enduml\n";
+    let mut paper = Paper::default();
+    show_source(&mut paper, source, Language::PlantUml);
+    let at = |col: usize| paper.place_of(source, 3, col).unwrap();
+    // B stands over A: the multiplicity written at A is the lower one.
+    let (by_a, by_b) = (at(3), at(13));
+    assert!(by_a.y > by_b.y, "{by_a:?} {by_b:?}");
+}
+
+/// A caret on an alias, before the words of the message its line closes
+/// with, is the participant, as its declaration is.
+#[test]
+fn an_alias_before_a_message_that_reads_as_it_is_the_participant() {
+    let source = "@startuml\nparticipant \"Login\" as L\nL -> DB : Login\n@enduml\n";
+    let mut paper = Paper::default();
+    show_source(&mut paper, source, Language::PlantUml);
+    let at = |row: usize, col: usize| paper.place_of(source, row, col).unwrap();
+    let (declared, alias, message) = (at(1, 14), at(2, 0), at(2, 11));
+    assert_eq!(alias, declared);
+    assert_ne!(message, declared);
+}
+
 /// A swimlane and actions that read as it keep apart: the lane lights
 /// from every `|lane|` line, each action from its own.
 #[test]

@@ -5,7 +5,7 @@
 use super::super::{Container, Direction, Kind, Side};
 use super::{
     COMP_GAP, COMP_PAD, Measured, NOTE_GAP, Placed, Scene, Skin, arrow_stroke, edge_label,
-    fill_regions, graph_direction, measure_node, note_size, place_notes, text_block,
+    fill_regions, graph_direction, measure_node, note_size, place_notes,
 };
 use crate::Declined;
 use crate::graph::open::{self, Line, Nested, Room};
@@ -179,7 +179,9 @@ impl<'a> Nested for States<'a> {
                 Side::Right => Room::After,
                 Side::Top | Side::Bottom => continue,
             };
-            let text = text_block(&note.text, self.skin.note.font, self.family)?;
+            let text = note
+                .text
+                .measure_written(self.skin.note.font, self.family)?;
             let (w, _) = note_size(&text);
             rooms.push((note.target, room(NOTE_GAP + w)));
         }

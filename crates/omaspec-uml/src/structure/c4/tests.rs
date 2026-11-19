@@ -393,6 +393,7 @@ System_Boundary(b, \"B\") {
             .line(&Line {
                 no,
                 text: text.trim(),
+                at: 0,
                 indent: 0,
                 blank_before: 0,
             })

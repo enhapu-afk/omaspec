@@ -23,7 +23,6 @@ mod state;
 mod timeline;
 
 use std::borrow::Cow;
-use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use mermaid_rs_renderer::{
     DiagramKind, ParseError, RenderOptions, Theme, compute_layout, parse_mermaid_strict, render_svg,
@@ -186,7 +185,7 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
 
     // mmdr is young and has panicking code paths; a bad diagram must not
     // take the editor down with it.
-    let result = catch_unwind(AssertUnwindSafe(|| -> Result<Drawn, Refused> {
+    let result = crate::caught::caught(|| -> Result<Drawn, Refused> {
         // A directive that is no JSON is the error; then the front
         // matter's settings and the directives' over them.
         head::init(body)?;
@@ -245,7 +244,7 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
             map: Map::default(),
             declined: Some(declined_by(parsed.graph.kind, body, source, offset)),
         })
-    }));
+    });
     match result {
         Ok(Ok(drawn)) => Ok(drawn),
         Ok(Err(Refused::Said(message))) => Err(RenderError::Diagram {

@@ -5,7 +5,7 @@
 use super::{
     Block, Declined, Direction, Draft, Family, Group, Item, Look, Measured, NOTE_GAP, Placed, Rect,
     Scene, Side, Skin, arrow_stroke, card_rects, child_origin, containers, frame_of, graph,
-    graph_direction, link_blocks, measure_element, name_band, note_size, place_notes, text_block,
+    graph_direction, link_blocks, measure_element, name_band, note_size, place_notes,
 };
 use crate::graph::open::{self, Line, Nested, Room};
 
@@ -31,7 +31,9 @@ impl Elements<'_> {
             return Err(Declined::at(note.line, "a note needs an element"));
         }
         // A note's words are its line's, from the line it begins on.
-        let text = text_block(&note.text, self.skin.note.font, self.family)?.written_on(note.line);
+        let text = note
+            .text
+            .measure_written(self.skin.note.font, self.family)?;
         let (w, h) = note_size(&text);
         Ok(Draft {
             target: note.target,

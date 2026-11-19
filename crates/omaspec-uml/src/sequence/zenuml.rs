@@ -245,6 +245,7 @@ pub fn from_zenuml(source: &str) -> Option<Diagram> {
         .map(|(no, text)| Line {
             no: *no,
             text: text.as_str(),
+            at: 0,
             indent: 0,
             blank_before: 0,
         })

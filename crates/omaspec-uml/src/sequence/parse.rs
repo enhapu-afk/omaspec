@@ -6,7 +6,7 @@ use super::{
     Participant, ParticipantBox, Shape, Side, Spot, Text,
 };
 use crate::Declined;
-use crate::common::{Frame, block, keyword, snippet, squeezed_eq, take_link, text_at};
+use crate::common::{Frame, block_text, keyword, snippet, squeezed_eq, take_link, text_at};
 use crate::source::{Line, starts_with_ci};
 
 /// Parses a sequence diagram from the lines [`crate::source::body`] gives.
@@ -956,10 +956,10 @@ impl Parser {
         };
         let (color, rest) =
             leading_color(rest.trim_start()).map_err(|reason| Declined::at(no, reason))?;
-        let (value, next) = if let Some(single) = rest.trim_start().strip_prefix(':') {
-            (single.trim().to_owned(), at + 1)
+        let (text, next) = if let Some(single) = rest.trim_start().strip_prefix(':') {
+            (text_at(single.trim(), no), at + 1)
         } else if rest.trim().is_empty() {
-            block(lines, at, "note", |l| {
+            block_text(lines, at, "note", |l| {
                 matches!(
                     l.split_whitespace()
                         .collect::<String>()
@@ -977,7 +977,7 @@ impl Parser {
         self.diagram.items.push(Item::Note(Note {
             shape,
             place,
-            text: Text { value, line: no },
+            text,
             color,
             together: false,
             line: no,
@@ -993,10 +993,10 @@ impl Parser {
         let (over, rest) = self.names(rest, no)?;
         let (color, rest) =
             leading_color(rest.trim_start()).map_err(|reason| Declined::at(no, reason))?;
-        let (value, next) = if let Some(single) = rest.trim_start().strip_prefix(':') {
-            (single.trim().to_owned(), at + 1)
+        let (text, next) = if let Some(single) = rest.trim_start().strip_prefix(':') {
+            (text_at(single.trim(), no), at + 1)
         } else if rest.trim().is_empty() {
-            block(lines, at, "ref", |l| squeezed_eq(l, "endref"))?
+            block_text(lines, at, "ref", |l| squeezed_eq(l, "endref"))?
         } else {
             return Err(Declined::at(
                 no,
@@ -1006,11 +1006,7 @@ impl Parser {
                 ),
             ));
         };
-        self.diagram.items.push(Item::Ref {
-            over,
-            text: Text { value, line: no },
-            color,
-        });
+        self.diagram.items.push(Item::Ref { over, text, color });
         Ok(next)
     }
 
@@ -1046,7 +1042,11 @@ impl Parser {
         };
         let color = color_only(rest, no)?;
         self.diagram.boxes.push(ParticipantBox {
-            title: title.map(|t| Text { value: t, line: no }),
+            title: title.map(|t| Text {
+                value: t,
+                line: no,
+                col: None,
+            }),
             color,
             line: no,
             participants: Vec::new(),

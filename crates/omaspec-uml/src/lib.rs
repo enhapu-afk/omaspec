@@ -68,7 +68,7 @@ pub use svg::{
     place_part, unmarked, without_lines, without_parts, words_part,
 };
 pub use text::{
-    Block, Family, Font, Link, Style, block as measure_text, creole_link, emoji,
+    Block, Family, Font, Link, Style, Written, block as measure_text, creole_link, emoji,
     measure as measure_run, styled as measure_styled,
 };
 

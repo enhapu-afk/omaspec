@@ -202,9 +202,10 @@ pub struct Tile {
     /// Where the arrow out of it starts; `None` when the flow ends in it.
     pub exit: Option<Pt>,
     /// The arrow leading to it and the one leaving it, for the flow
-    /// around it to draw.
-    pub arrow_in: Option<Arrow>,
-    pub arrow_out: Option<Arrow>,
+    /// around it to draw. Boxed: a tile is held on the stack at every
+    /// level of a nesting, which runs a hundred deep.
+    pub arrow_in: Option<Box<Arrow>>,
+    pub arrow_out: Option<Box<Arrow>>,
     /// A flow without steps: the line goes straight through.
     pub empty: bool,
     /// Left, top, right, bottom.

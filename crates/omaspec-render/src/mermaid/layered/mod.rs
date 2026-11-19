@@ -61,17 +61,24 @@ pub fn try_draw(
 ) -> Option<(String, Map)> {
     let mut repaired = None;
     let (graph, fix) = flowchart::apply(graph, source, &mut repaired)?;
+    // Where its parts are written, read before a fold moves them.
+    let written = written::read(graph, source, &fix.invisible);
     // Subgraphs the pane folded (docs/adr/0024), and the entries by hand
     // that name what they hold left out.
     let names = omaspec_uml::fold::read(source);
-    let (folded, fix, hidden) = match fold::fold(graph, &fix, &names) {
-        Some((graph, fix, hidden)) => (Some(graph), fix, hidden),
-        None => (None, fix, HashSet::new()),
+    let (folded, fix, written, hidden) = match fold::fold(graph, &fix, &written, &names) {
+        Some(fold::Folded {
+            graph,
+            fix,
+            written,
+            hidden,
+        }) => (Some(graph), fix, written, hidden),
+        None => (None, fix, written, HashSet::new()),
     };
     let graph = folded.as_ref().unwrap_or(graph);
     let (hands, held) = (fold::lines(hands, &hidden), fold::holds(held, &hidden));
     let (hands, held) = (hands.as_slice(), held.as_slice());
-    let mut tree = prepare(graph, source, &fix)?;
+    let mut tree = prepare(graph, source, &fix, written)?;
     // Boxes held in place, by the container that holds both.
     let mut unplaced = hold_boxes(&mut tree, held);
     unplaced.extend(part_boxes(&mut tree, &hand::apart(source)));
@@ -394,7 +401,12 @@ struct Meet {
     inward: bool,
 }
 
-fn prepare<'a>(graph: &'a Graph, source: &str, fix: &flowchart::Fix) -> Option<Tree<'a>> {
+fn prepare<'a>(
+    graph: &'a Graph,
+    source: &str,
+    fix: &flowchart::Fix,
+    written: written::Written,
+) -> Option<Tree<'a>> {
     if graph.kind != DiagramKind::Flowchart {
         return None;
     }
@@ -462,7 +474,7 @@ fn prepare<'a>(graph: &'a Graph, source: &str, fix: &flowchart::Fix) -> Option<T
             .filter_map(omaspec_uml::click::click)
             .filter_map(|click| Some((click.id, click.link?)))
             .collect(),
-        written: written::read(graph, &reading::readable(source), &fix.invisible),
+        written,
     };
     tree.walk(Spot::Root, &mut Vec::new());
     let mut meets = Vec::with_capacity(graph.edges.len());
@@ -918,11 +930,11 @@ fn measure_edge(tree: &Tree, index: usize, font: Font, family: Family) -> Block 
     tied(block, tree.written.edges.get(index).copied().flatten())
 }
 
-/// `block`, the words the zero-based `line` alone writes, where one does
-/// ([`Block::written_on`]).
-fn tied(block: Block, line: Option<usize>) -> Block {
-    match line {
-        Some(line) => block.written_on(line),
+/// `block`, the words one line alone writes, where one does
+/// ([`Block::written_at`]).
+fn tied(block: Block, at: Option<omaspec_uml::Written>) -> Block {
+    match at {
+        Some(at) => block.written_at(at.line, at.col),
         None => block,
     }
 }

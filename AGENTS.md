@@ -91,8 +91,12 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
 - Words one line of the source alone writes (a message, an action, a
   transition's label, a class's member, a line's multiplicity, a note)
   are tied to that line as they are drawn:
-  measured with `Block::written_on`, or drawn inside `Canvas::tie`. A
-  name many lines mention is not; a name drawn a second time (a
+  measured with `Block::written_on`, or drawn inside `Canvas::tie`, from
+  the line their words start on. Words written amid others on their line
+  (a flowchart's label between its ends, a multiplicity) say where they
+  stand: `Block::written_at` with the byte, kept by the reader
+  (`Text::col`); words without it close their line. A
+  name many lines mention is not tied; a name drawn a second time (a
   lifeline's foot) is drawn inside `Canvas::echo`. Every drawer ends its
   map with `Canvas::place`, which hands these to the pane: a click and
   the caret's light take tied words by their line, not by counting.

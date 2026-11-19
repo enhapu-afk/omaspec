@@ -503,6 +503,7 @@ mod tests {
             .map(|(no, t)| Line {
                 no,
                 text: t.trim(),
+                at: 0,
                 indent: t.len() - t.trim_start().len(),
                 blank_before: 0,
             })

@@ -10,9 +10,11 @@ use super::{
     Slot, Text,
 };
 use crate::Declined;
-use crate::common::{Frame, block, brace_delta, keyword, snippet, squeezed_eq, take_link, text_at};
+use crate::common::{
+    Frame, block_text, brace_delta, keyword, snippet, squeezed_eq, take_link, text_at,
+};
 use crate::graph::across::meeting;
-use crate::source::{Line, starts_with_ci};
+use crate::source::{Line, offset_in, starts_with_ci};
 
 /// Whether the lines of an `@startuml` diagram are a class, component,
 /// use case, deployment or object diagram.
@@ -256,8 +258,8 @@ struct ArrowBits {
 struct RawRel {
     from: RawName,
     to: RawName,
-    from_card: Option<String>,
-    to_card: Option<String>,
+    from_card: Option<Text>,
+    to_card: Option<Text>,
     arrow: ArrowBits,
     label: Option<String>,
 }
@@ -265,8 +267,8 @@ struct RawRel {
 struct Pending {
     from: RawName,
     to: RawName,
-    from_card: Option<String>,
-    to_card: Option<String>,
+    from_card: Option<Text>,
+    to_card: Option<Text>,
     from_head: Head,
     to_head: Head,
     dash: Dash,
@@ -282,7 +284,7 @@ struct Pending {
 struct RawNote {
     target: String,
     side: Side,
-    text: String,
+    text: Text,
     line: usize,
 }
 
@@ -389,7 +391,12 @@ impl Parser {
     }
 
     fn line(&mut self, lines: &[Line], at: usize) -> Result<usize, Declined> {
-        let Line { no, text, .. } = lines[at];
+        let Line {
+            no,
+            text,
+            at: start,
+            ..
+        } = lines[at];
         if self.members.is_some() {
             return self.member_line(text, no, at);
         }
@@ -474,7 +481,7 @@ impl Parser {
             return Ok(at + 1);
         }
         if find_arrow(text).is_some() {
-            self.add_relation(relation(text, no)?, no)?;
+            self.add_relation(relation(text, no, start)?, no)?;
             return Ok(at + 1);
         }
         if let Some((name, member)) = field_line(text, no)? {
@@ -789,8 +796,8 @@ impl Parser {
             from,
             to,
             label: item.label.as_ref().map(|text| text_at(text, item.line)),
-            from_card: item.from_card.as_ref().map(|text| text_at(text, item.line)),
-            to_card: item.to_card.as_ref().map(|text| text_at(text, item.line)),
+            from_card: item.from_card.clone(),
+            to_card: item.to_card.clone(),
             from_head: item.from_head,
             to_head: item.to_head,
             color: item.color.clone(),
@@ -826,8 +833,8 @@ impl Parser {
         let turned = |from: usize, to: usize| Link {
             from_head: item.to_head,
             to_head: item.from_head,
-            from_card: item.to_card.as_ref().map(|text| text_at(text, item.line)),
-            to_card: item.from_card.as_ref().map(|text| text_at(text, item.line)),
+            from_card: item.to_card.clone(),
+            to_card: item.from_card.clone(),
             ..link(to, from)
         };
         let home = &from[..from.len() - 1];
@@ -893,7 +900,7 @@ impl Parser {
             self.container_mut(&home).notes.push(Note {
                 target: index,
                 side: note.side,
-                text: text_at(&note.text, note.line),
+                text: note.text,
                 line: note.line,
             });
         }
@@ -934,7 +941,12 @@ impl Parser {
     }
 
     fn note(&mut self, lines: &[Line], at: usize) -> Result<usize, Declined> {
-        let Line { no, text, .. } = lines[at];
+        let Line {
+            no,
+            text,
+            at: start,
+            ..
+        } = lines[at];
         if keyword(text, "hnote").is_some() {
             return Err(Declined::at(no, "`hnote` is not supported yet"));
         }
@@ -953,7 +965,13 @@ impl Parser {
         if rest.starts_with('"') {
             let (body, after) = take_quoted(rest, no)?;
             let key = note_alias(after, no, &mut self.notes_made)?;
-            self.insert_note(&key, &body, no)?;
+            // Its words stand in the quotes, before its alias.
+            let label = Text {
+                value: body,
+                line: no,
+                col: Some(start + offset_in(text, rest) + 1),
+            };
+            self.insert_note(&key, label, no)?;
             return Ok(at + 1);
         }
         if let Some(alias) = keyword(rest, "as") {
@@ -962,8 +980,8 @@ impl Parser {
                 return Err(Declined::at(no, "`as` needs a name"));
             }
             let key = key.to_owned();
-            let (body, next) = block(lines, at, "note", end_note)?;
-            self.insert_note(&key, &body, no)?;
+            let (label, next) = block_text(lines, at, "note", end_note)?;
+            self.insert_note(&key, label, no)?;
             return Ok(next);
         }
         if let Some((side, after)) = side_of(rest) {
@@ -976,9 +994,9 @@ impl Parser {
                 return Err(Declined::at(no, "a note needs an element"));
             }
             let (body, next) = if let Some(text) = inline {
-                (text.to_owned(), at + 1)
+                (text_at(text, no), at + 1)
             } else {
-                block(lines, at, "note", end_note)?
+                block_text(lines, at, "note", end_note)?
             };
             self.raw_notes.push(RawNote {
                 target: name.to_owned(),
@@ -994,12 +1012,12 @@ impl Parser {
         ))
     }
 
-    fn insert_note(&mut self, key: &str, body: &str, line: usize) -> Result<(), Declined> {
+    fn insert_note(&mut self, key: &str, label: Text, line: usize) -> Result<(), Declined> {
         let here = self.here();
         let index = self.container(&here).nodes.len();
         self.container_mut(&here).nodes.push(Element {
             key: key.to_owned(),
-            label: text_at(body, line),
+            label,
             stereotypes: Vec::new(),
             members: Vec::new(),
             shape: Shape::Note,
@@ -1846,7 +1864,9 @@ fn strip_wrap(token: &str, open: char, close: char) -> Option<&str> {
     token.strip_prefix(open)?.strip_suffix(close)
 }
 
-fn relation(text: &str, line: usize) -> Result<RawRel, Declined> {
+/// The line `text`, which starts at the byte `at` of the source's line
+/// `line`.
+fn relation(text: &str, line: usize, at: usize) -> Result<RawRel, Declined> {
     let (lead, label) = split_label(text);
     let (start, end) = find_arrow(lead)
         .ok_or_else(|| Declined::at(line, format!("`{}` is not supported yet", snippet(text))))?;
@@ -1858,11 +1878,27 @@ fn relation(text: &str, line: usize) -> Result<RawRel, Declined> {
     }
     let (from, from_card) = side(left, true, line)?;
     let (to, to_card) = side(right, false, line)?;
+    // Where each multiplicity stands: the one before the arrow ends its
+    // side, the one after it begins its side. A line turned keeps them
+    // where they were written.
+    let card = |value: String, side: &str, last: bool| {
+        let quoted = format!("\"{value}\"");
+        let found = if last {
+            side.rfind(&quoted)
+        } else {
+            side.find(&quoted)
+        };
+        Text {
+            col: found.map(|found| at + offset_in(text, side) + found + 1),
+            value,
+            line,
+        }
+    };
     Ok(RawRel {
         from,
         to,
-        from_card,
-        to_card,
+        from_card: from_card.map(|value| card(value, left, true)),
+        to_card: to_card.map(|value| card(value, right, false)),
         arrow: parse_arrow(arrow, line)?,
         label: label.map(str::to_owned),
     })

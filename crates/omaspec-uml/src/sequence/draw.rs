@@ -88,6 +88,7 @@ fn bracketed(text: Option<&Text>, font: Font, family: Family) -> Result<Block, D
             &Text {
                 value: format!("[{}]", t.value),
                 line: t.line,
+                col: None,
             },
             font,
             family,
@@ -462,6 +463,7 @@ impl<'a> Drawer<'a> {
                 &Text {
                     value: p.label.clone(),
                     line: p.line,
+                    col: None,
                 },
                 look.font,
                 family,
@@ -471,6 +473,7 @@ impl<'a> Drawer<'a> {
                     &Text {
                         value: format!("«{s}»"),
                         line: p.line,
+                        col: None,
                     },
                     skin.stereotype_font,
                     family,
@@ -488,6 +491,7 @@ impl<'a> Drawer<'a> {
                         &Text {
                             value: spot.letter.to_string(),
                             line: p.line,
+                            col: None,
                         },
                         font,
                         family,
@@ -567,6 +571,7 @@ impl<'a> Drawer<'a> {
                             &Text {
                                 value: number.clone(),
                                 line: m.line,
+                                col: None,
                             },
                             skin.arrow_font,
                             family,
@@ -626,6 +631,7 @@ impl<'a> Drawer<'a> {
                         &Text {
                             value: "ref".into(),
                             line: text.line,
+                            col: None,
                         },
                         skin.group_header_font,
                         family,
@@ -1236,7 +1242,7 @@ impl<'a> Drawer<'a> {
         // drawn where it ends, and tied there.
         canvas.tie(match item {
             Item::Message(m) => Some(m.line),
-            Item::Note(note) => Some(note.line),
+            Item::Note(note) => Some(note.text.line),
             Item::Delay { line, .. } => Some(*line),
             Item::Ref { text, .. } => Some(text.line),
             _ => None,
@@ -1638,7 +1644,7 @@ impl<'a> Drawer<'a> {
             && let NotePlace::Message(side) = note.place
         {
             // The note's words are its own line's, not the message's.
-            canvas.tie(Some(note.line));
+            canvas.tie(Some(note.text.line));
             let (width, height) = (*width, *height);
             let nx = match side {
                 Side::Left => lo - 5.0 - width,
@@ -2211,6 +2217,7 @@ fn keyword(kind: GroupKind, line: usize) -> Text {
     Text {
         value: kind.keyword().into(),
         line,
+        col: None,
     }
 }
 
@@ -2671,7 +2678,7 @@ mod tests {
             ("skinparam shadowing false", None, "the diagram is empty"),
             ("", None, "the diagram is empty"),
             ("== Part ==", None, "needs a participant"),
-            ("note over A\n== head\nend note", Some(0), "headings"),
+            ("note over A\n== head\nend note", Some(1), "headings"),
         ] {
             let err = crate::render(source).unwrap_err();
             assert_eq!(err.line, line, "{source}: {err:?}");

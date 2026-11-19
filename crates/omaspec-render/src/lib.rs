@@ -8,6 +8,7 @@
 
 pub mod anchors;
 mod atlas;
+pub mod caught;
 pub mod contrast;
 pub mod export;
 mod fonts;
