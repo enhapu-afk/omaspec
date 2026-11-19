@@ -19,6 +19,7 @@ const FRAME_PAD: f32 = 10.0;
 
 /// The frame's texts, measured: what goes above and below a diagram. The
 /// same places as in a sequence diagram.
+#[derive(Clone)]
 pub struct Annotations {
     title: Block,
     header: Block,
@@ -31,6 +32,7 @@ pub struct Annotations {
     aligned: Aligned,
 }
 
+#[derive(Clone)]
 struct Placed {
     text: Block,
     top: bool,

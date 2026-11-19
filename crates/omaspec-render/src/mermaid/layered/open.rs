@@ -103,6 +103,12 @@ impl Nested for Charts<'_> {
         self.tree.apart.get(&spot).cloned().unwrap_or_default()
     }
 
+    /// Every shape that is not flat has an outline its lines are clipped
+    /// to ([`Nested::clip`]), at the middle of a side as anywhere.
+    fn round(&self, _spot: Spot, _index: usize) -> bool {
+        true
+    }
+
     fn flow(&self, spot: Spot) -> (graph::Direction, bool) {
         let (axis, flip) = axes(self.tree.flow(spot));
         (axis, !matches!(flip, Flip::No))

@@ -1,67 +1,94 @@
 //! A line back against the flow keeps off the corner another line takes
-//! (F8 of the review of the three diagrams). A box that is not flat (a
-//! choice's diamond, a circle) meets its lines at one point of each side:
-//! a line arriving from above and a line leaving back up from it met at
-//! its top corner, and the two read as one line that splits. Where a line
-//! back against the flow starts or ends at the point another line meets,
-//! it takes the side the way it heads for instead: out of the side corner
-//! across, then along the flow, as a choice's branches leave a diamond.
+//! (F8 of the review of the three diagrams). A box whose outline reaches
+//! the middle of each side ([`Node::round`]: a choice's diamond, a circle,
+//! a stadium) meets its lines at the middle of a side: a line arriving
+//! from above and a line leaving back up from it met at its top corner,
+//! and the two read as one line that splits. Where a line back against the
+//! flow starts or ends at the point another line meets, it takes the side
+//! the way it heads for instead, where no line meets it yet: out of the
+//! side corner across, then along the flow, as a choice's branches leave a
+//! diamond. Its run along the flow moves out past the corner where it ran
+//! nearer, as long as it still ends on the side of a flat box; the new way
+//! keeps off the boxes, the frames' names and the other lines' labels, and
+//! out of frames the line was not in.
 
 use super::route::{self, Point};
 use super::{Direction, Edge, Node, Rect};
 
 /// Two ends this close meet at one point.
 const SAME: f32 = 0.5;
-/// How far past the box's side a line must run along the flow to leave
-/// from that side.
+/// How far past the box's side a line runs along the flow to leave from
+/// that side, and how far a moved end stays from the corners of the box
+/// it ends at.
 const OUT: f32 = 12.0;
 
-/// `lines` with each line back against the flow (`back`) moved off a
-/// point of a box that is not flat which another line meets.
-pub(super) fn apart(
-    lines: &mut [Vec<Point>],
-    edges: &[Edge],
-    back: &[bool],
-    nodes: &[Node],
-    rects: &[Rect],
-    direction: Direction,
-) {
+/// What the lines of one layout are moved among.
+pub(super) struct Around<'a> {
+    pub edges: &'a [Edge],
+    /// Which lines run back against the flow.
+    pub back: &'a [bool],
+    pub nodes: &'a [Node],
+    pub rects: &'a [Rect],
+    pub frames: &'a [Rect],
+    /// The frames' names.
+    pub names: &'a [Rect],
+    /// Where the lines within a rank, routed apart, meet their boxes.
+    pub taken: &'a [Point],
+    /// Where the label of line `index` stands along `points`.
+    pub label: &'a dyn Fn(usize, &[Point]) -> Option<Rect>,
+    pub direction: Direction,
+}
+
+/// `lines` with each line back against the flow moved off a point of a
+/// round box which another line meets.
+pub(super) fn apart(lines: &mut [Vec<Point>], around: &Around) {
     // Laid out down the page; a flow to the right is turned to it and back.
-    let turned = direction == Direction::Right;
-    let turn = |p: Point| (p.1, p.0);
-    let mut work: Vec<Vec<Point>> = if turned {
-        lines
-            .iter()
-            .map(|l| l.iter().map(|&p| turn(p)).collect())
-            .collect()
-    } else {
-        lines.to_vec()
-    };
-    let boxes: Vec<Rect> = rects
-        .iter()
-        .map(|r| {
-            if turned {
-                Rect {
-                    x: r.y,
-                    y: r.x,
-                    w: r.h,
-                    h: r.w,
-                }
-            } else {
-                *r
+    let turned = around.direction == Direction::Right;
+    let turn = |p: Point| if turned { (p.1, p.0) } else { p };
+    let turn_rect = |r: &Rect| {
+        if turned {
+            Rect {
+                x: r.y,
+                y: r.x,
+                w: r.h,
+                h: r.w,
             }
-        })
+        } else {
+            *r
+        }
+    };
+    let mut work: Vec<Vec<Point>> = lines
+        .iter()
+        .map(|l| l.iter().map(|&p| turn(p)).collect())
         .collect();
+    let boxes: Vec<Rect> = around.rects.iter().map(turn_rect).collect();
+    let frames: Vec<Rect> = around.frames.iter().map(turn_rect).collect();
+    let names: Vec<Rect> = around.names.iter().map(turn_rect).collect();
+    let taken: Vec<Point> = around.taken.iter().map(|&p| turn(p)).collect();
+    let label = |index: usize, points: &[Point]| {
+        let points: Vec<Point> = points.iter().map(|&p| turn(p)).collect();
+        (around.label)(index, &points).map(|r| turn_rect(&r))
+    };
+    let meets = |work: &[Vec<Point>], index: usize, at: Point| {
+        let near = |p: &Point| (p.0 - at.0).abs() < SAME && (p.1 - at.1).abs() < SAME;
+        taken.iter().any(near)
+            || work.iter().enumerate().any(|(other, line)| {
+                other != index && [line.first(), line.last()].into_iter().flatten().any(near)
+            })
+    };
     for index in 0..work.len() {
-        if !back.get(index).copied().unwrap_or(false) {
+        if !around.back.get(index).copied().unwrap_or(false) {
             continue;
         }
-        let Some(edge) = edges.get(index) else {
+        let Some(edge) = around.edges.get(index) else {
             continue;
         };
         for at_start in [true, false] {
             let node = if at_start { edge.from } else { edge.to };
-            if node >= nodes.len() || nodes[node].flat || edge.from == edge.to {
+            let Some(shape) = around.nodes.get(node) else {
+                continue;
+            };
+            if !shape.round || edge.from == edge.to {
                 continue;
             }
             let points = &work[index];
@@ -72,43 +99,70 @@ pub(super) fn apart(
             }) else {
                 continue;
             };
-            let shared = work.iter().enumerate().any(|(other, line)| {
-                other != index
-                    && [line.first(), line.last()]
-                        .into_iter()
-                        .flatten()
-                        .any(|p| (p.0 - end.0).abs() < SAME && (p.1 - end.1).abs() < SAME)
-            });
-            if !shared {
+            if !meets(&work, index, end) {
                 continue;
             }
-            let others: Vec<Rect> = boxes
+            // Everything the new way keeps off: the other boxes (a flat one
+            // may take its end), the names, the other lines' labels.
+            let others: Vec<(Rect, bool)> = boxes
                 .iter()
                 .enumerate()
                 .filter(|&(i, _)| i != node)
-                .map(|(_, r)| *r)
+                .map(|(i, r)| (*r, around.nodes.get(i).is_some_and(|n| n.flat)))
                 .collect();
-            if let Some(moved) = sideways(points, boxes[node], at_start, &others) {
+            let mut solids: Vec<Rect> = names.clone();
+            solids.extend(
+                work.iter()
+                    .enumerate()
+                    .filter(|&(other, _)| other != index)
+                    .filter_map(|(other, line)| label(other, line)),
+            );
+            let Some(moved) = sideways(points, boxes[node], at_start, &others) else {
+                continue;
+            };
+            let start = if at_start {
+                moved[0]
+            } else {
+                moved[moved.len() - 1]
+            };
+            let cut = |line: &[Point], r: Rect| {
+                line.windows(2).any(|pair| route::cuts(r, pair[0], pair[1]))
+            };
+            let clear = !meets(&work, index, start)
+                && !solids.iter().any(|&r| cut(&moved, r))
+                && !frames.iter().any(|&r| cut(&moved, r) && !cut(points, r))
+                && label(index, &moved).is_none_or(|own| {
+                    !others.iter().any(|(r, _)| overlap(*r, own))
+                        && !solids.iter().any(|&r| overlap(r, own))
+                });
+            if clear {
                 work[index] = moved;
             }
         }
     }
     for (line, moved) in lines.iter_mut().zip(work) {
-        *line = if turned {
-            moved.into_iter().map(turn).collect()
-        } else {
-            moved
-        };
+        *line = moved.into_iter().map(turn).collect();
     }
+}
+
+/// Whether two boxes overlap by more than a touch.
+fn overlap(a: Rect, b: Rect) -> bool {
+    a.x + 0.5 < b.x + b.w && b.x + 0.5 < a.x + a.w && a.y + 0.5 < b.y + b.h && b.y + 0.5 < a.y + a.h
 }
 
 /// `points` leaving `rect` (or arriving at it, when not `at_start`) from
 /// the side the line heads for, at the middle of that side, then along
 /// the flow where it ran before, or [`OUT`] past the side where it ran
 /// nearer, the run moved out with it as long as it still ends on the side
-/// of the box it ends at; `None` where the line runs straight on from the
-/// point, or the new way would cut one of `others`.
-fn sideways(points: &[Point], rect: Rect, at_start: bool, others: &[Rect]) -> Option<Vec<Point>> {
+/// of a flat box of `others`; `None` where the line runs straight on from
+/// the point, steps across only at its far end, or the new way would cut
+/// one of `others`.
+fn sideways(
+    points: &[Point],
+    rect: Rect,
+    at_start: bool,
+    others: &[(Rect, bool)],
+) -> Option<Vec<Point>> {
     let mut line: Vec<Point> = points.to_vec();
     if !at_start {
         line.reverse();
@@ -117,10 +171,10 @@ fn sideways(points: &[Point], rect: Rect, at_start: bool, others: &[Rect]) -> Op
     // The first run along the flow away from the point ends in a step
     // across; the run after it goes on along the flow.
     let step = line.iter().position(|p| (p.0 - start.0).abs() > SAME)?;
+    let next = *line.get(step + 1)?;
     let track = line[step].0;
     let middle = rect.y + rect.h / 2.0;
-    let rightward = track > start.0;
-    let (side, out) = if rightward {
+    let (side, out) = if track > start.0 {
         let side = rect.x + rect.w;
         (side, (side + OUT).max(track))
     } else {
@@ -130,24 +184,26 @@ fn sideways(points: &[Point], rect: Rect, at_start: bool, others: &[Rect]) -> Op
     if (out - track).abs() < SAME {
         moved.extend(line[step + 1..].iter().copied());
     } else {
-        let next = *line.get(step + 1)?;
         moved.push((out, next.1));
         if step + 2 < line.len() {
             moved.extend(line[step + 2..].iter().copied());
         } else {
-            // The run ends on a box: on its side still, off its corners.
-            let on = others.iter().any(|r| {
+            // The run ends on a box: a flat one, on its side still, off
+            // its corners.
+            let on = others.iter().any(|&(r, flat)| {
                 let border = (r.y - next.1).abs() < SAME || (r.y + r.h - next.1).abs() < SAME;
-                border && out > r.x + OUT && out < r.x + r.w - OUT
+                flat && border && out > r.x + OUT && out < r.x + r.w - OUT
             });
             if !on {
                 return None;
             }
         }
     }
-    let blocked = moved
-        .windows(2)
-        .any(|pair| others.iter().any(|&r| route::cuts(r, pair[0], pair[1])));
+    let blocked = moved.windows(2).any(|pair| {
+        others
+            .iter()
+            .any(|&(r, _)| route::cuts(r, pair[0], pair[1]))
+    });
     if blocked {
         return None;
     }
@@ -179,7 +235,7 @@ mod tests {
         let moved = sideways(&up, diamond, true, &[]).unwrap();
         assert_eq!(moved, [(140.0, 215.0), (180.0, 215.0), (180.0, 40.0)]);
         // Heading for a place within the box's width, its run moves out
-        // past the corner, onto the box it ends at.
+        // past the corner, onto the flat box it ends at.
         let near = vec![
             (120.0, 200.0),
             (120.0, 188.0),
@@ -187,38 +243,55 @@ mod tests {
             (130.0, 40.0),
         ];
         let above = rect(100.0, 10.0, 120.0, 30.0);
-        let moved = sideways(&near, diamond, true, &[above]).unwrap();
+        let moved = sideways(&near, diamond, true, &[(above, true)]).unwrap();
         assert_eq!(moved, [(140.0, 215.0), (152.0, 215.0), (152.0, 40.0)]);
-        // Where that would leave the box it ends at, it stays.
+        // Not where that leaves the box it ends at, or the box is round.
         assert!(sideways(&near, diamond, true, &[]).is_none());
+        assert!(sideways(&near, diamond, true, &[(above, false)]).is_none());
         // A box in the new way: it stays.
         let wall = rect(160.0, 205.0, 40.0, 20.0);
-        assert!(sideways(&up, diamond, true, &[wall]).is_none());
+        assert!(sideways(&up, diamond, true, &[(wall, true)]).is_none());
+        // A step across at the far end alone: it stays.
+        let short = vec![(120.0, 200.0), (120.0, 188.0), (180.0, 188.0)];
+        assert!(sideways(&short, diamond, true, &[]).is_none());
     }
 
-    #[test]
-    fn only_a_line_back_that_shares_its_point_moves() {
-        let nodes = [
-            Node {
-                width: 40.0,
-                height: 30.0,
-                before: 0.0,
-                loop_extra: 0.0,
-                flat: false,
-            },
-            Node {
-                width: 80.0,
-                height: 30.0,
-                before: 0.0,
-                loop_extra: 0.0,
-                flat: true,
-            },
-        ];
+    fn node(round: bool) -> Node {
+        Node {
+            width: 40.0,
+            height: 30.0,
+            before: 0.0,
+            loop_extra: 0.0,
+            flat: !round,
+            round,
+        }
+    }
+
+    fn moved(lines: &mut [Vec<Point>], nodes: &[Node], taken: &[Point]) {
         let rects = [rect(100.0, 200.0, 40.0, 30.0), rect(140.0, 0.0, 80.0, 30.0)];
         let edges = [
             crate::graph::tests::edge(1, 0),
             crate::graph::tests::edge(0, 1),
+            crate::graph::tests::edge(0, 1),
         ];
+        apart(
+            lines,
+            &Around {
+                edges: &edges,
+                back: &[false, true, true],
+                nodes,
+                rects: &rects,
+                frames: &[],
+                names: &[],
+                taken,
+                label: &|_, _| None,
+                direction: Direction::Down,
+            },
+        );
+    }
+
+    #[test]
+    fn only_a_line_back_that_shares_its_point_moves_and_onto_a_free_one() {
         let into = vec![(120.0, 100.0), (120.0, 200.0)];
         let back = vec![
             (120.0, 200.0),
@@ -227,26 +300,26 @@ mod tests {
             (180.0, 30.0),
         ];
         let mut lines = vec![into.clone(), back.clone()];
-        apart(
-            &mut lines,
-            &edges,
-            &[false, true],
-            &nodes,
-            &rects,
-            Direction::Down,
-        );
+        moved(&mut lines, &[node(true), node(false)], &[]);
         assert_eq!(lines[0], into);
         assert_eq!(lines[1], [(140.0, 215.0), (180.0, 215.0), (180.0, 30.0)]);
         // Alone at the corner, it keeps it.
         let mut lines = vec![vec![(120.0, 100.0), (110.0, 200.0)], back.clone()];
-        apart(
-            &mut lines,
-            &edges,
-            &[false, true],
-            &nodes,
-            &rects,
-            Direction::Down,
-        );
+        moved(&mut lines, &[node(true), node(false)], &[]);
         assert_eq!(lines[1], back);
+        // A box that is not round (an actor, as wide as its name) keeps it.
+        let mut lines = vec![into.clone(), back.clone()];
+        moved(&mut lines, &[node(false), node(false)], &[]);
+        assert_eq!(lines[1], back);
+        // The side point taken by a line within the rank: it stays.
+        let mut lines = vec![into.clone(), back.clone()];
+        moved(&mut lines, &[node(true), node(false)], &[(140.0, 215.0)]);
+        assert_eq!(lines[1], back);
+        // A second line back the same way finds the side taken by the
+        // first, and stays.
+        let mut lines = vec![into.clone(), back.clone(), back.clone()];
+        moved(&mut lines, &[node(true), node(false)], &[]);
+        assert_eq!(lines[1], [(140.0, 215.0), (180.0, 215.0), (180.0, 30.0)]);
+        assert_eq!(lines[2], back);
     }
 }

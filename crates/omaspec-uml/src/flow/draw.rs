@@ -119,6 +119,7 @@ fn paint(
             before: 0.0,
             loop_extra: 0.0,
             flat: true,
+            round: false,
         })
         .collect();
     // A wire between two ports of one block is drawn around that block.
@@ -347,6 +348,7 @@ fn measure_subsystem(block: &Block, skin: &Skin, family: Family) -> Result<Block
             before: 0.0,
             loop_extra: 0.0,
             flat: true,
+            round: false,
         })
         .collect();
     let mut edges = Vec::new();

@@ -72,21 +72,30 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, Map), Declined> {
 /// `d` drawn, and drawn again with the room the drawing found it lacks
 /// ([`room`]): the drawer as it last drew, and what it drew on.
 fn laid<'a>(d: &'a Diagram, skin: &'a Skin) -> Result<(Drawer<'a>, Canvas), Declined> {
-    let mut extra = room::Extra::default();
-    let mut pass = 1;
-    loop {
+    let canvas = || {
         let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
         canvas.sketch(skin.sketch);
         canvas.shadows(skin.shadow);
-        let family = canvas.family();
-        let mut drawer = Drawer::new(d, skin, family)?;
+        canvas
+    };
+    // Its words are measured once; each drawing starts from them.
+    let measured = Drawer::new(d, skin, canvas().family())?;
+    let mut extra = room::Extra::default();
+    let mut pass = 1;
+    let mut short = f32::INFINITY;
+    loop {
+        let mut canvas = canvas();
+        let mut drawer = measured.clone();
         drawer.extra = extra.clone();
         drawer.place();
         drawer.run(&mut canvas);
         let more = drawer.crowded();
-        if more.is_empty() || pass >= room::PASSES {
+        // Done when nothing lacks room, or when the room asked for last
+        // took nothing away from what lacks it.
+        if more.is_empty() || pass >= room::PASSES || more.short >= short - 0.01 {
             return Ok((drawer, canvas));
         }
+        short = more.short;
         extra.extend(more);
         pass += 1;
     }
@@ -146,6 +155,7 @@ fn blended(value: &str, line: usize, background: Paint) -> Result<Paint, Decline
 }
 
 /// A participant drawn as a column.
+#[derive(Clone)]
 struct Column {
     shape: Shape,
     label: Block,
@@ -164,6 +174,7 @@ struct Column {
 }
 
 /// A stereotype's spot as drawn: its letter in a circle.
+#[derive(Clone)]
 struct SpotMark {
     letter: Block,
     fill: Paint,
@@ -182,6 +193,7 @@ impl Column {
 }
 
 /// What was measured for an item.
+#[derive(Clone)]
 enum Measured {
     Message {
         text: Block,
@@ -288,6 +300,7 @@ impl Space {
 }
 
 /// A box around participants, by columns.
+#[derive(Clone)]
 struct BoxPlace {
     first: usize,
     last: usize,
@@ -296,6 +309,7 @@ struct BoxPlace {
 }
 
 /// An activation bar.
+#[derive(Clone)]
 struct Bar {
     column: usize,
     depth: usize,
@@ -306,6 +320,7 @@ struct Bar {
     line: usize,
 }
 
+#[derive(Clone)]
 struct OpenGroup {
     top: f32,
     header: Block,
@@ -317,8 +332,14 @@ struct OpenGroup {
     /// What it holds, left and right.
     lo: f32,
     hi: f32,
+    /// The lifelines its items stand by, the first and the last.
+    cols: Option<(usize, usize)>,
+    /// Whether it holds a message from or to the picture's left edge, and
+    /// its right edge: there it reaches the edge, no further.
+    edge: [bool; 2],
 }
 
+#[derive(Clone)]
 struct Drawer<'a> {
     d: &'a Diagram,
     skin: &'a Skin,
@@ -443,12 +464,14 @@ struct Reach {
 }
 
 /// A `rect` waiting for its `end`.
+#[derive(Clone)]
 struct OpenRect {
     top: f32,
     fill: Paint,
 }
 
 /// One closed `rect`, across the participant band.
+#[derive(Clone)]
 struct Highlight {
     top: f32,
     bottom: f32,
@@ -1173,6 +1196,21 @@ impl<'a> Drawer<'a> {
         }
     }
 
+    /// Every open frame holds the lifelines `cols`, and a message from or
+    /// to the picture's left or right edge where `edge` says so.
+    fn hold(&mut self, cols: &[usize], edge: [bool; 2]) {
+        for g in &mut self.groups {
+            for &c in cols {
+                g.cols = Some(match g.cols {
+                    Some((lo, hi)) => (lo.min(c), hi.max(c)),
+                    None => (c, c),
+                });
+            }
+            g.edge[0] |= edge[0];
+            g.edge[1] |= edge[1];
+        }
+    }
+
     /// Widens every open frame to hold `lo..hi`.
     fn touch(&mut self, lo: f32, hi: f32) {
         for g in &mut self.groups {
@@ -1407,6 +1445,8 @@ impl<'a> Drawer<'a> {
                         elses: Vec::new(),
                         lo: f32::INFINITY,
                         hi: f32::NEG_INFINITY,
+                        cols: None,
+                        edge: [false; 2],
                     });
                 }
             }
@@ -1778,6 +1818,9 @@ impl<'a> Drawer<'a> {
         };
         canvas.text(Layer::Front, &text, (text_left + gap, top), Align::Left);
         self.touch(reach.0, reach.1);
+        let ends: Vec<usize> = [from, to].into_iter().flatten().collect();
+        let edge = |side: Side| [m.from, m.to].contains(&End::Edge(side));
+        self.hold(&ends, [edge(Side::Left), edge(Side::Right)]);
 
         if let Some(c) = created {
             let head_top = arrow_y - self.cols[c].height / 2.0;
@@ -1973,6 +2016,15 @@ impl<'a> Drawer<'a> {
         let last = self.cols.len() - 1;
         // The lifeline a note stands beside, and on which side.
         let mut beside: Option<(usize, bool)> = None;
+        let held: Vec<usize> = match note.place {
+            NotePlace::LeftOf(p) | NotePlace::RightOf(p) => vec![self.col(p)],
+            NotePlace::Over(a, b) => {
+                let (a, b) = (self.col(a), self.col(b));
+                (a.min(b)..=a.max(b)).collect()
+            }
+            NotePlace::Across => (0..=last).collect(),
+            NotePlace::Message(_) => Vec::new(),
+        };
         let x = match note.place {
             NotePlace::LeftOf(p) => {
                 let c = self.col(p);
@@ -2016,6 +2068,7 @@ impl<'a> Drawer<'a> {
             });
         }
         self.touch(x, x + width);
+        self.hold(&held, [false; 2]);
         self.y = y + height + 3.0;
     }
 
@@ -2050,6 +2103,7 @@ impl<'a> Drawer<'a> {
             Align::Center,
         );
         self.touch(x, x + w);
+        self.hold(&(lo..=hi).collect::<Vec<_>>(), [false; 2]);
         self.y = top + h + 3.0;
     }
 
@@ -2066,13 +2120,22 @@ impl<'a> Drawer<'a> {
         };
         let tab_w = g.header.width + 18.0;
         let tab_h = g.header.height + 4.0;
-        let left = lo - FRAME;
+        // A message from the left edge enters it there.
+        let left = if g.edge[0] {
+            (lo - FRAME).max(0.0)
+        } else {
+            lo - FRAME
+        };
         let mut right = (hi + FRAME).max(left + tab_w + 10.0);
         if !g.label.is_empty() {
             right = right.max(left + tab_w + 5.0 + g.label.width + 10.0);
         }
         for (_, label, _) in &g.elses {
             right = right.max(left + label.width + 15.0);
+        }
+        // A message to the right edge leaves it there.
+        if g.edge[1] {
+            right = right.min(self.right_edge).max(left + tab_w + 10.0);
         }
         let border = Stroke::new(skin.group_border, skin.group_thickness);
         canvas.rect(
@@ -2142,9 +2205,14 @@ impl<'a> Drawer<'a> {
             top: g.top,
             bottom,
             words,
+            held: g.cols,
+            edge: g.edge,
         });
         self.y = bottom;
         self.touch(left, right);
+        if let Some((lo, hi)) = g.cols {
+            self.hold(&[lo, hi], g.edge);
+        }
     }
 
     fn divider(&self, canvas: &mut Canvas, cy: f32, label: &Block, left: f32, right: f32) {
@@ -2914,6 +2982,10 @@ mod tests {
             "participant B\nparticipant C\nactivate C\nloop every day until the order is shipped\nnote right of B : n\nend\nB -> C : w",
             "participant A\nparticipant B\nparticipant C\nactivate C\nopt o\nA -> B : m\nB -> B : a longer self text\nend\nB -> C : z",
             "A -> B : x\nloop every day until the order is shipped\nB -> C : still reserved?\nend",
+            "participant A\nparticipant B\nopt o\nnote left of B : a longish note here\nend",
+            "A -> B ++ : x\nB -> B ++ : s\nB -> B ++ : t\nA -> B : msg\nnote right : a long note on the right",
+            "participant A\nparticipant B\ngroup g\n[-> A : request\nend",
+            "skinparam sequenceMessageAlign right\nparticipant A\nparticipant B\ngroup g\nB ->] : out\nend",
         ];
         for body in cases {
             let crate::Diagram::Sequence(d) = crate::parse(body).unwrap() else {
@@ -2954,6 +3026,78 @@ mod tests {
             let room = d.x[1] - (d.x[0] + d.cols[0].half());
             assert!(room >= d.message_text_width(k), "{room} {:?}", d.x);
         });
+    }
+
+    #[test]
+    fn a_frame_holding_a_message_from_an_edge_reaches_the_edge_once_drawn() {
+        for body in [
+            "participant A\nparticipant B\ngroup g\n[-> A : request\nend",
+            "skinparam sequenceMessageAlign right\nparticipant A\nparticipant B\ngroup g\nB ->] : out\nend",
+        ] {
+            laid_out(body, |d| {
+                let frame = &d.drawn.frames[0];
+                assert!(frame.left >= -0.01, "{body}: {}", frame.left);
+                assert!(
+                    frame.right <= d.right_edge + 0.01,
+                    "{body}: {}",
+                    frame.right
+                );
+            });
+            // As wide as drawn once: the columns did not move for it.
+            let svg = crate::render(body).unwrap();
+            let once = {
+                let crate::Diagram::Sequence(d) = crate::parse(body).unwrap() else {
+                    panic!()
+                };
+                let skin = Skin::from_params(&d.frame.skinparams).unwrap();
+                let mut canvas = Canvas::new(&skin.font_name, skin.monochrome);
+                let family = canvas.family();
+                let mut drawer = Drawer::new(&d, &skin, family).unwrap();
+                drawer.place();
+                drawer.run(&mut canvas);
+                drawer.x.clone()
+            };
+            let mut x = Vec::new();
+            laid_out(body, |d| x = d.x.clone());
+            assert_eq!(x, once, "{body}: {svg}");
+        }
+    }
+
+    #[test]
+    fn a_note_beside_a_message_stands_clear_of_the_next_lifeline_as_drawn() {
+        let svg = crate::render(
+            "A -> B ++ : x\nB -> B ++ : s\nB -> B ++ : t\nA -> B : msg\nnote right : a note on the right\nB -> C : z",
+        )
+        .unwrap();
+        let number = |tag: &str, name: &str| -> Option<f32> {
+            format!(" {tag}")
+                .split(&format!(" {name}=\""))
+                .nth(1)?
+                .split('"')
+                .next()?
+                .parse()
+                .ok()
+        };
+        // The note's outline, a path that closes, ends before C's lifeline,
+        // the middle of the rightmost head.
+        let note = svg
+            .split("<path d=\"M")
+            .skip(1)
+            .filter_map(|rest| rest.split('"').next()?.strip_suffix(" Z"))
+            .flat_map(|outline| {
+                outline
+                    .split([' ', 'L'])
+                    .filter_map(|pair| pair.split(',').next()?.parse::<f32>().ok())
+                    .collect::<Vec<_>>()
+            })
+            .fold(f32::MIN, f32::max);
+        let c = svg
+            .split("<rect ")
+            .skip(1)
+            .filter(|rect| rect.contains("rx=\"2.5\""))
+            .filter_map(|rect| Some(number(rect, "x")? + number(rect, "width")? / 2.0))
+            .fold(f32::MIN, f32::max);
+        assert!(note <= c - 5.0 + 0.01, "{note} {c}");
     }
 
     #[test]

@@ -2897,6 +2897,21 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the room found by drawing and of F8 found (2026-11-19). A
+      frame knows the lifelines its items stand by: a lifeline it does not hold keeps
+      the margin from its sides wherever it stands, also just inside one a note
+      pushed past it. A frame holding a message from the left edge or to the right
+      edge reaches that edge and asks nothing of it: before, a frame around `[-> A`
+      was drawn four times and still poked past the picture. A note keeps before
+      where a message to the right edge ends, and a drawing that takes nothing away
+      from what lacks room is the last; a sequence's words are measured once, not
+      for each drawing. A line back out of a diamond moves only on a box whose
+      outline reaches the middle of each side (`graph::Node::round`, `Nested::round`:
+      a diamond, a circle, a flowchart's shapes, not an actor as wide as its name),
+      onto a side point no line meets yet (one within the rank included), its far
+      end on a flat box only, clear of labels, names and frames it was not in. A
+      state's line meets a diamond or a circle on its outline, also where several
+      share a side (`Nested::clip`)
 - [x] A line back out of a diamond leaves from its side (2026-11-19, from the review
       sheet, F8): a box that is not flat (a choice's diamond, a circle, a stadium)
       meets its lines at one point of each side, so in the door with an alarm `wind`

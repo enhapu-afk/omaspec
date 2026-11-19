@@ -1098,6 +1098,7 @@ mod tests {
             before: 0.0,
             loop_extra: 0.0,
             flat: true,
+            round: false,
         }
     }
 

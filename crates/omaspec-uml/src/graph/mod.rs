@@ -72,6 +72,10 @@ pub struct Node {
     pub before: f32,
     pub loop_extra: f32,
     pub flat: bool,
+    /// Its outline reaches the middle of each side of its box (a diamond,
+    /// a circle, a stadium): a line back against the flow may leave or
+    /// reach it there ([`corner`]).
+    pub round: bool,
 }
 
 /// A connection. `from == to` is a self-loop and takes no rank.
@@ -807,29 +811,53 @@ fn in_ranks(
         })
     };
     let mut lines: Vec<Vec<(f32, f32)>> = routes.iter().map(|r| r.points.clone()).collect();
+    // The names of the frames, which lines keep off.
+    let names: Vec<Rect> = frames
+        .iter()
+        .zip(&frame_rects)
+        .filter_map(|(frame, rect)| {
+            let name = frame.name;
+            (name.width > 0.0).then_some(match direction {
+                Direction::Down => Rect {
+                    x: rect.x + name.share * rect.w + name.offset,
+                    y: rect.y,
+                    w: name.width,
+                    h: name.height,
+                },
+                Direction::Right => Rect {
+                    x: rect.x,
+                    y: rect.y + name.share * rect.h + name.offset,
+                    w: name.height,
+                    h: name.width,
+                },
+            })
+        })
+        .collect();
     // A line back against the flow leaves a diamond's corner another line
     // takes.
-    corner::apart(&mut lines, edges, &back, nodes, &rects, direction);
+    let level_ends: Vec<(f32, f32)> = level_routes
+        .iter()
+        .flatten()
+        .flat_map(|route| route.points.first().into_iter().chain(route.points.last()))
+        .copied()
+        .collect();
+    corner::apart(
+        &mut lines,
+        &corner::Around {
+            edges,
+            back: &back,
+            nodes,
+            rects: &rects,
+            frames: &frame_rects,
+            names: &names,
+            taken: &level_ends,
+            label: &label_rect,
+            direction,
+        },
+    );
     straight::unjog(&mut lines, &ends, &rects, &label_rect);
     // Then one step where there were several: a run moved keeps off the
     // boxes and the names of the frames, and out of frames it was not in.
-    let names = frames.iter().zip(&frame_rects).filter_map(|(frame, rect)| {
-        let name = frame.name;
-        (name.width > 0.0).then_some(match direction {
-            Direction::Down => Rect {
-                x: rect.x + name.share * rect.w + name.offset,
-                y: rect.y,
-                w: name.width,
-                h: name.height,
-            },
-            Direction::Right => Rect {
-                x: rect.x,
-                y: rect.y + name.share * rect.h + name.offset,
-                w: name.height,
-                h: name.width,
-            },
-        })
-    });
     // The label of a line within a rank is in the way like a box.
     let level_labels = level_routes.iter().flatten().filter_map(|route| {
         (route.label_width > 0.0).then_some(Rect {
@@ -2314,6 +2342,7 @@ mod tests {
             before: 0.0,
             loop_extra: 0.0,
             flat: true,
+            round: false,
         }
     }
 
@@ -2576,6 +2605,7 @@ mod tests {
     fn a_point_side_keeps_its_lines_in_order() {
         let diamond = Node {
             flat: false,
+            round: true,
             ..node(40.0, 40.0)
         };
         let nodes = [diamond, node(60.0, 20.0), node(60.0, 20.0)];

@@ -57,6 +57,61 @@ impl<'a> Nested for States<'a> {
         container.bundled
     }
 
+    /// A choice's diamond and the circles: their outlines reach the
+    /// middle of each side, and a line's end is clipped to them.
+    fn round(&self, container: &'a Container, index: usize) -> bool {
+        container.nodes.get(index).is_some_and(|node| {
+            matches!(
+                node.kind,
+                Kind::Choice | Kind::Start | Kind::End | Kind::History | Kind::DeepHistory
+            )
+        })
+    }
+
+    /// A line's end on a diamond or a circle, where it meets the box
+    /// around it off the middle of a side (as several lines on one side
+    /// do), moved along its last run onto the outline.
+    fn clip(&self, end: &Placed, points: &mut [graph::route::Point], at_start: bool) {
+        let ellipse = match end.item.kind {
+            Kind::Choice => false,
+            Kind::Start | Kind::End | Kind::History | Kind::DeepHistory => true,
+            _ => return,
+        };
+        let n = points.len();
+        if n < 2 {
+            return;
+        }
+        let (at, before) = if at_start { (0, 1) } else { (n - 1, n - 2) };
+        let (p, q) = (points[at], points[before]);
+        let r = end.rect;
+        let (cx, cy, a, b) = (r.x + r.w / 2.0, r.y + r.h / 2.0, r.w / 2.0, r.h / 2.0);
+        if a <= 0.0 || b <= 0.0 {
+            return;
+        }
+        // How far from the middle the outline lies, across at `t` of the
+        // half the box is wide (or high), from 0 at the middle to 1.
+        let reach = |t: f32| {
+            if ellipse {
+                (1.0 - t * t).max(0.0).sqrt()
+            } else {
+                1.0 - t
+            }
+        };
+        if (p.0 - q.0).abs() < 0.01 {
+            let t = ((p.0 - cx) / a).abs();
+            if t < 1.0 {
+                let dy = b * reach(t);
+                points[at].1 = if p.1 < cy { cy - dy } else { cy + dy };
+            }
+        } else if (p.1 - q.1).abs() < 0.01 {
+            let t = ((p.1 - cy) / b).abs();
+            if t < 1.0 {
+                let dx = a * reach(t);
+                points[at].0 = if p.0 < cx { cx - dx } else { cx + dx };
+            }
+        }
+    }
+
     fn spans(&self, container: &'a Container, index: usize) -> bool {
         container
             .nodes

@@ -205,6 +205,13 @@ pub trait Nested {
     fn spans(&self, _container: Self::Container, _index: usize) -> bool {
         false
     }
+    /// Member `index` of `container`, a box that is not flat, has an
+    /// outline that reaches the middle of each side of its box, or is
+    /// clipped to it there ([`Nested::clip`]): a diamond, a circle, a
+    /// stadium; not an actor, whose box is as wide as its name.
+    fn round(&self, _container: Self::Container, _index: usize) -> bool {
+        false
+    }
     /// Members of `container` whose lines stay out of a bundle.
     fn apart_at(&self, _container: Self::Container) -> Vec<usize> {
         Vec::new()
@@ -613,6 +620,7 @@ impl<C: Nested> Flat<C> {
                     before: 0.0,
                     loop_extra: 0.0,
                     flat: item.flat,
+                    round: !item.flat && cx.round(container, index),
                 });
                 self.spans.push(cx.spans(container, index));
                 self.within.push(frame);

@@ -466,6 +466,7 @@ mod tests {
                     before: 0.0,
                     loop_extra: 0.0,
                     flat: true,
+                    round: false,
                 })
                 .collect();
             let m = n + rng.below(n * 2);
