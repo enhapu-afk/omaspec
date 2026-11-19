@@ -58,6 +58,31 @@ fn an_order_uses_the_alias_and_keeps_the_note_outside_the_alt() {
 }
 
 #[test]
+fn autonumber_puts_each_number_in_a_circle_at_the_start_of_its_arrow() {
+    let theme = RenderOptions::default().theme;
+    let svg = try_draw(
+        &theme,
+        "sequenceDiagram\n  autonumber\n  Alice->>Bob: hi\n  Bob->>Alice: back\n",
+    )
+    .unwrap();
+    // A circle each, the number in it, the words on their own.
+    let circles: Vec<&str> = svg.split("<ellipse ").skip(1).collect();
+    assert_eq!(circles.len(), 2, "{svg}");
+    assert!(svg.contains(">1<") && svg.contains(">2<"), "{svg}");
+    assert!(svg.contains(">hi<") && !svg.contains("1 hi"), "{svg}");
+    // The first circle stands where the first arrow starts, on Alice's
+    // lifeline, left of Bob's.
+    let cx = |circle: &str| -> f32 {
+        circle
+            .split("cx=\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next()?.parse().ok())
+            .unwrap()
+    };
+    assert!(cx(circles[0]) < cx(circles[1]), "{svg}");
+}
+
+#[test]
 fn the_participants_stand_below_unless_mirror_actors_is_false() {
     let theme = RenderOptions::default().theme;
     let names = |source: &str| try_draw(&theme, source).unwrap().matches(">Alice<").count();

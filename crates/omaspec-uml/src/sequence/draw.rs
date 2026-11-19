@@ -623,6 +623,21 @@ impl<'a> Drawer<'a> {
             });
         }
 
+        // A number in a circle (Mermaid's) is written in the color that
+        // reads best on the arrows' color, which fills the circle.
+        let number_font = if d.numbers_circled {
+            let ink = [Color::WHITE, Color::BLACK]
+                .into_iter()
+                .max_by(|a, b| a.contrast(skin.arrow).total_cmp(&b.contrast(skin.arrow)))
+                .unwrap_or(Color::WHITE);
+            Font {
+                size: (skin.arrow_font.size - 2.0).max(8.0),
+                color: ink,
+                ..skin.arrow_font
+            }
+        } else {
+            skin.arrow_font
+        };
         let mut measured = Vec::with_capacity(d.items.len());
         for item in &d.items {
             measured.push(match item {
@@ -635,7 +650,7 @@ impl<'a> Drawer<'a> {
                                 line: m.line,
                                 col: None,
                             },
-                            skin.arrow_font,
+                            number_font,
                             family,
                         )?,
                         None => Block::empty(),
@@ -821,6 +836,8 @@ impl<'a> Drawer<'a> {
     /// The room a message's text takes, with its number.
     fn message_text_width(&self, k: usize) -> f32 {
         match &self.measured[k] {
+            // A number in a circle stands at the arrow, not with the words.
+            Measured::Message { text, .. } if self.d.numbers_circled => text.width,
             Measured::Message { text, number, .. } => {
                 let gap = if number.is_empty() || text.is_empty() {
                     0.0
@@ -1876,13 +1893,36 @@ impl<'a> Drawer<'a> {
                 .map(|&c| extent(c))
                 .fold((lo, hi), |(l, h), (a, b)| (l.min(a), h.max(b)));
         }
-        canvas.text(Layer::Front, &number, (text_left, top), Align::Left);
-        let gap = if number.is_empty() {
-            0.0
+        if self.d.numbers_circled {
+            canvas.text(Layer::Front, &text, (text_left, top), Align::Left);
+            // The number in a circle of the arrows' color at its start.
+            if !number.is_empty()
+                && let Some(&(x, y)) = points.first()
+            {
+                let radius = (number.width / 2.0 + 3.0).max(number.height / 2.0).max(7.0);
+                canvas.ellipse(
+                    Layer::Front,
+                    (x, y),
+                    (radius, radius),
+                    Some(color.unwrap_or(skin.arrow)),
+                    None,
+                );
+                canvas.text(
+                    Layer::Front,
+                    &number,
+                    (x, y - number.height / 2.0),
+                    Align::Center,
+                );
+            }
         } else {
-            number.width + 4.0
-        };
-        canvas.text(Layer::Front, &text, (text_left + gap, top), Align::Left);
+            canvas.text(Layer::Front, &number, (text_left, top), Align::Left);
+            let gap = if number.is_empty() {
+                0.0
+            } else {
+                number.width + 4.0
+            };
+            canvas.text(Layer::Front, &text, (text_left + gap, top), Align::Left);
+        }
         self.touch(reach.0, reach.1);
         let ends: Vec<usize> = [from, to].into_iter().flatten().collect();
         let edge = |side: Side| [m.from, m.to].contains(&End::Edge(side));

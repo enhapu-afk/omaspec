@@ -70,6 +70,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         // `sequence.mirrorActors` is false, which the renderer reads from
         // the settings.
         footbox: true,
+        numbers_circled: true,
         hide_unlinked: false,
         names: Vec::new(),
         // The front matter's title, unless a `title` line follows.

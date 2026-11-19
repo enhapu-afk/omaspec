@@ -30,6 +30,10 @@ pub struct Diagram {
     pub footbox: bool,
     /// `hide unlinked`: participants no message reaches are left out.
     pub hide_unlinked: bool,
+    /// Each message's number in a small circle at the start of its arrow,
+    /// as Mermaid draws `autonumber`; else before its words, as PlantUML
+    /// writes it.
+    pub numbers_circled: bool,
     /// Title, header, footer, caption, legend, main frame, scale and
     /// skinparams.
     pub frame: Frame,

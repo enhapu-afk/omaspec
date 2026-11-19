@@ -107,6 +107,7 @@ impl Default for Parser {
                 items: Vec::new(),
                 boxes: Vec::new(),
                 footbox: true,
+                numbers_circled: false,
                 hide_unlinked: false,
                 frame: Frame::default(),
                 names: Vec::new(),

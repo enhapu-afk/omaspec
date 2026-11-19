@@ -2897,6 +2897,11 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A Mermaid sequence's numbers in circles (2026-11-19, from the review sheet, F11):
+      `autonumber` wrote `1 open`, as PlantUML does; Mermaid draws each number in a
+      small circle at the start of its arrow. A sequence read from Mermaid now does
+      (`sequence::Diagram::numbers_circled`): the circle in the arrows' color, the
+      number in white or black, whichever reads on it, the words on their own
 - [x] A Mermaid `rect` as wide as what it holds (2026-11-19, from the review sheet,
       F10): its band spanned every participant, from the first head to the last,
       where Mermaid's covers what stands in it. It now reaches 8 past what it holds
