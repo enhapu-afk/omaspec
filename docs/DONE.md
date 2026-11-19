@@ -2897,6 +2897,13 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A frame's words keep off the lifeline it ends by (2026-11-19, from the review
+      sheet, F7): the columns under a frame stood just far enough apart for the words
+      of its tab to end on the lifeline at its right side, so `[every day until
+      shipped]` ran up to the frame's border and over Stock's lifeline. The words of a
+      tab and of an `else` now end a margin before that lifeline, clear of a bar on
+      it, and a frame over one lifeline holds them right of it, clear of the lifeline
+      beside
 - [x] What the review of F6 found (2026-11-19). A note beside a message stands by its
       lifeline again, not by the bars the frames now keep clear of. A bar opened on the
       sender right after its message counts as one the message opens, and a frame

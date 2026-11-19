@@ -909,11 +909,6 @@ impl<'a> Drawer<'a> {
                 (Item::GroupEnd { .. }, _) => {
                     if let Some((span, width, inner, heads)) = open.pop() {
                         let (lo, hi) = span.unwrap_or((0, n - 1));
-                        if lo < hi {
-                            space.need(lo, hi, width - 2.0 * FRAME);
-                        } else {
-                            space.after(lo, width - FRAME + 5.0);
-                        }
                         // The frames inside that share a side with this one
                         // stand in its margin there.
                         let left = inner
@@ -950,6 +945,22 @@ impl<'a> Drawer<'a> {
                             space.need(hi, hi + 1, at_hi + beside);
                         }
                         space.right[hi] = space.right[hi].max(at_hi);
+                        // The words of its tab and of its `else`s reach
+                        // `width` from its left side, their margin to its
+                        // right side with them. Over several lifelines
+                        // they end that margin before the last one, clear
+                        // of a bar on it, also where no bar pushes the
+                        // left side out; over one, the frame holds them
+                        // right of it, clear of the lifeline beside.
+                        if lo < hi {
+                            space.need(lo, hi, width - at_lo + BAR / 2.0);
+                        } else {
+                            let past = width - at_lo;
+                            if lo + 1 < n {
+                                space.need(lo, lo + 1, past + beside);
+                            }
+                            space.right[lo] = space.right[lo].max(past);
+                        }
                         if let Some(outer) = open.last_mut() {
                             outer.2.push(((lo, left), (hi, right)));
                         }
@@ -2672,6 +2683,61 @@ mod tests {
         // Nested at the first lifeline, the frames stay in the picture.
         let svg = crate::render("opt a\nopt b\nA -> B : x\nend\nend").unwrap();
         assert!(rects(&svg, true).iter().all(|(x, _)| *x >= 0.0), "{svg}");
+    }
+
+    #[test]
+    fn a_frame_s_words_keep_off_the_lifelines_it_ends_by() {
+        let number = |tag: &str, name: &str| -> f32 {
+            format!(" {tag}")
+                .split(&format!(" {name}=\""))
+                .nth(1)
+                .and_then(|rest| rest.split('"').next()?.parse().ok())
+                .unwrap()
+        };
+        // Where the words in `[…]` end, the frame's right side, and the
+        // lifelines by the middles of the heads.
+        let measured = |body: &str| {
+            let svg = crate::render(body).unwrap();
+            let words = svg
+                .split("<tspan ")
+                .skip(1)
+                .find(|tspan| tspan.contains(">[every"))
+                .map(|tspan| number(tspan, "x") + number(tspan, "textLength"))
+                .unwrap();
+            let frame = svg
+                .split("<rect ")
+                .skip(1)
+                .find(|rect| rect.contains("fill=\"none\""))
+                .map(|rect| number(rect, "x") + number(rect, "width"))
+                .unwrap();
+            let mut lifelines: Vec<f32> = svg
+                .split("<rect ")
+                .skip(1)
+                .filter(|rect| rect.contains("rx=\"2.5\""))
+                .map(|rect| number(rect, "x") + number(rect, "width") / 2.0)
+                .collect();
+            lifelines.sort_by(f32::total_cmp);
+            lifelines.dedup_by(|a, b| (*a - *b).abs() < 0.01);
+            (words, frame, lifelines)
+        };
+        // Over B and C: the words end their margin before C's lifeline.
+        let (words, frame, lifelines) = measured(
+            "A -> B : x\nloop every day until the order is shipped\nB -> C : still reserved?\nend",
+        );
+        assert!(
+            words + FRAME <= lifelines[2] + 0.01,
+            "{words} {lifelines:?}"
+        );
+        assert!(words + FRAME <= frame + 0.01, "{words} {frame}");
+        // Over B alone: inside the frame, which keeps clear of C.
+        let (words, frame, lifelines) = measured(
+            "A -> B : x\nloop every day until the order is shipped\nB -> B : again\nend\nB -> C : y",
+        );
+        assert!(words + FRAME <= frame + 0.01, "{words} {frame}");
+        assert!(
+            frame + BAR / 2.0 + FRAME <= lifelines[2] + 0.01,
+            "{frame} {lifelines:?}"
+        );
     }
 
     #[test]
