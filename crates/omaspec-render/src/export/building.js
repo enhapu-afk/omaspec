@@ -55,29 +55,46 @@
     return [local.x, local.y];
   };
 
+  // The first `share` of the line through `points`, by its length.
+  const stretch = (points, share) => {
+    const runs = points
+      .slice(1)
+      .map((p, i) => Math.hypot(p[0] - points[i][0], p[1] - points[i][1]));
+    let left = runs.reduce((sum, run) => sum + run, 0) * clamp(share);
+    const out = [points[0]];
+    for (let i = 0; i < runs.length; i++) {
+      const [a, b] = [points[i], points[i + 1]];
+      if (runs[i] >= left) {
+        const t = runs[i] > 0 ? left / runs[i] : 0;
+        out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+        return out;
+      }
+      left -= runs[i];
+      out.push(b);
+    }
+    return out;
+  };
+
   // The lines drawn anew, in the picture's own units, where its lines'
-  // group stands.
+  // group stands; only where the picture is built by its parts.
   const linesGroup = svg.querySelector('[id="lines"]');
   let drawnLines = null;
-  if (linesGroup && data.linesMatrix) {
+  if (linesGroup && data.linesMatrix && data.parts.length > 0) {
     linesGroup.replaceChildren();
     drawnLines = document.createElementNS(NS, "g");
     drawnLines.setAttribute("transform", `matrix(${data.linesMatrix.join(" ")})`);
     linesGroup.appendChild(drawnLines);
   }
   const wires = data.wires.map((wire) => {
-    if (!drawnLines) return null;
+    if (!drawnLines || wire.points.length < 2) return null;
     const path = document.createElementNS(NS, "polyline");
-    path.setAttribute("points", wire.points.map((p) => p.join(",")).join(" "));
     path.setAttribute("fill", "none");
     path.setAttribute("stroke", wire.color);
     path.setAttribute("stroke-width", wire.width);
     path.setAttribute("stroke-linejoin", "round");
+    // Its own dashes: it is drawn as far as it has come, not dashed out.
+    if (wire.dash) path.setAttribute("stroke-dasharray", wire.dash.join(" "));
     drawnLines.appendChild(path);
-    const length = wire.points.reduce(
-      (sum, p, i) => (i === 0 ? 0 : sum + Math.hypot(p[0] - wire.points[i - 1][0], p[1] - wire.points[i - 1][1])),
-      0,
-    );
     const heads = wire.heads.map((head) => {
       const mark = document.createElementNS(NS, head.closed ? "polygon" : "polyline");
       mark.setAttribute("points", head.points.map((p) => p.join(",")).join(" "));
@@ -88,7 +105,7 @@
       drawnLines.appendChild(mark);
       return mark;
     });
-    return { ...wire, path, length, heads };
+    return { ...wire, path, heads };
   });
 
   // Without parts, the picture is uncovered from the top down.
@@ -157,8 +174,7 @@
     wires.forEach((wire) => {
       if (!wire) return;
       const share = line < wire.line ? 0 : ease(drawn(wire.line, t));
-      wire.path.setAttribute("stroke-dasharray", `${wire.length} ${wire.length}`);
-      wire.path.setAttribute("stroke-dashoffset", wire.length * (1 - share));
+      wire.path.setAttribute("points", stretch(wire.points, share).map((p) => p.join(",")).join(" "));
       wire.path.setAttribute("opacity", share > 0 ? 1 : 0);
       wire.heads.forEach((head) => head.setAttribute("opacity", share >= 1 ? 1 : 0));
     });

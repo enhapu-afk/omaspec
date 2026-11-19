@@ -22,6 +22,9 @@ pub(super) struct Code {
     pub(super) lines: Vec<String>,
     pub(super) spans: Vec<Vec<HighlightSpan>>,
     pub(super) font: String,
+    /// How wide a letter of its face is at [`CODE_SIZE`], as the frames
+    /// set it.
+    pub(super) letter: f32,
 }
 
 impl Code {
@@ -35,15 +38,21 @@ impl Code {
             syntax::grammar(language),
             syntax::token_theme(palette, tweaks),
         );
-        let mut lines: Vec<String> = text.split('\n').map(str::to_owned).collect();
+        // A line ends before a carriage return, as the highlighter's do.
+        let mut lines: Vec<String> = text
+            .split('\n')
+            .map(|line| line.strip_suffix('\r').unwrap_or(line).to_owned())
+            .collect();
         // A file that ends in a newline has no line after it.
         if lines.len() > 1 && lines.last().is_some_and(String::is_empty) {
             lines.pop();
         }
+        let font = crate::ui::mono_family().unwrap_or_else(|| "monospace".to_owned());
         Code {
             spans: highlighter.highlight(text),
             lines,
-            font: crate::ui::mono_family().unwrap_or_else(|| "monospace".to_owned()),
+            letter: letter_of(&font),
+            font,
         }
     }
 
@@ -118,7 +127,7 @@ pub(super) struct Layout {
 
 impl Layout {
     pub(super) fn of(code: &Code, picture: &Picture, asked: Option<u32>) -> Result<Layout> {
-        let letter = CODE_SIZE * LETTER;
+        let letter = code.letter;
         let digits = code.lines.len().to_string().len().max(2);
         let gutter = digits as f32 * letter + 14.0;
         let panel = gutter + code.letters() as f32 * letter + 2.0 * INSET;
@@ -136,10 +145,10 @@ impl Layout {
                 (width, (room / w).min(tallest))
             }
             None => {
+                // Never larger than drawn, and always whole in the frame.
                 let scale = 1.0_f32
                     .min((WIDEST - panel - 3.0 * MARGIN) / w)
-                    .min(tallest)
-                    .max(0.1);
+                    .min(tallest);
                 let width = (panel + w * scale + 3.0 * MARGIN).clamp(NARROWEST, WIDEST);
                 (width, scale)
             }
@@ -212,8 +221,11 @@ impl Layout {
             .unwrap_or(0)
             .saturating_sub(self.rows / 3)
             .min(lines.saturating_sub(self.rows));
-        let letter = CODE_SIZE * LETTER;
+        let letter = code.letter;
         let text_left = left + INSET + self.gutter;
+        // Quoted, so a family whose name starts with a digit still reads;
+        // the generic one where the family is missing.
+        let font = format!("'{}', monospace", xml(&code.font.replace(['\'', '\\'], "")));
         for row in 0..self.rows.min(lines - first.min(lines)) {
             let line = first + row;
             let y = top + INSET + row as f32 * LINE_HEIGHT;
@@ -236,7 +248,6 @@ impl Layout {
                 palette.muted,
                 if ahead { AHEAD } else { 1.0 },
                 line + 1,
-                font = xml(&code.font),
             );
             let (words, shown) = styled(
                 &code.lines[line],
@@ -247,7 +258,6 @@ impl Layout {
                 svg,
                 r#"<text x="{text_left}" y="{baseline}" font-family="{font}" font-size="{CODE_SIZE}" xml:space="preserve" fill-opacity="{}">{words}</text>"#,
                 if ahead { AHEAD } else { 1.0 },
-                font = xml(&code.font),
             );
             if current == Some(line) {
                 let _ = write!(
@@ -266,22 +276,27 @@ impl Layout {
     pub(super) fn diagram(&self, svg: &mut String, picture: &Picture, script: &Script, at: f32) {
         let (w, h) = picture.size;
         let built = self.built(picture, script, at);
-        let inner = inner(&built);
         let (x, y) = self.at;
         let _ = write!(
             svg,
-            r#"<svg x="{x}" y="{y}" width="{}" height="{}" viewBox="0 0 {w} {h}">{inner}</svg>"#,
+            r#"<svg x="{x}" y="{y}" width="{}" height="{}" viewBox="0 0 {w} {h}">{built}</svg>"#,
             w * self.scale,
             h * self.scale,
         );
     }
 
-    /// The picture's SVG with what is not built yet left out, a box that
-    /// grows in grown so far and a line drawn so far.
+    /// What the picture's SVG holds, in the units of its size, with what
+    /// is not built yet left out, a box that grows in grown so far and a
+    /// line drawn so far.
     pub(super) fn built(&self, picture: &Picture, script: &Script, at: f32) -> String {
         if !picture.by_parts() {
             return uncovered(picture, script, at);
         }
+        sized(picture, inner(&self.set_down(picture, script, at)))
+    }
+
+    /// The picture's SVG, whole, with what is not built yet left out.
+    fn set_down(&self, picture: &Picture, script: &Script, at: f32) -> String {
         let mut svg = picture.svg.clone();
         for part in &picture.parts {
             let (opacity, scale) = match part.of_wire {
@@ -437,11 +452,24 @@ pub(super) fn uncovered(picture: &Picture, script: &Script, at: f32) -> String {
         from + (to - from) * grown
     };
     let soft = 24.0;
-    let body = inner(&picture.svg);
+    let body = sized(picture, inner(&picture.svg));
     format!(
         r#"<defs><linearGradient id="build-fade" gradientUnits="userSpaceOnUse" x1="0" y1="{a}" x2="0" y2="{b}"><stop offset="0" stop-color="white"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient><mask id="build-reveal" maskUnits="userSpaceOnUse" x="0" y="0" width="{w}" height="{h}"><rect width="{w}" height="{b}" fill="url(#build-fade)"/></mask></defs><g mask="url(#build-reveal)">{body}</g>"#,
         a = edge - soft,
         b = edge,
+    )
+}
+
+/// `body`, the children of the picture's root, in the units of its size:
+/// its own units scaled as its root scales them.
+pub(super) fn sized(picture: &Picture, body: &str) -> String {
+    let m = picture.root;
+    if m.is_identity() {
+        return body.to_owned();
+    }
+    format!(
+        r#"<g transform="matrix({} {} {} {} {} {})">{body}</g>"#,
+        m.sx, m.ky, m.kx, m.sy, m.tx, m.ty
     )
 }
 
@@ -515,6 +543,26 @@ pub(super) fn joined(points: &[(f32, f32)]) -> String {
 pub(super) fn ease(t: f32) -> f32 {
     let t = t.clamp(0.0, 1.0);
     t * t * (3.0 - 2.0 * t)
+}
+
+/// How wide a letter of `family` is at [`CODE_SIZE`], set as the frames
+/// set it: twenty letters measured against ten, so the bounds of the
+/// first and the last cancel out; [`LETTER`] of the size where it cannot
+/// be measured.
+fn letter_of(family: &str) -> f32 {
+    let family = format!("'{}', monospace", xml(&family.replace(['\'', '\\'], "")));
+    let width = |count: usize| -> Option<f32> {
+        let svg = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="4000" height="200"><text x="0" y="150" font-family="{family}" font-size="100" xml:space="preserve">{}</text></svg>"#,
+            "0".repeat(count)
+        );
+        let tree = omaspec_render::export::parse(&svg).ok()?;
+        Some(tree.root().abs_bounding_box().width())
+    };
+    match (width(10), width(20)) {
+        (Some(ten), Some(twenty)) if twenty > ten => (twenty - ten) / 10.0 / 100.0 * CODE_SIZE,
+        _ => CODE_SIZE * LETTER,
+    }
 }
 
 /// `text` escaped for XML.

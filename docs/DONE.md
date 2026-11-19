@@ -2897,6 +2897,18 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the build found (2026-11-20). A sequence with a picture in a
+      note built only that picture: the frames now take the whole picture's root. A
+      `scale` drew the build at the wrong size, and a page grew its boxes about the
+      wrong point: the frames lay the picture's units into its size, and the page has
+      its points in the picture's own units. A page left the lines of a picture
+      without parts out, and drew dashed lines solid. The caret's line scrolls a third
+      down on a page too, a very large diagram is no longer cut, a carriage return
+      ends a line, the code's family is quoted with `monospace` behind it, and the
+      paper is the rectangle before the first group. A class comes in at the line that
+      opens it (`class B {`), not at its first member, the line that names a box being
+      looked for outside titles, captions, notes and comments; and the letters of the
+      code are measured in its face, not taken at 0.6 of its size
 - [x] Code becomes a picture (2026-11-19, the first of the animations that show what a
       diagram means): `omaspec play FILE --build -o build.gif` stands the source on
       the left and the diagram on the right, and as a caret walks down the source the

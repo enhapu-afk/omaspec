@@ -26,6 +26,9 @@ pub(super) struct Picture {
     /// The transform the lines' group draws in, to draw the lines anew in
     /// its place.
     pub(super) lines_group: Option<usvg::Transform>,
+    /// How the picture's own units (its `viewBox`) land in its size: a
+    /// `scale` in the source draws it larger or smaller than its units.
+    pub(super) root: usvg::Transform,
 }
 
 pub(super) struct Part {
@@ -164,7 +167,17 @@ impl Picture {
             wires,
             reach,
             lines_group,
+            root: root_of(svg, size),
         })
+    }
+
+    /// A point of the picture's size in its own units.
+    pub(super) fn own(&self, (x, y): (f32, f32)) -> (f32, f32) {
+        let mut point = usvg::tiny_skia_path::Point::from_xy(x, y);
+        if let Some(back) = self.root.invert() {
+            back.map_point(&mut point);
+        }
+        (point.x, point.y)
     }
 
     /// Whether it builds part by part, else from the top down.
@@ -215,14 +228,50 @@ pub(super) fn union(a: usvg::Rect, b: usvg::Rect) -> usvg::Rect {
     usvg::Rect::from_ltrb(left, top, right, bottom).unwrap_or(a)
 }
 
-/// The fill of the picture's first rectangle, its paper; white without.
+/// The fill of the picture's paper, the rectangle before its first
+/// group; white without one, as the engine fills an empty head then.
 pub(super) fn paper_of(svg: &str) -> String {
-    svg.split("<rect ")
-        .nth(1)
-        .and_then(|rect| rect.split("fill=\"").nth(1)?.split('"').next())
+    let rect = svg.find("<rect ");
+    let group = svg.find("<g");
+    rect.filter(|&rect| group.is_none_or(|group| rect < group))
+        .and_then(|rect| {
+            let tag = &svg[rect..rect + svg[rect..].find('>')?];
+            tag.split(" fill=\"").nth(1)?.split('"').next()
+        })
         .filter(|fill| fill.starts_with('#'))
         .unwrap_or("#FFFFFF")
         .to_owned()
+}
+
+/// How the units of `svg`'s `viewBox` land in its `size`, as SVG fits
+/// them by default: as large as they fit, in the middle.
+pub(super) fn root_of(svg: &str, (width, height): (f32, f32)) -> usvg::Transform {
+    let view = svg.find("<svg").and_then(|start| {
+        let tag = &svg[start..start + svg[start..].find('>')?];
+        let view = tag.split(" viewBox=\"").nth(1)?.split('"').next()?;
+        let numbers: Vec<f32> = view
+            .split(|c: char| c == ',' || c.is_whitespace())
+            .filter(|n| !n.is_empty())
+            .map(str::parse)
+            .collect::<Result<_, _>>()
+            .ok()?;
+        match numbers[..] {
+            [x, y, w, h] if w > 0.0 && h > 0.0 => Some((x, y, w, h)),
+            _ => None,
+        }
+    });
+    let Some((x, y, w, h)) = view else {
+        return usvg::Transform::identity();
+    };
+    let scale = (width / w).min(height / h);
+    usvg::Transform::from_row(
+        scale,
+        0.0,
+        0.0,
+        scale,
+        (width - w * scale) / 2.0 - x * scale,
+        (height - h * scale) / 2.0 - y * scale,
+    )
 }
 
 /// The line of the part `name`, standing in `bounds`: a state's first
@@ -255,17 +304,33 @@ pub(super) fn line_of_part(
         })
         .map(|tied| tied.line)
         .min();
-    if written.is_some() {
-        return written;
+    // The box drawn there, by its part, else the one whose middle and size
+    // come nearest; the first line that names it may come before its
+    // words (`class B {` before its members).
+    let area = bounds.width() * bounds.height();
+    let place = map
+        .places
+        .iter()
+        .find(|place| place.part.as_deref() == Some(name))
+        .or_else(|| {
+            map.places
+                .iter()
+                .filter(|place| {
+                    inside(
+                        place.rect.x + place.rect.w / 2.0,
+                        place.rect.y + place.rect.h / 2.0,
+                    )
+                })
+                .min_by(|a, b| {
+                    let off = |p: &&omaspec_uml::map::Place| (p.rect.w * p.rect.h - area).abs();
+                    off(a).total_cmp(&off(b))
+                })
+        });
+    let named = place.and_then(|place| named_at(&place.name, source));
+    match (written, named) {
+        (Some(written), Some(named)) => Some(written.min(named)),
+        (written, named) => written.or(named),
     }
-    let place = map.places.iter().find(|place| {
-        place.part.as_deref() == Some(name)
-            || inside(
-                place.rect.x + place.rect.w / 2.0,
-                place.rect.y + place.rect.h / 2.0,
-            )
-    })?;
-    named_at(&place.name, source)
 }
 
 /// The line of the box nearest part `at` whose line is `known`, its
@@ -287,15 +352,29 @@ pub(super) fn nearest_line(parts: &[Part], known: &[Option<usize>], at: usize) -
 /// The first line of `source` that names `name` as a word of its own.
 pub(super) fn named_at(name: &str, source: &[&str]) -> Option<usize> {
     let word = |c: char| c.is_alphanumeric() || c == '_';
+    // Words about the diagram, not a box of it: a title, a caption, a
+    // header or a footer, a legend, a note, a comment.
+    let about = |line: &str| {
+        let line = line.trim_start().to_ascii_lowercase();
+        [
+            "title", "caption", "header", "footer", "legend", "note", "'", "%%", "@start",
+        ]
+        .iter()
+        .any(|start| line.starts_with(start))
+    };
+    if name.is_empty() {
+        return None;
+    }
     source.iter().position(|line| {
-        line.match_indices(name).any(|(at, _)| {
-            let before = line[..at].chars().next_back().is_none_or(|c| !word(c));
-            let after = line[at + name.len()..]
-                .chars()
-                .next()
-                .is_none_or(|c| !word(c));
-            before && after
-        })
+        !about(line)
+            && line.match_indices(name).any(|(at, _)| {
+                let before = line[..at].chars().next_back().is_none_or(|c| !word(c));
+                let after = line[at + name.len()..]
+                    .chars()
+                    .next()
+                    .is_none_or(|c| !word(c));
+                before && after
+            })
     })
 }
 

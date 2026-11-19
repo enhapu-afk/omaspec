@@ -178,9 +178,12 @@ fn page(
         .ok()
         .flatten()
         .unwrap_or(omaspec_uml::Color::WHITE);
+    // The script lays its mask and its boxes' middles in the picture's own
+    // units, which a `scale` sets apart from its size.
+    let own_y = |y: f32| picture.own((0.0, y)).1;
     let building = page::Building {
         svg: picture.svg.clone(),
-        size: picture.size,
+        size: picture.own(picture.size),
         lines: code.runs(palette.foreground),
         starts: script.starts.clone(),
         end: script.end,
@@ -197,7 +200,7 @@ fn page(
             .map(|part| page::PartAt {
                 prefix: format!("{}-", omaspec_uml::part_id(&part.name)),
                 line: part.line,
-                middle: part.middle,
+                middle: picture.own(part.middle),
                 words: part.of_wire.is_some(),
             })
             .collect(),
@@ -216,10 +219,17 @@ fn page(
                 dash: wire.dash,
             })
             .collect(),
-        reach: picture.reach.clone(),
-        first_reach: picture.first_reach(),
+        reach: picture
+            .reach
+            .iter()
+            .map(|&(line, y)| (line, own_y(y)))
+            .collect(),
+        first_reach: own_y(picture.first_reach()),
+        // Only a picture built by its parts draws its lines anew: one
+        // uncovered from the top keeps them as drawn (a chart's).
         lines_matrix: picture
             .lines_group
+            .filter(|_| picture.by_parts())
             .and_then(|transform| transform.invert())
             .map(|m| [m.sx, m.ky, m.kx, m.sy, m.tx, m.ty]),
         colors: page::Colors {
@@ -393,6 +403,46 @@ mod tests {
     }
 
     #[test]
+    fn a_class_comes_with_the_line_that_opens_it() {
+        let classes = picture(
+            "@startuml\ntitle A B C\nclass B {\n  +x : int\n}\nclass C\nB --> C\n@enduml\n",
+            Language::PlantUml,
+        );
+        // Not with its member (3), not with the title that names it (1).
+        let b = classes
+            .parts
+            .iter()
+            .filter(|part| part.of_wire.is_none())
+            .map(|part| part.line)
+            .min();
+        assert_eq!(
+            b,
+            Some(2),
+            "{:?}",
+            classes
+                .parts
+                .iter()
+                .map(|p| (&p.name, p.line))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn the_code_s_letters_are_measured_in_its_face() {
+        let code = Code::of(
+            "a\n",
+            Language::PlantUml,
+            &Palette::fallback(),
+            &HashMap::new(),
+        );
+        assert!(
+            (CODE_SIZE * 0.4..CODE_SIZE * 0.75).contains(&code.letter),
+            "{}",
+            code.letter
+        );
+    }
+
+    #[test]
     fn a_sequence_builds_from_the_top_down() {
         let sequence = picture(
             "@startuml\nAlice -> Bob : hello\nBob -> Alice : hi\n@enduml\n",
@@ -449,6 +499,65 @@ mod tests {
     }
 
     #[test]
+    fn a_sequence_with_a_picture_inside_keeps_the_whole() {
+        // A note that draws a diagram holds an `<svg>` of its own.
+        let source = "@startuml\nAlice -> Bob : hello\nnote right\n  {{\n  B -> C : inside\n  }}\nend note\n@enduml\n";
+        let sequence = picture(source, Language::PlantUml);
+        assert!(!sequence.by_parts() && sequence.svg.contains("<svg x="));
+        let code = Code::of(
+            source,
+            Language::PlantUml,
+            &Palette::fallback(),
+            &HashMap::new(),
+        );
+        let script = Script::of(&sequence, code.lines.len());
+        let layout = Layout::of(&code, &sequence, None).unwrap();
+        let frame = layout.frame(&code, &sequence, &script, script.end, &Palette::fallback());
+        assert!(
+            frame.contains("build-reveal") && frame.contains(">hello<"),
+            "{frame}"
+        );
+    }
+
+    #[test]
+    fn a_scaled_picture_is_built_in_its_size() {
+        use super::picture::{paper_of, root_of};
+        let root = root_of(
+            r#"<svg width="200" height="100" viewBox="0 0 100 50">"#,
+            (200.0, 100.0),
+        );
+        assert_eq!((root.sx, root.sy, root.tx, root.ty), (2.0, 2.0, 0.0, 0.0));
+        assert!(root_of(r#"<svg width="9" height="9">"#, (9.0, 9.0)).is_identity());
+        let scaled = picture(
+            "@startuml\nscale 2\n[*] --> Closed\nClosed --> Open : open\n@enduml\n",
+            Language::PlantUml,
+        );
+        assert!((scaled.root.sx - 2.0).abs() < 0.05, "{:?}", scaled.root);
+        let code = Code::of(
+            DOOR,
+            Language::PlantUml,
+            &Palette::fallback(),
+            &HashMap::new(),
+        );
+        let script = Script::of(&scaled, code.lines.len());
+        let layout = Layout::of(&code, &scaled, None).unwrap();
+        assert!(
+            layout
+                .built(&scaled, &script, 0.0)
+                .starts_with(r#"<g transform="matrix(2"#)
+        );
+        // The paper is the rectangle under everything, else white.
+        assert_eq!(
+            paper_of(r##"<svg><rect x="0" fill="#123456"/><g/></svg>"##),
+            "#123456"
+        );
+        assert_eq!(
+            paper_of(r##"<svg><g><rect fill="#123456"/></g></svg>"##),
+            "#FFFFFF"
+        );
+    }
+
+    #[test]
     fn a_line_is_drawn_as_far_as_its_share() {
         let points = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0)];
         assert_eq!(stretch(&points, 0.25), [(0.0, 0.0), (5.0, 0.0)]);
@@ -487,6 +596,7 @@ mod tests {
             wires: Vec::new(),
             reach: vec![(1, 40.0)],
             lines_group: None,
+            root: export::usvg::Transform::identity(),
         };
         let script = Script::of(&picture, 3);
         assert_eq!(script.starts[0], BEFORE);

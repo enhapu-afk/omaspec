@@ -14,6 +14,8 @@ html, body {
 }
 /* The source: each line a row, the caret's lit, those ahead dimmed. */
 #source {
+  /* Its lines' offsets are from its own top, which the script scrolls by. */
+  position: relative;
   flex: 0 0 auto;
   max-width: 42vw;
   margin: 0;
