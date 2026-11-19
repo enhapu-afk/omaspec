@@ -33,6 +33,7 @@ mod open;
 mod paint;
 mod reading;
 mod shape;
+mod written;
 
 #[cfg(test)]
 mod tests;
@@ -374,6 +375,9 @@ struct Tree<'a> {
     bundled: bool,
     /// Members whose lines stay out of a bundle, by the container.
     apart: HashMap<Spot, Vec<usize>>,
+    /// The lines that write each edge and each label of their own: their
+    /// words are tied to them as they are drawn.
+    written: written::Written,
 }
 
 /// Where a transition is laid out: the container that holds both ends,
@@ -458,6 +462,7 @@ fn prepare<'a>(graph: &'a Graph, source: &str, fix: &flowchart::Fix) -> Option<T
             .filter_map(omaspec_uml::click::click)
             .filter_map(|click| Some((click.id, click.link?)))
             .collect(),
+        written: written::read(graph, &reading::readable(source), &fix.invisible),
     };
     tree.walk(Spot::Root, &mut Vec::new());
     let mut meets = Vec::with_capacity(graph.edges.len());
@@ -824,7 +829,10 @@ fn measure_group(
     let font = Font::new(palette.size, look.text);
     let (kind, title, description) = (
         Kind::Cluster,
-        label::measure(&sub.label, font, family, None),
+        tied(
+            label::measure(&sub.label, font, family, None),
+            tree.written.subgraphs.get(index).copied().flatten(),
+        ),
         Vec::new(),
     );
     let header_h = stack_height(&title, &description);
@@ -866,7 +874,10 @@ fn measure_leaf(tree: &Tree, id: &str, palette: &Palette, family: Family) -> Opt
     let (title, description, width, height) = match kind {
         Kind::Node(shape) => {
             let font = Font::new(palette.size, look.text);
-            let title = label::measure(&node.label, font, family, Some(wrap(palette)));
+            let title = tied(
+                label::measure(&node.label, font, family, Some(wrap(palette))),
+                tree.written.nodes.get(id).copied(),
+            );
             let (width, height) = shape.size(title.width, title.height);
             (title, Vec::new(), width, height)
         }
@@ -897,11 +908,22 @@ fn wrap(palette: &Palette) -> f32 {
     WRAP * palette.size / 16.0
 }
 
-/// An edge's label, which wraps as the nodes' do.
-fn measure_edge(label: &Option<String>, font: Font, family: Family) -> Block {
-    match label {
+/// The label of the edge `index`, which wraps as the nodes' do: the
+/// words of the line that writes the edge.
+fn measure_edge(tree: &Tree, index: usize, font: Font, family: Family) -> Block {
+    let block = match &tree.graph.edges[index].label {
         Some(text) => label::measure(text, font, family, Some(WRAP * font.size / 16.0)),
         None => Block::empty(),
+    };
+    tied(block, tree.written.edges.get(index).copied().flatten())
+}
+
+/// `block`, the words the zero-based `line` alone writes, where one does
+/// ([`Block::written_on`]).
+fn tied(block: Block, line: Option<usize>) -> Block {
+    match line {
+        Some(line) => block.written_on(line),
+        None => block,
     }
 }
 

@@ -47,7 +47,7 @@ pub(super) fn link_crossings(
             continue;
         }
         let (_, color) = edge_look(tree.graph, index, palette)?;
-        let label = measure_edge(&edge.label, Font::new(palette.size, color), family);
+        let label = measure_edge(tree, index, Font::new(palette.size, color), family);
         links.push(Link {
             from: from.clone(),
             to: to.clone(),
@@ -101,7 +101,7 @@ pub(super) fn link_inward(
         }
         let edge = &tree.graph.edges[index];
         let (stroke, color) = edge_look(tree.graph, index, palette)?;
-        let label = measure_edge(&edge.label, Font::new(palette.size, color), family);
+        let label = measure_edge(tree, index, Font::new(palette.size, color), family);
         let from = tree.paths.get(&edge.from)?;
         let to = tree.paths.get(&edge.to)?;
         let (outer, inner, into_inner) = if to.len() > from.len() && to.starts_with(from) {

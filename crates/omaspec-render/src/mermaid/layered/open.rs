@@ -156,7 +156,8 @@ impl Nested for Charts<'_> {
         let edge = *self.edges(spot).get(index).ok_or(())?;
         let (stroke, color) = edge_look(self.tree.graph, edge, self.palette).ok_or(())?;
         let label = measure_edge(
-            &self.tree.graph.edges[edge].label,
+            self.tree,
+            edge,
             Font::new(self.palette.size, color),
             self.family,
         );

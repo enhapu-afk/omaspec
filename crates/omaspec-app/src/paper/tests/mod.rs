@@ -172,6 +172,36 @@ fn a_class_and_words_that_read_as_it_keep_apart() {
     assert_eq!(lines("1"), [3, 5]);
 }
 
+/// A flowchart's labels that read alike, on its lines and on a node,
+/// keep apart: each lights from its own line and is found on it, also
+/// one a subgraph draws before the lines written above it, and under a
+/// front matter.
+#[test]
+fn a_flowchart_s_labels_that_read_alike_keep_apart() {
+    let source = "---\ntitle: Ship\n---\nflowchart LR\n  C -->|yes| D\n  subgraph S [Box]\n    E -->|yes| F\n  end\n  A -->|yes| B\n  B --> C\n  D --> E\n  G[yes] --> A\n";
+    let mut paper = Paper::default();
+    show_source(&mut paper, source, Language::Mermaid);
+    let line = |row: usize| source.lines().nth(row).unwrap();
+    let at = |row: usize| {
+        let col = line(row).find("yes").unwrap() + 1;
+        paper.place_of(source, row, col).unwrap()
+    };
+    // From left to right: G, A and B, C and D, E and F in the subgraph.
+    let (middle, right, left, node) = (at(4), at(6), at(8), at(11));
+    assert!(
+        node.x < left.x && left.x < middle.x && middle.x < right.x,
+        "{node:?} {left:?} {middle:?} {right:?}"
+    );
+    let mut lines: Vec<usize> = paper
+        .labels()
+        .into_iter()
+        .filter(|(text, ..)| text == "yes")
+        .filter_map(|(.., line)| line)
+        .collect();
+    lines.sort_unstable();
+    assert_eq!(lines, [4, 6, 8, 11]);
+}
+
 /// A swimlane and actions that read as it keep apart: the lane lights
 /// from every `|lane|` line, each action from its own.
 #[test]

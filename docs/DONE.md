@@ -276,6 +276,19 @@ is open and the reasoning around it.
       another, and a label or a note that reads as a class keeps apart from it. On one
       line, words are where they stand as a word (`locate::spans_on`): `Busy` is not
       written in `BusyBox`
+- [x] Mermaid flowcharts tie what one line writes, too (2026-11-19): a line's label
+      (`-->|yes|`, `-- yes -->`), a node's label where a line gives it one
+      (`A[Start]`), and a subgraph's title of its own. mmdr's graph keeps no lines, so
+      each line is read by mmdr on its own, under a header; what it finds there,
+      also a chain's lines and an `&`'s, is what that line writes, and the graph's
+      lines are found among them in the order written. A `yes` drawn inside a
+      subgraph no longer takes the light of a `yes` written above it. A node that
+      shows its id, which every line naming it writes, is counted; so is a line a
+      folded subgraph ends on. The reading costs nothing measurable: 150 boxes and
+      476 lines draw in 0.41 s as before. And the pane takes the words of one line
+      in order (`A[Edit] --> B[Edit]`, `"1" --> "1"`): of the writings on a line,
+      the last are the copies tied to it, in the order drawn, and those before them
+      are mentions, counted
 - [x] What the review of 2026-11-18 (evening) found in the day's later work. A `++` in
       a quoted name, a title or a note is letters: the bar's sign is read where the
       engine reads an activation, in one place (`recolor::bar_sign`), where *color the

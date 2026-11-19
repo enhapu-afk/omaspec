@@ -7,6 +7,11 @@
 //! the drawer ties a copy to its line ([`omaspec_uml::map::Map::tied`]),
 //! that copy and that line belong to each other, and the others are
 //! counted without them.
+//!
+//! On one line, what the line itself draws stands after what it names
+//! (`User -> Login : Login`): of the words written there, the last are
+//! the copies tied to it, in the order drawn, and those before them are
+//! mentions, counted.
 
 use iced::{Point, Rectangle, Size};
 use omaspec_core::locate;
@@ -30,43 +35,43 @@ pub(super) enum Drawn {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct Copies {
     pub drawn: Vec<Drawn>,
-    /// For each line that writes it, the line and the byte on it.
-    pub written: Vec<(usize, usize)>,
-    /// The lines that write it more than once: what such a line itself
-    /// draws is the last, and the mentions before it are counted.
-    pub twice: Vec<usize>,
+    /// Each line that writes it, and the byte on it where each writing
+    /// starts, in order: at least one.
+    pub written: Vec<(usize, Vec<usize>)>,
 }
 
 impl Copies {
-    /// Where the words of the tied `copy` are written: on the line its
-    /// item begins on, or, in a block that begins there (a note up to
-    /// its `end note`), on one of the lines it is drawn on after it.
-    /// `None` for a copy that is not tied, or whose words the count does
-    /// not find there.
-    fn home(&self, copy: usize) -> Option<(usize, usize)> {
+    /// The line the words of the tied `copy` are written on: the line its
+    /// item begins on, or, in a block that begins there (a note up to its
+    /// `end note`), one of the lines it is drawn on after it. `None` for a
+    /// copy that is not tied, or whose words the count does not find
+    /// there.
+    fn home(&self, copy: usize) -> Option<usize> {
         let Drawn::Tied { line, span } = self.drawn.get(copy).copied()? else {
             return None;
         };
-        let on = |row: usize| self.written.iter().copied().find(|(at, _)| *at == row);
+        let on = |row: usize| self.written.iter().any(|(at, _)| *at == row).then_some(row);
         on(line).or_else(|| (line + 1..=line + span).find_map(on))
     }
 
-    /// The lines whose mention is a tied copy's and no other's: those the
-    /// count passes over.
-    fn taken(&self) -> Vec<usize> {
-        let mut rows = self.homes();
-        rows.retain(|row| !self.twice.contains(row));
-        rows
+    /// The copies tied to `row`, in the order drawn.
+    fn tied_on(&self, row: usize) -> Vec<usize> {
+        (0..self.drawn.len())
+            .filter(|&copy| self.home(copy) == Some(row))
+            .collect()
     }
 
-    /// The lines tied copies are written on, each once, in order.
-    fn homes(&self) -> Vec<usize> {
-        let mut rows: Vec<usize> = (0..self.drawn.len())
-            .filter_map(|copy| self.home(copy).map(|(row, _)| row))
-            .collect();
-        rows.sort_unstable();
-        rows.dedup();
-        rows
+    /// Where the words start on `row`.
+    fn starts(&self, row: usize) -> &[usize] {
+        self.written
+            .iter()
+            .find(|(at, _)| *at == row)
+            .map_or(&[], |(_, starts)| starts.as_slice())
+    }
+
+    /// How many of the writings on `row` are tied copies': the last ones.
+    fn tied_count(&self, row: usize) -> usize {
+        self.tied_on(row).len().min(self.starts(row).len())
     }
 
     /// The copies that are counted, in the order drawn.
@@ -76,19 +81,29 @@ impl Copies {
             .collect()
     }
 
-    /// The copy the `nth` mention, on the line `row`, is drawn as. With
-    /// `own`, the mention is what that line itself draws, and it is the
-    /// copy tied there. Any other is counted among the counted ones,
-    /// without the tied lines before it, and a later one than there are
-    /// copies keeps the last.
-    pub fn copy_of(&self, nth: usize, row: usize, own: bool) -> usize {
-        if own
-            && let Some(copy) =
-                (0..self.drawn.len()).find(|&copy| self.home(copy).is_some_and(|(at, _)| at == row))
-        {
-            return copy;
+    /// The copy the `nth` mention, at the byte `col` of the line `row`, is
+    /// drawn as. Of the writings on a line, the last are the copies tied
+    /// to it, in the order drawn. Any other mention is counted among the
+    /// counted copies, without the tied writings before it, and a later
+    /// one than there are copies keeps the last.
+    pub fn copy_of(&self, nth: usize, row: usize, col: usize) -> usize {
+        let here = self.tied_on(row);
+        if !here.is_empty() {
+            let starts = self.starts(row);
+            // The writing the caret is on: the last that starts before it.
+            let at = starts.iter().rposition(|start| *start <= col).unwrap_or(0);
+            let first = starts.len().saturating_sub(here.len());
+            if at >= first {
+                return here[(at - first).min(here.len() - 1)];
+            }
         }
-        let before = nth.saturating_sub(self.taken().iter().filter(|at| **at < row).count());
+        let tied_before: usize = self
+            .written
+            .iter()
+            .filter(|(at, _)| *at < row)
+            .map(|(at, _)| self.tied_count(*at))
+            .sum();
+        let before = nth.saturating_sub(tied_before);
         let counted = self.counted();
         match counted.get(before).or(counted.last()) {
             Some(&copy) => copy,
@@ -109,28 +124,29 @@ impl Copies {
                 .count()
         };
         let before = match self.drawn.get(copy).copied()? {
-            Drawn::Tied { line, .. } => return Some(self.home(copy).unwrap_or((line, 0))),
+            Drawn::Tied { line, .. } => {
+                let Some(row) = self.home(copy) else {
+                    return Some((line, 0));
+                };
+                let here = self.tied_on(row);
+                let starts = self.starts(row);
+                let nth = here.iter().position(|at| *at == copy).unwrap_or(0);
+                let first = starts.len().saturating_sub(here.len());
+                let col = starts.get(first + nth).or(starts.last()).copied();
+                return Some((row, col.unwrap_or(0)));
+            }
             Drawn::Counted => among(Drawn::Counted),
             // The first drawn again repeats the first counted.
             Drawn::Again => among(Drawn::Again).min(self.counted().len().saturating_sub(1)),
         };
-        let taken = self.taken();
+        // The lines with a mention the tied copies leave: their first
+        // writing.
         self.written
             .iter()
-            .copied()
-            .filter(|(line, _)| !taken.contains(line))
+            .filter(|(row, starts)| starts.len() > self.tied_count(*row))
+            .map(|(row, starts)| (*row, starts[0]))
             .nth(before)
     }
-}
-
-/// Whether the words `text` at the byte `col` of `line` are the last of
-/// them there: what a line itself draws stands after what it names
-/// (`User -> Login : Login`). Words are read as the count reads them
-/// ([`locate::spans_on`]): `Login` is not written in `LoginPage`.
-fn last_on_line(line: &str, text: &str, col: usize) -> bool {
-    !locate::spans_on(line, text)
-        .iter()
-        .any(|(from, _)| *from > col)
 }
 
 impl Paper {
@@ -170,22 +186,26 @@ impl Paper {
         if drawn.iter().all(|copy| *copy == Drawn::Counted) {
             return None;
         }
-        let written = locate::columns_of(source, text);
+        // Each line the count finds the words on, with every place they
+        // stand there as words, as the count reads them.
         let lines: Vec<&str> = source.split('\n').collect();
-        let twice = written
-            .iter()
-            .filter(|(row, _)| {
-                lines
-                    .get(*row)
-                    .is_some_and(|line| locate::spans_on(line, text).len() > 1)
+        let written = locate::columns_of(source, text)
+            .into_iter()
+            .map(|(row, col)| {
+                let mut starts: Vec<usize> = lines
+                    .get(row)
+                    .map(|line| locate::spans_on(line, text))
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|(from, _)| from)
+                    .collect();
+                if starts.is_empty() {
+                    starts.push(col);
+                }
+                (row, starts)
             })
-            .map(|(row, _)| *row)
             .collect();
-        Some(Copies {
-            drawn,
-            written,
-            twice,
-        })
+        Some(Copies { drawn, written })
     }
 
     /// The copy of `text` its `nth` mention in `source`, at the byte `col`
@@ -197,31 +217,19 @@ impl Paper {
         nth: usize,
         (row, col): (usize, usize),
     ) -> usize {
-        let Some(copies) = self.copies(source, text) else {
-            return nth;
-        };
-        let own = source
-            .split('\n')
-            .nth(row)
-            .is_none_or(|line| last_on_line(line, text, col));
-        copies.copy_of(nth, row, own)
+        match self.copies(source, text) {
+            Some(copies) => copies.copy_of(nth, row, col),
+            None => nth,
+        }
     }
 
     /// The line of the source that writes the `copy` of `text` drawn, and
     /// the byte on it.
     pub fn written_at(&self, source: &str, text: &str, copy: usize) -> Option<(usize, usize)> {
-        let Some(copies) = self.copies(source, text) else {
-            return locate::column_of(source, text, copy);
-        };
-        let (row, col) = copies.written_at(copy)?;
-        // What the line itself draws is the last of such words on it.
-        let tied = matches!(copies.drawn.get(copy), Some(Drawn::Tied { .. }));
-        let last = source
-            .split('\n')
-            .nth(row)
-            .filter(|_| tied)
-            .and_then(|line| locate::spans_on(line, text).last().map(|(from, _)| *from));
-        Some((row, last.unwrap_or(col)))
+        match self.copies(source, text) {
+            Some(copies) => copies.written_at(copy),
+            None => locate::column_of(source, text, copy),
+        }
     }
 }
 
@@ -240,18 +248,15 @@ mod tests {
         let copies = Copies {
             // Drawn: the head, the foot, then the divider over them.
             drawn: vec![Drawn::Counted, Drawn::Again, tied(26)],
-            written: vec![(10, 12), (26, 3), (27, 8), (29, 2)],
-            twice: Vec::new(),
+            written: vec![(10, vec![12]), (26, vec![3]), (27, vec![8]), (29, vec![2])],
         };
         // The divider's line is the divider; the declaration and every
         // other mention, before the divider or after it, is the head.
-        assert_eq!(copies.copy_of(0, 10, true), 0);
-        assert_eq!(copies.copy_of(1, 26, true), 2);
-        assert_eq!(copies.copy_of(2, 27, true), 0);
-        assert_eq!(copies.copy_of(3, 29, true), 0);
-        assert_eq!(copies.copy_of(1, 20, true), 0);
-        // A name the divider's line only mentions is the head too.
-        assert_eq!(copies.copy_of(1, 26, false), 0);
+        assert_eq!(copies.copy_of(0, 10, 12), 0);
+        assert_eq!(copies.copy_of(1, 26, 3), 2);
+        assert_eq!(copies.copy_of(2, 27, 8), 0);
+        assert_eq!(copies.copy_of(3, 29, 2), 0);
+        assert_eq!(copies.copy_of(1, 20, 0), 0);
         // A click on the divider lands on its line; one on the head or on
         // the foot, which repeats it, on the declaration.
         assert_eq!(copies.written_at(2), Some((26, 3)));
@@ -261,7 +266,6 @@ mod tests {
         let unread = Copies {
             drawn: vec![tied(5)],
             written: Vec::new(),
-            twice: Vec::new(),
         };
         assert_eq!(unread.written_at(0), Some((5, 0)));
     }
@@ -272,13 +276,12 @@ mod tests {
     fn a_block_s_words_are_written_after_the_line_it_begins_on() {
         let copies = Copies {
             drawn: vec![Drawn::Counted, Drawn::Tied { line: 4, span: 2 }],
-            written: vec![(1, 12), (6, 2), (9, 0)],
-            twice: Vec::new(),
+            written: vec![(1, vec![12]), (6, vec![2]), (9, vec![0])],
         };
         assert_eq!(copies.written_at(1), Some((6, 2)));
-        assert_eq!(copies.copy_of(1, 6, true), 1);
+        assert_eq!(copies.copy_of(1, 6, 2), 1);
         // The mention after the block is counted without it.
-        assert_eq!(copies.copy_of(2, 9, true), 0);
+        assert_eq!(copies.copy_of(2, 9, 0), 0);
     }
 
     /// Two boxes that read alike are counted, the first drawn the first
@@ -287,34 +290,44 @@ mod tests {
     fn what_is_counted_is_counted_in_order() {
         let copies = Copies {
             drawn: vec![Drawn::Counted, Drawn::Counted],
-            written: vec![(1, 0), (4, 2), (6, 2)],
-            twice: Vec::new(),
+            written: vec![(1, vec![0]), (4, vec![2]), (6, vec![2])],
         };
-        assert_eq!(copies.copy_of(1, 4, true), 1);
-        assert_eq!(copies.copy_of(2, 6, true), 1);
+        assert_eq!(copies.copy_of(1, 4, 2), 1);
+        assert_eq!(copies.copy_of(2, 6, 2), 1);
         assert_eq!(copies.written_at(1), Some((4, 2)));
     }
 
-    /// A line that names a state and labels its line with the same words
-    /// is the state's first mention all the same.
-    #[test]
-    fn a_line_that_writes_it_twice_still_counts() {
-        let copies = Copies {
-            drawn: vec![Drawn::Counted, tied(2), tied(3)],
-            written: vec![(2, 9), (3, 7), (5, 0)],
-            twice: vec![2],
-        };
-        assert_eq!(copies.written_at(0), Some((2, 9)));
-        assert_eq!(copies.copy_of(2, 5, true), 0);
-    }
-
+    /// `User -> Login : Login`: what the line draws is the last of the
+    /// words on it; the name before it is a mention, counted, and a line
+    /// that writes both still counts as the name's mention.
     #[test]
     fn what_a_line_draws_is_the_last_of_such_words_on_it() {
-        let line = "User -> Login : Login";
-        assert!(!last_on_line(line, "Login", 9));
-        assert!(last_on_line(line, "Login", 17));
-        assert!(last_on_line("== Payment ==", "Payment", 4));
-        // A longer name that begins with the words does not write them.
-        assert!(last_on_line("Busy --> BusyBox", "Busy", 0));
+        let copies = Copies {
+            // The participant's head, the message on line 2, a note on 3.
+            drawn: vec![Drawn::Counted, tied(2), tied(3)],
+            written: vec![(2, vec![8, 16]), (3, vec![7]), (5, vec![0])],
+        };
+        assert_eq!(copies.copy_of(0, 2, 8), 0);
+        assert_eq!(copies.copy_of(1, 2, 16), 1);
+        assert_eq!(copies.copy_of(1, 2, 20), 1);
+        assert_eq!(copies.copy_of(2, 3, 7), 2);
+        // Line 2 wrote it twice, once for the message, and line 3 once.
+        assert_eq!(copies.copy_of(3, 5, 0), 0);
+        assert_eq!(copies.written_at(0), Some((2, 8)));
+        assert_eq!(copies.written_at(1), Some((2, 16)));
+    }
+
+    /// Two copies one line draws (`A[Edit] --> B[Edit]`, `"1" --> "1"`)
+    /// are its writings in the order drawn.
+    #[test]
+    fn copies_one_line_draws_are_its_writings_in_order() {
+        let copies = Copies {
+            drawn: vec![tied(2), tied(2)],
+            written: vec![(2, vec![4, 17])],
+        };
+        assert_eq!(copies.copy_of(0, 2, 4), 0);
+        assert_eq!(copies.copy_of(1, 2, 17), 1);
+        assert_eq!(copies.written_at(0), Some((2, 4)));
+        assert_eq!(copies.written_at(1), Some((2, 17)));
     }
 }
