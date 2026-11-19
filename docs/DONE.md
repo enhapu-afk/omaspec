@@ -2897,6 +2897,13 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A frame keeps its margin from the bars at its sides (2026-11-19, from the review
+      sheet, F6): a sequence's frame reached 10 past the lifelines of its outer
+      participants, so where one was active (the checkout's `par` and `opt` at the
+      web shop) its border ran 5 from the bar, and a frame inside another sat on it.
+      A message now tells the frames around it where the bars at its ends stand,
+      nested ones and one it opens too, and the frames keep their 10 from those
+      edges, on the left and on the right
 - [x] What the review of F4 and F5 found (2026-11-19). The bars of forks and joins
       are laid out by `graph::open` (`graph::span`, `Nested::spans`), not by the state
       drawer, as AGENTS.md has it: only the layout of the ranks is laid again while a

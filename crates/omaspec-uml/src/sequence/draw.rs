@@ -1605,15 +1605,22 @@ impl<'a> Drawer<'a> {
                 MessageAlign::Center => (l + r - text_w) / 2.0,
                 MessageAlign::Right => r - TEXT_INSET - head_at(false) - text_w,
             };
-            let ends: Vec<f32> = [from, to].iter().flatten().map(|&c| self.x[c]).collect();
-            lo = ends
+            // The frames around keep their margin from the bars on the
+            // lifelines at either end, a bar this message opens too.
+            let edge = |c: usize, side: Side| {
+                let extra = if Some(c) == to { opening } else { 0 };
+                self.bar_edge(c, side, extra)
+            };
+            lo = [from, to]
                 .iter()
-                .copied()
+                .flatten()
+                .map(|&c| edge(c, Side::Left))
                 .fold(f32::INFINITY, f32::min)
                 .min(text_left);
-            hi = ends
+            hi = [from, to]
                 .iter()
-                .copied()
+                .flatten()
+                .map(|&c| edge(c, Side::Right))
                 .fold(f32::NEG_INFINITY, f32::max)
                 .max(text_left + text_w);
         }
@@ -2534,6 +2541,48 @@ mod tests {
         let incoming = "a message from outside";
         let x = columns(&format!("[-> A : {incoming}"));
         assert!(x[0] >= width(incoming, 13.0) + TEXT_INSET);
+    }
+
+    #[test]
+    fn a_frame_keeps_its_margin_from_the_bars_at_its_sides() {
+        // `(x, width)` of the frames (drawn without a fill) and of the bars.
+        let rects = |svg: &str, frame: bool| -> Vec<(f32, f32)> {
+            svg.split("<rect ")
+                .skip(1)
+                .filter(|rect| rect.contains("fill=\"none\"") == frame)
+                .filter(|rect| frame || rect.contains(" width=\"10\""))
+                .map(|rect| {
+                    let number = |name: &str| -> f32 {
+                        format!(" {rect}")
+                            .split(&format!(" {name}=\""))
+                            .nth(1)
+                            .and_then(|rest| rest.split('"').next()?.parse().ok())
+                            .unwrap()
+                    };
+                    (number("x"), number("width"))
+                })
+                .collect()
+        };
+        // The bar on B stands at the frame's left side, then at its right.
+        for (body, left) in [
+            (
+                "A -> B ++ : x\nopt y\nB -> C : z\nend\nB --> A -- : w",
+                true,
+            ),
+            (
+                "A -> B ++ : x\nopt y\nA -> B : z\nend\nB --> A -- : w",
+                false,
+            ),
+        ] {
+            let svg = crate::render(body).unwrap();
+            let (frame, bar) = (rects(&svg, true)[0], rects(&svg, false)[0]);
+            let margin = if left {
+                bar.0 - frame.0
+            } else {
+                frame.0 + frame.1 - (bar.0 + bar.1)
+            };
+            assert!(margin >= FRAME - 0.01, "{body}: {margin}");
+        }
     }
 
     #[test]
