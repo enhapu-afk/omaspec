@@ -572,6 +572,41 @@ mod tests {
         assert_eq!(found, [2, 4]);
     }
 
+    /// A class diagram ties what one line writes, in PlantUML and in
+    /// Mermaid: a member, a heading among them, a stereotype, a line's
+    /// label and its multiplicities, a note, a note of its own. A class's
+    /// name, which many lines mention, is not.
+    #[test]
+    fn a_class_diagram_ties_what_one_line_writes() {
+        let lines = |map: Map| {
+            let mut lines: Vec<(usize, usize)> =
+                map.tied.iter().map(|tied| (tied.line, tied.span)).collect();
+            lines.sort_unstable();
+            lines
+        };
+        let plantuml = "@startuml\nclass Order {\n  +id: int\n  == Lines ==\n  +total(): Money\n}\nclass Money <<value>>\nOrder \"1\" --> \"*\" Money : total\nnote right of Money : total\nnote \"free\" as N\nN .. Order\nnote left of Order\n  kept\n  long\nend note\n@enduml\n";
+        assert_eq!(
+            lines(crate::render_mapped(plantuml, None).unwrap().1),
+            [
+                (2, 1),
+                (3, 1),
+                (4, 1),
+                (6, 1),
+                (7, 1),
+                (7, 1),
+                (7, 1),
+                (8, 1),
+                (9, 1),
+                (11, 2)
+            ]
+        );
+        let mermaid = "classDiagram\n  class Order {\n    +id int\n  }\n  Order \"1\" --> \"*\" Money : total\n";
+        let map = crate::structure::from_mermaid(mermaid)
+            .map(|d| crate::structure::draw_mapped(&d).unwrap().1)
+            .unwrap();
+        assert_eq!(lines(map), [(2, 1), (4, 1), (4, 1), (4, 1)]);
+    }
+
     /// REQ-073: a sequence diagram's participants, a swimlane's names and a
     /// Gantt chart's axis and tasks are bands a pane keeps in sight; the
     /// picture is the same with them or without.

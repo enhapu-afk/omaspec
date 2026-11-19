@@ -267,8 +267,15 @@ is open and the reasoning around it.
       ends its map with `Canvas::place`, which hands what was tied to the pane; the
       rule is in AGENTS.md. A line that names a state and labels a transition with the
       same words still counts as the state's mention. Mermaid flowcharts are laid out
-      from mmdr's graph, which knows no source lines, and class diagrams tie only
-      their notes so far: both are counted as before
+      from mmdr's graph, which knows no source lines: they are counted as before
+- [x] Class diagrams tie what one line writes, too (2026-11-19): a member, a heading
+      among the members, a stereotype, a line's label and both its multiplicities, a
+      note and a note of its own (`note "…" as N`), in PlantUML and in Mermaid, and so
+      component, use case, deployment and object diagrams. A class's name, which many
+      lines mention, is counted. The `"1"` of one line no longer lights the `"1"` of
+      another, and a label or a note that reads as a class keeps apart from it. On one
+      line, words are where they stand as a word (`locate::spans_on`): `Busy` is not
+      written in `BusyBox`
 - [x] What the review of 2026-11-18 (evening) found in the day's later work. A `++` in
       a quoted name, a title or a note is letters: the bar's sign is read where the
       engine reads an activation, in one place (`recolor::bar_sign`), where *color the

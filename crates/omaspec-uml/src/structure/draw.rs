@@ -699,18 +699,25 @@ fn rows_of(
         }
     };
     let mut rows = Vec::new();
+    // What one line alone writes is tied to it: a stereotype, a member,
+    // a heading, the words of a note. The name, which lines mention
+    // again and again, is not.
     for stereotype in &el.stereotypes {
         let shown = format!("«{}»", stereotype.value);
         let block = text::block(&shown, look.stereo, family)
             .map_err(|err| Declined::at(stereotype.line, err))?;
-        rows.push(head(block));
+        rows.push(head(block.written_on(stereotype.line)));
     }
     let name_font = if el.shape == Shape::Abstract {
         look.font.italic()
     } else {
         look.font
     };
-    let mut name = text_block(&el.label, name_font, family)?;
+    let mut name = if el.shape == Shape::Note {
+        written_block(&el.label, name_font, family)?
+    } else {
+        text_block(&el.label, name_font, family)?
+    };
     if el.shape == Shape::Object {
         name = restyle(name, name_font, family, false, true);
     }
@@ -726,7 +733,7 @@ fn rows_of(
                 underline,
                 ..
             } => {
-                let block = text_block(text, look.member, family)?;
+                let block = written_block(text, look.member, family)?;
                 let block = restyle(block, look.member, family, *italic, *underline);
                 if !block.is_empty() {
                     rows.push(Row::Left(block));
@@ -734,7 +741,7 @@ fn rows_of(
             }
             Member::Rule(dash) => rows.push(Row::Rule(*dash)),
             Member::Heading(text) => {
-                let block = text_block(text, look.member, family)?;
+                let block = written_block(text, look.member, family)?;
                 if !block.is_empty() {
                     rows.push(Row::Center(block));
                 }
@@ -744,10 +751,13 @@ fn rows_of(
     Ok((rows, body))
 }
 
+/// `block` in italics or underlined; the line that writes it stays its
+/// line.
 fn restyle(block: Block, font: Font, family: Family, italic: bool, underline: bool) -> Block {
     if block.is_empty() || (!italic && !underline) {
         return block;
     }
+    let written = block.written;
     let lines = block
         .lines
         .into_iter()
@@ -767,7 +777,10 @@ fn restyle(block: Block, font: Font, family: Family, italic: bool, underline: bo
                 .collect::<Vec<(String, Style)>>()
         })
         .collect();
-    text::styled(lines, font, family)
+    Block {
+        written,
+        ..text::styled(lines, font, family)
+    }
 }
 
 fn paints(el: &Element, look: &super::skin::Look) -> Result<(Paint, Stroke), Declined> {
@@ -789,10 +802,12 @@ fn paints(el: &Element, look: &super::skin::Look) -> Result<(Paint, Stroke), Dec
     Ok((fill, stroke))
 }
 
+/// A line's label and multiplicities, each the words its line alone
+/// writes: tied to it, so a `"1"` of one line is not taken for another's.
 fn link_blocks(link: &Link, skin: &Skin, family: Family) -> Result<Labeled, Declined> {
     // A hidden line says nothing: no label keeps room beside it.
     let block = |text: &Option<crate::common::Text>| match text {
-        Some(text) if !link.hidden => text_block(text, skin.arrow_font, family),
+        Some(text) if !link.hidden => written_block(text, skin.arrow_font, family),
         _ => Ok(Block::empty()),
     };
     Ok(Labeled {
@@ -807,6 +822,16 @@ fn text_block(text: &crate::common::Text, font: Font, family: Family) -> Result<
         return Ok(Block::empty());
     }
     text::block(&text.value, font, family).map_err(|err| Declined::at(text.line, err))
+}
+
+/// `text` measured as the words its line alone writes
+/// ([`Block::written_on`]): drawn, they are tied to that line.
+fn written_block(
+    text: &crate::common::Text,
+    font: Font,
+    family: Family,
+) -> Result<Block, Declined> {
+    text_block(text, font, family).map(|block| block.written_on(text.line))
 }
 
 fn arrow_stroke(skin: &Skin, edge: &Link) -> Result<Stroke, Declined> {

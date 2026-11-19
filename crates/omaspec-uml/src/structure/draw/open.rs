@@ -30,7 +30,8 @@ impl Elements<'_> {
         if note.target >= group.nodes.len() {
             return Err(Declined::at(note.line, "a note needs an element"));
         }
-        let text = text_block(&note.text, self.skin.note.font, self.family)?;
+        // A note's words are its line's, from the line it begins on.
+        let text = text_block(&note.text, self.skin.note.font, self.family)?.written_on(note.line);
         let (w, h) = note_size(&text);
         Ok(Draft {
             target: note.target,

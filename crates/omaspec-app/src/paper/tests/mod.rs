@@ -137,6 +137,41 @@ fn a_state_and_words_that_read_as_it_keep_apart() {
     assert_eq!(lines, [2, 2, 3, 4], "the state on its first mention");
 }
 
+/// A class, a line's label and a note that all read `Order` keep apart,
+/// and so do the multiplicities of two lines: each lights from its own
+/// line and is found on it.
+#[test]
+fn a_class_and_words_that_read_as_it_keep_apart() {
+    let source = "@startuml\nclass Order\nclass Cart\nCart \"1\" --> \"*\" Order : Order\nnote right of Cart : Order\nOrder \"1\" --> \"*\" Item\n@enduml\n";
+    let mut paper = Paper::default();
+    show_source(&mut paper, source, Language::PlantUml);
+    let line = |row: usize| source.lines().nth(row).unwrap();
+    let at = |row: usize, col: usize| paper.place_of(source, row, col).unwrap();
+    let class = at(1, line(1).find("Order").unwrap() + 1);
+    let label = at(3, line(3).rfind("Order").unwrap() + 1);
+    let noted = at(4, line(4).rfind("Order").unwrap() + 1);
+    let later = at(5, 1);
+    assert_eq!(later, class, "a later mention is the class");
+    assert_ne!(label, class, "label");
+    assert_ne!(noted, class, "note");
+    assert_ne!(label, noted);
+    let one = |row: usize| at(row, line(row).find("\"1\"").unwrap() + 1);
+    assert_ne!(one(3), one(5), "each line's multiplicity");
+    // And back: every copy drawn on the line that writes it.
+    let lines = |text: &str| {
+        let mut lines: Vec<usize> = paper
+            .labels()
+            .into_iter()
+            .filter(|(drawn, ..)| drawn == text)
+            .filter_map(|(.., line)| line)
+            .collect();
+        lines.sort_unstable();
+        lines
+    };
+    assert_eq!(lines("Order"), [1, 3, 4]);
+    assert_eq!(lines("1"), [3, 5]);
+}
+
 /// A swimlane and actions that read as it keep apart: the lane lights
 /// from every `|lane|` line, each action from its own.
 #[test]
