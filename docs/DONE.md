@@ -2897,6 +2897,21 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Room found by drawing (2026-11-19), after the review of F6 and F7: the columns
+      were set apart by a guess of how far a frame's side or a note beside a lifeline
+      would reach, and each guess missed a case (bars nested on bars, a self message
+      at a frame's side, a note inside it, the head of one created, a frame over one
+      lifeline without a bar). A sequence is now drawn, and what crowds a lifeline it
+      does not belong to is measured (`sequence/draw/room.rs`): a frame's side or a
+      note closer than its margin to a lifeline or a bar outside it, a frame's words
+      over the last lifeline it holds, a frame past the picture's edges or the end
+      of a message from outside. The columns between move that much further apart
+      and it is drawn again, four times at most; most sequences are drawn once. A
+      note beside a message stands by the bars at its end, a bar opened after a note
+      beside its message takes the arrow, and a message that creates a wide head
+      keeps its words between its ends. `every-construct` and `styled` had a frame's
+      side on a lifeline. `mirrorActors: null` (or a list, an object) leaves the
+      participants below, as Mermaid writes no such value over its own `true`
 - [x] A frame's words keep off the lifeline it ends by (2026-11-19, from the review
       sheet, F7): the columns under a frame stood just far enough apart for the words
       of its tab to end on the lifeline at its right side, so `[every day until

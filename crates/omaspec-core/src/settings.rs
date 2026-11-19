@@ -258,22 +258,21 @@ pub fn init(code: &str) -> Vec<Setting> {
 
 /// Whether a Mermaid sequence draws its participants again below their
 /// lifelines: as Mermaid does, unless `sequence.mirrorActors` is set to
-/// what JavaScript takes as false (`false`, `0`, `null`, `""`), in the
-/// front matter's `config` or a `%%{init}%%`. PlantUML's `hide footbox`
-/// is the same.
+/// what JavaScript takes as false (`false`, `0`, `""`), in the front
+/// matter's `config` or a `%%{init}%%`, the last such setting counting.
+/// Mermaid writes no `null`, list or object over its own `true`, so these
+/// leave it as it was. PlantUML's `hide footbox` is the same.
 pub fn mirrors_actors(code: &str) -> bool {
-    let Some(value) =
-        merged(code).and_then(|settings| settings.get("sequence")?.get("mirrorActors").cloned())
-    else {
-        return true;
-    };
-    match value {
-        Value::Bool(on) => on,
-        Value::Null => false,
-        Value::Number(number) => number.as_f64().is_some_and(|n| n != 0.0 && !n.is_nan()),
-        Value::String(text) => !text.is_empty(),
-        Value::Array(_) | Value::Object(_) => true,
-    }
+    front(code)
+        .into_iter()
+        .chain(init(code))
+        .filter(|setting| setting.path == ["sequence", "mirrorActors"])
+        .fold(true, |on, setting| match setting.value {
+            Value::Bool(value) => value,
+            Value::Number(number) => number.as_f64().is_some_and(|n| n != 0.0 && !n.is_nan()),
+            Value::String(text) => !text.is_empty(),
+            Value::Null | Value::Array(_) | Value::Object(_) => on,
+        })
 }
 
 /// The front matter's settings and then the directives', which count
@@ -449,8 +448,8 @@ mod tests {
         for (value, on) in [
             ("false", false),
             ("0", false),
-            ("null", false),
             ("\"\"", false),
+            ("null", true),
             ("true", true),
             ("1", true),
             ("\"no\"", true),
@@ -459,11 +458,21 @@ mod tests {
                 format!("%%{{init: {{\"sequence\": {{\"mirrorActors\": {value}}}}}}}%%\n{body}");
             assert_eq!(mirrors_actors(&code), on, "{code}");
         }
-        for value in ["0", "null", "~", "False"] {
+        for value in ["0", "False"] {
             let front =
                 format!("---\nconfig:\n  sequence:\n    mirrorActors: {value}\n---\n{body}");
             assert!(!mirrors_actors(&front), "{front}");
         }
+        // A null leaves what was set before as it was.
+        for value in ["null", "~"] {
+            let front =
+                format!("---\nconfig:\n  sequence:\n    mirrorActors: {value}\n---\n{body}");
+            assert!(mirrors_actors(&front), "{front}");
+        }
+        let both = format!(
+            "---\nconfig:\n  sequence:\n    mirrorActors: false\n---\n%%{{init: {{\"sequence\": {{\"mirrorActors\": null}}}}}}%%\n{body}"
+        );
+        assert!(!mirrors_actors(&both), "{both}");
     }
 
     #[test]
