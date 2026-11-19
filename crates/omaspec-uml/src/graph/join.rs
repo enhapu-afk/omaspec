@@ -31,6 +31,11 @@ const ROOM: f32 = 60.0;
 /// How far into that gap the junction lies: past its middle, so the stem
 /// is the longer part.
 const DEPTH: f32 = 0.6;
+/// How far a stem keeps from where another line ends on the same side:
+/// two heads 14 wide side by side, and a little between them.
+const HEADS: f32 = 16.0;
+/// How far a stem keeps from the corners of its side.
+const INSET: f32 = 8.0;
 /// Where the junction may move to, off the middle of the gap, when a line
 /// or a box is in the way there.
 const TRIES: [f32; 5] = [0.0, -6.0, 6.0, -12.0, 12.0];
@@ -45,6 +50,10 @@ pub struct Tree {
     /// The end the stem is at: the line's first (`from`) or its last.
     pub at_from: bool,
 }
+
+/// The lines of one tree into one box: its key, the box, and whether they
+/// meet the side the flow leaves it by.
+type TreeKey = (u8, usize, bool);
 
 /// A point with its coordinate along the flow first.
 fn turned(point: Point, direction: Direction) -> Point {
@@ -64,8 +73,15 @@ fn spans(rect: Rect, direction: Direction) -> (f32, f32, f32, f32) {
 
 /// Widens each gap between the rank of a tree's box and the rank its lines
 /// come from to [`ROOM`]. `chains` are the slots each line passes, `rows`
-/// the slots of each rank; a box's slot is its index.
-pub(super) fn room(gaps: &mut [f32], edges: &[Edge], chains: &[Vec<usize>], rows: &[Vec<usize>]) {
+/// the slots of each rank; the first `boxes` slots are the boxes, by
+/// their index, and an end past them (a frame's) is no tree's.
+pub(super) fn room(
+    gaps: &mut [f32],
+    edges: &[Edge],
+    chains: &[Vec<usize>],
+    rows: &[Vec<usize>],
+    boxes: usize,
+) {
     if edges.iter().all(|edge| edge.tree.is_none()) {
         return;
     }
@@ -83,6 +99,9 @@ pub(super) fn room(gaps: &mut [f32], edges: &[Edge], chains: &[Vec<usize>], rows
             continue;
         }
         let at = if tree.at_from { edge.from } else { edge.to };
+        if at >= boxes {
+            continue;
+        }
         let next = if chain[0] == at {
             chain[1]
         } else if chain[chain.len() - 1] == at {
@@ -111,7 +130,7 @@ pub(super) fn trees(
     if edges.iter().all(|edge| edge.tree.is_none()) {
         return;
     }
-    let mut groups: HashMap<(u8, usize, bool), Vec<(usize, bool)>> = HashMap::new();
+    let mut groups: HashMap<TreeKey, Vec<(usize, bool)>> = HashMap::new();
     let mut order = Vec::new();
     for (index, edge) in edges.iter().enumerate() {
         let Some(tree) = edge.tree else { continue };
@@ -149,18 +168,61 @@ pub(super) fn trees(
         }
         groups.entry(key).or_default().push((index, reversed));
     }
-    for key in order {
-        let group = &groups[&key];
-        if group.len() < 2 {
+    // Each tree joined, with its stem across the flow and its lines as
+    // they were; and each that stays as it was.
+    let mut joined_trees: Vec<(TreeKey, f32, Vec<Vec<Point>>)> = Vec::new();
+    let mut unjoined = Vec::new();
+    for (at_key, key) in order.iter().enumerate() {
+        let group = &groups[key];
+        let (_, at, after) = *key;
+        // The lines of the trees into this side still to come end where
+        // their own stem will be.
+        let later: Vec<usize> = order[at_key + 1..]
+            .iter()
+            .filter(|other| other.1 == at && other.2 == after)
+            .flat_map(|other| groups[other].iter().map(|&(index, _)| index))
+            .collect();
+        let tree = (group.len() >= 2)
+            .then(|| join(lines, group, &later, rects, at, after, direction))
+            .flatten();
+        let Some((joined, stem)) = tree else {
+            unjoined.push(*key);
             continue;
+        };
+        let before = group
+            .iter()
+            .map(|&(index, _)| lines[index].clone())
+            .collect();
+        for ((index, reversed), mut points) in group.iter().zip(joined) {
+            if *reversed {
+                points.reverse();
+            }
+            lines[*index] = points;
         }
+        joined_trees.push((*key, stem, before));
+    }
+    // A tree that could not join keeps its heads where they were: a stem
+    // laid next to one of them goes back to its own lines.
+    for key in unjoined {
         let (_, at, after) = key;
-        if let Some(joined) = join(lines, group, rects, at, after, direction) {
-            for ((index, reversed), mut points) in group.iter().zip(joined) {
-                if *reversed {
-                    points.reverse();
+        let ends: Vec<f32> = groups[&key]
+            .iter()
+            .filter_map(|&(index, reversed)| {
+                let points = &lines[index];
+                let end = if reversed {
+                    points.first()
+                } else {
+                    points.last()
+                };
+                end.map(|&p| turned(p, direction).1)
+            })
+            .collect();
+        for (joined, stem, before) in &mut joined_trees {
+            let near = ends.iter().any(|end| (end - *stem).abs() < HEADS);
+            if joined.1 == at && joined.2 == after && near && !before.is_empty() {
+                for (&(index, _), points) in groups[joined].iter().zip(before.drain(..)) {
+                    lines[index] = points;
                 }
-                lines[*index] = points;
             }
         }
     }
@@ -175,16 +237,19 @@ fn inside(rect: Rect, point: Point) -> bool {
 }
 
 /// The routes of `group`, each ending at box `at` on its side `after`
-/// the flow (or before it), joined into one stem; `None` when the tree
-/// would run along another line or through a box.
+/// the flow (or before it), joined into one stem, and where the stem
+/// stands across the flow; `None` when the tree would run along another
+/// line or through a box, or end by another line's head. The lines of
+/// `later` are other trees' and move to stems of their own.
 fn join(
     lines: &[Vec<Point>],
     group: &[(usize, bool)],
+    later: &[usize],
     rects: &[Rect],
     at: usize,
     after: bool,
     direction: Direction,
-) -> Option<Vec<Vec<Point>>> {
+) -> Option<(Vec<Vec<Point>>, f32)> {
     let sign = if after { 1.0 } else { -1.0 };
     let (a0, a1, c0, c1) = spans(rects[at], direction);
     let edge = if after { a1 } else { a0 };
@@ -207,6 +272,18 @@ fn join(
         .enumerate()
         .filter(|(index, _)| !members.contains(index))
         .map(|(_, points)| points.iter().map(|&p| turned(p, direction)).collect())
+        .collect();
+    // Where the others end on this side of the box, across the flow: a
+    // stem there would stack its head on theirs.
+    let heads: Vec<f32> = lines
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| !members.contains(index) && !later.contains(index))
+        .flat_map(|(_, points)| [points.first(), points.last()])
+        .flatten()
+        .map(|&p| turned(p, direction))
+        .filter(|p| (p.0 - edge).abs() < 1.0 && p.1 > c0 - 1.0 && p.1 < c1 + 1.0)
+        .map(|p| p.1)
         .collect();
     let boxes: Vec<(f32, f32, f32, f32)> = rects
         .iter()
@@ -234,32 +311,52 @@ fn join(
     }
     let middle = (gap * DEPTH).max(STEM).min(gap - CLEAR);
     // The stem: on a line that runs straight into the box, nearest its
-    // middle; else at the middle of the side.
+    // middle; else at the middle of the side; else where one of its lines
+    // ends, nearest the middle first; else a step further out each time.
     let center = (c0 + c1) / 2.0;
+    let nearest = |a: &f32, b: &f32| (a - center).abs().total_cmp(&(b - center).abs());
     let straight = routes
         .iter()
         .filter(|route| route.iter().all(|p| (p.1 - route[0].1).abs() < 0.5))
         .map(|route| route[0].1)
         .filter(|&c| c > c0 && c < c1)
-        .min_by(|a, b| (a - center).abs().total_cmp(&(b - center).abs()));
-    for stem in straight.into_iter().chain([center]) {
+        .min_by(nearest);
+    let mut own: Vec<f32> = routes
+        .iter()
+        .map(|route| route[route.len() - 1].1)
+        .collect();
+    own.sort_by(nearest);
+    let steps = (1..)
+        .map(|step| step as f32 * HEADS)
+        .take_while(|&off| off < (c1 - c0) / 2.0);
+    let stems: Vec<f32> = straight
+        .into_iter()
+        .chain([center])
+        .chain(own)
+        .chain(steps.flat_map(|off| [center - off, center + off]))
+        .filter(|&c| c >= c0 + INSET && c <= c1 - INSET)
+        .filter(|&c| heads.iter().all(|head| (head - c).abs() >= HEADS))
+        .collect();
+    for stem in stems {
         for shift in TRIES {
             let d = middle + shift;
             if d < STEM || d > gap - CLEAR {
                 continue;
             }
             let junction = edge + sign * d;
-            let joined = routes
+            let Some(joined) = routes
                 .iter()
                 .map(|route| onto(route, junction, stem, edge, sign))
-                .collect::<Option<Vec<_>>>()?;
+                .collect::<Option<Vec<_>>>()
+            else {
+                continue;
+            };
             if clear(&joined, &others, &boxes, junction, stem, edge) {
-                return Some(
-                    joined
-                        .into_iter()
-                        .map(|route| route.into_iter().map(|p| turned(p, direction)).collect())
-                        .collect(),
-                );
+                let back = joined
+                    .into_iter()
+                    .map(|route| route.into_iter().map(|p| turned(p, direction)).collect())
+                    .collect();
+                return Some((back, stem));
             }
         }
     }
@@ -487,5 +584,27 @@ mod tests {
         distinct.sort_unstable();
         distinct.dedup();
         assert_eq!(distinct.len(), 2, "{worded}");
+    }
+
+    #[test]
+    fn two_trees_into_one_box_stand_apart() {
+        // The solid lines and the dashed ones each under a triangle of
+        // their own, the two side by side, not on top of each other.
+        let svg = crate::render(
+            "@startuml\nskinparam groupInheritance 2\nclass Base\nBase <|-- A\nBase <|-- B\n\
+             Base <|.. C\nBase <|.. D\n@enduml\n",
+        )
+        .unwrap();
+        let mut tips: Vec<f32> = triangles(&svg)
+            .into_iter()
+            .map(|points| {
+                let tip = points.split(' ').nth(1).unwrap();
+                tip.split(',').next().unwrap().parse().unwrap()
+            })
+            .collect();
+        tips.sort_by(f32::total_cmp);
+        tips.dedup_by(|a, b| (*a - *b).abs() < 0.01);
+        assert_eq!(tips.len(), 2, "{svg}");
+        assert!(tips[1] - tips[0] >= HEADS, "{tips:?}");
     }
 }

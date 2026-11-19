@@ -1945,6 +1945,9 @@ fn notes_inside(scene: &Scene, out: &mut Vec<(String, String)>) {
 /// tree.
 fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
     for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
+        if on_hidden(scene, note) {
+            continue;
+        }
         canvas.part(&part, |canvas| {
             dog_ear(
                 canvas,
@@ -1966,6 +1969,15 @@ fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<u
     }
 }
 
+/// Whether `note` is on a box hidden with `hide`: it keeps its place, as
+/// the box does, and is not drawn.
+fn on_hidden(scene: &Scene, note: &PlacedNote) -> bool {
+    scene
+        .nodes
+        .get(note.target)
+        .is_some_and(|node| node.item.hidden)
+}
+
 /// Each line's words and each note's in a part of their own.
 /// `containers` are those of the whole diagram, whose borders the
 /// multiplicities keep off; `path` is where `scene` is in the tree.
@@ -1984,6 +1996,9 @@ fn paint_labels(canvas: &mut Canvas, scene: &Scene, containers: &[Rect], path: &
         }
     }
     for (note, part) in scene.notes.iter().zip(note_parts(scene, path)) {
+        if on_hidden(scene, note) {
+            continue;
+        }
         canvas.part(&part, |canvas| {
             canvas.text(
                 Layer::Front,

@@ -237,20 +237,28 @@ fn kind_of(word: &str) -> Option<&'static [Shape]> {
 }
 
 /// The `$tag`s on a declaration taken out of it: the line without them,
-/// and the tags. Words in quotes and in a stereotype stay.
+/// and the tags. A tag is a word of its own of letters, digits, `_`, `.`
+/// and `-` after a `$`; a `$` in quotes, in a stereotype, in brackets or
+/// parentheses (`[Pay $5]`, a link) stays where it is.
 pub(super) fn take_tags(text: &str) -> (String, Vec<String>) {
+    let tag_char = |c: char| c.is_alphanumeric() || matches!(c, '_' | '.' | '-');
     let mut kept = String::with_capacity(text.len());
     let mut tags = Vec::new();
     let mut rest = text;
     let mut quoted = false;
-    let mut stereo = false;
+    // How deep in `<<`, `[` and `(` the next character is.
+    let mut depth = 0usize;
     while let Some(c) = rest.chars().next() {
         let at_word = kept.is_empty() || kept.ends_with(char::is_whitespace);
-        if !quoted && !stereo && c == '$' && at_word {
-            let end = rest
-                .find(|c: char| c.is_whitespace() || c == '{')
-                .unwrap_or(rest.len());
-            if end > 1 {
+        if !quoted && depth == 0 && c == '$' && at_word {
+            let end = rest[1..]
+                .find(|c: char| !tag_char(c))
+                .map_or(rest.len(), |at| at + 1);
+            let ends_word = rest[end..]
+                .chars()
+                .next()
+                .is_none_or(|c| c.is_whitespace() || c == '{');
+            if end > 1 && ends_word {
                 tags.push(rest[1..end].to_owned());
                 rest = rest[end..].trim_start();
                 continue;
@@ -258,10 +266,24 @@ pub(super) fn take_tags(text: &str) -> (String, Vec<String>) {
         }
         if c == '"' {
             quoted = !quoted;
-        } else if !quoted && rest.starts_with("<<") {
-            stereo = true;
-        } else if stereo && rest.starts_with(">>") {
-            stereo = false;
+        } else if !quoted {
+            if rest.starts_with("<<") {
+                depth += 1;
+                kept.push_str("<<");
+                rest = &rest[2..];
+                continue;
+            }
+            if rest.starts_with(">>") && depth > 0 {
+                depth -= 1;
+                kept.push_str(">>");
+                rest = &rest[2..];
+                continue;
+            }
+            match c {
+                '[' | '(' => depth += 1,
+                ']' | ')' => depth = depth.saturating_sub(1),
+                _ => {}
+            }
         }
         kept.push(c);
         rest = &rest[c.len_utf8()..];
@@ -270,12 +292,12 @@ pub(super) fn take_tags(text: &str) -> (String, Vec<String>) {
 }
 
 /// Lays `directives` on the boxes of `root`; `tags` are each box's
-/// `$tag`s, by its key. A name that is no box and no kind's word is
+/// `$tag`s, by its path. A name that is no box and no kind's word is
 /// declined on its line.
 pub(super) fn apply(
     root: &mut Group,
     directives: &[Directive],
-    tags: &[(String, String)],
+    tags: &[(Vec<usize>, String)],
 ) -> Result<(), Declined> {
     if directives.is_empty() {
         return Ok(());
@@ -352,7 +374,7 @@ fn resolved(
 /// What the directives are read against.
 struct World<'a> {
     linked: &'a HashSet<Vec<usize>>,
-    tags: &'a [(String, String)],
+    tags: &'a [(Vec<usize>, String)],
     directives: &'a [Directive],
 }
 
@@ -380,7 +402,7 @@ impl World<'_> {
             Target::Tag(tag) => self
                 .tags
                 .iter()
-                .any(|(key, written)| *key == el.key && written == tag),
+                .any(|(at, written)| at == path && written == tag),
             // A note of its own is no box a line is missing from.
             Target::Unlinked => {
                 !el.composite && el.shape != Shape::Note && !self.linked.contains(path)
@@ -544,6 +566,11 @@ fn lines_of(group: &Group, path: &mut Vec<usize>, out: &mut HashSet<Vec<usize>>)
         out.insert(at(&crossing.from));
         out.insert(at(&crossing.to));
     }
+    // A hidden line across the flow holds its box beside the other.
+    for held in &group.held {
+        out.insert(at(&[held.index]));
+        out.insert(at(&[held.beside]));
+    }
     for (index, node) in group.nodes.iter().enumerate() {
         path.push(index);
         lines_of(&node.children, path, out);
@@ -574,9 +601,9 @@ fn within(set: &HashSet<Vec<usize>>, path: &[usize]) -> bool {
     (1..=path.len()).any(|len| set.contains(&path[..len]))
 }
 
-/// Hides the boxes of `unseen` and what they hold, the lines that meet
-/// them, and the notes on them; `around` when a container around `group`
-/// is hidden.
+/// Hides the boxes of `unseen` and what they hold, and the lines that
+/// meet them; `around` when a container around `group` is hidden. A note
+/// on a hidden box keeps its place and is not drawn either.
 fn unsee(group: &mut Group, path: &mut Vec<usize>, unseen: &HashSet<Vec<usize>>, around: bool) {
     let hidden = |end: &[usize], path: &[usize]| around || within(unseen, &[path, end].concat());
     for edge in &mut group.edges {
@@ -589,7 +616,6 @@ fn unsee(group: &mut Group, path: &mut Vec<usize>, unseen: &HashSet<Vec<usize>>,
             crossing.arrow.hidden = true;
         }
     }
-    group.notes.retain(|note| !hidden(&[note.target], path));
     for (index, node) in group.nodes.iter_mut().enumerate() {
         path.push(index);
         let gone = around || unseen.contains(path.as_slice());
@@ -649,6 +675,25 @@ fn prune(group: &mut Group, path: &mut Vec<usize>, gone: &HashSet<Vec<usize>>) {
         .retain_mut(|note| match moved(&[note.target], path) {
             Some(target) => {
                 note.target = target[0];
+                true
+            }
+            None => false,
+        });
+    // A box held beside another by a hidden line across the flow.
+    group.held.retain_mut(
+        |held| match (moved(&[held.index], path), moved(&[held.beside], path)) {
+            (Some(index), Some(beside)) => {
+                (held.index, held.beside) = (index[0], beside[0]);
+                true
+            }
+            _ => false,
+        },
+    );
+    group
+        .apart
+        .retain_mut(|member| match moved(&[*member], path) {
+            Some(new) => {
+                *member = new[0];
                 true
             }
             None => false,
@@ -749,6 +794,18 @@ mod tests {
             )
         );
         assert_eq!(take_tags("class Plain"), ("class Plain".into(), Vec::new()));
+        // A `$` in brackets, parentheses or a link is part of the name.
+        for text in [
+            "component [Pay $5]",
+            "usecase (Pay $5)",
+            "class A [[http://x.org/ $y]]",
+        ] {
+            assert_eq!(take_tags(text), (text.into(), Vec::new()), "{text}");
+        }
+        assert_eq!(
+            take_tags("component [Pay $5] as P $billing"),
+            ("component [Pay $5] as P".into(), vec!["billing".into()])
+        );
     }
 
     #[test]
@@ -870,6 +927,59 @@ mod tests {
             (&crossing.from[..], &crossing.to[..]),
             (&[1][..], &[0, 0][..])
         );
+    }
+
+    #[test]
+    fn a_box_held_beside_another_stays_beside_it_when_one_before_is_removed() {
+        let d = diagram("class A\nclass B\nclass C\nclass D\nB -- D\nC -[hidden]left- B\nremove A");
+        let [held] = &d.root.held[..] else {
+            panic!("{:?}", d.root.held)
+        };
+        let key = |at: usize| d.root.nodes[at].key.as_str();
+        assert_eq!((key(held.index), key(held.beside)), ("B", "C"));
+        // A box held so is no box without a line.
+        let d = diagram("class B\nclass C\nC -[hidden]left- B\nremove @unlinked");
+        assert_eq!(keys(&d.root), ["B", "C"]);
+    }
+
+    #[test]
+    fn a_tag_belongs_to_the_box_it_is_written_on() {
+        // Names belong to the whole diagram: a second `class A` is the
+        // same box, and its tag goes with it.
+        let d = diagram(
+            "package P {\n  class A $t\n  class B\n}\npackage Q {\n  class A\n  class C\n}\nremove $t",
+        );
+        assert_eq!(keys(&d.root.nodes[0].children), ["B"]);
+        assert_eq!(keys(&d.root.nodes[1].children), ["C"]);
+        // A `$` in a name stays in it.
+        let d = diagram("component [Pay $5]");
+        assert_eq!(d.root.nodes[0].label.value, "Pay $5");
+    }
+
+    #[test]
+    fn a_hidden_box_keeps_its_note_in_its_place_undrawn() {
+        let d = diagram("class A\nclass B\nA --> B\nnote right of B : n\nhide B");
+        assert_eq!(d.root.notes.len(), 1);
+        let shown =
+            crate::render("@startuml\nclass A\nclass B\nA --> B\nnote right of B : n\n@enduml\n")
+                .unwrap();
+        let hidden = crate::render(
+            "@startuml\nclass A\nclass B\nA --> B\nnote right of B : n\nhide B\n@enduml\n",
+        )
+        .unwrap();
+        assert!(
+            shown.contains(">n</tspan>") && !hidden.contains(">n</tspan>"),
+            "{hidden}"
+        );
+        // A stands where it stood.
+        let first_rect = |svg: &str| {
+            svg[svg.find("<rect").unwrap()..]
+                .split('>')
+                .next()
+                .unwrap()
+                .to_owned()
+        };
+        assert_eq!(first_rect(&shown), first_rect(&hidden));
     }
 
     #[test]

@@ -317,8 +317,9 @@ struct Parser {
     /// `hide`, `show`, `remove` and `restore`, laid on the boxes once all
     /// are known.
     hides: Vec<super::hide::Directive>,
-    /// Each `$tag` a declaration carries, by its box's key.
-    tags: Vec<(String, String)>,
+    /// Each `$tag` a declaration carries, by its box's path: a name may
+    /// stand in two packages.
+    tags: Vec<(Vec<usize>, String)>,
 }
 
 impl Default for Parser {
@@ -507,9 +508,11 @@ impl Parser {
         };
         let declared = if tags.is_empty() { text } else { &untagged };
         if let Some(decl) = declaration(declared, no)? {
-            self.tags
-                .extend(tags.into_iter().map(|tag| (decl.key.clone(), tag)));
             self.declare(decl)?;
+            if let Some(path) = &self.last {
+                self.tags
+                    .extend(tags.into_iter().map(|tag| (path.clone(), tag)));
+            }
             return Ok(at + 1);
         }
         if find_arrow(text).is_some() {

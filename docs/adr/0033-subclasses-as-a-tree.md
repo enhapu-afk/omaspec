@@ -37,9 +37,15 @@ a point where the lines meet and gives it a rank of its own.
    units out on the stem keeps its last part straight: the curve where
    the lines meet would otherwise take the whole last run up to the
    triangle.
-4. **No tree through anything.** If the run across or the stem would lie
-   along another line or pass through a box, the junction tries a few
-   other depths, and if none is free the lines stay as they were.
+4. **No tree through anything.** The stem keeps 16 units from where
+   another line ends on that side, so no head stacks on another; it
+   tries the middle of the side first, then where its own lines end,
+   then a step further out each time. Two trees into one side (the
+   solid lines of `<|--` and the dashed ones of `<|..`) so stand side by
+   side. If the run across or the stem would lie along another line or
+   pass through a box, the junction tries a few other depths, and if
+   none is free the lines stay as they were; a tree whose stem would
+   then stand by their heads goes back to its own lines too.
 
 ## Why
 

@@ -585,7 +585,7 @@ fn in_ranks(
     for (index, gap) in gaps.iter_mut().enumerate() {
         *gap += ending[index] + beginning[index + 1];
     }
-    join::room(&mut gaps, edges, &chains, &rows);
+    join::room(&mut gaps, edges, &chains, &rows, n);
     let bands = place_along(&mut slots, &rows, &gaps);
     let rects: Vec<Rect> = (0..n).map(|i| rect_of(&slots, i, direction)).collect();
     // The lines within a rank, each between its two boxes; those that
