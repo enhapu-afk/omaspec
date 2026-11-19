@@ -2897,6 +2897,11 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] The media player's `failed` into Off without a hook (2026-11-19, from the review
+      sheet, F12): the sheet showed the line bending into its head a few units under
+      Off. The line back up into a box that F3 gave a bend of its own
+      (`graph::ARRIVE`) arrives so here too: a curve, then a straight run into the
+      head; `media-player.mmd`'s golden holds it
 - [x] A Mermaid sequence's numbers in circles (2026-11-19, from the review sheet, F11):
       `autonumber` wrote `1 open`, as PlantUML does; Mermaid draws each number in a
       small circle at the start of its arrow. A sequence read from Mermaid now does
