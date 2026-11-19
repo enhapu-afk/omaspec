@@ -747,7 +747,7 @@ impl Canvas {
                     rect,
                     line: written.line,
                     col: written.col,
-                    span: block.lines.len(),
+                    span: block.lines.iter().map(|line| line.rows).sum(),
                 });
             }
         }

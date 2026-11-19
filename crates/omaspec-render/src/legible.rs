@@ -34,7 +34,7 @@ const LINE: f32 = 3.0;
 /// read turned to read; as it is when everything reads, or when it cannot
 /// be measured.
 pub fn repair(svg: &str, look: &Look) -> String {
-    if !suspect(svg, look) {
+    if !look.has_own() || !suspect(svg, look) {
         return svg.to_owned();
     }
     let Ok(pairs) = contrast::pairs(svg) else {
@@ -51,13 +51,13 @@ pub fn repair(svg: &str, look: &Look) -> String {
         let (ink, on) = (color(pair.color), color(pair.on));
         match pair.kind {
             Kind::Text(_) if pair.ratio() < TEXT => {
-                if !look.writes(on) {
+                if look.owns(on) {
                     grounds.insert(on);
-                } else if !look.writes(ink) {
+                } else if look.owns(ink) {
                     words.entry(ink).or_default().push(on);
                 }
             }
-            Kind::Line if pair.ratio() < LINE && !look.writes(ink) => {
+            Kind::Line if pair.ratio() < LINE && look.owns(ink) => {
                 lines.insert(ink);
             }
             _ => {}
@@ -76,7 +76,7 @@ pub fn repair(svg: &str, look: &Look) -> String {
                 .push(color(pair.color));
         }
     }
-    let fills: HashMap<Color, Color> = grounds
+    let mut fills: HashMap<Color, Color> = grounds
         .iter()
         .map(|&ground| {
             let inks = on_ground.get(&ground).map_or(&[][..], Vec::as_slice);
@@ -90,6 +90,18 @@ pub fn repair(svg: &str, look: &Look) -> String {
             (ink, reading(look, ink, &on, TEXT))
         })
         .collect();
+    // A ground under words that turn too reads against them as drawn.
+    for (ground, fill) in &mut fills {
+        let inks_on: Vec<Color> = on_ground
+            .get(ground)
+            .map_or(&[][..], Vec::as_slice)
+            .iter()
+            .map(|ink| *inks.get(ink).unwrap_or(ink))
+            .collect();
+        if inks_on.iter().any(|ink| ink.contrast(*fill) < TEXT) {
+            *fill = reading(look, *ground, &inks_on, TEXT);
+        }
+    }
     let strokes: HashMap<Color, Color> = lines
         .iter()
         .map(|&ink| (ink, reading(look, ink, &[look.paper()], LINE)))
@@ -97,7 +109,7 @@ pub fn repair(svg: &str, look: &Look) -> String {
     recolored(svg, &fills, &inks, &strokes)
 }
 
-/// Whether `svg` holds a color the look does not write that may not read:
+/// Whether `svg` holds a color of the file's that may not read:
 /// a ground on the side of the file's paper (light on a dark look), or
 /// words and lines on the side of the look's. Measuring a picture takes
 /// far longer than drawing it, so only such a picture is measured.
@@ -112,7 +124,7 @@ fn suspect(svg: &str, look: &Look) -> bool {
         let words = tag.starts_with("<text") || tag.starts_with("<tspan");
         for (name, ground) in [("fill", !words), ("stroke", false)] {
             if let Some(color) = value(tag, name)
-                && !look.writes(color)
+                && look.owns(color)
                 && (color.is_dark() == dark) != ground
             {
                 return true;

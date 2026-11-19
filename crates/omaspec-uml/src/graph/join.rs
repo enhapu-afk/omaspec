@@ -177,9 +177,10 @@ pub(super) fn trees(
         let (_, at, after) = *key;
         // The lines of the trees into this side still to come end where
         // their own stem will be.
+        // A tree of one line never joins and keeps its head.
         let later: Vec<usize> = order[at_key + 1..]
             .iter()
-            .filter(|other| other.1 == at && other.2 == after)
+            .filter(|other| other.1 == at && other.2 == after && groups[*other].len() >= 2)
             .flat_map(|other| groups[other].iter().map(|&(index, _)| index))
             .collect();
         let tree = (group.len() >= 2)
@@ -201,30 +202,36 @@ pub(super) fn trees(
         }
         joined_trees.push((*key, stem, before));
     }
-    // A tree that could not join keeps its heads where they were: a stem
-    // laid next to one of them goes back to its own lines.
-    for key in unjoined {
-        let (_, at, after) = key;
-        let ends: Vec<f32> = groups[&key]
+    // A tree that does not join keeps its heads where they were: a stem
+    // laid next to one of them goes back to its own lines, whose heads
+    // then stand as well, until no stem stands by a head.
+    let mut standing = unjoined;
+    loop {
+        let ends: Vec<(usize, bool, f32)> = standing
             .iter()
-            .filter_map(|&(index, reversed)| {
-                let points = &lines[index];
-                let end = if reversed {
-                    points.first()
-                } else {
-                    points.last()
-                };
-                end.map(|&p| turned(p, direction).1)
+            .flat_map(|key| {
+                groups[key].iter().filter_map(|&(index, reversed)| {
+                    let points = &lines[index];
+                    let end = if reversed {
+                        points.first()
+                    } else {
+                        points.last()
+                    };
+                    end.map(|&p| (key.1, key.2, turned(p, direction).1))
+                })
             })
             .collect();
-        for (joined, stem, before) in &mut joined_trees {
-            let near = ends.iter().any(|end| (end - *stem).abs() < HEADS);
-            if joined.1 == at && joined.2 == after && near && !before.is_empty() {
-                for (&(index, _), points) in groups[joined].iter().zip(before.drain(..)) {
-                    lines[index] = points;
-                }
-            }
+        let near = joined_trees.iter().position(|(key, stem, _)| {
+            ends.iter().any(|&(at, after, end)| {
+                at == key.1 && after == key.2 && (end - stem).abs() < HEADS
+            })
+        });
+        let Some(near) = near else { break };
+        let (key, _, before) = joined_trees.remove(near);
+        for (&(index, _), points) in groups[&key].iter().zip(before) {
+            lines[index] = points;
         }
+        standing.push(key);
     }
 }
 

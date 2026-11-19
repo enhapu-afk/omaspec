@@ -159,8 +159,11 @@ pub(super) fn link_inward(
             )
         };
         let own = title.and_then(|title| {
-            from_title(title, node_rect, &others)
-                .or_else(|| (aside > 0.0).then(|| beside(frame_rect, title, node_rect, &others))?)
+            across::from_title(title, node_rect, &others).or_else(|| {
+                (aside > 0.0).then(|| {
+                    across::down_the_side(frame_rect, title, node_rect, &others, super::COMP_PAD)
+                })?
+            })
         });
         let (mut points, label_at) = match (own, linked) {
             (Some(mut points), _) => {
@@ -213,54 +216,6 @@ pub(super) fn cluster_title(node: &Placed) -> Option<Rect> {
         w: item.title.width + 2.0 * TITLE_AIR,
         h: item.header_h + 2.0 * TITLE_AIR,
     })
-}
-
-/// From under `title` (over it, where the flow is turned up) to the near
-/// side of `node`: straight where the node stands under the title, with
-/// a step across halfway where it stands to one side. `None` when the
-/// node is not past the title, or one of `others` is in the way.
-fn from_title(title: Rect, node: Rect, others: &[Rect]) -> Option<Vec<(f32, f32)>> {
-    let (start, end) = if node.y >= title.y + title.h {
-        (title.y + title.h, node.y)
-    } else if node.y + node.h <= title.y {
-        (title.y, node.y + node.h)
-    } else {
-        return None;
-    };
-    let cx = node.x + node.w / 2.0;
-    let sx = clamp_in(cx, title.x, title.w, 6.0);
-    let middle = (start + end) / 2.0;
-    let points = if (sx - cx).abs() < 0.5 {
-        vec![(cx, start), (cx, end)]
-    } else {
-        vec![(sx, start), (sx, middle), (cx, middle), (cx, end)]
-    };
-    clear_of(points, others)
-}
-
-/// From the end of `title` across to the room the subgraph keeps beside
-/// what it holds, down it, and into the side of `node` that faces it:
-/// as far from the nodes there as from the frame's border.
-fn beside(frame: Rect, title: Rect, node: Rect, others: &[Rect]) -> Option<Vec<(f32, f32)>> {
-    let lane = frame.x + frame.w - super::COMP_PAD;
-    let (ty, ny) = (title.y + title.h / 2.0, node.y + node.h / 2.0);
-    clear_of(
-        vec![
-            (title.x + title.w, ty),
-            (lane, ty),
-            (lane, ny),
-            (node.x + node.w, ny),
-        ],
-        others,
-    )
-}
-
-/// `points`, when none of their runs passes through one of `others`.
-fn clear_of(points: Vec<(f32, f32)>, others: &[Rect]) -> Option<Vec<(f32, f32)>> {
-    let blocked = points
-        .windows(2)
-        .any(|pair| others.iter().any(|&rect| cuts(pair[0], pair[1], rect)));
-    (!blocked).then_some(points)
 }
 
 /// Every box `scene` holds, its subgraphs' too.

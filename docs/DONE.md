@@ -2897,6 +2897,23 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of REQ-077, REQ-079, F1, F2 and F3 found (2026-11-19). A `{{`
+      a note never closes no longer takes every line up to some later `}}` in the
+      file: it opens a diagram only where its `}}` comes before the note's end, an end
+      line inside the diagram being its own only after a block of its own opens.
+      Mermaid notes write `{{` as text again, as Mermaid does: only a PlantUML
+      diagram's text draws a diagram inside it. A note with a diagram inside stands
+      on all its lines for the caret and a click (`text::Line::rows`). What draws a
+      diagram inside is put back by a guard, also after a panic the renderer catches,
+      and its pictures are kept by how deep they were drawn; lint says it of a
+      diagram four deep too. The turn of a look's colors (F1) measures a picture only
+      where the file writes colors of its own, read from its lines outside the look:
+      a dark look costs no more than a light one for the rest (agent-platform's 30 ms
+      in a fresh process are its fonts, 3 ms after), and a ground is chosen against
+      its words as they are finally drawn. A tree of subclasses keeps off a head that
+      stays, and a tree put back for one puts back the trees its heads stand by
+      (`graph::join`). The line from a subgraph's title to a node inside it is routed
+      by `graph::across` (`from_title`, `down_the_side`), not by the flowchart drawer
 - [x] A Mermaid sequence's bars on a lifeline in the colors of a look (2026-11-19,
       from the review sheet, F2): a look's `%%{init}%%` set no `activationBkgColor`,
       so the bars kept mmdr's near white (`#F4F4F4`) on a dark paper. Every pack now

@@ -33,6 +33,8 @@ pub struct Look {
     to: f32,
     /// The colors the look writes.
     kept: Vec<Color>,
+    /// The colors the file writes itself, outside the look's lines.
+    own: Vec<Color>,
 }
 
 /// The look laid over `source`, when its paper lies on the other side of
@@ -71,11 +73,17 @@ pub fn look_of(source: &str) -> Option<Look> {
     if from.is_dark() == to.is_dark() {
         return None;
     }
+    let own: Vec<Color> = lines[..first]
+        .iter()
+        .chain(&lines[last + 1..])
+        .flat_map(|line| written(line))
+        .collect();
     Some(Look {
         from: oklab(from).0,
         paper: to,
         to: oklab(to).0,
         kept: block.iter().flat_map(|line| hexes(line)).collect(),
+        own,
     })
 }
 
@@ -88,6 +96,17 @@ impl Look {
     /// Whether the look writes `color` itself.
     pub fn writes(&self, color: Color) -> bool {
         color == self.paper || self.kept.contains(&color)
+    }
+
+    /// Whether the file writes `color` itself and the look does not: a
+    /// color that may not read on the look's paper.
+    pub fn owns(&self, color: Color) -> bool {
+        self.own.contains(&color) && !self.writes(color)
+    }
+
+    /// Whether the file writes any color of its own.
+    pub fn has_own(&self) -> bool {
+        self.own.iter().any(|&color| !self.writes(color))
     }
 
     /// `color` on the look's paper: its hue, at the lightness as far
@@ -132,6 +151,63 @@ fn paper(line: &str, mermaid: bool) -> Option<Color> {
         return None;
     }
     crate::color::parse(value.trim()).ok().flatten()
+}
+
+/// The colors `line` writes: `#rgb`, `#rrggbb` and `#Name`, `rgb(…)` and
+/// its kin, Mermaid's `fill:` and `stroke:` and `color:` of a `style`,
+/// and the value of a skinparam or a `<style>` setting whose name ends in
+/// `Color`.
+fn written(line: &str) -> Vec<Color> {
+    let parse = |value: &str| crate::color::parse(value.trim()).ok().flatten();
+    let mut out = Vec::new();
+    for (at, _) in line.match_indices('#') {
+        let word: String = line[at + 1..]
+            .chars()
+            .take_while(char::is_ascii_alphanumeric)
+            .collect();
+        if !word.is_empty()
+            && let Some(color) = parse(&format!("#{word}"))
+        {
+            out.push(color);
+        }
+    }
+    let lower = line.to_ascii_lowercase();
+    for function in ["rgb(", "rgba(", "hsl(", "hsla("] {
+        for (at, _) in lower.match_indices(function) {
+            if let Some(end) = line[at..].find(')')
+                && let Some(color) = parse(&line[at..=at + end])
+            {
+                out.push(color);
+            }
+        }
+    }
+    for key in ["fill:", "stroke:", "color:"] {
+        for (at, _) in lower.match_indices(key) {
+            let value = line[at + key.len()..]
+                .split([',', ';', ' '])
+                .next()
+                .unwrap_or_default();
+            out.extend(parse(value));
+        }
+    }
+    let words: Vec<&str> = line.split_whitespace().collect();
+    let setting = match words.as_slice() {
+        [skin, key, value, ..] if skin.eq_ignore_ascii_case("skinparam") => Some((*key, *value)),
+        [key, value, ..] => Some((*key, *value)),
+        _ => None,
+    };
+    if let Some((key, value)) = setting
+        && key.to_ascii_lowercase().ends_with("color")
+    {
+        out.extend(parse(value));
+    }
+    let mut seen = Vec::with_capacity(out.len());
+    out.retain(|color| {
+        let new = !seen.contains(color);
+        seen.push(*color);
+        new
+    });
+    out
 }
 
 /// The colors written as `#rgb` or `#rrggbb` in `line`.
@@ -208,6 +284,8 @@ mod tests {
         let look = look_of(DARK).expect("a look");
         assert_eq!(look.paper(), Color::hex(0x1A1B26));
         assert!(look.writes(Color::hex(0xC0CAF5)) && !look.writes(Color::hex(0xADD8E6)));
+        // The file writes the light blue, not the look's words.
+        assert!(look.owns(Color::hex(0xADD8E6)) && !look.owns(Color::hex(0xC0CAF5)));
         // A light blue box is a dark blue one, as far from the dark paper
         // as it was from white; black words are white ones.
         let blue = look.turn(Color::hex(0xADD8E6));
@@ -223,6 +301,23 @@ mod tests {
             "the look's words read on it: {blue}"
         );
         assert_eq!(look.turn(Color::BLACK), Color::WHITE);
+    }
+
+    #[test]
+    fn the_colors_a_file_writes() {
+        let colors = |line: &str| written(line);
+        assert_eq!(colors("box \"B\" #LightBlue"), [Color::hex(0xADD8E6)]);
+        assert_eq!(
+            colors("  style A fill:#FFF3B0,stroke:red"),
+            [Color::hex(0xFFF3B0), Color::hex(0xFF0000)]
+        );
+        assert_eq!(colors("rect rgb(240, 248, 255)"), [Color(240, 248, 255)]);
+        assert_eq!(
+            colors("skinparam noteBackgroundColor LightYellow"),
+            [Color::hex(0xFFFFE0)]
+        );
+        assert!(colors("A -> B : issue #42 fixed").len() <= 1);
+        assert!(colors("A -> B : hello").is_empty());
     }
 
     #[test]
@@ -243,6 +338,7 @@ mod tests {
         let source = "%% skin: omarchy\n%%{init: {\"theme\": \"base\", \"themeVariables\": {\"background\": \"#1A1B26\", \"primaryColor\": \"#24283B\"}}}%%\nsequenceDiagram\nrect rgb(240, 248, 255)\nA->>B: x\nend\n";
         let look = look_of(source).expect("a look");
         assert!(look.writes(Color::hex(0x24283B)));
+        assert!(look.owns(Color(240, 248, 255)));
         assert!(look.turn(Color(240, 248, 255)).is_dark());
     }
 }

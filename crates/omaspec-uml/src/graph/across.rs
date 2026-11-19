@@ -215,6 +215,73 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
     out
 }
 
+/// A line from a container's `title` to a box inside it, `node`, where
+/// nothing else the container holds (`others`) stands between: straight
+/// from under the title (over it, where the flow is turned up) to the
+/// node's near side where the node stands under it, with a step across
+/// halfway where it stands to one side. `None` when the node is not past
+/// the title or something is in the way. The container keeps room under
+/// its title for it (REQ-079); a state's line from its title to a state
+/// inside it is routed by [`link`].
+pub fn from_title(title: Rect, node: Rect, others: &[Rect]) -> Option<Vec<Point>> {
+    let (start, end) = if node.y >= title.y + title.h {
+        (title.y + title.h, node.y)
+    } else if node.y + node.h <= title.y {
+        (title.y, node.y + node.h)
+    } else {
+        return None;
+    };
+    let cx = node.x + node.w / 2.0;
+    let margin = 6.0;
+    let sx = if title.w > 2.0 * margin {
+        cx.clamp(title.x + margin, title.x + title.w - margin)
+    } else {
+        title.x + title.w / 2.0
+    };
+    let middle = (start + end) / 2.0;
+    let points = if (sx - cx).abs() < 0.5 {
+        vec![(cx, start), (cx, end)]
+    } else {
+        vec![(sx, start), (sx, middle), (cx, middle), (cx, end)]
+    };
+    clear_of(points, others)
+}
+
+/// A line from the end of a container's `title` across to a lane `inset`
+/// in from the right border of `frame`, down it, and into the side of
+/// `node` that faces it, where another box stands between the two; `None`
+/// when one of `others` is in the way. The container keeps the lane free
+/// beside what it holds.
+pub fn down_the_side(
+    frame: Rect,
+    title: Rect,
+    node: Rect,
+    others: &[Rect],
+    inset: f32,
+) -> Option<Vec<Point>> {
+    let lane = frame.right() - inset;
+    let (ty, ny) = (title.y + title.h / 2.0, node.y + node.h / 2.0);
+    clear_of(
+        vec![
+            (title.right(), ty),
+            (lane, ty),
+            (lane, ny),
+            (node.right(), ny),
+        ],
+        others,
+    )
+}
+
+/// `points`, when none of their runs passes through one of `others`.
+fn clear_of(points: Vec<Point>, others: &[Rect]) -> Option<Vec<Point>> {
+    let blocked = points.windows(2).any(|pair| {
+        others
+            .iter()
+            .any(|&rect| route::cuts(rect, pair[0], pair[1]))
+    });
+    (!blocked).then_some(points)
+}
+
 /// The box at the end of `path`, from the top level down.
 pub fn find<'a>(level: &'a [Placement], path: &[usize]) -> Option<&'a Placement> {
     let (&first, rest) = path.split_first()?;

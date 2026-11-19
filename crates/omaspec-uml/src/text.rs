@@ -193,6 +193,9 @@ pub struct Line {
     /// An item of a list: it starts at the left edge of its block, also
     /// where the block's other lines are centered or stand at the right.
     pub flush: bool,
+    /// How many lines of the source it stands for: one, or those of a
+    /// diagram inside the text with its `{{` and `}}`.
+    pub rows: usize,
 }
 
 /// Lines of text, measured.
@@ -317,7 +320,7 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
                 color: None,
                 picture: Picture::Diagram(diagram),
             };
-            lines.push(line_of(
+            let mut picture = line_of(
                 vec![Piece {
                     text: String::new(),
                     style: Style::from(font),
@@ -326,7 +329,10 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
                 }],
                 font.size,
                 family,
-            ));
+            );
+            // The lines of the diagram, and its `{{` and `}}`.
+            picture.rows = end + 2;
+            lines.push(picture);
             skip = end + 1;
             continue;
         }
@@ -432,6 +438,7 @@ fn line_of(pieces: Vec<Piece>, size: f32, family: Family) -> Line {
         ascent,
         table: None,
         flush: false,
+        rows: 1,
     }
 }
 
@@ -666,6 +673,7 @@ fn table_rows(raw: &[&str], font: Font, family: Family) -> Result<Vec<Line>, Str
             height,
             ascent: 0.0,
             flush: false,
+            rows: 1,
             table: Some(TableRow {
                 cells,
                 color: font.color,

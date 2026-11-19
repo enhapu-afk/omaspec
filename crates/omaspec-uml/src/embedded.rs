@@ -12,11 +12,9 @@
 //! stay text, as before, and lint says why. Its background is left out:
 //! it stands on the note's.
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
-
-use crate::Declined;
 
 /// A diagram drawn inside text, as the engine drew it.
 #[derive(Debug, PartialEq)]
@@ -32,25 +30,55 @@ pub struct Embedded {
 }
 
 /// How deep diagrams inside diagrams are drawn; one deeper stays text.
-const DEEPEST: usize = 3;
+pub const DEEPEST: usize = 3;
 /// How many pictures a thread keeps, so a text measured again is not
 /// drawn again.
 const KEPT: usize = 64;
 
-thread_local! {
-    /// The skinparams of the diagram being drawn, as lines.
-    static SKIN: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
-    static DEPTH: Cell<usize> = const { Cell::new(0) };
-    static DRAWN: RefCell<HashMap<String, Option<Arc<Embedded>>>> = RefCell::new(HashMap::new());
+/// What a thread draws diagrams inside a diagram with.
+#[derive(Default)]
+struct State {
+    /// The skinparams of the PlantUML diagram being drawn, as lines;
+    /// `None` outside one: Mermaid writes `{{` as text.
+    skin: Option<Vec<String>>,
+    /// How deep in diagrams inside diagrams the drawing is.
+    depth: usize,
+    drawn: HashMap<String, Option<Arc<Embedded>>>,
 }
 
-/// Runs `draw` with `skin`, the outer diagram's skinparams, as what a
-/// diagram inside it is drawn in.
+thread_local! {
+    static STATE: RefCell<State> = RefCell::new(State::default());
+}
+
+/// Puts back what it holds when dropped, also when a drawing panics and
+/// the thread draws on.
+struct Restore {
+    skin: Option<Option<Vec<String>>>,
+    deeper: bool,
+}
+
+impl Drop for Restore {
+    fn drop(&mut self) {
+        STATE.with_borrow_mut(|state| {
+            if let Some(skin) = self.skin.take() {
+                state.skin = skin;
+            }
+            if self.deeper {
+                state.depth -= 1;
+            }
+        });
+    }
+}
+
+/// Runs `draw`, a PlantUML diagram's drawing, with `skin`, its
+/// skinparams, as what a diagram inside it is drawn in.
 pub(crate) fn within<T>(skin: Vec<String>, draw: impl FnOnce() -> T) -> T {
-    let before = SKIN.replace(skin);
-    let out = draw();
-    SKIN.set(before);
-    out
+    let before = STATE.with_borrow_mut(|state| state.skin.replace(skin));
+    let _restore = Restore {
+        skin: Some(before),
+        deeper: false,
+    };
+    draw()
 }
 
 /// The skinparams of a diagram's frame as lines a diagram inside it
@@ -89,38 +117,53 @@ pub fn closes(lines: &[&str]) -> Option<usize> {
     None
 }
 
-/// Why the engine does not draw the diagram of `kind` written in `lines`,
-/// in the outer diagram's skin; `Ok` when it does.
-pub fn declined(kind: &str, lines: &[&str]) -> Result<(), Declined> {
-    crate::render(&source(kind, &[], lines)).map(|_| ())
+/// Why the engine writes the diagram of `kind` in `lines`, inside `depth`
+/// diagrams, as text; `Ok` when it draws it, as [`picture`] does.
+pub fn drawn(kind: &str, lines: &[&str], depth: usize) -> Result<(), String> {
+    if depth >= DEEPEST {
+        return Err(format!("it lies more than {DEEPEST} diagrams deep"));
+    }
+    let svg = crate::render(&source(kind, &[], lines)).map_err(|declined| declined.reason)?;
+    unwrapped(&svg)
+        .map(|_| ())
+        .ok_or_else(|| "its picture cannot be set in the text".to_owned())
 }
 
 /// The picture of the diagram of `kind` written in `lines`; `None` when
-/// the engine does not draw it, or it lies too deep.
+/// the engine does not draw it, it lies too deep, or the text around it is
+/// no PlantUML diagram's.
 pub(crate) fn picture(kind: &str, lines: &[&str]) -> Option<Arc<Embedded>> {
-    if DEPTH.get() >= DEEPEST {
+    let (skin, depth) = STATE.with_borrow(|state| (state.skin.clone(), state.depth));
+    let skin = skin?;
+    if depth >= DEEPEST {
         return None;
     }
-    let skin = SKIN.with_borrow(Clone::clone);
-    let key = source(kind, &skin, lines);
-    if let Some(kept) = DRAWN.with_borrow(|drawn| drawn.get(&key).cloned()) {
+    let written = source(kind, &skin, lines);
+    // What lies deeper inside it is drawn or not by how deep it is.
+    let key = format!("{depth}\n{written}");
+    if let Some(kept) = STATE.with_borrow(|state| state.drawn.get(&key).cloned()) {
         return kept;
     }
-    DEPTH.set(DEPTH.get() + 1);
-    let svg = crate::render(&key).or_else(|declined| {
-        if skin.is_empty() {
-            Err(declined)
-        } else {
-            crate::render(&source(kind, &[], lines))
-        }
-    });
-    DEPTH.set(DEPTH.get() - 1);
+    let svg = {
+        STATE.with_borrow_mut(|state| state.depth += 1);
+        let _restore = Restore {
+            skin: None,
+            deeper: true,
+        };
+        crate::render(&written).or_else(|declined| {
+            if skin.is_empty() {
+                Err(declined)
+            } else {
+                crate::render(&source(kind, &[], lines))
+            }
+        })
+    };
     let picture = svg.ok().as_deref().and_then(unwrapped).map(Arc::new);
-    DRAWN.with_borrow_mut(|drawn| {
-        if drawn.len() >= KEPT {
-            drawn.clear();
+    STATE.with_borrow_mut(|state| {
+        if state.drawn.len() >= KEPT {
+            state.drawn.clear();
         }
-        drawn.insert(key, picture.clone());
+        state.drawn.insert(key, picture.clone());
     });
     picture
 }
@@ -206,12 +249,14 @@ mod tests {
 
     #[test]
     fn a_picture_is_the_engine_s_without_its_root_background_and_ids() {
-        let drawn = picture("", &["Bob -> Carol : hi"]).expect("drawn");
+        let drawn = within(Vec::new(), || picture("", &["Bob -> Carol : hi"])).expect("drawn");
         assert!(drawn.width > 0.0 && drawn.height > 0.0);
         assert!(!drawn.body.contains("<svg") && !drawn.body.contains(" id=\""));
         assert!(drawn.body.contains(">hi</tspan>"), "{}", drawn.body);
         // What the engine does not draw is no picture.
-        assert!(picture("nosuchkind", &["x"]).is_none());
+        assert!(within(Vec::new(), || picture("nosuchkind", &["x"])).is_none());
+        // Outside a PlantUML diagram there is none: Mermaid writes `{{`.
+        assert!(picture("", &["Bob -> Carol : hi"]).is_none());
     }
 
     #[test]
@@ -245,6 +290,56 @@ mod tests {
     }
 
     #[test]
+    fn a_note_with_a_diagram_inside_stands_on_all_its_lines() {
+        // `before`, `{{`, `B -> C`, `}}`, `after`: five lines from line 3.
+        let source =
+            "@startuml\nA -> B\nnote right\nbefore\n{{\nB -> C\n}}\nafter\nend note\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let note = map
+            .tied
+            .iter()
+            .find(|tied| tied.line == 3)
+            .expect("the note's words");
+        assert_eq!(note.span, 5, "{:?}", map.tied);
+    }
+
+    #[test]
+    fn a_note_whose_diagram_is_never_closed_ends_where_it_ends() {
+        // The `}}` belongs to the next note; the first ends at its own end.
+        let svg = crate::render(
+            "@startuml\nA -> B\nnote right\n{{\nend note\nB -> C : between\nnote left\n}}\nend note\n@enduml\n",
+        )
+        .unwrap();
+        assert!(svg.contains(">between</tspan>"), "{svg}");
+        assert!(svg.contains(">C</tspan>"), "{svg}");
+    }
+
+    #[test]
+    fn a_mermaid_note_writes_its_braces() {
+        let svg = crate::sequence::from_mermaid(
+            "sequenceDiagram\nA->>B: hi\nNote right of B: {{<br/>C -> D : leak<br/>}}\n",
+        )
+        .map(|d| crate::sequence::draw(&d).unwrap())
+        .unwrap();
+        assert!(!svg.contains("<svg x="), "{svg}");
+    }
+
+    #[test]
+    fn a_panic_inside_leaves_nothing_behind() {
+        let _ = std::panic::catch_unwind(|| {
+            within(vec!["skinparam x y".to_owned()], || {
+                STATE.with_borrow_mut(|state| state.depth += 1);
+                let _restore = Restore {
+                    skin: None,
+                    deeper: true,
+                };
+                panic!("a drawing that fails");
+            })
+        });
+        STATE.with_borrow(|state| assert!(state.skin.is_none() && state.depth == 0));
+    }
+
+    #[test]
     fn only_so_deep() {
         // Each level a note with a diagram inside; the deepest stays text.
         let mut lines = vec!["A -> B".to_owned()];
@@ -259,7 +354,7 @@ mod tests {
             lines = outer;
         }
         let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
-        let drawn = picture("", &refs).expect("drawn");
+        let drawn = within(Vec::new(), || picture("", &refs)).expect("drawn");
         assert!(drawn.body.contains("{{"), "the deepest is text");
     }
 }

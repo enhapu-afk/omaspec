@@ -1516,6 +1516,16 @@ fn place_along(slots: &mut [Slot], rows: &[Vec<usize>], gaps: &[f32]) -> Vec<(f3
     bands
 }
 
+/// What [`tracks`] finds: each line's track in each gap it crosses, how
+/// many tracks each gap holds, whether a line goes on into a box there,
+/// and whether one arrives at the box before it (a line back up).
+struct Tracked {
+    tracks: Vec<Vec<usize>>,
+    counts: Vec<usize>,
+    into_box: Vec<bool>,
+    arrive: Vec<bool>,
+}
+
 /// For every forward edge, the track it runs across each gap on; and how
 /// many tracks each gap needs. Only a drawn line that changes place across
 /// the flow needs one; a hidden edge only ranks its ends. Lines moving the
@@ -1527,16 +1537,6 @@ fn place_along(slots: &mut [Slot], rows: &[Vec<usize>], gaps: &[f32]) -> Vec<(f3
 /// before it whose runs its own overlaps, so every two that overlap keep
 /// that order and cross as they did, and a gap is as tall as the most
 /// runs that overlap there (a dense diagram's gaps half as tall).
-/// What [`tracks`] finds: each line's track in each gap it crosses, how
-/// many tracks each gap holds, whether a line goes on into a box there,
-/// and whether one arrives at the box before it (a line back up).
-struct Tracked {
-    tracks: Vec<Vec<usize>>,
-    counts: Vec<usize>,
-    into_box: Vec<bool>,
-    arrive: Vec<bool>,
-}
-
 #[allow(clippy::too_many_arguments)]
 fn tracks(
     slots: &[Slot],

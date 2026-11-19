@@ -673,7 +673,7 @@ pub fn deciding<'a>(lines: &[Line<'a>]) -> Vec<Line<'a>> {
             continue;
         }
         if let Some(end) = until {
-            if !inside.within(at) && end(text) {
+            if !inside.within(at, &end) && end(text) {
                 until = None;
             }
             continue;
@@ -848,7 +848,7 @@ pub fn block(
     let mut inside = Inside::of(rest);
     for (offset, line) in rest.iter().enumerate() {
         body.extend(std::iter::repeat_n("", line.blank_before));
-        if !inside.within(offset) && is_end(line.text) {
+        if !inside.within(offset, &is_end) && is_end(line.text) {
             return Ok((body.join("\n"), at + offset + 2));
         }
         body.push(line.text);
@@ -860,7 +860,8 @@ pub fn block(
 }
 
 /// How deep the lines of a block lie in diagrams inside it
-/// ([`crate::embedded`]): a line `{{` that a later `}}` closes opens one.
+/// ([`crate::embedded`]): a line `{{` opens one where a `}}` closes it
+/// before the block ends.
 struct Inside<'a> {
     texts: Vec<&'a str>,
     depth: usize,
@@ -875,12 +876,13 @@ impl<'a> Inside<'a> {
     }
 
     /// Whether the line at `at` lies inside such a diagram, its opening
-    /// and closing lines too; called for each line in turn.
-    fn within(&mut self, at: usize) -> bool {
+    /// and closing lines too, in a block that `is_end` ends; called for
+    /// each line in turn.
+    fn within(&mut self, at: usize, is_end: &dyn Fn(&str) -> bool) -> bool {
         let text = self.texts[at];
         let before = self.depth;
         if crate::embedded::opens(text).is_some()
-            && (self.depth > 0 || crate::embedded::closes(&self.texts[at + 1..]).is_some())
+            && (self.depth > 0 || closed(&self.texts[at + 1..], is_end))
         {
             self.depth += 1;
         } else if self.depth > 0 && text.trim() == "}}" {
@@ -888,6 +890,36 @@ impl<'a> Inside<'a> {
         }
         before > 0 || self.depth > 0
     }
+}
+
+/// Whether a `}}` among `lines`, those after a line `{{`, closes it before
+/// a line `is_end` takes ends the block around it. An end line there is
+/// the diagram's own only after a block of its own opens: a `note` in a
+/// diagram inside a note.
+fn closed(lines: &[&str], is_end: &dyn Fn(&str) -> bool) -> bool {
+    let mut depth = 0usize;
+    let mut blocks: Vec<fn(&str) -> bool> = Vec::new();
+    for &line in lines {
+        if let Some(end) = blocks.last() {
+            if end(line) {
+                blocks.pop();
+            }
+            continue;
+        }
+        if crate::embedded::opens(line).is_some() {
+            depth += 1;
+        } else if line.trim() == "}}" {
+            if depth == 0 {
+                return true;
+            }
+            depth -= 1;
+        } else if is_end(line) {
+            return false;
+        } else if let Some(end) = block_end(line) {
+            blocks.push(end);
+        }
+    }
+    false
 }
 
 /// The words of a block, as [`block`] reads them, where they start: on
