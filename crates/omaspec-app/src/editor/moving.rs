@@ -52,6 +52,9 @@ pub struct Moving {
     pub folds: Vec<String>,
     /// The tiles of a project's map to zoom into and back out of.
     pub dives: Vec<String>,
+    /// Instead of a play: the source beside the diagram, which builds
+    /// itself up line by line ([`super::building`]).
+    pub builds: bool,
     /// The whole diagram in every frame, rather than a camera that follows
     /// the play where the whole is too large to read (REQ-071).
     pub whole: bool,
@@ -76,7 +79,7 @@ pub struct Moving {
 
 impl Moving {
     /// The diagram's text: the one given, else the file's.
-    fn read(&self) -> Result<String> {
+    pub(super) fn read(&self) -> Result<String> {
         match &self.text {
             Some(text) => Ok(text.clone()),
             None => std::fs::read_to_string(&self.file)
@@ -86,7 +89,7 @@ impl Moving {
 
     /// The file's name, and the language of `text`: the one forced, else
     /// what its words and the name say.
-    fn named(&self, text: &str) -> (String, Language) {
+    pub(super) fn named(&self, text: &str) -> (String, Language) {
         let name = self
             .file
             .file_name()
@@ -158,6 +161,13 @@ pub fn play(args: &Moving) -> Result<String> {
             Film::Page => "a page",
         }
     );
+    if args.builds {
+        anyhow::ensure!(
+            args.width.is_none_or(|width| (200..=4000).contains(&width)),
+            "--width takes 200 to 4000"
+        );
+        return super::building::build(args, film, fps);
+    }
     if film == Film::Page {
         return fold_page(args);
     }
@@ -701,7 +711,7 @@ fn event_of(label: &str) -> &str {
 }
 
 /// The theme the frames are drawn in.
-fn theme(named: Option<&str>) -> Result<Omarchy> {
+pub(super) fn theme(named: Option<&str>) -> Result<Omarchy> {
     let built_in = |name: &str| Omarchy {
         name: Some(name.to_owned()),
         palette: omaspec_theme::Palette::fallback(),
@@ -855,6 +865,7 @@ mod tests {
                 fps: Some(5),
                 folds: Vec::new(),
                 dives: Vec::new(),
+                builds: false,
                 whole: false,
                 theme: Some("built-in".into()),
                 file_colors: false,
@@ -906,6 +917,7 @@ mod tests {
             fps,
             folds: Vec::new(),
             dives: Vec::new(),
+            builds: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -958,6 +970,7 @@ mod tests {
             fps: Some(10),
             folds: vec![fold.to_owned()],
             dives: Vec::new(),
+            builds: false,
             whole: true,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -995,6 +1008,7 @@ mod tests {
             fps: None,
             folds: folds.iter().map(|f| (*f).to_owned()).collect(),
             dives: Vec::new(),
+            builds: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1089,6 +1103,7 @@ mod tests {
             fps: Some(10),
             folds: Vec::new(),
             dives: Vec::new(),
+            builds: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

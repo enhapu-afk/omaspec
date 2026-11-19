@@ -469,6 +469,12 @@ enum Command {
         /// these tiles, one after another, and back out.
         #[arg(long, value_delimiter = ',', value_name = "TILE", conflicts_with_all = ["events", "steps", "fold"])]
         dive: Vec<String>,
+        /// Instead of a play: code becomes a picture. The source stands
+        /// on the left, and as a caret walks down it, the diagram on the
+        /// right builds itself up line by line: a box grows in, a line
+        /// draws itself to its head. Drawn without a GPU.
+        #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive"])]
+        build: bool,
         /// The whole diagram in every frame. Without it, a play or a fold
         /// of a diagram too large to read whole follows each step or each
         /// container, near enough to read, and ends on the whole.
@@ -875,6 +881,7 @@ fn main() -> ExitCode {
             lossy,
             fold,
             dive,
+            build,
             whole,
             theme,
             lang,
@@ -887,6 +894,7 @@ fn main() -> ExitCode {
             fps,
             folds: fold,
             dives: dive,
+            builds: build,
             whole,
             theme,
             text: None,

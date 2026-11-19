@@ -31,6 +31,7 @@
 mod anchored;
 mod animate;
 mod assist;
+mod building;
 pub(crate) mod compare;
 mod dialogs;
 mod doc;

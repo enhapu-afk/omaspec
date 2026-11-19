@@ -96,18 +96,23 @@ pub fn mono_font() -> Font {
 /// The family fontconfig resolves `monospace` to now (a new `fc-match`
 /// reads the current configuration).
 pub fn current_mono_font() -> Font {
-    let family = std::process::Command::new("fc-match")
+    match mono_family() {
+        Some(family) => Font::with_name(static_name(family)),
+        None => Font::MONOSPACE,
+    }
+}
+
+/// The name of the family fontconfig resolves `monospace` to now; none
+/// without fontconfig.
+pub fn mono_family() -> Option<String> {
+    std::process::Command::new("fc-match")
         .args(["-f", "%{family[0]}", "monospace"])
         .output()
         .ok()
         .filter(|o| o.status.success())
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .map(|f| f.trim().to_owned())
-        .filter(|f| !f.is_empty());
-    match family {
-        Some(family) => Font::with_name(static_name(family)),
-        None => Font::MONOSPACE,
-    }
+        .filter(|f| !f.is_empty())
 }
 
 /// Fonts are looked up by a `'static` name: each family is kept once.

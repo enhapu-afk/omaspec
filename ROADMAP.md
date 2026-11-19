@@ -21,8 +21,10 @@ Before anything below: the sequence diagram, the state machine and the
 activity diagram elegant, modern and without a flaw in any theme, in the
 theme's colors and in the file's own. What is done is in docs/DONE.md.
 
-- [ ] The focus in a real window, and at small zooms, where a lit line
-      is never thinner than three quarters of a pixel.
+- [ ] The focus in a real window. At small zooms a lit line is never
+      thinner than three quarters of a pixel (`focus.rs`, `wires.rs`);
+      the snapshot at 22 % (`snapshot_focus_small`) shows it whole.
+      What the window shows is left to see.
 
 ## Architecture
 
@@ -680,11 +682,8 @@ above). Each exports as GIF, WebP and an HTML page, as a play does, and
 gets a gallery example. In this order: the first makes the README's
 picture, the second is the highlight.
 
-- [ ] Code becomes a picture: the source on the left, the diagram on the
-      right building itself up line by line, each line setting down what
-      it draws as the caret passes it (the words tied to their lines,
-      `Canvas::tie`, give the order), boxes growing in, lines drawing
-      themselves to their heads (`omaspec play FILE --build`).
+- [ ] Code becomes a picture: built as GIF, WebP and PNG (in
+      docs/DONE.md). Left: the page in vectors, and the README's picture.
 - [ ] Lockstep: a sequence played beside the state machines of its
       participants, each message switching the receiver's machine on
       the same beat, the transition it fires lit, a message no machine

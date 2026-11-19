@@ -236,6 +236,7 @@ impl App {
             fps: None,
             folds: vec![fold.clone()],
             dives: Vec::new(),
+            builds: false,
             whole: false,
             theme: None,
             file_colors: !self.follow_theme,

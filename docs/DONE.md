@@ -2897,6 +2897,19 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Code becomes a picture (2026-11-19, the first of the animations that show what a
+      diagram means): `omaspec play FILE --build -o build.gif` stands the source on
+      the left and the diagram on the right, and as a caret walks down the source the
+      diagram builds itself up: each line sets down what it draws, a box growing in, a
+      line drawing itself to its head with its words after it, while the lines not
+      reached yet wait dimmed (`editor/building.rs`). A diagram that marks its parts
+      (states, classes, flowcharts, activities) builds part by part, each at a state's
+      first line, the line whose words it holds, else the first that names it, a part
+      no line writes (an end, a bar) with the nearest box one does; a sequence builds
+      from the top down, as far as each line's words and messages reach. Each frame is
+      one SVG drawn by resvg, without a GPU; a source too long for twelve seconds is
+      gone through faster. GIF, WebP and animated PNG, in the theme's colors or the
+      file's own
 - [x] What the review of Q1 and of F9 to F11 found (2026-11-19). An activity's line
       with a head keeps the head's length straight before its tip
       (`curve::path_arriving`): a short last run had curved under the head and out of

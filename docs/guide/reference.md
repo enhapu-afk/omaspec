@@ -736,6 +736,7 @@ omaspec play coffee.puml -o fold.html --fold Brewing,Ready   # the folds as one 
 omaspec play coffee.puml -o fold.webp --fold Brewing     # the same in full color at 60 frames a second, without loss: an animated WebP, or .png an animated PNG; some twice a GIF's size
 omaspec play odyssey.puml -o odyssey.gif --steps 12      # a diagram too large to read whole: the view follows each step near enough to read, and ends on the whole; --whole keeps it whole
 omaspec play omaspec-project.toml -o map.gif --dive Orders,Checkout   # the project's map zooming into these tiles and back out
+omaspec play coffee.puml -o build.gif --build              # code becomes a picture: the source beside the diagram, which builds itself up as a caret walks down the lines; .webp or .png in full color; drawn without a GPU
 omaspec render flow.mmd --look auto # plain, sketch, vivid, omarchy, light or dark; auto: one SVG, dark under a dark scheme
 omaspec render .                    # every diagram of the folder, each beside its own, in the project's look
 omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1
