@@ -471,9 +471,9 @@ impl Canvas {
     /// for what one line alone draws (a message, a note, a divider), not
     /// for a name many lines mention. What was said before is returned.
     ///
-    /// The map tells them ([`crate::map::Map::tied`], through [`Self::place`]): a pane then knows
-    /// the line of such words without counting, also where the same words
-    /// are drawn for something else.
+    /// The map tells them ([`crate::map::Map::tied`], through
+    /// [`Self::place`]): a pane then knows the line of such words without
+    /// counting, also where the same words are drawn for something else.
     pub fn tie(&mut self, line: Option<usize>) -> Option<usize> {
         std::mem::replace(&mut self.tie, line)
     }
@@ -1002,8 +1002,6 @@ impl Canvas {
         )
     }
 
-    /// How what was drawn so far lands in the picture [`Self::finish`]
-    /// makes with `margin`.
     /// `map`, as the drawer made it, with what was told while drawing
     /// (the words and shapes tied to a line, the words drawn again),
     /// placed as the picture is with `margin` around what was drawn. Every
@@ -1015,6 +1013,8 @@ impl Canvas {
         map.placed(self.fit(margin))
     }
 
+    /// How what was drawn so far lands in the picture [`Self::finish`]
+    /// makes with `margin`.
     pub fn fit(&self, margin: f32) -> Fit {
         let (width, height, shown_width, shown_height, dx, dy) = self.frame(margin);
         Fit {

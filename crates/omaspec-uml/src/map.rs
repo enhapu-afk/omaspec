@@ -524,9 +524,6 @@ mod tests {
         assert_eq!(map.transitions[1].line, 8);
     }
 
-    /// REQ-073: a sequence diagram's participants, a swimlane's names and a
-    /// Gantt chart's axis and tasks are bands a pane keeps in sight; the
-    /// picture is the same with them or without.
     /// An activity diagram ties its actions, tests, labels, notes and
     /// partitions to their lines; a swimlane's name, which every `|lane|`
     /// line names, is not.
@@ -575,6 +572,9 @@ mod tests {
         assert_eq!(found, [2, 4]);
     }
 
+    /// REQ-073: a sequence diagram's participants, a swimlane's names and a
+    /// Gantt chart's axis and tasks are bands a pane keeps in sight; the
+    /// picture is the same with them or without.
     #[test]
     fn long_diagrams_name_the_bands_a_pane_keeps_in_sight() {
         let bands = |source: &str| crate::render_mapped(source, None).unwrap().1.bands;

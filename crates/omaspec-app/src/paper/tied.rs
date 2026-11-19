@@ -125,13 +125,12 @@ impl Copies {
 
 /// Whether the words `text` at the byte `col` of `line` are the last of
 /// them there: what a line itself draws stands after what it names
-/// (`User -> Login : Login`).
+/// (`User -> Login : Login`). Words are read as the count reads them
+/// ([`locate::spans_on`]): `Login` is not written in `LoginPage`.
 fn last_on_line(line: &str, text: &str, col: usize) -> bool {
-    let mut after = (col + 1).min(line.len());
-    while !line.is_char_boundary(after) {
-        after += 1;
-    }
-    !line[after..].contains(text)
+    !locate::spans_on(line, text)
+        .iter()
+        .any(|(from, _)| *from > col)
 }
 
 impl Paper {
@@ -178,7 +177,7 @@ impl Paper {
             .filter(|(row, _)| {
                 lines
                     .get(*row)
-                    .is_some_and(|line| line.matches(text).count() > 1)
+                    .is_some_and(|line| locate::spans_on(line, text).len() > 1)
             })
             .map(|(row, _)| *row)
             .collect();
@@ -221,7 +220,7 @@ impl Paper {
             .split('\n')
             .nth(row)
             .filter(|_| tied)
-            .and_then(|line| line.rfind(text));
+            .and_then(|line| locate::spans_on(line, text).last().map(|(from, _)| *from));
         Some((row, last.unwrap_or(col)))
     }
 }
@@ -315,5 +314,7 @@ mod tests {
         assert!(!last_on_line(line, "Login", 9));
         assert!(last_on_line(line, "Login", 17));
         assert!(last_on_line("== Payment ==", "Payment", 4));
+        // A longer name that begins with the words does not write them.
+        assert!(last_on_line("Busy --> BusyBox", "Busy", 0));
     }
 }

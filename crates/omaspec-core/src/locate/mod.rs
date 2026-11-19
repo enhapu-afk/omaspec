@@ -85,6 +85,31 @@ pub fn columns_of(code: &str, label: &str) -> Vec<(usize, usize)> {
         .unwrap_or_default()
 }
 
+/// Each place `label` is written on the one `line`, as the bytes it
+/// spans there, in order: as a whole word where it stands as one on the
+/// line, else as a part of one, as [`columns_of`] reads it. None on a
+/// comment.
+pub fn spans_on(line: &str, label: &str) -> Vec<(usize, usize)> {
+    let Some(norm) = text::read(line, false) else {
+        return Vec::new();
+    };
+    if label.is_empty() {
+        return Vec::new();
+    }
+    let mut found = text::locate_in(&norm.text, label, false);
+    if found.is_empty() {
+        found = norm
+            .text
+            .match_indices(label)
+            .map(|(at, part)| (at, at + part.len()))
+            .collect();
+    }
+    found
+        .into_iter()
+        .filter_map(|(from, to)| norm.map(from, to))
+        .collect()
+}
+
 fn by_words(
     lines: &[Option<text::Norm>],
     plain: &[Option<text::Norm>],
@@ -281,6 +306,17 @@ mod tests {
             assert_eq!(all, one_by_one, "{label}");
         }
         assert_eq!(columns_of(code, "Web shop").len(), 3);
+    }
+
+    /// On one line, a name is written where it stands as a word: a longer
+    /// name that begins with it is not one of its places.
+    #[test]
+    fn a_name_on_a_line_is_where_it_stands_as_a_word() {
+        let line = "BusyBox --> Busy : Busy";
+        assert_eq!(spans_on(line, "Busy"), [(12, 16), (19, 23)]);
+        assert_eq!(spans_on("BusyBox --> Idle", "Busy"), [(0, 4)]);
+        assert!(spans_on("' Busy --> Busy", "Busy").is_empty());
+        assert!(spans_on(line, "").is_empty());
     }
 
     #[test]

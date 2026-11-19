@@ -852,7 +852,7 @@ fn paint(canvas: &mut Canvas, skin: &Skin, root: &Container, scene: &Scene) {
     paint_shapes(canvas, skin, scene, &mut Vec::new());
     paint_edges(canvas, scene, skin.curve);
     paint_notes(canvas, skin, scene, &mut Vec::new());
-    paint_labels(canvas, root, scene, &mut Vec::new());
+    paint_labels(canvas, Some(root), scene, &mut Vec::new());
     paint_heads(canvas, skin, scene);
 }
 
@@ -1065,32 +1065,43 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
 
 /// Each state's words in its part, each line's and each note's in a part
 /// of their own; `path` is where `scene` is in the tree. `container` is
-/// what `scene` lays out: the lines of the source its words come from.
+/// what `scene` lays out, its nodes in their order, and its edges, then
+/// its crossings ([`chart`]): the lines of the source its words come from.
 ///
 /// What one line alone writes is tied to it ([`Canvas::tie`]): a
 /// transition's label, a line of a state's description, a note. A state's
-/// name, which many lines mention, is not.
-fn paint_labels(canvas: &mut Canvas, container: &Container, scene: &Scene, path: &mut Vec<usize>) {
+/// name, which many lines mention, is not. Words whose line is not known
+/// are drawn all the same, untied.
+fn paint_labels(
+    canvas: &mut Canvas,
+    container: Option<&Container>,
+    scene: &Scene,
+    path: &mut Vec<usize>,
+) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        let written = container.nodes.get(index);
+        let written = container.and_then(|container| container.nodes.get(index));
         canvas.part(&crate::svg::box_part(&node.item.name, path), |canvas| {
             canvas.linked(node.item.link.as_ref(), &[Layer::Front], |canvas| {
                 paint_words(canvas, node, written);
             });
         });
-        if let Some(written) = written {
-            paint_labels(canvas, &written.children, &node.children, path);
-        }
+        paint_labels(
+            canvas,
+            written.map(|written| &written.children),
+            &node.children,
+            path,
+        );
         path.pop();
     }
-    // The scene holds the container's edges, then its crossings.
-    let lines: Vec<usize> = container
-        .edges
-        .iter()
-        .chain(container.crossings.iter().map(|c| &c.arrow))
-        .map(|arrow| arrow.line)
-        .collect();
+    let lines: Vec<usize> = container.map_or_else(Vec::new, |container| {
+        container
+            .edges
+            .iter()
+            .chain(container.crossings.iter().map(|c| &c.arrow))
+            .map(|arrow| arrow.line)
+            .collect()
+    });
     for (slot, edge) in scene.edges.iter().enumerate() {
         canvas.part(&crate::svg::words_part(path, slot), |canvas| {
             let before = canvas.tie(lines.get(slot).copied());
