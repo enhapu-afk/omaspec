@@ -867,13 +867,22 @@ impl<'a> Drawer<'a> {
 
         // Groups: the columns they hold, to fit their header.
         // Open groups: the columns they hold so far, the width they need.
-        let mut open: Vec<(Option<(usize, usize)>, f32)> = Vec::new();
+        // Each open frame: the columns it spans, the width its tab and
+        // labels need, the frames closed inside it, each with its columns
+        // and how many frames stand inside it at either side, and the
+        // participants created inside it, whose heads it holds.
+        type Closed = ((usize, usize), (usize, usize));
+        type Opened = (Option<(usize, usize)>, f32, Vec<Closed>, Vec<usize>);
+        let mut open: Vec<Opened> = Vec::new();
         for (k, item) in d.items.iter().enumerate() {
             let cols: Vec<usize> = participants_of(item)
                 .into_iter()
                 .map(|p| self.col(p))
                 .collect();
-            for (span, _) in open.iter_mut() {
+            for (_, _, _, heads) in open.iter_mut() {
+                heads.extend(cols.iter().filter(|&&c| self.cols[c].created_by == Some(k)));
+            }
+            for (span, _, _, _) in open.iter_mut() {
                 for &c in &cols {
                     *span = Some(match *span {
                         Some((lo, hi)) => (lo.min(c), hi.max(c)),
@@ -890,7 +899,7 @@ impl<'a> Drawer<'a> {
                         } else {
                             label.width + 5.0
                         };
-                    open.push((None, width + 10.0));
+                    open.push((None, width + 10.0, Vec::new(), Vec::new()));
                 }
                 (Item::GroupElse { .. }, Measured::Else { label }) => {
                     if let Some(last) = open.last_mut() {
@@ -898,12 +907,51 @@ impl<'a> Drawer<'a> {
                     }
                 }
                 (Item::GroupEnd { .. }, _) => {
-                    if let Some((span, width)) = open.pop() {
+                    if let Some((span, width, inner, heads)) = open.pop() {
                         let (lo, hi) = span.unwrap_or((0, n - 1));
                         if lo < hi {
                             space.need(lo, hi, width - 2.0 * FRAME);
                         } else {
                             space.after(lo, width - FRAME + 5.0);
+                        }
+                        // The frames inside that share a side with this one
+                        // stand in its margin there.
+                        let left = inner
+                            .iter()
+                            .filter(|((at, _), _)| *at == lo)
+                            .map(|((_, depth), _)| depth + 1)
+                            .max()
+                            .unwrap_or(0);
+                        let right = inner
+                            .iter()
+                            .filter(|(_, (at, _))| *at == hi)
+                            .map(|(_, (_, depth))| depth + 1)
+                            .max()
+                            .unwrap_or(0);
+                        // Its sides keep their margin from what stands at
+                        // the lifeline they stand by, a bar or a head made
+                        // inside, and from a bar on the lifeline beside,
+                        // and stay in the picture.
+                        let room = |c: usize, depth: usize| {
+                            let half = if heads.contains(&c) {
+                                self.cols[c].half()
+                            } else {
+                                BAR / 2.0
+                            };
+                            FRAME * (depth + 1) as f32 + half
+                        };
+                        let beside = BAR / 2.0 + FRAME;
+                        let (at_lo, at_hi) = (room(lo, left), room(hi, right));
+                        if lo > 0 {
+                            space.need(lo - 1, lo, at_lo + beside);
+                        }
+                        space.left[lo] = space.left[lo].max(at_lo);
+                        if hi + 1 < n {
+                            space.need(hi, hi + 1, at_hi + beside);
+                        }
+                        space.right[hi] = space.right[hi].max(at_hi);
+                        if let Some(outer) = open.last_mut() {
+                            outer.2.push(((lo, left), (hi, right)));
                         }
                     }
                 }
@@ -1462,17 +1510,21 @@ impl<'a> Drawer<'a> {
             _ => return,
         };
         let (from, to) = (self.end_col(m.from), self.end_col(m.to));
-        // Bars the following items open on the receiver count already.
-        let opening = d.items[k + 1..]
-            .iter()
-            .take_while(|i| {
-                matches!(
-                    i,
-                    Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. }
-                )
-            })
-            .filter(|i| matches!(i, Item::Activate { participant, .. } if Some(self.col(*participant)) == to))
-            .count();
+        // Bars the following items open count already: on the receiver,
+        // and for the frames around, on the sender.
+        let opened = |column: Option<usize>| {
+            d.items[k + 1..]
+                .iter()
+                .take_while(|i| {
+                    matches!(
+                        i,
+                        Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. }
+                    )
+                })
+                .filter(|i| matches!(i, Item::Activate { participant, .. } if Some(self.col(*participant)) == column))
+                .count()
+        };
+        let opening = opened(to);
         let created = to.filter(|&c| self.cols[c].created_by == Some(k) && !self.head_drawn[c]);
 
         let text_w = self.message_text_width(k);
@@ -1496,8 +1548,9 @@ impl<'a> Drawer<'a> {
             stroke
         };
 
-        // Where the text goes, and the message's extent for frames.
-        let (text_left, lo, hi);
+        // Where the text goes, where the message runs (its notes stand
+        // beside that), and how far the frames around reach for it.
+        let (text_left, lo, hi, reach);
         // Where activations and a destruction right after it happen.
         let mut lifecycle_y = arrow_y;
         if let (Some(a), Some(b)) = (from, to)
@@ -1544,6 +1597,7 @@ impl<'a> Drawer<'a> {
             text_left = start + TEXT_INSET;
             lo = self.x[a] - BAR / 2.0;
             hi = out.max(text_left + text_w);
+            reach = (lo, hi);
             after = bottom + 3.0;
             lifecycle_y = bottom;
         } else {
@@ -1605,24 +1659,37 @@ impl<'a> Drawer<'a> {
                 MessageAlign::Center => (l + r - text_w) / 2.0,
                 MessageAlign::Right => r - TEXT_INSET - head_at(false) - text_w,
             };
-            // The frames around keep their margin from the bars on the
-            // lifelines at either end, a bar this message opens too.
-            let edge = |c: usize, side: Side| {
-                let extra = if Some(c) == to { opening } else { 0 };
-                self.bar_edge(c, side, extra)
-            };
-            lo = [from, to]
+            let ends: Vec<f32> = [from, to].iter().flatten().map(|&c| self.x[c]).collect();
+            lo = ends
                 .iter()
-                .flatten()
-                .map(|&c| edge(c, Side::Left))
+                .copied()
                 .fold(f32::INFINITY, f32::min)
                 .min(text_left);
-            hi = [from, to]
+            hi = ends
                 .iter()
-                .flatten()
-                .map(|&c| edge(c, Side::Right))
+                .copied()
                 .fold(f32::NEG_INFINITY, f32::max)
                 .max(text_left + text_w);
+            // The frames around keep their margin from what stands at either
+            // end: the bars on its lifelines, those opened right after it
+            // too, and the head of a participant it creates.
+            let sending = opened(from);
+            let extent = |c: usize| {
+                if created == Some(c) {
+                    let half = self.cols[c].half();
+                    return (self.x[c] - half, self.x[c] + half);
+                }
+                let extra = if Some(c) == to { opening } else { sending };
+                (
+                    self.bar_edge(c, Side::Left, extra),
+                    self.bar_edge(c, Side::Right, extra),
+                )
+            };
+            reach = [from, to]
+                .iter()
+                .flatten()
+                .map(|&c| extent(c))
+                .fold((lo, hi), |(l, h), (a, b)| (l.min(a), h.max(b)));
         }
         canvas.text(Layer::Front, &number, (text_left, top), Align::Left);
         let gap = if number.is_empty() {
@@ -1631,7 +1698,7 @@ impl<'a> Drawer<'a> {
             number.width + 4.0
         };
         canvas.text(Layer::Front, &text, (text_left + gap, top), Align::Left);
-        self.touch(lo, hi);
+        self.touch(reach.0, reach.1);
 
         if let Some(c) = created {
             let head_top = arrow_y - self.cols[c].height / 2.0;
@@ -2583,6 +2650,102 @@ mod tests {
             };
             assert!(margin >= FRAME - 0.01, "{body}: {margin}");
         }
+        // A bar opened on the sender right after its message.
+        let svg = crate::render("opt x\nA -> B : m\nactivate A\nend\nB -> A : back\ndeactivate A")
+            .unwrap();
+        let (frame, bar) = (rects(&svg, true)[0], rects(&svg, false)[0]);
+        assert!(bar.0 - frame.0 >= FRAME - 0.01, "{svg}");
+        // Frames nested about B keep clear of the bar on A beside.
+        let svg = crate::render(
+            "activate A\nA -> B ++ : x\nloop l\nalt a\nopt o\ngroup g\nB -> C : z\nend\nend\nend\nend",
+        )
+        .unwrap();
+        let outer = rects(&svg, true)
+            .into_iter()
+            .map(|(x, _)| x)
+            .fold(f32::MAX, f32::min);
+        let on_a = rects(&svg, false)
+            .into_iter()
+            .map(|(x, w)| x + w)
+            .fold(f32::MAX, f32::min);
+        assert!(outer - on_a >= FRAME - 0.01, "{outer} {on_a}");
+        // Nested at the first lifeline, the frames stay in the picture.
+        let svg = crate::render("opt a\nopt b\nA -> B : x\nend\nend").unwrap();
+        assert!(rects(&svg, true).iter().all(|(x, _)| *x >= 0.0), "{svg}");
+    }
+
+    #[test]
+    fn a_frame_holds_the_head_of_one_it_creates() {
+        let svg = crate::render(
+            "participant \"A rather long participant name\" as B\nopt make\ncreate B\nA -> B : new\nend",
+        )
+        .unwrap();
+        let frame = svg
+            .split("<rect ")
+            .skip(1)
+            .find(|rect| rect.contains("fill=\"none\""))
+            .unwrap();
+        let head = svg
+            .split("<rect ")
+            .skip(1)
+            .find(|rect| rect.contains(" width=\"214."))
+            .unwrap_or_else(|| panic!("{svg}"));
+        let number = |rect: &str, name: &str| -> f32 {
+            format!(" {rect}")
+                .split(&format!(" {name}=\""))
+                .nth(1)
+                .and_then(|rest| rest.split('"').next()?.parse().ok())
+                .unwrap()
+        };
+        assert!(number(frame, "x") >= 0.0, "{svg}");
+        assert!(
+            number(frame, "x") <= number(head, "x") - FRAME + 0.01,
+            "{svg}"
+        );
+        assert!(
+            number(frame, "x") + number(frame, "width")
+                >= number(head, "x") + number(head, "width") + FRAME - 0.01,
+            "{svg}"
+        );
+    }
+
+    #[test]
+    fn a_note_beside_a_message_stands_by_its_lifeline_not_by_the_bars() {
+        let svg = crate::render(
+            "A -> B ++ : x\nB -> B ++ : s\nB -> B ++ : t\nA -> B : msg\nnote right : a note on the right\nB -> C : z",
+        )
+        .unwrap();
+        // The note's outline ends before C's lifeline.
+        let note = svg
+            .split("<path d=\"M")
+            .skip(1)
+            .filter_map(|rest| rest.split('"').next()?.strip_suffix(" Z"))
+            .flat_map(|outline| {
+                outline
+                    .split([' ', 'L'])
+                    .filter_map(|pair| pair.split(',').next()?.parse::<f32>().ok())
+                    .collect::<Vec<_>>()
+            })
+            .fold(f32::MIN, f32::max);
+        // C's lifeline, by the middle of its head, the rightmost.
+        let c = svg
+            .split("<rect ")
+            .skip(1)
+            .filter(|rect| rect.contains("rx=\"2.5\""))
+            .filter_map(|rect| {
+                let number = |name: &str| -> Option<f32> {
+                    format!(" {rect}")
+                        .split(&format!(" {name}=\""))
+                        .nth(1)?
+                        .split('"')
+                        .next()?
+                        .parse()
+                        .ok()
+                };
+                Some(number("x")? + number("width")? / 2.0)
+            })
+            .fold(f32::MIN, f32::max);
+        assert!(note <= c - 5.0, "{note} {c}");
     }
 
     #[test]

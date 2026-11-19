@@ -17,9 +17,9 @@ pub struct Setting {
     pub line: usize,
 }
 
-/// A value of the front matter as JSON: a number, `true` or `false` as
-/// YAML writes them (`True`, `FALSE` too, as Mermaid's reader takes them),
-/// or the text without its quotes.
+/// A value of the front matter as JSON: a number, `true`, `false` or
+/// `null` as YAML writes them (`True`, `FALSE`, `~` too, as Mermaid's
+/// reader takes them), or the text without its quotes.
 fn scalar(text: &str) -> Value {
     let text = text.trim();
     if let Some(inner) = text
@@ -32,6 +32,7 @@ fn scalar(text: &str) -> Value {
     match text {
         "true" | "True" | "TRUE" => Value::Bool(true),
         "false" | "False" | "FALSE" => Value::Bool(false),
+        "null" | "Null" | "NULL" | "~" => Value::Null,
         _ => text
             .parse::<f64>()
             .ok()
@@ -256,13 +257,23 @@ pub fn init(code: &str) -> Vec<Setting> {
 }
 
 /// Whether a Mermaid sequence draws its participants again below their
-/// lifelines: as Mermaid does, unless `sequence.mirrorActors` is false in
-/// the front matter's `config` or a `%%{init}%%`. PlantUML's `hide
-/// footbox` is the same.
+/// lifelines: as Mermaid does, unless `sequence.mirrorActors` is set to
+/// what JavaScript takes as false (`false`, `0`, `null`, `""`), in the
+/// front matter's `config` or a `%%{init}%%`. PlantUML's `hide footbox`
+/// is the same.
 pub fn mirrors_actors(code: &str) -> bool {
-    merged(code)
-        .and_then(|settings| settings.get("sequence")?.get("mirrorActors")?.as_bool())
-        .unwrap_or(true)
+    let Some(value) =
+        merged(code).and_then(|settings| settings.get("sequence")?.get("mirrorActors").cloned())
+    else {
+        return true;
+    };
+    match value {
+        Value::Bool(on) => on,
+        Value::Null => false,
+        Value::Number(number) => number.as_f64().is_some_and(|n| n != 0.0 && !n.is_nan()),
+        Value::String(text) => !text.is_empty(),
+        Value::Array(_) | Value::Object(_) => true,
+    }
 }
 
 /// The front matter's settings and then the directives', which count
@@ -429,6 +440,30 @@ mod tests {
             .iter()
             .map(|s| (s.path.join("."), s.line))
             .collect()
+    }
+
+    #[test]
+    fn participants_stand_below_unless_the_setting_is_false_in_javascript() {
+        let body = "sequenceDiagram\n  A->>B: hi\n";
+        assert!(mirrors_actors(body));
+        for (value, on) in [
+            ("false", false),
+            ("0", false),
+            ("null", false),
+            ("\"\"", false),
+            ("true", true),
+            ("1", true),
+            ("\"no\"", true),
+        ] {
+            let code =
+                format!("%%{{init: {{\"sequence\": {{\"mirrorActors\": {value}}}}}}}%%\n{body}");
+            assert_eq!(mirrors_actors(&code), on, "{code}");
+        }
+        for value in ["0", "null", "~", "False"] {
+            let front =
+                format!("---\nconfig:\n  sequence:\n    mirrorActors: {value}\n---\n{body}");
+            assert!(!mirrors_actors(&front), "{front}");
+        }
     }
 
     #[test]

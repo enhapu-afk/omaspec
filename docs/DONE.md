@@ -2897,6 +2897,18 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of F6 found (2026-11-19). A note beside a message stands by its
+      lifeline again, not by the bars the frames now keep clear of. A bar opened on the
+      sender right after its message counts as one the message opens, and a frame
+      around a message that creates a participant holds its head. The columns leave
+      room for the frames' sides: as many margins as frames share a side, past the bar
+      or the head there, and a full margin more to a bar on the lifeline beside; at
+      the first and the last lifeline the frames stay in the picture, where two nested
+      ones ran 8 past its left edge before. `straight::merge` measures only the run it
+      moves and the step it grows against the boxes' sides, not the line's nearest
+      part. `mirrorActors` is false as JavaScript has it (`0`, `null`, `""`), and the
+      front matter's `null` and `~` are YAML's null. A bar grows for an opened state
+      before or after it too
 - [x] A frame keeps its margin from the bars at its sides (2026-11-19, from the review
       sheet, F6): a sequence's frame reached 10 past the lifelines of its outer
       participants, so where one was active (the checkout's `par` and `opt` at the

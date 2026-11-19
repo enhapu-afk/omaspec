@@ -37,13 +37,23 @@ impl Bars<'_> {
         self.bars.get(node).copied().unwrap_or(false)
     }
 
-    /// Whether `node` stands in the frame `bar` stands in, or in one
-    /// inside it: a bar grows only as far as its frame can hold it.
-    fn inside(&self, node: usize, bar: usize) -> bool {
+    /// The frame `end` stands in: a node's, or for a frame (an end past
+    /// the nodes, `nodes + f`, as a line names one), the one around it.
+    fn around(&self, end: usize) -> Option<usize> {
+        match end.checked_sub(self.bars.len()) {
+            None => self.within.get(end).copied().flatten(),
+            Some(frame) => self.frames.get(frame).and_then(|f| f.parent),
+        }
+    }
+
+    /// Whether `end`, a node or a frame, stands in the frame `bar` stands
+    /// in, or in one inside it: a bar grows only as far as its frame can
+    /// hold it.
+    fn inside(&self, end: usize, bar: usize) -> bool {
         let Some(&target) = self.within.get(bar) else {
             return false;
         };
-        let mut frame = self.within.get(node).copied().flatten();
+        let mut frame = self.around(end);
         loop {
             if frame == target {
                 return true;
@@ -116,7 +126,12 @@ fn needed(layout: &Layout, bars: &Bars) -> Vec<(usize, f32)> {
             if !bars.bar(at) || bars.bar(other) || !bars.inside(other, at) {
                 continue;
             }
-            let (Some(&bar), Some(&rect)) = (layout.nodes.get(at), layout.nodes.get(other)) else {
+            // The other end is a box, or a frame around what it holds.
+            let rect = match other.checked_sub(layout.nodes.len()) {
+                None => layout.nodes.get(other),
+                Some(frame) => layout.frames.get(frame),
+            };
+            let (Some(&bar), Some(&rect)) = (layout.nodes.get(at), rect) else {
                 continue;
             };
             let ((bar_x, bar_w), (bar_y, bar_h)) = axes(bar, bars.direction);
@@ -294,5 +309,33 @@ mod tests {
             ..bars
         };
         assert_eq!(needed(&laid, &bars), []);
+    }
+
+    #[test]
+    fn a_frame_below_a_bar_asks_to_be_reached() {
+        let frame = Frame {
+            parent: None,
+            top: 0.0,
+            bottom: 0.0,
+            left: 0.0,
+            right: 0.0,
+            min_width: 0.0,
+            name: Default::default(),
+        };
+        // A bar, a box, and a line from the bar to the frame past them (2).
+        let mut laid = layout(
+            vec![rect(0.0, 100.0, 80.0, 8.0), rect(0.0, 300.0, 40.0, 30.0)],
+            Vec::new(),
+        );
+        laid.frames = vec![rect(200.0, 200.0, 120.0, 200.0)];
+        let edges = [crate::graph::tests::edge(0, 2)];
+        let bars = Bars {
+            bars: &[true, false],
+            edges: &edges,
+            within: &[None, Some(0)],
+            frames: &[frame],
+            direction: Direction::Down,
+        };
+        assert_eq!(needed(&laid, &bars), [(0, 2.0 * (260.0 - 40.0 + PAST))]);
     }
 }

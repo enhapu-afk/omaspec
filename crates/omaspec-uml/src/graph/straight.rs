@@ -391,23 +391,24 @@ fn absorb(
             continue;
         }
         let moved = merged(moved);
-        // The run moved and the step grown keep off the sides of the boxes
-        // and frames they come to pass.
+        // The steps both have in common at either end are the same; only
+        // the ones between them differ: the run moved and the step grown.
+        let (old, new) = differing(points, &moved);
+        // These keep off the sides of the boxes and frames they come to
+        // pass, as far as the steps they take the place of did at least.
         let nearest = |line: &[Point], rect: Rect| {
             line.windows(2)
                 .map(|s| beside((s[0], s[1]), rect))
                 .fold(f32::INFINITY, f32::min)
         };
         let roomy = boxes.iter().chain(frames).all(|&rect| {
-            let now = nearest(&moved, rect);
-            now >= BESIDE || now >= nearest(points, rect) - 0.01
+            let now = nearest(new, rect);
+            now >= BESIDE || now >= nearest(old, rect) - 0.01
         });
         if !roomy {
             continue;
         }
-        // The steps both have in common at either end cross the same
-        // lines; only the ones between them can differ.
-        let (old, new) = differing(points, &moved);
+        // They cross no line more.
         if crossings(new) > crossings(old) {
             continue;
         }
