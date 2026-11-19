@@ -44,6 +44,7 @@
 pub mod across;
 mod bundle;
 pub mod by_hand;
+mod corner;
 mod doubled;
 pub mod hold;
 mod join;
@@ -806,6 +807,9 @@ fn in_ranks(
         })
     };
     let mut lines: Vec<Vec<(f32, f32)>> = routes.iter().map(|r| r.points.clone()).collect();
+    // A line back against the flow leaves a diamond's corner another line
+    // takes.
+    corner::apart(&mut lines, edges, &back, nodes, &rects, direction);
     straight::unjog(&mut lines, &ends, &rects, &label_rect);
     // Then one step where there were several: a run moved keeps off the
     // boxes and the names of the frames, and out of frames it was not in.

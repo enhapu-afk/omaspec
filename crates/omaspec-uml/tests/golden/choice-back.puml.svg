@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="206" height="466" viewBox="0 0 206 466">
+<g transform="translate(10,10)">
+<g>
+<ellipse cx="70.51" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="32.64" y="80.3" width="75.74" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="172.56" width="64.68" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<polygon points="83.23,260.82 131.34,285.12 83.23,309.42 35.12,285.12" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="44.87" y="355.38" width="76.73" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="83.23" cy="432.68" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="83.23" cy="432.68" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
+<polyline points="70.51,48.3 70.51,70.3" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="44.64,112.59 44.64,162.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M52.68,204.86 L52.68,204.86 C52.68,211.48 58.05,216.86 64.68,216.86 L67.96,216.86 C76.39,216.86 83.23,223.7 83.23,232.13 L83.23,250.82" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M131.34,285.12 L131.34,285.12 C137.97,285.12 143.34,279.75 143.34,273.12 L143.34,162.07 C143.34,149.11 132.83,138.59 119.86,138.59 L112.38,138.59 C103.54,138.59 96.38,131.43 96.38,122.59 L96.38,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="83.23,309.42 83.23,345.38" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="83.23,387.68 83.23,409.68" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="66.51,70.3 70.51,80.3 74.51,70.3 70.51,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="40.64,162.56 44.64,172.56 48.64,162.56 44.64,166.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="79.23,250.82 83.23,260.82 87.23,250.82 83.23,254.82" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="100.38,122.59 96.38,112.59 92.38,122.59 96.38,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="79.23,345.38 83.23,355.38 87.23,345.38 83.23,349.38" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="79.23,409.68 83.23,419.68 87.23,409.68 83.23,413.68" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="46.64" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="47.74" lengthAdjust="spacing">Closed</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="14" y="193.55" font-size="14" fill="#000000" font-weight="bold" textLength="36.68" lengthAdjust="spacing">Open</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="63.18" y="289.96" font-size="14" fill="#000000" textLength="40.11" lengthAdjust="spacing">check</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="58.87" y="376.38" font-size="14" fill="#000000" font-weight="bold" textLength="48.73" lengthAdjust="spacing">Broken</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="10.01" y="153.73" font-size="12" fill="#000000" textLength="28.63" lengthAdjust="spacing">open</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="50.08" y="241.99" font-size="12" fill="#000000" textLength="27.16" lengthAdjust="spacing">wind</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="149.34" y="241.99" font-size="12" fill="#000000" textLength="35.77" lengthAdjust="spacing">[calm]</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="89.23" y="336.55" font-size="12" fill="#000000" textLength="41.24" lengthAdjust="spacing">[storm]</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1.18" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="182.76" lengthAdjust="spacing">A way back out of a choice</tspan>
+</text>
+</g>
+</g>
+</svg>

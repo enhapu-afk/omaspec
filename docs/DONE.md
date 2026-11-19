@@ -2897,6 +2897,16 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A line back out of a diamond leaves from its side (2026-11-19, from the review
+      sheet, F8): a box that is not flat (a choice's diamond, a circle, a stadium)
+      meets its lines at one point of each side, so in the door with an alarm `wind`
+      arrived at the top corner of `check` and `[calm]` left it there back up, and the
+      two read as one line that splits. Where a line back against the flow starts or
+      ends at the point another line meets, it takes the side corner the way it heads
+      for, its run along the flow moved out past the corner where it ran nearer, onto
+      the box it ends at still (`graph::corner`). Flowcharts gain it too: the pipeline's
+      and the platform's dotted ways back no longer end where a line leaves; two
+      corners near another line and two bends fewer in `tests/lines`
 - [x] Room found by drawing (2026-11-19), after the review of F6 and F7: the columns
       were set apart by a guess of how far a frame's side or a note beside a lifeline
       would reach, and each guess missed a case (bars nested on bars, a self message

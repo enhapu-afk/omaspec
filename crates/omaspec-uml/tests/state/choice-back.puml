@@ -1,0 +1,10 @@
+@startuml
+title A way back out of a choice
+[*] --> Closed
+Closed --> Open : open
+state check <<choice>>
+Open --> check : wind
+check --> Closed : [calm]
+check --> Broken : [storm]
+Broken --> [*]
+@enduml
