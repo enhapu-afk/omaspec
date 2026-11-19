@@ -29,7 +29,8 @@ fn an_order_uses_the_alias_and_keeps_the_note_outside_the_alt() {
     let source = include_str!("../../../../../examples/order.mmd");
     let diagram = built(source);
     assert_eq!(diagram.participants[0].label, "Customer");
-    assert!(!diagram.footbox);
+    // Mermaid draws the participants again below the lifelines.
+    assert!(diagram.footbox);
     let paid = diagram.items.iter().position(
         |item| matches!(item, Item::GroupStart { label: Some(text), .. } if text.value == "paid"),
     );
@@ -46,7 +47,7 @@ fn an_order_uses_the_alias_and_keeps_the_note_outside_the_alt() {
     let theme = RenderOptions::default().theme;
     let svg = try_draw(&theme, source).unwrap();
     assert!(svg.to_ascii_lowercase().contains("#f8fafc"), "{svg}");
-    assert_eq!(svg.matches(">Customer<").count(), 1);
+    assert_eq!(svg.matches(">Customer<").count(), 2);
     let customer = baseline(&svg, "Customer");
     let alt = baseline(&svg, "alt");
     let paid_y = baseline(&svg, "[paid]");
@@ -54,6 +55,26 @@ fn an_order_uses_the_alias_and_keeps_the_note_outside_the_alt() {
         customer < alt && alt <= paid_y + 0.1,
         "{customer} {alt} {paid_y}"
     );
+}
+
+#[test]
+fn the_participants_stand_below_unless_mirror_actors_is_false() {
+    let theme = RenderOptions::default().theme;
+    let names = |source: &str| try_draw(&theme, source).unwrap().matches(">Alice<").count();
+    let body = "sequenceDiagram\n  Alice->>Bob: hi\n";
+    assert_eq!(names(body), 2);
+    for off in [
+        format!("%%{{init: {{'sequence': {{'mirrorActors': false}}}}}}%%\n{body}"),
+        format!("---\nconfig:\n  sequence:\n    mirrorActors: false\n---\n{body}"),
+    ] {
+        assert_eq!(names(&off), 1, "{off}");
+    }
+    let on = format!("%%{{init: {{\"sequence\": {{\"mirrorActors\": true}}}}}}%%\n{body}");
+    assert_eq!(names(&on), 2);
+    // A participant destroyed has no foot, as in Mermaid.
+    let destroyed = "sequenceDiagram\n  Alice->>Bob: hi\n  destroy Bob\n  Alice-xBob: bye\n";
+    let svg = try_draw(&theme, destroyed).unwrap();
+    assert_eq!(svg.matches(">Bob<").count(), 1, "{svg}");
 }
 
 #[test]

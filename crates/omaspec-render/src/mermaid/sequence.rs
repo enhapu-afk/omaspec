@@ -16,6 +16,7 @@ use omaspec_uml::sequence::{Skinparam, draw_mapped, from_mermaid, from_zenuml};
 /// the diagram to mmdr.
 pub fn try_draw(theme: &Theme, source: &str) -> Option<(String, Map)> {
     let mut diagram = from_mermaid(source)?;
+    diagram.footbox = mirrors(source);
     diagram.frame.skinparams = skin_of(theme)?;
     diagram.frame.skinparams.extend(super::sketch_param(source));
     draw_mapped(&diagram).ok()
@@ -28,6 +29,15 @@ pub fn try_draw_zenuml(theme: &Theme, source: &str) -> Option<(String, Map)> {
     diagram.frame.skinparams = skin_of(theme)?;
     diagram.frame.skinparams.extend(super::sketch_param(source));
     draw_mapped(&diagram).ok()
+}
+
+/// Whether the participants stand again below their lifelines: as in
+/// Mermaid, unless `sequence.mirrorActors` is false, in the front matter's
+/// `config` or a `%%{init}%%`.
+fn mirrors(source: &str) -> bool {
+    omaspec_core::settings::merged(source)
+        .and_then(|settings| settings.get("sequence")?.get("mirrorActors")?.as_bool())
+        .unwrap_or(true)
 }
 
 fn skin_of(theme: &Theme) -> Option<Vec<Skinparam>> {

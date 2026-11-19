@@ -66,7 +66,10 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         participants: Vec::new(),
         items: Vec::new(),
         boxes: Vec::new(),
-        footbox: false,
+        // Mermaid draws its participants again below the lifelines unless
+        // `sequence.mirrorActors` is false, which the renderer reads from
+        // the settings.
+        footbox: true,
         hide_unlinked: false,
         names: Vec::new(),
         // The front matter's title, unless a `title` line follows.

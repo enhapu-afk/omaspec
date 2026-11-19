@@ -359,6 +359,7 @@ fn heeded(path: &[String]) -> bool {
                     .is_some_and(|n| (1..=12).contains(&n))
         }
         ["flowchart", "nodeSpacing" | "rankSpacing" | "curve"] => true,
+        ["sequence", "mirrorActors"] => true,
         _ => false,
     }
 }
@@ -459,13 +460,13 @@ mod tests {
 
     #[test]
     fn a_setting_that_is_not_carried_out_is_told_on_its_line() {
-        let code = "%%{init: {\"theme\": \"dark\", \"fontFamily\": \"courier\", \"themeCSS\": \".node { fill: red }\", \"securityLevel\": \"loose\", \"sequence\": {\"mirrorActors\": false}}}%%\nflowchart TD\n  A --> B\n";
+        let code = "%%{init: {\"theme\": \"dark\", \"fontFamily\": \"courier\", \"themeCSS\": \".node { fill: red }\", \"securityLevel\": \"loose\", \"sequence\": {\"actorMargin\": 80}}}%%\nflowchart TD\n  A --> B\n";
         let found = unheeded(code);
         let said: Vec<&str> = found.iter().map(|f| f.message.as_str()).collect();
         assert_eq!(
             said,
             [
-                "`sequence.mirrorActors` is not carried out: Omaspec draws the diagram without this setting",
+                "`sequence.actorMargin` is not carried out: Omaspec draws the diagram without this setting",
                 "`themeCSS` is not carried out: Omaspec draws the diagram without this setting",
             ]
         );

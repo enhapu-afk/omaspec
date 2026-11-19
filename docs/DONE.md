@@ -2897,6 +2897,13 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A Mermaid sequence's participants again below their lifelines (2026-11-19, from
+      the review sheet, F5): Mermaid draws them there unless `sequence.mirrorActors`
+      is false; Omaspec drew them only above, so the lifelines ended in nothing. They
+      now stand below too, as PlantUML's foot boxes do, and `mirrorActors: false` in
+      the front matter's `config` or a `%%{init}%%` takes them away; lint no longer
+      says the setting is not carried out. A participant destroyed has no foot, as in
+      Mermaid; one created has
 - [x] Fork and join bars as long as what they split and join (2026-11-19, from the
       review sheet, F4): a bar was measured at 80 before the layout knew where its
       states go, so the lines to states wider apart than that ran to its ends in a
