@@ -2897,6 +2897,14 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A delay's words between two lifelines (2026-11-19, from the review sheet, F9): the
+      words of `... two days later ...` stood in the middle of the picture, on the
+      lifeline that ran there, the dotted line through them. They now stand in the
+      middle of the room between two lifelines that holds them 8 from either and
+      from their bars, the one nearest the picture's middle; where none does, the
+      room found by drawing (`sequence/draw/room.rs`) sets the two nearest the
+      middle that much further apart. Over a lone lifeline the dotted line stops
+      short of them. In `every-construct`, `5 minutes later` left Gate's lifeline
 - [x] What the review of the room found by drawing and of F8 found (2026-11-19). A
       frame knows the lifelines its items stand by: a lifeline it does not hold keeps
       the margin from its sides wherever it stands, also just inside one a note

@@ -40,6 +40,8 @@ const BAR_SHIFT: f32 = 5.0;
 const OVER: f32 = 15.0;
 /// A frame's margin around what it holds.
 const FRAME: f32 = 10.0;
+/// What the words of a delay keep from a lifeline beside them.
+const DELAY_ROOM: f32 = 8.0;
 /// Between two notes at one height.
 const NOTE_GAP: f32 = 10.0;
 /// Arrow heads.
@@ -363,7 +365,10 @@ struct Drawer<'a> {
     life_start: Vec<f32>,
     life_end: Vec<Option<f32>>,
     head_drawn: Vec<bool>,
-    delays: Vec<(f32, f32)>,
+    /// Each delay, from where to where down, and where its words stand
+    /// over the lifelines when no room between two holds them: the dotted
+    /// lifelines stop at them.
+    delays: Vec<(f32, f32, Option<[f32; 4]>)>,
     groups: Vec<OpenGroup>,
     dividers: Vec<(f32, Block, usize)>,
     /// The arrow height of the last message and its columns, while only
@@ -1169,6 +1174,27 @@ impl<'a> Drawer<'a> {
         self.right_edge = right;
     }
 
+    /// Where across the words of a delay `width` wide stand, and whether
+    /// clear of the lifelines: in the middle of the room between two
+    /// lifelines that holds them [`DELAY_ROOM`] from either and its bars,
+    /// the one nearest the picture's middle; else in the middle, over the
+    /// lifelines.
+    fn delay_x(&self, width: f32) -> (f32, bool) {
+        let middle = (self.x[0] + self.x[self.x.len() - 1]) / 2.0;
+        let alive: Vec<usize> = (0..self.x.len())
+            .filter(|&c| self.head_drawn[c] && self.life_end[c].is_none())
+            .collect();
+        alive
+            .windows(2)
+            .filter_map(|pair| {
+                let from = self.bar_edge(pair[0], Side::Right, 0);
+                let to = self.bar_edge(pair[1], Side::Left, 0);
+                (to - from >= width + 2.0 * DELAY_ROOM - 0.01).then_some((from + to) / 2.0)
+            })
+            .min_by(|a, b| (a - middle).abs().total_cmp(&(b - middle).abs()))
+            .map_or((middle, false), |x| (x, true))
+    }
+
     /// The room this drawing found the columns lack ([`room`]).
     fn crowded(&self) -> room::Extra {
         room::crowded(
@@ -1479,9 +1505,24 @@ impl<'a> Drawer<'a> {
                     let label = label.clone();
                     let start = self.y + 5.0;
                     let end = start + 20.0 + label.height;
-                    let middle = (self.x[0] + self.x[self.x.len() - 1]) / 2.0;
-                    canvas.text(Layer::Front, &label, (middle, start + 10.0), Align::Center);
-                    self.delays.push((start, end));
+                    let (x, clear) = self.delay_x(label.width);
+                    canvas.text(Layer::Front, &label, (x, start + 10.0), Align::Center);
+                    // Over the lifelines, the dotted lines stop short of them;
+                    // the room between two is found by drawing ([`room`]).
+                    let words = (!clear).then_some([
+                        x - label.width / 2.0 - DELAY_ROOM,
+                        start + 10.0 - DELAY_ROOM / 2.0,
+                        x + label.width / 2.0 + DELAY_ROOM,
+                        start + 10.0 + label.height + DELAY_ROOM / 2.0,
+                    ]);
+                    if let Some([left, top, right, bottom]) = words {
+                        self.drawn.delays.push(room::Delay {
+                            width: right - left,
+                            top,
+                            bottom,
+                        });
+                    }
+                    self.delays.push((start, end, words));
                     self.y = end;
                 }
             }
@@ -2256,15 +2297,25 @@ impl<'a> Drawer<'a> {
             let x = self.x[c];
             let mut y = self.life_start[c];
             let stop = self.life_end[c].unwrap_or(end);
-            for &(d0, d1) in &self.delays {
+            for &(d0, d1, words) in &self.delays {
                 if d1 <= y || d0 >= stop {
                     continue;
                 }
                 if d0 > y {
                     canvas.line(Layer::Lifelines, (x, y), (x, d0), dashed);
                 }
-                let to = d1.min(stop);
-                canvas.line(Layer::Lifelines, (x, d0.max(y)), (x, to), dotted);
+                let (from, to) = (d0.max(y), d1.min(stop));
+                match words {
+                    Some([left, top, right, bottom]) if x > left && x < right => {
+                        if top > from {
+                            canvas.line(Layer::Lifelines, (x, from), (x, top), dotted);
+                        }
+                        if to > bottom {
+                            canvas.line(Layer::Lifelines, (x, bottom), (x, to), dotted);
+                        }
+                    }
+                    _ => canvas.line(Layer::Lifelines, (x, from), (x, to), dotted),
+                }
                 y = to;
             }
             if stop > y {
@@ -2922,6 +2973,60 @@ mod tests {
             frame + BAR / 2.0 + FRAME <= lifelines[2] + 0.01,
             "{frame} {lifelines:?}"
         );
+    }
+
+    #[test]
+    fn a_delay_s_words_stand_between_two_lifelines_where_they_fit() {
+        let svg = crate::render(
+            "participant Reader\nparticipant Shop\nparticipant Orders\nparticipant Stock\nReader -> Shop : x\n... two days later ...\nShop -> Stock : y",
+        )
+        .unwrap();
+        let number = |tag: &str, name: &str| -> f32 {
+            format!(" {tag}")
+                .split(&format!(" {name}=\""))
+                .nth(1)
+                .and_then(|rest| rest.split('"').next()?.parse().ok())
+                .unwrap()
+        };
+        let words = svg
+            .split("<tspan ")
+            .skip(1)
+            .find(|tspan| tspan.contains(">two days later"))
+            .map(|tspan| {
+                (
+                    number(tspan, "x"),
+                    number(tspan, "x") + number(tspan, "textLength"),
+                )
+            })
+            .unwrap();
+        for lifeline in svg
+            .split("<rect ")
+            .skip(1)
+            .filter(|rect| rect.contains("rx=\"2.5\""))
+            .map(|rect| number(rect, "x") + number(rect, "width") / 2.0)
+        {
+            assert!(
+                lifeline <= words.0 - DELAY_ROOM + 0.01 || lifeline >= words.1 + DELAY_ROOM - 0.01,
+                "{lifeline} {words:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_dotted_lifeline_stops_short_of_a_delay_s_words_over_it() {
+        laid_out(
+            "A -> A : x\n... a long while passes here, longer than the room ...\nA -> A : y",
+            |d| {
+                let (_, _, words) = d.delays[0];
+                assert!(words.is_some_and(|[left, _, right, _]| left < d.x[0] && right > d.x[0]));
+            },
+        );
+        let svg = crate::render(
+            "A -> A : x\n... a long while passes here, longer than the room ...\nA -> A : y",
+        )
+        .unwrap();
+        // Two dotted runs, one above the words and one below.
+        assert_eq!(svg.matches("stroke-dasharray=\"1,4\"").count(), 2, "{svg}");
     }
 
     #[test]

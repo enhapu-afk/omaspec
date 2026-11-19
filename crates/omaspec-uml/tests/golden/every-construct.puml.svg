@@ -306,7 +306,7 @@
 <line x1="830.95" y1="1025.34" x2="848.95" y2="1043.34" fill="none" stroke="#181818" stroke-width="2"/>
 <line x1="830.95" y1="1043.34" x2="848.95" y2="1025.34" fill="none" stroke="#181818" stroke-width="2"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="425.35" y="1096.55" font-size="11" fill="#000000" textLength="76.81" lengthAdjust="spacing">5 minutes later</tspan>
+<tspan x="488.65" y="1096.55" font-size="11" fill="#000000" textLength="76.81" lengthAdjust="spacing">5 minutes later</tspan>
 </text>
 <line x1="198.11" y1="1161.41" x2="695.59" y2="1161.41" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="685.59,1157.41 695.59,1161.41 685.59,1165.41 689.59,1161.41" fill="#181818" stroke="#181818" stroke-width="1"/>

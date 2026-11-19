@@ -7,7 +7,8 @@
 //! is measured: a frame's side or a note closer than its margin to a
 //! lifeline or a bar its items do not stand by, a frame's words over the
 //! last lifeline it holds, a frame or a note past the picture's left edge,
-//! or past where a message to its right edge ends. Each asks for the
+//! or past where a message to its right edge ends, a delay's words that no
+//! room between two lifelines holds. Each asks for the
 //! columns between to stand that much further apart, and the sequence is
 //! drawn again ([`PASSES`] at most, and no more once a drawing takes
 //! nothing away from what lacks room): the layout follows what is drawn,
@@ -49,11 +50,21 @@ pub(super) struct Note {
     pub at: [f32; 4],
 }
 
+/// A delay whose words no room between two lifelines held: as wide as
+/// they are with their room, and from where to where down they stand.
+#[derive(Clone)]
+pub(super) struct Delay {
+    pub width: f32,
+    pub top: f32,
+    pub bottom: f32,
+}
+
 /// What one drawing placed that may crowd a lifeline.
 #[derive(Default, Clone)]
 pub(super) struct Drawn {
     pub frames: Vec<Frame>,
     pub notes: Vec<Note>,
+    pub delays: Vec<Delay>,
 }
 
 /// Room the columns keep beyond what the items ask for: lifelines `a` and
@@ -205,6 +216,26 @@ pub(super) fn crowded(drawn: &Drawn, lives: &Lives) -> Extra {
         } else if from < -0.01 {
             extra.left.push((a, x[a] - from));
             extra.short -= from;
+        }
+    }
+    // A delay's words want the room between two lifelines: the two whose
+    // room lies nearest the picture's middle stand that much further apart.
+    let middle = (x[0] + x[x.len() - 1]) / 2.0;
+    for delay in &drawn.delays {
+        let alive: Vec<(usize, (f32, f32))> = (0..x.len())
+            .filter_map(|c| Some((c, lives.across(c, delay.top, delay.bottom)?)))
+            .collect();
+        let nearest = alive.windows(2).min_by(|a, b| {
+            let at =
+                |pair: &[(usize, (f32, f32))]| ((pair[0].1.1 + pair[1].1.0) / 2.0 - middle).abs();
+            at(a).total_cmp(&at(b))
+        });
+        if let Some(pair) = nearest {
+            let ((a, (_, from)), (b, (to, _))) = (pair[0], pair[1]);
+            let short = delay.width - (to - from);
+            if short > 0.01 {
+                extra.need(a, b, x[b] - x[a] + short, short);
+            }
         }
     }
     extra
