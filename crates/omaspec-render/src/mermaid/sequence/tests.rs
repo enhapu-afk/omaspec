@@ -292,11 +292,19 @@ fn a_look_paints_the_bars_on_a_lifeline() {
     // surface, as the PlantUML engine draws them (F2 of the review sheet).
     use omaspec_core::skin::{self, DARK, Pack};
     let code = "sequenceDiagram\n  A->>+B: ask\n  B-->>-A: answer\n";
-    let (range, text) =
-        skin::edit(code, omaspec_core::Language::Mermaid, Some(Pack::Omarchy), &DARK).unwrap();
+    let (range, text) = skin::edit(
+        code,
+        omaspec_core::Language::Mermaid,
+        Some(Pack::Omarchy),
+        &DARK,
+    )
+    .unwrap();
     let shown = format!("{}{text}{}", &code[..range.start], &code[range.end..]);
     let svg = crate::mermaid::render(&shown).unwrap();
     let lower = svg.to_ascii_lowercase();
     assert!(!lower.contains("#f4f4f4"), "{svg}");
-    assert!(lower.contains(&format!("fill=\"{}\"", DARK.surface.to_ascii_lowercase())), "{svg}");
+    assert!(
+        lower.contains(&format!("fill=\"{}\"", DARK.surface.to_ascii_lowercase())),
+        "{svg}"
+    );
 }
