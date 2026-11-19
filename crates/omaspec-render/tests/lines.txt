@@ -19,7 +19,7 @@ crates/omaspec-render/tests/layered/state-loops.mmd 7 0 0 0 0 0 6 474 0 41.9
 crates/omaspec-render/tests/layered/state-nested.mmd 8 0 0 0 0 0 8 772 0 11.9
 crates/omaspec-render/tests/layered/state-notes.mmd 4 0 0 0 0 0 0 161 0 19.7
 crates/omaspec-render/tests/layered/state-open.mmd 6 0 0 0 0 0 6 1004 0 0.0
-crates/omaspec-render/tests/layered/state-pseudo.mmd 12 0 0 0 1 0 14 975 0 7.6
+crates/omaspec-render/tests/layered/state-pseudo.mmd 12 0 0 0 1 0 8 893 0 7.6
 crates/omaspec-render/tests/layered/state-regions.mmd 8 0 0 0 0 0 0 337 0 0.0
 crates/omaspec-render/tests/layered/state-styled.mmd 5 0 0 0 0 0 0 225 0 22.5
 crates/omaspec-uml/tests/state/bundled.puml 7 0 0 0 0 0 12 680 0 20.3
@@ -31,7 +31,7 @@ crates/omaspec-uml/tests/state/nested.puml 23 0 0 0 0 0 23 4011 0 5.1
 crates/omaspec-uml/tests/state/regions.puml 12 0 0 0 0 0 0 468 0 44.9
 crates/omaspec-uml/tests/state/self-loops.puml 9 0 0 0 0 0 12 840 0 20.4
 crates/omaspec-uml/tests/state/sideways.puml 4 0 0 0 0 0 0 216 0 20.6
-crates/omaspec-uml/tests/state/states.puml 13 0 0 0 1 0 22 1952 0 13.4
+crates/omaspec-uml/tests/state/states.puml 13 0 0 0 1 0 14 1766 0 14.0
 crates/omaspec-uml/tests/state/stereotypes.puml 8 0 0 0 0 0 2 426 0 26.5
 crates/omaspec-uml/tests/state/styled-states.puml 4 0 0 0 0 0 0 156 0 19.7
 crates/omaspec-uml/tests/state/top-regions.puml 10 0 0 0 0 0 0 404 0 -
@@ -58,7 +58,7 @@ examples/gallery/elevator.puml 25 0 0 0 0 0 20 7481 0 4.3
 examples/gallery/friday.mmd 9 0 0 0 0 0 16 1410 0 10.0
 examples/gallery/insurance.puml 7 0 0 0 0 0 2 328 0 58.9
 examples/gallery/library.puml 9 0 0 0 0 0 6 1280 0 12.2
-examples/gallery/media-player.mmd 18 0 0 1 0 0 8 2297 0 7.9
+examples/gallery/media-player.mmd 18 0 0 0 0 0 8 2382 0 8.1
 examples/gallery/pipeline.mmd 16 0 0 0 1 0 28 2801 1 8.5
 examples/gallery/smart-home.puml 6 0 0 0 0 0 16 1747 0 86.0
 examples/gallery/ticket-machine.puml 5 0 0 0 1 0 8 565 0 14.3
@@ -67,4 +67,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 12.9
 examples/platform.mmd 17 1 0 0 5 0 34 5284 6 43.9
 examples/player.puml 8 0 0 0 0 0 14 1022 0 15.4
 examples/shop.mmd 6 0 0 0 0 0 4 595 0 16.7
-total 578 8 0 3 22 0 555 100195 21 1327.3
+total 578 8 0 2 22 0 541 100012 21 1328.0

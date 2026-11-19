@@ -2897,6 +2897,19 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Fork and join bars as long as what they split and join (2026-11-19, from the
+      review sheet, F4): a bar was measured at 80 before the layout knew where its
+      states go, so the lines to states wider apart than that ran to its ends in a
+      hook, and both lines into a join met at one point of it. Once a state diagram
+      is laid out, each bar grows to reach past the middles of its states, and the
+      diagram is laid out again while one grows (`state/draw/bars.rs`); then each bar
+      is cut back to 16 past the outermost line on it. Its lines keep out of bundles,
+      so each runs straight into the bar at a place of its own, in both languages and
+      both directions. A run `straight::merge` moves to take a step out keeps 12 from
+      the side of a box it comes to pass, or as far as before (`straight::BESIDE`):
+      the longer bars let the line `again` of `tests/state/states.puml` slide 3 units
+      beside a nested state. The media player's `stop` loses its hook for it. No
+      crossing or word more in `tests/lines`, one jog less
 - [x] What the review of REQ-077, REQ-079, F1, F2 and F3 found (2026-11-19). A `{{`
       a note never closes no longer takes every line up to some later `}}` in the
       file: it opens a diagram only where its `}}` comes before the note's end, an end

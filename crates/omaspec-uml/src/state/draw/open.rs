@@ -57,8 +57,19 @@ impl<'a> Nested for States<'a> {
         container.bundled
     }
 
+    /// The members the writer kept apart, and every fork and join: the
+    /// lines a bar splits and joins each meet it at a place of their own.
     fn apart_at(&self, container: &'a Container) -> Vec<usize> {
-        container.apart.clone()
+        let mut apart = container.apart.clone();
+        apart.extend(
+            container
+                .nodes
+                .iter()
+                .enumerate()
+                .filter(|(_, node)| matches!(node.kind, Kind::Fork | Kind::Join))
+                .map(|(index, _)| index),
+        );
+        apart
     }
 
     fn flow(&self, container: &'a Container) -> (graph::Direction, bool) {

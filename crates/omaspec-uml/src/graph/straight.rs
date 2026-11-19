@@ -33,6 +33,10 @@ const CORNER: f32 = 8.0;
 /// A run moved to take a step out keeps at least this far from the lines
 /// beside it.
 const ROOM: f32 = 10.0;
+/// A run moved to take a step out keeps at least this far from the boxes
+/// it passes beside, or as far as before: one moved up against a box's
+/// side reads as touching it.
+const BESIDE: f32 = 12.0;
 /// Its label keeps this far from other words and from boxes.
 const MARGIN: f32 = 4.0;
 /// A moved run keeps this far from the label of another line, or the
@@ -241,7 +245,12 @@ pub(super) fn merge(
                 .collect();
             steps.sort_by(|a, b| a.0.total_cmp(&b.0));
             for (_, k) in steps {
-                let near = (&solids[..], frames, &spans[..]);
+                let near = Near {
+                    solids: &solids,
+                    boxes,
+                    frames,
+                    spans: &spans,
+                };
                 if let Some(moved) = absorb(lines, index, k, near, &own, sideways) {
                     labels[index] = label(index, &moved);
                     spans[index] = span(&moved);
@@ -254,6 +263,16 @@ pub(super) fn merge(
     }
 }
 
+/// What a moved run keeps off: the labels of the other lines and the
+/// boxes (`solids`), the boxes alone, the frames, and where each line
+/// runs.
+struct Near<'a> {
+    solids: &'a [Rect],
+    boxes: &'a [Rect],
+    frames: &'a [Rect],
+    spans: &'a [Span],
+}
+
 /// `lines[index]` with its step from point `k` to `k + 1` absorbed into
 /// the step before or after it, the longer one first, if one goes the
 /// same way and the run between them may move.
@@ -261,10 +280,16 @@ fn absorb(
     lines: &[Vec<Point>],
     index: usize,
     k: usize,
-    (solids, frames, spans): (&[Rect], &[Rect], &[Span]),
+    near: Near,
     label: &dyn Fn(&[Point]) -> Option<Rect>,
     sideways: bool,
 ) -> Option<Vec<Point>> {
+    let Near {
+        solids,
+        boxes,
+        frames,
+        spans,
+    } = near;
     let points = &lines[index];
     let (a, b) = (points[k], points[k + 1]);
     let across = (b.0 - a.0, b.1 - a.1);
@@ -362,7 +387,11 @@ fn absorb(
                 now >= ROOM || now >= gap(was, (s[0], s[1])) - 0.01
             })
         });
-        if !clear {
+        let roomy = boxes.iter().all(|&rect| {
+            let now = beside(run, rect);
+            now >= BESIDE || now >= beside(was, rect) - 0.01
+        });
+        if !clear || !roomy {
             continue;
         }
         let moved = merged(moved);
@@ -492,6 +521,22 @@ fn gap((a, b): (Point, Point), (c, d): (Point, Point)) -> f32 {
     } else {
         f32::INFINITY
     }
+}
+
+/// How far the run from `a` to `b` passes beside `rect`, along a side of
+/// it; far when it passes none.
+fn beside(run: (Point, Point), rect: Rect) -> f32 {
+    let (left, right) = (rect.x, rect.x + rect.w);
+    let (top, bottom) = (rect.y, rect.y + rect.h);
+    [
+        ((left, top), (left, bottom)),
+        ((right, top), (right, bottom)),
+        ((left, top), (right, top)),
+        ((left, bottom), (right, bottom)),
+    ]
+    .into_iter()
+    .map(|side| gap(run, side))
+    .fold(f32::INFINITY, f32::min)
 }
 
 /// The points without repeats, and without a point on a straight run.
@@ -673,6 +718,36 @@ mod tests {
         let mut lines = vec![zigzag.clone()];
         merge(&mut lines, &[a, b], &[], &|_, _| None, true);
         assert_eq!(lines[0], zigzag);
+    }
+
+    #[test]
+    fn a_run_keeps_off_the_side_of_a_box_it_comes_to_pass() {
+        // A line out of a box, aside past a third one, and back into the
+        // last: the run would come to pass the third box 3 units off its
+        // side, so it stays where it is. A fourth box keeps the line from
+        // going straight down first.
+        let (a, b) = (rect(0.0, 0.0, 80.0, 30.0), rect(0.0, 300.0, 80.0, 30.0));
+        let fourth = rect(20.0, 120.0, 40.0, 40.0);
+        let third = rect(-60.0, 100.0, 57.0, 100.0);
+        let detour = vec![
+            (40.0, 30.0),
+            (40.0, 60.0),
+            (75.0, 60.0),
+            (75.0, 250.0),
+            (0.0, 250.0),
+            (0.0, 300.0),
+        ];
+        let mut lines = vec![detour.clone()];
+        merge(&mut lines, &[a, b, third, fourth], &[], &|_, _| None, true);
+        assert_eq!(lines[0], detour);
+        // Twelve units off its side, it moves.
+        let third = rect(-60.0, 100.0, 48.0, 100.0);
+        let mut lines = vec![detour];
+        merge(&mut lines, &[a, b, third, fourth], &[], &|_, _| None, true);
+        assert_eq!(
+            lines[0],
+            [(40.0, 30.0), (40.0, 60.0), (0.0, 60.0), (0.0, 300.0)]
+        );
     }
 
     #[test]
