@@ -2897,6 +2897,11 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A Mermaid `rect` as wide as what it holds (2026-11-19, from the review sheet,
+      F10): its band spanned every participant, from the first head to the last,
+      where Mermaid's covers what stands in it. It now reaches 8 past what it holds
+      (messages, notes, frames, a `rect` inside), and spans the participants only
+      when it holds nothing
 - [x] A delay's words between two lifelines (2026-11-19, from the review sheet, F9): the
       words of `... two days later ...` stood in the middle of the picture, on the
       lifeline that ran there, the dotted line through them. They now stand in the

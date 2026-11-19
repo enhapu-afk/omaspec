@@ -42,6 +42,8 @@ const OVER: f32 = 15.0;
 const FRAME: f32 = 10.0;
 /// What the words of a delay keep from a lifeline beside them.
 const DELAY_ROOM: f32 = 8.0;
+/// How far a `rect` reaches past what it holds.
+const RECT_PAD: f32 = 8.0;
 /// Between two notes at one height.
 const NOTE_GAP: f32 = 10.0;
 /// Arrow heads.
@@ -473,13 +475,19 @@ struct Reach {
 struct OpenRect {
     top: f32,
     fill: Paint,
+    /// What it holds, left and right.
+    lo: f32,
+    hi: f32,
 }
 
-/// One closed `rect`, across the participant band.
+/// One closed `rect`: as wide as what it holds, with [`RECT_PAD`] around,
+/// or across the participant band when it holds nothing.
 #[derive(Clone)]
 struct Highlight {
     top: f32,
     bottom: f32,
+    left: f32,
+    right: f32,
     fill: Paint,
 }
 
@@ -1237,11 +1245,15 @@ impl<'a> Drawer<'a> {
         }
     }
 
-    /// Widens every open frame to hold `lo..hi`.
+    /// Widens every open frame and `rect` to hold `lo..hi`.
     fn touch(&mut self, lo: f32, hi: f32) {
         for g in &mut self.groups {
             g.lo = g.lo.min(lo);
             g.hi = g.hi.max(hi);
+        }
+        for r in &mut self.open_rects {
+            r.lo = r.lo.min(lo);
+            r.hi = r.hi.max(hi);
         }
     }
 
@@ -1559,16 +1571,34 @@ impl<'a> Drawer<'a> {
                     Measured::Rect { fill } => fill,
                     _ => None,
                 };
-                self.open_rects.push(OpenRect { top: self.y, fill });
+                self.open_rects.push(OpenRect {
+                    top: self.y,
+                    fill,
+                    lo: f32::INFINITY,
+                    hi: f32::NEG_INFINITY,
+                });
             }
             Item::RectEnd { .. } => {
                 if let Some(open) = self.open_rects.pop() {
                     let bottom = self.y;
+                    let (left, right) = if open.lo <= open.hi {
+                        (open.lo - RECT_PAD, open.hi + RECT_PAD)
+                    } else {
+                        let last = self.x.len() - 1;
+                        (
+                            self.x[0] - self.cols[0].half() - RECT_PAD,
+                            self.x[last] + self.cols[last].half() + RECT_PAD,
+                        )
+                    };
                     self.highlights.push(Highlight {
                         top: open.top,
                         bottom,
+                        left,
+                        right,
                         fill: open.fill,
                     });
+                    // What holds it holds it all.
+                    self.touch(left, right);
                     self.y = bottom + 4.0;
                 }
             }
@@ -1614,15 +1644,10 @@ impl<'a> Drawer<'a> {
         k + 1
     }
 
-    /// `rect` bands, across every lifeline, with a little padding.
+    /// The `rect` highlights, each as wide as what it holds.
     fn paint_highlights(&self, canvas: &mut Canvas) {
-        if self.x.is_empty() {
-            return;
-        }
-        let last = self.x.len() - 1;
-        let left = self.x[0] - self.cols[0].half() - 8.0;
-        let right = self.x[last] + self.cols[last].half() + 8.0;
         for band in self.highlights.iter().rev() {
+            let (left, right) = (band.left, band.right);
             let Some(fill) = band.fill else {
                 continue;
             };
@@ -2972,6 +2997,40 @@ mod tests {
         assert!(
             frame + BAR / 2.0 + FRAME <= lifelines[2] + 0.01,
             "{frame} {lifelines:?}"
+        );
+    }
+
+    #[test]
+    fn a_rect_is_as_wide_as_what_it_holds() {
+        let drawn = |body: &str, check: &dyn Fn(&Drawer)| {
+            let d = crate::sequence::from_mermaid(&format!(
+                "sequenceDiagram\n  participant A\n  participant B\n  participant C\n{body}"
+            ))
+            .unwrap();
+            let skin = Skin::from_params(&d.frame.skinparams).unwrap();
+            let (drawer, _) = laid(&d, &skin).unwrap();
+            check(&drawer);
+        };
+        // Over B and C, with its room around them: not over A.
+        drawn("  rect rgb(240, 248, 255)\n    B->>C: x\n  end\n", &|d| {
+            let band = &d.highlights[0];
+            assert!(
+                band.left > d.x[0] && band.left < d.x[1],
+                "{:?} {:?}",
+                d.x,
+                band.left
+            );
+            assert!(band.right > d.x[2], "{:?} {:?}", d.x, band.right);
+        });
+        // A rect inside widens the one around it; one holding nothing
+        // spans the participants.
+        drawn(
+            "  rect rgb(240, 248, 255)\n    rect rgb(200, 200, 255)\n      B->>C: x\n    end\n  end\n  rect rgb(240, 248, 255)\n  end\n",
+            &|d| {
+                let (inner, outer, empty) = (&d.highlights[0], &d.highlights[1], &d.highlights[2]);
+                assert!(outer.left < inner.left && outer.right > inner.right);
+                assert!(empty.left < d.x[0] && empty.right > d.x[2]);
+            },
         );
     }
 
