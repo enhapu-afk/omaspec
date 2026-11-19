@@ -2,7 +2,9 @@
 //! laid over the text at render time, as the diagram pane lays the
 //! Omarchy colors over it. The file stays as written, and so does the
 //! source stored in an exported image; colors the file sets itself come
-//! after the pack and stay its own. A line the engine names is read back
+//! after the pack and stay its own, except where they do not read on a
+//! look's paper of the other lightness: those keep their hue and change
+//! sides (`omaspec_render::legible`). A line the engine names is read back
 //! as a line of the file ([`LineShift`]).
 //!
 //! `render --look` exports in one: `plain` (black lines, no fills),

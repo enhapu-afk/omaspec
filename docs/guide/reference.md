@@ -65,7 +65,10 @@ list. To export, right-click the diagram and pick *Export as ›* and a format (
 JPEG, PDF, Markdown, ZIP, Presentation, Animation), or take it from File › Export as. The desktop's own save
 dialog opens (Omarchy's, through xdg-desktop-portal): the folder, the name, and beside
 them *Colors*: as the diagram shows, in the file's own colors, plain, light, dark, or
-for an SVG auto. It asks before it replaces a file. Where no such dialog answers, the
+for an SVG auto. A color the file sets itself (`box #LightBlue`, `|#AntiqueWhite|Lane|`,
+Mermaid's `rect rgb(…)` or `style`) stays in a look, unless the words on it would not
+read on the look's paper: in a dark look a light box becomes a dark one of its hue, and
+dark words of the file's light ones. It asks before it replaces a file. Where no such dialog answers, the
 status line asks for the path instead (Enter writes it, a second Enter replaces a file
 that is already there; Tab takes the next look, a click takes one). The image keeps
 the file's own source whatever the look.

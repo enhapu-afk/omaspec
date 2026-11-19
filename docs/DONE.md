@@ -2897,6 +2897,24 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] The file's own colors under a look (2026-11-19, from the review sheet of the
+      three diagrams, F1): a box of a sequence (`box "Backend" #LightBlue`), a swimlane
+      (`|#AntiqueWhite|Support|`), Mermaid's `rect rgb(…)` kept their light colors in a
+      dark look, under words the look made light: they could not be read in dark,
+      Omarchy, Gruvbox or Tokyo Night. Once a picture is drawn in a look whose paper
+      lies on the other side of the middle than the file's (`omaspec_uml::repaint`,
+      read from the look's block in the source), each text is measured against what
+      lies under it (`omaspec_render::legible`); a ground the look does not write that
+      reads below 4.5:1 keeps its hue in OKLab and takes the lightness as far from the
+      look's paper as it was from the file's, or the nearest at which every text on
+      it reads; else the file's words turn, and a line of its own that reads below
+      3:1 on the paper. A color turns wherever it stands, so one box keeps one
+      color; what reads stays, a dark box with white words of its own. A picture
+      without such a color is not measured (half a millisecond to look); one with
+      them takes some 18 ms more. The gallery's legibility test reads five diagrams
+      with colors of their own in every bundled theme too: without the turn, 16 pairs
+      read too faintly in the dark look alone. Mermaid's bars on a lifeline stay
+      white in a dark look; that is the theme's color, not the file's (F2)
 - [x] REQ-079 (2026-11-19): a line between a Mermaid subgraph and a node
       inside it (`Sub --> In`, `In --> Sub`) starts at the subgraph's
       title, as a state's line to a state inside it does (REQ-072). It was

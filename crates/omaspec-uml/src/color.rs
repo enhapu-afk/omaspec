@@ -5,7 +5,7 @@
 use std::fmt;
 
 /// An opaque color.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Color(pub u8, pub u8, pub u8);
 
 impl Color {

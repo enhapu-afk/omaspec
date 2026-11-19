@@ -42,6 +42,7 @@ pub mod network;
 pub mod pie;
 mod preprocess;
 pub mod railroad;
+pub mod repaint;
 pub mod salt;
 pub mod sequence;
 mod sketch;

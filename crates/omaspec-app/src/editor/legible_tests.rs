@@ -43,20 +43,53 @@ fn renderer() -> Renderer {
     })
 }
 
+/// Diagrams that write colors of their own, for a white page: a box of a
+/// sequence, a swimlane, a note, a state, Mermaid's `rect` and `style`.
+const OWN_COLORS: &[(&str, omaspec_core::Language, &str)] = &[
+    (
+        "own box",
+        omaspec_core::Language::PlantUml,
+        "@startuml\nbox \"Backend\" #LightBlue\nparticipant Orders\ndatabase Stock\nend box\nOrders -> Stock : still reserved?\nnote over Orders #FFFDE7 : kept a week\n... two days later ...\nOrders -> Orders : reserve\n@enduml\n",
+    ),
+    (
+        "own lane",
+        omaspec_core::Language::PlantUml,
+        "@startuml\n|Customer|\nstart\n:Write ticket;\n|#AntiqueWhite|Support|\n:Read ticket;\nif (Known?) then (yes)\n  :Send article;\nelse (no)\n  :Ask;\nendif\nstop\n@enduml\n",
+    ),
+    (
+        "own state",
+        omaspec_core::Language::PlantUml,
+        "@startuml\nstate Idle #Pink\nstate Busy #LightGreen\n[*] --> Idle\nIdle --> Busy : go\n@enduml\n",
+    ),
+    (
+        "own rect",
+        omaspec_core::Language::Mermaid,
+        "sequenceDiagram\n  participant A\n  participant S\n  rect rgb(240, 248, 255)\n    loop poll\n      A->>S: ping\n    end\n  end\n",
+    ),
+    (
+        "own style",
+        omaspec_core::Language::Mermaid,
+        "flowchart LR\n  A --> B\n  style A fill:#FFF3B0\n  classDef soft fill:#E0F2FE\n  class B soft\n",
+    ),
+];
+
 /// The pairs of every gallery example in `colors` that read too faintly,
-/// named after `name`.
+/// named after `name`, and of the diagrams with colors of their own.
 fn faults(renderer: &mut Renderer, name: &str, colors: &Colors) -> Vec<String> {
     let mut faults = Vec::new();
-    for example in EXAMPLES {
-        let language = example.language();
-        let source = match look::overlay(example.text, language, Pack::Omarchy, colors, None) {
+    let examples = EXAMPLES
+        .iter()
+        .map(|example| (example.file, example.language(), example.text))
+        .chain(OWN_COLORS.iter().copied());
+    for (file, language, text) in examples {
+        let source = match look::overlay(text, language, Pack::Omarchy, colors, None) {
             Some((shown, _)) => shown,
-            None => example.text.to_owned(),
+            None => text.to_owned(),
         };
         let svg = match renderer.render(&source, language) {
             Ok(out) => out.svg,
             Err(err) => {
-                faults.push(format!("{name} {}: does not draw: {err}", example.file));
+                faults.push(format!("{name} {file}: does not draw: {err}"));
                 continue;
             }
         };
@@ -68,8 +101,8 @@ fn faults(renderer: &mut Renderer, name: &str, colors: &Colors) -> Vec<String> {
             let ratio = pair.ratio();
             if ratio < least {
                 faults.push(format!(
-                    "{name} {}: {what} {:?} on {:?} at {:?}: {ratio:.2}",
-                    example.file, pair.color, pair.on, pair.at
+                    "{name} {file}: {what} {:?} on {:?} at {:?}: {ratio:.2}",
+                    pair.color, pair.on, pair.at
                 ));
             }
         }

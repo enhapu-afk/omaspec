@@ -14,6 +14,7 @@ pub mod export;
 mod fonts;
 mod include;
 mod java;
+pub mod legible;
 mod mermaid;
 pub mod pick;
 pub mod sanitize;
@@ -157,6 +158,15 @@ fn not_native(source: &str) -> Option<RenderError> {
     })
 }
 
+/// `svg`, drawn from `source`, made to read on the paper of the look laid
+/// over it ([`legible`]).
+fn legible_in(svg: String, source: &str) -> String {
+    match omaspec_uml::repaint::look_of(source) {
+        Some(look) => legible::repair(&svg, &look),
+        None => svg,
+    }
+}
+
 /// What Omaspec's own engines say about the block of lines and boxes by
 /// hand in `source` as they draw it (docs/adr/0016, 0021, 0022): an entry
 /// that names no line or no box, a box the layout could not hold, each by
@@ -205,7 +215,7 @@ pub fn render_marked(
             (svg, Engine::NativePlantUml, map)
         }
     };
-    let svg = sanitize::sanitize(&svg).map_err(|e| RenderError::Engine {
+    let svg = sanitize::sanitize(&legible_in(svg, source)).map_err(|e| RenderError::Engine {
         engine,
         message: format!("invalid SVG: {e}"),
     })?;
@@ -256,7 +266,7 @@ pub fn render_table(
             (svg, Engine::NativePlantUml, map)
         }
     };
-    let svg = sanitize::sanitize(&svg).map_err(|e| RenderError::Engine {
+    let svg = sanitize::sanitize(&legible_in(svg, source)).map_err(|e| RenderError::Engine {
         engine,
         message: format!("invalid SVG: {e}"),
     })?;
@@ -345,10 +355,11 @@ impl Renderer {
             Language::Mermaid => mermaid::render_mapped(source)?,
             Language::PlantUml => self.plantuml(source, place)?,
         };
-        let svg = sanitize::sanitize(&svg).map_err(|e| RenderError::Engine {
-            engine,
-            message: format!("invalid SVG: {e}"),
-        })?;
+        let svg =
+            sanitize::sanitize(&legible_in(svg, source)).map_err(|e| RenderError::Engine {
+                engine,
+                message: format!("invalid SVG: {e}"),
+            })?;
         Ok(Rendered {
             svg,
             engine,
