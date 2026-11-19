@@ -2897,14 +2897,26 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of Q1 and of F9 to F11 found (2026-11-19). An activity's line
+      with a head keeps the head's length straight before its tip
+      (`curve::path_arriving`): a short last run had curved under the head and out of
+      its side. The map tells an activity's lines as drawn, round, and keeps their
+      corners as their path: a glide and the light ran them at right angles. Labels
+      below a row of `elseif` diamonds get the room they take, one right of a way
+      down and one left of the next no longer overlap. A delay without words leaves
+      a lone lifeline whole, where an empty gap had cut it. A `rect` that holds
+      nothing no longer widens the frame around it across every participant. A
+      number's circle stays in its message's band and in a `rect` around it, a
+      message's words keep clear of it (a self message's of `10` lay under it), and
+      its number reads on the arrow color of its own message
 - [x] An activity's lines round their corners (2026-11-19, from the review sheet, Q1,
       decided so): they bent at right angles, as PlantUML draws them, where the lines
       of states and boxes curve. They now round their corners as those do, by 16 at
       most (`activity::skin::CURVE`; a state's reach 48, an activity's runs are
       short), and `skinparam linetype ortho` keeps right angles. A branch of an
       `elseif` chain whose line turns right below its diamond, toward a swimlane
-      further right or further right in its own, has its label left of the way down:
-      `bug` lay on its line, the curve made it plain
+      further right, has its label left of the way down: `bug` lay on its line, the
+      curve made it plain
 - [x] The media player's `failed` into Off without a hook (2026-11-19, from the review
       sheet, F12): the sheet showed the line bending into its head a few units under
       Off. The line back up into a box that F3 gave a bend of its own

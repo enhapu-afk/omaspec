@@ -4,7 +4,9 @@
 //! and Mermaid draw their lines. A curve starts no further from its corner
 //! than half of either run, the first and the last run whole, so it never
 //! leaves the corridor the router found, and the ends keep their direction:
-//! an arrowhead still sits on the line.
+//! an arrowhead still sits on the line. Where the last run is short, a line
+//! keeps its head's length straight ([`path_arriving`]), or the head would
+//! sit on the curve.
 
 use crate::Declined;
 use crate::common::Skinparam;
@@ -63,9 +65,10 @@ pub fn radius_at(points: &[Point], i: usize) -> f32 {
     RADIUS.min(room_before).min(room_after)
 }
 
-/// The corners of `points` rounded by up to `radius`. Straight joins and
-/// corners too short to round are left out.
-fn bends(points: &[Point], radius: f32) -> Vec<Option<Bend>> {
+/// The corners of `points` rounded by up to `radius`, the last `arrive` of
+/// the line kept straight. Straight joins and corners too short to round
+/// are left out.
+fn bends(points: &[Point], radius: f32, arrive: f32) -> Vec<Option<Bend>> {
     let last = points.len().saturating_sub(1);
     (1..last)
         .map(|i| {
@@ -82,7 +85,11 @@ fn bends(points: &[Point], radius: f32) -> Vec<Option<Bend>> {
             // A run between two corners is shared; the first and the last
             // belong to one corner each.
             let room_before = if i == 1 { before } else { before / 2.0 };
-            let room_after = if i + 1 == last { after } else { after / 2.0 };
+            let room_after = if i + 1 == last {
+                after - arrive
+            } else {
+                after / 2.0
+            };
             let r = radius.min(room_before).min(room_after);
             if r < 0.5 {
                 return None;
@@ -101,11 +108,17 @@ fn bends(points: &[Point], radius: f32) -> Vec<Option<Bend>> {
 
 /// The SVG path of `points` with every corner rounded by up to `radius`.
 pub fn path(points: &[Point], radius: f32) -> String {
+    path_arriving(points, radius, 0.0)
+}
+
+/// [`path`] with the last `arrive` of the line straight: an arrowhead
+/// that long sits on it, not on a curve.
+pub fn path_arriving(points: &[Point], radius: f32, arrive: f32) -> String {
     let Some(&start) = points.first() else {
         return String::new();
     };
     let mut d = format!("M{},{}", n(start.0), n(start.1));
-    for (i, bend) in bends(points, radius).into_iter().enumerate() {
+    for (i, bend) in bends(points, radius, arrive).into_iter().enumerate() {
         match bend {
             Some(b) => d.push_str(&format!(
                 " L{},{} C{},{} {},{} {},{}",
@@ -134,11 +147,16 @@ pub fn path(points: &[Point], radius: f32) -> String {
 /// The same line as [`path`] draws, as points close enough together for a
 /// light to run along it.
 pub fn flatten(points: &[Point], radius: f32) -> Vec<Point> {
+    flatten_arriving(points, radius, 0.0)
+}
+
+/// The same line as [`path_arriving`] draws, as [`flatten`] gives it.
+pub fn flatten_arriving(points: &[Point], radius: f32, arrive: f32) -> Vec<Point> {
     let Some(&start) = points.first() else {
         return Vec::new();
     };
     let mut out = vec![start];
-    for (i, bend) in bends(points, radius).into_iter().enumerate() {
+    for (i, bend) in bends(points, radius, arrive).into_iter().enumerate() {
         match bend {
             Some(b) => {
                 out.push(b.from);
@@ -206,6 +224,18 @@ mod tests {
             path(&[(0.0, 0.0), (10.0, 0.0), (30.0, 0.0)], 20.0),
             "M0,0 L10,0 L30,0"
         );
+    }
+
+    #[test]
+    fn an_arrowhead_sits_on_a_straight_end() {
+        let points = [(0.0, 0.0), (100.0, 0.0), (100.0, 14.0)];
+        // Whole, the last run is all curve; arriving, its last 10 stay
+        // straight.
+        assert!(path(&points, 20.0).ends_with(" 100,14 L100,14"));
+        let d = path_arriving(&points, 20.0, 10.0);
+        assert!(d.ends_with(" 100,4 L100,14"), "{d}");
+        let flat = flatten_arriving(&points, 20.0, 10.0);
+        assert_eq!(flat[flat.len() - 2], (100.0, 4.0));
     }
 
     #[test]

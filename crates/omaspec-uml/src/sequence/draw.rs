@@ -105,6 +105,30 @@ fn laid<'a>(d: &'a Diagram, skin: &'a Skin) -> Result<(Drawer<'a>, Canvas), Decl
     }
 }
 
+/// The font of a message's number: the arrows' words'; in a circle
+/// (Mermaid's) a little smaller, in the color that reads best on the
+/// circle, which the message's arrow color fills.
+fn number_font(skin: &Skin, circled: bool, color: Option<Color>) -> Font {
+    if !circled {
+        return skin.arrow_font;
+    }
+    let fill = color.unwrap_or(skin.arrow);
+    let ink = [Color::WHITE, Color::BLACK]
+        .into_iter()
+        .max_by(|a, b| a.contrast(fill).total_cmp(&b.contrast(fill)))
+        .unwrap_or(Color::WHITE);
+    Font {
+        size: (skin.arrow_font.size - 2.0).max(8.0),
+        color: ink,
+        ..skin.arrow_font
+    }
+}
+
+/// The radius of the circle a message's `number` stands in (Mermaid's).
+fn circle_radius(number: &Block) -> f32 {
+    (number.width / 2.0 + 3.0).max(number.height / 2.0).max(7.0)
+}
+
 fn measure(text: &Text, font: Font, family: Family) -> Result<Block, Declined> {
     text::block(&text.value, font, family).map_err(|e| Declined::at(text.line, e))
 }
@@ -623,40 +647,28 @@ impl<'a> Drawer<'a> {
             });
         }
 
-        // A number in a circle (Mermaid's) is written in the color that
-        // reads best on the arrows' color, which fills the circle.
-        let number_font = if d.numbers_circled {
-            let ink = [Color::WHITE, Color::BLACK]
-                .into_iter()
-                .max_by(|a, b| a.contrast(skin.arrow).total_cmp(&b.contrast(skin.arrow)))
-                .unwrap_or(Color::WHITE);
-            Font {
-                size: (skin.arrow_font.size - 2.0).max(8.0),
-                color: ink,
-                ..skin.arrow_font
-            }
-        } else {
-            skin.arrow_font
-        };
         let mut measured = Vec::with_capacity(d.items.len());
         for item in &d.items {
             measured.push(match item {
-                Item::Message(m) => Measured::Message {
-                    text: measure_opt(m.text.as_ref(), skin.arrow_font, family)?,
-                    number: match &m.number {
-                        Some(number) => measure(
-                            &Text {
-                                value: number.clone(),
-                                line: m.line,
-                                col: None,
-                            },
-                            number_font,
-                            family,
-                        )?,
-                        None => Block::empty(),
-                    },
-                    color: solid_at(m.arrow.color.as_ref(), m.line)?,
-                },
+                Item::Message(m) => {
+                    let color = solid_at(m.arrow.color.as_ref(), m.line)?;
+                    Measured::Message {
+                        text: measure_opt(m.text.as_ref(), skin.arrow_font, family)?,
+                        number: match &m.number {
+                            Some(number) => measure(
+                                &Text {
+                                    value: number.clone(),
+                                    line: m.line,
+                                    col: None,
+                                },
+                                number_font(skin, d.numbers_circled, color),
+                                family,
+                            )?,
+                            None => Block::empty(),
+                        },
+                        color,
+                    }
+                }
                 Item::Note(note) => {
                     let text = measure(&note.text, skin.note.font, family)?;
                     let (width, height) = note_size(note.shape, &text);
@@ -847,6 +859,17 @@ impl<'a> Drawer<'a> {
                 text.width + number.width + gap
             }
             _ => 0.0,
+        }
+    }
+
+    /// How far from the start of its arrow a message's words keep, clear
+    /// of the circle its number stands in (Mermaid's); none without one.
+    fn circled(&self, k: usize) -> Option<f32> {
+        match &self.measured[k] {
+            Measured::Message { number, .. } if self.d.numbers_circled && !number.is_empty() => {
+                Some(circle_radius(number) + 2.0)
+            }
+            _ => None,
         }
     }
 
@@ -1056,7 +1079,12 @@ impl<'a> Drawer<'a> {
         for (k, item) in d.items.iter().enumerate() {
             match item {
                 Item::Message(m) => {
-                    let w = self.message_text_width(k);
+                    // Its words keep clear of the circle its number stands
+                    // in, further than they keep from the arrow's start.
+                    let clear = self
+                        .circled(k)
+                        .map_or(0.0, |keep| (keep - TEXT_INSET).max(0.0));
+                    let w = self.message_text_width(k) + clear;
                     let room = w + MESSAGE_ROOM;
                     let (from, to) = (self.end_col(m.from), self.end_col(m.to));
                     let (lo, hi, self_loop) = match (from, to) {
@@ -1538,7 +1566,8 @@ impl<'a> Drawer<'a> {
                     canvas.text(Layer::Front, &label, (x, start + 10.0), Align::Center);
                     // Over the lifelines, the dotted lines stop short of them;
                     // the room between two is found by drawing ([`room`]).
-                    let words = (!clear).then_some([
+                    // A delay without words leaves its lifelines whole.
+                    let words = (!clear && !label.is_empty()).then_some([
                         x - label.width / 2.0 - DELAY_ROOM,
                         start + 10.0 - DELAY_ROOM / 2.0,
                         x + label.width / 2.0 + DELAY_ROOM,
@@ -1598,7 +1627,8 @@ impl<'a> Drawer<'a> {
             Item::RectEnd { .. } => {
                 if let Some(open) = self.open_rects.pop() {
                     let bottom = self.y;
-                    let (left, right) = if open.lo <= open.hi {
+                    let held = open.lo <= open.hi;
+                    let (left, right) = if held {
                         (open.lo - RECT_PAD, open.hi + RECT_PAD)
                     } else {
                         let last = self.x.len() - 1;
@@ -1614,8 +1644,11 @@ impl<'a> Drawer<'a> {
                         right,
                         fill: open.fill,
                     });
-                    // What holds it holds it all.
-                    self.touch(left, right);
+                    // What holds it holds it all; one that holds nothing
+                    // widens no frame around it to the participants.
+                    if held {
+                        self.touch(left, right);
+                    }
                     self.y = bottom + 4.0;
                 }
             }
@@ -1796,7 +1829,10 @@ impl<'a> Drawer<'a> {
                 (out, bottom),
                 (back, bottom),
             ];
-            text_left = start + TEXT_INSET;
+            text_left = start
+                + self
+                    .circled(k)
+                    .map_or(TEXT_INSET, |keep| keep.max(TEXT_INSET));
             lo = self.x[a] - BAR / 2.0;
             hi = out.max(text_left + text_w);
             reach = (lo, hi);
@@ -1856,10 +1892,16 @@ impl<'a> Drawer<'a> {
                     0.0
                 }
             };
-            text_left = match skin.message_align {
+            let aligned = match skin.message_align {
                 MessageAlign::Left => l + TEXT_INSET + head_at(true),
                 MessageAlign::Center => (l + r - text_w) / 2.0,
                 MessageAlign::Right => r - TEXT_INSET - head_at(false) - text_w,
+            };
+            // Clear of the circle its number stands in at the arrow's start.
+            text_left = match self.circled(k) {
+                Some(keep) if dir > 0.0 => aligned.max(sx + keep),
+                Some(keep) => aligned.min(sx - keep - text_w),
+                None => aligned,
             };
             let ends: Vec<f32> = [from, to].iter().flatten().map(|&c| self.x[c]).collect();
             lo = ends
@@ -1893,13 +1935,17 @@ impl<'a> Drawer<'a> {
                 .map(|&c| extent(c))
                 .fold((lo, hi), |(l, h), (a, b)| (l.min(a), h.max(b)));
         }
+        let mut reach = reach;
         if self.d.numbers_circled {
             canvas.text(Layer::Front, &text, (text_left, top), Align::Left);
-            // The number in a circle of the arrows' color at its start.
+            // The number in a circle of the arrows' color at its start,
+            // held by its band and by what holds the message.
             if !number.is_empty()
                 && let Some(&(x, y)) = points.first()
             {
-                let radius = (number.width / 2.0 + 3.0).max(number.height / 2.0).max(7.0);
+                let radius = circle_radius(&number);
+                reach = (reach.0.min(x - radius), reach.1.max(x + radius));
+                after = after.max(y + radius + 2.0);
                 canvas.ellipse(
                     Layer::Front,
                     (x, y),
@@ -3126,6 +3172,89 @@ mod tests {
         .unwrap();
         // Two dotted runs, one above the words and one below.
         assert_eq!(svg.matches("stroke-dasharray=\"1,4\"").count(), 2, "{svg}");
+        // A delay without words leaves the lone lifeline whole, and asks
+        // for no room.
+        laid_out("A -> A : x\n...\nA -> A : y", |d| {
+            assert!(d.delays[0].2.is_none() && d.drawn.delays.is_empty());
+        });
+        let svg = crate::render("A -> A : x\n...\nA -> A : y").unwrap();
+        assert_eq!(svg.matches("stroke-dasharray=\"1,4\"").count(), 1, "{svg}");
+    }
+
+    #[test]
+    fn a_rect_that_holds_nothing_widens_no_frame_around_it() {
+        let d = crate::sequence::from_mermaid(
+            "sequenceDiagram\n  participant A\n  participant B\n  participant C\n  loop every minute\n    B->>C: ping\n    rect rgb(200, 200, 255)\n    end\n  end\n",
+        )
+        .unwrap();
+        let skin = Skin::from_params(&d.frame.skinparams).unwrap();
+        let (drawer, _) = laid(&d, &skin).unwrap();
+        let frame = &drawer.drawn.frames[0];
+        // Around B and C, clear of A's lifeline, which keeps its place.
+        assert!(
+            frame.left > drawer.x[0] + FRAME - 0.01,
+            "{} {:?}",
+            frame.left,
+            drawer.x
+        );
+        let without = crate::sequence::from_mermaid(
+            "sequenceDiagram\n  participant A\n  participant B\n  participant C\n  loop every minute\n    B->>C: ping\n  end\n",
+        )
+        .unwrap();
+        let (plain, _) = laid(&without, &skin).unwrap();
+        assert_eq!(drawer.x, plain.x);
+    }
+
+    #[test]
+    fn a_number_s_circle_stays_in_its_band_and_off_the_words() {
+        let body: String = (1..=10).map(|i| format!("  A->>A: think {i}\n")).collect();
+        let d = crate::sequence::from_mermaid(&format!(
+            "sequenceDiagram\n  autonumber\n  participant A\n  participant B\n  rect rgb(240, 248, 255)\n    A->>B: hello\n  end\n{body}"
+        ))
+        .unwrap();
+        let skin = Skin::from_params(&d.frame.skinparams).unwrap();
+        let (drawer, canvas) = laid(&d, &skin).unwrap();
+        let svg = canvas.finish(MARGIN, skin.background);
+        // The rect holds the circle at the start of its arrow.
+        let band = &drawer.highlights[0];
+        let step = &drawer.steps[0];
+        let (x, y) = step.points[0];
+        let Some(Measured::Message { number, .. }) = drawer
+            .measured
+            .iter()
+            .find(|m| matches!(m, Measured::Message { .. }))
+        else {
+            panic!("no message");
+        };
+        let radius = circle_radius(number);
+        assert!(band.bottom >= y + radius, "{} {y} {radius}", band.bottom);
+        assert!(band.left <= x - radius, "{} {x} {radius}", band.left);
+        // A self message's words start clear of the circle of `10`.
+        let tenth = &drawer.steps[10];
+        let (x, _) = tenth.points[0];
+        let words = svg
+            .split("<tspan ")
+            .find(|tspan| tspan.contains(">think 10<"))
+            .and_then(|tspan| {
+                tspan
+                    .split("x=\"")
+                    .nth(1)?
+                    .split('"')
+                    .next()?
+                    .parse::<f32>()
+                    .ok()
+            })
+            .unwrap();
+        let ten = drawer
+            .measured
+            .iter()
+            .rev()
+            .find_map(|m| match m {
+                Measured::Message { number, .. } => Some(circle_radius(number)),
+                _ => None,
+            })
+            .unwrap();
+        assert!(words >= x + ten, "{words} {x} {ten}");
     }
 
     #[test]

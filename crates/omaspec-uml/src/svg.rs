@@ -611,6 +611,19 @@ impl Canvas {
     /// A line through `points` whose corners turn in curves of up to
     /// `radius` ([`crate::curve`]); with no radius, a polyline.
     pub fn curve(&mut self, layer: Layer, points: &[(f32, f32)], radius: f32, stroke: Stroke) {
+        self.curve_arriving(layer, points, radius, 0.0, stroke);
+    }
+
+    /// [`Self::curve`] with its last `arrive` straight, for an arrowhead
+    /// that long ([`crate::curve::path_arriving`]).
+    pub fn curve_arriving(
+        &mut self,
+        layer: Layer,
+        points: &[(f32, f32)],
+        radius: f32,
+        arrive: f32,
+        stroke: Stroke,
+    ) {
         if radius <= 0.0 || points.len() < 3 {
             self.polyline(layer, points, stroke);
             return;
@@ -618,7 +631,7 @@ impl Canvas {
         for &(x, y) in points {
             self.grow(x, y);
         }
-        let d = crate::curve::path(points, radius);
+        let d = crate::curve::path_arriving(points, radius, arrive);
         if self.handed()
             && let Some(outlines) = sketch::outlines(&d)
         {

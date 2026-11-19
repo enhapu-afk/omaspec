@@ -170,8 +170,8 @@ pub fn draw_mapped(d: &Diagram) -> Result<(String, crate::map::Map), Declined> {
         canvas.part(&part, |canvas| painter.shape(canvas, shape));
     }
     for edge in &tile.edges {
-        if let Some((points, head)) = painter.edge(&mut canvas, edge) {
-            found.run(points, head, edge.stroke);
+        if let Some((path, points, head)) = painter.edge(&mut canvas, edge) {
+            found.run(path, points, head, edge.stroke);
         }
     }
     annotations.draw(&mut canvas);
@@ -287,18 +287,22 @@ impl Painter<'_> {
         }
     }
 
-    /// Draws `edge`; its points and those of its head, as drawn.
+    /// Draws `edge`; its corners, its points as drawn (the corners
+    /// rounded), and those of its head.
     #[allow(clippy::type_complexity)]
     fn edge(
         &self,
         canvas: &mut Canvas,
         edge: &Edge,
-    ) -> Option<(Vec<(f32, f32)>, Option<Vec<(f32, f32)>>)> {
+    ) -> Option<(Vec<(f32, f32)>, Vec<(f32, f32)>, Option<Vec<(f32, f32)>>)> {
         let points = self.route(edge);
         if points.len() < 2 {
             return None;
         }
-        canvas.curve(Layer::Lines, &points, self.skin.curve, edge.stroke);
+        // The head sits on a straight end, not on the curve before it.
+        let arrive = if edge.head { HEAD_LENGTH } else { 0.0 };
+        canvas.curve_arriving(Layer::Lines, &points, self.skin.curve, arrive, edge.stroke);
+        let curved = crate::curve::flatten_arriving(&points, self.skin.curve, arrive);
         let mut drawn = None;
         if edge.head {
             let tip = points[points.len() - 1];
@@ -309,7 +313,7 @@ impl Painter<'_> {
                 (len, vx / len.max(0.001), vy / len.max(0.001))
             };
             if len < 0.01 {
-                return Some((points, None));
+                return Some((points, curved, None));
             }
             let back = (tip.0 - ux * HEAD_LENGTH, tip.1 - uy * HEAD_LENGTH);
             let side = (-uy * HEAD_HALF, ux * HEAD_HALF);
@@ -329,7 +333,7 @@ impl Painter<'_> {
             canvas.polygon(Layer::Lines, &head, Some(edge.stroke.color), Some(solid));
             drawn = Some(head);
         }
-        Some((points, drawn))
+        Some((points, curved, drawn))
     }
 
     fn shape(&self, canvas: &mut Canvas, shape: &Shape) {
@@ -640,6 +644,32 @@ mod tests {
         let label = x_of("bug");
         let diamond = x_of("Bug?");
         assert!(label < diamond, "{label} {diamond}");
+        // Long labels between two ways down, one right of the first and
+        // one left of the next, stand apart.
+        let svg = render(
+            "|Support|\nstart\nif (Known?) then (customer already reported)\n:Send;\nelseif (Bug?) then (engineering must reproduce)\n|Engineering|\n:Reproduce;\n|Support|\nelse (no)\n:Ask;\nendif\nstop",
+        )
+        .unwrap();
+        let span = |words: &str| -> (f32, f32) {
+            let tspan = svg
+                .split("<tspan ")
+                .find(|tspan| tspan.contains(&format!(">{words}<")))
+                .unwrap();
+            let number = |name: &str| -> f32 {
+                tspan
+                    .split(&format!(" {name}=\""))
+                    .nth(1)
+                    .or_else(|| tspan.strip_prefix(&format!("{name}=\"")))
+                    .and_then(|rest| rest.split('"').next()?.parse().ok())
+                    .unwrap()
+            };
+            (number("x"), number("x") + number("textLength"))
+        };
+        let (first, second) = (
+            span("customer already reported"),
+            span("engineering must reproduce"),
+        );
+        assert!(first.1 < second.0, "{first:?} {second:?}");
     }
 
     #[test]

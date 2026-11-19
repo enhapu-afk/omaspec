@@ -9,6 +9,10 @@ use crate::Declined;
 use crate::svg::Align;
 use crate::text::Block;
 
+/// Between two labels below a row of diamonds, or a label and the next
+/// way down.
+const LABEL_GAP: f32 = 6.0;
+
 impl Layout<'_> {
     /// The flows of branches side by side, each in a column of its own
     /// with its entry in the middle; columns start at x = 0, at `top`.
@@ -235,9 +239,23 @@ impl Layout<'_> {
         let top = row + GAP.max(below + 8.0) + self.labels_above(&flows)?;
         let mut tiles = self.columns(&flows, lane, top)?;
         let n = branches.len();
+        // Each label stands beside its way down, on the side the line does
+        // not turn to below the diamond: left of it where the line turns
+        // right, toward a swimlane further right; else right of it.
+        let left_of: Vec<bool> = (0..n).map(|i| tiles[i].entry.lane > lane).collect();
+        let room = |i: usize, left: bool| match labels.get(i) {
+            Some(label) if i < n && left_of[i] == left && !label.is_empty() => label.width + 4.0,
+            _ => 0.0,
+        };
         for i in 0..n {
             let next_half = sizes.get(i + 1).map_or(0.0, |s| s.0 / 2.0);
-            let need = sizes[i].0 / 2.0 + next_half + (between[i].width + 12.0).max(20.0);
+            let mut need = sizes[i].0 / 2.0 + next_half + (between[i].width + 12.0).max(20.0);
+            // The labels below between this way down and the next clear of
+            // each other and of the next way down.
+            let below = room(i, false) + room(i + 1, true);
+            if below > 0.0 {
+                need = need.max(below + LABEL_GAP);
+            }
             let have = tiles[i + 1].entry.x - tiles[i].entry.x;
             if have < need {
                 for t in &mut tiles[i + 1..] {
@@ -258,12 +276,9 @@ impl Layout<'_> {
                 text: test,
                 lane,
             });
-            // Its label beside the way down, on the side the line does
-            // not turn to below the diamond: right, toward a swimlane
-            // further right or a place further right in its own.
-            let entry = tiles[i].entry;
-            let rightward = entry.lane > lane || (entry.lane == lane && entry.x > x + 0.5);
-            if rightward && !label.is_empty() {
+            // Its label beside the way down, left of it where the line
+            // turns right below the diamond.
+            if left_of[i] && !label.is_empty() {
                 shapes.push(Shape::Label {
                     at: (x - 4.0, y + h + 1.0),
                     text: label,

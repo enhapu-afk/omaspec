@@ -62,7 +62,10 @@ pub(super) struct Found {
 
 /// One line as drawn, between two points.
 struct Run {
+    /// As drawn, its corners rounded.
     points: Vec<(f32, f32)>,
+    /// Its straight runs as laid, a point at each corner.
+    path: Vec<(f32, f32)>,
     head: Option<Vec<(f32, f32)>>,
     stroke: Stroke,
 }
@@ -141,10 +144,17 @@ impl Found {
         name
     }
 
-    /// A line as drawn, with its head.
-    pub fn run(&mut self, points: Vec<(f32, f32)>, head: Option<Vec<(f32, f32)>>, stroke: Stroke) {
+    /// A line: its corners as laid, its points as drawn, and its head.
+    pub fn run(
+        &mut self,
+        path: Vec<(f32, f32)>,
+        points: Vec<(f32, f32)>,
+        head: Option<Vec<(f32, f32)>>,
+        stroke: Stroke,
+    ) {
         self.runs.push(Run {
             points,
+            path,
             head,
             stroke,
         });
@@ -263,14 +273,19 @@ impl Found {
                     }
                 }
                 let (first, last) = (way[0], way[way.len() - 1]);
-                let mut points: Vec<(f32, f32)> = Vec::new();
-                for &run in way {
-                    for &p in &self.runs[run].points {
-                        if points.last() != Some(&p) {
-                            points.push(p);
+                let joined = |of: fn(&Run) -> &[(f32, f32)]| {
+                    let mut points: Vec<(f32, f32)> = Vec::new();
+                    for &run in way {
+                        for &p in of(&self.runs[run]) {
+                            if points.last() != Some(&p) {
+                                points.push(p);
+                            }
                         }
                     }
-                }
+                    points
+                };
+                let points = joined(|run| &run.points);
+                let path = joined(|run| &run.path);
                 let end = |node: Node, at: (f32, f32)| match node {
                     Node::Shape(place) => {
                         (self.places[place].name.clone(), self.places[place].rect)
@@ -297,7 +312,7 @@ impl Found {
                 Wire {
                     key,
                     line: None,
-                    path: points.clone(),
+                    path,
                     points,
                     from: End {
                         rect: from_rect,
@@ -408,7 +423,13 @@ mod tests {
         }
         for wire in &map.wires {
             assert!(wire.fixed && wire.heads.len() <= 1 && wire.points.len() >= 2);
+            assert_eq!(wire.points.first(), wire.path.first());
+            assert_eq!(wire.points.last(), wire.path.last());
         }
+        // A line that turns is told as drawn, round, and laid, a point at
+        // each corner.
+        let turning = map.wires.iter().find(|w| w.path.len() > 2).unwrap();
+        assert!(turning.points.len() > turning.path.len());
         // The words beside a line are its words.
         let words = |from: &str, to: &str| {
             let wire = map
