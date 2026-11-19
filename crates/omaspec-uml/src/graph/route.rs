@@ -35,6 +35,9 @@ const SHARED: f32 = 6.0;
 /// Extra cost per unit of running right along a box, falling to nothing
 /// at [`CLEARANCE`].
 const HUG: f32 = 3.0;
+/// Extra cost per unit of running on a box's border, where the line and
+/// the border look one: a frame's border close by is better.
+const ON_BORDER: f32 = 12.0;
 /// Lines ending on the same side of a box keep this far apart.
 const PORT_GAP: f32 = 14.0;
 /// The side of a cell of the lookup that finds what is near a step.
@@ -628,6 +631,7 @@ fn step_cost(a: Point, b: Point, scene: &Scene, near: &[Item]) -> f32 {
     let mut shared_run = 0.0;
     let mut under_run = 0.0;
     let mut hugging_run = 0.0;
+    let mut on_border = 0.0;
     for &item in near {
         match item {
             Item::Line(i) => {
@@ -636,7 +640,11 @@ fn step_cost(a: Point, b: Point, scene: &Scene, near: &[Item]) -> f32 {
                 shared_run += shared(a, b, c, d);
             }
             Item::Label(i) => under_run += under(a, b, scene.labels[i]),
-            Item::Obstacle(i) => hugging_run += hugging(a, b, scene.obstacles[i]),
+            Item::Obstacle(i) => {
+                let r = scene.obstacles[i];
+                hugging_run += hugging(a, b, r);
+                on_border += touching(a, b, r);
+            }
             Item::Frame(i) => {
                 let r = scene.frames[i];
                 hugging_run += along_border(a, b, r);
@@ -652,6 +660,7 @@ fn step_cost(a: Point, b: Point, scene: &Scene, near: &[Item]) -> f32 {
         + shared_run * SHARED
         + under_run * UNDER_LABEL
         + hugging_run * HUG
+        + on_border * ON_BORDER
 }
 
 /// Something a step may have to weigh, by its index in the [`Scene`].
@@ -823,6 +832,26 @@ fn hugging(a: Point, b: Point, r: Bounds) -> f32 {
         0.0
     };
     beside * (1.0 - gap / CLEARANCE).max(0.0)
+}
+
+/// How much of `a`–`b` runs on a side of `r`, closer than a unit.
+fn touching(a: Point, b: Point, r: Bounds) -> f32 {
+    let hug = hugging(a, b, r);
+    if hug == 0.0 {
+        return 0.0;
+    }
+    let (at, sides) = if a.1 == b.1 {
+        (a.1, r.span(Axis::Y))
+    } else {
+        (a.0, r.span(Axis::X))
+    };
+    let gap = (at - sides.0).abs().min((at - sides.1).abs());
+    // `hugging` weighs by the gap; this counts the run itself.
+    if gap < 1.0 {
+        hug / (1.0 - gap / CLEARANCE)
+    } else {
+        0.0
+    }
 }
 
 /// Whether `a`–`b` crosses the inside of `c`–`d`; `b` itself does not count,

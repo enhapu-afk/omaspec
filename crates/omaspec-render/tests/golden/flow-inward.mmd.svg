@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="131" height="432" viewBox="0 0 131 432">
+<rect x="0" y="0" width="131" height="432" fill="#FFFFFF"/>
+<g transform="translate(10,10)">
+<g>
+<rect x="0" y="0" width="110.34" height="189.18" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+<rect x="16.07" y="72.59" width="66.19" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="12" y="140.89" width="74.34" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="4.67" y="221.18" width="101" height="189.89" rx="4" ry="4" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+<rect x="16.67" y="294.48" width="65" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="17.58" y="362.78" width="63.18" height="36.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+</g>
+<g id="lines">
+<path d="M49.17,177.18 L49.17,185.17 C49.17,194.02 42,201.18 33.16,201.18 L33.16,201.18 C24.31,201.18 17.14,208.35 17.14,217.2 L17.14,240.47 C17.14,249.31 24.31,256.48 33.16,256.48 L33.16,256.48 C42,256.48 49.17,263.65 49.17,272.49 L49.17,284.48" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="49.17,32.3 49.17,62.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M83.19,241.33 L83.19,241.33 C88.98,241.33 93.67,246.02 93.67,251.81 L93.67,378.01 C93.67,379.62 92.36,380.92 90.76,380.92 L90.76,380.92" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="49.17,108.89 49.17,130.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="49.17,330.78 49.17,352.78" fill="none" stroke="#64748B" stroke-width="1"/>
+<polygon points="45.17,284.48 49.17,294.48 53.17,284.48 49.17,288.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="45.17,62.59 49.17,72.59 53.17,62.59 49.17,66.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="90.76,376.92 80.76,380.92 90.76,384.92 86.76,380.92" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="45.17,130.89 49.17,140.89 53.17,130.89 49.17,134.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="45.17,352.78 49.17,362.78 53.17,352.78 49.17,356.78" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="35" y="24.99" font-size="14" fill="#0F172A" textLength="40.33" lengthAdjust="spacing">Intake</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="32.07" y="95.58" font-size="14" fill="#0F172A" textLength="34.19" lengthAdjust="spacing">Form</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="28" y="163.88" font-size="14" fill="#0F172A" textLength="42.34" lengthAdjust="spacing">Check</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="31.14" y="246.18" font-size="14" fill="#0F172A" textLength="48.05" lengthAdjust="spacing">Review</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="32.67" y="317.47" font-size="14" fill="#0F172A" textLength="33" lengthAdjust="spacing">Draft</tspan>
+</text>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="33.58" y="385.77" font-size="14" fill="#0F172A" textLength="31.18" lengthAdjust="spacing">Final</tspan>
+</text>
+<rect x="26.77" y="42.3" width="44.8" height="20.3" rx="2" ry="2" fill="#F1F5F9"/>
+<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, &quot;Segoe UI&quot;, &quot;DejaVu Sans&quot;, &quot;Liberation Sans&quot;, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, &quot;Noto Color Emoji&quot;, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" xml:space="preserve">
+<tspan x="28.77" y="57.29" font-size="14" fill="#0F172A" textLength="40.8" lengthAdjust="spacing">opens</tspan>
+</text>
+</g>
+</g>
+</svg>

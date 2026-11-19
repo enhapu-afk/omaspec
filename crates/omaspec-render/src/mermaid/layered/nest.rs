@@ -85,16 +85,23 @@ pub(super) fn link_crossings(
     Some(())
 }
 
-/// A flowchart line between a subgraph and a node inside it. The shared
-/// router treats the frame as an obstacle and would walk around the
-/// outside, so this stays in the frame: from the nearest side to the
-/// node's facing side, with one elbow when the title is in the way.
+/// A flowchart line between a subgraph and a node inside it. It starts at
+/// the subgraph's title, as a state diagram's line from a state to one
+/// inside it does (REQ-072): straight down from under it, in the room the
+/// subgraph keeps there ([`super::INWARD_ROOM`]); past another node from
+/// the title's end, down the room the subgraph keeps beside what it holds
+/// ([`super::INWARD_ASIDE`]); else around what it holds
+/// ([`across::link`]). Where that finds no way, it runs from the frame's
+/// nearest side to the node's facing side, with one elbow when the title
+/// is in the way.
 pub(super) fn link_inward(
     tree: &Tree,
     scene: &mut Scene,
     palette: &Palette,
     family: Family,
 ) -> Option<()> {
+    let mut found = Vec::new();
+    let mut links = Vec::new();
     for (index, meet) in tree.meets.iter().enumerate() {
         if !meet.inward || meet.hidden {
             continue;
@@ -111,27 +118,73 @@ pub(super) fn link_inward(
         } else {
             return None;
         };
-        let (frame_rect, title, node_rect, outline) = {
-            let frame = scene.placed_at(outer)?;
-            let node = scene.placed_at(inner)?;
+        links.push(Link {
+            from: from.clone(),
+            to: to.clone(),
+            label: (label.width, label.height),
+            shape: None,
+        });
+        found.push((
+            index,
+            outer.clone(),
+            inner.clone(),
+            into_inner,
+            stroke,
+            label,
+        ));
+    }
+    if found.is_empty() {
+        return Some(());
+    }
+    let top = placements(&scene.nodes);
+    let mut drawn = Drawn::default();
+    drawn_in(scene, &mut drawn);
+    let routed = across::link(&top, &links, &drawn);
+    for ((index, outer, inner, into_inner, stroke, label), linked) in found.into_iter().zip(routed)
+    {
+        let edge = &tree.graph.edges[index];
+        let (frame_rect, title, node_rect, outline, aside, others) = {
+            let frame = scene.placed_at(&outer)?;
+            let node = scene.placed_at(&inner)?;
+            let mut others = Vec::new();
+            rects_in(&frame.children, &mut others);
+            others.retain(|rect| *rect != node.rect);
             (
                 frame.rect,
                 cluster_title(frame),
                 node.rect,
                 node.item.kind.outline(node.rect),
+                frame.item.aside,
+                others,
             )
         };
-        let mut points = inward_points(frame_rect, node_rect, title);
-        if !into_inner {
-            points.reverse();
-        }
+        let own = title.and_then(|title| {
+            from_title(title, node_rect, &others)
+                .or_else(|| (aside > 0.0).then(|| beside(frame_rect, title, node_rect, &others))?)
+        });
+        let (mut points, label_at) = match (own, linked) {
+            (Some(mut points), _) => {
+                if !into_inner {
+                    points.reverse();
+                }
+                (points, None)
+            }
+            (None, Some(linked)) => (linked.points, Some(linked.label_at)),
+            (None, None) => {
+                let mut points = inward_points(frame_rect, node_rect, title);
+                if !into_inner {
+                    points.reverse();
+                }
+                (points, None)
+            }
+        };
         if let Some(outline) = outline {
             shape::clip(&mut points, &outline, !into_inner);
         }
         if points.len() < 2 {
             return None;
         }
-        let label_at = label_on(&points, &label);
+        let label_at = label_at.unwrap_or_else(|| label_on(&points, &label));
         scene
             .scene_at(&outer[..outer.len() - 1])?
             .edges
@@ -160,6 +213,62 @@ pub(super) fn cluster_title(node: &Placed) -> Option<Rect> {
         w: item.title.width + 2.0 * TITLE_AIR,
         h: item.header_h + 2.0 * TITLE_AIR,
     })
+}
+
+/// From under `title` (over it, where the flow is turned up) to the near
+/// side of `node`: straight where the node stands under the title, with
+/// a step across halfway where it stands to one side. `None` when the
+/// node is not past the title, or one of `others` is in the way.
+fn from_title(title: Rect, node: Rect, others: &[Rect]) -> Option<Vec<(f32, f32)>> {
+    let (start, end) = if node.y >= title.y + title.h {
+        (title.y + title.h, node.y)
+    } else if node.y + node.h <= title.y {
+        (title.y, node.y + node.h)
+    } else {
+        return None;
+    };
+    let cx = node.x + node.w / 2.0;
+    let sx = clamp_in(cx, title.x, title.w, 6.0);
+    let middle = (start + end) / 2.0;
+    let points = if (sx - cx).abs() < 0.5 {
+        vec![(cx, start), (cx, end)]
+    } else {
+        vec![(sx, start), (sx, middle), (cx, middle), (cx, end)]
+    };
+    clear_of(points, others)
+}
+
+/// From the end of `title` across to the room the subgraph keeps beside
+/// what it holds, down it, and into the side of `node` that faces it:
+/// as far from the nodes there as from the frame's border.
+fn beside(frame: Rect, title: Rect, node: Rect, others: &[Rect]) -> Option<Vec<(f32, f32)>> {
+    let lane = frame.x + frame.w - super::COMP_PAD;
+    let (ty, ny) = (title.y + title.h / 2.0, node.y + node.h / 2.0);
+    clear_of(
+        vec![
+            (title.x + title.w, ty),
+            (lane, ty),
+            (lane, ny),
+            (node.x + node.w, ny),
+        ],
+        others,
+    )
+}
+
+/// `points`, when none of their runs passes through one of `others`.
+fn clear_of(points: Vec<(f32, f32)>, others: &[Rect]) -> Option<Vec<(f32, f32)>> {
+    let blocked = points
+        .windows(2)
+        .any(|pair| others.iter().any(|&rect| cuts(pair[0], pair[1], rect)));
+    (!blocked).then_some(points)
+}
+
+/// Every box `scene` holds, its subgraphs' too.
+pub(super) fn rects_in(scene: &Scene, out: &mut Vec<Rect>) {
+    for node in &scene.nodes {
+        out.push(node.rect);
+        rects_in(&node.children, out);
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

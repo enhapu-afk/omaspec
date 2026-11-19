@@ -172,7 +172,7 @@ impl Nested for Charts<'_> {
 
     fn settle(&self, item: &mut Measured, rect: Rect) {
         if item.item.nested {
-            let ox = rect.x + (rect.w - item.children.width) / 2.0;
+            let ox = rect.x + (rect.w - item.item.aside - item.children.width) / 2.0;
             let oy = rect.y + COMP_PAD + item.item.header_h + item.item.gap;
             item.children.offset(ox, oy);
         }
@@ -204,7 +204,9 @@ fn frame_of(item: &Measured, flip: Flip) -> graph::Frame {
         .iter()
         .map(|block| block.width)
         .fold(item.title.width, f32::max);
-    let (top, bottom) = (COMP_PAD + item.header_h + super::COMP_GAP, COMP_PAD);
+    // The gap under the title, wider where a line starts there.
+    let gap = item.gap.max(super::COMP_GAP);
+    let (top, bottom) = (COMP_PAD + item.header_h + gap, COMP_PAD);
     let (top, bottom) = match flip {
         Flip::Y => (bottom, top),
         _ => (top, bottom),
@@ -224,8 +226,9 @@ fn frame_of(item: &Measured, flip: Flip) -> graph::Frame {
         top,
         bottom,
         left: COMP_PAD,
-        right: COMP_PAD,
-        min_width: header_w + COMP_PAD * 2.0,
+        // The lane a line from the title past another node runs down.
+        right: COMP_PAD + item.aside,
+        min_width: header_w + COMP_PAD * 2.0 + item.aside,
         name,
     }
 }

@@ -2897,6 +2897,29 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-079 (2026-11-19): a line between a Mermaid subgraph and a node
+      inside it (`Sub --> In`, `In --> Sub`) starts at the subgraph's
+      title, as a state's line to a state inside it does (REQ-072). It was
+      a stub of eight pixels from the frame's nearest border, which lay
+      12 from the node. The subgraph keeps 20 more under its title, and
+      the height of the line's words, so the line runs straight down from
+      under it, or with a step across where the node stands to one side.
+      Where another node stands before it, the subgraph keeps a lane of 12
+      more on its right, and the line runs from the title's end down it
+      into the node's side, as far from the nodes as from the border; a
+      subgraph laid out with what is around it keeps the lane when it
+      holds more than one node. Else `graph::across` routes it, and only
+      where that finds no way the line runs from the nearest border. The
+      router (`graph/route.rs`) also charges 12 a unit for a run on a
+      box's border, beside the 3 for running close to it: in a gap of 12
+      between a box and a frame it took the box's border
+- [x] The flicker in the window (2026-11-19): with the focus on a box, the
+      picture was gone for one frame as the pointer came over a box that
+      folds (eleven times in 46 seconds in the tester's recording, since
+      2026-11-17). Gone in the window by 2026-11-19, as the user found;
+      `OMASPEC_DRAWS=1` still says on standard error what the diagram's
+      canvas draws in each frame, and `a_zoom_never_shows_the_paper_alone`
+      draws frame by frame with a pointer.
 - [x] REQ-076, the rest (2026-11-18): a region without a start of its
       own begins in the one state in it that has one and that no
       transition enters from outside (`Machine::region_begins_in`), as

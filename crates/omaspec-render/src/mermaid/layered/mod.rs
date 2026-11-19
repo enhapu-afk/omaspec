@@ -41,6 +41,14 @@ mod tests;
 const MARGIN: f32 = 10.0;
 const COMP_PAD: f32 = 12.0;
 const COMP_GAP: f32 = 8.0;
+/// What a subgraph keeps more under its title for a line from it to a
+/// node it holds, past the words on that line: the line starts under the
+/// title (REQ-079).
+const INWARD_ROOM: f32 = 20.0;
+/// What a subgraph keeps more right of what it holds where such a line
+/// passes another node it holds: with its padding, room for the line as
+/// far from the nodes as from the border.
+const INWARD_ASIDE: f32 = 12.0;
 const HEAD_LENGTH: f32 = 10.0;
 const HEAD_HALF: f32 = 4.0;
 /// Where Mermaid wraps a flowchart label, at its default 16 px font.
@@ -759,6 +767,9 @@ struct Item {
     header_h: f32,
     /// Between the title and what a subgraph holds.
     gap: f32,
+    /// Room a subgraph keeps right of what it holds, for a line from its
+    /// title past another node to the one it leads into.
+    aside: f32,
     nested: bool,
     /// Followed on a click on the node and its words.
     link: Option<Link>,
@@ -849,13 +860,39 @@ fn measure_group(
     );
     let header_h = stack_height(&title, &description);
     let header_w = stack_width(&title, &description);
+    // The words of each line between the subgraph and a node inside it,
+    // which starts under the title.
+    let inward = tree
+        .graph
+        .edges
+        .iter()
+        .zip(&tree.meets)
+        .enumerate()
+        .filter(|(_, (edge, meet))| {
+            meet.inward && !meet.hidden && !id.is_empty() && (edge.from == id || edge.to == id)
+        })
+        .map(|(index, _)| {
+            let color = edge_look(tree.graph, index, palette).map_or(palette.text, |(_, c)| c);
+            measure_edge(tree, index, Font::new(palette.size, color), family).height
+        })
+        .fold(None, |most: Option<f32>, height| {
+            Some(most.unwrap_or(0.0).max(height))
+        });
     let gap = if !open && children.width == 0.0 && children.height == 0.0 {
         0.0
     } else {
-        COMP_GAP
+        COMP_GAP + inward.map_or(0.0, |words| INWARD_ROOM + words)
     };
+    // Laid out with what is around it, what it holds is not placed yet:
+    // with more than one node, the line may pass one.
+    let passes = if open {
+        inward.is_some() && tree.members(Spot::In(index)).len() > 1
+    } else {
+        passes_another(tree, id, &children)
+    };
+    let aside = if passes { INWARD_ASIDE } else { 0.0 };
     Some(Measured {
-        width: header_w.max(children.width) + COMP_PAD * 2.0,
+        width: header_w.max(children.width) + COMP_PAD * 2.0 + aside,
         height: COMP_PAD + header_h + gap + children.height + COMP_PAD,
         flat: kind.flat(),
         children,
@@ -868,10 +905,46 @@ fn measure_group(
             description,
             header_h,
             gap,
+            aside,
             nested: true,
             link: None,
         },
     })
+}
+
+/// Whether a line from the subgraph `id` to a node it holds, laid out in
+/// `children`, passes another node on its way from the title: one that
+/// stands before it along the flow, across from it.
+fn passes_another(tree: &Tree, id: &str, children: &Scene) -> bool {
+    let Some(own) = tree.paths.get(id).filter(|_| !id.is_empty()) else {
+        return false;
+    };
+    tree.graph
+        .edges
+        .iter()
+        .zip(&tree.meets)
+        .filter(|(edge, meet)| meet.inward && !meet.hidden && (edge.from == id || edge.to == id))
+        .any(|(edge, _)| {
+            let inner = if edge.from == id {
+                &edge.to
+            } else {
+                &edge.from
+            };
+            let Some(node) = tree
+                .paths
+                .get(inner)
+                .and_then(|path| path.get(own.len()..))
+                .and_then(|path| children.placed_at(path))
+            else {
+                return false;
+            };
+            let mut others = Vec::new();
+            nest::rects_in(children, &mut others);
+            let at = node.rect;
+            others.iter().any(|r| {
+                *r != at && r.y + r.h <= at.y + 0.5 && r.x < at.x + at.w && at.x < r.x + r.w
+            })
+        })
 }
 
 fn measure_leaf(tree: &Tree, id: &str, palette: &Palette, family: Family) -> Option<Measured> {
@@ -909,6 +982,7 @@ fn measure_leaf(tree: &Tree, id: &str, palette: &Palette, family: Family) -> Opt
             description,
             header_h: 0.0,
             gap: 0.0,
+            aside: 0.0,
             nested: false,
             link: tree.links.get(id).cloned(),
         },

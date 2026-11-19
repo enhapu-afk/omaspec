@@ -373,34 +373,71 @@ fn an_empty_subgraph_is_a_frame_and_a_nested_one_stays_inside() {
 
 #[test]
 fn a_line_into_a_node_inside_its_subgraph_stays_inside() {
-    let scene = laid("flowchart LR\nsubgraph S\nA\nend\nS --> A\n");
-    let group = find(&scene, "S");
-    let node = find(&scene, "A");
-    assert!(encloses(group.rect, node.rect));
-    let line = scene
-        .edges
-        .iter()
-        .find(|edge| edge.look.caps.1 == Cap::Arrow)
-        .expect("the arrow into A");
-    let start = line.points[0];
-    let end = *line.points.last().unwrap();
-    assert!(on_border(start, group.rect), "{start:?} {:?}", group.rect);
-    assert!(on_border(end, node.rect), "{end:?} {:?}", node.rect);
-    for point in &line.points {
+    // From under the subgraph's title, as a state's line to one inside it
+    // (REQ-072), in room kept for it: no stub at the frame's edge
+    // (REQ-079). Down the page, across it, and past another node.
+    let length = |points: &[(f32, f32)]| -> f32 {
+        points
+            .windows(2)
+            .map(|pair| (pair[1].0 - pair[0].0).hypot(pair[1].1 - pair[0].1))
+            .sum()
+    };
+    for (source, others) in [
+        ("flowchart LR\nsubgraph S\nA\nend\nS --> A\n", &[][..]),
+        (
+            "flowchart TD\nsubgraph S\nA --> B\nend\nS --> A\n",
+            &["B"][..],
+        ),
+        (
+            "flowchart TD\nsubgraph S\nT --> A\nend\nS --> A\n",
+            &["T"][..],
+        ),
+    ] {
+        let scene = laid(source);
+        let group = find(&scene, "S");
+        let title = super::super::nest::cluster_title(group).expect("a title");
+        let node = find(&scene, "A");
+        assert!(encloses(group.rect, node.rect));
+        let line = scene
+            .edges
+            .iter()
+            .find(|edge| edge.look.caps.1 == Cap::Arrow && edge.points.len() >= 2)
+            .filter(|edge| on_border(*edge.points.last().unwrap(), node.rect))
+            .unwrap_or_else(|| panic!("the arrow into A: {source}"));
         assert!(
-            inside(*point, group.rect),
-            "{point:?} leaves {:?}",
-            group.rect
+            on_border(line.points[0], title),
+            "{source}: {:?} {title:?}",
+            line.points[0]
         );
+        assert!(length(&line.points) >= 20.0, "{source}: {:?}", line.points);
+        for point in &line.points {
+            assert!(
+                inside(*point, group.rect),
+                "{source}: {point:?} leaves {:?}",
+                group.rect
+            );
+        }
+        // It keeps off the other nodes the subgraph holds.
+        for other in others {
+            let rect = find(&scene, other).rect;
+            assert!(
+                !line
+                    .points
+                    .windows(2)
+                    .any(|pair| segment_cuts(pair[0], pair[1], rect)),
+                "{source}: {:?} runs through {other}",
+                line.points
+            );
+        }
     }
     let back = laid("flowchart LR\nsubgraph S\nA\nend\nA --> S\n");
-    let group = find(&back, "S").rect;
+    let title = super::super::nest::cluster_title(find(&back, "S")).expect("a title");
     let line = back
         .edges
         .iter()
         .find(|edge| edge.look.caps.1 == Cap::Arrow)
         .unwrap();
-    assert!(on_border(*line.points.last().unwrap(), group));
+    assert!(on_border(*line.points.last().unwrap(), title));
     assert!(
         inside(line.points[0], find(&back, "A").rect)
             || on_border(line.points[0], find(&back, "A").rect)

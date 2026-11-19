@@ -21,20 +21,9 @@ Before anything below: the sequence diagram, the state machine and the
 activity diagram elegant, modern and without a flaw in any theme, in the
 theme's colors and in the file's own. What is done is in docs/DONE.md.
 
-- [ ] A flicker in the window since 2026-11-17 (not in 0.9.7): with
-      the focus on a box, the picture is gone for one frame, its paper
-      and the focus's veil, lines and light still there. In the tester's
-      recording eleven times in 46 seconds, each as the pointer came
-      over a box that folds (its button appeared in that frame), the
-      view at rest. Not reproduced without a window
-      (`a_zoom_never_shows_the_paper_alone` draws frame by frame with a
-      pointer and passes). `OMASPEC_DRAWS=1` says on standard error what
-      the diagram's canvas draws in each frame.
 - [ ] REQ-077: an embedded diagram (`{{ … }}`) is drawn as text. Lint
       says so on the line with `{{` (`embedded-diagram`); drawing it as a
       picture inside the note is open.
-- [ ] REQ-079: a line from a subgraph to its own child (`Sub --> In`) is
-      a stub of eight pixels at the picture's left edge.
 - [ ] The focus in a real window, and at small zooms, where a lit line
       is never thinner than three quarters of a pixel.
 

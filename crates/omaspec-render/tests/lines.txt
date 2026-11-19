@@ -4,6 +4,7 @@ crates/omaspec-render/tests/layered/flow-cycles.mmd 7 0 0 0 0 0 14 762 0 28.8
 crates/omaspec-render/tests/layered/flow-directions.mmd 5 0 0 2 1 0 8 234 0 13.8
 crates/omaspec-render/tests/layered/flow-edges.mmd 11 0 0 0 0 0 14 1305 0 14.9
 crates/omaspec-render/tests/layered/flow-held.mmd 5 0 0 0 0 0 10 250 0 18.6
+crates/omaspec-render/tests/layered/flow-inward.mmd 3 0 0 0 0 0 4 245 0 1.0
 crates/omaspec-render/tests/layered/flow-rl.mmd 5 0 0 0 1 0 10 375 0 9.4
 crates/omaspec-render/tests/layered/flow-shapes.mmd 12 0 0 0 0 0 0 384 0 5.2
 crates/omaspec-render/tests/layered/flow-styles.mmd 3 0 0 0 0 0 0 96 0 14.5
@@ -66,4 +67,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 11.4
 examples/platform.mmd 17 1 0 0 4 0 34 5172 6 44.1
 examples/player.puml 8 0 0 0 0 0 14 924 0 15.4
 examples/shop.mmd 6 0 0 0 0 0 4 595 0 14.6
-total 575 8 0 3 19 0 551 98270 21 1296.5
+total 578 8 0 3 19 0 555 98515 21 1297.5

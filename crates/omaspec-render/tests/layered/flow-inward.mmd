@@ -1,0 +1,13 @@
+%% Lines between a subgraph and a node inside it start under its title
+%% (REQ-079): straight down with words, and past another node in room
+%% the subgraph keeps beside it.
+flowchart TD
+  subgraph Intake
+    Form --> Check
+  end
+  Intake -->|opens| Form
+  subgraph Review
+    Draft --> Final
+  end
+  Check --> Draft
+  Review --> Final
