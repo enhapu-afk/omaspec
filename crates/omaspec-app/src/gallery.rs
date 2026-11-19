@@ -123,6 +123,12 @@ pub static EXAMPLES: &[Example] = &[
         "Nested states, guards and a refill."
     ),
     example!(
+        "parcel.puml",
+        Behavior,
+        "A parcel",
+        "Its way from the order to the door, and a choice at the doorstep."
+    ),
+    example!(
         "crossing.mmd",
         Behavior,
         "A pedestrian crossing",

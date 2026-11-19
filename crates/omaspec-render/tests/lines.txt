@@ -60,6 +60,7 @@ examples/gallery/friday.mmd 9 0 0 0 0 0 16 1410 0 10.0
 examples/gallery/insurance.puml 7 0 0 0 0 0 2 328 0 58.9
 examples/gallery/library.puml 9 0 0 0 0 0 6 1280 0 12.2
 examples/gallery/media-player.mmd 18 0 0 0 0 0 8 2382 0 8.1
+examples/gallery/parcel.puml 11 0 0 0 1 0 6 1121 0 13.0
 examples/gallery/pipeline.mmd 16 0 0 0 0 0 27 2850 1 8.5
 examples/gallery/smart-home.puml 6 0 0 0 0 0 16 1747 0 86.0
 examples/gallery/ticket-machine.puml 5 0 0 0 1 0 8 565 0 14.3
@@ -68,4 +69,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 12.9
 examples/platform.mmd 17 1 0 0 4 0 33 5250 6 43.9
 examples/player.puml 8 0 0 0 0 0 14 1022 0 15.4
 examples/shop.mmd 6 0 0 0 0 0 4 595 0 16.7
-total 584 8 0 2 20 0 543 100545 21 1339.5
+total 595 8 0 2 21 0 549 101666 21 1352.5

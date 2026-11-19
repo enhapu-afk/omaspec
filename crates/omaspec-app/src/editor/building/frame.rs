@@ -47,6 +47,50 @@ impl Code {
         }
     }
 
+    /// Each line as its runs of words in one color, a tab as four
+    /// spaces: for a page, which shows them whole.
+    pub(super) fn runs(&self, plain: Rgb) -> Vec<Vec<omaspec_render::export::building::Run>> {
+        let color = |rgb: Rgb| omaspec_uml::Color(rgb.r, rgb.g, rgb.b);
+        self.lines
+            .iter()
+            .enumerate()
+            .map(|(at, line)| {
+                let spans = self.spans.get(at).map_or(&[][..], Vec::as_slice);
+                let mut runs: Vec<omaspec_render::export::building::Run> = Vec::new();
+                for (byte, c) in line.char_indices() {
+                    let style = spans
+                        .iter()
+                        .find(|span| {
+                            (span.range.start as usize..span.range.end as usize).contains(&byte)
+                        })
+                        .map(|span| &span.style);
+                    let (fill, bold, italic) = style.map_or((color(plain), false, false), |s| {
+                        (omaspec_uml::Color(s.fg.r, s.fg.g, s.fg.b), s.bold, s.italic)
+                    });
+                    let text = if c == '\t' {
+                        "    ".to_owned()
+                    } else {
+                        c.to_string()
+                    };
+                    match runs.last_mut() {
+                        Some(run)
+                            if run.color == fill && run.bold == bold && run.italic == italic =>
+                        {
+                            run.text.push_str(&text);
+                        }
+                        _ => runs.push(omaspec_render::export::building::Run {
+                            text,
+                            color: fill,
+                            bold,
+                            italic,
+                        }),
+                    }
+                }
+                runs
+            })
+            .collect()
+    }
+
     /// How many letters the widest line shows.
     pub(super) fn letters(&self) -> usize {
         self.lines

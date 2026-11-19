@@ -47,6 +47,12 @@ Omaspec draws it in about 30 ms.
 
 ![A large state machine zoomed in: the flight of a delivery drone with two regions side by side, and its delivery](docs/images/drone.png)
 
+Code becomes a picture: `omaspec play parcel.puml --build -o build.gif` walks a caret down
+the source and lets the diagram build itself up beside it, each line setting down what it
+draws; as `.html` it is a page in vectors that plays in any browser.
+
+![Code becomes a picture: a caret walks down the source of a parcel's way, and the state machine builds itself up beside it](docs/images/build.gif)
+
 ### It reads your diagram as behavior
 
 A state diagram is the state machine it specifies, and a sequence diagram is a scenario,

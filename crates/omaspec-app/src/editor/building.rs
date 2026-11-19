@@ -100,8 +100,21 @@ pub(super) fn build(args: &Moving, film: Film, fps: u32) -> Result<String> {
     .map_err(|err| anyhow::anyhow!("{err}"))?;
     let picture = Picture::of(&rendered.svg, &rendered.map, &text)?;
     let code = Code::of(&text, language, &app.palette, &tweaks);
-    let layout = Layout::of(&code, &picture, args.width)?;
     let script = Script::of(&picture, code.lines.len());
+    if film == Film::Page {
+        let (name, _) = args.named(&text);
+        return page(
+            args,
+            &text,
+            &name,
+            language,
+            &picture,
+            &code,
+            &script,
+            &app.palette,
+        );
+    }
+    let layout = Layout::of(&code, &picture, args.width)?;
 
     let delay = match film {
         Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
@@ -129,7 +142,7 @@ pub(super) fn build(args: &Moving, film: Film, fps: u32) -> Result<String> {
         Film::Gif => frames.encode(args.quality)?,
         Film::Apng => films::apng(&frames, fps)?,
         Film::Webp => films::webp(&frames, fps)?,
-        Film::Page => bail!("a build is written as .gif, .webp or .png"),
+        Film::Page => unreachable!("a page is written before a frame is drawn"),
     };
     crate::files::write_atomic(&args.output, &bytes)
         .with_context(|| format!("cannot write {}", args.output.display()))?;
@@ -141,6 +154,102 @@ pub(super) fn build(args: &Moving, film: Film, fps: u32) -> Result<String> {
         w,
         h,
         total
+    ))
+}
+
+/// Writes the build as a page that plays it in vectors
+/// ([`omaspec_render::export::building`]): the source in its colors, the
+/// picture with its parts marked, and when each line comes and what it
+/// sets down. Nothing is drawn in pixels.
+#[allow(clippy::too_many_arguments)]
+fn page(
+    args: &Moving,
+    text: &str,
+    name: &str,
+    language: omaspec_core::Language,
+    picture: &Picture,
+    code: &Code,
+    script: &Script,
+    palette: &omaspec_theme::Palette,
+) -> Result<String> {
+    use omaspec_render::export::building as page;
+    let color = |rgb: omaspec_theme::Rgb| omaspec_uml::Color(rgb.r, rgb.g, rgb.b);
+    let paper = omaspec_uml::parse_color(&picture.paper)
+        .ok()
+        .flatten()
+        .unwrap_or(omaspec_uml::Color::WHITE);
+    let building = page::Building {
+        svg: picture.svg.clone(),
+        size: picture.size,
+        lines: code.runs(palette.foreground),
+        starts: script.starts.clone(),
+        end: script.end,
+        hold: HOLD,
+        grow: GROW,
+        draw: DRAW,
+        words: WORDS,
+        overlap: OVERLAP,
+        pace: script.pace,
+        boxes: script.draws.iter().map(|&(boxes, _)| boxes).collect(),
+        parts: picture
+            .parts
+            .iter()
+            .map(|part| page::PartAt {
+                prefix: format!("{}-", omaspec_uml::part_id(&part.name)),
+                line: part.line,
+                middle: part.middle,
+                words: part.of_wire.is_some(),
+            })
+            .collect(),
+        wires: picture
+            .wires
+            .iter()
+            .map(|wire| page::WireAt {
+                line: wire.line,
+                points: wire.points.clone(),
+                heads: wire.heads.clone(),
+                color: omaspec_uml::parse_color(&wire.color)
+                    .ok()
+                    .flatten()
+                    .unwrap_or(omaspec_uml::Color::BLACK),
+                width: wire.width,
+                dash: wire.dash,
+            })
+            .collect(),
+        reach: picture.reach.clone(),
+        first_reach: picture.first_reach(),
+        lines_matrix: picture
+            .lines_group
+            .and_then(|transform| transform.invert())
+            .map(|m| [m.sx, m.ky, m.kx, m.sy, m.tx, m.ty]),
+        colors: page::Colors {
+            paper: color(palette.background),
+            panel: color(palette.dark_background),
+            ink: color(palette.foreground),
+            muted: color(palette.muted),
+            selection: color(palette.selection),
+            accent: color(palette.accent),
+            picture: paper,
+        },
+    };
+    let written = page::page(
+        &building,
+        Some(omaspec_render::export::Source {
+            code: text,
+            language,
+            file: Some(name),
+        }),
+        name.rsplit_once('.').map_or(name, |(stem, _)| stem),
+    )
+    .map_err(|err| anyhow::anyhow!("{err}"))?;
+    crate::files::write_atomic(&args.output, written.as_bytes())
+        .with_context(|| format!("cannot write {}", args.output.display()))?;
+    Ok(format!(
+        "{} → {} (a page, {} KB, built in {:.1} s in vectors)",
+        args.file.display(),
+        args.output.display(),
+        written.len().div_ceil(1024),
+        script.end
     ))
 }
 
@@ -330,10 +439,12 @@ mod tests {
         let webp = image_webp::WebPDecoder::new(std::io::Cursor::new(&bytes)).unwrap();
         assert_eq!(webp.dimensions().0, 700);
         assert!(webp.num_frames() >= 4, "{}", webp.num_frames());
-        let err = super::super::moving::play(&moving("door.html"))
-            .unwrap_err()
-            .to_string();
-        assert!(err.contains(".gif"), "{err}");
+        // As a page: its source, its picture and its play.
+        let told = super::super::moving::play(&moving("door.html")).unwrap();
+        assert!(told.contains("a page"), "{told}");
+        let page = std::fs::read_to_string(work.join("door.html")).unwrap();
+        assert!(page.contains(r#""kind":"build""#));
+        assert!(page.contains("Closed --&gt; Open"), "{page}");
         let _ = std::fs::remove_dir_all(&work);
     }
 

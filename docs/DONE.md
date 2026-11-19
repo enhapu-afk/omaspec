@@ -2909,7 +2909,11 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       from the top down, as far as each line's words and messages reach. Each frame is
       one SVG drawn by resvg, without a GPU; a source too long for twelve seconds is
       gone through faster. GIF, WebP and animated PNG, in the theme's colors or the
-      file's own
+      file's own; and as `.html` a page in vectors (`export::building`, its own script
+      and style): the source in its colors beside the picture with its parts marked,
+      the script growing each part's groups in, drawing each line along its points and
+      moving the caret, `#t=4` holding it still 4 seconds in. The README shows the
+      gallery's new parcel built up (`docs/images/build.gif`, by `update.sh`)
 - [x] What the review of Q1 and of F9 to F11 found (2026-11-19). An activity's line
       with a head keeps the head's length straight before its tip
       (`curve::path_arriving`): a short last run had curved under the head and out of

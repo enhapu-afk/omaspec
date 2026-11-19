@@ -682,8 +682,6 @@ above). Each exports as GIF, WebP and an HTML page, as a play does, and
 gets a gallery example. In this order: the first makes the README's
 picture, the second is the highlight.
 
-- [ ] Code becomes a picture: built as GIF, WebP and PNG (in
-      docs/DONE.md). Left: the page in vectors, and the README's picture.
 - [ ] Lockstep: a sequence played beside the state machines of its
       participants, each message switching the receiver's machine on
       the same beat, the transition it fires lit, a message no machine
