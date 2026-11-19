@@ -2897,19 +2897,33 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of F4 and F5 found (2026-11-19). The bars of forks and joins
+      are laid out by `graph::open` (`graph::span`, `Nested::spans`), not by the state
+      drawer, as AGENTS.md has it: only the layout of the ranks is laid again while a
+      bar grows, and the bar is cut back before notes and labels are placed, so a note
+      beside a bar stands by it as drawn. A bar grows only for the states before and
+      after it along the flow, in its own frame: a state beside it, by a line within
+      the rank (`f -right-> C`), no longer pushes itself out on every pass, and a line
+      into the bar's end keeps that end. Cut back, a bar is as long as it was measured
+      at least, the window moved in from an end it would run past. No lengths are kept
+      by thread any more, so a state diagram inside a note leaves the bars around it
+      alone. A line `straight::merge` moves keeps 12 from the sides of frames too, and
+      so does the step it grows. `omaspec convert` writes `hide footbox` as
+      `mirrorActors: false` and back (`settings::mirrors_actors`); ZenUML takes the
+      setting too, and the front matter's `False` and `TRUE` are YAML's booleans
 - [x] A Mermaid sequence's participants again below their lifelines (2026-11-19, from
       the review sheet, F5): Mermaid draws them there unless `sequence.mirrorActors`
       is false; Omaspec drew them only above, so the lifelines ended in nothing. They
       now stand below too, as PlantUML's foot boxes do, and `mirrorActors: false` in
       the front matter's `config` or a `%%{init}%%` takes them away; lint no longer
       says the setting is not carried out. A participant destroyed has no foot, as in
-      Mermaid; one created has
+      Mermaid; one created has one
 - [x] Fork and join bars as long as what they split and join (2026-11-19, from the
       review sheet, F4): a bar was measured at 80 before the layout knew where its
       states go, so the lines to states wider apart than that ran to its ends in a
       hook, and both lines into a join met at one point of it. Once a state diagram
       is laid out, each bar grows to reach past the middles of its states, and the
-      diagram is laid out again while one grows (`state/draw/bars.rs`); then each bar
+      diagram is laid out again while one grows (`graph::span`); then each bar
       is cut back to 16 past the outermost line on it. Its lines keep out of bundles,
       so each runs straight into the bar at a place of its own, in both languages and
       both directions. A run `straight::merge` moves to take a step out keeps 12 from

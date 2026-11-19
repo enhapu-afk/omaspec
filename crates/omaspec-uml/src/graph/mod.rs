@@ -52,6 +52,7 @@ mod nest;
 pub mod open;
 mod order;
 pub mod route;
+mod span;
 mod straight;
 
 pub use join::Tree;

@@ -1,240 +1,138 @@
-//! Fork and join bars as long as what they split and join (F4 of the
-//! review of the three diagrams). A bar is measured before the layout
-//! knows where its states go, at [`BAR_LONG`]; states wider than that
-//! stand further apart, so their lines ran to the bar's ends in a jog,
-//! and the lines into a join met at one point of it. Once a diagram is
-//! laid out, each bar's states say how far from its middle theirs are;
-//! the bar is then long enough to reach past them, and the diagram laid
-//! out again, as long as a bar grows ([`LAYOUTS`] at most): each line
-//! runs straight into it, at a place of its own, as an activity
-//! diagram's bar spans its branches. The bars are kept out of bundles
-//! for that, as circles and diamonds are.
+//! Fork and join bars as drawn: as long as what they split and join
+//! (`graph::span`, which `graph::open` lays out for every container that
+//! has bars).
 
-use std::cell::RefCell;
-use std::collections::HashMap;
+use crate::state::{draw_mapped, parse};
 
-use super::super::{Container, Direction, Kind};
-use super::{BAR_LONG, Scene, Skin, layout_container};
-use crate::Declined;
-use crate::graph::route::Point;
-use crate::text::Family;
-
-/// Past the middle of a bar's outer states, to its ends.
-const PAST: f32 = 16.0;
-
-thread_local! {
-    /// How long each bar is, by its state's key, while a diagram is laid
-    /// out again ([`laid_out`]).
-    static LONG: RefCell<HashMap<String, f32>> = RefCell::new(HashMap::new());
+/// The SVG `source` draws.
+fn drawn(source: &str) -> String {
+    let (_, lines) = crate::source::body(source).unwrap();
+    draw_mapped(&parse(&lines).unwrap()).unwrap().0
 }
 
-/// How long the bar `key` is drawn.
-pub(super) fn long(key: &str) -> f32 {
-    LONG.with_borrow(|long| long.get(key).copied().unwrap_or(BAR_LONG))
+/// The number `name` holds in `tag`.
+fn number(tag: &str, name: &str) -> f32 {
+    format!(" {tag}")
+        .split(&format!(" {name}=\""))
+        .nth(1)
+        .unwrap()
+        .split('"')
+        .next()
+        .unwrap()
+        .parse()
+        .unwrap()
 }
 
-/// Takes the lengths back when dropped, also when a layout panics.
-struct Clear;
+/// The bars of `svg`, each as `(x, y, width)`.
+fn bars(svg: &str) -> Vec<(f32, f32, f32)> {
+    svg.split("<rect ")
+        .skip(1)
+        .filter(|rect| rect.contains(" height=\"8\""))
+        .map(|rect| (number(rect, "x"), number(rect, "y"), number(rect, "width")))
+        .collect()
+}
 
-impl Drop for Clear {
-    fn drop(&mut self) {
-        LONG.with_borrow_mut(HashMap::clear);
+/// The first point of each line of `svg`.
+fn starts(svg: &str) -> Vec<(f32, f32)> {
+    let point = |text: &str| -> Option<(f32, f32)> {
+        let (x, y) = text.split_once(',')?;
+        Some((x.trim().parse().ok()?, y.trim().parse().ok()?))
+    };
+    let polylines = svg
+        .split("<polyline points=\"")
+        .skip(1)
+        .filter_map(|rest| point(rest.split(' ').next()?));
+    let paths = svg
+        .split("<path d=\"M")
+        .skip(1)
+        .filter_map(|rest| point(rest.split(' ').next()?));
+    polylines.chain(paths).collect()
+}
+
+#[test]
+fn a_bar_spans_the_states_it_splits_and_joins() {
+    let source = "@startuml\nstate f <<fork>>\nstate j <<join>>\n[*] --> f\nf --> Saving\nf --> Uploading\nSaving --> j\nUploading --> j\nj --> [*]\n@enduml\n";
+    let drawn = bars(&drawn(source));
+    assert_eq!(drawn.len(), 2, "{drawn:?}");
+    for (_, _, width) in &drawn {
+        assert!(*width > super::BAR_LONG, "{drawn:?}");
     }
-}
-
-/// How often a diagram is laid out at most: once, then again while a bar
-/// grows, as the layout places a longer bar anew.
-const LAYOUTS: usize = 3;
-
-/// `root` laid out with each bar long enough to reach, from its middle,
-/// the middles of the states it splits and joins.
-pub(super) fn laid_out(root: &Container, skin: &Skin, family: Family) -> Result<Scene, Declined> {
-    let mut scene = layout_container(root, skin, family)?;
-    let _clear = Clear;
-    for _ in 1..LAYOUTS {
-        let mut needed: HashMap<String, f32> = HashMap::new();
-        gather(root, &scene, &mut needed);
-        let grows = LONG.with_borrow_mut(|long| {
-            let mut grows = false;
-            for (key, length) in needed {
-                let now = long.get(&key).copied().unwrap_or(BAR_LONG);
-                if length > now + 0.5 {
-                    long.insert(key, length);
-                    grows = true;
-                }
-            }
-            grows
-        });
-        if !grows {
-            break;
-        }
-        scene = layout_container(root, skin, family)?;
-    }
-    let mut ends = Vec::new();
-    ends_in(&scene, &mut ends);
-    trim(&mut scene, &ends);
-    Ok(scene)
-}
-
-/// The first and last point of every line of `scene`, and of those inside.
-fn ends_in(scene: &Scene, ends: &mut Vec<Point>) {
-    for edge in &scene.edges {
-        ends.extend(edge.points.first());
-        ends.extend(edge.points.last());
-    }
-    for node in &scene.nodes {
-        ends_in(&node.children, ends);
-    }
-}
-
-/// Each bar of `scene` cut back to [`PAST`] beyond the outermost of `ends`
-/// on it, as long as [`BAR_LONG`] at least: laid out anew, a state may
-/// come to stand nearer the bar's middle than before.
-fn trim(scene: &mut Scene, ends: &[Point]) {
-    for node in &mut scene.nodes {
-        trim(&mut node.children, ends);
-        if !matches!(node.item.kind, Kind::Fork | Kind::Join) {
-            continue;
-        }
-        let rect = node.rect;
-        let lying = rect.w >= rect.h;
-        // Along the bar, and across it, the two sides lines meet.
-        let (start, long, at, thick) = if lying {
-            (rect.x, rect.w, rect.y, rect.h)
-        } else {
-            (rect.y, rect.h, rect.x, rect.w)
-        };
-        let on: Vec<f32> = ends
+    // A bar with one state keeps its length.
+    let one = "@startuml\nstate f <<fork>>\n[*] --> f\nf --> A\n@enduml\n";
+    assert!(
+        bars(&self::drawn(one))
             .iter()
-            .map(|&(x, y)| if lying { (x, y) } else { (y, x) })
-            .filter(|&(along, across)| {
-                ((across - at).abs() < 0.75 || (across - at - thick).abs() < 0.75)
-                    && along > start - 0.5
-                    && along < start + long + 0.5
-            })
-            .map(|(along, _)| along)
-            .collect();
-        let Some(low) = on.iter().copied().reduce(f32::min) else {
-            continue;
-        };
-        let high = on.iter().copied().fold(low, f32::max);
-        let (mut from, mut to) = (low - PAST, high + PAST);
-        let short = BAR_LONG - (to - from);
-        if short > 0.0 {
-            (from, to) = (from - short / 2.0, to + short / 2.0);
-        }
-        // Never past the bar as laid out, which kept its room.
-        let (from, to) = (from.max(start), to.min(start + long));
-        if to - from >= long - 0.5 {
-            continue;
-        }
-        if lying {
-            (node.rect.x, node.rect.w) = (from, to - from);
-        } else {
-            (node.rect.y, node.rect.h) = (from, to - from);
-        }
+            .all(|(_, _, width)| (*width - super::BAR_LONG).abs() < 0.01)
+    );
+}
+
+#[test]
+fn each_line_meets_a_join_at_a_place_of_its_own() {
+    let source = "@startuml\nstate j <<join>>\n[*] --> Saving\n[*] --> Uploading\nSaving --> j\nUploading --> j\nj --> [*]\n@enduml\n";
+    let svg = drawn(source);
+    // The tips of the two heads into the join stand apart.
+    let tips: Vec<&str> = svg
+        .split("<polygon points=\"")
+        .skip(1)
+        .filter_map(|rest| rest.split(' ').nth(1))
+        .collect();
+    let mut distinct = tips.clone();
+    distinct.sort_unstable();
+    distinct.dedup();
+    assert_eq!(distinct.len(), tips.len(), "{tips:?}");
+}
+
+#[test]
+fn a_line_sideways_from_a_bar_starts_on_its_end_and_the_bar_stays_short() {
+    for source in [
+        "@startuml\nstate f <<fork>>\n[*] --> f\nf -right-> Gamma\n@enduml\n",
+        "@startuml\nstate f <<fork>>\n[*] --> f\nf --> Alpha\nf --> Beta\nf -right-> Gamma\n@enduml\n",
+    ] {
+        let svg = drawn(source);
+        let (x, y, width) = bars(&svg)[0];
+        // Some line starts on the bar's right end.
+        let end = starts(&svg)
+            .into_iter()
+            .any(|(sx, sy)| (sx - (x + width)).abs() < 1.0 && sy > y && sy < y + 8.0);
+        assert!(end, "{svg}");
+        assert!(width < 3.0 * super::BAR_LONG, "{width}");
     }
 }
 
-/// How long each bar of `container`, laid out as `scene`, has to be to
-/// reach from its middle past the middles of the states it has lines to,
-/// and those of the bars inside.
-fn gather(container: &Container, scene: &Scene, needed: &mut HashMap<String, f32>) {
-    let bar = |index: usize| {
-        container
-            .nodes
-            .get(index)
-            .is_some_and(|node| matches!(node.kind, Kind::Fork | Kind::Join))
-    };
-    let across = |index: usize| {
-        scene.nodes.get(index).map(|node| {
-            let rect = node.rect;
-            match container.direction {
-                Direction::Down => rect.x + rect.w / 2.0,
-                Direction::Right => rect.y + rect.h / 2.0,
-            }
+#[test]
+fn notes_stand_by_the_bar_as_drawn() {
+    let source = "@startuml\nstate \"A wide state name here\" as A\nstate \"Another wide state name\" as B\nstate f <<fork>>\n[*] --> f\nf --> A\nf --> B\nf --> C\nnote right of f : split\nnote left of f : here\n@enduml\n";
+    let svg = drawn(source);
+    let (x, _, width) = bars(&svg)[0];
+    // Each note's outline, a path that closes, from its least to its most x.
+    let notes: Vec<(f32, f32)> = svg
+        .split("<path d=\"M")
+        .skip(1)
+        .filter_map(|rest| rest.split('"').next()?.strip_suffix(" Z"))
+        .map(|outline| {
+            let xs: Vec<f32> = outline
+                .split([' ', 'L'])
+                .filter_map(|pair| pair.split(',').next()?.parse().ok())
+                .collect();
+            let low = xs.iter().copied().fold(f32::MAX, f32::min);
+            let high = xs.iter().copied().fold(f32::MIN, f32::max);
+            (low, high)
         })
-    };
-    for edge in &container.edges {
-        for (at, other) in [(edge.from, edge.to), (edge.to, edge.from)] {
-            if at == other || !bar(at) || bar(other) {
-                continue;
-            }
-            let (Some(middle), Some(state)) = (across(at), across(other)) else {
-                continue;
-            };
-            let length = 2.0 * ((state - middle).abs() + PAST);
-            let entry = needed
-                .entry(container.nodes[at].key.clone())
-                .or_insert(BAR_LONG);
-            *entry = entry.max(length);
-        }
-    }
-    for (node, placed) in container.nodes.iter().zip(&scene.nodes) {
-        if !node.children.nodes.is_empty() {
-            gather(&node.children, &placed.children, needed);
-        }
+        .collect();
+    assert_eq!(notes.len(), 2, "{svg}");
+    for (low, high) in notes {
+        let gap = if low >= x + width {
+            low - (x + width)
+        } else {
+            x - high
+        };
+        assert!((0.0..30.0).contains(&gap), "{gap}: {svg}");
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::state::{draw_mapped, parse};
-
-    /// The bars of `source` as drawn, each as `(x, width)`.
-    fn bars(source: &str) -> Vec<(f32, f32)> {
-        let (_, lines) = crate::source::body(source).unwrap();
-        let (svg, _) = draw_mapped(&parse(&lines).unwrap()).unwrap();
-        svg.split("<rect ")
-            .skip(1)
-            .filter(|rect| rect.contains(" height=\"8\""))
-            .map(|rect| {
-                let number = |name: &str| -> f32 {
-                    rect.split(&format!("{name}=\""))
-                        .nth(1)
-                        .unwrap()
-                        .split('"')
-                        .next()
-                        .unwrap()
-                        .parse()
-                        .unwrap()
-                };
-                (number("x"), number("width"))
-            })
-            .collect()
-    }
-
-    #[test]
-    fn a_bar_spans_the_states_it_splits_and_joins() {
-        let source = "@startuml\nstate f <<fork>>\nstate j <<join>>\n[*] --> f\nf --> Saving\nf --> Uploading\nSaving --> j\nUploading --> j\nj --> [*]\n@enduml\n";
-        let drawn = bars(source);
-        assert_eq!(drawn.len(), 2, "{drawn:?}");
-        for (_, width) in &drawn {
-            assert!(*width > super::BAR_LONG, "{drawn:?}");
-        }
-        // A bar with one state to each side keeps its length.
-        let one = "@startuml\nstate f <<fork>>\n[*] --> f\nf --> A\n@enduml\n";
-        assert!(
-            bars(one)
-                .iter()
-                .all(|(_, width)| (*width - super::BAR_LONG).abs() < 0.01)
-        );
-    }
-
-    #[test]
-    fn each_line_meets_a_join_at_a_place_of_its_own() {
-        let source = "@startuml\nstate j <<join>>\n[*] --> Saving\n[*] --> Uploading\nSaving --> j\nUploading --> j\nj --> [*]\n@enduml\n";
-        let (_, lines) = crate::source::body(source).unwrap();
-        let (svg, _) = draw_mapped(&parse(&lines).unwrap()).unwrap();
-        // The tips of the two heads into the join stand apart.
-        let tips: Vec<&str> = svg
-            .split("<polygon points=\"")
-            .skip(1)
-            .filter_map(|rest| rest.split(' ').nth(1))
-            .collect();
-        let mut distinct = tips.clone();
-        distinct.sort_unstable();
-        distinct.dedup();
-        assert_eq!(distinct.len(), tips.len(), "{tips:?}");
-    }
+#[test]
+fn a_bar_in_a_state_grows_only_as_far_as_its_frame() {
+    let source = "@startuml\nstate \"Wide state number one\" as W1\nstate Outer {\n  state f <<fork>>\n  [*] --> f\n  f --> W1\n  f --> W2\n}\n[*] --> Outer\nOuter --> Done\n@enduml\n";
+    let (_, _, width) = bars(&drawn(source))[0];
+    assert!((width - super::BAR_LONG).abs() < 0.01, "{width}");
 }

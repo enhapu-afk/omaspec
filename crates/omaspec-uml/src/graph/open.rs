@@ -18,7 +18,7 @@
 use std::collections::{HashMap, HashSet};
 
 use super::hold::{Held, Hold, Unheld};
-use super::{Direction, Edge, Frame, Layout, Node, Rect, framed, route};
+use super::{Direction, Edge, Frame, Layout, Node, Rect, framed, route, span};
 use crate::text::Block;
 
 type Point = (f32, f32);
@@ -198,6 +198,12 @@ pub trait Nested {
     /// ([0022](../../../../docs/adr/0022-lines-bundled.md)).
     fn bundled(&self, _container: Self::Container) -> bool {
         true
+    }
+    /// Member `index` of `container` is a bar across the flow, as long as
+    /// the boxes it splits and joins are apart ([`super::span`]): a fork
+    /// or a join.
+    fn spans(&self, _container: Self::Container, _index: usize) -> bool {
+        false
     }
     /// Members of `container` whose lines stay out of a bundle.
     fn apart_at(&self, _container: Self::Container) -> Vec<usize> {
@@ -417,6 +423,7 @@ pub fn layout<C: Nested>(cx: &C, top: C::Container) -> Result<Scene<C::Item, C::
         measured: Vec::new(),
         framed: Vec::new(),
         nodes: Vec::new(),
+        spans: Vec::new(),
         frames: Vec::new(),
         within: Vec::new(),
         edges: Vec::new(),
@@ -433,14 +440,16 @@ pub fn layout<C: Nested>(cx: &C, top: C::Container) -> Result<Scene<C::Item, C::
             hold.word = hold.word.mirrored(axis);
         }
     }
-    let laid = framed(
-        &flat.nodes,
-        &flat.frames,
-        &flat.within,
-        &flat.edges,
-        &holds,
-        axis,
-    );
+    let bars = span::Bars {
+        bars: &flat.spans,
+        edges: &flat.edges,
+        within: &flat.within,
+        frames: &flat.frames,
+        direction: axis,
+    };
+    let laid = span::laid(&mut flat.nodes, &bars, |nodes| {
+        framed(nodes, &flat.frames, &flat.within, &flat.edges, &holds, axis)
+    });
     unheld.extend(laid.unheld.iter().map(|&(at, why)| (lines[at], why)));
     let mut scene = flat.assemble(cx, top, &mut Vec::new(), &laid);
     scene.unheld = unheld;
@@ -559,6 +568,8 @@ struct Flat<C: Nested> {
     measured: Vec<Option<Measured<C::Item, C::Look>>>,
     framed: Vec<Option<Measured<C::Item, C::Look>>>,
     nodes: Vec<Node>,
+    /// Which nodes are bars across the flow ([`Nested::spans`]).
+    spans: Vec<bool>,
     frames: Vec<Frame>,
     within: Vec<Option<usize>>,
     edges: Vec<Edge>,
@@ -603,6 +614,7 @@ impl<C: Nested> Flat<C> {
                     loop_extra: 0.0,
                     flat: item.flat,
                 });
+                self.spans.push(cx.spans(container, index));
                 self.within.push(frame);
                 self.measured.push(Some(item));
             }

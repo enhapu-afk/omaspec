@@ -57,6 +57,13 @@ impl<'a> Nested for States<'a> {
         container.bundled
     }
 
+    fn spans(&self, container: &'a Container, index: usize) -> bool {
+        container
+            .nodes
+            .get(index)
+            .is_some_and(|node| matches!(node.kind, Kind::Fork | Kind::Join))
+    }
+
     /// The members the writer kept apart, and every fork and join: the
     /// lines a bar splits and joins each meet it at a place of their own.
     fn apart_at(&self, container: &'a Container) -> Vec<usize> {

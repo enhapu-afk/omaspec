@@ -20,6 +20,7 @@ use crate::map::{Map, Route, Shape, Spot};
 use crate::svg::{Align, Canvas, Layer, Stroke, n};
 use crate::text::{self, Block, Family, Font};
 
+#[cfg(test)]
 mod bars;
 mod nest;
 mod open;
@@ -84,7 +85,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         ],
         family,
     )?;
-    let mut scene = bars::laid_out(&diagram.root, &skin, family)?;
+    let mut scene = layout_container(&diagram.root, &skin, family)?;
     link_crossings(&diagram.root, &mut scene, &skin, family)?;
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
@@ -338,10 +339,11 @@ fn measure_node(
             (diameter, diameter, title, Vec::new())
         }
         Kind::Fork | Kind::Join => {
-            let long = bars::long(&node.key);
+            // As long as what they split and join, once laid out
+            // (`graph::span`).
             let (width, height) = match direction {
-                Direction::Down => (long, BAR_SHORT),
-                Direction::Right => (BAR_SHORT, long),
+                Direction::Down => (BAR_LONG, BAR_SHORT),
+                Direction::Right => (BAR_SHORT, BAR_LONG),
             };
             (width, height, Block::empty(), Vec::new())
         }

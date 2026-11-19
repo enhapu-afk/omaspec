@@ -130,7 +130,10 @@ pub(crate) fn read_sequence(code: &str, lang: Language) -> Option<(sequence::Dia
         },
         Language::Mermaid => {
             let (body, offset) = mermaid_body(code);
-            sequence::from_mermaid(body).map(|d| (d, offset))
+            sequence::from_mermaid(body).map(|mut d| {
+                d.footbox = omaspec_core::settings::mirrors_actors(body);
+                (d, offset)
+            })
         }
     }
 }

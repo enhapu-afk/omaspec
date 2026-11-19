@@ -33,9 +33,9 @@ const CORNER: f32 = 8.0;
 /// A run moved to take a step out keeps at least this far from the lines
 /// beside it.
 const ROOM: f32 = 10.0;
-/// A run moved to take a step out keeps at least this far from the boxes
-/// it passes beside, or as far as before: one moved up against a box's
-/// side reads as touching it.
+/// A run moved to take a step out, and the step grown by it, keep at
+/// least this far from the sides of the boxes and frames they pass, or as
+/// far as before: a line moved up against a side reads as touching it.
 const BESIDE: f32 = 12.0;
 /// Its label keeps this far from other words and from boxes.
 const MARGIN: f32 = 4.0;
@@ -387,14 +387,24 @@ fn absorb(
                 now >= ROOM || now >= gap(was, (s[0], s[1])) - 0.01
             })
         });
-        let roomy = boxes.iter().all(|&rect| {
-            let now = beside(run, rect);
-            now >= BESIDE || now >= beside(was, rect) - 0.01
-        });
-        if !clear || !roomy {
+        if !clear {
             continue;
         }
         let moved = merged(moved);
+        // The run moved and the step grown keep off the sides of the boxes
+        // and frames they come to pass.
+        let nearest = |line: &[Point], rect: Rect| {
+            line.windows(2)
+                .map(|s| beside((s[0], s[1]), rect))
+                .fold(f32::INFINITY, f32::min)
+        };
+        let roomy = boxes.iter().chain(frames).all(|&rect| {
+            let now = nearest(&moved, rect);
+            now >= BESIDE || now >= nearest(points, rect) - 0.01
+        });
+        if !roomy {
+            continue;
+        }
         // The steps both have in common at either end cross the same
         // lines; only the ones between them can differ.
         let (old, new) = differing(points, &moved);
@@ -740,6 +750,19 @@ mod tests {
         let mut lines = vec![detour.clone()];
         merge(&mut lines, &[a, b, third, fourth], &[], &|_, _| None, true);
         assert_eq!(lines[0], detour);
+        // A frame's side as well.
+        let mut lines = vec![detour.clone()];
+        merge(&mut lines, &[a, b, fourth], &[third], &|_, _| None, true);
+        assert_eq!(lines[0], detour);
+        // The step that grows keeps off a box as well: here it would pass
+        // 3 under one.
+        let above = rect(-20.0, 35.0, 30.0, 22.0);
+        let mut lines = vec![detour.clone()];
+        merge(&mut lines, &[a, b, fourth, above], &[], &|_, _| None, true);
+        assert_ne!(
+            lines[0],
+            [(40.0, 30.0), (40.0, 60.0), (0.0, 60.0), (0.0, 300.0)]
+        );
         // Twelve units off its side, it moves.
         let third = rect(-60.0, 100.0, 48.0, 100.0);
         let mut lines = vec![detour];

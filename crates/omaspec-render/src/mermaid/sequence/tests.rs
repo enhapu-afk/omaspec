@@ -71,6 +71,25 @@ fn the_participants_stand_below_unless_mirror_actors_is_false() {
     }
     let on = format!("%%{{init: {{\"sequence\": {{\"mirrorActors\": true}}}}}}%%\n{body}");
     assert_eq!(names(&on), 2);
+    // YAML's other spellings of false.
+    for off in ["False", "FALSE"] {
+        let front = format!("---\nconfig:\n  sequence:\n    mirrorActors: {off}\n---\n{body}");
+        assert_eq!(names(&front), 1, "{front}");
+    }
+    // ZenUML takes the same setting.
+    let zen = |head: &str| {
+        let source = format!("{head}zenuml\n  Alice->Bob: hi\n");
+        super::try_draw_zenuml(&theme, &source)
+            .unwrap()
+            .0
+            .matches(">Alice<")
+            .count()
+    };
+    assert_eq!(zen(""), 2);
+    assert_eq!(
+        zen("%%{init: {\"sequence\": {\"mirrorActors\": false}}}%%\n"),
+        1
+    );
     // A participant destroyed has no foot, as in Mermaid.
     let destroyed = "sequenceDiagram\n  Alice->>Bob: hi\n  destroy Bob\n  Alice-xBob: bye\n";
     let svg = try_draw(&theme, destroyed).unwrap();

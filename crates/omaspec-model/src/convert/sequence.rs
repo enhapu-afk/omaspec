@@ -100,6 +100,12 @@ impl Writer {
     }
 
     fn mermaid(&mut self, d: &Diagram) -> Result<(), Refused> {
+        // `hide footbox` is Mermaid's setting against drawing the
+        // participants again below.
+        if !d.footbox {
+            self.out
+                .push("%%{init: {\"sequence\": {\"mirrorActors\": false}}}%%".into());
+        }
         self.out.push("sequenceDiagram".into());
         if let Some(title) = &d.frame.title {
             self.out
@@ -271,6 +277,9 @@ impl Writer {
         if let Some(title) = &d.frame.title {
             self.out
                 .push(format!("title {}", to_plantuml_text(&title.value)));
+        }
+        if !d.footbox {
+            self.out.push("hide footbox".into());
         }
         if d.items
             .iter()
@@ -735,6 +744,34 @@ sequenceDiagram
                 plantuml.code
             );
         }
+    }
+
+    #[test]
+    fn participants_below_or_not_carry_over_both_ways() {
+        let hidden = "@startuml\nhide footbox\nAlice -> Bob : hi\n@enduml\n";
+        let mermaid = both(hidden, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(
+            mermaid.code.starts_with(
+                "%%{init: {\"sequence\": {\"mirrorActors\": false}}}%%\nsequenceDiagram\n"
+            ),
+            "{}",
+            mermaid.code
+        );
+        let back = both(&mermaid.code, Language::Mermaid, Language::PlantUml).unwrap();
+        assert!(back.code.contains("\nhide footbox\n"), "{}", back.code);
+        let front = "---\nconfig:\n  sequence:\n    mirrorActors: false\n---\nsequenceDiagram\n    Alice->>Bob: hi\n";
+        let plantuml = both(front, Language::Mermaid, Language::PlantUml).unwrap();
+        assert!(
+            plantuml.code.contains("\nhide footbox\n"),
+            "{}",
+            plantuml.code
+        );
+        // Below, as both draw them unless told: nothing to say.
+        let shown = "@startuml\nAlice -> Bob : hi\n@enduml\n";
+        let mermaid = both(shown, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(!mermaid.code.contains("mirrorActors"), "{}", mermaid.code);
+        let back = both(&mermaid.code, Language::Mermaid, Language::PlantUml).unwrap();
+        assert!(!back.code.contains("footbox"), "{}", back.code);
     }
 
     #[test]

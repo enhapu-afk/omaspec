@@ -17,8 +17,9 @@ pub struct Setting {
     pub line: usize,
 }
 
-/// A value of the front matter as JSON: a number, `true`, `false`, or the
-/// text without its quotes.
+/// A value of the front matter as JSON: a number, `true` or `false` as
+/// YAML writes them (`True`, `FALSE` too, as Mermaid's reader takes them),
+/// or the text without its quotes.
 fn scalar(text: &str) -> Value {
     let text = text.trim();
     if let Some(inner) = text
@@ -29,8 +30,8 @@ fn scalar(text: &str) -> Value {
         return Value::String(inner.to_owned());
     }
     match text {
-        "true" => Value::Bool(true),
-        "false" => Value::Bool(false),
+        "true" | "True" | "TRUE" => Value::Bool(true),
+        "false" | "False" | "FALSE" => Value::Bool(false),
         _ => text
             .parse::<f64>()
             .ok()
@@ -252,6 +253,16 @@ pub fn init(code: &str) -> Vec<Setting> {
         });
     }
     out
+}
+
+/// Whether a Mermaid sequence draws its participants again below their
+/// lifelines: as Mermaid does, unless `sequence.mirrorActors` is false in
+/// the front matter's `config` or a `%%{init}%%`. PlantUML's `hide
+/// footbox` is the same.
+pub fn mirrors_actors(code: &str) -> bool {
+    merged(code)
+        .and_then(|settings| settings.get("sequence")?.get("mirrorActors")?.as_bool())
+        .unwrap_or(true)
 }
 
 /// The front matter's settings and then the directives', which count
