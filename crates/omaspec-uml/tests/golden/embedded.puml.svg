@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="294" height="465" viewBox="0 0 294 465">
+<g transform="translate(10,10)">
+<g>
+<line x1="23.3" y1="30.3" x2="23.3" y2="262.63" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="90.31" y1="30.3" x2="90.31" y2="262.63" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g>
+<rect x="0" y="0" width="46.59" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="7" y="19.99" font-size="14" fill="#000000" textLength="32.59" lengthAdjust="spacing">Alice</tspan>
+</text>
+<rect x="70.25" y="0" width="40.12" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="77.25" y="19.99" font-size="14" fill="#000000" textLength="26.12" lengthAdjust="spacing">Bob</tspan>
+</text>
+<line x1="23.3" y1="59.43" x2="90.31" y2="59.43" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="80.31,55.43 90.31,59.43 80.31,63.43 84.31,59.43" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="30.3" y="54.36" font-size="13" fill="#000000" textLength="29.35" lengthAdjust="spacing">hello</tspan>
+</text>
+<path d="M95.31,40.3 L95.31,220.5 L263.31,220.5 L263.31,50.3 L253.31,40.3 Z" fill="#FFFDE7" stroke="#181818" stroke-width="0.5"/>
+<path d="M253.31,40.3 L253.31,50.3 L263.31,50.3" fill="#FFFDE7" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="101.31" y="57.36" font-size="13" fill="#000000" textLength="138.28" lengthAdjust="spacing">The handshake inside:</tspan>
+</text>
+<g id="icon">
+<svg x="101.31" y="60.43" width="146" height="152" viewBox="0 0 146 152">
+<g transform="translate(10,10)">
+<g>
+<line x1="20.06" y1="30.3" x2="20.06" y2="101.56" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="101.02" y1="30.3" x2="101.02" y2="101.56" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+</g>
+<g>
+<rect x="0" y="0" width="40.12" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="7" y="19.99" font-size="14" fill="#000000" textLength="26.12" lengthAdjust="spacing">Bob</tspan>
+</text>
+<rect x="76.45" y="0" width="49.14" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="83.45" y="19.99" font-size="14" fill="#000000" textLength="35.14" lengthAdjust="spacing">Carol</tspan>
+</text>
+<line x1="20.06" y1="59.43" x2="101.02" y2="59.43" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="91.02,55.43 101.02,59.43 91.02,63.43 95.02,59.43" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="27.06" y="54.36" font-size="13" fill="#000000" textLength="21.31" lengthAdjust="spacing">ask</tspan>
+</text>
+<line x1="101.02" y1="88.56" x2="20.06" y2="88.56" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="30.06,84.56 20.06,88.56 30.06,92.56 26.06,88.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="34.06" y="83.49" font-size="13" fill="#000000" textLength="44.95" lengthAdjust="spacing">answer</tspan>
+</text>
+<rect x="0" y="101.56" width="40.12" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="7" y="121.55" font-size="14" fill="#000000" textLength="26.12" lengthAdjust="spacing">Bob</tspan>
+</text>
+<rect x="76.45" y="101.56" width="49.14" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="83.45" y="121.55" font-size="14" fill="#000000" textLength="35.14" lengthAdjust="spacing">Carol</tspan>
+</text>
+</g>
+</g>
+</svg>
+</g>
+<line x1="90.31" y1="249.63" x2="23.3" y2="249.63" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="33.3,245.63 23.3,249.63 33.3,253.63 29.3,249.63" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="37.3" y="244.56" font-size="13" fill="#000000" textLength="31.02" lengthAdjust="spacing">done</tspan>
+</text>
+<rect x="0" y="262.63" width="46.59" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="7" y="282.62" font-size="14" fill="#000000" textLength="32.59" lengthAdjust="spacing">Alice</tspan>
+</text>
+<rect x="70.25" y="262.63" width="40.12" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="77.25" y="282.62" font-size="14" fill="#000000" textLength="26.12" lengthAdjust="spacing">Bob</tspan>
+</text>
+<rect x="61.66" y="302.92" width="150" height="141.3" rx="7.5" ry="7.5" fill="#DDDDDD" stroke="#000000" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+</text>
+<g id="icon">
+<svg x="69.66" y="307.92" width="134" height="128" viewBox="0 0 134 128">
+<g transform="translate(10,10)">
+<g>
+<line x1="24.05" y1="53.97" x2="24.05" y2="73.97" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="90.61" y1="53.97" x2="90.61" y2="73.97" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="24.05" y1="53.97" x2="90.61" y2="53.97" fill="none" stroke="#181818" stroke-width="1.5"/>
+<line x1="57.33" y1="33.97" x2="57.33" y2="53.97" fill="none" stroke="#181818" stroke-width="1.5"/>
+</g>
+<g>
+<rect x="0" y="73.97" width="48.09" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="10" y="95.1" font-size="12" fill="#000000" textLength="28.09" lengthAdjust="spacing">Build</tspan>
+</text>
+<rect x="68.09" y="73.97" width="45.04" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="78.09" y="95.1" font-size="12" fill="#000000" textLength="25.04" lengthAdjust="spacing">Ship</tspan>
+</text>
+<rect x="24.98" y="0" width="64.7" height="33.97" fill="#F1F1F1" stroke="#181818" stroke-width="1.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="34.98" y="21.14" font-size="12" fill="#000000" textLength="44.7" lengthAdjust="spacing">Release</tspan>
+</text>
+</g>
+</g>
+</svg>
+</g>
+</g>
+</g>
+</svg>

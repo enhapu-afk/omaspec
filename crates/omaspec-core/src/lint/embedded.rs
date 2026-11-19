@@ -1,29 +1,30 @@
 //! A diagram inside a diagram (REQ-077): PlantUML draws what stands
-//! between `{{` and `}}` in a note or a label as a picture of its own.
-//! Omaspec's engine writes those lines as text, so lint says it on the
-//! line that opens one.
+//! between `{{` and `}}` in a note or a legend as a picture of its own,
+//! and so does Omaspec's engine ([`omaspec_uml::embedded`]). Where the
+//! engine does not draw that diagram, it writes those lines as text, and
+//! lint says so on the line that opens it, with why.
+
+use omaspec_uml::embedded::{closes, declined, opens};
 
 use super::{Finding, Severity};
 
-/// What may follow `{{` on its line: nothing, or the kind of the diagram.
-fn opens(line: &str) -> bool {
-    let Some(rest) = line.trim().strip_prefix("{{") else {
-        return false;
-    };
-    let rest = rest.trim();
-    rest.chars().all(|c| c.is_ascii_alphabetic()) && rest.len() <= 12
-}
-
 /// A hint for each line of a PlantUML diagram that opens an embedded
-/// diagram, where a later line closes it.
+/// diagram the engine does not draw, where a later line closes it.
 pub(super) fn findings(lines: &[&str], findings: &mut Vec<Finding>) {
     for (row, line) in lines.iter().enumerate() {
-        if opens(line) && lines[row + 1..].iter().any(|later| later.trim() == "}}") {
+        let Some(kind) = opens(line) else { continue };
+        let Some(end) = closes(&lines[row + 1..]) else {
+            continue;
+        };
+        if let Err(why) = declined(kind, &lines[row + 1..row + 1 + end]) {
             findings.push(Finding::new(
                 "embedded-diagram",
                 row,
                 Severity::Info,
-                "Omaspec writes a diagram inside a diagram (`{{` to `}}`) as its text; the Java PlantUML draws it as a picture.",
+                format!(
+                    "Omaspec writes this diagram inside a diagram (`{{{{` to `}}}}`) as its text, since {}; the Java PlantUML draws it as a picture.",
+                    why.reason.trim_end_matches('.')
+                ),
             ));
         }
     }
@@ -41,9 +42,10 @@ mod tests {
     }
 
     #[test]
-    fn the_line_that_opens_a_diagram_inside_gets_a_hint() {
-        let code = "@startuml\nAlice -> Bob\nnote right\n  {{\n  Bob -> Carol\n  }}\nend note\nnote left\n{{wbs\n* a\n}}\nend note\n@enduml";
-        assert_eq!(found(code), [3, 8]);
+    fn the_line_that_opens_a_diagram_the_engine_does_not_draw_gets_a_hint() {
+        // Drawn: no hint. A kind the engine does not draw: a hint.
+        let code = "@startuml\nAlice -> Bob\nnote right\n  {{\n  Bob -> Carol\n  }}\nend note\nnote left\n{{wbs\n* a\n}}\nend note\nnote left\n{{dot\ndigraph { a -> b }\n}}\nend note\n@enduml";
+        assert_eq!(found(code), [13]);
         // Never closed, or braces that are words of a label: no diagram.
         assert!(found("@startuml\nnote right\n{{\nend note\n@enduml").is_empty());
         assert!(found("@startuml\nA -> B : {{ x }}\n}}\n@enduml").is_empty());

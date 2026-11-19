@@ -21,9 +21,6 @@ Before anything below: the sequence diagram, the state machine and the
 activity diagram elegant, modern and without a flaw in any theme, in the
 theme's colors and in the file's own. What is done is in docs/DONE.md.
 
-- [ ] REQ-077: an embedded diagram (`{{ … }}`) is drawn as text. Lint
-      says so on the line with `{{` (`embedded-diagram`); drawing it as a
-      picture inside the note is open.
 - [ ] The focus in a real window, and at small zooms, where a lit line
       is never thinner than three quarters of a pixel.
 

@@ -22,6 +22,7 @@ mod color;
 mod common;
 pub mod curve;
 pub mod ditaa;
+pub mod embedded;
 pub mod er;
 pub mod flow;
 pub mod fold;
@@ -363,7 +364,7 @@ pub fn render_marked(
             d.fold(&fold::read(source));
             d.frame.parts = fold::parts(source);
             d.mark(marks);
-            state::draw_mapped(&d)
+            embedded::within(embedded::skin_of(&d.frame), || state::draw_mapped(&d))
         }
         _ => Err(Declined {
             line: None,
@@ -382,7 +383,9 @@ pub fn render_table(
     table: &table::Table,
 ) -> Result<(String, map::Map), Declined> {
     match parse_with(source, includes)? {
-        Diagram::State(d) => state::draw_table(&d, table),
+        Diagram::State(d) => {
+            embedded::within(embedded::skin_of(&d.frame), || state::draw_table(&d, table))
+        }
         _ => Err(Declined {
             line: None,
             reason: "only a state diagram has a table of states and events".to_owned(),
@@ -398,8 +401,36 @@ pub fn render_mapped(
     source: &str,
     includes: Option<&dyn Includes>,
 ) -> Result<(String, map::Map), Declined> {
+    let diagram = parse_with(source, includes)?;
+    embedded::within(skin_of(&diagram), || draw_mapped(diagram, source))
+}
+
+/// The skinparams of `diagram` as lines, for the diagrams inside it.
+fn skin_of(diagram: &Diagram) -> Vec<String> {
+    let frame = match diagram {
+        Diagram::Sequence(d) => &d.frame,
+        Diagram::Activity(d) => &d.frame,
+        Diagram::State(d) => &d.frame,
+        Diagram::MindMap(d) => &d.frame,
+        Diagram::Wbs(d) => &d.frame,
+        Diagram::Structure(d) => &d.frame,
+        Diagram::Timing(d) => &d.frame,
+        Diagram::Gantt(d) => &d.frame,
+        Diagram::Flow(d) => &d.frame,
+        Diagram::Json(d) => &d.frame,
+        Diagram::Network(d) => &d.frame,
+        Diagram::Salt(d) => &d.frame,
+        Diagram::Railroad(d) => &d.frame,
+        Diagram::Ditaa(d) => &d.frame,
+        Diagram::Formula(_) => return Vec::new(),
+    };
+    embedded::skin_of(frame)
+}
+
+/// [`render_mapped`] once `diagram` is read from `source`.
+fn draw_mapped(diagram: Diagram, source: &str) -> Result<(String, map::Map), Declined> {
     let unmapped = |svg: Result<String, Declined>| svg.map(|svg| (svg, map::Map::default()));
-    match parse_with(source, includes)? {
+    match diagram {
         Diagram::Sequence(d) => sequence::draw_mapped(&d),
         Diagram::State(mut d) => {
             d.fold(&fold::read(source));

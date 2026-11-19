@@ -805,6 +805,19 @@ impl Canvas {
     fn icon(&self, out: &mut String, icon: &Icon, (x, baseline): (f32, f32), color: Color) {
         let fill = self.color(icon.color.unwrap_or(color));
         match &icon.picture {
+            Picture::Diagram(diagram) => {
+                let _ = write!(
+                    out,
+                    r#"<svg x="{}" y="{}" width="{}" height="{}" viewBox="0 0 {} {}">{}</svg>"#,
+                    n(x),
+                    n(baseline - icon.height),
+                    n(icon.width),
+                    n(icon.height),
+                    n(diagram.view.0),
+                    n(diagram.view.1),
+                    diagram.body
+                );
+            }
             Picture::Arrow(arrow) => {
                 let d = arrow_path(*arrow, x, baseline, icon.width, icon.height);
                 let width = (icon.height * 0.075).max(0.8);

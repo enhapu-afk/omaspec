@@ -660,7 +660,9 @@ pub fn deciding<'a>(lines: &[Line<'a>]) -> Vec<Line<'a>> {
     let mut out = Vec::with_capacity(lines.len());
     let mut until: Option<fn(&str) -> bool> = None;
     let mut depth = 0isize;
-    for &line in lines {
+    // Inside a block, how deep in diagrams inside it.
+    let mut inside = Inside::of(lines);
+    for (at, &line) in lines.iter().enumerate() {
         let text = line.text;
         if depth > 0 {
             depth += brace_delta(text);
@@ -671,7 +673,7 @@ pub fn deciding<'a>(lines: &[Line<'a>]) -> Vec<Line<'a>> {
             continue;
         }
         if let Some(end) = until {
-            if end(text) {
+            if !inside.within(at) && end(text) {
                 until = None;
             }
             continue;
@@ -833,7 +835,8 @@ pub fn take_link(input: &str, line: usize) -> Result<(String, Option<Link>), Dec
 }
 
 /// The lines after `lines[at]` up to the one `is_end` accepts, joined with
-/// newlines, blank lines kept, and the index after that end.
+/// newlines, blank lines kept, and the index after that end. An end line
+/// inside a diagram inside the block (`{{` to `}}`) is that diagram's.
 pub fn block(
     lines: &[Line],
     at: usize,
@@ -841,9 +844,11 @@ pub fn block(
     is_end: impl Fn(&str) -> bool,
 ) -> Result<(String, usize), Declined> {
     let mut body = Vec::new();
-    for (offset, line) in lines[at + 1..].iter().enumerate() {
+    let rest = &lines[at + 1..];
+    let mut inside = Inside::of(rest);
+    for (offset, line) in rest.iter().enumerate() {
         body.extend(std::iter::repeat_n("", line.blank_before));
-        if is_end(line.text) {
+        if !inside.within(offset) && is_end(line.text) {
             return Ok((body.join("\n"), at + offset + 2));
         }
         body.push(line.text);
@@ -852,6 +857,37 @@ pub fn block(
         lines[at].no,
         format!("`{what}` has no end line"),
     ))
+}
+
+/// How deep the lines of a block lie in diagrams inside it
+/// ([`crate::embedded`]): a line `{{` that a later `}}` closes opens one.
+struct Inside<'a> {
+    texts: Vec<&'a str>,
+    depth: usize,
+}
+
+impl<'a> Inside<'a> {
+    fn of(lines: &[Line<'a>]) -> Self {
+        Inside {
+            texts: lines.iter().map(|line| line.text).collect(),
+            depth: 0,
+        }
+    }
+
+    /// Whether the line at `at` lies inside such a diagram, its opening
+    /// and closing lines too; called for each line in turn.
+    fn within(&mut self, at: usize) -> bool {
+        let text = self.texts[at];
+        let before = self.depth;
+        if crate::embedded::opens(text).is_some()
+            && (self.depth > 0 || crate::embedded::closes(&self.texts[at + 1..]).is_some())
+        {
+            self.depth += 1;
+        } else if self.depth > 0 && text.trim() == "}}" {
+            self.depth -= 1;
+        }
+        before > 0 || self.depth > 0
+    }
 }
 
 /// The words of a block, as [`block`] reads them, where they start: on

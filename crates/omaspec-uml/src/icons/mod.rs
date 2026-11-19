@@ -39,6 +39,8 @@ pub enum Picture {
     /// An arrow the handwriting face lacks (`→`), drawn by hand in its
     /// place.
     Arrow(char),
+    /// A diagram inside the text (`{{` to `}}`), as the engine drew it.
+    Diagram(std::sync::Arc<crate::embedded::Embedded>),
 }
 
 /// The side of an Open Iconic icon in its own units.

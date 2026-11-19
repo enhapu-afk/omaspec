@@ -813,7 +813,7 @@ there keeps its meaning.
 | `trace-line`, `trace-deviation`, `trace-unchecked`, `trace-no-start`, `trace-too-many-ways` | a trace: a line not read, an event the machine does not take, and what could not be followed |
 | `stale-entry`, `by-hand-miss` | an entry by hand (a line, a held box) that no longer holds |
 | `unknown-icon`, `faint-color`, `unheeded-setting` | an icon the set does not have, a color too faint to read, a setting nothing heeds |
-| `embedded-diagram` | a diagram inside a diagram (`{{` to `}}`), which Omaspec writes as its text |
+| `embedded-diagram` | a diagram inside a diagram (`{{` to `}}`) the engine does not draw, so Omaspec writes it as its text, and why |
 | `unseen-character` | a character nobody sees (a zero-width space, a mark that turns the text's direction) on the line; the fix takes it out |
 | `not-mermaid-js` | Omaspec draws it, mermaid.js (GitHub) does not |
 | `project-file` | the project's file does not read |
@@ -898,7 +898,9 @@ and Omaspec says so. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
 angles. `skinparam componentStyle` (`uml2`, `uml1`, `rectangle`) and `packageStyle`
 (`rectangle`, `folder`, `frame`, `node`, `cloud`, `database`) draw as in PlantUML, and a
-member's visibility may stand before its marks (`+{static} count`). `hide`, `show`,
+member's visibility may stand before its marks (`+{static} count`). A diagram inside a
+diagram, between a line `{{` (or `{{wbs`, `{{json`, …) and a line `}}` in a note or a
+legend, is drawn as a picture there, in the outer diagram's look. `hide`, `show`,
 `remove` and `restore` work as in PlantUML, wherever they stand, the last line about a box
 deciding: a part of the boxes (`hide members`, `hide private fields`, `show Foo methods`,
 `hide <<Entity>> stereotype`), a box (`hide Foo`, `hide <<Entity>>`, `hide class`), the

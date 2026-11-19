@@ -2931,6 +2931,20 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       the line that opens a diagram inside a diagram (`{{`, or `{{wbs`,
       where a later line closes it) that Omaspec writes it as its text
       and the Java PlantUML draws it.
+- [x] REQ-077, the picture (2026-11-19): a diagram inside a diagram is
+      drawn by the engine (`embedded.rs`) and set in its text as a picture
+      on a line of its own (`Picture::Diagram`, a nested `<svg>`), in a
+      note, a legend or any text of several lines, of every kind: `{{` is
+      an `@startuml`, `{{wbs`, `{{json`, `{{salt` and the rest their own
+      kind. It is drawn in the outer diagram's skinparams, so a look laid
+      over the outer one (the Omarchy colors, a skin pack) colors it too,
+      and without them where the engine does not take them; its background
+      is left out, and so are the ids of its groups. Three diagrams deep
+      the next one stays text, and a thread keeps the last 64 pictures. An
+      `end note` or `endlegend` inside it is its own: the block around it
+      ends after `}}`, also for the lines that decide the type. Where the
+      engine does not draw it (`{{dot`), the lines stay text and lint's
+      `embedded-diagram` says why
 - [x] A state machine's play lights each state in its own shape
       (2026-11-18): the state's outline as its picture draws it
       (`focus::Outline`, the one the focus lets a box through in) is what

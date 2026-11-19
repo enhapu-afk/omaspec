@@ -283,7 +283,9 @@ pub(crate) fn wrapped(
 }
 
 /// `text` in `font`, measured. `\n` and real line breaks start new lines.
-/// Consecutive lines that start with `|` are one Creole table.
+/// Consecutive lines that start with `|` are one Creole table. A diagram
+/// between a line `{{` and a line `}}` is a picture on a line of its own
+/// ([`crate::embedded`]), where the engine draws it.
 pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
     let mut lines = Vec::new();
     let mut rows: Vec<&str> = Vec::new();
@@ -296,7 +298,38 @@ pub fn block(text: &str, font: Font, family: Family) -> Result<Block, String> {
     };
     // How far a numbered list has counted, by its depth.
     let mut counts: Vec<u32> = Vec::new();
-    for line in text.split('\n') {
+    let all: Vec<&str> = text.split('\n').collect();
+    let mut skip = 0;
+    for (at, &line) in all.iter().enumerate() {
+        if skip > 0 {
+            skip -= 1;
+            continue;
+        }
+        if let Some(kind) = crate::embedded::opens(line)
+            && let Some(end) = crate::embedded::closes(&all[at + 1..])
+            && let Some(diagram) = crate::embedded::picture(kind, &all[at + 1..at + 1 + end])
+        {
+            flush(&mut lines, &mut rows)?;
+            counts.clear();
+            let icon = Icon {
+                width: diagram.width,
+                height: diagram.height,
+                color: None,
+                picture: Picture::Diagram(diagram),
+            };
+            lines.push(line_of(
+                vec![Piece {
+                    text: String::new(),
+                    style: Style::from(font),
+                    link: None,
+                    icon: Some(icon),
+                }],
+                font.size,
+                family,
+            ));
+            skip = end + 1;
+            continue;
+        }
         if is_table_line(line) {
             rows.push(line);
         } else {

@@ -1,0 +1,21 @@
+@startuml
+' Diagrams inside a diagram (REQ-077): drawn as pictures in a note and
+' in a legend, in the outer diagram's skinparams.
+skinparam noteBackgroundColor #FFFDE7
+Alice -> Bob : hello
+note right
+  The handshake inside:
+  {{
+    Bob -> Carol : ask
+    Carol --> Bob : answer
+  }}
+end note
+Bob --> Alice : done
+legend
+  {{wbs
+  * Release
+  ** Build
+  ** Ship
+  }}
+endlegend
+@enduml
