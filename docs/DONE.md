@@ -800,6 +800,36 @@ is open and the reasoning around it.
       direction override or a control character, says after which word, and its fix
       takes them out; a no-break space, the joiners of emoji and scripts and a byte
       order mark at the start are left alone.
+- [x] `hide`, `show`, `remove` and `restore` in class diagrams (REQ-081, 2026-11-19),
+      and in the other structure diagrams: read wherever they stand
+      (`structure/hide.rs`) and laid on the boxes once all are known, the last line
+      about a box deciding, as PlantUML does. A part (`members`, `fields`/`attributes`,
+      `methods`, `circle`, `stereotype`) of all boxes, of a kind (`class`, `interface`,
+      `enum`, `abstract`, `annotation`, `entity`, `object`, unless a box has that name),
+      of a stereotype, of one box, of the members of a visibility (`hide private,
+      protected members`); a box itself by name, stereotype, kind, `@unlinked`, `$tag`
+      (read off its declaration) or `*`. A hidden box keeps its place and is not drawn,
+      nor are its lines or its notes; a removed one is gone with them and every index
+      left is renumbered. The rules and headings around members that are hidden go
+      with them. `hide empty …` changes nothing (no empty compartment is drawn), and
+      `hide circle` takes away the kind's word that stands for the circle; hiding a
+      stereotype gives that word back. A name that is no box and no kind's word
+      declines on its line (`hide footbox` in a class diagram)
+- [x] A class diagram of lines alone (REQ-082, 2026-11-19): a line between two names
+      that the sequence diagram reads no message in (`Usuario <|-- Cliente`, `A *-- B`,
+      `A -- B`, `A ..> B`) makes a class diagram, as PlantUML tries the sequence diagram
+      first and then the class diagram; so does `hide`/`show` of a class's part. `A ->
+      B` stays a sequence diagram
+- [x] `skinparam groupInheritance` and a readable self-association (REQ-083,
+      2026-11-19). The lines up into one parent under a triangle, as many as it says
+      within one package, meet in one stem under a single triangle
+      ([0033](adr/0033-subclasses-as-a-tree.md), `graph/join.rs`): the gap beside the
+      parent is at least 60, the lines join 0.6 of the way into it and go on as one;
+      a tree that would run along another line or through a box is not drawn. A
+      self-loop with a multiplicity is 18 high and reaches 40 out, the multiplicity
+      over the run that leaves and under the one that arrives, outside the loop where
+      its words are not; the next loop around it passes over the marks. They stood
+      inside a loop 14 high before, on top of each other
 - [x] Sequence diagrams read as PlantUML 1.2026.8 reads them, found by the oracle:
       declaring a participant again, or after a message named it, moves it to the end and
       out of its box, into the one open then, and changes nothing else (its name, shape,

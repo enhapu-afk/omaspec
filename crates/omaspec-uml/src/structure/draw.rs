@@ -323,6 +323,8 @@ struct Item {
     /// on it, and the name has the room across the flow
     /// ([`open::lollipop_rooms`]).
     beside: bool,
+    /// `hide Name`: the box keeps its place and is not drawn.
+    hidden: bool,
 }
 
 /// What a line keeps for painting, besides its label.
@@ -603,6 +605,7 @@ fn measure_element(
             composite: el.composite,
             link: el.link.clone(),
             beside: direction == Direction::Down,
+            hidden: el.hidden,
         },
     })
 }
@@ -1142,9 +1145,11 @@ fn paint(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
 fn paint_shapes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<usize>) {
     for (index, node) in scene.nodes.iter().enumerate() {
         path.push(index);
-        canvas.part(&crate::svg::place_part(path), |canvas| {
-            paint_shape(canvas, skin, node);
-        });
+        if !node.item.hidden {
+            canvas.part(&crate::svg::place_part(path), |canvas| {
+                paint_shape(canvas, skin, node);
+            });
+        }
         if node.item.composite {
             paint_shapes(canvas, skin, &node.children, path);
         }
@@ -2264,13 +2269,28 @@ fn card_at(
         };
         containers.iter().any(|&frame| on_border(frame, card))
     };
+    // A loop's other end lies beside its first run, not along it: the
+    // multiplicity stands outside the loop, where the loop's words are
+    // not, over the run that leaves and under the one that arrives.
+    let other = if at_start {
+        points[points.len() - 1]
+    } else {
+        points[0]
+    };
+    let (ox, oy) = (other.0 - tip.0, other.1 - tip.1);
+    let (ahead, beside) = (ox * ux + oy * uy, ox * px + oy * py);
+    let side = if ahead.abs() < 1.0 && beside.abs() > 1.0 {
+        -beside.signum()
+    } else {
+        1.0
+    };
     let last = first.max(len * 0.65);
     (0..)
         .map(|step| first + step as f32 * 4.0)
         .take_while(|&travel| travel <= last)
-        .flat_map(|travel| [at(travel, 1.0), at(travel, -1.0)])
+        .flat_map(|travel| [at(travel, side), at(travel, -side)])
         .find(|&spot| !across(spot))
-        .unwrap_or_else(|| at(first, 1.0))
+        .unwrap_or_else(|| at(first, side))
 }
 
 /// Whether `rect` lies across the border of `frame`: partly in it.
@@ -2464,6 +2484,32 @@ mod tests {
         let skin = Skin::default();
         let canvas = Canvas::new(&skin.font_name, false);
         layout_group(&diagram.root, &skin, canvas.family()).unwrap()
+    }
+
+    #[test]
+    fn a_loop_s_multiplicities_stand_outside_it() {
+        let svg = crate::render(
+            "@startuml\nclass Usuario\nUsuario \"1\" -- \"0..*\" Usuario : supervisa >\n@enduml\n",
+        )
+        .unwrap();
+        // The baseline of each word, and the middle of the box's side.
+        let baseline = |word: &str| -> f32 {
+            let at = svg.find(&format!(">{word}</tspan>")).expect("the word");
+            let tag = &svg[svg[..at].rfind("<tspan").unwrap()..at];
+            let y = tag.split("y=\"").nth(1).unwrap().split('"').next().unwrap();
+            y.parse().unwrap()
+        };
+        let rect = &svg[svg.find("<rect").unwrap()..];
+        let number = |name: &str| -> f32 {
+            let value = rect.split(&format!(" {name}=\"")).nth(1).unwrap();
+            value.split('"').next().unwrap().parse().unwrap()
+        };
+        let middle = number("y") + number("height") / 2.0;
+        // Over the run that leaves, under the one that arrives (its
+        // figures, 12 high, rise 8 over their baseline): neither between
+        // the two.
+        assert!(baseline("1") < middle - 9.0, "{svg}");
+        assert!(baseline("0..*") - 8.0 > middle + 9.0, "{svg}");
     }
 
     #[test]

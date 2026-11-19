@@ -2,6 +2,7 @@
 //! node or frame with a line from itself to itself stays a box, laid out
 //! on its own.
 
+use super::super::{Head, Link};
 use super::{
     Block, Declined, Direction, Draft, Family, Group, Item, Look, Measured, NOTE_GAP, Placed, Rect,
     Scene, Side, Skin, arrow_stroke, card_rects, child_origin, containers, frame_of, graph,
@@ -132,6 +133,36 @@ impl<'a> Nested for Elements<'a> {
         group.edges.get(index)?.level
     }
 
+    /// Under `groupInheritance`, the lines up into one box under a
+    /// triangle, alike and without words, share their stem when there
+    /// are as many as it says.
+    fn tree(&self, group: &'a Group, index: usize) -> Option<graph::Tree> {
+        let least = self.skin.group_inheritance;
+        if least == 0 {
+            return None;
+        }
+        let edge = group.edges.get(index)?;
+        let (parent, at_from) = inherits(edge)?;
+        let look = |link: &'a Link| (link.dash, &link.color, link.bold);
+        // The looks of the lines up into that box, in the order written:
+        // a tree's key is its look's place among them.
+        let mut looks = Vec::new();
+        let mut count = 0;
+        for other in &group.edges {
+            if inherits(other).is_some_and(|(p, _)| p == parent) {
+                if !looks.contains(&look(other)) {
+                    looks.push(look(other));
+                }
+                count += usize::from(look(other) == look(edge));
+            }
+        }
+        let key = looks.iter().position(|seen| *seen == look(edge))?;
+        (count >= least.max(2)).then_some(graph::Tree {
+            key: u8::try_from(key).ok()?,
+            at_from,
+        })
+    }
+
     fn label_before(&self, group: &'a Group, index: usize) -> Option<bool> {
         match group.edges.get(index) {
             Some(edge) => edge.label_before,
@@ -213,6 +244,28 @@ impl<'a> Nested for Elements<'a> {
         let rects: Vec<Rect> = scene.nodes.iter().map(|node| node.rect).collect();
         scene.notes = place_notes(&mut drafts, &rects, &scene.edges);
         Ok(())
+    }
+}
+
+/// The box a line goes up into under a triangle, and whether that is its
+/// first end: a line drawn, between two boxes, with no words and no
+/// other head.
+fn inherits(edge: &Link) -> Option<(usize, bool)> {
+    let worded = |text: &Option<crate::common::Text>| {
+        text.as_ref().is_some_and(|text| !text.value.is_empty())
+    };
+    if edge.hidden
+        || edge.from == edge.to
+        || worded(&edge.label)
+        || worded(&edge.from_card)
+        || worded(&edge.to_card)
+    {
+        return None;
+    }
+    match (edge.from_head, edge.to_head) {
+        (Head::Triangle, Head::None) => Some((edge.from, true)),
+        (Head::None, Head::Triangle) => Some((edge.to, false)),
+        _ => None,
     }
 }
 

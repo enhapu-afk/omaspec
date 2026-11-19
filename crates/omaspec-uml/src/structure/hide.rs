@@ -1,0 +1,913 @@
+//! `hide`, `show`, `remove` and `restore`: which boxes a structure
+//! diagram shows, and what of each. PlantUML reads these lines wherever
+//! they stand and applies them once every box is known, in the order
+//! written: of the lines that name a box, the last one decides.
+//!
+//! A box hidden keeps its place and is not drawn, nor are its lines; a
+//! box removed is gone, with its lines and its notes. The look here draws
+//! no empty compartment and no circle before a name. What stands for the
+//! circle is the kind's word over the name («interface»), so `hide
+//! circle` takes that word away, and `hide empty members` changes
+//! nothing.
+
+use std::collections::HashSet;
+
+use super::{Element, Group, Member, Shape, Slot};
+use crate::Declined;
+use crate::common::{keyword, snippet, text_at};
+
+/// One of these lines, as read.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct Directive {
+    line: usize,
+    what: What,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum What {
+    /// `hide members`, `show Foo methods`, `hide private fields`, `hide
+    /// <<Entity>> circle`: a part of the boxes `target` names. Members
+    /// of the marks in `visibility` only, when it names any.
+    Part {
+        show: bool,
+        target: Target,
+        part: Part,
+        visibility: Vec<char>,
+    },
+    /// `hide empty members`: a compartment without members, which is
+    /// never drawn here.
+    Nothing,
+    /// `hide Foo`, `show <<Entity>>`, `hide @unlinked`.
+    Seen { show: bool, target: Target },
+    /// `remove Foo`, `restore $tag`.
+    Kept { keep: bool, target: Target },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum Target {
+    /// No target, or `*`.
+    All,
+    /// `class`, `interface`, …: every box of that kind.
+    Kind(&'static [Shape]),
+    /// `<<Entity>>`: every box with that stereotype.
+    Stereotype(String),
+    /// A box by its name; a kind's word when no box has that name.
+    Name(String),
+    /// `$tag`: every box declared with it.
+    Tag(String),
+    /// `@unlinked`: every box no line meets.
+    Unlinked,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Part {
+    Members,
+    Fields,
+    Methods,
+    Circle,
+    Stereotype,
+}
+
+const VERBS: [&str; 4] = ["hide", "show", "remove", "restore"];
+
+/// The verb `text` starts with, when it is one of these lines.
+pub(super) fn verb(text: &str) -> Option<&'static str> {
+    VERBS.into_iter().find(|verb| keyword(text, verb).is_some())
+}
+
+/// Whether `text` hides or shows a part only a class diagram has, so the
+/// diagram is one: PlantUML's sequence diagram takes no such line.
+pub(super) fn marks_structure(text: &str) -> bool {
+    let Some(rest) = keyword(text, "hide").or_else(|| keyword(text, "show")) else {
+        return false;
+    };
+    tokens(rest).is_some_and(|tokens| tokens.last().and_then(|last| part_of(last)).is_some())
+}
+
+/// The line `text` as one of these, or `None` when it is no such line.
+pub(super) fn directive(text: &str, line: usize) -> Result<Option<Directive>, Declined> {
+    let Some(verb) = verb(text) else {
+        return Ok(None);
+    };
+    let rest = keyword(text, verb).unwrap_or_default();
+    let unread = || Declined::at(line, format!("`{}` is not supported yet", snippet(text)));
+    let tokens = tokens(rest).ok_or_else(unread)?;
+    if tokens.is_empty() {
+        return Err(Declined::at(
+            line,
+            format!("`{verb}` needs what it {verb}s"),
+        ));
+    }
+    let what = match verb {
+        "hide" | "show" => {
+            let show = verb == "show";
+            match tokens.split_last() {
+                Some((last, before)) if part_of(last).is_some() => {
+                    let part = part_of(last).expect("a part");
+                    part_line(show, before, part).ok_or_else(unread)?
+                }
+                _ if tokens.len() == 1 => What::Seen {
+                    show,
+                    target: target_of(&tokens[0]).ok_or_else(unread)?,
+                },
+                _ => return Err(unread()),
+            }
+        }
+        _ => {
+            let [one] = tokens.as_slice() else {
+                return Err(unread());
+            };
+            What::Kept {
+                keep: verb == "restore",
+                target: target_of(one).ok_or_else(unread)?,
+            }
+        }
+    };
+    Ok(Some(Directive { line, what }))
+}
+
+/// The words of a line, a stereotype (`<<a b>>`) and a quoted name each
+/// as one, with its marks; commas part words like spaces.
+fn tokens(text: &str) -> Option<Vec<String>> {
+    let parted = |c: char| c.is_whitespace() || c == ',';
+    let mut out = Vec::new();
+    let mut rest = text.trim_start_matches(parted);
+    while !rest.is_empty() {
+        let (token, after) = if let Some(inner) = rest.strip_prefix("<<") {
+            let end = inner.find(">>")?;
+            (format!("<<{}>>", &inner[..end]), &inner[end + 2..])
+        } else if let Some(inner) = rest.strip_prefix('"') {
+            let end = inner.find('"')?;
+            (format!("\"{}\"", &inner[..end]), &inner[end + 1..])
+        } else {
+            let end = rest.find(parted).unwrap_or(rest.len());
+            (rest[..end].to_owned(), &rest[end..])
+        };
+        out.push(token);
+        rest = after.trim_start_matches(parted);
+    }
+    Some(out)
+}
+
+/// The part a word names: `members`, `fields`, `circle`, ….
+fn part_of(word: &str) -> Option<Part> {
+    let word = word.to_ascii_lowercase();
+    Some(match word.as_str() {
+        "member" | "members" => Part::Members,
+        "field" | "fields" | "attribute" | "attributes" => Part::Fields,
+        "method" | "methods" => Part::Methods,
+        "stereotype" | "stereotypes" => Part::Stereotype,
+        _ if word.starts_with("circle") => Part::Circle,
+        _ => return None,
+    })
+}
+
+/// `hide [target] [empty] part` or `hide private, protected members`.
+fn part_line(show: bool, before: &[String], part: Part) -> Option<What> {
+    let mut empty = false;
+    let mut visibility = Vec::new();
+    let mut target = None;
+    for token in before {
+        let mark = match token.to_ascii_lowercase().as_str() {
+            "empty" => {
+                empty = true;
+                continue;
+            }
+            "public" => '+',
+            "private" => '-',
+            "protected" => '#',
+            "package" => '~',
+            _ => {
+                if target.is_some() {
+                    return None;
+                }
+                target = Some(target_of(token)?);
+                continue;
+            }
+        };
+        visibility.push(mark);
+    }
+    let members = matches!(part, Part::Members | Part::Fields | Part::Methods);
+    if empty {
+        return members.then_some(What::Nothing);
+    }
+    if !visibility.is_empty() && !members {
+        return None;
+    }
+    Some(What::Part {
+        show,
+        target: target.unwrap_or(Target::All),
+        part,
+        visibility,
+    })
+}
+
+fn target_of(token: &str) -> Option<Target> {
+    if token == "*" {
+        return Some(Target::All);
+    }
+    if token.eq_ignore_ascii_case("@unlinked") {
+        return Some(Target::Unlinked);
+    }
+    if let Some(tag) = token.strip_prefix('$') {
+        return (!tag.is_empty()).then(|| Target::Tag(tag.to_owned()));
+    }
+    if let Some(inner) = token.strip_prefix("<<").and_then(|t| t.strip_suffix(">>")) {
+        let inner = inner.trim();
+        return (!inner.is_empty()).then(|| Target::Stereotype(inner.to_owned()));
+    }
+    if let Some(inner) = token.strip_prefix('"').and_then(|t| t.strip_suffix('"')) {
+        return (!inner.is_empty()).then(|| Target::Name(inner.to_owned()));
+    }
+    (!token.starts_with(['@', '<', '"'])).then(|| Target::Name(token.to_owned()))
+}
+
+/// The boxes a kind's word names, as PlantUML's `hide` takes them.
+fn kind_of(word: &str) -> Option<&'static [Shape]> {
+    Some(match word.to_ascii_lowercase().as_str() {
+        "class" => &[Shape::Class],
+        "abstract" => &[Shape::Abstract],
+        "interface" => &[Shape::Interface, Shape::Lollipop],
+        "enum" => &[Shape::Enum],
+        "annotation" => &[Shape::Annotation],
+        "entity" => &[Shape::Entity],
+        "object" => &[Shape::Object],
+        _ => return None,
+    })
+}
+
+/// The `$tag`s on a declaration taken out of it: the line without them,
+/// and the tags. Words in quotes and in a stereotype stay.
+pub(super) fn take_tags(text: &str) -> (String, Vec<String>) {
+    let mut kept = String::with_capacity(text.len());
+    let mut tags = Vec::new();
+    let mut rest = text;
+    let mut quoted = false;
+    let mut stereo = false;
+    while let Some(c) = rest.chars().next() {
+        let at_word = kept.is_empty() || kept.ends_with(char::is_whitespace);
+        if !quoted && !stereo && c == '$' && at_word {
+            let end = rest
+                .find(|c: char| c.is_whitespace() || c == '{')
+                .unwrap_or(rest.len());
+            if end > 1 {
+                tags.push(rest[1..end].to_owned());
+                rest = rest[end..].trim_start();
+                continue;
+            }
+        }
+        if c == '"' {
+            quoted = !quoted;
+        } else if !quoted && rest.starts_with("<<") {
+            stereo = true;
+        } else if stereo && rest.starts_with(">>") {
+            stereo = false;
+        }
+        kept.push(c);
+        rest = &rest[c.len_utf8()..];
+    }
+    (kept.trim_end().to_owned(), tags)
+}
+
+/// Lays `directives` on the boxes of `root`; `tags` are each box's
+/// `$tag`s, by its key. A name that is no box and no kind's word is
+/// declined on its line.
+pub(super) fn apply(
+    root: &mut Group,
+    directives: &[Directive],
+    tags: &[(String, String)],
+) -> Result<(), Declined> {
+    if directives.is_empty() {
+        return Ok(());
+    }
+    let mut boxes = Vec::new();
+    walk(root, &mut Vec::new(), &mut boxes);
+    let directives = resolved(root, &boxes, directives)?;
+    let mut linked = HashSet::new();
+    lines_of(root, &mut Vec::new(), &mut linked);
+    let world = World {
+        linked: &linked,
+        tags,
+        directives: &directives,
+    };
+    let mut gone = HashSet::new();
+    let mut unseen = HashSet::new();
+    let mut plans = Vec::with_capacity(boxes.len());
+    for path in &boxes {
+        let el = node(root, path);
+        if world.last(path, el, kept) == Some(false) {
+            gone.insert(path.clone());
+        }
+        if world.last(path, el, seen) == Some(false) {
+            unseen.insert(path.clone());
+        }
+        plans.push(world.plan(path, el));
+    }
+    for (path, plan) in boxes.iter().zip(plans) {
+        plan.lay(node_mut(root, path));
+    }
+    if !unseen.is_empty() {
+        unsee(root, &mut Vec::new(), &unseen, false);
+    }
+    if !gone.is_empty() {
+        prune(root, &mut Vec::new(), &gone);
+    }
+    Ok(())
+}
+
+/// The directives with each name that is no box read as a kind's word.
+fn resolved(
+    root: &Group,
+    boxes: &[Vec<usize>],
+    directives: &[Directive],
+) -> Result<Vec<Directive>, Declined> {
+    let named = |name: &str| {
+        boxes.iter().any(|path| {
+            let el = node(root, path);
+            el.key == name || el.label.value == name
+        })
+    };
+    directives
+        .iter()
+        .map(|directive| {
+            let mut directive = directive.clone();
+            let target = match &mut directive.what {
+                What::Part { target, .. }
+                | What::Seen { target, .. }
+                | What::Kept { target, .. } => target,
+                What::Nothing => return Ok(directive),
+            };
+            if let Target::Name(name) = target
+                && !named(name)
+            {
+                *target = Target::Kind(kind_of(name).ok_or_else(|| {
+                    Declined::at(directive.line, format!("no box is called `{name}`"))
+                })?);
+            }
+            Ok(directive)
+        })
+        .collect()
+}
+
+/// What the directives are read against.
+struct World<'a> {
+    linked: &'a HashSet<Vec<usize>>,
+    tags: &'a [(String, String)],
+    directives: &'a [Directive],
+}
+
+fn kept(what: &What) -> Option<(bool, &Target)> {
+    match what {
+        What::Kept { keep, target } => Some((*keep, target)),
+        _ => None,
+    }
+}
+
+fn seen(what: &What) -> Option<(bool, &Target)> {
+    match what {
+        What::Seen { show, target } => Some((*show, target)),
+        _ => None,
+    }
+}
+
+impl World<'_> {
+    fn names(&self, target: &Target, path: &[usize], el: &Element) -> bool {
+        match target {
+            Target::All => true,
+            Target::Kind(shapes) => shapes.contains(&el.shape),
+            Target::Stereotype(name) => el.stereotypes.iter().any(|s| s.value == *name),
+            Target::Name(name) => el.key == *name || el.label.value == *name,
+            Target::Tag(tag) => self
+                .tags
+                .iter()
+                .any(|(key, written)| *key == el.key && written == tag),
+            // A note of its own is no box a line is missing from.
+            Target::Unlinked => {
+                !el.composite && el.shape != Shape::Note && !self.linked.contains(path)
+            }
+        }
+    }
+
+    /// What the last directive `pick` takes that names the box says.
+    fn last(
+        &self,
+        path: &[usize],
+        el: &Element,
+        pick: fn(&What) -> Option<(bool, &Target)>,
+    ) -> Option<bool> {
+        self.directives
+            .iter()
+            .rev()
+            .filter_map(|directive| pick(&directive.what))
+            .find(|(_, target)| self.names(target, path, el))
+            .map(|(show, _)| show)
+    }
+
+    /// Whether the last directive about `part` of the box shows it, for a
+    /// member of `mark` and `slot` when it is about members.
+    fn shows(
+        &self,
+        path: &[usize],
+        el: &Element,
+        about: impl Fn(Part) -> bool,
+        mark: Option<char>,
+    ) -> bool {
+        self.directives
+            .iter()
+            .rev()
+            .find_map(|directive| match &directive.what {
+                What::Part {
+                    show,
+                    target,
+                    part,
+                    visibility,
+                } if about(*part)
+                    && (visibility.is_empty() || mark.is_some_and(|m| visibility.contains(&m)))
+                    && self.names(target, path, el) =>
+                {
+                    Some(*show)
+                }
+                _ => None,
+            })
+            .unwrap_or(true)
+    }
+
+    fn plan(&self, path: &[usize], el: &Element) -> Plan {
+        let members = el
+            .members
+            .iter()
+            .map(|member| match member {
+                Member::Text { text, slot, .. } => {
+                    let mark = text
+                        .value
+                        .chars()
+                        .next()
+                        .filter(|c| matches!(c, '+' | '-' | '#' | '~'));
+                    let slot = *slot;
+                    self.shows(
+                        path,
+                        el,
+                        |part| match part {
+                            Part::Members => true,
+                            Part::Fields => slot == Slot::Attribute,
+                            Part::Methods => slot == Slot::Method,
+                            Part::Circle | Part::Stereotype => false,
+                        },
+                        mark,
+                    )
+                }
+                Member::Rule(_) | Member::Heading(_) => true,
+            })
+            .collect();
+        Plan {
+            members,
+            circle: self.shows(path, el, |part| part == Part::Circle, None),
+            stereotype: self.shows(path, el, |part| part == Part::Stereotype, None),
+        }
+    }
+}
+
+/// What of one box stays.
+struct Plan {
+    /// Each member, by its place.
+    members: Vec<bool>,
+    circle: bool,
+    stereotype: bool,
+}
+
+impl Plan {
+    fn lay(self, el: &mut Element) {
+        if self.members.iter().any(|shown| !shown) {
+            let mut shown = self.members.into_iter();
+            el.members.retain(|_| shown.next().unwrap_or(true));
+            tidy(&mut el.members);
+        }
+        let word = super::parse::default_stereo(el.shape);
+        let kind = |stereotypes: &[crate::common::Text]| matches!(stereotypes, [only] if Some(only.value.as_str()) == word);
+        if !self.stereotype && !kind(&el.stereotypes) {
+            el.stereotypes.clear();
+            if let Some(word) = word {
+                el.stereotypes.push(text_at(word, el.line));
+            }
+        }
+        if !self.circle && kind(&el.stereotypes) {
+            el.stereotypes.clear();
+        }
+    }
+}
+
+/// The rules and headings left around the members that stay: none when
+/// no member stays, none first, last or twice in a row, and no heading
+/// over nothing.
+fn tidy(members: &mut Vec<Member>) {
+    let texts = |from: &[Member]| {
+        from.iter()
+            .take_while(|m| !matches!(m, Member::Heading(_)))
+            .any(|m| matches!(m, Member::Text { .. }))
+    };
+    let all = std::mem::take(members);
+    for (at, member) in all.iter().enumerate() {
+        let keep = match member {
+            Member::Text { .. } => true,
+            Member::Heading(_) => texts(&all[at + 1..]),
+            Member::Rule(_) => {
+                !matches!(members.last(), None | Some(Member::Rule(_)))
+                    && all[at + 1..]
+                        .iter()
+                        .any(|m| matches!(m, Member::Text { .. }))
+            }
+        };
+        if keep {
+            members.push(member.clone());
+        }
+    }
+}
+
+/// Every box under `group`, by its path, a container before what it holds.
+fn walk(group: &Group, path: &mut Vec<usize>, out: &mut Vec<Vec<usize>>) {
+    for (index, node) in group.nodes.iter().enumerate() {
+        path.push(index);
+        out.push(path.clone());
+        walk(&node.children, path, out);
+        path.pop();
+    }
+}
+
+/// The boxes a line meets, by their paths.
+fn lines_of(group: &Group, path: &mut Vec<usize>, out: &mut HashSet<Vec<usize>>) {
+    let at = |end: &[usize]| [path.as_slice(), end].concat();
+    for edge in &group.edges {
+        out.insert(at(&[edge.from]));
+        out.insert(at(&[edge.to]));
+    }
+    for crossing in &group.crossings {
+        out.insert(at(&crossing.from));
+        out.insert(at(&crossing.to));
+    }
+    for (index, node) in group.nodes.iter().enumerate() {
+        path.push(index);
+        lines_of(&node.children, path, out);
+        path.pop();
+    }
+}
+
+fn node<'a>(root: &'a Group, path: &[usize]) -> &'a Element {
+    let (last, home) = path.split_last().expect("a box has a path");
+    let mut group = root;
+    for &index in home {
+        group = &group.nodes[index].children;
+    }
+    &group.nodes[*last]
+}
+
+fn node_mut<'a>(root: &'a mut Group, path: &[usize]) -> &'a mut Element {
+    let (last, home) = path.split_last().expect("a box has a path");
+    let mut group = root;
+    for &index in home {
+        group = &mut group.nodes[index].children;
+    }
+    &mut group.nodes[*last]
+}
+
+/// Whether `path`, or a container around it, is in `set`.
+fn within(set: &HashSet<Vec<usize>>, path: &[usize]) -> bool {
+    (1..=path.len()).any(|len| set.contains(&path[..len]))
+}
+
+/// Hides the boxes of `unseen` and what they hold, the lines that meet
+/// them, and the notes on them; `around` when a container around `group`
+/// is hidden.
+fn unsee(group: &mut Group, path: &mut Vec<usize>, unseen: &HashSet<Vec<usize>>, around: bool) {
+    let hidden = |end: &[usize], path: &[usize]| around || within(unseen, &[path, end].concat());
+    for edge in &mut group.edges {
+        if hidden(&[edge.from], path) || hidden(&[edge.to], path) {
+            edge.hidden = true;
+        }
+    }
+    for crossing in &mut group.crossings {
+        if hidden(&crossing.from, path) || hidden(&crossing.to, path) {
+            crossing.arrow.hidden = true;
+        }
+    }
+    group.notes.retain(|note| !hidden(&[note.target], path));
+    for (index, node) in group.nodes.iter_mut().enumerate() {
+        path.push(index);
+        let gone = around || unseen.contains(path.as_slice());
+        node.hidden |= gone;
+        unsee(&mut node.children, path, unseen, gone);
+        path.pop();
+    }
+}
+
+/// `path` once the boxes of `gone` are taken out, or `None` when it is
+/// one of them or in one.
+fn renumbered(gone: &HashSet<Vec<usize>>, path: &[usize]) -> Option<Vec<usize>> {
+    let mut out = Vec::with_capacity(path.len());
+    for (depth, &index) in path.iter().enumerate() {
+        if gone.contains(&path[..=depth]) {
+            return None;
+        }
+        let mut sibling = path[..=depth].to_vec();
+        let before = (0..index)
+            .filter(|&other| {
+                sibling[depth] = other;
+                gone.contains(&sibling)
+            })
+            .count();
+        out.push(index - before);
+    }
+    Some(out)
+}
+
+/// Takes the boxes of `gone` out of `group`, at `path`, with their lines
+/// and notes; every index left points where it pointed.
+fn prune(group: &mut Group, path: &mut Vec<usize>, gone: &HashSet<Vec<usize>>) {
+    let depth = path.len();
+    let moved = |end: &[usize], path: &[usize]| {
+        renumbered(gone, &[path, end].concat()).map(|new| new[depth..].to_vec())
+    };
+    group.edges.retain_mut(
+        |edge| match (moved(&[edge.from], path), moved(&[edge.to], path)) {
+            (Some(from), Some(to)) => {
+                (edge.from, edge.to) = (from[0], to[0]);
+                true
+            }
+            _ => false,
+        },
+    );
+    group.crossings.retain_mut(|crossing| {
+        match (moved(&crossing.from, path), moved(&crossing.to, path)) {
+            (Some(from), Some(to)) => {
+                (crossing.from, crossing.to) = (from, to);
+                true
+            }
+            _ => false,
+        }
+    });
+    group
+        .notes
+        .retain_mut(|note| match moved(&[note.target], path) {
+            Some(target) => {
+                note.target = target[0];
+                true
+            }
+            None => false,
+        });
+    for (index, node) in group.nodes.iter_mut().enumerate() {
+        path.push(index);
+        prune(&mut node.children, path, gone);
+        path.pop();
+    }
+    let mut index = 0;
+    group.nodes.retain(|_| {
+        path.push(index);
+        let keep = !gone.contains(path.as_slice());
+        path.pop();
+        index += 1;
+        keep
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_line_reads_its_target_and_part() {
+        let read = |text: &str| directive(text, 0).unwrap().unwrap().what;
+        assert_eq!(read("hide empty members"), What::Nothing);
+        assert_eq!(
+            read("hide circle"),
+            What::Part {
+                show: false,
+                target: Target::All,
+                part: Part::Circle,
+                visibility: Vec::new(),
+            }
+        );
+        assert_eq!(
+            read("show <<Serializable Thing>> fields"),
+            What::Part {
+                show: true,
+                target: Target::Stereotype("Serializable Thing".into()),
+                part: Part::Fields,
+                visibility: Vec::new(),
+            }
+        );
+        assert_eq!(
+            read("hide private, protected methods"),
+            What::Part {
+                show: false,
+                target: Target::All,
+                part: Part::Methods,
+                visibility: vec!['-', '#'],
+            }
+        );
+        assert_eq!(
+            read("remove @unlinked"),
+            What::Kept {
+                keep: false,
+                target: Target::Unlinked,
+            }
+        );
+        assert_eq!(
+            read("restore $tag1"),
+            What::Kept {
+                keep: true,
+                target: Target::Tag("tag1".into()),
+            }
+        );
+        assert_eq!(
+            read("hide \"Long name\""),
+            What::Seen {
+                show: false,
+                target: Target::Name("Long name".into()),
+            }
+        );
+        for text in [
+            "hide",
+            "hide A B",
+            "remove A methods",
+            "hide private circle",
+        ] {
+            assert!(directive(text, 0).is_err(), "{text}");
+        }
+        assert_eq!(directive("hidden A", 0).unwrap(), None);
+    }
+
+    #[test]
+    fn tags_leave_a_declaration_and_quotes_keep_theirs() {
+        assert_eq!(
+            take_tags("class C1 $tag13 {"),
+            ("class C1 {".into(), vec!["tag13".into()])
+        );
+        assert_eq!(
+            take_tags("class \"Costs $5\" as C <<$x>> $a $b"),
+            (
+                "class \"Costs $5\" as C <<$x>>".into(),
+                vec!["a".into(), "b".into()]
+            )
+        );
+        assert_eq!(take_tags("class Plain"), ("class Plain".into(), Vec::new()));
+    }
+
+    #[test]
+    fn rules_and_headings_go_with_the_members_around_them() {
+        let text = |value: &str| Member::Text {
+            text: text_at(value, 0),
+            italic: false,
+            underline: false,
+            slot: Slot::Attribute,
+        };
+        let heading = || Member::Heading(text_at("Head", 0));
+        let rule = || Member::Rule(super::super::Dash::Solid);
+        // None first, none last, none twice; the one under the heading
+        // was written there.
+        let mut members = vec![
+            rule(),
+            heading(),
+            rule(),
+            text("a"),
+            rule(),
+            rule(),
+            heading(),
+        ];
+        tidy(&mut members);
+        assert_eq!(members, vec![heading(), rule(), text("a")]);
+        let mut members = vec![text("a"), rule(), rule(), text("b"), rule()];
+        tidy(&mut members);
+        assert_eq!(members, vec![text("a"), rule(), text("b")]);
+    }
+
+    #[test]
+    fn a_path_moves_up_past_the_boxes_taken_out() {
+        let gone: HashSet<Vec<usize>> = [vec![0], vec![2, 1]].into_iter().collect();
+        assert_eq!(renumbered(&gone, &[1]), Some(vec![0]));
+        assert_eq!(renumbered(&gone, &[2, 3]), Some(vec![1, 2]));
+        assert_eq!(renumbered(&gone, &[2, 1, 0]), None);
+        assert_eq!(renumbered(&gone, &[0, 5]), None);
+    }
+
+    fn diagram(body: &str) -> super::super::Diagram {
+        let source = format!("@startuml\n{body}\n@enduml\n");
+        let (_, lines) = crate::source::body(&source).unwrap();
+        super::super::parse(&lines).unwrap_or_else(|err| panic!("{err:?}"))
+    }
+
+    fn keys(group: &Group) -> Vec<&str> {
+        group.nodes.iter().map(|node| node.key.as_str()).collect()
+    }
+
+    #[test]
+    fn what_a_class_diagram_hides_and_removes() {
+        let d = diagram(
+            "class A {\n  -a : int\n  +b()\n}\ninterface I\nclass B <<S>>\nclass C $t\n\
+             A --> B\nA ..|> I\nhide private members\nhide circle\nhide <<S>> stereotype\n\
+             hide B\nremove $t",
+        );
+        assert_eq!(keys(&d.root), ["A", "I", "B"]);
+        let [a, i, b] = &d.root.nodes[..] else {
+            unreachable!()
+        };
+        assert!(
+            matches!(&a.members[..], [Member::Text { text, .. }] if text.value == "+b()"),
+            "{:?}",
+            a.members
+        );
+        // The kind's word stands for the circle.
+        assert!(i.stereotypes.is_empty(), "{:?}", i.stereotypes);
+        assert!(b.hidden && b.stereotypes.is_empty() && !a.hidden);
+        // A line into a hidden box is laid out, not drawn.
+        let into = |to: &str| {
+            d.root
+                .edges
+                .iter()
+                .find(|edge| d.root.nodes[edge.to].key == to)
+                .expect("the line")
+        };
+        assert!(into("B").hidden && !into("I").hidden);
+    }
+
+    #[test]
+    fn the_last_line_about_a_box_decides() {
+        let d = diagram(
+            "class A {\n  x\n  +m()\n}\nclass B {\n  y\n  +n()\n}\n\
+             hide members\nshow A methods\nremove A\nrestore A",
+        );
+        let [a, b] = &d.root.nodes[..] else {
+            unreachable!()
+        };
+        assert!(matches!(
+            &a.members[..],
+            [Member::Text {
+                slot: Slot::Method,
+                ..
+            }]
+        ));
+        assert!(b.members.is_empty());
+        // A stereotype hidden gives back the word of the kind.
+        let d = diagram("interface I <<Remote>>\nhide stereotype");
+        let words: Vec<&str> = d.root.nodes[0]
+            .stereotypes
+            .iter()
+            .map(|s| s.value.as_str())
+            .collect();
+        assert_eq!(words, ["interface"]);
+    }
+
+    #[test]
+    fn a_box_removed_takes_its_lines_and_the_rest_keep_their_ends() {
+        let d = diagram(
+            "package P {\n  class X\n  class Y\n}\nclass Z\nclass W\nX --> Y\nZ --> Y\n\
+             note right of X : gone\nnote \"stays\" as N\nremove X\nremove @unlinked",
+        );
+        assert_eq!(keys(&d.root), ["P", "Z", "N"]);
+        let p = &d.root.nodes[0].children;
+        assert_eq!(keys(p), ["Y"]);
+        assert!(p.edges.is_empty() && p.notes.is_empty());
+        let crossing = &d.root.crossings[0];
+        assert_eq!(
+            (&crossing.from[..], &crossing.to[..]),
+            (&[1][..], &[0, 0][..])
+        );
+    }
+
+    #[test]
+    fn a_name_that_is_no_box_is_said() {
+        for (body, word) in [
+            ("class A\nhide Nobody", "Nobody"),
+            ("class A\nhide footbox", "footbox"),
+        ] {
+            let source = format!("@startuml\n{body}\n@enduml\n");
+            let (_, lines) = crate::source::body(&source).unwrap();
+            let err = super::super::parse(&lines).unwrap_err();
+            assert_eq!(err.line, Some(2), "{err:?}");
+            assert!(err.reason.contains(word), "{}", err.reason);
+        }
+        // A kind's word is no box's name: every class.
+        let d = diagram("class A\ninterface I\nhide class");
+        assert!(d.root.nodes[0].hidden && !d.root.nodes[1].hidden);
+    }
+
+    #[test]
+    fn lines_a_sequence_diagram_has_no_message_for_make_a_class_diagram() {
+        use crate::UmlType;
+        let of = |body: &str| crate::uml_type(&format!("@startuml\n{body}\n@enduml\n"));
+        for body in [
+            "Usuario <|-- Cliente",
+            "A *-- B",
+            "A o-- B",
+            "A -- B",
+            "A ..> B",
+            "A ..|> B",
+            "hide empty members\nA -> B",
+        ] {
+            assert_eq!(of(body), Some(UmlType::Structure), "{body}");
+            crate::render(&format!("@startuml\n{body}\n@enduml\n"))
+                .unwrap_or_else(|err| panic!("{body}: {err:?}"));
+        }
+        for body in ["A -> B", "A --> B : hi", "A ->x B", "A -> B\nhide footbox"] {
+            assert_eq!(of(body), Some(UmlType::Sequence), "{body}");
+        }
+    }
+}

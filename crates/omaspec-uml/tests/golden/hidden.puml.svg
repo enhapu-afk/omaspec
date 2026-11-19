@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="465" height="294" viewBox="0 0 465 294">
+<g transform="translate(10,10)">
+<g>
+<rect x="101.37" y="0" width="113.89" height="68.56" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<line x1="101.37" y1="27.3" x2="215.27" y2="27.3" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="144.56" width="70.17" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="114.17" y="144.56" width="89.63" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="247.8" y="144.56" width="66.15" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<rect x="19.91" y="204.86" width="104.51" height="68.56" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+<line x1="19.91" y1="232.15" x2="124.42" y2="232.15" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="369.59" y="20.13" width="74.61" height="28.3" fill="#FEFECE" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
+<path d="M158.65,82.56 L158.65,86.56 L158.65,100.36 C158.65,107.98 152.47,114.16 144.85,114.16 L88.57,114.16 C71.78,114.16 58.17,127.77 58.17,144.56 L58.17,144.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M158.65,82.56 L158.65,86.56 L158.65,114.16 L158.65,144.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M158.65,82.56 L158.65,86.56 L158.65,100.36 C158.65,107.98 164.83,114.16 172.45,114.16 L229.4,114.16 C246.19,114.16 259.8,127.77 259.8,144.56 L259.8,144.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M215.27,25.28 L246.27,25.28 C251.24,25.28 255.27,29.31 255.27,34.28 L255.27,34.28 C255.27,39.25 251.24,43.28 246.27,43.28 L215.27,43.28" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="53.62,172.86 53.62,194.86" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="165.65,82.56 158.65,68.56 151.65,82.56" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="165.65,82.56 158.65,68.56 151.65,82.56" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="165.65,82.56 158.65,68.56 151.65,82.56" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="49.62,194.86 53.62,204.86 57.62,194.86 53.62,199.36" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="132.82" y="18.99" font-size="14" fill="#000000" textLength="51" lengthAdjust="spacing">Usuario</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="113.37" y="44.36" font-size="13" fill="#000000" textLength="89.89" lengthAdjust="spacing">+name : String</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="113.37" y="59.49" font-size="13" fill="#000000" textLength="47.84" lengthAdjust="spacing">+login()</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="12" y="163.55" font-size="14" fill="#000000" textLength="46.17" lengthAdjust="spacing">Cliente</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="126.17" y="163.55" font-size="14" fill="#000000" textLength="65.63" lengthAdjust="spacing">Empleado</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="259.8" y="163.55" font-size="14" fill="#000000" textLength="42.15" lengthAdjust="spacing">Admin</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="44.58" y="223.85" font-size="14" fill="#000000" textLength="55.17" lengthAdjust="spacing">Account</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="31.91" y="249.22" font-size="13" fill="#000000" textLength="80.51" lengthAdjust="spacing">-balance : int</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="31.91" y="264.35" font-size="13" fill="#000000" textLength="49.11" lengthAdjust="spacing">+open()</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="381.59" y="39.12" font-size="14" fill="#000000" textLength="50.61" lengthAdjust="spacing">Archive</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="259.27" y="38.43" font-size="12" fill="#000000" textLength="66.32" lengthAdjust="spacing">supervisa &gt;</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="223.27" y="24.34" font-size="12" fill="#000000" textLength="4.88" lengthAdjust="spacing">1</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="223.27" y="52.53" font-size="12" fill="#000000" textLength="20.5" lengthAdjust="spacing">0..*</tspan>
+</text>
+</g>
+</g>
+</svg>

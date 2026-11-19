@@ -257,6 +257,7 @@ impl Reader {
             composite: false,
             children: Group::default(),
             link: None,
+            hidden: false,
             line,
         });
         self.open = Some((self.nodes.len() - 1, element, Rows::default()));

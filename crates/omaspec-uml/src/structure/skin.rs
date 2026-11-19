@@ -55,6 +55,9 @@ pub struct Skin {
     pub round: f32,
     /// `minClassWidth`. Zero means the text decides.
     pub min_class: f32,
+    /// `groupInheritance`: from how many lines up into one box under a
+    /// triangle (or alike) those lines join into one stem; 0 never.
+    pub group_inheritance: usize,
     /// `skinparam componentStyle`: the mark a component box carries.
     pub component_style: ComponentStyle,
     /// `skinparam packageStyle`: the shape a package is drawn as, when
@@ -245,6 +248,7 @@ impl Default for Skin {
             background: None,
             round: 0.0,
             min_class: 0.0,
+            group_inheritance: 0,
             component_style: ComponentStyle::Uml2,
             package_style: None,
             class_box: yellow,
@@ -499,6 +503,13 @@ impl Skin {
                 }
                 "roundcorner" => skin.round = p.corner()?,
                 "minclasswidth" => skin.min_class = p.number(0.0, 2000.0)?,
+                "groupinheritance" => {
+                    let count = p.number(0.0, 1000.0)?;
+                    if count.fract() != 0.0 {
+                        return Err(p.unsupported());
+                    }
+                    skin.group_inheritance = count as usize;
+                }
                 "componentstyle" => {
                     skin.component_style = match value.to_ascii_lowercase().as_str() {
                         "uml2" => ComponentStyle::Uml2,

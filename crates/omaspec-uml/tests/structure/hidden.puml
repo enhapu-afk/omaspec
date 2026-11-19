@@ -1,0 +1,34 @@
+@startuml
+' What `hide`, `show`, `remove` and `restore` leave of a class diagram,
+' and the lines up into one parent under `groupInheritance`.
+skinparam groupInheritance 2
+hide empty members
+hide circle
+hide <<Serializable>> stereotype
+hide private members
+show Account fields
+class Usuario {
+  -id : int
+  +name : String
+  +login()
+}
+class Cliente
+class Empleado
+class Admin
+class Account <<Serializable>> {
+  -balance : int
+  +open()
+}
+class Draft $wip
+class Archive $wip
+class Ghost
+Usuario <|-- Cliente
+Usuario <|-- Empleado
+Usuario <|-- Admin
+Usuario "1" -- "0..*" Usuario : supervisa >
+Cliente --> Account
+Account --> Ghost
+hide Ghost
+remove @unlinked
+restore Archive
+@enduml

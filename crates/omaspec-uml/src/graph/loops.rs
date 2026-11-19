@@ -25,6 +25,13 @@ pub(super) const LOOP_WORDS: f32 = 4.0;
 const LOOP_CLEAR: f32 = 6.0;
 /// From the outermost loop's ends to the corners of the side.
 const LOOP_INSET: f32 = 6.0;
+/// A loop with a multiplicity at its ends: each stands outside the loop,
+/// over the run that leaves and under the one that arrives, between the
+/// box and the far run. So the loop reaches out past a multiplicity and
+/// a head, and the next one around it passes over the marks.
+const MARKED_HALF: f32 = 9.0;
+const MARKED_REACH: f32 = 40.0;
+const MARKED_RING: f32 = 20.0;
 
 /// The self-loops of one box, from the one next to it outward. All sit on
 /// its free side. Each leaves and arrives at places of its own, further
@@ -40,18 +47,36 @@ pub(super) struct Loops {
     reach: f32,
     words_out: f32,
     words_along: f32,
+    /// Whether the last one has a multiplicity at an end.
+    marked: bool,
 }
 
 impl Loops {
-    /// The next loop outward, with words of `label`'s width and height:
-    /// half of what it takes of the side, and how far it reaches out.
-    pub(super) fn next(&mut self, label: (f32, f32), direction: Direction) -> (f32, f32) {
+    /// The next loop outward, with words of `label`'s width and height
+    /// and, when `marked`, a multiplicity at an end: half of what it takes
+    /// of the side, and how far it reaches out.
+    pub(super) fn next(
+        &mut self,
+        label: (f32, f32),
+        marked: bool,
+        direction: Direction,
+    ) -> (f32, f32) {
         let (out, along) = match direction {
             Direction::Down => label,
             Direction::Right => (label.1, label.0),
         };
         let (half, reach) = if self.count == 0 {
-            (LOOP_HALF, LOOP_REACH)
+            if marked {
+                (MARKED_HALF, MARKED_REACH)
+            } else {
+                (LOOP_HALF, LOOP_REACH)
+            }
+        } else if self.marked {
+            // Its marks lie over and under the one before.
+            (
+                (self.half + MARKED_RING).max(around(self.words_along / 2.0)),
+                (self.reach + LOOP_WORDS + self.words_out + LOOP_CLEAR).max(self.reach + LOOP_RING),
+            )
         } else if self.words_out > 0.0 {
             (
                 (self.half + LOOP_STEP).max(around(self.words_along / 2.0)),
@@ -60,6 +85,12 @@ impl Loops {
         } else {
             (self.half + LOOP_STEP, self.reach + LOOP_RING)
         };
+        // A loop with marks reaches past them, around the ones before.
+        let reach = if marked {
+            reach.max(self.reach + MARKED_REACH)
+        } else {
+            reach
+        };
         let worded = label.0 > 0.0 || label.1 > 0.0;
         *self = Loops {
             count: self.count + 1,
@@ -67,6 +98,7 @@ impl Loops {
             reach,
             words_out: if worded { out } else { 0.0 },
             words_along: if worded { along } else { 0.0 },
+            marked,
         };
         (half, reach)
     }
@@ -167,18 +199,38 @@ mod tests {
         let mut loops = Loops::default();
         assert_eq!((loops.room(), loops.side()), (0.0, 0.0));
         // One loop sits on any box, as it always has.
-        assert_eq!(loops.next((30.0, 14.0), Direction::Down), (7.0, 16.0));
+        assert_eq!(
+            loops.next((30.0, 14.0), false, Direction::Down),
+            (7.0, 16.0)
+        );
         assert_eq!((loops.room(), loops.side()), (50.0, 0.0));
         // The second lies around the first and its words.
-        let (half, reach) = loops.next((40.0, 14.0), Direction::Down);
+        let (half, reach) = loops.next((40.0, 14.0), false, Direction::Down);
         assert_eq!((half, reach), (17.0, 56.0));
         assert_eq!(loops.room(), 100.0);
         assert_eq!(loops.side(), 46.0);
         // Under a box, words are as wide along the side as they are long.
         let mut below = Loops::default();
-        let _ = below.next((120.0, 14.0), Direction::Right);
-        let (half, _) = below.next((0.0, 0.0), Direction::Right);
+        let _ = below.next((120.0, 14.0), false, Direction::Right);
+        let (half, _) = below.next((0.0, 0.0), false, Direction::Right);
         assert!(half > 60.0 + LOOP_WORDS, "{half}");
         assert!(below.side() > 120.0);
+    }
+
+    #[test]
+    fn a_loop_with_marks_reaches_past_them_and_the_next_passes_over_them() {
+        let mut loops = Loops::default();
+        assert_eq!(
+            loops.next((0.0, 0.0), true, Direction::Down),
+            (MARKED_HALF, MARKED_REACH)
+        );
+        let (half, reach) = loops.next((0.0, 0.0), false, Direction::Down);
+        assert_eq!(half, MARKED_HALF + MARKED_RING);
+        assert!(reach > MARKED_REACH, "{reach}");
+        // A second loop with marks reaches past the first one's.
+        let mut both = Loops::default();
+        let _ = both.next((0.0, 0.0), true, Direction::Down);
+        let (_, reach) = both.next((0.0, 0.0), true, Direction::Down);
+        assert!(reach >= 2.0 * MARKED_REACH, "{reach}");
     }
 }

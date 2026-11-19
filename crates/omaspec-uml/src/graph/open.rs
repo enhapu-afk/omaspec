@@ -219,6 +219,11 @@ pub trait Nested {
     fn level(&self, _container: Self::Container, _index: usize) -> Option<bool> {
         None
     }
+    /// The tree line `index` belongs to ([`super::Tree`]): the lines of
+    /// one key that meet one box share their stem into it.
+    fn tree(&self, _container: Self::Container, _index: usize) -> Option<super::Tree> {
+        None
+    }
     /// How a line drawn as `look` arrives at the box it ends at
     /// ([`super::arrival`]): lines share a trunk only when this is the
     /// same, so the heads that stack on it are one kind.
@@ -711,7 +716,8 @@ impl<C: Nested> Flat<C> {
                 // Each loop lies around the ones before and their words;
                 // a box grows along its free side until all of them end
                 // on it, each at a place of its own.
-                let _ = loops[member].next((label.width, label.height), axis);
+                let marked = cx.marked(container, index);
+                let _ = loops[member].next((label.width, label.height), marked, axis);
                 let node = &mut self.nodes[from];
                 node.loop_extra = node.loop_extra.max(loops[member].room());
                 if node.flat {
@@ -733,6 +739,7 @@ impl<C: Nested> Flat<C> {
                 arrival: cx.arrival(&look),
                 label_before: cx.label_before(container, index),
                 level: cx.level(container, index).filter(|_| drawn),
+                tree: cx.tree(container, index).filter(|_| drawn),
             });
             level.push(Pending {
                 at: self.edges.len() - 1,

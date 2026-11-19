@@ -14,6 +14,7 @@ pub use crate::common::{Frame, Skinparam, Text};
 pub use draw::{draw, draw_mapped};
 pub use mermaid::{from_mermaid, mermaid_refusal};
 pub use parse::parse;
+pub(crate) use parse::reads_as_message;
 pub use zenuml::from_zenuml;
 
 /// A parsed sequence diagram.

@@ -898,7 +898,20 @@ and Omaspec says so. Lines between states and between
 boxes curve, as PlantUML and Mermaid draw them; `skinparam linetype ortho` keeps right
 angles. `skinparam componentStyle` (`uml2`, `uml1`, `rectangle`) and `packageStyle`
 (`rectangle`, `folder`, `frame`, `node`, `cloud`, `database`) draw as in PlantUML, and a
-member's visibility may stand before its marks (`+{static} count`). A Mermaid subgraph keeps its own `direction` (`direction TB` inside a
+member's visibility may stand before its marks (`+{static} count`). `hide`, `show`,
+`remove` and `restore` work as in PlantUML, wherever they stand, the last line about a box
+deciding: a part of the boxes (`hide members`, `hide private fields`, `show Foo methods`,
+`hide <<Entity>> stereotype`), a box (`hide Foo`, `hide <<Entity>>`, `hide class`), the
+boxes without a line (`@unlinked`) and those declared with a tag (`class C $draft`,
+`remove $draft`, `remove *`, `restore $keep`). A hidden box keeps its place and is not
+drawn, nor are its lines; a removed one is gone with its lines and notes. Omaspec draws no
+empty compartment and no circle before a class name, so `hide empty members` changes
+nothing, and `hide circle` takes away the word that stands for the circle
+(«interface»). A file of lines alone (`Usuario <|-- Cliente`) is a class diagram, as in
+PlantUML. `skinparam groupInheritance 2` joins the lines from two or more subclasses into
+one stem under a single triangle ([ADR 0033](../adr/0033-subclasses-as-a-tree.md)). A
+line from a class to itself with multiplicities is a wider loop, the multiplicities
+outside it, over and under its ends. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a
 `flowchart LR`), also when its nodes have lines to the outside, where Mermaid itself
 drops it and lays the subgraph out in the chart's direction. Omaspec also has a diagram
 of its own, signal flow (`@startflow`,

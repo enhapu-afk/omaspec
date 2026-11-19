@@ -46,6 +46,7 @@ mod bundle;
 pub mod by_hand;
 mod doubled;
 pub mod hold;
+mod join;
 mod loops;
 mod nest;
 pub mod open;
@@ -53,6 +54,7 @@ mod order;
 pub mod route;
 mod straight;
 
+pub use join::Tree;
 use loops::{LOOP_WORDS, Loops, self_loop};
 
 /// A box the layout places, with empty room kept on either side across
@@ -102,6 +104,9 @@ pub struct Edge {
     /// the flow (`Some(true)`) or right before it, and the line runs
     /// straight between the two. `None` is a line from rank to rank.
     pub level: Option<bool>,
+    /// A line of a tree: the lines of one key that meet one box share one
+    /// stem into it ([`join`]), as subclasses under one triangle.
+    pub tree: Option<Tree>,
 }
 
 /// The key of a line's arrival ([`Edge::arrival`]): the head it ends in,
@@ -304,6 +309,7 @@ pub fn framed(
                     arrival: 0,
                     label_before: None,
                     level: None,
+                    tree: None,
                 });
                 along.push((index, upper, lower));
                 continue;
@@ -579,6 +585,7 @@ fn in_ranks(
     for (index, gap) in gaps.iter_mut().enumerate() {
         *gap += ending[index] + beginning[index + 1];
     }
+    join::room(&mut gaps, edges, &chains, &rows);
     let bands = place_along(&mut slots, &rows, &gaps);
     let rects: Vec<Rect> = (0..n).map(|i| rect_of(&slots, i, direction)).collect();
     // The lines within a rank, each between its two boxes; those that
@@ -657,8 +664,11 @@ fn in_ranks(
             continue;
         }
         let (points, label_at) = if looped {
-            let (half, reach) =
-                loops[edge.from].next((edge.label_width, edge.label_height), direction);
+            let (half, reach) = loops[edge.from].next(
+                (edge.label_width, edge.label_height),
+                edge.marked,
+                direction,
+            );
             let points = orthogonal(
                 &self_loop(rects[edge.from], half, reach, direction),
                 direction,
@@ -826,6 +836,7 @@ fn in_ranks(
         back: &back,
         direction,
     });
+    join::trees(&mut lines, edges, &rects, direction);
     for (index, (route, line)) in routes.iter_mut().zip(lines).enumerate() {
         if let Some(rect) = label_rect(index, &line) {
             route.label_at = (rect.x, rect.y);
@@ -2253,7 +2264,7 @@ mod tests {
         }
     }
 
-    fn edge(from: usize, to: usize) -> Edge {
+    pub(super) fn edge(from: usize, to: usize) -> Edge {
         Edge {
             from,
             to,
@@ -2265,6 +2276,7 @@ mod tests {
             arrival: 0,
             label_before: None,
             level: None,
+            tree: None,
         }
     }
 

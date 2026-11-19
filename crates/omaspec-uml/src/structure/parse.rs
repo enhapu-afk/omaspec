@@ -123,7 +123,16 @@ fn marks_structure(text: &str) -> bool {
     {
         return true;
     }
-    ends_wrapped(&lead, '[', ']')
+    ends_wrapped(&lead, '[', ']') || relation_only(text) || super::hide::marks_structure(text)
+}
+
+/// A line between two names that no sequence diagram writes:
+/// `Usuario <|-- Cliente`, `A *-- B`, `A .. B`. PlantUML tries the
+/// sequence diagram first and reads such a line as a class diagram's.
+fn relation_only(text: &str) -> bool {
+    find_arrow(text).is_some()
+        && !crate::sequence::reads_as_message(text)
+        && relation(text, 0, 0).is_ok()
 }
 
 /// The part of a line before `: label`. `:User:` is a name, not a label.
@@ -305,6 +314,11 @@ struct Parser {
     /// `together { … }` blocks open: the boxes declared right in each,
     /// with its line and how many packages were open around it.
     together: Vec<(Vec<RawName>, usize, usize)>,
+    /// `hide`, `show`, `remove` and `restore`, laid on the boxes once all
+    /// are known.
+    hides: Vec<super::hide::Directive>,
+    /// Each `$tag` a declaration carries, by its box's key.
+    tags: Vec<(String, String)>,
 }
 
 impl Default for Parser {
@@ -321,6 +335,8 @@ impl Default for Parser {
             notes_made: 0,
             direction: None,
             together: Vec::new(),
+            hides: Vec::new(),
+            tags: Vec::new(),
         }
     }
 }
@@ -348,6 +364,7 @@ impl Parser {
         }
         self.place_notes()?;
         lollipops(&mut self.root);
+        super::hide::apply(&mut self.root, &self.hides, &self.tags)?;
         if let Some(direction) = self.direction {
             run_all(&mut self.root, direction);
         }
@@ -459,6 +476,13 @@ impl Parser {
         if squeezed_eq(text, "endnote") || squeezed_eq(text, "endrnote") {
             return Err(Declined::at(no, "there is no note for this end line"));
         }
+        if let Some(verb) = super::hide::verb(text)
+            && !names_an_end(text, verb)
+            && let Some(directive) = super::hide::directive(text, no)?
+        {
+            self.hides.push(directive);
+            return Ok(at + 1);
+        }
         if let Some(word) = rejected(text) {
             let why = match word {
                 "map" | "json" => format!("`{word}` diagrams are drawn by the Java PlantUML only"),
@@ -476,7 +500,15 @@ impl Parser {
         if is_note_header(text) {
             return self.note(lines, at);
         }
-        if let Some(decl) = declaration(text, no)? {
+        let (untagged, tags) = if leading_shape(text).is_some() && text.contains('$') {
+            super::hide::take_tags(text)
+        } else {
+            (String::new(), Vec::new())
+        };
+        let declared = if tags.is_empty() { text } else { &untagged };
+        if let Some(decl) = declaration(declared, no)? {
+            self.tags
+                .extend(tags.into_iter().map(|tag| (decl.key.clone(), tag)));
             self.declare(decl)?;
             return Ok(at + 1);
         }
@@ -644,6 +676,7 @@ impl Parser {
             composite: matches!(decl.open, Open::Group),
             children: Group::default(),
             link: decl.link.clone(),
+            hidden: false,
             line: decl.line,
         });
         let mut path = here;
@@ -717,6 +750,7 @@ impl Parser {
             composite: false,
             children: Group::default(),
             link: None,
+            hidden: false,
             line,
         });
         let mut path = home.to_vec();
@@ -1030,6 +1064,7 @@ impl Parser {
             composite: false,
             children: Group::default(),
             link: None,
+            hidden: false,
             line,
         });
         let mut path = here;
@@ -1088,9 +1123,6 @@ fn side_of(text: &str) -> Option<(Side, &str)> {
 fn rejected(text: &str) -> Option<&'static str> {
     [
         "together",
-        "hide",
-        "show",
-        "remove",
         "sprite",
         "skin",
         "style",
@@ -1263,7 +1295,7 @@ fn open_of(shape: Shape) -> Open {
     }
 }
 
-fn default_stereo(shape: Shape) -> Option<&'static str> {
+pub(super) fn default_stereo(shape: Shape) -> Option<&'static str> {
     match shape {
         Shape::Interface => Some("interface"),
         Shape::Enum => Some("enum"),

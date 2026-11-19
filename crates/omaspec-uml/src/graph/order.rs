@@ -484,6 +484,7 @@ mod tests {
                         arrival: 0,
                         label_before: None,
                         level: None,
+                        tree: None,
                     }
                 })
                 .filter(|e| e.from != e.to)

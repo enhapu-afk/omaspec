@@ -1113,6 +1113,7 @@ mod tests {
             arrival: 0,
             label_before: None,
             level: None,
+            tree: None,
         }
     }
 

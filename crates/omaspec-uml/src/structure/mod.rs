@@ -10,6 +10,7 @@
 pub(crate) mod archimate;
 pub(crate) mod c4;
 mod draw;
+mod hide;
 mod mermaid;
 mod parse;
 pub mod requirement;
@@ -253,6 +254,8 @@ pub struct Element {
     /// `[[url]]` on its declaration (Mermaid: `click … href`, `link`): a
     /// click on the element follows it.
     pub link: Option<crate::text::Link>,
+    /// `hide Name`: laid out and not drawn, nor its lines.
+    pub hidden: bool,
     pub line: usize,
 }
 
@@ -318,7 +321,7 @@ pub enum Shape {
     Lollipop,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Dash {
     #[default]
     Solid,

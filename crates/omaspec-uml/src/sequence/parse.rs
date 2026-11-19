@@ -1291,6 +1291,13 @@ struct RawMessage<'a> {
     rest: &'a str,
 }
 
+/// Whether a sequence diagram takes `text` for a message, one it draws
+/// or one it declines. PlantUML tries the sequence diagram first, so a
+/// line between two names that is no message here makes another type.
+pub(crate) fn reads_as_message(text: &str) -> bool {
+    split_message(text).is_some()
+}
+
 /// A message line taken apart: `None` if `text` does not look like a
 /// message, an error if it does but uses something not supported.
 fn split_message(text: &str) -> Option<Result<RawMessage<'_>, String>> {
