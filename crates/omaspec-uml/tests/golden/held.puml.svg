@@ -1,62 +1,62 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="332" height="247" viewBox="0 0 332 247">
+<svg xmlns="http://www.w3.org/2000/svg" width="332" height="261" viewBox="0 0 332 261">
 <g transform="translate(10,10)">
 <g>
 <ellipse cx="106.3" cy="37.3" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
 <rect x="79.85" y="80.3" width="52.89" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="156.45" y="194.56" width="84.73" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<rect x="24.98" y="194.56" width="78.93" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="156.45" y="208.56" width="84.73" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="24.98" y="208.56" width="78.93" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
 <rect x="189.05" y="80.3" width="63.76" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
-<ellipse cx="298.18" cy="210.71" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
-<ellipse cx="298.18" cy="210.71" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="298.18" cy="224.71" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="298.18" cy="224.71" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g id="lines">
 <polyline points="106.3,48.3 106.3,70.3" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M111.11,112.59 L111.11,112.59 C111.11,124.74 120.96,134.59 133.11,134.59 L147.39,134.59 C167.42,134.59 183.66,150.83 183.66,170.87 L183.66,184.56" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M195.66,194.56 L195.66,162.05 C195.66,141.36 178.89,124.59 158.2,124.59 L122.74,124.59 C121.64,124.59 120.74,123.7 120.74,122.59 L120.74,122.59" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M91.85,112.59 L91.85,112.59 C91.85,119.22 86.48,124.59 79.85,124.59 L66.18,124.59 C52,124.59 40.51,136.08 40.51,150.26 L40.51,184.56" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M54.51,194.56 L54.51,168.08 C54.51,155.11 65.03,144.59 78,144.59 L79.48,144.59 C91.63,144.59 101.48,134.74 101.48,122.59 L101.48,122.59" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M229.18,194.56 L229.18,194.56 C229.18,183.51 238.13,174.56 249.18,174.56 L255.25,174.56 C266.28,174.56 275.23,165.61 275.23,154.58 L275.23,154.58 C275.23,143.54 266.28,134.59 255.25,134.59 L236.81,134.59 C230.18,134.59 224.81,129.22 224.81,122.59 L224.81,122.59" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M91.91,194.56 L91.91,185.08 C91.91,179.27 96.62,174.56 102.44,174.56 L102.44,174.56 C108.25,174.56 112.96,169.85 112.96,164.04 L112.96,159.58 C112.96,151.3 119.66,144.59 127.94,144.59 L179.05,144.59 C191.2,144.59 201.05,134.74 201.05,122.59 L201.05,122.59" fill="none" stroke="#181818" stroke-width="1"/>
-<path d="M240.81,112.59 L240.81,112.59 C240.81,119.22 246.18,124.59 252.81,124.59 L269.49,124.59 C285.34,124.59 298.18,137.44 298.18,153.28 L298.18,187.71" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M111.11,112.59 L111.11,112.59 C111.11,132.47 127.23,148.59 147.11,148.59 L147.39,148.59 C167.42,148.59 183.66,164.83 183.66,184.87 L183.66,198.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M195.66,208.56 L195.66,176.05 C195.66,155.36 178.89,138.59 158.2,138.59 L136.74,138.59 C127.91,138.59 120.74,131.43 120.74,122.59 L120.74,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M91.85,112.59 L91.85,112.92 C91.85,127.1 80.36,138.59 66.18,138.59 L66.18,138.59 C52,138.59 40.51,150.08 40.51,164.26 L40.51,198.56" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M54.51,208.56 L54.51,182.08 C54.51,169.11 65.03,158.59 78,158.59 L78,158.59 C90.97,158.59 101.48,148.08 101.48,135.11 L101.48,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M229.18,208.56 L229.18,208.56 C229.18,197.51 238.13,188.56 249.18,188.56 L255.25,188.56 C266.28,188.56 275.23,179.61 275.23,168.58 L275.23,168.58 C275.23,157.54 266.28,148.59 255.25,148.59 L250.02,148.59 C236.09,148.59 224.81,137.3 224.81,123.38 L224.81,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M91.91,208.56 L91.91,199.08 C91.91,193.27 96.62,188.56 102.44,188.56 L102.44,188.56 C108.25,188.56 112.96,183.85 112.96,178.04 L112.96,173.58 C112.96,165.3 119.66,158.59 127.94,158.59 L165.05,158.59 C184.93,158.59 201.05,142.47 201.05,122.59 L201.05,122.59" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M240.81,112.59 L240.81,112.59 C240.81,126.95 252.45,138.59 266.81,138.59 L269.49,138.59 C285.34,138.59 298.18,151.44 298.18,167.28 L298.18,201.71" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="102.3,70.3 106.3,80.3 110.3,70.3 106.3,74.3" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="179.66,184.56 183.66,194.56 187.66,184.56 183.66,188.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="179.66,198.56 183.66,208.56 187.66,198.56 183.66,202.56" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="124.74,122.59 120.74,112.59 116.74,122.59 120.74,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="36.51,184.56 40.51,194.56 44.51,184.56 40.51,188.56" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="36.51,198.56 40.51,208.56 44.51,198.56 40.51,202.56" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="105.48,122.59 101.48,112.59 97.48,122.59 101.48,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="228.81,122.59 224.81,112.59 220.81,122.59 224.81,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polygon points="205.05,122.59 201.05,112.59 197.05,122.59 201.05,118.59" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polygon points="294.18,187.71 298.18,197.71 302.18,187.71 298.18,191.71" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="294.18,201.71 298.18,211.71 302.18,201.71 298.18,205.71" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="93.85" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="24.89" lengthAdjust="spacing">Idle</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="170.45" y="215.55" font-size="14" fill="#000000" font-weight="bold" textLength="56.73" lengthAdjust="spacing">Running</tspan>
+<tspan x="170.45" y="229.55" font-size="14" fill="#000000" font-weight="bold" textLength="56.73" lengthAdjust="spacing">Running</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="38.98" y="215.55" font-size="14" fill="#000000" font-weight="bold" textLength="50.93" lengthAdjust="spacing">Paused</tspan>
+<tspan x="38.98" y="229.55" font-size="14" fill="#000000" font-weight="bold" textLength="50.93" lengthAdjust="spacing">Paused</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="203.05" y="101.29" font-size="14" fill="#000000" font-weight="bold" textLength="35.76" lengthAdjust="spacing">Done</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="152.22" y="163.62" font-size="12" fill="#000000" textLength="25.44" lengthAdjust="spacing">start</tspan>
+<tspan x="152.22" y="177.62" font-size="12" fill="#000000" textLength="25.44" lengthAdjust="spacing">start</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="201.66" y="159.73" font-size="12" fill="#000000" textLength="24.8" lengthAdjust="spacing">stop</tspan>
+<tspan x="201.66" y="173.73" font-size="12" fill="#000000" textLength="24.8" lengthAdjust="spacing">stop</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="0" y="159.73" font-size="12" fill="#000000" textLength="34.51" lengthAdjust="spacing">pause</tspan>
+<tspan x="0" y="173.73" font-size="12" fill="#000000" textLength="34.51" lengthAdjust="spacing">pause</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="60.51" y="164.73" font-size="12" fill="#000000" textLength="42.44" lengthAdjust="spacing">resume</tspan>
+<tspan x="60.51" y="178.73" font-size="12" fill="#000000" textLength="42.44" lengthAdjust="spacing">resume</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="238.46" y="159.73" font-size="12" fill="#000000" textLength="30.77" lengthAdjust="spacing">finish</tspan>
+<tspan x="238.46" y="173.73" font-size="12" fill="#000000" textLength="30.77" lengthAdjust="spacing">finish</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="118.96" y="159.73" font-size="12" fill="#000000" textLength="21.26" lengthAdjust="spacing">quit</tspan>
+<tspan x="118.96" y="173.73" font-size="12" fill="#000000" textLength="21.26" lengthAdjust="spacing">quit</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="111.64" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="87.89" lengthAdjust="spacing">Held in place</tspan>

@@ -2897,6 +2897,17 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A line back up into a box ends on a bend, not on a hook (2026-11-19, from the
+      review sheet, F3): the sheet showed the media player's back-and-forth lines as
+      crossing, which the picture at full size does not; what it does show is the
+      head of a line that runs back up into a box (`play` into Playing, `stop` into
+      Stopped, `reset` into Off) sitting on a corner two pixels long, as its bend lay
+      12 below the box. A gap where such a line bends from its target now bends all
+      its lines 14 further on and is that much deeper (`graph::ARRIVE`), so the head
+      stands after a curve of its own; a step the line is straightened by
+      (`straight::SNAP`) asks for nothing. No crossing, jog or word more in
+      `tests/lines`; three corners more stand near another line, and boxes move some
+      2 % more when one is added
 - [x] The file's own colors under a look (2026-11-19, from the review sheet of the
       three diagrams, F1): a box of a sequence (`box "Backend" #LightBlue`), a swimlane
       (`|#AntiqueWhite|Support|`), Mermaid's `rect rgb(…)` kept their light colors in a

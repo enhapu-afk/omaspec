@@ -232,6 +232,10 @@ const ALONG_PAD: f32 = 32.0;
 const JOG: f32 = 12.0;
 /// Between two lines running across one gap.
 const TRACK: f32 = 10.0;
+/// Further a line bends from the rank it arrives at across the gap after
+/// it, a line back up to a box above: its head and some of the line
+/// before it, so the head does not sit on the curve of the bend.
+const ARRIVE: f32 = 14.0;
 /// Room at each end of a line within a rank, for its head.
 const LEVEL_END: f32 = 20.0;
 /// Between a line within a rank and its label.
@@ -570,9 +574,21 @@ fn in_ranks(
         }
     }
     let gap_count = rows.len().saturating_sub(1);
-    let (tracks, counts, into_box) =
-        tracks(&slots, edges, &chains, &ports, &first, &jogs, gap_count);
+    let Tracked {
+        tracks,
+        counts,
+        into_box,
+        arrive,
+    } = tracks(
+        &slots, edges, &chains, &ports, &first, &jogs, gap_count, &back,
+    );
     let mut gaps = doubled::rank_gaps(&counts, &into_box);
+    // A gap a line arrives back up from bends its lines further down.
+    for (gap, &arrives) in gaps.iter_mut().zip(&arrive) {
+        if arrives {
+            *gap += ARRIVE;
+        }
+    }
     // Where frames end and begin, a gap grows by their room; lines bend
     // past the frames that end there.
     let stacks = tree
@@ -681,7 +697,13 @@ fn in_ranks(
                 .zip(&tracks[index])
                 .enumerate()
                 .map(|(step, (band, &track))| {
-                    band.1 + ending[first[index] + step] + JOG + track as f32 * TRACK
+                    let gap = first[index] + step;
+                    let arrives = arrive.get(gap).is_some_and(|&a| a);
+                    band.1
+                        + ending[gap]
+                        + JOG
+                        + if arrives { ARRIVE } else { 0.0 }
+                        + track as f32 * TRACK
                 })
                 .collect();
             let passes: Vec<Pass> = (0..chains[index].len().saturating_sub(1))
@@ -1505,6 +1527,17 @@ fn place_along(slots: &mut [Slot], rows: &[Vec<usize>], gaps: &[f32]) -> Vec<(f3
 /// before it whose runs its own overlaps, so every two that overlap keep
 /// that order and cross as they did, and a gap is as tall as the most
 /// runs that overlap there (a dense diagram's gaps half as tall).
+/// What [`tracks`] finds: each line's track in each gap it crosses, how
+/// many tracks each gap holds, whether a line goes on into a box there,
+/// and whether one arrives at the box before it (a line back up).
+struct Tracked {
+    tracks: Vec<Vec<usize>>,
+    counts: Vec<usize>,
+    into_box: Vec<bool>,
+    arrive: Vec<bool>,
+}
+
+#[allow(clippy::too_many_arguments)]
 fn tracks(
     slots: &[Slot],
     edges: &[Edge],
@@ -1513,7 +1546,8 @@ fn tracks(
     first: &[usize],
     jogs: &nest::Jogs,
     gaps: usize,
-) -> (Vec<Vec<usize>>, Vec<usize>, Vec<bool>) {
+    back: &[bool],
+) -> Tracked {
     let cross = |slot: usize, port: f32| center(&slots[slot]) + port;
     let mut tracks: Vec<Vec<usize>> = chains
         .iter()
@@ -1522,6 +1556,7 @@ fn tracks(
     // By gap: (edge, step, start, end) of each line that moves across; and
     // whether one of them goes on into a box there.
     let mut into_box = vec![false; gaps];
+    let mut arrive = vec![false; gaps];
     let mut movers: Vec<Vec<(usize, usize, f32, f32)>> = vec![Vec::new(); gaps];
     for (index, chain) in chains.iter().enumerate() {
         if chain.len() < 2 || edges[index].hidden {
@@ -1549,6 +1584,14 @@ fn tracks(
             if (end - start).abs() > 0.5 && gap < gaps {
                 movers[gap].push((index, step, start, end));
                 into_box[gap] |= step + 1 == last && slots[chain[last]].real.is_some();
+                // A line back up runs from its source below to its target
+                // above, its chain from the target down: its head is at
+                // the box before its first gap.
+                // A step the line is straightened by is no bend.
+                arrive[gap] |= step == 0
+                    && (end - start).abs() >= straight::SNAP
+                    && back.get(index).is_some_and(|&b| b)
+                    && slots[chain[0]].real.is_some();
             }
         }
     }
@@ -1579,7 +1622,12 @@ fn tracks(
             counts[gap] = counts[gap].max(track + 1);
         }
     }
-    (tracks, counts, into_box)
+    Tracked {
+        tracks,
+        counts,
+        into_box,
+        arrive,
+    }
 }
 
 fn row_width(slots: &[Slot], row: &[usize]) -> f32 {
