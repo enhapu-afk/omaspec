@@ -84,6 +84,8 @@
     }, over.g);
     const glows = m.states.map((s) => [ring(s, data.accent, 5, true), ring(s, data.accent, 2, false)]);
     const rings = m.states.map((s) => ring(s, data.wrong, 5, true));
+    // Where nothing is known of where it is, its whole picture's edge.
+    const edge = ring([view.x + 4, view.y + 4, view.width - 8, view.height - 8, 8], data.wrong, 4, true);
     const travels = m.travels.map((t) => {
       const total = length(t.points);
       const path = el("polyline", {
@@ -93,7 +95,7 @@
       return { ...t, total, path };
     });
     const bar = pane.querySelector(".bar");
-    return { ...m, holes, glows, rings, travels, bar, shown: -1 };
+    return { ...m, holes, glows, rings, edge, travels, bar, shown: -1 };
   });
 
   // How bright a state's light is at `t`, from the times it went on and off.
@@ -160,6 +162,8 @@
         if (sharp) sharp.setAttribute("opacity", lit.toFixed(3));
         if (m.rings[s]) m.rings[s].setAttribute("opacity", (flash * lit).toFixed(3));
       });
+      const lit = levels.some((l, s) => l > 0.004 && m.rings[s]);
+      m.edge.setAttribute("opacity", (lit ? 0 : flash).toFixed(3));
       m.travels.forEach((travel) => {
         const k = (t - travel.start) / Math.max(0.01, travel.took);
         if (k < 0) {

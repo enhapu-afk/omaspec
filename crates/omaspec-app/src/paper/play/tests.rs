@@ -233,6 +233,13 @@ fn a_machine_beside_its_scenario_flashes_where_it_cannot_follow() {
     assert_eq!(flashes(&play), 0);
     play.ask(Ask::Next, t0);
     assert_eq!(flashes(&play), 1);
+    // The play asks for frames until the flash is over.
+    let flash = match &play {
+        Play::Machine(machine) => machine.flashes[0],
+        Play::Scenario(_) => panic!("a machine"),
+    };
+    assert!(play.animating(flash + FLASH - Duration::from_millis(10)));
+    assert!(!play.animating(flash + FLASH + Duration::from_secs(1)));
     let Offer::Trace {
         beside,
         finding,
@@ -248,6 +255,28 @@ fn a_machine_beside_its_scenario_flashes_where_it_cannot_follow() {
     // Going back takes the flash away.
     play.ask(Ask::Back, t0);
     assert_eq!(flashes(&play), 0);
+
+    // An event the machine has no way for, while where it is is open:
+    // nothing is lit, and the pane's edge flashes instead.
+    let knock = "@startuml\nGuest -> Door : knock\n@enduml\n";
+    let step = omaspec_model::lockstep(knock, Language::PlantUml, &specs).unwrap();
+    let door = &step.players[0];
+    let mut knocked = Play::followed(
+        &map,
+        door.spec.machine.clone(),
+        door.followed.clone(),
+        "knock.puml",
+        "Door",
+        true,
+        t0,
+    )
+    .unwrap();
+    knocked.ask(Ask::Next, t0);
+    assert_eq!(flashes(&knocked), 1);
+    let Offer::Trace { at, .. } = knocked.offer() else {
+        panic!("a trace");
+    };
+    assert_eq!(at, "");
 
     // The scenario runs the message's light red, and says when it arrives.
     let (_, map) = omaspec_uml::render_mapped(scenario, None).unwrap();

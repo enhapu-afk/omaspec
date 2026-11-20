@@ -37,6 +37,10 @@ const WIDEST: f32 = 1800.0;
 /// How high the picture may grow, by its width.
 const LEAST_HEIGHT: f32 = 0.42;
 const MOST_HEIGHT: f32 = 0.9;
+/// How high a machine's picture is at least, beside its bar: many
+/// machines make the picture higher than [`MOST_HEIGHT`] rather than
+/// leave one out of it.
+const LEAST_PICTURE: f32 = 48.0;
 /// The second line a machine's bar may take for what went wrong.
 const NOTE: f32 = 18.0;
 /// How long the end stays before the picture starts again.
@@ -411,6 +415,7 @@ fn layout(
     let own = left * a + bar(0, left);
     let height = (own.max(column) + 2.0 * GAP)
         .clamp(width * LEAST_HEIGHT, width * MOST_HEIGHT)
+        .max(fixed + count * LEAST_PICTURE + 2.0 * GAP)
         .round();
     let inside = height - 2.0 * GAP;
     let scenario = Rectangle::new(iced::Point::new(GAP, GAP), Size::new(left, inside));
@@ -534,5 +539,23 @@ mod tests {
         assert!(machines[1].height > machines[0].height);
         let drawn = |m: &Rectangle| m.height - 90.0;
         assert!((drawn(&machines[1]) / drawn(&machines[0]) - 1.5).abs() < 0.2);
+
+        // Many machines in a narrow picture: each keeps a picture beside
+        // its bar, and the last stays inside.
+        let many = [Size::new(500.0, 600.0)]
+            .into_iter()
+            .chain(std::iter::repeat_n(Size::new(400.0, 200.0), 5))
+            .collect::<Vec<_>>();
+        let (size, _, machines) = layout(400.0, &many, |_, _| 108.0);
+        let last = machines.last().unwrap();
+        assert!(
+            last.y + last.height <= size.height - GAP + 0.5,
+            "{size:?} {last:?}"
+        );
+        assert!(
+            machines
+                .iter()
+                .all(|m| m.height >= 108.0 + LEAST_PICTURE - 1.0)
+        );
     }
 }

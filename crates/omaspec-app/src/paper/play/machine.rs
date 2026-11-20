@@ -217,6 +217,8 @@ impl MachinePlay {
                 self.schedule(&step.taken, now);
                 self.aim(&step.at, now);
                 if deviates {
+                    // A flash over is not drawn again.
+                    self.flashes.retain(|&at| at + FLASH > now);
                     self.flashes.push(self.free_at.max(now));
                 }
             }
@@ -341,7 +343,12 @@ impl MachinePlay {
     }
 
     pub(super) fn settled(&self) -> Instant {
-        self.free_at + LIGHT_FADE.max(LINGER).max(RIPPLE) + VEIL_FADE
+        let lights = self.free_at + LIGHT_FADE.max(LINGER).max(RIPPLE) + VEIL_FADE;
+        // A flash where it could not follow runs to its end.
+        self.flashes
+            .iter()
+            .map(|&at| at + FLASH)
+            .fold(lights, Instant::max)
     }
 
     /// The line of the last step whose light has set off by `now`; the
@@ -523,7 +530,8 @@ impl MachinePlay {
                 self.glow(state, spot, view).draw(frame, look.accent, lit);
             }
         }
-        // A line it could not follow: where it is flashes twice.
+        // A line it could not follow: where it is flashes twice; the
+        // whole paper's edge where nothing is known of that.
         let flash = self
             .flashes
             .iter()
@@ -531,11 +539,19 @@ impl MachinePlay {
             .map(|&at| flashed(fraction(now - at, FLASH)))
             .fold(0.0, f32::max);
         if flash > 0.004 {
+            let mut drawn = false;
             for (state, &lit) in levels.iter().enumerate() {
                 if let Some(spot) = self.placed.states[state].as_ref().filter(|_| lit > 0.004) {
                     self.glow(state, spot, view)
                         .draw(frame, look.wrong, flash * lit);
+                    drawn = true;
                 }
+            }
+            if !drawn {
+                frame.stroke(
+                    &rounded(grow(view.paper, -3.0), 8.0),
+                    soft(look.wrong, 3.0, flash),
+                );
             }
         }
         for travel in &self.shown {

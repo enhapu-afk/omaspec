@@ -96,19 +96,23 @@ pub(super) fn write(
     let mut messages = Vec::new();
     let mut t = START;
     for message in &scenario.map.messages {
-        // A group sends players back, or on, before the message.
+        // A group sends players back, or on, before the message: a
+        // player's steps one after another, as the panes take them.
         let mut moved = false;
+        let mut longest: f32 = 0.0;
         for (index, player) in step.players.iter().enumerate() {
+            let mut at = t;
             while let Some(next) = player.followed.steps.get(played[index])
                 && next.line < message.line
             {
                 played[index] += 1;
-                timelines[index].step(&player.spec.machine, next, t);
+                at += timelines[index].step(&player.spec.machine, next, at);
                 moved = true;
             }
+            longest = longest.max(at - t);
         }
         if moved {
-            t += GROUP;
+            t += longest.max(GROUP);
         }
         let start = t;
         let arrive = start + travel_millis(&message.points) as f32 / 1000.0;
@@ -134,12 +138,16 @@ pub(super) fn write(
         }
         t = arrive + longest + BEAT;
     }
-    // What the groups at the end do.
+    // What the groups at the end do, before the end stays.
+    let mut longest: f32 = 0.0;
     for (index, player) in step.players.iter().enumerate() {
+        let mut at = t;
         for next in &player.followed.steps[played[index]..] {
-            timelines[index].step(&player.spec.machine, next, t);
+            at += timelines[index].step(&player.spec.machine, next, at);
         }
+        longest = longest.max(at - t);
     }
+    t += longest;
 
     let color = |rgb: omaspec_theme::Rgb| Color(rgb.r, rgb.g, rgb.b);
     let paper = |svg: &str| {

@@ -72,7 +72,7 @@ pub fn lockstep(code: &str, lang: Language, specs: &Specs) -> Option<Lockstep> {
 /// The way through `m` that `moves` make.
 fn followed(m: &Machine, moves: &[&Moved]) -> Followed {
     let mut out = Followed::default();
-    for (index, moved) in moves.iter().enumerate() {
+    for moved in moves {
         if moved.creates {
             let (taken, at) = match Run::start(m) {
                 Some((run, taken)) => (taken, run.active().to_vec()),
@@ -92,7 +92,9 @@ fn followed(m: &Machine, moves: &[&Moved]) -> Followed {
             Some(before) => resting(m, Some(before)),
             None => {
                 let takers = takers(m, &moved.fired, None);
-                if index == 0 {
+                // Before it lights anything, the first message it can
+                // take says where it begins.
+                if out.steps.is_empty() && out.begins.is_empty() {
                     out.begins = takers.clone();
                 } else if !takers.is_empty() {
                     out.steps.push(TraceStep {
@@ -283,6 +285,17 @@ mod tests {
                 (5, vec!["Closed".to_owned()]),
             ]
         );
+    }
+
+    #[test]
+    fn a_reply_the_machine_knows_nothing_of_is_no_step() {
+        let code = "@startuml\nDoor --> Guest : fine\nGuest --> Door : ok\nGuest -> Door : open\n@enduml\n";
+        let step = lockstep(code, Language::PlantUml, &specs()).unwrap();
+        let door = &step.players[0];
+        // It begins where the first message it can take is taken.
+        assert_eq!(names(&door.spec.machine, &door.followed.begins), ["Closed"]);
+        let lines: Vec<usize> = door.followed.steps.iter().map(|s| s.line).collect();
+        assert_eq!(lines, [3]);
     }
 
     #[test]

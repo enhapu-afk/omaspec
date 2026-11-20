@@ -115,17 +115,23 @@ pub struct Colors {
 
 /// The page that plays `lockstep`, called `title`, with the scenario's
 /// `source` in its picture. The pictures are sanitized; only the source is
-/// written after.
+/// written after. The scenario carries the faces the words of every
+/// picture are set in, and each picture's ids are its own, as they stand
+/// in one page.
 pub fn page(
     lockstep: &Lockstep,
     source: Option<Source>,
     title: &str,
 ) -> Result<String, ExportError> {
-    let clean = |svg: &str| -> Result<String, ExportError> {
-        let svg = crate::fonts::embed_with(svg, &[]);
+    let clean = |svg: &str, prefix: &str| -> Result<String, ExportError> {
+        let svg = crate::atlas::own_ids(svg, prefix);
         crate::sanitize::sanitize(&svg).map_err(|e| ExportError::Svg(e.to_string()))
     };
-    let scenario = clean(&lockstep.scenario.svg)?;
+    let others: Vec<&str> = lockstep.machines.iter().map(|m| m.svg.as_str()).collect();
+    let scenario = clean(
+        &crate::fonts::embed_with(&lockstep.scenario.svg, &others),
+        "s-",
+    )?;
     let scenario = match source {
         Some(s) => omaspec_core::embed::svg_with_source(&scenario, s.code, s.language, s.file),
         None => scenario,
@@ -155,7 +161,7 @@ pub fn page(
             "<section class=\"pane machine\" data-machine=\"{index}\" style=\"flex-grow:{:.3}\">\n<div class=\"picture\">",
             machine.share.max(0.05)
         ));
-        out.push_str(&clean(&machine.svg)?);
+        out.push_str(&clean(&machine.svg, &format!("m{index}-"))?);
         out.push_str(
             "</div>\n<div class=\"bar\"><span class=\"head\"></span> <span class=\"said\"></span><div class=\"note\"></div></div>\n</section>\n",
         );
@@ -233,7 +239,7 @@ mod tests {
     use super::*;
 
     fn svg() -> String {
-        r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><rect width="40" height="20" fill="#fff"/><script>alert(1)</script></svg>"##.to_owned()
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><rect width="40" height="20" fill="#fff"/><g id="lines"/><script>alert(1)</script></svg>"##.to_owned()
     }
 
     #[test]
@@ -292,6 +298,8 @@ mod tests {
         // nothing in it that ends the script early.
         assert!(!page.contains("alert(1)"), "{page}");
         assert!(page.contains(r#"data-machine="0""#));
+        // One page, so each picture's ids are its own.
+        assert!(page.contains(r#"id="s-lines""#) && page.contains(r#"id="m0-lines""#));
         assert!(page.contains(r#""kind":"lockstep""#));
         assert!(page.contains(r#""wrong":true"#));
         assert!(!page.contains("\"</script>\""));

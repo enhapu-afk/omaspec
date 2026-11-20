@@ -401,14 +401,18 @@ impl Play<'_> {
                 .as_ref()
                 .map(|text| event_of(&text.value).to_owned())
                 .filter(|event| !key(event).is_empty());
-            if m.creates || event.is_some() {
+            let fired = event
+                .as_ref()
+                .and_then(|event| player.events.get(&key(event)).cloned())
+                .unwrap_or_default();
+            // A message its machine knows nothing of and the check leaves
+            // alone (a reply with a value, one to itself) is no step of it.
+            let step = m.creates || !fired.is_empty() || finding.is_some();
+            if event.is_some() && step || m.creates {
                 moves.push(Moved {
                     participant: to,
                     line,
-                    fired: event
-                        .as_ref()
-                        .and_then(|event| player.events.get(&key(event)).cloned())
-                        .unwrap_or_default(),
+                    fired,
                     event,
                     creates: m.creates,
                     before,

@@ -2897,6 +2897,16 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the lockstep found (2026-11-20). A trace's line that deviates
+      flashed in the window only while something else moved: the play counts its
+      flashes until they end, and drops those that are over. A page took a group's
+      steps all at once, so a state glowed that was never rested in: each machine's
+      steps follow one another, as in the picture. Many machines or a narrow picture
+      cut the last panes off: the picture grows as high as each needs. The page
+      embeds the fonts once and gives each picture's ids their own prefix. A reply the
+      machine knows nothing of, which the check leaves alone, is no step of it, and a
+      machine begins where the first message it can take is taken. Where nothing is
+      known of where a machine is, its pane's edge flashes red instead of its states
 - [x] Lockstep (2026-11-20, the second of the animations that show what a diagram
       means): `omaspec play SCENARIO --lockstep -o lockstep.gif` plays a sequence
       diagram beside the state machines of its participants in its project, each in a
@@ -2916,7 +2926,7 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       needs the machines beside the scenario, and it is the README's picture. As
       `.html` a page in vectors (`export::lockstep`, its own script and style): the
       times of everything worked out on the panes' beat (`lockstep::page`), the
-      script only showing the moment it is at, `#t=5` holding it still
+      script only showing the moment it is at, `#t=5` holding it still 5 seconds in.
 - [x] What the review of the build found (2026-11-20). A sequence with a picture in a
       note built only that picture: the frames now take the whole picture's root. A
       `scale` drew the build at the wrong size, and a page grew its boxes about the
