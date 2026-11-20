@@ -117,6 +117,7 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     if lang == Language::PlantUml {
         embedded::findings(&lines, &mut findings);
         icons::findings(&lines, &mut findings);
+        own(&code, &lines, &mut findings);
     }
     let faint = match lang {
         Language::PlantUml => crate::faint::plantuml(&lines),
@@ -244,6 +245,25 @@ fn plantuml_names(
         }
         _ => {}
     }
+}
+
+/// A block of Omaspec's own syntax ([`crate::kind::OWN_BLOCKS`]): no
+/// other tool draws it, worth knowing before the file goes where Omaspec
+/// is not.
+fn own(code: &str, lines: &[&str], findings: &mut Vec<Finding>) {
+    if !crate::kind::own_block(code) {
+        return;
+    }
+    let Some(at) = lines.iter().position(|l| puml_start().is_match(l.trim())) else {
+        return;
+    };
+    let start = lines[at].split_whitespace().next().unwrap_or_default();
+    findings.push(Finding::new(
+        "omaspec-only",
+        at,
+        Severity::Info,
+        format!("`{start}` is Omaspec's own: PlantUML and the tools built on it do not draw it"),
+    ));
 }
 
 /// What Omaspec's own engine says when it draws `code`, beyond what its
@@ -1125,6 +1145,23 @@ mod tests {
     }
 
     #[test]
+    fn a_block_of_omaspecs_own_syntax_says_so() {
+        let code = "' a shop\n@startstorymap\nactivity Buy\n@endstorymap\n";
+        let found = lint(code, Language::PlantUml);
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(
+            (found[0].code, found[0].line, found[0].severity),
+            ("omaspec-only", 1, Severity::Info)
+        );
+        assert!(
+            found[0]
+                .message
+                .starts_with("`@startstorymap` is Omaspec's own")
+        );
+        assert!(lint("@startuml\nA -> B\n@enduml\n", Language::PlantUml).is_empty());
+    }
+
+    #[test]
     fn a_name_like_a_group_opens_none() {
         // A state or participant may be called Critical or Loop; an arrow
         // or a description after it makes it no group.
@@ -1135,8 +1172,12 @@ mod tests {
             "@startflow\nin h\nout height\nblock Alt \"Altimeter\" {\n  in h\n  out height\n}\nh -> Alt.h\nAlt.height -> height\nLoop.out -> height\n@endflow",
         ] {
             // PlantUML does read `Par ..> Alt` as a group, which only Java
-            // draws, unclosed: lint says no more than that.
-            let found = but_java(code);
+            // draws, unclosed: lint says no more than that. The signal flow
+            // is Omaspec's own, which it says too.
+            let found: Vec<_> = but_java(code)
+                .into_iter()
+                .filter(|(_, _, message)| !message.contains("is Omaspec's own"))
+                .collect();
             assert!(found.is_empty(), "{code:?}: {found:?}");
         }
     }

@@ -163,8 +163,9 @@ impl std::error::Error for RenderError {}
 
 /// Diagrams Omaspec does not draw at all, by their `@start…` word. A
 /// declined line of a kind it does draw (timing, Gantt, mind map, WBS,
-/// sequence, state, structure, signal flow, JSON, YAML, formulas) keeps that line.
-/// Signal flow is Omaspec's own syntax, so a declined line is not sent to Java.
+/// sequence, state, structure, signal flow, story map, JSON, YAML, formulas) keeps
+/// that line. Signal flow and story maps are Omaspec's own syntax, so a declined
+/// line is not sent to Java.
 const WHOLE: &[&str] = &["chronology", "dot", "tree"];
 
 /// For a PlantUML diagram Omaspec's own engine does not draw at all,
@@ -528,9 +529,10 @@ impl Renderer {
             }
             Err(declined) => declined,
         };
-        // PlantUML has no signal-flow diagram. A line this engine declines
-        // stays declined; Java would only say it does not know `@startflow`.
-        if kind::plantuml_block(source) == "flow" {
+        // PlantUML has no signal flow and no story map. A line this engine
+        // declines stays declined; Java would only say it does not know
+        // `@startflow` or `@startstorymap`.
+        if kind::own_block(source) {
             return Err(RenderError::Unavailable {
                 line: declined.line,
                 reason: declined.reason,

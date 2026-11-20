@@ -17,6 +17,8 @@ pub enum Kind {
     Gantt,
     /// `@startflow`, Omaspec's own signal-flow diagram.
     Flow,
+    /// `@startstorymap`, Omaspec's own story map.
+    StoryMap,
     /// `@startjson`.
     Json,
     /// `@startyaml`: drawn as the JSON it stands for.
@@ -78,6 +80,7 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
                 "startwbs" => Kind::Wbs,
                 "startgantt" => Kind::Gantt,
                 "startflow" => Kind::Flow,
+                "startstorymap" => Kind::StoryMap,
                 "startjson" => Kind::Json,
                 "startyaml" => Kind::Yaml,
                 "startnwdiag" => Kind::Network,
@@ -459,6 +462,12 @@ mod tests {
             Kind::Gantt
         );
         assert_eq!(body("@startflow\nin a\n@endflow\n").unwrap().0, Kind::Flow);
+        assert_eq!(
+            body("@startstorymap\nactivity A\n@endstorymap\n")
+                .unwrap()
+                .0,
+            Kind::StoryMap
+        );
         assert_eq!(body("@startJSON\n{}\n@endjson\n").unwrap().0, Kind::Json);
         assert_eq!(body("@startLaTeX\na\n@endlatex\n").unwrap().0, Kind::Latex);
         assert_eq!(body("@startMATH\na\n@endmath\n").unwrap().0, Kind::Math);

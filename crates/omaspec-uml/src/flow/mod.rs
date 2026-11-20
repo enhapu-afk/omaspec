@@ -7,7 +7,7 @@
 
 mod draw;
 mod parse;
-mod skin;
+pub(crate) mod skin;
 
 pub use draw::draw;
 pub use parse::parse;

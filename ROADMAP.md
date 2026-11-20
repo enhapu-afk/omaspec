@@ -613,10 +613,6 @@ the one before:
       page was looked at in Chromium alone, not in Firefox or Safari; in
       the page a box that changes its size is stretched (its words are
       not), where the pane keeps its corners.
-- [ ] Story map: activities across, the steps of each under it, release
-      slices across the whole as bands (`@startstorymap`): the backbone
-      of a product and what goes into which release, which neither
-      PlantUML nor Mermaid draws.
 - [ ] Capability map: what a business can do as nested tiles, each
       colored by a value given to it (maturity, cost, risk) on a scale
       with its legend (`@startcapabilities`), for planning an

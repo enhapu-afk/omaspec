@@ -30,6 +30,7 @@ fn diagrams_match_golden_svgs() {
         "mindmap",
         "wbs",
         "flow",
+        "storymap",
         "network",
         "salt",
         "railroad",

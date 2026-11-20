@@ -847,6 +847,7 @@ there keeps its meaning.
 | `embedded-diagram` | a diagram inside a diagram (`{{` to `}}`) the engine does not draw, so Omaspec writes it as its text, and why |
 | `unseen-character` | a character nobody sees (a zero-width space, a mark that turns the text's direction) on the line; the fix takes it out |
 | `not-mermaid-js` | Omaspec draws it, mermaid.js (GitHub) does not |
+| `omaspec-only` | a diagram of Omaspec's own syntax (`@startflow`, `@startstorymap`), which PlantUML does not draw |
 | `project-file` | the project's file does not read |
 | `not-drawn` | `check`: no engine draws the diagram |
 
@@ -947,6 +948,43 @@ one stem under a single triangle ([ADR 0033](../adr/0033-subclasses-as-a-tree.md
 line from a class to itself with multiplicities is a wider loop, the multiplicities
 outside it, over and under its ends. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a
 `flowchart LR`), also when its nodes have lines to the outside, where Mermaid itself
-drops it and lays the subgraph out in the chart's direction. Omaspec also has a diagram
-of its own, signal flow (`@startflow`,
-[ADR 0010](../adr/0010-signal-flow.md)). The [roadmap](../../ROADMAP.md) has the details.
+drops it and lays the subgraph out in the chart's direction. Omaspec also has two
+diagrams of its own, signal flow (`@startflow`,
+[ADR 0010](../adr/0010-signal-flow.md)) and the story map below. The
+[roadmap](../../ROADMAP.md) has the details.
+
+### Story maps
+
+A story map (`@startstorymap`, [ADR 0034](../adr/0034-a-story-map-of-its-own.md)) lays
+out the backbone of a product: what its users do across the top, the steps of each under
+it, and under each step its stories, cut into releases by bands across the whole map.
+
+```plantuml
+@startstorymap
+title A bookshop online
+release MVP : sell the first book
+release Later
+activity Find a book
+  step Search
+    * By title : MVP
+    * By author : Later
+  step Browse
+    * The new books : MVP
+activity Buy
+  step Pay
+    * By card : MVP
+    * "Gift card: from a friend"
+@endstorymap
+```
+
+`activity` and `step` open the backbone; `* words` is a story under the step before it,
+or under its activity before its first step. The words after a story's last colon name
+its release; a story with a colon of its own goes in quotes. A release is written once,
+anywhere in the map, with what it is for after its colon, and the bands stand in the
+order the releases are written; a story without one stands in a band after them, *not
+planned*. A story that names a release the map does not have is refused, with the ones
+it has. The indentation is not read; `omaspec fmt` sets it. An activity is filled with
+the theme's accent, a step is a rectangle and a story a note, so a skin pack colors the
+map; the backbone stays at the top of the pane and the releases' names at its left as a
+large map scrolls. Lint says on the `@startstorymap` line that it is Omaspec's own, as it
+does for `@startflow`: PlantUML and the tools built on it do not draw it.

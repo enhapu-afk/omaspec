@@ -1,0 +1,36 @@
+@startstorymap
+title An online course
+' The releases, top down: the bands across the map.
+release Pilot : one class learns online
+release Term one : every class, every week
+release Later
+
+activity Find a course
+  step Look around
+    * The courses of the term : Pilot
+    * Search by topic : Term one
+    * What others took next : Later
+  step Decide
+    * A page for each course : Pilot
+    * A first lesson free : Term one
+activity Enrol
+  step Sign up
+    * With an email address : Pilot
+    * With the school's account : Term one
+  step Pay
+    * By card : Term one
+    * As a group : Later
+activity Learn
+  step Lessons
+    * Videos and notes : Pilot
+    * Download for the train : Later
+  step Questions
+    * Ask the teacher : Pilot
+    * Answer each other : Term one
+activity Show it
+  step Tests
+    * A quiz after each lesson : Pilot
+    * A final exam : Term one
+  step Certificate
+    * A certificate to print
+@endstorymap

@@ -2897,6 +2897,21 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Story map (2026-11-20, [ADR 0034](adr/0034-a-story-map-of-its-own.md)):
+      `@startstorymap`, Omaspec's own: activities across the top, the steps of each
+      under it, the stories under each step (`* By card : MVP`) in the release they go
+      into, the releases as bands across the whole map, their goals under their names,
+      every other band tinted, the stories planned in none in a band after them. Read,
+      measured and painted in `omaspec-uml/src/storymap/`; a story naming a release
+      the map does not have is refused with the ones it has. The cards take the
+      theme's colors (an activity the accent, a step a rectangle, a story a note), each
+      card's words are tied to their line, and the map holds the backbone at the top
+      of the pane and the releases' names at its left. A line the engine declines is
+      not sent to the Java PlantUML (`kind::OWN_BLOCKS`, signal flow too), lint says
+      on the `@start` line of both that no other tool draws them (`omaspec-only`),
+      `omaspec fmt` indents a story map by its activities, steps and stories, the
+      outline lists its releases, activities and steps, and the gallery has an
+      online course
 - [x] Trace river (2026-11-20): `omaspec coverage FILE --traces T --river -o river.svg`
       draws what recorded traces take of a machine as a river: each way as wide as it
       was taken against the way taken most, up to five times an arrow (a transition's

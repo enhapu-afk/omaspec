@@ -1,0 +1,19 @@
+@startstorymap
+title Plan a trip
+skinparam backgroundColor #16181d
+skinparam defaultFontColor #e3e5ea
+skinparam RectangleBackgroundColor #23272f
+skinparam RectangleBorderColor #79a6f0
+skinparam NoteBackgroundColor #3a3526
+skinparam NoteBorderColor #8b93a1
+skinparam handwritten true
+release "First trip" : a weekend away
+activity Choose where
+  * "Places: near and far" : First trip
+  * Weather
+activity Book
+  step Travel
+    * Trains : First trip
+  step Stay
+    * A hotel with a long name that wraps onto a second line : First trip
+@endstorymap

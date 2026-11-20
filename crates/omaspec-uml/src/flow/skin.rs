@@ -60,7 +60,7 @@ impl Default for Skin {
 
 /// Skinparams of other diagram types, by the start of their normalized key.
 /// `rectangle` is not here: it is the block. `legend` is read by the frame.
-const OTHER: &[&str] = &[
+pub(crate) const OTHER: &[&str] = &[
     "activity",
     "actor",
     "agent",
@@ -110,7 +110,7 @@ const OTHER: &[&str] = &[
     "wbs",
 ];
 
-const NO_EFFECT: [&str; 5] = ["dpi", "nodesep", "ranksep", "svglinktarget", "linetype"];
+pub(crate) const NO_EFFECT: [&str; 5] = ["dpi", "nodesep", "ranksep", "svglinktarget", "linetype"];
 
 #[derive(Default)]
 struct Owned {

@@ -1,0 +1,33 @@
+@startstorymap
+title A bookshop online
+release MVP : sell the first book
+release Spring : people come back
+release Later
+activity Find a book
+  step Search
+    * By title : MVP
+    * By author : MVP
+    * By what it is about : Spring
+  step Browse
+    * The new books : MVP
+    * By topic : Spring
+    * What others bought too : Later
+activity Choose
+  step Read about it
+    * A page of its own : MVP
+    * A look inside : Later
+  step Keep it for later
+    * A wish list : Spring
+activity Buy
+  step Basket
+    * Put it in the basket : MVP
+    * Change how many : MVP
+  step Pay
+    * By card : MVP
+    * By invoice : Spring
+    * With a gift card
+activity Get it
+  step Delivery
+    * Track the parcel : Spring
+    * Send it back : Later
+@endstorymap

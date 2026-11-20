@@ -3,8 +3,8 @@
 //! diagrams, state diagrams, structure diagrams (class, component, use
 //! case, deployment and object), timing diagrams, Gantt charts, mind maps,
 //! WBS diagrams, JSON diagrams and formulas so far. `@startflow` is Omaspec's own
-//! signal-flow diagram: PlantUML has no such type, and a line it declines
-//! is not sent to the Java PlantUML.
+//! signal-flow diagram and `@startstorymap` its story map: PlantUML has no
+//! such types, and a line it declines is not sent to the Java PlantUML.
 //!
 //! It renders a diagram only when it understands every construct in it; for
 //! anything else it declines and names the line, so the caller can fall back
@@ -48,6 +48,7 @@ pub mod sequence;
 mod sketch;
 mod source;
 pub mod state;
+pub mod storymap;
 pub mod structure;
 mod style;
 mod svg;
@@ -117,6 +118,7 @@ pub enum Diagram {
     Timing(timing::Diagram),
     Gantt(gantt::Diagram),
     Flow(flow::Diagram),
+    StoryMap(storymap::Diagram),
     Json(json::Diagram),
     Formula(formula::Diagram),
     Network(network::Diagram),
@@ -202,6 +204,7 @@ pub fn parse_with(source: &str, includes: Option<&dyn Includes>) -> Result<Diagr
         source::Kind::Wbs => Diagram::Wbs(tree::parse_wbs(&lines)?),
         source::Kind::Gantt => Diagram::Gantt(gantt::parse(&lines)?),
         source::Kind::Flow => Diagram::Flow(flow::parse(&lines)?),
+        source::Kind::StoryMap => Diagram::StoryMap(storymap::parse(&lines)?),
         source::Kind::Json => Diagram::Json(json::parse(&lines)?),
         source::Kind::Network => Diagram::Network(network::parse(&lines)?),
         source::Kind::Salt => Diagram::Salt(salt::parse(&lines)?),
@@ -441,6 +444,7 @@ fn skin_of(diagram: &Diagram) -> Vec<String> {
         Diagram::Timing(d) => &d.frame,
         Diagram::Gantt(d) => &d.frame,
         Diagram::Flow(d) => &d.frame,
+        Diagram::StoryMap(d) => &d.frame,
         Diagram::Json(d) => &d.frame,
         Diagram::Network(d) => &d.frame,
         Diagram::Salt(d) => &d.frame,
@@ -487,6 +491,7 @@ fn draw_mapped(diagram: Diagram, source: &str) -> Result<(String, map::Map), Dec
         Diagram::Timing(d) => unmapped(timing::draw(&d)),
         Diagram::Gantt(d) => gantt::draw_mapped(&d),
         Diagram::Flow(d) => unmapped(flow::draw(&d)),
+        Diagram::StoryMap(d) => storymap::draw_mapped(&d),
         Diagram::Json(mut d) => {
             d.fold(&fold::read(source));
             d.frame.parts = fold::parts(source);

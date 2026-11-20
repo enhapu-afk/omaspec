@@ -229,6 +229,9 @@ fn plantuml(
     let flow = lines
         .iter()
         .any(|l| re!(r"(?i)^\s*@startflow\b").is_match(l));
+    let story = lines
+        .iter()
+        .any(|l| re!(r"(?i)^\s*@startstorymap\b").is_match(l));
     // The lines the engine reads, without the comments, notes, legends and
     // styles it skips; all lines of a diagram it cannot read.
     let rows: Vec<(usize, &str)> = match element_lines(code) {
@@ -277,6 +280,10 @@ fn plantuml(
         }
         if flow {
             flow_line(&mut b, row, l);
+            continue;
+        }
+        if story {
+            story_line(&mut b, row, l);
             continue;
         }
         match kind {
@@ -333,6 +340,16 @@ fn flow_line(b: &mut Builder, row: usize, l: &str) {
         }
     } else if l == "}" {
         b.close(row);
+    }
+}
+
+/// A story map's releases and activities, its steps under them.
+fn story_line(b: &mut Builder, row: usize, l: &str) {
+    if let Some(c) = re!(r#"(?i)^(activity|release)\s+(?:"([^"]*)"|([^:]+))"#).captures(l) {
+        let name = c.get(2).or(c.get(3)).map_or("", |m| m.as_str());
+        b.add_at(row, &c[1].to_lowercase(), label(name), 0);
+    } else if let Some(c) = re!(r"(?i)^step\s+(.+)$").captures(l) {
+        b.add_at(row, "step", label(&c[1]), 1);
     }
 }
 
@@ -747,6 +764,19 @@ mod tests {
             [e(1, 0, "title", "Charge"), e(2, 0, "block", "Current")]
         );
         assert_eq!(folds(code, Language::PlantUml), [(2, 4)]);
+    }
+
+    #[test]
+    fn a_story_map_lists_its_releases_activities_and_steps() {
+        let code = "@startstorymap\nrelease MVP : the first sale\nactivity Find a book\n  step Search\n    * By title : MVP\n@endstorymap";
+        assert_eq!(
+            tags(code, Language::PlantUml),
+            [
+                e(1, 0, "release", "MVP"),
+                e(2, 0, "activity", "Find a book"),
+                e(3, 1, "step", "Search")
+            ]
+        );
     }
 
     #[test]

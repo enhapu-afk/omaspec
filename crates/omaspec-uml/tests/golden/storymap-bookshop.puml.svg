@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1345" height="414" viewBox="0 0 1345 414">
+<g transform="translate(10,10)">
+<g>
+<g id="grid">
+<line x1="0" y1="116.7" x2="1324.62" y2="116.7" fill="none" stroke="#B3B3B3" stroke-width="1" stroke-dasharray="5,4"/>
+<rect x="0" y="212.96" width="1324.62" height="55.13" fill="#F4F4F4"/>
+<line x1="0" y1="212.96" x2="1324.62" y2="212.96" fill="none" stroke="#B3B3B3" stroke-width="1" stroke-dasharray="5,4"/>
+<line x1="0" y1="268.09" x2="1324.62" y2="268.09" fill="none" stroke="#B3B3B3" stroke-width="1" stroke-dasharray="5,4"/>
+<rect x="0" y="338.36" width="1324.62" height="55.13" fill="#F4F4F4"/>
+<line x1="0" y1="338.36" x2="1324.62" y2="338.36" fill="none" stroke="#B3B3B3" stroke-width="1" stroke-dasharray="5,4"/>
+<line x1="0" y1="393.49" x2="1324.62" y2="393.49" fill="none" stroke="#B3B3B3" stroke-width="1" stroke-dasharray="5,4"/>
+</g>
+</g>
+<g>
+<rect x="130.62" y="26.3" width="322" height="32.8" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="476.62" y="26.3" width="322" height="32.8" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="822.62" y="26.3" width="322" height="32.8" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="1168.62" y="26.3" width="156" height="32.8" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="130.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="296.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="476.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="642.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="822.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="988.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="1168.62" y="67.1" width="156" height="31.6" rx="4" ry="4" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="130.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="130.62" y="169.83" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="296.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="476.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="822.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="822.62" y="169.83" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="988.62" y="128.7" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="130.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="296.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="642.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="988.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="1168.62" y="224.96" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="296.62" y="280.09" width="156" height="46.26" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="476.62" y="280.09" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="1168.62" y="280.09" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+<rect x="988.62" y="350.36" width="156" height="31.13" rx="3" ry="3" fill="#FEFFDD" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="252.4" y="47.54" font-size="14" fill="#FFFFFF" font-weight="bold" textLength="78.43" lengthAdjust="spacing">Find a book</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="611.4" y="47.54" font-size="14" fill="#FFFFFF" font-weight="bold" textLength="52.43" lengthAdjust="spacing">Choose</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="970.41" y="47.54" font-size="14" fill="#FFFFFF" font-weight="bold" textLength="26.42" lengthAdjust="spacing">Buy</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1228.51" y="47.54" font-size="14" fill="#FFFFFF" font-weight="bold" textLength="36.2" lengthAdjust="spacing">Get it</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="186.19" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="44.85" lengthAdjust="spacing">Search</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="350.64" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="47.94" lengthAdjust="spacing">Browse</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="513.09" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="83.04" lengthAdjust="spacing">Read about it</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="671.68" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="97.86" lengthAdjust="spacing">Keep it for later</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="878.87" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="43.49" lengthAdjust="spacing">Basket</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1054.71" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="23.8" lengthAdjust="spacing">Pay</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1220.19" y="87.39" font-size="13" fill="#000000" font-weight="bold" textLength="52.85" lengthAdjust="spacing">Delivery</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="8" y="140.76" font-size="13" fill="#000000" font-weight="bold" textLength="30.25" lengthAdjust="spacing">MVP</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="8" y="156.96" font-size="12" fill="#595959" font-style="italic" textLength="97.72" lengthAdjust="spacing">sell the first book</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="138.62" y="148.76" font-size="13" fill="#000000" textLength="41.83" lengthAdjust="spacing">By title</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="138.62" y="189.89" font-size="13" fill="#000000" textLength="59.07" lengthAdjust="spacing">By author</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="304.62" y="148.76" font-size="13" fill="#000000" textLength="94.42" lengthAdjust="spacing">The new books</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="484.62" y="148.76" font-size="13" fill="#000000" textLength="107.38" lengthAdjust="spacing">A page of its own</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="830.62" y="148.76" font-size="13" fill="#000000" textLength="113.68" lengthAdjust="spacing">Put it in the basket</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="830.62" y="189.89" font-size="13" fill="#000000" textLength="114.82" lengthAdjust="spacing">Change how many</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="996.62" y="148.76" font-size="13" fill="#000000" textLength="47.03" lengthAdjust="spacing">By card</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="8" y="237.02" font-size="13" fill="#000000" font-weight="bold" textLength="41.83" lengthAdjust="spacing">Spring</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="8" y="253.23" font-size="12" fill="#595959" font-style="italic" textLength="104.62" lengthAdjust="spacing">people come back</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="138.62" y="245.02" font-size="13" fill="#000000" textLength="112.7" lengthAdjust="spacing">By what it is about</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="304.62" y="245.02" font-size="13" fill="#000000" textLength="50.04" lengthAdjust="spacing">By topic</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="650.62" y="245.02" font-size="13" fill="#000000" textLength="62.01" lengthAdjust="spacing">A wish list</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="996.62" y="245.02" font-size="13" fill="#000000" textLength="63.54" lengthAdjust="spacing">By invoice</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1176.62" y="245.02" font-size="13" fill="#000000" textLength="100.27" lengthAdjust="spacing">Track the parcel</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="8" y="292.16" font-size="13" fill="#000000" font-weight="bold" textLength="32.69" lengthAdjust="spacing">Later</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="304.62" y="300.16" font-size="13" fill="#000000" textLength="121.76" lengthAdjust="spacing">What others bought</tspan>
+<tspan x="304.62" y="315.29" font-size="13" fill="#000000" textLength="19.85" lengthAdjust="spacing">too</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="484.62" y="300.16" font-size="13" fill="#000000" textLength="78.53" lengthAdjust="spacing">A look inside</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="1176.62" y="300.16" font-size="13" fill="#000000" textLength="76.09" lengthAdjust="spacing">Send it back</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="8" y="361.49" font-size="12" fill="#595959" font-style="italic" textLength="67.1" lengthAdjust="spacing">not planned</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="996.62" y="370.42" font-size="13" fill="#000000" textLength="93.9" lengthAdjust="spacing">With a gift card</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="598.75" y="12.99" font-size="14" fill="#000000" font-weight="bold" textLength="127.12" lengthAdjust="spacing">A bookshop online</tspan>
+</text>
+</g>
+</g>
+</svg>

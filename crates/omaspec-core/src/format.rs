@@ -103,6 +103,40 @@ impl Output {
     }
 }
 
+/// Where a line of a story map stands: its activities and releases at
+/// the left, a step under its activity, a story under its step.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Story {
+    Top,
+    Activity,
+    Step,
+}
+
+impl Story {
+    /// How deep `line` stands, and where the lines after it do.
+    fn level(&mut self, line: &str) -> usize {
+        let under = match self {
+            Story::Top => 0,
+            Story::Activity => 1,
+            Story::Step => 2,
+        };
+        if re!(r"(?i)^activity\b").is_match(line) {
+            *self = Story::Activity;
+            0
+        } else if re!(r"(?i)^release\b").is_match(line) {
+            *self = Story::Top;
+            0
+        } else if re!(r"(?i)^step\b").is_match(line) {
+            *self = Story::Step;
+            1
+        } else if line.starts_with('*') || line.starts_with('\'') {
+            under
+        } else {
+            0
+        }
+    }
+}
+
 /// A line without its indentation and trailing space. A byte order mark
 /// counts as space here: one behind spaces would otherwise move to the start
 /// of the text and go only on a second pass.
@@ -116,6 +150,8 @@ fn plantuml(code: &str) -> String {
     let mut out = Output::new();
     // The `@start…` kind whose block is copied verbatim until its `@end…`.
     let mut verbatim: Option<String> = None;
+    // Inside a story map: where its lines stand.
+    let mut story: Option<Story> = None;
 
     for line in &lines {
         let line = line.trim_end();
@@ -133,8 +169,25 @@ fn plantuml(code: &str) -> String {
             out.push(line.to_owned());
             continue;
         }
+        if let Some(at) = &mut story {
+            if trimmed.is_empty() {
+                out.blank();
+            } else if re!(r"(?i)^@endstorymap\b").is_match(trimmed) {
+                story = None;
+                out.push(format!("{}{trimmed}", INDENT.repeat(out.level)));
+            } else {
+                let level = at.level(trimmed);
+                out.push(format!("{}{trimmed}", INDENT.repeat(out.level + level)));
+            }
+            continue;
+        }
         if let Some(c) = re!(r"^@start([A-Za-z]+)\b").captures(trimmed) {
             let kind = c[1].to_lowercase();
+            if kind == "storymap" {
+                out.push(format!("{}{trimmed}", INDENT.repeat(out.level)));
+                story = Some(Story::Top);
+                continue;
+            }
             if re!(r"^(json|yaml|math|latex|ditaa|ebnf|salt|mindmap|wbs|dot|gantt|regex|nwdiag)$")
                 .is_match(&kind)
             {
@@ -320,6 +373,14 @@ mod tests {
         let want =
             "@startuml\nclass A {\n  +x : int\n}\npackage P {\n  class \"{odd}\"\n}\n@enduml";
         assert_eq!(format(code, Language::PlantUml), want);
+    }
+
+    #[test]
+    fn a_story_map_stands_by_its_activities_steps_and_stories() {
+        let code = "@startstorymap\ntitle Shop\nrelease MVP\nactivity Find\n* Browse\n      step Search\n* By title : MVP\n' later\n\n\nactivity Buy\n   step Pay\n@endstorymap\n";
+        let want = "@startstorymap\ntitle Shop\nrelease MVP\nactivity Find\n  * Browse\n  step Search\n    * By title : MVP\n    ' later\n\nactivity Buy\n  step Pay\n@endstorymap\n";
+        assert_eq!(format(code, Language::PlantUml), want);
+        assert_eq!(format(want, Language::PlantUml), want);
     }
 
     #[test]
