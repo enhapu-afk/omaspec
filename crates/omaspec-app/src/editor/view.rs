@@ -183,9 +183,13 @@ impl App {
     /// The diagram panes of the tabs `placed`, each at its place on the
     /// window's darker ground: a scenario beside the machines of its
     /// participants ([`super::lockstep`]).
-    pub(super) fn panes_view(&self, placed: &[(u64, iced::Rectangle)]) -> Element<'_, Message> {
+    pub(super) fn panes_view(
+        &self,
+        placed: &[(u64, iced::Rectangle)],
+        captions: &[super::screen::Caption],
+    ) -> Element<'_, Message> {
         let ground = self.palette.background;
-        let layers: Vec<Element<'_, Message>> = placed
+        let mut layers: Vec<Element<'_, Message>> = placed
             .iter()
             .filter_map(|&(key, at)| {
                 let doc = self.docs.iter().find(|d| d.key == key)?;
@@ -203,6 +207,32 @@ impl App {
                 Some(iced::widget::pin(pane).x(at.x).y(at.y).into())
             })
             .collect();
+        for caption in captions {
+            let p = &self.palette;
+            let line = row![
+                self.label(caption.left.clone(), p.foreground)
+                    .size(15)
+                    .wrapping(text::Wrapping::None),
+                iced::widget::Space::new().width(Length::Fill),
+                self.label(caption.right.clone(), p.muted)
+                    .size(14)
+                    .wrapping(text::Wrapping::None),
+            ]
+            .spacing(16)
+            .align_y(iced::Alignment::Center);
+            let words = container(line)
+                .width(caption.at.width)
+                .height(caption.at.height)
+                .padding([0, 6])
+                .align_y(iced::Alignment::Center)
+                .clip(true);
+            layers.push(
+                iced::widget::pin(words)
+                    .x(caption.at.x)
+                    .y(caption.at.y)
+                    .into(),
+            );
+        }
         container(iced::widget::Stack::with_children(layers))
             .width(Length::Fill)
             .height(Length::Fill)

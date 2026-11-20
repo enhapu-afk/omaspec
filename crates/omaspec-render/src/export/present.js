@@ -443,7 +443,7 @@ if (typeof document !== "undefined") {
       play.go(parseInt(location.hash.slice(1), 10) || 0);
       if (play.place === 0) draw(data.begun, []);
       else draw();
-    } else if (data.kind === "fold" && data.glides.length > 0) {
+    } else if ((data.kind === "fold" || data.kind === "history") && data.glides.length > 0) {
       // One picture for each step: 0 with nothing folded, n with the first
       // n containers. Only the one the play is at shows; a glide draws a
       // sheet of its own over them.
@@ -451,8 +451,11 @@ if (typeof document !== "undefined") {
       const pictures = [...stage.querySelectorAll(":scope > svg")];
       const play = Present.scenario(data.glides);
       const calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const TOOK = 400;
-      const HOLD = 900;
+      // A diagram's history: each commit stays a little longer, and the
+      // last starts it again.
+      const history = data.kind === "history";
+      const TOOK = history ? 700 : 400;
+      const HOLD = history ? 1300 : 900;
       // What each picture stands on: a mark that is hollow is filled with it.
       const unders = [under, ...pictures.slice(1).map((picture) => grounded(picture, picture.viewBox.baseVal))];
       /// What moves the groups around `group` in its picture: the
@@ -674,6 +677,13 @@ if (typeof document !== "undefined") {
       let auto = !/^#\d+$/.test(location.hash);
       let down = false;
       const tell = () => {
+        if (history) {
+          say(
+            span("at", `${data.captions[play.at]} · ${play.at + 1} / ${play.count + 1}`),
+            span("help", auto ? "plays by itself · → or a click steps · F full screen" : "→ the next commit · ← the one before · Home plays again · F full screen"),
+          );
+          return;
+        }
         const folded = data.names.slice(0, play.at);
         say(
           span("at", folded.length ? `${folded.join(", ")} folded` : "all open"),
@@ -689,6 +699,16 @@ if (typeof document !== "undefined") {
         if (!auto) return;
         // One step waits at a time: Home while one waits starts no second.
         still();
+        // A history ends on its last commit a while, and starts again.
+        if (history && play.at === play.count) {
+          timers.push(setTimeout(() => {
+            play.home();
+            show(0);
+            tell();
+            wait();
+          }, HOLD * 2.5));
+          return;
+        }
         timers.push(setTimeout(() => {
           if (play.at === play.count) down = true;
           if (play.at === 0) down = false;
@@ -748,7 +768,17 @@ if (typeof document !== "undefined") {
       play.go(parseInt(location.hash.slice(1), 10) || 0);
       show(play.at);
       tell();
-      wait();
+      // `#1.5`: the glide from picture 1 to the next, half its way, still.
+      const midway = /^#(\d+)(\.\d+)$/.exec(location.hash);
+      if (midway && Number(midway[1]) < play.count) {
+        auto = false;
+        const from = Number(midway[1]);
+        const room = pictures[from].getBoundingClientRect();
+        pictures.forEach((picture) => picture.classList.add("away"));
+        sheet(from, room).draw(Present.ease(Number(midway[2])));
+      } else {
+        wait();
+      }
     } else {
       say(span("help", "F full screen"));
     }

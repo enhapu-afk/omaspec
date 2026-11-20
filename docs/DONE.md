@@ -2897,6 +2897,19 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A time-lapse of a diagram's history (2026-11-20, the third of the animations that
+      show what a diagram means): `omaspec play FILE --history -o history.gif` plays
+      every commit that changed the file, oldest first (the newest 60, one that left it
+      as it was passed over), each picture gliding into the next as the pane glides when
+      the diagram is edited (docs/adr/0029), what is new coming in and what went
+      fading, the commit under it (`editor::timelapse`, the screen's captions). Every
+      commit at the scale the newest fits at, its top where the newest's is, so the
+      diagram grows as it grew; a long history goes through faster. As `.html` a page in
+      vectors: the fold's page with captions, kind `history`, that starts again after
+      its last commit; each picture as large as the largest with itself in the middle,
+      its glides moved with it; `#2` shows the third commit, `#2.5` the glide from it
+      halfway (for a fold too). The README shows the gallery's parcel growing over six
+      commits (`docs/images/history.sh` makes the repository, `update.sh` the picture)
 - [x] What the review of the lockstep found (2026-11-20). A trace's line that deviates
       flashed in the window only while something else moved: the play counts its
       flashes until they end, and drops those that are over. A page took a group's

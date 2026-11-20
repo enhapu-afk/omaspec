@@ -58,6 +58,9 @@ pub struct Moving {
     /// Instead of a play of the diagram alone: a scenario played beside
     /// the state machines of its participants ([`super::lockstep`]).
     pub lockstep: bool,
+    /// Instead of a play: every commit that changed the file, each
+    /// picture gliding into the next ([`super::timelapse`]).
+    pub history: bool,
     /// The whole diagram in every frame, rather than a camera that follows
     /// the play where the whole is too large to read (REQ-071).
     pub whole: bool,
@@ -148,7 +151,7 @@ pub(super) const BAR: f32 = 90.0;
 pub fn play(args: &Moving) -> Result<String> {
     let film = Film::of(&args.output).with_context(|| {
         format!(
-            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold, a build or a lockstep as a page)",
+            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold, a build, a lockstep or a history as a page)",
             args.output.display()
         )
     })?;
@@ -170,6 +173,13 @@ pub fn play(args: &Moving) -> Result<String> {
             "--width takes 200 to 4000"
         );
         return super::building::build(args, film, fps);
+    }
+    if args.history {
+        anyhow::ensure!(
+            args.width.is_none_or(|width| (200..=4000).contains(&width)),
+            "--width takes 200 to 4000"
+        );
+        return super::timelapse::timelapse(args, film, fps);
     }
     if args.lockstep {
         anyhow::ensure!(
@@ -293,6 +303,7 @@ fn fold_page(args: &Moving) -> Result<String> {
     let page = folding::page(
         &folding::Folding {
             names: args.folds.clone(),
+            captions: Vec::new(),
             pictures,
             glides,
             paper,
@@ -877,6 +888,7 @@ mod tests {
                 dives: Vec::new(),
                 builds: false,
                 lockstep: false,
+                history: false,
                 whole: false,
                 theme: Some("built-in".into()),
                 file_colors: false,
@@ -930,6 +942,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             lockstep: false,
+            history: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -984,6 +997,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
                 lockstep: false,
+                history: false,
             whole: true,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1023,6 +1037,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             lockstep: false,
+            history: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1119,6 +1134,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             lockstep: false,
+            history: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

@@ -454,6 +454,7 @@ mod tests {
             dives: Vec::new(),
             builds: false,
             lockstep: true,
+            history: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

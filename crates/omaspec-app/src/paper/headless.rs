@@ -65,6 +65,12 @@ impl Paper {
         self.glide
     }
 
+    /// Whether the last picture drawn stands on screen: nothing on its
+    /// way, fading or gliding.
+    pub fn arrived(&self) -> bool {
+        matches!(self.arrival, super::arrival::Arrival::Still) && self.glide.is_none()
+    }
+
     /// How many pictures of the diagram before fade out, if a fade runs.
     pub fn fading(&self) -> Option<usize> {
         self.arrival.fade().map(|fade| fade.old.len())

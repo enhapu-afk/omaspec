@@ -31,6 +31,8 @@ pub struct Screen {
     pub shows: Shows,
     /// The tabs [`Shows::Panes`] draws, by key, and where.
     pub panes: Vec<(u64, iced::Rectangle)>,
+    /// What [`Shows::Panes`] says under them.
+    pub captions: Vec<Caption>,
     /// Where the pointer is, for a redraw to tell the layers; nowhere
     /// without one.
     pub pointer: Option<iced::Point>,
@@ -47,6 +49,15 @@ pub struct Screen {
     /// The tasks of what the frames published, on their way while frames
     /// are drawn on the wall clock ([`Self::run_frames`]).
     background: crate::at_once::Background<Message>,
+}
+
+/// Words [`Shows::Panes`] draws at a place: what is played there, on
+/// the left, and how far it is, on the right.
+#[derive(Debug, Clone)]
+pub struct Caption {
+    pub at: iced::Rectangle,
+    pub left: String,
+    pub right: String,
 }
 
 /// A screenshot, as RGBA rows.
@@ -89,6 +100,7 @@ impl Screen {
             size: Self::SIZE,
             shows: Shows::Window,
             panes: Vec::new(),
+            captions: Vec::new(),
             pointer: None,
             #[cfg(test)]
             warm: false,
@@ -148,7 +160,7 @@ impl Screen {
         let view = match self.shows {
             Shows::Window => app.main_view(),
             Shows::Diagram => app.diagram_view(),
-            Shows::Panes => app.panes_view(&self.panes),
+            Shows::Panes => app.panes_view(&self.panes, &self.captions),
         };
         let mut ui = iced_runtime::UserInterface::build(
             view,

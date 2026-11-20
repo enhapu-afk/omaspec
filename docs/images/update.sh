@@ -40,6 +40,14 @@ cargo run --release -q -p omaspec-app -- play examples/gallery/parcel.puml \
 cargo run --release -q -p omaspec-app -- play examples/home/keys.puml \
   -o "$out/lockstep.gif" --lockstep --theme built-in --width 1000 2>/dev/null
 
+# A diagram's history: the parcel growing commit by commit, each picture
+# gliding into the next.
+history=$(mktemp -d)
+"$(dirname "$0")/history.sh" "$history/repo"
+cargo run --release -q -p omaspec-app -- play "$history/repo/parcel.puml" \
+  -o "$out/history.gif" --history --theme built-in --width 640 2>/dev/null
+rm -rf "$history"
+
 # Two dark themes and two light ones.
 magick montage "$shots"/theme-{tokyo-night,catppuccin-latte,gruvbox,rose-pine}-wgpu.png \
   -tile 2x2 -geometry 800x427+6+6 -background '#16161e' -depth 8 -strip "$out/themes.png"

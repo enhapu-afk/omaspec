@@ -62,6 +62,7 @@ mod syntax;
 pub mod table;
 mod takes;
 mod tidy;
+mod timelapse;
 mod tools;
 mod view;
 mod views;

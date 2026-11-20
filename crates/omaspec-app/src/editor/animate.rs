@@ -238,6 +238,7 @@ impl App {
             dives: Vec::new(),
             builds: false,
             lockstep: false,
+            history: false,
             whole: false,
             theme: None,
             file_colors: !self.follow_theme,

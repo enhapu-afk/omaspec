@@ -482,6 +482,11 @@ enum Command {
         /// red, and its states flash.
         #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build"])]
         lockstep: bool,
+        /// Instead of a play: the diagram's history in git, every commit
+        /// that changed the file gliding into the next, oldest first, the
+        /// commit under it (the newest 60).
+        #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep"])]
+        history: bool,
         /// The whole diagram in every frame. Without it, a play or a fold
         /// of a diagram too large to read whole follows each step or each
         /// container, near enough to read, and ends on the whole.
@@ -890,6 +895,7 @@ fn main() -> ExitCode {
             dive,
             build,
             lockstep,
+            history,
             whole,
             theme,
             lang,
@@ -904,6 +910,7 @@ fn main() -> ExitCode {
             dives: dive,
             builds: build,
             lockstep,
+            history,
             whole,
             theme,
             text: None,

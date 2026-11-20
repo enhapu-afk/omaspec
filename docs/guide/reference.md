@@ -740,6 +740,7 @@ omaspec play coffee.puml -o build.gif --build              # code becomes a pict
 omaspec play coffee.puml -o build.html --build             # the same as a page in vectors, played by a browser; build.html#t=4 holds it still 4 seconds in
 omaspec play keys.puml -o lockstep.gif --lockstep          # a scenario beside the state machines of its participants in its project: as a message's light reaches its receiver, the receiver's machine takes the transition it fires; a message the machine cannot take runs red, its states flash, and its bar says why in the check's words
 omaspec play keys.puml -o lockstep.html --lockstep         # the same as a page in vectors, played by a browser; lockstep.html#t=5 holds it still 5 seconds in
+omaspec play parcel.puml -o history.gif --history          # the diagram's history in git: every commit that changed the file glides into the next at one scale, oldest first, the commit under it (the newest 60); .html a page in vectors, history.html#2 shows the third commit, #2.5 the glide from it halfway
 omaspec render flow.mmd --look auto # plain, sketch, vivid, omarchy, light or dark; auto: one SVG, dark under a dark scheme
 omaspec render .                    # every diagram of the folder, each beside its own, in the project's look
 omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1

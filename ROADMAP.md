@@ -685,10 +685,6 @@ picture, the second is the highlight.
 - [ ] Lockstep: built as GIF, WebP, PNG and a page (in docs/DONE.md).
       Left: the lockstep in the window, F5 on a scenario with the
       machines of its participants opening beside it.
-- [ ] A time-lapse of a diagram's history: every commit `omaspec log`
-      lists gliding into the next (the glide by parts, docs/adr/0029),
-      what is new growing in, what goes fading, the commit's message as
-      a caption; Time travel above, from two commits to all of them.
 - [ ] Traffic: many recorded traces flowing through a machine at once
       as dots, the ways taken often glowing as they fill, those never
       taken staying grey and blinking at the end; the Trace river above,

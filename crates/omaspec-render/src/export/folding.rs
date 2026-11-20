@@ -21,6 +21,10 @@ use super::{ExportError, Source};
 pub struct Folding {
     /// What folds, in order: the picture `n` has the first `n` folded.
     pub names: Vec<String>,
+    /// What each picture is, where the pictures are a diagram's history
+    /// rather than its folds: its commit, said under it. A history plays
+    /// on from its first picture to its last and starts again.
+    pub captions: Vec<String>,
     /// One picture more than names, each with its parts marked.
     pub pictures: Vec<Picture>,
     /// The glide from each picture to the next.
@@ -192,8 +196,9 @@ fn data(folding: &Folding) -> Value {
         })
         .collect();
     json!({
-        "kind": "fold",
+        "kind": if folding.captions.is_empty() { "fold" } else { "history" },
         "names": folding.names,
+        "captions": folding.captions,
         "sizes": sizes,
         "lines": (0..folding.pictures.len())
             .map(|at| format!("{}{}", prefix(at), omaspec_uml::LINES))
