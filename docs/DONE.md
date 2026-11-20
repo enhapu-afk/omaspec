@@ -2897,17 +2897,6 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
-- [x] A play's bar comes and goes without a jump (2026-11-20). The frame the bar came
-      the pane was lower than the one its view was made for, and heard so only once that
-      frame was drawn: the picture jumped up by half the bar for one frame and back, then
-      glided to its new fit; the frame the bar went it dropped. Each layer of the pane
-      draws for the height its view was made for (`frames::Timed::made_for`), so the
-      picture stays where it is, held at the pane's top as the pane holds it from the
-      next frame on. Over an empty ground of the stack (`pane::ground`) the picture is
-      clipped to the pane as the marks over it are, and does not lie over the bar's
-      box. `the_picture_stays_put_the_frame_a_play_s_bar_comes` follows the paper's edge
-      frame by frame, without a GPU. Found while recording the landing page's film
-      again (`docs/images/film.sh`), every frame on a recording's clock
 - [x] What the review of the presenter mode and the project's page found (2026-11-20).
       The speaker's window takes the presentation's keys and gives way to a question,
       a list or a menu opened there; a step back shows the notes of the step it went

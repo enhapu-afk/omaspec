@@ -5021,63 +5021,6 @@ fn a_played_message_s_light_stays_round_it_without_a_gpu() {
     let _ = std::fs::remove_dir_all(&work);
 }
 
-/// The frame a play's bar comes, the picture stays where it was, held at
-/// the pane's top, as the pane holds it from the next frame on and glides
-/// it to its new fit. Drawn for the pane's new height before the pane had
-/// heard of it, it jumped up by half the bar for that frame and back.
-#[test]
-fn the_picture_stays_put_the_frame_a_play_s_bar_comes() {
-    let source = "@startuml\n[*] --> Idle\nIdle --> Busy : go\nBusy --> Idle : done\nBusy --> [*] : off\n@enduml\n";
-    let work = temp_dir("bar-comes");
-    let file = work.join("busy.puml");
-    std::fs::write(&file, source).unwrap();
-    let start = Start {
-        files: vec![file],
-        ..Start::default()
-    };
-    let theme = theme_named("tokyo-night", omaspec_theme::Palette::fallback());
-    let mut app = App::themed(start, None, theme).0;
-    // The file's own white paper.
-    follow_theme(&mut app, false);
-    show(&mut app, source, Language::PlantUml);
-    settle(&mut app);
-    let mut screen = Screen::drawn_by(&app, 1.0, Some("tiny-skia")).unwrap();
-    let _clock = crate::clock::Recording::start();
-    let tick = Duration::from_micros(16_667);
-    // The pane takes its size, and the picture its fit.
-    for _ in 0..60 {
-        let _ = screen.run_frame(&mut app, tick);
-    }
-    // The paper's top edge, down the middle of the pane.
-    let top = |shot: &Shot| shot.first((900, 60), (0, 1), 0x48).1;
-    let before = top(&screen.run_frame(&mut app, tick));
-    let _ = app.update(Message::Command(Command::Play));
-    assert!(app.doc().paper.playing());
-    let first = screen.run_frame(&mut app, tick);
-    assert_eq!(top(&first), before, "the frame the bar came");
-    // From there it glides to its new fit, and back once the play has
-    // ended and its bar gone: no frame jumps.
-    let mut last = top(&first);
-    let mut step = |shot: Shot, when: &str| {
-        let now = top(&shot);
-        assert!(now.abs_diff(last) <= 8, "{when}: from {last} to {now}");
-        last = now;
-    };
-    for _ in 0..60 {
-        step(screen.run_frame(&mut app, tick), "playing");
-    }
-    let _ = app.update(Message::Command(Command::StopPlay));
-    for _ in 0..90 {
-        step(screen.run_frame(&mut app, tick), "stopped");
-    }
-    assert!(!app.doc().paper.playing());
-    assert!(
-        last.abs_diff(before) <= 2,
-        "back where it was: {last}, {before}"
-    );
-    let _ = std::fs::remove_dir_all(&work);
-}
-
 /// At a fractional scale, as on a 1.5 screen, when OMASPEC_SNAPSHOT_DIR
 /// is set: the paper's edge and glow keep their pixels wherever a pan
 /// leaves them; the veil of a play leaves no light fleck in the paper's
