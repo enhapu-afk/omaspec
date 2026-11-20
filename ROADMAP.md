@@ -254,8 +254,6 @@ what is plainly missing, then the larger pieces.
       chain after a labelled line is lost: `a -->|yes| b --> c --> d` (or
       `a -- yes --> b --> c`) draws only `a` and `b`, and `c` and `d` not
       at all.
-- [ ] REQ-098: a gitGraph's `mainBranchName` and `rotateCommitLabel` are
-      carried out; lint said only info, so `--strict` passed.
 - [ ] REQ-051, the gaps: an emoji in a gitGraph's tag or commit is drawn
       in color and whole, not as a small outline cut at its top.
 - [ ] REQ-090 to REQ-094, `--ink`: a look to ink into (`--look`), not

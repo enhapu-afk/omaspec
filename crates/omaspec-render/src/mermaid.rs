@@ -493,7 +493,7 @@ const NATIVE: &[Native] = &[
         headers: &["gitgraph"],
         noun: "git graph",
         draw: |i| gitgraph::try_draw(i.theme, i.body),
-        refusal: omaspec_uml::gitgraph::mermaid_refusal,
+        refusal: gitgraph::refusal,
         wrong: omaspec_uml::gitgraph::mermaid_wrong,
         as_read: |_| None,
     },

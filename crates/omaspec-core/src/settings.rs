@@ -263,11 +263,19 @@ pub fn init(code: &str) -> Vec<Setting> {
 /// Mermaid writes no `null`, list or object over its own `true`, so these
 /// leave it as it was. PlantUML's `hide footbox` is the same.
 pub fn mirrors_actors(code: &str) -> bool {
+    switch(code, "sequence", "mirrorActors", true)
+}
+
+/// A switch among the settings, `section.key`, as Mermaid tests it: what
+/// JavaScript takes as false (`false`, `0`, `""`) is off, the last such
+/// setting counting. A `null`, list or object leaves it as it was; Mermaid
+/// writes none of these over its own default.
+fn switch(code: &str, section: &str, key: &str, default: bool) -> bool {
     front(code)
         .into_iter()
         .chain(init(code))
-        .filter(|setting| setting.path == ["sequence", "mirrorActors"])
-        .fold(true, |on, setting| match setting.value {
+        .filter(|setting| setting.path == [section, key])
+        .fold(default, |on, setting| match setting.value {
             Value::Bool(value) => value,
             Value::Number(number) => number.as_f64().is_some_and(|n| n != 0.0 && !n.is_nan()),
             Value::String(text) => !text.is_empty(),
@@ -301,6 +309,40 @@ pub fn merged(code: &str) -> Option<Value> {
         any = true;
     }
     any.then_some(Value::Object(root))
+}
+
+/// What a git graph's `gitGraph` settings ask for, from its front matter
+/// and its directives; Omaspec's defaults for what they leave out. Its
+/// switches are tested as Mermaid tests them ([`switch`]); a name that is
+/// no text, or empty, and an order that is no number are passed over.
+pub fn git_graph(code: &str) -> omaspec_uml::gitgraph::Settings {
+    let defaults = omaspec_uml::gitgraph::Settings::default();
+    let merged = merged(code);
+    let git = merged.as_ref().and_then(|root| root.get("gitGraph"));
+    let name = git
+        .and_then(|git| git.get("mainBranchName"))
+        .and_then(Value::as_str)
+        .filter(|name| !name.is_empty());
+    let order = git
+        .and_then(|git| git.get("mainBranchOrder"))
+        .and_then(Value::as_f64);
+    omaspec_uml::gitgraph::Settings {
+        main_name: name.map_or(defaults.main_name, str::to_owned),
+        main_order: order.map_or(defaults.main_order, |order| order as f32),
+        show_branches: switch(code, "gitGraph", "showBranches", defaults.show_branches),
+        show_commit_label: switch(
+            code,
+            "gitGraph",
+            "showCommitLabel",
+            defaults.show_commit_label,
+        ),
+        rotate_commit_label: switch(
+            code,
+            "gitGraph",
+            "rotateCommitLabel",
+            defaults.rotate_commit_label,
+        ),
+    }
 }
 
 /// The colors of `themeVariables` the drawers take.
@@ -381,7 +423,26 @@ fn heeded(path: &[String]) -> bool {
         }
         ["flowchart", "nodeSpacing" | "rankSpacing" | "curve"] => true,
         ["sequence", "mirrorActors"] => true,
+        ["gitGraph", name] => omaspec_uml::gitgraph::SETTINGS.contains(name),
         _ => false,
+    }
+}
+
+/// Whether a setting of a git graph's own section is carried out: by its
+/// drawer, `git_drawn`, and with a value of the kind it takes (a name
+/// that is text, an order that is a number). Any other is as [`heeded`]
+/// says.
+fn carried(setting: &Setting, git_drawn: bool) -> bool {
+    match setting.path.as_slice() {
+        [section, key] if section == "gitGraph" => {
+            git_drawn
+                && match key.as_str() {
+                    "mainBranchName" => setting.value.as_str().is_some_and(|name| !name.is_empty()),
+                    "mainBranchOrder" => setting.value.is_number(),
+                    _ => true,
+                }
+        }
+        _ => true,
     }
 }
 
@@ -392,6 +453,11 @@ pub fn unheeded(code: &str) -> Vec<Finding> {
     // A skin pack's flowchart takes the borders of its diamonds and its
     // stores from two variables more.
     let packed = crate::skin::current(code).is_some();
+    // A git graph's own settings are carried out by its drawer alone:
+    // where it leaves the graph to mmdr (a construct it refuses, another
+    // setting of the front matter), they are not.
+    let (body, _) = crate::lang::mermaid_body(code);
+    let git_drawn = omaspec_uml::gitgraph::mermaid_refusal(body, &git_graph(body)).is_none();
     for setting in front(code).into_iter().chain(init(code)) {
         let name = setting.path.join(".");
         let of_pack = packed
@@ -401,7 +467,7 @@ pub fn unheeded(code: &str) -> Vec<Finding> {
             );
         let message = if of_pack {
             continue;
-        } else if heeded(&setting.path) {
+        } else if heeded(&setting.path) && carried(&setting, git_drawn) {
             match (name.as_str(), setting.value.as_str()) {
                 ("theme", Some(theme))
                     if !THEMES.contains(&theme.trim().to_ascii_lowercase().as_str()) =>
@@ -422,7 +488,9 @@ pub fn unheeded(code: &str) -> Vec<Finding> {
             out.push(Finding::new(
                 "unheeded-setting",
                 setting.line,
-                Severity::Info,
+                // The picture is not the one the file asks for: `--strict`
+                // fails on it (REQ-098).
+                Severity::Warning,
                 message,
             ));
         }
@@ -473,6 +541,51 @@ mod tests {
             "---\nconfig:\n  sequence:\n    mirrorActors: false\n---\n%%{{init: {{\"sequence\": {{\"mirrorActors\": null}}}}}}%%\n{body}"
         );
         assert!(!mirrors_actors(&both), "{both}");
+    }
+
+    /// A git graph's settings from the front matter and a directive over
+    /// it, its switches tested as Mermaid tests them; what they set is
+    /// carried out, so lint says nothing of it, and of the rest it does.
+    #[test]
+    fn a_git_graph_s_settings_are_read_and_carried_out() {
+        let code = "---\nconfig:\n  gitGraph:\n    mainBranchName: trunk\n    mainBranchOrder: 2\n    showBranches: 0\n---\n%%{init: {\"gitGraph\": {\"rotateCommitLabel\": true, \"showCommitLabel\": \"\", \"parallelCommits\": true}}}%%\ngitGraph\n  commit\n";
+        let settings = git_graph(code);
+        assert_eq!(settings.main_name, "trunk");
+        assert_eq!(settings.main_order, 2.0);
+        assert!(!settings.show_branches && !settings.show_commit_label);
+        assert!(settings.rotate_commit_label);
+        let said: Vec<String> = unheeded(code).into_iter().map(|f| f.message).collect();
+        assert_eq!(
+            said,
+            [
+                "`gitGraph.parallelCommits` is not carried out: Omaspec draws the diagram without this setting"
+            ]
+        );
+        // Where mmdr draws the graph, none is carried out: with a setting
+        // of the front matter the drawer does not read, or with a front
+        // matter in flow style.
+        let front = code.replace(
+            "    showBranches: 0\n",
+            "    showBranches: 0\n    parallelCommits: true\n",
+        );
+        assert_eq!(unheeded(&front).len(), 7, "{:?}", unheeded(&front));
+        let flow = "---\nconfig:\n  gitGraph: { mainBranchName: trunk }\n---\ngitGraph\n  commit\n";
+        let said: Vec<String> = unheeded(flow).into_iter().map(|f| f.message).collect();
+        assert_eq!(said.len(), 1, "{said:?}");
+        assert!(said[0].starts_with("`gitGraph.mainBranchName` is not carried out"));
+        // Nor a name that is no text, nor an order that is no number.
+        let numbers = "%%{init: {\"gitGraph\": {\"mainBranchName\": 2024, \"mainBranchOrder\": \"x\"}}}%%\ngitGraph\n  commit\n";
+        assert_eq!(unheeded(numbers).len(), 2, "{:?}", unheeded(numbers));
+        let plain = git_graph("gitGraph\n  commit\n");
+        assert_eq!(plain, omaspec_uml::gitgraph::Settings::default());
+        let empty = git_graph(
+            "%%{init: {\"gitGraph\": {\"mainBranchName\": \"\", \"mainBranchOrder\": \"x\"}}}%%\ngitGraph\n",
+        );
+        assert_eq!((empty.main_name.as_str(), empty.main_order), ("main", 0.0));
+        // A name as Mermaid takes it, spaces and all.
+        let spaced =
+            git_graph("%%{init: {\"gitGraph\": {\"mainBranchName\": \" trunk\"}}}%%\ngitGraph\n");
+        assert_eq!(spaced.main_name, " trunk");
     }
 
     #[test]
@@ -528,7 +641,7 @@ mod tests {
         assert!(
             found
                 .iter()
-                .all(|f| f.line == 0 && f.severity == Severity::Info)
+                .all(|f| f.line == 0 && f.severity == Severity::Warning)
         );
         let front = "---\nconfig:\n  theme: neon\n  look: handDrawn\n  layout: elk\n---\nflowchart TD\n  A --> B\n";
         let found = unheeded(front);

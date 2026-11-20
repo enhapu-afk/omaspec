@@ -270,23 +270,53 @@ pub fn front_title(source: &str) -> Option<(usize, &str)> {
 
 /// The lines of a Mermaid front matter that every drawer draws as they
 /// ask, past its `title`: a `config:` that holds only a `look`, `classic`
-/// or `handDrawn`, which the drawer reads itself (docs/adr/0023). Any
-/// other setting may change the picture, so a reader that does not know
-/// it leaves the diagram to mmdr.
+/// or `handDrawn`, which the drawer reads itself (docs/adr/0023), and the
+/// settings of a diagram's own section its drawer carries out
+/// ([`Front::with`]). Any other setting may change the picture, so a
+/// reader that does not know it leaves the diagram to mmdr.
 #[derive(Debug, Default)]
 pub(crate) struct Front {
     /// How far `config:` is indented, while its keys follow.
     config: Option<usize>,
+    /// The diagram's own section (`gitGraph`) and the keys of it its
+    /// drawer carries out.
+    section: Option<(&'static str, &'static [&'static str])>,
+    /// How far that section is indented, while its keys follow.
+    inside: Option<usize>,
 }
 
 impl Front {
+    /// A front matter whose section `name` holds settings the drawer
+    /// carries out: `keys`.
+    pub(crate) fn with(name: &'static str, keys: &'static [&'static str]) -> Front {
+        Front {
+            section: Some((name, keys)),
+            ..Front::default()
+        }
+    }
+
     /// Whether `raw`, a line of the front matter as written, is one of
     /// those, in the order the lines come.
     pub(crate) fn drawn(&mut self, raw: &str) -> bool {
         let text = raw.trim();
         let indent = raw.len() - raw.trim_start().len();
+        if let Some(at) = self.inside {
+            if indent > at {
+                let keys = self.section.map_or(&[][..], |(_, keys)| keys);
+                return text
+                    .split_once(':')
+                    .is_some_and(|(key, _)| keys.contains(&key.trim()));
+            }
+            self.inside = None;
+        }
         if let Some(at) = self.config {
             if indent > at {
+                if let Some((name, _)) = self.section
+                    && text.strip_suffix(':').is_some_and(|key| key.trim() == name)
+                {
+                    self.inside = Some(indent);
+                    return true;
+                }
                 return text.split_once(':').is_some_and(|(key, value)| {
                     let value = value.split(" #").next().unwrap_or_default();
                     let value = value.trim().trim_matches(['"', '\'']);
@@ -374,6 +404,18 @@ mod tests {
             [true, false, false]
         );
         assert_eq!(drawn(&["look: handDrawn"]), [false]);
+        // A section of the diagram's own, with the keys its drawer knows.
+        let mut front = Front::with("gitGraph", &["mainBranchName"]);
+        let lines = [
+            "config:",
+            "  gitGraph:",
+            "    mainBranchName: trunk",
+            "    parallelCommits: true",
+            "  look: handDrawn",
+            "  flowchart:",
+        ];
+        let found: Vec<bool> = lines.iter().map(|line| front.drawn(line)).collect();
+        assert_eq!(found, [true, true, true, false, true, false]);
     }
 
     #[test]

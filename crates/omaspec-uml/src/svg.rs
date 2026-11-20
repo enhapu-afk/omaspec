@@ -815,6 +815,73 @@ impl Canvas {
         self.at(layer).push_str(&out);
     }
 
+    /// `block` turned about `(x, y)` by `degrees`, clockwise as SVG turns
+    /// (a negative angle turns its words up): before it is turned,
+    /// `(x, y)` is where `align` puts its top line. It takes the room its
+    /// turned corners take, and words tied to a line are found within it.
+    pub fn text_turned(
+        &mut self,
+        layer: Layer,
+        block: &Block,
+        (x, y): (f32, f32),
+        align: Align,
+        degrees: f32,
+    ) {
+        if block.is_empty() {
+            return;
+        }
+        let left = match align {
+            Align::Left => x,
+            Align::Center => x - block.width / 2.0,
+            Align::Right => x - block.width,
+        };
+        let (sin, cos) = degrees.to_radians().sin_cos();
+        let corners = [
+            (left, y),
+            (left + block.width, y),
+            (left, y + block.height),
+            (left + block.width, y + block.height),
+        ]
+        .map(|(px, py)| {
+            let (dx, dy) = (px - x, py - y);
+            (x + dx * cos - dy * sin, y + dx * sin + dy * cos)
+        });
+        let bounds = (self.left, self.top, self.right, self.bottom);
+        let (ties, echoes) = (self.ties.len(), self.echoes.len());
+        let _ = write!(
+            self.at(layer),
+            r#"<g transform="rotate({} {} {})">"#,
+            n(degrees),
+            n(x),
+            n(y)
+        );
+        self.text(layer, block, (x, y), align);
+        self.at(layer).push_str("</g>");
+        // The room of the words as they stand, not as they would lie.
+        (self.left, self.top, self.right, self.bottom) = bounds;
+        let (mut low, mut high) = (
+            (f32::INFINITY, f32::INFINITY),
+            (f32::NEG_INFINITY, f32::NEG_INFINITY),
+        );
+        for (cx, cy) in corners {
+            self.grow(cx, cy);
+            low = (low.0.min(cx), low.1.min(cy));
+            high = (high.0.max(cx), high.1.max(cy));
+        }
+        let turned = crate::graph::Rect {
+            x: low.0,
+            y: low.1,
+            w: high.0 - low.0,
+            h: high.1 - low.1,
+        };
+        for tied in &mut self.ties[ties..] {
+            tied.rect = turned;
+        }
+        for echo in &mut self.echoes[echoes..] {
+            *echo = turned;
+        }
+    }
+
     /// `icon` with its left edge at `x`, standing on `baseline`, in
     /// `color` unless it has its own.
     fn icon(&self, out: &mut String, icon: &Icon, (x, baseline): (f32, f32), color: Color) {
@@ -1892,6 +1959,34 @@ mod tests {
         let svg = c.finish(0.0, None);
         assert!(svg.contains("<rect"), "{svg}");
         assert!(!svg.contains(r#"stroke-linecap="round""#), "{svg}");
+    }
+
+    /// Turned words take the room of their turned corners, not that of
+    /// the words lying flat.
+    #[test]
+    fn turned_words_take_the_room_they_stand_in() {
+        let mut c = Canvas::new("sans-serif", false);
+        let block = crate::text::block(
+            "a-long-commit-id",
+            Font::new(12.0, Color::BLACK),
+            c.family(),
+        )
+        .unwrap();
+        c.text_turned(Layer::Front, &block, (100.0, 50.0), Align::Right, -45.0);
+        let (left, right) = c.width_span();
+        let half = std::f32::consts::FRAC_1_SQRT_2;
+        // Its right end at the anchor, its words running down to the left.
+        assert!(
+            (right - (100.0 + block.height * half)).abs() < 0.5,
+            "{right}"
+        );
+        assert!((left - (100.0 - block.width * half)).abs() < 0.5, "{left}");
+        assert!(c.top() > 50.0 - 0.5, "{}", c.top());
+        let svg = c.finish(0.0, None);
+        assert!(
+            svg.contains(r#"<g transform="rotate(-45 100 50)"><text"#),
+            "{svg}"
+        );
     }
 
     #[test]

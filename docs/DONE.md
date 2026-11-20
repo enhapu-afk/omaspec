@@ -2897,6 +2897,28 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-098, a git graph's settings (2026-11-20): `mainBranchName`, `mainBranchOrder`,
+      `showBranches`, `showCommitLabel` and `rotateCommitLabel`, in the front matter's
+      `config.gitGraph` or an init directive, are carried out by Omaspec's drawer, so
+      lint no longer names them. The main branch has the name they give it, and
+      `checkout trunk` is no branch that is not there; it takes its place among the
+      branches by its order as Mermaid orders them (a branch of order 0 now stands before
+      one that asks for none, as there). Without branches shown, the lanes' names and
+      lines are left out; without commit labels, the ids (the tags stay). Turned, the ids
+      stand at 45° on a plate of the page's color: under their commits where time runs to
+      the right, the commits as close as the tags let them and the lanes as far apart as
+      the ids drop; down or up the page in a column after the lane's tags, rising to the
+      right, so that none meets another. Omaspec lays them level unless
+      `rotateCommitLabel: true` is written (Mermaid turns them unless told not to). The
+      switches are tested as Mermaid tests them (`0` and `""` are off); a name that is no
+      text and an order that is no number are not carried out, and said so. Where the
+      drawer leaves the graph to mmdr, lint says all of them are not carried out. The
+      lanes stand as Mermaid orders them, its tenth plain branch beside its first too.
+      The words of a commit's line, its id and its tag, are tied to it. The
+      front matter's other `gitGraph` settings still leave the graph to mmdr. A setting
+      Omaspec does not carry out is now a warning, not an info, so `--strict` fails on it:
+      the picture is not the one the file asks for. The canvas draws turned words (`Canvas::text_turned`), in the room
+      their turned corners take.
 - [x] REQ-089, swimlanes (2026-11-20): Mermaid 11.16's `swimlane-beta` is drawn by
       Omaspec, an entry of its own in `NATIVE`. It is read as the flowchart it is, its
       lanes, the subgraphs at the top, taken out and the lines where they stood left

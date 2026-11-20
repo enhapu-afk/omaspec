@@ -20,6 +20,9 @@ use crate::svg::{Align, Canvas, Layer, Stroke};
 use crate::text::{self, Block, Font};
 
 mod read;
+mod settings;
+
+pub use settings::{SETTINGS, Settings};
 
 /// The room one turn takes along the way time runs.
 const STEP: f32 = 56.0;
@@ -46,6 +49,7 @@ pub struct Diagram {
     /// The commits in the order they were made.
     pub commits: Vec<Commit>,
     pub look: Look,
+    pub settings: Settings,
 }
 
 /// The way time runs.
@@ -132,13 +136,18 @@ impl Default for Look {
 /// The git graph `source` describes, or `None` when it is not a
 /// `gitGraph` or it uses a construct this reader refuses.
 pub fn from_mermaid(source: &str) -> Option<Diagram> {
-    read::read(source).ok()
+    from_mermaid_with(source, &Settings::default())
 }
 
-/// The first construct [`from_mermaid`] refuses by name, and its line.
-/// A source that is not a git graph, and one it accepts, are `None`.
-pub fn mermaid_refusal(source: &str) -> Option<(usize, &'static str)> {
-    match read::read(source) {
+/// The git graph `source` describes with its `settings`.
+pub fn from_mermaid_with(source: &str, settings: &Settings) -> Option<Diagram> {
+    read::read(source, settings).ok()
+}
+
+/// The first construct [`from_mermaid_with`] refuses by name, and its
+/// line. A source that is not a git graph, and one it accepts, are `None`.
+pub fn mermaid_refusal(source: &str, settings: &Settings) -> Option<(usize, &'static str)> {
+    match read::read(source, settings) {
         Err(read::Stop::At(reason)) => Some((reason.line, reason.what)),
         _ => None,
     }
@@ -147,7 +156,7 @@ pub fn mermaid_refusal(source: &str) -> Option<(usize, &'static str)> {
 /// What Mermaid refuses in a git graph as well, and its line: a second
 /// `gitGraph` in the same text. None is drawn then, by mmdr either.
 pub fn mermaid_wrong(source: &str) -> Option<(usize, String)> {
-    match read::read(source) {
+    match read::read(source, &Settings::default()) {
         Err(read::Stop::Wrong(reason)) => Some((
             reason.line,
             format!(
@@ -167,6 +176,79 @@ fn plate(name: &Block, look: &Look) -> (f32, f32) {
         (name.width + 24.0).max(look.label_size * 2.8),
         name.height + 10.0,
     )
+}
+
+/// The sine of 45°: how far turned words reach across and down.
+const HALF: f32 = std::f32::consts::FRAC_1_SQRT_2;
+
+/// The words of each commit on `lane`.
+fn lane_words<'a>(
+    diagram: &'a Diagram,
+    words: &'a [Words],
+    lane: usize,
+) -> impl Iterator<Item = &'a Words> {
+    diagram
+        .commits
+        .iter()
+        .zip(words)
+        .filter(move |(commit, _)| commit.branch == lane)
+        .map(|(_, words)| words)
+}
+
+/// How far past the room beside a lane's marks its turned ids start, as
+/// time runs down or up: past the widest of its tags.
+fn id_column(diagram: &Diagram, words: &[Words], lane: usize) -> f32 {
+    lane_words(diagram, words, lane)
+        .filter_map(|w| w.tag.as_ref())
+        .map(|tag| tag.width + 20.0)
+        .fold(0.0, f32::max)
+}
+
+/// `id` turned by 45°, its right end at `anchor` and its words running down
+/// to the left, on a plate of the page's color.
+fn turned(canvas: &mut Canvas, id: &Block, anchor: (f32, f32), paper: Color) {
+    plated(canvas, id, anchor, Align::Right, paper);
+}
+
+/// `id` turned by 45°, its left end at `anchor` and its words rising to
+/// the right, on a plate of the page's color.
+fn rising(canvas: &mut Canvas, id: &Block, anchor: (f32, f32), paper: Color) {
+    plated(canvas, id, anchor, Align::Left, paper);
+}
+
+/// `id` turned by 45° about `anchor`, which `align` puts on its top line,
+/// on a plate of the page's color.
+fn plated(canvas: &mut Canvas, id: &Block, anchor: (f32, f32), align: Align, paper: Color) {
+    let (x, y) = anchor;
+    // The plate's corners, turned as the words are: along them up to the
+    // right, and across them down to the right.
+    let along = |d: f32| (d * HALF, -d * HALF);
+    let across = |d: f32| (d * HALF, d * HALF);
+    let corner = |a: f32, b: f32| {
+        let (ax, ay) = along(a);
+        let (bx, by) = across(b);
+        (x + ax + bx, y + ay + by)
+    };
+    // Along the words from where they start to where they end, 3 past
+    // them either way.
+    let (from, to) = match align {
+        Align::Right => (-id.width - 3.0, 3.0),
+        Align::Left => (-3.0, id.width + 3.0),
+        Align::Center => (-id.width / 2.0 - 3.0, id.width / 2.0 + 3.0),
+    };
+    let h = id.height + 1.0;
+    canvas.polygon(
+        Layer::Bars,
+        &[
+            corner(from, -1.0),
+            corner(to, -1.0),
+            corner(to, h),
+            corner(from, h),
+        ],
+        Some(paper),
+        None,
+    );
+    canvas.text_turned(Layer::Front, id, anchor, align, -45.0);
 }
 
 /// How far a lane begins before its first turn: [`LEAD`], or more where
@@ -236,6 +318,12 @@ impl Plan {
 
 /// The SVG. Words that the text engine cannot draw decline the graph.
 pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
+    draw_mapped(diagram).map(|(svg, _)| svg)
+}
+
+/// The SVG, and where the words of each commit's line stand: its id and
+/// its tag, which that line alone writes.
+pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let mut canvas = Canvas::new(&diagram.look.font_name, false);
     canvas.sketch(diagram.look.sketch);
     let family = canvas.family();
@@ -274,12 +362,17 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
         .map(|commit| {
             let block = |words: &Option<String>| match words {
                 Some(words) => text::block(words, Font::new(small, look.ink), family)
-                    .map(Some)
+                    .map(|block| Some(block.written_on(commit.line)))
                     .map_err(|reason| Declined::at(commit.line, reason)),
                 None => Ok(None),
             };
+            let id = commit
+                .id
+                .as_ref()
+                .filter(|_| diagram.settings.show_commit_label)
+                .cloned();
             Ok(Words {
-                id: block(&commit.id)?,
+                id: block(&id)?,
                 tag: block(&commit.tag)?,
             })
         })
@@ -296,39 +389,62 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
             Align::Center,
         );
     }
-    Ok(canvas.finish(10.0, look.background))
+    let map = canvas.place(crate::map::Map::default(), 10.0);
+    Ok((canvas.finish(10.0, look.background), map))
 }
 
 /// Lays the lanes and the turns out so that no words meet.
 fn plan(diagram: &Diagram, names: &[Block], words: &[Words], top: f32) -> Plan {
     let across = diagram.direction == Direction::Across;
     let turns = diagram.commits.len().max(1);
+    let shown = diagram.settings.show_branches;
+    let plates = names
+        .iter()
+        .filter(|_| shown)
+        .map(|name| plate(name, &diagram.look));
+    let (widest_plate, highest_plate) =
+        plates.fold((0.0f32, 0.0f32), |(w, h), (pw, ph)| (w.max(pw), h.max(ph)));
     if across {
         // The names stand before the lanes; an id stands under its
         // commit, so the widest of them sets how far the turns are apart.
-        let widest_plate = names
-            .iter()
-            .map(|name| plate(name, &diagram.look).0)
-            .fold(0.0, f32::max);
+        // An id turned by 45° asks for no room along the lane, and its
+        // lane stands as far from the next as it drops.
+        let turned = diagram.settings.rotate_commit_label;
         let widest = words
             .iter()
-            .flat_map(|w| [&w.id, &w.tag])
+            .flat_map(|w| [w.id.as_ref().filter(|_| !turned), w.tag.as_ref()])
             .flatten()
             .map(|block| block.width)
             .fold(0.0, f32::max);
         let step = STEP.max(widest + 14.0);
-        // Lanes as far apart as their plates are high, at a large label too.
-        let lane = names
+        let drop = words
             .iter()
-            .map(|name| plate(name, &diagram.look).1 + 16.0)
-            .fold(LANE, f32::max);
+            .filter(|_| turned)
+            .filter_map(|w| w.id.as_ref())
+            .map(|id| RADIUS + 4.0 + (id.width + id.height) * HALF)
+            .fold(0.0, f32::max);
+        let rise = words
+            .iter()
+            .filter_map(|w| w.tag.as_ref())
+            .map(|tag| RADIUS + 8.0 + tag.height)
+            .fold(RADIUS.max(highest_plate / 2.0), f32::max);
+        // Lanes as far apart as their plates are high, at a large label
+        // too, and as their turned ids drop.
+        let lane =
+            (highest_plate + 16.0)
+                .max(LANE)
+                .max(if drop > 0.0 { drop + rise + 6.0 } else { 0.0 });
         let lanes = (0..diagram.branches.len())
             .map(|at| at as f32 * lane + lane / 2.0)
             .collect();
         // The first turn's words, centred on it, keep clear of the plates
-        // before it.
+        // before it; turned, an id drops away from them.
         let reach = words.first().map_or(0.0, |first| {
-            let id = first.id.as_ref().map_or(0.0, |id| id.width / 2.0 + 3.0);
+            let id = first
+                .id
+                .as_ref()
+                .filter(|_| !turned)
+                .map_or(0.0, |id| id.width / 2.0 + 3.0);
             let tag = first.tag.as_ref().map_or(0.0, |tag| tag.width / 2.0 + 6.0);
             id.max(tag)
         });
@@ -346,33 +462,47 @@ fn plan(diagram: &Diagram, names: &[Block], words: &[Words], top: f32) -> Plan {
     }
     // The names stand over the lanes; the words stand beside their commit,
     // so each lane is as wide as its name and its longest words ask.
+    // Turned, a lane's ids stand in a column after its tags, so they run
+    // side by side and never meet.
+    let turned = diagram.settings.rotate_commit_label;
     let mut lanes = Vec::with_capacity(names.len());
     let mut edge = 0.0;
     for (lane, name) in names.iter().enumerate() {
-        let beside = diagram
-            .commits
-            .iter()
-            .zip(words)
-            .filter(|(commit, _)| commit.branch == lane)
-            .map(|(_, words)| words.reach())
-            .fold(0.0, f32::max);
-        let half = (plate(name, &diagram.look).0 / 2.0 + 2.0).max(RADIUS + 6.0);
+        let beside = if turned {
+            let ids = lane_words(diagram, words, lane)
+                .filter_map(|w| w.id.as_ref())
+                .map(|id| (id.width + id.height) * HALF + 6.0)
+                .fold(0.0, f32::max);
+            id_column(diagram, words, lane) + ids
+        } else {
+            lane_words(diagram, words, lane)
+                .map(Words::reach)
+                .fold(0.0, f32::max)
+        };
+        let wide = if shown {
+            plate(name, &diagram.look).0
+        } else {
+            0.0
+        };
+        let half = (wide / 2.0 + 2.0).max(RADIUS + 6.0);
         lanes.push(edge + half);
         edge += (half + (half.max(RADIUS + 6.0 + beside)) + 12.0).max(LANE);
     }
     // The first turn's words, beside it and as high as they are, keep
-    // clear of the plates over (or under) it.
+    // clear of the plates over (or under) it; a turned id rises as far as
+    // it is long.
     let reach = words.first().map_or(0.0, |first| {
-        let id = first.id.as_ref().map_or(0.0, |id| id.height / 2.0 + 1.0);
+        let id = first.id.as_ref().map_or(0.0, |id| {
+            if turned {
+                id.width * HALF + id.height * HALF / 2.0 + 1.0
+            } else {
+                id.height / 2.0 + 1.0
+            }
+        });
         let tag = first.tag.as_ref().map_or(0.0, |tag| tag.height / 2.0 + 3.0);
         id.max(tag)
     });
-    let start = names
-        .iter()
-        .map(|name| plate(name, &diagram.look).1)
-        .fold(0.0, f32::max)
-        + 8.0
-        + lead_for(reach);
+    let start = highest_plate + 8.0 + lead_for(reach);
     Plan {
         direction: diagram.direction,
         lead: lead_for(reach),
@@ -389,8 +519,14 @@ fn paint(canvas: &mut Canvas, diagram: &Diagram, plan: &Plan, names: &[Block], w
     let paper = look.background.unwrap_or(Color::WHITE);
     let across = plan.direction == Direction::Across;
 
-    // Each lane: a faint line under its commits, and its name before it.
-    for (lane, name) in names.iter().enumerate() {
+    // Each lane: a faint line under its commits, and its name before it;
+    // neither where the branches are not shown.
+    let shown = if diagram.settings.show_branches {
+        names
+    } else {
+        &[]
+    };
+    for (lane, name) in shown.iter().enumerate() {
         let color = lane_color(look, lane);
         let l = plan.lanes[lane];
         let from = plan.page(plan.start - plan.lead, l);
@@ -450,7 +586,14 @@ fn paint(canvas: &mut Canvas, diagram: &Diagram, plan: &Plan, names: &[Block], w
         mark(canvas, commit, at, color, paper);
         let written = &words[turn];
         if across {
-            if let Some(id) = &written.id {
+            if let Some(id) = written
+                .id
+                .as_ref()
+                .filter(|_| diagram.settings.rotate_commit_label)
+            {
+                // Turned, ending under the mark, on the page's color.
+                turned(canvas, id, (at.0, at.1 + RADIUS + 4.0), paper);
+            } else if let Some(id) = &written.id {
                 // On the page's color: a branch that leaves here runs
                 // down through the place of the words.
                 let y = at.1 + RADIUS + 5.0;
@@ -469,6 +612,18 @@ fn paint(canvas: &mut Canvas, diagram: &Diagram, plan: &Plan, names: &[Block], w
             }
         } else {
             let mut x = at.0 + RADIUS + 8.0;
+            if diagram.settings.rotate_commit_label {
+                // The tag level beside the mark, the id turned in its
+                // lane's column after the tags, rising to the right.
+                if let Some(tag) = &written.tag {
+                    label(canvas, tag, (x + 4.0, at.1 - tag.height / 2.0), look, paper);
+                }
+                if let Some(id) = &written.id {
+                    let column = x + id_column(diagram, words, commit.branch);
+                    rising(canvas, id, (column, at.1 - id.height * HALF / 2.0), paper);
+                }
+                continue;
+            }
             if let Some(id) = &written.id {
                 // On the page's color: a line to a lane beside this one
                 // passes here, and would strike the words through.
@@ -814,11 +969,18 @@ mod tests {
             ("gitGraph\n  rebase main\n", 1, "a git graph statement"),
             ("gitGraph sideways:\n  commit\n", 0, "a git graph direction"),
         ] {
-            assert_eq!(mermaid_refusal(source), Some((line, what)), "{source}");
+            assert_eq!(
+                mermaid_refusal(source, &Settings::default()),
+                Some((line, what)),
+                "{source}"
+            );
             assert!(from_mermaid(source).is_none());
         }
-        assert_eq!(mermaid_refusal("timeline\n  2020 : x\n"), None);
-        assert_eq!(mermaid_refusal(FLOW), None);
+        assert_eq!(
+            mermaid_refusal("timeline\n  2020 : x\n", &Settings::default()),
+            None
+        );
+        assert_eq!(mermaid_refusal(FLOW, &Settings::default()), None);
     }
 
     #[test]

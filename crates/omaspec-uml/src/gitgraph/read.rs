@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use super::{Branch, Commit, Diagram, Direction, From, Kind, Look};
+use super::{Branch, Commit, Diagram, Direction, From, Kind, Look, Settings};
 use crate::common::{Text, text_at};
 use crate::source::starts_with_ci;
 
@@ -24,7 +24,7 @@ fn stop(line: usize, what: &'static str) -> Reason {
     Reason { line, what }
 }
 
-pub(super) fn read(source: &str) -> Result<Diagram, Stop> {
+pub(super) fn read(source: &str, settings: &Settings) -> Result<Diagram, Stop> {
     let Scanned {
         title,
         front,
@@ -47,11 +47,11 @@ pub(super) fn read(source: &str) -> Result<Diagram, Stop> {
     if let Some(reason) = front {
         return Err(Stop::At(reason));
     }
-    let mut repo = Repo::new(*line);
+    let mut repo = Repo::new(*line, settings);
     for (line, text) in rest {
         repo.run(*line, text).map_err(Stop::At)?;
     }
-    Ok(repo.finish(title, direction))
+    Ok(repo.finish(title, direction, settings))
 }
 
 struct Scanned {
@@ -70,7 +70,7 @@ fn scan(source: &str) -> Scanned {
     let mut iter = source.lines().enumerate().peekable();
     if iter.peek().is_some_and(|(_, raw)| raw.trim() == "---") {
         iter.next();
-        let mut kept = crate::source::Front::default();
+        let mut kept = crate::source::Front::with("gitGraph", &super::SETTINGS);
         for (no, raw) in iter.by_ref() {
             let text = raw.trim();
             if text == "---" {
@@ -165,12 +165,12 @@ struct Repo {
 }
 
 impl Repo {
-    fn new(line: usize) -> Repo {
+    fn new(line: usize, settings: &Settings) -> Repo {
         Repo {
             branches: vec![Made {
-                name: "main".to_owned(),
+                name: settings.main_name.clone(),
                 line,
-                order: None,
+                order: Some(settings.main_order),
                 head: None,
             }],
             current: 0,
@@ -311,22 +311,19 @@ impl Repo {
         Ok(())
     }
 
-    /// The graph, its lanes in their order: `main` first, then the
-    /// branches in the order they were made, then those that asked for a
-    /// place by their `order`.
-    fn finish(self, title: Option<Text>, direction: Direction) -> Diagram {
+    /// The graph, its lanes in their order, as Mermaid orders them: each
+    /// branch by its `order`, the main branch by `mainBranchOrder` (0),
+    /// one that asked for none by `0.` and the place it was made in
+    /// (`0.1`, `0.2`, and as Mermaid, `0.10` for the tenth, beside the
+    /// first); the earlier made first where two ask for the same.
+    fn finish(self, title: Option<Text>, direction: Direction, settings: &Settings) -> Diagram {
+        let key = |at: usize| {
+            self.branches[at]
+                .order
+                .unwrap_or_else(|| format!("0.{at}").parse().unwrap_or(0.0))
+        };
         let mut lanes: Vec<usize> = (0..self.branches.len()).collect();
-        lanes.sort_by(|&a, &b| {
-            let key = |at: usize| {
-                let branch = &self.branches[at];
-                (at != 0, branch.order.is_some(), branch.order.unwrap_or(0.0))
-            };
-            let (ka, kb) = (key(a), key(b));
-            (ka.0, ka.1)
-                .cmp(&(kb.0, kb.1))
-                .then(ka.2.total_cmp(&kb.2))
-                .then(a.cmp(&b))
-        });
+        lanes.sort_by(|&a, &b| key(a).total_cmp(&key(b)).then(a.cmp(&b)));
         let mut lane_of = vec![0; lanes.len()];
         for (lane, &made) in lanes.iter().enumerate() {
             lane_of[made] = lane;
@@ -348,6 +345,7 @@ impl Repo {
             branches,
             commits,
             look: Look::default(),
+            settings: settings.clone(),
         }
     }
 }
