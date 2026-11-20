@@ -23,7 +23,7 @@ use iced::mouse::{self, Cursor};
 use iced::time::Instant;
 use iced::widget::canvas::{self, Action, Event, Geometry};
 use iced::window::{self, RedrawRequest};
-use iced::{Rectangle, Renderer, Theme};
+use iced::{Rectangle, Renderer, Size, Theme};
 
 /// A frame of a 60 Hz screen.
 const BUDGET: Duration = Duration::from_micros(16_667);
@@ -71,6 +71,8 @@ pub fn on() -> bool {
 pub struct Timed<P> {
     pub program: P,
     pub drives: Option<Motion>,
+    /// The pane's size its view was made for ([`Self::made_for`]).
+    pub made_for: Size,
 }
 
 impl<P> Timed<P> {
@@ -78,6 +80,7 @@ impl<P> Timed<P> {
         Self {
             program,
             drives: None,
+            made_for: Size::ZERO,
         }
     }
 
@@ -86,6 +89,35 @@ impl<P> Timed<P> {
         Self {
             drives: motion,
             ..self
+        }
+    }
+
+    /// The pane's size the view this layer draws was made for. The frame
+    /// a play's bar comes or goes the pane is higher or lower than that,
+    /// and hears so only after the frame is drawn: drawn for its new
+    /// height, the picture would jump by half the bar for that frame and
+    /// back. Drawn for the old one it stays where it is, held at the
+    /// pane's top, as the pane holds it from the next frame on and glides
+    /// it to its new fit. What it draws below the pane lies under the bar
+    /// and is clipped (`pane::ground`).
+    pub fn made_for(self, size: Size) -> Self {
+        Self {
+            made_for: size,
+            ..self
+        }
+    }
+
+    /// Where the layer draws in `bounds`: for the height its view was made
+    /// for, while only the height has changed.
+    fn drawn_in(&self, bounds: Rectangle) -> Rectangle {
+        let made = self.made_for;
+        if made.height > 0.0 && made.width == bounds.width && made.height != bounds.height {
+            Rectangle {
+                height: made.height,
+                ..bounds
+            }
+        } else {
+            bounds
         }
     }
 }
@@ -128,7 +160,9 @@ impl<M: Clone, P: canvas::Program<M>> canvas::Program<M> for Timed<P> {
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
-        let drawn = self.program.draw(state, renderer, theme, bounds, cursor);
+        let drawn = self
+            .program
+            .draw(state, renderer, theme, self.drawn_in(bounds), cursor);
         if on() {
             log().drew(Instant::now());
         }

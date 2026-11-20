@@ -11,6 +11,12 @@ use super::{Message, Paper, Status, bar, canvas, focus, fold, hand, held, play};
 use crate::ui;
 
 impl Paper {
+    /// A layer of the pane, drawn for the size its view was made for
+    /// ([`Timed::made_for`]).
+    fn layer<P>(&self, program: P) -> Timed<P> {
+        Timed::new(program).made_for(self.viewport)
+    }
+
     /// The diagram, and the play over it. Without a picture it says what
     /// is missing, unless `quiet` (the editor shows an empty state of its
     /// own then).
@@ -86,7 +92,7 @@ impl Paper {
         }
         .filter(|(headings, ..)| !headings.bands.is_empty());
         let canvas: Element<'_, Message> = Canvas::new(
-            Timed::new(canvas::DiagramCanvas {
+            self.layer(canvas::DiagramCanvas {
                 diagram: self.diagram.as_ref().map(|d| d.size),
                 overview: self.overview.shown.as_ref(),
                 detail: self.detail.shown.as_ref(),
@@ -123,12 +129,12 @@ impl Paper {
         // over what scrolls under them, with a play or without one; they
         // move with a glide.
         let kept = headings.map(|(headings, overview, sharp)| {
-            Canvas::new(canvas::KeptBands {
+            Canvas::new(self.layer(canvas::KeptBands {
                 headings,
                 overview,
                 sharp,
                 scale: self.scale_factor,
-            })
+            }))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
@@ -139,7 +145,7 @@ impl Paper {
             .fade()
             .filter(|fade| fade.lines.is_some())
             .map(|fade| {
-                Canvas::new(Timed::new(canvas::GlideLines {
+                Canvas::new(self.layer(canvas::GlideLines {
                     fade,
                     glide: self.glide,
                     background: ui::color(p.background),
@@ -155,7 +161,7 @@ impl Paper {
             .as_ref()
             .filter(|glow| !glow.done(crate::clock::now()))
             .map(|glow| {
-                Canvas::new(Timed::new(super::glow::GlowMarks {
+                Canvas::new(self.layer(super::glow::GlowMarks {
                     glow,
                     fade: self.arrival.fade(),
                     view: self.view,
@@ -167,7 +173,7 @@ impl Paper {
                 .into()
             });
         let marks = (!links.is_empty() && self.overview.shown.is_some()).then(|| {
-            Canvas::new(Timed::new(canvas::LinkMarks {
+            Canvas::new(self.layer(canvas::LinkMarks {
                 links,
                 view: mark_view,
                 glide: mark_glide,
@@ -179,7 +185,7 @@ impl Paper {
             .into()
         });
         let folds = (!spots.is_empty()).then(|| {
-            Canvas::new(Timed::new(fold::FoldMarks {
+            Canvas::new(self.layer(fold::FoldMarks {
                 spots,
                 view: mark_view,
                 glide: mark_glide,
@@ -195,7 +201,7 @@ impl Paper {
         let focus = match (self.lit(), &self.diagram, self.overview.shown.as_ref()) {
             (Some(lit), Some(diagram), Some(overview)) => {
                 let layer = |over: bool| -> Element<'_, Message> {
-                    Canvas::new(Timed::new(focus::FocusLayer {
+                    Canvas::new(self.layer(focus::FocusLayer {
                         lit: lit.clone(),
                         // While a new picture glides or fades in, its
                         // boxes are not where the map has them yet.
@@ -218,7 +224,7 @@ impl Paper {
         };
         let hand = match (&self.hand, &self.diagram) {
             (Some(hand), Some(diagram)) if self.overview.shown.is_some() => Some(
-                Canvas::new(Timed::new(hand::HandLayer {
+                Canvas::new(self.layer(hand::HandLayer {
                     hand,
                     map: &diagram.drawn.map,
                     view: self.view,
@@ -234,7 +240,7 @@ impl Paper {
         };
         let grab = match (&self.grab, &self.diagram) {
             (Some(grab), Some(diagram)) if self.overview.shown.is_some() => Some(
-                Canvas::new(Timed::new(held::HeldLayer {
+                Canvas::new(self.layer(held::HeldLayer {
                     grab,
                     map: &diagram.drawn.map,
                     view: self.view,
@@ -249,7 +255,7 @@ impl Paper {
         };
         // Its own layer: in the picture's layer the raster would cover it.
         let light = self.breath.map(|breath| {
-            Canvas::new(Timed::new(canvas::BreathLight {
+            Canvas::new(self.layer(canvas::BreathLight {
                 view: self.view,
                 glide: self.glide,
                 breath,
@@ -263,7 +269,7 @@ impl Paper {
         });
         // Over the diagram, its marks and its lights: the veil covers them.
         let passage = self.passage.as_ref().map(|passage| {
-            Canvas::new(Timed::new(PassageLayer {
+            Canvas::new(self.layer(PassageLayer {
                 passage,
                 view: self.view,
                 glide: self.glide,
@@ -277,7 +283,7 @@ impl Paper {
         // The red edge lies over everything else, a play's veil too.
         let edge = match (&self.diagram, &self.overview.shown) {
             (Some(diagram), Some(_)) if stale => Some(
-                Canvas::new(Timed::new(canvas::PaperEdge {
+                Canvas::new(self.layer(canvas::PaperEdge {
                     diagram: diagram.size,
                     view: self.view,
                     glide: self.glide,
@@ -296,6 +302,7 @@ impl Paper {
             let [veil, glow] = focus;
             return container(Stack::with_children(
                 [
+                    Some(ground()),
                     Some(canvas),
                     lines,
                     changes,
@@ -318,7 +325,7 @@ impl Paper {
         };
         let layer = |over: bool| -> Element<'_, Message> {
             Canvas::new(
-                Timed::new(canvas::PlayCanvas {
+                self.layer(canvas::PlayCanvas {
                     diagram: diagram.size,
                     overview,
                     detail: self.detail.shown.as_ref(),
@@ -351,6 +358,7 @@ impl Paper {
         // pane's foot, and a play's veil over it, lay over the bar below.
         let diagram: Element<'_, Message> = container(Stack::with_children(
             [
+                Some(ground()),
                 Some(canvas),
                 lines,
                 light,
@@ -372,4 +380,16 @@ impl Paper {
         ]
         .into()
     }
+}
+
+/// The empty ground of the pane's stack. A stack clips each of its layers
+/// to the pane but the first, which it draws in the layer it is drawn in
+/// itself: the picture, drawn for its old height the frame a play's bar
+/// comes ([`Timed::made_for`]), lay over the bar's box then, under its
+/// words. Over this ground the picture is clipped as the marks are.
+fn ground<'a>() -> Element<'a, Message> {
+    iced::widget::Space::new()
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }
