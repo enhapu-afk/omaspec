@@ -527,6 +527,7 @@ mod tests {
             history: false,
             traffic: traces,
             themes: None,
+            ink: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

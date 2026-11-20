@@ -8,6 +8,7 @@
 pub mod building;
 pub mod folding;
 mod glyphs;
+pub mod ink;
 pub mod lockstep;
 mod present;
 pub mod sweep;

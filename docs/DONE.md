@@ -2897,6 +2897,16 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] From sketch to ink (2026-11-20, the last of the animations that show what a
+      diagram means): `omaspec play FILE --ink -o ink.gif` draws the diagram in the
+      sketch look (docs/adr/0023) stroke by stroke as with a pen (`editor::ink`): each
+      line of the sketch measured as usvg reads it and drawn in a time as long as it
+      is, down the picture in bands, so a box, its words and the lines that leave it
+      come together, the fills and words fading in as the pen reaches them, the paper
+      there before the pen; then the clean look the pane draws it in fades over it,
+      of one layout, so the ink lies on the sketch. Drawn without a GPU; as `.html` a
+      page in vectors (`export::ink`) whose script measures each line itself, `#t=3`
+      holding it still
 - [x] What the review of the flight and the sweep found (2026-11-20). A flight clicked a
       link in its middle, where a state inside it that links too took the click: it
       clicks where only the link named lies. A name with a `/` of its own is one name

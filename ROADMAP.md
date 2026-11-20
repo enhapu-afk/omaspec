@@ -687,9 +687,6 @@ picture, the second is the highlight.
       machines of its participants opening beside it.
 - [ ] A flight through the project: built as GIF, WebP and PNG (in
       docs/DONE.md). Left: a dive and a flight as a page in vectors.
-- [ ] From sketch to ink: a diagram in the sketch look (docs/adr/0023)
-      drawn stroke by stroke as with a pen, then inked into the clean
-      look.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 

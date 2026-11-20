@@ -504,6 +504,11 @@ enum Command {
         /// one.
         #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "", value_delimiter = ',', value_name = "THEME", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "traffic", "theme"])]
         themes: Option<Vec<String>>,
+        /// Instead of a play: the diagram drawn in the sketch look stroke
+        /// by stroke as with a pen, then inked into the clean look it is
+        /// drawn in.
+        #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "traffic", "themes"])]
+        ink: bool,
         /// The whole diagram in every frame. Without it, a play or a fold
         /// of a diagram too large to read whole follows each step or each
         /// container, near enough to read, and ends on the whole.
@@ -915,6 +920,7 @@ fn main() -> ExitCode {
             history,
             traffic,
             themes,
+            ink,
             whole,
             theme,
             lang,
@@ -932,6 +938,7 @@ fn main() -> ExitCode {
             history,
             traffic,
             themes,
+            ink,
             whole,
             theme,
             text: None,

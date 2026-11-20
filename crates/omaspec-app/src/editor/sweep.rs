@@ -423,6 +423,7 @@ mod tests {
             history: false,
             traffic: Vec::new(),
             themes: Some(themes),
+            ink: false,
             whole: false,
             theme: None,
             file_colors: false,

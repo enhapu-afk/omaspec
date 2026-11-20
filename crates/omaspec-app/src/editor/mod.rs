@@ -43,6 +43,7 @@ mod gallery;
 pub(crate) mod gifs;
 mod hand;
 mod help;
+mod ink;
 mod keys;
 mod links;
 mod lockstep;
