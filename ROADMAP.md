@@ -613,10 +613,6 @@ the one before:
       page was looked at in Chromium alone, not in Firefox or Safari; in
       the page a box that changes its size is stretched (its words are
       not), where the pane keeps its corners.
-- [ ] Capability map: what a business can do as nested tiles, each
-      colored by a value given to it (maturity, cost, risk) on a scale
-      with its legend (`@startcapabilities`), for planning an
-      architecture.
 - [ ] Time travel: two commits of a diagram, one gliding into the other
       as the pane glides after an edit, what changed glowing a moment
       (the diff's colors); in the editor beside the compare, and as an

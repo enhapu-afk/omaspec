@@ -62,6 +62,7 @@ fn block_name(block: &str) -> Option<&'static str> {
         "gantt" => "Gantt chart",
         "flow" => "Signal flow",
         "storymap" => "Story map",
+        "capabilities" => "Capability map",
         "chronology" => "Chronology",
         "json" => "JSON",
         "yaml" => "YAML",
@@ -135,7 +136,7 @@ fn before_label(line: &str) -> String {
 /// The `@start…` blocks of Omaspec's own syntax, which PlantUML does not
 /// know: a line Omaspec declines is not sent to the Java PlantUML, and
 /// lint says that no other tool draws them.
-pub const OWN_BLOCKS: [&str; 2] = ["flow", "storymap"];
+pub const OWN_BLOCKS: [&str; 3] = ["flow", "storymap", "capabilities"];
 
 /// Whether `code` is a block of Omaspec's own syntax ([`OWN_BLOCKS`]).
 pub fn own_block(code: &str) -> bool {
@@ -390,6 +391,9 @@ mod tests {
         assert_eq!(k.name, "Story map");
         assert!(own_block("@startstorymap\n@endstorymap") && own_block("@startflow\n@endflow"));
         assert!(!own_block("@startuml\n@enduml"));
+        let k = classify("@startcapabilities\n@endcapabilities", Language::PlantUml);
+        assert_eq!(k.name, "Capability map");
+        assert!(own_block("@startcapabilities\n@endcapabilities"));
         // Both ways of writing a network diagram.
         let k = classify(
             "@startnwdiag\nnetwork a {\n  x;\n}\n@endnwdiag",

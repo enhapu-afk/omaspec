@@ -1,9 +1,11 @@
-//! How a story map looks. Its cards take the colors of PlantUML's own
-//! elements, so a theme pack colors it as it colors any diagram: a step
-//! is a `rectangle`, a story a `note`, and an activity is filled with the
-//! rectangle's border, the theme's accent. A skinparam that would change
-//! the map but is not drawn declines; those of other diagram types are
-//! ignored, so a theme pack can name them all.
+//! How the maps of Omaspec's own syntax look, the story map and the
+//! capability map. Their cards take the colors of PlantUML's own
+//! elements, so a theme pack colors them as it colors any diagram: a card
+//! is a `rectangle`, a story a `note`, and what stands out (an activity,
+//! the last step of a scale) takes the rectangle's border, the theme's
+//! accent. A skinparam that would change a map but is not drawn declines;
+//! those of other diagram types are ignored, so a theme pack can name
+//! them all.
 
 use crate::Declined;
 use crate::color::{Color, Paint};

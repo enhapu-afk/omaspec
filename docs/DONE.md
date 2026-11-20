@@ -2897,6 +2897,20 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Capability map (2026-11-20, [ADR 0035](adr/0035-a-capability-map-of-its-own.md)):
+      `@startcapabilities`, Omaspec's own: what a business can do as tiles inside
+      tiles by their stars (`* Area`, `** Capability`, up to six levels), each on one
+      scale (`levels Maturity : none, basic, managed, leading`, a step with a color of
+      its own if wished) by the value after its last colon, the legend under the map.
+      The steps run from near the page to the theme's accent where the file gives no
+      colors; dots under a name count its step, so the map reads without the colors; a
+      capability with neither a value nor others in it has a dashed edge (*not rated*),
+      one holding others its step's color under its name alone. The areas stand as
+      columns, a few to a row; deeper capabilities side by side as they fit. Read and
+      drawn in `omaspec-uml/src/capabilities/`, its look shared with the story map
+      (`own_skin`); its words are tied to their lines, the legend's to the scale's line
+      where each step is written. Lint says no other tool draws it, the outline lists
+      its areas and capabilities, and the gallery has a city library
 - [x] What the review of the trace river and the story map found (2026-11-20). A
       story map draws in the spec pack (`style strictuml`), its stories take
       `NoteFontColor` and `NoteFontSize`, a story ending in a colon is refused as

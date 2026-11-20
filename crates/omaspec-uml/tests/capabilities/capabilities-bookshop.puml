@@ -1,0 +1,21 @@
+@startcapabilities
+title What a bookshop can do
+levels Maturity : none, basic, managed, leading
+* Customers
+** Marketing : basic
+*** Newsletter : managed
+*** Events : none
+** Sales
+*** Online shop : leading
+*** Stores : managed
+*** Gift cards : basic
+** Service : managed
+* Books
+** Buying : managed
+** Stock : basic
+** Pricing
+* People and money
+** Hiring : basic
+** Payroll : leading
+** Accounts : managed
+@endcapabilities

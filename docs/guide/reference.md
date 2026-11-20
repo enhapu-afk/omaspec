@@ -847,7 +847,7 @@ there keeps its meaning.
 | `embedded-diagram` | a diagram inside a diagram (`{{` to `}}`) the engine does not draw, so Omaspec writes it as its text, and why |
 | `unseen-character` | a character nobody sees (a zero-width space, a mark that turns the text's direction) on the line; the fix takes it out |
 | `not-mermaid-js` | Omaspec draws it, mermaid.js (GitHub) does not |
-| `omaspec-only` | a diagram of Omaspec's own syntax (`@startflow`, `@startstorymap`), which PlantUML does not draw |
+| `omaspec-only` | a diagram of Omaspec's own syntax (`@startflow`, `@startstorymap`, `@startcapabilities`), which PlantUML does not draw |
 | `project-file` | the project's file does not read |
 | `not-drawn` | `check`: no engine draws the diagram |
 
@@ -948,9 +948,9 @@ one stem under a single triangle ([ADR 0033](../adr/0033-subclasses-as-a-tree.md
 line from a class to itself with multiplicities is a wider loop, the multiplicities
 outside it, over and under its ends. A Mermaid subgraph keeps its own `direction` (`direction TB` inside a
 `flowchart LR`), also when its nodes have lines to the outside, where Mermaid itself
-drops it and lays the subgraph out in the chart's direction. Omaspec also has two
+drops it and lays the subgraph out in the chart's direction. Omaspec also has three
 diagrams of its own, signal flow (`@startflow`,
-[ADR 0010](../adr/0010-signal-flow.md)) and the story map below. The
+[ADR 0010](../adr/0010-signal-flow.md)) and the story and capability maps below. The
 [roadmap](../../ROADMAP.md) has the details.
 
 ### Story maps
@@ -988,3 +988,33 @@ the theme's accent, a step is a rectangle and a story a note, so a skin pack col
 map; the backbone stays at the top of the pane and the releases' names at its left as a
 large map scrolls. Lint says on the `@startstorymap` line that it is Omaspec's own, as it
 does for `@startflow`: PlantUML and the tools built on it do not draw it.
+
+### Capability maps
+
+A capability map (`@startcapabilities`,
+[ADR 0035](../adr/0035-a-capability-map-of-its-own.md)) shows what a business can do as
+tiles inside tiles, each colored by its value on one scale, with the legend under it.
+
+```plantuml
+@startcapabilities
+title What a city library can do
+levels Maturity : none, basic, managed, leading
+* Readers
+** Lending : leading
+*** At the desk : leading
+*** E-books : basic
+** Events : managed
+* Collection
+** Cataloguing : leading
+** Repairs : none
+@endcapabilities
+```
+
+The stars give the depth, as in a mind map: `*` an area, `**` a capability in it, `***`
+one deeper, up to six. The scale is written once (`levels Name : one, two, three`), and
+a value after a capability's last colon names one of its steps; a capability with a colon
+of its own goes in quotes. A step may carry a color (`levels Risk : low #2F9E44, middle
+#F08C00, high #E8590C`); without one the steps run from near the page to the theme's
+accent. Dots under a capability's name count its step, so the map reads in black and
+white too; one with no value and nothing in it has a dashed edge, *not rated* in the
+legend. The areas stand side by side as columns, a few to a row where there are many.

@@ -189,7 +189,9 @@ fn plantuml(code: &str) -> String {
                 story = Some(Story::Top);
                 continue;
             }
-            if re!(r"^(json|yaml|math|latex|ditaa|ebnf|salt|mindmap|wbs|dot|gantt|regex|nwdiag)$")
+            if re!(
+                r"^(json|yaml|math|latex|ditaa|ebnf|salt|mindmap|wbs|dot|gantt|regex|nwdiag|capabilities)$"
+            )
                 .is_match(&kind)
             {
                 out.push(format!("{}{trimmed}", INDENT.repeat(out.level)));

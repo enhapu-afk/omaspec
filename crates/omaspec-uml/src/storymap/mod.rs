@@ -24,7 +24,6 @@
 
 mod draw;
 mod parse;
-mod skin;
 
 pub use draw::{draw, draw_mapped};
 pub use parse::parse;

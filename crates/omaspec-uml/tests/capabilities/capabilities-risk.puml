@@ -1,0 +1,12 @@
+@startcapabilities
+title Where the risk lies
+skinparam handwritten true
+levels Risk : low #2F9E44, middle #F08C00, high #E8590C
+* Shop
+** Checkout : high
+** "Search: by title or author" : middle
+** Wish lists
+* Warehouse : low
+** Picking : middle
+** Returns : low
+@endcapabilities

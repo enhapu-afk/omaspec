@@ -36,8 +36,10 @@ Omaspec draws with its own engines, in a few milliseconds: PlantUML sequence, ac
 state, class, component, use case, deployment, object, timing and Gantt diagrams,
 C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, EBNF and regex railroads, Ditaa
 drawings, mind maps, WBS, JSON, YAML and formulas, and Mermaid flowcharts, state and sequence diagrams.
-Two kinds no other tool draws are its own: signal flow (`@startflow`) and story maps
-(`@startstorymap`), the backbone of a product with what goes into each release. The
+Three kinds no other tool draws are its own: signal flow (`@startflow`), story maps
+(`@startstorymap`), the backbone of a product with what goes into each release, and
+capability maps (`@startcapabilities`), what a business can do, colored by how mature
+each part is. The
 other Mermaid types are drawn by mmdr, a Rust library, in the same process. A dense
 flowchart, 150 boxes and 476 lines between them, is laid out in under half a second. Lint findings
 are underlined while you type, and a Ctrl+click in the diagram jumps to its line in the

@@ -19,6 +19,8 @@ pub enum Kind {
     Flow,
     /// `@startstorymap`, Omaspec's own story map.
     StoryMap,
+    /// `@startcapabilities`, Omaspec's own capability map.
+    Capabilities,
     /// `@startjson`.
     Json,
     /// `@startyaml`: drawn as the JSON it stands for.
@@ -81,6 +83,7 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
                 "startgantt" => Kind::Gantt,
                 "startflow" => Kind::Flow,
                 "startstorymap" => Kind::StoryMap,
+                "startcapabilities" => Kind::Capabilities,
                 "startjson" => Kind::Json,
                 "startyaml" => Kind::Yaml,
                 "startnwdiag" => Kind::Network,

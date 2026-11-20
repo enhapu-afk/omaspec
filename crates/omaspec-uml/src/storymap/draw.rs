@@ -9,12 +9,12 @@
 //! story's, a release's name and goal. The map holds the backbone at the
 //! top of a pane and the releases' names at its left as they scroll by.
 
-use super::skin::Skin;
 use super::{Diagram, Step};
 use crate::Declined;
 use crate::annotations::Annotations;
 use crate::graph::Rect;
 use crate::map::{Band, Edge, Map};
+use crate::own_skin::Skin;
 use crate::svg::{Align, Canvas, Layer, Stroke};
 use crate::text::{self, Block, Family, Font};
 

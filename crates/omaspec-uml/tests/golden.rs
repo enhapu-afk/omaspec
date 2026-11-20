@@ -31,6 +31,7 @@ fn diagrams_match_golden_svgs() {
         "wbs",
         "flow",
         "storymap",
+        "capabilities",
         "network",
         "salt",
         "railroad",

@@ -232,6 +232,9 @@ fn plantuml(
     let story = lines
         .iter()
         .any(|l| re!(r"(?i)^\s*@startstorymap\b").is_match(l));
+    let capabilities = lines
+        .iter()
+        .any(|l| re!(r"(?i)^\s*@startcapabilities\b").is_match(l));
     // The lines the engine reads, without the comments, notes, legends and
     // styles it skips; all lines of a diagram it cannot read.
     let rows: Vec<(usize, &str)> = match element_lines(code) {
@@ -284,6 +287,10 @@ fn plantuml(
         }
         if story {
             story_line(&mut b, row, l);
+            continue;
+        }
+        if capabilities {
+            capability_line(&mut b, row, l);
             continue;
         }
         match kind {
@@ -341,6 +348,23 @@ fn flow_line(b: &mut Builder, row: usize, l: &str) {
     } else if l == "}" {
         b.close(row);
     }
+}
+
+/// A capability map's areas, and the capabilities under them by their
+/// stars, without the value after the last colon.
+fn capability_line(b: &mut Builder, row: usize, l: &str) {
+    let Some(c) = re!(r#"^(\*+)\s*(.+)$"#).captures(l) else {
+        return;
+    };
+    let words = &c[2];
+    let name = match re!(r#"^"([^"]*)""#).captures(words) {
+        Some(quoted) => quoted[1].to_owned(),
+        None => words
+            .rsplit_once(':')
+            .map_or(words, |(name, _)| name)
+            .to_owned(),
+    };
+    b.add_at(row, "", label(&name), c[1].len() as isize - 1);
 }
 
 /// A story map's releases and activities, its steps under them.
@@ -768,6 +792,19 @@ mod tests {
             [e(1, 0, "title", "Charge"), e(2, 0, "block", "Current")]
         );
         assert_eq!(folds(code, Language::PlantUml), [(2, 4)]);
+    }
+
+    #[test]
+    fn a_capability_map_lists_its_areas_and_capabilities() {
+        let code = "@startcapabilities\nlevels Maturity : low, high\n* Customers\n** Sales : high\n*** \"Online: the shop\" : low\n@endcapabilities";
+        assert_eq!(
+            tags(code, Language::PlantUml),
+            [
+                e(2, 0, "", "Customers"),
+                e(3, 1, "", "Sales"),
+                e(4, 2, "", "Online: the shop")
+            ]
+        );
     }
 
     #[test]

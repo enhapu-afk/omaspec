@@ -346,6 +346,12 @@ pub static EXAMPLES: &[Example] = &[
         "A work breakdown in three phases."
     ),
     example!(
+        "city-library.puml",
+        Plans,
+        "What a city library can do",
+        "A capability map: areas, what is in them, and how mature each is."
+    ),
+    example!(
         "online-course.puml",
         Plans,
         "An online course",

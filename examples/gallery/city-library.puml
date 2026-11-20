@@ -1,0 +1,22 @@
+@startcapabilities
+title What a city library can do
+' The steps from the first to the last: how well each is done today.
+levels Maturity : none, basic, managed, leading
+* Readers
+** Lending : leading
+*** At the desk : leading
+*** Self-service : managed
+*** E-books : basic
+** Events : managed
+** Help with research : basic
+* Collection
+** Choosing books : managed
+** Cataloguing : leading
+** Repairs : none
+* Running the house
+** Staff and rotas : basic
+** Rooms and opening hours : managed
+** Money
+*** Budget : managed
+*** Fees and fines : basic
+@endcapabilities
