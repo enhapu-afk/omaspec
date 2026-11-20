@@ -260,7 +260,8 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
         // A head no kind answers to: mmdr would read it as a flowchart's
         // first nodes and draw what is not there (REQ-089).
         if let Some((at, header)) = head::header_at(body)
-            && omaspec_core::lang::unknown_mermaid_kind(header)
+            && omaspec_core::lang::mermaid_head_of(header)
+                == omaspec_core::lang::MermaidHead::Unknown
         {
             return Err(Refused::Placed(
                 at,
@@ -1023,6 +1024,21 @@ fn error_line(err: &ParseError) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every kind with a drawer of its own is a kind to lint and to the
+    /// refusal of an unknown head (REQ-089): its words are among those
+    /// `names_mermaid_kind` takes.
+    #[test]
+    fn every_drawer_s_header_names_a_kind() {
+        for native in NATIVE {
+            for header in native.headers {
+                assert!(
+                    omaspec_core::lang::names_mermaid_kind(header),
+                    "{header} is no kind to omaspec_core::lang"
+                );
+            }
+        }
+    }
 
     /// A Mermaid machine without a state on its ring is told so, as the
     /// engine says it, not that it is no state diagram.

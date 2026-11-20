@@ -112,6 +112,8 @@ mod tests {
         for (body, line, head) in [
             (lanes, 1, "swimlane-beta LR"),
             ("venn-beta\n  A\n", 0, "venn-beta"),
+            ("swimlane-beta: LR\n  A\n", 0, "swimlane-beta: LR"),
+            ("ablauf-übersicht LR\n  A\n", 0, "ablauf-übersicht LR"),
         ] {
             match super::super::render(body) {
                 Err(crate::RenderError::Diagram {
@@ -133,8 +135,11 @@ mod tests {
             "block\n  a b\n",
             "\u{feff}flowchart LR\n  A --> B\n",
             "%% a note\n---\ntitle: x\n---\nflowchart LR\n  A --> B\n",
-            // A flowchart written without its head: mmdr draws it.
+            // A flowchart written without its head: mmdr draws it, also
+            // where a hyphen stands in a later word.
             "A --> B\n",
+            "subgraph back-end\n  A --> B\nend\n",
+            "classDef hot fill:#f96,stroke-width:4px\nA --> B\n",
         ] {
             assert!(super::super::render(body).is_ok(), "{body}");
         }

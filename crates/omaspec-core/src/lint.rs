@@ -423,26 +423,36 @@ fn mermaid_syntax(lines: &[&str]) -> Vec<Finding> {
         .get(i)
         .map(|l| l.trim_start_matches('\u{feff}').trim())
         && !puml_start().is_match(head)
-        && !crate::lang::names_mermaid_kind(head)
     {
-        // A word that names no kind is refused by render, in these words,
-        // on this line (REQ-089); a flowchart written without its head is
-        // drawn, and only told.
-        findings.push(if crate::lang::unknown_mermaid_kind(head) {
-            Finding::new(
+        use crate::lang::MermaidHead;
+        match crate::lang::mermaid_head_of(head) {
+            // Refused by render, in these words, on this line (REQ-089).
+            MermaidHead::Unknown => findings.push(Finding::new(
                 "unknown-head",
                 i,
                 Severity::Error,
                 crate::lang::unknown_mermaid_kind_said(head),
-            )
-        } else {
-            Finding::new(
+            )),
+            // Drawn as a flowchart, and only told.
+            MermaidHead::Flowchart => findings.push(Finding::new(
                 "unknown-head",
                 i,
                 Severity::Warning,
                 "Unknown diagram head — expected flowchart / sequenceDiagram / …",
-            )
-        });
+            )),
+            MermaidHead::Kind => {
+                if let Some((word, written)) = crate::lang::mermaid_kind_misspelled(head) {
+                    findings.push(Finding::new(
+                        "not-mermaid-js",
+                        i,
+                        Severity::Info,
+                        format!(
+                            "Omaspec draws this, mermaid.js (GitHub) takes the kind only as `{written}`, not `{word}`"
+                        ),
+                    ));
+                }
+            }
+        }
     }
 
     let mut stack: Vec<(usize, String)> = Vec::new();
@@ -1279,26 +1289,44 @@ mod tests {
             )
         );
         // What mmdr reads as a kind says nothing; a flowchart without its
-        // head, which mmdr draws, is told and not refused.
+        // head, which mmdr draws, is told and not refused; a line mmdr
+        // reads as nothing is refused as render refuses it.
         for code in [
             "graph\n  A --> B\n",
             "block\n  a b\n",
             "xychart\n  bar [1, 2]\n",
-            "Flowchart LR\n  A --> B\n",
             "\u{feff}flowchart LR\n  A --> B\n",
             "%% a note\n---\ntitle: x\n---\nflowchart LR\n  A --> B\n",
         ] {
             assert!(messages(code, Language::Mermaid).is_empty(), "{code}");
         }
-        assert_eq!(
-            messages("A --> B\n", Language::Mermaid)[0].1,
-            Severity::Warning
-        );
-        let found = messages(
-            "%%{init: {\n  \"theme\": \"dark\"\n}}%%\nflowchart TD\nsubgraph S\nA-->B\n",
-            Language::Mermaid,
-        );
-        assert_eq!(found, [(4, Severity::Warning, "Unclosed subgraph".into())]);
+        for code in [
+            "A --> B\n",
+            "subgraph back-end\n  A --> B\nend\n",
+            "classDef hot fill:#f96,stroke-width:4px\nA --> B\n",
+        ] {
+            assert_eq!(
+                messages(code, Language::Mermaid)[0].1,
+                Severity::Warning,
+                "{code}"
+            );
+        }
+        for code in [
+            "A[Start]\n",
+            "A ~~~ B\n",
+            "venn-beta;\n",
+            "ablauf-übersicht LR\n",
+        ] {
+            assert_eq!(
+                messages(code, Language::Mermaid)[0].1,
+                Severity::Error,
+                "{code}"
+            );
+        }
+        // Another case is drawn, and told: GitHub does not draw it.
+        let found = messages("SequenceDiagram\n  A->>B: hi\n", Language::Mermaid);
+        assert_eq!(found[0].1, Severity::Info, "{found:?}");
+        assert!(found[0].2.contains("`sequenceDiagram`"), "{found:?}");
     }
 
     #[test]

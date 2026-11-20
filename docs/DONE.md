@@ -2902,12 +2902,17 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       same words (`omaspec_core::lang::unknown_mermaid_kind`). mmdr read such a head as
       a flowchart's first nodes: Mermaid 11.16's `swimlane-beta LR` came out as boxes
       `swimlane` and `beta`, its direction left aside, while lint only warned of an
-      unknown head. A kind is known as mmdr knows it (`names_mermaid_kind`): the words
-      it reads, lowercased, ending where no letter or digit follows, so `block`,
-      `xychart` without `-beta`, `Flowchart` and `flowchart_x` are drawn as before; and
-      lint finds the head as mmdr does, after front matter that follows a comment and
-      behind a byte order mark. A flowchart written without its head (`A --> B`), which
-      mmdr draws, is still only told; `graph` without a direction no longer is.
+      unknown head. A first line is what mmdr makes of it (`mermaid_head_of`): a kind
+      as mmdr knows it, its words lowercased and ending where no letter or digit
+      follows, so `block`, `xychart` without `-beta` and `Flowchart` are drawn as
+      before (another case than mermaid.js's is told, as GitHub does not draw it); a
+      flowchart's line, any with a `-` or `=` outside brackets (`A --> B`, `subgraph
+      back-end`), drawn and only told; or nothing, refused: a line mmdr reads as
+      nothing, and a kind's word with a hyphen in it, which mmdr took for two boxes.
+      Lint finds the head as mmdr does, after front matter that follows a comment and
+      behind a byte order mark; the formatter and the language's detection take
+      `sankey`, `packet` and the others without `-beta`. `graph` without a direction
+      is a flowchart, and says nothing.
 - [x] REQ-096, the first frame of a play (2026-11-20): `omaspec play` kept the frames
       from the moment the play began, while its bar came under the picture and the
       picture glided to its fit above it, so the first frame was the picture as large

@@ -271,7 +271,7 @@ fn mermaid(code: &str) -> String {
 
     let mut out = Output::new();
     // Indentation is part of the language for these types: only tidy.
-    if re!(r"^(mindmap|kanban|sankey-beta|packet-beta|pie)\b").is_match(&kind) {
+    if re!(r"^(mindmap|kanban|sankey|packet|pie)\b").is_match(&kind) {
         for line in &lines {
             let line = line.trim_end();
             if line.trim().is_empty() {
