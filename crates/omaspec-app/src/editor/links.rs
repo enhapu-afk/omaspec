@@ -420,9 +420,11 @@ impl App {
                 }
             },
         };
+        // The latest step on the trail of the diagram left: a diagram
+        // visited twice goes on from where it was left the second time.
         let at = from_path
             .as_ref()
-            .and_then(|p| self.trail.iter().position(|s| &s.path == p));
+            .and_then(|p| self.trail.iter().rposition(|s| &s.path == p));
         match (at, from_path) {
             (Some(at), _) => self.trail.truncate(at + 1),
             (None, Some(path)) => {
@@ -450,12 +452,14 @@ impl App {
         Task::batch([landed, task])
     }
 
-    /// Where the active diagram is on the trail, past its first step.
+    /// Where the active diagram is on the trail, past its first step: its
+    /// latest step, where it is there twice (a diagram that leads back to
+    /// one before it), so the way back is the way in.
     pub(super) fn on_trail(&self) -> Option<usize> {
         let path = self.doc().path.as_ref()?;
         self.trail
             .iter()
-            .position(|s| &s.path == path)
+            .rposition(|s| &s.path == path)
             .filter(|&at| at > 0)
     }
 

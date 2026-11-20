@@ -1209,6 +1209,36 @@ fn lint_reads_a_project_s_file_as_one() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// `--themes` alone takes every bundled theme and leaves the file to the
+/// file; names follow an equals sign.
+#[test]
+fn themes_alone_leave_the_file_its_place() {
+    let dir = scratch("themes-file");
+    let door = dir.join("door.puml");
+    fs::write(&door, "@startuml\n[*] --> Closed\n@enduml\n").unwrap();
+    let out = dir.join("a.html");
+    let before = omaspec(&[
+        "play",
+        "--themes",
+        door.to_str().unwrap(),
+        "-o",
+        out.to_str().unwrap(),
+    ]);
+    let said = String::from_utf8_lossy(&before.stderr);
+    assert!(!said.contains("required arguments"), "{said}");
+    let named = omaspec(&[
+        "play",
+        door.to_str().unwrap(),
+        "--themes=built-in,built-in",
+        "-o",
+        out.to_str().unwrap(),
+    ]);
+    let said = String::from_utf8_lossy(&named.stderr);
+    assert_eq!(named.status.code(), Some(0), "{said}");
+    assert!(said.contains("2 themes"), "{said}");
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn a_fold_and_a_zoom_into_a_map_are_written_as_gifs() {
     let dir = scratch("fold-dive-gif");
@@ -1275,7 +1305,55 @@ fn a_fold_and_a_zoom_into_a_map_are_written_as_gifs() {
         err.contains("Nowhere is no link of Orders") && err.contains("Paying"),
         "{err}"
     );
+    // The state inside the one named does not take the click meant for
+    // it, and a name with a `/` of its own is one name.
+    let card = dir.join("card.puml");
+    fs::write(&card, "@startuml\ntitle Card\n[*] --> Swipe\n@enduml\n").unwrap();
+    let slash = dir.join("slash.puml");
+    fs::write(&slash, "@startuml\ntitle Log/Out\n[*] --> Gone\n@enduml\n").unwrap();
+    let (code, err) = play(&[
+        project.to_str().unwrap(),
+        "--dive",
+        "Orders/Paying/Card,Log/Out",
+    ]);
+    assert_eq!(code, Some(0), "{err}");
+    let (code, err) = play(&[project.to_str().unwrap(), "--dive", "Orders/Paying/Card/X"]);
+    assert_ne!(code, Some(0));
+    assert!(err.contains("X is no link of Card; it has none"), "{err}");
+    fs::remove_file(&card).unwrap();
+    fs::remove_file(&slash).unwrap();
+    // A diagram that leads back to one before it: the way back is the way
+    // in, so the next flight starts on the map again.
+    fs::write(
+        &paying,
+        "@startuml\ntitle Paying\n[*] --> Card\nCard --> Orders : again\n@enduml\n",
+    )
+    .unwrap();
+    let (code, err) = play(&[
+        project.to_str().unwrap(),
+        "--dive",
+        "Orders/Paying/Orders,Orders",
+    ]);
+    assert_eq!(code, Some(0), "{err}");
     fs::remove_file(&paying).unwrap();
+    // A folder's tile: its map, and on to a diagram there. A project
+    // shows its folders as tiles once it is too large for one map.
+    fs::create_dir_all(dir.join("more")).unwrap();
+    fs::write(
+        dir.join("more/refund.puml"),
+        "@startuml\ntitle Refund\n[*] --> Asked\n@enduml\n",
+    )
+    .unwrap();
+    for n in 0..36 {
+        fs::write(
+            dir.join(format!("more/d{n}.puml")),
+            format!("@startuml\ntitle D{n}\n[*] --> S{n}\n@enduml\n"),
+        )
+        .unwrap();
+    }
+    let (code, err) = play(&[project.to_str().unwrap(), "--dive", "more/Refund,Orders"]);
+    assert_eq!(code, Some(0), "{err}");
+    fs::remove_dir_all(dir.join("more")).unwrap();
     // A dive wants the project's file, and the project's file a dive.
     let (code, err) = play(&[orders.to_str().unwrap(), "--dive", "Orders"]);
     assert_ne!(code, Some(0));

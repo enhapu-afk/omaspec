@@ -499,8 +499,10 @@ enum Command {
         /// Instead of a play: the diagram through these Omarchy themes
         /// (names, colors.toml files or built-in), each sweeping over the
         /// one before, its name under it; without names, every bundled
-        /// theme.
-        #[arg(long, num_args = 0.., value_delimiter = ',', value_name = "THEME", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "traffic", "theme"])]
+        /// theme. Names follow an equals sign, as
+        /// --themes=tokyo-night,gruvbox, so the file is never taken for
+        /// one.
+        #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "", value_delimiter = ',', value_name = "THEME", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "traffic", "theme"])]
         themes: Option<Vec<String>>,
         /// The whole diagram in every frame. Without it, a play or a fold
         /// of a diagram too large to read whole follows each step or each

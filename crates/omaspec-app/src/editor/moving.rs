@@ -640,52 +640,79 @@ impl Stage {
         for name in names {
             // `Orders/Checkout`: into the tile, and on along the link of
             // the diagram there, a flight through the project
-            // (docs/adr/0018); back out the same way.
-            let chain: Vec<&str> = name.split('/').map(str::trim).collect();
+            // (docs/adr/0018); back out the same way. A name with a `/`
+            // of its own (`Login/Logout`) is taken whole where it names
+            // a link.
+            let parts: Vec<&str> = name.split('/').collect();
             anyhow::ensure!(
-                chain.iter().all(|link| !link.is_empty()),
+                parts.iter().all(|part| !part.trim().is_empty()),
                 "{name}: a flight names a tile and the links after it, as Orders/Checkout"
             );
-            for (depth, link) in chain.iter().enumerate() {
+            // Each flight starts on the map, where the one before came
+            // back out to.
+            anyhow::ensure!(
+                self.app.doc().key == self.key,
+                "{name}: the way back out of the flight before did not reach the map"
+            );
+            // What each step was: a diagram followed, or a folder's map
+            // shown in the map's own tab, which the way back draws again.
+            let mut taken: Vec<(String, bool)> = Vec::new();
+            let mut next = 0;
+            while next < parts.len() {
                 let here = self.app.doc().key;
                 let paper = &self.app.doc().paper;
-                let at = paper
-                    .links()
-                    .iter()
-                    .find(|one| one.name == *link)
-                    .map(|one| {
-                        paper
-                            .view
-                            .on_screen(
-                                paper::link_rect(one),
-                                iced::Rectangle::with_size(paper.viewport()),
-                            )
-                            .center()
-                    })
-                    .with_context(|| {
-                        let what = if depth == 0 {
-                            "no tile of the map".to_owned()
-                        } else {
-                            format!("no link of {}", chain[depth - 1])
-                        };
-                        format!(
-                            "{link} is {what}; it has {}",
-                            paper
-                                .links()
-                                .iter()
-                                .map(|one| one.name.as_str())
-                                .collect::<Vec<_>>()
-                                .join(", ")
-                        )
-                    })?;
+                let links = paper.links();
+                // The longest run of the parts left that names a link here.
+                let found = (next + 1..=parts.len()).rev().find_map(|end| {
+                    let wanted = parts[next..end].join("/");
+                    links
+                        .iter()
+                        .find(|one| one.name.trim() == wanted.trim())
+                        .map(|one| (end, one))
+                });
+                let Some((end, link)) = found else {
+                    let what = match taken.last() {
+                        None => "no tile of the map".to_owned(),
+                        Some((last, _)) => format!("no link of {last}"),
+                    };
+                    let has = if links.is_empty() {
+                        "none".to_owned()
+                    } else {
+                        links
+                            .iter()
+                            .map(|one| one.name.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    };
+                    bail!("{} is {what}; it has {has}", parts[next].trim());
+                };
+                let at = click_on(paper, link).with_context(|| {
+                    format!("{} lies under other links: no click reaches it", link.name)
+                })?;
+                let followed = link.name.clone();
+                let folder = link.folder.is_some();
                 self.send(Message::Paper(here, paper::Message::Follow(at)));
+                // A folder's tile shows the folder's map in this tab: the
+                // flight goes on there.
+                if folder {
+                    map(&mut self.app, &self.screen, here)?;
+                    self.run(self.tick, |_| false);
+                    self.run(DIVE, |app| app.doc().paper.arrived());
+                    self.run(HOLD, |_| false);
+                    taken.push((followed, true));
+                    next = end;
+                    continue;
+                }
                 let target = self
                     .app
                     .docs
                     .iter()
                     .map(|doc| doc.key)
                     .find(|key| self.app.is_arriving(*key))
-                    .with_context(|| format!("{link} opens no diagram"))?;
+                    .with_context(|| match &self.app.notice {
+                        Some(why) => format!("{followed} opens no diagram: {why}"),
+                        None => format!("{followed} opens no diagram"),
+                    })?;
                 // Its picture arrives with the zoom.
                 linked(&mut self.app, &self.screen, target)?;
                 // The way in, the diagram in its own tab, and a moment there.
@@ -694,17 +721,51 @@ impl Stage {
                 self.send(Message::Worker(worker::Event::Due(worker::Alarm::Follow)));
                 self.run(self.tick * 2, |_| false);
                 self.run(HOLD, |_| false);
+                taken.push((followed, false));
+                next = end;
             }
-            // The way back out, a step for each link, and the map again.
-            for _ in &chain {
+            // The way back out, a step for each link, and the map again;
+            // out of a folder, the map of the folder around it drawn.
+            for (_, folder) in taken.iter().rev() {
                 self.send(Message::Command(Command::Back));
-                self.run(self.tick, |_| false);
-                self.run(DIVE, still);
+                if *folder {
+                    let here = self.app.doc().key;
+                    map(&mut self.app, &self.screen, here)?;
+                    self.run(self.tick, |_| false);
+                    self.run(DIVE, |app| app.doc().paper.arrived());
+                } else {
+                    self.run(self.tick, |_| false);
+                    self.run(DIVE, still);
+                }
                 self.run(HOLD, |_| false);
             }
         }
         Ok(format!("into {} and back", names.join(", ")))
     }
+}
+
+/// A point of the pane where a click takes `link`: its middle, else the
+/// first of a grid over it where no smaller link lies over it, as the
+/// states inside a state's box do.
+fn click_on(paper: &paper::Paper, link: &omaspec_render::Link) -> Option<iced::Point> {
+    const GRID: usize = 16;
+    let rect = paper.view.on_screen(
+        paper::link_rect(link),
+        iced::Rectangle::with_size(paper.viewport()),
+    );
+    std::iter::once(rect.center())
+        .chain((0..GRID * GRID).map(|i| {
+            let (column, row) = ((i % GRID) as f32, (i / GRID) as f32);
+            iced::Point::new(
+                rect.x + rect.width * (column + 0.5) / GRID as f32,
+                rect.y + rect.height * (row + 0.5) / GRID as f32,
+            )
+        }))
+        .find(|&at| {
+            paper
+                .link_at(at)
+                .is_some_and(|under| std::ptr::eq(under, link))
+        })
 }
 
 /// The event of an option's label, without its guard and its action:

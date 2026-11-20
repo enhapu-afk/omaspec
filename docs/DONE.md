@@ -2897,12 +2897,24 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the flight and the sweep found (2026-11-20). A flight clicked a
+      link in its middle, where a state inside it that links too took the click: it
+      clicks where only the link named lies. A name with a `/` of its own is one name
+      where it names a link, a flight starts on the map, a link that opens no diagram
+      says why, and a diagram without links says it has none. A flight through a
+      folder's tile goes on in the folder's map and comes back out through it, and one
+      that visits a diagram twice comes back the way it went in: the trail takes a
+      diagram's latest step (in the window too). A sweep holds three pictures at a
+      time, not every theme's, and mixes them row by row; its theme names are trimmed
+      and given after an equals sign (`--themes=a,b`), so the file is never taken for
+      one; a theme's style sheet stays out of the page, where it would reach every
+      other theme
 - [x] A theme sweep (2026-11-20, the sixth of the animations that show what a diagram
       means): `omaspec play FILE --themes -o sweep.gif` draws the diagram in every
       bundled Omarchy theme as the pane draws it there (`editor::sweep`), each theme's
       picture with its name and its place under it in its own colors, and sweeps each
       over the one before from the left with a soft edge, the last into the first so
-      the picture loops; many themes stay shorter. `--themes tokyo-night,gruvbox` names
+      the picture loops; many themes stay shorter. `--themes=tokyo-night,gruvbox` names
       them (a theme of Omarchy's or the writer's own, a `colors.toml`, or `built-in`).
       Mixed in pixels without a GPU; as `.html` a page in vectors (`export::sweep`):
       the pictures laid on one another, each with ids of its own and the faces once,

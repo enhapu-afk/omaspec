@@ -371,8 +371,14 @@ fn parts(svg: &str) -> Option<(String, String)> {
     let body_end = svg.rfind("</svg>")?;
     let body = svg.get(body_start..body_end)?;
     // A style sheet would reach the whole map.
-    let mut kept = String::with_capacity(body.len());
-    let mut rest = body;
+    Some((view_box, without_styles(body)))
+}
+
+/// `svg` without its style sheets: one of many pictures on one page,
+/// whose sheet would reach all the others.
+pub(crate) fn without_styles(svg: &str) -> String {
+    let mut kept = String::with_capacity(svg.len());
+    let mut rest = svg;
     while let Some(at) = rest.find("<style") {
         kept.push_str(&rest[..at]);
         match rest[at..].find("</style>") {
@@ -384,7 +390,7 @@ fn parts(svg: &str) -> Option<(String, String)> {
         }
     }
     kept.push_str(rest);
-    Some((view_box, kept))
+    kept
 }
 
 /// `body` with its ids and the references to them made its own.

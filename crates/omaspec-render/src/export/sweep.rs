@@ -39,13 +39,20 @@ pub struct Theme {
 /// ids of its own; the first carries the faces the words of all of them
 /// are set in; only the source is written after.
 pub fn page(sweep: &Sweep, source: Option<Source>, title: &str) -> Result<String, ExportError> {
+    // A style sheet of one theme's picture would reach every other theme
+    // on the page: each goes, as on a map; the faces come once, after.
+    let plain: Vec<String> = sweep
+        .themes
+        .iter()
+        .map(|t| crate::atlas::without_styles(&t.svg))
+        .collect();
     let mut pictures = String::new();
     for (at, theme) in sweep.themes.iter().enumerate() {
         let svg = if at == 0 {
-            let others: Vec<&str> = sweep.themes[1..].iter().map(|t| t.svg.as_str()).collect();
-            crate::fonts::embed_with(&theme.svg, &others)
+            let others: Vec<&str> = plain[1..].iter().map(String::as_str).collect();
+            crate::fonts::embed_with(&plain[0], &others)
         } else {
-            theme.svg.clone()
+            plain[at].clone()
         };
         let svg = crate::atlas::own_ids(&svg, &format!("t{at}-"));
         let svg = crate::sanitize::sanitize(&svg).map_err(|e| ExportError::Svg(e.to_string()))?;
@@ -117,7 +124,7 @@ mod tests {
 
     #[test]
     fn a_page_lays_the_themes_on_one_another_with_ids_of_their_own() {
-        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><g id="lines"/><script>alert(1)</script></svg>"##;
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><style>rect{fill:red}</style><g id="lines"/><script>alert(1)</script></svg>"##;
         let theme = |name: &str| Theme {
             name: name.into(),
             svg: svg.into(),
@@ -137,5 +144,7 @@ mod tests {
         assert!(page.contains(r#"id="t0-lines""#) && page.contains(r#"id="t1-lines""#));
         assert!(page.contains(r#""kind":"sweep""#));
         assert_eq!(page.matches("<section class=\"theme\"").count(), 2);
+        // No theme's sheet reaches the others.
+        assert!(!page.contains("fill:red"));
     }
 }

@@ -79,16 +79,11 @@ pub(super) fn sweep(args: &Moving, names: &[String], film: Film, fps: u32) -> Re
         None => (size.width() * 1.6).clamp(NARROWEST, WIDEST).round(),
     };
     let scale = width / size.width().max(1.0);
-    let stills: Vec<tiny_skia::Pixmap> = themed
-        .iter()
-        .enumerate()
-        .map(|(at, one)| still(one, at, themed.len(), scale))
-        .collect::<Result<_>>()?;
-    let (w, h) = (stills[0].width(), stills[0].height());
-    anyhow::ensure!(
-        stills.iter().all(|s| s.width() == w && s.height() == h),
-        "the diagram is drawn in another size in some theme: a sweep needs one size"
-    );
+    let count = themed.len();
+    // Only the theme shown, the one sweeping in and the first are held as
+    // pixels: many themes of a large picture would not fit at once.
+    let first = still(&themed[0], 0, count, scale)?;
+    let (w, h) = (first.width(), first.height());
     let delay = |seconds: f32| match film {
         Film::Gif => (seconds * 100.0).round().clamp(2.0, 65535.0) as u16,
         Film::Apng | Film::Webp | Film::Page => (seconds * fps as f32).round().max(1.0) as u16,
@@ -97,18 +92,30 @@ pub(super) fn sweep(args: &Moving, names: &[String], film: Film, fps: u32) -> Re
         Film::Gif => u16::try_from((100 / fps).max(2)).unwrap_or(5),
         Film::Apng | Film::Webp | Film::Page => 1,
     };
-    let stay = stay(themed.len());
+    let stay = stay(count);
     let mut frames = Frames::default();
     let sweeps = (SWEEP * fps as f32).ceil() as usize;
     // Each theme a while, then the next sweeps over it; the last sweeps
     // into the first, so the picture loops as one.
-    for at in 0..stills.len() {
-        let (this, next) = (&stills[at], &stills[(at + 1) % stills.len()]);
+    let mut shown: Option<tiny_skia::Pixmap> = None;
+    for at in 0..count {
+        let coming = (at + 1 < count)
+            .then(|| still(&themed[at + 1], at + 1, count, scale))
+            .transpose()?;
+        let (this, next) = (
+            shown.as_ref().unwrap_or(&first),
+            coming.as_ref().unwrap_or(&first),
+        );
+        anyhow::ensure!(
+            next.width() == w && next.height() == h,
+            "the diagram is drawn in another size in some theme: a sweep needs one size"
+        );
         frames.push(w as usize, h as usize, this.data(), delay(stay));
         for k in 1..sweeps {
             let mixed = swept(this, next, k as f32 / sweeps as f32);
             frames.push(w as usize, h as usize, &mixed, frame);
         }
+        shown = coming;
     }
     let (bytes, count) = match film {
         Film::Gif => frames.encode(args.quality)?,
@@ -142,6 +149,12 @@ fn theme_files(names: &[String]) -> Result<Vec<String>> {
         .into_iter()
         .flatten()
         .collect();
+    // `--themes "tokyo-night, gruvbox"` names two themes.
+    let names: Vec<&str> = names
+        .iter()
+        .map(|name| name.trim())
+        .filter(|name| !name.is_empty())
+        .collect();
     if names.is_empty() {
         // By their names, as Omarchy lists them.
         let mut found: Vec<(String, String)> = std::fs::read_dir(BUNDLED)
@@ -156,9 +169,9 @@ fn theme_files(names: &[String]) -> Result<Vec<String>> {
     }
     names
         .iter()
-        .map(|name| {
+        .map(|&name| {
             if name == "built-in" || Path::new(name).is_file() {
-                return Ok(name.clone());
+                return Ok(name.to_owned());
             }
             dirs.iter()
                 .map(|dir| dir.join(name).join("colors.toml"))
@@ -173,7 +186,9 @@ fn theme_files(names: &[String]) -> Result<Vec<String>> {
 
 /// The diagram drawn in the theme of `file`, as the pane draws it there.
 fn draw(args: &Moving, text: &str, language: Language, file: &str) -> Result<Themed> {
-    let omarchy = theme(Some(file))?;
+    // Its own words: the shared one speaks of `--theme`.
+    let omarchy = theme(Some(file))
+        .map_err(|err| anyhow::anyhow!("{file} is no theme: {}", err.root_cause()))?;
     let name = shown_name(omarchy.name.as_deref().unwrap_or(file));
     let start = Start {
         files: vec![args.file.clone()],
@@ -255,48 +270,64 @@ fn captioned(one: &Themed, at: usize, count: usize, scale: f32) -> String {
 
 /// `next` swept over `this` from the left, `k` of the way, its edge soft.
 fn swept(this: &tiny_skia::Pixmap, next: &tiny_skia::Pixmap, k: f32) -> Vec<u8> {
-    let (w, h) = (this.width() as usize, this.height() as usize);
+    let w = this.width() as usize;
     let edge = (w as f32 * EDGE).max(1.0);
     // Eased, and from fully left of the picture to fully right of it.
     let k = k * k * (3.0 - 2.0 * k);
     let front = -edge + k * (w as f32 + 2.0 * edge);
+    // How much of the next theme each column shows, worked out once.
+    let shares: Vec<f32> = (0..w)
+        .map(|x| {
+            let m = ((front - x as f32) / edge).clamp(0.0, 1.0);
+            m * m * (3.0 - 2.0 * m)
+        })
+        .collect();
     let (a, b) = (this.data(), next.data());
     let mut out = vec![0u8; a.len()];
-    for x in 0..w {
-        let m = ((front - x as f32) / edge).clamp(0.0, 1.0);
-        let m = m * m * (3.0 - 2.0 * m);
-        for y in 0..h {
-            let i = (y * w + x) * 4;
-            for c in 0..4 {
-                out[i + c] =
-                    (f32::from(a[i + c]) * (1.0 - m) + f32::from(b[i + c]) * m).round() as u8;
-            }
+    // Row by row, as the pixels lie.
+    for (i, ((mixed, was), comes)) in out
+        .as_chunks_mut::<4>()
+        .0
+        .iter_mut()
+        .zip(a.as_chunks::<4>().0)
+        .zip(b.as_chunks::<4>().0)
+        .enumerate()
+    {
+        let m = shares[i % w.max(1)];
+        for c in 0..4 {
+            mixed[c] = (f32::from(was[c]) * (1.0 - m) + f32::from(comes[c]) * m).round() as u8;
         }
     }
     out
 }
 
-/// The picture's `viewBox`: where it starts and how large it is.
+/// The picture's `viewBox`: where it starts and how large it is; without
+/// one, its width and height, as [`super::timelapse::widened`] takes them.
 fn view_of(svg: &str) -> (f32, f32, f32, f32) {
-    let view: Vec<f32> = svg
+    let Some(tag) = svg
         .find("<svg")
-        .and_then(|start| {
-            let tag = &svg[start..start + svg[start..].find('>')?];
-            tag.split(" viewBox=\"")
-                .nth(1)?
-                .split('"')
-                .next()
-                .map(str::to_owned)
-        })
+        .and_then(|start| Some(&svg[start..start + svg[start..].find('>')?]))
+    else {
+        return (0.0, 0.0, 1.0, 1.0);
+    };
+    let attr = |name: &str| -> Option<&str> {
+        tag.split(&format!(" {name}=\"")).nth(1)?.split('"').next()
+    };
+    let view: Vec<f32> = attr("viewBox")
         .map(|view| {
             view.split(|c: char| c == ',' || c.is_whitespace())
                 .filter_map(|n| n.parse().ok())
                 .collect()
         })
         .unwrap_or_default();
+    let number = |name: &str| {
+        attr(name)
+            .and_then(|value| value.trim_end_matches("px").parse().ok())
+            .unwrap_or(1.0)
+    };
     match view[..] {
         [x, y, w, h] if w > 0.0 && h > 0.0 => (x, y, w, h),
-        _ => (0.0, 0.0, 400.0, 300.0),
+        _ => (0.0, 0.0, number("width"), number("height")),
     }
 }
 
@@ -346,11 +377,11 @@ fn page(
         name.rsplit_once('.').map_or(name, |(stem, _)| stem),
     )
     .map_err(|err| anyhow::anyhow!("{err}"))?;
-    crate::files::write_atomic(&args.output, written.as_bytes())
-        .with_context(|| format!("cannot write {}", args.output.display()))?;
     if written.is_empty() {
         bail!("nothing was written");
     }
+    crate::files::write_atomic(&args.output, written.as_bytes())
+        .with_context(|| format!("cannot write {}", args.output.display()))?;
     Ok(written.len())
 }
 
