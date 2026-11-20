@@ -76,7 +76,8 @@ struct Look<'a> {
     /// Each step's fill, and the edge drawn around it.
     steps: Vec<(Color, Color)>,
     /// The fill of an area, and of the capabilities deeper in it that
-    /// hold others: every other depth a little toward the ink.
+    /// hold others: a rectangle's (`RectangleBackgroundColor`, the theme's
+    /// surface) and the page's, every other depth.
     ground: [Color; 2],
     /// The edge of what has no value, which reads on the page.
     edge: Color,
@@ -111,7 +112,7 @@ impl<'a> Look<'a> {
             skin,
             paper,
             steps,
-            ground: [paper.mix(ink, 0.05), paper],
+            ground: [skin.card, paper],
             edge,
         }
     }
@@ -135,11 +136,13 @@ impl<'a> Look<'a> {
     }
 
     /// What a capability is filled with, and its edge: its step's colors;
-    /// for one that holds others the ground of its depth, its step's color
-    /// under its name alone ([`Self::head`]), so what it holds reads on
-    /// it; a dashed edge for one with neither a value nor others.
+    /// for one that holds others (and an area with a value, a column) the
+    /// ground of its depth, its step's color under its name alone
+    /// ([`Self::head`]), so what it holds reads on it; a dashed edge for
+    /// one with neither a value nor others, an area too, as the legend
+    /// says ([`unrated_leaves`]).
     fn fill(&self, cap: &Capability, depth: usize) -> (Color, Stroke) {
-        let holds = depth == 1 || !cap.children.is_empty();
+        let holds = !cap.children.is_empty() || (depth == 1 && cap.value.is_some());
         let ground = self.ground[(depth + 1) % 2];
         match (cap.value.and_then(|v| self.steps.get(v)), holds) {
             (Some(&(fill, edge)), false) => (fill, Stroke::new(edge, 1.0)),
@@ -182,7 +185,13 @@ fn paint(
     family: Family,
     top: f32,
 ) -> Result<f32, Declined> {
-    let column = (look.skin.label.size * 18.0).max(220.0);
+    // As wide as the widest word of any area takes, deep in it.
+    let column = diagram
+        .areas
+        .iter()
+        .try_fold((look.skin.label.size * 18.0).max(220.0), |most, area| {
+            narrowest(area, 1, look, family).map(|n| most.max(n))
+        })?;
     let count = diagram.areas.len();
     let fit = (((WIDE + APART) / (column + APART)).floor() as usize).max(1);
     let rows = count.div_ceil(fit);
@@ -214,7 +223,9 @@ fn measure<'a>(
     family: Family,
 ) -> Result<Tile<'a>, Declined> {
     let font = look.font(depth, look.head(cap, depth));
-    let words = wrap(&cap.name, font, family, width - 2.0 * PAD, cap.line)?.written_on(cap.line);
+    // Its value may follow the name on its line.
+    let words = wrap(&cap.name, font, family, width - 2.0 * PAD, cap.line)?
+        .written_at(cap.line, Some(cap.col));
     let dots = if dotted(cap, look) { DOTS + 2.0 } else { 0.0 };
     let head = words.height.max(font.size * 1.2) + dots + 2.0 * PAD;
     if cap.children.is_empty() {
@@ -231,9 +242,14 @@ fn measure<'a>(
         });
     }
     let room = width - 2.0 * PAD;
-    let narrowest = NARROWEST[usize::from(depth > 1)];
-    let columns =
-        (((room + GAP) / (narrowest + GAP)).floor() as usize).clamp(1, cap.children.len());
+    // Side by side only as narrow as each, and what is in it, reads.
+    let narrow = cap
+        .children
+        .iter()
+        .try_fold(NARROWEST[usize::from(depth > 1)], |most, child| {
+            narrowest(child, depth + 1, look, family).map(|n| most.max(n))
+        })?;
+    let columns = (((room + GAP) / (narrow + GAP)).floor() as usize).clamp(1, cap.children.len());
     let each = (room - GAP * (columns - 1) as f32) / columns as f32;
     let mut inner = cap
         .children
@@ -268,6 +284,25 @@ fn measure<'a>(
     })
 }
 
+/// The narrowest `cap`, `depth` levels deep, stands and reads: its widest
+/// word or its dots, or the narrowest of what it holds one under the
+/// other, with the room around them. Narrower, its words would run over
+/// its edge.
+fn narrowest(cap: &Capability, depth: usize, look: &Look, family: Family) -> Result<f32, Declined> {
+    let font = look.font(depth, look.head(cap, depth));
+    // Broken at every space: as wide as its widest word.
+    let word = wrap(&cap.name, font, family, 0.0, cap.line)?.width;
+    let dots = if dotted(cap, look) {
+        look.steps.len() as f32 * DOTS
+    } else {
+        0.0
+    };
+    let inner = cap.children.iter().try_fold(0.0f32, |most, child| {
+        narrowest(child, depth + 1, look, family).map(|n| most.max(n))
+    })?;
+    Ok(word.max(dots).max(inner) + 2.0 * PAD)
+}
+
 /// Whether `cap` counts its step in dots under its name.
 fn dotted(cap: &Capability, look: &Look) -> bool {
     cap.value.is_some() && look.steps.len() <= MOST_DOTS
@@ -278,7 +313,9 @@ fn draw_tile(canvas: &mut Canvas, tile: &Tile, at: (f32, f32), look: &Look) {
     let (x, y) = (at.0 + tile.x, at.1 + tile.y);
     let (fill, edge) = look.fill(tile.cap, tile.depth);
     let round = look.skin.round.max(2.0) / tile.depth as f32;
-    canvas.named(&format!("capability {}", tile.cap.line), |c| {
+    // Drawn by hand, a tile keeps its strokes by its name wherever it
+    // stands in the source, as a story map's cards do.
+    canvas.named(&format!("capability {}", tile.cap.name), |c| {
         c.rect(
             Layer::Bars,
             (x, y, tile.w, tile.h),
@@ -341,8 +378,8 @@ fn draw_tile(canvas: &mut Canvas, tile: &Tile, at: (f32, f32), look: &Look) {
 }
 
 /// The legend under the map, from `top`: the scale's name, each step's
-/// color and dots with its name, and the edge of what has no value where
-/// a capability has none.
+/// color with its name, in the order the dots count them, and the edge
+/// of what has no value where a capability has none.
 fn legend(
     canvas: &mut Canvas,
     diagram: &Diagram,
@@ -476,9 +513,38 @@ mod tests {
             svg.contains("#2F6FDB"),
             "the last step is the accent: {svg}"
         );
+        // The areas lie on the rectangle's fill, the theme's surface.
+        let surface = SHOP.replace(
+            "title What a bookshop can do\n",
+            "title What a bookshop can do\nskinparam RectangleBackgroundColor #ABCDEF\n",
+        );
+        assert!(drawn(&surface).0.to_ascii_uppercase().contains("#ABCDEF"));
         let own = SHOP.replacen("leading", "leading #2F9E44", 1);
         let svg = drawn(&own).0.to_ascii_uppercase();
         assert!(svg.contains("#2F9E44"), "{svg}");
+    }
+
+    #[test]
+    fn deep_words_stay_inside_their_tiles_and_an_empty_area_is_dashed() {
+        let deep = "@startcapabilities\nlevels Maturity : none, basic\n* Area\n** Sub\n*** Third\n**** Cataloguing : basic\n**** Bibliographies : basic\n*** Other\n**** Fourth\n***** Bibliographies : none\n* Empty area\n@endcapabilities\n";
+        let (svg, map) = drawn(deep);
+        // The second area's words stand a pad into it, the first area's
+        // edge an apart before it; each capability a pad further in.
+        let edge = at(&map, 10).x - PAD - APART;
+        for (line, depth) in [(5, 4), (6, 4), (8, 4), (9, 5)] {
+            let r = at(&map, line);
+            assert!(
+                r.x + r.w <= edge - PAD * (depth - 1) as f32 + 0.5,
+                "line {line} runs over its tile: {r:?}, the area ends at {edge}"
+            );
+        }
+        // The name is tied where it starts, before its value.
+        let tied = map.tied.iter().find(|t| t.line == 5).unwrap();
+        assert_eq!(tied.col, Some("**** ".len()));
+        // An area with neither a value nor capabilities is not rated, as
+        // the legend says: dashed, as the legend's swatch is.
+        assert!(svg.contains(UNRATED));
+        assert_eq!(svg.matches("stroke-dasharray").count(), 2, "{svg}");
     }
 
     #[test]

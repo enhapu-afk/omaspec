@@ -163,6 +163,36 @@ fn inset_px(rect: Rectangle, px: f32) -> Rectangle {
     )
 }
 
+/// Where box `index` is on screen at `paint.t`, as [`paint`] draws it,
+/// without the rim its picture is cut with: for a mark laid over it.
+pub fn box_at(grid: Grid, local: Rectangle, paint: &Paint<'_>, index: usize) -> Option<Rectangle> {
+    let step = paint.morph.moves.get(index)?;
+    let placed = placed(grid, local, paint);
+    let dest = sprite_dest(step, &placed);
+    // The rim, scaled as the picture the box is drawn on.
+    let (kx, ky) = match step.role {
+        Role::Stay => (placed.scale.x, placed.scale.y),
+        Role::Leave | Role::Arrive => {
+            let size = if step.role == Role::Leave {
+                placed.old_size
+            } else {
+                placed.new_size
+            };
+            (
+                placed.paper.width / size.width.max(1e-3),
+                placed.paper.height / size.height.max(1e-3),
+            )
+        }
+    };
+    Some(Rectangle::new(
+        Point::new(dest.x + RIM * kx, dest.y + RIM * ky),
+        Size::new(
+            (dest.width - 2.0 * RIM * kx).max(0.0),
+            (dest.height - 2.0 * RIM * ky).max(0.0),
+        ),
+    ))
+}
+
 /// The ground of the picture before or of the new one, without its lines
 /// and its parts, at `alpha` on the easing sheet; with the parts of that
 /// picture alone that nothing glides ([`Morph::orphans`]).

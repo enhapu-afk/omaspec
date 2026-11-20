@@ -14,10 +14,10 @@ use iced::widget::canvas::{self, Action, Event, Frame, Geometry, Stroke};
 use iced::window;
 use iced::{Color, Rectangle, Renderer, Theme};
 
-use super::Message;
 use super::canvas::{Grid, rounded};
 use super::morph::{Morph, Move, Role};
 use super::view::{Glide, View};
+use super::{Fade, Message};
 
 /// How long a box that came or changed glows once the glide has ended.
 pub const GLOW: Duration = Duration::from_millis(1_100);
@@ -51,31 +51,42 @@ impl Change {
 }
 
 /// A box that glows: where it is in its picture's units, the version
-/// before for one that went, this one for the others.
+/// before for one that went, this one for the others; and which box of
+/// the glide it is, so one that went glows where the glide draws it.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Glowing {
     pub rect: Rectangle,
     pub change: Change,
+    pub index: usize,
 }
 
 /// The boxes of one glide that glow, and when.
 #[derive(Clone, Debug)]
 pub struct Glow {
     pub boxes: Vec<Glowing>,
-    /// When the glide began, and how long it takes.
+    /// When the glide began, how long it takes, and how long what came
+    /// or changed glows after it.
     start: Instant,
     glide: Duration,
+    length: Duration,
 }
 
 impl Glow {
     /// What glows of `morph`, a glide that began at `start` and takes
-    /// `glide`; none when no box came, changed or went.
-    pub fn of(morph: &Morph, start: Instant, glide: Duration) -> Option<Glow> {
-        let boxes: Vec<Glowing> = morph.moves.iter().filter_map(glowing).collect();
+    /// `glide`, for `length` after it ([`GLOW`] at most); none when no box
+    /// came, changed or went.
+    pub fn of(morph: &Morph, start: Instant, glide: Duration, length: Duration) -> Option<Glow> {
+        let boxes: Vec<Glowing> = morph
+            .moves
+            .iter()
+            .enumerate()
+            .filter_map(|(index, m)| glowing(index, m))
+            .collect();
         (!boxes.is_empty()).then_some(Glow {
             boxes,
             start,
             glide,
+            length: length.min(GLOW),
         })
     }
 
@@ -95,7 +106,7 @@ impl Glow {
                 }
             }
             Change::Came | Change::Changed => {
-                let t = (since - glide) / GLOW.as_secs_f32();
+                let t = (since - glide) / self.length.as_secs_f32().max(0.001);
                 if !(0.0..1.0).contains(&t) {
                     0.0
                 } else if t < 0.12 {
@@ -110,16 +121,20 @@ impl Glow {
 
     /// Whether nothing glows any more at `now`.
     pub fn done(&self, now: Instant) -> bool {
-        now >= self.start + self.glide + GLOW
+        now >= self.start + self.glide + self.length
     }
 }
 
 /// What glows of `m`: one that came or went, or one that stays and
 /// changed its size or its color.
-fn glowing(m: &Move) -> Option<Glowing> {
+fn glowing(index: usize, m: &Move) -> Option<Glowing> {
     let change = change(m)?;
     let rect = if change == Change::Went { m.from } else { m.to };
-    Some(Glowing { rect, change })
+    Some(Glowing {
+        rect,
+        change,
+        index,
+    })
 }
 
 /// How `m` changed from the version before, if it did more than move.
@@ -146,12 +161,40 @@ pub fn change(m: &Move) -> Option<Change> {
 /// around each box and a wash over it, a wider halo outside.
 pub struct GlowMarks<'a> {
     pub glow: &'a Glow,
-    /// Where the version before stood, for a box that went, and where
-    /// this one stands, gliding too while the view glides.
-    pub old_view: View,
+    /// The glide a box that went fades out on, easing with its sheet.
+    pub fade: Option<&'a Fade>,
+    /// Where this version stands, gliding too while the view glides.
     pub view: View,
     pub glide: Option<Glide>,
     pub scale: f32,
+}
+
+impl GlowMarks<'_> {
+    /// Where box `index` of the glide is drawn at `now`: a box that went
+    /// eases with the sheet it fades on, not where it stood before.
+    fn on_glide(
+        &self,
+        index: usize,
+        grid: Grid,
+        local: Rectangle,
+        now: Instant,
+    ) -> Option<Rectangle> {
+        let fade = self.fade?;
+        let morph = fade.morph.as_ref()?;
+        let (old, new) = fade.bare.as_ref()?;
+        let paint = super::morph::Paint {
+            t: fade.shown.interpolate(0.0, 1.0, now).clamp(0.0, 1.0),
+            morph,
+            old_view: fade.old_view,
+            old_size: fade.old_size,
+            old,
+            new_view: self.glide.map_or(fade.new_view, |glide| glide.at(now)),
+            new_size: fade.new_size,
+            new,
+            background: Color::TRANSPARENT,
+        };
+        super::morph::box_at(grid, local, &paint, index)
+    }
 }
 
 impl canvas::Program<Message> for GlowMarks<'_> {
@@ -190,11 +233,14 @@ impl canvas::Program<Message> for GlowMarks<'_> {
             if strength <= 0.0 {
                 continue;
             }
-            let on = match glowing.change {
-                Change::Went => self.old_view,
-                Change::Came | Change::Changed => view,
+            let at = match glowing.change {
+                Change::Went => self.on_glide(glowing.index, grid, local, now),
+                Change::Came | Change::Changed => Some(view.on_screen(glowing.rect, local)),
             };
-            let rect = grid.snap(on.on_screen(glowing.rect, local));
+            let Some(at) = at else {
+                continue;
+            };
+            let rect = grid.snap(at);
             if rect.width <= 1.0 || rect.height <= 1.0 {
                 continue;
             }
@@ -266,7 +312,7 @@ mod tests {
         };
         let start = Instant::now();
         let glide = Duration::from_millis(500);
-        let glow = Glow::of(&morph, start, glide).unwrap();
+        let glow = Glow::of(&morph, start, glide, GLOW).unwrap();
         assert_eq!(
             glow.boxes.iter().map(|g| g.change).collect::<Vec<_>>(),
             [Change::Came, Change::Went, Change::Changed, Change::Changed]
@@ -281,11 +327,18 @@ mod tests {
         assert!(!glow.done(lit));
         assert_eq!(glow.strength(Change::Changed, start + glide + GLOW), 0.0);
         assert!(glow.done(start + glide + GLOW));
+        // A commit that stays a short while glows as long, and no longer
+        // than GLOW however long it stays.
+        let quick = Glow::of(&morph, start, glide, GLOW / 4).unwrap();
+        assert!(quick.strength(Change::Came, start + glide + GLOW / 40) > 0.0);
+        assert!(quick.done(start + glide + GLOW / 4));
+        let long = Glow::of(&morph, start, glide, GLOW * 3).unwrap();
+        assert!(long.done(start + glide + GLOW));
         // A glide where boxes only moved glows not at all.
         let quiet = Morph {
             moves: vec![moved(Role::Stay, (40.0, 20.0), (40.0, 20.0), [red, red])],
             ..morph
         };
-        assert!(Glow::of(&quiet, start, glide).is_none());
+        assert!(Glow::of(&quiet, start, glide, GLOW).is_none());
     }
 }

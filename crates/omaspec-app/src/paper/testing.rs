@@ -143,6 +143,11 @@ impl Paper {
         self.back.is_some()
     }
 
+    /// Whether the next glide from the picture on screen is to glow.
+    pub fn glows_next(&self) -> bool {
+        self.glow_next.is_some()
+    }
+
     /// The fade that runs takes `duration` from now: for a picture of it
     /// half way.
     pub fn stretch_fade(&mut self, duration: Duration) {

@@ -3,9 +3,10 @@
 //! elements, so a theme pack colors them as it colors any diagram: a card
 //! is a `rectangle`, a story a `note`, and what stands out (an activity,
 //! the last step of a scale) takes the rectangle's border, the theme's
-//! accent. A skinparam that would change a map but is not drawn declines;
-//! those of other diagram types are ignored, so a theme pack can name
-//! them all.
+//! accent; a capability map's areas lie on the rectangle's fill. A
+//! skinparam that would change a map but is not drawn declines; those of
+//! other diagram types are ignored, so a theme pack can name them all. A
+//! note's are another type's in a capability map, which has none.
 
 use crate::Declined;
 use crate::color::{Color, Paint};

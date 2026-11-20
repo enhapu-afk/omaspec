@@ -68,5 +68,7 @@ pub struct Capability {
     /// Its step on the scale: an index into [`Levels::steps`].
     pub value: Option<usize>,
     pub line: usize,
+    /// The byte on the line where its name starts: a value may follow it.
+    pub col: usize,
     pub children: Vec<Capability>,
 }

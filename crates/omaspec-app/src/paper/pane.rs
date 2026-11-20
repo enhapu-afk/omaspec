@@ -155,10 +155,9 @@ impl Paper {
             .as_ref()
             .filter(|glow| !glow.done(crate::clock::now()))
             .map(|glow| {
-                let old_view = self.arrival.fade().map_or(self.view, |fade| fade.old_view);
                 Canvas::new(Timed::new(super::glow::GlowMarks {
                     glow,
-                    old_view,
+                    fade: self.arrival.fade(),
                     view: self.view,
                     glide: self.glide,
                     scale: self.scale_factor,

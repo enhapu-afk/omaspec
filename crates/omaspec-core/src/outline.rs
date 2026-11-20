@@ -222,19 +222,18 @@ fn plantuml(
 ) -> (Vec<Entry>, Vec<(usize, usize)>) {
     let mut until: Option<&Regex> = None;
     let mut body = 0isize;
-    let mind = lines
+    // The `@start…` block each line stands in, by its word: a file may
+    // hold several diagrams, each read as its kind.
+    let mut current = String::new();
+    let blocks: Vec<String> = lines
         .iter()
-        .find(|l| re!(r"(?i)^\s*@start").is_match(l))
-        .is_some_and(|l| re!(r"(?i)^@start(mindmap|wbs)\b").is_match(l));
-    let flow = lines
-        .iter()
-        .any(|l| re!(r"(?i)^\s*@startflow\b").is_match(l));
-    let story = lines
-        .iter()
-        .any(|l| re!(r"(?i)^\s*@startstorymap\b").is_match(l));
-    let capabilities = lines
-        .iter()
-        .any(|l| re!(r"(?i)^\s*@startcapabilities\b").is_match(l));
+        .map(|l| {
+            if let Some(c) = re!(r"(?i)^\s*@start(\w+)").captures(l) {
+                current = c[1].to_ascii_lowercase();
+            }
+            current.clone()
+        })
+        .collect();
     // The lines the engine reads, without the comments, notes, legends and
     // styles it skips; all lines of a diagram it cannot read.
     let rows: Vec<(usize, &str)> = match element_lines(code) {
@@ -248,6 +247,11 @@ fn plantuml(
     };
 
     for (row, l) in rows {
+        let block = blocks.get(row).map_or("", String::as_str);
+        let mind = matches!(block, "mindmap" | "wbs");
+        let flow = block == "flow";
+        let story = block == "storymap";
+        let capabilities = block == "capabilities";
         if let Some(end) = until {
             if end.is_match(l) {
                 until = None;
@@ -332,7 +336,12 @@ fn plantuml(
             Kind::Other => {}
         }
     }
-    b.finish(lines, mind)
+    // Entries by their depth fold what stands under them: a mind map's,
+    // a WBS's and a capability map's.
+    let nested = blocks
+        .iter()
+        .any(|b| matches!(b.as_str(), "mindmap" | "wbs" | "capabilities"));
+    b.finish(lines, nested)
 }
 
 /// A signal flow lists its blocks. Ports and wires stay out of the outline.
@@ -792,6 +801,17 @@ mod tests {
             [e(1, 0, "title", "Charge"), e(2, 0, "block", "Current")]
         );
         assert_eq!(folds(code, Language::PlantUml), [(2, 4)]);
+    }
+
+    #[test]
+    fn each_diagram_of_a_file_is_read_as_its_kind() {
+        let code = "@startuml\nparticipant Shop\nShop -> Bank : pay\n@enduml\n@startcapabilities\n* Customers\n@endcapabilities\n";
+        let found = tags(code, Language::PlantUml);
+        assert!(found.iter().any(|t| t.3 == "Shop"), "{found:?}");
+        assert!(
+            !found.iter().any(|t| t.3.contains("Bank : pay")),
+            "{found:?}"
+        );
     }
 
     #[test]

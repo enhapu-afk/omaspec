@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="754" height="387" viewBox="0 0 754 387">
 <g transform="translate(10,10)">
 <g>
-<rect x="0" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F2F2F2" stroke="#8D8D8D" stroke-width="1"/>
+<rect x="0" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F1F1F1" stroke="#8D8D8D" stroke-width="1"/>
 <rect x="8" y="55.1" width="218" height="91.2" rx="2" ry="2" fill="#FFFFFF" stroke="#6E6E6E" stroke-width="1"/>
 <rect x="8" y="55.1" width="218" height="36.6" rx="2" ry="2" fill="#939393"/>
 <rect x="8" y="73.4" width="218" height="18.3" fill="#939393"/>
@@ -13,11 +13,11 @@
 <rect x="121" y="181.9" width="97" height="40.6" rx="1.33" ry="1.33" fill="#565656" stroke="#414141" stroke-width="1"/>
 <rect x="16" y="230.5" width="97" height="40.6" rx="1.33" ry="1.33" fill="#939393" stroke="#6E6E6E" stroke-width="1"/>
 <rect x="8" y="287.1" width="218" height="40.6" rx="2" ry="2" fill="#565656" stroke="#414141" stroke-width="1"/>
-<rect x="250" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F2F2F2" stroke="#8D8D8D" stroke-width="1"/>
+<rect x="250" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F1F1F1" stroke="#8D8D8D" stroke-width="1"/>
 <rect x="258" y="55.1" width="218" height="40.6" rx="2" ry="2" fill="#565656" stroke="#414141" stroke-width="1"/>
 <rect x="258" y="103.7" width="218" height="40.6" rx="2" ry="2" fill="#939393" stroke="#6E6E6E" stroke-width="1"/>
 <rect x="258" y="152.3" width="218" height="31.6" rx="2" ry="2" fill="#FFFFFF" stroke="#8D8D8D" stroke-width="1" stroke-dasharray="4,3"/>
-<rect x="500" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F2F2F2" stroke="#8D8D8D" stroke-width="1"/>
+<rect x="500" y="26.3" width="234" height="309.4" rx="4" ry="4" fill="#F1F1F1" stroke="#8D8D8D" stroke-width="1"/>
 <rect x="508" y="55.1" width="218" height="40.6" rx="2" ry="2" fill="#939393" stroke="#6E6E6E" stroke-width="1"/>
 <rect x="508" y="103.7" width="218" height="40.6" rx="2" ry="2" fill="#181818" stroke="#121212" stroke-width="1"/>
 <rect x="508" y="152.3" width="218" height="40.6" rx="2" ry="2" fill="#565656" stroke="#414141" stroke-width="1"/>

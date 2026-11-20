@@ -20,7 +20,7 @@ mod paint;
 
 #[cfg(test)]
 pub(in crate::paper) use paint::box_pictures_of;
-pub use paint::{Paint, paint, prepare, sheets};
+pub use paint::{Paint, box_at, paint, prepare, sheets};
 
 /// One named box of a picture, in that picture's units.
 #[derive(Clone, Debug)]

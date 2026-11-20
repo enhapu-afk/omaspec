@@ -2897,6 +2897,16 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the capability map and time travel found (2026-11-20). A
+      capability map gives each tile the room its words and the tiles in it need, so a
+      name deep in an area no longer runs over its edge; an area with neither a value
+      nor capabilities is dashed, as the legend says; a name is tied to where it stands
+      before its value; drawn by hand a tile keeps its strokes by its name; and the
+      areas lie on the rectangle's fill, the theme's surface. A box that went glows red
+      where the glide paints it, not where it stood; an edit after a way from B that was
+      not taken does not glow; stepping back on a history's page turns nothing red; a
+      commit of a long history glows as long as it stays; and a time travel whose end
+      does not draw says which. The outline reads each diagram of a file as its kind
 - [x] Time travel (2026-11-20): what changed glows a moment after the glide from another
       version of a diagram, in the colors `omaspec diff -o` marks a machine in: a box
       that went turns red as it fades out, and once the new one stands a box that came

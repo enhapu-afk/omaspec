@@ -547,10 +547,10 @@ if (typeof document !== "undefined") {
       };
 
       /// The sheet of the glide `index`, as large as `room`, from its
-      /// picture to the next: the
+      /// picture to the next (played `forward`, or back): the
       /// two grounds (each picture without its lines and the parts that
       /// travel), a piece for each box and each line's words, the lines.
-      const sheet = (index, room) => {
+      const sheet = (index, room, forward = true) => {
         const glide = data.glides[index];
         const sides = [pictures[index], pictures[index + 1]];
         const sizes = [data.sizes[index], data.sizes[index + 1]];
@@ -595,8 +595,9 @@ if (typeof document !== "undefined") {
           old: box.role === "arrive" ? null : piece(top, sides[0], box.parts[0], box.from),
           now: box.role === "leave" ? null : piece(top, sides[1], box.parts[1], box.to),
         }));
-        // In a history what went takes on red as it fades out.
-        const went = moving.boxes.map((box) => (box.glow === "went" && data.glows
+        // In a history what went takes on red as it fades out; played
+        // back, it comes again, and does not.
+        const went = moving.boxes.map((box) => (forward && box.glow === "went" && data.glows
           ? make("rect", {
             rx: 6,
             fill: data.glows.went,
@@ -792,7 +793,7 @@ if (typeof document !== "undefined") {
         // The sheet takes the room the picture had.
         const room = pictures[from].getBoundingClientRect();
         pictures.forEach((picture) => picture.classList.add("away"));
-        const on = sheet(Math.min(from, play.at), room);
+        const on = sheet(Math.min(from, play.at), room, by > 0);
         const began = performance.now();
         const tick = (time) => {
           const k = Math.min(1, (time - began) / TOOK);

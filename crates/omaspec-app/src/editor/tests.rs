@@ -1839,6 +1839,8 @@ fn the_change_since_b_glides_from_b_to_a() {
         .paper
         .request(&worker, key, new.into(), Language::PlantUml, None);
     assert!(!app.doc().paper.glides_back());
+    // It glides as an edit does: nothing glows.
+    assert!(!app.doc().paper.glows_next());
 
     // The glide goes into the compared tab's pane, not another's.
     let _ = app.update(Message::Select(0));

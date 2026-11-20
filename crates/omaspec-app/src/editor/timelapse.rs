@@ -98,6 +98,17 @@ fn passed_over(passed: usize) -> String {
 
 /// Whether `kept` versions that draw make a history; `passed` did not draw.
 fn enough(args: &Moving, kept: usize, passed: usize) -> Result<()> {
+    // A time travel's end may be the file as it is, not a commit.
+    if let Some(travel) = &args.travel {
+        anyhow::ensure!(
+            kept >= 2,
+            "{} does not draw at {} or at {}, and a time travel needs both",
+            args.file.display(),
+            travel.from,
+            travel.to.as_deref().unwrap_or("now")
+        );
+        return Ok(());
+    }
     anyhow::ensure!(
         kept >= 2,
         "{}: {kept} of its {} versions in git draw{}, and a history needs two",
@@ -336,7 +347,9 @@ impl Stage {
             }];
             if at > 0 {
                 // What changed since the commit before glows as it comes.
-                self.app.doc_mut().paper.glow_next_glide();
+                // As long as it stays, the last one its whole while.
+                let length = if at + 1 == versions.len() { END } else { stay };
+                self.app.doc_mut().paper.glow_next_glide(length);
                 shown(
                     &mut self.app,
                     &self.screen,

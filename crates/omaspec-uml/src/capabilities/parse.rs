@@ -73,6 +73,7 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
                 name: name.to_owned(),
                 value: None,
                 line: no,
+                col: start + offset(text, name),
                 children: Vec::new(),
             });
             path.push(siblings.len() - 1);
@@ -256,6 +257,9 @@ mod tests {
         let sales = &customers.children[1];
         assert_eq!(sales.value, None);
         assert_eq!(sales.children[0].name, "Online: the shop");
+        // Where the name starts on its line, inside its quotes.
+        assert_eq!(sales.children[0].col, "*** \"".len());
+        assert_eq!(customers.children[0].col, "** ".len());
         assert_eq!(
             (sales.children[0].value, sales.children[0].line),
             (Some(3), 5)

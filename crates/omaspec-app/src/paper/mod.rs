@@ -241,7 +241,7 @@ pub struct Paper {
     /// What changed glowing after a glide from another version
     /// ([`glow`]), and whether the next glide is to glow.
     glow: Option<glow::Glow>,
-    glow_next: bool,
+    glow_next: Option<std::time::Duration>,
     viewport: Size,
     scale_factor: f32,
     overview: Layer,
@@ -346,7 +346,7 @@ impl Default for Paper {
             view: View::default(),
             glide: None,
             glow: None,
-            glow_next: false,
+            glow_next: None,
             passage: None,
             viewport: Size::ZERO,
             scale_factor: 1.0,
@@ -486,10 +486,13 @@ impl Paper {
     }
 
     /// A new drawing was asked for: it is what comes next, not a glide
-    /// back to the one before ([`Self::glide_from`]).
+    /// back to the one before ([`Self::glide_from`]), and it glides as an
+    /// edit does, without the glow of that way ([`glow`]).
     fn asked(&mut self) {
         self.status = Status::Rendering;
-        self.back = None;
+        if self.back.take().is_some() {
+            self.glow_next = None;
+        }
     }
 
     /// Asks `worker` for the map of `folder` of the project in `atlas`,

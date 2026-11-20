@@ -327,13 +327,14 @@ impl Paper {
         // What changed glows, where a glide from a version before was asked
         // to; any other glide ends a glow still on screen.
         self.glow = match (&morph, &old_map) {
-            (Some(morph), Some(_)) if std::mem::take(&mut self.glow_next) => {
-                glow::Glow::of(morph, now, duration)
-            }
+            (Some(morph), Some(_)) if self.glow_next.is_some() => self
+                .glow_next
+                .take()
+                .and_then(|length| glow::Glow::of(morph, now, duration, length)),
             _ => None,
         };
         if old_map.is_some() {
-            self.glow_next = false;
+            self.glow_next = None;
         }
         let fade = Fade {
             old,
@@ -502,7 +503,10 @@ impl Paper {
             frames::note(|| pixels("overview", self.overview.asked));
         }
         if failed {
+            // The way from B is not taken: the glide after it is an edit's,
+            // and does not glow.
             self.back = None;
+            self.glow_next = None;
             return self.no_overview();
         }
         if !shown || !self.arrival.coming() {
@@ -555,7 +559,7 @@ impl Paper {
             return Task::none();
         };
         // The way from B to A is to show what changed.
-        self.glow_next = true;
+        self.glow_next = Some(glow::GLOW);
         let ticket = |id: u64| crate::worker::Ticket { doc: 0, id };
         self.back = Some(Answer {
             ticket: ticket(0),
@@ -576,9 +580,11 @@ impl Paper {
     }
 
     /// The next glide from the picture on screen shows what changed, as
-    /// one from B of a comparison does ([`glow`]): a history's next commit.
-    pub fn glow_next_glide(&mut self) {
-        self.glow_next = true;
+    /// one from B of a comparison does ([`glow`]), for `length` after it
+    /// ([`glow::GLOW`] at most): a history's next commit, which stays
+    /// that long before the one after it glides in.
+    pub fn glow_next_glide(&mut self, length: std::time::Duration) {
+        self.glow_next = Some(length);
     }
 
     /// The diagram on screen as it was drawn, with its source, for

@@ -266,3 +266,45 @@ fn a_box_is_drawn_inside_its_place_and_each_pixel_once() {
         }
     }
 }
+
+/// A mark laid over a box of the glide ([`morph::box_at`]) is where the
+/// picture before has the box at the start and where the new one has it
+/// at the end, and moves with the box between: the glow of a box that
+/// went fades on the box as it goes.
+#[test]
+fn a_mark_lies_on_its_box_at_both_ends_of_the_glide() {
+    for (file, paper) in folds() {
+        let fade = paper.arrival.fade().unwrap();
+        let morph = fade.morph.as_ref().unwrap();
+        for (index, step) in morph.moves.iter().enumerate() {
+            let ends = [
+                (
+                    0.0,
+                    step.role != morph::Role::Arrive,
+                    fade.old_view,
+                    step.from,
+                ),
+                (1.0, step.role != morph::Role::Leave, fade.new_view, step.to),
+            ];
+            for (t, there, view, rect) in ends {
+                if !there {
+                    continue;
+                }
+                let (grid, local, paint) = frame_at(&paper, t);
+                let mark = morph::box_at(grid, local, &paint, index).unwrap();
+                let place = view.on_screen(rect, local);
+                for (a, b) in [
+                    (mark.x, place.x),
+                    (mark.y, place.y),
+                    (mark.width, place.width),
+                    (mark.height, place.height),
+                ] {
+                    assert!(
+                        (a - b).abs() < 1.5,
+                        "{file}: box {index} at {t}: {mark:?}, its place {place:?}"
+                    );
+                }
+            }
+        }
+    }
+}
