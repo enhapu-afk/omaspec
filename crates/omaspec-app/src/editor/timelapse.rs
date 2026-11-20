@@ -485,7 +485,7 @@ impl Units {
         out
     }
 
-    fn point(self, (x, y): (f32, f32)) -> (f32, f32) {
+    pub(super) fn point(self, (x, y): (f32, f32)) -> (f32, f32) {
         (x * self.sx + self.tx, y * self.sy + self.ty)
     }
 

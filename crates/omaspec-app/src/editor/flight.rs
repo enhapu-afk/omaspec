@@ -12,7 +12,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result, bail};
 use omaspec_core::Language;
 use omaspec_render::export::flight as page;
-use omaspec_render::{Atlas, Link, Renderer};
+use omaspec_render::{Atlas, Link, Place, Renderer};
 
 use super::moving::{Moving, theme};
 use super::{App, Message, Start};
@@ -23,6 +23,9 @@ struct Shown {
     size: (f32, f32),
     name: String,
     links: Vec<Link>,
+    /// Where its top left corner lies in its units, which a room on the
+    /// page is measured from: not 0, 0 where its `viewBox` starts elsewhere.
+    corner: (f32, f32),
 }
 
 /// What a picture is: the map of a folder, or a diagram by its path in
@@ -119,6 +122,7 @@ pub(super) fn write(args: &Moving) -> Result<String> {
                     many.join(", ")
                 ),
             };
+            let (cx, cy) = drawn[here].1.corner;
             let to = picture(
                 &mut app,
                 &mut renderer,
@@ -132,7 +136,7 @@ pub(super) fn write(args: &Moving) -> Result<String> {
             steps.push(page::Step {
                 from: here,
                 to,
-                room: [room.x, room.y, room.w, room.h],
+                room: [room.x - cx, room.y - cy, room.w, room.h],
             });
             last = Some(link.name.clone());
             here = to;
@@ -154,17 +158,9 @@ pub(super) fn write(args: &Moving) -> Result<String> {
         paper: color(app.palette.background),
         ink: color(app.palette.foreground),
     };
-    let text = std::fs::read_to_string(&file).unwrap_or_default();
-    let written = page::page(
-        &flight,
-        Some(omaspec_render::export::Source {
-            code: &text,
-            language: Language::PlantUml,
-            file: Some(omaspec_core::project::FILE),
-        }),
-        &project,
-    )
-    .map_err(|err| anyhow::anyhow!("{err}"))?;
+    // A map has no source of its own: it is made from the project, as
+    // `omaspec render` draws it.
+    let written = page::page(&flight, None, &project).map_err(|err| anyhow::anyhow!("{err}"))?;
     crate::files::write_atomic(&args.output, written.as_bytes())
         .with_context(|| format!("cannot write {}", args.output.display()))?;
     Ok(format!(
@@ -200,8 +196,18 @@ fn picture(
             let text = std::fs::read_to_string(&path)
                 .with_context(|| format!("cannot read {}", path.display()))?;
             let language = omaspec_core::detect(&text, Language::from_file_name(own));
-            let (source, _) = app.diagram_source_in(Some(root), &text, language);
-            renderer.render_linked(&source, language, None, Some(own), atlas)
+            let (source, pending) = app.diagram_source_in(Some(root), &text, language);
+            // Its folder, where an `!include` finds its file.
+            let place = Place::of(&path, Some(root));
+            renderer
+                .render_linked(&source, language, place.as_ref(), Some(own), atlas)
+                .map_err(|mut err| {
+                    // The line of the file, not of the look laid over it.
+                    if let Some(pending) = pending {
+                        pending.shift.remap(&mut err);
+                    }
+                    err
+                })
         }
     }
     .map_err(|err| anyhow::anyhow!("{name}: {err}"))?;
@@ -219,6 +225,7 @@ fn picture(
             svg: rendered.svg,
             name: name.to_owned(),
             links,
+            corner: units.point((0.0, 0.0)),
         },
     ));
     Ok(drawn.len() - 1)
@@ -237,9 +244,11 @@ mod tests {
         std::fs::create_dir_all(&work).unwrap();
         let write = |file: &str, text: &str| std::fs::write(work.join(file), text).unwrap();
         write("omaspec-project.toml", "name = \"cafe\"\n");
+        // A diagram on the way finds what it includes in its folder.
+        write("common.iuml", "skinparam shadowing false\n");
         write(
             "day.puml",
-            "@startuml\ntitle Day\n[*] --> Closed\nClosed --> Order : guest\n@enduml\n",
+            "@startuml\ntitle Day\n!include common.iuml\n[*] --> Closed\nClosed --> Order : guest\n@enduml\n",
         );
         write(
             "order.puml",
@@ -282,6 +291,8 @@ mod tests {
             page.contains(r#""from":0,"room""#) && page.contains(r#""from":1"#),
             "{page}"
         );
+        // A map has no source of its own.
+        assert!(!page.contains("sf:source"), "{page}");
         let refused = super::super::moving::play(&moving(&["Day/Nowhere"], "n.html"))
             .unwrap_err()
             .to_string();

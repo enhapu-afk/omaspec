@@ -2897,6 +2897,16 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the ink and the flight's page found (2026-11-20). An ink page
+      gives its diagram back again: the source is in the sketch, its first picture. A
+      line the sketch draws in two runs was drawn at twice the pace: the pen draws by
+      its longest run and lets its dashes go once drawn. The sketch and the clean
+      picture are held to one size before a page too. On a flight's page the picture
+      coming lies over the one it leaves, the trail over both; a diagram with an
+      `!include` is drawn in its folder there and in a flight's picture too, an error
+      names the file's line, a room is measured from the picture's corner, and the
+      map is given no source of its own. The pen finds the elements it draws through
+      `omaspec_render::export::drawn`, as exports read SVG only there
 - [x] A dive and a flight as a page in vectors (2026-11-20): `--dive Day/Order -o
       flight.html` on a project's file draws the map and each diagram on the way as the
       window draws them, in the theme's colors with their links (`editor::flight`), and

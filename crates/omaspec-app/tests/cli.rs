@@ -1336,6 +1336,17 @@ fn a_fold_and_a_zoom_into_a_map_are_written_as_gifs() {
     ]);
     assert_eq!(code, Some(0), "{err}");
     fs::remove_file(&paying).unwrap();
+    // A diagram on the way that includes another file of its folder.
+    fs::write(dir.join("card.iuml"), "Card --> [*] : ok\n").unwrap();
+    fs::write(
+        &paying,
+        "@startuml\ntitle Paying\n[*] --> Card\n!include card.iuml\n@enduml\n",
+    )
+    .unwrap();
+    let (code, err) = play(&[project.to_str().unwrap(), "--dive", "Orders/Paying"]);
+    assert_eq!(code, Some(0), "{err}");
+    fs::remove_file(&paying).unwrap();
+    fs::remove_file(dir.join("card.iuml")).unwrap();
     // A folder's tile: its map, and on to a diagram there. A project
     // shows its folders as tiles once it is too large for one map.
     fs::create_dir_all(dir.join("more")).unwrap();

@@ -39,9 +39,17 @@ const WIDEST: f32 = 1200.0;
 /// What the pen does with one element of the sketch, and when.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum Stroke {
-    /// A line it draws from `start` to `end`, `length` long in its own
-    /// units.
-    Drawn { start: f32, end: f32, length: f32 },
+    /// A line it draws from `start` to `end`, its longest run `length`
+    /// long in its own units. A dash starts again with each run of a line
+    /// (a sketch draws a line twice), so its runs are drawn at once, as
+    /// far along as the longest; `share` is that run's part of the whole
+    /// line, which a page's script measures.
+    Drawn {
+        start: f32,
+        end: f32,
+        length: f32,
+        share: f32,
+    },
     /// A fill, a word or a dashed line, which comes at `at`.
     Comes { at: f32 },
 }
@@ -93,6 +101,18 @@ pub(super) fn ink(args: &Moving, film: Film, fps: u32) -> Result<String> {
     };
     let sketch = draw(sketch_skin.as_ref())?;
     let clean = draw(clean_skin.as_ref())?;
+    let size = export::parse(&sketch)
+        .map_err(|err| anyhow::anyhow!("{err}"))?
+        .size();
+    let clean_size = export::parse(&clean)
+        .map_err(|err| anyhow::anyhow!("{err}"))?
+        .size();
+    // Before anything is drawn, for a page as for frames.
+    anyhow::ensure!(
+        (size.width() - clean_size.width()).abs() < 0.5
+            && (size.height() - clean_size.height()).abs() < 0.5,
+        "the sketch and the clean picture are not of one size: the ink would not lie on the sketch"
+    );
     let pen = Pen::of(&sketch)?;
     let strokes = pen
         .elements
@@ -109,9 +129,6 @@ pub(super) fn ink(args: &Moving, film: Film, fps: u32) -> Result<String> {
             written.div_ceil(1024)
         ));
     }
-    let size = export::parse(&sketch)
-        .map_err(|err| anyhow::anyhow!("{err}"))?
-        .size();
     let width = match args.width {
         Some(width) => width as f32,
         None => (size.width() * 1.6).clamp(NARROWEST, WIDEST).round(),
@@ -192,45 +209,17 @@ pub(super) fn ink(args: &Moving, film: Film, fps: u32) -> Result<String> {
     ))
 }
 
-/// The tags the pen draws; those inside these are not drawn themselves.
-const DRAWN_TAGS: [&str; 8] = [
-    "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "text",
-];
-const UNDRAWN: [&str; 7] = [
-    "defs", "clipPath", "mask", "marker", "pattern", "symbol", "style",
-];
-
 impl Pen {
     /// The pen's way through `svg`: each line it draws in the order the
     /// picture has them, as fast as [`SPEED`], each fill and word when it
     /// gets there.
     pub(super) fn of(svg: &str) -> Result<Pen> {
-        let doc = roxmltree::Document::parse(svg).context("the sketch is no SVG")?;
-        // The paper, a rectangle before the first group, is there before
-        // the pen.
-        let first_group = svg.find("<g").unwrap_or(svg.len());
-        let mut found: Vec<(std::ops::Range<usize>, bool, bool)> = Vec::new();
-        for node in doc.descendants().filter(roxmltree::Node::is_element) {
-            let name = node.tag_name().name();
-            if name == "rect" && node.range().start < first_group {
-                continue;
-            }
-            if !DRAWN_TAGS.contains(&name)
-                || node
-                    .ancestors()
-                    .any(|a| UNDRAWN.contains(&a.tag_name().name()))
-            {
-                continue;
-            }
-            let start = node.range().start;
-            let Some(end) = tag_end(svg, start) else {
-                continue;
-            };
-            let stroked = name != "text"
-                && node.attribute("stroke").is_some_and(|s| s != "none")
-                && node.attribute("stroke-dasharray").is_none();
-            found.push((start..end, stroked, name == "text"));
-        }
+        // The elements that draw, the paper there before the pen.
+        let found: Vec<(std::ops::Range<usize>, bool, bool)> = export::drawn(svg)
+            .map_err(|err| anyhow::anyhow!("the sketch is no SVG: {err}"))?
+            .into_iter()
+            .map(|one| (one.tag, one.stroked, one.name == "text"))
+            .collect();
         // How long each line is, as usvg reads it: each marked so it can
         // be found.
         let mut marked = String::with_capacity(svg.len() + found.len() * 16);
@@ -246,33 +235,34 @@ impl Pen {
         }
         marked.push_str(&svg[at..]);
         let tree = export::parse(&marked).map_err(|err| anyhow::anyhow!("{err}"))?;
-        let mut lengths = vec![0.0f32; found.len()];
-        let mut tops = vec![f32::MAX; found.len()];
-        measure(tree.root(), &mut lengths, &mut tops);
+        let mut measured = vec![Measured::default(); found.len()];
+        measure(tree.root(), &mut measured);
+        // The pen goes along each line's longest run, the others with it.
         let total: f32 = found
             .iter()
-            .zip(&lengths)
+            .zip(&measured)
             .filter(|((_, stroked, _), _)| *stroked)
-            .map(|(_, length)| *length)
+            .map(|(_, m)| m.run)
             .sum();
         let time = (total / SPEED).clamp(QUICKEST, SLOWEST);
         // The pen goes down the picture as a hand would, not layer by
         // layer as the picture is written: a box, its words and the lines
         // that leave it together; in the picture's order within a band.
         let mut order: Vec<usize> = (0..found.len()).collect();
-        let band = |i: usize| (tops[i] / BAND).floor() as i64;
+        let band = |i: usize| (measured[i].top / BAND).floor() as i64;
         order.sort_by_key(|&i| (band(i), i));
         let mut strokes = vec![Stroke::Comes { at: 0.0 }; found.len()];
         let mut cursor = 0.0f32;
         for i in order {
             let (_, stroked, _) = &found[i];
-            let length = lengths[i];
-            strokes[i] = if *stroked && length > 0.0 {
-                let took = (length / total.max(1.0) * time).max(0.02);
+            let Measured { length, run, .. } = measured[i];
+            strokes[i] = if *stroked && run > 0.0 {
+                let took = (run / total.max(1.0) * time).max(0.02);
                 let drawn = Stroke::Drawn {
                     start: cursor,
                     end: cursor + took,
-                    length,
+                    length: run,
+                    share: (run / length.max(run)).min(1.0),
                 };
                 cursor += took;
                 drawn
@@ -300,10 +290,16 @@ impl Pen {
             let tag = &self.svg[element.tag.clone()];
             out.push_str(&self.svg[from..element.tag.start]);
             let attrs = match element.stroke {
-                Stroke::Drawn { start, end, length } => {
+                Stroke::Drawn {
+                    start, end, length, ..
+                } => {
                     let k = ((t - start) / (end - start).max(0.001)).clamp(0.0, 1.0);
                     if k <= 0.0 {
                         vec![("opacity", "0".to_owned())]
+                    } else if k >= 1.0 {
+                        // Drawn: the line as it is, no dash left to cut
+                        // its end short where the measure fell short.
+                        Vec::new()
                     } else {
                         vec![
                             ("stroke-dasharray", format!("{length:.2} {length:.2}")),
@@ -324,25 +320,51 @@ impl Pen {
     }
 }
 
+/// What usvg read of an element of the sketch.
+#[derive(Debug, Clone, Copy)]
+struct Measured {
+    /// How long its lines are, all runs together, and its longest run.
+    length: f32,
+    run: f32,
+    /// Where its top is.
+    top: f32,
+}
+
+impl Default for Measured {
+    fn default() -> Self {
+        Measured {
+            length: 0.0,
+            run: 0.0,
+            top: f32::MAX,
+        }
+    }
+}
+
 /// The lengths of the lines usvg read, and where each element's top is,
 /// by the mark of their element.
-fn measure(group: &export::usvg::Group, lengths: &mut [f32], tops: &mut [f32]) {
+fn measure(group: &export::usvg::Group, measured: &mut [Measured]) {
+    let count = measured.len();
     let index = |id: &str| {
         id.strip_prefix("pen-")
             .and_then(|n| n.parse::<usize>().ok())
+            .filter(|&i| i < count)
     };
     for node in group.children() {
         match node {
-            export::usvg::Node::Group(inner) => measure(inner, lengths, tops),
+            export::usvg::Node::Group(inner) => measure(inner, measured),
             export::usvg::Node::Path(path) => {
-                if let Some(index) = index(path.id()).filter(|&i| i < lengths.len()) {
-                    lengths[index] += length_of(path.data());
-                    tops[index] = tops[index].min(path.abs_bounding_box().top());
+                if let Some(index) = index(path.id()) {
+                    let (length, run) = length_of(path.data());
+                    let m = &mut measured[index];
+                    m.length += length;
+                    m.run = m.run.max(run);
+                    m.top = m.top.min(path.abs_bounding_box().top());
                 }
             }
             export::usvg::Node::Text(text) => {
-                if let Some(index) = index(text.id()).filter(|&i| i < tops.len()) {
-                    tops[index] = tops[index].min(text.abs_bounding_box().top());
+                if let Some(index) = index(text.id()) {
+                    let m = &mut measured[index];
+                    m.top = m.top.min(text.abs_bounding_box().top());
                 }
             }
             export::usvg::Node::Image(_) => {}
@@ -350,16 +372,21 @@ fn measure(group: &export::usvg::Group, lengths: &mut [f32], tops: &mut [f32]) {
     }
 }
 
-/// How long a path is, its curves as runs of short lines.
-fn length_of(path: &tiny_skia::Path) -> f32 {
+/// How long a path is, its curves as runs of short lines; and how long
+/// its longest run is, from one move to the next.
+fn length_of(path: &tiny_skia::Path) -> (f32, f32) {
     use tiny_skia::PathSegment;
     let mut length = 0.0;
+    let mut longest = 0.0f32;
+    let mut run_from = 0.0;
     let mut at = tiny_skia::Point::zero();
     let mut first = at;
     let dist = |a: tiny_skia::Point, b: tiny_skia::Point| (b.x - a.x).hypot(b.y - a.y);
     for segment in path.segments() {
         match segment {
             PathSegment::MoveTo(p) => {
+                longest = longest.max(length - run_from);
+                run_from = length;
                 at = p;
                 first = p;
             }
@@ -406,23 +433,7 @@ fn length_of(path: &tiny_skia::Path) -> f32 {
             }
         }
     }
-    length
-}
-
-/// Where the start tag that begins at `start` ends, past its `>`; quotes
-/// read as such.
-fn tag_end(svg: &str, start: usize) -> Option<usize> {
-    let mut quote: Option<char> = None;
-    for (i, c) in svg[start..].char_indices() {
-        match (quote, c) {
-            (Some(q), c) if c == q => quote = None,
-            (Some(_), _) => {}
-            (None, '"' | '\'') => quote = Some(c),
-            (None, '>') => return Some(start + i + 1),
-            _ => {}
-        }
-    }
-    None
+    (length, longest.max(length - run_from))
 }
 
 /// `tag` with `attrs` set: an attribute it has takes the value (an
@@ -471,7 +482,9 @@ fn page(
             .elements
             .iter()
             .map(|e| match e.stroke {
-                Stroke::Drawn { start, end, .. } => page::Stroke::Drawn { start, end },
+                Stroke::Drawn {
+                    start, end, share, ..
+                } => page::Stroke::Drawn { start, end, share },
                 Stroke::Comes { at } => page::Stroke::Comes { at },
             })
             .collect(),
@@ -550,7 +563,36 @@ mod tests {
         let page = std::fs::read_to_string(work.join("door.html")).unwrap();
         assert!(page.contains(r#""kind":"ink""#));
         assert!(page.contains(r#"id="sketch""#) && page.contains(r#"id="clean""#));
+        // The page gives its diagram back, as `omaspec extract` reads it.
+        let kept = omaspec_core::embed::source_from_svg(&page).unwrap();
+        assert!(kept.code.contains("Closed --> Open"), "{}", kept.code);
         let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// A sketch's line drawn twice: a dash starts again with each run, so
+    /// both are drawn at once, as long as one of them takes.
+    #[test]
+    fn the_runs_of_a_line_are_drawn_together() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="40" viewBox="0 0 100 40"><g><path d="M0,10L100,10M0,12L100,12" fill="none" stroke="#000"/><path d="M0,30L100,30" fill="none" stroke="#000"/></g></svg>"##;
+        let pen = Pen::of(svg).unwrap();
+        let Stroke::Drawn {
+            start,
+            end,
+            length,
+            share,
+        } = pen.elements[0].stroke
+        else {
+            panic!("{:?}", pen.elements);
+        };
+        assert!((length - 100.0).abs() < 0.5, "{length}");
+        assert!((share - 0.5).abs() < 0.01, "{share}");
+        let Stroke::Drawn {
+            start: s2, end: e2, ..
+        } = pen.elements[1].stroke
+        else {
+            panic!("{:?}", pen.elements);
+        };
+        assert!(((end - start) - (e2 - s2)).abs() < 0.01);
     }
 
     #[test]
@@ -559,7 +601,10 @@ mod tests {
         let strokes: Vec<&Stroke> = pen.elements.iter().map(|e| &e.stroke).collect();
         // The paper is there before the pen.
         assert_eq!(strokes.len(), 4);
-        let Stroke::Drawn { start, end, length } = *strokes[0] else {
+        let Stroke::Drawn {
+            start, end, length, ..
+        } = *strokes[0]
+        else {
             panic!("{strokes:?}");
         };
         assert!((length - 100.0).abs() < 0.5, "{length}");
@@ -589,7 +634,8 @@ mod tests {
         assert!(begun.contains(r#"opacity="0.000" "#) || begun.contains(r#"opacity="0""#));
         let done = pen.at(pen.end + 1.0);
         assert!(done.contains(r#"opacity="0.5""#), "{done}");
-        assert!(done.contains(r#"stroke-dashoffset="0.00""#));
+        // Drawn: the line as it is.
+        assert!(!done.contains("stroke-dashoffset"), "{done}");
         // Every frame is an SVG.
         for t in [0.0, start, end, pen.end] {
             assert!(export::parse(&pen.at(t)).is_ok());

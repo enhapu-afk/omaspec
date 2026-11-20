@@ -420,6 +420,69 @@ pub fn parse(svg: &str) -> Result<usvg::Tree, ExportError> {
     usvg::Tree::from_str(svg, &SVG_OPTIONS).map_err(|e| ExportError::Svg(e.to_string()))
 }
 
+/// An element of a picture that draws: its tag's name, where its start
+/// tag lies in the picture's text, and whether it draws a solid line.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Drawn {
+    pub name: String,
+    pub tag: std::ops::Range<usize>,
+    pub stroked: bool,
+}
+
+/// The elements of `svg` that draw, in its order: shapes and words, none
+/// inside a definition, the paper (a rectangle before the first group)
+/// left out. As [`parse`], it reads no file an SVG points to.
+pub fn drawn(svg: &str) -> Result<Vec<Drawn>, ExportError> {
+    const DRAWS: [&str; 8] = [
+        "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "text",
+    ];
+    const DEFINES: [&str; 7] = [
+        "defs", "clipPath", "mask", "marker", "pattern", "symbol", "style",
+    ];
+    let doc = roxmltree::Document::parse(svg).map_err(|e| ExportError::Svg(e.to_string()))?;
+    let first_group = svg.find("<g").unwrap_or(svg.len());
+    let mut out = Vec::new();
+    for node in doc.descendants().filter(roxmltree::Node::is_element) {
+        let name = node.tag_name().name();
+        if !DRAWS.contains(&name)
+            || (name == "rect" && node.range().start < first_group)
+            || node
+                .ancestors()
+                .any(|a| DEFINES.contains(&a.tag_name().name()))
+        {
+            continue;
+        }
+        let start = node.range().start;
+        let Some(end) = tag_end(svg, start) else {
+            continue;
+        };
+        out.push(Drawn {
+            name: name.to_owned(),
+            tag: start..end,
+            stroked: name != "text"
+                && node.attribute("stroke").is_some_and(|s| s != "none")
+                && node.attribute("stroke-dasharray").is_none(),
+        });
+    }
+    Ok(out)
+}
+
+/// Where the start tag that begins at `start` ends, past its `>`; quotes
+/// read as such.
+fn tag_end(svg: &str, start: usize) -> Option<usize> {
+    let mut quote: Option<char> = None;
+    for (i, c) in svg[start..].char_indices() {
+        match (quote, c) {
+            (Some(q), c) if c == q => quote = None,
+            (Some(_), _) => {}
+            (None, '"' | '\'') => quote = Some(c),
+            (None, '>') => return Some(start + i + 1),
+            _ => {}
+        }
+    }
+    None
+}
+
 /// The faces every export draws with.
 fn fonts() -> &'static usvg::fontdb::Database {
     &SVG_OPTIONS.fontdb

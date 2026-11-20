@@ -926,10 +926,15 @@ fn linked(app: &mut App, screen: &Screen, key: u64) -> Result<()> {
         .context("the project could not be read")?;
     let doc = app.find(key).context("the diagram's tab")?;
     let (text, language) = (doc.text(), doc.language);
+    // Its folder, as the window draws it there: an `!include` is found.
+    let place = doc
+        .path
+        .clone()
+        .and_then(|path| Place::of(&path, app.folder.as_deref()));
     let (source, pending) = app.diagram_source(&text, language);
     let mut renderer = Renderer::new(&crate::commands::render_config());
     let rendered = renderer
-        .render_linked(&source, language, None, own.as_deref(), &atlas)
+        .render_linked(&source, language, place.as_ref(), own.as_deref(), &atlas)
         .map_err(|err| anyhow::anyhow!("{err}"))?;
     let drawn = Drawn::of(rendered).map_err(|err| anyhow::anyhow!("{err}"))?;
     let id = app

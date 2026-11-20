@@ -34,8 +34,11 @@ pub struct Ink {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Stroke {
-    /// A line the pen draws from `start` to `end`.
-    Drawn { start: f32, end: f32 },
+    /// A line the pen draws from `start` to `end`. A dash starts again
+    /// with each run of a line (a sketch draws a line twice), so its runs
+    /// are drawn at once, as far along as the longest: `share` is that
+    /// run's part of the whole line the script measures.
+    Drawn { start: f32, end: f32, share: f32 },
     /// A fill, a word or a dashed line, which comes at `at`.
     Comes { at: f32 },
 }
@@ -46,8 +49,9 @@ pub enum Stroke {
 pub const DRAWN: &str = "path, rect, circle, ellipse, line, polyline, polygon, text";
 
 /// The page that plays `ink`, called `title`, with the diagram's `source`
-/// in its clean picture. The pictures are sanitized, each with ids of its
-/// own and the faces once; only the source is written after.
+/// in its sketch, the first picture, where a reader of the page looks for
+/// it. The pictures are sanitized, each with ids of its own and the faces
+/// once; only the source is written after.
 pub fn page(ink: &Ink, source: Option<Source>, title: &str) -> Result<String, ExportError> {
     let sketch = crate::atlas::without_styles(&ink.sketch);
     let clean = crate::atlas::without_styles(&ink.clean);
@@ -58,9 +62,9 @@ pub fn page(ink: &Ink, source: Option<Source>, title: &str) -> Result<String, Ex
     };
     let sketch = clean_svg(&sketch, "s-")?;
     let clean = clean_svg(&clean, "c-")?;
-    let clean = match source {
-        Some(s) => omaspec_core::embed::svg_with_source(&clean, s.code, s.language, s.file),
-        None => clean,
+    let sketch = match source {
+        Some(s) => omaspec_core::embed::svg_with_source(&sketch, s.code, s.language, s.file),
+        None => sketch,
     };
     let mut out = String::with_capacity(sketch.len() + clean.len() + SCRIPT.len() + 4096);
     out.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
@@ -76,7 +80,7 @@ pub fn page(ink: &Ink, source: Option<Source>, title: &str) -> Result<String, Ex
         "<style>\nhtml, body {{ margin: 0; height: 100%; background: {}; }}\n\
          #ink {{ position: relative; height: 100%; cursor: pointer; }}\n\
          #ink > div {{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; }}\n\
-         #ink svg {{ width: 100%; height: 100%; }}\n</style>\n",
+         #ink > div > svg {{ width: 100%; height: 100%; }}\n</style>\n",
         ink.paper
     ));
     out.push_str("</head>\n<body>\n<main id=\"ink\">\n<div id=\"sketch\">");
@@ -102,7 +106,9 @@ fn data(ink: &Ink) -> Value {
         "inked": round(ink.inked),
         "fade": round(ink.fade),
         "strokes": ink.strokes.iter().map(|s| match s {
-            Stroke::Drawn { start, end } => json!([round(*start), round(*end)]),
+            Stroke::Drawn { start, end, share } => {
+                json!([round(*start), round(*end), (f64::from(*share) * 1000.0).round() / 1000.0])
+            }
             Stroke::Comes { at } => json!(round(*at)),
         }).collect::<Vec<_>>(),
     })
@@ -133,6 +139,7 @@ mod tests {
             strokes: vec![Stroke::Drawn {
                 start: 0.0,
                 end: 1.0,
+                share: 0.5,
             }],
             end: 1.3,
             drawn: 0.6,
@@ -141,10 +148,18 @@ mod tests {
             fade: 0.3,
             paper: Color::WHITE,
         };
-        let page = page(&ink, None, "door").unwrap();
+        let source = Source {
+            code: "@startuml\nA -> B\n@enduml\n",
+            language: omaspec_core::Language::PlantUml,
+            file: Some("door.puml"),
+        };
+        let page = page(&ink, Some(source), "door").unwrap();
         assert!(!page.contains("alert(1)"));
         assert!(page.contains(r#"id="s-lines""#) && page.contains(r#"id="c-lines""#));
         assert!(page.contains(r#""kind":"ink""#));
-        assert!(page.contains(r#""strokes":[[0.0,1.0]]"#), "{page}");
+        assert!(page.contains(r#""strokes":[[0.0,1.0,0.5]]"#), "{page}");
+        // The source is found where a reader looks: in the first picture.
+        let kept = omaspec_core::embed::source_from_svg(&page).unwrap();
+        assert_eq!(kept.code, source.code);
     }
 }

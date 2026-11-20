@@ -30,7 +30,9 @@
     const box = stage.getBoundingClientRect();
     return [MARGIN, MARGIN, box.width - 2 * MARGIN, box.height - 2 * MARGIN - 20];
   };
-  const place = (index, [x, y, w, h], opacity) => {
+  // `over`: the picture coming lies over the one it grows out of, whichever
+  // came first on the page (a flight back to a diagram drawn before).
+  const place = (index, [x, y, w, h], opacity, over) => {
     const el = pictures[index];
     el.style.visibility = opacity > 0.001 ? "visible" : "hidden";
     el.style.left = `${x}px`;
@@ -38,7 +40,7 @@
     el.style.width = `${w}px`;
     el.style.height = `${h}px`;
     el.style.opacity = opacity;
-    el.style.zIndex = index;
+    el.style.zIndex = over;
   };
   // The steps of all the flights in time: each step in, a stay, and back
   // out the other way; the map a while between flights.
@@ -78,14 +80,14 @@
   };
   const draw = (t) => {
     const time = ((t % length) + length) % length;
-    pictures.forEach((_, i) => place(i, [0, 0, 0, 0], 0));
+    pictures.forEach((_, i) => place(i, [0, 0, 0, 0], 0, 0));
     // The move under way, else the picture the last one left on screen.
     let shown = null;
     for (const move of moves) {
       if (move.from <= time) shown = move;
     }
     if (!shown) {
-      place(0, fit(data.pictures[0].size, view()), 1);
+      place(0, fit(data.pictures[0].size, view()), 1, 1);
       trail.textContent = data.pictures[0].name;
       return;
     }
@@ -95,8 +97,8 @@
     const at = zoom(step, k);
     // The picture coming fades in as it nears the view; the one it came
     // from goes before its words grow too large to read.
-    place(step.from, at.a, 1 - clamp((k - 0.55) / 0.35));
-    place(step.to, at.b, clamp((k - 0.15) / 0.4));
+    place(step.from, at.a, 1 - clamp((k - 0.55) / 0.35), 1);
+    place(step.to, at.b, clamp((k - 0.15) / 0.4), 2);
     const names = [data.pictures[step.from].name, data.pictures[step.to].name];
     trail.textContent = k > 0.5 ? names.join(" › ") : names[0];
   };

@@ -60,8 +60,8 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
 - Every SVG from an engine goes through `omaspec_render::sanitize` before it is shown or
   exported; so do the links an export lays over it (`sanitize_with`, relative links up to
   the project, one rule for all links); only the embedded source is written after it.
-  Exports parse SVG only through `omaspec_render::export::parse`, which never reads files
-  an SVG points to.
+  Exports parse SVG only through `omaspec_render::export::parse` (and `export::drawn` for
+  where its drawing elements lie), which never read files an SVG points to.
 - `omaspec-core`, `omaspec-uml` and `omaspec-model` do no I/O and have no GUI
   dependency.
 - The engine crates have no platform code. What only Linux has (Landlock, the

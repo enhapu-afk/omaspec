@@ -11,19 +11,21 @@
   const hidden = "defs, clipPath, mask, marker, pattern, symbol, style";
   const firstGroup = sketch.querySelector("g");
   // The elements the pen draws, as Omaspec found them: the paper, a
-  // rectangle before the first group, left out.
+  // rectangle before the first group (every one, where there is none),
+  // left out.
   const elements = [...sketch.querySelectorAll(data.drawn)].filter((el) => {
     if (el.closest(hidden)) return false;
-    const paper = el.tagName === "rect" && firstGroup
-      && (el.compareDocumentPosition(firstGroup) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const paper = el.tagName === "rect"
+      && (!firstGroup || (el.compareDocumentPosition(firstGroup) & Node.DOCUMENT_POSITION_FOLLOWING));
     return !paper;
   });
   const pen = elements.map((el, i) => {
     const stroke = data.strokes[i];
     const own = Number(el.getAttribute("opacity") || 1);
     if (Array.isArray(stroke) && el.getTotalLength) {
-      const length = el.getTotalLength();
-      el.style.strokeDasharray = `${length} ${length}`;
+      // A dash starts again with each run of a line, a sketch's line drawn
+      // twice: its runs are drawn at once, as far along as the longest.
+      const length = el.getTotalLength() * (stroke[2] ?? 1);
       return { el, start: stroke[0], end: stroke[1], length, own };
     }
     return { el, at: Array.isArray(stroke) ? stroke[0] : stroke, own };
@@ -40,7 +42,9 @@
       if (p.length !== undefined) {
         const k = clamp((t - p.start) / Math.max(0.001, p.end - p.start));
         p.el.style.opacity = k > 0 ? p.own : 0;
-        p.el.style.strokeDashoffset = p.length * (1 - k);
+        // Drawn: the line as it is, no dash left to cut its end short.
+        p.el.style.strokeDasharray = k >= 1 ? "" : `${p.length} ${p.length}`;
+        p.el.style.strokeDashoffset = k >= 1 ? "" : p.length * (1 - k);
       } else {
         p.el.style.opacity = p.own * clamp((t - p.at) / data.fade);
       }

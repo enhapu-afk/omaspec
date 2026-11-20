@@ -34,7 +34,7 @@ pub struct Picture {
 }
 
 /// From one picture into another, which grows out of `room` in the
-/// first, in its own units.
+/// first, in its own units from its top left corner.
 #[derive(Debug, Clone, Copy)]
 pub struct Step {
     pub from: usize,
@@ -42,10 +42,10 @@ pub struct Step {
     pub room: [f32; 4],
 }
 
-/// The page that plays `flight`, called `title`, with the project's
-/// `source` in its map. The pictures are sanitized, each with ids and no
-/// style sheet of its own, the faces once; only the source is written
-/// after.
+/// The page that plays `flight`, called `title`, with `source`, where it
+/// has one, in its first picture. The pictures are sanitized, each with
+/// ids and no style sheet of its own, the faces once; only the source is
+/// written after.
 pub fn page(flight: &Flight, source: Option<Source>, title: &str) -> Result<String, ExportError> {
     let plain: Vec<String> = flight
         .pictures
@@ -85,7 +85,7 @@ pub fn page(flight: &Flight, source: Option<Source>, title: &str) -> Result<Stri
          #flight {{ position: relative; height: 100%; overflow: hidden; cursor: pointer; font: 14px/20px system-ui, sans-serif; }}\n\
          #flight .picture {{ position: absolute; visibility: hidden; transform-origin: 0 0; }}\n\
          #flight .picture > svg {{ display: block; width: 100%; height: 100%; }}\n\
-         #trail {{ position: absolute; left: 14px; bottom: 10px; opacity: 0.8; }}\n</style>\n",
+         #trail {{ position: absolute; z-index: 3; left: 14px; bottom: 10px; opacity: 0.8; }}\n</style>\n",
         flight.paper, flight.ink
     ));
     out.push_str("</head>\n<body>\n<main id=\"flight\">\n");
