@@ -36,6 +36,10 @@ pub struct Screen {
     /// Where the pointer is, for a redraw to tell the layers; nowhere
     /// without one.
     pub pointer: Option<iced::Point>,
+    /// What the keys and the buttons did since the last redraw, for the
+    /// next to tell the layers after the pointer: a film's hand
+    /// (`editor/tests/film.rs`).
+    pub input: Vec<iced::Event>,
     /// A snapshot drew its first frame, and the pictures it asked for are
     /// on the GPU.
     #[cfg(test)]
@@ -102,6 +106,7 @@ impl Screen {
             panes: Vec::new(),
             captions: Vec::new(),
             pointer: None,
+            input: Vec::new(),
             #[cfg(test)]
             warm: false,
             cache: None,
@@ -180,6 +185,7 @@ impl Screen {
                 position,
             }));
         }
+        events.append(&mut self.input);
         events.push(redraw);
         let mut published = Vec::new();
         let _ = ui.update(
@@ -223,6 +229,37 @@ impl Screen {
         self.run_frames(app, most, Duration::from_micros(16_667), done, |_| {});
     }
 
+    /// One redraw of [`Self::run_frames`]: what came of the tasks on their
+    /// way first, what the frame published after, then the clock moves on
+    /// by `tick`.
+    pub fn run_frame(&mut self, app: &mut App, tick: Duration) -> Shot {
+        let start = Instant::now();
+        // What came of the tasks on their way since the frame before,
+        // as the window takes it between two frames.
+        self.background
+            .poll(&self.renderer, |message| app.update(message));
+        let (shot, published) = self.redraw(app);
+        // On a recording's clock what the frame published runs at
+        // once, as no wall clock passes; on the wall clock it runs on
+        // the side, as the window runs it, and the frames go on.
+        for message in published {
+            if crate::clock::recording() {
+                self.perform(app, message);
+            } else {
+                let task = app.update(message);
+                self.background.add(task);
+            }
+        }
+        // A recording's clock moves on by the frame; the wall clock is
+        // waited for.
+        if !crate::clock::advance(tick)
+            && let Some(wait) = (start + tick).checked_duration_since(Instant::now())
+        {
+            std::thread::sleep(wait);
+        }
+        shot
+    }
+
     /// Redraws every `tick` until `done` or `most` frames, as [`Self::run`]
     /// does, and hands each frame's pixels to `each`.
     pub fn run_frames(
@@ -238,32 +275,7 @@ impl Screen {
             if done(app) {
                 break;
             }
-            let start = Instant::now();
-            // What came of the tasks on their way since the frame before,
-            // as the window takes it between two frames.
-            self.background
-                .poll(&self.renderer, |message| app.update(message));
-            let (shot, published) = self.redraw(app);
-            each(&shot);
-            // On a recording's clock what the frame published runs at
-            // once, as no wall clock passes; on the wall clock it runs on
-            // the side, as the window runs it, and the frames go on.
-            for message in published {
-                if crate::clock::recording() {
-                    self.perform(app, message);
-                } else {
-                    let task = app.update(message);
-                    self.background.add(task);
-                }
-            }
-            // A recording's clock moves on by the frame; the wall clock is
-            // waited for.
-            if crate::clock::advance(tick) {
-                continue;
-            }
-            if let Some(wait) = (start + tick).checked_duration_since(Instant::now()) {
-                std::thread::sleep(wait);
-            }
+            each(&self.run_frame(app, tick));
         }
         if !crate::paper::frames::on() && !cfg!(test) {
             return;

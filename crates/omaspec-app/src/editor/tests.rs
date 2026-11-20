@@ -7413,3 +7413,5 @@ fn a_state_machine_is_shown_as_its_orbit() {
     };
     assert!(!crate::worker::folded(sequence, Language::PlantUml, &[], orbit).contains("orbit"));
 }
+
+mod film;
