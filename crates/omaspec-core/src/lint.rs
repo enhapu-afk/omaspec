@@ -1261,13 +1261,13 @@ mod tests {
         assert_eq!(found[0].0, 0);
         // A head no kind answers to is an error, in render's words, since
         // render refuses it (REQ-089); `graph` alone is a flowchart.
-        let found = messages("swimlane-beta LR\n  lane A\n", Language::Mermaid);
+        let found = messages("funnel-beta LR\n  stage A\n", Language::Mermaid);
         assert_eq!(
             found[0],
             (
                 0,
                 Severity::Error,
-                crate::mermaid_head::unknown_said("swimlane-beta LR")
+                crate::mermaid_head::unknown_said("funnel-beta LR")
             )
         );
         // What mmdr reads as a kind says nothing; a flowchart without its

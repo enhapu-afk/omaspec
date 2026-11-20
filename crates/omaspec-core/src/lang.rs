@@ -81,7 +81,7 @@ pub(crate) fn puml_end() -> &'static Regex {
 /// [`crate::mermaid_head`]'s).
 pub(crate) fn mermaid_head() -> &'static Regex {
     re!(
-        r"^(flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|sankey-beta|xychart-beta|block-beta|packet-beta|kanban|architecture-beta|zenuml|radar-beta|treemap-beta)\b"
+        r"^(flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|sankey-beta|xychart-beta|block-beta|packet-beta|kanban|architecture-beta|zenuml|radar-beta|treemap-beta|swimlane-beta)\b"
     )
 }
 

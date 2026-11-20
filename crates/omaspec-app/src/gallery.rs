@@ -141,6 +141,12 @@ pub static EXAMPLES: &[Example] = &[
         "A scenario with a loop and two endings."
     ),
     example!(
+        "repair-shop.mmd",
+        Behavior,
+        "A bike repair shop",
+        "Mermaid swimlanes: a lane for each who does a step."
+    ),
+    example!(
         "pull-request.mmd",
         Behavior,
         "A pull request",

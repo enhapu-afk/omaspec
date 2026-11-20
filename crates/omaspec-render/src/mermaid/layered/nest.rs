@@ -362,7 +362,7 @@ fn cross(a: (f32, f32), b: (f32, f32), c: (f32, f32), d: (f32, f32)) -> bool {
     side(a, b, c) * side(a, b, d) < 0.0 && side(c, d, a) * side(c, d, b) < 0.0
 }
 
-fn label_on(points: &[(f32, f32)], label: &Block) -> (f32, f32) {
+pub(super) fn label_on(points: &[(f32, f32)], label: &Block) -> (f32, f32) {
     let mut best = (points[0], points[0]);
     let mut best_len = -1.0;
     for pair in points.windows(2) {

@@ -10,7 +10,8 @@
 //! the arrow are its `strip_trailing_comment`, `mask_bracket_content` and
 //! `ARROW_TOKEN_RE`, written again here.
 
-/// Each kind of Mermaid diagram: the word mmdr reads, lowercased, and the
+/// Each kind of Mermaid diagram: the word mmdr reads, lowercased (or, for
+/// a kind it does not read and Omaspec draws, as `swimlane`, its word), and the
 /// ways mermaid.js takes it, the first as it is usually written (a kind
 /// still `-beta` there taken without too, as newer mermaid.js versions
 /// take some: a hint said wrongly is worse than one left out). Every kind
@@ -46,6 +47,7 @@ const KINDS: &[(&str, &[&str])] = &[
     ("radar", &["radar-beta", "radar"]),
     ("treemap", &["treemap-beta", "treemap"]),
     ("xychart", &["xychart-beta", "xychart"]),
+    ("swimlane", &["swimlane-beta"]),
 ];
 
 /// What mmdr makes of a Mermaid diagram's first line.
@@ -59,7 +61,7 @@ pub enum Head {
     Flowchart,
     /// It names none and is refused on its line: a line mmdr reads as
     /// nothing, or a word where a kind is named with a hyphen in it, as
-    /// Mermaid 11.16's `swimlane-beta LR` or `venn-beta`, which mmdr would
+    /// `venn-beta` or a typo as `sequenceDiagramm`, which mmdr would
     /// read as a flowchart's first nodes and draw what is not there.
     Unknown,
 }
@@ -268,6 +270,7 @@ mod tests {
             "\u{feff}flowchart LR",
             "gitGraph:",
             "C4Context",
+            "swimlane-beta LR",
         ] {
             assert_eq!(head_of(kind), Head::Kind, "{kind}");
         }
@@ -281,11 +284,11 @@ mod tests {
             assert_eq!(head_of(line), Head::Flowchart, "{line}");
         }
         for line in [
-            "swimlane-beta LR",
-            "swimlane-beta: LR",
+            "funnel-beta LR",
+            "funnel-beta: LR",
             "venn-beta;",
             "ablauf-übersicht LR",
-            "swimlane-beta LR %% see re-design",
+            "funnel-beta LR %% see re-design",
             "A[Start]",
             "A[Start] %% to-do",
             "A ~~~ B",
@@ -295,8 +298,8 @@ mod tests {
             assert_eq!(head_of(line), Head::Unknown, "{line}");
         }
         assert_eq!(
-            unknown_said("swimlane-beta LR %% see re-design"),
-            unknown_said("swimlane-beta LR")
+            unknown_said("funnel-beta LR %% see re-design"),
+            unknown_said("funnel-beta LR")
         );
     }
 

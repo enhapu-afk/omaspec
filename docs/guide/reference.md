@@ -927,8 +927,9 @@ Gantt diagrams, C4-PlantUML, ArchiMate, network diagrams, Salt wireframes, EBNF 
 `@startmath`), and of
 Mermaid's the flowcharts, state, sequence, class, ER, C4, architecture and block diagrams,
 packets, radars, treemaps, sankeys, XY and quadrant charts, ZenUML,
-mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards and
-requirement diagrams. What a drawer leaves (a horizontal XY chart) is drawn by
+mind maps, Gantt and pie charts, user journeys, timelines, git graphs, kanban boards,
+requirement diagrams and swimlanes (`swimlane-beta`: each subgraph at the top a lane, drawn
+as bands of one size with their names, the lines running from lane to lane around them). What a drawer leaves (a horizontal XY chart) is drawn by
 [mmdr](https://github.com/1jehuang/mermaid-rs-renderer), a Rust library, in the same
 process. An interface beside components is a circle with its name under it, as PlantUML
 draws it there: `[Renderer] ..> () "Clipboard"`, `() HTTP`, or an `interface` without

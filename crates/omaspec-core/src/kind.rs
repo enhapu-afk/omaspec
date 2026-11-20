@@ -219,8 +219,9 @@ fn structure_name(code: &str) -> &'static str {
     }
 }
 
-const MERMAID_KINDS: [(&str, Kind, &str); 22] = [
+const MERMAID_KINDS: [(&str, Kind, &str); 23] = [
     ("sequenceDiagram", Kind::Sequence, "Sequence diagram"),
+    ("swimlane-beta", Kind::Activity, "Swimlane diagram"),
     ("zenuml", Kind::Sequence, "ZenUML sequence diagram"),
     ("stateDiagram", Kind::State, "State diagram"),
     ("classDiagram", Kind::Structure, "Class diagram"),
@@ -428,6 +429,11 @@ mod tests {
         assert_eq!(m("C4Context\ntitle x").name, "C4 diagram");
         assert_eq!(m("stateDiagram-v2\n[*] --> A").kind, Kind::State);
         assert_eq!(m("pie\n\"a\": 1").name, "Pie chart");
+        let lanes = m("swimlane-beta LR\n  subgraph Desk\n    a\n  end\n");
+        assert_eq!(
+            (lanes.kind, &*lanes.name),
+            (Kind::Activity, "Swimlane diagram")
+        );
         assert_eq!(m("weird-thing\nx").name, "weird-thing");
     }
 }

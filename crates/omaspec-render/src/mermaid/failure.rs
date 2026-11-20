@@ -101,15 +101,15 @@ mod tests {
 
     /// A head no kind answers to is refused on its line, not drawn as a
     /// flowchart whose first nodes are its words (REQ-089): Mermaid 11.16's
-    /// `swimlane-beta` came out as boxes `swimlane` and `beta`, its `LR`
+    /// `swimlane-beta`, before Omaspec drew it, came out as boxes `swimlane` and `beta`, its `LR`
     /// left aside. `graph` without a direction is a flowchart.
     #[test]
     fn a_head_no_kind_answers_to_is_refused_on_its_line() {
-        let lanes = "%%{init: {\"theme\": \"dark\"}}%%\nswimlane-beta LR\n  lane Customer\n    A[Order]\n  lane Shop\n    B[Pack]\n  A --> B\n";
+        let lanes = "%%{init: {\"theme\": \"dark\"}}%%\nfunnel-beta LR\n  stage Customer\n    A[Order]\n  stage Shop\n    B[Pack]\n  A --> B\n";
         for (body, line, head) in [
-            (lanes, 1, "swimlane-beta LR"),
+            (lanes, 1, "funnel-beta LR"),
             ("venn-beta\n  A\n", 0, "venn-beta"),
-            ("swimlane-beta: LR\n  A\n", 0, "swimlane-beta: LR"),
+            ("funnel-beta: LR\n  A\n", 0, "funnel-beta: LR"),
             ("ablauf-übersicht LR\n  A\n", 0, "ablauf-übersicht LR"),
         ] {
             match super::super::render(body) {

@@ -250,10 +250,10 @@ what is plainly missing, then the larger pieces.
       the machine's fonts (`fc-match sans-serif`).
 - [ ] From the test of 1.0.0: without `skinparam groupInheritance 2` the triangles
       of several subclasses' lines to one class overlap.
-- [ ] REQ-089, the lanes: swimlanes drawn natively, as bands of one
-      height with their names, in the direction asked for, no line
-      through a lane's name (Mermaid #8853); the activity's swimlanes as
-      a start.
+- [ ] Found on the way (2026-11-20): in a Mermaid flowchart the rest of a
+      chain after a labelled line is lost: `a -->|yes| b --> c --> d` (or
+      `a -- yes --> b --> c`) draws only `a` and `b`, and `c` and `d` not
+      at all.
 - [ ] REQ-098: a gitGraph's `mainBranchName` and `rotateCommitLabel` are
       carried out; lint said only info, so `--strict` passed.
 - [ ] REQ-051, the gaps: an emoji in a gitGraph's tag or commit is drawn

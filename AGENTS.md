@@ -82,6 +82,9 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
   (`omaspec-render/src/mermaid.rs`), with the words of its header: no
   other list of kinds, no `try_draw` chain, no `named_decline` of its own.
   Its drawer reads the text itself; mmdr's parse is only the fallback.
+  A kind mmdr does not read says in its entry how it is written as one
+  mmdr reads (`as_read`): swimlanes are the flowchart they are, so their
+  drawer is the flowchart's, and reads as that one does.
   What a first line names is judged as mmdr reads it, by render and lint
   alike, in `omaspec_core::mermaid_head`: its table of every kind mmdr
   reads is not a list of drawers, and a test holds `NATIVE`'s headers to

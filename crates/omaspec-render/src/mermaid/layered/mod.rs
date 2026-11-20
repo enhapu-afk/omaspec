@@ -27,6 +27,7 @@ mod flowchart;
 mod fold;
 mod forms;
 mod label;
+mod lanes;
 mod look;
 mod nest;
 mod open;
@@ -67,13 +68,45 @@ pub fn try_draw(
     held: &[(usize, hand::Hold)],
     curve: f32,
 ) -> Option<(String, Map)> {
+    draw(graph, theme, source, hands, held, curve, None)
+}
+
+/// A swimlane diagram (REQ-089): the flowchart `graph`, read from
+/// `source` without its lanes, laid out as [`try_draw`] lays it out and
+/// placed in the bands of `lanes` ([`lanes`]). Lines by hand are laid
+/// in the bands; a box is placed by its lane, so none is held, and there
+/// is no subgraph to fold.
+pub(super) fn try_draw_lanes(
+    graph: &Graph,
+    theme: &Theme,
+    source: &str,
+    hands: &[(usize, hand::Line)],
+    curve: f32,
+    lanes: &super::swimlane::Lanes,
+) -> Option<(String, Map)> {
+    draw(graph, theme, source, hands, &[], curve, Some(lanes))
+}
+
+fn draw(
+    graph: &Graph,
+    theme: &Theme,
+    source: &str,
+    hands: &[(usize, hand::Line)],
+    held: &[(usize, hand::Hold)],
+    curve: f32,
+    swimlanes: Option<&super::swimlane::Lanes>,
+) -> Option<(String, Map)> {
     let mut repaired = None;
     let (graph, fix) = flowchart::apply(graph, source, &mut repaired)?;
     // Where its parts are written, read before a fold moves them.
     let written = written::read(graph, source, &fix.invisible);
     // Subgraphs the pane folded (docs/adr/0024), and the entries by hand
     // that name what they hold left out.
-    let names = omaspec_uml::fold::read(source);
+    let names = if swimlanes.is_some() {
+        Vec::new()
+    } else {
+        omaspec_uml::fold::read(source)
+    };
     let (folded, fix, written, hidden) = match fold::fold(graph, &fix, &written, &names) {
         Some(fold::Folded {
             graph,
@@ -89,10 +122,18 @@ pub fn try_draw(
     let mut tree = prepare(graph, source, &fix, written)?;
     // Boxes held in place, by the container that holds both.
     let mut unplaced = hold_boxes(&mut tree, held);
-    unplaced.extend(part_boxes(&mut tree, &hand::apart(source)));
+    if swimlanes.is_none() {
+        unplaced.extend(part_boxes(&mut tree, &hand::apart(source)));
+    }
     let palette = palette(theme, source)?;
     let family = Family::of(&theme.font_family);
     let mut scene = layout_spot(&tree, Spot::Root, &palette, family)?;
+    let bands = match swimlanes {
+        Some(swimlanes) => Some(lanes::place(
+            &tree, &mut scene, swimlanes, &palette, family, curve,
+        )?),
+        None => None,
+    };
     nest::link_crossings(&tree, &mut scene, &palette, family)?;
     nest::link_inward(&tree, &mut scene, &palette, family)?;
     let arrows = arrows(&tree);
@@ -113,6 +154,9 @@ pub fn try_draw(
     // in the tree, each line's words by its edge.
     if omaspec_uml::fold::parts(source) {
         canvas.mark_parts();
+    }
+    if let Some(bands) = &bands {
+        lanes::paint(&mut canvas, &palette, bands);
     }
     paint::paint(&mut canvas, &palette, &scene, curve);
     if let Some((_, title)) = omaspec_uml::front_title(source) {
@@ -149,7 +193,11 @@ pub fn try_draw(
             }
         },
     );
-    map.places = places(&tree, &top, held);
+    // In a lane a box stands where its lane puts it: none is offered to
+    // hold.
+    if swimlanes.is_none() {
+        map.places = places(&tree, &top, held);
+    }
     map.misses = misses;
     map.misses
         .extend(hand::said(held, &unplaced, &scene.all_unheld()));

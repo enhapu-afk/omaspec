@@ -1,0 +1,25 @@
+%% Swimlanes (Mermaid 11.16, swimlane-beta): each subgraph at the top is a
+%% lane, each node stands in the band of the lane that writes it, and the
+%% lines run from lane to lane.
+swimlane-beta LR
+  subgraph customer [Customer]
+    bring([Brings the bike])
+    collect([Collects it])
+  end
+
+  subgraph desk [Front desk]
+    quote[Writes a quote]
+    agree{Agreed?}
+    call[Calls the customer]
+  end
+
+  subgraph workshop [Workshop]
+    check[Checks the bike]
+    repair[Repairs it]
+    test[Test ride]
+  end
+
+  bring --> check --> quote --> agree
+  agree -->|yes| repair
+  repair --> test --> call --> collect
+  agree -.->|no| call

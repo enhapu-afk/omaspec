@@ -2897,6 +2897,26 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-089, swimlanes (2026-11-20): Mermaid 11.16's `swimlane-beta` is drawn by
+      Omaspec, an entry of its own in `NATIVE`. It is read as the flowchart it is, its
+      lanes, the subgraphs at the top, taken out and the lines where they stood left
+      empty (`mermaid/swimlane.rs`); the flowchart's drawer lays it out along its flow
+      and puts each node in the band of the lane that first writes it, a node written in
+      none in that of its first neighbor that is (`layered/lanes.rs`). The bands are of
+      one size, one after another across the flow in the order written: rows with their
+      names at their left for `LR` and `RL`, columns with their names over them for `TB`
+      (the default) and `BT`. Within a lane the nodes keep the layout's order, two that
+      would meet along the flow side by side. The lines are routed again around the boxes
+      and the names, so none runs through a lane's name, and their words move along them
+      where they would meet a box, a name or other words. All three dotted lines of
+      Mermaid #8853 are dotted (Mermaid draws one of them solid). A subgraph inside a
+      lane is no box of its own, and its `direction` none of the whole; a loop moves with
+      its node, and the band is wide enough for it. Lines by hand are laid in the bands;
+      a box stands where its lane puts it, so none is held. A line to a lane (or to a subgraph in one) is drawn as the flowchart
+      the diagram is, its lanes as boxes; a lane not closed is mmdr's error on its line;
+      the text mmdr reads where the drawer declines is said in the kind's `NATIVE` entry
+      (`as_read`). The editor names it a swimlane diagram. The gallery has a bike repair
+      shop.
 - [x] `render --fit` fits again (2026-11-20, found in the test of 1.0.0): the scale that
       fits was the area's, to two places, but the pixels are the sizes rounded up, and a
       sequence of 60 messages at `--scale 16` came out at 12.73 as 4265 × 23449 pixels,

@@ -20,6 +20,7 @@ mod repair;
 mod requirement;
 mod sequence;
 mod state;
+mod swimlane;
 mod timeline;
 
 use std::borrow::Cow;
@@ -271,6 +272,11 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
                 omaspec_core::mermaid_head::unknown_said(header),
             ));
         }
+        // A kind mmdr does not read, its drawer declining, is drawn as the
+        // kind it is written as.
+        let unread = native(body).filter(|native| native.kind.is_none());
+        let rewritten = unread.and_then(|native| (native.as_read)(body));
+        let body = rewritten.as_deref().unwrap_or(body);
         // Flowcharts lay out on the shared graph from mmdr's reading, of
         // the text written where mmdr misreads it. Anything a drawer does
         // not accept keeps mmdr's layout.
@@ -301,7 +307,13 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
         Ok(Drawn {
             svg: render_svg(&layout, &theme, &options.layout),
             map: Map::default(),
-            declined: Some(declined_by(parsed.graph.kind, body, source, offset)),
+            declined: Some(declined_by(
+                parsed.graph.kind,
+                unread.map(|native| native.noun),
+                body,
+                source,
+                offset,
+            )),
         })
     });
     match result {
@@ -390,7 +402,9 @@ type Draw = fn(&Input) -> Option<(String, Map)>;
 /// A kind of Mermaid diagram with a drawer of Omaspec's own, which reads
 /// the text itself: mmdr reads it only when the drawer leaves it to mmdr.
 struct Native {
-    kind: DiagramKind,
+    /// The kind mmdr reads it as; none for a kind mmdr does not read, as
+    /// swimlanes.
+    kind: Option<DiagramKind>,
     /// The words a header of this kind starts with, in lower case, as
     /// mmdr knows them.
     headers: &'static [&'static str],
@@ -403,108 +417,133 @@ struct Native {
     /// What Mermaid refuses as well: the line, and what is said there as
     /// an error. Nothing is drawn, by mmdr either.
     wrong: fn(&str) -> Option<(usize, String)>,
+    /// For a kind mmdr does not read: the text written as one it reads,
+    /// what is drawn where the drawer leaves it (swimlanes as the
+    /// flowchart they are, their lanes subgraphs).
+    as_read: fn(&str) -> Option<String>,
 }
 
 /// Every kind with a drawer of its own. A new kind is a line here.
 const NATIVE: &[Native] = &[
     Native {
-        kind: DiagramKind::Sequence,
+        kind: None,
+        headers: &["swimlane"],
+        noun: "swimlane diagram",
+        draw: |i| swimlane::draw(i.theme, i.body, i.fenced),
+        refusal: |_| None,
+        wrong: |_| None,
+        as_read: swimlane::as_flowchart,
+    },
+    Native {
+        kind: Some(DiagramKind::Sequence),
         headers: &["sequencediagram"],
         noun: "sequence diagram",
         draw: |i| sequence::try_draw(i.theme, i.body),
         refusal: omaspec_uml::sequence::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Class,
+        kind: Some(DiagramKind::Class),
         headers: &["classdiagram"],
         noun: "class diagram",
         draw: |i| class::try_draw(i.theme, i.body),
         refusal: omaspec_uml::structure::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::State,
+        kind: Some(DiagramKind::State),
         headers: &["statediagram"],
         noun: "state diagram",
         draw: |i| state::try_draw(i.theme, i.fenced, i.over),
         refusal: |_| None,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Mindmap,
+        kind: Some(DiagramKind::Mindmap),
         headers: &["mindmap"],
         noun: "mind map",
         draw: |i| mindmap::try_draw(i.theme, i.body),
         refusal: omaspec_uml::tree::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Gantt,
+        kind: Some(DiagramKind::Gantt),
         headers: &["gantt"],
         noun: "Gantt chart",
         draw: |i| gantt::try_draw(i.theme, i.body),
         refusal: omaspec_uml::gantt::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Pie,
+        kind: Some(DiagramKind::Pie),
         headers: &["pie"],
         noun: "pie chart",
         draw: |i| pie::try_draw(i.theme, i.body),
         refusal: omaspec_uml::pie::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::GitGraph,
+        kind: Some(DiagramKind::GitGraph),
         headers: &["gitgraph"],
         noun: "git graph",
         draw: |i| gitgraph::try_draw(i.theme, i.body),
         refusal: omaspec_uml::gitgraph::mermaid_refusal,
         wrong: omaspec_uml::gitgraph::mermaid_wrong,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Kanban,
+        kind: Some(DiagramKind::Kanban),
         headers: &["kanban"],
         noun: "kanban board",
         draw: |i| kanban::try_draw(i.theme, i.fenced),
         refusal: omaspec_uml::kanban::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Requirement,
+        kind: Some(DiagramKind::Requirement),
         headers: &["requirementdiagram"],
         noun: "requirement diagram",
         draw: |i| requirement::try_draw(i.theme, i.fenced),
         refusal: omaspec_uml::structure::requirement::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Journey,
+        kind: Some(DiagramKind::Journey),
         headers: &["journey"],
         noun: "user journey",
         draw: |i| journey::try_draw(i.theme, i.body),
         refusal: omaspec_uml::journey::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Timeline,
+        kind: Some(DiagramKind::Timeline),
         headers: &["timeline"],
         noun: "timeline",
         draw: |i| timeline::try_draw(i.theme, i.body),
         refusal: omaspec_uml::timeline::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Er,
+        kind: Some(DiagramKind::Er),
         headers: &["erdiagram"],
         noun: "ER diagram",
         draw: |i| er::try_draw(i.theme, i.body),
         refusal: omaspec_uml::er::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::C4,
+        kind: Some(DiagramKind::C4),
         headers: &[
             "c4",
             "c4context",
@@ -517,78 +556,88 @@ const NATIVE: &[Native] = &[
         draw: |i| c4::try_draw(i.theme, i.body),
         refusal: omaspec_uml::c4::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Architecture,
+        kind: Some(DiagramKind::Architecture),
         headers: &["architecture"],
         noun: "architecture diagram",
         draw: |i| architecture::try_draw(i.theme, i.body),
         refusal: omaspec_uml::architecture::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Block,
+        kind: Some(DiagramKind::Block),
         headers: &["block"],
         noun: "block diagram",
         draw: |i| block::try_draw(i.theme, i.body),
         refusal: omaspec_uml::block::mermaid_refusal,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Packet,
+        kind: Some(DiagramKind::Packet),
         headers: &["packet"],
         noun: "packet diagram",
         draw: |i| chart::packet(i.theme, i.body),
         refusal: |_| None,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Radar,
+        kind: Some(DiagramKind::Radar),
         headers: &["radar"],
         noun: "radar chart",
         draw: |i| chart::radar(i.theme, i.body),
         refusal: |_| None,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Treemap,
+        kind: Some(DiagramKind::Treemap),
         headers: &["treemap"],
         noun: "treemap",
         draw: |i| chart::treemap(i.theme, i.body),
         refusal: |_| None,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Sankey,
+        kind: Some(DiagramKind::Sankey),
         headers: &["sankey"],
         noun: "sankey diagram",
         draw: |i| chart::sankey(i.theme, i.body),
         refusal: |_| None,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::XYChart,
+        kind: Some(DiagramKind::XYChart),
         headers: &["xychart"],
         noun: "XY chart",
         draw: |i| chart::xy(i.theme, i.body),
         refusal: |_| None,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::ZenUML,
+        kind: Some(DiagramKind::ZenUML),
         headers: &["zenuml"],
         noun: "ZenUML diagram",
         draw: |i| sequence::try_draw_zenuml(i.theme, i.body),
         refusal: |_| None,
         wrong: |_| None,
+        as_read: |_| None,
     },
     Native {
-        kind: DiagramKind::Quadrant,
+        kind: Some(DiagramKind::Quadrant),
         headers: &["quadrantchart"],
         noun: "quadrant chart",
         draw: |i| chart::quadrant(i.theme, i.body),
         refusal: |_| None,
         wrong: |_| None,
+        as_read: |_| None,
     },
 ];
 
@@ -603,7 +652,7 @@ fn native(body: &str) -> Option<&'static Native> {
 /// The construct a drawer of `kind` refuses by name in `body`: its line,
 /// and why mmdr draws the diagram instead.
 fn refused(kind: DiagramKind, body: &str) -> Option<(usize, String)> {
-    let native = NATIVE.iter().find(|n| n.kind == kind)?;
+    let native = NATIVE.iter().find(|n| n.kind == Some(kind))?;
     (native.refusal)(body).map(|(line, what)| {
         (
             line,
@@ -612,18 +661,25 @@ fn refused(kind: DiagramKind, body: &str) -> Option<(usize, String)> {
     })
 }
 
-/// Why the native drawers left this diagram to mmdr.
-fn declined_by(kind: DiagramKind, body: &str, source: &str, offset: usize) -> MermaidDeclined {
+/// Why the native drawers left this diagram to mmdr: `noun` names a kind
+/// mmdr does not read and was given as `kind`.
+fn declined_by(
+    kind: DiagramKind,
+    noun: Option<&'static str>,
+    body: &str,
+    source: &str,
+    offset: usize,
+) -> MermaidDeclined {
     if let Some((line, reason)) = refused(kind, body) {
         return MermaidDeclined {
             line: Some(line + offset),
             reason,
         };
     }
-    let noun = match kind {
+    let noun = noun.or(match kind {
         DiagramKind::Flowchart => Some("flowchart"),
-        _ => NATIVE.iter().find(|n| n.kind == kind).map(|n| n.noun),
-    };
+        _ => NATIVE.iter().find(|n| n.kind == Some(kind)).map(|n| n.noun),
+    });
     if let Some(noun) = noun {
         return MermaidDeclined {
             line: None,
@@ -1583,7 +1639,7 @@ end note";
     /// The kind of each native drawer mmdr reads from `body`, if any.
     fn mmdr_native(body: &str) -> Option<DiagramKind> {
         let kind = mermaid_rs_renderer::parse_mermaid(body).ok()?.graph.kind;
-        NATIVE.iter().any(|n| n.kind == kind).then_some(kind)
+        NATIVE.iter().any(|n| n.kind == Some(kind)).then_some(kind)
     }
 
     #[test]
@@ -1623,7 +1679,7 @@ end note";
         for header in headers {
             let body = format!("---\ntitle: x\n---\n%% a comment\n{header} %% and one more\n");
             assert_eq!(
-                native(&body).map(|n| n.kind),
+                native(&body).and_then(|n| n.kind),
                 mmdr_native(&body),
                 "{header}"
             );
@@ -1647,7 +1703,7 @@ end note";
                 let joined = one_line_init(fenced);
                 let body = fold_multiline_notes(&joined);
                 if let Some(theirs) = mmdr_native(&body) {
-                    assert_eq!(native(&body).map(|n| n.kind), Some(theirs), "{path:?}");
+                    assert_eq!(native(&body).and_then(|n| n.kind), Some(theirs), "{path:?}");
                     seen += 1;
                 }
             }
