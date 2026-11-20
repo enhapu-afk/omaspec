@@ -215,33 +215,29 @@ flowcharts drawn by Omaspec in both languages. A touchpad pinch zooms at the
 pointer (two fingers still pan) and a touchscreen pinch zooms at the fingers.
 Lint and outline move onto the syntax tree as each type lands.
 
-## Release 1.0 (planned 2026-11-20)
+## Release 1.0 (2026-11-20)
 
 The target of [0006](docs/adr/0006-goals-and-scope.md) is met: sequence,
 activity, state diagrams and flowcharts are drawn by Omaspec in both
-languages. What stands between 0.9.9 and 1.0, in this order:
+languages. 1.0.0 was tagged on 2026-11-20, with the landing page and the
+guide as a PDF (docs/DONE.md).
 
-- [x] The landing page (`docs/index.html`) shows every function, the
-      ones that move as live pages made by Omaspec itself
-      (`docs/live/update.sh`), its film recorded in the editor frame by
-      frame (`docs/images/film.sh`), and the guide as a PDF
-      (`docs/guide/pdf/build.py`). It goes to `main` with the release,
-      since Pages serves `main/docs`.
-- [ ] What the landing page shows is worth showing: the sequence, the
-      state and the activity diagram elegant and without a fault on every
-      theme and in a file's own colors (the premise of 2026-11-17: the
-      focus, a play in the file's colors, the participants held while
-      scrolling).
+- [ ] The release's last steps: AUR `omaspec` and `omaspec-bin`, the
+      announcement.
+
+## After 1.0
+
+- [ ] The sequence, the state and the activity diagram elegant and
+      without a fault on every theme and in a file's own colors (the
+      premise of 2026-11-17: the focus, a play in the file's colors, the
+      participants held while scrolling).
 - [ ] A round in a real window: the presenter mode on two screens, the
       lockstep, the focus, the glow after a compare's glide; the pages in
       Firefox and Safari.
 - [ ] REQ-076: a parallel region takes the inner start of a composite
       state it enters.
-- [ ] The release: version 1.0.0, a signed tag, AUR `omaspec` and
-      `omaspec-bin`, the announcement.
-
-After 1.0: Windows, an SVG with only the letters it uses, even cleaner
-lines, a settings dialog.
+- Windows, an SVG with only the letters it uses, even cleaner lines, a
+  settings dialog.
 
 ## Next
 

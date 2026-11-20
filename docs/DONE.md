@@ -2897,6 +2897,12 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Release 1.0.0 (2026-11-20): the landing page (`docs/index.html`) shows every
+      function, the ones that move as live pages made by Omaspec itself
+      (`docs/live/update.sh`); its film is the editor recorded headless, every frame on a
+      recording's clock (`docs/images/film.sh`, `editor/tests/film.rs`); the guide is a
+      PDF of 47 pages whose examples the release build draws (`docs/guide/pdf/build.py`),
+      to download from the page
 - [x] What the review of the presenter mode and the project's page found (2026-11-20).
       The speaker's window takes the presentation's keys and gives way to a question,
       a list or a menu opened there; a step back shows the notes of the step it went
