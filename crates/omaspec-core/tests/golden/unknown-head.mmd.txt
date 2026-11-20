@@ -1,6 +1,6 @@
 == unknown-head.mmd: Mermaid / Other (sequenceDiagramm)
 == lint
-   1 Warning: Unknown diagram head — expected flowchart / sequenceDiagram / …
+   1 Error: `sequenceDiagramm` names no kind of diagram Omaspec draws: a Mermaid diagram's first line is its kind, as `flowchart LR` or `sequenceDiagram`
 == outline
 == fmt
 sequenceDiagramm

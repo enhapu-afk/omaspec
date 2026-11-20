@@ -30,7 +30,7 @@ use regex::Regex;
 use serde::Serialize;
 
 use crate::kind::{Kind, classify};
-use crate::lang::{Language, mermaid_graph, mermaid_head, puml_start};
+use crate::lang::{Language, puml_start};
 use crate::text::{is_note_block_open, is_note_closer, is_note_one_line, normalize_newlines, re};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
@@ -394,18 +394,18 @@ fn mermaid_syntax(lines: &[&str]) -> Vec<Finding> {
     while i < lines.len() && lines[i].trim().is_empty() {
         i += 1;
     }
-    if lines.get(i).is_some_and(|l| l.trim() == "---") {
-        i += 1;
-        while i < lines.len() && lines[i].trim() != "---" {
-            i += 1;
-        }
-        if i < lines.len() {
-            i += 1;
-        }
-    }
-    // Skip comments and the init directive, which may span lines.
+    // Skip front matter, comments and the init directive, which may span
+    // lines, wherever they stand before the head: as mmdr finds it.
     while i < lines.len() {
-        let t = lines[i].trim();
+        let t = lines[i].trim_start_matches('\u{feff}').trim();
+        if t == "---" {
+            i += 1;
+            while i < lines.len() && lines[i].trim() != "---" {
+                i += 1;
+            }
+            i += 1;
+            continue;
+        }
         if t.starts_with("%%{") {
             while i < lines.len() && !lines[i].contains("}%%") {
                 i += 1;
@@ -419,17 +419,30 @@ fn mermaid_syntax(lines: &[&str]) -> Vec<Finding> {
         }
         break;
     }
-    if let Some(head) = lines.get(i).map(|l| l.trim())
+    if let Some(head) = lines
+        .get(i)
+        .map(|l| l.trim_start_matches('\u{feff}').trim())
         && !puml_start().is_match(head)
-        && !mermaid_head().is_match(head)
-        && !mermaid_graph().is_match(head)
+        && !crate::lang::names_mermaid_kind(head)
     {
-        findings.push(Finding::new(
-            "unknown-head",
-            i,
-            Severity::Warning,
-            "Unknown diagram head — expected flowchart / sequenceDiagram / …",
-        ));
+        // A word that names no kind is refused by render, in these words,
+        // on this line (REQ-089); a flowchart written without its head is
+        // drawn, and only told.
+        findings.push(if crate::lang::unknown_mermaid_kind(head) {
+            Finding::new(
+                "unknown-head",
+                i,
+                Severity::Error,
+                crate::lang::unknown_mermaid_kind_said(head),
+            )
+        } else {
+            Finding::new(
+                "unknown-head",
+                i,
+                Severity::Warning,
+                "Unknown diagram head — expected flowchart / sequenceDiagram / …",
+            )
+        });
     }
 
     let mut stack: Vec<(usize, String)> = Vec::new();
@@ -1254,6 +1267,33 @@ mod tests {
     fn mermaid_head_and_blocks() {
         let found = messages("sequencDiagram\nA->>B: x", Language::Mermaid);
         assert_eq!(found[0].0, 0);
+        // A head no kind answers to is an error, in render's words, since
+        // render refuses it (REQ-089); `graph` alone is a flowchart.
+        let found = messages("swimlane-beta LR\n  lane A\n", Language::Mermaid);
+        assert_eq!(
+            found[0],
+            (
+                0,
+                Severity::Error,
+                crate::lang::unknown_mermaid_kind_said("swimlane-beta LR")
+            )
+        );
+        // What mmdr reads as a kind says nothing; a flowchart without its
+        // head, which mmdr draws, is told and not refused.
+        for code in [
+            "graph\n  A --> B\n",
+            "block\n  a b\n",
+            "xychart\n  bar [1, 2]\n",
+            "Flowchart LR\n  A --> B\n",
+            "\u{feff}flowchart LR\n  A --> B\n",
+            "%% a note\n---\ntitle: x\n---\nflowchart LR\n  A --> B\n",
+        ] {
+            assert!(messages(code, Language::Mermaid).is_empty(), "{code}");
+        }
+        assert_eq!(
+            messages("A --> B\n", Language::Mermaid)[0].1,
+            Severity::Warning
+        );
         let found = messages(
             "%%{init: {\n  \"theme\": \"dark\"\n}}%%\nflowchart TD\nsubgraph S\nA-->B\n",
             Language::Mermaid,

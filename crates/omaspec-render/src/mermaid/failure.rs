@@ -51,9 +51,7 @@ fn unplaced(message: &str, body: &str) -> (Option<usize>, String) {
             None => (None, "the diagram is empty".to_owned()),
             Some((at, header)) => (
                 Some(at),
-                format!(
-                    "`{header}` names no kind of diagram Omaspec draws: a Mermaid diagram's first line is its kind, as `flowchart LR` or `sequenceDiagram`"
-                ),
+                omaspec_core::lang::unknown_mermaid_kind_said(header),
             ),
         };
     }
@@ -102,6 +100,44 @@ mod tests {
         );
         let (line, message) = said_of("---\ntitle: Only\n---\n%% a note\n");
         assert_eq!((line, message.as_str()), (None, "the diagram is empty"));
+    }
+
+    /// A head no kind answers to is refused on its line, not drawn as a
+    /// flowchart whose first nodes are its words (REQ-089): Mermaid 11.16's
+    /// `swimlane-beta` came out as boxes `swimlane` and `beta`, its `LR`
+    /// left aside. `graph` without a direction is a flowchart.
+    #[test]
+    fn a_head_no_kind_answers_to_is_refused_on_its_line() {
+        let lanes = "%%{init: {\"theme\": \"dark\"}}%%\nswimlane-beta LR\n  lane Customer\n    A[Order]\n  lane Shop\n    B[Pack]\n  A --> B\n";
+        for (body, line, head) in [
+            (lanes, 1, "swimlane-beta LR"),
+            ("venn-beta\n  A\n", 0, "venn-beta"),
+        ] {
+            match super::super::render(body) {
+                Err(crate::RenderError::Diagram {
+                    line: at, message, ..
+                }) => {
+                    assert_eq!(at, Some(line), "{body}");
+                    assert_eq!(message, omaspec_core::lang::unknown_mermaid_kind_said(head));
+                }
+                other => panic!("{body}: {other:?}"),
+            }
+        }
+        // What mmdr takes as a kind is drawn, as its words end: without
+        // `-beta`, in another case, after a word's end that is no letter.
+        for body in [
+            "graph\n  A --> B\n",
+            "flowchart-elk TD\n  A --> B\n",
+            "Flowchart LR\n  A --> B\n",
+            "flowchart_x LR\n  A --> B\n",
+            "block\n  a b\n",
+            "\u{feff}flowchart LR\n  A --> B\n",
+            "%% a note\n---\ntitle: x\n---\nflowchart LR\n  A --> B\n",
+            // A flowchart written without its head: mmdr draws it.
+            "A --> B\n",
+        ] {
+            assert!(super::super::render(body).is_ok(), "{body}");
+        }
     }
 
     /// An edge written whole above the one that breaks, or in a comment,

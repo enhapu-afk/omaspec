@@ -86,6 +86,89 @@ pub(crate) fn mermaid_graph() -> &'static Regex {
     re!(r"^graph\s+(TD|TB|BT|RL|LR)\b")
 }
 
+/// The words a Mermaid diagram's first line begins with to name its kind,
+/// lowercased: those mmdr reads (`detect_diagram_kind` of
+/// mermaid-rs-renderer 0.3), which the words of every kind with a drawer
+/// of Omaspec's own are among (`NATIVE` in omaspec-render).
+const MERMAID_HEADS: &[&str] = &[
+    "flowchart",
+    "graph",
+    "sequencediagram",
+    "classdiagram",
+    "statediagram",
+    "erdiagram",
+    "pie",
+    "mindmap",
+    "journey",
+    "timeline",
+    "gantt",
+    "requirementdiagram",
+    "gitgraph",
+    "c4",
+    "c4context",
+    "c4container",
+    "c4component",
+    "c4dynamic",
+    "c4deployment",
+    "sankey",
+    "quadrantchart",
+    "zenuml",
+    "block",
+    "packet",
+    "kanban",
+    "architecture",
+    "radar",
+    "treemap",
+    "xychart",
+];
+
+/// Whether `header`, a Mermaid diagram's first line, begins with a word
+/// that names a kind (`flowchart_x`, `Block`, `xychart-beta` as mmdr
+/// takes them: the word ends where no letter or digit follows).
+pub fn names_mermaid_kind(header: &str) -> bool {
+    let lower = header
+        .trim_start_matches('\u{feff}')
+        .trim()
+        .to_ascii_lowercase();
+    MERMAID_HEADS.iter().any(|word| {
+        lower.strip_prefix(word).is_some_and(|rest| {
+            rest.chars()
+                .next()
+                .is_none_or(|c| !c.is_ascii_alphanumeric())
+        })
+    })
+}
+
+/// Whether `header` is a word where a kind is named, and none that names
+/// one, as Mermaid 11.16's `swimlane-beta LR` or a typo as
+/// `sequenceDiagramm`: such a diagram is refused on that line, as mmdr
+/// would read it as a flowchart's first nodes and draw what is not there
+/// (REQ-089). A flowchart's line written without its head (`A --> B`) is
+/// none: mmdr draws it as the flowchart it is.
+pub fn unknown_mermaid_kind(header: &str) -> bool {
+    let header = header.trim_start_matches('\u{feff}').trim();
+    let word = header.split_whitespace().next().unwrap_or("");
+    let worded = word.starts_with(|c: char| c.is_ascii_alphabetic())
+        && word
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        && !word.contains("--");
+    let arrow = ["--", "==", "-.", "~~", "->", "<-"]
+        .iter()
+        .any(|arrow| header.contains(arrow));
+    worded && !arrow && !names_mermaid_kind(header)
+}
+
+/// What is said of a Mermaid diagram whose first line, `header`, names no
+/// kind Omaspec draws ([`unknown_mermaid_kind`]), by lint and by render
+/// alike.
+pub fn unknown_mermaid_kind_said(header: &str) -> String {
+    let header = header.trim_start_matches('\u{feff}').trim();
+    format!(
+        "`{header}` names no kind of diagram Omaspec draws: a Mermaid diagram's first line is its kind, as `flowchart LR` or `sequenceDiagram`"
+    )
+}
+
 /// Detects the language of `code`. `hint` (usually from the file name)
 /// decides only when the source itself does not.
 ///

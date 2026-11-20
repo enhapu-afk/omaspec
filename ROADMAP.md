@@ -243,10 +243,6 @@ Found by the studio and reproduced on 1.0.0, in the order they are
 taken: first where Omaspec draws a wrong picture without a word, then
 what is plainly missing, then the larger pieces.
 
-- [ ] REQ-089, the head: `swimlane-beta` (Mermaid 11.16) is an unknown
-      head to lint, and render draws the file as a flowchart, with
-      nodes `swimlane` and `beta` and `LR` ignored. A head no drawer
-      knows is refused on its line, not drawn as something else.
 - [ ] REQ-099: two `gitGraph` blocks in one file, which Mermaid does not
       take either, are drawn by mmdr as one picture without a word.
       Lint says so as an error, and nothing is drawn.

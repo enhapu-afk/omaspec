@@ -257,6 +257,16 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
                 declined: None,
             });
         }
+        // A head no kind answers to: mmdr would read it as a flowchart's
+        // first nodes and draw what is not there (REQ-089).
+        if let Some((at, header)) = head::header_at(body)
+            && omaspec_core::lang::unknown_mermaid_kind(header)
+        {
+            return Err(Refused::Placed(
+                at,
+                omaspec_core::lang::unknown_mermaid_kind_said(header),
+            ));
+        }
         // Flowcharts lay out on the shared graph from mmdr's reading, of
         // the text written where mmdr misreads it. Anything a drawer does
         // not accept keeps mmdr's layout.
@@ -297,6 +307,11 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
             line: None,
             message,
         }),
+        Ok(Err(Refused::Placed(at, message))) => Err(RenderError::Diagram {
+            engine: Engine::Mermaid,
+            line: Some(written_from(source, at + offset)),
+            message,
+        }),
         Ok(Err(Refused::Parse(err))) => {
             let (line, message) = failure::said(&err, body);
             Err(RenderError::Diagram {
@@ -317,6 +332,8 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
 enum Refused {
     Parse(ParseError),
     Said(String),
+    /// Said of the line at this index of the text drawn.
+    Placed(usize, String),
 }
 
 impl From<ParseError> for Refused {

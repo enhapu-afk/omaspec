@@ -2897,6 +2897,17 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-089, the head (2026-11-20): a Mermaid diagram whose first line is a word
+      that names no kind is refused on that line, by render and by lint alike, in the
+      same words (`omaspec_core::lang::unknown_mermaid_kind`). mmdr read such a head as
+      a flowchart's first nodes: Mermaid 11.16's `swimlane-beta LR` came out as boxes
+      `swimlane` and `beta`, its direction left aside, while lint only warned of an
+      unknown head. A kind is known as mmdr knows it (`names_mermaid_kind`): the words
+      it reads, lowercased, ending where no letter or digit follows, so `block`,
+      `xychart` without `-beta`, `Flowchart` and `flowchart_x` are drawn as before; and
+      lint finds the head as mmdr does, after front matter that follows a comment and
+      behind a byte order mark. A flowchart written without its head (`A --> B`), which
+      mmdr draws, is still only told; `graph` without a direction no longer is.
 - [x] REQ-096, the first frame of a play (2026-11-20): `omaspec play` kept the frames
       from the moment the play began, while its bar came under the picture and the
       picture glided to its fit above it, so the first frame was the picture as large
