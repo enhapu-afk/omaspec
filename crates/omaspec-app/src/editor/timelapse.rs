@@ -468,6 +468,23 @@ impl Units {
         (w * self.sx, h * self.sy)
     }
 
+    /// `link`, its box and its room in units.
+    pub(super) fn link(self, link: &omaspec_render::Link) -> omaspec_render::Link {
+        let rect = |r: omaspec_uml::graph::Rect| {
+            let (x, y) = self.point((r.x, r.y));
+            omaspec_uml::graph::Rect {
+                x,
+                y,
+                w: r.w * self.sx,
+                h: r.h * self.sy,
+            }
+        };
+        let mut out = link.clone();
+        out.rect = rect(link.rect);
+        out.room = link.room.map(rect);
+        out
+    }
+
     fn point(self, (x, y): (f32, f32)) -> (f32, f32) {
         (x * self.sx + self.tx, y * self.sy + self.ty)
     }

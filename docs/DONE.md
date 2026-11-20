@@ -2897,6 +2897,15 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A dive and a flight as a page in vectors (2026-11-20): `--dive Day/Order -o
+      flight.html` on a project's file draws the map and each diagram on the way as the
+      window draws them, in the theme's colors with their links (`editor::flight`), and
+      for each step the room the next grows out of, a tile's picture or a state's box,
+      in the picture's own units (`export::flight`); its script zooms about the one
+      point a zoom keeps where it is, so the room becomes the whole of the next
+      picture, the picture left fading before its words grow too large, the way back
+      the same zooms backwards, a trail of the names at the foot. Without a GPU;
+      `#t=4` holds it still
 - [x] From sketch to ink (2026-11-20, the last of the animations that show what a
       diagram means): `omaspec play FILE --ink -o ink.gif` draws the diagram in the
       sketch look (docs/adr/0023) stroke by stroke as with a pen (`editor::ink`): each

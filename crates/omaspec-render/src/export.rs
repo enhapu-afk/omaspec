@@ -6,6 +6,7 @@
 //! that PDF. JPEG is the picture only.
 
 pub mod building;
+pub mod flight;
 pub mod folding;
 mod glyphs;
 pub mod ink;

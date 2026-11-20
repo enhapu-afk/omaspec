@@ -685,8 +685,6 @@ picture, the second is the highlight.
 - [ ] Lockstep: built as GIF, WebP, PNG and a page (in docs/DONE.md).
       Left: the lockstep in the window, F5 on a scenario with the
       machines of its participants opening beside it.
-- [ ] A flight through the project: built as GIF, WebP and PNG (in
-      docs/DONE.md). Left: a dive and a flight as a page in vectors.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 

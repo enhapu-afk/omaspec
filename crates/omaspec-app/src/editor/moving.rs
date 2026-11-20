@@ -161,7 +161,7 @@ pub(super) const BAR: f32 = 90.0;
 pub fn play(args: &Moving) -> Result<String> {
     let film = Film::of(&args.output).with_context(|| {
         format!(
-            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold, a build, a lockstep, a history, traffic, a sweep or ink as a page)",
+            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold, a dive, a build, a lockstep, a history, traffic, a sweep or ink as a page)",
             args.output.display()
         )
     })?;
@@ -220,6 +220,15 @@ pub fn play(args: &Moving) -> Result<String> {
         return super::lockstep::lockstep(args, film, fps);
     }
     if film == Film::Page {
+        if !args.dives.is_empty() {
+            let (name, _) = args.named("");
+            anyhow::ensure!(
+                name == omaspec_core::project::FILE,
+                "--dive zooms into the tiles of a project's map: give it the project's {}",
+                omaspec_core::project::FILE
+            );
+            return super::flight::write(args);
+        }
         return fold_page(args);
     }
     anyhow::ensure!(
