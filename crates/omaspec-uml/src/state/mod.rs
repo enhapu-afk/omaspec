@@ -316,6 +316,9 @@ pub struct Transition {
     /// The way the writer turned the arrow (`-right->`, `-up->`), which
     /// lays its states out (docs/adr/0027).
     pub toward: Option<Toward>,
+    /// How much wider than an arrow it is drawn, where marks say so: a
+    /// trace river's way as wide as it was taken ([`Marks::river`]).
+    pub weight: Option<f32>,
 }
 
 /// Which way a transition's arrow points on the page, as PlantUML writes

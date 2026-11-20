@@ -55,6 +55,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
             line: t.line,
             label_before: None,
             toward: None,
+            weight: None,
         };
         let (home, rest) = from.split_at(from.len().checked_sub(1)?);
         if to.len() == from.len() && to.starts_with(home) {

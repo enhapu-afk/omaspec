@@ -613,10 +613,6 @@ the one before:
       page was looked at in Chromium alone, not in Firefox or Safari; in
       the page a box that changes its size is stretched (its words are
       not), where the pane keeps its corners.
-- [ ] Trace river: many recorded traces flowing through a machine, each
-      way as wide as it was taken, the ways never taken thin and
-      dashed, a deviation branching off in red where the trace left the
-      machine; from coverage, which counts it all already.
 - [ ] Story map: activities across, the steps of each under it, release
       slices across the whole as bands (`@startstorymap`): the backbone
       of a product and what goes into which release, which neither

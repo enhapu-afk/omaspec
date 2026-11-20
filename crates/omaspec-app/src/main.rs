@@ -202,6 +202,11 @@ enum Command {
         /// Fail when fewer than this many percent of the transitions are taken.
         #[arg(long, value_name = "PERCENT")]
         min: Option<f32>,
+        /// Draw the picture as a trace river: each way as wide as it was
+        /// taken, those never taken thin and dashed, and where traces left
+        /// the machine said in red at the state they left from.
+        #[arg(long, requires = "output")]
+        river: bool,
     },
     /// Hold recorded traces against the state machines of their project.
     ///
@@ -812,12 +817,14 @@ fn main() -> ExitCode {
             output,
             json,
             min,
+            river,
         }) => coverage_command::run(&coverage_command::Args {
             file: &file,
             traces: &traces,
             output: output.as_deref(),
             json,
             min,
+            river,
         }),
         Some(Command::Trace {
             files,

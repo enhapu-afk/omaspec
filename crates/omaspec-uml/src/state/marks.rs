@@ -28,6 +28,11 @@ pub struct Marks {
     pub ghosts: Vec<Ghost>,
     /// Said under the diagram when it has no caption of its own.
     pub caption: Option<String>,
+    /// A trace river: each way taken as wide as how often, against the way
+    /// taken most; one never taken thin.
+    pub river: bool,
+    /// Where traces left the machine: the state's name, and how often.
+    pub left: Vec<(String, u32)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,6 +96,13 @@ impl Marks {
             let caption = caption.replace(['\n', '\r'], " ");
             out.push_str(&format!("{comment} {MARK} caption {caption}\n"));
         }
+        if self.river {
+            out.push_str(&format!("{comment} {MARK} river\n"));
+        }
+        for (name, times) in &self.left {
+            let name = name.replace(['\n', '\r'], " ");
+            out.push_str(&format!("{comment} {MARK} left {times} {name}\n"));
+        }
         out
     }
 
@@ -139,6 +151,19 @@ impl Marks {
             } else if let Some(caption) = rest.strip_prefix("caption ") {
                 marks.caption = Some(caption.trim().to_owned());
                 any = true;
+            } else if rest.trim() == "river" {
+                marks.river = true;
+                any = true;
+            } else if let Some(rest) = rest.strip_prefix("left ") {
+                let mut words = rest.split_whitespace();
+                let Some(times) = words.next().and_then(|n| n.parse().ok()) else {
+                    continue;
+                };
+                let name = words.collect::<Vec<_>>().join(" ");
+                if !name.is_empty() {
+                    marks.left.push((name, times));
+                    any = true;
+                }
             }
         }
         any.then_some(marks)
@@ -149,6 +174,22 @@ impl Diagram {
     /// Draws what `marks` say over the diagram.
     pub fn mark(&mut self, marks: &Marks) {
         mark_container(&mut self.root, marks);
+        if marks.river {
+            let most = marks
+                .transitions
+                .values()
+                .filter_map(|mark| match mark {
+                    Mark::Taken(times) => Some(*times),
+                    _ => None,
+                })
+                .max()
+                .unwrap_or(1)
+                .max(1);
+            weigh(&mut self.root, marks, most);
+        }
+        for (name, times) in &marks.left {
+            self.left_here(name, *times);
+        }
         for ghost in &marks.ghosts {
             self.ghost(ghost);
         }
@@ -246,6 +287,7 @@ impl Diagram {
             line: usize::MAX,
             label_before: None,
             toward: None,
+            weight: None,
         };
         let home = &from[..from.len() - 1];
         if to.len() == from.len() && to.starts_with(home) {
@@ -267,6 +309,51 @@ impl Diagram {
 }
 
 /// The path to the state called `name`, by the indices of its containers.
+/// A trace river's ways: each taken one as wide as how often against the
+/// one taken most (`most`), up to five times an arrow; one never taken
+/// thin.
+fn weigh(container: &mut Container, marks: &Marks, most: u32) {
+    let weight = |edge: &Transition| match marks.transitions.get(&edge.line) {
+        Some(Mark::Taken(times)) => Some(1.0 + 4.0 * (*times as f32 / most as f32).sqrt()),
+        Some(Mark::Missed) => Some(0.6),
+        _ => None,
+    };
+    for edge in &mut container.edges {
+        edge.weight = weight(edge);
+    }
+    for crossing in &mut container.crossings {
+        crossing.arrow.weight = weight(&crossing.arrow);
+    }
+    for node in &mut container.nodes {
+        weigh(&mut node.children, marks, most);
+    }
+}
+
+impl Diagram {
+    /// Where traces left the machine at the state `name`, `times` of
+    /// them: a note beside it in the color of what was missed.
+    fn left_here(&mut self, name: &str, times: u32) {
+        let Some(path) = path_of(&self.root, name) else {
+            return;
+        };
+        let Some((&index, around)) = path.split_last() else {
+            return;
+        };
+        let container = container_at(&mut self.root, around);
+        let line = container.nodes[index].line;
+        let said = match times {
+            1 => "✕ 1 trace left the machine here".to_owned(),
+            n => format!("✕ {n} traces left the machine here"),
+        };
+        container.notes.push(super::Note {
+            target: index,
+            side: super::Side::Right,
+            text: text_at(&format!("<color:{MISSED}>{said}</color>"), line),
+            line,
+        });
+    }
+}
+
 fn path_of(container: &Container, name: &str) -> Option<Vec<usize>> {
     for (index, node) in container.nodes.iter().enumerate() {
         if node.key == name && !matches!(node.kind, Kind::Start | Kind::End | Kind::Region) {
@@ -290,6 +377,46 @@ fn container_at<'a>(container: &'a mut Container, path: &[usize]) -> &'a mut Con
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A river's marks are written as lines and read back: each way as
+    /// wide as how often against the one taken most, where traces left as
+    /// a note in the color of what was missed.
+    #[test]
+    fn a_river_is_written_read_and_drawn() {
+        let mut marks = Marks::default();
+        marks.transitions.insert(2, Mark::Taken(9));
+        marks.transitions.insert(3, Mark::Taken(1));
+        marks.transitions.insert(4, Mark::Missed);
+        marks.river = true;
+        marks.left = vec![("Open".to_owned(), 2)];
+        let lines = marks.lines(false);
+        assert!(lines.contains("' mark (Omaspec) river\n"), "{lines}");
+        assert!(lines.contains("' mark (Omaspec) left 2 Open\n"), "{lines}");
+        assert_eq!(Marks::read(&lines), Some(marks.clone()));
+        let source = format!(
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\n{lines}@enduml\n"
+        );
+        let crate::Diagram::State(mut d) = crate::parse(&source).unwrap() else {
+            panic!("a state diagram");
+        };
+        d.mark(&marks);
+        let weight = |line: usize| {
+            d.root
+                .edges
+                .iter()
+                .find(|e| e.line == line)
+                .and_then(|e| e.weight)
+        };
+        assert_eq!(weight(2), Some(5.0));
+        assert!(weight(3).unwrap() > 1.0 && weight(3).unwrap() < 5.0);
+        assert_eq!(weight(4), Some(0.6));
+        assert!(
+            d.root
+                .notes
+                .iter()
+                .any(|n| n.text.value.contains("2 traces left the machine here"))
+        );
+    }
     use crate::color::{Color, parse};
 
     const DOOR: &str = "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
@@ -311,6 +438,8 @@ mod tests {
             ]),
             ghosts: Vec::new(),
             caption: Some("3 of 5 transitions taken".to_owned()),
+            river: false,
+            left: Vec::new(),
         };
         let (svg, _) = crate::render_marked(DOOR, None, &marks).unwrap();
         for words in [

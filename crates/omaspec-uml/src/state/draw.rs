@@ -435,10 +435,10 @@ pub(super) fn arrow_stroke(skin: &Skin, edge: &Transition) -> Result<Stroke, Dec
         },
         None => skin.arrow.color,
     };
-    let width = if edge.bold {
-        skin.arrow.width * 2.0
-    } else {
-        skin.arrow.width
+    let width = match edge.weight {
+        Some(weight) => skin.arrow.width * weight,
+        None if edge.bold => skin.arrow.width * 2.0,
+        None => skin.arrow.width,
     };
     let mut stroke = Stroke::new(color, width);
     stroke.dash = match edge.dash {

@@ -422,6 +422,7 @@ impl Parser {
                 line,
                 label_before: None,
                 toward: raw.toward,
+                weight: None,
             },
         ));
         Ok(())

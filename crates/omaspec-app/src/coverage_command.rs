@@ -23,6 +23,9 @@ pub struct Args<'a> {
     pub json: bool,
     /// The share of transitions in percent below which it fails.
     pub min: Option<f32>,
+    /// The picture as a trace river: each way as wide as it was taken,
+    /// where traces left the machine said in red.
+    pub river: bool,
 }
 
 /// What `coverage` finds, as `--json` prints it and the MCP tool answers.
@@ -138,7 +141,15 @@ pub(crate) fn measure(args: &Args) -> Result<Report> {
         .is_none_or(|min| omaspec_model::coverage_share(covered, total) >= min);
     let image = match args.output {
         Some(output) => {
-            draw(&input.text, lang, args.file, &spec, &cov, output)?;
+            draw(
+                &input.text,
+                lang,
+                args.file,
+                &spec,
+                &cov,
+                args.river,
+                output,
+            )?;
             Some(output.display().to_string())
         }
         None => None,
@@ -194,6 +205,7 @@ fn draw(
     file: &Path,
     spec: &Spec,
     cov: &Coverage,
+    river: bool,
     output: &Path,
 ) -> Result<()> {
     let format = output
@@ -202,7 +214,11 @@ fn draw(
         .and_then(Format::from_extension)
         .filter(|format| matches!(format, Format::Svg | Format::Png | Format::Pdf))
         .with_context(|| format!("{} is no .svg, .png or .pdf", output.display()))?;
-    let marks = cov.marks(spec);
+    let marks = if river {
+        cov.river(spec)
+    } else {
+        cov.marks(spec)
+    };
     let place = omaspec_render::Place::of(file, None);
     let rendered = omaspec_render::render_marked(code, lang, place.as_ref(), &marks)
         .map_err(|err| anyhow::anyhow!("{}: {err}", file.display()))?;

@@ -2897,6 +2897,14 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Trace river (2026-11-20): `omaspec coverage FILE --traces T --river -o river.svg`
+      draws what recorded traces take of a machine as a river: each way as wide as it
+      was taken against the way taken most, up to five times an arrow (a transition's
+      `weight`, marked as `' mark (Omaspec) river`), one never taken thin and dashed,
+      and where traces left the machine a note in the color of what was missed beside
+      the state they left from (`' mark (Omaspec) left 2 Open`). Coverage counts where
+      each trace was when its line deviated (`Coverage::left`), at the state it began
+      in for a first line
 - [x] What the review of the lockstep in the window and the orbit found (2026-11-20). A
       digit that steps the scenario steps the machines too; an edit that ends the
       scenario's play closes the machines beside it, and a play stopped in another tab

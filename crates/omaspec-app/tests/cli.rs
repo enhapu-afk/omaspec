@@ -1183,6 +1183,52 @@ fn a_play_is_written_as_a_gif_that_moves() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// `omaspec coverage --river` draws the picture as a trace river: the
+/// ways as wide as taken, where a trace left the machine said in red.
+#[test]
+fn coverage_draws_a_trace_river() {
+    let dir = scratch("river");
+    let door = dir.join("door.puml");
+    fs::write(
+        &door,
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\n@enduml\n",
+    )
+    .unwrap();
+    let trace = dir.join("night.jsonl");
+    fs::write(
+        &trace,
+        "{\"object\":\"Door\",\"event\":\"open\"}\n{\"object\":\"Door\",\"event\":\"lock\"}\n",
+    )
+    .unwrap();
+    let svg = dir.join("river.svg");
+    let out = omaspec(&[
+        "coverage",
+        door.to_str().unwrap(),
+        "--traces",
+        trace.to_str().unwrap(),
+        "--river",
+        "-o",
+        svg.to_str().unwrap(),
+    ]);
+    let picture = fs::read_to_string(&svg).unwrap_or_default();
+    assert!(
+        picture.contains("trace left the machine here"),
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    // Without a picture there is no river to draw.
+    let out = omaspec(&[
+        "coverage",
+        door.to_str().unwrap(),
+        "--traces",
+        trace.to_str().unwrap(),
+        "--river",
+    ]);
+    assert!(!out.status.success());
+    let _ = fs::remove_dir_all(&dir);
+}
+
 /// `omaspec orbit` draws a state machine's life cycle on a ring, the SVG
 /// on standard output or a picture; a scenario has none.
 #[test]

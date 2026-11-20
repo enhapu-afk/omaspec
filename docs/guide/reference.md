@@ -670,6 +670,9 @@ and each transition never taken as `file:line`. `-o player-cov.svg` (or `.png`, 
 draws the machine with what was taken bold in green, how often after its label, and what
 never was dashed in red; the source stays as it is. `--json` gives the hits of every
 transition and state, and `--min 80` fails below that share of transitions, for CI.
+With `--river` the picture is a trace river: each way as wide as it was taken against the
+way taken most, those never taken thin and dashed, and where traces left the machine a note
+in red at the state they left from.
 Where a trace leaves open which way an object went, every way it could have gone counts.
 In the editor, *Coverage of the recorded traces* (Diagram) draws the same over the state
 machine on screen, from the traces in its project folder, while it is edited and while a
@@ -720,6 +723,7 @@ omaspec lint --strict --json a.mmd  # warnings fail too, and a diagram only Java
 omaspec trace run.jsonl             # a recorded trace against the state machines of its project; --project, --json
 omaspec trace run.jsonl --as timing -o run.svg   # the trace as a timing diagram; without -o its PlantUML source
 omaspec coverage door.puml --traces a.jsonl,b.jsonl -o door-cov.svg   # what the traces take of the machine; --json, --min 80
+omaspec coverage order.puml --traces week.jsonl --river -o river.svg  # as a trace river: each way as wide as taken, where traces left the machine in red
 omaspec diff old.puml door.puml -o door-diff.svg   # a state machine's changes drawn over its new version
 omaspec matrix door.puml            # the machine as a table, states down, events across; -o door.md or door.svg, --json
 omaspec orbit order.puml -o order.svg   # the machine's life cycle on a ring: a way on along it, a way back inside it; .png, .pdf, the SVG on standard output without -o

@@ -909,6 +909,7 @@ fn coverage(args: &Args) -> Result<Answer> {
         output: output.as_deref(),
         json: true,
         min,
+        river: false,
     })?;
     Ok(Answer::data(serde_json::to_value(report)?))
 }

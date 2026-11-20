@@ -26,6 +26,9 @@ pub struct Coverage {
     /// Lines the machine cannot take as written: where the check finds a
     /// deviation (an error, not what it only notes).
     pub deviations: usize,
+    /// By state: how often a trace left the machine there, the object in
+    /// that state when its line deviated.
+    pub left: Vec<u32>,
 }
 
 impl Coverage {
@@ -82,7 +85,26 @@ impl Coverage {
                 "{covered} of {total} transitions taken ({:.0} %)",
                 share(covered, total)
             )),
+            river: false,
+            left: Vec::new(),
         }
+    }
+
+    /// [`Self::marks`] as a trace river: each way as wide as it was
+    /// taken, and where traces left the machine, at the state they left
+    /// from, said in red.
+    pub fn river(&self, spec: &Spec) -> omaspec_uml::state::Marks {
+        let mut marks = self.marks(spec);
+        marks.river = true;
+        let m = &spec.machine;
+        marks.left = self
+            .left
+            .iter()
+            .enumerate()
+            .filter(|&(s, &times)| times > 0 && m.states[s].kind == Kind::State)
+            .map(|(s, &times)| (m.states[s].name.clone(), times))
+            .collect();
+        marks
     }
 
     /// The same for the states that have a name (not a start, an end, a
@@ -110,6 +132,7 @@ pub fn coverage(spec: &Spec, traces: &[&str]) -> Coverage {
     let mut out = Coverage {
         transitions: vec![0; spec.machine.transitions.len()],
         states: vec![0; spec.machine.states.len()],
+        left: vec![0; spec.machine.states.len()],
         ..Coverage::default()
     };
     for trace in traces {
@@ -148,6 +171,17 @@ mod tests {
         );
         assert_eq!(cov.objects, ["Door", "Gate"]);
         assert_eq!(cov.deviations, 1, "unlock where the door is open");
+        let open = spec
+            .machine
+            .states
+            .iter()
+            .position(|s| s.name == "Open")
+            .unwrap();
+        assert_eq!(cov.left[open], 1, "it left the machine at Open");
+        // As a river: the ways as wide as taken, and where it left.
+        let river = cov.river(&spec);
+        assert!(river.river);
+        assert_eq!(river.left, [("Open".to_owned(), 1)]);
         assert_eq!(cov.transitions_covered(), (3, 5));
         assert_eq!(cov.states_covered(&spec), (2, 3));
         let state = |name: &str| {

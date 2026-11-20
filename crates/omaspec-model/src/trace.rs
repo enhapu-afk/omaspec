@@ -621,6 +621,9 @@ pub(crate) fn cover(trace: &str, spec: &Spec, cov: &mut crate::Coverage) {
             Object::new(spec)
         });
         let fresh = object.started.is_empty();
+        // Where it is before the line: where it leaves the machine, should
+        // the line deviate.
+        let before = object.at();
         let outcome = object.follow(&entry);
         if fresh {
             for step in &object.started {
@@ -648,6 +651,17 @@ pub(crate) fn cover(trace: &str, spec: &Spec, cov: &mut crate::Coverage) {
         }
         if outcome.deviated {
             cov.deviations += 1;
+            // Its first line: where it began.
+            let before = if before.is_empty() {
+                object.begins.clone()
+            } else {
+                before
+            };
+            for &state in &before {
+                if let Some(left) = cov.left.get_mut(state) {
+                    *left += 1;
+                }
+            }
         }
     }
     // Where the trace ends, every way it may have gone counts.
