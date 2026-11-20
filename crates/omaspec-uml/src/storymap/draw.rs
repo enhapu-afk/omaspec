@@ -82,6 +82,10 @@ struct Column<'a> {
     step: Option<&'a Step>,
 }
 
+/// The stories of one band in one column, top down: each one's words as
+/// written, which its hand is drawn by, and as measured.
+type Stack<'a> = Vec<(&'a str, Block)>;
+
 /// The fonts of the cards, each in a color that reads on its fill.
 struct Fonts {
     activity: Font,
@@ -108,7 +112,8 @@ impl Fonts {
             }
             .bold(),
             story: Font {
-                color: skin.ink_on(skin.note),
+                size: skin.story_size.unwrap_or(label.size),
+                color: skin.story_color.unwrap_or_else(|| skin.ink_on(skin.note)),
                 ..label
             },
             name: label.bold(),
@@ -218,7 +223,7 @@ fn paint(
         top
     };
     let first_band = bands_top;
-    let mut laid: Vec<(f32, f32, Vec<Vec<Block>>)> = Vec::new();
+    let mut laid: Vec<(f32, f32, Vec<Stack>)> = Vec::new();
     for slice in &slices {
         let mut stacks = Vec::new();
         let mut fullest: f32 = 0.0;
@@ -231,7 +236,7 @@ fn paint(
                 }
                 let words = wrap(&story.text, fonts.story, family, inner, story.line)?;
                 height += words.height + 2.0 * PAD + GAP;
-                stack.push(words.written_on(story.line));
+                stack.push((story.text.as_str(), words.written_on(story.line)));
             }
             fullest = fullest.max(height - GAP);
             stacks.push(stack);
@@ -329,10 +334,11 @@ fn paint(
         }
         for (c, stack) in columns.iter().zip(stacks) {
             let mut at = y + BAND_PAD;
-            for words in stack {
+            for (text, words) in stack {
                 let h = words.height + 2.0 * PAD;
-                let line = words.written.map_or(0, |w| w.line);
-                canvas.named(&format!("story {line}"), |canvas| {
+                // Seeded by its words, not its line: a line written above
+                // it does not redraw its hand (docs/adr/0023).
+                canvas.named(&format!("story {text}"), |canvas| {
                     canvas.rect(
                         Layer::Bars,
                         (c.x, at, column, h),

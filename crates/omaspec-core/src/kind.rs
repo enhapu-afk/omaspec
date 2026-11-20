@@ -132,8 +132,6 @@ fn before_label(line: &str) -> String {
     }
 }
 
-/// The word after `@start` in a PlantUML diagram, in lowercase: `uml`,
-/// `mindmap`, `salt`, … Empty without a start line.
 /// The `@start…` blocks of Omaspec's own syntax, which PlantUML does not
 /// know: a line Omaspec declines is not sent to the Java PlantUML, and
 /// lint says that no other tool draws them.
@@ -144,6 +142,8 @@ pub fn own_block(code: &str) -> bool {
     OWN_BLOCKS.contains(&plantuml_block(code).as_str())
 }
 
+/// The word after `@start` in a PlantUML diagram, in lowercase: `uml`,
+/// `mindmap`, `salt`, … Empty without a start line.
 pub fn plantuml_block(code: &str) -> String {
     block_of(&significant_lines(code, usize::MAX))
 }

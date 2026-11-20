@@ -44,6 +44,11 @@ impl Text {
     }
 }
 
+/// The line of what no line of the source writes: marks laid over a
+/// diagram (a transition that went, where traces left a machine). Its
+/// words are tied to no line ([`crate::svg::Canvas::tie`]).
+pub const NO_LINE: usize = usize::MAX;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Skinparam {
     /// As written; a block's name and its line's name joined

@@ -736,11 +736,13 @@ impl Canvas {
         if block.is_empty() {
             return;
         }
-        // What the drawer said, or what the words say of themselves.
+        // What the drawer said, or what the words say of themselves; words
+        // no line writes ([`crate::NO_LINE`]) are tied to none.
         let tie = self
             .tie
             .map(|line| crate::text::Written { line, col: None })
-            .or(block.written);
+            .or(block.written)
+            .filter(|written| written.line != crate::NO_LINE);
         if self.echo || tie.is_some() {
             let left = match align {
                 Align::Left => x,

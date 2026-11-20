@@ -124,7 +124,8 @@ impl Story {
             *self = Story::Activity;
             0
         } else if re!(r"(?i)^release\b").is_match(line) {
-            *self = Story::Top;
+            // A release between two stories leaves the step they stand
+            // under, as the reader does.
             0
         } else if re!(r"(?i)^step\b").is_match(line) {
             *self = Story::Step;
@@ -381,6 +382,11 @@ mod tests {
         let want = "@startstorymap\ntitle Shop\nrelease MVP\nactivity Find\n  * Browse\n  step Search\n    * By title : MVP\n    ' later\n\nactivity Buy\n  step Pay\n@endstorymap\n";
         assert_eq!(format(code, Language::PlantUml), want);
         assert_eq!(format(want, Language::PlantUml), want);
+        // A release written amid the stories: the next one is still its
+        // step's.
+        let code = "@startstorymap\nactivity Find\nstep Search\nrelease MVP\n* By title : MVP\n@endstorymap";
+        let want = "@startstorymap\nactivity Find\n  step Search\nrelease MVP\n    * By title : MVP\n@endstorymap";
+        assert_eq!(format(code, Language::PlantUml), want);
     }
 
     #[test]

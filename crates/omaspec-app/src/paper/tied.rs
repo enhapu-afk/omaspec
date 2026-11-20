@@ -71,9 +71,11 @@ impl Copies {
             return None;
         };
         let on = |row: usize| self.written.binary_search_by_key(&row, |(at, _)| *at).ok();
-        on(line)
-            .map(|at| (at, col))
-            .or_else(|| (line + 1..=line + span).find_map(on).map(|at| (at, None)))
+        on(line).map(|at| (at, col)).or_else(|| {
+            (line.saturating_add(1)..=line.saturating_add(span))
+                .find_map(on)
+                .map(|at| (at, None))
+        })
     }
 
     /// Which writing each tied copy is. One that gives its byte takes

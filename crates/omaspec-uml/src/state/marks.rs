@@ -280,11 +280,11 @@ impl Diagram {
                 .label
                 .as_ref()
                 .filter(|label| !label.is_empty())
-                .map(|label| text_at(&format!("--{label}--"), usize::MAX)),
+                .map(|label| text_at(&format!("--{label}--"), crate::NO_LINE)),
             color: Some(MISSED.to_owned()),
             dash: Dash::Dashed,
             bold: false,
-            line: usize::MAX,
+            line: crate::NO_LINE,
             label_before: None,
             toward: None,
             weight: None,
@@ -308,7 +308,6 @@ impl Diagram {
     }
 }
 
-/// The path to the state called `name`, by the indices of its containers.
 /// A trace river's ways: each taken one as wide as how often against the
 /// one taken most (`most`), up to five times an arrow; one never taken
 /// thin.
@@ -340,7 +339,8 @@ impl Diagram {
             return;
         };
         let container = container_at(&mut self.root, around);
-        let line = container.nodes[index].line;
+        // No line writes it: the marks lay it over the diagram.
+        let line = crate::NO_LINE;
         let said = match times {
             1 => "✕ 1 trace left the machine here".to_owned(),
             n => format!("✕ {n} traces left the machine here"),
@@ -354,6 +354,7 @@ impl Diagram {
     }
 }
 
+/// The path to the state called `name`, by the indices of its containers.
 fn path_of(container: &Container, name: &str) -> Option<Vec<usize>> {
     for (index, node) in container.nodes.iter().enumerate() {
         if node.key == name && !matches!(node.kind, Kind::Start | Kind::End | Kind::Region) {
@@ -377,6 +378,7 @@ fn container_at<'a>(container: &'a mut Container, path: &[usize]) -> &'a mut Con
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::color::{Color, parse};
 
     /// A river's marks are written as lines and read back: each way as
     /// wide as how often against the one taken most, where traces left as
@@ -416,8 +418,19 @@ mod tests {
                 .iter()
                 .any(|n| n.text.value.contains("2 traces left the machine here"))
         );
+        // The note is laid over the diagram: no line writes it, so it is
+        // tied to none, not to the line that first names Open, whose only
+        // words are the transition's label.
+        let (svg, map) = crate::render_mapped(&source, None).unwrap();
+        assert!(svg.contains("2 traces left the machine here"), "{svg}");
+        assert!(map.tied.iter().all(|t| t.line != crate::NO_LINE));
+        assert_eq!(
+            map.tied.iter().filter(|t| t.line == 2).count(),
+            1,
+            "{:?}",
+            map.tied
+        );
     }
-    use crate::color::{Color, parse};
 
     const DOOR: &str = "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
 

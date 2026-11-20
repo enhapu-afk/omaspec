@@ -32,6 +32,10 @@ pub struct Skin {
     /// A story's fill and border.
     pub note: Color,
     pub note_border: Color,
+    /// A story's words where the file sets them (`NoteFontColor`,
+    /// `NoteFontSize`); else the ink that reads on the note.
+    pub story_color: Option<Color>,
+    pub story_size: Option<f32>,
     pub title: Font,
     pub header: Font,
     pub footer: Font,
@@ -56,6 +60,8 @@ impl Default for Skin {
             card_border: line,
             note: Color::hex(0xFEFFDD),
             note_border: line,
+            story_color: None,
+            story_size: None,
             title: Font::new(14.0, black).bold(),
             header: Font::new(10.0, gray),
             footer: Font::new(10.0, gray),
@@ -104,6 +110,15 @@ impl Skin {
                 }
                 "notebackgroundcolor" => skin.note = p.solid()?,
                 "notebordercolor" => skin.note_border = p.solid()?,
+                "notefontcolor" => skin.story_color = Some(p.solid()?),
+                "notefontsize" => skin.story_size = Some(p.number(4.0, 100.0)?),
+                // The map has no arrow heads for strict UML to open; the
+                // spec pack writes it for every type.
+                "style" => {
+                    if !value.eq_ignore_ascii_case("strictuml") {
+                        return Err(p.unsupported());
+                    }
+                }
                 "titlefontsize" => {
                     skin.title.size = p.number(4.0, 100.0)?;
                     owned.title = true;
@@ -249,5 +264,18 @@ mod tests {
         assert!(on.contrast(olive) >= 4.5, "{on}");
         let err = Skin::from_params(&[param("FooColor", "red")]).unwrap_err();
         assert!(err.reason.contains("not supported"), "{}", err.reason);
+        // The spec pack's strict UML draws the map as it is; a story's
+        // words take the note's font where the file gives one.
+        let spec = Skin::from_params(&[
+            param("style", "strictuml"),
+            param("NoteFontColor", "#aa0000"),
+            param("NoteFontSize", "11"),
+        ])
+        .unwrap();
+        assert_eq!(
+            (spec.story_color, spec.story_size),
+            (Some(Color::hex(0xaa0000)), Some(11.0))
+        );
+        assert!(Skin::from_params(&[param("style", "rose")]).is_err());
     }
 }

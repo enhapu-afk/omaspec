@@ -345,9 +345,13 @@ fn flow_line(b: &mut Builder, row: usize, l: &str) {
 
 /// A story map's releases and activities, its steps under them.
 fn story_line(b: &mut Builder, row: usize, l: &str) {
-    if let Some(c) = re!(r#"(?i)^(activity|release)\s+(?:"([^"]*)"|([^:]+))"#).captures(l) {
-        let name = c.get(2).or(c.get(3)).map_or("", |m| m.as_str());
-        b.add_at(row, &c[1].to_lowercase(), label(name), 0);
+    // A release's name ends at its first colon; an activity's is the
+    // whole line, as the reader takes them.
+    if let Some(c) = re!(r#"(?i)^release\s+(?:"([^"]*)"|([^:]+))"#).captures(l) {
+        let name = c.get(1).or(c.get(2)).map_or("", |m| m.as_str());
+        b.add_at(row, "release", label(name), 0);
+    } else if let Some(c) = re!(r"(?i)^activity\s+(.+)$").captures(l) {
+        b.add_at(row, "activity", label(&c[1]), 0);
     } else if let Some(c) = re!(r"(?i)^step\s+(.+)$").captures(l) {
         b.add_at(row, "step", label(&c[1]), 1);
     }
@@ -768,12 +772,12 @@ mod tests {
 
     #[test]
     fn a_story_map_lists_its_releases_activities_and_steps() {
-        let code = "@startstorymap\nrelease MVP : the first sale\nactivity Find a book\n  step Search\n    * By title : MVP\n@endstorymap";
+        let code = "@startstorymap\nrelease MVP : the first sale\nactivity Find a book: or two\n  step Search\n    * By title : MVP\n@endstorymap";
         assert_eq!(
             tags(code, Language::PlantUml),
             [
                 e(1, 0, "release", "MVP"),
-                e(2, 0, "activity", "Find a book"),
+                e(2, 0, "activity", "Find a book: or two"),
                 e(3, 1, "step", "Search")
             ]
         );

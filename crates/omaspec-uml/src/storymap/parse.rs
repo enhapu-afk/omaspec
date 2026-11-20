@@ -89,6 +89,12 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
             if words.is_empty() {
                 return Err(Declined::refused(no, "a story needs words"));
             }
+            if release.is_some_and(|r| unquote(r).is_empty()) {
+                return Err(Declined::refused(
+                    no,
+                    "a story's colon names no release: write one after it, or put a story with a colon of its own in quotes",
+                ));
+            }
             // Stories before the activity's first step stand in a column
             // of their own, without a step.
             if activity.steps.is_empty() {
@@ -270,6 +276,9 @@ mod tests {
         assert!(reason.contains("no line of a story map"), "{reason}");
         let (_, reason) = refused("activity");
         assert!(reason.contains("needs a name"), "{reason}");
+        let (line, reason) = refused("release MVP\nactivity Buy\n* Pay :");
+        assert_eq!(line, Some(3));
+        assert!(reason.contains("names no release"), "{reason}");
     }
 
     #[test]

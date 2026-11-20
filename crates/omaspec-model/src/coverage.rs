@@ -182,6 +182,19 @@ mod tests {
         let river = cov.river(&spec);
         assert!(river.river);
         assert_eq!(river.left, [("Open".to_owned(), 1)]);
+        // Lost since, it leaves nowhere again, least of all where it
+        // began; one that deviates on its first line left where it began.
+        let lost = format!("{day}{{\"object\":\"Door\",\"state\":\"Nowhere\"}}\n");
+        let first = "{\"object\":\"Door\",\"event\":\"close\"}\n";
+        let again = coverage(&spec, &[&lost, first]);
+        assert_eq!(again.deviations, 3);
+        let closed = spec
+            .machine
+            .states
+            .iter()
+            .position(|s| s.name == "Closed")
+            .unwrap();
+        assert_eq!((again.left[open], again.left[closed]), (1, 1));
         assert_eq!(cov.transitions_covered(), (3, 5));
         assert_eq!(cov.states_covered(&spec), (2, 3));
         let state = |name: &str| {

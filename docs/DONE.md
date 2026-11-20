@@ -2897,6 +2897,16 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the trace river and the story map found (2026-11-20). A
+      story map draws in the spec pack (`style strictuml`), its stories take
+      `NoteFontColor` and `NoteFontSize`, a story ending in a colon is refused as
+      naming no release, and drawn by hand its cards keep their strokes when lines are
+      added above them. `fmt` keeps a story under its step past a release written
+      between them, and the outline shows an activity's whole name. A trace river puts
+      a deviation at the state an object began in only for its first line, not for one
+      no longer followed. Words no line of the source writes (where traces left a
+      machine, a transition that went) are tied to no line (`NO_LINE`), and a pane
+      counting the lines of tied words cannot run past the last
 - [x] Story map (2026-11-20, [ADR 0034](adr/0034-a-story-map-of-its-own.md)):
       `@startstorymap`, Omaspec's own: activities across the top, the steps of each
       under it, the stories under each step (`* By card : MVP`) in the release they go

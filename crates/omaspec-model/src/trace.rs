@@ -651,8 +651,9 @@ pub(crate) fn cover(trace: &str, spec: &Spec, cov: &mut crate::Coverage) {
         }
         if outcome.deviated {
             cov.deviations += 1;
-            // Its first line: where it began.
-            let before = if before.is_empty() {
+            // Its first line: where it began. One not followed since an
+            // earlier deviation left the machine there, not here.
+            let before = if before.is_empty() && fresh {
                 object.begins.clone()
             } else {
                 before
