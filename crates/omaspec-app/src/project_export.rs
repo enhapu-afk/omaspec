@@ -125,6 +125,31 @@ pub fn command(dir: &Path, out: Option<&Path>, look: Option<Look>, json: bool) -
     })
 }
 
+/// `omaspec export --html`: the project as one page
+/// ([`crate::editor::site`]); what did not draw is told, and fails it.
+pub fn page(dir: &Path, out: Option<&Path>, look: Option<Look>) -> Result<ExitCode> {
+    let mut renderer = Renderer::new(&crate::commands::render_config());
+    let written = crate::editor::site::write(dir, out, look, &mut renderer)?;
+    for (file, why) in &written.failed {
+        eprintln!("{}: error: {why}", dir.join(file).display());
+    }
+    eprintln!(
+        "{} {} → {} (a page in vectors: a click on a tile goes in, Escape back out)",
+        written.pictures,
+        if written.pictures == 1 {
+            "picture"
+        } else {
+            "pictures"
+        },
+        written.page.display()
+    );
+    Ok(if written.failed.is_empty() {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    })
+}
+
 /// The diagrams written, as objects in the JSON report.
 fn pairs<S: serde::Serializer>(pairs: &[(String, String)], s: S) -> Result<S::Ok, S::Error> {
     #[derive(Serialize)]
@@ -165,7 +190,7 @@ pub fn export(
     );
     let files: Vec<&str> = atlas.diagrams.iter().map(|e| e.file.as_str()).collect();
     let targets = targets(&files)?;
-    let name = zip_name(atlas.name.as_deref(), &root);
+    let name = export_name(atlas.name.as_deref(), &root);
     // `look`, else the one the project pins.
     let skin = crate::look::skin_for(look, Some(&root))?;
     let atlas = Arc::new(atlas);
@@ -312,7 +337,9 @@ fn targets(files: &[&str]) -> Result<Vec<String>> {
 
 /// The ZIP's name: the project's, else its folder's, with nothing in it
 /// that a file name cannot hold.
-fn zip_name(name: Option<&str>, root: &Path) -> String {
+/// What an export of the project at `root` is called: its name, else its
+/// folder's, without what a file's name may not hold.
+pub(crate) fn export_name(name: Option<&str>, root: &Path) -> String {
     let folder = root.file_name().map(|n| n.to_string_lossy().into_owned());
     let name = name.map(str::to_owned).or(folder).unwrap_or_default();
     let clean: String = name
@@ -365,8 +392,11 @@ mod tests {
     #[test]
     fn the_zip_is_named_after_the_project() {
         let root = Path::new("/work/shop-specs");
-        assert_eq!(zip_name(Some("Shop: orders/pay"), root), "Shop- orders-pay");
-        assert_eq!(zip_name(None, root), "shop-specs");
-        assert_eq!(zip_name(Some(" .. "), root), "project");
+        assert_eq!(
+            export_name(Some("Shop: orders/pay"), root),
+            "Shop- orders-pay"
+        );
+        assert_eq!(export_name(None, root), "shop-specs");
+        assert_eq!(export_name(Some(" .. "), root), "project");
     }
 }

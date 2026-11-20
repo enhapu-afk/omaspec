@@ -2897,6 +2897,17 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] The project as one page (2026-11-20): `omaspec export DIR --html` writes
+      `<project>.html`: the map, and a click on a tile, or on a state that opens a
+      diagram of its own, zooms into what it opens as the editor dives into it, a light
+      around the hop under the pointer; Escape, ←, Backspace or a name in the trail
+      zooms back out, Home to the map, F full screen. Every picture the map leads to is
+      in it once (`editor/site.rs`, from the map along the links, a link that names
+      several diagrams going nowhere as in the window), in the export's look, the page
+      dark with the viewer's scheme in `--look auto`; the address says where the camera
+      is (`#Day/Order`), and less motion changes the pictures without the zoom
+      (`export::project`, the camera shared with the flight's page in `zoom.js`). A
+      diagram that does not draw is told and fails the export
 - [x] Presenter mode (2026-11-20): Shift+F5 (*Present the diagram*) shows the diagram full
       screen in a window of its own (`omaspec-preview`) and plays it, and the editor's
       window becomes the speaker's: the time since the start, where the play is (a

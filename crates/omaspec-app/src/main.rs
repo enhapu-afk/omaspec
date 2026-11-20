@@ -646,6 +646,11 @@ enum Command {
         /// Print a JSON report on stdout instead of status lines.
         #[arg(long)]
         json: bool,
+        /// Instead of SVGs: the project as one page, its map, a click on
+        /// a tile or a linked state zooming into what it opens and back
+        /// out, every diagram the map leads to inside.
+        #[arg(long, conflicts_with = "json")]
+        html: bool,
     },
     /// Serve the checks, formatting and rendering to an AI agent over the
     /// Model Context Protocol.
@@ -1019,7 +1024,15 @@ fn main() -> ExitCode {
             dir,
             output,
             look,
+            json: _,
+            html: true,
+        }) => project_export::page(&dir, output.as_deref(), look),
+        Some(Command::Export {
+            dir,
+            output,
+            look,
             json,
+            html: _,
         }) => project_export::command(&dir, output.as_deref(), look, json),
         Some(Command::Mcp) => mcp::run(),
         Some(Command::Example { name, json }) => commands::example(name.as_deref(), json),

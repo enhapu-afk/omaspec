@@ -12,6 +12,7 @@ mod glyphs;
 pub mod ink;
 pub mod lockstep;
 mod present;
+pub mod project;
 pub mod sweep;
 mod tiles;
 pub mod traffic;

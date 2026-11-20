@@ -11,6 +11,8 @@ use serde_json::{Value, json};
 use super::{ExportError, Source};
 
 const SCRIPT: &str = include_str!("flight.js");
+/// The camera both pages of a project fly with ([`super::project`]).
+pub(super) const ZOOM: &str = include_str!("zoom.js");
 
 /// What a page of flights plays.
 #[derive(Debug, Clone)]
@@ -47,8 +49,54 @@ pub struct Step {
 /// ids and no style sheet of its own, the faces once; only the source is
 /// written after.
 pub fn page(flight: &Flight, source: Option<Source>, title: &str) -> Result<String, ExportError> {
-    let plain: Vec<String> = flight
-        .pictures
+    let pictures = pictures_of(&flight.pictures, source)?;
+    let mut out = String::with_capacity(pictures.len() + SCRIPT.len() + 4096);
+    out.push_str(&head(title));
+    out.push_str(&format!(
+        "<style>\nhtml, body {{ margin: 0; height: 100%; background: {}; color: {}; }}\n\
+         #flight {{ position: relative; height: 100%; overflow: hidden; cursor: pointer; font: 14px/20px system-ui, sans-serif; }}\n\
+         #flight .picture {{ position: absolute; visibility: hidden; transform-origin: 0 0; }}\n\
+         #flight .picture > svg {{ display: block; width: 100%; height: 100%; }}\n\
+         #trail {{ position: absolute; z-index: 3; left: 14px; bottom: 10px; opacity: 0.8; }}\n</style>\n",
+        flight.paper, flight.ink
+    ));
+    out.push_str("</head>\n<body>\n<main id=\"flight\">\n");
+    out.push_str(&pictures);
+    out.push_str("<div id=\"trail\"></div>\n</main>\n");
+    out.push_str(&format!(
+        "<script type=\"application/json\" id=\"play\">{}</script>\n",
+        data(flight).to_string().replace('<', "\\u003c")
+    ));
+    out.push_str(&format!(
+        "<script>\n{ZOOM}{SCRIPT}</script>\n</body>\n</html>\n"
+    ));
+    Ok(out)
+}
+
+/// The start of a page called `title` that fetches nothing, up to its
+/// style.
+pub(super) fn head(title: &str) -> String {
+    let mut out =
+        String::from("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
+    // Nothing from anywhere: what the page shows is in it.
+    out.push_str(
+        "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; \
+         script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:\">\n",
+    );
+    out.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
+    out.push_str("<meta name=\"generator\" content=\"Omaspec\">\n");
+    out.push_str(&format!("<title>{}</title>\n", escape(title)));
+    out
+}
+
+/// `pictures`, each in a `div` of its own with its index: sanitized, each
+/// with ids and no style sheet of its own, the faces once; `source`,
+/// where there is one, in the first, written after.
+pub(super) fn pictures_of(
+    pictures: &[Picture],
+    source: Option<Source>,
+) -> Result<String, ExportError> {
+    let plain: Vec<String> = pictures
         .iter()
         .map(|p| crate::atlas::without_styles(&p.svg))
         .collect();
@@ -70,33 +118,7 @@ pub fn page(flight: &Flight, source: Option<Source>, title: &str) -> Result<Stri
             "<div class=\"picture\" data-picture=\"{at}\">{svg}</div>\n"
         ));
     }
-    let mut out = String::with_capacity(pictures.len() + SCRIPT.len() + 4096);
-    out.push_str("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n");
-    // Nothing from anywhere: what the page shows is in it.
-    out.push_str(
-        "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; \
-         script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:\">\n",
-    );
-    out.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
-    out.push_str("<meta name=\"generator\" content=\"Omaspec\">\n");
-    out.push_str(&format!("<title>{}</title>\n", escape(title)));
-    out.push_str(&format!(
-        "<style>\nhtml, body {{ margin: 0; height: 100%; background: {}; color: {}; }}\n\
-         #flight {{ position: relative; height: 100%; overflow: hidden; cursor: pointer; font: 14px/20px system-ui, sans-serif; }}\n\
-         #flight .picture {{ position: absolute; visibility: hidden; transform-origin: 0 0; }}\n\
-         #flight .picture > svg {{ display: block; width: 100%; height: 100%; }}\n\
-         #trail {{ position: absolute; z-index: 3; left: 14px; bottom: 10px; opacity: 0.8; }}\n</style>\n",
-        flight.paper, flight.ink
-    ));
-    out.push_str("</head>\n<body>\n<main id=\"flight\">\n");
-    out.push_str(&pictures);
-    out.push_str("<div id=\"trail\"></div>\n</main>\n");
-    out.push_str(&format!(
-        "<script type=\"application/json\" id=\"play\">{}</script>\n",
-        data(flight).to_string().replace('<', "\\u003c")
-    ));
-    out.push_str(&format!("<script>\n{SCRIPT}</script>\n</body>\n</html>\n"));
-    Ok(out)
+    Ok(pictures)
 }
 
 fn data(flight: &Flight) -> Value {
@@ -119,7 +141,7 @@ fn round(value: f32) -> f64 {
 }
 
 /// `text` for HTML: `&`, `<`, `>` and `"` written as entities.
-fn escape(text: &str) -> String {
+pub(super) fn escape(text: &str) -> String {
     text.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")

@@ -62,6 +62,7 @@ mod reveal;
 mod screen;
 mod search;
 mod session;
+pub(crate) mod site;
 mod sweep;
 mod syntax;
 pub mod table;

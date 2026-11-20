@@ -16,16 +16,7 @@
   const OUT = 1.3;
   const STAY = 1.0;
   const MARGIN = 14;
-  const clamp = (t) => Math.min(1, Math.max(0, t));
-  const ease = (t) => {
-    const s = clamp(t);
-    return s < 0.5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2;
-  };
-  // A picture of `size` as large as fits `room`, in its middle.
-  const fit = ([w, h], [x, y, rw, rh]) => {
-    const k = Math.min(rw / Math.max(w, 1e-3), rh / Math.max(h, 1e-3));
-    return [x + (rw - w * k) / 2, y + (rh - h * k) / 2, w * k, h * k];
-  };
+  const { clamp, ease, fit } = Zoom;
   const view = () => {
     const box = stage.getBoundingClientRect();
     return [MARGIN, MARGIN, box.width - 2 * MARGIN, box.height - 2 * MARGIN - 20];
@@ -60,24 +51,8 @@
   const length = clock;
   // Where the two pictures of `step` lie when the zoom has come `k` of
   // its way in.
-  const zoom = (step, k) => {
-    const stageRoom = view();
-    const a = data.pictures[step.from].size;
-    const b = data.pictures[step.to].size;
-    const aFit = fit(a, stageRoom);
-    const unit = aFit[2] / Math.max(a[0], 1e-3);
-    const room = [aFit[0] + step.room[0] * unit, aFit[1] + step.room[1] * unit, step.room[2] * unit, step.room[3] * unit];
-    const bIn = fit(b, room);
-    const bFit = fit(b, stageRoom);
-    const grow = bFit[2] / Math.max(bIn[2], 1e-3);
-    // The point the zoom keeps where it is.
-    const fixed = (at, to) => (Math.abs(grow - 1) < 1e-6 ? at : (to - at * grow) / (1 - grow));
-    const px = fixed(bIn[0], bFit[0]);
-    const py = fixed(bIn[1], bFit[1]);
-    const c = Math.pow(grow, k);
-    const moved = ([x, y, w, h]) => [px + (x - px) * c, py + (y - py) * c, w * c, h * c];
-    return { a: moved(aFit), b: moved(bIn) };
-  };
+  const zoom = (step, k) =>
+    Zoom.between(data.pictures[step.from].size, data.pictures[step.to].size, step.room, view(), k);
   const draw = (t) => {
     const time = ((t % length) + length) % length;
     pictures.forEach((_, i) => place(i, [0, 0, 0, 0], 0, 0));

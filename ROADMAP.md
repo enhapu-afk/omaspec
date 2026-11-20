@@ -613,9 +613,6 @@ the one before:
       page was looked at in Chromium alone, not in Firefox or Safari; in
       the page a box that changes its size is stretched (its words are
       not), where the pane keeps its corners.
-- [ ] The project as an interactive page: its map, a click zooming into
-      a tile as the editor dives into it, and back out, every diagram
-      inside; `omaspec export --html`.
 
 ### Long and large diagrams, readable (2026-11-16)
 

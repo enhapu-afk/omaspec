@@ -610,6 +610,15 @@ Mermaid's `click A href "url"` or a class's `link`; a callback is left out. A di
 that does not draw is named and left out; nothing is written outside the folder, and an
 SVG an earlier export left there stays.
 
+`omaspec export DIR --html` writes the project as one page instead, `<project>.html` in
+the same folder: its map, and a click on a tile, or on a state that opens a diagram of its
+own, zooms into what it opens as the editor dives into it; Escape, ← or a name in the
+trail at the foot zooms back out, Home goes back to the map, F shows it full screen. Every
+diagram the map leads to is in the page, once, in vectors and sharp at any size, in the
+export's look (with `--look auto` the page turns dark with the viewer's scheme). The
+address says where the camera is, so `cafe.html#Day/Order` opens there; with less motion
+asked for, the pictures change without the zoom. The page fetches nothing.
+
 ### Session
 
 The window keeps its session in `~/.local/state/omaspec/` (readable by you only): open
@@ -800,6 +809,7 @@ omaspec render .                    # every diagram of the folder, each beside i
 omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1
 omaspec check ~/specs/shop          # lint, the machines, the links and render --check; --strict, --json, --github
 omaspec export ~/specs/shop         # every diagram as an SVG, linked, the map as index.svg, and shop.zip, in shop/export
+omaspec export ~/specs/shop --html  # the project as one page: the map, a click zooming into a tile and back out, every diagram inside
 omaspec lint README.md              # each plantuml and mermaid block of a Markdown document, on its lines
 omaspec render README.md            # one image per block: README-1.svg, README-2.svg, …
 omaspec extract diagram.png         # the source stored in an exported PNG, SVG or presentation
