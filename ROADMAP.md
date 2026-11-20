@@ -682,9 +682,8 @@ above). Each exports as GIF, WebP and an HTML page, as a play does, and
 gets a gallery example. In this order: the first makes the README's
 picture, the second is the highlight.
 
-- [ ] Lockstep: built as GIF, WebP, PNG and a page (in docs/DONE.md).
-      Left: the lockstep in the window, F5 on a scenario with the
-      machines of its participants opening beside it.
+Done (docs/DONE.md): Lockstep in the window and as GIF, WebP, PNG and a
+page; the time-lapse, traffic, the flight, the theme sweep and the ink.
 
 ## Other desktops, and a face for the mouse (2026-11-08)
 

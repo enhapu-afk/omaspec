@@ -964,6 +964,19 @@ impl Paper {
         Ok(())
     }
 
+    /// Takes `ask` in the play at `at`, which may lie ahead: a machine
+    /// beside a scenario takes its step as the message's light arrives.
+    pub fn play_ask_at(&mut self, ask: Ask, at: Instant) {
+        if let Some(play) = self.play.as_mut().filter(|_| self.leaving.is_none()) {
+            play.ask(ask, at);
+        }
+    }
+
+    /// The moment the play is drawn at.
+    pub fn play_now(&self) -> Instant {
+        self.clock.unwrap_or_else(crate::clock::now)
+    }
+
     /// The scenario that plays runs the light of the messages on `lines`
     /// in the color of what deviates.
     pub fn mark_wrong(&mut self, lines: Vec<usize>) {

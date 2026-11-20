@@ -364,6 +364,24 @@ impl App {
         } else {
             a
         };
+        // The machines beside a scenario that plays, stacked on its right.
+        if let Some(beside) = super::beside::shown(self.beside.as_ref(), key) {
+            let machines = column(beside.panes.iter().map(|pane| {
+                let key = pane.key;
+                container(
+                    pane.paper
+                        .view(&self.palette, self.font, true)
+                        .map(move |m| Message::Paper(key, m)),
+                )
+                .width(Length::Fill)
+                .height(Length::FillPortion(1))
+                .into()
+            }))
+            .spacing(1)
+            .width(Length::FillPortion(2));
+            let a = container(a).width(Length::FillPortion(3));
+            return row![a, machines].spacing(1).into();
+        }
         let Some(c) = self.compare.as_ref().filter(|c| c.a == key) else {
             return a;
         };

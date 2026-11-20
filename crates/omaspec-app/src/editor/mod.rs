@@ -31,6 +31,7 @@
 mod anchored;
 mod animate;
 mod assist;
+mod beside;
 mod building;
 pub(crate) mod compare;
 mod dialogs;
@@ -657,6 +658,9 @@ struct App {
     /// The state machines of each project folder an open diagram is in,
     /// which sequence diagrams are checked against.
     specs: HashMap<PathBuf, Arc<Specs>>,
+    /// The machines of the participants beside a scenario that plays
+    /// ([`beside`]).
+    beside: Option<beside::Beside>,
     /// All diagrams of each such project folder, which maps show and
     /// states link to; and the same in the diagram's colors.
     atlases: HashMap<PathBuf, Arc<omaspec_render::Atlas>>,
@@ -809,6 +813,7 @@ impl App {
             open_dirs: HashSet::new(),
             tree: HashMap::new(),
             specs: HashMap::new(),
+            beside: None,
             atlases: HashMap::new(),
             themed_atlases: HashMap::new(),
             indexes: HashMap::new(),
@@ -1093,6 +1098,7 @@ impl App {
             Message::Editor(key, event) => self.editor_event(key, event),
             Message::Worker(event) => self.worker_event(event),
             Message::Paper(compare::KEY, message) => self.compare_paper(message),
+            Message::Paper(key, message) if App::is_beside(key) => self.beside_paper(key, message),
             Message::Paper(key, paper::Message::Pick(at)) => self.pick_in_diagram(key, at),
             Message::Paper(key, paper::Message::Follow(at)) => self.follow_link(key, at),
             Message::Paper(key, paper::Message::Context(at, in_window)) => {
@@ -1447,6 +1453,9 @@ impl App {
                 let mut answer = *answer;
                 self.untangle(&mut answer);
                 let key = answer.ticket.doc;
+                if App::is_beside(key) {
+                    return self.beside_rendered(key, answer);
+                }
                 if key == compare::KEY {
                     if let Some(c) = &mut self.compare {
                         return c
@@ -1588,16 +1597,26 @@ impl App {
         if doc != compare::KEY && self.docs.iter().any(|d| d.key == doc && d.is_project()) {
             return self.dispatch_map(doc, &worker);
         }
-        let place = self.place_of(doc);
+        let beside = App::is_beside(doc);
+        let place = if beside {
+            self.beside_place(doc)
+        } else {
+            self.place_of(doc)
+        };
         let (source, pending) =
             self.diagram_source_in(place.as_ref().map(|p| p.root.as_path()), text, language);
-        let linked = if doc == compare::KEY {
+        let linked = if doc == compare::KEY || beside {
             None
         } else {
             self.linked_of(doc)
         };
         let id = {
-            let paper = if doc == compare::KEY {
+            let paper = if beside {
+                let Some(pane) = self.beside_pane(doc) else {
+                    return;
+                };
+                &mut pane.paper
+            } else if doc == compare::KEY {
                 let Some(compare) = &mut self.compare else {
                     return;
                 };
@@ -1732,6 +1751,20 @@ impl App {
             .map(|compare| (compare.text.clone(), compare.language));
         if let Some((text, language)) = compare {
             self.dispatch(compare::KEY, &text, language);
+        }
+        // The machines beside a scenario, in the new colors too.
+        let beside: Vec<(u64, String, Language)> = self
+            .beside
+            .as_ref()
+            .map(|b| {
+                b.panes
+                    .iter()
+                    .map(|p| (p.key, p.text(), p.language()))
+                    .collect()
+            })
+            .unwrap_or_default();
+        for (key, text, language) in beside {
+            self.dispatch(key, &text, language);
         }
     }
 
@@ -1959,10 +1992,14 @@ impl App {
             Command::Coverage => self.toggle_coverage(),
             Command::PlayAsk(ask) => {
                 let task = paper(self.doc_mut().paper.update(paper::Message::Play(ask)));
+                self.beside_follow(key, ask);
                 self.light_played_line(key);
                 task
             }
-            Command::StopPlay => paper(self.doc_mut().paper.update(paper::Message::StopPlay)),
+            Command::StopPlay => {
+                self.beside = None;
+                paper(self.doc_mut().paper.update(paper::Message::StopPlay))
+            }
         }
     }
 

@@ -2897,6 +2897,14 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] The lockstep in the window (2026-11-20): F5 on a scenario whose participants have
+      state machines in its project opens each machine in a pane beside it
+      (`editor::beside`), drawn as the window draws the compare pane, each under a key
+      of its own. As the scenario takes a message, each machine takes the steps of the
+      messages that moved it, a group's now and the receiver's at the moment the
+      message's light arrives (`Paper::play_ask_at`: a play is drawn from the time
+      alone); ← and Home take the machines along, Esc closes them. Each pane's bar is
+      the quiet one, its head as wide as the bar
 - [x] What the review of the ink and the flight's page found (2026-11-20). An ink page
       gives its diagram back again: the source is in the sketch, its first picture. A
       line the sketch draws in two runs was drawn at twice the pace: the pen draws by

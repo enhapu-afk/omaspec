@@ -46,6 +46,7 @@ impl App {
     pub(super) fn toggle_play(&mut self) -> Task<Message> {
         let key = self.doc().key;
         if self.doc().paper.playing() {
+            self.beside = None;
             return self
                 .doc_mut()
                 .paper
@@ -65,7 +66,10 @@ impl App {
                 self.set_focus(Pane::Diagram);
                 // The status bar shows the play's keys while it runs.
                 self.notice = None;
-                self.apply_keyboard_focus()
+                // A scenario plays with the machines of its participants
+                // beside it.
+                let beside = self.open_beside(key);
+                Task::batch([self.apply_keyboard_focus(), beside])
             }
             Err(why) => {
                 self.notice = Some(why);

@@ -641,6 +641,10 @@ transition's route to the next state, regions start side by side, a choice (or a
 with several ways out) waits for you to pick one, and a history goes back to where its
 state was left. A scenario unfolds message by message (Space), a light running along each
 arrow. Each step lights its line in the source; ← goes back, Home starts again, Esc stops.
+Where the scenario's participants have state machines in its project, they open beside
+it: as a message's light reaches its receiver, the receiver's machine takes the
+transition the message fires, and where it cannot take it, the message runs red, the
+machine's state flashes and its bar says why.
 
 **Traces.** `omaspec trace run.jsonl` reads what a running system did, one JSON object per
 line (`{"object":"Door","event":"open","state":"Opening"}`, with `time` and other fields

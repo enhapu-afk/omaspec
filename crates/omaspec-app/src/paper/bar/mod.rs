@@ -160,7 +160,13 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             } else {
                 (format!("● {object}: {at}"), accent)
             };
-            let head = cut(&head, third);
+            // Beside a scenario nothing else stands in the row: the head
+            // has its room.
+            let head = if *beside {
+                cut(&head, (inside / (13.0 * CHAR)) as usize)
+            } else {
+                cut(&head, third)
+            };
             let place = match line {
                 Some(line) => format!("{name}:{line} · {played} / {of}"),
                 None => format!("{name} · {played} / {of}"),

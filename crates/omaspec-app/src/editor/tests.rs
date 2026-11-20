@@ -7158,3 +7158,53 @@ fn snapshot_made_map() {
     shoot(&mut app, &dir, "map-made-plain");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// Writes a headless screenshot of a scenario playing with the machine of
+/// its participant beside it when OMASPEC_SNAPSHOT_DIR is set.
+#[test]
+fn snapshot_lockstep() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let work = temp_dir("lockstep");
+    std::fs::write(work.join("omaspec-project.toml"), "name = \"home\"\n").unwrap();
+    let door = "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
+    std::fs::write(work.join("door.puml"), door).unwrap();
+    let keys = "@startuml\ntitle Back for the keys\nactor Guest\nparticipant Door\nGuest -> Door : close\nGuest -> Door : lock\nGuest -> Door : open\n@enduml\n";
+    let file = work.join("keys.puml");
+    std::fs::write(&file, keys).unwrap();
+    let mut app = open(std::slice::from_ref(&file));
+    let (specs, atlas) = specs::read_project(&work);
+    send(
+        &mut app,
+        Message::Specs(work.clone(), Arc::new(specs), Arc::new(atlas)),
+    );
+    show(&mut app, keys, Language::PlantUml);
+    send(&mut app, Message::Command(Command::Play));
+    let pane = super::beside::FIRST;
+    send(
+        &mut app,
+        Message::Paper(pane, paper::Message::Viewport(Size::new(470.0, 560.0))),
+    );
+    let id = app.beside_pane(pane).unwrap().paper.pretend_next();
+    let (shown, pending) = app.diagram_source(door, Language::PlantUml);
+    if let Some(pending) = pending {
+        app.pending.insert((pane, id), pending);
+    }
+    let mut reply = answer(pane, id, Ok(drawn(&shown, Language::PlantUml)));
+    reply.language = Language::PlantUml;
+    reply.source = shown;
+    send(
+        &mut app,
+        Message::Worker(worker::Event::Rendered(Box::new(reply))),
+    );
+    assert!(app.beside_pane(pane).unwrap().paper.offer().is_some());
+    for _ in 0..3 {
+        send(
+            &mut app,
+            Message::Command(Command::PlayAsk(paper::Ask::Next)),
+        );
+    }
+    shoot(&mut app, &dir, "lockstep-window");
+}

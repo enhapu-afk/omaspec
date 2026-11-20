@@ -19,6 +19,17 @@ impl App {
             self.paper_size = size;
         }
         let step = matches!(message, paper::Message::Play(_));
+        // A step of a scenario's play from its bar takes the machines
+        // beside it along; its stop closes them.
+        let asked = match message {
+            paper::Message::Play(ask) => Some(ask),
+            _ => None,
+        };
+        if matches!(message, paper::Message::StopPlay)
+            && self.beside.as_ref().is_some_and(|b| b.scenario == key)
+        {
+            self.beside = None;
+        }
         let relight = key != compare::KEY && matches!(message, paper::Message::PlayGone);
         let moves = paper::Paper::moves_view(&message);
         let (task, by_hand, held, refold) = match self.find(key) {
@@ -60,6 +71,9 @@ impl App {
             }
             _ => Task::none(),
         };
+        if let Some(ask) = asked {
+            self.beside_follow(key, ask);
+        }
         if step {
             self.light_played_line(key);
         }
