@@ -12,6 +12,7 @@ else (keep it here)
   :Ctrl+B shows or hides the project tree;
 endif
 :Super+F fullscreens the whole window;
+:Shift+F5 presents the diagram full screen, the notes here;
 :The diagram can follow the colors of the Omarchy theme;
 stop
 @enduml

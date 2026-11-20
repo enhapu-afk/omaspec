@@ -613,9 +613,6 @@ the one before:
       page was looked at in Chromium alone, not in Firefox or Safari; in
       the page a box that changes its size is stretched (its words are
       not), where the pane keeps its corners.
-- [ ] A presenter mode in the editor: the diagram full screen, the keys
-      of the presentation page, and the comments next to the lines
-      played as speaker notes on a second screen.
 - [ ] The project as an interactive page: its map, a click zooming into
       a tile as the editor dives into it, and back out, every diagram
       inside; `omaspec export --html`.

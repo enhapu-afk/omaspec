@@ -157,6 +157,8 @@ pub enum Alarm {
     /// Files of a project changed and have settled: its index is brought
     /// up to date.
     Project,
+    /// The presenter's clock goes on ([`crate::editor`]'s presenting).
+    Clock,
 }
 
 #[derive(Debug, Clone)]

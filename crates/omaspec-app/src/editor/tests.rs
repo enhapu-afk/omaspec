@@ -144,6 +144,72 @@ fn a_play_takes_digits_only_while_the_diagram_has_the_keys() {
 }
 
 #[test]
+fn a_presentation_plays_full_screen_with_its_notes_and_escape_ends_it() {
+    let mut app = open(&[]);
+    let lamp = "@startuml\n' Our lamp, in two states.\n[*] --> Off\n' It goes on when switched.\nOff --> On : switch\nOn --> Off : switch\n@enduml\n";
+    select_all_and_paste(&mut app, lamp);
+    show(&mut app, lamp, Language::PlantUml);
+    press(&mut app, Command::Present);
+    let diagram = app.detached.expect("the diagram in a window of its own");
+    assert!(app.doc().paper.playing(), "{:?}", app.notice);
+    let presenting = app.presenting.as_ref().expect("presenting");
+    assert!(presenting.full && !presenting.had_window);
+    // The keys of a presentation, in both windows.
+    assert_eq!(app.mode(diagram), Mode::Presenting);
+    assert_eq!(app.mode(app.main), Mode::Presenting);
+    assert_eq!(
+        shortcut(
+            &Key::Named(Named::PageDown),
+            Modifiers::empty(),
+            Mode::Presenting
+        ),
+        Some(Command::PlayAsk(paper::Ask::Next))
+    );
+    // Before the first step, the notes that open the diagram.
+    assert_eq!(
+        present::notes(&app.doc().text(), None),
+        ["Our lamp, in two states."]
+    );
+    // A step: its notes are the comments right above its line.
+    app.doc_mut().paper.freeze_play(Duration::from_secs(2));
+    let _ = app.update(Message::Frame);
+    let _ = app.update(Message::Keyed(
+        diagram,
+        Command::PlayAsk(paper::Ask::Take(0)),
+    ));
+    let line = app.presenting.as_ref().unwrap().line;
+    assert_eq!(line, Some(4));
+    assert_eq!(
+        present::notes(&app.doc().text(), line),
+        ["It goes on when switched."]
+    );
+    // From the start again: before the first step.
+    let _ = app.update(Message::Keyed(
+        diagram,
+        Command::PlayAsk(paper::Ask::Restart),
+    ));
+    assert_eq!(app.presenting.as_ref().unwrap().line, None);
+    let _ = app.update(Message::Keyed(diagram, Command::PresentFullScreen));
+    assert!(!app.presenting.as_ref().unwrap().full);
+    // Escape ends it as it began: the diagram back beside the source.
+    let _ = app.update(Message::Keyed(diagram, Command::Present));
+    assert!(app.presenting.is_none());
+    assert_eq!(app.detached, None);
+    assert!(!app.doc().paper.playing());
+
+    // A diagram that had its own window keeps it.
+    press(&mut app, Command::Detach);
+    press(&mut app, Command::Present);
+    assert!(app.presenting.as_ref().unwrap().had_window);
+    press(&mut app, Command::Present);
+    assert!(app.detached.is_some() && app.presenting.is_none());
+    // Closing the window ends the presentation with it.
+    press(&mut app, Command::Present);
+    press(&mut app, Command::Detach);
+    assert!(app.presenting.is_none());
+}
+
+#[test]
 fn a_played_line_moves_no_caret_out_of_sight() {
     let work = temp_dir("play-tabs");
     let lamp = "@startuml\n[*] --> Off\nOff --> On : switch\nstate On {\n  [*] --> Dim\n}\nOn --> Off : switch\n@enduml\n";
@@ -4790,6 +4856,38 @@ fn settle(app: &mut App) {
 
 fn shoot(app: &mut App, dir: &Path, name: &str) {
     shoot_at(app, dir, name, Size::new(1200.0, 640.0));
+}
+
+/// The speaker's view while a scenario is presented: the clock, where the
+/// play is, the notes of its step and the keys.
+#[test]
+fn snapshot_presenter() {
+    let Some(dir) = std::env::var_os("OMASPEC_SNAPSHOT_DIR") else {
+        return;
+    };
+    let dir = PathBuf::from(dir);
+    let theme = theme_named("tokyo-night", omaspec_theme::Palette::fallback());
+    let mut app = App::themed(Start::default(), None, theme).0;
+    let (main, size) = (app.main, Size::new(1360.0, 820.0));
+    let _ = app.update(Message::WindowSized(main, size));
+    let order = "@startuml\n' An order, from the basket to the door.\nactor Alice\nparticipant Shop\nparticipant Stock\n' Alice has chosen a book.\n' Ask the room: who has ordered online this week?\nAlice -> Shop : order\n' The shop holds the book for her.\nShop -> Stock : reserve\nShop -> Alice : confirmed\n@enduml\n";
+    select_all_and_paste(&mut app, order);
+    show(&mut app, order, Language::PlantUml);
+    press(&mut app, Command::Present);
+    let diagram = app.detached.expect("the diagram window");
+    let _ = app.update(Message::Keyed(diagram, Command::PlayAsk(paper::Ask::Next)));
+    app.presented_line(app.doc().key, Some(7));
+    settle(&mut app);
+    let settings = iced::Settings {
+        default_font: app.font,
+        fonts: scrive_iced::required_fonts()
+            .iter()
+            .map(|f| std::borrow::Cow::Borrowed(*f))
+            .collect(),
+        ..Default::default()
+    };
+    let mut ui = iced_test::simulator::Simulator::with_size(settings, size, app.view(main));
+    ui::snapshot(&mut ui, &app.theme, &dir, "presenter");
 }
 
 fn shoot_at(app: &mut App, dir: &Path, name: &str, size: Size) {

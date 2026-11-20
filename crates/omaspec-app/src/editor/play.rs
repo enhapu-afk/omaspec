@@ -234,11 +234,14 @@ impl App {
         let Some(doc) = self.find(key) else {
             return;
         };
-        if let Some(line) = doc.paper.take_jump(crate::clock::now())
-            && shown
-        {
+        let Some(line) = doc.paper.take_jump(crate::clock::now()) else {
+            return;
+        };
+        if shown {
             doc.jump_to_line(line);
             self.after(Alarm::Flash(key), FLASH);
         }
+        // The speaker's notes are those of this step.
+        self.presented_line(key, Some(line));
     }
 }

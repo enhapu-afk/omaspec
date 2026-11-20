@@ -55,6 +55,7 @@ mod panes;
 mod picker;
 mod places;
 mod play;
+mod present;
 mod prompt;
 mod rename;
 mod reveal;
@@ -485,6 +486,11 @@ pub enum Command {
     Fit,
     /// Plays the diagram's state machine or scenario, or stops it.
     Play,
+    /// Presents the diagram: full screen in its own window, played, the
+    /// speaker's notes in this one; or ends the presentation.
+    Present,
+    /// While presenting: the diagram's window full screen, or not.
+    PresentFullScreen,
     /// Plays a recorded trace of the state machine on screen.
     PlayTrace,
     /// Draws what the recorded traces of the project take of the state
@@ -513,6 +519,9 @@ pub enum Mode {
     Gallery,
     /// A play runs in the focused diagram: digits take its options.
     Playing,
+    /// A diagram is presented: the keys of a presentation, in both
+    /// windows ([`present::key`]).
+    Presenting,
     /// A menu is open: the arrows move in it, Enter chooses, any other
     /// key closes it.
     Menu,
@@ -528,6 +537,7 @@ fn shortcut(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
         Mode::Menu => return menu::key(key),
         Mode::Gallery => gallery::key(key, mods),
         Mode::Playing => play::key(key, mods),
+        Mode::Presenting => present::key(key, mods),
         Mode::Prompt => prompt::key(key, mods),
         Mode::Picker => picker::key(key, mods),
         Mode::Editing => editing_key(key, mods),
@@ -563,6 +573,9 @@ fn window_key(key: &Key, mods: Modifiers, mode: Mode) -> Option<Command> {
     let ctrl = mods.control() && !mods.alt();
     let alt = mods.alt() && !mods.control();
     match key.as_ref() {
+        Key::Named(Named::F5) if mods.shift() && !matches!(mode, Mode::Prompt | Mode::Picker) => {
+            Some(Command::Present)
+        }
         Key::Named(Named::F5) if !matches!(mode, Mode::Prompt | Mode::Picker) => {
             Some(Command::Play)
         }
@@ -708,6 +721,8 @@ struct App {
     /// The editor window, and the diagram's own window while it has one.
     main: window::Id,
     detached: Option<window::Id>,
+    /// The diagram presented, its notes in this window ([`present`]).
+    presenting: Option<present::Presenting>,
     main_scale: f32,
     detached_scale: f32,
 
@@ -853,6 +868,7 @@ impl App {
             paper_size: Size::ZERO,
             main,
             detached: None,
+            presenting: None,
             main_scale: 1.0,
             detached_scale: 1.0,
             prompt: None,
@@ -985,6 +1001,8 @@ impl App {
             Mode::Picker
         } else if self.prompt.is_some() && window == self.main {
             Mode::Prompt
+        } else if self.presenting.is_some() {
+            Mode::Presenting
         } else if self.doc().paper.playing()
             && (self.focus == Pane::Diagram || Some(window) == self.detached)
         {
@@ -1542,6 +1560,12 @@ impl App {
                 }
             }
             worker::Event::Due(Alarm::Session) => self.write_session(),
+            // The speaker's clock goes on, a second at a time, drawn anew.
+            worker::Event::Due(Alarm::Clock) => {
+                if self.presenting.is_some() {
+                    self.after(Alarm::Clock, present::TICK);
+                }
+            }
             worker::Event::Due(Alarm::Follow) => return self.followed(),
             worker::Event::Due(Alarm::Dive) => return self.dive_anyway(),
             worker::Event::Due(Alarm::Thumbs) => return self.draw_thumbs(),
@@ -2005,9 +2029,15 @@ impl App {
             Command::ActualSize => paper(self.doc_mut().paper.actual_size()),
             Command::Fit => paper(self.doc_mut().paper.fit()),
             Command::Play => self.toggle_play(),
+            Command::Present => self.toggle_present(),
+            Command::PresentFullScreen => self.toggle_present_full(),
             Command::PlayTrace => self.open_traces(),
             Command::Coverage => self.toggle_coverage(),
             Command::PlayAsk(ask) => {
+                // From the start again: before its first step.
+                if ask == paper::Ask::Restart {
+                    self.presented_line(key, None);
+                }
                 let task = paper(self.doc_mut().paper.update(paper::Message::Play(ask)));
                 self.beside_follow(key, ask);
                 self.light_played_line(key);

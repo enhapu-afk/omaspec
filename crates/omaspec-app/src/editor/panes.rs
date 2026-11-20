@@ -47,10 +47,17 @@ impl App {
     /// Moves the diagram into a window of its own; the editor gets its
     /// room.
     pub(super) fn detach(&mut self) -> Task<Message> {
+        self.detach_with(false)
+    }
+
+    /// [`Self::detach`], the window full screen where `fullscreen`: a
+    /// presentation's.
+    pub(super) fn detach_with(&mut self, fullscreen: bool) -> Task<Message> {
         let (id, open) = window::open(window::Settings {
             icon: crate::logo::icon(),
             platform_specific: crate::ui::app_id("omaspec-preview"),
             exit_on_close_request: false,
+            fullscreen,
             ..Default::default()
         });
         self.detached = Some(id);
@@ -70,6 +77,8 @@ impl App {
         let Some(window) = self.detached.take() else {
             return Task::none();
         };
+        // A presentation ends with the window it was shown in.
+        self.presenting = None;
         // The list was drawn in the window that is closing.
         let picker_back = if self.picker_on == Some(window) {
             self.picker_on = Some(self.main);

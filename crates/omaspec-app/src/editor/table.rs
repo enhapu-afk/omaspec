@@ -230,6 +230,18 @@ pub const TABLE: &[Entry] = &[
     .short("Play")
     .tool(5)
     .at(Spot::Diagram),
+    cmd(
+        "Present the diagram, or end the presentation",
+        "Shift+F5",
+        Command::Present,
+    )
+    .menu(Diagram)
+    .short("Present"),
+    cmd(
+        "Present: full screen or a window (F while presenting)",
+        "",
+        Command::PresentFullScreen,
+    ),
     cmd("Play a recorded trace", "", Command::PlayTrace)
         .menu(Diagram)
         .short("Play a recorded trace…"),

@@ -2897,6 +2897,17 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Presenter mode (2026-11-20): Shift+F5 (*Present the diagram*) shows the diagram full
+      screen in a window of its own (`omaspec-preview`) and plays it, and the editor's
+      window becomes the speaker's: the time since the start, where the play is (a
+      scenario's message of all, a machine's state with its options and their digits, a
+      trace's line), the notes of the step in large letters (the comments right above
+      its line, up to a blank one; before the first step those that open the diagram;
+      Omaspec's own comment lines are none), the line itself, and for a scenario the
+      notes of the next message. The keys of a presentation page and of a presenter's
+      remote work in both windows (Page Down and Page Up too), F switches full screen,
+      and Escape ends it as it began; closing the diagram's window ends it as well
+      (`editor/present.rs`). Not tried in a real window on two screens yet
 - [x] What the review of the capability map and time travel found (2026-11-20). A
       capability map gives each tile the room its words and the tiles in it need, so a
       name deep in an area no longer runs over its edge; an area with neither a value

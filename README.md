@@ -81,7 +81,8 @@ F5 runs the diagram on screen. The states the machine is in light up, you pick w
 happens next, and a light runs along each transition. A scenario unfolds message by
 message. `omaspec play door.puml -o door.gif --events open,close` writes such a play as
 a GIF (or in full color as `.webp` or an animated `.png`), for a presentation or a pull
-request.
+request. Shift+F5 presents it: the diagram full screen, played with a presenter's remote,
+and the comments above each step's line as speaker notes in the editor's window.
 
 ![A state machine playing: a light runs along the transition to the next state](docs/images/play.gif)
 

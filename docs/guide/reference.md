@@ -30,6 +30,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+P | find a file in the folder by a few letters |
 | Ctrl+Shift+E | the examples, as tiles; Enter opens a copy, F5 plays it, Ctrl+Enter puts it in at the caret |
 | F5 | play the diagram (a state machine or a scenario) |
+| Shift+F5 | present the diagram: full screen in its own window, played, the speaker's notes in this one; Esc ends |
 | Ctrl+O, Ctrl+Shift+O | open a diagram, document or image; open a folder in the sidebar (in the desktop's own dialog) |
 | Ctrl+F in the source | find in this file |
 | Ctrl+Shift+F | find in every file of the project, the open tabs first; a hit opens its file |
@@ -218,6 +219,33 @@ Ctrl+Shift+N moves the diagram into a window of its own (class `omaspec-preview`
 editor takes the room, the diagram window follows the active tab, has the preview's keys
 (`+`/`-`, `0`, `f`), and Ctrl+click there jumps in the editor. Escape or closing it
 brings the diagram back.
+
+### Presenting
+
+Shift+F5 (*Present the diagram* in the Diagram menu) shows the diagram full screen in a
+window of its own and plays it, and the editor's window becomes the speaker's: the time
+since the start, where the play is (a scenario's message, a machine's state with its
+options and the digit for each), the notes of the step, the line they stand above, and
+for a scenario the notes of the next message. The notes are the comments written right
+above the step's line, up to a blank line; before the first step, those that open the
+diagram after its `@start…`:
+
+```plantuml
+@startuml
+' An order, from the basket to the door.
+Alice -> Shop : order
+' The shop holds the book for her.
+Shop -> Stock : reserve
+@enduml
+```
+
+The keys are those of a presentation page and of a presenter's remote, in both windows:
+→, ↓, Space, Page Down and Enter go on, ←, ↑, Page Up and Backspace go back, Home starts
+again, 1 to 9 take a machine's option, F switches the diagram's window between full
+screen and a window, and Escape ends the presentation as it began: the play stops, and
+the diagram goes back beside the source, or keeps its own window if it had one. With two
+screens, move the diagram's window (class `omaspec-preview`) to the one the room looks
+at; a Hyprland rule can put it there.
 
 ### Skin packs
 

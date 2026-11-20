@@ -123,6 +123,8 @@ impl App {
     pub(super) fn view(&self, window: iced::window::Id) -> Element<'_, Message> {
         if Some(window) == self.detached {
             self.detached_view()
+        } else if let Some(presenting) = &self.presenting {
+            self.presenter_view(presenting)
         } else {
             self.main_view()
         }
@@ -153,7 +155,13 @@ impl App {
         .spacing(12);
         let id = self.detached;
         let mode = id.map(|window| self.mode(window)).unwrap_or(Mode::Editing);
-        let window = self.with_picker(id, column![self.diagram(), ui::bar(bar.into(), p)].into());
+        // Presented, the diagram is all there is.
+        let body = if self.presenting.is_some() {
+            self.diagram()
+        } else {
+            column![self.diagram(), ui::bar(bar.into(), p)].into()
+        };
+        let window = self.with_picker(id, body);
         let window = match id {
             Some(id) => self.with_menu(id, window),
             None => window,

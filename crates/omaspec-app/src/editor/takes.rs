@@ -38,6 +38,7 @@ impl Command {
                 Err("a project's map is made from its diagrams; compare one of them")
             }
             Command::Play
+            | Command::Present
             | Command::PlayTrace
             | Command::Coverage
             | Command::PlayAsk(_)
@@ -134,6 +135,8 @@ impl Command {
             | Command::ActualSize
             | Command::Fit
             | Command::Play
+            | Command::Present
+            | Command::PresentFullScreen
             | Command::PlayTrace
             | Command::Coverage
             | Command::PlayAsk(_)
