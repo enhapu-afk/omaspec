@@ -122,6 +122,39 @@ footer .right { margin-left: auto; }
   .cards, .install { grid-template-columns: 1fr; }
   section { padding-top: 72px; }
 }
+
+/* A real Omaspec page, running in the landing page. */
+.live { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); box-shadow: 0 20px 60px rgba(0, 0, 0, .45); }
+.live .bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); font: 12.5px var(--mono); color: var(--dim); }
+.live .bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.live .bar b { margin-left: 6px; color: var(--green); font-weight: 600; }
+.live .bar span { margin-left: auto; text-align: right; }
+.live .bar a { color: var(--dim); }
+.live iframe { display: block; width: 100%; height: 440px; border: 0; background: var(--panel); }
+.live.tall iframe { height: 560px; }
+.feature.stack, .feature.stack:nth-of-type(even) { grid-template-columns: 1fr; gap: 26px; }
+.feature.stack .words, .feature.stack:nth-of-type(even) .words { order: 0; max-width: 780px; margin: 0 auto; text-align: center; }
+.feature.stack .live iframe { height: 640px; }
+.wide { margin-top: 44px; }
+.wide .live iframe { height: 720px; }
+.paper { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #16181d; box-shadow: 0 20px 60px rgba(0, 0, 0, .45); }
+.paper.light { background: #fff; }
+.paper img { display: block; width: 100%; height: auto; max-height: 560px; object-fit: contain; padding: 14px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 44px; }
+.pair figure { margin: 0; }
+.pair figcaption { margin-top: 12px; font-size: 15.5px; }
+.pair figcaption b { color: var(--fg); font: 700 16px var(--mono); }
+.cards.four { grid-template-columns: repeat(4, 1fr); }
+.code { margin: 14px 0 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: #0f1017; color: var(--fg); font: 13.5px/1.7 var(--mono); overflow-x: auto; white-space: pre; }
+.numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 44px; text-align: center; }
+.numbers div { padding: 26px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.numbers b { display: block; color: var(--accent); font: 800 34px var(--mono); }
+.numbers span { font-size: 15px; color: var(--dim); }
+@media (max-width: 860px) {
+  .pair, .cards.four, .numbers { grid-template-columns: 1fr; }
+  .numbers { grid-template-columns: 1fr 1fr; }
+  .live iframe, .live.tall iframe, .wide .live iframe, .feature.stack .live iframe { height: 460px; }
+}
 </style>
 </head>
 <body>
@@ -134,8 +167,11 @@ footer .right { margin-left: auto; }
       Omaspec
     </a>
     <div class="links">
-      <a href="#behavior">Behavior</a>
-      <a href="#cli">Command line</a>
+      <a href="#write">Write</a>
+      <a href="#understand">Understand</a>
+      <a href="#show">Show</a>
+      <a href="#own">Only here</a>
+      <a href="#team">In a team</a>
       <a href="#install">Install</a>
       <a href="https://github.com/enhapu-afk/omaspec/blob/main/docs/guide/README.md">Guide</a>
       <a class="keep" href="https://github.com/enhapu-afk/omaspec">GitHub</a>
@@ -166,25 +202,28 @@ footer .right { margin-left: auto; }
     </ul>
   </header>
 
-  <section id="behavior">
-    <h2>What PlantUML and Mermaid cannot do</h2>
-    <p class="sub">A state diagram is the state machine it specifies, a sequence diagram a scenario. Omaspec treats them that way, in both languages alike.</p>
+  <section id="write">
+    <h2>Write a diagram, see it at once</h2>
+    <p class="sub">PlantUML and Mermaid, drawn by Omaspec's own engines in a few milliseconds. No Java, no browser, no server.</p>
 
-    <div class="feature rise">
+    <div class="feature stack rise">
       <div class="words">
-        <span class="kicker">Play</span>
-        <h3>F5 runs the diagram on screen</h3>
-        <p>The states the machine is in light up, you pick what happens next, and a light runs along each transition. A scenario unfolds message by message.</p>
-        <p><code>omaspec play door.puml -o door.gif</code> writes a play as a GIF for a pull request.</p>
+        <span class="kicker">Draw</span>
+        <h3>It draws as you type</h3>
+        <p>Sequence, activity, state, class, component, use case, deployment, timing and Gantt diagrams, mind maps, WBS, JSON, C4, network diagrams, railroads and more, and Mermaid's flowcharts, state and sequence diagrams: all native.</p>
+        <p>A Ctrl+click in the picture jumps to its line. Drag a line or a box with Alt and the layout you made stays in the file.</p>
       </div>
-      <div class="shot"><img src="images/play.gif" alt="A state machine playing: a light runs along the transition to the next state" loading="lazy"></div>
+      <div class="live">
+        <div class="bar"><i></i><i></i><i></i><b>live</b> code becomes a picture<span>it builds itself, line by line · <a href="live/build.html">open it alone</a></span></div>
+        <iframe src="live/build.html" loading="lazy" title="code becomes a picture"></iframe>
+      </div>
     </div>
 
     <div class="feature rise">
       <div class="words">
         <span class="kicker">Check</span>
         <h3>Findings while you type</h3>
-        <p>A state no path reaches, a state nothing leaves, one event leading two ways with no guard to choose.</p>
+        <p>A state no path reaches, a state nothing leaves, one event leading two ways with no guard to choose. Many findings come with a fix: Ctrl+. makes it.</p>
         <p>A sequence diagram is checked against the state machines of its project: every message must be an event its receiver can take, in the order the scenario sends them.</p>
       </div>
       <div class="shot"><img src="images/specs.png" alt="A warning in the editor: the door does not take lock while it is open" loading="lazy"></div>
@@ -192,62 +231,180 @@ footer .right { margin-left: auto; }
 
     <div class="feature rise">
       <div class="words">
+        <span class="kicker">Omarchy</span>
+        <h3>It looks like your desktop</h3>
+        <p>The editor and the diagrams follow <code>omarchy theme</code> and <code>omarchy font set</code> live. Every bundled theme is tested to read: each text at 4.5:1, each line at 3:1.</p>
+        <p>A Hyprland binding, a menu entry and a preview window for Neovim users come with it.</p>
+      </div>
+      <div class="shot"><img src="images/themes.png" alt="Omaspec in four Omarchy themes" loading="lazy"></div>
+    </div>
+  </section>
+
+  <section id="understand">
+    <h2>A diagram is a spec. So run it.</h2>
+    <p class="sub">A state diagram is the state machine it specifies, a sequence diagram a scenario. Omaspec treats them that way, in both languages alike.</p>
+
+    <div class="feature stack rise">
+      <div class="words">
+        <span class="kicker">Play</span>
+        <h3>F5 runs the diagram</h3>
+        <p>The states the machine is in light up, you pick what happens next, and a light runs along each transition. This one is live: click an option under it, or press 1 to 9, ← to go back.</p>
+        <p><code>omaspec render machine.puml -o talk.html</code> writes exactly this page.</p>
+      </div>
+      <div class="live tall">
+        <div class="bar"><i></i><i></i><i></i><b>live</b> a coffee machine<span>click an option · ← back · Home again · <a href="live/machine.html">open it alone</a></span></div>
+        <iframe src="live/machine.html" loading="lazy" title="a coffee machine"></iframe>
+      </div>
+    </div>
+
+    <div class="feature stack rise">
+      <div class="words">
+        <span class="kicker">Lockstep</span>
+        <h3>A scenario and its machines, together</h3>
+        <p>A sequence diagram plays beside the state machines of its participants. As a message reaches its receiver, that machine takes the transition it fires.</p>
+        <p>A message the machine cannot take runs red: the scenario and the spec disagree, and you see where.</p>
+      </div>
+      <div class="live">
+        <div class="bar"><i></i><i></i><i></i><b>live</b> keys, door and alarm<span>it plays by itself · <a href="live/lockstep.html">open it alone</a></span></div>
+        <iframe src="live/lockstep.html" loading="lazy" title="keys, door and alarm"></iframe>
+      </div>
+    </div>
+
+    <div class="feature rise">
+      <div class="words">
         <span class="kicker">Trace</span>
         <h3>Did production follow the spec?</h3>
         <p><code>omaspec trace run.jsonl</code> plays what a running system logged through its state machines and says where it deviated, with the time.</p>
-        <p>The editor plays the trace in the diagram, line by line.</p>
+        <p>Here a week of orders flows through the machine, each order a dot. A transition glows the more dots pass it; a dot turns red where its trace left the machine.</p>
       </div>
-      <div class="shot"><img src="images/trace.png" alt="A recorded trace played in the diagram, with the line where the system deviated" loading="lazy"></div>
+      <div class="live">
+        <div class="bar"><i></i><i></i><i></i><b>live</b> a week of orders<span>recorded traces, flowing · <a href="live/traffic.html">open it alone</a></span></div>
+        <iframe src="live/traffic.html" loading="lazy" title="a week of orders"></iframe>
+      </div>
     </div>
+
+    <div class="pair rise">
+      <figure>
+        <div class="paper light"><img src="live/river.svg" alt="A trace river: each transition as wide as it was taken" loading="lazy"></div>
+        <figcaption><b>Coverage as a river.</b> Each way as wide as the traces took it, those never taken thin and dashed, a note in red where traces left the machine. <code>omaspec coverage --river</code></figcaption>
+      </figure>
+      <figure>
+        <div class="paper light"><img src="live/orbit.svg" alt="A state machine's life cycle on a ring" loading="lazy"></div>
+        <figcaption><b>The life cycle on a ring.</b> The way through a machine around the ring, what branches off outside, what comes back inside. Also a table of states and events: <code>omaspec orbit</code>, <code>omaspec matrix</code></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="show">
+    <h2>Show it to others</h2>
+    <p class="sub">A diagram is shown, not only read. Every page here is one file that fetches nothing: mail it, put it in a pull request, open it offline.</p>
+
+    <div class="feature rise">
+      <div class="words">
+        <span class="kicker">Present</span>
+        <h3>A talk from your diagram</h3>
+        <p>Shift+F5 puts the diagram full screen and plays it with a presenter's remote. Your editor window becomes the speaker's: the comments above each step are your notes, with the clock and what comes next.</p>
+        <p>Or hand the talk on as a page. Step through this scenario with → or Space.</p>
+      </div>
+      <div class="live">
+        <div class="bar"><i></i><i></i><i></i><b>live</b> pizza night<span>→ or Space steps · F full screen · <a href="live/scenario.html">open it alone</a></span></div>
+        <iframe src="live/scenario.html" loading="lazy" title="pizza night"></iframe>
+      </div>
+    </div>
+
+    <div class="feature rise">
+      <div class="words">
+        <span class="kicker">Time travel</span>
+        <h3>What changed, commit by commit</h3>
+        <p>Every commit of a diagram glides into the next. What came glows green, what changed amber, what went fades red.</p>
+        <p><code>omaspec play door.puml --from v1.0 -o change.html</code> shows a reviewer the way from one release to now.</p>
+      </div>
+      <div class="live">
+        <div class="bar"><i></i><i></i><i></i><b>live</b> a parcel, over six commits<span>it plays by itself · → steps · <a href="live/history.html">open it alone</a></span></div>
+        <iframe src="live/history.html" loading="lazy" title="a parcel, over six commits"></iframe>
+      </div>
+    </div>
+
+    <div class="wide rise">
+      <div class="live">
+        <div class="bar"><i></i><i></i><i></i><b>live</b> a whole project as one page<span>click a tile or a linked state · Esc back out · <a href="live/project.html">open it alone</a></span></div>
+        <iframe src="live/project.html" loading="lazy" title="A project as one page"></iframe>
+      </div>
+      <p class="note">A project's map is made from its diagrams: a tile for each, an arrow where a state of one opens another. <span class="mono">omaspec export DIR --html</span> writes it as this page; in the editor a click dives in the same way.</p>
+    </div>
+    <div class="cards four">
+      <div class="card rise"><h4>As a film</h4><p><code>omaspec play</code> writes a play, a fold, a dive or a flight as GIF, WebP, animated PNG or a page in vectors.</p></div>
+      <div class="card rise"><h4>Through the themes</h4><p><code>--themes</code> sweeps one diagram through Omarchy's themes, each wiping over the one before.</p></div>
+      <div class="card rise"><h4>From sketch to ink</h4><p><code>--ink</code> draws the diagram as with a pen, then inks it clean. Or keep the hand-drawn look for good.</p></div>
+      <div class="card rise"><h4>Large and readable</h4><p>Headings stay in sight as a long diagram scrolls; a PNG too large for one file is cut into tiles.</p></div>
+    </div>
+  </section>
+
+  <section id="own">
+    <h2>Diagrams only Omaspec draws</h2>
+    <p class="sub">Three kinds neither PlantUML nor Mermaid has, in a syntax as plain as theirs. They follow your theme like every other diagram.</p>
+    <div class="pair rise">
+      <figure>
+        <div class="paper"><img src="live/storymap.svg" alt="A story map: activities, steps and stories in release bands" loading="lazy"></div>
+        <figcaption><b>Story map.</b> What users do across the top, the steps of each under it, the stories in the release they go into.
+<div class="code">@startstorymap
+release Pilot : one class learns online
+activity Find a course
+  step Look around
+    * The courses of the term : Pilot
+@endstorymap</div></figcaption>
+      </figure>
+      <figure>
+        <div class="paper"><img src="live/capabilities.svg" alt="A capability map: nested tiles colored by maturity" loading="lazy"></div>
+        <figcaption><b>Capability map.</b> What a business can do as tiles inside tiles, each colored by its step on a scale. Dots count the step, so it reads in black and white too.
+<div class="code">@startcapabilities
+levels Maturity : none, basic, managed, leading
+* Readers
+** Lending : leading
+*** E-books : basic
+@endcapabilities</div></figcaption>
+      </figure>
+    </div>
+    <p class="note"><b style="color: var(--fg)">Signal flow</b> (<span class="mono">@startflow</span>) is the third: blocks that receive and send named signals, wired port to port, with subsystems inside.</p>
+  </section>
+
+  <section id="team">
+    <h2>In a team, in git, in CI</h2>
+    <p class="sub">Everything the editor understands is a command: for a terminal, a pre-commit hook, a pipeline, or an agent.</p>
 
     <div class="feature rise">
       <div class="words">
         <span class="kicker">Diff</span>
         <h3>What changed in the behavior</h3>
         <p><code>omaspec diff</code> compares two versions, or a file with its last commit, by states, transitions and messages. Layout and colors do not count.</p>
-        <p>In the editor, Compare shows the change as pictures, as lines, or as a glide from one version to the other.</p>
+        <p><code>omaspec git setup</code> lets <code>git diff</code> and <code>git log -p</code> tell diagrams the same way. In the editor, Compare shows the change as pictures, as lines, or as a glide.</p>
       </div>
       <div class="shot"><img src="images/compare.png" alt="Two versions of a diagram compared side by side" loading="lazy"></div>
     </div>
 
-    <div class="feature rise">
-      <div class="words">
-        <span class="kicker">Project</span>
-        <h3>A whole project is one map</h3>
-        <p>The map is made from the project's diagrams: a tile for each, an arrow where a state of one opens another. Click a tile to dive in, Alt+Left leads back out.</p>
-        <p><code>omaspec check DIR</code> lints every diagram, the machines and the links, for CI.</p>
-      </div>
-      <div class="shot"><img src="images/map.png" alt="A project's map with a tile for each diagram" loading="lazy"></div>
-    </div>
-
-    <div class="feature rise">
-      <div class="words">
-        <span class="kicker">Omarchy</span>
-        <h3>It looks like your desktop</h3>
-        <p>The editor and the diagrams follow <code>omarchy theme</code> and <code>omarchy font set</code> live. A Hyprland binding, a menu entry and a preview window for Neovim users come with it.</p>
-      </div>
-      <div class="shot"><img src="images/themes.png" alt="Omaspec in four Omarchy themes" loading="lazy"></div>
-    </div>
-  </section>
-
-  <section id="cli">
-    <h2>The same on the command line</h2>
-    <p class="sub">Everything the editor understands is a command: for a terminal, a pre-commit hook, CI, or an agent.</p>
     <div class="term rise">
       <div class="bar"><i></i><i></i><i></i></div>
-<pre><span class="p">$</span> <span class="k">omaspec lint</span> door.puml              <span class="c"># findings, with their lines</span>
-<span class="p">$</span> <span class="k">omaspec trace</span> night.jsonl           <span class="c"># a recorded trace against the state machines</span>
-<span class="p">$</span> <span class="k">omaspec diff</span> door.puml              <span class="c"># what changed in the behavior since the last commit</span>
-<span class="p">$</span> <span class="k">omaspec convert</span> door.puml           <span class="c"># the machine in Mermaid, only if it means the same</span>
-<span class="p">$</span> <span class="k">omaspec render</span> door.puml -o door.png  <span class="c"># SVG, PNG or PDF, the source inside</span>
-<span class="p">$</span> <span class="k">omaspec play</span> door.puml -o door.gif  <span class="c"># a play as a GIF that moves</span>
-<span class="p">$</span> <span class="k">omaspec check</span> .                     <span class="c"># a whole project, for CI</span>
-<span class="p">$</span> <span class="k">omaspec mcp</span>                         <span class="c"># an MCP server for AI agents</span></pre>
+<pre><span class="p">$</span> <span class="k">omaspec lint</span> door.puml               <span class="c"># findings with their lines; --fix makes the sure ones</span>
+<span class="p">$</span> <span class="k">omaspec check</span> .                      <span class="c"># a whole project for CI: lint, machines, links, pictures</span>
+<span class="p">$</span> <span class="k">omaspec trace</span> night.jsonl            <span class="c"># a recorded trace against the state machines</span>
+<span class="p">$</span> <span class="k">omaspec coverage</span> door.puml --traces night.jsonl   <span class="c"># what the traces take of it</span>
+<span class="p">$</span> <span class="k">omaspec diff</span> door.puml               <span class="c"># what changed in the behavior since the last commit</span>
+<span class="p">$</span> <span class="k">omaspec refs</span> Open                    <span class="c"># where a state or an event is used; rename changes all</span>
+<span class="p">$</span> <span class="k">omaspec convert</span> door.puml            <span class="c"># the machine in Mermaid, only if it means the same</span>
+<span class="p">$</span> <span class="k">omaspec render</span> door.puml -o door.pdf <span class="c"># SVG, PNG, PDF or a page; the source inside</span>
+<span class="p">$</span> <span class="k">omaspec export</span> . --html             <span class="c"># the project as one page</span>
+<span class="p">$</span> <span class="k">omaspec mcp</span>                          <span class="c"># an MCP server for AI agents</span></pre>
     </div>
     <div class="cards">
-      <div class="card rise"><h4>For AI agents</h4><p><code>omaspec mcp</code> serves the command line's tools over MCP: lint, trace, diff, convert, format, render.</p></div>
-      <div class="card rise"><h4>For git</h4><p><code>omaspec git setup</code> lets <code>git diff</code> and <code>git log -p</code> tell diagrams by their behavior.</p></div>
-      <div class="card rise"><h4>For handing on</h4><p>Exports carry their source: an SVG, PNG or PDF opens as a diagram again. A project exports as linked SVGs anyone can open.</p></div>
+      <div class="card rise"><h4>For AI agents</h4><p><code>omaspec mcp</code> serves the command line's tools over MCP. An agent lints a diagram, holds a trace against it and gets a picture back to look at.</p></div>
+      <div class="card rise"><h4>For handing on</h4><p>Exports carry their source: an SVG, PNG or PDF dropped on Omaspec opens as a diagram again. Every picture is sanitized first.</p></div>
+      <div class="card rise"><h4>For Markdown</h4><p>A document's diagram blocks are drawn beside it, and exported with it.</p></div>
+    </div>
+    <div class="numbers rise">
+      <div><b>30 ms</b><span>a machine of 45 states and 72 transitions</span></div>
+      <div><b>&lt; 1 s</b><span>a flowchart of 150 boxes and 476 lines</span></div>
+      <div><b>0</b><span>requests: no network, no telemetry</span></div>
+      <div><b>1</b><span>binary, pure Rust, no unsafe code</span></div>
     </div>
   </section>
 
@@ -270,7 +427,7 @@ cd omaspec
 cargo build --release -p omaspec-app</pre>
       </div>
     </div>
-    <p class="note">Or take the binary from the <a href="https://github.com/enhapu-afk/omaspec/releases/latest">latest release</a>. Then <span class="mono">omaspec door.puml</span> opens the editor and Ctrl+Shift+E the gallery of 24 examples.</p>
+    <p class="note">Or take the binary from the <a href="https://github.com/enhapu-afk/omaspec/releases/latest">latest release</a>. Then <span class="mono">omaspec door.puml</span> opens the editor and Ctrl+Shift+E the gallery of 44 examples.</p>
   </section>
 </div>
 

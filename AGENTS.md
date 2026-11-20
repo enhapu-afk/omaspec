@@ -43,6 +43,7 @@ cargo run -p omaspec-app -- play FILE -o play.gif   # a play as a GIF, or in ful
 OMASPEC_SNAPSHOT_DIR=/tmp cargo test -p omaspec-app snapshot   # headless screenshots of the editor, the preview and the gallery
 OMASPEC_SNAPSHOT_DIR=/tmp cargo test --release -p omaspec-app snapshot_   # README pictures, every bundled theme
 docs/images/update.sh                      # the README's and the guide's pictures into docs/images (ImageMagick)
+docs/live/update.sh                        # the landing page's live examples into docs/live: real Omaspec pages, from the examples
 cargo bench -p omaspec-render              # render and export timings
 cargo test --release -p omaspec-render --test dense -- --nocapture   # 150 boxes, 476 lines in under a second (CI too)
 cargo test --release -p omaspec-app --test budget -- --nocapture     # a play of 600 frames without a GPU within 400 MiB (CI too)
