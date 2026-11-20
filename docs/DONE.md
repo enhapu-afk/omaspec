@@ -2897,6 +2897,19 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-096, the first frame of a play (2026-11-20): `omaspec play` kept the frames
+      from the moment the play began, while its bar came under the picture and the
+      picture glided to its fit above it, so the first frame was the picture as large
+      as before the bar, cut at its top and not yet veiled: brighter than the rest
+      (the 99th percentile 183 against 142, the studio measured). The play's opening is
+      now drawn and left out, as the fade-in is (`Stage::begun`): until the pane has
+      heard of the bar, which may tell its height a frame late, and until the picture
+      has glided to its fit and the veil is down with the start lit. The film starts
+      with the play standing at its start. `the_first_frame_of_a_play_has_the_picture_standing`
+      holds the paper's top edge in every frame and the first frame's brightness to the
+      last's, at the 60 frames a second of a WebP, without a GPU. And REQ-076, which the
+      studio found playing through on 1.0.0, is off the roadmap: its rest was done on
+      2026-11-18
 - [x] Release 1.0.0 (2026-11-20): the landing page (`docs/index.html`) shows every
       function, the ones that move as live pages made by Omaspec itself
       (`docs/live/update.sh`); its film is the editor recorded headless, every frame on a

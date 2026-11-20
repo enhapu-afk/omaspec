@@ -557,11 +557,37 @@ impl Stage {
         self.screen.perform(&mut self.app, message);
     }
 
+    /// The play's opening, drawn and left out as the fade-in is: its bar
+    /// comes under the picture, which glides to its fit above it, and the
+    /// veil comes down with the start lit. The first frame kept is the
+    /// play standing at its start (REQ-096); kept, the first frame was the
+    /// picture as large as before the bar, cut at its top and not yet
+    /// veiled, brighter than the rest. `full` is the pane before the bar.
+    fn begun(&mut self, full: Size) {
+        let (app, tick) = (&mut self.app, self.tick);
+        // Until the pane has heard of the bar: it may tell its new height
+        // a frame late.
+        self.screen.run_frames(
+            app,
+            FADE_IN_FRAMES,
+            tick,
+            |app| app.doc().paper.viewport() != full,
+            |_| {},
+        );
+        let standing = |app: &App| {
+            let paper = &app.doc().paper;
+            !paper.play_moving(crate::clock::now()) && paper.fading().is_none()
+        };
+        self.screen
+            .run_frames(app, FADE_IN_FRAMES, tick, standing, |_| {});
+    }
+
     /// Runs the play; the events it took.
     fn play(&mut self, args: &Moving) -> Result<String> {
         let moving = |app: &App| !app.doc().paper.play_moving(crate::clock::now());
         // Where the whole is too large to read, the view follows each step.
         self.app.doc_mut().paper.follow_play = !args.whole;
+        let full = self.app.doc().paper.viewport();
         self.send(Message::Command(Command::Play));
         if !self.app.doc().paper.playing() {
             bail!(
@@ -572,6 +598,7 @@ impl Stage {
                     .unwrap_or_else(|| "the diagram cannot be played".into())
             );
         }
+        self.begun(full);
         self.step(moving);
         let mut taken = Vec::new();
         let mut walked = Vec::new();
@@ -1070,6 +1097,96 @@ mod tests {
         // As wide as asked, though the door drawn twice would be wider.
         assert_eq!(u16::from_le_bytes([first[6], first[7]]), 200);
         let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// The first frame kept is the play standing at its start (REQ-096),
+    /// at the frames a second a WebP has: the picture where it stays, the
+    /// veil down. Kept, the first frame showed the picture as large as
+    /// before the bar, cut at its top and not yet veiled, brighter than
+    /// the rest; and at 60 frames a second the veil was still coming.
+    #[test]
+    fn the_first_frame_of_a_play_has_the_picture_standing() {
+        let work = std::env::temp_dir().join(format!("omaspec-first-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&work);
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("door.puml");
+        std::fs::write(
+            &file,
+            "@startuml\ntitle Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n",
+        )
+        .unwrap();
+        let args = Moving {
+            file: file.clone(),
+            text: None,
+            output: work.join("door.webp"),
+            events: vec!["open".into()],
+            steps: 1,
+            width: Some(300),
+            fps: None,
+            folds: Vec::new(),
+            dives: Vec::new(),
+            builds: false,
+            lockstep: false,
+            history: false,
+            travel: None,
+            traffic: Vec::new(),
+            themes: None,
+            ink: false,
+            whole: false,
+            theme: Some("built-in".into()),
+            file_colors: false,
+            root: None,
+            forced: None,
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        };
+        // The frames as the stage keeps them, before a file is written.
+        let _clock = crate::clock::Recording::start();
+        let fps = Film::Webp.usual_fps();
+        let mut stage = Stage::new(&args, Film::Webp, fps).unwrap();
+        stage.play(&args).unwrap();
+        let _ = std::fs::remove_dir_all(&work);
+        let (width, height) = stage.frames.size().unwrap();
+        let mut frames = Vec::new();
+        stage
+            .frames
+            .each(|rgba, _| {
+                frames.push(rgba.to_vec());
+                Ok(())
+            })
+            .unwrap();
+        // Where the picture stands: the first row that differs from the
+        // corner, the pane's ground: the paper's top edge. (A light's
+        // glow reaches past the paper at its sides, never above it.)
+        let top = |frame: &[u8]| {
+            let ground = &frame[..3];
+            (0..height).find(|&y| {
+                frame[y * width * 4..(y + 1) * width * 4]
+                    .chunks(4)
+                    .any(|px| px[..3].iter().zip(ground).any(|(a, b)| a.abs_diff(*b) > 24))
+            })
+        };
+        // How bright the picture is: a frame not veiled yet is brighter.
+        let bright = |frame: &[u8]| {
+            frame
+                .chunks(4)
+                .map(|px| u64::from(px[0]) + u64::from(px[1]) + u64::from(px[2]))
+                .sum::<u64>() as f64
+                / (width * height * 3) as f64
+        };
+        // In every frame, from the first one on: no glide to the fit over
+        // the bar, no frame larger before it.
+        let last = frames.last().unwrap();
+        let stands = top(last).expect("the last frame shows the paper");
+        for (i, frame) in frames.iter().enumerate() {
+            assert_eq!(top(frame), Some(stands), "frame {i} of {}", frames.len());
+        }
+        // Under the veil from the first frame on, as at the end.
+        let (first, end) = (bright(&frames[0]), bright(last));
+        assert!(
+            (first - end).abs() < 1.5,
+            "the first frame {first:.1} against the last {end:.1}"
+        );
     }
 
     /// The same play in full color: as many frames as the GIF's, each as

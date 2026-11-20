@@ -234,10 +234,44 @@ guide as a PDF (docs/DONE.md).
 - [ ] A round in a real window: the presenter mode on two screens, the
       lockstep, the focus, the glow after a compare's glide; the pages in
       Firefox and Safari.
-- [ ] REQ-076: a parallel region takes the inner start of a composite
-      state it enters.
 - Windows, an SVG with only the letters it uses, even cleaner lines, a
   settings dialog.
+
+## From the studio's round of 1.0.0 (2026-11-20)
+
+Found by the studio and reproduced on 1.0.0, in the order they are
+taken: first where Omaspec draws a wrong picture without a word, then
+what is plainly missing, then the larger pieces.
+
+- [ ] REQ-089, the head: `swimlane-beta` (Mermaid 11.16) is an unknown
+      head to lint, and render draws the file as a flowchart, with
+      nodes `swimlane` and `beta` and `LR` ignored. A head no drawer
+      knows is refused on its line, not drawn as something else.
+- [ ] REQ-099: two `gitGraph` blocks in one file, which Mermaid does not
+      take either, are drawn by mmdr as one picture without a word.
+      Lint says so as an error, and nothing is drawn.
+- [ ] REQ-097: `--events` splits at every comma, so an event with a
+      comma in its name (`hello, world`) cannot be chosen; neither a
+      backslash nor quotes help, and the play stops with exit 2.
+- [ ] REQ-100: a `gitGraph LR` of twelve commits at `--scale 3`: the
+      branch's badge is so tight that `jj` reads as `j`.
+- [ ] REQ-095: `play --help` says `--ink` needs a GPU; it does not.
+- [ ] REQ-101: `inspect` and `outline` give a gitGraph no outline.
+- [ ] REQ-089, the lanes: swimlanes drawn natively, as bands of one
+      height with their names, in the direction asked for, no line
+      through a lane's name (Mermaid #8853); the activity's swimlanes as
+      a start.
+- [ ] REQ-098: a gitGraph's `mainBranchName` and `rotateCommitLabel` are
+      carried out; lint said only info, so `--strict` passed.
+- [ ] REQ-051, the gaps: an emoji in a gitGraph's tag or commit is drawn
+      in color and whole, not as a small outline cut at its top.
+- [ ] REQ-090 to REQ-094, `--ink`: a look to ink into (`--look`), not
+      the play's dark theme; no empty first frame; a length that follows
+      the diagram (`--duration`), and REQ-092 also for a plain play
+      (`--duration`, `--hold`); no ghost text in the cross-fade; less
+      extreme proportions.
+- [ ] REQ-037, the rest: `play --build` builds a gitGraph up as it does
+      a flowchart, and `play` takes a gitGraph.
 
 ## Next
 
