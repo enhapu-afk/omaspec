@@ -611,7 +611,7 @@ that does not draw is named and left out; nothing is written outside the folder,
 SVG an earlier export left there stays.
 
 `omaspec export DIR --html` writes the project as one page instead, `<project>.html` in
-the same folder: its map, and a click on a tile, or on a state that opens a diagram of its
+the same folder (`-o page.html` names the page itself): its map, and a click on a tile, or on a state that opens a diagram of its
 own, zooms into what it opens as the editor dives into it; Escape, ← or a name in the
 trail at the foot zooms back out, Home goes back to the map, F shows it full screen. Every
 diagram the map leads to is in the page, once, in vectors and sharp at any size, in the

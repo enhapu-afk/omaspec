@@ -77,8 +77,12 @@ impl App {
         let Some(window) = self.detached.take() else {
             return Task::none();
         };
-        // A presentation ends with the window it was shown in.
-        self.presenting = None;
+        // A presentation ends with the window it was shown in, and its
+        // play with it.
+        let ended = match self.presenting.take() {
+            Some(presenting) => self.stop_presented(presenting.key),
+            None => Task::none(),
+        };
         // The list was drawn in the window that is closing.
         let picker_back = if self.picker_on == Some(window) {
             self.picker_on = Some(self.main);
@@ -111,6 +115,7 @@ impl App {
             self.beside_scale(),
             self.apply_keyboard_focus(),
             picker_back,
+            ended,
         ])
     }
 

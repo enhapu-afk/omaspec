@@ -189,6 +189,27 @@ pub fn dark(svg: &str) -> Option<String> {
     Some([&svg[..start], &svg[rules..end], &svg[end + 1..]].concat())
 }
 
+/// The rules of the dark colors of `svg`, one that [`both`] made, each
+/// `selector { property: color; }`: by attribute and by class, without
+/// the picture's own sheets that follow them. None when `svg` has one
+/// scheme only.
+pub fn dark_paints(svg: &str) -> Vec<&str> {
+    let Some(start) = svg.rfind(DARK) else {
+        return Vec::new();
+    };
+    let mut rest = svg[start + DARK.len()..].trim_start();
+    let mut rules = Vec::new();
+    // A color holds no brace, so each rule ends at the first.
+    while rest.starts_with('[') || rest.starts_with(".omaspec-dark-") {
+        let Some(end) = rest.find('}') else {
+            break;
+        };
+        rules.push(rest[..=end].trim());
+        rest = rest[end + 1..].trim_start();
+    }
+    rules
+}
+
 /// Walks `l` and `d` together: they may differ in colors only.
 fn walk<'a>(
     l: Node<'a, '_>,
@@ -341,6 +362,22 @@ mod tests {
         let png = crate::export::rasterize(&tree, 1.0).unwrap();
         let p = png.pixel(50, 45).unwrap();
         assert_eq!((p.red(), p.green(), p.blue()), (255, 255, 255));
+        // Its dark paints, each rule by itself, without the media query.
+        let paints = dark_paints(&both);
+        assert!(
+            paints.contains(&r##"[stroke="#2f6fdb"] { stroke: #79a6f0; }"##),
+            "{paints:?}"
+        );
+        assert_eq!(
+            paints
+                .iter()
+                .filter(|r| r.starts_with(".omaspec-dark-"))
+                .count(),
+            2,
+            "{paints:?}"
+        );
+        assert!(paints.iter().all(|r| !r.contains("@media")), "{paints:?}");
+        assert!(dark_paints(LIGHT).is_empty());
     }
 
     #[test]

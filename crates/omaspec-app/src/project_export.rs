@@ -335,8 +335,6 @@ fn targets(files: &[&str]) -> Result<Vec<String>> {
     Ok(targets)
 }
 
-/// The ZIP's name: the project's, else its folder's, with nothing in it
-/// that a file name cannot hold.
 /// What an export of the project at `root` is called: its name, else its
 /// folder's, without what a file's name may not hold.
 pub(crate) fn export_name(name: Option<&str>, root: &Path) -> String {

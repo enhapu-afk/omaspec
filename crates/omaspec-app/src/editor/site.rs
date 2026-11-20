@@ -59,6 +59,13 @@ pub(crate) fn write(
         root.display()
     );
     let name = crate::project_export::export_name(atlas.name.as_deref(), &root);
+    // What the page and its trail call the project: its name as written.
+    let title = atlas
+        .name
+        .as_deref()
+        .map(str::trim)
+        .filter(|title| !title.is_empty())
+        .map_or_else(|| name.clone(), str::to_owned);
     let skin = crate::look::skin_for(look, Some(&root))?;
     let atlas = Arc::new(atlas);
     let mut maps = Maps::with(root.clone(), Arc::clone(&atlas));
@@ -118,9 +125,11 @@ pub(crate) fn write(
     let mut pictures = vec![Picture {
         svg,
         size,
-        name: name.clone(),
+        name: title.clone(),
     }];
     let mut links_of: Vec<Vec<Link>> = vec![links];
+    // For each picture, the folder its links are paths in.
+    let mut bases: Vec<String> = vec![String::new()];
     // Each picture by what it is; none for a diagram that did not draw.
     let mut found: HashMap<Is, Option<usize>> = HashMap::from([(top, Some(0))]);
     let mut failed = Vec::new();
@@ -128,10 +137,11 @@ pub(crate) fn write(
     let mut at = 0;
     while at < pictures.len() {
         let mut from_here = Vec::new();
+        let base = bases[at].clone();
         for link in std::mem::take(&mut links_of[at]) {
             let is = match (&link.folder, link.files.as_slice()) {
-                (Some(folder), _) => Is::Map(folder.clone()),
-                (None, [one]) => Is::Diagram(one.clone()),
+                (Some(folder), _) => Is::Map(within(&base, folder)),
+                (None, [one]) => Is::Diagram(within(&base, one)),
                 // Several of that name, or none: the window goes nowhere.
                 _ => continue,
             };
@@ -147,12 +157,16 @@ pub(crate) fn write(
                                 name: link.name.clone(),
                             });
                             links_of.push(links);
+                            bases.push(base_of(&atlas, &root, &is));
                             Some(pictures.len() - 1)
                         }
                         Err(why) => {
-                            if let Is::Diagram(file) = &is {
-                                failed.push((file.clone(), why));
-                            }
+                            failed.push(match &is {
+                                Is::Diagram(file) => (file.clone(), why),
+                                Is::Map(folder) => {
+                                    (folder.clone(), format!("its map did not draw: {why}"))
+                                }
+                            });
                             None
                         }
                     };
@@ -207,16 +221,26 @@ pub(crate) fn write(
         pictures,
         hops,
     };
-    let written = page(&site, &name).map_err(|err| anyhow::anyhow!("{err}"))?;
-    let folder = match out {
-        Some(out) => {
-            std::path::absolute(out).with_context(|| format!("no folder `{}`", out.display()))?
+    let written = page(&site, &title).map_err(|err| anyhow::anyhow!("{err}"))?;
+    // `-o` names the page where it ends in `.html`, else its folder.
+    let named = out.filter(|out| {
+        out.extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("html"))
+    });
+    let path = match (named, out) {
+        (Some(page), _) => {
+            std::path::absolute(page).with_context(|| format!("no file `{}`", page.display()))?
         }
-        None => root.join(crate::project_export::FOLDER),
+        (None, Some(out)) => std::path::absolute(out)
+            .with_context(|| format!("no folder `{}`", out.display()))?
+            .join(format!("{name}.html")),
+        (None, None) => root
+            .join(crate::project_export::FOLDER)
+            .join(format!("{name}.html")),
     };
-    std::fs::create_dir_all(&folder)
-        .with_context(|| format!("cannot make {}", folder.display()))?;
-    let path = folder.join(format!("{name}.html"));
+    let folder = path.parent().context("a page lies in a folder")?;
+    anyhow::ensure!(!folder.is_file(), "{} is a file", folder.display());
+    std::fs::create_dir_all(folder).with_context(|| format!("cannot make {}", folder.display()))?;
     crate::files::write_atomic(&path, written.as_bytes())
         .with_context(|| format!("cannot write {}", path.display()))?;
     Ok(Written {
@@ -224,6 +248,33 @@ pub(crate) fn write(
         pictures: site.pictures.len(),
         failed,
     })
+}
+
+/// `path`, a path in the folder `base` of the project, as a path in the
+/// project.
+fn within(base: &str, path: &str) -> String {
+    if base.is_empty() {
+        path.to_owned()
+    } else {
+        format!("{base}/{path}")
+    }
+}
+
+/// The folder, in the project at `root`, whose paths the links in the
+/// picture `is` name: a diagram of a project inside this one links among
+/// that project's diagrams, as it is drawn ([`crate::specs::Maps`]); a
+/// map, made from this project, among its own.
+fn base_of(atlas: &omaspec_render::Atlas, root: &Path, is: &Is) -> String {
+    let Is::Diagram(file) = is else {
+        return String::new();
+    };
+    atlas
+        .diagrams
+        .iter()
+        .find(|e| e.file == *file)
+        .and_then(|e| e.place.as_ref())
+        .and_then(|place| crate::specs::path_in(root, &place.root))
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -281,6 +332,58 @@ mod tests {
             "{:?}",
             written.failed
         );
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// A project inside the project links among its own diagrams: a
+    /// state there opens the diagram beside it, not one of that path at
+    /// the top.
+    #[test]
+    fn a_project_inside_links_among_its_own_diagrams() {
+        let work = std::env::temp_dir().join(format!("omaspec-site-inner-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&work);
+        std::fs::create_dir_all(work.join("inner")).unwrap();
+        let write = |file: &str, text: &str| std::fs::write(work.join(file), text).unwrap();
+        write("omaspec-project.toml", "name = \"Cafe: day/night\"\n");
+        write(
+            "day.puml",
+            "@startuml\ntitle Day\n[*] --> Closed\nClosed --> Open : guest\n@enduml\n",
+        );
+        write("inner/omaspec-project.toml", "name = \"inner\"\n");
+        write(
+            "inner/kitchen.puml",
+            "@startuml\ntitle Kitchen\n[*] --> Idle\nIdle --> Shift : open\n@enduml\n",
+        );
+        write(
+            "inner/shift.puml",
+            "@startuml\ntitle Shift\n[*] --> Cooking\nCooking --> [*] : done\n@enduml\n",
+        );
+        let mut renderer = Renderer::new(&crate::commands::render_config());
+        let written = write_site(&work, &mut renderer);
+        assert!(written.failed.is_empty(), "{:?}", written.failed);
+        let page = std::fs::read_to_string(&written.page).unwrap();
+        // The kitchen's state Shift opens the shift beside it, drawn once.
+        assert!(page.contains(r#""name":"Shift""#), "{page}");
+        assert_eq!(
+            page.matches(r#"<div class="picture""#).count(),
+            written.pictures
+        );
+        // The page and its trail say the project's name as written; its
+        // file holds what a file's name may.
+        assert!(page.contains("<title>Cafe: day/night</title>"), "{page}");
+        assert!(
+            written.page.ends_with("export/Cafe- day-night.html"),
+            "{:?}",
+            written.page
+        );
+        // `-o` ending in `.html` names the page itself; another, its folder.
+        let named = work.join("out/site.html");
+        let written = super::write(&work, Some(&named), None, &mut renderer).unwrap();
+        assert_eq!(written.page, named);
+        assert!(named.is_file());
+        let folder = work.join("pages");
+        let written = super::write(&work, Some(&folder), None, &mut renderer).unwrap();
+        assert_eq!(written.page, folder.join("Cafe- day-night.html"));
         let _ = std::fs::remove_dir_all(&work);
     }
 

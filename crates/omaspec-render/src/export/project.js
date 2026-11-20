@@ -64,7 +64,12 @@
     });
     trail.replaceChildren(...parts);
     const hash = path.slice(1).map((step) => encodeURIComponent(step.hop.name)).join("/");
-    history.replaceState(null, "", hash ? `#${hash}` : location.pathname + location.search);
+    // A page whose address may not change (in a sandbox) still moves.
+    try {
+      history.replaceState(null, "", hash ? `#${hash}` : location.href.split("#")[0]);
+    } catch {
+      // The address stays as it was.
+    }
   };
   // The picture shown fitted to the view, and how large one of its units is.
   const fitted = () => {
@@ -148,7 +153,10 @@
       out(steps - 1);
     });
   };
+  // The hop under the pointer; none over the trail and the keys, which
+  // lie over the picture.
   const pointer = (event) => {
+    if (event.target.closest && event.target.closest("#trail, #help")) return null;
     const box = stage.getBoundingClientRect();
     return under(event.clientX - box.left, event.clientY - box.top);
   };
@@ -162,6 +170,8 @@
     if (hop) into(hop);
   });
   document.addEventListener("keydown", (event) => {
+    // The browser's own keys (Ctrl+F, Alt+←) stay the browser's.
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === "Escape" || event.key === "Backspace" || event.key === "ArrowLeft") {
       out(1);
       event.preventDefault();
@@ -179,8 +189,17 @@
     if (!moving) show();
   });
   // `#Day/Order`: straight there, by the names of the hops on the way.
-  const wanted = location.hash.slice(1).split("/").filter(Boolean).map(decodeURIComponent);
+  // A part that is no name (a stray `%`) ends the way there.
+  const decoded = (part) => {
+    try {
+      return decodeURIComponent(part);
+    } catch {
+      return null;
+    }
+  };
+  const wanted = location.hash.slice(1).split("/").filter(Boolean).map(decoded);
   for (const name of wanted) {
+    if (name === null) break;
     const hop = data.hops[here()].find((h) => h.name === name);
     if (!hop) break;
     path.push({ at: hop.to, hop });

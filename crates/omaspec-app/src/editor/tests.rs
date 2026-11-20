@@ -183,12 +183,56 @@ fn a_presentation_plays_full_screen_with_its_notes_and_escape_ends_it() {
         present::notes(&app.doc().text(), line),
         ["It goes on when switched."]
     );
+    // A step back: the notes of the step before, which no light
+    // announces; back before the first, those that open the diagram.
+    let _ = app.update(Message::Keyed(
+        diagram,
+        Command::PlayAsk(paper::Ask::Take(0)),
+    ));
+    app.doc_mut().paper.freeze_play(Duration::from_secs(10));
+    let _ = app.update(Message::Frame);
+    assert_eq!(app.presenting.as_ref().unwrap().line, Some(5));
+    let _ = app.update(Message::Keyed(diagram, Command::PlayAsk(paper::Ask::Back)));
+    assert_eq!(app.presenting.as_ref().unwrap().line, Some(4));
+    let _ = app.update(Message::Keyed(diagram, Command::PlayAsk(paper::Ask::Back)));
+    assert_eq!(app.presenting.as_ref().unwrap().line, None);
+    let _ = app.update(Message::Keyed(
+        diagram,
+        Command::PlayAsk(paper::Ask::Take(0)),
+    ));
+    app.doc_mut().paper.freeze_play(Duration::from_secs(20));
+    let _ = app.update(Message::Frame);
+    assert_eq!(app.presenting.as_ref().unwrap().line, Some(4));
     // From the start again: before the first step.
     let _ = app.update(Message::Keyed(
         diagram,
         Command::PlayAsk(paper::Ask::Restart),
     ));
     assert_eq!(app.presenting.as_ref().unwrap().line, None);
+    // The speaker's window takes the keys of the presentation too.
+    let main = app.main;
+    let settings = iced::Settings {
+        default_font: app.font,
+        fonts: scrive_iced::required_fonts()
+            .iter()
+            .map(|font| std::borrow::Cow::Borrowed(*font))
+            .collect(),
+        ..Default::default()
+    };
+    let mut ui = iced_test::simulator::Simulator::with_size(
+        settings,
+        Size::new(800.0, 600.0),
+        app.view(main),
+    );
+    let _ = ui.simulate(iced_test::simulator::tap_key(Named::PageDown, None));
+    assert!(ui.into_messages().any(|message| matches!(
+        message,
+        Message::Keyed(window, Command::PlayAsk(paper::Ask::Next)) if window == main
+    )));
+    // It keeps to its tab: no other is opened or chosen meanwhile.
+    let tabs = app.docs.len();
+    let _ = app.update(Message::Keyed(main, Command::NewTab));
+    assert_eq!(app.docs.len(), tabs);
     let _ = app.update(Message::Keyed(diagram, Command::PresentFullScreen));
     assert!(!app.presenting.as_ref().unwrap().full);
     // Escape ends it as it began: the diagram back beside the source.
@@ -207,6 +251,22 @@ fn a_presentation_plays_full_screen_with_its_notes_and_escape_ends_it() {
     press(&mut app, Command::Present);
     press(&mut app, Command::Detach);
     assert!(app.presenting.is_none());
+}
+
+#[test]
+fn a_diagram_that_does_not_play_is_presented_all_the_same() {
+    let mut app = open(&[]);
+    let classes = "@startuml\nclass Order\nclass Line\nOrder *-- Line\n@enduml\n";
+    select_all_and_paste(&mut app, classes);
+    show(&mut app, classes, Language::PlantUml);
+    press(&mut app, Command::Present);
+    assert!(app.detached.is_some());
+    let presenting = app.presenting.as_ref().expect("presenting");
+    // The speaker is told why, where nobody would see a notice.
+    assert!(presenting.unplayable.is_some(), "{:?}", app.notice);
+    assert!(!app.doc().paper.playing());
+    press(&mut app, Command::Present);
+    assert!(app.presenting.is_none() && app.detached.is_none());
 }
 
 #[test]

@@ -30,10 +30,16 @@ pub(super) struct Presenting {
     /// The zero-based line of the step the play is at; none before the
     /// first.
     pub line: Option<usize>,
+    /// The line of the step at each point the play came to ([`come`]),
+    /// for a step back, which no light announces.
+    pub seen: Vec<Option<usize>>,
     /// The diagram had its own window before, and keeps it after.
     pub had_window: bool,
     /// Whether that window is full screen now.
     pub full: bool,
+    /// Why the diagram does not play, where it does not: it stands full
+    /// screen all the same, and the speaker is told.
+    pub unplayable: Option<String>,
 }
 
 /// The keys while presenting, in both windows: those of a presentation
@@ -60,13 +66,50 @@ pub(super) fn key(key: &Key, mods: Modifiers) -> Option<Command> {
     }
 }
 
+/// Whether `command` opens, closes or chooses another tab: a
+/// presentation keeps to the tab it shows.
+pub(super) fn changes_tab(command: Command) -> bool {
+    matches!(
+        command,
+        Command::NextTab
+            | Command::PreviousTab
+            | Command::NewTab
+            | Command::CloseTab
+            | Command::CloseOthers
+            | Command::Open
+            | Command::Pick
+    )
+}
+
+/// How far the play has come: a scenario's messages shown, a machine's
+/// steps taken, a trace's lines played.
+fn come(offer: &paper::Offer) -> usize {
+    match offer {
+        paper::Offer::Scenario { at, .. } => *at,
+        paper::Offer::Machine { steps, .. } => *steps,
+        paper::Offer::Trace { played, .. } => *played,
+    }
+}
+
 /// The speaker's notes for the step at the zero-based `line` of `text`:
 /// the comments written right above it, one after the other, up to a
 /// blank line or one that is no comment. Before the first step, those
-/// that open the diagram, after its `@start…`. Omaspec's own lines (a
-/// fold, a mark, lines by hand) are no notes.
+/// that open the diagram, after its `@start…`; in Mermaid, after the
+/// line that names the diagram, else those above it. Omaspec's own lines
+/// (a fold, a mark, lines by hand) are no notes.
 pub(super) fn notes(text: &str, line: Option<usize>) -> Vec<String> {
     let lines: Vec<&str> = text.lines().collect();
+    // The comments from `from` on, past blank lines.
+    let opening = |from: usize| -> Vec<String> {
+        lines[from.min(lines.len())..]
+            .iter()
+            .skip_while(|l| l.trim().is_empty())
+            .map(|l| comment(l))
+            .take_while(Option::is_some)
+            .flatten()
+            .filter(|note| !note.is_empty())
+            .collect()
+    };
     match line {
         Some(line) => {
             let mut found: Vec<String> = (0..line.min(lines.len()))
@@ -80,23 +123,41 @@ pub(super) fn notes(text: &str, line: Option<usize>) -> Vec<String> {
             found
         }
         None => {
-            let start = lines
+            if let Some(start) = lines
                 .iter()
-                .position(|l| {
-                    let l = l.trim_start();
-                    l.starts_with("@start") || l.starts_with("```")
-                })
+                .position(|l| l.trim_start().starts_with("@start"))
+            {
+                return opening(start + 1);
+            }
+            // Mermaid, in a Markdown document after its fence.
+            let from = lines
+                .iter()
+                .position(|l| l.trim_start().starts_with("```"))
                 .map_or(0, |at| at + 1);
-            lines[start.min(lines.len())..]
-                .iter()
-                .skip_while(|l| l.trim().is_empty())
-                .map(|l| comment(l))
-                .take_while(Option::is_some)
-                .flatten()
-                .filter(|note| !note.is_empty())
-                .collect()
+            let after = mermaid_head(&lines, from).map_or_else(Vec::new, |head| opening(head + 1));
+            if after.is_empty() {
+                opening(from)
+            } else {
+                after
+            }
         }
     }
+}
+
+/// The line at or after `from` that names a Mermaid diagram
+/// (`sequenceDiagram`): the first that is not blank, a comment, a
+/// directive or front matter.
+fn mermaid_head(lines: &[&str], from: usize) -> Option<usize> {
+    let mut front = false;
+    for (at, line) in lines.iter().enumerate().skip(from) {
+        let line = line.trim();
+        if line == "---" {
+            front = !front;
+        } else if !(front || line.is_empty() || line.starts_with("%%")) {
+            return Some(at);
+        }
+    }
+    None
 }
 
 /// The words of a comment line, PlantUML's `'` or Mermaid's `%%`; none
@@ -169,12 +230,20 @@ impl App {
         } else {
             self.toggle_play()
         };
+        // A diagram that does not play (a class diagram) is shown all the
+        // same; one that unfolds first plays once it is drawn.
+        let waits = self.play_when_drawn == Some(key);
+        let unplayable = (!self.doc().paper.playing() && !waits)
+            .then(|| self.notice.clone())
+            .flatten();
         self.presenting = Some(Presenting {
             key,
             since: crate::clock::now(),
             line: None,
+            seen: Vec::new(),
             had_window,
             full: true,
+            unplayable,
         });
         self.after(crate::worker::Alarm::Clock, TICK);
         Task::batch([window, play])
@@ -183,8 +252,18 @@ impl App {
     /// Ends `presenting`: the play stops, and the diagram goes back
     /// where it was, its window as before or beside the source again.
     fn end_present(&mut self, presenting: Presenting) -> Task<Message> {
-        let key = presenting.key;
-        let stop = match self.find(key) {
+        let stop = self.stop_presented(presenting.key);
+        let window = match (presenting.had_window, self.detached) {
+            (true, Some(id)) => window::set_mode(id, window::Mode::Windowed),
+            _ => self.attach(),
+        };
+        Task::batch([stop, window])
+    }
+
+    /// The play of the tab `key` presented stops, and the machines beside
+    /// it close.
+    pub(super) fn stop_presented(&mut self, key: u64) -> Task<Message> {
+        match self.find(key) {
             Some(doc) if doc.paper.playing() => {
                 self.close_beside(key);
                 self.find(key)
@@ -193,12 +272,7 @@ impl App {
                     .map(move |m| Message::Paper(key, m))
             }
             _ => Task::none(),
-        };
-        let window = match (presenting.had_window, self.detached) {
-            (true, Some(id)) => window::set_mode(id, window::Mode::Windowed),
-            _ => self.attach(),
-        };
-        Task::batch([stop, window])
+        }
     }
 
     /// The diagram's window full screen, or a window again.
@@ -220,11 +294,48 @@ impl App {
     /// The step the play of tab `key` is at, from the source line it
     /// lights, for the notes.
     pub(super) fn presented_line(&mut self, key: u64, line: Option<usize>) {
+        let come = self.played_so_far(key);
         if let Some(presenting) = &mut self.presenting
             && presenting.key == key
         {
             presenting.line = line;
+            if let Some(at) = come {
+                if presenting.seen.len() <= at {
+                    presenting.seen.resize(at + 1, None);
+                }
+                presenting.seen[at] = line;
+            }
         }
+    }
+
+    /// After `ask` in the play of tab `key`: from the start again, or a
+    /// step back, the notes are those of where the play is now, which no
+    /// light announces.
+    pub(super) fn presented_after(&mut self, key: u64, ask: paper::Ask) {
+        if !matches!(ask, paper::Ask::Back | paper::Ask::Restart) {
+            return;
+        }
+        let come = self.played_so_far(key).unwrap_or(0);
+        let Some(presenting) = &mut self.presenting else {
+            return;
+        };
+        if presenting.key != key {
+            return;
+        }
+        if ask == paper::Ask::Restart || come == 0 {
+            // Before the first step.
+            presenting.seen.clear();
+            presenting.line = None;
+            return;
+        }
+        presenting.seen.truncate(come + 1);
+        presenting.line = presenting.seen.iter().rev().find_map(|line| *line);
+    }
+
+    /// How far the play of tab `key` has come, while it plays.
+    fn played_so_far(&self, key: u64) -> Option<usize> {
+        let doc = self.docs.iter().find(|d| d.key == key)?;
+        doc.paper.offer().map(|offer| come(&offer))
     }
 
     /// The speaker's view, in the editor's window while presenting: the
@@ -292,6 +403,16 @@ impl App {
         let body = column![
             head,
             words(state, 16.0, color),
+            words(
+                match (&presenting.unplayable, doc.paper.playing()) {
+                    (Some(why), false) => {
+                        format!("it does not play, and stands full screen: {why}")
+                    }
+                    _ => String::new(),
+                },
+                16.0,
+                p.yellow,
+            ),
             container(said).padding([24, 0]),
             words(at, 15.0, p.dark_foreground),
             Space::new().height(Length::Fill),
@@ -308,14 +429,20 @@ impl App {
         ]
         .spacing(14)
         .padding(40);
-        container(body)
+        let view = container(body)
             .width(Length::Fill)
             .height(Length::Fill)
             .style(|_| container::Style {
                 background: Some(ui::color(self.palette.background).into()),
                 ..container::Style::default()
-            })
-            .into()
+            });
+        // The keys of the presentation here too: a remote sends them to
+        // the window that has the keyboard.
+        let (main, mode) = (self.main, self.mode(self.main));
+        super::keys::Guard::new(view, move |key, mods| {
+            super::shortcut(key, mods, mode).map(|command| Message::Keyed(main, command))
+        })
+        .into()
     }
 }
 
@@ -346,6 +473,32 @@ mod tests {
         assert_eq!(
             notes("sequenceDiagram\n%%{init: {}}%%\nA->>B: hi\n", Some(2)),
             Vec::<String>::new()
+        );
+        assert_eq!(
+            notes(
+                "---\ntitle: Hi\n---\nsequenceDiagram\n%% Welcome.\nA->>B: hi\n",
+                None
+            ),
+            ["Welcome."]
+        );
+        assert_eq!(
+            notes("%% Welcome.\nsequenceDiagram\nA->>B: hi\n", None),
+            ["Welcome."]
+        );
+        // In a Markdown document, after the diagram's own head.
+        assert_eq!(
+            notes(
+                "# Shop\n\n```plantuml\n@startuml\n' Welcome.\nA -> B : hi\n@enduml\n```\n",
+                None
+            ),
+            ["Welcome."]
+        );
+        assert_eq!(
+            notes(
+                "# Shop\n\n```mermaid\nsequenceDiagram\n%% Welcome.\nA->>B: hi\n```\n",
+                None
+            ),
+            ["Welcome."]
         );
     }
 

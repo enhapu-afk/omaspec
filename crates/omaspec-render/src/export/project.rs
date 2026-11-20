@@ -62,7 +62,7 @@ pub fn page(site: &Site, title: &str) -> Result<String, ExportError> {
          #trail .here {{ font-weight: 600; }}\n\
          #trail .between {{ opacity: 0.5; }}\n\
          #help {{ position: absolute; z-index: 5; right: 14px; bottom: 10px; opacity: 0.55; }}\n\
-         @media (max-width: 700px) {{ #help {{ display: none; }} }}\n{dark}</style>\n",
+         @media (max-width: 700px) {{ #help {{ display: none; }} }}\n{dark}{paints}</style>\n",
         paper = site.paper,
         ink = site.ink,
         accent = site.accent,
@@ -73,6 +73,7 @@ pub fn page(site: &Site, title: &str) -> Result<String, ExportError> {
                  #lit {{ border-color: {accent}; background: rgba({r}, {g}, {b}, 0.1); }} }}\n"
             )
         }),
+        paints = dark_paints(&site.pictures),
     ));
     out.push_str("</head>\n<body>\n<main id=\"site\">\n");
     out.push_str(&pictures);
@@ -88,6 +89,28 @@ pub fn page(site: &Site, title: &str) -> Result<String, ExportError> {
         "<script>\n{ZOOM}{SCRIPT}</script>\n</body>\n</html>\n"
     ));
     Ok(out)
+}
+
+/// The dark colors of the pictures drawn in both schemes (`--look auto`),
+/// under the viewer's dark scheme. A picture's own style sheet is not
+/// kept on the page, where its rules would reach every other picture: its
+/// dark paints are, each rule kept to its picture.
+fn dark_paints(pictures: &[Picture]) -> String {
+    let mut rules = String::new();
+    for (at, picture) in pictures.iter().enumerate() {
+        for rule in crate::schemes::dark_paints(&picture.svg) {
+            // Its ids are the picture's own on the page, and nothing in it
+            // closes the page's sheet.
+            let rule = rule
+                .replace("url(#", &format!("url(#f{at}-"))
+                .replace('<', "\\3c ");
+            rules.push_str(&format!("[data-picture=\"{at}\"] {rule}\n"));
+        }
+    }
+    if rules.is_empty() {
+        return rules;
+    }
+    format!("@media (prefers-color-scheme: dark) {{\n{rules}}}\n")
 }
 
 fn data(site: &Site) -> Value {
@@ -148,5 +171,46 @@ mod tests {
         assert!(page.contains("const Zoom") && page.contains("rgba(47, 111, 219, 0.08)"));
         assert!(page.contains("default-src 'none'"));
         assert!(page.contains("prefers-color-scheme: dark"), "{page}");
+    }
+
+    /// In the look auto a picture's dark colors stay on the page, each
+    /// rule kept to its picture, though its own sheet does not.
+    #[test]
+    fn the_pictures_turn_dark_each_by_its_own_rules() {
+        let light = r##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><rect width="40" height="20" fill="#ffffff"/><rect x="5" y="5" width="20" height="10" fill="#ffffff" stroke="#2f6fdb"/></svg>"##;
+        let dark = light
+            .replacen("#ffffff", "#16181d", 1)
+            .replacen("#ffffff", "#23272f", 1)
+            .replace("#2f6fdb", "#79a6f0");
+        let both = crate::schemes::both(light, &dark).unwrap();
+        let site = Site {
+            pictures: vec![
+                Picture {
+                    svg: light.into(),
+                    size: (40.0, 20.0),
+                    name: "cafe".into(),
+                },
+                Picture {
+                    svg: both,
+                    size: (40.0, 20.0),
+                    name: "Day".into(),
+                },
+            ],
+            hops: vec![Vec::new(), Vec::new()],
+            paper: Color::WHITE,
+            ink: Color::BLACK,
+            accent: Color(47, 111, 219),
+            dark: None,
+        };
+        let page = page(&site, "cafe").unwrap();
+        assert!(
+            page.contains(r##"[data-picture="1"] [stroke="#2f6fdb"] { stroke: #79a6f0; }"##),
+            "{page}"
+        );
+        assert!(
+            page.contains(r#"[data-picture="1"] .omaspec-dark-0 {"#),
+            "{page}"
+        );
+        assert!(!page.contains(r#"[data-picture="0"]"#), "{page}");
     }
 }

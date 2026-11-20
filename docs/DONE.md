@@ -2897,6 +2897,17 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the presenter mode and the project's page found (2026-11-20).
+      The speaker's window takes the presentation's keys and gives way to a question,
+      a list or a menu opened there; a step back shows the notes of the step it went
+      back to; tabs stay put while presenting, Escape ends it from any tab, and closing
+      the diagram's window stops the play too; the opening notes are found in Mermaid
+      and in a Markdown document; a diagram that does not play is presented all the
+      same and the speaker is told why. The project's page keeps each picture's dark
+      colors in `--look auto`, follows the links of a project inside the project as
+      that one's, tells a folder's map that does not draw, says the project's name as
+      written, survives a broken address, leaves the browser's shortcuts alone, takes
+      no click on the trail for a tile, and `-o page.html` names the page itself
 - [x] The project as one page (2026-11-20): `omaspec export DIR --html` writes
       `<project>.html`: the map, and a click on a tile, or on a state that opens a
       diagram of its own, zooms into what it opens as the editor dives into it, a light

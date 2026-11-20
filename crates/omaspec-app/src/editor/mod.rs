@@ -1819,13 +1819,21 @@ impl App {
         if !matches!(command, Command::CloseTab) {
             self.closing = None;
         }
-        if self.doc().is_document()
+        // A presentation keeps to its tab, and ends whatever the tab holds.
+        let presenting = self.presenting.is_some();
+        if presenting && present::changes_tab(command) {
+            return Task::none();
+        }
+        let ending = presenting && matches!(command, Command::Present | Command::PresentFullScreen);
+        if !ending
+            && self.doc().is_document()
             && let Err(why) = command.in_a_document()
         {
             self.notice = Some(why.into());
             return Task::none();
         }
-        if self.doc().is_project()
+        if !ending
+            && self.doc().is_project()
             && let Err(why) = command.in_a_project()
         {
             self.notice = Some(why.into());
@@ -2035,11 +2043,10 @@ impl App {
             Command::PlayTrace => self.open_traces(),
             Command::Coverage => self.toggle_coverage(),
             Command::PlayAsk(ask) => {
-                // From the start again: before its first step.
-                if ask == paper::Ask::Restart {
-                    self.presented_line(key, None);
-                }
                 let task = paper(self.doc_mut().paper.update(paper::Message::Play(ask)));
+                // From the start again, or a step back: the notes of where
+                // the play is now.
+                self.presented_after(key, ask);
                 self.beside_follow(key, ask);
                 self.light_played_line(key);
                 task

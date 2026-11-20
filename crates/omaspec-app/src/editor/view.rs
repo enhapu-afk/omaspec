@@ -123,7 +123,11 @@ impl App {
     pub(super) fn view(&self, window: iced::window::Id) -> Element<'_, Message> {
         if Some(window) == self.detached {
             self.detached_view()
-        } else if let Some(presenting) = &self.presenting {
+        } else if let Some(presenting) = &self.presenting
+            // A question, a list or a menu opened meanwhile is drawn where
+            // it always is, with its keys.
+            && self.mode(window) == Mode::Presenting
+        {
             self.presenter_view(presenting)
         } else {
             self.main_view()

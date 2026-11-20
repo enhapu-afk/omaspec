@@ -648,7 +648,8 @@ enum Command {
         json: bool,
         /// Instead of SVGs: the project as one page, its map, a click on
         /// a tile or a linked state zooming into what it opens and back
-        /// out, every diagram the map leads to inside.
+        /// out, every diagram the map leads to inside. `-o` names the page
+        /// where it ends in `.html`, else the folder it goes into.
         #[arg(long, conflicts_with = "json")]
         html: bool,
     },
