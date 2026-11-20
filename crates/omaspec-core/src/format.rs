@@ -4,13 +4,12 @@
 //!
 //! PlantUML blocks whose layout is their content (JSON, YAML, math, mind
 //! maps, WBS, Gantt, …) are kept verbatim. In Mermaid, indentation is
-//! syntax for mind maps, kanban, sankey, packet and pie, so those are only
+//! syntax for mind maps, kanban, sankey, packet, pie and treemaps, so those are only
 //! tidied.
 
-use crate::lang::{Language, mermaid_graph, mermaid_head};
+use crate::lang::Language;
 use crate::text::{
-    is_note_block_open, is_note_closer, normalize_newlines, re, significant_lines, strip_bom,
-    strip_strings,
+    is_note_block_open, is_note_closer, normalize_newlines, re, strip_bom, strip_strings,
 };
 
 const INDENT: &str = "  ";
@@ -258,20 +257,17 @@ fn mermaid(code: &str) -> String {
     let lines: Vec<&str> = raw.split('\n').collect();
     let ended_with_newline = lines.last() == Some(&"");
 
-    let kind = significant_lines(&raw, 40)
-        .into_iter()
-        .filter(|l| !l.starts_with("%%{"))
-        .find_map(|l| {
-            mermaid_head()
-                .find(l)
-                .or_else(|| mermaid_graph().find(l))
-                .map(|m| m.as_str().to_lowercase())
-        })
+    // The kind its head names, as mmdr reads it: a node's name further
+    // down is none.
+    let (body, _) = crate::lang::mermaid_body(&raw);
+    let body: Vec<&str> = body.split('\n').collect();
+    let kind = crate::mermaid_head::head_line(&body)
+        .and_then(|at| crate::mermaid_head::kind_of(body[at]))
         .unwrap_or_default();
 
     let mut out = Output::new();
     // Indentation is part of the language for these types: only tidy.
-    if re!(r"^(mindmap|kanban|sankey|packet|pie)\b").is_match(&kind) {
+    if ["mindmap", "kanban", "sankey", "packet", "pie", "treemap"].contains(&kind) {
         for line in &lines {
             let line = line.trim_end();
             if line.trim().is_empty() {
@@ -350,6 +346,18 @@ fn mermaid_opener(t: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A mind map in a fence, and a treemap, keep their indentation: it is
+    /// their tree. The kind is the head's, under the fence.
+    #[test]
+    fn a_tree_written_by_indentation_is_only_tidied() {
+        for code in [
+            "```mermaid\nmindmap\n  root\n    child\n```\n",
+            "treemap-beta\n\"A\"\n    \"A1\": 10\n    \"A2\": 5\n\"B\": 3\n",
+        ] {
+            assert_eq!(format(code, Language::Mermaid), code, "{code}");
+        }
+    }
 
     #[test]
     fn lines_by_hand_stay_at_the_end() {

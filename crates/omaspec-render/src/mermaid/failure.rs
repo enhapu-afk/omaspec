@@ -49,10 +49,7 @@ fn unplaced(message: &str, body: &str) -> (Option<usize>, String) {
     if message == NO_HEADER {
         return match super::head::header_at(body) {
             None => (None, "the diagram is empty".to_owned()),
-            Some((at, header)) => (
-                Some(at),
-                omaspec_core::lang::unknown_mermaid_kind_said(header),
-            ),
+            Some((at, header)) => (Some(at), omaspec_core::mermaid_head::unknown_said(header)),
         };
     }
     if let Some(edge) = message.strip_prefix(BAD_EDGE) {
@@ -120,7 +117,7 @@ mod tests {
                     line: at, message, ..
                 }) => {
                     assert_eq!(at, Some(line), "{body}");
-                    assert_eq!(message, omaspec_core::lang::unknown_mermaid_kind_said(head));
+                    assert_eq!(message, omaspec_core::mermaid_head::unknown_said(head));
                 }
                 other => panic!("{body}: {other:?}"),
             }

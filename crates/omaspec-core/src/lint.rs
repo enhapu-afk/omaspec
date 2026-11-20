@@ -132,6 +132,17 @@ pub fn lint(code: &str, lang: Language) -> Vec<Finding> {
     match lang {
         Language::Mermaid => {
             findings.extend(crate::settings::unheeded(&code));
+            // What Mermaid refuses as well, render refuses on its line
+            // (REQ-099): a second git graph in one text.
+            let (body, offset) = crate::lang::mermaid_body(&code);
+            if let Some((line, said)) = omaspec_uml::gitgraph::mermaid_wrong(body) {
+                findings.push(Finding::new(
+                    "refused",
+                    line + offset,
+                    Severity::Error,
+                    said,
+                ));
+            }
             let rows = mermaid_rows(&lines);
             if portable::is_flowchart(&code) {
                 portable::findings(&lines, &rows, &mut findings);
@@ -390,58 +401,29 @@ fn close(stack: &mut Vec<(usize, String)>, matches: impl Fn(&str) -> bool) {
 
 fn mermaid_syntax(lines: &[&str]) -> Vec<Finding> {
     let mut findings = Vec::new();
-    let mut i = 0;
-    while i < lines.len() && lines[i].trim().is_empty() {
-        i += 1;
-    }
-    // Skip front matter, comments and the init directive, which may span
-    // lines, wherever they stand before the head: as mmdr finds it.
-    while i < lines.len() {
-        let t = lines[i].trim_start_matches('\u{feff}').trim();
-        if t == "---" {
-            i += 1;
-            while i < lines.len() && lines[i].trim() != "---" {
-                i += 1;
-            }
-            i += 1;
-            continue;
-        }
-        if t.starts_with("%%{") {
-            while i < lines.len() && !lines[i].contains("}%%") {
-                i += 1;
-            }
-            i += 1;
-            continue;
-        }
-        if t.is_empty() || t.starts_with("%%") {
-            i += 1;
-            continue;
-        }
-        break;
-    }
-    if let Some(head) = lines
-        .get(i)
-        .map(|l| l.trim_start_matches('\u{feff}').trim())
-        && !puml_start().is_match(head)
+    // The head, found and judged as mmdr finds and reads it (REQ-089).
+    if let Some(i) = crate::mermaid_head::head_line(lines)
+        && !puml_start().is_match(lines[i].trim_start_matches('\u{feff}').trim())
     {
-        use crate::lang::MermaidHead;
-        match crate::lang::mermaid_head_of(head) {
-            // Refused by render, in these words, on this line (REQ-089).
-            MermaidHead::Unknown => findings.push(Finding::new(
+        use crate::mermaid_head::{self as head, Head};
+        let line = lines[i];
+        match head::head_of(line) {
+            // Refused by render, in these words, on this line.
+            Head::Unknown => findings.push(Finding::new(
                 "unknown-head",
                 i,
                 Severity::Error,
-                crate::lang::unknown_mermaid_kind_said(head),
+                head::unknown_said(line),
             )),
             // Drawn as a flowchart, and only told.
-            MermaidHead::Flowchart => findings.push(Finding::new(
+            Head::Flowchart => findings.push(Finding::new(
                 "unknown-head",
                 i,
                 Severity::Warning,
                 "Unknown diagram head — expected flowchart / sequenceDiagram / …",
             )),
-            MermaidHead::Kind => {
-                if let Some((word, written)) = crate::lang::mermaid_kind_misspelled(head) {
+            Head::Kind => {
+                if let Some((word, written)) = head::misspelled(line) {
                     findings.push(Finding::new(
                         "not-mermaid-js",
                         i,
@@ -1285,7 +1267,7 @@ mod tests {
             (
                 0,
                 Severity::Error,
-                crate::lang::unknown_mermaid_kind_said("swimlane-beta LR")
+                crate::mermaid_head::unknown_said("swimlane-beta LR")
             )
         );
         // What mmdr reads as a kind says nothing; a flowchart without its
@@ -1293,8 +1275,8 @@ mod tests {
         // reads as nothing is refused as render refuses it.
         for code in [
             "graph\n  A --> B\n",
-            "block\n  a b\n",
-            "xychart\n  bar [1, 2]\n",
+            "block-beta\n  a b\n",
+            "xychart-beta\n  bar [1, 2]\n",
             "\u{feff}flowchart LR\n  A --> B\n",
             "%% a note\n---\ntitle: x\n---\nflowchart LR\n  A --> B\n",
         ] {
@@ -1323,10 +1305,51 @@ mod tests {
                 "{code}"
             );
         }
-        // Another case is drawn, and told: GitHub does not draw it.
-        let found = messages("SequenceDiagram\n  A->>B: hi\n", Language::Mermaid);
-        assert_eq!(found[0].1, Severity::Info, "{found:?}");
-        assert!(found[0].2.contains("`sequenceDiagram`"), "{found:?}");
+        // Another case, or no `-beta`, is drawn and told: GitHub does not
+        // draw it.
+        for (code, written) in [
+            ("SequenceDiagram\n  A->>B: hi\n", "`sequenceDiagram`"),
+            ("XYChart-beta\n  bar [1, 2]\n", "`xychart-beta`"),
+        ] {
+            let found = messages(code, Language::Mermaid);
+            assert_eq!(found[0].1, Severity::Info, "{found:?}");
+            assert!(found[0].2.contains(written), "{found:?}");
+        }
+    }
+
+    /// Two git graphs in one text, which Mermaid refuses, are an error on
+    /// the second's line, as render refuses them; mmdr drew one picture of
+    /// them without a word (REQ-099).
+    #[test]
+    fn a_second_git_graph_is_refused() {
+        let found = messages(
+            "gitGraph\n  commit\n\ngitGraph LR:\n  commit\n",
+            Language::Mermaid,
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!((found[0].0, found[0].1), (3, Severity::Error));
+        assert!(found[0].2.starts_with("a second `gitGraph`"), "{found:?}");
+        // Behind an init over several lines, a fence, a byte order mark, or
+        // before what the drawer leaves to mmdr: the same.
+        for (code, line) in [
+            (
+                "%%{init: {\n  \"theme\": \"dark\"\n}}%%\ngitGraph\n  commit\ngitGraph\n  commit\n",
+                5,
+            ),
+            (
+                "```mermaid\ngitGraph\n  commit\ngitGraph\n  commit\n```\n",
+                3,
+            ),
+            ("\u{feff}gitGraph\n  commit\ngitGraph\n  commit\n", 2),
+            ("gitGraph\n  checkout nowhere\ngitGraph\n  commit\n", 2),
+        ] {
+            let found = messages(code, Language::Mermaid);
+            assert!(
+                found.iter().any(|f| f.0 == line && f.1 == Severity::Error),
+                "{code}: {found:?}"
+            );
+        }
+        assert!(messages("gitGraph\n  commit\n  branch dev\n", Language::Mermaid).is_empty());
     }
 
     #[test]

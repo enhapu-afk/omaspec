@@ -128,6 +128,22 @@ mod tests {
         assert_eq!(names.len(), lanes.len(), "the lanes stay apart: {lanes:?}");
     }
 
+    /// Two git graphs in one text, which Mermaid refuses, are refused on
+    /// the second's line, and nothing is drawn; mmdr drew one picture of
+    /// them without a word (REQ-099).
+    #[test]
+    fn a_second_git_graph_is_refused_and_not_drawn() {
+        let twice = "%% two\ngitGraph\n  commit\ngitGraph\n  commit\n";
+        match crate::mermaid::render(twice) {
+            Err(crate::RenderError::Diagram { line, message, .. }) => {
+                assert_eq!(line, Some(3));
+                assert!(message.starts_with("a second `gitGraph`"), "{message}");
+            }
+            other => panic!("{other:?}"),
+        }
+        assert!(crate::mermaid::render(GRAPH).is_ok());
+    }
+
     #[test]
     fn leaves_what_it_does_not_draw_to_mmdr() {
         let theme = Theme::mermaid_default();

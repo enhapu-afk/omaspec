@@ -144,6 +144,21 @@ pub fn mermaid_refusal(source: &str) -> Option<(usize, &'static str)> {
     }
 }
 
+/// What Mermaid refuses in a git graph as well, and its line: a second
+/// `gitGraph` in the same text. None is drawn then, by mmdr either.
+pub fn mermaid_wrong(source: &str) -> Option<(usize, String)> {
+    match read::read(source) {
+        Err(read::Stop::Wrong(reason)) => Some((
+            reason.line,
+            format!(
+                "{} in the same text: a Mermaid text holds one diagram, and Mermaid refuses this one too",
+                reason.what
+            ),
+        )),
+        _ => None,
+    }
+}
+
 /// What stands written beside a commit, measured.
 struct Words {
     id: Option<Block>,

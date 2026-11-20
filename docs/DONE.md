@@ -2897,12 +2897,24 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-099, two git graphs in one text (2026-11-20): Mermaid refuses a second
+      `gitGraph` in one text, and mmdr drew both as one picture without a word, while
+      lint said only that Omaspec left the graph to mmdr. The second head is now an
+      error on its line, from lint and from render, and nothing is drawn, also behind
+      an init directive over several lines, a fence or a byte order mark, and before
+      anything else the drawer leaves to mmdr. What Mermaid
+      refuses as well is a part of each kind's entry in `NATIVE` (`wrong`), beside what
+      Omaspec's drawer leaves to mmdr (`refusal`); for a git graph its reader says it
+      (`omaspec_uml::gitgraph::mermaid_wrong`)
 - [x] REQ-089, the head (2026-11-20): a Mermaid diagram whose first line is a word
       that names no kind is refused on that line, by render and by lint alike, in the
-      same words (`omaspec_core::lang::unknown_mermaid_kind`). mmdr read such a head as
+      same words (`omaspec_core::mermaid_head::unknown_said`). mmdr read such a head as
       a flowchart's first nodes: Mermaid 11.16's `swimlane-beta LR` came out as boxes
       `swimlane` and `beta`, its direction left aside, while lint only warned of an
-      unknown head. A first line is what mmdr makes of it (`mermaid_head_of`): a kind
+      unknown head. A first line is what mmdr makes of it (`omaspec_core::mermaid_head`,
+      its reading of a line, its masking of brackets and quotes and its arrow written
+      again there, with one table of the kinds as mmdr reads them and as mermaid.js
+      writes them): a kind
       as mmdr knows it, its words lowercased and ending where no letter or digit
       follows, so `block`, `xychart` without `-beta` and `Flowchart` are drawn as
       before (another case than mermaid.js's is told, as GitHub does not draw it); a
@@ -2910,9 +2922,11 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       back-end`), drawn and only told; or nothing, refused: a line mmdr reads as
       nothing, and a kind's word with a hyphen in it, which mmdr took for two boxes.
       Lint finds the head as mmdr does, after front matter that follows a comment and
-      behind a byte order mark; the formatter and the language's detection take
-      `sankey`, `packet` and the others without `-beta`. `graph` without a direction
-      is a flowchart, and says nothing.
+      behind a byte order mark; the formatter takes the kind from the head alone, under
+      a fence too, and leaves a treemap's indentation as it leaves a mind map's; the
+      language's detection takes a kind mmdr reads without `-beta` where it stands
+      alone on its line (`xychart`, not `block = parse(x)`).
+      `graph` without a direction is a flowchart, and says nothing.
 - [x] REQ-096, the first frame of a play (2026-11-20): `omaspec play` kept the frames
       from the moment the play began, while its bar came under the picture and the
       picture glided to its fit above it, so the first frame was the picture as large

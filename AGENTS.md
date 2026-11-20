@@ -82,6 +82,10 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
   (`omaspec-render/src/mermaid.rs`), with the words of its header: no
   other list of kinds, no `try_draw` chain, no `named_decline` of its own.
   Its drawer reads the text itself; mmdr's parse is only the fallback.
+  What a first line names is judged as mmdr reads it, by render and lint
+  alike, in `omaspec_core::mermaid_head`: its table of every kind mmdr
+  reads is not a list of drawers, and a test holds `NATIVE`'s headers to
+  it.
 - State diagrams of both languages are drawn by `omaspec-uml/src/state/`
   (Mermaid's lowered by `state::from_mermaid`). Containers that open
   (docs/adr/0013) are laid out once, by `omaspec_uml::graph::open`, for

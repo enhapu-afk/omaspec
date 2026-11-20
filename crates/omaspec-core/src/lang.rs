@@ -76,175 +76,24 @@ pub(crate) fn puml_end() -> &'static Regex {
     )
 }
 
-/// A Mermaid diagram's first line as mermaid.js writes its kinds: the
-/// case as written there, `-beta` where mermaid.js has it and mmdr takes
-/// it without.
+/// A line that begins a Mermaid diagram, as mermaid.js writes its kinds:
+/// strict, as it tells a text's language (what mmdr reads as a kind is
+/// [`crate::mermaid_head`]'s).
 pub(crate) fn mermaid_head() -> &'static Regex {
     re!(
-        r"^(flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|sankey(?:-beta)?|xychart(?:-beta)?|block(?:-beta)?|packet(?:-beta)?|kanban|architecture(?:-beta)?|zenuml|radar(?:-beta)?|treemap(?:-beta)?)\b"
+        r"^(flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|sankey-beta|xychart-beta|block-beta|packet-beta|kanban|architecture-beta|zenuml|radar-beta|treemap-beta)\b"
     )
+}
+
+/// A line that is a kind's word alone, as mmdr takes it without `-beta`
+/// (`xychart`, `sankey horizontal`): a word, at most one more, and no more
+/// to the line, so `block = parse(x)` is no diagram.
+pub(crate) fn mermaid_bare() -> &'static Regex {
+    re!(r"^(sankey|xychart|block|packet|architecture|radar|treemap)(?:-beta)?(?:\s+[A-Za-z]+)?\s*$")
 }
 
 pub(crate) fn mermaid_graph() -> &'static Regex {
     re!(r"^graph\s+(TD|TB|BT|RL|LR)\b")
-}
-
-/// The words a Mermaid diagram's first line begins with to name its kind,
-/// lowercased: those mmdr reads (`detect_diagram_kind` of
-/// mermaid-rs-renderer 0.3), which the words of every kind with a drawer
-/// of Omaspec's own are among (`NATIVE` in omaspec-render).
-const MERMAID_HEADS: &[&str] = &[
-    "flowchart",
-    "graph",
-    "sequencediagram",
-    "classdiagram",
-    "statediagram",
-    "erdiagram",
-    "pie",
-    "mindmap",
-    "journey",
-    "timeline",
-    "gantt",
-    "requirementdiagram",
-    "gitgraph",
-    "c4",
-    "c4context",
-    "c4container",
-    "c4component",
-    "c4dynamic",
-    "c4deployment",
-    "sankey",
-    "quadrantchart",
-    "zenuml",
-    "block",
-    "packet",
-    "kanban",
-    "architecture",
-    "radar",
-    "treemap",
-    "xychart",
-];
-
-/// Whether `header`, a Mermaid diagram's first line, begins with a word
-/// that names a kind (`flowchart_x`, `Block`, `xychart-beta` as mmdr
-/// takes them: the word ends where no letter or digit follows).
-pub fn names_mermaid_kind(header: &str) -> bool {
-    let lower = header
-        .trim_start_matches('\u{feff}')
-        .trim()
-        .to_ascii_lowercase();
-    MERMAID_HEADS.iter().any(|word| {
-        lower.strip_prefix(word).is_some_and(|rest| {
-            rest.chars()
-                .next()
-                .is_none_or(|c| !c.is_ascii_alphanumeric())
-        })
-    })
-}
-
-/// What mmdr makes of a Mermaid diagram's first line.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MermaidHead {
-    /// It names a kind ([`names_mermaid_kind`]).
-    Kind,
-    /// It names none, and mmdr reads it as a flowchart's line, as it reads
-    /// any line with a `-` or `=` outside brackets: a flowchart written
-    /// without its head (`A --> B`), drawn as one, which Mermaid itself is
-    /// not.
-    Flowchart,
-    /// It names none and is refused on its line: a line mmdr reads as
-    /// nothing, or a word where a kind is named with a hyphen in it, as
-    /// Mermaid 11.16's `swimlane-beta LR` or `venn-beta`, which mmdr would
-    /// read as a flowchart's first nodes and draw what is not there
-    /// (REQ-089).
-    Unknown,
-}
-
-/// What mmdr makes of `header`, a Mermaid diagram's first line.
-pub fn mermaid_head_of(header: &str) -> MermaidHead {
-    let header = header.trim_start_matches('\u{feff}').trim();
-    if names_mermaid_kind(header) {
-        return MermaidHead::Kind;
-    }
-    let (word, rest) = header
-        .split_once(char::is_whitespace)
-        .unwrap_or((header, ""));
-    let word = word.trim_end_matches([':', ';']);
-    // A kind's word with a hyphen: letters on both sides of each, no
-    // more to the line that mmdr would take as a line between boxes.
-    let kind_like = word.contains('-')
-        && word
-            .split('-')
-            .all(|part| !part.is_empty() && part.chars().all(|c| c.is_alphanumeric() || c == '_'))
-        && !drawn_as_line(rest);
-    if !kind_like && drawn_as_line(header) {
-        MermaidHead::Flowchart
-    } else {
-        MermaidHead::Unknown
-    }
-}
-
-/// Whether mmdr reads `text` as a flowchart's line: a `-` or `=` outside
-/// brackets and quotes.
-fn drawn_as_line(text: &str) -> bool {
-    let mut depth = 0usize;
-    let mut quoted = false;
-    for c in text.chars() {
-        match c {
-            '"' => quoted = !quoted,
-            '[' | '(' | '{' if !quoted => depth += 1,
-            ']' | ')' | '}' if !quoted => depth = depth.saturating_sub(1),
-            '-' | '=' if !quoted && depth == 0 => return true,
-            _ => {}
-        }
-    }
-    false
-}
-
-/// The kind `header` names, written otherwise than mermaid.js takes it
-/// (`SequenceDiagram`, `FLOWCHART LR`), as mermaid.js writes it: Omaspec
-/// draws the diagram, GitHub does not.
-pub fn mermaid_kind_misspelled(header: &str) -> Option<(&str, &'static str)> {
-    const WRITTEN: &[&str] = &[
-        "flowchart",
-        "graph",
-        "sequenceDiagram",
-        "classDiagram",
-        "stateDiagram",
-        "erDiagram",
-        "journey",
-        "gantt",
-        "pie",
-        "gitGraph",
-        "mindmap",
-        "timeline",
-        "quadrantChart",
-        "requirementDiagram",
-        "C4Context",
-        "C4Container",
-        "C4Component",
-        "C4Dynamic",
-        "C4Deployment",
-        "kanban",
-        "zenuml",
-    ];
-    let header = header.trim_start_matches('\u{feff}').trim();
-    let end = header
-        .find(|c: char| !c.is_ascii_alphanumeric())
-        .unwrap_or(header.len());
-    let word = &header[..end];
-    let written = WRITTEN.iter().find(|w| w.eq_ignore_ascii_case(word))?;
-    (word != *written).then_some((word, written))
-}
-
-/// What is said of a Mermaid diagram whose first line, `header`, names no
-/// kind Omaspec draws ([`MermaidHead::Unknown`]), by lint and by render
-/// alike.
-pub fn unknown_mermaid_kind_said(header: &str) -> String {
-    let header = header.trim_start_matches('\u{feff}').trim();
-    format!(
-        "`{header}` names no kind of diagram Omaspec draws: a Mermaid diagram's first line is its kind, as `flowchart LR` or `sequenceDiagram`"
-    )
 }
 
 /// Detects the language of `code`. `hint` (usually from the file name)
@@ -296,7 +145,7 @@ fn scan(sig40: &[&str], sig80: &[&str]) -> Option<Language> {
             }
             continue;
         }
-        if mermaid_head().is_match(l) {
+        if mermaid_head().is_match(l) || mermaid_bare().is_match(l) {
             return Some(Language::Mermaid);
         }
     }
@@ -345,9 +194,9 @@ pub fn looks_like_diagram(text: &str) -> bool {
     {
         return true;
     }
-    significant_lines(&t, 20)
-        .iter()
-        .any(|l| mermaid_head().is_match(l) || mermaid_graph().is_match(l))
+    significant_lines(&t, 20).iter().any(|l| {
+        mermaid_head().is_match(l) || mermaid_graph().is_match(l) || mermaid_bare().is_match(l)
+    })
 }
 
 #[cfg(test)]
@@ -362,6 +211,15 @@ mod tests {
         assert_eq!(detect("graph LR\n A-->B", None), Mermaid);
         assert_eq!(detect("```mermaid\npie\n```", None), Mermaid);
         assert_eq!(detect("%%{init: {}}%%\nflowchart TD", None), Mermaid);
+        // A kind mmdr takes without `-beta`, alone on its line; a line of
+        // code that begins with its word is none.
+        assert_eq!(detect("xychart\n  bar [1, 2]", None), Mermaid);
+        assert_eq!(detect("sankey-beta\nA,B,1", None), Mermaid);
+        assert!(looks_like_diagram("xychart horizontal\n  bar [1, 2]"));
+        assert!(!looks_like_diagram("block = parse(x)\nprint(block)"));
+        assert!(!looks_like_diagram(
+            "architecture of the system\nis layered"
+        ));
         // An empty file is in the language of its name.
         assert_eq!(detect("", Some(Mermaid)), Mermaid);
         assert_eq!(detect(" \n", None), PlantUml);

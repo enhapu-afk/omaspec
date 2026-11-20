@@ -248,6 +248,9 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
             fenced,
             over,
         };
+        if let Some((at, said)) = native(body).and_then(|native| (native.wrong)(body)) {
+            return Err(Refused::Placed(at, said));
+        }
         if let Some(native) = native(body)
             && let Some((svg, map)) = (native.draw)(&input)
         {
@@ -260,12 +263,12 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
         // A head no kind answers to: mmdr would read it as a flowchart's
         // first nodes and draw what is not there (REQ-089).
         if let Some((at, header)) = head::header_at(body)
-            && omaspec_core::lang::mermaid_head_of(header)
-                == omaspec_core::lang::MermaidHead::Unknown
+            && omaspec_core::mermaid_head::head_of(header)
+                == omaspec_core::mermaid_head::Head::Unknown
         {
             return Err(Refused::Placed(
                 at,
-                omaspec_core::lang::unknown_mermaid_kind_said(header),
+                omaspec_core::mermaid_head::unknown_said(header),
             ));
         }
         // Flowcharts lay out on the shared graph from mmdr's reading, of
@@ -397,6 +400,9 @@ struct Native {
     draw: Draw,
     /// The first construct it refuses by name: the line, and what it is.
     refusal: fn(&str) -> Option<(usize, &'static str)>,
+    /// What Mermaid refuses as well: the line, and what is said there as
+    /// an error. Nothing is drawn, by mmdr either.
+    wrong: fn(&str) -> Option<(usize, String)>,
 }
 
 /// Every kind with a drawer of its own. A new kind is a line here.
@@ -407,6 +413,7 @@ const NATIVE: &[Native] = &[
         noun: "sequence diagram",
         draw: |i| sequence::try_draw(i.theme, i.body),
         refusal: omaspec_uml::sequence::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Class,
@@ -414,6 +421,7 @@ const NATIVE: &[Native] = &[
         noun: "class diagram",
         draw: |i| class::try_draw(i.theme, i.body),
         refusal: omaspec_uml::structure::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::State,
@@ -421,6 +429,7 @@ const NATIVE: &[Native] = &[
         noun: "state diagram",
         draw: |i| state::try_draw(i.theme, i.fenced, i.over),
         refusal: |_| None,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Mindmap,
@@ -428,6 +437,7 @@ const NATIVE: &[Native] = &[
         noun: "mind map",
         draw: |i| mindmap::try_draw(i.theme, i.body),
         refusal: omaspec_uml::tree::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Gantt,
@@ -435,6 +445,7 @@ const NATIVE: &[Native] = &[
         noun: "Gantt chart",
         draw: |i| gantt::try_draw(i.theme, i.body),
         refusal: omaspec_uml::gantt::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Pie,
@@ -442,6 +453,7 @@ const NATIVE: &[Native] = &[
         noun: "pie chart",
         draw: |i| pie::try_draw(i.theme, i.body),
         refusal: omaspec_uml::pie::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::GitGraph,
@@ -449,6 +461,7 @@ const NATIVE: &[Native] = &[
         noun: "git graph",
         draw: |i| gitgraph::try_draw(i.theme, i.body),
         refusal: omaspec_uml::gitgraph::mermaid_refusal,
+        wrong: omaspec_uml::gitgraph::mermaid_wrong,
     },
     Native {
         kind: DiagramKind::Kanban,
@@ -456,6 +469,7 @@ const NATIVE: &[Native] = &[
         noun: "kanban board",
         draw: |i| kanban::try_draw(i.theme, i.fenced),
         refusal: omaspec_uml::kanban::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Requirement,
@@ -463,6 +477,7 @@ const NATIVE: &[Native] = &[
         noun: "requirement diagram",
         draw: |i| requirement::try_draw(i.theme, i.fenced),
         refusal: omaspec_uml::structure::requirement::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Journey,
@@ -470,6 +485,7 @@ const NATIVE: &[Native] = &[
         noun: "user journey",
         draw: |i| journey::try_draw(i.theme, i.body),
         refusal: omaspec_uml::journey::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Timeline,
@@ -477,6 +493,7 @@ const NATIVE: &[Native] = &[
         noun: "timeline",
         draw: |i| timeline::try_draw(i.theme, i.body),
         refusal: omaspec_uml::timeline::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Er,
@@ -484,6 +501,7 @@ const NATIVE: &[Native] = &[
         noun: "ER diagram",
         draw: |i| er::try_draw(i.theme, i.body),
         refusal: omaspec_uml::er::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::C4,
@@ -498,6 +516,7 @@ const NATIVE: &[Native] = &[
         noun: "C4 diagram",
         draw: |i| c4::try_draw(i.theme, i.body),
         refusal: omaspec_uml::c4::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Architecture,
@@ -505,6 +524,7 @@ const NATIVE: &[Native] = &[
         noun: "architecture diagram",
         draw: |i| architecture::try_draw(i.theme, i.body),
         refusal: omaspec_uml::architecture::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Block,
@@ -512,6 +532,7 @@ const NATIVE: &[Native] = &[
         noun: "block diagram",
         draw: |i| block::try_draw(i.theme, i.body),
         refusal: omaspec_uml::block::mermaid_refusal,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Packet,
@@ -519,6 +540,7 @@ const NATIVE: &[Native] = &[
         noun: "packet diagram",
         draw: |i| chart::packet(i.theme, i.body),
         refusal: |_| None,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Radar,
@@ -526,6 +548,7 @@ const NATIVE: &[Native] = &[
         noun: "radar chart",
         draw: |i| chart::radar(i.theme, i.body),
         refusal: |_| None,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Treemap,
@@ -533,6 +556,7 @@ const NATIVE: &[Native] = &[
         noun: "treemap",
         draw: |i| chart::treemap(i.theme, i.body),
         refusal: |_| None,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Sankey,
@@ -540,6 +564,7 @@ const NATIVE: &[Native] = &[
         noun: "sankey diagram",
         draw: |i| chart::sankey(i.theme, i.body),
         refusal: |_| None,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::XYChart,
@@ -547,6 +572,7 @@ const NATIVE: &[Native] = &[
         noun: "XY chart",
         draw: |i| chart::xy(i.theme, i.body),
         refusal: |_| None,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::ZenUML,
@@ -554,6 +580,7 @@ const NATIVE: &[Native] = &[
         noun: "ZenUML diagram",
         draw: |i| sequence::try_draw_zenuml(i.theme, i.body),
         refusal: |_| None,
+        wrong: |_| None,
     },
     Native {
         kind: DiagramKind::Quadrant,
@@ -561,6 +588,7 @@ const NATIVE: &[Native] = &[
         noun: "quadrant chart",
         draw: |i| chart::quadrant(i.theme, i.body),
         refusal: |_| None,
+        wrong: |_| None,
     },
 ];
 
@@ -1027,14 +1055,14 @@ mod tests {
 
     /// Every kind with a drawer of its own is a kind to lint and to the
     /// refusal of an unknown head (REQ-089): its words are among those
-    /// `names_mermaid_kind` takes.
+    /// `omaspec_core::mermaid_head` takes.
     #[test]
     fn every_drawer_s_header_names_a_kind() {
         for native in NATIVE {
             for header in native.headers {
                 assert!(
-                    omaspec_core::lang::names_mermaid_kind(header),
-                    "{header} is no kind to omaspec_core::lang"
+                    omaspec_core::mermaid_head::kind_of(header).is_some(),
+                    "{header} is no kind to omaspec_core::mermaid_head"
                 );
             }
         }

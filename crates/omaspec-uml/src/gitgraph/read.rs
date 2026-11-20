@@ -16,6 +16,8 @@ pub(super) enum Stop {
     /// Not a git graph.
     Foreign,
     At(Reason),
+    /// What Mermaid refuses as well: nothing is drawn.
+    Wrong(Reason),
 }
 
 fn stop(line: usize, what: &'static str) -> Reason {
@@ -36,6 +38,12 @@ pub(super) fn read(source: &str) -> Result<Diagram, Stop> {
         Some(Err(())) => return Err(Stop::At(stop(*line, "a git graph direction"))),
         Some(Ok(direction)) => direction,
     };
+    // A second git graph in the same text: Mermaid draws one diagram a
+    // text, and refuses this one too (REQ-099). Before anything the
+    // drawer leaves to mmdr, which would draw both as one.
+    if let Some((line, _)) = rest.iter().find(|(_, text)| header_of(text).is_some()) {
+        return Err(Stop::Wrong(stop(*line, "a second `gitGraph`")));
+    }
     if let Some(reason) = front {
         return Err(Stop::At(reason));
     }
@@ -84,8 +92,14 @@ fn scan(source: &str) -> Scanned {
             }
         }
     }
+    let mut directive = false;
     for (no, raw) in iter {
-        let text = raw.trim();
+        let text = raw.trim_start_matches('\u{feff}').trim();
+        // An init directive over several lines says nothing to the graph.
+        if directive || (text.starts_with("%%{") && !text.contains("}%%")) {
+            directive = !text.contains("}%%");
+            continue;
+        }
         let text = match text.find("%%") {
             Some(at) => text[..at].trim(),
             None => text,

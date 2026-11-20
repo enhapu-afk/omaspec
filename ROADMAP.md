@@ -243,9 +243,6 @@ Found by the studio and reproduced on 1.0.0, in the order they are
 taken: first where Omaspec draws a wrong picture without a word, then
 what is plainly missing, then the larger pieces.
 
-- [ ] REQ-099: two `gitGraph` blocks in one file, which Mermaid does not
-      take either, are drawn by mmdr as one picture without a word.
-      Lint says so as an error, and nothing is drawn.
 - [ ] REQ-097: `--events` splits at every comma, so an event with a
       comma in its name (`hello, world`) cannot be chosen; neither a
       backslash nor quotes help, and the play stops with exit 2.
