@@ -45,6 +45,7 @@ OMASPEC_SNAPSHOT_DIR=/tmp cargo test --release -p omaspec-app snapshot_   # READ
 docs/images/update.sh                      # the README's and the guide's pictures into docs/images (ImageMagick)
 docs/live/update.sh                        # the landing page's live examples into docs/live: real Omaspec pages, from the examples
 docs/images/film.sh                        # the landing page's film (omaspec.mp4): the editor recorded headless, every frame; ffmpeg
+docs/guide/pdf/build.py                    # the guide as a PDF (docs/guide/omaspec-guide.pdf): its examples drawn by the release build; Chromium
 cargo bench -p omaspec-render              # render and export timings
 cargo test --release -p omaspec-render --test dense -- --nocapture   # 150 boxes, 476 lines in under a second (CI too)
 cargo test --release -p omaspec-app --test budget -- --nocapture     # a play of 600 frames without a GPU within 400 MiB (CI too)

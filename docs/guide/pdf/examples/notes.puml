@@ -1,0 +1,13 @@
+@startuml
+' An order, from the basket to the door.
+actor Alice
+participant Shop
+participant Stock
+' Alice has chosen a book.
+' Ask the room: who ordered online this week?
+Alice -> Shop : order
+' The shop holds the book for her.
+Shop -> Stock : reserve
+Stock --> Shop : reserved
+Shop --> Alice : confirmed
+@enduml

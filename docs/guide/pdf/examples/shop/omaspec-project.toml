@@ -1,0 +1,5 @@
+name = "garage"
+
+[look]
+pack = "light"
+accent = "#3d59a1"

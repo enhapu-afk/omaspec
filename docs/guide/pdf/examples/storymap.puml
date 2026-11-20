@@ -1,0 +1,15 @@
+@startstorymap
+title A bookshop online
+release MVP : sell the first book
+release Later
+activity Find a book
+  step Search
+    * By title : MVP
+    * By author : Later
+  step Browse
+    * The new books : MVP
+activity Buy
+  step Pay
+    * By card : MVP
+    * "Gift card: from a friend"
+@endstorymap

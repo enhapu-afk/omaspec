@@ -1,0 +1,13 @@
+@startuml
+title Door
+[*] --> Closed
+Closed --> Open : open
+Open --> Closed : close
+Closed --> Locked : lock
+Locked --> Closed : unlock
+Open --> Jammed : stuck
+Jammed --> Open : repaired
+
+' lines by hand (Omaspec)
+' Locked -> Closed at 1.227 0.387, 0.568 0.387
+@enduml

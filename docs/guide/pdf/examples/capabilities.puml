@@ -1,0 +1,12 @@
+@startcapabilities
+title What a city library can do
+levels Maturity : none, basic, managed, leading
+* Readers
+** Lending : leading
+*** At the desk : leading
+*** E-books : basic
+** Events : managed
+* Collection
+** Cataloguing : leading
+** Repairs : none
+@endcapabilities

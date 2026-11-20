@@ -1,0 +1,6 @@
+flowchart LR
+  A[Start] :::hot --> B[Low | High]
+  subgraph 🔴 Breaks
+    B --> C[Stop]
+  end
+  classDef hot fill:#f7768e

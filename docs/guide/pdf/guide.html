@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omaspec {{version}}: the guide</title>
+<style>
+@font-face { font-family: Inter; src: url("{{root}}/crates/omaspec-render/fonts/Inter-Regular.ttf"); }
+@font-face { font-family: Inter; font-weight: 700; src: url("{{root}}/crates/omaspec-render/fonts/Inter-Bold.ttf"); }
+@font-face { font-family: Inter; font-style: italic; src: url("{{root}}/crates/omaspec-render/fonts/Inter-Italic.ttf"); }
+:root {
+  --ink: #1f2335; --text: #343b58; --dim: #6b7394; --line: #d9ddec; --paper: #ffffff;
+  --soft: #f4f6fb; --night: #1a1b26; --night2: #24283b; --fg: #c0caf5;
+  --accent: #3d59a1; --blue: #7aa2f7; --violet: #9d7cd8; --green: #5a8a2f; --orange: #b15c00; --red: #c53b53;
+  --mono: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
+}
+@page { size: A4; margin: 20mm 17mm 19mm;
+  @bottom-right { content: counter(page); font: 9pt Inter; color: #6b7394; }
+  @bottom-left { content: "Omaspec {{version}} · the guide"; font: 9pt Inter; color: #6b7394; } }
+@page cover { margin: 0; @bottom-right { content: none; } @bottom-left { content: none; } }
+* { box-sizing: border-box; }
+html { font: 10.2pt/1.52 Inter, sans-serif; color: var(--text); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; }
+p { margin: 0 0 7pt; orphans: 3; widows: 3; }
+b, strong { color: var(--ink); }
+a { color: var(--accent); text-decoration: none; }
+code, kbd, pre { font-family: var(--mono); font-variant-ligatures: none; }
+code { font-size: .88em; padding: 1pt 3.5pt; border-radius: 3pt; background: var(--soft); color: var(--ink); }
+kbd { font-size: .82em; padding: 1pt 5pt; border: .6pt solid #b9c0da; border-bottom-width: 1.6pt; border-radius: 4pt; background: #fff; color: var(--ink); white-space: nowrap; }
+
+/* The cover. */
+.cover { page: cover; height: 297mm; padding: 34mm 24mm 22mm; background: var(--night); color: var(--fg); position: relative; overflow: hidden; break-after: page; }
+.cover::before, .cover::after { content: ""; position: absolute; border-radius: 50%; filter: blur(70px); opacity: .32; }
+.cover::before { width: 150mm; height: 150mm; left: -50mm; top: -60mm; background: var(--blue); }
+.cover::after { width: 130mm; height: 130mm; right: -45mm; top: 60mm; background: #bb9af7; }
+.cover > * { position: relative; }
+.cover .mark { width: 22mm; height: 22mm; }
+.cover .name { margin: 10mm 0 0; font: 700 15pt var(--mono); letter-spacing: .04em; color: #a9b1d6; }
+.cover h1 { margin: 16mm 0 0; font: 700 37pt/1.1 var(--mono); letter-spacing: -.02em; color: var(--fg); break-before: auto; border: 0; padding: 0; }
+.cover h1 span { display: block; color: var(--blue); }
+.cover .lead { max-width: 132mm; margin: 9mm 0 0; font-size: 13pt; line-height: 1.5; color: #a9b1d6; }
+.cover .pic { margin: 13mm 0 0; border: .5pt solid #2f3449; border-radius: 4mm; overflow: hidden; box-shadow: 0 8mm 22mm rgba(0,0,0,.5); }
+.cover .pic img { display: block; width: 100%; }
+.cover .foot { position: absolute; left: 24mm; right: 24mm; bottom: 18mm; display: flex; justify-content: space-between; font: 10pt var(--mono); color: #7982a9; }
+
+/* Contents. */
+.toc { break-after: page; }
+.toc h2 { margin: 0 0 8mm; font: 700 24pt var(--mono); color: var(--ink); border: 0; }
+.toc ol { margin: 0; padding: 0; list-style: none; columns: 2; column-gap: 12mm; }
+.toc li { break-inside: avoid; margin: 0 0 5.5mm; }
+.toc li a { display: block; color: var(--ink); font: 700 11.5pt var(--mono); }
+.toc li a i { display: inline-block; width: 9mm; font-style: normal; color: var(--blue); }
+.toc li span { display: block; margin: 1mm 0 0 9mm; font-size: 9.3pt; color: var(--dim); line-height: 1.4; }
+
+/* Headings. */
+h1 { break-before: page; margin: 0 0 7mm; padding: 0 0 5mm; border-bottom: 1.2pt solid var(--ink); font: 700 25pt/1.15 var(--mono); letter-spacing: -.015em; color: var(--ink); }
+h1 .no { display: block; margin: 0 0 3mm; font-size: 11pt; letter-spacing: .14em; text-transform: uppercase; color: var(--blue); }
+h1 + .intro { font-size: 12pt; line-height: 1.5; color: var(--ink); margin-bottom: 7mm; }
+h2 { margin: 8.5mm 0 3mm; font: 700 14.5pt/1.25 var(--mono); color: var(--ink); break-after: avoid; }
+h2::before { content: ""; display: inline-block; width: 3.2mm; height: 3.2mm; margin-right: 2.6mm; border-radius: 1mm; background: var(--blue); }
+h3 { margin: 5.5mm 0 2mm; font: 700 11pt var(--mono); color: var(--accent); break-after: avoid; }
+ul { margin: 0 0 7pt; padding-left: 5mm; }
+li { margin: 0 0 2.5pt; }
+
+/* Source, terminal, pictures. */
+pre { margin: 0; font-size: 8.3pt; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.src { position: relative; padding: 3.6mm 4mm; border-radius: 2.6mm; background: var(--night); color: var(--fg); break-inside: avoid; }
+.src .file { display: block; margin: 0 0 2mm; font: 7.6pt var(--mono); letter-spacing: .05em; color: #7982a9; }
+.src.alone { margin: 3mm 0 5mm; }
+.term { margin: 3mm 0 5mm; padding: 3.6mm 4mm; border-radius: 2.6mm; background: #10111a; color: #a9b1d6; break-inside: avoid; }
+.term .p { color: #9ece6a; }
+.term b { color: var(--fg); }
+figure { margin: 4mm 0 6mm; break-inside: avoid; }
+figure.ex { display: grid; gap: 4mm; align-items: stretch; }
+figure.ex.side { grid-template-columns: minmax(0, 1fr) minmax(0, var(--pic, 1fr)); }
+figure.ex.side .pic { order: 2; }
+figure.ex .pic { display: flex; align-items: center; justify-content: center; padding: 3mm; border: .6pt solid var(--line); border-radius: 2.6mm; background: #fff; }
+figure.ex .pic img { max-width: 100%; max-height: 82mm; }
+figure.ex.stack .pic img, figure.ex.only .pic img { max-height: 118mm; }
+figure.ex.stack > .term, figure.ex.stack > .src { margin: 0; }
+figure.ex.dark .pic { background: var(--night); border-color: var(--night); }
+figcaption { grid-column: 1 / -1; order: 3; font-size: 8.8pt; color: var(--dim); }
+figcaption b { color: var(--text); }
+.shot { margin: 4mm 0 6mm; break-inside: avoid; }
+.shot img { display: block; width: 86%; margin: 0 auto; border-radius: 2.6mm; border: .6pt solid #2f3449; }
+.shot figcaption { margin: 2mm 7% 0; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3.5mm; margin: 4mm 0 6mm; }
+.grid.two { grid-template-columns: 1fr 1fr; }
+.grid.four { grid-template-columns: repeat(4, 1fr); }
+.grid figure { margin: 0; }
+.grid figure.ex .pic { height: 46mm; }
+.grid.two figure.ex .pic { height: 62mm; }
+.grid.four figure.ex .pic { height: 38mm; }
+.grid figure.ex .pic img { max-height: 100%; }
+.grid figcaption { text-align: center; font-size: 8.3pt; margin-top: -2mm; }
+.grid figcaption code { font-size: .92em; }
+
+/* Notes and tables. */
+.tip { margin: 4mm 0 5mm; padding: 3.2mm 4mm 3.2mm 4.4mm; border-left: 2.2pt solid var(--blue); border-radius: 0 2.4mm 2.4mm 0; background: var(--soft); break-inside: avoid; font-size: 9.6pt; }
+.tip b:first-child { color: var(--accent); }
+table { width: 100%; margin: 3mm 0 6mm; border-collapse: collapse; font-size: 9.1pt; }
+th { text-align: left; padding: 2mm 2.4mm; border-bottom: 1pt solid var(--ink); font: 700 8.6pt var(--mono); color: var(--ink); }
+td { padding: 1.7mm 2.4mm; border-bottom: .5pt solid var(--line); vertical-align: top; }
+tr { break-inside: avoid; }
+td:first-child { white-space: nowrap; }
+table.wrap td:first-child { white-space: normal; }
+table.cli td:first-child { font: 8.2pt var(--mono); color: var(--ink); white-space: normal; width: 46%; }
+.cols { columns: 2; column-gap: 8mm; }
+.steps { counter-reset: step; margin: 0; padding: 0; list-style: none; }
+.steps > li { position: relative; margin: 0 0 4mm; padding-left: 9mm; }
+.steps > li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: -.4mm; width: 6mm; height: 6mm; border-radius: 50%; background: var(--ink); color: #fff; font: 700 8.6pt/6mm var(--mono); text-align: center; }
+.back { page: cover; height: 297mm; padding: 110mm 24mm 0; background: var(--night); color: #a9b1d6; text-align: center; break-before: page; }
+.back .mark { width: 20mm; height: 20mm; }
+.back h2 { margin: 8mm 0 3mm; font: 700 26pt var(--mono); color: var(--fg); }
+.back h2::before { display: none; }
+.back p { font: 11pt var(--mono); }
+.back .url { color: #9ece6a; margin-top: 9mm; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#24283b"/><path d="M11 19h12M11 26.5h7M11 34h14M11 41.5h6M11 49h10" fill="none" stroke-width="3.2" stroke-linecap="round" stroke="#565f89"/><path d="M11 19h12" fill="none" stroke="#bb9af7" stroke-width="3.2" stroke-linecap="round"/><path d="M11 34h14" fill="none" stroke="#ff9e64" stroke-width="3.2" stroke-linecap="round"/><path d="M31.5 13v38" fill="none" stroke="#414868" stroke-width="1.6" stroke-linecap="round"/><rect x="37.5" y="13.5" width="17" height="11" rx="3.5" fill="#1a1b26" stroke="#7aa2f7" stroke-width="2.4"/><rect x="37.5" y="39.5" width="17" height="11" rx="3.5" fill="#1a1b26" stroke="#7aa2f7" stroke-width="2.4"/><path d="M46 24.5v11" fill="none" stroke="#a9b1d6" stroke-width="2.4" stroke-linecap="round"/><path d="M42.6 32.6 46 36.2 49.4 32.6" fill="none" stroke="#a9b1d6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <p class="name">Omaspec {{version}}</p>
+  <h1>A state diagram is a spec.<span>So run it.</span></h1>
+  <p class="lead">The guide: every function of the native PlantUML and Mermaid editor for Omarchy, explained with examples that Omaspec drew itself.</p>
+  <div class="pic"><img src="{{root}}/docs/guide/pdf/shots/play.jpg" alt=""></div>
+  <div class="foot"><span>native · offline · open source</span><span>github.com/enhapu-afk/omaspec</span></div>
+</section>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#start"><i>1</i>First steps</a><span>Install, the window, a first state machine in five minutes</span></li>
+    <li><a href="#write"><i>2</i>Write</a><span>The editor: keys, the list of what to write, findings and their fixes, formatting</span></li>
+    <li><a href="#shape"><i>3</i>Shape</a><span>Skins and colors, lines by hand, boxes held in place, fold, focus, long diagrams</span></li>
+    <li><a href="#understand"><i>4</i>Understand</a><span>Diagrams as behavior: checks, play, scenarios against machines, traces, coverage, tables, orbits</span></li>
+    <li><a href="#project"><i>5</i>Projects</a><span>A folder as a project, its map, links between diagrams, rename, compare, history</span></li>
+    <li><a href="#show"><i>6</i>Show</a><span>Export, a talk from a diagram, pages that play, films, a project as one page</span></li>
+    <li><a href="#draws"><i>7</i>What Omaspec draws</a><span>Every diagram kind of PlantUML and Mermaid it draws itself, and three of its own</span></li>
+    <li><a href="#team"><i>8</i>In a team</a><span>The command line, git, CI, Markdown documents, AI agents</span></li>
+    <li><a href="#omarchy"><i>9</i>Omarchy</a><span>Themes, fonts, Hyprland, the preview window beside Neovim</span></li>
+    <li><a href="#ref"><i>10</i>To look up</a><span>All keys, all commands, the codes of the findings</span></li>
+  </ol>
+</nav>
+
+<!-- ───────────────────────────── 1 ───────────────────────────── -->
+<h1 id="start"><span class="no">Chapter 1</span>First steps</h1>
+<p class="intro">Omaspec is one binary. It draws PlantUML and Mermaid with engines of its own, in a few milliseconds, without Java, a browser or a network. This chapter takes you from the install to a machine that plays.</p>
+
+<h2>Install</h2>
+<p>On Omarchy or any Arch Linux, from the AUR:</p>
+<div class="term"><pre><span class="p">$</span> <b>yay -S omaspec-bin</b>        # the release's binary; or omaspec, built from source
+<span class="p">$</span> <b>omaspec theme</b>              # the palette it reads from your Omarchy theme</pre></div>
+<p>Elsewhere, take the archive of the <a href="https://github.com/enhapu-afk/omaspec/releases/latest">latest release</a> (x86_64 and aarch64, linked against glibc 2.35), or build it: <code>cargo build --release -p omaspec-app</code>.</p>
+
+<h2>Start it</h2>
+<div class="term"><pre><span class="p">$</span> <b>omaspec</b>                      # the last session, or an empty PlantUML diagram
+<span class="p">$</span> <b>omaspec door.puml seq.mmd</b>    # a tab per file; a new name is created on the first save
+<span class="p">$</span> <b>omaspec ~/diagrams</b>           # with that folder in the sidebar
+<span class="p">$</span> <b>omaspec preview door.puml</b>    # only the picture, drawn again on every save</pre></div>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/type.jpg" alt=""><figcaption>The window: the project's files, the source, the diagram. The tab shows one finding; the status bar says what the diagram is, where the caret stands and how long the drawing took.</figcaption></figure>
+<p>Three areas share the window: the <b>project</b> at the left, the <b>source</b> in the middle, the <b>diagram</b> at the right. <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+arrows moves between them, and a border in the accent shows which has the keys. Everything Omaspec can do is one list: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>, then type a few letters. A tap on <kbd>Alt</kbd> shows a menu bar and a toolbar for the mouse.</p>
+
+<h2>A first state machine</h2>
+<ol class="steps">
+  <li><b>Write it.</b> Type the door below into an empty tab. The picture follows a moment after each pause; nothing needs to be saved or run.</li>
+  <li><b>Read the findings.</b> Omaspec reads the diagram as the state machine it specifies. A state nothing leaves or one no path reaches is underlined as you type; <kbd>F8</kbd> jumps to the next finding, <kbd>Ctrl</kbd>+<kbd>.</kbd> makes its fix.</li>
+  <li><b>Play it.</b> <kbd>F5</kbd> starts the machine. Pick what happens next with <kbd>1</kbd> to <kbd>9</kbd> or a click; a light runs along each transition, <kbd>←</kbd> goes back, <kbd>Esc</kbd> stops.</li>
+  <li><b>Hand it on.</b> Right-click the diagram, <i>Export as</i>: an SVG, PNG or PDF that carries its source, or a page that plays it in any browser.</li>
+</ol>
+<ex src="docs/guide/pdf/examples/door-first.puml" caption="The whole of a state machine: a start, states, and the events that lead from one to the next."/>
+<div class="tip"><b>The examples come with it.</b> <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> lays out 44 examples as tiles, drawn on the spot in your theme: Enter opens a copy, <kbd>F5</kbd> plays it. <code>omaspec example</code> lists them in a terminal, <code>omaspec example coffee-machine</code> prints one.</div>
+<figure class="shot"><img src="{{root}}/docs/images/gallery.png" alt=""><figcaption>The gallery. Typing filters by title, kind or language; Tab steps through behavior, structure, plans and data.</figcaption></figure>
+
+<!-- ───────────────────────────── 2 ───────────────────────────── -->
+<h1 id="write"><span class="no">Chapter 2</span>Write</h1>
+<p class="intro">The editor knows what the text means. It offers the names and events that can stand at the caret, colors a word by what it is, and says what is wrong before you look at the picture.</p>
+
+<h2>It draws as you type</h2>
+<p>The diagram is drawn again after a short pause, and it <b>glides</b>: boxes that stay move to their new places, what came fades in, what went fades out. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> draws at once. An error keeps the last good picture and names its line in the status bar; a click there jumps to it.</p>
+<p><kbd>Ctrl</kbd>+click on a label, a box or a line in the diagram puts the caret on the line that draws it. The other way round, the name under the caret is lit in the picture. Lines changed since the last save are marked beside their numbers.</p>
+
+<h2>What the editor offers</h2>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/assist.jpg" alt=""><figcaption>After the colon of a transition the list holds the events the machine takes so far.</figcaption></figure>
+<ul>
+  <li><b>Names.</b> While you type a name, a list opens with the states or participants of the diagram. After an arrow a space is enough.</li>
+  <li><b>Events.</b> After the colon of a transition: the events the machine takes. After the colon of a message: the events the receiver's state machine in the project takes.</li>
+  <li><b>Blocks.</b> At the first word of a line: the words of the language for this kind of diagram, each with places to fill in. <code>alt</code> writes <code>alt … else … end</code>; <kbd>Tab</kbd> goes from place to place.</li>
+  <li><b>Links and members.</b> After PlantUML's <code>[[</code> the project's diagrams; after a class and <code>::</code> its fields and methods.</li>
+</ul>
+<p>Arrow keys choose, <kbd>Enter</kbd> or <kbd>Tab</kbd> takes, <kbd>Esc</kbd> closes; <kbd>Ctrl</kbd>+<kbd>Space</kbd> asks for the list anywhere. Rest the pointer on a state, an event or a participant, and a card says what it is: where it first stands, how many transitions go in and out, which events it takes.</p>
+<p><i>Outline beside the source</i> (View) shows the diagram's parts in a column: participants, states, fragments, classes. A click puts the caret on the line.</p>
+
+<h2>Findings while you type</h2>
+<p>A finding is underlined on its line and counted in the tab. The same checks run from <code>omaspec lint</code>, so a terminal, a commit hook and CI say the same words.</p>
+<ex src="docs/guide/pdf/examples/door-findings.puml" caption="Four things are wrong with this door."/>
+<term run="lint docs/guide/pdf/examples/door-findings.puml" show="omaspec lint door.puml"/>
+<table class="wrap">
+  <tr><th>Omaspec says</th><th>when</th></tr>
+  <tr><td>a state cannot be reached</td><td>no path leads to it from the start</td></tr>
+  <tr><td>nothing leaves a state</td><td>the machine would stay there for good; if it ends there, say so with <code>--> [*]</code></td></tr>
+  <tr><td>an event leads two ways</td><td>one event goes from one state to two others and no guard <code>[…]</code> chooses</td></tr>
+  <tr><td>a composite state has no start</td><td>it is entered, and nothing inside says where it begins</td></tr>
+  <tr><td>a name is probably a typo</td><td>a participant or a lane written once, close to another name</td></tr>
+  <tr><td>a color is too faint</td><td>two colors the file sets differ by less than 3:1</td></tr>
+  <tr><td>mermaid.js would not read it</td><td>Omaspec draws the line, GitHub would show a parse error</td></tr>
+</table>
+<p>Labels are read as UML writes them: <code>event [guard] / action</code>. Each part has a color of its own in the source.</p>
+
+<h2>Fixes, and an even hand</h2>
+<p>A finding that can be put right in one sure way carries its fix. <kbd>Ctrl</kbd>+<kbd>.</kbd> makes the fix of the caret's line, <i>Fix every finding that has a fix</i> all of them as one undo step, and <code>omaspec lint --fix</code> does it in the files.</p>
+<p><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> re-indents. <i>Prettify the diagram</i> also sets one space around each arrow and colon and puts them in a column. Only spaces change.</p>
+<code-file src="docs/guide/pdf/examples/untidy.puml" name="before"/>
+<term run="fmt --pretty docs/guide/pdf/examples/untidy.puml" show="omaspec fmt --pretty door.puml"/>
+
+<h2>Mermaid that GitHub draws too</h2>
+<p>Omaspec reads some Mermaid that mermaid.js does not, so a chart that looks right here can be a parse error in a README. Lint hints at each such line, and <i>Rewrite for mermaid.js (GitHub)</i>, or <code>omaspec fmt --portable</code>, writes them the way both read.</p>
+<code-file src="docs/guide/pdf/examples/portable.mmd" name="flow.mmd"/>
+<term run="lint docs/guide/pdf/examples/portable.mmd" show="omaspec lint flow.mmd"/>
+
+<h2>Find, replace, rename</h2>
+<table>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> in the source</td><td>find in this file; <kbd>Ctrl</kbd>+<kbd>H</kbd> replaces, <kbd>Ctrl</kbd>+<kbd>D</kbd> takes the next occurrence</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd> in the diagram</td><td>find a state, a message or any label; it lights up and comes into sight</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>find in every file of the project; a hit opens its file</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd></td><td>replace in all tabs, each tab one undo step</td></tr>
+  <tr><td><kbd>F2</kbd></td><td>rename the diagram, state or event at the caret at every use in the project (chapter 5)</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>find a file of the folder by a few letters</td></tr>
+</table>
+
+<h2>Nothing is lost</h2>
+<p>The window keeps its session in <code>~/.local/state/omaspec/</code>: the open tabs with their unsaved text, the folder, the caret. Closing the window loses nothing. Saving is atomic and keeps the file's line endings; a file changed on disk is loaded again while its tab has no changes of its own.</p>
+
+<!-- ───────────────────────────── 3 ───────────────────────────── -->
+<h1 id="shape"><span class="no">Chapter 3</span>Shape</h1>
+<p class="intro">The layout is automatic and the look follows your desktop. Where you want it otherwise, you say so once, and what you said is written into the file as the language itself writes it.</p>
+
+<h2>A look for the whole diagram</h2>
+<p>Diagrams are drawn in the active Omarchy theme's colors without changing the file; <i>Diagram theme: follow Omarchy</i> switches to the file's own. A <b>skin pack</b> (Edit › Skin) writes a look into the source, as <code>skinparam</code> lines or a Mermaid <code>%%{init}%%</code>, so it stays with the file. The pane shows each pack before you choose it.</p>
+<div class="grid">
+  <ex src="examples/player.puml" look="plain" nosrc caption="<code>plain</code>: black lines on white"/>
+  <ex src="examples/player.puml" look="light" nosrc caption="<code>light</code>"/>
+  <ex src="examples/player.puml" look="vivid" nosrc caption="<code>vivid</code>: a color by kind"/>
+</div>
+<div class="grid">
+  <ex src="examples/player.puml" look="sketch" nosrc caption="<code>sketch</code>: drawn by hand, steady"/>
+  <ex src="examples/player.puml" look="dark" nosrc caption="<code>dark</code>"/>
+  <ex src="examples/player.puml" look="file" nosrc caption="the file's own colors"/>
+</div>
+<p>Two more packs are for paper and for a screen: <code>spec</code> draws strict UML in black and white, in a serif; <code>presentation</code> draws larger, with round corners, in one blue. The sketch look uses what both languages already have (<code>skinparam handwritten true</code>, Mermaid's <code>look: handDrawn</code>). A box takes its strokes from its name, so the same file draws the same picture every time.</p>
+
+<h2>A color for one box</h2>
+<p><i>Color this box…</i>, in the list of commands or under the right mouse button, offers fixed colors and the theme's own for the box at the caret. The color goes into the source as the language writes it, as one undo step, so every other tool draws it too.</p>
+<ex src="docs/guide/pdf/examples/colors.puml" pic="0.8fr"/>
+<table>
+  <tr><th>Diagram</th><th>Written as</th></tr>
+  <tr><td>State, class, component, use case</td><td><code>state Busy #f7768e</code>, <code>class Order #ffcc00</code></td></tr>
+  <tr><td>Sequence: a participant, a bar</td><td><code>participant Bob #f7768e</code>, <code>activate Bob #f7768e</code></td></tr>
+  <tr><td>Activity: an action, a lane</td><td><code>#f7768e:Bake;</code>, <code>|#f7768e|Kitchen|</code></td></tr>
+  <tr><td>Mind map, WBS, Gantt</td><td><code>**[#f7768e] Tests</code>, <code>[Design] is colored in #f7768e</code></td></tr>
+  <tr><td>Mermaid flowchart, state, class, ER</td><td><code>style Busy fill:#f7768e</code></td></tr>
+</table>
+
+<h2>Lines by hand</h2>
+<p>Hold <kbd>Alt</kbd> over the diagram and the line under the pointer lights with its corners as dots. <kbd>Alt</kbd> and a drag on a straight run moves it sideways; on a dot, that corner. While you drag, the line shows exactly how it will be drawn. <kbd>Alt</kbd> and a double click gives the line back to the layout; <kbd>Ctrl</kbd>+<kbd>Z</kbd> takes a drag back.</p>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/hand.jpg" alt=""><figcaption>The <i>unlock</i> line, drawn out to the right. Its shape appears at the end of the source.</figcaption></figure>
+<ex src="docs/guide/pdf/examples/by-hand.puml" lines="8-13" pic="0.9fr" caption="The shape is a comment, so PlantUML and Mermaid read past it. Each pair is a corner, as a share of the room the two boxes take: it grows and shrinks with them."/>
+<p>Works in state, class, component, use case, deployment and object diagrams and in Mermaid flowcharts. <i>Label to the other side</i> moves the label of the line at the caret (<code>Idle -> Busy label left</code>).</p>
+
+<h2>Boxes held in place</h2>
+<p><kbd>Alt</kbd> and a drag on a box takes its outline along, and a bar shows where it would go. Let go, and it stays beside its neighbor. No coordinates are kept, only the neighbor, so the box holds its place in any theme and font.</p>
+<ex src="docs/guide/pdf/examples/held.puml" pic="1.1fr"/>
+<table>
+  <tr><th>Entry</th><th>Flow down</th><th>Flow to the right</th></tr>
+  <tr><td><code>Paused before Running</code></td><td>left of it, in its rank</td><td>above it, in its rank</td></tr>
+  <tr><td><code>Done below Idle</code></td><td>a rank under <i>Idle</i></td><td>right after it in its rank</td></tr>
+  <tr><td><code>Done right of Idle</code></td><td>right after it in its rank</td><td>a rank right of <i>Idle</i></td></tr>
+  <tr><td><code>Done level with Idle</code></td><td colspan="2">in its rank, where the layout orders it</td></tr>
+</table>
+<p>Where several lines arrive at one box alike, they meet on one short stem. <code>' apart</code> in the same block keeps every line on its own arrival, <code>' apart at Done</code> those that meet <i>Done</i>.</p>
+
+<h2>Fold and focus</h2>
+<p>Over a nested state, a package or a subgraph the pointer shows a small button: a click <b>folds</b> it to one box that says what it holds (<i>4 states · 6 transitions</i>). A click on the box unfolds it. Folds are the pane's, not the file's: checks and a play see the whole diagram.</p>
+<p><kbd>Shift</kbd> and a click puts a box in <b>focus</b>: the rest goes quiet behind a veil, and the box, its neighbors and the lines between them come through. In the editor the focus follows the caret.</p>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/focus.jpg" alt=""><figcaption>Focus on one state of a large machine: what it leads to and what leads to it.</figcaption></figure>
+
+<h2>Long and large diagrams</h2>
+<p>A long diagram keeps its headings in sight: a sequence diagram's participants stay at the top as small <b>pills</b> while the messages scroll under them, a swimlane's name stays over its lane, a Gantt chart's dates at the top. <kbd>Ctrl</kbd>+click on a pill jumps to the participant's line.</p>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/pills.jpg" alt=""><figcaption>Scrolled into a checkout of 18 messages: Customer, Web shop, Cart, Payment, Stock and Mail stay on top.</figcaption></figure>
+<table>
+  <tr><td>two-finger scroll, drag</td><td>pan</td></tr>
+  <tr><td>mouse wheel, <kbd>Ctrl</kbd> + two-finger scroll</td><td>zoom at the pointer</td></tr>
+  <tr><td><kbd>Alt</kbd>+<kbd>=</kbd>, <kbd>Alt</kbd>+<kbd>-</kbd>, <kbd>Alt</kbd>+<kbd>0</kbd>, <kbd>Alt</kbd>+<kbd>F</kbd></td><td>zoom in and out, 100 %, fit</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>the diagram in a window of its own, for a second monitor</td></tr>
+</table>
+
+<!-- ───────────────────────────── 4 ───────────────────────────── -->
+<h1 id="understand"><span class="no">Chapter 4</span>Understand</h1>
+<p class="intro">A state diagram is the state machine it specifies, a sequence diagram a scenario. Omaspec treats them that way, in PlantUML and in Mermaid alike: it checks them, runs them, and holds what a real system logged against them.</p>
+
+<h2>Play a machine</h2>
+<p><kbd>F5</kbd> starts it. The rest of the diagram sinks under a veil and the states the machine is in shine through. The bar below offers what can happen next; a light runs along the transition's route. Regions run side by side, a choice waits for you, a history state goes back to where its state was left. Each step lights its line in the source.</p>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/play.jpg" alt=""><figcaption>A Mermaid media player, played: it is <i>Buffering</i> in one region and on the <i>Speaker</i> in the other. Six events are on offer.</figcaption></figure>
+<table>
+  <tr><td><kbd>1</kbd> … <kbd>9</kbd>, a click</td><td>take that option</td></tr>
+  <tr><td><kbd>Space</kbd></td><td>a scenario's next message</td></tr>
+  <tr><td><kbd>←</kbd>, <kbd>Home</kbd>, <kbd>Esc</kbd></td><td>a step back, from the start again, stop</td></tr>
+</table>
+
+<h2>A scenario against its machines</h2>
+<p>A sequence diagram is checked against the state machines of its project. A participant named like a state diagram (<code>door.puml</code>, or <code>title Door</code>) must take every message it receives as an event, in the order the scenario sends them, through <code>alt</code>, <code>opt</code> and <code>loop</code>.</p>
+<ex src="docs/guide/pdf/examples/shop/leave.puml" pic="1.1fr" caption="The car locks the door while it still stands open. The door's machine has no <i>lock</i> in <i>Open</i>."/>
+<term run="lint docs/guide/pdf/examples/shop/leave.puml" show="omaspec lint leave.puml"/>
+<p><b>Lockstep.</b> With <kbd>F5</kbd> on such a scenario, the machines of its participants open beside it. As a message's light reaches its receiver, that machine takes the transition the message fires. A message the machine cannot take runs red, its state flashes and its bar says why.</p>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/lockstep.jpg" alt=""><figcaption>A scenario in lockstep with the machines of the door and the alarm.</figcaption></figure>
+
+<h2>Traces: did production follow the spec?</h2>
+<p>A trace is what a running system logged, one JSON object a line. <code>omaspec trace</code> plays it through the state machines of its project and says where the system left them, with the time.</p>
+<code-file src="docs/guide/pdf/examples/shop/night.jsonl" name="night.jsonl"/>
+<term run="trace docs/guide/pdf/examples/shop/night.jsonl" show="omaspec trace night.jsonl"/>
+<p>Many objects can share one machine (<code>"machine":"Order"</code>), and a line may give the state the object is in. In the editor, <i>Play a recorded trace</i> steps through it in the diagram; where the trace deviates the bar turns red.</p>
+<cmd run="trace docs/guide/pdf/examples/shop/night.jsonl --as timing" show="omaspec trace night.jsonl --as timing -o night.svg" caption="The same night as a timing diagram: the states over time, the deviation a red band. Without <code>-o</code> it prints the PlantUML source, to edit like any other."/>
+
+<h2>Coverage</h2>
+<p>How much of a machine do the traces take? <code>omaspec coverage</code> counts transitions and states and names each transition never taken. <code>--min 80</code> fails below that share, for CI.</p>
+<term run="coverage examples/orders/order.puml --traces examples/orders/week.jsonl" show="omaspec coverage order.puml --traces week.jsonl"/>
+<div class="grid two">
+  <cmd run="coverage examples/orders/order.puml --traces examples/orders/week.jsonl" show="… -o coverage.svg" caption="Taken: bold and green, with how often. Never taken: dashed in red."/>
+  <cmd run="coverage examples/orders/order.puml --traces examples/orders/week.jsonl --river" show="… --river -o river.svg" caption="A trace river: each way as wide as it was taken."/>
+</div>
+
+<h2>The same machine, seen three more ways</h2>
+<p><b>As a table.</b> States down, events across, in each cell what the event does there: the classic table of a review or a test design. Two ways no guard chooses between are framed in red.</p>
+<cmd run="matrix docs/guide/pdf/examples/door-guards.puml" show="omaspec matrix door.puml -o door-table.svg" caption="<code>-o door.md</code> writes it as Markdown, <code>--json</code> gives every cell. In the editor: <i>State machines: as a diagram or a table</i>."/>
+<p><b>As a life cycle on a ring.</b> The states round a circle in the order a run reaches them; a way on runs along the ring, a way back is an arc inside it, a way that skips ahead an arc outside.</p>
+<div class="grid two">
+  <cmd run="orbit examples/orders/order.puml" show="omaspec orbit order.puml -o orbit.svg"/>
+  <cmd run="diff docs/guide/pdf/examples/door-first.puml docs/guide/pdf/examples/door-guards.puml" show="omaspec diff old.puml door.puml -o diff.svg" caption="What changed: green came, amber changed."/>
+</div>
+<p><b>As text.</b> One fact a line, for a terminal or an agent that shows no pictures:</p>
+<term run="render docs/guide/pdf/examples/door-first.puml -o - --format text" show="omaspec render door.puml --format text -o -"/>
+
+<h2>What changed in the behavior</h2>
+<p><code>omaspec diff</code> compares two versions by states, transitions and messages, not by lines. Layout and colors do not count. With a folder it tells the whole project: every diagram that changed in its behavior, and every scenario a changed machine no longer plays.</p>
+<term run="diff docs/guide/pdf/examples/door-first.puml docs/guide/pdf/examples/door-guards.puml" show="omaspec diff old.puml door.puml"/>
+<p><code>omaspec convert door.puml -o door.mmd</code> writes a machine or a scenario in the other language, and only when the result means the same; otherwise it says why not.</p>
+<term run="convert docs/guide/pdf/examples/door-first.puml" show="omaspec convert door.puml"/>
+
+<!-- ───────────────────────────── 5 ───────────────────────────── -->
+<h1 id="project"><span class="no">Chapter 5</span>Projects</h1>
+<p class="intro">A folder with a file named <code>omaspec-project.toml</code> is a project. Its diagrams are checked against one another, link to one another by name, and make a map nobody has to draw.</p>
+
+<h2>Start one</h2>
+<div class="term"><pre><span class="p">$</span> <b>omaspec new ~/specs/garage</b>          # the project file and a first machine; --lang mermaid, --git</pre></div>
+<p>In the editor, <i>New project</i> asks for the language, for git or not, and for the folder. The file names the project and may pin its <b>look</b>, which every diagram is then drawn in: in the pane, by <code>render</code>, in exports and in CI alike.</p>
+<code-file src="docs/guide/pdf/examples/shop/omaspec-project.toml" name="omaspec-project.toml"/>
+<p><code>pack</code> is one of plain, spec, presentation, sketch, vivid, light, dark or auto; with light or dark the colors <code>background</code>, <code>surface</code>, <code>text</code>, <code>accent</code>, <code>muted</code> and <code>note</code> can be set, and <code>font</code> names the face. Without one a diagram is set in Inter, which ships with Omaspec: a picture is the same on every machine.</p>
+
+<h2>The map is made</h2>
+<p>Open the project file and the map stands beside it: a tile for each diagram with its picture, an arrow where a scenario <i>plays</i> against a machine, a state <i>opens</i> the diagram of its name, or a diagram <i>includes</i> a file. A new file is on the map as soon as it is there.</p>
+<ex src="docs/guide/pdf/examples/shop/omaspec-project.toml" nosrc caption="The garage: its scenario plays the door, and the state <i>Door</i> of the garage opens the door's own diagram."/>
+<p>A click on a tile zooms into its diagram. In a project of more than 36 diagrams a folder becomes a tile that opens its own map.</p>
+
+<h2>Diagrams that link</h2>
+<p>A state named like another diagram of the project links to it and carries a mark of two small squares. A click glides into the state and opens that diagram; a trail over the diagram names the way (<i>garage › Garage › Door</i>). <kbd>Alt</kbd>+<kbd>←</kbd> zooms back out.</p>
+<ex src="docs/guide/pdf/examples/shop/garage.puml" pic="0.8fr" caption="<i>Door</i> is a state here and a diagram of its own: the mark says so."/>
+
+<h2>Where a name is used, and renaming it</h2>
+<term run="refs lock --project docs/guide/pdf/examples/shop" show="omaspec refs lock"/>
+<p><kbd>F2</kbd> renames what the caret names (a diagram, a state, an event, a participant) at every use in the project: the machine's transitions, the messages sent to its players, the states that open it. <code>omaspec rename Door Gate --dry-run</code> shows what would change. Files keep their names and recorded traces are records: both are listed, not changed.</p>
+
+<h2>Check the whole project</h2>
+<p><code>omaspec check DIR</code> is the one command for a project: lint, the scenarios against the machines, links to diagrams that are not there, entries by hand that no longer hold, and each SVG held against the one drawn now.</p>
+<term run="check docs/guide/pdf/examples/shop" show="omaspec check ~/specs/garage" rows="8"/>
+
+<h2>Compare</h2>
+<p><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> compares the tab with another tab or with the file in a git commit: both diagrams side by side, zoomed and panned together, or the lines that changed. <i>Compare: glide from B to A</i> shows the change as a motion; what came glows green, what changed amber, what went fades red.</p>
+<figure class="shot"><img src="{{root}}/docs/images/compare.png" alt=""><figcaption>A flowchart against its last commit: the picture, and the lines that changed.</figcaption></figure>
+<p>The same list offers <i>the project since</i> a commit or a tag: what changed in the behavior of every diagram since then. <i>Project › History of the diagram</i> lists the commits that changed a file and how much each changed.</p>
+
+<!-- ───────────────────────────── 6 ───────────────────────────── -->
+<h1 id="show"><span class="no">Chapter 6</span>Show</h1>
+<p class="intro">A diagram is shown, not only read. Everything Omaspec writes is one file that fetches nothing: mail it, put it in a pull request, open it offline.</p>
+
+<h2>Export as</h2>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/export.jpg" alt=""><figcaption>File › Export as, and the same under the right mouse button on the diagram.</figcaption></figure>
+<table class="wrap">
+  <tr><th>Format</th><th>What you get</th></tr>
+  <tr><td><b>SVG</b></td><td>vectors with the fonts they use inside; with <i>Colors: auto</i> one file that turns dark under a dark scheme</td></tr>
+  <tr><td><b>PNG, JPEG</b></td><td>pixels at twice the size; a picture past 100 million pixels is shrunk (<code>--fit</code>) or cut into tiles between lines of words (<code>--min-font</code>)</td></tr>
+  <tr><td><b>PDF</b></td><td>one page in vectors</td></tr>
+  <tr><td><b>Markdown</b></td><td>the diagram as a fenced block, ready for a README</td></tr>
+  <tr><td><b>ZIP</b></td><td>the SVG, the source and a PDF together</td></tr>
+  <tr><td><b>Presentation</b></td><td>one HTML page that plays the diagram in any browser</td></tr>
+  <tr><td><b>Animation</b></td><td>a container folding and unfolding, as WebP, animated PNG, GIF or a page in vectors</td></tr>
+</table>
+<p>The save dialog is the desktop's own. Beside the name it offers <i>Colors</i>: as the diagram shows, the file's own, plain, light or dark. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> copies the diagram as a PNG.</p>
+<div class="tip"><b>Images carry their source.</b> An exported SVG, PNG or presentation holds the diagram's text. Drop it on the window, or open it with <kbd>Ctrl</kbd>+<kbd>O</kbd>, and it is a diagram again; <code>omaspec extract diagram.png</code> prints the source. Every picture is sanitized before it is shown or written.</div>
+
+<h2>A talk from your diagram</h2>
+<p><kbd>Shift</kbd>+<kbd>F5</kbd> shows the diagram full screen in a window of its own and plays it. The editor's window becomes the speaker's: the time, where the play is, the notes of this step and of the next. The notes are the comments right above a step's line.</p>
+<ex src="docs/guide/pdf/examples/notes.puml" pic="0.9fr" caption="The comment above a message is what the speaker sees when that message plays."/>
+<figure class="shot"><img src="{{root}}/docs/guide/pdf/shots/presenter.jpg" alt=""><figcaption>The speaker's window: the clock, the step, its notes, the keys.</figcaption></figure>
+<p>The keys are a presenter remote's: <kbd>→</kbd> <kbd>Space</kbd> <kbd>PageDown</kbd> go on, <kbd>←</kbd> <kbd>PageUp</kbd> go back, <kbd>Home</kbd> starts again, <kbd>1</kbd>–<kbd>9</kbd> take a machine's option, <kbd>F</kbd> switches full screen, <kbd>Esc</kbd> ends.</p>
+<p><b>Or hand the talk on as a page.</b> <code>omaspec render door.puml -o talk.html</code> writes one HTML file that plays the diagram as the pane does, offline, with the same keys. <code>talk.html#3</code> opens a scenario at its third message.</p>
+
+<h2>Films</h2>
+<p><code>omaspec play</code> draws what the window shows, headless, and writes it as a GIF, a WebP or animated PNG in full color, or as <code>.html</code>: a page in vectors, sharp at any size and a fraction of a film's size.</p>
+<table class="cli">
+  <tr><td>play door.puml -o door.gif --events open,close</td><td>a play, taking these events</td></tr>
+  <tr><td>play coffee.puml -o fold.webp --fold Brewing</td><td>a container folding to its box and back</td></tr>
+  <tr><td>play coffee.puml -o build.html --build</td><td>code becomes a picture: the diagram builds itself as a caret walks down the source</td></tr>
+  <tr><td>play keys.puml -o lockstep.gif --lockstep</td><td>a scenario beside the machines of its participants</td></tr>
+  <tr><td>play parcel.puml -o history.html --history</td><td>every commit of the file gliding into the next</td></tr>
+  <tr><td>play parcel.puml -o change.gif --from v1.0</td><td>time travel for a review: from a release to now, what changed glowing</td></tr>
+  <tr><td>play order.puml -o traffic.html --traffic week.jsonl</td><td>recorded traces flowing through the machine, each object a dot</td></tr>
+  <tr><td>play coffee.puml -o sweep.gif --themes</td><td>the diagram through every Omarchy theme</td></tr>
+  <tr><td>play parcel.puml -o ink.html --ink</td><td>from sketch to ink: drawn stroke by stroke, then inked clean</td></tr>
+  <tr><td>play omaspec-project.toml -o flight.html --dive Day/Order</td><td>a flight through the project, from the map down the links</td></tr>
+</table>
+<p>A diagram too large to read whole is followed step by step, near enough to read; <code>--whole</code> keeps it whole. <code>--width</code>, <code>--fps</code>, <code>--theme</code>, <code>--colors</code> and <code>--lossy</code> shape the file.</p>
+
+<h2>A project to hand on</h2>
+<p><code>omaspec export DIR</code> writes every diagram as an SVG with its source, the map as <code>index.svg</code>, and all of it as a ZIP. Each tile and each state that opens a diagram links to that diagram's SVG, so a browser is enough to follow them.</p>
+<p><code>omaspec export DIR --html</code> writes the project as <b>one page</b>: its map, and a click on a tile zooms into the diagram as the editor dives into it. <kbd>Esc</kbd> zooms back out; the address says where the camera is (<code>cafe.html#Day/Order</code>).</p>
+
+<!-- ───────────────────────────── 7 ───────────────────────────── -->
+<h1 id="draws"><span class="no">Chapter 7</span>What Omaspec draws</h1>
+<p class="intro">Mermaid and most of PlantUML are drawn by Omaspec's own engines, in the same process, in milliseconds. What follows is drawn from the examples that come with it; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> opens any of them.</p>
+
+<h2>Behavior</h2>
+<ex src="examples/gallery/pizza.puml" lines="1-14" pic="1.25fr" caption="<b>Sequence</b> (PlantUML and Mermaid): participants, activations, <code>alt</code>, <code>loop</code>, <code>par</code>, notes, dividers, autonumber. It plays as a scenario."/>
+<ex src="examples/gallery/first-day.puml" lines="1-14" pic="1.25fr" caption="<b>Activity</b> with swimlanes: actions, tests, loops, forks. The lane's name stays in sight as it scrolls."/>
+<ex src="examples/gallery/crossing.mmd" pic="0.9fr" caption="<b>State</b>, here in Mermaid: composite states, regions, choices, history. It plays as a machine."/>
+<ex src="docs/guide/pdf/examples/flowchart.mmd" pic="0.9fr" caption="<b>Flowchart</b> (Mermaid): every shape, subgraphs with their own direction, <code>classDef</code> and <code>style</code>."/>
+
+<h2>Structure</h2>
+<div class="grid two">
+  <ex src="examples/gallery/bookshop.puml" nosrc caption="<b>Class</b>: members, visibility, inheritance, multiplicities, packages, <code>hide</code>/<code>show</code>"/>
+  <ex src="examples/gallery/smart-home.puml" nosrc caption="<b>Deployment</b> and <b>component</b>: nodes, clouds, databases, interfaces"/>
+</div>
+<div class="grid two">
+  <ex src="examples/gallery/bike-rental.puml" nosrc caption="<b>C4</b>: the library's macros, read without the library or a network"/>
+  <ex src="examples/gallery/recipes.mmd" nosrc caption="<b>ER</b> (Mermaid): entities and their relations"/>
+</div>
+<div class="grid two">
+  <ex src="examples/gallery/home-network.puml" nosrc caption="<b>Network</b> (<code>@startnwdiag</code>)"/>
+  <ex src="examples/gallery/insurance.puml" nosrc caption="<b>ArchiMate</b>: each element in the color of its layer"/>
+</div>
+<p>Also: use case and object diagrams, Mermaid's class, C4, architecture, block and requirement diagrams, packets.</p>
+
+<h2>Plans</h2>
+<div class="grid two">
+  <ex src="examples/gallery/garden.puml" nosrc caption="<b>Mind map</b>; a branch folds into its box"/>
+  <ex src="examples/gallery/moving-house.puml" nosrc caption="<b>WBS</b>"/>
+</div>
+<ex src="examples/gallery/treehouse.puml" nosrc layout="only" caption="<b>Gantt</b>: tasks, milestones, days off; the dates stay at the top as it scrolls."/>
+<div class="grid">
+  <ex src="examples/sprint.mmd" nosrc caption="<b>Kanban</b>"/>
+  <ex src="examples/releases.mmd" nosrc caption="<b>Git graph</b>"/>
+  <ex src="examples/gallery/priorities.mmd" nosrc caption="<b>Quadrant chart</b>"/>
+</div>
+<p>Also: Mermaid's timelines, user journeys and its own Gantt and mind map.</p>
+
+<h2>Data, time and grammar</h2>
+<div class="grid">
+  <ex src="examples/gallery/day.mmd" nosrc caption="<b>Pie</b>"/>
+  <ex src="examples/gallery/downloads.mmd" nosrc caption="<b>XY chart</b>"/>
+  <ex src="examples/gallery/team-skills.mmd" nosrc caption="<b>Radar</b>"/>
+</div>
+<div class="grid">
+  <ex src="examples/gallery/energy-flow.mmd" nosrc caption="<b>Sankey</b>"/>
+  <ex src="examples/gallery/budget.mmd" nosrc caption="<b>Treemap</b>"/>
+  <ex src="examples/gallery/settings.puml" nosrc caption="<b>JSON</b> and <b>YAML</b>"/>
+</div>
+<ex src="examples/gallery/washing-machine.puml" nosrc layout="only" caption="<b>Timing</b>: robust and concise participants, clocks, constraints."/>
+<div class="grid two">
+  <ex src="examples/gallery/date-regex.puml" nosrc caption="A <b>regular expression</b> as a railroad"/>
+  <ex src="examples/gallery/sign-up.puml" nosrc caption="A <b>Salt</b> wireframe"/>
+</div>
+<p>Also: EBNF grammars as railroads, Ditaa drawings, formulas (<code>@startlatex</code>, <code>@startmath</code>), ZenUML. PlantUML's Graphviz and tree diagrams go to the Java PlantUML where it is installed, confined with Landlock; lint says so before a diagram goes there.</p>
+
+<h2>Three diagrams only Omaspec draws</h2>
+<p>Three kinds neither language has, in a syntax as plain as theirs. They follow the theme and the skin packs like every other diagram.</p>
+<ex src="docs/guide/pdf/examples/storymap.puml" layout="stack" caption="<b>Story map</b> (<code>@startstorymap</code>): what users do across the top, the steps of each under it, the stories in the release they go into. The words after a story's last colon name its release."/>
+<ex src="docs/guide/pdf/examples/capabilities.puml" layout="stack" caption="<b>Capability map</b> (<code>@startcapabilities</code>): what a business can do as tiles inside tiles, each colored by its step on a scale. Dots count the step, so it reads in black and white too."/>
+<ex src="examples/gallery/thermostat.puml" lines="1-16" layout="stack" caption="<b>Signal flow</b> (<code>@startflow</code>): blocks that receive and send named signals, wired port to port, with subsystems inside."/>
+
+<!-- ───────────────────────────── 8 ───────────────────────────── -->
+<h1 id="team"><span class="no">Chapter 8</span>In a team</h1>
+<p class="intro">Everything the editor understands is a command: for a terminal, a commit hook, a pipeline or an agent. They find the same things in the same words, with the same line numbers.</p>
+
+<h2>Lint and check in CI</h2>
+<p><code>lint</code>, <code>fmt --check</code>, <code>trace</code>, <code>check</code> and <code>render --check</code> exit with 1 when they find something. <code>--json</code> gives a report for scripts, <code>--github</code> prints GitHub Actions annotations, <code>--strict</code> lets warnings fail too.</p>
+<div class="src alone"><span class="file">.github/workflows/specs.yml</span><pre>- run: omaspec check specs --github     # lint, machines, links, pictures
+- run: omaspec coverage specs/order.puml --traces logs/week.jsonl --min 80</pre></div>
+<p><code>omaspec new --git</code> writes a pre-commit hook that runs <code>check</code>. Draw the SVGs once with <code>omaspec render DIR</code>; from then on <code>render --check</code> names what changed: the diagram changed since its SVG was drawn, or the same diagram is drawn differently.</p>
+
+<h2>Git that reads behavior</h2>
+<div class="term"><pre><span class="p">$</span> <b>omaspec git setup</b>     # once per clone; writes .gitattributes, to commit
+<span class="p">$</span> <b>git diff</b>              # states, transitions and messages, not lines
+<span class="p">$</span> <b>omaspec log door.puml</b> # commit by commit, what each changed in the behavior
+<span class="p">$</span> <b>omaspec diff . --rev v1.0</b>   # the project since a tag: a changelog of the spec</pre></div>
+<p>After the setup, <code>git diff</code>, <code>git log -p</code> and <code>git show</code> compare a machine's states, transitions and findings and a scenario's messages. A change of layout or color is no change; <code>--no-textconv</code> shows the lines.</p>
+
+<h2>Markdown documents</h2>
+<p>A <code>.md</code> file is a document of diagrams. Every fenced block that names <code>plantuml</code>, <code>puml</code>, <code>mermaid</code> or <code>mmd</code> is highlighted in its language, linted and checked on the document's lines. The pane draws the diagram the caret is in.</p>
+<code-file src="docs/guide/pdf/examples/document.md" name="README.md"/>
+<div class="term"><pre><span class="p">$</span> <b>omaspec lint README.md</b>      # each block, on the document's lines
+<span class="p">$</span> <b>omaspec render README.md</b>    # one image per block: README-1.svg, README-2.svg
+<span class="p">$</span> <b>omaspec fmt --write README.md</b>   # each diagram in its place, the prose as it is</pre></div>
+
+<h2>AI agents</h2>
+<p><code>omaspec mcp</code> is a Model Context Protocol server over standard input and output. An agent lints a diagram, holds a trace against the machines of its project, formats, converts, and renders, getting a PNG back to look at. Nothing goes over the network.</p>
+<div class="term"><pre><span class="p">$</span> <b>claude mcp add omaspec -- omaspec mcp</b>
+<span class="p">#</span> any other client: {"mcpServers": {"omaspec": {"command": "omaspec", "args": ["mcp"]}}}</pre></div>
+<p>The tools are the command line's: <code>lint</code>, <code>trace</code>, <code>refs</code>, <code>inspect</code>, <code>outline</code>, <code>diff</code>, <code>convert</code>, <code>format</code>, <code>render</code>. Every finding carries a <code>code</code> a program can rely on (chapter 10).</p>
+<term run="inspect docs/guide/pdf/examples/shop/leave.puml" show="omaspec inspect leave.puml" rows="16"/>
+
+<!-- ───────────────────────────── 9 ───────────────────────────── -->
+<h1 id="omarchy"><span class="no">Chapter 9</span>Omarchy</h1>
+<p class="intro">Omaspec is made for Omarchy. It follows the theme and the font while it runs, uses the desktop's own dialogs, and comes with what Hyprland needs.</p>
+
+<h2>Themes and fonts</h2>
+<p>The editor and the diagrams follow <code>omarchy theme</code> and <code>omarchy font set</code> live. Every bundled theme is tested to read: each text at 4.5:1 against what lies under it, each line at 3:1. A faint color (a yellow on white) is deepened just enough.</p>
+<figure class="shot"><img src="{{root}}/docs/images/themes.png" alt=""><figcaption>Tokyo Night, Catppuccin Latte, Gruvbox and Rosé Pine.</figcaption></figure>
+
+<h2>Hyprland</h2>
+<p>Templates are installed to <code>/usr/share/omaspec/omarchy</code>:</p>
+<ul>
+  <li><code>hyprland.lua</code>: <kbd>Super</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> opens the editor; window rules for the diagram windows are commented there.</li>
+  <li><code>omarchy-menu.jsonc</code>: a <i>Diagram editor</i> entry for the Omarchy menu.</li>
+  <li><code>omaspec.toml.tpl</code>: copy it to <code>~/.config/omarchy/themed/</code> to set the syntax and mark colors per theme.</li>
+</ul>
+<p>Window classes for rules: <code>omaspec</code> (the editor) and <code>omaspec-preview</code> (the preview window, and the editor's diagram in a window of its own). Copies and exports send an Omarchy notification. On a laptop with two graphics cards Omaspec draws with the frugal one; <code>WGPU_POWER_PREF=high omaspec</code> takes the strong one.</p>
+
+<h2>The preview window, beside Neovim</h2>
+<p><code>omaspec preview flow.puml</code> is a window that draws the file again on every save. Edit in Neovim, or anything else, and keep it tiled beside. An error shows in its status bar while the last good picture stays.</p>
+<table>
+  <tr><td><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd> <kbd>f</kbd></td><td>zoom, 100 %, fit</td></tr>
+  <tr><td><kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd></td><td>pan</td></tr>
+  <tr><td><kbd>c</kbd>, <kbd>C</kbd></td><td>copy as PNG, as SVG</td></tr>
+  <tr><td><kbd>p</kbd></td><td>play the diagram</td></tr>
+  <tr><td>click, <kbd>Backspace</kbd></td><td>into a linked state or a tile of a map, and back</td></tr>
+  <tr><td><kbd>u</kbd>, <kbd>Shift</kbd>+click, <kbd>Esc</kbd></td><td>unfold everything; focus on a box; end the focus</td></tr>
+  <tr><td><kbd>r</kbd>, <kbd>q</kbd></td><td>draw again, quit</td></tr>
+</table>
+
+<!-- ───────────────────────────── 10 ───────────────────────────── -->
+<h1 id="ref"><span class="no">Chapter 10</span>To look up</h1>
+<p class="intro">The keys of the editor, the commands of the terminal, and the codes a program reads.</p>
+
+<h2>Keys of the editor</h2>
+<table>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></td><td>every command, as a list; type to filter</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>find a file in the folder</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd></td><td>the examples, as tiles</td></tr>
+  <tr><td><kbd>F5</kbd>, <kbd>Shift</kbd>+<kbd>F5</kbd></td><td>play the diagram; present it full screen</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></td><td>open a diagram, document or image; open a folder</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></td><td>save, save as</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>N</kbd>, <kbd>Ctrl</kbd>+<kbd>W</kbd>, <kbd>Ctrl</kbd>+<kbd>PageDown</kbd>/<kbd>PageUp</kbd></td><td>new tab, close tab, switch tabs</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>draw now</td></tr>
+  <tr><td><kbd>F8</kbd>, <kbd>Ctrl</kbd>+<kbd>.</kbd></td><td>the next finding; make the fix of the caret's line</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Space</kbd></td><td>what could be written at the caret</td></tr>
+  <tr><td><kbd>F2</kbd></td><td>rename at every use in the project</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd>, <kbd>Ctrl</kbd>+<kbd>H</kbd>, <kbd>Ctrl</kbd>+<kbd>/</kbd>, <kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>find, replace, comment, next occurrence</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd></td><td>find in the project; replace in all tabs</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd></td><td>compare with another tab, a commit, or the project since one</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd></td><td>the diagram in a window of its own</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></td><td>format; copy the diagram as PNG</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>[</kbd>, <kbd>]</kbd></td><td>fold the block at the caret, unfold it</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd>, <kbd>Ctrl</kbd>+<kbd>Q</kbd></td><td>project tree on or off, quit</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+arrows</td><td>move between the project, the source and the diagram</td></tr>
+  <tr><td><kbd>Alt</kbd>+<kbd>=</kbd>, <kbd>Alt</kbd>+<kbd>-</kbd>, <kbd>Alt</kbd>+<kbd>0</kbd>, <kbd>Alt</kbd>+<kbd>F</kbd></td><td>zoom the diagram, 100 %, fit</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+click</td><td>from the picture to its line in the source</td></tr>
+  <tr><td>click, <kbd>Alt</kbd>+<kbd>←</kbd></td><td>into a linked state or a tile of a map, and back out</td></tr>
+  <tr><td><kbd>Shift</kbd>+click</td><td>focus on a box and its neighbors</td></tr>
+  <tr><td><kbd>Alt</kbd>+drag, <kbd>Alt</kbd>+double click</td><td>shape a line or hold a box; give it back to the layout</td></tr>
+  <tr><td>right click</td><td>the actions for what is under the pointer</td></tr>
+  <tr><td><kbd>Alt</kbd>, <kbd>F10</kbd></td><td>show or hide the menu bar and the toolbar; open File</td></tr>
+</table>
+
+<h2>Commands of the terminal</h2>
+<table class="cli">
+  <tr><td>omaspec [FILE…]</td><td>the editor; a folder shows in the sidebar</td></tr>
+  <tr><td>omaspec preview FILE</td><td>a window that follows the file</td></tr>
+  <tr><td>omaspec new DIR</td><td>a project: its file and a first machine; <code>--lang mermaid</code>, <code>--git</code></td></tr>
+  <tr><td>omaspec lint FILE…</td><td>syntax, likely typos, specification checks; <code>--fix</code>, <code>--strict</code>, <code>--json</code>, <code>--project DIR</code></td></tr>
+  <tr><td>omaspec check DIR</td><td>lint, the machines, the links and the pictures of a project; <code>--github</code></td></tr>
+  <tr><td>omaspec fmt FILE…</td><td>re-indent; <code>--write</code>, <code>--check</code>, <code>--pretty</code>, <code>--portable</code></td></tr>
+  <tr><td>omaspec render FILE…</td><td>SVG beside the file; <code>-o</code> a PNG, JPEG, PDF, Markdown, ZIP, <code>.html</code> or <code>.txt</code>; <code>--look</code>, <code>--check</code>, <code>--fit</code>, <code>--min-font</code>, <code>--text-as-paths</code>, <code>--copy</code></td></tr>
+  <tr><td>omaspec play FILE -o OUT</td><td>a film or a page that moves (chapter 6)</td></tr>
+  <tr><td>omaspec export DIR</td><td>the project as linked SVGs and a ZIP; <code>--html</code> as one page</td></tr>
+  <tr><td>omaspec trace T.jsonl</td><td>a recorded trace against the machines; <code>--as timing</code>, <code>--json</code></td></tr>
+  <tr><td>omaspec coverage FILE --traces T</td><td>what the traces take of a machine; <code>-o</code>, <code>--river</code>, <code>--min</code>, <code>--json</code></td></tr>
+  <tr><td>omaspec matrix FILE</td><td>a machine as a table; <code>-o</code> <code>.md</code> or a picture, <code>--json</code></td></tr>
+  <tr><td>omaspec orbit FILE</td><td>a machine's life cycle on a ring</td></tr>
+  <tr><td>omaspec diff FILE | OLD NEW | DIR</td><td>what changed in the behavior; <code>--rev</code>, <code>-o</code> a picture</td></tr>
+  <tr><td>omaspec log FILE</td><td>commit by commit, what each changed; <code>-n</code>, <code>--json</code></td></tr>
+  <tr><td>omaspec git setup</td><td>git tells diagrams by their behavior</td></tr>
+  <tr><td>omaspec convert FILE</td><td>the machine or scenario in the other language</td></tr>
+  <tr><td>omaspec refs NAME</td><td>every use of a diagram, state or event; <code>--machine</code></td></tr>
+  <tr><td>omaspec rename OLD NEW</td><td>renamed at every use; <code>--state</code>, <code>--event</code>, <code>--dry-run</code></td></tr>
+  <tr><td>omaspec outline FILE, inspect FILE</td><td>the structure; language, kind, findings and whether Omaspec draws it</td></tr>
+  <tr><td>omaspec extract IMAGE</td><td>the source stored in an exported picture or page</td></tr>
+  <tr><td>omaspec example [NAME]</td><td>the gallery's examples; prints one</td></tr>
+  <tr><td>omaspec mcp</td><td>an MCP server for AI agents</td></tr>
+  <tr><td>omaspec theme</td><td>the palette read from the Omarchy theme</td></tr>
+</table>
+
+<h2>Findings by their code</h2>
+<p>Every finding in a <code>--json</code> report and from the MCP tools carries a code. A program reads the code, not the message: the code stays, the words may change.</p>
+<table class="wrap">
+  <tr><td><code>refused</code></td><td>PlantUML or Mermaid does not take the diagram as written</td></tr>
+  <tr><td><code>java-only</code></td><td>only the Java PlantUML draws it (<code>--strict</code> fails on it)</td></tr>
+  <tr><td><code>not-read</code></td><td>Omaspec does not read the diagram as a specification</td></tr>
+  <tr><td><code>missing-end</code> <code>unclosed-block</code> <code>unknown-head</code></td><td>a block or the diagram is not closed, or its first line names no diagram</td></tr>
+  <tr><td><code>declared-twice</code> <code>undeclared-participant</code> <code>unused-participant</code></td><td>a scenario's participants</td></tr>
+  <tr><td><code>lane-spelling</code> <code>lone-state</code> <code>namesake-state</code></td><td>a name that is probably another one misspelled, or one name for two states</td></tr>
+  <tr><td><code>no-start</code> <code>entered-without-start</code></td><td>a machine or a state with no <code>[*] --> …</code> to begin at</td></tr>
+  <tr><td><code>unreachable-state</code> <code>dead-end</code></td><td>a state nothing leads to, or nothing leaves</td></tr>
+  <tr><td><code>transition-twice</code> <code>ambiguous-event</code></td><td>a transition written twice, or one event leading to two states</td></tr>
+  <tr><td><code>scenario-mismatch</code></td><td>a message its receiver's state machine does not take there</td></tr>
+  <tr><td><code>dead-link</code></td><td>a link to a diagram the project does not have</td></tr>
+  <tr><td><code>trace-line</code> <code>trace-deviation</code> <code>trace-unchecked</code></td><td>a trace: a line not read, an event the machine does not take, what could not be followed</td></tr>
+  <tr><td><code>stale-entry</code> <code>by-hand-miss</code></td><td>an entry by hand that no longer holds</td></tr>
+  <tr><td><code>unknown-icon</code> <code>faint-color</code> <code>unheeded-setting</code></td><td>an icon the set lacks, a color too faint to read, a setting nothing heeds</td></tr>
+  <tr><td><code>unseen-character</code></td><td>a character nobody sees on the line; the fix takes it out</td></tr>
+  <tr><td><code>not-mermaid-js</code></td><td>Omaspec draws it, mermaid.js (GitHub) does not</td></tr>
+  <tr><td><code>omaspec-only</code></td><td>a diagram of Omaspec's own syntax, which PlantUML does not draw</td></tr>
+  <tr><td><code>project-file</code> <code>not-drawn</code></td><td>the project's file does not read; no engine draws the diagram</td></tr>
+</table>
+
+<section class="back">
+  <svg class="mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#24283b"/><path d="M11 19h12M11 26.5h7M11 34h14M11 41.5h6M11 49h10" fill="none" stroke-width="3.2" stroke-linecap="round" stroke="#565f89"/><path d="M11 19h12" fill="none" stroke="#bb9af7" stroke-width="3.2" stroke-linecap="round"/><path d="M11 34h14" fill="none" stroke="#ff9e64" stroke-width="3.2" stroke-linecap="round"/><path d="M31.5 13v38" fill="none" stroke="#414868" stroke-width="1.6" stroke-linecap="round"/><rect x="37.5" y="13.5" width="17" height="11" rx="3.5" fill="#1a1b26" stroke="#7aa2f7" stroke-width="2.4"/><rect x="37.5" y="39.5" width="17" height="11" rx="3.5" fill="#1a1b26" stroke="#7aa2f7" stroke-width="2.4"/><path d="M46 24.5v11" fill="none" stroke="#a9b1d6" stroke-width="2.4" stroke-linecap="round"/><path d="M42.6 32.6 46 36.2 49.4 32.6" fill="none" stroke="#a9b1d6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <h2>Omaspec</h2>
+  <p>PlantUML and Mermaid, understood as behavior.</p>
+  <p>MIT · sends nothing anywhere</p>
+  <p class="url">github.com/enhapu-afk/omaspec</p>
+</section>
+</body>
+</html>

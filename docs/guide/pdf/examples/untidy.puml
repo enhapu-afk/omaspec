@@ -1,0 +1,7 @@
+@startuml
+[*]-->Closed
+Closed -->   Opening : open
+Opening-->Open :  end position
+Open-->Closing :close
+Closing  --> Closed :end position
+@enduml

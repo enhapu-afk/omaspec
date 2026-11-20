@@ -1,0 +1,10 @@
+@startuml
+title Door
+[*] --> Closed
+Closed --> Open : open [unlocked] / light on
+Open --> Closed : close / light off
+Closed --> Locked : lock
+Locked --> Closed : unlock
+Open --> Jammed : stuck
+Jammed --> Open : repaired
+@enduml

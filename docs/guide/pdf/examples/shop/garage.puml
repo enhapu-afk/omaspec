@@ -1,0 +1,7 @@
+@startuml
+title Garage
+[*] --> Empty
+Empty --> Door : car arrives
+Door --> Parked : door closed
+Parked --> Empty : car leaves
+@enduml

@@ -1,0 +1,9 @@
+@startuml
+[*] --> Idle
+state Busy #f7768e
+state Done #9ece6a
+Idle --> Busy : start
+Busy --> Done : finished
+Busy --> Idle : cancel
+Done --> [*]
+@enduml

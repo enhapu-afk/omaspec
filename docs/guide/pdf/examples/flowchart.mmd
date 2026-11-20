@@ -1,0 +1,7 @@
+flowchart TD
+  Start([Friday, 5 pm]) --> Tired{Tired?}
+  Tired -- yes --> Sofa[Sofa and a film]
+  Tired -- no --> Out[Meet friends]
+  Sofa --> Pizza[(Order pizza)]
+  Out --> Pizza
+  Pizza --> Done([A good evening])
