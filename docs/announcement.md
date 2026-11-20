@@ -2,7 +2,7 @@
 posting: the version in the title, and the install section once the AUR takes
 new accounts again (then it is one line: yay -S omaspec-bin). -->
 
-# Omaspec 0.9.9: a PlantUML and Mermaid editor for Omarchy that understands behavior
+# Omaspec 1.0: a PlantUML and Mermaid editor for Omarchy that understands behavior
 
 Omaspec is a native diagram editor for Omarchy: the source next to the live diagram, in
 your Omarchy theme and font. It is pure Rust, one binary that draws with its own
@@ -83,6 +83,26 @@ diagram as a scenario, in PlantUML and Mermaid alike:
   crosses less: on 300 random graphs 28 % fewer crossings.
 - **Two small fixes (0.9.3).** A Mermaid sequence diagram draws the title of its front
   matter, and a component's name keeps clear of its icon.
+
+## New in 1.0
+
+- **Show it.** Shift+F5 presents a diagram full screen, the speaker's notes in the
+  editor's window; `omaspec render door.puml -o talk.html` hands the talk on as one page
+  that plays offline. `omaspec play` writes films and pages in vectors: a diagram
+  building itself from its source, a scenario in lockstep with the machines of its
+  participants, a file's history commit by commit, recorded traces flowing through a
+  machine, a sweep through the themes, from sketch to ink.
+- **A project as one page.** `omaspec export DIR --html` writes the map and every
+  diagram into one file; a click zooms into a tile as the editor does.
+- **More views of a machine.** Its table of states and events (`omaspec matrix`), its
+  life cycle on a ring (`omaspec orbit`), its coverage as a trace river
+  (`omaspec coverage --river`).
+- **Diagrams only Omaspec draws.** Story maps (`@startstorymap`) and capability maps
+  (`@startcapabilities`), beside signal flow.
+- **Long diagrams stay readable.** A sequence diagram's participants stay on top as
+  pills while it scrolls; a click on a word in the picture lands on its line.
+- **A guide.** Every function with examples, as a
+  [PDF](https://enhapu-afk.github.io/omaspec/guide/omaspec-guide.pdf) of 47 pages.
 
 ## New in 0.9.9
 
