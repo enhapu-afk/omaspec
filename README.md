@@ -63,6 +63,13 @@ event its receiver can take, in the order the scenario sends them.
 
 ![A scenario checked against the door's state machine: the door is open and cannot be locked](docs/images/specs.png)
 
+`omaspec play keys.puml --lockstep -o lockstep.gif` shows it happen: the scenario plays
+beside the state machines of its participants, and as each message reaches its receiver,
+the receiver's machine takes the transition it fires. Where a machine cannot take a
+message, the message runs red, the machine's state flashes, and its bar says why.
+
+![A scenario played in lockstep with the machines of a door and an alarm: the guest locks the door, arms the alarm, and tries to open the locked door, which the door's machine refuses](docs/images/lockstep.gif)
+
 ### Play it
 
 F5 runs the diagram on screen. The states the machine is in light up, you pick what

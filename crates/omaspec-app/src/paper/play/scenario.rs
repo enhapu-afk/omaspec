@@ -32,6 +32,9 @@ pub struct ScenarioPlay {
     pub(super) jump: Option<usize>,
     /// The step just taken runs the light. Going back shows the line as it rests.
     pub(super) onward: bool,
+    /// The source lines of the messages a machine cannot take: their
+    /// light runs in the color of what deviates.
+    pub(super) wrong: Vec<usize>,
     /// The message the highlight just left, so it can fade instead of vanishing.
     pub(super) leave: Option<Leaving>,
 }
@@ -72,6 +75,20 @@ pub(super) fn spot_of(step: &Step) -> Spot4 {
 }
 
 impl ScenarioPlay {
+    /// The color the light of step `index` runs in.
+    pub(super) fn color(&self, index: usize, look: &Look) -> Color {
+        match self.steps.get(index) {
+            Some(step) if self.wrong.contains(&step.line) => look.wrong,
+            _ => look.accent,
+        }
+    }
+
+    /// When the light of the message played last reaches its head.
+    pub(super) fn arrives(&self) -> Option<Instant> {
+        let step = self.steps.get(self.at.checked_sub(1)?)?;
+        Some(self.moved + travel_time(&step.points))
+    }
+
     /// The message played last, from end to end and top to bottom, in
     /// diagram units: where a following camera looks. None before the
     /// first.
@@ -315,12 +332,13 @@ impl ScenarioPlay {
             return;
         }
         let (a, b) = (view.point((left, top)), view.point((right, bottom)));
+        let color = self.color(self.at.saturating_sub(1), look);
         soft_spot(
             frame,
             view.paper,
             view.scale,
             Rectangle::new(a, Size::new(b.x - a.x, b.y - a.y)),
-            with_alpha(look.accent, 0.09 * alpha),
+            with_alpha(color, 0.09 * alpha),
         );
     }
 
@@ -341,7 +359,7 @@ impl ScenarioPlay {
         draw_run(
             frame,
             &screen,
-            look.accent,
+            self.color(left.index, look),
             look.light,
             Light {
                 head: left.light.head,
@@ -369,10 +387,11 @@ impl ScenarioPlay {
         let light = appearance(since, took, self.onward, presence, SCENARIO);
         // The message is drawn under the light: what the head has not
         // reached yet waits in shade, so the run reads as it lights it.
+        let color = self.color(index, look);
         draw_run_over(
             frame,
             &screen,
-            look.accent,
+            color,
             look.light,
             light,
             Some(with_alpha(look.veil, AHEAD)),
@@ -384,7 +403,7 @@ impl ScenarioPlay {
             {
                 frame.stroke(
                     &Path::circle(tip, 4.0 + 16.0 * ripple),
-                    soft(look.accent, 2.0, 0.6 * (1.0 - ripple) * presence),
+                    soft(color, 2.0, 0.6 * (1.0 - ripple) * presence),
                 );
             }
         }

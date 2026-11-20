@@ -180,6 +180,39 @@ impl App {
             .into()
     }
 
+    /// The diagram panes of the tabs `placed`, each at its place on the
+    /// window's darker ground: a scenario beside the machines of its
+    /// participants ([`super::lockstep`]).
+    pub(super) fn panes_view(&self, placed: &[(u64, iced::Rectangle)]) -> Element<'_, Message> {
+        let ground = self.palette.background;
+        let layers: Vec<Element<'_, Message>> = placed
+            .iter()
+            .filter_map(|&(key, at)| {
+                let doc = self.docs.iter().find(|d| d.key == key)?;
+                let pane = container(
+                    doc.paper
+                        .view(&self.palette, self.font, true)
+                        .map(move |m| Message::Paper(key, m)),
+                )
+                .width(at.width)
+                .height(at.height)
+                .style(move |_| container::Style {
+                    background: Some(ui::color(ground).into()),
+                    ..container::Style::default()
+                });
+                Some(iced::widget::pin(pane).x(at.x).y(at.y).into())
+            })
+            .collect();
+        container(iced::widget::Stack::with_children(layers))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .style(|_| container::Style {
+                background: Some(ui::color(self.palette.dark_background).into()),
+                ..container::Style::default()
+            })
+            .into()
+    }
+
     pub(super) fn main_view(&self) -> Element<'_, Message> {
         // The focused area's frame fades in as the one before fades out.
         let lit = self.focus_fade.interpolate(0.0, 1.0, crate::clock::now());

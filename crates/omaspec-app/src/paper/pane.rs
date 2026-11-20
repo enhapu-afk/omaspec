@@ -316,6 +316,7 @@ impl Paper {
                             ..overview.paper
                         },
                         light: ui::color(p.bright_foreground),
+                        wrong: ui::color(p.red),
                     },
                     over,
                     at: self.clock,

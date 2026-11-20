@@ -201,6 +201,75 @@ fn a_history_is_on_the_map_and_named_in_the_bar() {
     assert_eq!(at, "High");
 }
 
+/// A machine beside a scenario plays the participant's way as a trace
+/// plays, with a bar that says where it is and nothing to press; a message
+/// it cannot take flashes where it is, and runs red in the scenario.
+#[test]
+fn a_machine_beside_its_scenario_flashes_where_it_cannot_follow() {
+    let source = "@startuml Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
+    let scenario = "@startuml\nGuest -> Door : lock\nGuest -> Door : open\n@enduml\n";
+    let specs = omaspec_model::Specs::new(vec![
+        Spec::read(source, Language::PlantUml, "door.puml").unwrap(),
+    ]);
+    let step = omaspec_model::lockstep(scenario, Language::PlantUml, &specs).unwrap();
+    let door = &step.players[0];
+    let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
+    let t0 = Instant::now();
+    let mut play = Play::followed(
+        &map,
+        door.spec.machine.clone(),
+        door.followed.clone(),
+        "keys.puml",
+        "Door",
+        true,
+        t0,
+    )
+    .unwrap();
+    let flashes = |play: &Play| match play {
+        Play::Machine(machine) => machine.flashes.len(),
+        Play::Scenario(_) => panic!("a machine"),
+    };
+    play.ask(Ask::Next, t0);
+    assert_eq!(flashes(&play), 0);
+    play.ask(Ask::Next, t0);
+    assert_eq!(flashes(&play), 1);
+    let Offer::Trace {
+        beside,
+        finding,
+        at,
+        ..
+    } = play.offer()
+    else {
+        panic!("a trace");
+    };
+    assert!(beside);
+    assert_eq!(at, "Locked");
+    assert_eq!(finding.map(|(s, _)| s), Some(Severity::Error));
+    // Going back takes the flash away.
+    play.ask(Ask::Back, t0);
+    assert_eq!(flashes(&play), 0);
+
+    // The scenario runs the message's light red, and says when it arrives.
+    let (_, map) = omaspec_uml::render_mapped(scenario, None).unwrap();
+    let mut play = Play::new(scenario, Language::PlantUml, &map, t0).unwrap();
+    assert!(play.arrives().is_none());
+    play.mark_wrong(vec![2]);
+    play.ask(Ask::Next, t0);
+    play.ask(Ask::Next, t0);
+    let Play::Scenario(scenario) = &play else {
+        panic!("a scenario");
+    };
+    let look = Look {
+        accent: Color::from_rgb8(0x7a, 0xa2, 0xf7),
+        veil: Color::BLACK,
+        light: Color::WHITE,
+        wrong: Color::from_rgb8(0xf7, 0x76, 0x8e),
+    };
+    assert_eq!(scenario.color(0, &look), look.accent);
+    assert_eq!(scenario.color(1, &look), look.wrong);
+    assert!(play.arrives().is_some_and(|at| at > t0));
+}
+
 #[test]
 fn a_trace_plays_line_by_line() {
     let source = "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
@@ -419,6 +488,7 @@ fn a_box_under_a_scenario_s_veil_keeps_its_color() {
             accent: Color::from_rgb8(0xff, 0x9e, 0x3b),
             veil: Color::from_rgb8(0x1a, 0x1b, 0x26),
             light: Color::WHITE,
+            wrong: Color::from_rgb8(0xf7, 0x76, 0x8e),
         };
         play.draw_under(frame, &look, &view, now);
     };

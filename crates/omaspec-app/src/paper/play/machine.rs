@@ -37,6 +37,9 @@ pub struct MachinePlay {
     /// What the steps scheduled last leave and enter, and the ways between
     /// them, in diagram units: where a following camera looks.
     pub(super) focus: Option<iced::Rectangle>,
+    /// When a line it could not follow was played: the states it is in
+    /// flash in the color of what deviates.
+    pub(super) flashes: Vec<Instant>,
 }
 
 pub(super) enum Driver {
@@ -65,6 +68,9 @@ pub(super) struct TraceRun {
     pub(super) followed: Followed,
     /// Lines played so far.
     pub(super) played: usize,
+    /// A scenario's participant played beside it, which the scenario's
+    /// play steps on: its bar only says where it is and what went wrong.
+    pub(super) beside: bool,
 }
 
 impl TraceRun {
@@ -150,6 +156,7 @@ impl MachinePlay {
             begun: now,
             lines: Vec::new(),
             focus: None,
+            flashes: Vec::new(),
         }
     }
 
@@ -203,19 +210,28 @@ impl MachinePlay {
                     return;
                 };
                 trace.played += 1;
+                let deviates = step
+                    .finding
+                    .as_ref()
+                    .is_some_and(|f| f.severity == Severity::Error);
                 self.schedule(&step.taken, now);
                 self.aim(&step.at, now);
+                if deviates {
+                    self.flashes.push(self.free_at.max(now));
+                }
             }
             Ask::Back => {
                 if trace.played > 0 {
                     trace.played -= 1;
                     let lit = trace.lit().to_vec();
+                    self.flashes.clear();
                     self.show(&lit, now);
                 }
             }
             Ask::Restart => {
                 trace.played = 0;
                 let lit = trace.lit().to_vec();
+                self.flashes.clear();
                 self.show(&lit, now);
             }
             Ask::Take(_) | Ask::Hover(_) => {}
@@ -365,6 +381,7 @@ impl MachinePlay {
                     finding: step
                         .and_then(|s| s.finding.as_ref())
                         .map(|f| (f.severity, f.message.clone())),
+                    beside: trace.beside,
                 };
             }
         };
@@ -506,6 +523,21 @@ impl MachinePlay {
                 self.glow(state, spot, view).draw(frame, look.accent, lit);
             }
         }
+        // A line it could not follow: where it is flashes twice.
+        let flash = self
+            .flashes
+            .iter()
+            .filter(|&&at| now >= at)
+            .map(|&at| flashed(fraction(now - at, FLASH)))
+            .fold(0.0, f32::max);
+        if flash > 0.004 {
+            for (state, &lit) in levels.iter().enumerate() {
+                if let Some(spot) = self.placed.states[state].as_ref().filter(|_| lit > 0.004) {
+                    self.glow(state, spot, view)
+                        .draw(frame, look.wrong, flash * lit);
+                }
+            }
+        }
         for travel in &self.shown {
             self.draw_travel(frame, look, view, travel, now);
         }
@@ -539,4 +571,14 @@ impl MachinePlay {
             }
         }
     }
+}
+
+/// How bright a flash is at `k` of its time: two pulses, the second
+/// softer.
+fn flashed(k: f32) -> f32 {
+    if k >= 1.0 {
+        return 0.0;
+    }
+    let pulse = (k * 2.0 * std::f32::consts::PI).sin().powi(2);
+    pulse * (1.0 - 0.45 * k)
 }

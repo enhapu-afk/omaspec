@@ -35,6 +35,11 @@ cargo run --release -q -p omaspec-app -- play examples/gallery/coffee-machine.pu
 cargo run --release -q -p omaspec-app -- play examples/gallery/parcel.puml \
   -o "$out/build.gif" --build --theme built-in --width 1100 2>/dev/null
 
+# A scenario in lockstep with the machines of its participants, the last
+# message one the door cannot take.
+cargo run --release -q -p omaspec-app -- play examples/home/keys.puml \
+  -o "$out/lockstep.gif" --lockstep --theme built-in --width 1000 2>/dev/null
+
 # Two dark themes and two light ones.
 magick montage "$shots"/theme-{tokyo-night,catppuccin-latte,gruvbox,rose-pine}-wgpu.png \
   -tile 2x2 -geometry 800x427+6+6 -background '#16161e' -depth 8 -strip "$out/themes.png"

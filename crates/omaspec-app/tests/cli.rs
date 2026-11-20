@@ -1942,8 +1942,9 @@ fn render_plantuml_falls_back_to_java_or_says_why_not() {
     );
 }
 
-/// The examples are clean: no lint findings, and the Mermaid ones and
-/// the PlantUML sequence, state, mind map and WBS diagrams draw without Java.
+/// The examples are clean: no lint findings (but the warnings of a
+/// scenario wrong on purpose), and the Mermaid ones and the PlantUML
+/// sequence, state, mind map and WBS diagrams draw without Java.
 #[test]
 fn examples_are_clean() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
@@ -1972,13 +1973,29 @@ fn examples_are_clean() {
         } else {
             "lint"
         };
-        let out = omaspec(&[command, "--strict", example.to_str().unwrap()]);
+        // A scenario wrong on purpose shows what a deviation looks like: it
+        // warns, and only that.
+        let on_purpose =
+            std::fs::read_to_string(example).is_ok_and(|text| text.contains("' Wrong on purpose"));
+        let out = if on_purpose {
+            omaspec(&[command, example.to_str().unwrap()])
+        } else {
+            omaspec(&[command, "--strict", example.to_str().unwrap()])
+        };
         assert!(
             out.status.success(),
             "{}: {}",
             example.display(),
             String::from_utf8_lossy(&out.stdout)
         );
+        if on_purpose {
+            let said = String::from_utf8_lossy(&out.stdout);
+            assert!(
+                said.contains("warning") && !said.contains("error"),
+                "{}: {said}",
+                example.display()
+            );
+        }
         if command == "trace" {
             assert!(
                 out.stdout.is_empty(),

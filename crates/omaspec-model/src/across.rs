@@ -113,11 +113,77 @@ pub fn check(code: &str, lang: Language, specs: &Specs) -> Vec<Finding> {
         frames: Vec::new(),
         out: Vec::new(),
         offset,
+        moves: None,
     };
     for item in &diagram.items {
         play.item(item);
     }
     play.out
+}
+
+/// What a message or a group did to a participant with a state machine,
+/// as the scenario was played ([`crate::lockstep`]).
+pub(crate) struct Moved {
+    pub(crate) participant: usize,
+    /// Zero-based, in `code`.
+    pub(crate) line: usize,
+    /// The event a message sent it; none where a group sent it back to
+    /// where the group began, or on to where its branches lead.
+    pub(crate) event: Option<String>,
+    /// It was created by the message.
+    pub(crate) creates: bool,
+    /// Where it could be before and after; `None` while that is open.
+    pub(crate) before: Option<Vec<bool>>,
+    pub(crate) after: Option<Vec<bool>>,
+    /// The transitions the event fires, wherever they leave from.
+    pub(crate) fired: Vec<usize>,
+    pub(crate) finding: Option<Finding>,
+}
+
+/// A participant of a scenario with a state machine of its own: its
+/// place among the participants, its name as drawn, and its machine.
+pub(crate) struct Cast<'a> {
+    pub(crate) participant: usize,
+    pub(crate) name: String,
+    pub(crate) spec: &'a Spec,
+}
+
+/// The participants of the scenario in `code` with a state machine of
+/// their own, and what each message and group did to them, in order.
+/// `None` when `code` is no scenario or none of them has one.
+pub(crate) fn moves<'a>(
+    code: &str,
+    lang: Language,
+    specs: &'a Specs,
+) -> Option<(Vec<Cast<'a>>, Vec<Moved>)> {
+    let (diagram, offset) = read_sequence(code, lang)?;
+    let mut players: HashMap<usize, Player> = HashMap::new();
+    let mut who = Vec::new();
+    for (index, participant) in diagram.participants.iter().enumerate() {
+        let found = specs.named(&[&participant.code, &participant.label]);
+        if let [spec] = found.as_slice() {
+            players.insert(index, Player::new(spec, &participant.label));
+            who.push(Cast {
+                participant: index,
+                name: participant.label.clone(),
+                spec,
+            });
+        }
+    }
+    if who.is_empty() {
+        return None;
+    }
+    let mut play = Play {
+        players,
+        frames: Vec::new(),
+        out: Vec::new(),
+        offset,
+        moves: Some(Vec::new()),
+    };
+    for item in &diagram.items {
+        play.item(item);
+    }
+    Some((who, play.moves.unwrap_or_default()))
 }
 
 /// The sequence diagram `code` holds, and how many lines come before what
@@ -183,6 +249,8 @@ struct Play<'a> {
     frames: Vec<Frame>,
     out: Vec<Finding>,
     offset: usize,
+    /// What each message and group did, where that is asked for.
+    moves: Option<Vec<Moved>>,
 }
 
 impl Play<'_> {
@@ -208,6 +276,38 @@ impl Play<'_> {
     }
 
     fn item(&mut self, item: &Item) {
+        let before = self.moves.is_some().then(|| self.snapshot());
+        self.play_item(item);
+        // A group sends players back or on without a message.
+        if let Some(before) = before {
+            let line = match item {
+                Item::GroupElse { line, .. } | Item::GroupEnd { line, .. } => *line + self.offset,
+                Item::Ref { text, .. } => text.line + self.offset,
+                _ => return,
+            };
+            let mut moved: Vec<Moved> = self
+                .players
+                .iter()
+                .filter(|(p, player)| before.get(p).is_some_and(|b| *b != player.can_be))
+                .map(|(&participant, player)| Moved {
+                    participant,
+                    line,
+                    event: None,
+                    creates: false,
+                    before: before.get(&participant).cloned().flatten(),
+                    after: player.can_be.clone(),
+                    fired: Vec::new(),
+                    finding: None,
+                })
+                .collect();
+            moved.sort_by_key(|m| m.participant);
+            if let Some(moves) = &mut self.moves {
+                moves.extend(moved);
+            }
+        }
+    }
+
+    fn play_item(&mut self, item: &Item) {
         match item {
             Item::Message(m) => self.message(m),
             Item::GroupStart { kind, .. } => {
@@ -289,16 +389,35 @@ impl Play<'_> {
         }
         let ordered = self.ordered();
         let line = m.line + self.offset;
-        if let Some(player) = self.players.get_mut(&to)
-            && let Some(message) = receive(player, m, ordered)
-        {
-            self.out.push(Finding::new(
-                "scenario-mismatch",
-                line,
-                Severity::Warning,
-                message,
-            ));
+        let Some(player) = self.players.get_mut(&to) else {
+            return;
+        };
+        let before = player.can_be.clone();
+        let finding = receive(player, m, ordered)
+            .map(|message| Finding::new("scenario-mismatch", line, Severity::Warning, message));
+        if let Some(moves) = &mut self.moves {
+            let event = m
+                .text
+                .as_ref()
+                .map(|text| event_of(&text.value).to_owned())
+                .filter(|event| !key(event).is_empty());
+            if m.creates || event.is_some() {
+                moves.push(Moved {
+                    participant: to,
+                    line,
+                    fired: event
+                        .as_ref()
+                        .and_then(|event| player.events.get(&key(event)).cloned())
+                        .unwrap_or_default(),
+                    event,
+                    creates: m.creates,
+                    before,
+                    after: player.can_be.clone(),
+                    finding: finding.clone(),
+                });
+            }
         }
+        self.out.extend(finding);
     }
 }
 
@@ -391,7 +510,7 @@ fn takes(m: &Machine, s: usize, fired: &[usize]) -> bool {
 
 /// Where the machine is once started: the top start entered, or the state
 /// it begins in where there is none ([`Machine::begins_in`]).
-fn started(m: &Machine) -> Vec<bool> {
+pub(crate) fn started(m: &Machine) -> Vec<bool> {
     let mut at = vec![false; m.states.len()];
     let mut seen = vec![false; m.states.len()];
     let mut starts = (0..m.states.len())
@@ -412,7 +531,7 @@ fn started(m: &Machine) -> Vec<bool> {
 /// Marks where the machine can rest after entering `state`: a state
 /// itself, the starts of a composite state's regions, every branch of a
 /// choice or fork, and on through transitions without an event.
-fn enter(m: &Machine, state: usize, at: &mut [bool], seen: &mut [bool]) {
+pub(crate) fn enter(m: &Machine, state: usize, at: &mut [bool], seen: &mut [bool]) {
     if std::mem::replace(&mut seen[state], true) {
         return;
     }

@@ -16,6 +16,10 @@ pub enum Shows {
     Window,
     /// The diagram's pane alone, as its own window shows it.
     Diagram,
+    /// The diagram panes of several tabs at once, each in its place
+    /// ([`Screen::panes`]): a scenario beside the machines of its
+    /// participants.
+    Panes,
 }
 
 /// The editor drawn headless at any scale; iced_test's simulator draws
@@ -25,6 +29,8 @@ pub struct Screen {
     pub scale: f32,
     pub size: Size,
     pub shows: Shows,
+    /// The tabs [`Shows::Panes`] draws, by key, and where.
+    pub panes: Vec<(u64, iced::Rectangle)>,
     /// Where the pointer is, for a redraw to tell the layers; nowhere
     /// without one.
     pub pointer: Option<iced::Point>,
@@ -82,6 +88,7 @@ impl Screen {
             scale,
             size: Self::SIZE,
             shows: Shows::Window,
+            panes: Vec::new(),
             pointer: None,
             #[cfg(test)]
             warm: false,
@@ -141,6 +148,7 @@ impl Screen {
         let view = match self.shows {
             Shows::Window => app.main_view(),
             Shows::Diagram => app.diagram_view(),
+            Shows::Panes => app.panes_view(&self.panes),
         };
         let mut ui = iced_runtime::UserInterface::build(
             view,

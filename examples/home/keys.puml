@@ -1,0 +1,14 @@
+@startuml
+' Wrong on purpose: the door is locked when the guest comes back for the
+' keys, and its machine has no way to open it there. `omaspec play keys.puml
+' --lockstep -o keys.gif` shows where.
+title Back for the keys
+actor Guest
+participant Door
+participant Alarm
+Guest -> Door : close
+Guest -> Door : lock
+Guest -> Alarm : arm
+== the keys are still inside ==
+Guest -> Door : open
+@enduml

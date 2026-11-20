@@ -936,6 +936,48 @@ impl Paper {
         Ok(())
     }
 
+    /// Plays `object`'s way through the state machine on screen, followed
+    /// already (a scenario's participant beside it, `name` the scenario).
+    /// Says why not, if it cannot.
+    pub fn start_followed(
+        &mut self,
+        machine: omaspec_model::Machine,
+        followed: omaspec_model::Followed,
+        name: &str,
+        object: &str,
+    ) -> Result<(), String> {
+        let diagram = self.diagram.as_ref().ok_or("no diagram yet")?;
+        tabled(diagram)?;
+        let mut play = Play::followed(
+            &diagram.drawn.map,
+            machine,
+            followed,
+            name,
+            object,
+            true,
+            crate::clock::now(),
+        )?;
+        play.shape(&diagram.drawn.tree);
+        self.play = Some(play);
+        self.leaving = None;
+        self.set_breath(None);
+        Ok(())
+    }
+
+    /// The scenario that plays runs the light of the messages on `lines`
+    /// in the color of what deviates.
+    pub fn mark_wrong(&mut self, lines: Vec<usize>) {
+        if let Some(play) = &mut self.play {
+            play.mark_wrong(lines);
+        }
+    }
+
+    /// When the light of the scenario's message played last reaches its
+    /// head.
+    pub fn play_arrives(&self) -> Option<Instant> {
+        self.play.as_ref().and_then(Play::arrives)
+    }
+
     /// The state machine on screen, as the diagram `file`; `None` if the
     /// diagram is no state machine.
     pub fn spec(&self, file: &str) -> Option<Spec> {

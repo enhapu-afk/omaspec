@@ -55,6 +55,8 @@ pub fn height(offer: &Offer, pane: f32) -> f32 {
             rows_height(machine.rows + usize::from(machine.layout.stacked))
         }
         Offer::Scenario { .. } => ROW,
+        // Beside a scenario, what went wrong may take two lines.
+        Offer::Trace { beside: true, .. } => ROW + 6.0 + 2.0 * NOTE,
         Offer::Trace { .. } => ROW + 6.0 + NOTE,
     };
     said + 2.0 * (PAD_Y + AROUND_Y)
@@ -150,6 +152,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             said,
             at,
             finding,
+            beside,
         } => {
             let third = (inside / 3.0 / (13.0 * CHAR)) as usize;
             let (head, color) = if at.is_empty() {
@@ -163,15 +166,22 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                 None => format!("{name} · {played} / {of}"),
             };
             let place = cut(&place, third);
-            let used = width_of(head.chars().count() + place.chars().count(), 13.0)
-                + tool_width("‹ back")
-                + 28.0
-                + width_of(6, 13.0)
-                + tool_width("⟲ again")
-                + tool_width("✕")
-                + 6.0 * GAP;
+            // Beside a scenario, which steps it: where it is, nothing to press.
+            let used = if *beside {
+                width_of(head.chars().count(), 13.0) + 2.0 * GAP
+            } else {
+                width_of(head.chars().count() + place.chars().count(), 13.0)
+                    + tool_width("‹ back")
+                    + 28.0
+                    + width_of(6, 13.0)
+                    + tool_width("⟲ again")
+                    + tool_width("✕")
+                    + 6.0 * GAP
+            };
             items.push(words(head, color).into());
-            items.push(words(place, muted).into());
+            if !*beside {
+                items.push(words(place, muted).into());
+            }
             if !said.is_empty() {
                 let said = match time {
                     Some(time) => format!("{time}  {said}"),
@@ -182,14 +192,16 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                     words(cut(&said, room), ui::color(p.bright_foreground)).into(),
                 ]);
             }
-            tools.push(tool("‹ back", (*played > 0).then_some(Ask::Back), p, font));
-            tools.push(chip_next((*played < *of).then_some(Ask::Next), p, font));
-            tools.push(tool(
-                "⟲ again",
-                (*played > 0).then_some(Ask::Restart),
-                p,
-                font,
-            ));
+            if !*beside {
+                tools.push(tool("‹ back", (*played > 0).then_some(Ask::Back), p, font));
+                tools.push(chip_next((*played < *of).then_some(Ask::Next), p, font));
+                tools.push(tool(
+                    "⟲ again",
+                    (*played > 0).then_some(Ask::Restart),
+                    p,
+                    font,
+                ));
+            }
             note = Some(match finding {
                 Some((severity, message)) => (Some(*severity), message.clone()),
                 None if *played > 0 => (None, "as the machine allows".to_owned()),
@@ -202,7 +214,9 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
         .on_press(Message::StopPlay)
         .padding([3, 8])
         .style(move |_: &Theme, status| quiet(status, accent_rgb));
-    tools.push(close.into());
+    if !matches!(offer, Offer::Trace { beside: true, .. }) {
+        tools.push(close.into());
+    }
     let fill = ui::color(p.dark_background);
     let wrong = note
         .as_ref()
@@ -254,8 +268,15 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                 Some(_) | None => muted,
             };
             let room = (inside / (13.0 * CHAR)) as usize;
-            let note = container(words(cut(&message, room), color))
-                .height(NOTE)
+            // Beside a scenario the bar has nothing to press, and room for
+            // the whole of what went wrong.
+            let lines = if matches!(offer, Offer::Trace { beside: true, .. }) {
+                2
+            } else {
+                1
+            };
+            let note = container(words(wrapped(&message, room, lines), color))
+                .height(NOTE * lines as f32)
                 .clip(true);
             column![line, note].spacing(6).into()
         }

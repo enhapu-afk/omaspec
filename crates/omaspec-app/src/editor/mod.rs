@@ -45,6 +45,7 @@ mod hand;
 mod help;
 mod keys;
 mod links;
+mod lockstep;
 mod menu;
 pub mod moving;
 mod panes;

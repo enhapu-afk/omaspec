@@ -339,6 +339,34 @@ pub(super) fn cut(text: &str, most: usize) -> String {
     format!("{}…", kept.trim_end())
 }
 
+/// `text` in at most `lines` lines of `most` letters, broken between
+/// words; the last cut where more is left.
+pub(super) fn wrapped(text: &str, most: usize, lines: usize) -> String {
+    let most = most.max(SHORTEST);
+    let mut out: Vec<String> = Vec::new();
+    let mut rest = text.trim();
+    while !rest.is_empty() && out.len() + 1 < lines {
+        if rest.chars().count() <= most {
+            break;
+        }
+        // The last space within the line, else the line cut where it is full.
+        let end = rest
+            .char_indices()
+            .take(most + 1)
+            .filter(|(_, c)| *c == ' ')
+            .map(|(i, _)| i)
+            .last()
+            .filter(|&i| i > 0)
+            .unwrap_or_else(|| rest.char_indices().nth(most).map_or(rest.len(), |(i, _)| i));
+        out.push(rest[..end].trim_end().to_owned());
+        rest = rest[end..].trim_start();
+    }
+    if !rest.is_empty() {
+        out.push(cut(rest, most));
+    }
+    out.join("\n")
+}
+
 /// The options as their chips show them, each a label and perhaps where it
 /// leads; whether the tools beside them show only their signs; how many
 /// stand in a row; and how much of them is shown.
@@ -713,5 +741,19 @@ mod tests {
         // Never shorter than the shortest.
         assert_eq!(cut("restarts and reroute", 2), "resta…");
         assert_eq!(cut("Degraded, Send", 40), "Degraded, Send");
+    }
+
+    #[test]
+    fn a_long_note_breaks_between_words_into_its_lines() {
+        let note = "Door does not take open here: by now it is in Locked";
+        assert_eq!(
+            wrapped(note, 30, 2),
+            "Door does not take open here:\nby now it is in Locked"
+        );
+        assert_eq!(wrapped(note, 30, 1), cut(note, 30));
+        assert_eq!(wrapped("short", 30, 2), "short");
+        let third = wrapped(&format!("{note} {note}"), 30, 2);
+        assert_eq!(third.lines().count(), 2);
+        assert!(third.ends_with('…'));
     }
 }

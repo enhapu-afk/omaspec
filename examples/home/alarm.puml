@@ -1,0 +1,8 @@
+@startuml
+title Alarm
+[*] --> Off
+Off --> Armed : arm
+Armed --> Off : disarm
+Armed --> Ringing : breach
+Ringing --> Off : disarm
+@enduml

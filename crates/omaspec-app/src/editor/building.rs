@@ -475,6 +475,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: true,
+            lockstep: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

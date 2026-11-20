@@ -27,6 +27,14 @@ impl Paper {
         self.requested
     }
 
+    /// The source lines of the scenario's messages on screen, in the
+    /// order its play takes them; none for another diagram.
+    pub fn message_lines(&self) -> Vec<usize> {
+        self.diagram.as_ref().map_or_else(Vec::new, |d| {
+            d.drawn.map.messages.iter().map(|m| m.line).collect()
+        })
+    }
+
     /// What the play offers now, if one runs.
     pub fn offer(&self) -> Option<super::Offer> {
         self.play.as_ref().map(super::Play::offer)

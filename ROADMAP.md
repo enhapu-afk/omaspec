@@ -682,12 +682,9 @@ above). Each exports as GIF, WebP and an HTML page, as a play does, and
 gets a gallery example. In this order: the first makes the README's
 picture, the second is the highlight.
 
-- [ ] Lockstep: a sequence played beside the state machines of its
-      participants, each message switching the receiver's machine on
-      the same beat, the transition it fires lit, a message no machine
-      takes flashing red; from the trace against the project's machines
-      (`omaspec trace`) and the arrival's panes (docs/adr/0030). What
-      no other tool can show: that a scenario and the behavior agree.
+- [ ] Lockstep: built as GIF, WebP and PNG (in docs/DONE.md). Left:
+      the page in vectors, and the lockstep in the window (F5 on a
+      scenario with the machines of its participants open beside it).
 - [ ] A time-lapse of a diagram's history: every commit `omaspec log`
       lists gliding into the next (the glide by parts, docs/adr/0029),
       what is new growing in, what goes fading, the commit's message as

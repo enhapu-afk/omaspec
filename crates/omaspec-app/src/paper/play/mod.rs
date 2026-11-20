@@ -52,6 +52,8 @@ const LIGHT_FADE: Duration = Duration::from_millis(420);
 const RIPPLE: Duration = Duration::from_millis(620);
 /// Steps a machine remembers for going back.
 const MAX_BACK: usize = 500;
+/// How long the states flash when the machine cannot follow: two pulses.
+const FLASH: Duration = Duration::from_millis(1100);
 
 /// A specification being played.
 pub enum Play {
@@ -107,6 +109,7 @@ impl Play {
             jump: None,
             onward: true,
             leave: None,
+            wrong: Vec::new(),
         }))
     }
 
@@ -129,18 +132,54 @@ impl Play {
         if followed.steps.is_empty() {
             return Err(format!("{name} has no line of {object}"));
         }
-        let placed = placed(&spec.machine, map)?;
+        Play::followed(map, spec.machine, followed, name, object, false, now)
+    }
+
+    /// A play of `object`'s way through `machine`, drawn as `map`, line by
+    /// line as a trace is played: one followed already, as a scenario's
+    /// participant is beside it ([`omaspec_model::lockstep`]); `name` is
+    /// what it was followed from. `beside`: a scenario's participant, which
+    /// the scenario's play steps on.
+    #[allow(clippy::too_many_arguments)]
+    pub fn followed(
+        map: &Map,
+        machine: Machine,
+        followed: omaspec_model::Followed,
+        name: &str,
+        object: &str,
+        beside: bool,
+        now: Instant,
+    ) -> Result<Play, String> {
+        let placed = placed(&machine, map)?;
         let (start, begins) = (followed.start.clone(), followed.begins.clone());
         let driver = Driver::Trace(Box::new(TraceRun {
             name: name.to_owned(),
             object: object.to_owned(),
             followed,
             played: 0,
+            beside,
         }));
-        let mut play = MachinePlay::new(spec.machine, placed, driver, now);
+        let mut play = MachinePlay::new(machine, placed, driver, now);
         play.schedule(&start, now);
         play.aim(&begins, now);
         Ok(Play::Machine(Box::new(play)))
+    }
+
+    /// Runs the light of the messages on `lines` in the color of what
+    /// deviates: their receivers' machines cannot take them.
+    pub fn mark_wrong(&mut self, lines: Vec<usize>) {
+        if let Play::Scenario(play) = self {
+            play.wrong = lines;
+        }
+    }
+
+    /// When the light of a scenario's message played last reaches its
+    /// head; none for a machine, or before the first.
+    pub fn arrives(&self) -> Option<Instant> {
+        match self {
+            Play::Scenario(play) => play.arrives(),
+            Play::Machine(_) => None,
+        }
     }
 
     pub fn ask(&mut self, ask: Ask, now: Instant) {
@@ -271,6 +310,9 @@ pub struct Look {
     /// The veil's color: the picture's own paper.
     pub veil: Color,
     pub light: Color,
+    /// What deviates: a message its receiver's machine cannot take, a
+    /// state that flashes as it cannot follow.
+    pub wrong: Color,
 }
 
 impl Look {
@@ -280,6 +322,7 @@ impl Look {
             accent: with_alpha(self.accent, share),
             veil: with_alpha(self.veil, share),
             light: with_alpha(self.light, share),
+            wrong: with_alpha(self.wrong, share),
         }
     }
 }
@@ -376,5 +419,7 @@ pub enum Offer {
         at: String,
         /// What deviates on that line, or why the object is not followed.
         finding: Option<(Severity, String)>,
+        /// Played beside a scenario, which steps it: nothing to press.
+        beside: bool,
     },
 }

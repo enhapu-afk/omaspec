@@ -475,6 +475,13 @@ enum Command {
         /// draws itself to its head. Drawn without a GPU.
         #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive"])]
         build: bool,
+        /// On a sequence diagram: it plays beside the state machines of
+        /// its participants, found in its project. As a message's light
+        /// reaches its receiver, the receiver's machine takes the
+        /// transition it fires; a message the machine cannot take runs
+        /// red, and its states flash.
+        #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build"])]
+        lockstep: bool,
         /// The whole diagram in every frame. Without it, a play or a fold
         /// of a diagram too large to read whole follows each step or each
         /// container, near enough to read, and ends on the whole.
@@ -882,6 +889,7 @@ fn main() -> ExitCode {
             fold,
             dive,
             build,
+            lockstep,
             whole,
             theme,
             lang,
@@ -895,6 +903,7 @@ fn main() -> ExitCode {
             folds: fold,
             dives: dive,
             builds: build,
+            lockstep,
             whole,
             theme,
             text: None,

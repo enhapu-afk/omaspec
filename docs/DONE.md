@@ -2897,6 +2897,23 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Lockstep (2026-11-20, the second of the animations that show what a diagram
+      means): `omaspec play SCENARIO --lockstep -o lockstep.gif` plays a sequence
+      diagram beside the state machines of its participants in its project, each in a
+      pane of its own (`editor::lockstep`, the screen's `Shows::Panes`). As a message's
+      light reaches its receiver, the receiver's machine takes the transition the
+      message fires; a message the machine cannot take runs red in the scenario, the
+      machine's states flash twice in red, and its bar says why in the check's words.
+      Each participant's way is the scenario's own check played out
+      (`omaspec_model::lockstep`, recorded by `across::moves`): it may start anywhere,
+      lit where the first message can be taken, a group's branch starts where the
+      group began, so the play is red exactly where the check reports. A machine
+      plays its way as a recorded trace plays (`Play::followed`), with a quiet bar
+      (`beside`: where it is, the event, what went wrong over two lines, nothing to
+      press); a trace's deviation now flashes too. The machines share one scale in
+      their column. GIF, WebP and animated PNG; the example is a project,
+      `examples/home` (a door, an alarm, and a guest back for the keys), as a lockstep
+      needs the machines beside the scenario, and it is the README's picture
 - [x] What the review of the build found (2026-11-20). A sequence with a picture in a
       note built only that picture: the frames now take the whole picture's root. A
       `scale` drew the build at the wrong size, and a page grew its boxes about the

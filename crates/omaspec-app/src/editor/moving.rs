@@ -55,6 +55,9 @@ pub struct Moving {
     /// Instead of a play: the source beside the diagram, which builds
     /// itself up line by line ([`super::building`]).
     pub builds: bool,
+    /// Instead of a play of the diagram alone: a scenario played beside
+    /// the state machines of its participants ([`super::lockstep`]).
+    pub lockstep: bool,
     /// The whole diagram in every frame, rather than a camera that follows
     /// the play where the whole is too large to read (REQ-071).
     pub whole: bool,
@@ -125,13 +128,13 @@ fn offered_all<S: AsRef<str>>(names: &[String], offered: &[S]) -> Result<()> {
 
 /// The frames the first picture may take to fade in, before the frames
 /// the picture keeps.
-const FADE_IN_FRAMES: usize = 60;
+pub(super) const FADE_IN_FRAMES: usize = 60;
 /// How long the play holds after each step, and at the end.
-const HOLD: Duration = Duration::from_millis(500);
+pub(super) const HOLD: Duration = Duration::from_millis(500);
 /// How long a zoom into a tile may take, or out of it.
 const DIVE: Duration = Duration::from_millis(4_000);
 /// How long a step may take to settle before the next.
-const SETTLE: Duration = Duration::from_millis(2_500);
+pub(super) const SETTLE: Duration = Duration::from_millis(2_500);
 /// The pane's height is between these shares of its width.
 const LEAST_HEIGHT: f32 = 0.3;
 const MOST_HEIGHT: f32 = 1.4;
@@ -139,7 +142,7 @@ const MOST_HEIGHT: f32 = 1.4;
 const MARGIN: f32 = 40.0;
 /// How wide a picture is at most when no width is asked for.
 const WIDEST: f32 = 1200.0;
-const BAR: f32 = 90.0;
+pub(super) const BAR: f32 = 90.0;
 
 /// Writes the play, or the fold; says what it wrote.
 pub fn play(args: &Moving) -> Result<String> {
@@ -167,6 +170,13 @@ pub fn play(args: &Moving) -> Result<String> {
             "--width takes 200 to 4000"
         );
         return super::building::build(args, film, fps);
+    }
+    if args.lockstep {
+        anyhow::ensure!(
+            args.width.is_none_or(|width| (400..=4000).contains(&width)),
+            "--width takes 400 to 4000 for a lockstep"
+        );
+        return super::lockstep::lockstep(args, film, fps);
     }
     if film == Film::Page {
         return fold_page(args);
@@ -797,7 +807,7 @@ fn linked(app: &mut App, screen: &Screen, key: u64) -> Result<()> {
 
 /// Draws `text` as the pane shows it, in the theme's colors and with
 /// the containers folded that the pane has folded, here and now.
-fn shown(
+pub(super) fn shown(
     app: &mut App,
     screen: &Screen,
     key: u64,
@@ -866,6 +876,7 @@ mod tests {
                 folds: Vec::new(),
                 dives: Vec::new(),
                 builds: false,
+                lockstep: false,
                 whole: false,
                 theme: Some("built-in".into()),
                 file_colors: false,
@@ -918,6 +929,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: false,
+            lockstep: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -971,6 +983,7 @@ mod tests {
             folds: vec![fold.to_owned()],
             dives: Vec::new(),
             builds: false,
+                lockstep: false,
             whole: true,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1009,6 +1022,7 @@ mod tests {
             folds: folds.iter().map(|f| (*f).to_owned()).collect(),
             dives: Vec::new(),
             builds: false,
+            lockstep: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1104,6 +1118,7 @@ mod tests {
             folds: Vec::new(),
             dives: Vec::new(),
             builds: false,
+            lockstep: false,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
