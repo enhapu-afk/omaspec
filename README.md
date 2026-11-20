@@ -66,7 +66,8 @@ event its receiver can take, in the order the scenario sends them.
 `omaspec play keys.puml --lockstep -o lockstep.gif` shows it happen: the scenario plays
 beside the state machines of its participants, and as each message reaches its receiver,
 the receiver's machine takes the transition it fires. Where a machine cannot take a
-message, the message runs red, the machine's state flashes, and its bar says why.
+message, the message runs red, the machine's state flashes, and its bar says why. As
+`.html` it is a page in vectors that plays in any browser.
 
 ![A scenario played in lockstep with the machines of a door and an alarm: the guest locks the door, arms the alarm, and tries to open the locked door, which the door's machine refuses](docs/images/lockstep.gif)
 

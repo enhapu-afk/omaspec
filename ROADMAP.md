@@ -682,9 +682,9 @@ above). Each exports as GIF, WebP and an HTML page, as a play does, and
 gets a gallery example. In this order: the first makes the README's
 picture, the second is the highlight.
 
-- [ ] Lockstep: built as GIF, WebP and PNG (in docs/DONE.md). Left:
-      the page in vectors, and the lockstep in the window (F5 on a
-      scenario with the machines of its participants open beside it).
+- [ ] Lockstep: built as GIF, WebP, PNG and a page (in docs/DONE.md).
+      Left: the lockstep in the window, F5 on a scenario with the
+      machines of its participants opening beside it.
 - [ ] A time-lapse of a diagram's history: every commit `omaspec log`
       lists gliding into the next (the glide by parts, docs/adr/0029),
       what is new growing in, what goes fading, the commit's message as

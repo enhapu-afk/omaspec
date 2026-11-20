@@ -230,7 +230,7 @@ pub(super) fn union(a: usvg::Rect, b: usvg::Rect) -> usvg::Rect {
 
 /// The fill of the picture's paper, the rectangle before its first
 /// group; white without one, as the engine fills an empty head then.
-pub(super) fn paper_of(svg: &str) -> String {
+pub(in crate::editor) fn paper_of(svg: &str) -> String {
     let rect = svg.find("<rect ");
     let group = svg.find("<g");
     rect.filter(|&rect| group.is_none_or(|group| rect < group))

@@ -2913,7 +2913,10 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       press); a trace's deviation now flashes too. The machines share one scale in
       their column. GIF, WebP and animated PNG; the example is a project,
       `examples/home` (a door, an alarm, and a guest back for the keys), as a lockstep
-      needs the machines beside the scenario, and it is the README's picture
+      needs the machines beside the scenario, and it is the README's picture. As
+      `.html` a page in vectors (`export::lockstep`, its own script and style): the
+      times of everything worked out on the panes' beat (`lockstep::page`), the
+      script only showing the moment it is at, `#t=5` holding it still
 - [x] What the review of the build found (2026-11-20). A sequence with a picture in a
       note built only that picture: the frames now take the whole picture's root. A
       `scale` drew the build at the wrong size, and a page grew its boxes about the

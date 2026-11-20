@@ -20,6 +20,8 @@ use iced::{Rectangle, Size};
 use omaspec_core::Language;
 use omaspec_model::Lockstep;
 
+mod page;
+
 use super::films::Film;
 use super::moving::{BAR, FADE_IN_FRAMES, HOLD, Moving, SETTLE, shown, theme};
 use super::screen::{Screen, Shows};
@@ -42,10 +44,6 @@ const END: Duration = Duration::from_millis(1_800);
 
 /// Writes the lockstep of `args.file`; what it played.
 pub(super) fn lockstep(args: &Moving, film: Film, fps: u32) -> Result<String> {
-    anyhow::ensure!(
-        film != Film::Page,
-        "a lockstep is written as a picture that moves: .gif, .webp or .png"
-    );
     let text = args.read()?;
     let (_, language) = args.named(&text);
     let root = crate::specs::root_of(Some(&args.file), args.root.as_deref())
@@ -59,6 +57,9 @@ pub(super) fn lockstep(args: &Moving, film: Film, fps: u32) -> Result<String> {
         );
     };
     let machines = machines(&step, &root)?;
+    if film == Film::Page {
+        return page::write(args, &text, language, &step, &machines);
+    }
     let _clock = crate::clock::Recording::start();
     let mut stage = Stage::new(args, film, fps, &text, language, &machines)?;
     let told = stage.play(args, &step)?;
@@ -69,7 +70,7 @@ pub(super) fn lockstep(args: &Moving, film: Film, fps: u32) -> Result<String> {
         Film::Gif => stage.frames.encode(args.quality)?,
         Film::Apng => super::films::apng(&stage.frames, fps)?,
         Film::Webp => super::films::webp(&stage.frames, fps)?,
-        Film::Page => unreachable!("a page is refused above"),
+        Film::Page => unreachable!("a page is written before a frame is drawn"),
     };
     crate::files::write_atomic(&args.output, &bytes)
         .with_context(|| format!("cannot write {}", args.output.display()))?;
@@ -485,6 +486,17 @@ mod tests {
         assert!(told.contains("3 messages, 1 not taken"), "{told}");
         let gif = std::fs::read(work.join("keys.gif")).unwrap();
         assert_eq!(u16::from_le_bytes([gif[6], gif[7]]), 400);
+        // As a page in vectors: each picture, and when the door flashes.
+        let told = super::super::moving::play(&moving(&keys, work.join("keys.html"))).unwrap();
+        assert!(
+            told.contains("a page") && told.contains("1 not taken"),
+            "{told}"
+        );
+        let page = std::fs::read_to_string(work.join("keys.html")).unwrap();
+        assert!(page.contains(r#""kind":"lockstep""#));
+        assert_eq!(page.matches(r#"<section class="pane machine""#).count(), 2);
+        assert!(page.contains(r#""wrong":true"#));
+        assert!(page.contains("Door does not take open here"));
 
         let alone = work.join("alone.puml");
         std::fs::write(&alone, "@startuml\nA -> B : hi\n@enduml\n").unwrap();

@@ -24,7 +24,7 @@ use super::moving::Moving;
 use super::{App, Start, syntax};
 
 mod frame;
-mod picture;
+pub(super) mod picture;
 
 use frame::{Code, Layout};
 use picture::Picture;

@@ -1,0 +1,87 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--ground);
+  color: var(--ink);
+}
+/* The scenario on the left, its participants' machines stacked beside. */
+#lockstep {
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  cursor: pointer;
+  font: 13px/18px ui-monospace, monospace;
+}
+.machines {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--pane);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pane.scenario {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.pane.machine {
+  flex-basis: 0;
+}
+.picture {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+.picture > svg {
+  width: 100%;
+  height: 100%;
+}
+/* What the play says: where a machine is, the event it took, what went
+   wrong; its edge red while that is so. */
+.bar {
+  margin: 0 12px 12px;
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 12px;
+  min-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bar .head {
+  color: var(--accent);
+}
+.bar .note {
+  color: var(--muted);
+  white-space: normal;
+}
+.bar.wrong {
+  border-color: color-mix(in srgb, var(--wrong) 80%, transparent);
+}
+.bar.wrong .note {
+  color: var(--wrong);
+}
+@media (max-width: 760px) {
+  #lockstep {
+    flex-direction: column;
+    height: auto;
+  }
+  .pane.scenario {
+    min-height: 70vh;
+  }
+  .pane.machine {
+    min-height: 40vh;
+  }
+}

@@ -739,6 +739,7 @@ omaspec play omaspec-project.toml -o map.gif --dive Orders,Checkout   # the proj
 omaspec play coffee.puml -o build.gif --build              # code becomes a picture: the source beside the diagram, which builds itself up as a caret walks down the lines; .webp or .png in full color; drawn without a GPU
 omaspec play coffee.puml -o build.html --build             # the same as a page in vectors, played by a browser; build.html#t=4 holds it still 4 seconds in
 omaspec play keys.puml -o lockstep.gif --lockstep          # a scenario beside the state machines of its participants in its project: as a message's light reaches its receiver, the receiver's machine takes the transition it fires; a message the machine cannot take runs red, its states flash, and its bar says why in the check's words
+omaspec play keys.puml -o lockstep.html --lockstep         # the same as a page in vectors, played by a browser; lockstep.html#t=5 holds it still 5 seconds in
 omaspec render flow.mmd --look auto # plain, sketch, vivid, omarchy, light or dark; auto: one SVG, dark under a dark scheme
 omaspec render .                    # every diagram of the folder, each beside its own, in the project's look
 omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1

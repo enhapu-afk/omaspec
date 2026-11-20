@@ -148,7 +148,7 @@ pub(super) const BAR: f32 = 90.0;
 pub fn play(args: &Moving) -> Result<String> {
     let film = Film::of(&args.output).with_context(|| {
         format!(
-            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold or a build as a page)",
+            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold, a build or a lockstep as a page)",
             args.output.display()
         )
     })?;
