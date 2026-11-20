@@ -1995,6 +1995,8 @@ fn examples_are_clean() {
             if command == "trace" {
                 continue;
             }
+            // A warning alone fails no lint.
+            assert!(out.status.success(), "{}: {said}", example.display());
         } else {
             let out = omaspec(&[command, "--strict", example.to_str().unwrap()]);
             assert!(

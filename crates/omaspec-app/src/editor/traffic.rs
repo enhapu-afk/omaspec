@@ -6,7 +6,7 @@
 //! no dot took blink in grey. A line the machine cannot take turns its dot
 //! red where it stands. What coverage counts, moving.
 //!
-//! The ways are those `omaspec trace` follows ([`omaspec_model::follow_trace`]),
+//! The ways are those `omaspec trace` follows ([`omaspec_model::follow_traces`]),
 //! so a red dot is a deviation the check reports. The traces flow side by
 //! side, each from its first line to its last in the same time; the
 //! frames are drawn without a GPU ([`frame`]), and as `.html` a page plays
@@ -155,7 +155,8 @@ pub(super) fn traffic(args: &Moving, film: Film, fps: u32) -> Result<String> {
     let (mut app, _) = App::themed(start, None, omarchy);
     app.follow_theme = !args.file_colors;
     let rendered = draw(&mut app, args, &text, language)?;
-    let placed = spec.machine.place(&rendered.map);
+    let mut placed = spec.machine.place(&rendered.map);
+    in_units(&mut placed, &rendered.svg);
     let flow = flow(&spec, &placed, &traces);
     anyhow::ensure!(
         flow.objects > 0,
@@ -169,8 +170,10 @@ pub(super) fn traffic(args: &Moving, film: Film, fps: u32) -> Result<String> {
         spec.names.join(", ")
     );
     let deviations = flow.dots.iter().filter(|d| d.wrong.is_some()).count();
-    let taken = flow.wires.iter().filter(|w| !w.passes.is_empty()).count();
-    let routed = flow.wires.iter().filter(|w| !w.points.is_empty()).count();
+    // As the caption counts them: a transition drawn as a line.
+    let routed = flow.wires.iter().filter(|w| w.points.len() >= 2);
+    let taken = routed.clone().filter(|w| !w.passes.is_empty()).count();
+    let routed = routed.count();
     let told = format!(
         "{} objects, {taken} of {routed} transitions taken, {}",
         flow.objects,
@@ -271,9 +274,12 @@ fn flow(spec: &Spec, placed: &Placed, traces: &[String]) -> Flow {
     for trace in traces {
         let lines = trace.lines().count().max(1) as f32;
         let when = |line: usize| START + FLOW * line as f32 / lines;
-        for (ordinal, object) in omaspec_model::trace_objects(trace, spec).iter().enumerate() {
+        // Each trace read once, however many objects it has.
+        for (_, followed) in omaspec_model::follow_traces(trace, spec) {
+            // Counted over all the traces: the dots of two traces in one
+            // state lie apart too.
+            let ordinal = objects;
             objects += 1;
-            let followed = omaspec_model::follow_trace(trace, spec, object);
             let rest = |states: &[usize]| -> Option<(f32, f32)> {
                 let spot = states
                     .iter()
@@ -289,7 +295,9 @@ fn flow(spec: &Spec, placed: &Placed, traces: &[String]) -> Flow {
             // first line.
             let mut here = rest(&followed.begins);
             if let Some(to) = here {
+                // There by the time its first line comes.
                 let start = (first - TRAVEL).max(0.0);
+                let travel = (first - start).max(0.01);
                 let route = followed
                     .start
                     .iter()
@@ -298,17 +306,23 @@ fn flow(spec: &Spec, placed: &Placed, traces: &[String]) -> Flow {
                 points.push(to);
                 for taken in &followed.start {
                     if !wires[taken.transition].points.is_empty() {
-                        wires[taken.transition].passes.push((start, TRAVEL));
+                        wires[taken.transition].passes.push((start, travel));
                     }
                 }
                 dot.legs.push(Leg {
                     start,
-                    took: if route.is_some() { TRAVEL } else { 0.01 },
+                    took: if route.is_some() { travel } else { 0.01 },
                     points,
                 });
             }
-            for step in &followed.steps {
+            for (index, step) in followed.steps.iter().enumerate() {
                 let at = when(step.line);
+                // A leg ends before the object's next line sets off the
+                // next: the dot does not leap from halfway along.
+                let gap = followed
+                    .steps
+                    .get(index + 1)
+                    .map_or(f32::MAX, |next| (when(next.line) - at) * 0.9);
                 if dot.wrong.is_none()
                     && step
                         .finding
@@ -324,9 +338,13 @@ fn flow(spec: &Spec, placed: &Placed, traces: &[String]) -> Flow {
                     .taken
                     .iter()
                     .find_map(|t| placed.routes[t.transition].clone());
-                let took = route.as_deref().map_or(0.3, |route| {
-                    (travel_millis(route) as f32 / 1000.0).min(TRAVEL)
-                });
+                let took = route
+                    .as_deref()
+                    .map_or(0.3, |route| {
+                        (travel_millis(route) as f32 / 1000.0).min(TRAVEL)
+                    })
+                    .min(gap)
+                    .max(0.01);
                 for taken in &step.taken {
                     if !wires[taken.transition].points.is_empty() {
                         wires[taken.transition].passes.push((at, took));
@@ -358,6 +376,35 @@ fn flow(spec: &Spec, placed: &Placed, traces: &[String]) -> Flow {
         end,
         objects,
         machine: spec.names.first().cloned().unwrap_or_default(),
+    }
+}
+
+/// `placed` in the units of `svg`'s `viewBox`, where the dots and the
+/// lines are drawn over it. Its map is in the picture's pixels: a `scale`
+/// makes those larger or smaller than a unit.
+fn in_units(placed: &mut Placed, svg: &str) {
+    let Some((x, y, w, h)) = frame::view_box(svg) else {
+        return;
+    };
+    let Ok(size) = export::parse(svg).map(|tree| tree.size()) else {
+        return;
+    };
+    let (kx, ky) = (size.width() / w, size.height() / h);
+    if (kx - 1.0).abs() < 1e-4 && (ky - 1.0).abs() < 1e-4 && x == 0.0 && y == 0.0 {
+        return;
+    }
+    let unit = |(px, py): (f32, f32)| (x + px / kx, y + py / ky);
+    for route in placed.routes.iter_mut().flatten() {
+        for point in route.iter_mut() {
+            *point = unit(*point);
+        }
+    }
+    for spot in placed.states.iter_mut().flatten() {
+        let (left, top) = unit((spot.rect.x, spot.rect.y));
+        spot.rect.x = left;
+        spot.rect.y = top;
+        spot.rect.w /= kx;
+        spot.rect.h /= ky;
     }
 }
 
@@ -494,7 +541,8 @@ mod tests {
             "{told}"
         );
         let gif = std::fs::read(work.join("door.gif")).unwrap();
-        assert_eq!(u16::from_le_bytes([gif[6], gif[7]]), 560);
+        // As wide as asked, though the door is narrow.
+        assert_eq!(u16::from_le_bytes([gif[6], gif[7]]), 400);
         let told = super::super::moving::play(&moving(vec![one, two], "door.html")).unwrap();
         assert!(told.contains("a page"), "{told}");
         let page = std::fs::read_to_string(work.join("door.html")).unwrap();
@@ -508,6 +556,73 @@ mod tests {
             .to_string();
         assert!(refused.contains("no object of"), "{refused}");
         let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// The door drawn natively, and found on its picture in the units of
+    /// its `viewBox`.
+    fn door(head: &str) -> (Spec, Placed, String) {
+        let text = format!(
+            "@startuml\n{head}\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n"
+        );
+        let spec = Spec::read(&text, Language::PlantUml, "door.puml").unwrap();
+        let mut renderer = Renderer::new(&omaspec_render::Config {
+            java_fallback: false,
+            ..omaspec_render::Config::default()
+        });
+        let rendered = renderer.render(&text, Language::PlantUml).unwrap();
+        let mut placed = spec.machine.place(&rendered.map);
+        in_units(&mut placed, &rendered.svg);
+        (spec, placed, rendered.svg)
+    }
+
+    /// With `scale 2` the map is in pixels twice a unit: the dots and the
+    /// lines still lie on the machine.
+    #[test]
+    fn a_scaled_machine_has_its_traffic_on_it() {
+        let (_, plain, _) = door("");
+        let (_, placed, svg) = door("scale 2");
+        let (_, _, w, h) = frame::view_box(&svg).unwrap();
+        let routes: Vec<&(f32, f32)> = placed.routes.iter().flatten().flatten().collect();
+        assert!(!routes.is_empty());
+        for &&(x, y) in &routes {
+            assert!(x <= w + 0.5 && y <= h + 0.5, "({x}, {y}) off {w}×{h}");
+        }
+        for (scaled, plain) in placed.states.iter().zip(&plain.states) {
+            if let (Some(scaled), Some(plain)) = (scaled, plain) {
+                assert!((scaled.rect.w - plain.rect.w).abs() < 0.5, "{scaled:?}");
+                assert!(scaled.rect.x + scaled.rect.w <= w + 0.5);
+            }
+        }
+    }
+
+    /// Two traces' objects in one state rest apart, and an object whose
+    /// lines come close after one another ends each leg before the next.
+    #[test]
+    fn dots_rest_apart_and_end_their_legs() {
+        let (spec, placed, _) = door("");
+        let line = |object: &str, event: &str| {
+            format!("{{\"object\":\"{object}\",\"machine\":\"door\",\"event\":\"{event}\"}}\n")
+        };
+        let flow = super::flow(&spec, &placed, &[line("a", "open"), line("b", "open")]);
+        let rests: Vec<_> = flow.dots.iter().map(|d| d.at(100.0).unwrap()).collect();
+        assert_eq!(rests.len(), 2);
+        assert_ne!(rests[0], rests[1]);
+
+        let busy: String = (0..60)
+            .map(|n| line("a", if n % 2 == 0 { "open" } else { "close" }))
+            .collect();
+        let flow = super::flow(&spec, &placed, &[busy]);
+        let legs = &flow.dots[0].legs;
+        assert!(legs.len() > 50);
+        for pair in legs.windows(2) {
+            assert!(
+                pair[0].start + pair[0].took <= pair[1].start + 1e-4,
+                "{} + {} > {}",
+                pair[0].start,
+                pair[0].took,
+                pair[1].start
+            );
+        }
     }
 
     #[test]

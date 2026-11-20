@@ -77,22 +77,30 @@ pub(super) struct Stage {
 }
 
 impl Stage {
-    /// `svg` drawn `width` pixels wide, else as large as fits a frame
-    /// of [`ROOM`], in `colors`.
+    /// `svg` on a frame `width` pixels wide, else as large as fits a
+    /// frame of [`ROOM`], in `colors`.
     pub(super) fn of(svg: &str, width: Option<f32>, colors: &Colors) -> Stage {
         let (x, y, w, h) = view_of(svg);
         let size = omaspec_render::export::parse(svg).map_or(w, |tree| tree.size().width());
-        let width = width.unwrap_or_else(|| {
-            let unit = (ROOM.0 / w.max(1.0))
-                .min((ROOM.1 - CAPTION) / h.max(1.0))
-                .clamp(1.0, 3.0);
-            (w * unit).round()
-        });
-        let unit = width / w.max(1.0);
+        // A width asked for is the frame's, the machine as large as it
+        // fits it (three pixels a unit at most); else the machine as large
+        // as fits a frame of `ROOM`, the frame `NARROWEST` at least.
+        let (unit, frame) = match width {
+            Some(width) => {
+                let unit = (width / w.max(1.0)).min(3.0);
+                (unit, width)
+            }
+            None => {
+                let unit = (ROOM.0 / w.max(1.0))
+                    .min((ROOM.1 - CAPTION) / h.max(1.0))
+                    .clamp(0.25, 3.0);
+                (unit, (w * unit).max(NARROWEST))
+            }
+        };
         let band = CAPTION / unit;
         // A narrow machine on a wider frame, in its middle, so the caption
         // has room.
-        let wide = w.max(NARROWEST / unit);
+        let wide = w.max(frame / unit);
         let svg = super::super::timelapse::widened(
             svg,
             (wide, h + band),
@@ -105,7 +113,7 @@ impl Stage {
             wide,
             unit,
             // A unit of the picture `unit` pixels, however wide its frame.
-            scale: width / size.max(1.0),
+            scale: unit * w / size.max(1.0),
             colors: colors.clone(),
         }
     }
@@ -266,25 +274,24 @@ fn points(points: &[(f32, f32)]) -> String {
 
 /// The picture's `viewBox`: where it starts and how large it is.
 fn view_of(svg: &str) -> (f32, f32, f32, f32) {
-    let view: Vec<f32> = svg
-        .find("<svg")
-        .and_then(|start| {
-            let tag = &svg[start..start + svg[start..].find('>')?];
-            tag.split(" viewBox=\"")
-                .nth(1)?
-                .split('"')
-                .next()
-                .map(str::to_owned)
-        })
-        .map(|view| {
-            view.split(|c: char| c == ',' || c.is_whitespace())
-                .filter_map(|n| n.parse().ok())
-                .collect()
-        })
-        .unwrap_or_default();
+    view_box(svg).unwrap_or((0.0, 0.0, 400.0, 300.0))
+}
+
+/// The picture's `viewBox`, if it has one.
+pub(super) fn view_box(svg: &str) -> Option<(f32, f32, f32, f32)> {
+    let start = svg.find("<svg")?;
+    let tag = &svg[start..start + svg[start..].find('>')?];
+    let view: Vec<f32> = tag
+        .split(" viewBox=\"")
+        .nth(1)?
+        .split('"')
+        .next()?
+        .split(|c: char| c == ',' || c.is_whitespace())
+        .filter_map(|n| n.parse().ok())
+        .collect();
     match view[..] {
-        [x, y, w, h] if w > 0.0 && h > 0.0 => (x, y, w, h),
-        _ => (0.0, 0.0, 400.0, 300.0),
+        [x, y, w, h] if w > 0.0 && h > 0.0 => Some((x, y, w, h)),
+        _ => None,
     }
 }
 

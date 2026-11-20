@@ -71,6 +71,26 @@ impl Paper {
         matches!(self.arrival, super::arrival::Arrival::Still) && self.glide.is_none()
     }
 
+    /// Puts the view at `zoom` and `center` at once, as a recording holds
+    /// it: the picture coming in, gliding or fading, goes there too, and
+    /// the one still on screen before it stays where it is. Setting
+    /// [`Self::view`] alone after a picture came would end its glide where
+    /// the view was, and jump.
+    pub fn hold_view(&mut self, zoom: f32, center: iced::Point) {
+        let view = super::View {
+            zoom,
+            center,
+            fit: false,
+        };
+        self.view = view;
+        if let Some(fade) = self.arrival.fade_mut() {
+            fade.new_view = view;
+        }
+        if let Some(previous) = self.arrival.previous_mut() {
+            previous.then = view;
+        }
+    }
+
     /// How many pictures of the diagram before fade out, if a fade runs.
     pub fn fading(&self) -> Option<usize> {
         self.arrival.fade().map(|fade| fade.old.len())

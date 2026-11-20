@@ -356,6 +356,13 @@ pub fn follow_trace(trace: &str, spec: &Spec, object: &str) -> Followed {
     trace::follow(trace, spec, object)
 }
 
+/// Every object of a recorded trace that goes by `spec`'s machine, each
+/// followed through it as [`follow_trace`] follows one, the trace read
+/// once.
+pub fn follow_traces(trace: &str, spec: &Spec) -> Vec<(String, Followed)> {
+    trace::follow_all(trace, spec)
+}
+
 /// Of the checks' findings, those the lint's (`lint`) do not say already.
 /// Why a machine is not read (where it is not, `read`) they say where the
 /// lint does not: not what it says already, nor on a line it names at a

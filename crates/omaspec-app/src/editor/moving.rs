@@ -302,13 +302,29 @@ fn fold_page(args: &Moving) -> Result<String> {
         });
         maps.push(rendered.map);
     }
+    // The page draws in each picture's own units, which a `scale` sets
+    // apart from the pixels the map is in.
+    let units: Vec<super::timelapse::Units> = pictures
+        .iter()
+        .map(|p| super::timelapse::Units::of(&p.svg, p.size))
+        .collect();
     let glides = maps
         .windows(2)
-        .zip(pictures.windows(2))
-        .map(|(maps, pictures)| {
-            paper::headless::fold_glide(&maps[0], &maps[1], pictures[0].size, pictures[1].size)
+        .enumerate()
+        .map(|(at, maps)| {
+            let mut glide = paper::headless::fold_glide(
+                &maps[0],
+                &maps[1],
+                pictures[at].size,
+                pictures[at + 1].size,
+            );
+            super::timelapse::remap(&mut glide, units[at], units[at + 1]);
+            glide
         })
         .collect();
+    for (picture, units) in pictures.iter_mut().zip(&units) {
+        picture.size = units.size(picture.size);
+    }
     let (paper, accent) = crate::look::palette_stage(&app.palette);
     let page = folding::page(
         &folding::Folding {

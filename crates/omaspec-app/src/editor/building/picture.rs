@@ -245,7 +245,7 @@ pub(in crate::editor) fn paper_of(svg: &str) -> String {
 
 /// How the units of `svg`'s `viewBox` land in its `size`, as SVG fits
 /// them by default: as large as they fit, in the middle.
-pub(super) fn root_of(svg: &str, (width, height): (f32, f32)) -> usvg::Transform {
+pub(in crate::editor) fn root_of(svg: &str, (width, height): (f32, f32)) -> usvg::Transform {
     let view = svg.find("<svg").and_then(|start| {
         let tag = &svg[start..start + svg[start..].find('>')?];
         let view = tag.split(" viewBox=\"").nth(1)?.split('"').next()?;

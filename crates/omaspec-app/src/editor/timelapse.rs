@@ -38,21 +38,20 @@ struct Version {
     /// `a7cddc5 · 2026-11-20 · fix: what the review found`.
     caption: String,
     text: String,
+    /// The language it is in: a file renamed from `.mmd` to `.puml` was
+    /// Mermaid before.
+    language: Language,
 }
 
 /// Writes the time-lapse of `args.file`; what it played.
 pub(super) fn timelapse(args: &Moving, film: Film, fps: u32) -> Result<String> {
     let versions = versions(args)?;
-    let language = args.forced.unwrap_or_else(|| {
-        let (_, language) = args.named(&versions[versions.len() - 1].text);
-        language
-    });
     if film == Film::Page {
-        return page(args, &versions, language);
+        return page(args, versions);
     }
     let _clock = crate::clock::Recording::start();
-    let mut stage = Stage::new(args, film, fps, &versions, language)?;
-    stage.play(&versions, language)?;
+    let mut stage = Stage::new(args, film, fps, versions)?;
+    stage.play()?;
     let Some((w, h)) = stage.frames.size() else {
         bail!("no frame was drawn");
     };
@@ -65,14 +64,40 @@ pub(super) fn timelapse(args: &Moving, film: Film, fps: u32) -> Result<String> {
     crate::files::write_atomic(&args.output, &bytes)
         .with_context(|| format!("cannot write {}", args.output.display()))?;
     Ok(format!(
-        "{} → {} ({} frames, {}×{}, {} commits)",
+        "{} → {} ({} frames, {}×{}, {} commits{})",
         args.file.display(),
         args.output.display(),
         count,
         w,
         h,
-        versions.len()
+        stage.versions.len(),
+        passed_over(stage.passed)
     ))
+}
+
+/// What the summary says of the commits that left the diagram broken.
+fn passed_over(passed: usize) -> String {
+    match passed {
+        0 => String::new(),
+        1 => ", 1 passed over: it does not draw".to_owned(),
+        n => format!(", {n} passed over: they do not draw"),
+    }
+}
+
+/// Whether `kept` versions that draw make a history; `passed` did not draw.
+fn enough(args: &Moving, kept: usize, passed: usize) -> Result<()> {
+    anyhow::ensure!(
+        kept >= 2,
+        "{}: {kept} of its {} versions in git draw{}, and a history needs two",
+        args.file.display(),
+        kept + passed,
+        if passed > 0 {
+            " (a commit left it broken)"
+        } else {
+            ""
+        }
+    );
+    Ok(())
 }
 
 /// The file as each commit that changed it left it, oldest first; a
@@ -88,9 +113,11 @@ fn versions(args: &Moving) -> Result<Vec<Version>> {
         if versions.last().is_some_and(|last| last.text == text) {
             continue;
         }
+        let (_, language) = args.named(&text);
         versions.push(Version {
             caption: format!("{} · {} · {}", commit.short, commit.date, commit.subject),
             text,
+            language,
         });
     }
     anyhow::ensure!(
@@ -122,7 +149,10 @@ struct Stage {
     caption: Rectangle,
     file: std::path::PathBuf,
     root: Option<std::path::PathBuf>,
-    /// The scale every commit is drawn at, and how high the newest is.
+    /// The versions that draw, and how many did not.
+    versions: Vec<Version>,
+    passed: usize,
+    /// The scale every commit is drawn at, and how high the highest is.
     zoom: f32,
     top: f32,
 }
@@ -130,21 +160,15 @@ struct Stage {
 /// The picture on the pane at `zoom`, in the middle across, its top where
 /// that of a picture `top` high is when it fits.
 fn hold(app: &mut App, zoom: f32, top: f32) {
-    let width = app.doc().paper.diagram_size().width;
-    let view = &mut app.doc_mut().paper.view;
-    view.zoom = zoom;
-    view.center = iced::Point::new(width / 2.0, top / 2.0);
+    let paper = &mut app.doc_mut().paper;
+    let width = paper.diagram_size().width;
+    paper.hold_view(zoom, iced::Point::new(width / 2.0, top / 2.0));
 }
 
 impl Stage {
-    /// The pane in the size of the newest picture, the oldest on it.
-    fn new(
-        args: &Moving,
-        film: Film,
-        fps: u32,
-        versions: &[Version],
-        language: Language,
-    ) -> Result<Self> {
+    /// The pane in the size of the largest picture, the oldest on it. A
+    /// version that does not draw (a commit left it broken) is passed over.
+    fn new(args: &Moving, film: Film, fps: u32, versions: Vec<Version>) -> Result<Self> {
         let start = Start {
             files: vec![args.file.clone()],
             folder: None,
@@ -160,32 +184,47 @@ impl Stage {
         let key = app.doc().key;
         let scaled = app.doc_mut().paper.set_scale_factor(1.0);
         screen.run_task(&mut app, scaled.map(move |m| Message::Paper(key, m)));
-        let show = |app: &mut App, screen: &Screen, text: &str| {
+        let show = |app: &mut App, screen: &Screen, version: &Version| {
             shown(
                 app,
                 screen,
                 key,
-                text,
-                language,
+                &version.text,
+                version.language,
                 &args.file,
                 args.root.as_deref(),
             )
         };
-        // The newest picture says how large the pane is.
-        show(&mut app, &screen, &versions[versions.len() - 1].text)?;
-        let drawn = app.doc().paper.diagram_size();
+        // Each version drawn once while the pane has no size, so nothing
+        // is rasterized: which draw, and how large the largest is.
+        let mut kept: Vec<Version> = Vec::new();
+        let mut passed = 0;
+        let mut most = Size::new(1.0f32, 1.0f32);
+        for version in versions {
+            if kept.last().is_some_and(|last| last.text == version.text) {
+                continue;
+            }
+            if show(&mut app, &screen, &version).is_err() {
+                passed += 1;
+                continue;
+            }
+            let drawn = app.doc().paper.diagram_size();
+            most = Size::new(most.width.max(drawn.width), most.height.max(drawn.height));
+            kept.push(version);
+        }
+        enough(args, kept.len(), passed)?;
         let width = match args.width {
             Some(width) => width as f32,
-            None => (drawn.width * 1.6 + 2.0 * GAP)
+            None => (most.width * 1.6 + 2.0 * GAP)
                 .clamp(NARROWEST, WIDEST)
                 .round(),
         };
         let inner = width - 2.0 * GAP;
-        let pane = (inner * drawn.height / drawn.width.max(1.0))
+        let pane = (inner * most.height / most.width.max(1.0))
             .clamp(inner * 0.4, inner * 1.2)
             .round();
         let height = pane + CAPTION + 2.0 * GAP;
-        app.doc_mut().paper.view.fit = true;
+        app.doc_mut().paper.view.fit = false;
         let at = Rectangle::new(iced::Point::new(GAP, GAP), Size::new(inner, pane));
         screen.perform(
             &mut app,
@@ -195,13 +234,13 @@ impl Stage {
         screen.shows = Shows::Panes;
         screen.panes = vec![(key, at)];
         let tick = Duration::from_micros(1_000_000 / u64::from(fps));
-        // Every commit at the scale the newest fits at, its top where the
-        // newest's is: the diagram grows as it grew.
-        let zoom = app.doc().paper.view.zoom;
-        app.doc_mut().paper.view.fit = false;
+        // Every commit at the scale the largest fits at, its top where the
+        // largest's is: the diagram grows as it grew, and none is cut.
+        let zoom = crate::paper::View::fitted(most, at.size()).zoom;
+        hold(&mut app, zoom, most.height);
         // The oldest stands from the first frame kept.
-        show(&mut app, &screen, &versions[0].text)?;
-        hold(&mut app, zoom, drawn.height);
+        show(&mut app, &screen, &kept[0])?;
+        hold(&mut app, zoom, most.height);
         screen.run_frames(
             &mut app,
             FADE_IN_FRAMES * 3,
@@ -225,13 +264,16 @@ impl Stage {
             ),
             file: args.file.clone(),
             root: args.root.clone(),
+            versions: kept,
+            passed,
             zoom,
-            top: drawn.height,
+            top: most.height,
         })
     }
 
     /// Each commit glides into the next, the commit under it.
-    fn play(&mut self, versions: &[Version], language: Language) -> Result<()> {
+    fn play(&mut self) -> Result<()> {
+        let versions = std::mem::take(&mut self.versions);
         let stay = stay(versions.len());
         for (at, version) in versions.iter().enumerate() {
             self.screen.captions = vec![Caption {
@@ -245,7 +287,7 @@ impl Stage {
                     &self.screen,
                     self.key,
                     &version.text,
-                    language,
+                    version.language,
                     &self.file,
                     self.root.as_deref(),
                 )?;
@@ -255,6 +297,7 @@ impl Stage {
             let last = at + 1 == versions.len();
             self.run(if last { END } else { stay }, |_| false);
         }
+        self.versions = versions;
         Ok(())
     }
 
@@ -272,7 +315,7 @@ impl Stage {
 /// Writes the time-lapse as a page in vectors: each commit's picture
 /// drawn in the theme's colors with its parts marked, and the glide from
 /// each to the next as the pane works it out. Nothing is drawn in pixels.
-fn page(args: &Moving, versions: &[Version], language: Language) -> Result<String> {
+fn page(args: &Moving, versions: Vec<Version>) -> Result<String> {
     use omaspec_render::export::folding;
 
     let start = Start {
@@ -286,12 +329,21 @@ fn page(args: &Moving, versions: &[Version], language: Language) -> Result<Strin
     let mut renderer = Renderer::new(&crate::commands::render_config());
     let mut maps = Vec::new();
     let mut pictures = Vec::new();
+    // A version that does not draw (a commit left it broken) is passed
+    // over.
+    let mut kept: Vec<Version> = Vec::new();
+    let mut passed = 0;
     for version in versions {
+        if kept.last().is_some_and(|last| last.text == version.text) {
+            continue;
+        }
+        let language = version.language;
         let (source, _) = app.diagram_source_in(args.root.as_deref(), &version.text, language);
         let asked = crate::worker::folded(&source, language, &[], crate::worker::Views::default());
-        let rendered = renderer
-            .render_at(&asked, language, place.as_ref())
-            .map_err(|err| anyhow::anyhow!("{}: {err}", version.caption))?;
+        let Ok(rendered) = renderer.render_at(&asked, language, place.as_ref()) else {
+            passed += 1;
+            continue;
+        };
         anyhow::ensure!(
             omaspec_uml::has_parts(&rendered.svg),
             "this kind of diagram does not glide by its parts yet: write the history as .webp, .png or .gif"
@@ -304,22 +356,39 @@ fn page(args: &Moving, versions: &[Version], language: Language) -> Result<Strin
             size: (size.width(), size.height()),
         });
         maps.push(rendered.map);
+        kept.push(version);
     }
+    enough(args, kept.len(), passed)?;
+    let versions = kept;
     // Every commit at one scale, as the newest is drawn: each picture as
     // large as the largest, itself in the middle across and at the top,
-    // and its glides moved with it.
-    let most = pictures.iter().fold((1.0f32, 1.0f32), |(w, h), p| {
-        (w.max(p.size.0), h.max(p.size.1))
-    });
-    let shifts: Vec<f32> = pictures.iter().map(|p| (most.0 - p.size.0) / 2.0).collect();
+    // and its glides moved with it; all in the pictures' own units, which
+    // the page draws in.
+    let units: Vec<Units> = pictures.iter().map(|p| Units::of(&p.svg, p.size)).collect();
+    let own: Vec<(f32, f32)> = pictures
+        .iter()
+        .zip(&units)
+        .map(|(p, u)| u.size(p.size))
+        .collect();
+    let most = own
+        .iter()
+        .fold((1.0f32, 1.0f32), |(w, h), s| (w.max(s.0), h.max(s.1)));
+    let shifts: Vec<f32> = own.iter().map(|s| (most.0 - s.0) / 2.0).collect();
     let glides = maps
         .windows(2)
-        .zip(pictures.windows(2))
-        .zip(shifts.windows(2))
-        .map(|((maps, pictures), shifts)| {
-            let mut glide =
-                paper::headless::fold_glide(&maps[0], &maps[1], pictures[0].size, pictures[1].size);
-            shift(&mut glide, shifts[0], shifts[1]);
+        .enumerate()
+        .map(|(at, maps)| {
+            let mut glide = paper::headless::fold_glide(
+                &maps[0],
+                &maps[1],
+                pictures[at].size,
+                pictures[at + 1].size,
+            );
+            remap(
+                &mut glide,
+                units[at].moved(shifts[at]),
+                units[at + 1].moved(shifts[at + 1]),
+            );
             glide
         })
         .collect();
@@ -331,6 +400,7 @@ fn page(args: &Moving, versions: &[Version], language: Language) -> Result<Strin
     let (paper, accent) = crate::look::palette_stage(&app.palette);
     let (name, _) = args.named(&versions[versions.len() - 1].text);
     let newest = &versions[versions.len() - 1].text;
+    let language = versions[versions.len() - 1].language;
     let written = folding::page(
         &folding::Folding {
             names: Vec::new(),
@@ -352,34 +422,81 @@ fn page(args: &Moving, versions: &[Version], language: Language) -> Result<Strin
     crate::files::write_atomic(&args.output, written.as_bytes())
         .with_context(|| format!("cannot write {}", args.output.display()))?;
     Ok(format!(
-        "{} → {} (a page, {} KB, {} commits in vectors)",
+        "{} → {} (a page, {} KB, {} commits in vectors{})",
         args.file.display(),
         args.output.display(),
         written.len().div_ceil(1024),
-        versions.len()
+        versions.len(),
+        passed_over(passed)
     ))
 }
 
-/// `glide` with what it says of the picture before moved `old` across,
-/// and of the one after `new`.
-fn shift(glide: &mut omaspec_render::export::folding::Glide, old: f32, new: f32) {
-    let rect = |r: &mut [f32; 4], dx: f32| r[0] += dx;
-    let route = |route: &mut omaspec_render::export::folding::Route, dx: f32| {
+/// How the pixels of a picture's size, which its map is in, become its
+/// own units (its `viewBox`), which a page draws its glides in: a `scale`
+/// sets the two apart.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct Units {
+    sx: f32,
+    sy: f32,
+    tx: f32,
+    ty: f32,
+}
+
+impl Units {
+    /// Those of `svg`, `size` pixels large.
+    pub(super) fn of(svg: &str, size: (f32, f32)) -> Units {
+        let root = super::building::picture::root_of(svg, size);
+        let back = root.invert().unwrap_or_default();
+        Units {
+            sx: back.sx,
+            sy: back.sy,
+            tx: back.tx,
+            ty: back.ty,
+        }
+    }
+
+    /// These, then `dx` across.
+    fn moved(self, dx: f32) -> Units {
+        Units {
+            tx: self.tx + dx,
+            ..self
+        }
+    }
+
+    /// How large `size` pixels are in units.
+    pub(super) fn size(self, (w, h): (f32, f32)) -> (f32, f32) {
+        (w * self.sx, h * self.sy)
+    }
+
+    fn point(self, (x, y): (f32, f32)) -> (f32, f32) {
+        (x * self.sx + self.tx, y * self.sy + self.ty)
+    }
+
+    fn rect(self, r: &mut [f32; 4]) {
+        let (x, y) = self.point((r[0], r[1]));
+        *r = [x, y, r[2] * self.sx, r[3] * self.sy];
+    }
+}
+
+/// `glide`, made in pixels, in units: what it says of the picture before
+/// in `old`'s, of the one after in `new`'s.
+pub(super) fn remap(glide: &mut omaspec_render::export::folding::Glide, old: Units, new: Units) {
+    let route = |route: &mut omaspec_render::export::folding::Route, units: Units| {
         for point in &mut route.points {
-            point.0 += dx;
+            *point = units.point(*point);
         }
         for head in &mut route.heads {
             for point in &mut head.points {
-                point.0 += dx;
+                *point = units.point(*point);
             }
         }
     };
     for moved in &mut glide.boxes {
-        rect(&mut moved.from, old);
-        rect(&mut moved.to, new);
+        old.rect(&mut moved.from);
+        new.rect(&mut moved.to);
         if let Some((was, is)) = &mut moved.into {
-            rect(was, old);
-            rect(is, new);
+            old.rect(was);
+            new.rect(is);
         }
     }
     for line in &mut glide.lines {
@@ -487,15 +604,36 @@ mod tests {
             }],
             lines: Vec::new(),
         };
-        shift(&mut glide, 10.0, 5.0);
+        let plain = Units {
+            sx: 1.0,
+            sy: 1.0,
+            tx: 0.0,
+            ty: 0.0,
+        };
+        remap(&mut glide, plain.moved(10.0), plain.moved(5.0));
         assert_eq!(glide.boxes[0].from[0], 11.0);
         assert_eq!(glide.boxes[0].to[0], 6.0);
+        // A picture drawn twice its units: its pixels halved.
+        let scaled = r##"<svg xmlns="http://www.w3.org/2000/svg" width="80" height="40" viewBox="0 0 40 20"></svg>"##;
+        let units = Units::of(scaled, (80.0, 40.0));
+        assert_eq!(units.size((80.0, 40.0)), (40.0, 20.0));
+        remap(&mut glide, units, units);
+        assert_eq!(glide.boxes[0].from, [5.5, 1.0, 1.5, 2.0]);
     }
 
-    /// A file of three commits, one of them leaving it as it was, played
-    /// as a GIF and as a page; a file with one commit is refused.
+    /// A file of five commits, one of them leaving it as it was and one
+    /// leaving it broken, played as a GIF and as a page; a file with one
+    /// commit is refused.
     #[test]
     fn a_history_glides_from_commit_to_commit() {
+        if std::process::Command::new("git")
+            .arg("--version")
+            .output()
+            .is_err()
+        {
+            eprintln!("skipped: no git");
+            return;
+        }
         let work = std::env::temp_dir().join(format!("omaspec-history-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&work);
         std::fs::create_dir_all(&work).unwrap();
@@ -506,6 +644,8 @@ mod tests {
                     "user.name=Omaspec",
                     "-c",
                     "user.email=omaspec@example.org",
+                    "-c",
+                    "commit.gpgsign=false",
                 ])
                 .args(args)
                 .current_dir(&work)
@@ -561,23 +701,32 @@ mod tests {
             "@startuml\n[*] --> Closed\nClosed --> Open : open\n@enduml\n",
             "docs: notes",
         );
+        // A commit that leaves the door broken is passed over.
+        commit(
+            "@startuml\n[*] --> Closed\nClosed --> : open\n@enduml\n",
+            "wip: half a transition",
+        );
         commit(
             "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
             "feat: and closes",
         );
         let told = super::super::moving::play(&moving("door.gif")).unwrap();
-        assert!(told.contains("3 commits"), "{told}");
+        assert!(
+            told.contains("3 commits, 1 passed over: it does not draw"),
+            "{told}"
+        );
         let gif = std::fs::read(work.join("door.gif")).unwrap();
         assert_eq!(u16::from_le_bytes([gif[6], gif[7]]), 320);
         let told = super::super::moving::play(&moving("door.html")).unwrap();
         assert!(
-            told.contains("a page") && told.contains("3 commits"),
+            told.contains("a page") && told.contains("3 commits in vectors, 1 passed over"),
             "{told}"
         );
         let page = std::fs::read_to_string(work.join("door.html")).unwrap();
         assert!(page.contains(r#""kind":"history""#));
         assert!(page.contains("feat: and closes"));
         assert!(!page.contains("docs: notes"));
+        assert!(!page.contains("wip: half a transition"));
         let _ = std::fs::remove_dir_all(&work);
     }
 

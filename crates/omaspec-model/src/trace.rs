@@ -124,29 +124,81 @@ pub fn objects(trace: &str, spec: &Spec) -> Vec<String> {
 
 /// The lines of `object` in `trace`, followed through `spec`'s machine.
 pub fn follow(trace: &str, spec: &Spec, object: &str) -> Followed {
-    let mut followed = Followed::default();
-    let mut tracked = Object::new(spec);
-    let mut before: Vec<usize> = Vec::new();
+    let mut one = Following::new(spec);
     for (line, text) in trace.lines().enumerate() {
         let Ok(entry) = entry(line, text) else {
             continue;
         };
-        if entry.object != object {
+        if entry.object == object {
+            one.take(entry);
+        }
+    }
+    one.followed
+}
+
+/// Every object of `trace` that goes by `spec`'s machine, in the order
+/// they first appear, each followed as [`follow`] follows it: the trace
+/// read once, however many objects it has.
+pub fn follow_all(trace: &str, spec: &Spec) -> Vec<(String, Followed)> {
+    let names: Vec<String> = spec.names.iter().map(|n| key(n)).collect();
+    let mut order: Vec<String> = Vec::new();
+    let mut each: HashMap<String, Following> = HashMap::new();
+    for (line, text) in trace.lines().enumerate() {
+        let Ok(entry) = entry(line, text) else {
+            continue;
+        };
+        if !names.contains(&key(entry.machine.as_deref().unwrap_or(&entry.object))) {
             continue;
         }
-        let outcome = tracked.follow(&entry);
-        if followed.steps.is_empty() {
-            followed.start = tracked.started.clone();
-            followed.begins = tracked.begins.clone();
-            before = followed.begins.clone();
+        let one = each.entry(entry.object.clone()).or_insert_with(|| {
+            order.push(entry.object.clone());
+            Following::new(spec)
+        });
+        one.take(entry);
+    }
+    order
+        .into_iter()
+        .map(|object| {
+            let followed = each
+                .remove(&object)
+                .map(|one| one.followed)
+                .unwrap_or_default();
+            (object, followed)
+        })
+        .collect()
+}
+
+/// One object on its way through a machine, line by line.
+struct Following<'a> {
+    tracked: Object<'a>,
+    before: Vec<usize>,
+    followed: Followed,
+}
+
+impl<'a> Following<'a> {
+    fn new(spec: &'a Spec) -> Self {
+        Following {
+            tracked: Object::new(spec),
+            before: Vec::new(),
+            followed: Followed::default(),
         }
-        let mut at = tracked.at();
+    }
+
+    /// Follows the object through `entry`, its next line.
+    fn take(&mut self, entry: Entry) {
+        let outcome = self.tracked.follow(&entry);
+        if self.followed.steps.is_empty() {
+            self.followed.start = self.tracked.started.clone();
+            self.followed.begins = self.tracked.begins.clone();
+            self.before = self.followed.begins.clone();
+        }
+        let mut at = self.tracked.at();
         if at.is_empty() && outcome.deviated && entry.state.is_none() {
-            at = before;
+            at = self.before.clone();
         }
-        before = at.clone();
-        followed.steps.push(TraceStep {
-            line,
+        self.before = at.clone();
+        self.followed.steps.push(TraceStep {
+            line: entry.line,
             time: entry.time,
             event: entry.event,
             state: entry.state,
@@ -155,7 +207,6 @@ pub fn follow(trace: &str, spec: &Spec, object: &str) -> Followed {
             finding: outcome.findings.into_iter().next(),
         });
     }
-    followed
 }
 
 /// One line of a trace.
@@ -694,6 +745,31 @@ mod tests {
     use omaspec_core::Language;
 
     use super::*;
+
+    /// Every object followed in one reading, as each is followed alone.
+    #[test]
+    fn all_objects_are_followed_as_each_alone() {
+        let spec = Spec::read(
+            "@startuml Door\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+            omaspec_core::Language::PlantUml,
+            "door.puml",
+        )
+        .unwrap();
+        let trace = [
+            r#"{"object":"Door","event":"open"}"#,
+            r#"{"object":"back","machine":"door","event":"open"}"#,
+            r#"{"object":"Car","event":"park"}"#,
+            r#"{"object":"Door","event":"open"}"#,
+            r#"{"object":"back","machine":"door","event":"close"}"#,
+        ]
+        .join("\n");
+        let all = follow_all(&trace, &spec);
+        let names: Vec<&str> = all.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(names, objects(&trace, &spec));
+        for (object, followed) in &all {
+            assert_eq!(*followed, follow(&trace, &spec, object), "{object}");
+        }
+    }
 
     const DOOR: &str = "@startuml\n[*] --> Closed\nClosed --> Open : open [unlocked]\nOpen --> Closed : close\nClosed --> Locked : lock\nLocked --> Closed : unlock\n@enduml\n";
 

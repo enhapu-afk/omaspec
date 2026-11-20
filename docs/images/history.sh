@@ -7,6 +7,7 @@ repo=$1
 rm -rf "$repo"; mkdir -p "$repo"; cd "$repo"
 git init -q
 git config user.name "Omaspec"; git config user.email "omaspec@example.org"
+git config commit.gpgsign false
 day=10
 commit() {
   cat > parcel.puml

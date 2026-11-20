@@ -8,7 +8,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 out=docs/images
 shots=$(mktemp -d)
-trap 'rm -rf "$shots"' EXIT
+history=$(mktemp -d)
+trap 'rm -rf "$shots" "$history"' EXIT
 
 OMASPEC_SNAPSHOT_DIR="$shots" cargo test --release -p omaspec-app --bin omaspec -- \
   snapshot_story snapshot_readme snapshot_drone snapshot_themes snapshot_gallery snapshot_readme_map >/dev/null
@@ -42,11 +43,9 @@ cargo run --release -q -p omaspec-app -- play examples/home/keys.puml \
 
 # A diagram's history: the parcel growing commit by commit, each picture
 # gliding into the next.
-history=$(mktemp -d)
-"$(dirname "$0")/history.sh" "$history/repo"
+docs/images/history.sh "$history/repo"
 cargo run --release -q -p omaspec-app -- play "$history/repo/parcel.puml" \
   -o "$out/history.gif" --history --theme built-in --width 640 2>/dev/null
-rm -rf "$history"
 
 # A week of recorded orders flowing through the order's machine at once.
 cargo run --release -q -p omaspec-app -- play examples/orders/order.puml \

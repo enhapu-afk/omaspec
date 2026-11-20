@@ -90,7 +90,6 @@ impl Arrival {
         }
     }
 
-    #[cfg(test)]
     pub fn fade_mut(&mut self) -> Option<&mut Fade> {
         match self {
             Arrival::Fading(fade) | Arrival::Gliding(fade, _) => Some(fade),

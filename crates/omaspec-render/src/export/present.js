@@ -674,8 +674,19 @@ if (typeof document !== "undefined") {
       };
 
       let running = null;
-      let auto = !/^#\d+$/.test(location.hash);
+      // `#1.5`: the glide from picture 1 to the next, half its way, still.
+      const midway = /^#(\d+)(\.\d+)$/.exec(location.hash);
+      const halfway = midway && Number(midway[1]) < play.count;
+      let auto = !/^#\d+$/.test(location.hash) && !halfway;
       let down = false;
+      /// The sheet a glide held still on stands until the play moves.
+      let stood = null;
+      const unstand = () => {
+        if (!stood) return;
+        stood.done();
+        stood = null;
+        show(play.at);
+      };
       const tell = () => {
         if (history) {
           say(
@@ -719,6 +730,7 @@ if (typeof document !== "undefined") {
       /// pictures run to its end.
       const move = (by) => {
         if (running) return;
+        unstand();
         const from = play.at;
         if (!(by > 0 ? play.next() : play.back())) return;
         tell();
@@ -758,6 +770,7 @@ if (typeof document !== "undefined") {
       take = go;
       home = () => {
         if (running) return;
+        unstand();
         play.home();
         show(0);
         auto = true;
@@ -768,14 +781,12 @@ if (typeof document !== "undefined") {
       play.go(parseInt(location.hash.slice(1), 10) || 0);
       show(play.at);
       tell();
-      // `#1.5`: the glide from picture 1 to the next, half its way, still.
-      const midway = /^#(\d+)(\.\d+)$/.exec(location.hash);
-      if (midway && Number(midway[1]) < play.count) {
-        auto = false;
+      if (halfway) {
         const from = Number(midway[1]);
         const room = pictures[from].getBoundingClientRect();
         pictures.forEach((picture) => picture.classList.add("away"));
-        sheet(from, room).draw(Present.ease(Number(midway[2])));
+        stood = sheet(from, room);
+        stood.draw(Present.ease(Number(midway[2])));
       } else {
         wait();
       }

@@ -12,7 +12,7 @@
 //! gives its state) it says `?`.
 
 use omaspec_core::lint::Severity;
-use omaspec_model::{Spec, Specs, follow_trace, trace_objects};
+use omaspec_model::{Spec, Specs, follow_traces};
 
 /// A trace's row: an object, its machine, its steps.
 struct Row<'a> {
@@ -26,11 +26,10 @@ struct Row<'a> {
 pub fn timing(trace: &str, title: &str, specs: &Specs) -> Option<String> {
     let mut rows: Vec<Row> = Vec::new();
     for spec in specs.iter() {
-        for object in trace_objects(trace, spec) {
+        for (object, followed) in follow_traces(trace, spec) {
             if rows.iter().any(|row| row.object == object) {
                 continue;
             }
-            let followed = follow_trace(trace, spec, &object);
             rows.push(Row {
                 object,
                 spec,

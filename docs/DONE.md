@@ -2897,6 +2897,19 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the time-lapse and the traffic found (2026-11-20). A history's
+      glide ended off its middle and the picture jumped as it stood: the view is held
+      through the pane (`Paper::hold_view`), the fade under way too. A commit that does
+      not draw is passed over and counted, not the end of the history; each commit is
+      read in its own language, and the pane is as large as the largest commit, not the
+      newest. Traffic under a `scale` lay off its machine: the map's pixels become the
+      picture's units. The dots of several traces lie apart, a leg ends before the
+      object's next line, an asked width is the frame's and a large machine is made
+      smaller to fit; a trace is read once for all its objects
+      (`omaspec_model::follow_traces`, the timing diagram of a trace too). A fold's or a
+      history's page under a `scale` glided at half its size: each glide is made in the
+      picture's own units (`timelapse::remap`). A page held midway says so and lets the
+      still glide go on the next step; `update.sh` finds `history.sh` from anywhere
 - [x] Traffic (2026-11-20, the fourth of the animations that show what a diagram
       means): `omaspec play FILE --traffic T.jsonl[,U.jsonl] -o traffic.gif` lets
       recorded traces flow through a state machine at once (`editor::traffic`). Each
@@ -2915,11 +2928,13 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
 - [x] A time-lapse of a diagram's history (2026-11-20, the third of the animations that
       show what a diagram means): `omaspec play FILE --history -o history.gif` plays
       every commit that changed the file, oldest first (the newest 60, one that left it
-      as it was passed over), each picture gliding into the next as the pane glides when
-      the diagram is edited (docs/adr/0029), what is new coming in and what went
-      fading, the commit under it (`editor::timelapse`, the screen's captions). Every
-      commit at the scale the newest fits at, its top where the newest's is, so the
-      diagram grows as it grew; a long history goes through faster. As `.html` a page in
+      as it was or left it broken passed over), each picture gliding into the next as
+      the pane glides when the diagram is edited (docs/adr/0029), what is new coming in
+      and what went fading, the commit under it (`editor::timelapse`, the screen's
+      captions). Every commit at the scale the largest fits at, its top where the
+      largest's is, so the diagram grows as it grew and none is cut; the view is held
+      through the paper (`hold_view`), so a glide ends where the picture then stands; a
+      long history goes through faster. As `.html` a page in
       vectors: the fold's page with captions, kind `history`, that starts again after
       its last commit; each picture as large as the largest with itself in the middle,
       its glides moved with it; `#2` shows the third commit, `#2.5` the glide from it
