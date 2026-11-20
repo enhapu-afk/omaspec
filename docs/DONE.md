@@ -2897,9 +2897,21 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] What the review of the lockstep in the window and the orbit found (2026-11-20). A
+      digit that steps the scenario steps the machines too; an edit that ends the
+      scenario's play closes the machines beside it, and a play stopped in another tab
+      leaves them; the panes are drawn at the window's scale, and a drawing for an
+      earlier set of panes is not taken for a new one. On the ring a way on runs along
+      it though its way back is written first, a machine without a start or an end has
+      neither drawn, F5 on a machine the ring shows in part says to play it in the
+      diagram, the boxes and ways are painted as the diagram paints them, so what
+      recorded traces cover is marked on the ring too (Mermaid's as well), loops near
+      the top get their room above the ring, and a Mermaid ring or table that cannot be
+      drawn says why as the engine says it. A machine's quiet bar leaves the event its
+      room beside the head
 - [x] Orbit (2026-11-20): a state machine's life cycle on a ring, a view as the table is
       (`' view (Omaspec) orbit`, View menu, `omaspec orbit FILE -o`), for PlantUML and
-      Mermaid alike, in the look of the machine's states (`omaspec_uml::state::orbit`).
+      Mermaid alike, in the look of the machine's states (`omaspec_uml::state::draw_orbit`).
       The states of the top level stand round a circle in the order a run reaches them,
       clockwise from the top, where the ring opens with the start on one side and the
       end on the other: depth first, a detour (a state that only leads back) right after

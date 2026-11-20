@@ -7211,6 +7211,7 @@ fn snapshot_lockstep() {
         );
     }
     shoot(&mut app, &dir, "lockstep-window");
+    let _ = std::fs::remove_dir_all(&work);
 }
 
 /// The orbit view: a state machine asked for as its life cycle on a ring,

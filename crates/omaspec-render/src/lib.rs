@@ -58,7 +58,6 @@ impl Engine {
     }
 }
 
-/// A sanitized SVG and how it was made.
 /// Renders the state machine `source` as its life cycle on a ring, in
 /// its look ([`omaspec_uml::state::draw_orbit`]).
 pub fn render_orbit(
@@ -98,6 +97,7 @@ pub fn render_orbit(
     })
 }
 
+/// A sanitized SVG and how it was made.
 #[derive(Debug, Clone)]
 pub struct Rendered {
     pub svg: String,

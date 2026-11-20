@@ -58,7 +58,9 @@ struct Way {
     to: End,
     label: Option<Block>,
     line: usize,
-    dashed: bool,
+    /// As the diagram draws it: its color, its weight and its dash, the
+    /// marks of what recorded traces cover among them.
+    stroke: Stroke,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -155,8 +157,27 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let widest = stations.iter().map(extent).fold(0.0, f32::max);
     let outer = radius + widest / 2.0 + OUTSIDE * 3.0;
     let top = annotations.top();
-    // Above the ring stand only the start and the end, in its opening.
-    let center = (outer, top + radius + (widest / 2.0).max(3.0 * MARK) + 24.0);
+    // Above the ring stand only the start and the end, in its opening,
+    // and the loops of a state near the top, as far as the most loops on
+    // one state reach.
+    let loops = order
+        .iter()
+        .map(|&node| {
+            lifted_edges(diagram)
+                .iter()
+                .filter(|(from, to, _)| *from == node && *to == node)
+                .count()
+        })
+        .max()
+        .unwrap_or(0);
+    let looped = match loops {
+        0 => 0.0,
+        n => 34.0 + 14.0 * (n - 1) as f32,
+    };
+    let center = (
+        outer,
+        top + radius + (widest / 2.0).max(3.0 * MARK) + 24.0 + looped,
+    );
     let on_ring = |angle: f32, r: f32| (center.0 + r * angle.cos(), center.1 + r * angle.sin());
     for (k, station) in stations.iter_mut().enumerate() {
         station.angle = -PI / 2.0 + (k + 1) as f32 * slot;
@@ -167,7 +188,7 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let start_at = on_ring(start_angle, radius);
     let stop_at = on_ring(stop_angle, radius);
 
-    let ways = ways(diagram, &order, &words, &skin);
+    let ways = ways(diagram, &order, &words, &skin)?;
     let index = |end: End| -> f32 {
         match end {
             End::Start => -0.5,
@@ -192,7 +213,6 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
     };
 
     // The ways, under the boxes.
-    let stroke = skin.arrow;
     let mut transitions = Vec::new();
     let mut lanes: Vec<(f32, f32, usize)> = Vec::new();
     let mut ways_so_far: Vec<(End, End)> = Vec::new();
@@ -203,10 +223,12 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
     for way in &ways {
         let (a, b) = (index(way.from), index(way.to));
         let (from, to) = (angle_of(way.from), angle_of(way.to));
-        // Ways between the same two places so far: each a lane apart.
+        // Ways from the same place to the same place so far: each a lane
+        // apart. A way back runs inside the ring, so it leaves the ring to
+        // the way on, whichever is written first.
         let twin = ways_so_far
             .iter()
-            .filter(|&&(f, t)| (f, t) == (way.from, way.to) || (f, t) == (way.to, way.from))
+            .filter(|&&pair| pair == (way.from, way.to))
             .count();
         ways_so_far.push((way.from, way.to));
         let span = {
@@ -314,11 +336,7 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
         if points.len() < 2 {
             continue;
         }
-        let drawn = if way.dashed {
-            stroke.dashed(6.0, 4.0)
-        } else {
-            stroke
-        };
+        let drawn = way.stroke;
         canvas.polyline(Layer::Lines, &points, drawn);
         super::draw::arrow_head(&mut canvas, &skin, &points, drawn);
         transitions.push(map::Route {
@@ -347,49 +365,40 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
             tied_labels.push((label.clone(), place, way.line));
         }
     }
-    // The start, the end, and the boxes on the ring.
+    // The start, the end, where the machine has them, and the boxes on
+    // the ring.
     let ink = skin.arrow.color;
-    canvas.ellipse(Layer::Front, start_at, (MARK, MARK), Some(ink), None);
-    canvas.ellipse(
-        Layer::Front,
-        stop_at,
-        (MARK, MARK),
-        Some(page),
-        Some(Stroke::new(ink, 1.5)),
-    );
-    canvas.ellipse(
-        Layer::Front,
-        stop_at,
-        (MARK - 3.5, MARK - 3.5),
-        Some(ink),
-        None,
-    );
-    let mut spots = vec![
-        mark_spot(
-            Shape::Start,
-            start_at,
-            root.nodes
-                .iter()
-                .find(|n| n.kind == Kind::Start)
-                .map_or(0, |n| n.line),
-        ),
-        mark_spot(
-            Shape::End,
+    let mut spots = Vec::new();
+    if let Some(start) = root.nodes.iter().find(|n| n.kind == Kind::Start) {
+        canvas.ellipse(Layer::Front, start_at, (MARK, MARK), Some(ink), None);
+        spots.push(mark_spot(Shape::Start, start_at, start.line));
+    }
+    if let Some(end) = root.nodes.iter().find(|n| n.kind == Kind::End) {
+        canvas.ellipse(
+            Layer::Front,
             stop_at,
-            root.nodes
-                .iter()
-                .find(|n| n.kind == Kind::End)
-                .map_or(0, |n| n.line),
-        ),
-    ];
+            (MARK, MARK),
+            Some(page),
+            Some(Stroke::new(ink, 1.5)),
+        );
+        canvas.ellipse(
+            Layer::Front,
+            stop_at,
+            (MARK - 3.5, MARK - 3.5),
+            Some(ink),
+            None,
+        );
+        spots.push(mark_spot(Shape::End, stop_at, end.line));
+    }
     for station in &stations {
         let state = &root.nodes[station.node];
         let (x, y) = (
             station.at.0 - station.w / 2.0,
             station.at.1 - station.h / 2.0,
         );
-        let look = &skin.state;
-        let border = Stroke::new(look.border, look.thickness);
+        // As the diagram paints it: a color of its own, a mark of what
+        // the traces cover.
+        let (fill, border, _) = super::draw::paints(state, &skin)?;
         let shape = match station.kind {
             Kind::Choice => {
                 let (cx, cy) = station.at;
@@ -397,7 +406,7 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
                 canvas.polygon(
                     Layer::Front,
                     &[(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)],
-                    look.fill,
+                    fill,
                     Some(border),
                 );
                 Shape::Choice
@@ -417,7 +426,7 @@ pub fn draw_orbit(diagram: &Diagram) -> Result<(String, Map), Declined> {
                     Layer::Front,
                     (x, y, station.w, station.h),
                     skin.round,
-                    look.fill,
+                    fill,
                     Some(border),
                 );
                 canvas.text(
@@ -653,7 +662,7 @@ fn ways(
     order: &[usize],
     words: &dyn Fn(&str, Font) -> Block,
     skin: &Skin,
-) -> Vec<Way> {
+) -> Result<Vec<Way>, Declined> {
     let root = &diagram.root;
     let end_of = |node: usize| -> Option<End> {
         match root.nodes[node].kind {
@@ -663,23 +672,24 @@ fn ways(
             _ => order.iter().position(|&o| o == node).map(End::Station),
         }
     };
-    lifted_edges(diagram)
-        .into_iter()
-        .filter_map(|(from, to, t)| {
-            let (from, to) = (end_of(from)?, end_of(to)?);
-            Some(Way {
-                from,
-                to,
-                label: t
-                    .label
-                    .as_ref()
-                    .filter(|l| !l.value.trim().is_empty())
-                    .map(|l| words(&l.value, skin.arrow_font)),
-                line: t.line,
-                dashed: t.dash != super::Dash::Solid,
-            })
-        })
-        .collect()
+    let mut out = Vec::new();
+    for (from, to, t) in lifted_edges(diagram) {
+        let (Some(from), Some(to)) = (end_of(from), end_of(to)) else {
+            continue;
+        };
+        out.push(Way {
+            from,
+            to,
+            label: t
+                .label
+                .as_ref()
+                .filter(|l| !l.value.trim().is_empty())
+                .map(|l| words(&l.value, skin.arrow_font)),
+            line: t.line,
+            stroke: super::draw::arrow_stroke(skin, t)?,
+        });
+    }
+    Ok(out)
 }
 
 /// Points along the circle round `center` of radius `r`, clockwise from
@@ -813,5 +823,48 @@ mod tests {
         assert!(map.tied.iter().any(|t| t.line == 2));
         // A state around others says how many it holds.
         assert!(svg.contains("1 state"));
+    }
+
+    /// The route of the transition on `line` in the orbit of `code`.
+    fn route(code: &str, line: usize) -> Vec<(f32, f32)> {
+        let (_, map) = draw_orbit(&diagram(code)).unwrap();
+        map.transitions
+            .iter()
+            .find(|t| t.line == line)
+            .map(|t| t.points.clone())
+            .unwrap()
+    }
+
+    #[test]
+    fn a_way_on_runs_along_the_ring_whether_its_way_back_is_written_first_or_not() {
+        let on_first = "@startuml\n[*] --> A\nA --> B : on\nB --> A : back\nB --> [*]\n@enduml\n";
+        let back_first = "@startuml\n[*] --> A\nB --> A : back\nA --> B : on\nB --> [*]\n@enduml\n";
+        assert_eq!(route(on_first, 2), route(back_first, 3));
+    }
+
+    #[test]
+    fn a_machine_without_a_start_or_an_end_has_neither_on_its_ring() {
+        let code = "@startuml\nstate Red\nRed --> Green : go\nGreen --> Yellow : slow\nYellow --> Red : stop\n@enduml\n";
+        let (svg, map) = draw_orbit(&diagram(code)).unwrap();
+        assert!(
+            !map.states
+                .iter()
+                .any(|s| matches!(s.shape, Shape::Start | Shape::End)),
+            "{:?}",
+            map.states
+        );
+        assert!(!svg.contains("<ellipse"), "{svg}");
+    }
+
+    /// What recorded traces cover is marked on the ring as in the
+    /// diagram: a way taken bold in green with how often, one never taken
+    /// dashed in red, and so its state.
+    #[test]
+    fn coverage_is_marked_on_the_ring() {
+        let code = "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n' mark (Omaspec) line 2 taken 3\n' mark (Omaspec) line 3 missed\n' mark (Omaspec) state missed Open\n@enduml\n";
+        let (svg, _) = crate::render_orbit(code, None).unwrap();
+        assert!(svg.contains("open ×3"), "{svg}");
+        assert!(svg.to_ascii_uppercase().contains("#2F9E44"), "{svg}");
+        assert!(svg.contains("stroke-dasharray"), "{svg}");
     }
 }

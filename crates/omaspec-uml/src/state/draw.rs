@@ -378,7 +378,7 @@ fn flat(kind: Kind) -> bool {
     matches!(kind, Kind::State | Kind::Fork | Kind::Join | Kind::Region)
 }
 
-fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color), Declined> {
+pub(super) fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color), Declined> {
     // A color written on the state. Start, end and bars use it when it is
     // there; otherwise they use the border, not the pale state fill, so
     // they stay visible on the background.
@@ -422,7 +422,7 @@ fn edge_label(edge: &Transition, skin: &Skin, family: Family) -> Result<Block, D
     }
 }
 
-fn arrow_stroke(skin: &Skin, edge: &Transition) -> Result<Stroke, Declined> {
+pub(super) fn arrow_stroke(skin: &Skin, edge: &Transition) -> Result<Stroke, Declined> {
     let color = match &edge.color {
         Some(value) => match color::parse(value).map_err(|err| Declined::at(edge.line, err))? {
             Some(color) => color,

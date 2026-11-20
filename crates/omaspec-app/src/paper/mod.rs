@@ -534,6 +534,14 @@ impl Paper {
         self.requested
     }
 
+    /// Takes its tickets on after `last`, the latest of a pane that held
+    /// its document key before: an answer to that one, still on its way,
+    /// is dropped as older than the one on screen.
+    pub fn tickets_after(&mut self, last: u64) {
+        self.requested = self.requested.max(last);
+        self.shown = self.shown.max(last);
+    }
+
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             // A picture on screen is replaced once the view stops gliding; a
@@ -899,7 +907,16 @@ impl Paper {
             diagram.language,
             &diagram.drawn.map,
             crate::clock::now(),
-        )?;
+        )
+        .map_err(|why| {
+            // The ring shows a state around others as one box, so what it
+            // holds plays in the diagram.
+            if self.views.orbit && why == play::UNSHOWN {
+                "the ring shows a state around others as one box, so this machine plays in the diagram: View → State machines: as a diagram or a life cycle on a ring".to_owned()
+            } else {
+                why
+            }
+        })?;
         play.shape(&diagram.drawn.tree);
         self.play = Some(play);
         self.leaving = None;

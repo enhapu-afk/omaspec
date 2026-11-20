@@ -160,10 +160,13 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
             } else {
                 (format!("● {object}: {at}"), accent)
             };
-            // Beside a scenario nothing else stands in the row: the head
-            // has its room.
+            // Beside a scenario only the event it took stands in the row
+            // with the head: the head has the room that leaves.
             let head = if *beside {
-                cut(&head, (inside / (13.0 * CHAR)) as usize)
+                let row = (inside / (13.0 * CHAR)) as usize;
+                let event =
+                    said.chars().count() + time.as_ref().map_or(0, |t| t.chars().count() + 2);
+                cut(&head, row.saturating_sub(event + 3).max(row / 2))
             } else {
                 cut(&head, third)
             };

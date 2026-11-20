@@ -131,10 +131,22 @@ pub fn render_table(
     let drawn = draw_with(source, Over::Table(&shifted))?;
     match drawn.declined {
         None => Ok((drawn.svg, drawn.map)),
-        Some(_) => Err(RenderError::Unavailable {
-            line: None,
-            reason: "only a state diagram Omaspec draws itself has a table".into(),
-        }),
+        // Why, where the engine says it.
+        Some(_) => {
+            let (body, offset) = mermaid_body(source);
+            let why = omaspec_uml::state::from_mermaid(body)
+                .and_then(|diagram| omaspec_uml::state::draw_table(&diagram, &shifted).err());
+            Err(match why {
+                Some(declined) => RenderError::Unavailable {
+                    line: declined.line.map(|line| line + offset),
+                    reason: declined.reason,
+                },
+                None => RenderError::Unavailable {
+                    line: None,
+                    reason: "only a state diagram Omaspec draws itself has a table".into(),
+                },
+            })
+        }
     }
 }
 
@@ -146,19 +158,34 @@ pub(crate) enum Over<'a> {
     Marks(&'a omaspec_uml::state::Marks),
     /// Its table in place of it, on the lines of the fenced text.
     Table(&'a omaspec_uml::table::Table),
-    /// Its life cycle on a ring in place of it.
-    Orbit,
+    /// Its life cycle on a ring in place of it, with what recorded
+    /// traces cover marked on it.
+    Orbit(Option<&'a omaspec_uml::state::Marks>),
 }
 
 /// A Mermaid state machine as its life cycle on a ring.
 pub fn render_orbit(source: &str) -> Result<(String, Map), RenderError> {
-    let drawn = draw_with(source, Over::Orbit)?;
+    let drawn = draw_with(source, Over::Orbit(None))?;
     match drawn.declined {
         None => Ok((drawn.svg, drawn.map)),
-        Some(_) => Err(RenderError::Unavailable {
-            line: None,
-            reason: "only a state diagram Omaspec draws itself has a life cycle on a ring".into(),
-        }),
+        // Why, where the engine says it: a state diagram it reads with no
+        // ring to draw.
+        Some(_) => {
+            let (body, offset) = mermaid_body(source);
+            let why = omaspec_uml::state::from_mermaid(body)
+                .and_then(|diagram| omaspec_uml::state::draw_orbit(&diagram).err());
+            Err(match why {
+                Some(declined) => RenderError::Unavailable {
+                    line: declined.line.map(|line| line + offset),
+                    reason: declined.reason,
+                },
+                None => RenderError::Unavailable {
+                    line: None,
+                    reason: "only a state diagram Omaspec draws itself has a life cycle on a ring"
+                        .into(),
+                },
+            })
+        }
     }
 }
 
@@ -167,12 +194,16 @@ fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {
     let (fenced, offset) = mermaid_body(source);
     // The pane's marks (`%% mark (Omaspec) …`): what recorded traces cover.
     let pane = match over {
-        Over::Nothing => {
+        Over::Nothing | Over::Orbit(_) => {
             omaspec_uml::state::Marks::read(source).map(|marks| fenced_marks(&marks, offset))
         }
         _ => None,
     };
-    let over = pane.as_ref().map_or(over, Over::Marks);
+    let over = match over {
+        Over::Nothing => pane.as_ref().map_or(over, Over::Marks),
+        Over::Orbit(_) => Over::Orbit(pane.as_ref()),
+        other => other,
+    };
     if let Some(line) = too_deep(fenced) {
         return Err(RenderError::Diagram {
             engine: Engine::Mermaid,
@@ -975,6 +1006,21 @@ fn error_line(err: &ParseError) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A Mermaid machine without a state on its ring is told so, as the
+    /// engine says it, not that it is no state diagram.
+    #[test]
+    fn a_ring_that_cannot_be_drawn_says_why() {
+        let Err(RenderError::Unavailable { reason, .. }) =
+            render_orbit("stateDiagram-v2\n    [*] --> [*]\n")
+        else {
+            panic!("no ring to draw");
+        };
+        assert!(reason.contains("needs a state on its ring"), "{reason}");
+        let (svg, map) =
+            render_orbit("stateDiagram-v2\n    [*] --> Idle\n    Idle --> Busy : go\n").unwrap();
+        assert!(svg.contains("Idle") && map.transitions.len() == 2);
+    }
 
     /// Found by fuzzing (2026-11-18): a state written inside itself, in a
     /// diagram Omaspec's own engine declines, is refused by name; mmdr

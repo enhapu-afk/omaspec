@@ -664,6 +664,9 @@ struct App {
     /// The machines of the participants beside a scenario that plays
     /// ([`beside`]).
     beside: Option<beside::Beside>,
+    /// The latest render ticket of a machine's pane beside a scenario,
+    /// which the next panes under the same keys take theirs on from.
+    beside_tickets: u64,
     /// All diagrams of each such project folder, which maps show and
     /// states link to; and the same in the diagram's colors.
     atlases: HashMap<PathBuf, Arc<omaspec_render::Atlas>>,
@@ -817,6 +820,7 @@ impl App {
             tree: HashMap::new(),
             specs: HashMap::new(),
             beside: None,
+            beside_tickets: 0,
             atlases: HashMap::new(),
             themed_atlases: HashMap::new(),
             indexes: HashMap::new(),
@@ -1499,6 +1503,11 @@ impl App {
                         .paper
                         .rendered(answer)
                         .map(move |m| Message::Paper(key, m));
+                    // A changed scenario ends its play, and the machines
+                    // beside it go with it.
+                    if !self.docs.iter().any(|d| d.key == key && d.paper.playing()) {
+                        self.close_beside(key);
+                    }
                     self.follow_caret(key);
                     // The diagram a zoom into a link leads to is drawn.
                     let task = if self.is_arriving(key) {
@@ -1634,6 +1643,9 @@ impl App {
             paper.request_linked(&worker, doc, source, language, place, linked);
             paper.requested()
         };
+        if beside {
+            self.beside_tickets = self.beside_tickets.max(id);
+        }
         if let Some(pending) = pending {
             self.pending.insert((doc, id), pending);
         }
@@ -2002,7 +2014,7 @@ impl App {
                 task
             }
             Command::StopPlay => {
-                self.beside = None;
+                self.close_beside(key);
                 paper(self.doc_mut().paper.update(paper::Message::StopPlay))
             }
         }

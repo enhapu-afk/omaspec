@@ -402,7 +402,12 @@ pub fn render_orbit(
     includes: Option<&dyn Includes>,
 ) -> Result<(String, map::Map), Declined> {
     match parse_with(source, includes)? {
-        Diagram::State(d) => {
+        Diagram::State(mut d) => {
+            // What recorded traces cover, marked on the ring as in the
+            // diagram.
+            if let Some(marks) = state::Marks::read(source) {
+                d.mark(&marks);
+            }
             embedded::within(embedded::skin_of(&d.frame), || state::draw_orbit(&d))
         }
         _ => Err(Declined {

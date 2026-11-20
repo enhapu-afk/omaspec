@@ -1004,6 +1004,36 @@ fn a_following_view_goes_with_the_play_and_back_to_the_whole() {
 
 /// Puts `source` on the sheet, as a render would, and makes the pictures
 /// it asks for, as the window makes them.
+/// A state around others stands on the ring as one box: a play of its
+/// machine there says where it plays instead, not that something is
+/// missing.
+#[test]
+fn a_machine_the_ring_shows_in_part_says_where_it_plays() {
+    let source = "@startuml\n[*] --> Big\nstate Big {\n  [*] --> Inside\n}\n@enduml\n";
+    let views = crate::worker::Views {
+        orbit: true,
+        ..crate::worker::Views::default()
+    };
+    let asked = crate::worker::folded(source, Language::PlantUml, &[], views);
+    let out = omaspec_render::Renderer::new(&omaspec_render::Config {
+        java_fallback: false,
+        ..omaspec_render::Config::default()
+    })
+    .render(&asked, Language::PlantUml)
+    .unwrap();
+    let mut paper = Paper {
+        views,
+        ..Paper::default()
+    };
+    let mut reply = answer(1, paper.pretend_next(), Ok(Drawn::of(out).unwrap()));
+    reply.source = source.into();
+    reply.language = Language::PlantUml;
+    let task = paper.rendered(reply);
+    paper.run(task);
+    let why = paper.start_play().unwrap_err();
+    assert!(why.contains("View → State machines"), "{why}");
+}
+
 fn show_source(paper: &mut Paper, source: &str, language: Language) {
     let task = draw_source(paper, source, language);
     paper.run(task);

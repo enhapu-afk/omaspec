@@ -363,13 +363,14 @@ fn placed(machine: &Machine, map: &Map) -> Result<Placed, String> {
     // A machine the picture does not show in full would play steps nobody
     // sees.
     if placed.states.iter().any(Option::is_none) || placed.routes.iter().any(Option::is_none) {
-        return Err(
-            "the diagram does not show every state and transition its lines name, so it cannot be played"
-                .into(),
-        );
+        return Err(UNSHOWN.into());
     }
     Ok(placed)
 }
+
+/// Why a machine the picture does not show in full cannot be played.
+pub const UNSHOWN: &str =
+    "the diagram does not show every state and transition its lines name, so it cannot be played";
 
 /// Where the machine `source` draws can be and what it offers there, as a
 /// play of it finds them; `None` for a diagram that is no state machine.

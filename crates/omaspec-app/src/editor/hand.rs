@@ -25,10 +25,8 @@ impl App {
             paper::Message::Play(ask) => Some(ask),
             _ => None,
         };
-        if matches!(message, paper::Message::StopPlay)
-            && self.beside.as_ref().is_some_and(|b| b.scenario == key)
-        {
-            self.beside = None;
+        if matches!(message, paper::Message::StopPlay) {
+            self.close_beside(key);
         }
         let relight = key != compare::KEY && matches!(message, paper::Message::PlayGone);
         let moves = paper::Paper::moves_view(&message);

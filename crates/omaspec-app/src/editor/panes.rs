@@ -34,7 +34,7 @@ impl App {
             .paper
             .set_scale_factor(factor)
             .map(move |m| Message::Paper(key, m));
-        Task::batch([a, b, thumbs])
+        Task::batch([a, b, self.beside_scale(), thumbs])
     }
 
     pub(super) fn pane(&self, wanted: Pane) -> Option<pane_grid::Pane> {
@@ -99,6 +99,7 @@ impl App {
             window::close(window),
             a,
             b,
+            self.beside_scale(),
             self.apply_keyboard_focus(),
             picker_back,
         ])

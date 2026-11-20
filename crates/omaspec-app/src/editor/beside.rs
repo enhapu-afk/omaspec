@@ -87,7 +87,9 @@ impl App {
     /// its tab where one holds it, and drawn. None where no participant
     /// has a machine.
     pub(super) fn open_beside(&mut self, key: u64) -> Task<Message> {
-        self.beside = None;
+        // The machines of a scenario in another tab stay, unless this one
+        // has machines to take their place.
+        self.close_beside(key);
         let Some(doc) = self.docs.iter().find(|d| d.key == key) else {
             return Task::none();
         };
@@ -98,7 +100,7 @@ impl App {
         let Some(step) = omaspec_model::lockstep(&text, language, &doc.specs) else {
             return Task::none();
         };
-        let panes: Vec<Pane> = step
+        let mut panes: Vec<Pane> = step
             .players
             .into_iter()
             .take(MOST)
@@ -137,6 +139,11 @@ impl App {
         if let Some(doc) = self.find(key) {
             doc.paper.mark_wrong(wrong);
         }
+        for pane in &mut panes {
+            // An answer to a pane that held this key before, still on its
+            // way, is not taken for this one's.
+            pane.paper.tickets_after(self.beside_tickets);
+        }
         let asks: Vec<(u64, String, Language)> = panes
             .iter()
             .map(|p| (p.key, p.text.clone(), p.language))
@@ -149,7 +156,29 @@ impl App {
         for (key, text, language) in asks {
             self.dispatch(key, &text, language);
         }
-        Task::none()
+        self.beside_scale()
+    }
+
+    /// The machines beside the scenario rasterized for the scale factor
+    /// of the window the diagram is in, as the compare pane is.
+    pub(super) fn beside_scale(&mut self) -> Task<Message> {
+        let factor = self.paper_scale();
+        let Some(beside) = &mut self.beside else {
+            return Task::none();
+        };
+        Task::batch(beside.panes.iter_mut().map(|pane| {
+            let key = pane.key;
+            pane.paper
+                .set_scale_factor(factor)
+                .map(move |m| Message::Paper(key, m))
+        }))
+    }
+
+    /// The scenario in tab `key` stopped playing: its machines go.
+    pub(super) fn close_beside(&mut self, key: u64) {
+        if self.beside.as_ref().is_some_and(|b| b.scenario == key) {
+            self.beside = None;
+        }
     }
 
     /// Whether `key` is a machine's pane beside the scenario.
@@ -233,7 +262,8 @@ impl App {
         let scenario = &doc.paper;
         let now = scenario.play_now();
         match ask {
-            Ask::Next => {
+            // A digit takes a scenario's next message as Space does.
+            Ask::Next | Ask::Take(_) => {
                 let Some(Offer::Scenario { at, .. }) = scenario.offer() else {
                     return;
                 };
@@ -286,7 +316,7 @@ impl App {
                     }
                 }
             }
-            Ask::Take(_) | Ask::Hover(_) => {}
+            Ask::Hover(_) => {}
         }
     }
 }
@@ -379,7 +409,17 @@ mod tests {
         assert_eq!(trace(&mut app), (1, None));
         press(&mut app, Command::PlayAsk(Ask::Restart));
         assert_eq!(trace(&mut app), (0, None));
+        // A digit takes the scenario's next message as Space does, and
+        // the machine along.
+        press(&mut app, Command::PlayAsk(Ask::Take(0)));
+        assert_eq!(trace(&mut app), (1, None));
         press(&mut app, Command::Play);
+        assert!(app.beside.is_none());
+        // An edit of the scenario ends its play, and its machines go.
+        press(&mut app, Command::Play);
+        assert!(app.beside.is_some());
+        deliver(&mut app, key, &keys.replace("open", "close"));
+        assert!(!app.doc().paper.playing());
         assert!(app.beside.is_none());
         let _ = std::fs::remove_dir_all(&dir);
     }

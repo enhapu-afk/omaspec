@@ -46,7 +46,7 @@ impl App {
     pub(super) fn toggle_play(&mut self) -> Task<Message> {
         let key = self.doc().key;
         if self.doc().paper.playing() {
-            self.beside = None;
+            self.close_beside(key);
             return self
                 .doc_mut()
                 .paper
