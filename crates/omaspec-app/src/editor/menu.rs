@@ -506,6 +506,7 @@ impl App {
             Command::KeepBands => self.look.bands,
             Command::JsonLayout => self.look.views.nested,
             Command::StateTable => self.look.views.table,
+            Command::StateOrbit => self.look.views.orbit,
             Command::Outline => self.outline_shown,
             Command::FollowTheme => self.follow_theme,
             Command::ToggleSidebar => self.sidebar_open(),

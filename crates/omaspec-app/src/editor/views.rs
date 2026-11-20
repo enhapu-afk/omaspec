@@ -78,8 +78,22 @@ impl App {
 
     pub(super) fn toggle_state_table(&mut self) -> Task<Message> {
         self.look.views.table = !self.look.views.table;
+        // One view at a time.
+        self.look.views.orbit &= !self.look.views.table;
         self.notice = Some(if self.look.views.table {
             "state machines shown as tables, states down, events across; Ctrl+click a cell for its line".into()
+        } else {
+            "state machines shown as diagrams".into()
+        });
+        self.redraw_views(crate::worker::holds_machine)
+    }
+
+    pub(super) fn toggle_state_orbit(&mut self) -> Task<Message> {
+        self.look.views.orbit = !self.look.views.orbit;
+        // One view at a time.
+        self.look.views.table &= !self.look.views.orbit;
+        self.notice = Some(if self.look.views.orbit {
+            "state machines shown as life cycles on a ring: a way on runs along it, a way back inside it".into()
         } else {
             "state machines shown as diagrams".into()
         });

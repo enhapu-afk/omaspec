@@ -108,6 +108,7 @@ impl Command {
             | Command::KeepBands
             | Command::JsonLayout
             | Command::StateTable
+            | Command::StateOrbit
             | Command::Outline
             | Command::Suggest
             | Command::Fix

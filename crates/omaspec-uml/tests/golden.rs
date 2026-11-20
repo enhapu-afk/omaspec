@@ -62,3 +62,34 @@ fn diagrams_match_golden_svgs() {
         "changed: {mismatches:?}; run with UPDATE_GOLDEN=1 and review the diff"
     );
 }
+
+/// The orbit view: each state machine in `tests/orbit` drawn as its life
+/// cycle on a ring against its SVG in `tests/golden`.
+#[test]
+fn orbits_match_golden_svgs() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let update = std::env::var_os("UPDATE_GOLDEN").is_some();
+    let mut files: Vec<PathBuf> = fs::read_dir(root.join("tests/orbit"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    files.sort();
+    let mut mismatches = Vec::new();
+    for file in &files {
+        let name = file.file_name().unwrap().to_str().unwrap();
+        let code = fs::read_to_string(file).unwrap();
+        let (svg, _) =
+            omaspec_uml::render_orbit(&code, None).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        let actual = lines(&svg);
+        let golden = root.join("tests/golden").join(format!("orbit-{name}.svg"));
+        if update {
+            fs::write(&golden, &actual).unwrap();
+        } else if fs::read_to_string(&golden).ok().as_deref() != Some(actual.as_str()) {
+            mismatches.push(name.to_owned());
+        }
+    }
+    assert!(
+        mismatches.is_empty(),
+        "changed: {mismatches:?}; run with UPDATE_GOLDEN=1 and review the diff"
+    );
+}

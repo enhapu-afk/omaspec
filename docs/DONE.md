@@ -2897,6 +2897,21 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Orbit (2026-11-20): a state machine's life cycle on a ring, a view as the table is
+      (`' view (Omaspec) orbit`, View menu, `omaspec orbit FILE -o`), for PlantUML and
+      Mermaid alike, in the look of the machine's states (`omaspec_uml::state::orbit`).
+      The states of the top level stand round a circle in the order a run reaches them,
+      clockwise from the top, where the ring opens with the start on one side and the
+      end on the other: depth first, a detour (a state that only leads back) right after
+      the state it leaves, then the way that reaches the most, a branch that ends soon
+      after the rest, a state no way reaches last. A way on runs along the ring, a way
+      back is an arc inside it running back beside the part it passes, a way that skips
+      ahead an arc outside it, each a lane further where it runs beside another; a way to
+      itself a loop outside its box. A state around others is one box that says how
+      many it holds, the ways into and out of what it holds its own. The words of each
+      way stand at the first place along it that keeps clear of the others and of the
+      boxes, tied to its line; the map says where each state and way is. Golden SVGs in
+      `tests/orbit`
 - [x] The lockstep in the window (2026-11-20): F5 on a scenario whose participants have
       state machines in its project opens each machine in a pane beside it
       (`editor::beside`), drawn as the window draws the compare pane, each under a key

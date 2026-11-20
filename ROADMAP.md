@@ -613,12 +613,6 @@ the one before:
       page was looked at in Chromium alone, not in Firefox or Safari; in
       the page a box that changes its size is stretched (its words are
       not), where the pane keeps its corners.
-- [ ] Orbit: a state machine's life cycle on a circle, the way through
-      it round the ring, a way back as an arc inside it, an end where
-      the ring opens, from the machines that are there with no syntax
-      of their own (a view, as the table is: View menu, `omaspec orbit
-      FILE -o`). For orders, tickets, sprints, anything that comes
-      round again.
 - [ ] Trace river: many recorded traces flowing through a machine, each
       way as wide as it was taken, the ways never taken thin and
       dashed, a deviation branching off in red where the trace left the

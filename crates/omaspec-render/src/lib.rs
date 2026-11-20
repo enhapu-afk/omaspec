@@ -59,6 +59,45 @@ impl Engine {
 }
 
 /// A sanitized SVG and how it was made.
+/// Renders the state machine `source` as its life cycle on a ring, in
+/// its look ([`omaspec_uml::state::draw_orbit`]).
+pub fn render_orbit(
+    source: &str,
+    language: Language,
+    place: Option<&Place>,
+) -> Result<Rendered, RenderError> {
+    let start = Instant::now();
+    let (svg, engine, map) = match language {
+        Language::Mermaid => {
+            let (svg, map) = mermaid::render_orbit(source)?;
+            (svg, Engine::NativeMermaid, map)
+        }
+        Language::PlantUml => {
+            let folder = place.map(include::Folder::new);
+            let includes = folder.as_ref().map(|f| f as &dyn omaspec_uml::Includes);
+            let (svg, map) = omaspec_uml::render_orbit(source, includes).map_err(|declined| {
+                RenderError::Unavailable {
+                    line: declined.line,
+                    reason: declined.reason,
+                }
+            })?;
+            (svg, Engine::NativePlantUml, map)
+        }
+    };
+    let svg = sanitize::sanitize(&legible_in(svg, source)).map_err(|e| RenderError::Engine {
+        engine,
+        message: format!("invalid SVG: {e}"),
+    })?;
+    Ok(Rendered {
+        svg,
+        engine,
+        elapsed: start.elapsed(),
+        map,
+        links: Vec::new(),
+        cards: None,
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct Rendered {
     pub svg: String,
@@ -349,6 +388,10 @@ impl Renderer {
         // The pane's table view of a state machine (`' view (Omaspec) table`).
         if omaspec_uml::fold::table(source) {
             return render_table(source, language, place);
+        }
+        // Its orbit view: the life cycle on a ring (`' view (Omaspec) orbit`).
+        if omaspec_uml::fold::orbit(source) {
+            return render_orbit(source, language, place);
         }
         let start = Instant::now();
         let (svg, engine, map) = match language {

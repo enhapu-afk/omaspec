@@ -685,6 +685,15 @@ it in the look of the machine, and `--json` gives every cell. In the editor, *St
 machines: as a diagram or a table* (View) shows every state machine as its table, in the
 Omarchy colors; Ctrl+click on a line of a cell puts the caret on its transition.
 
+**The life cycle on a ring.** `omaspec orbit order.puml -o order.svg` draws a state
+machine as an orbit: its states round a circle in the order a run reaches them, clockwise
+from the start at the top, where the ring opens; a way on to the next runs along the ring,
+a way back is an arc inside it, a way that skips ahead an arc outside it. The way that
+reaches the most stays together, a detour stands right after the state it leaves, a branch
+that ends soon (a cancel) comes after the rest. A state around others is one box that says
+how many it holds. In the editor, *State machines: as a diagram or a life cycle on a
+ring* (View) shows every state machine so; a click lands on the line of a state or a way.
+
 **What changed, and in the other language.** `omaspec diff` compares two versions, or a
 file with its last commit, by states, transitions and messages, not by lines; layout and
 colors do not count. Given a folder, it does so for the whole project: every diagram that
@@ -713,6 +722,7 @@ omaspec trace run.jsonl --as timing -o run.svg   # the trace as a timing diagram
 omaspec coverage door.puml --traces a.jsonl,b.jsonl -o door-cov.svg   # what the traces take of the machine; --json, --min 80
 omaspec diff old.puml door.puml -o door-diff.svg   # a state machine's changes drawn over its new version
 omaspec matrix door.puml            # the machine as a table, states down, events across; -o door.md or door.svg, --json
+omaspec orbit order.puml -o order.svg   # the machine's life cycle on a ring: a way on along it, a way back inside it; .png, .pdf, the SVG on standard output without -o
 omaspec refs Door                   # every use of a diagram, state or event in the project; --machine, --json
 omaspec rename Door Gate            # renamed at every use; --state, --event, --machine, --dry-run, --json
 omaspec fmt --write diagrams/*.puml # re-indent in place (atomic); --check for CI

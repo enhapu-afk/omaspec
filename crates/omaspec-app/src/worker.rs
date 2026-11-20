@@ -460,6 +460,8 @@ pub struct Views {
     pub nested: bool,
     /// A state machine as its table of states and events.
     pub table: bool,
+    /// A state machine as its life cycle on a ring.
+    pub orbit: bool,
 }
 
 /// `source` with a line for each container `folds` names after it, which
@@ -474,8 +476,9 @@ pub fn folded(source: &str, language: Language, folds: &[String], views: Views) 
     let classified = omaspec_core::kind::classify(source, language);
     let machine = classified.kind == omaspec_core::Kind::State;
     let table = views.table && machine;
+    let orbit = views.orbit && machine && !table;
     let parts = marks_parts(source, language, &classified);
-    if folds.is_empty() && !nested && !parts {
+    if folds.is_empty() && !nested && !parts && !table && !orbit {
         return text;
     }
     if !text.ends_with('\n') {
@@ -501,6 +504,11 @@ pub fn folded(source: &str, language: Language, folds: &[String], views: Views) 
     }
     if table {
         text.push_str(&omaspec_uml::fold::table_line(
+            language == Language::Mermaid,
+        ));
+    }
+    if orbit {
+        text.push_str(&omaspec_uml::fold::orbit_line(
             language == Language::Mermaid,
         ));
     }

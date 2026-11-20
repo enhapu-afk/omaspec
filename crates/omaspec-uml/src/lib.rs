@@ -395,6 +395,24 @@ pub fn render_table(
     }
 }
 
+/// Draws the state machine `source` as its life cycle on a ring, reading
+/// its `!include`s through `includes` ([`state::draw_orbit`]).
+pub fn render_orbit(
+    source: &str,
+    includes: Option<&dyn Includes>,
+) -> Result<(String, map::Map), Declined> {
+    match parse_with(source, includes)? {
+        Diagram::State(d) => {
+            embedded::within(embedded::skin_of(&d.frame), || state::draw_orbit(&d))
+        }
+        _ => Err(Declined {
+            line: None,
+            reason: "only a state diagram has a life cycle to draw on a ring".to_owned(),
+            refused: false,
+        }),
+    }
+}
+
 /// Draws `source` as SVG, reading its `!include`s through `includes`, and
 /// says where its states, transitions and messages are in it. The map of
 /// the other types is empty.

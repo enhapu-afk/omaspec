@@ -1,0 +1,17 @@
+@startuml
+title A parcel
+[*] --> Ordered
+Ordered --> Cancelled : cancel
+Ordered --> Packed : pay
+state Underway {
+  [*] --> Sorting
+  Sorting --> OnTheRoad : loaded
+}
+Packed --> Underway : handed over
+state doorstep <<choice>>
+Underway --> doorstep : arrives
+doorstep --> Delivered : [someone home]
+doorstep --> Underway : [nobody home]
+Delivered --> [*]
+Cancelled --> [*]
+@enduml

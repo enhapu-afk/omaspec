@@ -20,6 +20,7 @@ mod look;
 mod matrix_command;
 mod mcp;
 mod names;
+mod orbit_command;
 mod paper;
 mod preview;
 mod project;
@@ -165,6 +166,17 @@ enum Command {
         /// Print the states, the events and every cell as JSON.
         #[arg(long)]
         json: bool,
+    },
+    /// A state machine's life cycle on a ring: its states round a circle
+    /// in the order a run reaches them, a way on along the ring, a way
+    /// back as an arc inside it, the start and the end where the ring
+    /// opens. The SVG on standard output without -o.
+    Orbit {
+        /// The state machine, PlantUML or Mermaid.
+        file: PathBuf,
+        /// A picture of it in the look of the machine: .svg, .png or .pdf.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
     /// How much of a state machine recorded traces take.
     ///
@@ -790,6 +802,7 @@ fn main() -> ExitCode {
             strict,
             github,
         }) => check_command::check(&dir, json, strict, github),
+        Some(Command::Orbit { file, output }) => orbit_command::run(&file, output.as_deref()),
         Some(Command::Matrix { file, output, json }) => {
             matrix_command::run(&file, output.as_deref(), json)
         }

@@ -1,0 +1,17 @@
+@startuml
+title A support ticket
+[*] --> New
+New --> Open : assigned
+Open --> Waiting : asked the customer
+Waiting --> Open : answered
+Open --> Open : note
+state Resolved {
+  [*] --> Proposed
+  Proposed --> Confirmed : accepted
+}
+Open --> Resolved : fixed
+Resolved --> Open : reopened
+New --> Closed : spam
+Resolved --> Closed : after a week
+Closed --> [*]
+@enduml

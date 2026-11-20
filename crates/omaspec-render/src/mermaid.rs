@@ -146,6 +146,20 @@ pub(crate) enum Over<'a> {
     Marks(&'a omaspec_uml::state::Marks),
     /// Its table in place of it, on the lines of the fenced text.
     Table(&'a omaspec_uml::table::Table),
+    /// Its life cycle on a ring in place of it.
+    Orbit,
+}
+
+/// A Mermaid state machine as its life cycle on a ring.
+pub fn render_orbit(source: &str) -> Result<(String, Map), RenderError> {
+    let drawn = draw_with(source, Over::Orbit)?;
+    match drawn.declined {
+        None => Ok((drawn.svg, drawn.map)),
+        Some(_) => Err(RenderError::Unavailable {
+            line: None,
+            reason: "only a state diagram Omaspec draws itself has a life cycle on a ring".into(),
+        }),
+    }
 }
 
 fn draw_with(source: &str, over: Over) -> Result<Drawn, RenderError> {

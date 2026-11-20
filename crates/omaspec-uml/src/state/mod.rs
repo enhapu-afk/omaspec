@@ -14,6 +14,7 @@ mod draw;
 mod lower;
 mod marks;
 pub mod mermaid;
+mod orbit;
 mod parse;
 mod skin;
 mod table;
@@ -22,6 +23,7 @@ pub use crate::common::{Frame, Skinparam, Text};
 pub use draw::{draw, draw_mapped, label_by_hand};
 pub use lower::from_mermaid;
 pub use marks::{CHANGED, Ghost, MISSED, Mark, Marks, TAKEN};
+pub use orbit::draw_orbit;
 pub use parse::{is_state, parse};
 pub use table::draw_table;
 

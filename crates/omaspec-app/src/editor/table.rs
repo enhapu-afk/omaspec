@@ -379,6 +379,13 @@ pub const TABLE: &[Entry] = &[
     .menu(View)
     .short("State machines as tables"),
     cmd(
+        "State machines: as a diagram or a life cycle on a ring",
+        "",
+        Command::StateOrbit,
+    )
+    .menu(View)
+    .short("State machines as orbits"),
+    cmd(
         "Outline beside the source: shown or hidden",
         "",
         Command::Outline,

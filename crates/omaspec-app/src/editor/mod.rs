@@ -372,6 +372,9 @@ pub enum Command {
     /// State machines shown as their tables of states and events, or as
     /// diagrams.
     StateTable,
+    /// State machines shown as their life cycles on a ring, or as
+    /// diagrams.
+    StateOrbit,
     /// The outline beside the source, or not.
     Outline,
     /// The fix a finding on the caret's line carries.
@@ -835,6 +838,7 @@ impl App {
                 views: crate::worker::Views {
                     nested: session.nested,
                     table: session.table,
+                    orbit: session.orbit && !session.table,
                 },
                 ..look
             },
@@ -1920,6 +1924,7 @@ impl App {
             Command::JsonLayout => self.toggle_json_layout(),
             Command::Outline => self.toggle_outline(),
             Command::StateTable => self.toggle_state_table(),
+            Command::StateOrbit => self.toggle_state_orbit(),
             Command::FollowTheme => self.toggle_follow_theme(),
             Command::Gallery => self.toggle_gallery(),
             Command::OpenExample(play) => self.open_chosen(play),

@@ -2841,6 +2841,7 @@ fn the_drawers_that_mark_parts_are_asked_for_them() {
     let plain = crate::worker::Views {
         nested: false,
         table: false,
+        orbit: false,
     };
     let asked = |source: &str, language: Language| {
         crate::worker::folded(source, language, &[], plain).contains("parts (Omaspec)")
@@ -2880,6 +2881,7 @@ fn only_a_json_or_yaml_diagram_is_asked_for_nested() {
     let nested = crate::worker::Views {
         nested: true,
         table: false,
+        orbit: false,
     };
     assert!(
         crate::worker::folded(json, Language::PlantUml, &[], nested).contains("layout (Omaspec)")
@@ -2894,6 +2896,7 @@ fn only_a_json_or_yaml_diagram_is_asked_for_nested() {
     let table = crate::worker::Views {
         nested: false,
         table: true,
+        orbit: false,
     };
     assert_eq!(
         crate::worker::folded(json, Language::PlantUml, &[], table),
@@ -6156,6 +6159,7 @@ fn json_is_drawn_nested_from_the_view_menu_and_the_session_keeps_it() {
     let views = crate::worker::Views {
         nested: true,
         table: false,
+        orbit: false,
     };
     let asked = crate::worker::folded(source, Language::PlantUml, &[], views);
     assert!(asked.ends_with("' layout (Omaspec) nested\n"), "{asked}");
@@ -7207,4 +7211,39 @@ fn snapshot_lockstep() {
         );
     }
     shoot(&mut app, &dir, "lockstep-window");
+}
+
+/// The orbit view: a state machine asked for as its life cycle on a ring,
+/// one view at a time with the table, kept by the session; the picture
+/// the pane gets has a way for each transition, by its line.
+#[test]
+fn a_state_machine_is_shown_as_its_orbit() {
+    let source =
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
+    let mut app = open(&[]);
+    select_all_and_paste(&mut app, source);
+    press(&mut app, Command::StateTable);
+    press(&mut app, Command::StateOrbit);
+    assert!(app.look.views.orbit && !app.look.views.table);
+    assert!(app.session().orbit && !app.session().table);
+    assert!(app.notice.as_deref().unwrap().contains("ring"));
+    let asked = crate::worker::folded(source, Language::PlantUml, &[], app.look.views);
+    assert!(asked.contains("' view (Omaspec) orbit"), "{asked}");
+    let drawn = omaspec_render::Renderer::new(&crate::commands::render_config())
+        .render(&asked, Language::PlantUml)
+        .unwrap();
+    let mut lines: Vec<usize> = drawn.map.transitions.iter().map(|t| t.line).collect();
+    lines.sort();
+    assert_eq!(lines, [1, 2, 3]);
+    // The table again takes the orbit's place; a sequence is asked for as
+    // itself.
+    press(&mut app, Command::StateTable);
+    assert!(app.look.views.table && !app.look.views.orbit);
+    let sequence = "@startuml\nA -> B\n@enduml\n";
+    let orbit = crate::worker::Views {
+        nested: false,
+        table: false,
+        orbit: true,
+    };
+    assert!(!crate::worker::folded(sequence, Language::PlantUml, &[], orbit).contains("orbit"));
 }

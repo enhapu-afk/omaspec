@@ -1216,7 +1216,7 @@ fn shortened(points: &[(f32, f32)]) -> Vec<(f32, f32)> {
     line
 }
 
-fn arrow_head(canvas: &mut Canvas, skin: &Skin, points: &[(f32, f32)], stroke: Stroke) {
+pub(super) fn arrow_head(canvas: &mut Canvas, skin: &Skin, points: &[(f32, f32)], stroke: Stroke) {
     let Some(head) = head_shape(points, skin.strict) else {
         return;
     };

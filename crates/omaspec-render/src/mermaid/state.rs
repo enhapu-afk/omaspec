@@ -33,6 +33,7 @@ pub fn try_draw(theme: &Theme, fenced: &str, over: super::Over) -> Option<(Strin
         super::Over::Nothing => {}
         super::Over::Marks(marks) => diagram.mark(marks),
         super::Over::Table(table) => return omaspec_uml::state::draw_table(&diagram, table).ok(),
+        super::Over::Orbit => return omaspec_uml::state::draw_orbit(&diagram).ok(),
     }
     draw_mapped(&diagram).ok()
 }

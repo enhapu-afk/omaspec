@@ -59,6 +59,9 @@ pub struct Session {
     /// State machines drawn as their tables of states and events.
     #[serde(default)]
     pub table: bool,
+    /// State machines drawn as their life cycles on a ring.
+    #[serde(default)]
+    pub orbit: bool,
     /// The outline stands beside the source.
     #[serde(default)]
     pub outline: bool,
@@ -83,6 +86,7 @@ impl Default for Session {
             bands: true,
             nested: false,
             table: false,
+            orbit: false,
             outline: false,
             docs: Vec::new(),
             recent: Vec::new(),
@@ -254,6 +258,7 @@ impl App {
             bands: self.look.bands,
             nested: self.look.views.nested,
             table: self.look.views.table,
+            orbit: self.look.views.orbit,
             outline: self.outline_shown,
             recent: self.recent_files.clone(),
             docs: self
@@ -332,6 +337,7 @@ mod tests {
             bands: false,
             nested: false,
             table: false,
+            orbit: false,
             outline: false,
             docs: vec![SavedDoc {
                 path: None,

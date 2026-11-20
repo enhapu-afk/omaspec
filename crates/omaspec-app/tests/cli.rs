@@ -1183,6 +1183,41 @@ fn a_play_is_written_as_a_gif_that_moves() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// `omaspec orbit` draws a state machine's life cycle on a ring, the SVG
+/// on standard output or a picture; a scenario has none.
+#[test]
+fn orbit_draws_a_life_cycle_on_a_ring() {
+    let dir = scratch("orbit");
+    let door = dir.join("door.puml");
+    fs::write(
+        &door,
+        "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+    )
+    .unwrap();
+    let out = omaspec(&["orbit", door.to_str().unwrap()]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let svg = String::from_utf8_lossy(&out.stdout);
+    assert!(svg.starts_with("<svg") && svg.contains("Closed"), "{svg}");
+    let png = dir.join("door.png");
+    let out = omaspec(&["orbit", door.to_str().unwrap(), "-o", png.to_str().unwrap()]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(fs::read(&png).unwrap().starts_with(b"\x89PNG"));
+    let scenario = dir.join("keys.puml");
+    fs::write(&scenario, "@startuml\nA -> B : hi\n@enduml\n").unwrap();
+    let out = omaspec(&["orbit", scenario.to_str().unwrap()]);
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("no state machine"));
+    let _ = fs::remove_dir_all(&dir);
+}
+
 /// A project's file is linted as what it is: nothing to say of a good
 /// one, its line where it is wrong; no word of a diagram.
 #[test]
