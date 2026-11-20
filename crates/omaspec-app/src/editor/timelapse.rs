@@ -680,6 +680,7 @@ mod tests {
             lockstep: false,
             history: true,
             traffic: Vec::new(),
+            themes: None,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

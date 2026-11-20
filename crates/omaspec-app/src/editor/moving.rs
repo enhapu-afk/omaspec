@@ -64,6 +64,10 @@ pub struct Moving {
     /// Instead of a play: these recorded traces flowing through the
     /// machine at once ([`super::traffic`]).
     pub traffic: Vec<PathBuf>,
+    /// Instead of a play: the diagram through these themes, each sweeping
+    /// over the one before; empty takes every bundled one
+    /// ([`super::sweep`]).
+    pub themes: Option<Vec<String>>,
     /// The whole diagram in every frame, rather than a camera that follows
     /// the play where the whole is too large to read (REQ-071).
     pub whole: bool,
@@ -154,7 +158,7 @@ pub(super) const BAR: f32 = 90.0;
 pub fn play(args: &Moving) -> Result<String> {
     let film = Film::of(&args.output).with_context(|| {
         format!(
-            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold, a build, a lockstep, a history or traffic as a page)",
+            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold, a build, a lockstep, a history, traffic or a sweep as a page)",
             args.output.display()
         )
     })?;
@@ -176,6 +180,13 @@ pub fn play(args: &Moving) -> Result<String> {
             "--width takes 200 to 4000"
         );
         return super::building::build(args, film, fps);
+    }
+    if let Some(names) = &args.themes {
+        anyhow::ensure!(
+            args.width.is_none_or(|width| (200..=4000).contains(&width)),
+            "--width takes 200 to 4000"
+        );
+        return super::sweep::sweep(args, names, film, fps);
     }
     if !args.traffic.is_empty() {
         anyhow::ensure!(
@@ -933,6 +944,7 @@ mod tests {
                 lockstep: false,
                 history: false,
                 traffic: Vec::new(),
+                themes: None,
                 whole: false,
                 theme: Some("built-in".into()),
                 file_colors: false,
@@ -988,6 +1000,7 @@ mod tests {
             lockstep: false,
             history: false,
             traffic: Vec::new(),
+            themes: None,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1044,6 +1057,7 @@ mod tests {
                 lockstep: false,
                 history: false,
                 traffic: Vec::new(),
+                themes: None,
             whole: true,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1085,6 +1099,7 @@ mod tests {
             lockstep: false,
             history: false,
             traffic: Vec::new(),
+            themes: None,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1183,6 +1198,7 @@ mod tests {
             lockstep: false,
             history: false,
             traffic: Vec::new(),
+            themes: None,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

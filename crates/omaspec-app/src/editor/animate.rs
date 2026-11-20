@@ -240,6 +240,7 @@ impl App {
             lockstep: false,
             history: false,
             traffic: Vec::new(),
+            themes: None,
             whole: false,
             theme: None,
             file_colors: !self.follow_theme,

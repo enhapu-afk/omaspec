@@ -478,6 +478,7 @@ mod tests {
             lockstep: false,
             history: false,
             traffic: Vec::new(),
+            themes: None,
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

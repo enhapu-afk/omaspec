@@ -58,6 +58,7 @@ mod reveal;
 mod screen;
 mod search;
 mod session;
+mod sweep;
 mod syntax;
 pub mod table;
 mod takes;

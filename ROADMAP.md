@@ -687,8 +687,6 @@ picture, the second is the highlight.
       machines of its participants opening beside it.
 - [ ] A flight through the project: built as GIF, WebP and PNG (in
       docs/DONE.md). Left: a dive and a flight as a page in vectors.
-- [ ] A theme sweep: one diagram gliding through every bundled Omarchy
-      theme, its colors crossing over, the theme's name as a caption.
 - [ ] From sketch to ink: a diagram in the sketch look (docs/adr/0023)
       drawn stroke by stroke as with a pen, then inked into the clean
       look.

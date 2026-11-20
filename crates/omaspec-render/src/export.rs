@@ -10,6 +10,7 @@ pub mod folding;
 mod glyphs;
 pub mod lockstep;
 mod present;
+pub mod sweep;
 mod tiles;
 pub mod traffic;
 

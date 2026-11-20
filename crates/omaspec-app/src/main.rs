@@ -496,6 +496,12 @@ enum Command {
         /// leaves the machine.
         #[arg(long, value_delimiter = ',', value_name = "TRACE", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history"])]
         traffic: Vec<PathBuf>,
+        /// Instead of a play: the diagram through these Omarchy themes
+        /// (names, colors.toml files or built-in), each sweeping over the
+        /// one before, its name under it; without names, every bundled
+        /// theme.
+        #[arg(long, num_args = 0.., value_delimiter = ',', value_name = "THEME", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "traffic", "theme"])]
+        themes: Option<Vec<String>>,
         /// The whole diagram in every frame. Without it, a play or a fold
         /// of a diagram too large to read whole follows each step or each
         /// container, near enough to read, and ends on the whole.
@@ -906,6 +912,7 @@ fn main() -> ExitCode {
             lockstep,
             history,
             traffic,
+            themes,
             whole,
             theme,
             lang,
@@ -922,6 +929,7 @@ fn main() -> ExitCode {
             lockstep,
             history,
             traffic,
+            themes,
             whole,
             theme,
             text: None,

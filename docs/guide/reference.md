@@ -743,6 +743,7 @@ omaspec play keys.puml -o lockstep.gif --lockstep          # a scenario beside t
 omaspec play keys.puml -o lockstep.html --lockstep         # the same as a page in vectors, played by a browser; lockstep.html#t=5 holds it still 5 seconds in
 omaspec play parcel.puml -o history.gif --history          # the diagram's history in git: every commit that changed the file glides into the next at one scale, oldest first, the commit under it (the newest 60); .html a page in vectors, history.html#2 shows the third commit, #2.5 the glide from it halfway
 omaspec play order.puml -o traffic.gif --traffic week.jsonl   # recorded traces flowing through the machine at once, each object a dot: the ways glow the more dots take them, those never taken blink grey at the end, a dot turns red where its trace deviates; several traces with commas flow side by side; .html a page in vectors, traffic.html#t=6 holds it still
+omaspec play coffee.puml -o sweep.gif --themes             # the diagram through every bundled Omarchy theme, each theme's colors sweeping over the one before, its name under it; --themes tokyo-night,gruvbox,my/colors.toml,built-in names them; .html a page in vectors, sweep.html#t=4 holds it still
 omaspec render flow.mmd --look auto # plain, sketch, vivid, omarchy, light or dark; auto: one SVG, dark under a dark scheme
 omaspec render .                    # every diagram of the folder, each beside its own, in the project's look
 omaspec render --check .            # writes nothing: each SVG against the one beside it, what changed; exit 1

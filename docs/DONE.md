@@ -2897,6 +2897,16 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A theme sweep (2026-11-20, the sixth of the animations that show what a diagram
+      means): `omaspec play FILE --themes -o sweep.gif` draws the diagram in every
+      bundled Omarchy theme as the pane draws it there (`editor::sweep`), each theme's
+      picture with its name and its place under it in its own colors, and sweeps each
+      over the one before from the left with a soft edge, the last into the first so
+      the picture loops; many themes stay shorter. `--themes tokyo-night,gruvbox` names
+      them (a theme of Omarchy's or the writer's own, a `colors.toml`, or `built-in`).
+      Mixed in pixels without a GPU; as `.html` a page in vectors (`export::sweep`):
+      the pictures laid on one another, each with ids of its own and the faces once,
+      the one sweeping in masked with a soft edge, `#t=4` holding it still
 - [x] A flight through the project (2026-11-20, the fifth of the animations that show
       what a diagram means): `--dive Day/Order/Payment` on a project's
       `omaspec-project.toml` zooms from the map into the tile Day, on along the state
