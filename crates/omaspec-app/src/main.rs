@@ -451,8 +451,10 @@ enum Command {
         /// PNG) in full color and without loss, some twice a GIF's size.
         #[arg(short, long)]
         output: PathBuf,
-        /// The events to take, in order, with commas between them.
-        #[arg(long, value_delimiter = ',')]
+        /// The events to take, in order, with commas between them. An
+        /// event with a comma in its name takes `\,` or double quotes round
+        /// it: `--events 'start,"hello, world"'`.
+        #[arg(long)]
         events: Vec<String>,
         /// How many steps at most.
         #[arg(long, default_value_t = 8)]
@@ -962,35 +964,38 @@ fn main() -> ExitCode {
             whole,
             theme,
             lang,
-        }) => editor::moving::play(&editor::moving::Moving {
-            file,
-            output,
-            events,
-            steps,
-            width,
-            fps,
-            folds: fold,
-            dives: dive,
-            builds: build,
-            lockstep,
-            history,
-            travel: from.map(|from| editor::moving::Travel { from, to }),
-            traffic,
-            themes,
-            ink,
-            whole,
-            theme,
-            text: None,
-            file_colors: false,
-            root: None,
-            forced: lang.get(),
-            renderer: None,
-            quality: editor::gifs::Quality { colors, lossy },
-        })
-        .map(|wrote| {
-            eprintln!("{wrote}");
-            ExitCode::SUCCESS
-        }),
+        }) => editor::moving::events(&events)
+            .and_then(|events| {
+                editor::moving::play(&editor::moving::Moving {
+                    file,
+                    output,
+                    events,
+                    steps,
+                    width,
+                    fps,
+                    folds: fold,
+                    dives: dive,
+                    builds: build,
+                    lockstep,
+                    history,
+                    travel: from.map(|from| editor::moving::Travel { from, to }),
+                    traffic,
+                    themes,
+                    ink,
+                    whole,
+                    theme,
+                    text: None,
+                    file_colors: false,
+                    root: None,
+                    forced: lang.get(),
+                    renderer: None,
+                    quality: editor::gifs::Quality { colors, lossy },
+                })
+            })
+            .map(|wrote| {
+                eprintln!("{wrote}");
+                ExitCode::SUCCESS
+            }),
         Some(Command::Render {
             files,
             output,

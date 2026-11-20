@@ -856,8 +856,11 @@ fn choose(
         })
         .map(Some)
         .with_context(|| {
+            let cut = cut_at_comma(options.iter().map(|(label, _)| label.as_str()), wanted)
+                .map(|hint| format!(" ({hint})"))
+                .unwrap_or_default();
             format!(
-                "step {}: {} is not offered here; the machine offers {}",
+                "step {}: {} is not offered here; the machine offers {}{cut}",
                 step + 1,
                 wanted,
                 options
@@ -885,19 +888,145 @@ fn rehearse(args: &Moving) -> Result<()> {
         return Ok(());
     };
     let mut walked = Vec::new();
+    let mut before: Vec<(String, String)> = Vec::new();
     for step in 0..args.steps {
         let ways = run.options(&machine);
         if run.ended(&machine) || ways.is_empty() {
             break;
         }
         let options: Vec<(String, String)> = ways.iter().map(|&way| machine.option(way)).collect();
-        let Some(choice) = choose(&options, &args.events, step, &walked)? else {
+        let choice = match choose(&options, &args.events, step, &walked) {
+            Ok(choice) => choice,
+            // The step before took an event that, with this one after a
+            // comma, names another it offered: `hello, world` cut in two.
+            Err(err) => {
+                let joined = step
+                    .checked_sub(1)
+                    .and_then(|first| args.events.get(first))
+                    .zip(args.events.get(step))
+                    .map(|(first, then)| format!("{first},{then}"));
+                let hint = joined.and_then(|joined| {
+                    before
+                        .iter()
+                        .map(|(label, _)| label.as_str())
+                        .find(|label| same_words(label, &joined) || same_words(event_of(label), &joined))
+                        .map(|label| {
+                            format!(
+                                "the step before took {}, cut from {}: an event with a comma in its name is written {}",
+                                args.events[step - 1].trim(),
+                                event_of(label),
+                                written(event_of(label))
+                            )
+                        })
+                });
+                return Err(match hint {
+                    Some(hint) => err.context(hint),
+                    None => err,
+                });
+            }
+        };
+        let Some(choice) = choice else {
             break;
         };
         walked.push(options[choice].clone());
+        before = options;
         let _ = run.take(&machine, ways[choice]);
     }
     Ok(())
+}
+
+/// The events `--events` names, in order: each value split at its commas,
+/// but for a comma written `\,`, or inside double quotes round a whole
+/// event (`"hello, world"`), so an event with a comma in its name can be
+/// taken (REQ-097). A `"` inside a name (`[mode == "x"]`) is the name's;
+/// `\\` and `\"` are a backslash and a quote. The option may also be given
+/// more than once. An empty event, or a quote not closed, is an error, not
+/// a play of the first events offered.
+pub fn events(values: &[String]) -> Result<Vec<String>> {
+    let mut events = Vec::new();
+    for value in values {
+        let mut event = String::new();
+        let mut quoted = false;
+        let mut chars = value.chars().peekable();
+        while let Some(c) = chars.next() {
+            match c {
+                '\\' => match chars.next() {
+                    Some(next @ (',' | '"' | '\\')) => event.push(next),
+                    Some(next) => {
+                        event.push('\\');
+                        event.push(next);
+                    }
+                    None => event.push('\\'),
+                },
+                // A quote opens only where an event begins, and closes
+                // only where it ends.
+                '"' if !quoted && event.trim().is_empty() => {
+                    event.clear();
+                    quoted = true;
+                }
+                '"' if quoted && {
+                    let rest: String = chars.clone().collect();
+                    let rest = rest.trim_start();
+                    rest.is_empty() || rest.starts_with(',')
+                } =>
+                {
+                    quoted = false;
+                }
+                ',' if !quoted => events.push(std::mem::take(&mut event)),
+                c => event.push(c),
+            }
+        }
+        anyhow::ensure!(
+            !quoted,
+            r"--events {value}: a double quote is not closed; an event with a comma in its name is written in double quotes or with \,"
+        );
+        events.push(event);
+    }
+    let events: Vec<String> = events.iter().map(|event| event.trim().to_owned()).collect();
+    anyhow::ensure!(
+        events.iter().all(|event| !event.is_empty()),
+        "--events names an empty event: {}",
+        values.join(" ")
+    );
+    Ok(events)
+}
+
+/// How `--events` takes `event`, quoted for the shell.
+fn written(event: &str) -> String {
+    let escaped = event
+        .replace('\\', r"\\")
+        .replace('"', r#"\""#)
+        .replace(',', r"\,");
+    format!("`--events '{}'`", escaped.replace('\'', r"'\''"))
+}
+
+/// Whether `a` and `b` are the same words, whatever spaces stand round
+/// their commas.
+fn same_words(a: &str, b: &str) -> bool {
+    let words = |text: &str| {
+        text.split(',')
+            .map(|part| part.split_whitespace().collect::<Vec<_>>().join(" "))
+            .collect::<Vec<_>>()
+    };
+    words(a) == words(b)
+}
+
+/// How to write the offered event that `wanted` is the start of, cut at
+/// a comma by `--events`: its label, or its event without the guard.
+fn cut_at_comma<'a>(labels: impl Iterator<Item = &'a str>, wanted: &str) -> Option<String> {
+    let start = |text: &str| {
+        text.split_once(',')
+            .is_some_and(|(first, _)| same_words(first, wanted))
+    };
+    labels
+        .flat_map(|label| [label.trim(), event_of(label)])
+        .find(|text| start(text))
+        .map(|text| {
+            format!(
+                "an event with a comma in its name is written {}",
+                written(text)
+            )
+        })
 }
 
 fn event_of(label: &str) -> &str {
@@ -1440,6 +1569,102 @@ mod tests {
         // The play itself says so too, and writes nothing.
         assert!(play(&moving(&["open", "fly"])).is_err());
         assert!(!work.join("never.gif").exists());
+        let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// `--events` splits at its commas, but not at one written `\,` or in
+    /// double quotes round an event: an event with a comma in its name can
+    /// be taken (REQ-097). A quote inside a name is the name's; an empty
+    /// event or a quote not closed is an error; cut at a comma, the error
+    /// says how to write it.
+    #[test]
+    fn an_event_with_a_comma_in_its_name_can_be_taken() {
+        let given =
+            |values: &[&str]| events(&values.iter().map(|v| (*v).to_owned()).collect::<Vec<_>>());
+        let ok = |values: &[&str]| given(values).unwrap();
+        assert_eq!(ok(&["open,close"]), ["open", "close"]);
+        assert_eq!(ok(&[r"hello\, world,back"]), ["hello, world", "back"]);
+        assert_eq!(ok(&[r#""hello, world",back"#]), ["hello, world", "back"]);
+        assert_eq!(ok(&[r#" "hello, world" , back"#]), ["hello, world", "back"]);
+        assert_eq!(ok(&["open", "close"]), ["open", "close"]);
+        assert_eq!(ok(&[r"a\\b"]), [r"a\b"]);
+        assert_eq!(ok(&[r#"start [mode == "x"]"#]), [r#"start [mode == "x"]"#]);
+        assert_eq!(ok(&[r#"say "hi""#]), [r#"say "hi""#]);
+        for wrong in [
+            &[""][..],
+            &[","],
+            &["open,,close"],
+            &[r#""""#],
+            &[r#""hello, world,back"#],
+        ] {
+            assert!(given(wrong).is_err(), "{wrong:?}");
+        }
+
+        let options = vec![
+            ("hello, world".to_owned(), "B".to_owned()),
+            ("start [a, b]".to_owned(), "C".to_owned()),
+            ("back".to_owned(), "A".to_owned()),
+        ];
+        assert_eq!(
+            choose(&options, &ok(&[r"hello\, world"]), 0, &[]).unwrap(),
+            Some(0)
+        );
+        let err = |events: &[&str]| {
+            choose(&options, &ok(events), 0, &[])
+                .unwrap_err()
+                .to_string()
+        };
+        let said = err(&["hello, world"]);
+        assert!(said.contains(r"`--events 'hello\, world'`"), "{said}");
+        let said = err(&["start [a, b]"]);
+        assert!(said.contains(r"`--events 'start [a\, b]'`"), "{said}");
+        let said = err(&["hello , world"]);
+        assert!(said.contains(r"hello\, world"), "{said}");
+    }
+
+    /// Where the machine offers `hello` and `hello, world`, an unescaped
+    /// `hello, world` takes `hello` and then stops at `world`: the error
+    /// says the step before took half of an event cut at its comma.
+    #[test]
+    fn half_an_event_taken_the_step_before_is_told() {
+        let work = std::env::temp_dir().join(format!("omaspec-halves-{}", std::process::id()));
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("greet.puml");
+        std::fs::write(
+            &file,
+            "@startuml\n[*] --> A\nA --> B : hello\nA --> C : hello, world\nB --> A : back\nC --> A : back\n@enduml\n",
+        )
+        .unwrap();
+        let args = |events: Vec<String>| Moving {
+            file: file.clone(),
+            text: None,
+            output: work.join("greet.gif"),
+            events,
+            steps: 4,
+            width: None,
+            fps: None,
+            folds: Vec::new(),
+            dives: Vec::new(),
+            builds: false,
+            lockstep: false,
+            history: false,
+            travel: None,
+            traffic: Vec::new(),
+            themes: None,
+            ink: false,
+            whole: false,
+            theme: Some("built-in".into()),
+            file_colors: false,
+            root: None,
+            forced: None,
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        };
+        let err = rehearse(&args(events(&["hello, world".into()]).unwrap())).unwrap_err();
+        let said = format!("{err:#}");
+        assert!(said.contains("the step before took hello"), "{said}");
+        assert!(said.contains(r"`--events 'hello\, world'`"), "{said}");
+        assert!(rehearse(&args(events(&[r"hello\, world,back".into()]).unwrap())).is_ok());
         let _ = std::fs::remove_dir_all(&work);
     }
 

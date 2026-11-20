@@ -2897,6 +2897,16 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-097, an event with a comma in its name (2026-11-20): `omaspec play
+      --events` split at every comma, so `hello, world` could not be taken, neither
+      with a backslash nor in quotes, and the play stopped with exit 2. A comma written
+      `\,`, or inside double quotes round a whole event, is now the event's
+      (`--events 'start,"hello, world"'`); a quote inside a name (`[mode == "x"]`) stays
+      the name's; `--events` may be given more than once (`moving::events`). An empty
+      event or a quote not closed is an error, not a play of the first events offered.
+      Where an event was cut at its comma, also inside a guard or where the step before
+      took its first half (`hello` beside `hello, world`), the error says how to write
+      it, quoted for the shell
 - [x] REQ-099, two git graphs in one text (2026-11-20): Mermaid refuses a second
       `gitGraph` in one text, and mmdr drew both as one picture without a word, while
       lint said only that Omaspec left the graph to mmdr. The second head is now an

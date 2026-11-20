@@ -243,9 +243,6 @@ Found by the studio and reproduced on 1.0.0, in the order they are
 taken: first where Omaspec draws a wrong picture without a word, then
 what is plainly missing, then the larger pieces.
 
-- [ ] REQ-097: `--events` splits at every comma, so an event with a
-      comma in its name (`hello, world`) cannot be chosen; neither a
-      backslash nor quotes help, and the play stops with exit 2.
 - [ ] REQ-100: a `gitGraph LR` of twelve commits at `--scale 3`: the
       branch's badge is so tight that `jj` reads as `j`.
 - [ ] REQ-095: `play --help` says `--ink` needs a GPU; it does not.
