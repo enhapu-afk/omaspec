@@ -2897,6 +2897,21 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Traffic (2026-11-20, the fourth of the animations that show what a diagram
+      means): `omaspec play FILE --traffic T.jsonl[,U.jsonl] -o traffic.gif` lets
+      recorded traces flow through a state machine at once (`editor::traffic`). Each
+      object is a dot that rests in its state, spread on a spiral so many in one state
+      stay apart, and runs along the transition each of its lines takes; each trace
+      flows from its first line to its last in the same ten seconds. A transition
+      glows the brighter and wider the more dots have passed it, those never taken
+      blink grey and dashed once all have flowed, a dot turns red with a ring where its
+      trace deviates, and a caption counts the objects, the transitions taken by then
+      and the deviations. The ways are those `omaspec trace` follows, so the counts are
+      coverage's. Drawn as SVG and rasterized without a GPU, a narrow machine in the
+      middle of a wider frame; as `.html` a page in vectors (`export::traffic`),
+      `#t=6` holding it still. The example is a project, `examples/orders`: an order's
+      machine and a week of twenty orders, one shipped before it was paid (wrong on
+      purpose, which the clean-examples test lets the trace say)
 - [x] A time-lapse of a diagram's history (2026-11-20, the third of the animations that
       show what a diagram means): `omaspec play FILE --history -o history.gif` plays
       every commit that changed the file, oldest first (the newest 60, one that left it

@@ -394,7 +394,7 @@ fn shift(glide: &mut omaspec_render::export::folding::Glide, old: f32, new: f32)
 
 /// `svg` as large as `size` in its own units, what it draws `dx` across
 /// on its paper (`paper`) grown to the whole.
-fn widened(svg: &str, (width, height): (f32, f32), dx: f32, paper: &str) -> String {
+pub(super) fn widened(svg: &str, (width, height): (f32, f32), dx: f32, paper: &str) -> String {
     let Some(start) = svg.find("<svg") else {
         return svg.to_owned();
     };
@@ -539,6 +539,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: true,
+            traffic: Vec::new(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

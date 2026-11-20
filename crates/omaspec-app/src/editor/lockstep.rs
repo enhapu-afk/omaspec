@@ -455,6 +455,7 @@ mod tests {
             builds: false,
             lockstep: true,
             history: false,
+            traffic: Vec::new(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

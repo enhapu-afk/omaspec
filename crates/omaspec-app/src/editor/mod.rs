@@ -64,6 +64,7 @@ mod takes;
 mod tidy;
 mod timelapse;
 mod tools;
+mod traffic;
 mod view;
 mod views;
 

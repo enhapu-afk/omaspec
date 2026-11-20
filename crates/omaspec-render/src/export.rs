@@ -11,6 +11,7 @@ mod glyphs;
 pub mod lockstep;
 mod present;
 mod tiles;
+pub mod traffic;
 
 pub use present::{Play, stage};
 pub use tiles::{MOST_TILES, Plan, plan};

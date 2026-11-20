@@ -239,6 +239,7 @@ impl App {
             builds: false,
             lockstep: false,
             history: false,
+            traffic: Vec::new(),
             whole: false,
             theme: None,
             file_colors: !self.follow_theme,

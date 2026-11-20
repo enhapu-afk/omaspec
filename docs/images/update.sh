@@ -48,6 +48,10 @@ cargo run --release -q -p omaspec-app -- play "$history/repo/parcel.puml" \
   -o "$out/history.gif" --history --theme built-in --width 640 2>/dev/null
 rm -rf "$history"
 
+# A week of recorded orders flowing through the order's machine at once.
+cargo run --release -q -p omaspec-app -- play examples/orders/order.puml \
+  -o "$out/traffic.gif" --traffic examples/orders/week.jsonl --theme built-in 2>/dev/null
+
 # Two dark themes and two light ones.
 magick montage "$shots"/theme-{tokyo-night,catppuccin-latte,gruvbox,rose-pine}-wgpu.png \
   -tile 2x2 -geometry 800x427+6+6 -background '#16161e' -depth 8 -strip "$out/themes.png"

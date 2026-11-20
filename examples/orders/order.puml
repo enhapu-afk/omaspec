@@ -1,0 +1,13 @@
+@startuml
+title Order
+[*] --> Placed
+Placed --> Paid : pay
+Placed --> Cancelled : cancel
+Paid --> Packed : pack
+Packed --> Shipped : ship
+Shipped --> Delivered : deliver
+Delivered --> Returned : return
+Returned --> [*]
+Delivered --> [*]
+Cancelled --> [*]
+@enduml

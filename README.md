@@ -92,6 +92,13 @@ was dashed in red; `--min 80` holds a share in CI.
 
 ![A recorded trace played in the diagram, stopped where the door took an event it cannot take](docs/images/trace.png)
 
+`omaspec play order.puml --traffic week.jsonl -o traffic.gif` lets all of it flow at
+once: every object of the traces a dot running through the machine, each way glowing
+the more dots take it, the ways never taken blinking grey at the end, and a dot turning
+red where its trace leaves the machine.
+
+![A week of recorded orders flowing through the order's state machine as dots: the ways taken glow, the return was never taken, and one order shipped before it was paid turns red](docs/images/traffic.gif)
+
 ### It looks like your Omarchy
 
 Omaspec follows `omarchy theme` and `omarchy font set` while it runs, and draws the

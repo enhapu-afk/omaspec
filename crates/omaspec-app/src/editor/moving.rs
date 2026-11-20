@@ -61,6 +61,9 @@ pub struct Moving {
     /// Instead of a play: every commit that changed the file, each
     /// picture gliding into the next ([`super::timelapse`]).
     pub history: bool,
+    /// Instead of a play: these recorded traces flowing through the
+    /// machine at once ([`super::traffic`]).
+    pub traffic: Vec<PathBuf>,
     /// The whole diagram in every frame, rather than a camera that follows
     /// the play where the whole is too large to read (REQ-071).
     pub whole: bool,
@@ -151,7 +154,7 @@ pub(super) const BAR: f32 = 90.0;
 pub fn play(args: &Moving) -> Result<String> {
     let film = Film::of(&args.output).with_context(|| {
         format!(
-            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold, a build, a lockstep or a history as a page)",
+            "{} is no picture that moves: .gif, .webp, .png (an animated PNG), or .html (a fold, a build, a lockstep, a history or traffic as a page)",
             args.output.display()
         )
     })?;
@@ -173,6 +176,13 @@ pub fn play(args: &Moving) -> Result<String> {
             "--width takes 200 to 4000"
         );
         return super::building::build(args, film, fps);
+    }
+    if !args.traffic.is_empty() {
+        anyhow::ensure!(
+            args.width.is_none_or(|width| (200..=4000).contains(&width)),
+            "--width takes 200 to 4000"
+        );
+        return super::traffic::traffic(args, film, fps);
     }
     if args.history {
         anyhow::ensure!(
@@ -889,6 +899,7 @@ mod tests {
                 builds: false,
                 lockstep: false,
                 history: false,
+                traffic: Vec::new(),
                 whole: false,
                 theme: Some("built-in".into()),
                 file_colors: false,
@@ -943,6 +954,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: false,
+            traffic: Vec::new(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -998,6 +1010,7 @@ mod tests {
             builds: false,
                 lockstep: false,
                 history: false,
+                traffic: Vec::new(),
             whole: true,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1038,6 +1051,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: false,
+            traffic: Vec::new(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1135,6 +1149,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: false,
+            traffic: Vec::new(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

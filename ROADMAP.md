@@ -685,10 +685,6 @@ picture, the second is the highlight.
 - [ ] Lockstep: built as GIF, WebP, PNG and a page (in docs/DONE.md).
       Left: the lockstep in the window, F5 on a scenario with the
       machines of its participants opening beside it.
-- [ ] Traffic: many recorded traces flowing through a machine at once
-      as dots, the ways taken often glowing as they fill, those never
-      taken staying grey and blinking at the end; the Trace river above,
-      moving, from what coverage counts.
 - [ ] A flight through the project: one camera move from the map into a
       tile, into its diagram, and on along a link into the next one
       (docs/adr/0018), and back out; the dive into one tile, chained.

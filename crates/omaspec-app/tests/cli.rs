@@ -1942,8 +1942,8 @@ fn render_plantuml_falls_back_to_java_or_says_why_not() {
     );
 }
 
-/// The examples are clean: no lint findings (but the warnings of a
-/// scenario wrong on purpose), and the Mermaid ones and the PlantUML
+/// The examples are clean: no lint findings (but what a scenario or a
+/// trace wrong on purpose says), and the Mermaid ones and the PlantUML
 /// sequence, state, mind map and WBS diagrams draw without Java.
 #[test]
 fn examples_are_clean() {
@@ -1973,36 +1973,44 @@ fn examples_are_clean() {
         } else {
             "lint"
         };
-        // A scenario wrong on purpose shows what a deviation looks like: it
-        // warns, and only that.
+        // A scenario or a trace wrong on purpose shows what a deviation
+        // looks like: the scenario warns, the trace's line is an error,
+        // and nothing else is said.
         let on_purpose =
-            std::fs::read_to_string(example).is_ok_and(|text| text.contains("' Wrong on purpose"));
-        let out = if on_purpose {
-            omaspec(&[command, example.to_str().unwrap()])
-        } else {
-            omaspec(&[command, "--strict", example.to_str().unwrap()])
-        };
-        assert!(
-            out.status.success(),
-            "{}: {}",
-            example.display(),
-            String::from_utf8_lossy(&out.stdout)
-        );
+            std::fs::read_to_string(example).is_ok_and(|text| text.contains("Wrong on purpose"));
         if on_purpose {
+            let out = omaspec(&[command, example.to_str().unwrap()]);
             let said = String::from_utf8_lossy(&out.stdout);
+            let lines: Vec<&str> = said.lines().collect();
+            let wanted = if command == "trace" {
+                ": error: "
+            } else {
+                ": warning: "
+            };
             assert!(
-                said.contains("warning") && !said.contains("error"),
+                !lines.is_empty() && lines.iter().all(|line| line.contains(wanted)),
                 "{}: {said}",
                 example.display()
             );
-        }
-        if command == "trace" {
+            if command == "trace" {
+                continue;
+            }
+        } else {
+            let out = omaspec(&[command, "--strict", example.to_str().unwrap()]);
             assert!(
-                out.stdout.is_empty(),
-                "{}",
+                out.status.success(),
+                "{}: {}",
+                example.display(),
                 String::from_utf8_lossy(&out.stdout)
             );
-            continue;
+            if command == "trace" {
+                assert!(
+                    out.stdout.is_empty(),
+                    "{}",
+                    String::from_utf8_lossy(&out.stdout)
+                );
+                continue;
+            }
         }
         let text = fs::read_to_string(example).unwrap();
         let native = [" -> ", "@startmindmap", "@startwbs", "[*]"]

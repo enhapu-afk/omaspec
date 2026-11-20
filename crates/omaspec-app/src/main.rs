@@ -487,6 +487,13 @@ enum Command {
         /// commit under it (the newest 60).
         #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep"])]
         history: bool,
+        /// Instead of a play: these recorded traces (JSON Lines) flowing
+        /// through the state machine at once, each object a dot; a
+        /// transition glows the more dots pass it, those never taken
+        /// blink grey at the end, and a dot turns red where its trace
+        /// leaves the machine.
+        #[arg(long, value_delimiter = ',', value_name = "TRACE", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history"])]
+        traffic: Vec<PathBuf>,
         /// The whole diagram in every frame. Without it, a play or a fold
         /// of a diagram too large to read whole follows each step or each
         /// container, near enough to read, and ends on the whole.
@@ -896,6 +903,7 @@ fn main() -> ExitCode {
             build,
             lockstep,
             history,
+            traffic,
             whole,
             theme,
             lang,
@@ -911,6 +919,7 @@ fn main() -> ExitCode {
             builds: build,
             lockstep,
             history,
+            traffic,
             whole,
             theme,
             text: None,
