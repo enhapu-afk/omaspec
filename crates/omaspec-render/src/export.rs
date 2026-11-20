@@ -1192,6 +1192,37 @@ mod tests {
         assert_eq!(fits, 0.44);
         // Measured, not drawn: 99 million pixels take long in a test.
         assert!(pixels(&parse(tall).unwrap(), fits).is_ok());
+        // Where the pixels, rounded up, pass the area's scale: 335 × 1842
+        // at 12.73 is ten thousand pixels too many (`render --fit` of a
+        // sequence of 60 messages at --scale 16).
+        let long = r#"<svg xmlns="http://www.w3.org/2000/svg" width="335" height="1842"/>"#;
+        let Err(ExportError::TooLarge {
+            fits: Some(fits), ..
+        }) = export(
+            long,
+            Format::Png,
+            &Options {
+                scale: 16.0,
+                ..Options::default()
+            },
+        )
+        else {
+            panic!("too large at 16");
+        };
+        assert_eq!(fits, 12.72);
+        assert!(pixels(&parse(long).unwrap(), fits).is_ok());
+        // A tiny picture is fitted in steps that count, and ends; one too
+        // small to have a size has no scale that fits.
+        let tiny =
+            parse(r#"<svg xmlns="http://www.w3.org/2000/svg" width="0.001" height="0.001"/>"#)
+                .unwrap();
+        let fits = tiles::fitting(&tiny, MAX_SIDE);
+        assert!(fits.is_finite() && pixels(&tiny, fits).is_ok(), "{fits}");
+        let nothing =
+            parse(r#"<svg xmlns="http://www.w3.org/2000/svg" width="1e-30" height="1e-30"/>"#);
+        if let Ok(nothing) = nothing {
+            assert!(!tiles::fitting(&nothing, MAX_SIDE).is_finite());
+        }
     }
 
     #[test]

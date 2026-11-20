@@ -2897,6 +2897,34 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] `render --fit` fits again (2026-11-20, found in the test of 1.0.0): the scale that
+      fits was the area's, to two places, but the pixels are the sizes rounded up, and a
+      sequence of 60 messages at `--scale 16` came out at 12.73 as 4265 × 23449 pixels,
+      ten thousand too many, so `--fit` refused it; 0.9.9's layout had happened to fall
+      under the limit. The scale now steps down until the rounded pixels fit, by
+      hundredths, or by a ten-thousandth of itself for a tiny picture, so it always ends
+      (`tiles::fitting`); a picture too large even at a hundredth is cut into tiles at
+      that, which are refused past their most, rather than drawn as one blank pixel. The
+      CLI test that had caught it runs its `--fit` half in a release build only, which
+      the checks before a push now include.
+- [x] REQ-101, a git graph's outline (2026-11-20): `omaspec outline` and `inspect` gave
+      a git graph none, and the editor's outline beside the source stood empty. It now
+      lists the graph's branches and what it names: a commit by its id, a tag, a merge
+      and a cherry-pick, each on its line; a commit without an id is not listed.
+- [x] REQ-095, which films need a GPU (2026-11-20): `omaspec play --help` said the pane
+      is drawn on the GPU, also for `--ink`, which draws without one. The help now says
+      a play, a fold, a dive, a lockstep, a history and a time travel are drawn on the GPU (by
+      tiny-skia where there is none), and `--build`, `--ink`, `--themes`, `--traffic`
+      and every page without one; each of those options says it, as AGENTS.md and the
+      reference do.
+- [x] REQ-100, room on a branch's plate (2026-11-20): a git graph's branch names stood
+      on plates 8 units wider than the name and 4 higher, so a short name of narrow
+      letters (`jj`) was squeezed and read as one letter in a large graph's overview.
+      A plate now has 12 units round the name across and 5 above and below, and is
+      never narrower than 2.8 times the label's size (`gitgraph::plate`); the lanes
+      and the first turn make room for it whichever way time runs, and lanes across
+      stand as far apart as their plates are high, at a large label too. The first
+      commit stands far enough on that its id and its tag keep clear of the plates.
 - [x] REQ-097, an event with a comma in its name (2026-11-20): `omaspec play
       --events` split at every comma, so `hello, world` could not be taken, neither
       with a backslash nor in quotes, and the play stopped with exit 2. A comma written
@@ -2906,7 +2934,7 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       event or a quote not closed is an error, not a play of the first events offered.
       Where an event was cut at its comma, also inside a guard or where the step before
       took its first half (`hello` beside `hello, world`), the error says how to write
-      it, quoted for the shell
+      it, quoted for the shell.
 - [x] REQ-099, two git graphs in one text (2026-11-20): Mermaid refuses a second
       `gitGraph` in one text, and mmdr drew both as one picture without a word, while
       lint said only that Omaspec left the graph to mmdr. The second head is now an

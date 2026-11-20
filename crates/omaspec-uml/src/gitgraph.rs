@@ -159,6 +159,35 @@ pub fn mermaid_wrong(source: &str) -> Option<(usize, String)> {
     }
 }
 
+/// The plate a branch's name stands on, as wide and high as it is: room
+/// round the name, and never narrower than a short word asks, so a name of
+/// two narrow letters (`jj`) is not squeezed into one (REQ-100).
+fn plate(name: &Block, look: &Look) -> (f32, f32) {
+    (
+        (name.width + 24.0).max(look.label_size * 2.8),
+        name.height + 10.0,
+    )
+}
+
+/// How far a lane begins before its first turn: [`LEAD`], or more where
+/// the first turn's words reach `reach` back from it, so that they keep 4
+/// units from the plates, which end 8 before the lane begins.
+fn lead_for(reach: f32) -> f32 {
+    LEAD.max(reach + 4.0 - 8.0)
+}
+
+/// Where a lane's plate stands, its lane beginning at `from`: before it
+/// as time runs across, over it as time runs down, under it as up.
+fn plate_at(plan: &Plan, name: &Block, look: &Look, from: (f32, f32)) -> (f32, f32, f32, f32) {
+    let (w, h) = plate(name, look);
+    let (x, y) = match plan.direction {
+        Direction::Across => (from.0 - 8.0 - w, from.1 - h / 2.0),
+        Direction::Down => (from.0 - w / 2.0, from.1 - 8.0 - h),
+        Direction::Up => (from.0 - w / 2.0, from.1 + 8.0),
+    };
+    (x, y, w, h)
+}
+
 /// What stands written beside a commit, measured.
 struct Words {
     id: Option<Block>,
@@ -178,6 +207,8 @@ impl Words {
 /// lanes (`l`), turned into the page's x and y by the direction.
 struct Plan {
     direction: Direction,
+    /// How far a lane begins before its first turn ([`lead_for`]).
+    lead: f32,
     /// Each lane's middle, across.
     lanes: Vec<f32>,
     /// Where the first turn lies, and how far one is from the next.
@@ -275,7 +306,10 @@ fn plan(diagram: &Diagram, names: &[Block], words: &[Words], top: f32) -> Plan {
     if across {
         // The names stand before the lanes; an id stands under its
         // commit, so the widest of them sets how far the turns are apart.
-        let widest_name = names.iter().map(|block| block.width).fold(0.0, f32::max);
+        let widest_plate = names
+            .iter()
+            .map(|name| plate(name, &diagram.look).0)
+            .fold(0.0, f32::max);
         let widest = words
             .iter()
             .flat_map(|w| [&w.id, &w.tag])
@@ -283,12 +317,26 @@ fn plan(diagram: &Diagram, names: &[Block], words: &[Words], top: f32) -> Plan {
             .map(|block| block.width)
             .fold(0.0, f32::max);
         let step = STEP.max(widest + 14.0);
+        // Lanes as far apart as their plates are high, at a large label too.
+        let lane = names
+            .iter()
+            .map(|name| plate(name, &diagram.look).1 + 16.0)
+            .fold(LANE, f32::max);
         let lanes = (0..diagram.branches.len())
-            .map(|lane| lane as f32 * LANE + LANE / 2.0)
+            .map(|at| at as f32 * lane + lane / 2.0)
             .collect();
-        let start = widest_name + 20.0 + LEAD;
+        // The first turn's words, centred on it, keep clear of the plates
+        // before it.
+        let reach = words.first().map_or(0.0, |first| {
+            let id = first.id.as_ref().map_or(0.0, |id| id.width / 2.0 + 3.0);
+            let tag = first.tag.as_ref().map_or(0.0, |tag| tag.width / 2.0 + 6.0);
+            id.max(tag)
+        });
+        let lead = lead_for(reach);
+        let start = widest_plate + 4.0 + lead;
         return Plan {
             direction: diagram.direction,
+            lead,
             lanes,
             start,
             step,
@@ -308,13 +356,26 @@ fn plan(diagram: &Diagram, names: &[Block], words: &[Words], top: f32) -> Plan {
             .filter(|(commit, _)| commit.branch == lane)
             .map(|(_, words)| words.reach())
             .fold(0.0, f32::max);
-        let half = (name.width / 2.0 + 10.0).max(RADIUS + 6.0);
+        let half = (plate(name, &diagram.look).0 / 2.0 + 2.0).max(RADIUS + 6.0);
         lanes.push(edge + half);
         edge += (half + (half.max(RADIUS + 6.0 + beside)) + 12.0).max(LANE);
     }
-    let start = names.iter().map(|block| block.height).fold(0.0, f32::max) + 12.0 + LEAD;
+    // The first turn's words, beside it and as high as they are, keep
+    // clear of the plates over (or under) it.
+    let reach = words.first().map_or(0.0, |first| {
+        let id = first.id.as_ref().map_or(0.0, |id| id.height / 2.0 + 1.0);
+        let tag = first.tag.as_ref().map_or(0.0, |tag| tag.height / 2.0 + 3.0);
+        id.max(tag)
+    });
+    let start = names
+        .iter()
+        .map(|name| plate(name, &diagram.look).1)
+        .fold(0.0, f32::max)
+        + 8.0
+        + lead_for(reach);
     Plan {
         direction: diagram.direction,
+        lead: lead_for(reach),
         lanes,
         start,
         step: STEP,
@@ -332,18 +393,18 @@ fn paint(canvas: &mut Canvas, diagram: &Diagram, plan: &Plan, names: &[Block], w
     for (lane, name) in names.iter().enumerate() {
         let color = lane_color(look, lane);
         let l = plan.lanes[lane];
-        let from = plan.page(plan.start - LEAD, l);
+        let from = plan.page(plan.start - plan.lead, l);
         let to = plan.page(plan.end + plan.step / 2.0, l);
         let faint = Stroke::new(color.mix(paper, 0.55), 1.5).dashed(3.0, 4.0);
         canvas.line(Layer::Background, from, to, faint);
-        let (w, h) = (name.width + 16.0, name.height + 8.0);
-        let (x, y) = match plan.direction {
-            Direction::Across => (from.0 - 8.0 - w, from.1 - h / 2.0),
-            Direction::Down => (from.0 - w / 2.0, from.1 - 8.0 - h),
-            Direction::Up => (from.0 - w / 2.0, from.1 + 8.0),
-        };
+        let (x, y, w, h) = plate_at(plan, name, look, from);
         canvas.card(Layer::Bars, (x, y, w, h), 4.0, color);
-        canvas.text(Layer::Front, name, (x + w / 2.0, y + 4.0), Align::Center);
+        canvas.text(
+            Layer::Front,
+            name,
+            (x + w / 2.0, y + (h - name.height) / 2.0),
+            Align::Center,
+        );
     }
 
     // The lines between the commits, under their marks.
@@ -505,6 +566,128 @@ mod tests {
     use super::*;
 
     const FLOW: &str = "gitGraph\n  commit id: \"start\"\n  branch develop\n  commit\n  commit id: \"feature\" tag: \"v0.9\"\n  checkout main\n  commit type: HIGHLIGHT\n  merge develop tag: \"v1.0\"\n  branch hotfix\n  commit type: REVERSE\n  checkout develop\n  cherry-pick id: \"start\"\n";
+
+    /// A branch's name stands on a plate with room round it, and a short
+    /// name of narrow letters (`jj`) is not squeezed into a plate that
+    /// makes it read as one letter (REQ-100); the plate keeps clear of
+    /// its lane's first commit and of the other lanes' plates, whichever
+    /// way time runs, at a large label too.
+    #[test]
+    fn a_short_branch_name_has_room_on_its_plate() {
+        for size in [14.0, 40.0] {
+            let look = Look {
+                label_size: size,
+                ..Look::default()
+            };
+            let block = |name: &str| {
+                text::block(name, Font::new(size, Color::BLACK), text::Family::Inter).unwrap()
+            };
+            let (short, long) = (block("jj"), block("feature/search"));
+            let (w, h) = plate(&short, &look);
+            assert!(w >= size * 2.8 && w >= short.width + 24.0, "{w}");
+            assert!(h >= short.height + 10.0);
+            assert_eq!(plate(&long, &look).0, long.width + 24.0);
+            for head in ["gitGraph LR:", "gitGraph TB:", "gitGraph BT:"] {
+                let mut graph = from_mermaid(&format!(
+                    "{head}\n  commit id: \"release-candidate-one\" tag: \"v1.0.0-release\"\n  branch jj\n  commit\n  checkout main\n  commit\n"
+                ))
+                .unwrap();
+                graph.look = look.clone();
+                let names = vec![block("main"), short.clone()];
+                let small = |words: &Option<String>| {
+                    words.as_ref().map(|words| {
+                        text::block(
+                            words,
+                            Font::new(size * 0.82, Color::BLACK),
+                            text::Family::Inter,
+                        )
+                        .unwrap()
+                    })
+                };
+                let words: Vec<Words> = graph
+                    .commits
+                    .iter()
+                    .map(|commit| Words {
+                        id: small(&commit.id),
+                        tag: small(&commit.tag),
+                    })
+                    .collect();
+                let plan = plan(&graph, &names, &words, 0.0);
+                let plates: Vec<(f32, f32, f32, f32)> = names
+                    .iter()
+                    .enumerate()
+                    .map(|(lane, name)| {
+                        let from = plan.page(plan.start - plan.lead, plan.lanes[lane]);
+                        plate_at(&plan, name, &look, from)
+                    })
+                    .collect();
+                for (lane, &(x, y, w, h)) in plates.iter().enumerate() {
+                    // Clear of the lane's first commit's mark.
+                    let (cx, cy) = plan.page(plan.start, plan.lanes[lane]);
+                    let apart = match graph.direction {
+                        Direction::Across => cx - RADIUS - (x + w),
+                        Direction::Down => cy - RADIUS - (y + h),
+                        Direction::Up => y - (cy + RADIUS),
+                    };
+                    assert!(apart > 0.0, "{head} at {size}, lane {lane}: {apart}");
+                }
+                // Clear of one another, and of the first commit's words,
+                // as `paint` places them.
+                let meet = |(ax, ay, aw, ah): (f32, f32, f32, f32),
+                            (bx, by, bw, bh): (f32, f32, f32, f32)| {
+                    ax < bx + bw && bx < ax + aw && ay < by + bh && by < ay + ah
+                };
+                assert!(!meet(plates[0], plates[1]), "{head} at {size}: {plates:?}");
+                let at = plan.at(0, 0);
+                let (id, tag) = (
+                    words[0].id.as_ref().unwrap(),
+                    words[0].tag.as_ref().unwrap(),
+                );
+                let written = if graph.direction == Direction::Across {
+                    let below = at.1 + RADIUS + 4.0;
+                    let above = at.1 - RADIUS - 8.0 - tag.height - 3.0;
+                    [
+                        (
+                            at.0 - id.width / 2.0 - 3.0,
+                            below,
+                            id.width + 6.0,
+                            id.height + 2.0,
+                        ),
+                        (
+                            at.0 - tag.width / 2.0 - 6.0,
+                            above,
+                            tag.width + 12.0,
+                            tag.height + 6.0,
+                        ),
+                    ]
+                } else {
+                    let x = at.0 + RADIUS + 8.0;
+                    [
+                        (
+                            x - 3.0,
+                            at.1 - id.height / 2.0 - 1.0,
+                            id.width + 6.0,
+                            id.height + 2.0,
+                        ),
+                        (
+                            x + id.width + 8.0,
+                            at.1 - tag.height / 2.0 - 3.0,
+                            tag.width + 12.0,
+                            tag.height + 6.0,
+                        ),
+                    ]
+                };
+                for plate in &plates {
+                    for words in written {
+                        assert!(
+                            !meet(*plate, words),
+                            "{head} at {size}: {plate:?} and {words:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
 
     #[test]
     fn the_statements_are_run_as_git_would() {

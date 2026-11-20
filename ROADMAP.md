@@ -243,10 +243,13 @@ Found by the studio and reproduced on 1.0.0, in the order they are
 taken: first where Omaspec draws a wrong picture without a word, then
 what is plainly missing, then the larger pieces.
 
-- [ ] REQ-100: a `gitGraph LR` of twelve commits at `--scale 3`: the
-      branch's badge is so tight that `jj` reads as `j`.
-- [ ] REQ-095: `play --help` says `--ink` needs a GPU; it does not.
-- [ ] REQ-101: `inspect` and `outline` give a gitGraph no outline.
+- [ ] From the test of 1.0.0: `labels_cover_no_state_and_stay_in_the_picture`
+      (`mermaid/repair.rs`) fails on the tester's machine, not here: mmdr measures a
+      Mermaid state diagram's words in the fonts installed, so another machine lays
+      it out otherwise and a label stays on a state. Needs the failing diagram and
+      the machine's fonts (`fc-match sans-serif`).
+- [ ] From the test of 1.0.0: without `skinparam groupInheritance 2` the triangles
+      of several subclasses' lines to one class overlap.
 - [ ] REQ-089, the lanes: swimlanes drawn natively, as bands of one
       height with their names, in the direction asked for, no line
       through a lane's name (Mermaid #8853); the activity's swimlanes as

@@ -57,7 +57,9 @@ pub fn plan(tree: &usvg::Tree, format: Format, scale: f32, least: f32) -> Plan {
         Format::Jpeg => f32::from(u16::MAX),
         _ => MAX_SIDE,
     };
-    let fits = fitting(tree, side);
+    // A picture too large even at a hundredth is cut into tiles at that,
+    // which the caller refuses past their most, not drawn as nothing.
+    let fits = fitting(tree, side).max(0.01);
     let scale = scale.min(fits).max(floor);
     let size = tree.size();
     let (width, height) = (
@@ -91,12 +93,35 @@ pub fn plan(tree: &usvg::Tree, format: Format, scale: f32, least: f32) -> Plan {
 }
 
 /// The largest scale, to two places, at which all of `tree` fits in
-/// [`MAX_PIXELS`] and `side` pixels a side; as `--fit` draws it.
+/// [`MAX_PIXELS`] and `side` pixels a side; as `--fit` draws it, and not
+/// finite for a picture too small to have a size. The pixels are the sizes
+/// rounded up, which can take a scale just under the area's past it: 335 ×
+/// 1842 at 12.73 are 4265 × 23449 pixels, ten thousand too many, so the
+/// scale steps down until they fit, by a hundredth, or by a ten-thousandth
+/// of itself where that is more, so that every step counts.
 pub(super) fn fitting(tree: &usvg::Tree, side: f32) -> f32 {
     let size = tree.size();
-    let by_area = (MAX_PIXELS as f32 / (size.width() * size.height())).sqrt();
-    let by_side = side / size.width().max(size.height());
-    (by_area.min(by_side) * 100.0).floor() / 100.0
+    let (width, height) = (f64::from(size.width()), f64::from(size.height()));
+    let by_area = (MAX_PIXELS as f64 / (width * height)).sqrt();
+    let by_side = f64::from(side) / width.max(height);
+    let start = (by_area.min(by_side) * 100.0).floor();
+    if !start.is_finite() || start >= u64::MAX as f64 {
+        return f32::INFINITY;
+    }
+    // As `pixels` rounds them, in f32.
+    let fits = |hundredths: u64| {
+        let scale = hundredths as f32 / 100.0;
+        let (w, h) = (
+            (size.width() * scale).ceil().max(1.0),
+            (size.height() * scale).ceil().max(1.0),
+        );
+        f64::from(w) * f64::from(h) <= MAX_PIXELS as f64 && w.max(h) <= side
+    };
+    let mut hundredths = start as u64;
+    while hundredths > 0 && !fits(hundredths) {
+        hundredths -= (hundredths / 10_000).max(1);
+    }
+    hundredths as f32 / 100.0
 }
 
 /// The size of the smallest words drawn in `tree`, in its units, as they
@@ -293,16 +318,29 @@ mod tests {
         .unwrap()
     }
 
-    /// A scale that fits to two places may not, its pixels rounded up: the
-    /// picture is cut, not refused. Words no one sees size nothing; words
+    /// A scale that fits by the area may not, its pixels rounded up: the
+    /// scale that fits is the one where they do, and where words may not
+    /// shrink so far the picture is cut, not refused. Words no one sees
+    /// size nothing; words
     /// this large on a picture this large ask for more tiles than are
     /// written.
     #[test]
     fn the_pixels_decide_and_unseen_words_do_not() {
         let words = r#"<text x="10" y="20" font-size="12">a</text>"#;
+        // At the area's scale, 1.00, its pixels rounded up are too many;
+        // the scale that fits is the one where they are not, and it is
+        // drawn there in one file (it was cut into two at 1.00).
         let edge = tree(7071.07, 14142.13, words);
         let cut = plan(&edge, Format::Png, 2.0, 1.0);
-        assert!(cut.tiled(), "{:?}", cut.parts);
+        assert_eq!((cut.scale, cut.tiled()), (0.99, false), "{:?}", cut.parts);
+        assert!(
+            cut.parts
+                .iter()
+                .all(|p| u64::from(p.width()) * u64::from(p.height()) <= MAX_PIXELS)
+        );
+        // Words that may not shrink so far cut it into tiles instead.
+        let cut = plan(&edge, Format::Png, 2.0, 12.0);
+        assert!(cut.tiled() && cut.scale == 1.0, "{:?}", cut.scale);
         assert!(
             cut.parts
                 .iter()

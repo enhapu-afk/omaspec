@@ -516,6 +516,8 @@ fn mermaid(lines: &[&str], mut b: Builder) -> (Vec<Entry>, Vec<(usize, usize)>) 
     let mut front = false;
     let mut first_indent: Option<usize> = None;
     let mut class_body = false;
+    // Inside a git graph's `accDescr { … }`.
+    let mut acc_descr = false;
 
     for (row, raw) in lines.iter().enumerate() {
         let l = raw.trim();
@@ -635,6 +637,48 @@ fn mermaid(lines: &[&str], mut b: Builder) -> (Vec<Entry>, Vec<(usize, usize)>) 
                     b.section(row, label(&c[1]));
                 } else if let Some(c) = re!(r"(?i)^title\s+(.+)$").captures(l) {
                     b.add_at(row, "title", label(&c[1]), 0);
+                }
+            }
+            // A git graph's branches and what it names: a commit by its
+            // id, a tag, a merge and a cherry-pick (REQ-101); read as the
+            // drawer reads it, without a comment at the end, past what is
+            // said for accessibility.
+            h if h.eq_ignore_ascii_case("gitGraph") => {
+                if acc_descr {
+                    acc_descr = !l.contains('}');
+                    continue;
+                }
+                if re!(r"(?i)^acc(Title|Descr)\b").is_match(l) {
+                    acc_descr = l.contains('{') && !l.contains('}');
+                    continue;
+                }
+                let l = l.split("%%").next().unwrap_or("").trim();
+                let said = |key: &str| {
+                    re!(r#"\b(id|tag|type)\s*:\s*(?:"([^"]*)"|([^\s"]+))"#)
+                        .captures_iter(l)
+                        .find(|c| &c[1] == key)
+                        .and_then(|c| c.get(2).or(c.get(3)))
+                        .map(|m| m.as_str().to_owned())
+                        .filter(|value| !value.is_empty())
+                };
+                if let Some(c) = re!(r#"^branch\s+("[^"]+"|\S+)"#).captures(l) {
+                    b.add(row, "branch", label(&c[1]));
+                } else if let Some(c) = re!(r#"^merge\s+("[^"]+"|\S+)"#).captures(l) {
+                    b.add(row, "merge", label(&c[1]));
+                    if let Some(id) = said("id") {
+                        b.add(row, "commit", label(&id));
+                    }
+                } else if l.starts_with("cherry-pick") {
+                    if let Some(id) = said("id") {
+                        b.add(row, "cherry-pick", label(&id));
+                    }
+                } else if re!(r"^commit\b").is_match(l)
+                    && let Some(id) = said("id")
+                {
+                    b.add(row, "commit", label(&id));
+                }
+                if let Some(tag) = said("tag") {
+                    b.add(row, "tag", label(&tag));
                 }
             }
             "mindmap" => {
@@ -849,6 +893,42 @@ mod tests {
             [e(1, 0, "block", "Charger"), e(2, 1, "block", "Current")]
         );
         assert_eq!(folds(code, Language::PlantUml), [(1, 5), (2, 4)]);
+    }
+
+    /// A git graph's outline: its branches, and the commits, tags, merges
+    /// and cherry-picks it names, on their lines (REQ-101); a commit
+    /// without an id is not listed.
+    #[test]
+    fn a_git_graph_lists_its_branches_and_what_it_names() {
+        let code = "gitGraph\n  commit id: \"init\"\n  branch develop order: 2\n  commit\n  commit id: \"login\" tag: \"v0.9\"\n  checkout main\n  merge develop tag: \"v1.0\"\n  branch \"feature/x\"\n  cherry-pick id: \"login\"\n";
+        assert_eq!(
+            tags(code, Language::Mermaid),
+            [
+                e(1, 0, "commit", "init"),
+                e(2, 0, "branch", "develop"),
+                e(4, 0, "commit", "login"),
+                e(4, 0, "tag", "v0.9"),
+                e(6, 0, "merge", "develop"),
+                e(6, 0, "tag", "v1.0"),
+                e(7, 0, "branch", "feature/x"),
+                e(8, 0, "cherry-pick", "login"),
+            ]
+        );
+        // As the drawer reads it: no comment, no words for accessibility,
+        // a quoted name whole, a word without quotes, nothing empty, a
+        // merge's own id, the head in any case.
+        let code = "gitgraph\n  accTitle: Releases with tag: \"x\"\n  accDescr {\n  branch never\n  }\n  commit id: \"a\" %% tag: \"v2\"\n  branch \"my feature\" %% next\n  commit id: login tag : v1\n  commit id: \"\" tag: \"\"\n  checkout main\n  merge \"my feature\" id: \"m\"\n";
+        assert_eq!(
+            tags(code, Language::Mermaid),
+            [
+                e(5, 0, "commit", "a"),
+                e(6, 0, "branch", "my feature"),
+                e(7, 0, "commit", "login"),
+                e(7, 0, "tag", "v1"),
+                e(10, 0, "merge", "my feature"),
+                e(10, 0, "commit", "m"),
+            ]
+        );
     }
 
     #[test]

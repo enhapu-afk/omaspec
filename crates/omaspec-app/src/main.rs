@@ -439,12 +439,15 @@ enum Command {
     /// a project's map as a picture that moves: a GIF, or in full color an
     /// animated WebP or PNG, by the output's ending.
     ///
-    /// The diagram's pane is drawn as the window draws it, on the GPU
-    /// without a window, in the active theme: the light runs along each
-    /// transition, the states the machine is in shine. The events are
-    /// taken by name (`--events open,close`), else the first the machine
-    /// offers at each state, for `--steps` steps; a scenario plays its
-    /// messages in order. For a presentation or a pull request.
+    /// A play, a fold, a dive, a lockstep, a history and a time travel
+    /// (`--from`) are drawn as the window draws the diagram's pane, on the GPU without a window (by
+    /// tiny-skia where there is none), in the active theme: the light
+    /// runs along each transition, the states the machine is in shine.
+    /// `--build`, `--ink`, `--themes` and `--traffic` draw without a GPU,
+    /// and so does every page (`.html`). The events are taken by name
+    /// (`--events open,close`), else the first the machine offers at each
+    /// state, for `--steps` steps; a scenario plays its messages in order.
+    /// For a presentation or a pull request.
     Play {
         file: PathBuf,
         /// The picture to write: `.gif`; `.webp` or `.png` (an animated
@@ -522,7 +525,7 @@ enum Command {
         /// through the state machine at once, each object a dot; a
         /// transition glows the more dots pass it, those never taken
         /// blink grey at the end, and a dot turns red where its trace
-        /// leaves the machine.
+        /// leaves the machine. Drawn without a GPU.
         #[arg(long, value_delimiter = ',', value_name = "TRACE", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from"])]
         traffic: Vec<PathBuf>,
         /// Instead of a play: the diagram through these Omarchy themes
@@ -530,12 +533,12 @@ enum Command {
         /// one before, its name under it; without names, every bundled
         /// theme. Names follow an equals sign, as
         /// --themes=tokyo-night,gruvbox, so the file is never taken for
-        /// one.
+        /// one. Drawn without a GPU.
         #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "", value_delimiter = ',', value_name = "THEME", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from", "traffic", "theme"])]
         themes: Option<Vec<String>>,
         /// Instead of a play: the diagram drawn in the sketch look stroke
         /// by stroke as with a pen, then inked into the clean look it is
-        /// drawn in.
+        /// drawn in. Drawn without a GPU.
         #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from", "traffic", "themes"])]
         ink: bool,
         /// The whole diagram in every frame. Without it, a play or a fold
