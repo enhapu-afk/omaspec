@@ -477,6 +477,7 @@ mod tests {
             builds: true,
             lockstep: false,
             history: false,
+            travel: None,
             traffic: Vec::new(),
             themes: None,
             ink: false,

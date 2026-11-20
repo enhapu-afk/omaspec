@@ -1807,7 +1807,10 @@ fn the_change_since_b_glides_from_b_to_a() {
         .paper
         .update(paper::Message::Viewport(Size::new(600.0, 560.0)));
     let id = c.paper.pretend_next();
-    let mut reply = answer(compare::KEY, id, Ok(drawn(old, Language::PlantUml)));
+    // B in A's look, as the comparison draws it.
+    let (themed, _) = app.diagram_source(old, Language::PlantUml);
+    let c = app.compare.as_mut().expect("comparing");
+    let mut reply = answer(compare::KEY, id, Ok(drawn(&themed, Language::PlantUml)));
     reply.language = Language::PlantUml;
     reply.source = old.into();
     let _ = c.paper.rendered(reply);
@@ -1822,6 +1825,8 @@ fn the_change_since_b_glides_from_b_to_a() {
     let paper = &app.doc().paper;
     assert_eq!(paper.drawn_now().unwrap().1.as_ref(), new);
     assert!(paper.fading_lines(), "the way from B to A glides");
+    // Done came: it glows green once it is there; Busy only moved.
+    assert_eq!(paper.glowing(), [paper::glow::Change::Came]);
 
     // Asked for a new drawing while B stands, the pane shows that next,
     // not A as it was.

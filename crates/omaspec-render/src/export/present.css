@@ -30,6 +30,15 @@ body {
   height: 0;
   visibility: hidden;
 }
+/* In a history, what came or changed glows a moment once it is there. */
+#diagram > svg .glow {
+  animation: glow 1100ms ease-out forwards;
+}
+@keyframes glow {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0; }
+}
 #bar {
   display: flex;
   flex-wrap: wrap;

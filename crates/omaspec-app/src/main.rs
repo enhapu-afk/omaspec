@@ -506,12 +506,22 @@ enum Command {
         /// commit under it (the newest 60).
         #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep"])]
         history: bool,
+        /// Instead of a play: time travel, the diagram as the commit REV
+        /// left it gliding into it as it is now (or as `--to` left it),
+        /// what came glowing in green, what changed in amber, what went
+        /// fading in red.
+        #[arg(long, value_name = "REV", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history"])]
+        from: Option<String>,
+        /// With `--from`: the commit it travels to, instead of the file
+        /// as it is.
+        #[arg(long, value_name = "REV", requires = "from")]
+        to: Option<String>,
         /// Instead of a play: these recorded traces (JSON Lines) flowing
         /// through the state machine at once, each object a dot; a
         /// transition glows the more dots pass it, those never taken
         /// blink grey at the end, and a dot turns red where its trace
         /// leaves the machine.
-        #[arg(long, value_delimiter = ',', value_name = "TRACE", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history"])]
+        #[arg(long, value_delimiter = ',', value_name = "TRACE", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from"])]
         traffic: Vec<PathBuf>,
         /// Instead of a play: the diagram through these Omarchy themes
         /// (names, colors.toml files or built-in), each sweeping over the
@@ -519,12 +529,12 @@ enum Command {
         /// theme. Names follow an equals sign, as
         /// --themes=tokyo-night,gruvbox, so the file is never taken for
         /// one.
-        #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "", value_delimiter = ',', value_name = "THEME", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "traffic", "theme"])]
+        #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "", value_delimiter = ',', value_name = "THEME", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from", "traffic", "theme"])]
         themes: Option<Vec<String>>,
         /// Instead of a play: the diagram drawn in the sketch look stroke
         /// by stroke as with a pen, then inked into the clean look it is
         /// drawn in.
-        #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "traffic", "themes"])]
+        #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from", "traffic", "themes"])]
         ink: bool,
         /// The whole diagram in every frame. Without it, a play or a fold
         /// of a diagram too large to read whole follows each step or each
@@ -938,6 +948,8 @@ fn main() -> ExitCode {
             build,
             lockstep,
             history,
+            from,
+            to,
             traffic,
             themes,
             ink,
@@ -956,6 +968,7 @@ fn main() -> ExitCode {
             builds: build,
             lockstep,
             history,
+            travel: from.map(|from| editor::moving::Travel { from, to }),
             traffic,
             themes,
             ink,

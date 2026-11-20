@@ -613,10 +613,6 @@ the one before:
       page was looked at in Chromium alone, not in Firefox or Safari; in
       the page a box that changes its size is stretched (its words are
       not), where the pane keeps its corners.
-- [ ] Time travel: two commits of a diagram, one gliding into the other
-      as the pane glides after an edit, what changed glowing a moment
-      (the diff's colors); in the editor beside the compare, and as an
-      animation or a page to export, for a review.
 - [ ] A presenter mode in the editor: the diagram full screen, the keys
       of the presentation page, and the comments next to the lines
       played as speaker notes on a second screen.

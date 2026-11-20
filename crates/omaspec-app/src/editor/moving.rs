@@ -32,6 +32,14 @@ use super::{App, Command, Message, Start};
 use crate::paper::{self, Ask, headless};
 use crate::worker::{self, Drawn};
 
+/// Time travel: the file as the commit `from` left it gliding into it as
+/// `to` left it, or as it is where there is none (`--from v1.0`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Travel {
+    pub from: String,
+    pub to: Option<String>,
+}
+
 /// What the command line asks for.
 #[derive(Debug, Clone)]
 pub struct Moving {
@@ -61,6 +69,9 @@ pub struct Moving {
     /// Instead of a play: every commit that changed the file, each
     /// picture gliding into the next ([`super::timelapse`]).
     pub history: bool,
+    /// Instead of a play: the file in one commit gliding into it in
+    /// another, or as it is ([`super::timelapse`]).
+    pub travel: Option<Travel>,
     /// Instead of a play: these recorded traces flowing through the
     /// machine at once ([`super::traffic`]).
     pub traffic: Vec<PathBuf>,
@@ -205,7 +216,7 @@ pub fn play(args: &Moving) -> Result<String> {
         );
         return super::traffic::traffic(args, film, fps);
     }
-    if args.history {
+    if args.history || args.travel.is_some() {
         anyhow::ensure!(
             args.width.is_none_or(|width| (200..=4000).contains(&width)),
             "--width takes 200 to 4000"
@@ -347,6 +358,7 @@ fn fold_page(args: &Moving) -> Result<String> {
                 &maps[1],
                 pictures[at].size,
                 pictures[at + 1].size,
+                false,
             );
             super::timelapse::remap(&mut glide, units[at], units[at + 1]);
             glide
@@ -1028,6 +1040,7 @@ mod tests {
                 builds: false,
                 lockstep: false,
                 history: false,
+                travel: None,
                 traffic: Vec::new(),
                 themes: None,
                 ink: false,
@@ -1085,6 +1098,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: false,
+            travel: None,
             traffic: Vec::new(),
             themes: None,
             ink: false,
@@ -1143,6 +1157,7 @@ mod tests {
             builds: false,
                 lockstep: false,
                 history: false,
+                travel: None,
                 traffic: Vec::new(),
                 themes: None,
                 ink: false,
@@ -1186,6 +1201,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: false,
+            travel: None,
             traffic: Vec::new(),
             themes: None,
             ink: false,
@@ -1286,6 +1302,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: false,
+            travel: None,
             traffic: Vec::new(),
             themes: None,
             ink: false,

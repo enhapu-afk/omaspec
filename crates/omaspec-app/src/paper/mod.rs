@@ -31,6 +31,7 @@ mod find;
 mod focus;
 mod fold;
 pub(crate) mod frames;
+pub(crate) mod glow;
 mod hand;
 mod held;
 mod light;
@@ -237,6 +238,10 @@ pub struct Paper {
     glide: Option<Glide>,
     /// A zoom into a link, or out of it, with the diagram it leads to.
     passage: Option<Passage>,
+    /// What changed glowing after a glide from another version
+    /// ([`glow`]), and whether the next glide is to glow.
+    glow: Option<glow::Glow>,
+    glow_next: bool,
     viewport: Size,
     scale_factor: f32,
     overview: Layer,
@@ -340,6 +345,8 @@ impl Default for Paper {
             shown: 0,
             view: View::default(),
             glide: None,
+            glow: None,
+            glow_next: false,
             passage: None,
             viewport: Size::ZERO,
             scale_factor: 1.0,

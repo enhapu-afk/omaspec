@@ -134,7 +134,8 @@ checked for legible colors, the gallery's diagrams in each of them too.
   as changed lines. `omaspec diff` says what changed in the *behavior*: states,
   transitions and messages, not layout. `omaspec play parcel.puml --history -o
   history.gif` plays how it grew: every commit that changed it glides into the next,
-  the commit under it.
+  the commit under it, what came glowing green and what changed amber. `--from v1.0`
+  travels from one commit to now, for a review.
 
 ![A diagram's history: a parcel's state machine grows commit by commit, each version gliding into the next, the commit's message under it](docs/images/history.gif)
 - **Convert** a state machine or scenario between PlantUML and Mermaid, only when the

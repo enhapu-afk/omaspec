@@ -595,6 +595,17 @@ if (typeof document !== "undefined") {
           old: box.role === "arrive" ? null : piece(top, sides[0], box.parts[0], box.from),
           now: box.role === "leave" ? null : piece(top, sides[1], box.parts[1], box.to),
         }));
+        // In a history what went takes on red as it fades out.
+        const went = moving.boxes.map((box) => (box.glow === "went" && data.glows
+          ? make("rect", {
+            rx: 6,
+            fill: data.glows.went,
+            "fill-opacity": 0.14,
+            stroke: data.glows.went,
+            "stroke-width": 2.5,
+            opacity: 0,
+          }, top)
+          : null));
         // A box that changes its size and what it says keeps its shapes
         // and changes its words: the old ones go before the new ones
         // come, so no word stands on another.
@@ -636,6 +647,15 @@ if (typeof document !== "undefined") {
             now.boxes.forEach((box, i) => {
               place(boxes[i].old, box.rect, box.old, box.scale, resized[i] ? Present.gone(t) : undefined);
               place(boxes[i].now, box.rect, box.now, box.scale, resized[i] ? Present.come(t) : undefined);
+              if (went[i]) {
+                const [x, y, w, h] = box.rect;
+                const k = t / 0.45;
+                went[i].setAttribute("x", x);
+                went[i].setAttribute("y", y);
+                went[i].setAttribute("width", w);
+                went[i].setAttribute("height", h);
+                went[i].setAttribute("opacity", k < 1 ? 1 - k * k : 0);
+              }
             });
             now.lines.forEach((line, i) => {
               const dash = moving.lines[i].dash;
@@ -672,6 +692,35 @@ if (typeof document !== "undefined") {
           },
         };
       };
+
+      /// In a history, what came glows green a moment once the glide to
+      /// picture `at` from the one before has ended, what changed amber,
+      /// over the picture where each part lies in it.
+      const glowIn = (at) => {
+        const glide = data.glides[at - 1];
+        if (!data.glows || !glide) return;
+        const picture = pictures[at];
+        const group = make("g", { class: "glow" }, picture);
+        for (const box of glide.boxes) {
+          const color = box.glow === "came" || box.glow === "changed" ? data.glows[box.glow] : null;
+          const rect = color && lies(picture, box.parts[1]);
+          if (!rect) continue;
+          const [x, y, w, h] = rect;
+          make("rect", {
+            x: x - 4, y: y - 4, width: w + 8, height: h + 8, rx: 10,
+            fill: "none", stroke: color, "stroke-width": 6, "stroke-opacity": 0.28,
+          }, group);
+          make("rect", {
+            x, y, width: w, height: h, rx: 6,
+            fill: color, "fill-opacity": 0.14, stroke: color, "stroke-width": 2.5,
+          }, group);
+        }
+        // Gone once it has glowed, also where the animation does not run.
+        group.addEventListener("animationend", () => group.remove());
+        setTimeout(() => group.remove(), 1600);
+        glowing.push(group);
+      };
+      let glowing = [];
 
       let running = null;
       // `#1.5`: the glide from picture 1 to the next, half its way, still.
@@ -731,6 +780,8 @@ if (typeof document !== "undefined") {
       const move = (by) => {
         if (running) return;
         unstand();
+        for (const group of glowing) group.remove();
+        glowing = [];
         const from = play.at;
         if (!(by > 0 ? play.next() : play.back())) return;
         tell();
@@ -754,6 +805,7 @@ if (typeof document !== "undefined") {
           running = null;
           show(play.at);
           on.done();
+          if (by > 0) glowIn(play.at);
           wait();
         };
         on.draw(by > 0 ? 0 : 1);

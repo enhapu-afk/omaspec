@@ -421,6 +421,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: false,
+            travel: None,
             traffic: Vec::new(),
             themes: Some(themes),
             ink: false,

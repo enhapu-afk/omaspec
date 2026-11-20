@@ -149,6 +149,24 @@ impl Paper {
                 .height(Length::Fill)
                 .into()
             });
+        // What changed since the version glided from, glowing a moment.
+        let changes = self
+            .glow
+            .as_ref()
+            .filter(|glow| !glow.done(crate::clock::now()))
+            .map(|glow| {
+                let old_view = self.arrival.fade().map_or(self.view, |fade| fade.old_view);
+                Canvas::new(Timed::new(super::glow::GlowMarks {
+                    glow,
+                    old_view,
+                    view: self.view,
+                    glide: self.glide,
+                    scale: self.scale_factor,
+                }))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
+            });
         let marks = (!links.is_empty() && self.overview.shown.is_some()).then(|| {
             Canvas::new(Timed::new(canvas::LinkMarks {
                 links,
@@ -281,6 +299,7 @@ impl Paper {
                 [
                     Some(canvas),
                     lines,
+                    changes,
                     veil,
                     glow,
                     marks,

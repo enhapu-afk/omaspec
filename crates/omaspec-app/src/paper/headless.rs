@@ -65,6 +65,16 @@ impl Paper {
         self.glide
     }
 
+    /// What glows after the glide from another version, box by box
+    /// ([`super::glow`]).
+    #[cfg(test)]
+    pub fn glowing(&self) -> Vec<super::glow::Change> {
+        self.glow
+            .iter()
+            .flat_map(|glow| glow.boxes.iter().map(|b| b.change))
+            .collect()
+    }
+
     /// Whether the last picture drawn stands on screen: nothing on its
     /// way, fading or gliding.
     pub fn arrived(&self) -> bool {
@@ -106,12 +116,14 @@ impl Paper {
 /// pane works it out when a container folds ([`super::morph`],
 /// [`super::wires`]), for a page that plays it in vectors
 /// ([`omaspec_render::export::folding`]). The sizes are the pictures' own.
-/// Empty where no box moved, came or went.
+/// Empty where no box moved, came or went. With `glow`, each box says
+/// how it glows, as a history's glide does ([`super::glow`]).
 pub fn fold_glide(
     old: &omaspec_uml::map::Map,
     new: &omaspec_uml::map::Map,
     old_size: (f32, f32),
     new_size: (f32, f32),
+    glow: bool,
 ) -> omaspec_render::export::folding::Glide {
     use omaspec_render::export::folding;
 
@@ -148,6 +160,13 @@ pub fn fold_glide(
             .moves
             .into_iter()
             .map(|step| folding::Moved {
+                glow: glow.then(|| super::glow::change(&step)).flatten().map(
+                    |change| match change {
+                        super::glow::Change::Came => folding::Change::Came,
+                        super::glow::Change::Changed => folding::Change::Changed,
+                        super::glow::Change::Went => folding::Change::Went,
+                    },
+                ),
                 parts: step.parts,
                 from: rect(step.from),
                 to: rect(step.to),

@@ -239,6 +239,7 @@ impl App {
             builds: false,
             lockstep: false,
             history: false,
+            travel: None,
             traffic: Vec::new(),
             themes: None,
             ink: false,

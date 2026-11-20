@@ -199,7 +199,9 @@ and panned together, or B as the source lines that changed from B to A (blank li
 indentation aside; a click goes to the line). Meanwhile the marks beside the lines show
 the difference to B. *Compare: glide from B to A* in the palette shows the change as a
 glide in A's pane: B stands as it was, then its boxes and lines glide to their places in
-A, what came fades in and what went fades out.
+A, what came fades in and what went fades out. What changed glows a moment, in the colors
+`omaspec diff -o` marks a machine in: a box that went turns red as it fades, and once A
+stands a box that came glows green and one that changed its size or its color amber.
 
 The same list offers *the project since* `HEAD`, its five newest tags and the commits that
 changed it: what changed in the behavior of every diagram of the project since then, the
@@ -760,7 +762,8 @@ omaspec play coffee.puml -o build.gif --build              # code becomes a pict
 omaspec play coffee.puml -o build.html --build             # the same as a page in vectors, played by a browser; build.html#t=4 holds it still 4 seconds in
 omaspec play keys.puml -o lockstep.gif --lockstep          # a scenario beside the state machines of its participants in its project: as a message's light reaches its receiver, the receiver's machine takes the transition it fires; a message the machine cannot take runs red, its states flash, and its bar says why in the check's words
 omaspec play keys.puml -o lockstep.html --lockstep         # the same as a page in vectors, played by a browser; lockstep.html#t=5 holds it still 5 seconds in
-omaspec play parcel.puml -o history.gif --history          # the diagram's history in git: every commit that changed the file glides into the next at one scale, oldest first, the commit under it (the newest 60); .html a page in vectors, history.html#2 shows the third commit, #2.5 the glide from it halfway
+omaspec play parcel.puml -o history.gif --history          # the diagram's history in git: every commit that changed the file glides into the next at one scale, oldest first, the commit under it (the newest 60), what changed glowing; .html a page in vectors, history.html#2 shows the third commit, #2.5 the glide from it halfway
+omaspec play parcel.puml -o change.gif --from v1.0         # time travel, for a review: the diagram as v1.0 left it gliding into it as it is now (--to REV: as that commit left it), what came glowing green, what changed amber, what went fading red; .html a page in vectors
 omaspec play order.puml -o traffic.gif --traffic week.jsonl   # recorded traces flowing through the machine at once, each object a dot: the ways glow the more dots take them, those never taken blink grey at the end, a dot turns red where its trace deviates; several traces with commas flow side by side; .html a page in vectors, traffic.html#t=6 holds it still
 omaspec play coffee.puml -o sweep.gif --themes             # the diagram through every bundled Omarchy theme, each theme's colors sweeping over the one before, its name under it; --themes=tokyo-night,gruvbox,my/colors.toml,built-in names them; .html a page in vectors, sweep.html#t=4 holds it still
 omaspec play parcel.puml -o ink.gif --ink                 # from sketch to ink: the diagram in the sketch look drawn stroke by stroke as with a pen, down the picture, each box with its words; then inked into the clean look it is drawn in; .html a page in vectors, ink.html#t=3 holds it still

@@ -525,6 +525,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: false,
+            travel: None,
             traffic: traces,
             themes: None,
             ink: false,

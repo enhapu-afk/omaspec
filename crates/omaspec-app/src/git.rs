@@ -140,6 +140,44 @@ pub fn show(file: &Path, rev: &str) -> Result<String> {
     Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
+/// The commit `rev` in the repository of `file`, as a history says it
+/// under its picture: `a7cddc5 · 2026-11-20 · fix: what the review found`.
+pub fn commit_line(file: &Path, rev: &str) -> Result<String> {
+    revision(rev)?;
+    let file = std::path::absolute(file)?;
+    let dir = file
+        .ancestors()
+        .skip(1)
+        .find(|d| d.is_dir())
+        .context("no folder")?;
+    let out = git(dir)
+        .args([
+            "log",
+            "-1",
+            "--no-color",
+            "--date=short",
+            "--format=%h%x09%ad%x09%s",
+            rev,
+            "--",
+        ])
+        .output()
+        .context("cannot run git")?;
+    anyhow::ensure!(
+        out.status.success(),
+        "git: {}",
+        String::from_utf8_lossy(&out.stderr).trim()
+    );
+    let line = String::from_utf8_lossy(&out.stdout);
+    let mut parts = line.trim_end().splitn(3, '\t');
+    let (Some(short), Some(date), subject) = (parts.next(), parts.next(), parts.next()) else {
+        anyhow::bail!("`{rev}` names no commit");
+    };
+    Ok(format!(
+        "{short} · {date} · {}",
+        subject.unwrap_or_default()
+    ))
+}
+
 /// Refuses what is no revision: an option such as `--output=…` would make
 /// git write.
 fn revision(rev: &str) -> Result<()> {

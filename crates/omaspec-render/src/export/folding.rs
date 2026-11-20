@@ -53,6 +53,16 @@ pub enum Role {
     Leave,
 }
 
+/// What happened to a box from one version of a diagram to the next, as
+/// it glows a moment in a history: it came, it changed (its size), or it
+/// went. The colors are those `omaspec diff -o` marks a machine in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Change {
+    Came,
+    Changed,
+    Went,
+}
+
 /// The glide from one picture to the next.
 #[derive(Debug, Clone, Default)]
 pub struct Glide {
@@ -72,6 +82,8 @@ pub struct Moved {
     /// The box of a tree it goes into or comes out of: where that one
     /// was and where it is.
     pub into: Option<(Rect, Rect)>,
+    /// How it glows, in a history: none in a fold, or where it only moved.
+    pub glow: Option<Change>,
 }
 
 /// One line on its way: its route before (none for one that comes) and
@@ -165,6 +177,11 @@ fn data(folding: &Folding) -> Value {
                         "to": rect(b.to),
                         "role": role(b.role),
                         "into": b.into.map(|(was, is)| json!([rect(was), rect(is)])),
+                        "glow": b.glow.map(|change| match change {
+                            Change::Came => "came",
+                            Change::Changed => "changed",
+                            Change::Went => "went",
+                        }),
                     })
                 })
                 .collect();
@@ -204,6 +221,18 @@ fn data(folding: &Folding) -> Value {
             .map(|at| format!("{}{}", prefix(at), omaspec_uml::LINES))
             .collect::<Vec<_>>(),
         "glides": glides,
+        // The colors what came, changed and went glows in, where it does.
+        "glows": folding
+            .glides
+            .iter()
+            .any(|glide| glide.boxes.iter().any(|b| b.glow.is_some()))
+            .then(|| {
+                json!({
+                    "came": omaspec_uml::state::TAKEN,
+                    "changed": omaspec_uml::state::CHANGED,
+                    "went": omaspec_uml::state::MISSED,
+                })
+            }),
     })
 }
 

@@ -2897,6 +2897,18 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] Time travel (2026-11-20): what changed glows a moment after the glide from another
+      version of a diagram, in the colors `omaspec diff -o` marks a machine in: a box
+      that went turns red as it fades out, and once the new one stands a box that came
+      glows green, one that changed its size or its color amber; a box that only moved
+      does not (`paper::glow`, worked out from the glide's boxes, so every diagram that
+      glides by its parts glows). In the editor beside a comparison, *Compare: glide
+      from B to A*; in a history (`play --history`), each commit as it comes, in the GIF
+      and on the page alike; and `omaspec play FILE --from REV [--to REV] -o
+      change.gif|.html` travels from one commit to the file as it is now, or to
+      another, for a review. The README's history picture glows now. A line that came
+      does not glow yet, only its box; the page reads a box's change from its size,
+      not its color
 - [x] Capability map (2026-11-20, [ADR 0035](adr/0035-a-capability-map-of-its-own.md)):
       `@startcapabilities`, Omaspec's own: what a business can do as tiles inside
       tiles by their stars (`* Area`, `** Capability`, up to six levels), each on one

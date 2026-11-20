@@ -14,7 +14,9 @@ use super::arrival::{Arrival, Event, Next};
 use super::raster::{Plan, Raster};
 use super::sheet::Sheet;
 use super::view::View;
-use super::{Change, Diagram, Fade, Message, Paper, Previous, Status, cards, frames, morph, wires};
+use super::{
+    Change, Diagram, Fade, Message, Paper, Previous, Status, cards, frames, glow, morph, wires,
+};
 use crate::worker::Answer;
 
 /// How long a new picture takes to fade in over the one before.
@@ -322,6 +324,17 @@ impl Paper {
             let maps = [&**old_map, &*diagram.drawn.map];
             morph::prepare(morph, (old, new), maps, lines.as_ref());
         }
+        // What changed glows, where a glide from a version before was asked
+        // to; any other glide ends a glow still on screen.
+        self.glow = match (&morph, &old_map) {
+            (Some(morph), Some(_)) if std::mem::take(&mut self.glow_next) => {
+                glow::Glow::of(morph, now, duration)
+            }
+            _ => None,
+        };
+        if old_map.is_some() {
+            self.glow_next = false;
+        }
         let fade = Fade {
             old,
             old_view,
@@ -541,6 +554,8 @@ impl Paper {
         let Some(now) = &self.diagram else {
             return Task::none();
         };
+        // The way from B to A is to show what changed.
+        self.glow_next = true;
         let ticket = |id: u64| crate::worker::Ticket { doc: 0, id };
         self.back = Some(Answer {
             ticket: ticket(0),
@@ -558,6 +573,12 @@ impl Paper {
         // Nothing glides to the old one: it is where the way starts.
         self.arrival.forget_previous();
         task
+    }
+
+    /// The next glide from the picture on screen shows what changed, as
+    /// one from B of a comparison does ([`glow`]): a history's next commit.
+    pub fn glow_next_glide(&mut self) {
+        self.glow_next = true;
     }
 
     /// The diagram on screen as it was drawn, with its source, for

@@ -64,15 +64,27 @@ pub(super) fn timelapse(args: &Moving, film: Film, fps: u32) -> Result<String> {
     crate::files::write_atomic(&args.output, &bytes)
         .with_context(|| format!("cannot write {}", args.output.display()))?;
     Ok(format!(
-        "{} → {} ({} frames, {}×{}, {} commits{})",
+        "{} → {} ({} frames, {}×{}, {})",
         args.file.display(),
         args.output.display(),
         count,
         w,
         h,
-        stage.versions.len(),
-        passed_over(stage.passed)
+        travelled_or(args, stage.versions.len(), stage.passed)
     ))
+}
+
+/// What a summary says it went through: a travel from one commit to
+/// another, or so many commits, and those passed over.
+fn travelled_or(args: &Moving, count: usize, passed: usize) -> String {
+    match &args.travel {
+        Some(travel) => format!(
+            "from {} to {}",
+            travel.from,
+            travel.to.as_deref().unwrap_or("now")
+        ),
+        None => format!("{count} commits{}", passed_over(passed)),
+    }
 }
 
 /// What the summary says of the commits that left the diagram broken.
@@ -101,8 +113,12 @@ fn enough(args: &Moving, kept: usize, passed: usize) -> Result<()> {
 }
 
 /// The file as each commit that changed it left it, oldest first; a
-/// commit that left its text as it was is passed over.
+/// commit that left its text as it was is passed over. On a time travel
+/// (`--from`) the two versions it travels between.
 fn versions(args: &Moving) -> Result<Vec<Version>> {
+    if let Some(travel) = &args.travel {
+        return travelled(args, travel);
+    }
     let commits = crate::git::file_log(&args.file, Some(MOST), crate::names::MAX_FILE)
         .with_context(|| format!("{} has no history in git", args.file.display()))?;
     let mut versions: Vec<Version> = Vec::new();
@@ -130,6 +146,43 @@ fn versions(args: &Moving) -> Result<Vec<Version>> {
         }
     );
     Ok(versions)
+}
+
+/// The file as the commit `travel.from` left it, and as `travel.to` left
+/// it or as it is on disk.
+fn travelled(args: &Moving, travel: &super::moving::Travel) -> Result<Vec<Version>> {
+    let at = |rev: &str| -> Result<Version> {
+        let text = crate::git::show(&args.file, rev)
+            .with_context(|| format!("{} at {rev}", args.file.display()))?;
+        let (_, language) = args.named(&text);
+        Ok(Version {
+            caption: crate::git::commit_line(&args.file, rev)?,
+            text,
+            language,
+        })
+    };
+    let from = at(&travel.from)?;
+    let to = match &travel.to {
+        Some(rev) => at(rev)?,
+        None => {
+            let text = std::fs::read_to_string(&args.file)
+                .with_context(|| format!("cannot read {}", args.file.display()))?;
+            let (_, language) = args.named(&text);
+            Version {
+                caption: "as it is now".to_owned(),
+                text,
+                language,
+            }
+        }
+    };
+    anyhow::ensure!(
+        from.text != to.text,
+        "{} is the same at {} as {}: there is nothing to travel",
+        args.file.display(),
+        travel.from,
+        travel.to.as_deref().unwrap_or("now")
+    );
+    Ok(vec![from, to])
 }
 
 /// How long each commit stays, for `count` of them.
@@ -282,6 +335,8 @@ impl Stage {
                 right: format!("{} / {}", at + 1, versions.len()),
             }];
             if at > 0 {
+                // What changed since the commit before glows as it comes.
+                self.app.doc_mut().paper.glow_next_glide();
                 shown(
                     &mut self.app,
                     &self.screen,
@@ -378,11 +433,13 @@ fn page(args: &Moving, versions: Vec<Version>) -> Result<String> {
         .windows(2)
         .enumerate()
         .map(|(at, maps)| {
+            // What changed since the commit before glows as it comes.
             let mut glide = paper::headless::fold_glide(
                 &maps[0],
                 &maps[1],
                 pictures[at].size,
                 pictures[at + 1].size,
+                true,
             );
             remap(
                 &mut glide,
@@ -422,12 +479,11 @@ fn page(args: &Moving, versions: Vec<Version>) -> Result<String> {
     crate::files::write_atomic(&args.output, written.as_bytes())
         .with_context(|| format!("cannot write {}", args.output.display()))?;
     Ok(format!(
-        "{} → {} (a page, {} KB, {} commits in vectors{})",
+        "{} → {} (a page in vectors, {} KB, {})",
         args.file.display(),
         args.output.display(),
         written.len().div_ceil(1024),
-        versions.len(),
-        passed_over(passed)
+        travelled_or(args, versions.len(), passed)
     ))
 }
 
@@ -618,6 +674,7 @@ mod tests {
                 to: [1.0, 2.0, 3.0, 4.0],
                 role: omaspec_render::export::folding::Role::Stay,
                 into: None,
+                glow: None,
             }],
             lines: Vec::new(),
         };
@@ -696,6 +753,7 @@ mod tests {
             builds: false,
             lockstep: false,
             history: true,
+            travel: None,
             traffic: Vec::new(),
             themes: None,
             ink: false,
@@ -738,7 +796,7 @@ mod tests {
         assert_eq!(u16::from_le_bytes([gif[6], gif[7]]), 320);
         let told = super::super::moving::play(&moving("door.html")).unwrap();
         assert!(
-            told.contains("a page") && told.contains("3 commits in vectors, 1 passed over"),
+            told.contains("a page") && told.contains("3 commits, 1 passed over: it does not draw"),
             "{told}"
         );
         let page = std::fs::read_to_string(work.join("door.html")).unwrap();
@@ -746,6 +804,37 @@ mod tests {
         assert!(page.contains("feat: and closes"));
         assert!(!page.contains("docs: notes"));
         assert!(!page.contains("wip: half a transition"));
+        // What changed since the commit before glows as it comes.
+        assert!(page.contains(r#""glow":"came""#), "{page}");
+        // Time travel: the first commit gliding into the file as it is.
+        std::fs::write(&file, "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\nOpen --> Jammed : stuck\n@enduml\n").unwrap();
+        let travel = |from: &str, to: Option<&str>, output: &str| Moving {
+            history: false,
+            travel: Some(super::super::moving::Travel {
+                from: from.to_owned(),
+                to: to.map(str::to_owned),
+            }),
+            ..moving(output)
+        };
+        let told = super::super::moving::play(&travel("HEAD~4", None, "travel.html")).unwrap();
+        assert!(
+            told.contains("in vectors, ") && told.contains("from HEAD~4 to now"),
+            "{told}"
+        );
+        let page = std::fs::read_to_string(work.join("travel.html")).unwrap();
+        assert!(
+            page.contains("feat: a door") && page.contains("as it is now"),
+            "{page}"
+        );
+        assert!(!page.contains("feat: it opens"));
+        let told =
+            super::super::moving::play(&travel("HEAD~3", Some("HEAD"), "travel.gif")).unwrap();
+        assert!(told.contains("from HEAD~3 to HEAD"), "{told}");
+        // The same text at both ends: nothing to travel.
+        let refused = super::super::moving::play(&travel("HEAD~3", Some("HEAD~2"), "same.gif"))
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("nothing to travel"), "{refused}");
         let _ = std::fs::remove_dir_all(&work);
     }
 
