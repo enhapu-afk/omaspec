@@ -1,0 +1,9 @@
+@startuml
+title Day
+[*] --> Closed
+Closed --> Opening : morning
+Opening --> Order : first guest
+Order --> Order : next guest
+Order --> Closing : evening
+Closing --> Closed : locked
+@enduml

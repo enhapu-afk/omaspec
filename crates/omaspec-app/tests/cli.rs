@@ -1183,6 +1183,32 @@ fn a_play_is_written_as_a_gif_that_moves() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// A project's file is linted as what it is: nothing to say of a good
+/// one, its line where it is wrong; no word of a diagram.
+#[test]
+fn lint_reads_a_project_s_file_as_one() {
+    let dir = scratch("lint-project-file");
+    let file = dir.join("omaspec-project.toml");
+    fs::write(&file, "# A project.\nname = \"cafe\"\n").unwrap();
+    let out = omaspec(&["lint", "--strict", file.to_str().unwrap()]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+    assert!(
+        out.stdout.is_empty(),
+        "{}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+    fs::write(&file, "name = \"cafe\"\n[look]\npack = \"nowhere\"\n").unwrap();
+    let out = omaspec(&["lint", file.to_str().unwrap()]);
+    let said = String::from_utf8_lossy(&out.stdout);
+    assert!(!out.status.success(), "{said}");
+    assert!(said.contains("omaspec-project.toml:3: error:"), "{said}");
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn a_fold_and_a_zoom_into_a_map_are_written_as_gifs() {
     let dir = scratch("fold-dive-gif");
@@ -1232,6 +1258,24 @@ fn a_fold_and_a_zoom_into_a_map_are_written_as_gifs() {
         err.contains("Nowhere is no tile") && err.contains("Orders"),
         "{err}"
     );
+    // A flight: into the tile, on along a state that links to a diagram
+    // of its name, and back out the same way.
+    let paying = dir.join("paying.puml");
+    fs::write(
+        &paying,
+        "@startuml\ntitle Paying\n[*] --> Card\nCard --> [*] : ok\n@enduml\n",
+    )
+    .unwrap();
+    let (code, err) = play(&[project.to_str().unwrap(), "--dive", "Orders/Paying"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(err.contains("into Orders/Paying and back"), "{err}");
+    let (code, err) = play(&[project.to_str().unwrap(), "--dive", "Orders/Nowhere"]);
+    assert_ne!(code, Some(0));
+    assert!(
+        err.contains("Nowhere is no link of Orders") && err.contains("Paying"),
+        "{err}"
+    );
+    fs::remove_file(&paying).unwrap();
     // A dive wants the project's file, and the project's file a dive.
     let (code, err) = play(&[orders.to_str().unwrap(), "--dive", "Orders"]);
     assert_ne!(code, Some(0));

@@ -624,56 +624,73 @@ impl Stage {
     /// Zooms into each of the map's tiles `names` and back out, as a
     /// click on the tile and Alt+Left do; what it zoomed into.
     fn dive(&mut self, names: &[String]) -> Result<String> {
-        let map = self.key;
         let still = |app: &App| app.doc().paper.glide().is_none();
         self.run(HOLD, |_| false);
         for name in names {
-            let paper = &self.app.doc().paper;
-            let at = paper
-                .links()
-                .iter()
-                .find(|link| &link.name == name)
-                .map(|link| {
-                    paper
-                        .view
-                        .on_screen(
-                            paper::link_rect(link),
-                            iced::Rectangle::with_size(paper.viewport()),
-                        )
-                        .center()
-                })
-                .with_context(|| {
-                    format!(
-                        "{name} is no tile of the map; it has {}",
+            // `Orders/Checkout`: into the tile, and on along the link of
+            // the diagram there, a flight through the project
+            // (docs/adr/0018); back out the same way.
+            let chain: Vec<&str> = name.split('/').map(str::trim).collect();
+            anyhow::ensure!(
+                chain.iter().all(|link| !link.is_empty()),
+                "{name}: a flight names a tile and the links after it, as Orders/Checkout"
+            );
+            for (depth, link) in chain.iter().enumerate() {
+                let here = self.app.doc().key;
+                let paper = &self.app.doc().paper;
+                let at = paper
+                    .links()
+                    .iter()
+                    .find(|one| one.name == *link)
+                    .map(|one| {
                         paper
-                            .links()
-                            .iter()
-                            .map(|link| link.name.as_str())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
-                })?;
-            self.send(Message::Paper(map, paper::Message::Follow(at)));
-            let target = self
-                .app
-                .docs
-                .iter()
-                .map(|doc| doc.key)
-                .find(|key| self.app.is_arriving(*key))
-                .with_context(|| format!("{name} opens no diagram"))?;
-            // Its picture arrives with the zoom.
-            linked(&mut self.app, &self.screen, target)?;
-            // The way in, the diagram in its own tab, and a moment there.
-            self.run(self.tick, |_| false);
-            self.run(DIVE, still);
-            self.send(Message::Worker(worker::Event::Due(worker::Alarm::Follow)));
-            self.run(self.tick * 2, |_| false);
-            self.run(HOLD, |_| false);
-            // The way back out, and the map again.
-            self.send(Message::Command(Command::Back));
-            self.run(self.tick, |_| false);
-            self.run(DIVE, still);
-            self.run(HOLD, |_| false);
+                            .view
+                            .on_screen(
+                                paper::link_rect(one),
+                                iced::Rectangle::with_size(paper.viewport()),
+                            )
+                            .center()
+                    })
+                    .with_context(|| {
+                        let what = if depth == 0 {
+                            "no tile of the map".to_owned()
+                        } else {
+                            format!("no link of {}", chain[depth - 1])
+                        };
+                        format!(
+                            "{link} is {what}; it has {}",
+                            paper
+                                .links()
+                                .iter()
+                                .map(|one| one.name.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    })?;
+                self.send(Message::Paper(here, paper::Message::Follow(at)));
+                let target = self
+                    .app
+                    .docs
+                    .iter()
+                    .map(|doc| doc.key)
+                    .find(|key| self.app.is_arriving(*key))
+                    .with_context(|| format!("{link} opens no diagram"))?;
+                // Its picture arrives with the zoom.
+                linked(&mut self.app, &self.screen, target)?;
+                // The way in, the diagram in its own tab, and a moment there.
+                self.run(self.tick, |_| false);
+                self.run(DIVE, still);
+                self.send(Message::Worker(worker::Event::Due(worker::Alarm::Follow)));
+                self.run(self.tick * 2, |_| false);
+                self.run(HOLD, |_| false);
+            }
+            // The way back out, a step for each link, and the map again.
+            for _ in &chain {
+                self.send(Message::Command(Command::Back));
+                self.run(self.tick, |_| false);
+                self.run(DIVE, still);
+                self.run(HOLD, |_| false);
+            }
         }
         Ok(format!("into {} and back", names.join(", ")))
     }

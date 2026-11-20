@@ -115,7 +115,9 @@ checked for legible colors, the gallery's diagrams in each of them too.
 - **Diagrams that link.** A state links to the diagram of its name: click it and the
   view zooms in, Alt+Left zooms back out. A project's map is made from its diagrams:
   each a tile with its picture, a folder a frame, and arrows for what plays, opens and
-  includes what; a diagram stands above the one it leads to.
+  includes what; a diagram stands above the one it leads to. `omaspec play
+  omaspec-project.toml --dive Day/Order/Payment -o flight.gif` flies from the map down
+  the links and back out.
 
 ![The map of a shop: three scenarios in a folder play the orders, which open the checkout](docs/images/map.png)
 

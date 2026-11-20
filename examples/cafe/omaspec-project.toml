@@ -1,0 +1,4 @@
+# An Omaspec project: the diagrams in this folder and below it. A state
+# named like a diagram links to it: `omaspec play omaspec-project.toml
+# --dive Day/Order/Payment -o flight.gif` flies from the map down the links.
+name = "cafe"

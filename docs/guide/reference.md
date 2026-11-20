@@ -736,6 +736,7 @@ omaspec play coffee.puml -o fold.html --fold Brewing,Ready   # the folds as one 
 omaspec play coffee.puml -o fold.webp --fold Brewing     # the same in full color at 60 frames a second, without loss: an animated WebP, or .png an animated PNG; some twice a GIF's size
 omaspec play odyssey.puml -o odyssey.gif --steps 12      # a diagram too large to read whole: the view follows each step near enough to read, and ends on the whole; --whole keeps it whole
 omaspec play omaspec-project.toml -o map.gif --dive Orders,Checkout   # the project's map zooming into these tiles and back out
+omaspec play omaspec-project.toml -o flight.gif --dive Day/Order/Payment   # a flight through the project: into the tile Day, on along its state Order into the diagram of that name, on into Payment, and back out step by step
 omaspec play coffee.puml -o build.gif --build              # code becomes a picture: the source beside the diagram, which builds itself up as a caret walks down the lines; .webp or .png in full color; drawn without a GPU
 omaspec play coffee.puml -o build.html --build             # the same as a page in vectors, played by a browser; build.html#t=4 holds it still 4 seconds in
 omaspec play keys.puml -o lockstep.gif --lockstep          # a scenario beside the state machines of its participants in its project: as a message's light reaches its receiver, the receiver's machine takes the transition it fires; a message the machine cannot take runs red, its states flash, and its bar says why in the check's words

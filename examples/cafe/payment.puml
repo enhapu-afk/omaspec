@@ -1,0 +1,12 @@
+@startuml
+title Payment
+start
+:Total on the till;
+if (Card?) then (yes)
+  :Tap the card;
+else (no)
+  :Count the change;
+endif
+:Receipt;
+stop
+@enduml

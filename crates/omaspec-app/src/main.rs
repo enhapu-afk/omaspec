@@ -466,7 +466,9 @@ enum Command {
         #[arg(long, value_delimiter = ',', value_name = "NAME", conflicts_with_all = ["events", "steps"])]
         fold: Vec<String>,
         /// On a project's omaspec-project.toml: its map zooms into
-        /// these tiles, one after another, and back out.
+        /// these tiles, one after another, and back out. `Day/Order`
+        /// flies on from the tile's diagram along its link to Order, and
+        /// back out the same way.
         #[arg(long, value_delimiter = ',', value_name = "TILE", conflicts_with_all = ["events", "steps", "fold"])]
         dive: Vec<String>,
         /// Instead of a play: code becomes a picture. The source stands

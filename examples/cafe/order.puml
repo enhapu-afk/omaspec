@@ -1,0 +1,8 @@
+@startuml
+title Order
+[*] --> Taken
+Taken --> Brewing : coffee
+Taken --> Payment : cake only
+Brewing --> Payment : served
+Payment --> [*] : paid
+@enduml

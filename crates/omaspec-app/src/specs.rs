@@ -216,6 +216,23 @@ impl Projects {
         forced: Option<Language>,
         project: Option<&Path>,
     ) -> Vec<omaspec_core::lint::Finding> {
+        // A project's file is no diagram: what is wrong in it, if anything.
+        let file = input
+            .path
+            .as_deref()
+            .and_then(Path::file_name)
+            .is_some_and(|name| name == omaspec_core::project::FILE);
+        if file {
+            return match omaspec_core::project::Project::parse(&input.text) {
+                Ok(_) => Vec::new(),
+                Err(error) => vec![omaspec_core::lint::Finding::new(
+                    "project-file",
+                    error.line.saturating_sub(1),
+                    omaspec_core::lint::Severity::Error,
+                    error.message,
+                )],
+            };
+        }
         let Some(root) = root_of(input.path.as_deref(), project) else {
             return crate::document::findings(input, forced, &self.none);
         };

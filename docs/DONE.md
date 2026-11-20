@@ -2897,6 +2897,15 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] A flight through the project (2026-11-20, the fifth of the animations that show
+      what a diagram means): `--dive Day/Order/Payment` on a project's
+      `omaspec-project.toml` zooms from the map into the tile Day, on along the state
+      Order into the diagram of that name (docs/adr/0018), on into Payment, and back
+      out step by step; the dive into one tile, chained, each link looked for in the
+      diagram the flight is in, a link not there named with those there. The example
+      is `examples/cafe`: a day, an order and its payment. `omaspec lint` reads a
+      project's `omaspec-project.toml` as what it is, not as a diagram: nothing to say
+      of a good one, the line where it is wrong
 - [x] What the review of the time-lapse and the traffic found (2026-11-20). A history's
       glide ended off its middle and the picture jumped as it stood: the view is held
       through the pane (`Paper::hold_view`), the fade under way too. A commit that does

@@ -685,9 +685,8 @@ picture, the second is the highlight.
 - [ ] Lockstep: built as GIF, WebP, PNG and a page (in docs/DONE.md).
       Left: the lockstep in the window, F5 on a scenario with the
       machines of its participants opening beside it.
-- [ ] A flight through the project: one camera move from the map into a
-      tile, into its diagram, and on along a link into the next one
-      (docs/adr/0018), and back out; the dive into one tile, chained.
+- [ ] A flight through the project: built as GIF, WebP and PNG (in
+      docs/DONE.md). Left: a dive and a flight as a page in vectors.
 - [ ] A theme sweep: one diagram gliding through every bundled Omarchy
       theme, its colors crossing over, the theme's name as a caption.
 - [ ] From sketch to ink: a diagram in the sketch look (docs/adr/0023)
