@@ -97,14 +97,22 @@ impl Play {
             return Ok(Play::Machine(Box::new(play)));
         }
         if map.messages.is_empty() {
-            return Err("only a state machine or a sequence of messages can be played".into());
+            return Err(
+                "only a state machine, a sequence of messages or a git graph can be played".into(),
+            );
         }
+        // A git graph's veil keeps clear of what stands before its commits
+        // across the way they run: its title.
+        let clear = clear_of(&map.messages, map.run);
         Ok(Play::Scenario(ScenarioPlay {
             steps: map.messages.clone(),
+            run: map.run,
+            clear,
+            commits: omaspec_core::classify(source, language).name == "Git graph",
             grounds: map.grounds.clone(),
             at: 0,
             moved: now,
-            from_y: map.messages[0].top,
+            from_y: scenario::target(&map.messages, 0, map.run),
             begun: now,
             jump: None,
             onward: true,
@@ -293,6 +301,30 @@ impl Play {
     }
 }
 
+/// Where a veil drawn back to the right or up begins, in diagram units:
+/// a little above the highest of the steps, their tags with them, so what
+/// stands over them (a git graph's title) is not veiled. None down the
+/// page, whose veil begins past what is shown.
+fn clear_of(steps: &[omaspec_uml::map::Step], run: omaspec_uml::map::Run) -> Option<f32> {
+    use omaspec_uml::map::Run;
+    let highest = |of: &dyn Fn(&omaspec_uml::map::Step) -> f32| {
+        steps.iter().map(of).fold(f32::INFINITY, f32::min)
+    };
+    match run {
+        Run::Down => None,
+        Run::Right => Some(
+            highest(&|step| {
+                step.points
+                    .iter()
+                    .map(|p| p.1)
+                    .fold(f32::INFINITY, f32::min)
+            }) - 48.0,
+        ),
+        Run::Up => Some(highest(&|step| step.top) - 24.0),
+    }
+    .filter(|at| at.is_finite())
+}
+
 /// How much of a play that is ending is still to be seen at `now`.
 pub fn fading(now: Instant, since: Instant) -> f32 {
     1.0 - ramp(now, since, VEIL_FADE)
@@ -403,6 +435,8 @@ pub enum Offer {
     Scenario {
         at: usize,
         of: usize,
+        /// Its steps are a git graph's commits, not messages.
+        commits: bool,
     },
     Trace {
         /// The trace's file name.

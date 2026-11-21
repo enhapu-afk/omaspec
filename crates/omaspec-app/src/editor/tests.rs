@@ -2991,6 +2991,7 @@ fn the_drawers_that_mark_parts_are_asked_for_them() {
         ("classDiagram\nclass A\n", Language::Mermaid),
         ("flowchart LR\nA --> B\n", Language::Mermaid),
         ("mindmap\n  A\n", Language::Mermaid),
+        ("gitGraph\n  commit\n", Language::Mermaid),
     ] {
         assert!(asked(source, language), "{source}");
     }

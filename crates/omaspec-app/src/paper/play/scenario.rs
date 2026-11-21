@@ -1,5 +1,6 @@
 //! A scenario played: the veil lifted message by message while a light
-//! runs along each arrow.
+//! runs along each arrow. A git graph plays so too, commit by commit, the
+//! veil drawn back the way its time runs ([`Run`]).
 
 use std::time::Duration;
 
@@ -7,7 +8,7 @@ use iced::time::Instant;
 use iced::widget::canvas;
 use iced::widget::canvas::{Frame, Path};
 use iced::{Color, Point, Rectangle, Size};
-use omaspec_uml::map::{Ground, Step};
+use omaspec_uml::map::{Ground, Run, Step};
 
 use super::super::canvas::fill_paper_band_across;
 use super::super::light::{
@@ -18,8 +19,34 @@ use super::super::light::{
 use super::draw::*;
 use super::*;
 
+/// The veil's long smooth edge, before the veil over what is still to
+/// come: a short shelf read as a stripe travelling down the diagram.
+const SOFT: f32 = 56.0;
+/// The edge in steps of one color each, on whole pixels: as the veil
+/// under it is drawn. A gradient showed a line at each of its stops in
+/// some windows, a band where the reader looks.
+const STEPS: usize = 28;
+
+/// Where the veil's edge goes with `at` of `steps` shown, the way they
+/// `run`: over the first before any, past the last shown after.
+pub(super) fn target(steps: &[Step], at: usize, run: Run) -> f32 {
+    match (at, run) {
+        (0, Run::Up) => steps[0].bottom,
+        (0, _) => steps[0].top,
+        (n, Run::Up) => steps[n - 1].top,
+        (n, _) => steps[n - 1].bottom,
+    }
+}
+
 pub struct ScenarioPlay {
     pub(super) steps: Vec<Step>,
+    /// Which way the steps follow one another, and the veil goes back.
+    pub(super) run: Run,
+    /// Where a veil going back to the right or up begins, from the top, in
+    /// diagram units: what stands over the steps stays clear of it.
+    pub(super) clear: Option<f32>,
+    /// Its steps are a git graph's commits.
+    pub(super) commits: bool,
     /// The diagram's boxes with a fill of their own: the veil dims what
     /// lies on them toward their color ([`Ground`]).
     pub(super) grounds: Vec<Ground>,
@@ -57,21 +84,35 @@ type Spot4 = (f32, f32, f32, f32);
 pub(super) const SPOT_PAD: (f32, f32, f32) = (44.0, 2.0, 14.0);
 
 /// The highlight of `step`: its row, from a little before the leftmost of
-/// its points to a little past the rightmost.
-pub(super) fn spot_of(step: &Step) -> Spot4 {
-    let (left, right) = step
-        .points
-        .iter()
-        .fold((f32::INFINITY, f32::NEG_INFINITY), |(l, r), &(x, _)| {
-            (l.min(x), r.max(x))
-        });
+/// its points to a little past the rightmost; run to the right, its
+/// column, from a little above the highest to a little below the lowest.
+pub(super) fn spot_of(step: &Step, run: Run) -> Spot4 {
     let (across, above, below) = SPOT_PAD;
-    (
-        step.top - above,
-        step.bottom + below,
-        left - across,
-        right + across,
-    )
+    let span = |of: fn(&(f32, f32)) -> f32| {
+        step.points
+            .iter()
+            .map(of)
+            .fold((f32::INFINITY, f32::NEG_INFINITY), |(l, r), v| {
+                (l.min(v), r.max(v))
+            })
+    };
+    if run == Run::Right {
+        let (high, low) = span(|p| p.1);
+        (
+            high - across,
+            low + across,
+            step.top - above,
+            step.bottom + below,
+        )
+    } else {
+        let (left, right) = span(|p| p.0);
+        (
+            step.top - above,
+            step.bottom + below,
+            left - across,
+            right + across,
+        )
+    }
 }
 
 impl ScenarioPlay {
@@ -94,14 +135,24 @@ impl ScenarioPlay {
     /// first.
     pub(super) fn focus(&self) -> Option<iced::Rectangle> {
         let step = &self.steps[self.at.checked_sub(1)?];
-        let (left, right) = step
-            .points
-            .iter()
-            .fold((f32::MAX, f32::MIN), |(l, r), p| (l.min(p.0), r.max(p.0)));
-        (left <= right).then(|| {
+        let span = |of: fn(&(f32, f32)) -> f32| {
+            step.points
+                .iter()
+                .map(of)
+                .fold((f32::MAX, f32::MIN), |(l, r), v| (l.min(v), r.max(v)))
+        };
+        // Along the way the steps run, as far as the light comes from:
+        // a merge's from what it took in, far back.
+        let along = |(low, high): (f32, f32)| (step.top.min(low), step.bottom.max(high));
+        let ((left, right), (top, bottom)) = if self.run == Run::Right {
+            (along(span(|p| p.0)), span(|p| p.1))
+        } else {
+            (span(|p| p.0), along(span(|p| p.1)))
+        };
+        (left <= right && top <= bottom).then(|| {
             iced::Rectangle::new(
-                iced::Point::new(left, step.top),
-                iced::Size::new((right - left).max(1.0), (step.bottom - step.top).max(1.0)),
+                iced::Point::new(left, top),
+                iced::Size::new((right - left).max(1.0), (bottom - top).max(1.0)),
             )
         })
     }
@@ -132,7 +183,7 @@ impl ScenarioPlay {
         let k = ease_out(fraction(now.saturating_duration_since(self.moved), REVEAL));
         let spot = self
             .band_span(k)
-            .unwrap_or_else(|| spot_of(&self.steps[index]));
+            .unwrap_or_else(|| spot_of(&self.steps[index], self.run));
         Some(Leaving {
             index,
             light: self.light_now(now)?,
@@ -152,7 +203,10 @@ impl ScenarioPlay {
     /// Where the highlight sits at reveal progress `k`, gliding from the
     /// message left to the one shown.
     pub(super) fn band_span(&self, k: f32) -> Option<Spot4> {
-        let to = self.at.checked_sub(1).map(|i| spot_of(&self.steps[i]));
+        let to = self
+            .at
+            .checked_sub(1)
+            .map(|i| spot_of(&self.steps[i], self.run));
         let from = self.leave.as_ref().map(|left| left.spot);
         match (from, to) {
             (Some(a), Some(b)) => Some((
@@ -176,7 +230,9 @@ impl ScenarioPlay {
         }
     }
 
-    /// Where the veil's upper edge is at `now`, in diagram units.
+    /// Where the veil's edge is at `now`, in diagram units, along the way
+    /// the steps run: its upper edge, its left one to the right, its lower
+    /// one up.
     pub(super) fn edge(&self, now: Instant) -> f32 {
         let target = self.target();
         let k = ease_out(fraction(now.saturating_duration_since(self.moved), REVEAL));
@@ -184,10 +240,7 @@ impl ScenarioPlay {
     }
 
     pub(super) fn target(&self) -> f32 {
-        match self.at {
-            0 => self.steps[0].top,
-            n => self.steps[n - 1].bottom,
-        }
+        target(&self.steps, self.at, self.run)
     }
 
     pub(super) fn settled(&self) -> Instant {
@@ -204,23 +257,21 @@ impl ScenarioPlay {
         Offer::Scenario {
             at: self.at,
             of: self.steps.len(),
+            commits: self.commits,
         }
     }
 
     pub(super) fn draw_under(&self, frame: &mut Frame, look: &Look, view: &Viewer, now: Instant) {
         let veil = ramp(now, self.begun, VEIL_FADE);
+        if self.run != Run::Down {
+            self.draw_back(frame, look, view, now, veil);
+            return;
+        }
         let edge = view.point((0.0, self.edge(now))).y;
         let paper = view.paper;
-        // A long smooth edge, then the veil over what is still to come.
-        // A short shelf read as a stripe travelling down the diagram.
-        pub(super) const SOFT: f32 = 56.0;
         let top = edge.max(paper.y);
         let soft_end = (top + SOFT).min(paper.y + paper.height);
         let full = |color: Color| with_alpha(color, VEIL * veil);
-        // The edge in steps of one color each, on whole pixels: as the
-        // veil under it is drawn. A gradient showed a line at each of its
-        // stops in some windows, a band where the reader looks.
-        const STEPS: usize = 28;
         for step in 0..STEPS {
             let from = top + SOFT * step as f32 / STEPS as f32;
             let to = (top + SOFT * (step + 1) as f32 / STEPS as f32).min(soft_end);
@@ -235,6 +286,66 @@ impl ScenarioPlay {
         let below = top + SOFT;
         if below < paper.y + paper.height {
             self.veil_band(frame, look, view, (below, paper.y + paper.height), full);
+        }
+    }
+
+    /// The veil over what is still to come where the steps run to the right
+    /// or up, its soft edge where the play has come to: a git graph's time.
+    /// A git graph has no box of a fill of its own under it.
+    fn draw_back(&self, frame: &mut Frame, look: &Look, view: &Viewer, now: Instant, veil: f32) {
+        let paper = view.paper;
+        let full = with_alpha(look.veil, VEIL * veil);
+        let (right, bottom) = (paper.x + paper.width, paper.y + paper.height);
+        // What stands over the steps, the title, stays clear.
+        let top = self
+            .clear
+            .map_or(paper.y, |at| view.point((0.0, at)).y.max(paper.y));
+        let band = |frame: &mut Frame, (from, to): (f32, f32), alpha: f32| {
+            if to <= from {
+                return;
+            }
+            let fill = with_alpha(full, alpha);
+            if self.run == Run::Right {
+                fill_paper_band_across(
+                    frame,
+                    paper,
+                    view.scale,
+                    (top, bottom),
+                    (Some(from), (to < right).then_some(to)),
+                    fill,
+                );
+            } else {
+                fill_paper_band_across(frame, paper, view.scale, (from, to), (None, None), fill);
+            }
+        };
+        // From the edge on into what is to come: to the right, or up.
+        let (edge, end, sign) = if self.run == Run::Right {
+            (view.point((self.edge(now), 0.0)).x.max(paper.x), right, 1.0)
+        } else {
+            (view.point((0.0, self.edge(now))).y.min(bottom), top, -1.0)
+        };
+        let at = |share: f32| edge + sign * SOFT * share;
+        for step in 0..STEPS {
+            let (a, b) = (
+                at(step as f32 / STEPS as f32),
+                at((step + 1) as f32 / STEPS as f32),
+            );
+            let (from, to) = if self.run == Run::Right {
+                (a.min(b).max(paper.x), a.max(b).min(right))
+            } else {
+                (a.min(b).max(top), a.max(b).min(bottom))
+            };
+            band(
+                frame,
+                (from, to),
+                smooth((step as f32 + 0.5) / STEPS as f32),
+            );
+        }
+        let beyond = at(1.0);
+        if self.run == Run::Right {
+            band(frame, (beyond, end), 1.0);
+        } else {
+            band(frame, (end, beyond), 1.0);
         }
     }
 

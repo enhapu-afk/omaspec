@@ -123,6 +123,8 @@ pub struct Canvas {
     echoes: Vec<crate::graph::Rect>,
     /// Shapes without words, each with the line that draws it.
     shapes: Vec<crate::map::Tied>,
+    /// The parts written on one line alone ([`Self::part_on`]).
+    written: Vec<(String, usize)>,
     /// Words with an emoji were drawn in monochrome: the picture defines
     /// the filter that grays them ([`GRAY`]).
     grayed: bool,
@@ -181,6 +183,7 @@ impl Canvas {
             echoes: Vec::new(),
             shapes: Vec::new(),
             grayed: false,
+            written: Vec::new(),
         }
     }
 
@@ -205,6 +208,20 @@ impl Canvas {
         let painted = paint(self);
         self.part = before;
         painted
+    }
+
+    /// [`Self::part`], the part written on `line` alone: a build sets it
+    /// down there ([`crate::map::Map::written`]).
+    pub fn part_on<T>(
+        &mut self,
+        name: &str,
+        line: usize,
+        paint: impl FnOnce(&mut Canvas) -> T,
+    ) -> T {
+        if self.marks_parts && !self.written.iter().any(|(part, _)| part == name) {
+            self.written.push((name.to_owned(), line));
+        }
+        self.part(name, paint)
     }
 
     /// What is drawn on `layer`, within the group of the part being drawn:
@@ -1233,6 +1250,7 @@ impl Canvas {
         map.tied.append(&mut self.ties);
         map.echoes.append(&mut self.echoes);
         map.shapes.append(&mut self.shapes);
+        map.written.append(&mut self.written);
         map.placed(self.fit(margin))
     }
 

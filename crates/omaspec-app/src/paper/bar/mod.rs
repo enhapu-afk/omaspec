@@ -136,7 +136,7 @@ pub fn play_bar<'a>(offer: &Offer, p: &Palette, font: Font, pane: f32) -> Elemen
                 offered.push(vec![words("nothing can happen here".into(), muted).into()]);
             }
         }
-        Offer::Scenario { at, of } => {
+        Offer::Scenario { at, of, .. } => {
             items.push(words(format!("● {at} / {of}"), accent).into());
             tools.push(tool("‹ back", (*at > 0).then_some(Ask::Back), p, font));
             tools.push(chip_next((*at < *of).then_some(Ask::Next), p, font));

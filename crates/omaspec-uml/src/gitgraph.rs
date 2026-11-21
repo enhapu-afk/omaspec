@@ -50,6 +50,9 @@ pub struct Diagram {
     pub commits: Vec<Commit>,
     pub look: Look,
     pub settings: Settings,
+    /// Each lane and each commit in a part of its own (docs/adr/0029):
+    /// what a build sets down line by line, and a glide takes whole.
+    pub parts: bool,
 }
 
 /// The way time runs.
@@ -326,6 +329,9 @@ pub fn draw(diagram: &Diagram) -> Result<String, Declined> {
 pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Declined> {
     let mut canvas = Canvas::new(&diagram.look.font_name, false);
     canvas.sketch(diagram.look.sketch);
+    if diagram.parts {
+        canvas.mark_parts();
+    }
     let family = canvas.family();
     let look = &diagram.look;
     let title = match &diagram.title {
@@ -389,7 +395,17 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, crate::map::Map), Decli
             Align::Center,
         );
     }
-    let map = canvas.place(crate::map::Map::default(), 10.0);
+    // Each commit a step a play takes, along the way time runs.
+    let map = crate::map::Map {
+        messages: steps(diagram, &plan),
+        run: match diagram.direction {
+            Direction::Across => crate::map::Run::Right,
+            Direction::Down => crate::map::Run::Down,
+            Direction::Up => crate::map::Run::Up,
+        },
+        ..crate::map::Map::default()
+    };
+    let map = canvas.place(map, 10.0);
     Ok((canvas.finish(10.0, look.background), map))
 }
 
@@ -527,117 +543,209 @@ fn paint(canvas: &mut Canvas, diagram: &Diagram, plan: &Plan, names: &[Block], w
         &[]
     };
     for (lane, name) in shown.iter().enumerate() {
-        let color = lane_color(look, lane);
-        let l = plan.lanes[lane];
-        let from = plan.page(plan.start - plan.lead, l);
-        let to = plan.page(plan.end + plan.step / 2.0, l);
-        let faint = Stroke::new(color.mix(paper, 0.55), 1.5).dashed(3.0, 4.0);
-        canvas.line(Layer::Background, from, to, faint);
-        let (x, y, w, h) = plate_at(plan, name, look, from);
-        canvas.card(Layer::Bars, (x, y, w, h), 4.0, color);
-        canvas.text(
-            Layer::Front,
-            name,
-            (x + w / 2.0, y + (h - name.height) / 2.0),
-            Align::Center,
-        );
+        let branch = &diagram.branches[lane];
+        canvas.part_on(&branch_part(&branch.name), branch.line, |canvas| {
+            let color = lane_color(look, lane);
+            let l = plan.lanes[lane];
+            let from = plan.page(plan.start - plan.lead, l);
+            let to = plan.page(plan.end + plan.step / 2.0, l);
+            let faint = Stroke::new(color.mix(paper, 0.55), 1.5).dashed(3.0, 4.0);
+            canvas.line(Layer::Background, from, to, faint);
+            let (x, y, w, h) = plate_at(plan, name, look, from);
+            canvas.card(Layer::Bars, (x, y, w, h), 4.0, color);
+            canvas.text(
+                Layer::Front,
+                name,
+                (x + w / 2.0, y + (h - name.height) / 2.0),
+                Align::Center,
+            );
+        });
     }
 
     // The lines between the commits, under their marks.
     for (turn, commit) in diagram.commits.iter().enumerate() {
-        let here = plan.at(turn, commit.branch);
-        let own = Stroke::new(lane_color(look, commit.branch), 3.0);
-        if let Some(parent) = commit.parent {
-            let before = &diagram.commits[parent];
-            let there = plan.at(parent, before.branch);
-            if before.branch == commit.branch {
-                canvas.line(Layer::Frames, there, here, own);
-            } else {
-                // A branch leaves its commit across the lanes first, then
-                // runs along its own.
-                let corner = plan.at(parent, commit.branch);
-                canvas.curve(Layer::Frames, &[there, corner, here], TURN, own);
+        // A commit's lines come with it: what it came from runs to it.
+        canvas.part_on(&commit_part(diagram, turn), commit.line, |canvas| {
+            let here = plan.at(turn, commit.branch);
+            let own = Stroke::new(lane_color(look, commit.branch), 3.0);
+            if let Some(parent) = commit.parent {
+                let before = &diagram.commits[parent];
+                let there = plan.at(parent, before.branch);
+                if before.branch == commit.branch {
+                    canvas.line(Layer::Frames, there, here, own);
+                } else {
+                    // A branch leaves its commit across the lanes first, then
+                    // runs along its own.
+                    let corner = plan.at(parent, commit.branch);
+                    canvas.curve(Layer::Frames, &[there, corner, here], TURN, own);
+                }
             }
-        }
-        match commit.from {
-            Some(From::Merged(head)) => {
-                // What is merged runs along its own lane, then across.
-                let merged = &diagram.commits[head];
-                let there = plan.at(head, merged.branch);
-                let corner = plan.at(turn, merged.branch);
-                let stroke = Stroke::new(lane_color(look, merged.branch), 3.0);
-                canvas.curve(Layer::Frames, &[there, corner, here], TURN, stroke);
+            match commit.from {
+                Some(From::Merged(head)) => {
+                    // What is merged runs along its own lane, then across.
+                    let merged = &diagram.commits[head];
+                    let there = plan.at(head, merged.branch);
+                    let corner = plan.at(turn, merged.branch);
+                    let stroke = Stroke::new(lane_color(look, merged.branch), 3.0);
+                    canvas.curve(Layer::Frames, &[there, corner, here], TURN, stroke);
+                }
+                Some(From::Picked(source)) => {
+                    // Straight across: along a lane it would lie under that
+                    // lane's own line.
+                    let picked = &diagram.commits[source];
+                    let there = plan.at(source, picked.branch);
+                    let stroke = Stroke::new(look.ink.mix(paper, 0.35), 1.5).dashed(4.0, 4.0);
+                    canvas.line(Layer::Frames, there, here, stroke);
+                }
+                None => {}
             }
-            Some(From::Picked(source)) => {
-                // Straight across: along a lane it would lie under that
-                // lane's own line.
-                let picked = &diagram.commits[source];
-                let there = plan.at(source, picked.branch);
-                let stroke = Stroke::new(look.ink.mix(paper, 0.35), 1.5).dashed(4.0, 4.0);
-                canvas.line(Layer::Frames, there, here, stroke);
-            }
-            None => {}
-        }
+        });
     }
 
     for (turn, commit) in diagram.commits.iter().enumerate() {
-        let at = plan.at(turn, commit.branch);
-        let color = lane_color(look, commit.branch);
-        mark(canvas, commit, at, color, paper);
-        let written = &words[turn];
-        if across {
-            if let Some(id) = written
-                .id
-                .as_ref()
-                .filter(|_| diagram.settings.rotate_commit_label)
-            {
-                // Turned, ending under the mark, on the page's color.
-                turned(canvas, id, (at.0, at.1 + RADIUS + 4.0), paper);
-            } else if let Some(id) = &written.id {
-                // On the page's color: a branch that leaves here runs
-                // down through the place of the words.
-                let y = at.1 + RADIUS + 5.0;
-                let plate = (
-                    at.0 - id.width / 2.0 - 3.0,
-                    y - 1.0,
-                    id.width + 6.0,
-                    id.height + 2.0,
-                );
-                canvas.rect(Layer::Bars, plate, 2.0, Some(paper), None);
-                canvas.text(Layer::Front, id, (at.0, y), Align::Center);
-            }
-            if let Some(tag) = &written.tag {
-                let y = at.1 - RADIUS - 8.0 - tag.height;
-                label(canvas, tag, (at.0 - tag.width / 2.0, y), look, paper);
-            }
-        } else {
-            let mut x = at.0 + RADIUS + 8.0;
-            if diagram.settings.rotate_commit_label {
-                // The tag level beside the mark, the id turned in its
-                // lane's column after the tags, rising to the right.
+        canvas.part_on(&commit_part(diagram, turn), commit.line, |canvas| {
+            let at = plan.at(turn, commit.branch);
+            let color = lane_color(look, commit.branch);
+            mark(canvas, commit, at, color, paper);
+            let written = &words[turn];
+            if across {
+                if let Some(id) = written
+                    .id
+                    .as_ref()
+                    .filter(|_| diagram.settings.rotate_commit_label)
+                {
+                    // Turned, ending under the mark, on the page's color.
+                    turned(canvas, id, (at.0, at.1 + RADIUS + 4.0), paper);
+                } else if let Some(id) = &written.id {
+                    // On the page's color: a branch that leaves here runs
+                    // down through the place of the words.
+                    let y = at.1 + RADIUS + 5.0;
+                    let plate = (
+                        at.0 - id.width / 2.0 - 3.0,
+                        y - 1.0,
+                        id.width + 6.0,
+                        id.height + 2.0,
+                    );
+                    canvas.rect(Layer::Bars, plate, 2.0, Some(paper), None);
+                    canvas.text(Layer::Front, id, (at.0, y), Align::Center);
+                }
+                if let Some(tag) = &written.tag {
+                    let y = at.1 - RADIUS - 8.0 - tag.height;
+                    label(canvas, tag, (at.0 - tag.width / 2.0, y), look, paper);
+                }
+            } else {
+                let mut x = at.0 + RADIUS + 8.0;
+                if diagram.settings.rotate_commit_label {
+                    // The tag level beside the mark, the id turned in its
+                    // lane's column after the tags, rising to the right.
+                    if let Some(tag) = &written.tag {
+                        label(canvas, tag, (x + 4.0, at.1 - tag.height / 2.0), look, paper);
+                    }
+                    if let Some(id) = &written.id {
+                        let column = x + id_column(diagram, words, commit.branch);
+                        rising(canvas, id, (column, at.1 - id.height * HALF / 2.0), paper);
+                    }
+                    return;
+                }
+                if let Some(id) = &written.id {
+                    // On the page's color: a line to a lane beside this one
+                    // passes here, and would strike the words through.
+                    let y = at.1 - id.height / 2.0;
+                    let plate = (x - 3.0, y - 1.0, id.width + 6.0, id.height + 2.0);
+                    canvas.rect(Layer::Bars, plate, 2.0, Some(paper), None);
+                    canvas.text(Layer::Front, id, (x, y), Align::Left);
+                    x += id.width + 10.0;
+                }
                 if let Some(tag) = &written.tag {
                     label(canvas, tag, (x + 4.0, at.1 - tag.height / 2.0), look, paper);
                 }
-                if let Some(id) = &written.id {
-                    let column = x + id_column(diagram, words, commit.branch);
-                    rising(canvas, id, (column, at.1 - id.height * HALF / 2.0), paper);
-                }
-                continue;
             }
-            if let Some(id) = &written.id {
-                // On the page's color: a line to a lane beside this one
-                // passes here, and would strike the words through.
-                let y = at.1 - id.height / 2.0;
-                let plate = (x - 3.0, y - 1.0, id.width + 6.0, id.height + 2.0);
-                canvas.rect(Layer::Bars, plate, 2.0, Some(paper), None);
-                canvas.text(Layer::Front, id, (x, y), Align::Left);
-                x += id.width + 10.0;
-            }
-            if let Some(tag) = &written.tag {
-                label(canvas, tag, (x + 4.0, at.1 - tag.height / 2.0), look, paper);
-            }
-        }
+        });
     }
+}
+
+/// Each commit as a step of a play (REQ-037), in the order they were made:
+/// the line it came along, which the play's light runs (what a merge took
+/// in, what a cherry-pick copied, else the line from the commit before,
+/// or for the first the lane from its start), and its turn's stretch of
+/// the way time runs, half a turn either side.
+fn steps(diagram: &Diagram, plan: &Plan) -> Vec<crate::map::Step> {
+    diagram
+        .commits
+        .iter()
+        .enumerate()
+        .map(|(turn, commit)| {
+            let here = plan.at(turn, commit.branch);
+            let way = match (commit.from, commit.parent) {
+                (Some(From::Merged(head)), _) => {
+                    let lane = diagram.commits[head].branch;
+                    vec![plan.at(head, lane), plan.at(turn, lane), here]
+                }
+                (Some(From::Picked(source)), _) => {
+                    vec![plan.at(source, diagram.commits[source].branch), here]
+                }
+                (None, Some(parent)) => {
+                    let lane = diagram.commits[parent].branch;
+                    if lane == commit.branch {
+                        vec![plan.at(parent, lane), here]
+                    } else {
+                        vec![plan.at(parent, lane), plan.at(parent, commit.branch), here]
+                    }
+                }
+                (None, None) => vec![
+                    plan.page(plan.start - plan.lead, plan.lanes[commit.branch]),
+                    here,
+                ],
+            };
+            let points = if way.len() > 2 {
+                crate::curve::flatten(&way, TURN)
+            } else {
+                way
+            };
+            let t = plan.start + turn as f32 * plan.step;
+            let l = plan.lanes[commit.branch];
+            let (a, b) = (
+                plan.page(t - plan.step / 2.0, l),
+                plan.page(t + plan.step / 2.0, l),
+            );
+            let (a, b) = match diagram.direction {
+                Direction::Across => (a.0, b.0),
+                Direction::Down | Direction::Up => (a.1, b.1),
+            };
+            crate::map::Step {
+                line: commit.line,
+                points,
+                top: a.min(b),
+                bottom: a.max(b),
+            }
+        })
+        .collect()
+}
+
+/// The part of commit `turn` (docs/adr/0029): its mark, its words and the
+/// lines that run to it, set down at the line that makes it. It is named by
+/// what an edit elsewhere leaves: its id where one is written, else its
+/// branch and how many commits came on it before; so a glide takes each
+/// commit to where it now stands, and a new one comes in alone.
+fn commit_part(diagram: &Diagram, turn: usize) -> String {
+    let commit = &diagram.commits[turn];
+    if let Some(id) = &commit.id {
+        return format!("commit {id}");
+    }
+    let before = diagram.commits[..turn]
+        .iter()
+        .filter(|other| other.branch == commit.branch && other.id.is_none())
+        .count();
+    let branch = diagram
+        .branches
+        .get(commit.branch)
+        .map_or("", |b| b.name.as_str());
+    format!("commit {branch} #{before}")
+}
+
+/// The part of the branch `name`: its lane and the plate with its name.
+fn branch_part(name: &str) -> String {
+    format!("branch {name}")
 }
 
 /// A commit's mark: a dot, a square for `HIGHLIGHT`, a crossed dot for
@@ -717,290 +825,4 @@ fn on_fill(fill: Color) -> Color {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    const FLOW: &str = "gitGraph\n  commit id: \"start\"\n  branch develop\n  commit\n  commit id: \"feature\" tag: \"v0.9\"\n  checkout main\n  commit type: HIGHLIGHT\n  merge develop tag: \"v1.0\"\n  branch hotfix\n  commit type: REVERSE\n  checkout develop\n  cherry-pick id: \"start\"\n";
-
-    /// A branch's name stands on a plate with room round it, and a short
-    /// name of narrow letters (`jj`) is not squeezed into a plate that
-    /// makes it read as one letter (REQ-100); the plate keeps clear of
-    /// its lane's first commit and of the other lanes' plates, whichever
-    /// way time runs, at a large label too.
-    #[test]
-    fn a_short_branch_name_has_room_on_its_plate() {
-        for size in [14.0, 40.0] {
-            let look = Look {
-                label_size: size,
-                ..Look::default()
-            };
-            let block = |name: &str| {
-                text::block(name, Font::new(size, Color::BLACK), text::Family::Inter).unwrap()
-            };
-            let (short, long) = (block("jj"), block("feature/search"));
-            let (w, h) = plate(&short, &look);
-            assert!(w >= size * 2.8 && w >= short.width + 24.0, "{w}");
-            assert!(h >= short.height + 10.0);
-            assert_eq!(plate(&long, &look).0, long.width + 24.0);
-            for head in ["gitGraph LR:", "gitGraph TB:", "gitGraph BT:"] {
-                let mut graph = from_mermaid(&format!(
-                    "{head}\n  commit id: \"release-candidate-one\" tag: \"v1.0.0-release\"\n  branch jj\n  commit\n  checkout main\n  commit\n"
-                ))
-                .unwrap();
-                graph.look = look.clone();
-                let names = vec![block("main"), short.clone()];
-                let small = |words: &Option<String>| {
-                    words.as_ref().map(|words| {
-                        text::block(
-                            words,
-                            Font::new(size * 0.82, Color::BLACK),
-                            text::Family::Inter,
-                        )
-                        .unwrap()
-                    })
-                };
-                let words: Vec<Words> = graph
-                    .commits
-                    .iter()
-                    .map(|commit| Words {
-                        id: small(&commit.id),
-                        tag: small(&commit.tag),
-                    })
-                    .collect();
-                let plan = plan(&graph, &names, &words, 0.0);
-                let plates: Vec<(f32, f32, f32, f32)> = names
-                    .iter()
-                    .enumerate()
-                    .map(|(lane, name)| {
-                        let from = plan.page(plan.start - plan.lead, plan.lanes[lane]);
-                        plate_at(&plan, name, &look, from)
-                    })
-                    .collect();
-                for (lane, &(x, y, w, h)) in plates.iter().enumerate() {
-                    // Clear of the lane's first commit's mark.
-                    let (cx, cy) = plan.page(plan.start, plan.lanes[lane]);
-                    let apart = match graph.direction {
-                        Direction::Across => cx - RADIUS - (x + w),
-                        Direction::Down => cy - RADIUS - (y + h),
-                        Direction::Up => y - (cy + RADIUS),
-                    };
-                    assert!(apart > 0.0, "{head} at {size}, lane {lane}: {apart}");
-                }
-                // Clear of one another, and of the first commit's words,
-                // as `paint` places them.
-                let meet = |(ax, ay, aw, ah): (f32, f32, f32, f32),
-                            (bx, by, bw, bh): (f32, f32, f32, f32)| {
-                    ax < bx + bw && bx < ax + aw && ay < by + bh && by < ay + ah
-                };
-                assert!(!meet(plates[0], plates[1]), "{head} at {size}: {plates:?}");
-                let at = plan.at(0, 0);
-                let (id, tag) = (
-                    words[0].id.as_ref().unwrap(),
-                    words[0].tag.as_ref().unwrap(),
-                );
-                let written = if graph.direction == Direction::Across {
-                    let below = at.1 + RADIUS + 4.0;
-                    let above = at.1 - RADIUS - 8.0 - tag.height - 3.0;
-                    [
-                        (
-                            at.0 - id.width / 2.0 - 3.0,
-                            below,
-                            id.width + 6.0,
-                            id.height + 2.0,
-                        ),
-                        (
-                            at.0 - tag.width / 2.0 - 6.0,
-                            above,
-                            tag.width + 12.0,
-                            tag.height + 6.0,
-                        ),
-                    ]
-                } else {
-                    let x = at.0 + RADIUS + 8.0;
-                    [
-                        (
-                            x - 3.0,
-                            at.1 - id.height / 2.0 - 1.0,
-                            id.width + 6.0,
-                            id.height + 2.0,
-                        ),
-                        (
-                            x + id.width + 8.0,
-                            at.1 - tag.height / 2.0 - 3.0,
-                            tag.width + 12.0,
-                            tag.height + 6.0,
-                        ),
-                    ]
-                };
-                for plate in &plates {
-                    for words in written {
-                        assert!(
-                            !meet(*plate, words),
-                            "{head} at {size}: {plate:?} and {words:?}"
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn the_statements_are_run_as_git_would() {
-        let graph = from_mermaid(FLOW).unwrap();
-        let names: Vec<&str> = graph.branches.iter().map(|b| b.name.as_str()).collect();
-        assert_eq!(names, ["main", "develop", "hotfix"]);
-        let told: Vec<(usize, Option<usize>, Option<From>)> = graph
-            .commits
-            .iter()
-            .map(|c| (c.branch, c.parent, c.from))
-            .collect();
-        assert_eq!(
-            told,
-            [
-                (0, None, None),
-                (1, Some(0), None),
-                (1, Some(1), None),
-                (0, Some(0), None),
-                (0, Some(3), Some(From::Merged(2))),
-                (2, Some(4), None),
-                (1, Some(2), Some(From::Picked(0))),
-            ]
-        );
-        assert_eq!(graph.commits[0].id.as_deref(), Some("start"));
-        assert_eq!(graph.commits[1].id, None, "an id Mermaid would make up");
-        assert_eq!(graph.commits[2].tag.as_deref(), Some("v0.9"));
-        assert_eq!(graph.commits[3].kind, Kind::Highlight);
-        assert_eq!(graph.commits[4].tag.as_deref(), Some("v1.0"));
-        assert_eq!(graph.commits[5].kind, Kind::Reverse);
-        assert_eq!(graph.direction, Direction::Across);
-    }
-
-    #[test]
-    fn the_graph_is_drawn_with_its_names_ids_and_tags() {
-        let svg = draw(&from_mermaid(FLOW).unwrap()).unwrap();
-        for words in [
-            "main", "develop", "hotfix", "start", "feature", "v0.9", "v1.0",
-        ] {
-            assert!(svg.contains(&format!(">{words}<")), "{words}: {svg}");
-        }
-        // Seven commits: four dots, the merge's ring with its dot, the
-        // cherry-pick's dot with its two seeds; the seventh is a square.
-        assert_eq!(svg.matches("<ellipse").count(), 4 + 2 + 3, "{svg}");
-        assert!(svg.contains(&Color::hex(LANES[1]).to_string()), "{svg}");
-    }
-
-    #[test]
-    fn time_runs_down_or_up_with_the_words_beside_the_commits() {
-        let source = |way: &str| {
-            format!("gitGraph {way}:\n  commit id: \"one\"\n  commit id: \"two\" tag: \"t\"\n")
-        };
-        let ys = |svg: &str| -> Vec<f32> {
-            svg.split("<ellipse")
-                .skip(1)
-                .map(|rest| {
-                    let at = rest.find("cy=\"").unwrap() + 4;
-                    rest[at..].split('"').next().unwrap().parse().unwrap()
-                })
-                .collect()
-        };
-        let down = from_mermaid(&source("TB")).unwrap();
-        assert_eq!(down.direction, Direction::Down);
-        let drawn = ys(&draw(&down).unwrap());
-        assert!(drawn[0] < drawn[1], "{drawn:?}");
-        let up = from_mermaid(&source("BT")).unwrap();
-        assert_eq!(up.direction, Direction::Up);
-        let drawn = ys(&draw(&up).unwrap());
-        assert!(drawn[0] > drawn[1], "{drawn:?}");
-        assert_eq!(
-            from_mermaid("gitGraph LR:\n  commit\n").unwrap().direction,
-            Direction::Across
-        );
-    }
-
-    #[test]
-    fn lanes_follow_the_order_their_branches_ask_for() {
-        let source = "gitGraph\n  commit\n  branch one order: 3\n  branch two order: 1\n  branch three\n  commit\n";
-        let graph = from_mermaid(source).unwrap();
-        let names: Vec<&str> = graph.branches.iter().map(|b| b.name.as_str()).collect();
-        assert_eq!(names, ["main", "three", "two", "one"]);
-        assert_eq!(graph.commits[1].branch, 1);
-    }
-
-    #[test]
-    fn what_git_would_refuse_is_refused_by_name() {
-        for (source, line, what) in [
-            (
-                "gitGraph\n  commit\n  checkout nowhere\n",
-                2,
-                "a branch that is not there",
-            ),
-            (
-                "gitGraph\n  commit\n  branch main\n",
-                2,
-                "a branch named twice",
-            ),
-            (
-                "gitGraph\n  commit\n  merge main\n",
-                2,
-                "a branch merged into itself",
-            ),
-            (
-                "gitGraph\n  commit\n  branch a\n  checkout main\n  merge a\n",
-                4,
-                "a merge that brings nothing",
-            ),
-            (
-                "gitGraph\n  commit id: \"a\"\n  commit id: \"a\"\n",
-                2,
-                "a commit id used twice",
-            ),
-            (
-                "gitGraph\n  commit id: \"a\"\n  cherry-pick id: \"b\"\n",
-                2,
-                "a cherry-pick of a commit that is not there",
-            ),
-            (
-                "gitGraph\n  commit id: \"a\"\n  cherry-pick id: \"a\"\n",
-                2,
-                "a cherry-pick from its own branch",
-            ),
-            ("gitGraph\n  commit type: LOUD\n", 1, "a commit type"),
-            ("gitGraph\n  commit msg: \"hi\"\n", 1, "a commit option"),
-            ("gitGraph\n  rebase main\n", 1, "a git graph statement"),
-            ("gitGraph sideways:\n  commit\n", 0, "a git graph direction"),
-        ] {
-            assert_eq!(
-                mermaid_refusal(source, &Settings::default()),
-                Some((line, what)),
-                "{source}"
-            );
-            assert!(from_mermaid(source).is_none());
-        }
-        assert_eq!(
-            mermaid_refusal("timeline\n  2020 : x\n", &Settings::default()),
-            None
-        );
-        assert_eq!(mermaid_refusal(FLOW, &Settings::default()), None);
-    }
-
-    #[test]
-    fn a_title_comments_and_the_other_spellings_are_read() {
-        let source = "---\ntitle: Releases\n---\n%% a comment\ngitGraph:\n  commit %% the first\n  branch \"release/1.0\"\n  switch main\n  accTitle: a graph\n  commit\n  merge \"release/1.0\" id: \"m\" type: REVERSE\n";
-        let graph = from_mermaid(source).unwrap();
-        assert_eq!(graph.title.as_ref().unwrap().value, "Releases");
-        assert_eq!(graph.branches[1].name, "release/1.0");
-        assert_eq!(graph.commits.len(), 3);
-        assert_eq!(graph.commits[2].id.as_deref(), Some("m"));
-        assert!(draw(&graph).unwrap().contains(">Releases<"));
-        // A branch may start before anything is committed.
-        let early = from_mermaid("gitGraph\n  branch a\n  commit\n").unwrap();
-        assert_eq!(
-            (early.commits[0].branch, early.commits[0].parent),
-            (1, None)
-        );
-        assert!(
-            draw(&from_mermaid("gitGraph\n").unwrap()).is_ok(),
-            "an empty graph"
-        );
-    }
-}
+mod tests;

@@ -29,7 +29,7 @@ omaspec ~/diagrams           # with that folder in the sidebar
 | Ctrl+Shift+P | every command, as a list; type to filter it |
 | Ctrl+P | find a file in the folder by a few letters |
 | Ctrl+Shift+E | the examples, as tiles; Enter opens a copy, F5 plays it, Ctrl+Enter puts it in at the caret |
-| F5 | play the diagram (a state machine or a scenario) |
+| F5 | play the diagram (a state machine, a scenario or a git graph) |
 | Shift+F5 | present the diagram: full screen in its own window, played, the speaker's notes in this one; Esc ends |
 | Ctrl+O, Ctrl+Shift+O | open a diagram, document or image; open a folder in the sidebar (in the desktop's own dialog) |
 | Ctrl+F in the source | find in this file |
@@ -684,7 +684,9 @@ start, so it keeps its height); a light runs along the
 transition's route to the next state, regions start side by side, a choice (or a state
 with several ways out) waits for you to pick one, and a history goes back to where its
 state was left. A scenario unfolds message by message (Space), a light running along each
-arrow. Each step lights its line in the source; ← goes back, Home starts again, Esc stops.
+arrow; a git graph commit by commit, the veil going back the way its time runs (to the right,
+down or up), the light running along the line each commit came by, a merge's from what it
+took in. Each step lights its line in the source; ← goes back, Home starts again, Esc stops.
 Where the scenario's participants have state machines in its project, they open beside
 it: as a message's light reaches its receiver, the receiver's machine takes the
 transition the message fires, and where it cannot take it, the message runs red, the

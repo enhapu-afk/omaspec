@@ -152,7 +152,12 @@ impl Picture {
             .tied
             .iter()
             .map(|t| (t.line, t.rect.y + t.rect.h))
-            .chain(map.messages.iter().map(|step| (step.line, step.bottom)))
+            .chain(
+                map.messages
+                    .iter()
+                    .filter(|_| map.run == omaspec_uml::map::Run::Down)
+                    .map(|step| (step.line, step.bottom)),
+            )
         {
             let at = reach.entry(line).or_insert(bottom);
             *at = at.max(bottom);
@@ -285,6 +290,11 @@ pub(super) fn line_of_part(
 ) -> Option<usize> {
     if let Some(spot) = map.states.iter().find(|spot| spot.part == name) {
         return Some(spot.line);
+    }
+    // A part one line writes alone, as a git graph's commit, whose lines
+    // reach past the words of others.
+    if let Some((_, line)) = map.written.iter().find(|(part, _)| part == name) {
+        return Some(*line);
     }
     let inside = |x: f32, y: f32| {
         x >= bounds.left() - 0.5

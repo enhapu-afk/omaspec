@@ -346,6 +346,7 @@ impl Repo {
             commits,
             look: Look::default(),
             settings: settings.clone(),
+            parts: false,
         }
     }
 }

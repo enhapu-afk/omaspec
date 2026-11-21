@@ -364,6 +364,67 @@ mod tests {
     const DOOR: &str =
         "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n";
 
+    /// A git graph builds lane by lane and commit by commit, each at the
+    /// line that makes it, a merge's line with the merge (REQ-037).
+    #[test]
+    fn a_git_graph_builds_each_lane_and_commit_at_its_own_line() {
+        let source = "---\ntitle: Release flow\n---\ngitGraph\n  commit id: \"init\"\n  commit\n  branch develop\n  commit id: \"login\"\n  checkout main\n  merge develop\n";
+        let graph = picture(source, Language::Mermaid);
+        assert!(graph.by_parts());
+        let line_of = |name: &str| {
+            graph
+                .parts
+                .iter()
+                .find(|part| part.name == name)
+                .map(|part| part.line)
+        };
+        let lines: Vec<(String, usize)> = graph
+            .parts
+            .iter()
+            .map(|p| (p.name.clone(), p.line))
+            .collect();
+        assert_eq!(line_of("branch main"), Some(3), "{lines:?}");
+        assert_eq!(line_of("commit init"), Some(4), "{lines:?}");
+        assert_eq!(line_of("commit main #0"), Some(5), "{lines:?}");
+        assert_eq!(line_of("branch develop"), Some(6), "{lines:?}");
+        assert_eq!(line_of("commit login"), Some(7), "{lines:?}");
+        assert_eq!(line_of("commit main #1"), Some(9), "{lines:?}");
+        // So in a look, which lays its skin before the diagram, and in a
+        // fence, whose lines come before the diagram's.
+        let mut maps = crate::specs::Maps::default();
+        let mut renderer = Renderer::new(&crate::commands::render_config());
+        let marked = crate::worker::folded(
+            source,
+            Language::Mermaid,
+            &[],
+            crate::worker::Views::default(),
+        );
+        let skin = crate::look::Look::Light.skin();
+        let looked = crate::look::render(
+            &mut maps,
+            &mut renderer,
+            &marked,
+            Language::Mermaid,
+            None,
+            None,
+            skin.as_ref(),
+        )
+        .unwrap();
+        let looked = Picture::of(&looked.svg, &looked.map, source).unwrap();
+        let commit = looked.parts.iter().find(|part| part.name == "commit init");
+        assert_eq!(commit.map(|part| part.line), Some(4));
+        let fenced = format!("```mermaid\n{marked}```\n");
+        let rendered = renderer
+            .render_at(&fenced, Language::Mermaid, None)
+            .unwrap();
+        let line = rendered
+            .map
+            .written
+            .iter()
+            .find(|(part, _)| part == "commit init");
+        assert_eq!(line.map(|(_, line)| *line), Some(5));
+    }
+
     #[test]
     fn a_machine_builds_each_state_and_line_at_its_own_line() {
         let door = picture(DOOR, Language::PlantUml);

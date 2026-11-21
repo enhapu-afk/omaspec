@@ -178,12 +178,16 @@ fn comment(line: &str) -> Option<String> {
     Some(words.to_owned())
 }
 
-/// Where the play is, in a few words: a scenario's message of all, a
+/// Where the play is, in a few words: a scenario's message of all (a git
+/// graph's commit), a
 /// machine's states and its options with the digit that takes each, a
 /// trace's line.
 fn where_at(offer: &paper::Offer) -> String {
     match offer {
-        paper::Offer::Scenario { at, of } => format!("message {at} of {of}"),
+        paper::Offer::Scenario { at, of, commits } => {
+            let noun = if *commits { "commit" } else { "message" };
+            format!("{noun} {at} of {of}")
+        }
         paper::Offer::Machine {
             options, at, ended, ..
         } => {
@@ -354,7 +358,7 @@ impl App {
         };
         // A scenario's next message, and its notes, to see what comes.
         let next = match doc.paper.offer() {
-            Some(paper::Offer::Scenario { at, of }) if at < of => {
+            Some(paper::Offer::Scenario { at, of, .. }) if at < of => {
                 doc.paper.message_lines().get(at).copied()
             }
             _ => None,

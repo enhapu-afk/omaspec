@@ -13,6 +13,8 @@ pub struct Map {
     pub states: Vec<Spot>,
     pub transitions: Vec<Route>,
     pub messages: Vec<Step>,
+    /// Which way the steps of [`Self::messages`] follow one another.
+    pub run: Run,
     pub wires: Vec<Wire>,
     /// The boxes a writer may hold in place ([`Place`]).
     pub places: Vec<Place>,
@@ -52,6 +54,10 @@ pub struct Map {
     /// diagram's lifeline, which repeats its head. They are no mention's
     /// own: every mention of the name is the first one drawn.
     pub echoes: Vec<Rect>,
+    /// Parts one line writes alone, each part's name and that line, as a
+    /// git graph's commit ([`crate::svg::Canvas::part_on`]): a build sets
+    /// each down at its line.
+    pub written: Vec<(String, usize)>,
     /// Parts of their own that lie inside a box, as a note inside a state:
     /// each part's name and that of the box's part. A glide draws such a
     /// part over its box, not under it.
@@ -335,13 +341,27 @@ pub struct Route {
     pub points: Vec<(f32, f32)>,
 }
 
+/// Which way a play's steps follow one another, the veil drawn back that
+/// way: down the page (a sequence's messages), or as a git graph's time
+/// runs, to the right or up. A step's `top` and `bottom` are where it
+/// starts and ends along it: its x to the right, else its y.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Run {
+    #[default]
+    Down,
+    Right,
+    Up,
+}
+
 /// A message's arrow, and the band of the diagram it takes up.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Step {
-    /// Zero-based line of the message.
+    /// Zero-based line of the message, or of the commit.
     pub line: usize,
     /// From the sender to the tip of the head.
     pub points: Vec<(f32, f32)>,
+    /// Where the step starts and ends along the way the steps run
+    /// ([`Map::run`]): its y down or up the page, its x to the right.
     pub top: f32,
     pub bottom: f32,
 }
@@ -439,8 +459,15 @@ impl Map {
             for point in &mut step.points {
                 *point = fit.point(*point);
             }
-            step.top = fit.point((0.0, step.top)).1;
-            step.bottom = fit.point((0.0, step.bottom)).1;
+            // Along the way the steps run: across the page, from left to
+            // right; else down it.
+            if self.run == Run::Right {
+                step.top = fit.point((step.top, 0.0)).0;
+                step.bottom = fit.point((step.bottom, 0.0)).0;
+            } else {
+                step.top = fit.point((0.0, step.top)).1;
+                step.bottom = fit.point((0.0, step.bottom)).1;
+            }
         }
         for wire in &mut self.wires {
             for point in wire.points.iter_mut().chain(&mut wire.path) {
@@ -497,6 +524,9 @@ impl Map {
             place.entry = place.entry.map(|e| e.saturating_add(lines));
         }
         for (line, _) in &mut self.misses {
+            *line = line.saturating_add(lines);
+        }
+        for (_, line) in &mut self.written {
             *line = line.saturating_add(lines);
         }
         self

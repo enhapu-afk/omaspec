@@ -2897,6 +2897,24 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-037, the rest (2026-11-21): a git graph builds itself up and plays. It marks
+      its parts as states and classes do: each lane a part at the line that makes its
+      branch, each commit a part at its own line, its mark, its words and the line it came
+      by in it. A part says the line that writes it alone (`Canvas::part_on`,
+      `Map::written`), as a commit's line runs past the words of others; a look's lines
+      and a fence's are taken out of it as of the rest of the map. So `play --build` sets
+      each commit down as the caret reaches its line, where the graph stood whole from
+      the first frame. Each commit is also a step a play takes (`Map::messages`), with
+      the way its time runs (`Map::run`: to the right, down or up), so F5 and `omaspec
+      play` unfold it commit by commit: the veil goes back that way, a light runs along
+      the line each commit came by (what a merge took in, what a cherry-pick copied), the
+      bar counts them, a camera follows where the graph is too large to read whole. A
+      presentation lifts its veil down the page only: a git graph whose time runs down
+      plays there, one across or up shows as its picture. A commit's part is named by its
+      id, else by its branch and the commits before it there, so a glide after an edit
+      takes each to where it now stands; the veil keeps clear of the title, and a
+      following camera takes in the whole way of a merge's light.
+      The git graph's tests are a file of their own.
 - [x] REQ-090 to REQ-094, `--ink`, and REQ-092 for every film (2026-11-21):
       `--look` gives the look the sketch is inked into (plain, vivid, omarchy, light,
       dark, file; auto is light in a film; sketch is refused, being what the pen

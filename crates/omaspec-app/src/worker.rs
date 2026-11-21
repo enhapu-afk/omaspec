@@ -519,13 +519,13 @@ pub fn folded(source: &str, language: Language, folds: &[String], views: Views) 
 
 /// Whether the drawer of `source`, classified as `kind`, marks its parts
 /// for a glide (docs/adr/0029): state machines, structures, activity
-/// diagrams and Mermaid's flowcharts, mind maps of both, PlantUML's WBS
-/// and JSON and YAML cards. `the_drawers_that_mark_parts_are_asked_for_them` keeps it true.
+/// diagrams and Mermaid's flowcharts, mind maps of both, Mermaid's git
+/// graphs, PlantUML's WBS and JSON and YAML cards. `the_drawers_that_mark_parts_are_asked_for_them` keeps it true.
 fn marks_parts(source: &str, language: Language, kind: &omaspec_core::DiagramKind) -> bool {
     use omaspec_core::Kind;
     match language {
         _ if matches!(kind.kind, Kind::State | Kind::Structure | Kind::Activity) => true,
-        Language::Mermaid => kind.name == "Mind map",
+        Language::Mermaid => matches!(kind.name.as_ref(), "Mind map" | "Git graph"),
         Language::PlantUml => matches!(
             omaspec_core::kind::plantuml_block(source).as_str(),
             "mindmap" | "wbs" | "json" | "yaml"

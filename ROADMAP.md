@@ -254,8 +254,6 @@ what is plainly missing, then the larger pieces.
       chain after a labelled line is lost: `a -->|yes| b --> c --> d` (or
       `a -- yes --> b --> c`) draws only `a` and `b`, and `c` and `d` not
       at all.
-- [ ] REQ-037, the rest: `play --build` builds a gitGraph up as it does
-      a flowchart, and `play` takes a gitGraph.
 
 ## Next
 

@@ -389,14 +389,35 @@ fn a_scenario_unfolds_message_by_message() {
     let (_, map) = omaspec_uml::render_mapped(source, None).unwrap();
     let t0 = Instant::now();
     let mut play = Play::new(source, Language::PlantUml, &map, t0).unwrap();
-    assert_eq!(play.offer(), Offer::Scenario { at: 0, of: 2 });
+    assert_eq!(
+        play.offer(),
+        Offer::Scenario {
+            at: 0,
+            of: 2,
+            commits: false
+        }
+    );
     play.ask(Ask::Next, t0);
     play.ask(Ask::Next, t0);
     play.ask(Ask::Next, t0);
-    assert_eq!(play.offer(), Offer::Scenario { at: 2, of: 2 });
+    assert_eq!(
+        play.offer(),
+        Offer::Scenario {
+            at: 2,
+            of: 2,
+            commits: false
+        }
+    );
     assert_eq!(play.take_jump(t0), Some(2));
     play.ask(Ask::Restart, t0);
-    assert_eq!(play.offer(), Offer::Scenario { at: 0, of: 2 });
+    assert_eq!(
+        play.offer(),
+        Offer::Scenario {
+            at: 0,
+            of: 2,
+            commits: false
+        }
+    );
     let flow = Play::new(
         "@startuml\nstart\n:a;\nstop\n@enduml\n",
         Language::PlantUml,
@@ -564,4 +585,78 @@ fn a_box_under_a_scenario_s_veil_keeps_its_color() {
     );
     let beside = pixel(r.x + r.w + 8.0, low);
     assert!(beside[0] < 160, "the paper beside it is veiled: {beside:?}");
+}
+
+/// A git graph plays commit by commit (REQ-037), the veil drawn back the
+/// way its time runs: to the right across the page, up from below; a
+/// merge's light runs along what it took in.
+#[test]
+fn a_git_graph_plays_commit_by_commit_along_its_time() {
+    let mut renderer = omaspec_render::Renderer::new(&crate::commands::render_config());
+    for (head, run) in [
+        ("gitGraph", omaspec_uml::map::Run::Right),
+        ("gitGraph TB:", omaspec_uml::map::Run::Down),
+        ("gitGraph BT:", omaspec_uml::map::Run::Up),
+    ] {
+        let source = format!(
+            "{head}\n  commit id: \"a\"\n  branch dev\n  commit id: \"b\"\n  checkout main\n  merge dev\n"
+        );
+        let map = renderer
+            .render_at(&source, Language::Mermaid, None)
+            .unwrap()
+            .map;
+        assert_eq!(map.run, run, "{head}");
+        let lines: Vec<usize> = map.messages.iter().map(|step| step.line).collect();
+        assert_eq!(lines, [1, 3, 5], "{head}");
+        // The merge's light comes from the lane of what it took in.
+        let merge = &map.messages[2];
+        let along = |p: (f32, f32)| {
+            if run == omaspec_uml::map::Run::Right {
+                p.1
+            } else {
+                p.0
+            }
+        };
+        let first = along(merge.points[0]);
+        let last = along(*merge.points.last().unwrap());
+        assert!((first - last).abs() > 10.0, "{head}: {:?}", merge.points);
+        let t0 = Instant::now();
+        let mut play = Play::new(&source, Language::Mermaid, &map, t0).unwrap();
+        assert_eq!(
+            play.offer(),
+            Offer::Scenario {
+                at: 0,
+                of: 3,
+                commits: true
+            }
+        );
+        let mut edges = Vec::new();
+        for _ in 0..=3 {
+            let Play::Scenario(scenario) = &play else {
+                panic!("a scenario");
+            };
+            edges.push(scenario.target());
+            play.ask(Ask::Next, t0);
+        }
+        let onward = edges.windows(2).all(|pair| match run {
+            omaspec_uml::map::Run::Up => pair[1] < pair[0],
+            _ => pair[1] > pair[0],
+        });
+        assert!(onward, "{head}: {edges:?}");
+        assert!(play.focus().is_some(), "{head}");
+        // Going back to the right or up, the veil keeps clear of what
+        // stands over the commits.
+        let Play::Scenario(scenario) = &play else {
+            panic!("a scenario");
+        };
+        let highest = map
+            .messages
+            .iter()
+            .flat_map(|step| step.points.iter().map(|p| p.1))
+            .fold(f32::INFINITY, f32::min);
+        match run {
+            omaspec_uml::map::Run::Down => assert_eq!(scenario.clear, None),
+            _ => assert!(scenario.clear.is_some_and(|at| at < highest), "{head}"),
+        }
+    }
 }

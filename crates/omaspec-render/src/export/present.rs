@@ -100,7 +100,10 @@ fn data(play: Play) -> Value {
     {
         return data;
     }
-    if !play.map.messages.is_empty() {
+    // A presentation lifts its veil down the page: a git graph whose time
+    // runs down plays there, one whose time runs across or up shows as its
+    // picture.
+    if !play.map.messages.is_empty() && play.map.run == omaspec_uml::map::Run::Down {
         return scenario_data(play.map);
     }
     json!({ "kind": "picture" })
