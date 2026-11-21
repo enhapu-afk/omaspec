@@ -250,10 +250,12 @@ what is plainly missing, then the larger pieces.
       the machine's fonts (`fc-match sans-serif`).
 - [ ] From the test of 1.0.0: without `skinparam groupInheritance 2` the triangles
       of several subclasses' lines to one class overlap.
-- [ ] Found on the way (2026-11-20): in a Mermaid flowchart the rest of a
-      chain after a labelled line is lost: `a -->|yes| b --> c --> d` (or
-      `a -- yes --> b --> c`) draws only `a` and `b`, and `c` and `d` not
-      at all.
+- [ ] Left from the chain with a label (2026-11-21): where a `'` stands before a
+      later link (`a -->|don't| b --> c`, `a[it's] -->|x| b --> c`), the chain is still
+      read only up to the label's link, `c` lost: mmdr takes a `'` for a quote mark,
+      also in a label, so no `;` after it splits the line for it. Wanted: the
+      statements of such a chain on lines of their own in mmdr's copy, with its errors'
+      lines taken back to the source's.
 
 ## Next
 

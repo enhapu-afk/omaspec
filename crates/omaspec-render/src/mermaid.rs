@@ -1596,6 +1596,14 @@ mod tests {
                 .any(|w| w.contains("30]") || w.contains("A&gt;")),
             "{seen:?}"
         );
+        // A chain with a label: each of its links, also those after the
+        // label, which mmdr took for a part of `B`'s name.
+        let svg = render("flowchart LR\n  a -->|yes| b --> c --> d[Done]\n").unwrap();
+        let seen = words(&svg);
+        for word in ["a", "b", "c", "Done", "yes"] {
+            assert!(seen.contains(&word.to_string()), "{word}: {seen:?}");
+        }
+        assert_eq!(svg.matches("<polyline").count(), 3, "{svg}");
         // `B ~~~ C[text]`: C once, not again as a box named `B ~~~ C`.
         let svg =
             render("flowchart LR\n  A[One] ~~~ B[Two]\n  B ~~~ C[Three]\n  A --> C\n").unwrap();

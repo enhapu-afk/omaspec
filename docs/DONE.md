@@ -2915,6 +2915,22 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       takes each to where it now stands; the veil keeps clear of the title, and a
       following camera takes in the whole way of a merge's light.
       The git graph's tests are a file of their own.
+- [x] A chain with a label (2026-11-21, found on the way): in a Mermaid flowchart
+      `a -->|yes| b --> c --> d` (or `a -- yes --> b --> c`) drew `a` and `b` only, and
+      `c` and `d` not at all, without a word: mmdr splits a chain into its links only
+      where none is labelled, and otherwise took all after the label for the name of
+      `b`. The copy mmdr reads (`layered::readable`) now writes such a chain as a
+      statement for each link, `a -->|yes| b; b --> c; c --> d`, in the line's own
+      words and on its own line, so each link is drawn, its label found where its words
+      stand, and `linkStyle` counts the links as written. Every kind of link is taken,
+      with its label in bars or in words (`-- no -->`, `-. maybe .->`, `-.maybe.->`,
+      `== sure ==>`), a circle's or a cross's end, `&` and classes at the ends; a link
+      written in a box, in quotes or in a label stays words, `box-->c` is the box `box`,
+      and a line with an invisible link stays as the repair after mmdr's reading has it.
+      The copy is kept only where mmdr reads the statements together as it reads each
+      alone (`reads_apart`): it takes a `'` for a quote mark even in a label, so after
+      `-->|don't|` a `;` is words to it, and such a chain is still read as before, up to
+      the label's link.
 - [x] REQ-090 to REQ-094, `--ink`, and REQ-092 for every film (2026-11-21):
       `--look` gives the look the sketch is inked into (plain, vivid, omarchy, light,
       dark, file; auto is light in a film; sketch is refused, being what the pen

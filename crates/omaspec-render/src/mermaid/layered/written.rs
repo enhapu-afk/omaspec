@@ -375,6 +375,31 @@ mod tests {
         );
     }
 
+    /// A chain with a labelled link is found link by link on its line, the
+    /// label where its words stand.
+    #[test]
+    fn a_labelled_chain_is_found_on_its_line() {
+        let text = "flowchart TD\n  a -->|yes| b --> c -- no --> d\n";
+        let graph = parse_mermaid_strict(&reading::readable(text))
+            .unwrap()
+            .graph;
+        let found = read(&graph, text, &HashSet::new());
+        let edges: Vec<(&str, &str, Option<At>)> = graph
+            .edges
+            .iter()
+            .zip(&found.edges)
+            .map(|(edge, at)| (edge.from.as_str(), edge.to.as_str(), *at))
+            .collect();
+        assert_eq!(
+            edges,
+            [
+                ("a", "b", Some(at(1, 8))),
+                ("b", "c", Some(At { line: 1, col: None })),
+                ("c", "d", Some(at(1, 24))),
+            ]
+        );
+    }
+
     /// A node's label is its declaration's line; a node that shows its id
     /// has none, nor has a subgraph titled by its id.
     #[test]
