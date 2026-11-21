@@ -130,6 +130,8 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
                 kind,
                 label: some_words(line, rest),
                 secondary: None,
+                tab: None,
+                fill: None,
                 line,
             });
             continue;
@@ -137,6 +139,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
         if let Some(rest) = starts(&text, "else") {
             diagram.items.push(Item::GroupElse {
                 label: some_words(line, rest),
+                fill: None,
                 line,
             });
             continue;
@@ -150,6 +153,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
             }
             diagram.items.push(Item::GroupElse {
                 label: some_words(line, rest),
+                fill: None,
                 line,
             });
             continue;
@@ -163,6 +167,7 @@ pub fn from_mermaid(source: &str) -> Option<Diagram> {
             }
             diagram.items.push(Item::GroupElse {
                 label: some_words(line, rest),
+                fill: None,
                 line,
             });
             continue;

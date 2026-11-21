@@ -72,6 +72,12 @@ is open and the reasoning around it.
       the head's name, at the top and at the foot; `lifelineStrategy solid`
       draws the lifelines solid, as the guide describes it (PlantUML
       1.2026.8 draws them dashed all the same). The guide: 67 of 79.
+- [x] A group's colors (2026-11-21): `alt#Gold` colors its tab,
+      `alt #LightBlue` the part before the first `else` and `else #Pink`
+      the part after it, each painted with the `rect` highlights, under
+      the lifelines, an inner group's over an outer's. Converted to
+      Mermaid, which has none, they are said to be left out. The guide: 68
+      of 79.
 
 ## Phase 0: foundation and spikes
 

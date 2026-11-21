@@ -98,11 +98,17 @@ pub enum Item {
         label: Option<Text>,
         /// `group label [secondary]`.
         secondary: Option<Text>,
+        /// `alt#Gold`: the color of its tab.
+        tab: Option<String>,
+        /// `alt #LightBlue`: the color behind its first part.
+        fill: Option<String>,
         line: usize,
     },
     /// `else`: the next part of the group around it.
     GroupElse {
         label: Option<Text>,
+        /// `else #Pink`: the color behind this part.
+        fill: Option<String>,
         line: usize,
     },
     GroupEnd {

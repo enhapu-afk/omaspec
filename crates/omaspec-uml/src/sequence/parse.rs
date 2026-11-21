@@ -1200,19 +1200,23 @@ impl Parser {
     /// Group starts and `else`; `false` if the line is neither.
     fn group(&mut self, text: &str, no: usize) -> Result<bool, Declined> {
         for (word, kind) in GROUPS {
-            if starts_with_ci(text, word) && text[word.len()..].starts_with('#') {
-                return Err(Declined::at(
-                    no,
-                    format!("group colors (`{word}#…`) are not supported yet"),
-                ));
-            }
-            let Some(rest) = keyword(text, word) else {
+            // `alt#Gold`: the tab's color, right after the word.
+            let (tab, rest) = if starts_with_ci(text, word) && text[word.len()..].starts_with('#') {
+                let after = &text[word.len()..];
+                let end = after.find(char::is_whitespace).unwrap_or(after.len());
+                (Some(after[..end].to_owned()), after[end..].trim_start())
+            } else if let Some(rest) = keyword(text, word) {
+                // `Loop -> Bob` is a message from a participant named Loop.
+                if rest.starts_with(['-', '<']) {
+                    continue;
+                }
+                (None, rest)
+            } else {
                 continue;
             };
-            // `Loop -> Bob` is a message from a participant named Loop.
-            if rest.starts_with(['-', '<']) {
-                continue;
-            }
+            // `alt #LightBlue`: the color behind its first part.
+            let (fill, rest) = leading_color(rest).map_err(|reason| Declined::at(no, reason))?;
+            let rest = rest.trim_start();
             let (label, secondary) = match rest.strip_suffix(']').and_then(|r| r.rsplit_once('[')) {
                 Some((label, secondary)) if kind == GroupKind::Group => {
                     (label.trim(), Some(secondary.trim()))
@@ -1223,6 +1227,8 @@ impl Parser {
                 kind,
                 label: (!label.is_empty()).then(|| text_at(label, no)),
                 secondary: secondary.filter(|s| !s.is_empty()).map(|s| text_at(s, no)),
+                tab,
+                fill,
                 line: no,
             });
             self.groups.push((kind, no));
@@ -1232,8 +1238,11 @@ impl Parser {
             if self.groups.is_empty() {
                 return Err(Declined::refused(no, "`else` outside a group"));
             }
+            let (fill, rest) = leading_color(rest).map_err(|reason| Declined::at(no, reason))?;
+            let rest = rest.trim();
             self.diagram.items.push(Item::GroupElse {
                 label: (!rest.is_empty()).then(|| text_at(rest, no)),
+                fill,
                 line: no,
             });
             return Ok(true);
@@ -2392,7 +2401,25 @@ mod tests {
         assert_eq!(ends("alt x\nA -> B\nend"), (1, 1));
         assert!(declined("end").reason.contains("without an open group"));
         assert!(declined("else").reason.contains("outside a group"));
-        assert!(declined("alt#Gold x\nend").reason.contains("group colors"));
+        let d =
+            diagram("alt#Gold #LightBlue yes\nA -> B\nelse #Pink no\nA -> B\nend\nalt plain\nend");
+        let colors: Vec<(Option<&str>, Option<&str>)> = d
+            .items
+            .iter()
+            .filter_map(|i| match i {
+                Item::GroupStart { tab, fill, .. } => Some((tab.as_deref(), fill.as_deref())),
+                Item::GroupElse { fill, .. } => Some((None, fill.as_deref())),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            colors,
+            [
+                (Some("#Gold"), Some("#LightBlue")),
+                (None, Some("#Pink")),
+                (None, None)
+            ]
+        );
     }
 
     #[test]

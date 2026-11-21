@@ -1,0 +1,14 @@
+@startuml
+' A group's colors: its tab (`alt#Gold`), the part before the first
+' `else` (`#LightBlue`) and each `else` (`#Pink`), under the lifelines;
+' a group inside keeps its own on top.
+Shopper -> Shop : pay
+alt#Gold #LightBlue card accepted
+    Shop -> Bank : charge
+    loop #LightYellow each item
+        Shop -> Stock : take
+    end
+else #Pink declined
+    Shop --> Shopper : try again
+end
+@enduml

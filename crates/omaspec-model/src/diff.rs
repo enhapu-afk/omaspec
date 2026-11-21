@@ -718,7 +718,7 @@ fn beats(d: &sequence::Diagram, off: usize) -> Vec<(Beat, usize)> {
                 },
                 *line,
             ),
-            Item::GroupElse { label, line } => (
+            Item::GroupElse { label, line, .. } => (
                 Beat::Else {
                     label: label.as_ref().map(|t| plain(&t.value)).unwrap_or_default(),
                 },

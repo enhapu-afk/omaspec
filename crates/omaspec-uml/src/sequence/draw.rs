@@ -248,9 +248,14 @@ enum Measured {
     Group {
         header: Block,
         label: Block,
+        /// The tab's color, and the one behind the first part.
+        tab: Paint,
+        fill: Paint,
     },
     Else {
         label: Block,
+        /// The color behind this part.
+        fill: Paint,
     },
     Label(Block),
     Ref {
@@ -364,10 +369,15 @@ struct OpenGroup {
     top: f32,
     header: Block,
     label: Block,
+    /// The tab's color, and the one behind the first part.
+    tab: Paint,
+    fill: Paint,
     /// The line that opens it.
     line: usize,
     /// Each `else`: where, its words and its line.
     elses: Vec<(f32, Block, usize)>,
+    /// The color behind each `else`'s part.
+    else_fills: Vec<Paint>,
     /// What it holds, left and right.
     lo: f32,
     hi: f32,
@@ -709,6 +719,8 @@ impl<'a> Drawer<'a> {
                     kind,
                     label,
                     secondary,
+                    tab,
+                    fill,
                     line,
                 } => {
                     let (header, label) = if *kind == GroupKind::Group {
@@ -728,10 +740,16 @@ impl<'a> Drawer<'a> {
                             bracketed(label.as_ref(), skin.group_label_font, family)?,
                         )
                     };
-                    Measured::Group { header, label }
+                    Measured::Group {
+                        header,
+                        label,
+                        tab: paint_at(tab.as_ref(), *line)?.unwrap_or(skin.group_header_fill),
+                        fill: paint_at(fill.as_ref(), *line)?.flatten(),
+                    }
                 }
-                Item::GroupElse { label, .. } => Measured::Else {
+                Item::GroupElse { label, fill, line } => Measured::Else {
                     label: bracketed(label.as_ref(), skin.group_label_font, family)?,
+                    fill: paint_at(fill.as_ref(), *line)?.flatten(),
                 },
                 Item::Divider { label } => {
                     Measured::Label(measure(label, skin.divider.font, family)?)
@@ -1041,7 +1059,7 @@ impl<'a> Drawer<'a> {
                 }
             }
             match (item, &self.measured[k]) {
-                (Item::GroupStart { .. }, Measured::Group { header, label }) => {
+                (Item::GroupStart { .. }, Measured::Group { header, label, .. }) => {
                     let width = header.width
                         + 18.0
                         + if label.is_empty() {
@@ -1051,7 +1069,7 @@ impl<'a> Drawer<'a> {
                         };
                     open.push((None, width + 10.0, Vec::new(), Vec::new()));
                 }
-                (Item::GroupElse { .. }, Measured::Else { label }) => {
+                (Item::GroupElse { .. }, Measured::Else { label, .. }) => {
                     if let Some(last) = open.last_mut() {
                         last.1 = last.1.max(label.width + 15.0);
                     }
@@ -1561,8 +1579,15 @@ impl<'a> Drawer<'a> {
                 self.y = self.y.max(below.unwrap_or(self.y));
             }
             Item::GroupStart { line, .. } => {
-                if let Measured::Group { header, label } = &self.measured[k] {
-                    let (header, label) = (header.clone(), label.clone());
+                if let Measured::Group {
+                    header,
+                    label,
+                    tab: tab_fill,
+                    fill,
+                } = &self.measured[k]
+                {
+                    let (header, label, tab_fill, fill) =
+                        (header.clone(), label.clone(), *tab_fill, *fill);
                     let top = self.y + 7.0;
                     let tab = header.height + 4.0;
                     self.y = top + tab.max(label.height + 4.0);
@@ -1570,8 +1595,11 @@ impl<'a> Drawer<'a> {
                         top,
                         header,
                         label,
+                        tab: tab_fill,
+                        fill,
                         line: *line,
                         elses: Vec::new(),
+                        else_fills: Vec::new(),
                         lo: f32::INFINITY,
                         hi: f32::NEG_INFINITY,
                         cols: None,
@@ -1580,8 +1608,8 @@ impl<'a> Drawer<'a> {
                 }
             }
             Item::GroupElse { line, .. } => {
-                if let Measured::Else { label } = &self.measured[k] {
-                    let label = label.clone();
+                if let Measured::Else { label, fill } = &self.measured[k] {
+                    let (label, fill) = (label.clone(), *fill);
                     let y = self.y + 7.0;
                     self.y = y + if label.is_empty() {
                         3.0
@@ -1590,6 +1618,7 @@ impl<'a> Drawer<'a> {
                     };
                     if let Some(g) = self.groups.last_mut() {
                         g.elses.push((y, label, *line));
+                        g.else_fills.push(fill);
                     }
                 }
             }
@@ -2476,9 +2505,29 @@ impl<'a> Drawer<'a> {
         canvas.polygon(
             Layer::Front,
             &tab(left, g.top, tab_w, tab_h),
-            skin.group_header_fill,
+            g.tab,
             Some(border),
         );
+        // Each part's color behind it (`alt #LightBlue`, `else #Pink`),
+        // painted with the highlights, under the lifelines.
+        let tops = std::iter::once(g.top).chain(g.elses.iter().map(|(y, _, _)| *y));
+        let bottoms = g
+            .elses
+            .iter()
+            .map(|(y, _, _)| *y)
+            .chain(std::iter::once(bottom));
+        let fills = std::iter::once(g.fill).chain(g.else_fills.iter().copied());
+        for ((top, end), fill) in tops.zip(bottoms).zip(fills) {
+            if fill.is_some() {
+                self.highlights.push(Highlight {
+                    top,
+                    bottom: end,
+                    left,
+                    right,
+                    fill,
+                });
+            }
+        }
         canvas.tie(Some(g.line));
         canvas.text(
             Layer::Front,

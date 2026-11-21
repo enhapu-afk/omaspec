@@ -18,6 +18,9 @@ use crate::{across, diff};
 
 /// What a `&` or a `/` before a message or a note loses.
 const TOGETHER: &str = "Mermaid draws each message and note at a height of its own";
+
+/// What a group's colors become in Mermaid.
+const GROUP_COLORS: &str = "Mermaid has no colors on a group's tab or parts; they are left out";
 const UNREAD: &str = "Omaspec does not fully read this sequence diagram, so it cannot convert it";
 
 pub(super) fn convert(code: &str, from: Language, to: Language) -> Result<Converted, Refused> {
@@ -211,10 +214,18 @@ impl Writer {
                     ));
                 }
                 Item::GroupStart {
-                    kind, label, line, ..
+                    kind,
+                    label,
+                    tab,
+                    fill,
+                    line,
+                    ..
                 } => {
                     if *kind == GroupKind::Group {
                         return Err(self.refuse(*line, "Mermaid has no group block"));
+                    }
+                    if tab.is_some() || fill.is_some() {
+                        self.notice(Some(*line), GROUP_COLORS);
                     }
                     open.push(*kind);
                     let label = label
@@ -223,7 +234,10 @@ impl Writer {
                         .unwrap_or_default();
                     self.out.push(format!("    {}{label}", kind.keyword()));
                 }
-                Item::GroupElse { label, .. } => {
+                Item::GroupElse { label, fill, line } => {
+                    if fill.is_some() {
+                        self.notice(Some(*line), GROUP_COLORS);
+                    }
                     let word = match open.last() {
                         Some(GroupKind::Par) => "and",
                         Some(GroupKind::Critical) => "option",
