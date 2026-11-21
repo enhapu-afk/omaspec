@@ -1011,7 +1011,7 @@ fn inspect_reports_kind_and_outline() {
     assert_eq!(json["native"], "understood");
     fs::write(
         &file,
-        "@startuml\nskinparam maxMessageSize 100\nA -> B\n@enduml\n",
+        "@startuml\nskin rose\nA -> B\n@enduml\n",
     )
     .unwrap();
     let out = omaspec(&["inspect", file.to_str().unwrap()]);
@@ -1021,7 +1021,7 @@ fn inspect_reports_kind_and_outline() {
         json["native"]["declined"]["reason"]
             .as_str()
             .unwrap()
-            .contains("maxMessageSize")
+            .contains("skin")
     );
 }
 
