@@ -571,7 +571,11 @@ impl<'a> Drawer<'a> {
             let stereo = match &p.stereotype {
                 Some(s) => measure(
                     &Text {
-                        value: format!("«{s}»"),
+                        value: if skin.guillemet {
+                            format!("«{s}»")
+                        } else {
+                            format!("<< {s} >>")
+                        },
                         line: p.line,
                         col: None,
                     },
@@ -667,7 +671,14 @@ impl<'a> Drawer<'a> {
                 Item::Message(m) => {
                     let color = solid_at(m.arrow.color.as_ref(), m.line)?;
                     Measured::Message {
-                        text: measure_opt(m.text.as_ref(), skin.arrow_font, family)?,
+                        text: match (skin.max_message_size, &m.text) {
+                            // `skinparam maxMessageSize`: wrapped at its spaces.
+                            (Some(width), Some(t)) => {
+                                text::wrapped(&t.value, skin.arrow_font, family, width)
+                                    .map_err(|e| Declined::at(t.line, e))?
+                            }
+                            _ => measure_opt(m.text.as_ref(), skin.arrow_font, family)?,
+                        },
                         number: match &m.number {
                             Some(number) => measure(
                                 &Text {
@@ -891,15 +902,31 @@ impl<'a> Drawer<'a> {
         }
     }
 
-    /// From where a message begins down to its arrow: its text is above.
+    /// From where a message begins down to its arrow: its text is above,
+    /// but for an answer whose words go under it.
     fn arrow_drop(&self, k: usize) -> Option<f32> {
         match &self.measured[k] {
+            Measured::Message { .. } if self.words_below(k) => Some(3.0),
             Measured::Message { text, number, .. } => {
                 let height = text.height.max(number.height);
                 Some(height + if height > 0.0 { 2.0 } else { 3.0 })
             }
             _ => None,
         }
+    }
+
+    /// `skinparam responseMessageBelowArrow`: whether the message at `k`
+    /// points to the left, an answer, and has its words under its arrow.
+    fn words_below(&self, k: usize) -> bool {
+        let Item::Message(m) = &self.d.items[k] else {
+            return false;
+        };
+        let at = |end: End| match end {
+            End::Participant(p) => self.x[self.col(p)],
+            End::Edge(Side::Left) | End::Short(Side::Left) => f32::NEG_INFINITY,
+            End::Edge(Side::Right) | End::Short(Side::Right) => f32::INFINITY,
+        };
+        self.skin.response_below && at(m.to) < at(m.from)
     }
 
     /// The deepest [`Self::arrow_drop`] of the item at `k` and of those a
@@ -1842,7 +1869,14 @@ impl<'a> Drawer<'a> {
         let band_top = self.y;
         let points: Vec<(f32, f32)>;
         let top = self.y + 9.0;
-        let mut arrow_y = top + text_h + if text_h > 0.0 { 2.0 } else { 3.0 };
+        // An answer's words under its arrow, else over it.
+        let below = self.words_below(k);
+        let mut arrow_y = if below {
+            top + 3.0
+        } else {
+            top + text_h + if text_h > 0.0 { 2.0 } else { 3.0 }
+        };
+        let words_top = if below { arrow_y + 3.0 } else { top };
         if let Some(c) = created {
             arrow_y = arrow_y.max(self.y + self.cols[c].height / 2.0 + 4.0);
         }
@@ -2024,8 +2058,11 @@ impl<'a> Drawer<'a> {
                 .fold((lo, hi), |(l, h), (a, b)| (l.min(a), h.max(b)));
         }
         let mut reach = reach;
+        if below {
+            after = after.max(words_top + text_h + 3.0);
+        }
         if self.d.numbers_circled {
-            canvas.text(Layer::Front, &text, (text_left, top), Align::Left);
+            canvas.text(Layer::Front, &text, (text_left, words_top), Align::Left);
             // The number in a circle of the arrows' color at its start,
             // held by its band and by what holds the message.
             if !number.is_empty()
@@ -2049,13 +2086,18 @@ impl<'a> Drawer<'a> {
                 );
             }
         } else {
-            canvas.text(Layer::Front, &number, (text_left, top), Align::Left);
+            canvas.text(Layer::Front, &number, (text_left, words_top), Align::Left);
             let gap = if number.is_empty() {
                 0.0
             } else {
                 number.width + 4.0
             };
-            canvas.text(Layer::Front, &text, (text_left + gap, top), Align::Left);
+            canvas.text(
+                Layer::Front,
+                &text,
+                (text_left + gap, words_top),
+                Align::Left,
+            );
         }
         self.touch(reach.0, reach.1);
         let ends: Vec<usize> = [from, to].into_iter().flatten().collect();
@@ -2532,7 +2574,12 @@ impl<'a> Drawer<'a> {
 
     fn lifelines(&self, canvas: &mut Canvas, end: f32) {
         let skin = self.skin;
-        let dashed = Stroke::new(skin.lifeline, skin.lifeline_thickness).dashed(5.0, 5.0);
+        let line = Stroke::new(skin.lifeline, skin.lifeline_thickness);
+        let dashed = if skin.lifeline_solid {
+            line
+        } else {
+            line.dashed(5.0, 5.0)
+        };
         let dotted = Stroke::new(skin.lifeline, skin.lifeline_thickness.max(1.0)).dashed(1.0, 4.0);
         for c in 0..self.cols.len() {
             if !self.head_drawn[c] {
@@ -2635,14 +2682,10 @@ impl<'a> Drawer<'a> {
                 (top, top + icon_h + 3.0)
             };
             draw_icon(canvas, col.shape, cx, icon_top, look);
-            stereotype(canvas, col, cx, text_top);
-            canvas.text(
-                Layer::Front,
-                &col.label,
-                (cx, text_top + col.stereo_h),
-                Align::Center,
-            );
-            return (named(cx, text_top + col.stereo_h, col), None);
+            let (stereo_top, label_top) = self.stacked(col, text_top);
+            stereotype(canvas, col, cx, stereo_top);
+            canvas.text(Layer::Front, &col.label, (cx, label_top), Align::Center);
+            return (named(cx, label_top, col), None);
         }
         let rx = skin.round;
         let (w, h) = (col.width, col.height);
@@ -2707,14 +2750,21 @@ impl<'a> Drawer<'a> {
         } else {
             cx
         };
-        stereotype(canvas, col, middle, text_top);
-        canvas.text(
-            Layer::Front,
-            &col.label,
-            (middle, text_top + col.stereo_h),
-            Align::Center,
-        );
-        (named(middle, text_top + col.stereo_h, col), look.fill)
+        let (stereo_top, label_top) = self.stacked(col, text_top);
+        stereotype(canvas, col, middle, stereo_top);
+        canvas.text(Layer::Front, &col.label, (middle, label_top), Align::Center);
+        (named(middle, label_top, col), look.fill)
+    }
+
+    /// Where a head's stereotype and its name stand, from `top` down: the
+    /// stereotype over the name, or under it with `stereotypePosition
+    /// bottom`.
+    fn stacked(&self, col: &Column, top: f32) -> (f32, f32) {
+        if self.skin.stereotype_below {
+            (top + col.label.height, top)
+        } else {
+            (top, top + col.stereo_h)
+        }
     }
 }
 

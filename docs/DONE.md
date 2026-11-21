@@ -64,6 +64,14 @@ is open and the reasoning around it.
       footer's page numbers are filled in as the diagram is drawn: the
       header stands over the first page, the footer under the last, and
       `%lastpage%` counts the pages `newpage` makes.
+- [x] The sequence skinparams of the guide (2026-11-21):
+      `maxMessageSize` wraps a message's words at their spaces at that
+      width; `responseMessageBelowArrow true` puts the words of an arrow
+      that points left, an answer, under it; `guillemet false` shows a
+      stereotype as `<< … >>`; `stereotypePosition bottom` sets it under
+      the head's name, at the top and at the foot; `lifelineStrategy solid`
+      draws the lifelines solid, as the guide describes it (PlantUML
+      1.2026.8 draws them dashed all the same). The guide: 67 of 79.
 
 ## Phase 0: foundation and spikes
 

@@ -73,6 +73,19 @@ pub struct Skin {
     pub caption_font: Font,
     pub participant_padding: f32,
     pub box_padding: f32,
+    /// `skinparam maxMessageSize`: a message's words wrap at this width.
+    pub max_message_size: Option<f32>,
+    /// `skinparam responseMessageBelowArrow true`: an arrow that points to
+    /// the left, an answer, has its words under it.
+    pub response_below: bool,
+    /// `skinparam guillemet false`: a stereotype shows `<<` and `>>`, not
+    /// `«` and `»`.
+    pub guillemet: bool,
+    /// `skinparam stereotypePosition bottom`: a head's stereotype under its
+    /// name.
+    pub stereotype_below: bool,
+    /// `skinparam lifelineStrategy solid`: the lifelines are solid.
+    pub lifeline_solid: bool,
 }
 
 const DARK: Color = Color::hex(0x181818);
@@ -147,6 +160,11 @@ impl Default for Skin {
             caption_font: Font::new(14.0, black),
             participant_padding: 0.0,
             box_padding: 10.0,
+            max_message_size: None,
+            response_below: false,
+            guillemet: true,
+            stereotype_below: false,
+            lifeline_solid: false,
         }
     }
 }
@@ -219,10 +237,22 @@ impl Skin {
                 "monochrome" => skin.monochrome = p.flag()?,
                 "handwritten" => skin.sketch = p.flag()?,
                 "shadowing" => skin.shadow = p.flag()?,
-                "responsemessagebelowarrow" => {
-                    if p.flag()? {
-                        return Err(p.unsupported());
-                    }
+                "responsemessagebelowarrow" => skin.response_below = p.flag()?,
+                "maxmessagesize" => skin.max_message_size = Some(p.number(1.0, 10_000.0)?),
+                "guillemet" => skin.guillemet = p.flag()?,
+                "stereotypeposition" => {
+                    skin.stereotype_below = match p.value.trim().to_ascii_lowercase().as_str() {
+                        "top" => false,
+                        "bottom" => true,
+                        _ => return Err(p.unsupported()),
+                    };
+                }
+                "lifelinestrategy" => {
+                    skin.lifeline_solid = match p.value.trim().to_ascii_lowercase().as_str() {
+                        "solid" => true,
+                        "nosolid" => false,
+                        _ => return Err(p.unsupported()),
+                    };
                 }
                 "style" => {
                     if p.value.trim().eq_ignore_ascii_case("strictuml") {
@@ -631,7 +661,6 @@ mod tests {
     fn declines_what_it_does_not_draw() {
         for (key, value) in [
             ("monochrome", "reverse"),
-            ("maxMessageSize", "100"),
             ("ParticipantFontName", "Courier"),
             ("ArrowColor", "#red/blue"),
             ("SequenceTitleFontSize", "x"),

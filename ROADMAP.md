@@ -56,12 +56,9 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       (`:Actor:`, `Entity01 }|..|| Entity02`, `-class`) is typed by the
       lines after it.
 
-### Step 1: the sequence diagram (59 of 79)
+### Step 1: the sequence diagram (67 of 79)
 
 - [ ] A box inside a box; a group's colors (`alt#Gold #LightBlue`).
-- [ ] Skinparams: `maxMessageSize` (the words wrap),
-      `responseMessageBelowArrow`, `guillemet false`, `stereotypePosition
-      top` and `bottom`, `lifelineStrategy solid` and `nosolid`.
 - [ ] Teoz: anchors and durations (`{start} … {end}`, `{start} <-> {end}`).
 
 ### Step 2: the state diagram (17 of 36)

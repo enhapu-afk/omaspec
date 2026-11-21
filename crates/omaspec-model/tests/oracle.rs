@@ -697,14 +697,24 @@ fn words(text: &str) -> String {
 
 fn from_sequence(d: &sequence::Diagram) -> Reading {
     // PlantUML's XMI names a lifeline with its spot's letter and its
-    // stereotype in front.
+    // stereotype in front, or after it where the stereotype stands under
+    // the name (`skinparam stereotypePosition bottom`).
+    let below = d.frame.skinparams.iter().any(|p| {
+        p.key.eq_ignore_ascii_case("stereotypePosition")
+            && p.value.trim().eq_ignore_ascii_case("bottom")
+    });
     let things: Vec<String> = d
         .participants
         .iter()
         .map(|p| {
             let spot = p.spot.as_ref().map(|s| s.letter.to_string());
             let stereotype = p.stereotype.as_ref().map(|s| format!("<<{s}>>"));
-            let name = [spot, stereotype, Some(p.label.clone())];
+            let label = Some(p.label.clone());
+            let name = if below {
+                [label, spot, stereotype]
+            } else {
+                [spot, stereotype, label]
+            };
             words(&name.into_iter().flatten().collect::<Vec<_>>().join(" "))
         })
         .collect();
