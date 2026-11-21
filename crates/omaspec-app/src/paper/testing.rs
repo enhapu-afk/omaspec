@@ -82,6 +82,7 @@ pub fn tall() -> Drawn {
         cards: false,
         bare: None,
         parts: false,
+        fence: None,
     }
 }
 

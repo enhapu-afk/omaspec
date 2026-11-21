@@ -61,9 +61,12 @@ cargo run --release -p spike-mermaid -- DIR  # render .mmd files, time them
 - Public repo: no personal data and nothing private in any file.
 - Rust 2024, `unsafe_code` is forbidden workspace-wide, clippy and rustfmt clean.
 - No network access at run time, no telemetry.
-- Every SVG from an engine goes through `omaspec_render::sanitize` before it is shown or
-  exported; so do the links an export lays over it (`sanitize_with`, relative links up to
+- Every SVG from an engine goes through `omaspec_render::sanitize` before it is read,
+  shown or exported; so do the links an export lays over it (`sanitize_with`, relative links up to
   the project, one rule for all links); only the embedded source is written after it.
+  It holds what usvg reads within a small stack: elements 64 deep at most, references
+  that lead on 8 times in a row at most, no `url(#…)` in a stylesheet (`MAX_DEPTH`,
+  `MAX_CHAIN`); a new kind of reference usvg follows is counted there.
   Exports parse SVG only through `omaspec_render::export::parse` (and `export::drawn` for
   where its drawing elements lie), which never read files an SVG points to.
 - `omaspec-core`, `omaspec-uml` and `omaspec-model` do no I/O and have no GUI

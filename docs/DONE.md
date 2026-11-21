@@ -3658,6 +3658,54 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       and a bar keep the shape the map knows, as does a picture without
       parts.
 
+### After the security review (2026-11-21)
+
+An outside review of the sandbox, the sanitizer, `!include`, MCP, Git and
+the size limits found three openings and a fence that did not say where it
+was open.
+
+- [x] `xml:base` goes in the sanitizer: of the XML namespace's attributes
+      only `xml:space` and `xml:lang` stay. A base on the `<svg>` sent the
+      relative project links it lets through to another host. The fuzz
+      target reads the elements and attributes of what it lets through,
+      so words in the picture that say `xml:base` or `javascript:` are no
+      finding.
+- [x] What the sanitizer lets through draws within a thread's 2 MiB of
+      stack. The review asked for a depth in the sanitizer's writer, which
+      calls itself for each level. The first crash came earlier, in
+      roxmltree 0.21.1's tokenizer (some 150 levels in a debug build);
+      0.21.2 reads nested elements without a call for each, and every
+      crate asks for it now. A second review found the rest in usvg, which
+      follows references in calls too: some 300 `<use>` in a row, or
+      chained clip paths, masks, markers and pattern fills, ended a debug
+      build, as did 1,000 levels, below usvg's own limit of 1,024. The
+      sanitizer now counts as it writes: elements nest 64 deep at most
+      (`MAX_DEPTH`), references lead on from element to element 8 times
+      in a row at most and never round in a circle (`MAX_CHAIN`, each
+      element's references kept for the elements with an id around it),
+      and a stylesheet keeps no `url(#…)`, since a rule may lay it on any
+      element. Omaspec's own SVGs and PlantUML's hold no such reference
+      at all. A test draws the worst picture these let through, a chain
+      as long as may be with every link as deep as may be, of each kind,
+      on a 2 MiB thread. The Java PlantUML's answer is sanitized before
+      the repair of its colors reads it, and so are the three other ways
+      a picture is drawn.
+- [x] PlantUML's answer to one diagram ends at 64 MiB (`MAX_ANSWER`):
+      the reader counts as it reads, a line too, and the process is
+      stopped as a hang is. The stand-in tests one endless line and
+      endless lines.
+- [x] A fence that holds in part says so. The sandbox writes what
+      Landlock lacks on this kernel as its first line on standard error
+      (`omaspec-sandbox:`, then the rules by ABI: truncating files, TCP,
+      device ioctls, signals, abstract Unix sockets; or no Landlock at
+      all), before it becomes PlantUML. That line went to `/dev/null`
+      before, so not even a missing Landlock showed. The Java bridge reads
+      it, drains the rest, and hands it on as `Rendered::fence`: the
+      status line turns yellow, `render` warns (also when the picture goes
+      to standard output) and its JSON and the MCP server's answer carry
+      `fence`. A sandbox that cannot start ends the drawing with what it
+      said.
+
 ## Other desktops, and a face for the mouse (2026-11-08)
 
 - [x] The engine and the binary type-check for Windows (2026-11-08): `cargo check

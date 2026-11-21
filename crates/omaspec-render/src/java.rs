@@ -3,7 +3,8 @@
 //! Starting a JVM takes a second or more, so one `plantuml -pipe` process
 //! serves all diagrams: Omaspec writes a diagram to its standard input
 //! and reads the SVG up to a delimiter line. A process that hangs is killed
-//! after a timeout; one that dies is started again with the next diagram.
+//! after a timeout, one that writes more than [`MAX_ANSWER`] for a diagram
+//! as soon as it has; one that dies is started again with the next diagram.
 //!
 //! The process runs with `PLANTUML_SECURITY_PROFILE=SANDBOX`: no `!include`
 //! of local files or URLs, no network. `JAVA_TOOL_OPTIONS` ends with
@@ -12,17 +13,41 @@
 //! environment ([`KEPT_ENV`]), so no token reaches it. With a
 //! [`Config::sandbox`] it is also started confined: it can write only in a
 //! scratch folder of its own, removed when it ends, and the JVM keeps its
-//! temporary files there.
+//! temporary files there. The sandbox says first what the fence lacks on
+//! this kernel ([`SANDBOX_REPORT`]), and each picture it draws says it in
+//! turn ([`crate::Rendered::fence`]).
 
 use std::env;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Child, ChildStdin, Command, Stdio};
-use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
+use std::process::{Child, ChildStderr, ChildStdin, Command, Stdio};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::{Config, Engine, RenderError};
+
+/// The most PlantUML may write for one diagram. Its largest pictures take
+/// a few megabytes; a diagram that makes it write more is stopped as a
+/// hang is, before its answer fills the memory.
+const MAX_ANSWER: usize = 64 << 20;
+
+/// The first line `omaspec __sandbox` writes on standard error, before it
+/// becomes PlantUML: this, a space, and what the fence lacks on this
+/// kernel, nothing when it holds whole.
+pub const SANDBOX_REPORT: &str = "omaspec-sandbox:";
+
+/// The most read of the sandbox's first line, and of what follows it
+/// when it cannot start.
+const MAX_REPORT: u64 = 4096;
+
+/// What the reader of PlantUML's standard output hands on.
+enum Answer {
+    Line(String),
+    /// The answer to the diagram grew past [`MAX_ANSWER`]; nothing of it
+    /// is read on.
+    TooLarge,
+}
 
 pub struct JavaPlantUml {
     command: PathBuf,
@@ -37,10 +62,12 @@ struct Process {
     /// The confined process's only writable folder.
     scratch: Option<PathBuf>,
     stdin: ChildStdin,
-    lines: Receiver<String>,
+    lines: Receiver<Answer>,
     delimiter: String,
     /// Diagrams served so far; the first one includes the JVM start.
     served: usize,
+    /// What its sandbox said the fence lacks on this kernel.
+    fence: Option<String>,
 }
 
 impl Drop for Process {
@@ -73,6 +100,13 @@ impl JavaPlantUml {
 
     pub fn command(&self) -> &Path {
         &self.command
+    }
+
+    /// What the fence around the running PlantUML lacks on this kernel, as
+    /// its sandbox said when it started; `None` while it holds whole, and
+    /// without a sandbox.
+    pub fn fence(&self) -> Option<&str> {
+        self.process.as_ref()?.fence.as_deref()
     }
 
     /// The SVG for a PlantUML source. Lines before its first `@start…` are
@@ -124,14 +158,21 @@ impl JavaPlantUml {
             match process.lines.recv_timeout(left) {
                 // An SVG ends without a line break, so the delimiter
                 // follows its `</svg>` on the same line.
-                Ok(mut line) if line.ends_with(&process.delimiter) => {
+                Ok(Answer::Line(mut line)) if line.ends_with(&process.delimiter) => {
                     line.truncate(line.len() - process.delimiter.len());
                     if !line.is_empty() {
                         lines.push(line);
                     }
                     break;
                 }
-                Ok(line) => lines.push(line),
+                Ok(Answer::Line(line)) => lines.push(line),
+                Ok(Answer::TooLarge) => {
+                    self.process = None;
+                    return Err(engine_error(&format!(
+                        "PlantUML wrote more than {} MB for this diagram and was stopped",
+                        MAX_ANSWER >> 20
+                    )));
+                }
                 Err(RecvTimeoutError::Timeout) => {
                     self.process = None;
                     return Err(engine_error(&format!(
@@ -198,7 +239,11 @@ impl JavaPlantUml {
             .env("PLANTUML_SECURITY_PROFILE", "SANDBOX")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            .stderr(if scratch.is_some() {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            })
             .spawn();
         let mut child = match spawned {
             Ok(child) => child,
@@ -214,26 +259,100 @@ impl JavaPlantUml {
         };
         let stdin = child.stdin.take().expect("piped");
         let stdout = child.stdout.take().expect("piped");
+        let stderr = child.stderr.take();
         let (tx, lines) = mpsc::channel();
-        thread::Builder::new()
-            .name("plantuml-reader".into())
-            .spawn(move || {
-                for line in BufReader::new(stdout).lines() {
-                    let Ok(line) = line else { break };
-                    if tx.send(line).is_err() {
-                        break;
-                    }
-                }
-            })
-            .map_err(|e| engine_error(&e.to_string()))?;
-        Ok(Process {
+        let end = delimiter.clone();
+        // Dropped on an error from here on: the process ends, its scratch
+        // folder goes.
+        let mut process = Process {
             child,
             scratch,
             stdin,
             lines,
             delimiter,
             served: 0,
+            fence: None,
+        };
+        thread::Builder::new()
+            .name("plantuml-reader".into())
+            .spawn(move || read_answers(stdout, &end, &tx))
+            .map_err(|e| engine_error(&e.to_string()))?;
+        if let Some(stderr) = stderr {
+            process.fence = sandbox_report(stderr, self.start_timeout)?;
+        }
+        Ok(process)
+    }
+}
+
+/// What the fence lacks, as the sandbox reports it on `stderr` before it
+/// becomes PlantUML. What is written there after it (the JVM writes there
+/// unasked) is read and dropped. A sandbox that writes something else
+/// first did not start, and says why.
+fn sandbox_report(stderr: ChildStderr, timeout: Duration) -> Result<Option<String>, RenderError> {
+    let (tx, report) = mpsc::channel();
+    thread::Builder::new()
+        .name("plantuml-errors".into())
+        .spawn(move || {
+            let mut reader = BufReader::new(stderr);
+            let mut first = Vec::new();
+            let _ = (&mut reader).take(MAX_REPORT).read_until(b'\n', &mut first);
+            let first = String::from_utf8_lossy(&first).into_owned();
+            if first.starts_with(SANDBOX_REPORT) {
+                let _ = tx.send(Ok(first));
+                let _ = std::io::copy(&mut reader, &mut std::io::sink());
+            } else {
+                let mut rest = Vec::new();
+                let _ = (&mut reader).take(MAX_REPORT).read_to_end(&mut rest);
+                let _ = tx.send(Err(first + &String::from_utf8_lossy(&rest)));
+            }
         })
+        .map_err(|e| engine_error(&e.to_string()))?;
+    match report.recv_timeout(timeout) {
+        Ok(Ok(line)) => {
+            let lacks = line[SANDBOX_REPORT.len()..].trim();
+            Ok((!lacks.is_empty()).then(|| lacks.to_owned()))
+        }
+        Ok(Err(said)) if !said.trim().is_empty() => Err(engine_error(&format!(
+            "its sandbox did not start: {}",
+            said.split_whitespace().collect::<Vec<_>>().join(" ")
+        ))),
+        _ => Err(engine_error("its sandbox did not start")),
+    }
+}
+
+/// Hands on PlantUML's output line by line, each without its line break,
+/// until it ends, is not UTF-8, or the answer to one diagram (the lines up
+/// to the one that ends with `delimiter`) grows past [`MAX_ANSWER`]. A
+/// line is read no further than that either.
+fn read_answers(stdout: impl Read, delimiter: &str, tx: &Sender<Answer>) {
+    let mut reader = BufReader::new(stdout);
+    let mut answered = 0;
+    loop {
+        let left = MAX_ANSWER.saturating_sub(answered) as u64 + 1;
+        let mut bytes = Vec::new();
+        match (&mut reader).take(left).read_until(b'\n', &mut bytes) {
+            Ok(0) | Err(_) => return,
+            Ok(read) => answered += read,
+        }
+        if answered > MAX_ANSWER {
+            let _ = tx.send(Answer::TooLarge);
+            return;
+        }
+        if bytes.last() == Some(&b'\n') {
+            bytes.pop();
+            if bytes.last() == Some(&b'\r') {
+                bytes.pop();
+            }
+        }
+        let Ok(line) = String::from_utf8(bytes) else {
+            return;
+        };
+        if line.ends_with(delimiter) {
+            answered = 0;
+        }
+        if tx.send(Answer::Line(line)).is_err() {
+            return;
+        }
     }
 }
 

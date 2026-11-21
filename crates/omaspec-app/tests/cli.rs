@@ -2288,11 +2288,21 @@ fn the_java_plantuml_runs_confined() {
             .args(["render", diagram.to_str().unwrap(), "-o", "-"])
             .output()
             .unwrap();
-        assert!(
-            out.status.success(),
-            "{}",
-            String::from_utf8_lossy(&out.stderr)
-        );
+        let said = String::from_utf8_lossy(&out.stderr);
+        assert!(out.status.success(), "{said}");
+        // Where Landlock holds all of it, since Linux 6.12, no fence is
+        // said to lack anything; the sandbox's report is not passed on.
+        let fence = said.contains("warning: the Java PlantUML ran with");
+        let whole = fs::read_to_string("/proc/sys/kernel/osrelease").is_ok_and(|release| {
+            let mut parts = release
+                .split(['.', '-'])
+                .map(|p| p.parse::<u32>().unwrap_or(0));
+            (parts.next().unwrap_or(0), parts.next().unwrap_or(0)) >= (6, 12)
+        });
+        if sandbox == "on" && whole {
+            assert!(!fence, "{said}");
+        }
+        assert!(!said.contains("omaspec-sandbox"), "{said}");
         let svg = String::from_utf8(out.stdout).unwrap();
         let text = &svg[svg.find("<text>").unwrap() + 6..svg.find("</text>").unwrap()];
         text.to_owned()

@@ -8,8 +8,11 @@
 //!
 //! Without `unsafe` there is no hook between fork and exec, so Omaspec
 //! starts itself for this, confines itself and becomes COMMAND. On a kernel
-//! without Landlock the command runs anyway, with PlantUML's own SANDBOX
-//! profile as the only fence.
+//! without Landlock, or with an older one that fences only part of this,
+//! the command runs anyway, with PlantUML's own SANDBOX profile as the
+//! fence for the rest. Before it becomes COMMAND it says on standard error
+//! what the fence lacks ([`omaspec_render::SANDBOX_REPORT`]), and the
+//! picture says it in turn.
 
 use std::env;
 use std::ffi::OsString;
@@ -19,8 +22,8 @@ use std::process::{Command, ExitCode};
 
 use anyhow::{Context, Result};
 use landlock::{
-    ABI, Access, AccessFs, AccessNet, CompatLevel, Compatible, RestrictionStatus, Ruleset,
-    RulesetAttr, RulesetCreatedAttr, RulesetStatus, Scope, path_beneath_rules,
+    ABI, Access, AccessFs, AccessNet, CompatLevel, Compatible, LandlockStatus, RestrictionStatus,
+    Ruleset, RulesetAttr, RulesetCreatedAttr, RulesetStatus, Scope, path_beneath_rules,
 };
 use rustix::process::{Resource, Rlimit, getrlimit, setrlimit};
 
@@ -143,13 +146,59 @@ pub fn run(scratch: &Path, command: &[OsString]) -> Result<ExitCode> {
     let (program, args) = command.split_first().context("no command to run")?;
     let status =
         confine(scratch, Path::new(program)).context("cannot set up the Landlock sandbox")?;
-    if status.ruleset == RulesetStatus::NotEnforced {
-        eprintln!("omaspec: this kernel has no Landlock; running PlantUML unconfined");
-    }
+    eprintln!(
+        "{} {}",
+        omaspec_render::SANDBOX_REPORT,
+        lacks(&status.ruleset, status.landlock)
+    );
     limit_open_files();
     // Only returns when the command could not be started.
     let err = Command::new(program).args(args).exec();
     Err(err).with_context(|| format!("cannot run {}", Path::new(program).display()))
+}
+
+/// What the fence lacks on this kernel, in a few words for the picture's
+/// status; empty when Landlock holds all of it.
+fn lacks(ruleset: &RulesetStatus, landlock: LandlockStatus) -> String {
+    match (ruleset, landlock) {
+        (RulesetStatus::FullyEnforced, _) => String::new(),
+        (RulesetStatus::NotEnforced, _) => "no Landlock on this kernel".into(),
+        (RulesetStatus::PartiallyEnforced, LandlockStatus::Available { effective_abi, .. })
+            if !missing(effective_abi).is_empty() =>
+        {
+            format!(
+                "no Landlock rules for {} on this kernel",
+                listed(&missing(effective_abi))
+            )
+        }
+        (RulesetStatus::PartiallyEnforced, _) => "only part of Landlock on this kernel".into(),
+    }
+}
+
+/// What a kernel whose Landlock is at `abi` cannot fence of what
+/// [`ABI_WANTED`] asks for. Before the second ABI, a file could not be
+/// moved to another folder at all, which takes nothing from the fence.
+fn missing(abi: ABI) -> Vec<&'static str> {
+    [
+        (ABI::V3, "truncating files"),
+        (ABI::V4, "TCP"),
+        (ABI::V5, "device ioctls"),
+        (ABI::V6, "signals"),
+        (ABI::V6, "abstract Unix sockets"),
+    ]
+    .into_iter()
+    .filter(|&(since, _)| abi < since && since <= ABI_WANTED)
+    .map(|(_, what)| what)
+    .collect()
+}
+
+/// `a`, `a and b`, `a, b and c`.
+fn listed(items: &[&str]) -> String {
+    match items {
+        [] => String::new(),
+        [one] => (*one).to_owned(),
+        [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+    }
 }
 
 /// Lowers the open-file limit to [`OPEN_FILES`] when it is higher; the
@@ -169,6 +218,30 @@ fn limit_open_files() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn says_what_an_older_kernel_cannot_fence() {
+        assert!(missing(ABI::V6).is_empty());
+        assert_eq!(missing(ABI::V5), ["signals", "abstract Unix sockets"]);
+        assert_eq!(
+            listed(&missing(ABI::V3)),
+            "TCP, device ioctls, signals and abstract Unix sockets"
+        );
+        assert_eq!(missing(ABI::V1)[0], "truncating files");
+        let available = |abi| LandlockStatus::Available {
+            effective_abi: abi,
+            kernel_abi: None,
+        };
+        assert_eq!(lacks(&RulesetStatus::FullyEnforced, available(ABI::V6)), "");
+        assert_eq!(
+            lacks(&RulesetStatus::PartiallyEnforced, available(ABI::V4)),
+            "no Landlock rules for device ioctls, signals and abstract Unix sockets on this kernel"
+        );
+        assert_eq!(
+            lacks(&RulesetStatus::NotEnforced, LandlockStatus::NotImplemented),
+            "no Landlock on this kernel"
+        );
+    }
 
     #[test]
     fn finds_the_jdk_a_java_belongs_to() {

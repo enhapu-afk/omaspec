@@ -38,7 +38,14 @@ Omaspec reads the Omarchy theme and needs no D-Bus client.
   fonts, so neither `~/.ssh` nor another process's environment; it writes
   only in a scratch folder of its own; no TCP, no abstract Unix sockets
   and no signals outside (Linux 6.7 and newer for TCP, 6.12 for the last
-  two; older kernels get what they support). It starts with a small part
+  two; older kernels get what they support, and say what they do not).
+  Before it becomes PlantUML, the sandbox writes on its standard error
+  what the fence lacks on this kernel (`SANDBOX_REPORT`), and each picture
+  the Java PlantUML draws says it: the status line in yellow, a warning
+  from `omaspec render` and `fence` in its JSON and in the MCP server's
+  answer. A sandbox that cannot start ends the drawing with its reason.
+  PlantUML may answer one diagram with 64 MiB at most (`MAX_ANSWER`);
+  past that it is stopped, as one that hangs is. It starts with a small part
   of Omaspec's environment (where programs, Java and fonts are, the
   language), so no token reaches it, confined or not. A CLI test checks
   that it can neither write outside, connect, read outside nor see the
@@ -50,7 +57,21 @@ Omaspec reads the Omarchy theme and needs no D-Bus client.
   Graphviz 16.1: diagrams, Graphviz layouts and errors come back
   confined, an `!include` of `/etc/passwd` is refused.
 - Exports never read files an SVG points to (see Phase 2), so an image
-  cannot pull local files into what is shared.
+  cannot pull local files into what is shared. The sanitizer drops
+  `xml:base`, which would resolve every relative link it lets through
+  against another address.
+- What the sanitizer lets through, usvg reads one call deeper for each
+  level and for each reference it follows (a `<use>`, a clip path, a
+  mask, a marker, a pattern's fill); on a thread's 2 MiB of stack in a
+  debug build some 300 `<use>` in a row or 1,000 levels did not fit, below
+  usvg's own limit of 1,024. So elements nest no deeper than 64
+  (`MAX_DEPTH`), references lead on no more than 8 times in a row
+  (`MAX_CHAIN`), and a stylesheet keeps no `url(#…)`, which a rule could
+  lay on any element. Omaspec's own pictures nest about ten deep and
+  hold no reference; PlantUML's hold none either. A test draws the worst
+  picture these let through on a 2 MiB thread. roxmltree is 0.21.2 or
+  newer, which reads nested elements without a call for each (0.21.1
+  ended the process on a deep enough text before any check).
 - The native engine's `!include` reads local files only, inside the
   project folder and outside hidden folders; a URL or PlantUML's standard
   library declines.
@@ -59,6 +80,9 @@ Omaspec reads the Omarchy theme and needs no D-Bus client.
 
 - UDP is outside Landlock's network rules; PlantUML's SANDBOX profile is
   the fence there.
+- A `-javaagent` in an inherited `JAVA_TOOL_OPTIONS` starts before
+  PlantUML reads its profile and can change it; Landlock holds it all the
+  same. A diagram cannot set the variable; whoever has it set it.
 - The programs Omaspec starts besides PlantUML run unconfined; they are
   the user's own system tools. `git` runs with the settings that would
   start other programs switched off (signature checks, a file system

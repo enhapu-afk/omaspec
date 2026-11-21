@@ -17,6 +17,7 @@ omaspec-core = { path = "../crates/omaspec-core" }
 omaspec-model = { path = "../crates/omaspec-model" }
 omaspec-render = { path = "../crates/omaspec-render" }
 omaspec-uml = { path = "../crates/omaspec-uml" }
+roxmltree = "0.21.2"
 
 [[bin]]
 name = "text"

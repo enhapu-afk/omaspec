@@ -33,7 +33,7 @@ image-webp = "0.2"
 miniz_oxide = "0.9"
 regex = "1"
 # `render --check` reads the SVGs it holds the new ones against.
-roxmltree = "0.21"
+roxmltree = "0.21.2"
 # The confined PlantUML's open-file limit (`sandbox`); already in iced's tree.
 rustix = { version = "1", features = ["process"] }
 # Pinned: young crate, see docs/adr/0002-editor-widget-scrive.md.

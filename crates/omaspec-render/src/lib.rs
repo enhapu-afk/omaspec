@@ -32,7 +32,7 @@ pub use omaspec_uml::map::Map;
 
 pub use atlas::{Atlas, Entry, Link};
 pub use include::{Place, project_root};
-pub use java::JavaPlantUml;
+pub use java::{JavaPlantUml, SANDBOX_REPORT};
 pub use mermaid::{MermaidDeclined, coverage as mermaid_coverage};
 pub use service::{After, Generation, Outcome, RenderService};
 
@@ -83,10 +83,7 @@ pub fn render_orbit(
             (svg, Engine::NativePlantUml, map)
         }
     };
-    let svg = sanitize::sanitize(&legible_in(svg, source)).map_err(|e| RenderError::Engine {
-        engine,
-        message: format!("invalid SVG: {e}"),
-    })?;
+    let svg = legible_in(&svg, source, engine)?;
     Ok(Rendered {
         svg,
         engine,
@@ -94,6 +91,7 @@ pub fn render_orbit(
         map,
         links: Vec::new(),
         cards: None,
+        fence: None,
     })
 }
 
@@ -114,6 +112,10 @@ pub struct Rendered {
     /// show while the tiles are small on screen. [`Self::svg`] holds the
     /// pictures. `None` for anything but a map.
     pub cards: Option<String>,
+    /// What the fence around the Java PlantUML that drew it lacked on this
+    /// kernel, in a few words, as its sandbox said; `None` for a whole
+    /// fence, without a sandbox, and for every other engine.
+    pub fence: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -198,12 +200,23 @@ fn not_native(source: &str) -> Option<RenderError> {
     })
 }
 
-/// `svg`, drawn from `source`, made to read on the paper of the look laid
-/// over it ([`legible`]).
-fn legible_in(svg: String, source: &str) -> String {
-    match omaspec_uml::repaint::look_of(source) {
-        Some(look) => legible::repair(&svg, &look),
-        None => svg,
+/// `svg`, what `engine` drew from `source`, sanitized and made to read on
+/// the paper of the look laid over it ([`legible`]). It is sanitized
+/// before the repair reads it, and again when the repair changed it.
+fn legible_in(svg: &str, source: &str, engine: Engine) -> Result<String, RenderError> {
+    let invalid = |e: sanitize::SanitizeError| RenderError::Engine {
+        engine,
+        message: format!("invalid SVG: {e}"),
+    };
+    let svg = sanitize::sanitize(svg).map_err(invalid)?;
+    let Some(look) = omaspec_uml::repaint::look_of(source) else {
+        return Ok(svg);
+    };
+    let legible = legible::repair(&svg, &look);
+    if legible == svg {
+        Ok(svg)
+    } else {
+        sanitize::sanitize(&legible).map_err(invalid)
     }
 }
 
@@ -255,10 +268,7 @@ pub fn render_marked(
             (svg, Engine::NativePlantUml, map)
         }
     };
-    let svg = sanitize::sanitize(&legible_in(svg, source)).map_err(|e| RenderError::Engine {
-        engine,
-        message: format!("invalid SVG: {e}"),
-    })?;
+    let svg = legible_in(&svg, source, engine)?;
     Ok(Rendered {
         svg,
         engine,
@@ -266,6 +276,7 @@ pub fn render_marked(
         map,
         links: Vec::new(),
         cards: None,
+        fence: None,
     })
 }
 
@@ -306,10 +317,7 @@ pub fn render_table(
             (svg, Engine::NativePlantUml, map)
         }
     };
-    let svg = sanitize::sanitize(&legible_in(svg, source)).map_err(|e| RenderError::Engine {
-        engine,
-        message: format!("invalid SVG: {e}"),
-    })?;
+    let svg = legible_in(&svg, source, engine)?;
     Ok(Rendered {
         svg,
         engine,
@@ -317,6 +325,7 @@ pub fn render_table(
         map,
         links: Vec::new(),
         cards: None,
+        fence: None,
     })
 }
 
@@ -332,7 +341,9 @@ pub struct Config {
     pub java_start_timeout: Duration,
     /// A program that runs a command confined (Omaspec's own
     /// `omaspec __sandbox SCRATCH -- COMMAND …`); the Java PlantUML is
-    /// started through it. `None` starts it directly.
+    /// started through it. Its first line on standard error, before the
+    /// command runs, is its report ([`SANDBOX_REPORT`]); one that writes
+    /// something else first has not started. `None` starts it directly.
     pub sandbox: Option<PathBuf>,
 }
 
@@ -399,11 +410,11 @@ impl Renderer {
             Language::Mermaid => mermaid::render_mapped(source)?,
             Language::PlantUml => self.plantuml(source, place)?,
         };
-        let svg =
-            sanitize::sanitize(&legible_in(svg, source)).map_err(|e| RenderError::Engine {
-                engine,
-                message: format!("invalid SVG: {e}"),
-            })?;
+        let svg = legible_in(&svg, source, engine)?;
+        let fence = match engine {
+            Engine::JavaPlantUml => self.java.as_ref().and_then(JavaPlantUml::fence),
+            _ => None,
+        };
         Ok(Rendered {
             svg,
             engine,
@@ -411,6 +422,7 @@ impl Renderer {
             map,
             links: Vec::new(),
             cards: None,
+            fence: fence.map(str::to_owned),
         })
     }
 
@@ -444,6 +456,7 @@ impl Renderer {
             });
         };
         let mut engine = None;
+        let mut fence = None;
         let mut pictures = Vec::with_capacity(blocks.len());
         for block in &blocks {
             let mut masked = omaspec_core::markdown::masked(text, block);
@@ -454,6 +467,7 @@ impl Renderer {
             }
             let drawn = self.render_at(&masked, block.language, place)?;
             engine.get_or_insert(drawn.engine);
+            fence = fence.or(drawn.fence);
             pictures.push(drawn.svg);
         }
         let shown: Vec<&str> = pictures.iter().map(String::as_str).collect();
@@ -472,6 +486,7 @@ impl Renderer {
             map: Map::default(),
             links: Vec::new(),
             cards: None,
+            fence,
         })
     }
 

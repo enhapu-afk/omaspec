@@ -1,0 +1,4 @@
+#!/bin/bash
+# Stands in for `omaspec __sandbox` when it cannot confine: says why, ends.
+echo "omaspec: cannot set up the Landlock sandbox: no ruleset" >&2
+exit 2

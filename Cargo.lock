@@ -2645,7 +2645,7 @@ dependencies = [
  "png",
  "proptest",
  "regex",
- "roxmltree 0.21.1",
+ "roxmltree 0.21.2",
  "rustix 1.1.6",
  "scrive-core",
  "scrive-iced",
@@ -2661,7 +2661,7 @@ dependencies = [
  "miniz_oxide 0.9.1",
  "omaspec-uml",
  "regex",
- "roxmltree 0.21.1",
+ "roxmltree 0.21.2",
  "serde",
  "serde_json",
 ]
@@ -2673,7 +2673,7 @@ dependencies = [
  "omaspec-core",
  "omaspec-uml",
  "proptest",
- "roxmltree 0.21.1",
+ "roxmltree 0.21.2",
  "serde_json",
 ]
 
@@ -2691,7 +2691,7 @@ dependencies = [
  "omaspec-model",
  "omaspec-uml",
  "resvg",
- "roxmltree 0.21.1",
+ "roxmltree 0.21.2",
  "serde_json",
  "skrifa 0.42.1",
  "zip",
@@ -3212,9 +3212,9 @@ checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 
 [[package]]
 name = "roxmltree"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1964b10c76125c36f8afe190065a4bf9a87bf324842c05701330bba9f1cacbb"
+checksum = "9da7f59328b09405b181fee1018925fad50f157afb43c0c0f5c522c256dd5907"
 dependencies = [
  "memchr",
 ]
@@ -4161,7 +4161,7 @@ dependencies = [
  "kurbo 0.13.1",
  "log",
  "pico-args",
- "roxmltree 0.21.1",
+ "roxmltree 0.21.2",
  "rustybuzz",
  "simplecss",
  "siphasher",

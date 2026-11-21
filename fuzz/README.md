@@ -22,7 +22,7 @@ fuzz/run.sh 900 plantuml    # one target, 15 minutes
 | `model` | checks, plays, conversion and diff of the behavior model |
 | `document` | Markdown with fenced blocks of any kind: the diagrams found lie in fences |
 | `trace` | a recorded trace (JSON Lines) of any text against a state machine |
-| `sanitize` | the SVG sanitizer: what it lets through holds nothing active |
+| `sanitize` | the SVG sanitizer: what it lets through holds nothing active, nests no deeper than its limit and parses again |
 | `image_source` | the source read back from any PNG or SVG bytes |
 
 The targets run each night in CI (`.github/workflows/fuzz.yml`), and every push

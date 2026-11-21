@@ -230,12 +230,14 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
             undrawable: exported.undrawable.iter().map(char::to_string).collect(),
             fitted_scale: exported.fitted,
             sized: exported.sized,
+            fence: exported.fence.clone(),
             ..Report::default()
         };
         // Where it went, and what it says besides, on standard error.
         let said = |to: String| {
             eprintln!("{} {to} ({took})", input.name());
             warn_undrawable(&input.name(), &exported.undrawable);
+            warn_fence(&input.name(), exported.fence.as_deref());
             say_fitted(&input.name(), exported.fitted);
             say_sized(&input.name(), exported.sized);
         };
@@ -285,7 +287,12 @@ pub fn render(args: &RenderArgs) -> Result<ExitCode> {
                     false => said(format!("→ {}", dest.display())),
                 }
             }
-            (Picture::One(bytes), None) => stdout().write_all(&bytes)?,
+            // The picture on standard output, its warnings beside it.
+            (Picture::One(bytes), None) => {
+                stdout().write_all(&bytes)?;
+                warn_undrawable(&input.name(), &exported.undrawable);
+                warn_fence(&input.name(), exported.fence.as_deref());
+            }
         }
     }
     if args.json {
@@ -425,6 +432,10 @@ struct Report {
     /// With `--fit`: the scale the picture was drawn at to fit.
     #[serde(skip_serializing_if = "Option::is_none")]
     fitted_scale: Option<f32>,
+    /// What the fence around the Java PlantUML that drew it lacked on
+    /// this kernel.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fence: Option<String>,
     /// With `--min-font`: the scale, the size of the smallest words and
     /// the grid of tiles.
     #[serde(skip_serializing_if = "Option::is_none", flatten)]
@@ -536,6 +547,13 @@ fn say_fitted(name: &str, fitted: Option<f32>) {
     }
 }
 
+/// Says what the fence around the Java PlantUML lacked on this kernel.
+fn warn_fence(name: &str, fence: Option<&str>) {
+    if let Some(fence) = fence {
+        eprintln!("{name}: warning: the Java PlantUML ran with {fence}");
+    }
+}
+
 /// Names the characters no installed font draws, and the font to install
 /// for emoji, the usual ones.
 fn warn_undrawable(name: &str, chars: &[char]) {
@@ -564,6 +582,8 @@ struct Exported {
     fitted: Option<f32>,
     /// How `--min-font` drew it.
     sized: Option<Sizing>,
+    /// What the fence around the Java PlantUML that drew it lacked.
+    fence: Option<String>,
 }
 
 /// What a diagram was drawn as: one file, or the tiles `--min-font` cut
@@ -912,6 +932,7 @@ fn export_piece(
                 rows: plan.rows,
                 columns: plan.columns,
             }),
+            fence: rendered.fence.clone(),
         }));
     }
     let (bytes, fitted) = match export_at(draw.scale) {
@@ -938,6 +959,7 @@ fn export_piece(
         undrawable,
         fitted,
         sized: None,
+        fence: rendered.fence.clone(),
     }))
 }
 

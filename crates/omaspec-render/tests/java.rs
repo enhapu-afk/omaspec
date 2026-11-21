@@ -199,6 +199,55 @@ fn stops_a_hanging_process() {
 }
 
 #[test]
+fn stops_a_process_that_writes_without_end() {
+    let mut java = JavaPlantUml::find(&config(20_000)).unwrap();
+    for flood in ["FLOOD", "FLOODLINES"] {
+        let err = java
+            .render(&format!("@startuml\n{flood}\n@enduml"))
+            .unwrap_err();
+        assert!(err.to_string().contains("more than 64 MB"), "{err}");
+        assert_eq!(
+            text_of(&java.render("@startuml\nA -> B\n@enduml").unwrap()),
+            "diagram 1"
+        );
+    }
+}
+
+#[test]
+fn a_picture_says_what_its_fence_lacks() {
+    let tests = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests");
+    let mut renderer = Renderer::new(&Config {
+        sandbox: Some(tests.join("fake-sandbox")),
+        ..config(5000)
+    });
+    for n in 1..=2 {
+        let out = renderer.render(DOT, Language::PlantUml).unwrap();
+        assert_eq!(text_of(&out.svg), format!("diagram {n}"));
+        assert_eq!(
+            out.fence.as_deref(),
+            Some("no Landlock rules for TCP on this kernel")
+        );
+    }
+    // What the own engine draws has no fence to lack.
+    let out = renderer
+        .render("@startuml\nA -> B\n@enduml\n", Language::PlantUml)
+        .unwrap();
+    assert_eq!(out.fence, None);
+
+    // A sandbox that cannot start says why, and PlantUML does not run.
+    let mut renderer = Renderer::new(&Config {
+        sandbox: Some(tests.join("fake-sandbox-broken")),
+        ..config(5000)
+    });
+    let err = renderer.render(DOT, Language::PlantUml).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("its sandbox did not start: omaspec: cannot set up the Landlock sandbox"),
+        "{err}"
+    );
+}
+
+#[test]
 fn without_java_plantuml_is_unavailable() {
     let mut renderer = Renderer::new(&Config {
         java_fallback: false,

@@ -2,7 +2,8 @@
 # Stands in for `plantuml -pipe` in tests: one SVG per diagram, then the
 # delimiter, as PlantUML writes them: the SVG ends without a line break, an
 # error gives the line counted from 0 at `@start…`. Diagrams containing
-# CRASH, HANG or SYNTAXERROR misbehave.
+# CRASH, HANG, FLOOD (one endless line), FLOODLINES (endless lines) or
+# SYNTAXERROR misbehave.
 delim=""
 while (( $# )); do
   case "$1" in
@@ -25,6 +26,8 @@ while IFS= read -r line; do
   case "$block" in
     *CRASH*) exit 1 ;;
     *HANG*) exec sleep 30 ;;
+    *FLOODLINES*) exec yes "$(printf '<g/>%.0s' {1..1000})" ;;
+    *FLOOD*) exec tr '\0' x < /dev/zero ;;
   esac
   if [[ -n $error ]]; then
     printf 'ERROR\n%d\nSyntax Error?\n' "$error"

@@ -361,6 +361,7 @@ pub(crate) fn render(
         map,
         links,
         cards: Some(cards),
+        fence: None,
     })
 }
 

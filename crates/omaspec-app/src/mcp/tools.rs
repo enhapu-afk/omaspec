@@ -530,6 +530,9 @@ impl Tools {
             "engine": rendered.engine.name(),
             "elapsed_ms": millis(rendered.elapsed),
         });
+        if let Some(fence) = &rendered.fence {
+            report["fence"] = json!(fence);
+        }
         let Some(dest) = output else {
             let format = format.unwrap_or(Format::Png);
             report["format"] = json!(format.extension());

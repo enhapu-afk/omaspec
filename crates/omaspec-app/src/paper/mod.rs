@@ -1057,14 +1057,18 @@ impl Paper {
             Status::Waiting => ("waiting".to_owned(), p.dark_foreground),
             Status::Rendering => ("● rendering".to_owned(), p.yellow),
             Status::InSync => {
-                let took = self.diagram.as_ref().map_or_else(String::new, |d| {
-                    format!(
-                        "✓ {} {:.0} ms",
-                        d.drawn.engine.name(),
-                        d.drawn.elapsed.as_secs_f64() * 1000.0
-                    )
-                });
-                (took, p.green)
+                let Some(d) = &self.diagram else {
+                    return (String::new(), p.green);
+                };
+                let took = format!(
+                    "{} {:.0} ms",
+                    d.drawn.engine.name(),
+                    d.drawn.elapsed.as_secs_f64() * 1000.0
+                );
+                match &d.drawn.fence {
+                    Some(fence) => (format!("⚠ {took} · {fence}"), p.yellow),
+                    None => (format!("✓ {took}"), p.green),
+                }
             }
             Status::Failed(err) => (format!("✕ {}", ui::one_line(&err.to_string())), p.red),
             Status::Unreadable(err) => (format!("✕ cannot read: {err}"), p.red),
@@ -1078,11 +1082,15 @@ impl Paper {
             Status::Waiting => "waiting".to_owned(),
             Status::Rendering => "rendering…".to_owned(),
             Status::InSync => self.diagram.as_ref().map_or_else(String::new, |d| {
-                format!(
+                let took = format!(
                     "{} · {:.0} ms",
                     d.drawn.engine.name(),
                     d.drawn.elapsed.as_secs_f64() * 1000.0
-                )
+                );
+                match &d.drawn.fence {
+                    Some(fence) => format!("{took} · {fence}"),
+                    None => took,
+                }
             }),
             Status::Failed(_) | Status::Unreadable(_) => match self.overview.shown {
                 Some(_) => "the last good picture".to_owned(),

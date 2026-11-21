@@ -405,6 +405,18 @@ mod tests {
     }
 
     #[test]
+    fn a_deep_svg_is_read_without_a_crash() {
+        // roxmltree before 0.21.2 took a call for each level and ended the
+        // process on a picture handed over nested like this.
+        let deep = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg">{}{}</svg>"#,
+            "<g>".repeat(100_000),
+            "</g>".repeat(100_000)
+        );
+        assert_eq!(source_from_svg(&deep), None);
+    }
+
+    #[test]
     fn svg_without_source() {
         assert_eq!(
             source_from_svg("<svg xmlns=\"http://www.w3.org/2000/svg\"/>"),

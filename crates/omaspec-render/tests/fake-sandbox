@@ -1,0 +1,6 @@
+#!/bin/bash
+# Stands in for `omaspec __sandbox SCRATCH -- COMMAND ARGS…` on a kernel
+# whose Landlock has no rules for TCP: says so, then becomes COMMAND.
+shift 3
+echo "omaspec-sandbox: no Landlock rules for TCP on this kernel" >&2
+exec "$@"

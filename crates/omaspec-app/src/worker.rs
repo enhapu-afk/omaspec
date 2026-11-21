@@ -45,6 +45,9 @@ pub struct Drawn {
     /// Its boxes, marks and lines' words are parts of their own in `tree`,
     /// for a glide to take whole (docs/adr/0029).
     pub parts: bool,
+    /// What the fence around the Java PlantUML that drew it lacked on this
+    /// kernel (`Rendered::fence`).
+    pub fence: Option<Arc<str>>,
 }
 
 /// A map's SVG up to this size is parsed whole at once, as quick to parse
@@ -106,6 +109,7 @@ impl Drawn {
             cards,
             bare,
             parts,
+            fence: rendered.fence.map(Arc::from),
         })
     }
 }
