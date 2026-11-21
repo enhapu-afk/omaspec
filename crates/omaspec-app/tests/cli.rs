@@ -1009,11 +1009,7 @@ fn inspect_reports_kind_and_outline() {
     let out = omaspec(&["inspect", file.to_str().unwrap()]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(json["native"], "understood");
-    fs::write(
-        &file,
-        "@startuml\nskin rose\nA -> B\n@enduml\n",
-    )
-    .unwrap();
+    fs::write(&file, "@startuml\nskin rose\nA -> B\n@enduml\n").unwrap();
     let out = omaspec(&["inspect", file.to_str().unwrap()]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(json["native"]["declined"]["line"], 2);

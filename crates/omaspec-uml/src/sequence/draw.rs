@@ -431,6 +431,9 @@ struct Drawer<'a> {
     delays: Vec<(f32, f32, Option<[f32; 4]>)>,
     /// The breaks between pages (`newpage`).
     pages: Vec<PageBreak>,
+    /// Teoz's anchors (`{start} A -> B`): the height of each one's arrow
+    /// and the middle of it, where a duration from it stands.
+    anchors: std::collections::HashMap<String, (f32, f32)>,
     groups: Vec<OpenGroup>,
     dividers: Vec<(f32, Block, usize)>,
     /// The arrow height of the last message and its columns, while only
@@ -772,6 +775,9 @@ impl<'a> Drawer<'a> {
                 Item::NewPage { title, .. } => {
                     Measured::Label(measure_opt(title.as_ref(), skin.title_font, family)?)
                 }
+                Item::Duration { label, .. } => {
+                    Measured::Label(measure_opt(label.as_ref(), skin.arrow_font, family)?)
+                }
                 Item::Ref { text, color, .. } => Measured::Ref {
                     text: measure(text, skin.reference.font, family)?,
                     header: measure(
@@ -875,6 +881,7 @@ impl<'a> Drawer<'a> {
             head_drawn: vec![false; n],
             delays: Vec::new(),
             pages: Vec::new(),
+            anchors: std::collections::HashMap::new(),
             groups: Vec::new(),
             dividers: Vec::new(),
             last_arrow: None,
@@ -1575,7 +1582,7 @@ impl<'a> Drawer<'a> {
             Item::Note(note) => Some(note.text.line),
             Item::Delay { line, .. } => Some(*line),
             Item::Ref { text, .. } => Some(text.line),
-            Item::NewPage { line, .. } => Some(*line),
+            Item::NewPage { line, .. } | Item::Duration { line, .. } => Some(*line),
             _ => None,
         });
         let next = self.item_of(canvas, k);
@@ -1792,8 +1799,44 @@ impl<'a> Drawer<'a> {
                 self.y = self.y.max(at + 12.0);
             }
             Item::NewPage { .. } => self.new_page(canvas, k),
+            Item::Duration { from, to, .. } => self.duration(canvas, k, from, to),
         }
         k + 1
+    }
+
+    /// Teoz's `{start} <-> {end} : words`: an arrow up and down from the
+    /// height of one anchored message to the other's, at the middle of the
+    /// first, its words beside it. It takes no room of its own.
+    fn duration(&mut self, canvas: &mut Canvas, k: usize, from: &str, to: &str) {
+        let (Some(&(y0, x)), Some(&(y1, _))) = (self.anchors.get(from), self.anchors.get(to))
+        else {
+            return;
+        };
+        let label = match &self.measured[k] {
+            Measured::Label(label) => label.clone(),
+            _ => Block::empty(),
+        };
+        let stroke = Stroke::new(self.skin.arrow, self.skin.arrow_thickness);
+        let (top, bottom) = (y0.min(y1), y0.max(y1));
+        canvas.line(Layer::Front, (x, top), (x, bottom), stroke);
+        // A head drawn pointing right, turned down and up.
+        for (tip, turn) in [((x, bottom), (0.0, 1.0)), ((x, top), (0.0, -1.0))] {
+            self.arrow_end(
+                canvas,
+                tip,
+                1.0,
+                Head::Filled,
+                Mark::None,
+                stroke,
+                Some(turn),
+            );
+        }
+        canvas.text(
+            Layer::Front,
+            &label,
+            (x + 6.0, (top + bottom - label.height) / 2.0),
+            Align::Left,
+        );
     }
 
     /// `newpage`: this page ends, with its feet, and the next starts under
@@ -2136,6 +2179,11 @@ impl<'a> Drawer<'a> {
                 .flatten()
                 .map(|&c| extent(c))
                 .fold((lo, hi), |(l, h), (a, b)| (l.min(a), h.max(b)));
+        }
+        if let (Some(anchor), Some(&(sx, sy)), Some(&(tx, _))) =
+            (&m.anchor, points.first(), points.last())
+        {
+            self.anchors.insert(anchor.clone(), (sy, (sx + tx) / 2.0));
         }
         let mut reach = reach;
         if below {

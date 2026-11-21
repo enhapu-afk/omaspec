@@ -98,6 +98,13 @@ is open and the reasoning around it.
       shows even with nobody alive, and the heads held while scrolling
       cover the first page only. Left: a bar `autoactivate` opens has no
       `++` for the editor's recoloring to find.
+- [x] Teoz's anchors and durations (2026-11-22): `{start} A -> B` names
+      the height of a message's arrow, and `{start} <-> {end} : words`
+      draws an arrow up and down between two of them, at the middle of the
+      first, its words beside it, taking no room of its own. An anchor
+      named twice, one no message names before, or one before something
+      that is no message declines; converted to Mermaid, a duration is
+      said to be left out. The guide: 69 of 79.
 
 ## Phase 0: foundation and spikes
 

@@ -170,6 +170,10 @@ impl Writer {
                     Some(*line),
                     "Mermaid has no pages; what follows `newpage` comes right after",
                 ),
+                Item::Duration { line, .. } => self.notice(
+                    Some(*line),
+                    "Mermaid has no durations between messages; it is left out",
+                ),
                 Item::Note(note) => {
                     if note.together {
                         self.notice(Some(note.line), TOGETHER);
@@ -333,6 +337,15 @@ impl Writer {
                     let arrow = plantuml_arrow(&m.arrow);
                     self.out.push(format!("{from} {arrow} {to}{text}"));
                 }
+                Item::Duration {
+                    from, to, label, ..
+                } => self.out.push(match label {
+                    Some(label) => format!(
+                        "{{{from}}} <-> {{{to}}} : {}",
+                        to_plantuml_text(&label.value)
+                    ),
+                    None => format!("{{{from}}} <-> {{{to}}}"),
+                }),
                 Item::NewPage { title, .. } => self.out.push(match title {
                     Some(title) => format!("newpage {}", to_plantuml_text(&title.value)),
                     None => "newpage".into(),

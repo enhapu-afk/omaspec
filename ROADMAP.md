@@ -56,10 +56,9 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       (`:Actor:`, `Entity01 }|..|| Entity02`, `-class`) is typed by the
       lines after it.
 
-### Step 1: the sequence diagram (68 of 79)
+### Step 1: the sequence diagram (69 of 79)
 
 - [ ] A box inside a box.
-- [ ] Teoz: anchors and durations (`{start} … {end}`, `{start} <-> {end}`).
 
 ### Step 2: the state diagram (17 of 36)
 

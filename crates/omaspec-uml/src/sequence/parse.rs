@@ -97,6 +97,8 @@ struct Parser {
     /// `participant A order 10`: where it stands among the others, sorted
     /// in a stable way; those without an order count as 0.
     places: std::collections::HashMap<usize, i64>,
+    /// Teoz's anchors, `{start} A -> B`, as the messages have named them.
+    anchors: std::collections::HashSet<String>,
 }
 
 impl Default for Parser {
@@ -124,6 +126,7 @@ impl Default for Parser {
             after_delay: false,
             order: Vec::new(),
             places: std::collections::HashMap::new(),
+            anchors: std::collections::HashSet::new(),
         }
     }
 }
@@ -413,6 +416,11 @@ impl Parser {
                     .is_none_or(|c| !c.is_alphanumeric())
         }) {
             return Err(Declined::at(no, format!("`{word}` is not supported yet")));
+        }
+        // Teoz: `{start} A -> B` names a message's height, and
+        // `{start} <-> {end} : words` draws how long it takes between two.
+        if let Some((anchor, rest)) = anchor_of(text) {
+            return self.anchored(anchor, rest, no).map(|()| at + 1);
         }
         match split_message(text) {
             Some(Ok(raw)) => {
@@ -813,6 +821,7 @@ impl Parser {
             creates,
             together: false,
             slant: 0.0,
+            anchor: None,
             line: no,
         }));
         self.last_message = Some((End::Participant(participant), caller));
@@ -1010,6 +1019,7 @@ impl Parser {
             creates,
             together: false,
             slant: raw.slant,
+            anchor: None,
             line: no,
         }));
         self.last_message = Some((from, to));
@@ -1167,6 +1177,71 @@ impl Parser {
             None => self.diagram.items.push(note),
         }
         Ok(Some(next))
+    }
+
+    /// A line that starts with an anchor (`{start}`): the message it names,
+    /// or a duration from it to another.
+    fn anchored(&mut self, anchor: &str, rest: &str, no: usize) -> Result<(), Declined> {
+        if let Some(after) = rest.strip_prefix("<->") {
+            let Some((to, rest)) = anchor_of(after.trim_start()) else {
+                return Err(Declined::at(
+                    no,
+                    "a duration goes between two anchors, as `{start} <-> {end} : words`",
+                ));
+            };
+            for name in [anchor, to] {
+                if !self.anchors.contains(name) {
+                    return Err(Declined::at(
+                        no,
+                        format!("`{{{name}}}` names no message before this line"),
+                    ));
+                }
+            }
+            let label = match rest.trim() {
+                "" => None,
+                words => match words.strip_prefix(':') {
+                    Some(words) => (!words.trim().is_empty()).then(|| text_at(words.trim(), no)),
+                    None => {
+                        return Err(Declined::at(
+                            no,
+                            format!("unexpected `{}` after the duration", snippet(words)),
+                        ));
+                    }
+                },
+            };
+            self.diagram.items.push(Item::Duration {
+                from: anchor.to_owned(),
+                to: to.to_owned(),
+                label,
+                line: no,
+            });
+            return Ok(());
+        }
+        match split_message(rest) {
+            Some(Ok(raw)) => {
+                if !self.anchors.insert(anchor.to_owned()) {
+                    return Err(Declined::at(
+                        no,
+                        format!("`{{{anchor}}}` names a message already"),
+                    ));
+                }
+                self.message(raw, no)?;
+                let at = self
+                    .diagram
+                    .items
+                    .iter()
+                    .rposition(|item| matches!(item, Item::Message(_)));
+                if let Some(Item::Message(m)) = at.map(|at| &mut self.diagram.items[at]) {
+                    m.anchor = Some(anchor.to_owned());
+                }
+                Ok(())
+            }
+            Some(Err(reason)) => Err(Declined::at(no, reason)),
+            None => Err(Declined::at(
+                no,
+                format!("an anchor (`{{{anchor}}}`) goes before a message"),
+            )),
+        }
     }
 
     /// The last item if it is a message, or the message the bars after
@@ -1509,7 +1584,17 @@ struct RawMessage<'a> {
 /// or one it declines. PlantUML tries the sequence diagram first, so a
 /// line between two names that is no message here makes another type.
 pub(crate) fn reads_as_message(text: &str) -> bool {
+    let text = anchor_of(text).map_or(text, |(_, rest)| rest);
     split_message(text).is_some()
+}
+
+/// `{name}` at the start of `text`, Teoz's anchor, and the rest.
+fn anchor_of(text: &str) -> Option<(&str, &str)> {
+    let inner = text.strip_prefix('{')?;
+    let close = inner.find('}')?;
+    let name = &inner[..close];
+    (!name.is_empty() && name.chars().all(is_name_char))
+        .then(|| (name, inner[close + 1..].trim_start()))
 }
 
 /// A message line taken apart: `None` if `text` does not look like a
@@ -2492,6 +2577,33 @@ mod tests {
         let d = diagram("participant P [\n  first\n  second\n]\nparticipant Q\nP -> Q");
         assert_eq!(codes(&d), ["P", "Q"]);
         assert_eq!(d.participants[0].label, "first\nsecond");
+    }
+
+    #[test]
+    fn anchors_name_messages_and_a_duration_spans_two() {
+        let d = diagram(concat!(
+            "{start} A -> B : go\nB -> C\n{end} B -> A : back\n",
+            "{start} <-> {end} : some time\n",
+        ));
+        let anchors: Vec<Option<&str>> = messages(&d).iter().map(|m| m.anchor.as_deref()).collect();
+        assert_eq!(anchors, [Some("start"), None, Some("end")]);
+        let Some(Item::Duration {
+            from, to, label, ..
+        }) = d.items.last()
+        else {
+            panic!("{:?}", d.items.last());
+        };
+        assert_eq!((from.as_str(), to.as_str()), ("start", "end"));
+        assert_eq!(label.as_ref().unwrap().value, "some time");
+        for (source, reason) in [
+            ("{a} A -> B\n{a} <-> {b}", "names no message"),
+            ("{a} A -> B\n{a} B -> A", "already"),
+            ("{a} note left: x", "before a message"),
+            ("{a} A -> B\n{a} <-> x", "between two anchors"),
+        ] {
+            let err = declined(source);
+            assert!(err.reason.contains(reason), "{source}: {}", err.reason);
+        }
     }
 
     #[test]

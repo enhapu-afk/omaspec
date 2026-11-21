@@ -163,6 +163,14 @@ pub enum Item {
         title: Option<Text>,
         line: usize,
     },
+    /// Teoz's `{start} <-> {end} : words`: how long it takes from one
+    /// message, named by its anchor (`{start} A -> B`), to another.
+    Duration {
+        from: String,
+        to: String,
+        label: Option<Text>,
+        line: usize,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -207,6 +215,8 @@ pub struct Message {
     /// `->(10)` or `(10)<-`: how many pixels the arrow falls from its
     /// sender to its receiver; 0 for a level one.
     pub slant: f32,
+    /// Teoz's `{start} A -> B`: the name a duration finds it by.
+    pub anchor: Option<String>,
     pub line: usize,
 }
 
