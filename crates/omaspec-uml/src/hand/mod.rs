@@ -41,6 +41,8 @@ pub const MARK: &str = "lines by hand (Omaspec)";
 /// No corner lies further out than this many times the span of its two
 /// boxes.
 const FAR: f32 = 1000.0;
+/// The decimals a corner's numbers are written with, and read to.
+const PLACES: usize = 3;
 
 /// The most corners a line takes.
 pub const MOST: usize = 32;
@@ -529,7 +531,12 @@ impl fmt::Display for Line {
         write!(f, "{} at", self.key)?;
         for (i, corner) in self.corners.iter().enumerate() {
             let sep = if i == 0 { " " } else { ", " };
-            write!(f, "{sep}{} {}", number(corner.x, 3), number(corner.y, 3))?;
+            write!(
+                f,
+                "{sep}{} {}",
+                number(corner.x, PLACES),
+                number(corner.y, PLACES)
+            )?;
         }
         Ok(())
     }
@@ -635,7 +642,8 @@ fn end_name(token: Option<&Token>, what: &str) -> Result<String, String> {
     }
 }
 
-/// One number of a corner, from its token.
+/// One number of a corner, from its token, to the places the block
+/// writes (`PLACES`): `.44444` reads as `0.444`, as it is written back.
 fn value(token: Option<&Token>) -> Result<f32, String> {
     let t = token.filter(|t| !t.quoted && t.text != ",");
     let t = t.ok_or("a corner is two numbers, across and down")?;
@@ -644,7 +652,8 @@ fn value(token: Option<&Token>) -> Result<f32, String> {
         .parse()
         .map_err(|_| format!("`{}` is no number", t.text))?;
     if v.is_finite() && v.abs() <= FAR {
-        Ok(v)
+        let scale = 10f32.powi(PLACES as i32);
+        Ok((v * scale).round() / scale)
     } else {
         Err(format!("`{}` lies too far out", t.text))
     }
@@ -925,6 +934,12 @@ mod tests {
             line("  A  ->   B  #3 at 0.333333 10.6 ,0.9 -0.0004").to_string(),
             "A -> B #3 at 0.333 10.6, 0.9 0"
         );
+        // Read as written back: a corner more exact than the block writes
+        // it reads as written (found by fuzzing, `.4444…` read back
+        // otherwise).
+        let exact = line("kkk -> t #88 at .44444444444444445 1");
+        assert_eq!(exact.corners, [Corner { x: 0.444, y: 1.0 }]);
+        assert_eq!(line(&exact.to_string()), exact);
     }
 
     #[test]

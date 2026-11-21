@@ -248,7 +248,18 @@ impl Parser {
             return Err(Declined::at(no, format!("`{word}` is not supported yet")));
         }
         if let Some((name, body)) = description(text, no) {
-            self.describe(&name?, &body, no)?;
+            let name = name?;
+            // `: words` or `:Clerk:` (an actor's): no state to describe.
+            if name.is_empty() {
+                return Err(Declined::at(
+                    no,
+                    format!(
+                        "`{}` describes no state: its name goes before the `:`",
+                        snippet(text)
+                    ),
+                ));
+            }
+            self.describe(&name, &body, no)?;
             return Ok(at + 1);
         }
         Err(Declined::at(
@@ -2186,6 +2197,17 @@ mod tests {
         let err = declined("@startuml\nstate X <<entrypoint>>\n@enduml\n");
         assert_eq!(err.line, Some(1));
         assert!(err.reason.contains("entrypoint"), "{}", err.reason);
+    }
+
+    /// `: words` or `:Clerk:` describes no state, as PlantUML says too
+    /// (found by fuzzing: a state without a name, which convert fell on).
+    #[test]
+    fn a_description_without_a_state_declines() {
+        for line in [":Clerk:", ": words"] {
+            let err = declined(&format!("@startuml\n[*] --> L\n{line}\n@enduml\n"));
+            assert_eq!(err.line, Some(2), "{line}");
+            assert!(err.reason.contains("describes no state"), "{}", err.reason);
+        }
     }
 
     #[test]

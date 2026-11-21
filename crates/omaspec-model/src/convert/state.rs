@@ -212,7 +212,7 @@ impl ToMermaid {
                     "right"
                 }
             };
-            let id = self.ids[&target.key].clone();
+            let id = self.id(target)?;
             self.out.push(format!("{pad}note {side} of {id}"));
             for line in note.text.value.split("\\n") {
                 self.out.push(format!("{pad}    {}", line.trim()));
@@ -232,7 +232,7 @@ impl ToMermaid {
                     "Mermaid has no history state ([H], [H*])",
                 ));
             }
-            _ => self.ids[&node.key].clone(),
+            _ => self.id(node)?,
         };
         if node.fill.is_some()
             || node.line_color.is_some()
@@ -314,8 +314,19 @@ impl ToMermaid {
                 Some(line),
                 "Mermaid has no history state ([H], [H*])",
             )),
-            _ => Ok(self.ids[&node.key].clone()),
+            _ => self.id(node),
         }
+    }
+
+    /// The id a named state has in Mermaid; a state without a name has
+    /// none, and the diagram is not converted.
+    fn id(&self, node: &Node) -> Result<String, Refused> {
+        self.ids.get(&node.key).cloned().ok_or_else(|| {
+            refused(
+                Some(node.line),
+                "a state without a name cannot be converted",
+            )
+        })
     }
 
     /// ` : label`, or nothing. A label is behavior: a `;` in it, which
@@ -670,6 +681,14 @@ mod tests {
         let err = both(regions, Language::PlantUml, Language::Mermaid).unwrap_err();
         assert!(err.reason.contains("only inside a state"), "{err:?}");
         assert_eq!(err.line, Some(2), "{err:?}");
+    }
+
+    /// A line that describes no state is refused, not a fall (found by
+    /// fuzzing).
+    #[test]
+    fn a_description_without_a_state_is_refused() {
+        let code = "@startuml\n:Clerk:\n[*] --> L\n@enduml\n";
+        assert!(both(code, Language::PlantUml, Language::Mermaid).is_err());
     }
 
     #[test]

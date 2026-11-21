@@ -195,7 +195,9 @@ fn edits(text: &str) -> Vec<Edit> {
                 i = end + 1;
             }
             b':' if text[i..].starts_with(":::") => {
-                let before = text[..i].trim_end().len();
+                // Not into the space the `:::` before took (`a::: :::b`).
+                let taken = out.last().map_or(0, |edit: &Edit| edit.at.end);
+                let before = text[..i].trim_end().len().max(taken);
                 if before > 0 && before < i {
                     out.push(Edit {
                         at: before..i,
@@ -366,6 +368,14 @@ mod tests {
             "{}",
             hints[0].1
         );
+        // A space between two `:::` goes once (found by fuzzing: it went
+        // twice, and the line was cut backwards).
+        for (line, read) in [("a::: :::b", "a::::::b"), ("::: ::: S", "::::::S")] {
+            assert_eq!(
+                portable(&format!("flowchart TB\n{line}\n")),
+                format!("flowchart TB\n{read}\n")
+            );
+        }
     }
 
     #[test]

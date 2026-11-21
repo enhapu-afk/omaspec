@@ -16,7 +16,7 @@ fuzz/run.sh 900 plantuml    # one target, 15 minutes
 |---|---|
 | `plantuml` | Omaspec's own PlantUML engine: no panic, a declined diagram names a line inside the text, what it draws passes the sanitizer |
 | `mermaid` | Omaspec's Mermaid drawers and mmdr behind them |
-| `layout` | the layout of graph diagrams on any graph: boxes, lines, frames, held boxes and rank words; every place finite, a route for every line, no two boxes on top of each other |
+| `layout` | the layout of graph diagrams on any graph: boxes (some round), lines (some of a tree), frames, held boxes and rank words; every place finite, a route for every line, no two boxes on top of each other |
 | `hand` | the block by hand: every entry that reads writes back as read, a box held by any name reads back as written |
 | `text` | lint, outline, formatting (which settles after one pass) |
 | `model` | checks, plays, conversion and diff of the behavior model |
@@ -24,6 +24,9 @@ fuzz/run.sh 900 plantuml    # one target, 15 minutes
 | `trace` | a recorded trace (JSON Lines) of any text against a state machine |
 | `sanitize` | the SVG sanitizer: what it lets through holds nothing active |
 | `image_source` | the source read back from any PNG or SVG bytes |
+
+The targets run each night in CI (`.github/workflows/fuzz.yml`), and every push
+checks that they still build, as they stand outside the workspace.
 
 A crash, or an input that takes longer than 20 seconds, lands in
 `fuzz/artifacts/TARGET/`; `cargo +nightly fuzz run -O -s none TARGET FILE` repeats it,

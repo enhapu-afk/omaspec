@@ -1,12 +1,12 @@
 //! The layout of graph diagrams on any graph the bytes describe: boxes,
-//! lines, frames around some boxes, and boxes held against others. No
-//! panic, every place finite, a route for every line, and no two boxes on
-//! top of each other.
+//! lines, some of them trees, frames around some boxes, and boxes held
+//! against others. No panic, every place finite, a route for every line,
+//! and no two boxes on top of each other.
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
 use omaspec_uml::graph::hold::{Hold, Word};
-use omaspec_uml::graph::{Direction, Edge, Frame, Node, framed};
+use omaspec_uml::graph::{Direction, Edge, Frame, Node, Tree, framed};
 
 fuzz_target!(|bytes: &[u8]| {
     let mut at = 0;
@@ -23,6 +23,7 @@ fuzz_target!(|bytes: &[u8]| {
             before: 0.0,
             loop_extra: 0.0,
             flat: next() % 2 == 0,
+            round: next() % 3 == 0,
         })
         .collect();
     // Up to three frames, nested or side by side, around some boxes.
@@ -64,6 +65,12 @@ fuzz_target!(|bytes: &[u8]| {
                 arrival: u64::from(kind % 3),
                 label_before: None,
                 level: (kind % 13 == 0).then_some(kind % 2 == 0),
+                // Now and then a line of a tree, as subclasses under one
+                // triangle.
+                tree: (kind % 4 == 0).then(|| Tree {
+                    key: kind % 3,
+                    at_from: kind % 8 == 0,
+                }),
             }
         })
         .collect();

@@ -174,12 +174,9 @@ pub(super) fn header_rest(line: &str) -> Option<&str> {
 }
 
 pub(super) fn block_body(line: &str) -> Option<&str> {
-    let bytes = line.as_bytes();
-    if bytes.len() >= 6 && line[..6].eq_ignore_ascii_case("block:") {
-        Some(&line[6..])
-    } else {
-        None
-    }
+    line.get(..6)
+        .filter(|head| head.eq_ignore_ascii_case("block:"))
+        .map(|_| &line[6..])
 }
 
 pub(super) fn unsupported(line: &str) -> bool {
@@ -555,33 +552,33 @@ pub(super) fn shape_of(suffix: &str) -> Result<(Shape, String), ()> {
     if suffix.starts_with("<[") {
         return arrow_of(suffix);
     }
-    let (shape, sides) = if suffix.starts_with("(((") && suffix.ends_with(")))") {
+    let (shape, sides) = if wraps(suffix, "(((", ")))") {
         (Shape::DoubleCircle, 3)
-    } else if suffix.starts_with("((") && suffix.ends_with("))") {
+    } else if wraps(suffix, "((", "))") {
         (Shape::Circle, 2)
-    } else if suffix.starts_with("([") && suffix.ends_with("])") {
+    } else if wraps(suffix, "([", "])") {
         (Shape::Stadium, 2)
-    } else if suffix.starts_with('(') && suffix.ends_with(')') {
+    } else if wraps(suffix, "(", ")") {
         (Shape::Round, 1)
-    } else if suffix.starts_with("[[") && suffix.ends_with("]]") {
+    } else if wraps(suffix, "[[", "]]") {
         (Shape::Subroutine, 2)
-    } else if suffix.starts_with("[(") && suffix.ends_with(")]") {
+    } else if wraps(suffix, "[(", ")]") {
         (Shape::Cylinder, 2)
-    } else if suffix.starts_with("[/") && suffix.ends_with("/]") {
+    } else if wraps(suffix, "[/", "/]") {
         (Shape::Parallelogram, 2)
-    } else if suffix.starts_with("[\\") && suffix.ends_with("\\]") {
+    } else if wraps(suffix, "[\\", "\\]") {
         (Shape::ParallelogramAlt, 2)
-    } else if suffix.starts_with("[/") && suffix.ends_with("\\]") {
+    } else if wraps(suffix, "[/", "\\]") {
         (Shape::Trapezoid, 2)
-    } else if suffix.starts_with("[\\") && suffix.ends_with("/]") {
+    } else if wraps(suffix, "[\\", "/]") {
         (Shape::TrapezoidAlt, 2)
-    } else if suffix.starts_with('[') && suffix.ends_with(']') {
+    } else if wraps(suffix, "[", "]") {
         (Shape::Rectangle, 1)
-    } else if suffix.starts_with("{{") && suffix.ends_with("}}") {
+    } else if wraps(suffix, "{{", "}}") {
         (Shape::Hexagon, 2)
-    } else if suffix.starts_with('{') && suffix.ends_with('}') {
+    } else if wraps(suffix, "{", "}") {
         (Shape::Diamond, 1)
-    } else if suffix.starts_with('>') && suffix.ends_with(']') && suffix.len() > 2 {
+    } else if wraps(suffix, ">", "]") && suffix.len() > 2 {
         (Shape::Asymmetric, 1)
     } else {
         return Err(());
@@ -604,6 +601,12 @@ pub(super) fn arrow_of(suffix: &str) -> Result<(Shape, String), ()> {
         _ => return Err(()),
     };
     Ok((Shape::Arrow(direction), label))
+}
+
+/// Whether `suffix` opens with `open` and closes with `close`, apart: in
+/// `[/]` the `/` cannot both open and close a parallelogram.
+fn wraps(suffix: &str, open: &str, close: &str) -> bool {
+    suffix.len() >= open.len() + close.len() && suffix.starts_with(open) && suffix.ends_with(close)
 }
 
 pub(super) fn inner(suffix: &str, sides: usize) -> String {

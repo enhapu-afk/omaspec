@@ -128,11 +128,17 @@ fn scan(source: &str) -> Scanned {
 /// The text after `classDiagram`, or `None` when this line is not that header.
 fn header_rest(line: &str) -> Option<&str> {
     const MARK: &str = "classdiagram";
-    if line.len() < MARK.len() || !line[..MARK.len()].eq_ignore_ascii_case(MARK) {
+    if !line
+        .get(..MARK.len())
+        .is_some_and(|head| head.eq_ignore_ascii_case(MARK))
+    {
         return None;
     }
     let mut rest = &line[MARK.len()..];
-    if rest.len() >= 3 && rest[..3].eq_ignore_ascii_case("-v2") {
+    if rest
+        .get(..3)
+        .is_some_and(|head| head.eq_ignore_ascii_case("-v2"))
+    {
         rest = &rest[3..];
     }
     if rest.starts_with(|c: char| c.is_alphanumeric() || c == '_') {
@@ -1739,7 +1745,11 @@ fn stereo_inner(text: &str) -> Option<String> {
 }
 
 fn word<'a>(text: &'a str, key: &str) -> Option<&'a str> {
-    if text.len() < key.len() || !text[..key.len()].eq_ignore_ascii_case(key) {
+    // By `get`: a letter of more than one byte may stand where the key ends.
+    if !text
+        .get(..key.len())
+        .is_some_and(|head| head.eq_ignore_ascii_case(key))
+    {
         return None;
     }
     let rest = &text[key.len()..];
@@ -1884,6 +1894,21 @@ mod tests {
 
     fn diagram(source: &str) -> super::super::Diagram {
         from_mermaid(source).unwrap_or_else(|| panic!("refused {source}"))
+    }
+
+    /// A letter of more than one byte where a word or the header would
+    /// end is read, not cut through (found by fuzzing).
+    #[test]
+    fn a_wide_letter_where_a_word_ends_is_no_cut() {
+        for source in [
+            "classDiagram\n    namespace Shell {\n        cl  \u{7de}pply\n    }\n",
+            "classDiagram-\u{20ac}\n    class A\n",
+            "classDiagra\u{e9}\n    class A\n",
+            "classDiagram\n    clas\u{e9} A\n",
+        ] {
+            let _ = from_mermaid(source);
+            let _ = mermaid_refusal(source);
+        }
     }
 
     #[test]

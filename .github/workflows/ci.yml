@@ -33,6 +33,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets
+      - name: The fuzz targets still build (they run each night, outside the workspace)
+        run: cargo check --manifest-path fuzz/Cargo.toml --bins
       - run: cargo test --workspace
       - name: A dense flowchart in under a second, as a release build draws it
         run: cargo test --release -p omaspec-render --test dense

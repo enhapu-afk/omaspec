@@ -21,6 +21,32 @@ fn holds(outer: super::lay::Rect, inner: super::lay::Rect) -> bool {
         && inner.bottom() <= outer.bottom() + 0.2
 }
 
+/// A letter of more than one byte where `block:` would end is read, not
+/// cut through.
+#[test]
+fn a_wide_letter_after_block_is_no_cut() {
+    for source in [
+        "block-beta\nblock\u{e9}\n",
+        "block-beta\nblock\u{20ac} a\nend\n",
+    ] {
+        let _ = from_mermaid(source);
+        let _ = mermaid_refusal(source);
+    }
+}
+
+/// A shape whose two ends would share their middle (`[/]`, the `/` of a
+/// parallelogram's opening and of its close) is a box with that text,
+/// not a cut backwards (found in review).
+#[test]
+fn ends_that_would_overlap_are_a_plain_box() {
+    for (written, text) in [("a[/]", "/"), ("a[\\]", "\\")] {
+        let diagram = source(&format!("block-beta\n{written}\n"));
+        assert_eq!(diagram.nodes[0].label, text, "{written}");
+    }
+    let _ = from_mermaid("block-beta\nblock:g[/]\nend\n");
+    let _ = mermaid_refusal("block-beta\nblock:g[/]\nend\n");
+}
+
 #[test]
 fn puts_a_row_on_one_line_and_a_column_in_a_stack() {
     let row = placed("block-beta\na[\"A\"] b[\"B\"] c[\"C\"]\n");

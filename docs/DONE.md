@@ -2931,6 +2931,21 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       alone (`reads_apart`): it takes a `'` for a quote mark even in a label, so after
       `-->|don't|` a `;` is words to it, and such a chain is still read as before, up to
       the label's link.
+- [x] What the nightly fuzzing found (2026-11-21): the run had failed each night since
+      2026-11-18. The `layout` target no longer built, as boxes had become round and
+      lines part of a tree (`Node::round`, `Edge::tree`); it now fuzzes both, and CI
+      checks on every push that the targets build. `model`: lint cut a line backwards
+      where a space stood between two `:::` (`a::: :::b`), as both took it out, and
+      `convert` panicked on `:Clerk:` in a state diagram, read as the description of a
+      state without a name, which is now declined there, and refused by `convert` if
+      one reaches it. `hand`: a corner more exact than the block writes it
+      (`.44444…`) read back otherwise than written, and is now read to the three places
+      written. `mermaid`: a letter of more than one byte where a word of a class
+      diagram ends (`cl  ߞpply`), where `classDiagram` or its `-v2` ends, or after
+      `block`, was cut through; and, found in the review, a block whose two ends share
+      their middle (`a[/]`, the `/` of a parallelogram's opening and of its close) was
+      cut backwards, and is now a box with that text. A slow input and one too large
+      from those nights are neither on today's code.
 - [x] REQ-090 to REQ-094, `--ink`, and REQ-092 for every film (2026-11-21):
       `--look` gives the look the sketch is inked into (plain, vivid, omarchy, light,
       dark, file; auto is light in a film; sketch is refused, being what the pen
