@@ -1433,15 +1433,33 @@ fn split_message(text: &str) -> Option<Result<RawMessage<'_>, String>> {
         Some((fall, rest)) => (Some(fall), rest),
         None => (None, rest),
     };
-    let slant = match (before, after) {
+    // As PlantUML takes it: right after a head on the right, or right
+    // before one on the left.
+    let headed =
+        |head: Head, mark: Mark| matches!(head, Head::Filled | Head::Open) && mark == Mark::None;
+    let placed = match (&before, &after) {
         (Some(_), Some(_)) => {
             return Some(Err(
                 "a slant goes before the arrow or after it, not both".into()
             ));
         }
+        (Some(_), None) => headed(arrow.left_head, arrow.left_mark),
+        (None, Some(_)) => headed(arrow.right_head, arrow.right_mark),
+        (None, None) => true,
+    };
+    let slant = match (before, after) {
         (Some(Err(reason)), _) | (_, Some(Err(reason))) => return Some(Err(reason)),
-        (Some(Ok(fall)), None) | (None, Some(Ok(fall))) => fall,
+        (Some(Ok(fall)), _) | (_, Some(Ok(fall))) => fall,
         (None, None) => 0.0,
+    };
+    if !placed {
+        return Some(Err(SLANT_PLACE.into()));
+    }
+    // PlantUML draws a slant level between two open heads.
+    let slant = if arrow.left_head == Head::Open && arrow.right_head == Head::Open {
+        0.0
+    } else {
+        slant
     };
     let (right, rest) = if let Some(rest) = rest.strip_prefix(']') {
         (RawEnd::Edge, rest)
@@ -1459,6 +1477,9 @@ fn split_message(text: &str) -> Option<Result<RawMessage<'_>, String>> {
     };
     // PlantUML takes `"Long name" as L` only between two participants.
     let named = |end: &RawEnd| matches!(end, RawEnd::Name { .. });
+    if slant != 0.0 && !(named(&left) && named(&right)) {
+        return Some(Err(SLANT_PLACE.into()));
+    }
     let labelled = |end: &RawEnd| matches!(end, RawEnd::Name { label: Some(_), .. });
     if (labelled(&left) || labelled(&right)) && !(named(&left) && named(&right)) {
         return Some(Err(
@@ -1476,6 +1497,9 @@ fn split_message(text: &str) -> Option<Result<RawMessage<'_>, String>> {
 
 /// The most a slanted arrow may fall.
 const MOST_SLANT: f32 = 1000.0;
+
+/// Where a slant may stand, as PlantUML takes it.
+const SLANT_PLACE: &str = "a slant goes right after a head on the right (`->(10)`) or right before one on the left (`(10)<-`), between two participants";
 
 /// `(10)` at the start of `text`, beside an arrow: how many pixels it
 /// falls, and the rest.
@@ -2443,13 +2467,26 @@ mod tests {
         let falls: Vec<f32> = messages(&d).iter().map(|m| m.slant).collect();
         assert_eq!(falls, [10.0, 20.0, 0.0, 5.0]);
         assert_eq!(messages(&d)[1].from, End::Participant(1));
-        for (source, reason) in [("A (10)->(20) B", "not both"), ("A ->(1001) B", "at most")] {
+        for (source, reason) in [
+            ("A (10)->(20) B", "not both"),
+            ("A ->(1001) B", "at most"),
+            ("A (10)-> B", "right before one on the left"),
+            ("A <-(10) B", "right after a head on the right"),
+            ("A (10)x<- B", "right before"),
+            ("A -\\(10) B", "right after"),
+            ("[->(10) A", "between two participants"),
+            ("A ->(10)]", "between two participants"),
+        ] {
             let err = declined(source);
             assert!(err.reason.contains(reason), "{source}: {}", err.reason);
         }
         // Words in parentheses are no slant.
         let d = diagram("A -> B : (10) seconds");
         assert_eq!(messages(&d)[0].slant, 0.0);
+        // Between two open heads PlantUML keeps it level.
+        let d = diagram("A <->(10) B\nA <<->>(10) B\nA o->(10) B");
+        let falls: Vec<f32> = messages(&d).iter().map(|m| m.slant).collect();
+        assert_eq!(falls, [10.0, 0.0, 10.0]);
     }
 
     #[test]

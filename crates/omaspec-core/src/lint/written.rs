@@ -36,12 +36,12 @@ pub(super) fn plantuml_sequence(rows: &[Row]) -> Vec<Mention> {
             names.push(Mention::declared(key, shown, r.row));
         } else if let Some(c) = re!(r#"(?i)^(?:activate|deactivate|destroy)\s+("[^"]+"|\S+)"#).captures(r.text) {
             names.push(Mention::used(unquote(&c[1]), r.row));
-        } else if let Some(c) = re!(r"(?i)^[hr]?note\s+(?:over|left of|right of)\s+([^:]+)")
+        } else if let Some(c) = re!(r#"(?i)^[hr]?note\s+(?:over|left\s+of|right\s+of|left|right)\s+([\p{L}\p{N}_."][^:]*)"#)
             .captures(r.text)
             .or_else(|| re!(r"(?i)^ref\s+over\s+([^:]+)").captures(r.text))
         {
             names.extend(c[1].split(',').map(|k| Mention::used(unquote(k), r.row)));
-        } else if let Some(c) = re!(r#"^("[^"]+"|[\p{L}\p{N}_.@]+)\s*([ox]?<{0,2}-+(?:\[[^\]]*\])?-*(?:>{1,2}|\\{1,2}|/{1,2})?[ox]?)\s*("[^"]+"|[\p{L}\p{N}_.@]+)\s*(?:\+\+|--|\*\*|!!)?\s*(?::\s*(.*))?$"#)
+        } else if let Some(c) = re!(r#"^("[^"]+"|[\p{L}\p{N}_.@]+)\s*(?:\(\d+\))?([ox]?<{0,2}-+(?:\[[^\]]*\])?-*(?:>{1,2}|\\{1,2}|/{1,2})?[ox]?)(?:\(\d+\))?\s*("[^"]+"|[\p{L}\p{N}_.@]+)\s*(?:\+\+|--|\*\*|!!)?\s*(?::\s*(.*))?$"#)
             .captures(r.text)
         {
             names.push(Mention::used(unquote(&c[1]), r.row));
@@ -111,4 +111,34 @@ pub(super) fn states(rows: &[Row], transition: &Regex, declaration: &Regex) -> V
         }
     }
     names
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn named(lines: &[&str]) -> Vec<String> {
+        let rows: Vec<Row> = lines
+            .iter()
+            .enumerate()
+            .map(|(row, text)| Row { row, text })
+            .collect();
+        plantuml_sequence(&rows)
+            .into_iter()
+            .map(|m| m.name)
+            .collect()
+    }
+
+    #[test]
+    fn a_slant_and_a_note_without_of_name_their_participants() {
+        assert_eq!(
+            named(&[
+                "A ->(10) B : down",
+                "C (5)<- D",
+                "note left E: hi",
+                "note left #red: x"
+            ]),
+            ["A", "B", "C", "D", "E"]
+        );
+    }
 }

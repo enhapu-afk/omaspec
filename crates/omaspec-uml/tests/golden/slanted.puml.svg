@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="177" height="325" viewBox="0 0 177 325">
+<svg xmlns="http://www.w3.org/2000/svg" width="271" height="409" viewBox="0 0 271 409">
 <g transform="translate(10,10)">
 <g>
-<line x1="26" y1="30.3" x2="26" y2="273.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
-<line x1="127.82" y1="30.3" x2="127.82" y2="273.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="26" y1="30.3" x2="26" y2="358.22" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="127.82" y1="30.3" x2="127.82" y2="358.22" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 <g>
 <rect x="122.82" y="79.43" width="10" height="59.13" fill="#FFFFFF" stroke="#181818" stroke-width="1"/>
@@ -31,9 +31,9 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="40" y="162.62" font-size="13" fill="#000000" textLength="37.88" lengthAdjust="spacing">notice</tspan>
 </text>
-<line x1="26" y1="211.82" x2="127.82" y2="231.82" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="118.78,225.97 127.82,231.82 117.24,233.82 121.94,230.67" fill="#181818" stroke="#181818" stroke-width="1"/>
+<line x1="127.82" y1="231.82" x2="26" y2="211.82" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="36.59,209.83 26,211.82 35.05,217.68 31.89,212.98" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="118.78,225.97 127.82,231.82 117.24,233.82 121.94,230.67" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="40" y="206.76" font-size="13" fill="#000000" textLength="63.45" lengthAdjust="spacing">both ways</tspan>
 </text>
@@ -42,13 +42,25 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="33" y="255.89" font-size="13" fill="#000000" textLength="65.82" lengthAdjust="spacing">level again</tspan>
 </text>
-<rect x="0" y="273.96" width="52.01" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<polyline points="127.82,290.09 157.82,290.09 157.82,303.09 127.82,303.09" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="131.82" cy="303.09" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="145.82,299.09 135.82,303.09 145.82,307.09 141.82,303.09" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="7" y="293.95" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
+<tspan x="134.82" y="285.02" font-size="13" fill="#000000" textLength="76.47" lengthAdjust="spacing">self, to a dot</tspan>
 </text>
-<rect x="98.97" y="273.96" width="57.71" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<polyline points="127.82,332.22 157.82,332.22 157.82,345.22 127.82,345.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="137.82,341.22 127.82,345.22 137.82,349.22 133.82,345.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="131.82" cy="332.22" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="105.97" y="293.95" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>
+<tspan x="134.82" y="327.15" font-size="13" fill="#000000" textLength="93.3" lengthAdjust="spacing">self, from a dot</tspan>
+</text>
+<rect x="0" y="358.22" width="52.01" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="7" y="378.21" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
+</text>
+<rect x="98.97" y="358.22" width="57.71" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="105.97" y="378.21" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>
 </text>
 </g>
 </g>

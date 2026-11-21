@@ -1889,7 +1889,7 @@ impl<'a> Drawer<'a> {
                 stroke,
                 None,
             );
-            if m.arrow.tail != Head::None {
+            if m.arrow.tail != Head::None || m.arrow.start_mark != Mark::None {
                 self.arrow_end(
                     canvas,
                     (start, arrow_y),
@@ -1954,12 +1954,18 @@ impl<'a> Drawer<'a> {
             let tx = place(m.to, from, true, self);
             let dir = if tx >= sx { 1.0 } else { -1.0 };
             // A slanted arrow reaches its receiver lower down, and what
-            // happens there happens at that height.
-            let ty = arrow_y + m.slant;
-            self.arrow_line(canvas, (sx, arrow_y), (tx, ty), dir, m, stroke);
-            points = vec![(sx, arrow_y), (tx, ty)];
-            after = after.max(ty + 3.0);
-            lifecycle_y = ty;
+            // happens there happens at that height; one with heads at both
+            // ends falls toward the right, as PlantUML draws it.
+            let low = arrow_y + m.slant;
+            let (sy, ty) = if m.arrow.tail != Head::None && tx < sx {
+                (low, arrow_y)
+            } else {
+                (arrow_y, low)
+            };
+            self.arrow_line(canvas, (sx, sy), (tx, ty), dir, m, stroke);
+            points = vec![(sx, sy), (tx, ty)];
+            after = after.max(low + 3.0);
+            lifecycle_y = low;
             let (l, r) = (sx.min(tx), sx.max(tx));
             // Clear of a head at either end.
             let head_at = |left_end: bool| {
@@ -2115,8 +2121,6 @@ impl<'a> Drawer<'a> {
         });
     }
 
-    /// The line of a message between `sx` and `tx`, with its heads and marks.
-    #[allow(clippy::too_many_arguments)]
     /// The arrow of a message from `(sx, sy)` to its tip at `(tx, ty)`,
     /// `dir` 1 to the right, -1 to the left; one that slants (`->(10)`)
     /// has its heads and marks turned along it.
@@ -2203,6 +2207,30 @@ impl<'a> Drawer<'a> {
     ) {
         if mark == Mark::Cross {
             cross(canvas, (x, y), stroke);
+            return;
+        }
+        // A dot at the tip (a self message's `->o`), the head behind it.
+        if mark == Mark::Circle {
+            let ring = Stroke {
+                dash: None,
+                ..stroke
+            };
+            canvas.ellipse(
+                Layer::Front,
+                (x - dir * 4.0, y),
+                (4.0, 4.0),
+                Some(stroke.color),
+                Some(ring),
+            );
+            self.arrow_end(
+                canvas,
+                (x - dir * 8.0, y),
+                dir,
+                head,
+                Mark::None,
+                stroke,
+                turn,
+            );
             return;
         }
         let solid = Stroke {

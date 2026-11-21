@@ -31,13 +31,19 @@ is open and the reasoning around it.
       that many pixels from the sender to the receiver, whichever side of
       the arrow the number stands on; the heads and an `o` turn along the
       line, a bar the message opens or closes starts or ends where it
-      arrives, and its row grows by the fall. A fall of more than 1,000
-      pixels, or one on both sides, declines. Level arrows draw as they
-      did, to the byte. With them, `note left S1` is `note left of S1`
+      arrives, and its row grows by the fall. As in PlantUML, the number
+      stands right after a head on the right or right before one on the
+      left, between two participants; one with heads at both ends falls
+      toward the right column, and one between two open heads (`<<->>`)
+      stays level. A fall of more than 1,000 pixels, or one on both sides,
+      declines; the lint's patterns for a declined diagram read the new
+      forms. Level arrows draw as they did, to the byte. With them, `note left S1` is `note left of S1`
       where S1 is a participant, as PlantUML reads it. The guide: 56 of
       79 sequence diagrams (from 52).
-- [x] A circle at an arrow's end (`->o`, `o->`) is a dot in the arrow's
-      color, as PlantUML draws it (2026-11-21); it was a ring.
+- [x] A circle at an arrow's end (`->o`, `o->`) is a dot, as PlantUML
+      draws it (2026-11-21); it was a ring. It is filled in the arrow's
+      color, which follows the theme, where PlantUML fills it black. A
+      self message draws it too, at either end; it drew neither.
 - [x] Numbers and pages (2026-11-21). `autonumber 1.1.1` counts in its
       last level and keeps the others; `autonumber inc A` raises the first,
       `inc B` the second, each setting those after it back to 1 (1.1.2,
