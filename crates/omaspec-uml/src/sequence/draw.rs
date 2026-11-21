@@ -2067,17 +2067,19 @@ impl<'a> Drawer<'a> {
         };
         let mut start = (sx, sy);
         let mut end = (tx, ty);
+        // An `o` is a dot in the arrow's color, as PlantUML draws it.
         let circle = Stroke {
             dash: None,
             ..stroke
         };
+        let dot = Some(stroke.color);
         match a.end_mark {
             Mark::Circle => {
                 canvas.ellipse(
                     Layer::Front,
                     (tx - ux * 4.0, ty - uy * 4.0),
                     (4.0, 4.0),
-                    None,
+                    dot,
                     Some(circle),
                 );
                 end = (tx - ux * 8.0, ty - uy * 8.0);
@@ -2091,7 +2093,7 @@ impl<'a> Drawer<'a> {
                     Layer::Front,
                     (sx + ux * 4.0, sy + uy * 4.0),
                     (4.0, 4.0),
-                    None,
+                    dot,
                     Some(circle),
                 );
                 start = (sx + ux * 8.0, sy + uy * 8.0);

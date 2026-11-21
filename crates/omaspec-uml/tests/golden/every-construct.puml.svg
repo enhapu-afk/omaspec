@@ -202,7 +202,7 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="220.31" y="539.31" font-size="13" fill="#000000" textLength="22.06" lengthAdjust="spacing">lost</tspan>
 </text>
-<ellipse cx="787.34" cy="573.51" rx="4" ry="4" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="787.34" cy="573.51" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
 <line x1="198.11" y1="573.51" x2="783.34" y2="573.51" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="773.34,569.51 783.34,573.51 773.34,577.51 777.34,573.51" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
@@ -211,8 +211,8 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="222.9" y="568.44" font-size="13" fill="#000000" textLength="33.6" lengthAdjust="spacing">circle</tspan>
 </text>
-<ellipse cx="787.34" cy="602.64" rx="4" ry="4" fill="none" stroke="#181818" stroke-width="1"/>
-<ellipse cx="202.11" cy="602.64" rx="4" ry="4" fill="none" stroke="#181818" stroke-width="1"/>
+<ellipse cx="787.34" cy="602.64" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
+<ellipse cx="202.11" cy="602.64" rx="4" ry="4" fill="#181818" stroke="#181818" stroke-width="1"/>
 <line x1="206.11" y1="602.64" x2="783.34" y2="602.64" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="773.34,598.64 783.34,602.64 773.34,606.64 777.34,602.64" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">

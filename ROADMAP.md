@@ -67,7 +67,6 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       `responseMessageBelowArrow`, `guillemet false`, `stereotypePosition
       top` and `bottom`, `lifelineStrategy solid` and `nosolid`.
 - [ ] Teoz: anchors and durations (`{start} … {end}`, `{start} <-> {end}`).
-- [ ] Drawn but different: a circle head (`o`) filled, as PlantUML does.
 
 ### Step 2: the state diagram (17 of 36)
 

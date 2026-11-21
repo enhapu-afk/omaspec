@@ -36,6 +36,8 @@ is open and the reasoning around it.
       did, to the byte. With them, `note left S1` is `note left of S1`
       where S1 is a participant, as PlantUML reads it. The guide: 56 of
       79 sequence diagrams (from 52).
+- [x] A circle at an arrow's end (`->o`, `o->`) is a dot in the arrow's
+      color, as PlantUML draws it (2026-11-21); it was a ring.
 
 ## Phase 0: foundation and spikes
 
