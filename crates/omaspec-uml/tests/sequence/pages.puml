@@ -1,0 +1,16 @@
+@startuml
+' Pages (`newpage`) under one another, each with its heads and feet and
+' the bars still open; numbers in levels (`autonumber 1.1.1`, raised by
+' `autonumber inc A`); bars opened by the calls themselves (`autoactivate`).
+title Checkout
+autoactivate on
+autonumber 1.1.1
+Shopper -> Shop : add to cart
+Shop -> Stock : reserve
+return reserved
+newpage Paying
+autonumber inc A
+Shop -> Bank : charge
+Bank --> Shop : charged
+return order placed
+@enduml

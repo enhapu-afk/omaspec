@@ -38,6 +38,18 @@ is open and the reasoning around it.
       79 sequence diagrams (from 52).
 - [x] A circle at an arrow's end (`->o`, `o->`) is a dot in the arrow's
       color, as PlantUML draws it (2026-11-21); it was a ring.
+- [x] Numbers and pages (2026-11-21). `autonumber 1.1.1` counts in its
+      last level and keeps the others; `autonumber inc A` raises the first,
+      `inc B` the second, each setting those after it back to 1 (1.1.2,
+      2.1.1, 2.2.1). `autoactivate on`: a solid message that says nothing of
+      bars itself opens one on its receiver, in the color after it
+      (`bill -> bob #005500`); a dashed one closes its sender's, `return` the
+      newest, and `**` and `!!` open none. `newpage` (with a title or
+      without) ends the page with its feet and starts the next under it,
+      after a gap, with its title and the heads of whoever is alive; the
+      bars open at the break go on, the lifelines leave the gap empty. A
+      page inside a group declines. Converted to Mermaid, a page and a
+      slant are said to be lost. The guide: 59 of 79 sequence diagrams.
 
 ## Phase 0: foundation and spikes
 

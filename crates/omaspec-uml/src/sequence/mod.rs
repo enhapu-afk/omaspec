@@ -151,6 +151,12 @@ pub enum Item {
         participant: usize,
         line: usize,
     },
+    /// `newpage` or `newpage title`: what follows is the next page, drawn
+    /// under this one with the heads again, and its own title.
+    NewPage {
+        title: Option<Text>,
+        line: usize,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

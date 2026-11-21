@@ -140,6 +140,9 @@ impl Writer {
                     if m.together {
                         self.notice(Some(m.line), TOGETHER);
                     }
+                    if m.slant != 0.0 {
+                        self.notice(Some(m.line), "Mermaid has no slanted arrows; it is level");
+                    }
                     if let Some((at, participant)) = destroy_after(d, i, m) {
                         let id = self.id(d, participant);
                         self.out.push(format!("    destroy {id}"));
@@ -160,6 +163,10 @@ impl Writer {
                         last_to = Some(to);
                     }
                 }
+                Item::NewPage { line, .. } => self.notice(
+                    Some(*line),
+                    "Mermaid has no pages; what follows `newpage` comes right after",
+                ),
                 Item::Note(note) => {
                     if note.together {
                         self.notice(Some(note.line), TOGETHER);
@@ -312,6 +319,10 @@ impl Writer {
                     let arrow = plantuml_arrow(&m.arrow);
                     self.out.push(format!("{from} {arrow} {to}{text}"));
                 }
+                Item::NewPage { title, .. } => self.out.push(match title {
+                    Some(title) => format!("newpage {}", to_plantuml_text(&title.value)),
+                    None => "newpage".into(),
+                }),
                 Item::Note(note) => {
                     let place = match note.place {
                         NotePlace::LeftOf(p) => format!("left of {}", self.id(d, p)),

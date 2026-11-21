@@ -42,6 +42,17 @@ const OVER: f32 = 15.0;
 const FRAME: f32 = 10.0;
 /// What the words of a delay keep from a lifeline beside them.
 const DELAY_ROOM: f32 = 8.0;
+/// Between a page's feet and the next page's title or heads.
+const PAGE_GAP: f32 = 30.0;
+
+/// What interrupts a lifeline.
+#[derive(Clone, Copy)]
+enum Break {
+    /// A delay, dotted, with where its words stand over the lifelines.
+    Delay(Option<[f32; 4]>),
+    /// The gap between two pages, where it does not run.
+    Page,
+}
 /// How far a `rect` reaches past what it holds.
 const RECT_PAD: f32 = 8.0;
 /// Between two notes at one height.
@@ -395,6 +406,9 @@ struct Drawer<'a> {
     /// over the lifelines when no room between two holds them: the dotted
     /// lifelines stop at them.
     delays: Vec<(f32, f32, Option<[f32; 4]>)>,
+    /// Between two pages (`newpage`): where the lifelines stop above and
+    /// start again below.
+    pages: Vec<(f32, f32)>,
     groups: Vec<OpenGroup>,
     dividers: Vec<(f32, Block, usize)>,
     /// The arrow height of the last message and its columns, while only
@@ -714,6 +728,9 @@ impl<'a> Drawer<'a> {
                 Item::Delay { label, .. } => {
                     Measured::Label(measure_opt(label.as_ref(), skin.delay_font, family)?)
                 }
+                Item::NewPage { title, .. } => {
+                    Measured::Label(measure_opt(title.as_ref(), skin.title_font, family)?)
+                }
                 Item::Ref { text, color, .. } => Measured::Ref {
                     text: measure(text, skin.reference.font, family)?,
                     header: measure(
@@ -816,6 +833,7 @@ impl<'a> Drawer<'a> {
             life_end: vec![None; n],
             head_drawn: vec![false; n],
             delays: Vec::new(),
+            pages: Vec::new(),
             groups: Vec::new(),
             dividers: Vec::new(),
             last_arrow: None,
@@ -1486,6 +1504,7 @@ impl<'a> Drawer<'a> {
             Item::Note(note) => Some(note.text.line),
             Item::Delay { line, .. } => Some(*line),
             Item::Ref { text, .. } => Some(text.line),
+            Item::NewPage { line, .. } => Some(*line),
             _ => None,
         });
         let next = self.item_of(canvas, k);
@@ -1690,8 +1709,64 @@ impl<'a> Drawer<'a> {
                 }
                 self.y = self.y.max(at + 12.0);
             }
+            Item::NewPage { .. } => self.new_page(canvas, k),
         }
         k + 1
+    }
+
+    /// `newpage`: this page ends, with its feet, and the next starts under
+    /// it with its title and the heads again; the bars open now go on.
+    fn new_page(&mut self, canvas: &mut Canvas, k: usize) {
+        let title = match &self.measured[k] {
+            Measured::Label(title) => title.clone(),
+            _ => Block::empty(),
+        };
+        let end = self.y + 10.0;
+        let live: Vec<usize> = (0..self.cols.len())
+            .filter(|&c| self.head_drawn[c] && self.life_end[c].is_none())
+            .collect();
+        let mut feet: f32 = 0.0;
+        if self.d.footbox {
+            for &c in &live {
+                self.head(canvas, c, end, true);
+                feet = feet.max(self.cols[c].height);
+            }
+        }
+        let mut top = end + feet + PAGE_GAP;
+        if let (false, Some(&first), Some(&last)) = (title.is_empty(), live.first(), live.last()) {
+            let left = self.x[first] - self.cols[first].half();
+            let right = self.x[last] + self.cols[last].half();
+            canvas.text(
+                Layer::Front,
+                &title,
+                ((left + right) / 2.0, top),
+                Align::Center,
+            );
+            top += title.height + 8.0;
+        }
+        let heads = live
+            .iter()
+            .map(|&c| self.cols[c].height)
+            .fold(0.0, f32::max);
+        for &c in &live {
+            self.head(canvas, c, top + heads - self.cols[c].height, false);
+        }
+        let resume = top + heads;
+        for (column, open) in self.open_bars.iter_mut().enumerate() {
+            for (depth, (start, fill, line)) in open.iter_mut().enumerate() {
+                self.bars.push(Bar {
+                    column,
+                    depth,
+                    start: *start,
+                    end,
+                    fill: *fill,
+                    line: *line,
+                });
+                *start = resume;
+            }
+        }
+        self.pages.push((end, resume));
+        self.y = resume + 3.0;
     }
 
     /// The `rect` highlights, each as wide as what it holds.
@@ -2438,7 +2513,22 @@ impl<'a> Drawer<'a> {
             let x = self.x[c];
             let mut y = self.life_start[c];
             let stop = self.life_end[c].unwrap_or(end);
-            for &(d0, d1, words) in &self.delays {
+            // Between pages it does not run; past a page it starts below.
+            let mut breaks: Vec<(f32, f32, Break)> = self
+                .delays
+                .iter()
+                .map(|&(d0, d1, words)| (d0, d1, Break::Delay(words)))
+                .chain(self.pages.iter().map(|&(p0, p1)| (p0, p1, Break::Page)))
+                .collect();
+            breaks.sort_by(|a, b| a.0.total_cmp(&b.0));
+            for (d0, d1, kind) in breaks {
+                let Break::Delay(words) = kind else {
+                    if d0 > y && y < stop {
+                        canvas.line(Layer::Lifelines, (x, y), (x, d0.min(stop)), dashed);
+                    }
+                    y = y.max(d1);
+                    continue;
+                };
                 if d1 <= y || d0 >= stop {
                     continue;
                 }

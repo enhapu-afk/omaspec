@@ -65,13 +65,7 @@ const GROUPS: [(&str, GroupKind); 7] = [
 ];
 
 /// Keywords of PlantUML that Omaspec does not draw yet, with what to say.
-const NOT_YET: [&str; 5] = [
-    "newpage",
-    "autoactivate",
-    "skin",
-    "left to right direction",
-    "top to bottom direction",
-];
+const NOT_YET: [&str; 3] = ["skin", "left to right direction", "top to bottom direction"];
 
 struct Parser {
     diagram: Diagram,
@@ -83,6 +77,9 @@ struct Parser {
     /// The open `box`, as an index into the diagram's boxes.
     open_box: Option<usize>,
     autonumber: Autonumber,
+    /// `autoactivate on`: a message opens a bar on its receiver, a reply
+    /// closes its sender's.
+    autoactivate: bool,
     /// Active participants, newest last, with the end whose message
     /// activated them: where `return` goes.
     activations: Vec<(usize, Option<End>)>,
@@ -117,6 +114,7 @@ impl Default for Parser {
             groups: Vec::new(),
             open_box: None,
             autonumber: Autonumber::default(),
+            autoactivate: false,
             activations: Vec::new(),
             last_message: None,
             pending_create: None,
@@ -128,6 +126,9 @@ impl Default for Parser {
 
 struct Autonumber {
     on: bool,
+    /// The levels before the one that counts (`autonumber 1.1.1` has two),
+    /// which `autonumber inc A`, `inc B`, … raise.
+    levels: Vec<i64>,
     next: i64,
     step: i64,
     format: Option<String>,
@@ -137,6 +138,7 @@ impl Default for Autonumber {
     fn default() -> Self {
         Self {
             on: false,
+            levels: Vec::new(),
             next: 1,
             step: 1,
             format: None,
@@ -224,6 +226,31 @@ impl Parser {
         }
         if let Some(rest) = keyword(text, "autonumber") {
             self.autonumber(rest, no)?;
+            return Ok(at + 1);
+        }
+        if let Some(rest) = keyword(text, "newpage") {
+            if let Some(&(kind, _)) = self.groups.last() {
+                return Err(Declined::at(
+                    no,
+                    format!(
+                        "a new page inside `{}` is not supported yet: end the group first",
+                        kind.keyword()
+                    ),
+                ));
+            }
+            let title = rest.trim();
+            self.diagram.items.push(Item::NewPage {
+                title: (!title.is_empty()).then(|| text_at(title, no)),
+                line: no,
+            });
+            return Ok(at + 1);
+        }
+        if let Some(rest) = keyword(text, "autoactivate") {
+            self.autoactivate = match rest.trim().to_ascii_lowercase().as_str() {
+                "on" => true,
+                "off" => false,
+                _ => return Err(Declined::at(no, "`autoactivate` takes `on` or `off`")),
+            };
             return Ok(at + 1);
         }
         if let Some((shape, rest)) = shape_keyword(text) {
@@ -740,9 +767,12 @@ impl Parser {
         }
         let n = auto.next;
         auto.next = auto.next.saturating_add(auto.step);
+        let mut shown: Vec<String> = auto.levels.iter().map(i64::to_string).collect();
+        shown.push(n.to_string());
+        let shown = shown.join(".");
         Some(match &auto.format {
-            None => format!("<b>{n}</b>"),
-            Some(format) => number_with(format, n),
+            None => format!("<b>{shown}</b>"),
+            Some(format) => number_with(format, &shown),
         })
     }
 
@@ -754,10 +784,14 @@ impl Parser {
             self.autonumber.on = false;
             return Ok(());
         }
+        if let Some(after) = keyword(rest, "inc") {
+            return self.raise_level(after.trim(), no);
+        }
         let (resume, mut rest) = match keyword(rest, "resume") {
             Some(after) => (true, after),
             None => (false, rest),
         };
+        let mut levels = None;
         let mut numbers = Vec::new();
         let mut format = None;
         loop {
@@ -777,6 +811,21 @@ impl Parser {
                 continue;
             }
             let token = rest.split_whitespace().next().unwrap_or(rest);
+            // `1.1.1`: the start, its levels before the one that counts.
+            let leveled = token.contains('.') && numbers.is_empty() && levels.is_none() && !resume;
+            if leveled {
+                let parts: Option<Vec<i64>> = token.split('.').map(|p| p.parse().ok()).collect();
+                let Some(mut parts) = parts.filter(|p| p.len() <= 26) else {
+                    return Err(Declined::at(
+                        no,
+                        format!("`autonumber {}` is not supported yet", snippet(rest)),
+                    ));
+                };
+                numbers.push(parts.pop().unwrap_or(1));
+                levels = Some(parts);
+                rest = &rest[token.len()..];
+                continue;
+            }
             match token.parse::<i64>() {
                 Ok(n) if numbers.len() < 2 => numbers.push(n),
                 _ => {
@@ -803,8 +852,33 @@ impl Parser {
             auto.next = numbers.first().copied().unwrap_or(1);
             auto.step = numbers.get(1).copied().unwrap_or(1);
             auto.format = format;
+            auto.levels = levels.unwrap_or_default();
         }
         auto.on = true;
+        Ok(())
+    }
+
+    /// `autonumber inc A`: the first level up by one, those after it and
+    /// the count back to 1; `B` the second, and so on.
+    fn raise_level(&mut self, letter: &str, no: usize) -> Result<(), Declined> {
+        let auto = &mut self.autonumber;
+        let level = match letter.as_bytes() {
+            [b] if b.is_ascii_alphabetic() => usize::from(b.to_ascii_uppercase() - b'A'),
+            _ => return Err(Declined::at(no, "`autonumber inc` takes a letter: A, B, …")),
+        };
+        if level >= auto.levels.len() {
+            return Err(Declined::at(
+                no,
+                format!(
+                    "`autonumber inc {letter}` needs a number with that many levels, as `autonumber 1.1.1`"
+                ),
+            ));
+        }
+        auto.levels[level] = auto.levels[level].saturating_add(1);
+        for lower in &mut auto.levels[level + 1..] {
+            *lower = 1;
+        }
+        auto.next = 1;
         Ok(())
     }
 
@@ -893,6 +967,22 @@ impl Parser {
                     participant,
                     line: no,
                 }),
+            }
+        }
+        // `autoactivate on`, where the message says nothing of bars itself:
+        // a call opens one on its receiver, in the color after it; a reply
+        // closes the newest on its sender.
+        if self.autoactivate && life.steps.is_empty() {
+            match (parts.dashed, from, to) {
+                (false, _, End::Participant(receiver)) => {
+                    self.activate(receiver, life.color.clone(), no);
+                }
+                (true, End::Participant(sender), _)
+                    if self.activations.iter().any(|(p, _)| *p == sender) =>
+                {
+                    self.deactivate(sender, no);
+                }
+                _ => {}
             }
         }
         Ok(())
@@ -1240,7 +1330,7 @@ fn color_only(text: &str, no: usize) -> Result<Option<String>, Declined> {
 
 /// `format` (PlantUML's autonumber format) with `n` in place of its first
 /// run of `0` and `#`; `0`s pad with zeros. Markup in `<…>` is left alone.
-fn number_with(format: &str, n: i64) -> String {
+fn number_with(format: &str, n: &str) -> String {
     let mut in_tag = false;
     let mut run: Option<(usize, usize)> = None;
     for (i, b) in format.bytes().enumerate() {
@@ -1259,7 +1349,8 @@ fn number_with(format: &str, n: i64) -> String {
         return format!("{format}{n}");
     };
     let width = format[start..end].matches('0').count();
-    format!("{}{n:0width$}{}", &format[..start], &format[end..])
+    let zeros = "0".repeat(width.saturating_sub(n.len()));
+    format!("{}{zeros}{n}{}", &format[..start], &format[end..])
 }
 
 enum RawEnd {
@@ -2241,6 +2332,91 @@ mod tests {
     }
 
     #[test]
+    fn numbers_in_levels_raise_and_reset() {
+        let d = diagram(concat!(
+            "autonumber 1.1.1\nA -> B\nB --> A\n",
+            "autonumber inc A\nA -> B\n",
+            "autonumber inc B\nA -> B\nB --> A\n",
+            "autonumber inc A\nA -> B\n",
+            "autonumber 10\nA -> B\n",
+        ));
+        let numbers: Vec<&str> = messages(&d)
+            .iter()
+            .map(|m| m.number.as_deref().unwrap())
+            .collect();
+        assert_eq!(
+            numbers,
+            [
+                "<b>1.1.1</b>",
+                "<b>1.1.2</b>",
+                "<b>2.1.1</b>",
+                "<b>2.2.1</b>",
+                "<b>2.2.2</b>",
+                "<b>3.1.1</b>",
+                "<b>10</b>"
+            ]
+        );
+        let d = diagram("autonumber 3 \"<b>[000]\"\nA -> B");
+        assert_eq!(messages(&d)[0].number.as_deref(), Some("<b>[003]"));
+    }
+
+    #[test]
+    fn autoactivate_opens_a_bar_at_each_call() {
+        let d = diagram(concat!(
+            "autoactivate on\n",
+            "alice -> bob : hello\n",
+            "bob -> bob : self\n",
+            "bill -> bob #005500 : thread\n",
+            "bob -> george ** : create\n",
+            "return done\n",
+            "return rc\n",
+            "bob --> alice : reply\n",
+            "autoactivate off\n",
+            "alice -> bob : plain\n",
+        ));
+        let name = |end: &End| match end {
+            End::Participant(p) => d.participants[*p].code.clone(),
+            other => format!("{other:?}"),
+        };
+        let seen: Vec<String> = d
+            .items
+            .iter()
+            .filter_map(|i| match i {
+                Item::Message(m) => Some(format!("msg {}>{}", name(&m.from), name(&m.to))),
+                Item::Activate {
+                    participant, color, ..
+                } => Some(match color {
+                    Some(color) => format!("on {} {color}", d.participants[*participant].code),
+                    None => format!("on {}", d.participants[*participant].code),
+                }),
+                Item::Deactivate { participant, .. } => {
+                    Some(format!("off {}", d.participants[*participant].code))
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            seen,
+            [
+                "msg alice>bob",
+                "on bob",
+                "msg bob>bob",
+                "on bob",
+                "msg bill>bob",
+                "on bob #005500",
+                "msg bob>george",
+                "msg bob>bill",
+                "off bob",
+                "msg bob>bob",
+                "off bob",
+                "msg bob>alice",
+                "off bob",
+                "msg alice>bob",
+            ]
+        );
+    }
+
+    #[test]
     fn a_note_beside_a_participant_may_leave_out_of() {
         let d = diagram("A -> B\nnote left: one\nnote left A: two\nnote right B : three");
         let places: Vec<NotePlace> = d
@@ -2341,7 +2517,11 @@ mod tests {
             ("@startuml\nclass User {\n}\n@enduml", 1, "class User"),
             ("@startuml\n[*] --> A\n@enduml", 1, "[*]"),
             ("@startuml\n:act;\n@enduml", 1, ":act;"),
-            ("@startuml\nnewpage\n@enduml", 1, "newpage"),
+            (
+                "@startuml\nalt yes\nA -> B\nnewpage\nend\n@enduml",
+                3,
+                "inside `alt`",
+            ),
             (
                 "@startuml\nlegend right top\nx\nendlegend\n@enduml",
                 1,
@@ -2356,7 +2536,12 @@ mod tests {
             ("@startuml\nA -> B foo\n@enduml", 1, "foo"),
             ("@startuml\nhide stereotype\n@enduml", 1, "hide stereotype"),
             ("@startuml\nbox A\nbox B\n@enduml", 2, "inside a box"),
-            ("@startuml\nautonumber 1.1.1\n@enduml", 1, "1.1.1"),
+            (
+                "@startuml\nautonumber\nautonumber inc A\n@enduml",
+                2,
+                "levels",
+            ),
+            ("@startuml\nautoactivate maybe\n@enduml", 1, "`on` or `off`"),
         ] {
             let err = declined(source);
             assert_eq!(err.line, Some(line), "{source}: {err:?}");

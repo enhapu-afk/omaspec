@@ -56,10 +56,8 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       (`:Actor:`, `Entity01 }|..|| Entity02`, `-class`) is typed by the
       lines after it.
 
-### Step 1: the sequence diagram (52 of 79)
+### Step 1: the sequence diagram (59 of 79)
 
-- [ ] Numbers and pages: `autonumber 1.1.1` with `autonumber inc A` and
-      `inc B`, `autoactivate on`, `newpage` (one page under the other).
 - [ ] Participants: `order N`, a declaration over several lines in
       brackets (`participant P [ … ]`), `sequenceParticipantFontName`.
 - [ ] A box inside a box; a group's colors (`alt#Gold #LightBlue`).
