@@ -232,7 +232,7 @@ impl Parser {
             self.autonumber(rest, no)?;
             return Ok(at + 1);
         }
-        if let Some(rest) = keyword(text, "newpage") {
+        if let Some(rest) = keyword(text, "newpage").filter(|r| !r.starts_with(['-', '<'])) {
             if let Some(&(kind, _)) = self.groups.last() {
                 return Err(Declined::at(
                     no,
@@ -258,19 +258,37 @@ impl Parser {
             return Ok(at + 1);
         }
         if let Some((shape, rest)) = shape_keyword(text) {
-            // `participant P [`, its words on the lines up to `]`.
-            let open = rest.trim_end();
-            if let Some(head) = open.strip_suffix('[').filter(|h| !h.ends_with('[')) {
+            // `participant P [`, its words on the lines up to the `]` that
+            // closes it; words before that `]` are left out, as PlantUML
+            // leaves them.
+            if crate::common::description_opens(text) {
+                let head = rest.trim_end().trim_end_matches('[').trim();
+                if head.is_empty() || !head.chars().all(is_name_char) {
+                    return Err(Declined::at(
+                        no,
+                        "a participant whose words are in brackets takes a plain name, as PlantUML does",
+                    ));
+                }
                 let end = lines[at + 1..]
                     .iter()
-                    .position(|l| l.text.trim() == "]")
+                    .position(|l| crate::common::closes_description(l.text))
                     .map(|i| at + 1 + i)
                     .ok_or_else(|| {
                         Declined::at(no, "the participant's `[` has no `]` to end it")
                     })?;
                 let body: Vec<&str> = lines[at + 1..end].iter().map(|l| l.text.trim()).collect();
+                if body.iter().all(|l| l.is_empty()) {
+                    return Err(Declined::at(
+                        no,
+                        "nothing stands between the participant's `[` and `]`",
+                    ));
+                }
+                let before = self.diagram.participants.len();
                 let index = self.declare(shape, head, no)?;
-                self.diagram.participants[index].label = body.join("\n");
+                // Declared again, it keeps the words it had.
+                if self.diagram.participants.len() > before {
+                    self.diagram.participants[index].label = body.join("\n");
+                }
                 return Ok(end + 1);
             }
             self.declare(shape, rest, no)?;
@@ -560,9 +578,9 @@ impl Parser {
         while !rest.is_empty() {
             if let Some(after) = keyword(rest, "order") {
                 let token = after.split_whitespace().next().unwrap_or("");
-                place = Some(token.parse::<i64>().map_err(|_| {
+                place = Some(i64::from(token.parse::<i32>().map_err(|_| {
                     Declined::at(no, "`order` takes a whole number, as `order 10`")
-                })?);
+                })?));
                 rest = after.trim_start()[token.len()..].trim_start();
                 continue;
             }
@@ -653,7 +671,10 @@ impl Parser {
                 members.push(index);
             }
         }
-        if let Some(place) = place {
+        // Declared again, it keeps the place it was given first.
+        if let Some(place) = place
+            && existing.is_none()
+        {
             self.places.insert(index, place);
         }
         Ok(index)
@@ -810,9 +831,10 @@ impl Parser {
         let mut shown: Vec<String> = auto.levels.iter().map(i64::to_string).collect();
         shown.push(n.to_string());
         let shown = shown.join(".");
+        // PlantUML keeps a number in levels bold, whatever the format.
         Some(match &auto.format {
-            None => format!("<b>{shown}</b>"),
-            Some(format) => number_with(format, &shown),
+            Some(format) if auto.levels.is_empty() => number_with(format, &shown),
+            _ => format!("<b>{shown}</b>"),
         })
     }
 
@@ -903,22 +925,24 @@ impl Parser {
     fn raise_level(&mut self, letter: &str, no: usize) -> Result<(), Declined> {
         let auto = &mut self.autonumber;
         let level = match letter.as_bytes() {
-            [b] if b.is_ascii_alphabetic() => usize::from(b.to_ascii_uppercase() - b'A'),
+            // Without a letter, the level before the count.
+            [] => auto.levels.len().checked_sub(1),
+            [b] if b.is_ascii_alphabetic() => Some(usize::from(b.to_ascii_uppercase() - b'A')),
             _ => return Err(Declined::at(no, "`autonumber inc` takes a letter: A, B, …")),
         };
-        if level >= auto.levels.len() {
-            return Err(Declined::at(
-                no,
-                format!(
-                    "`autonumber inc {letter}` needs a number with that many levels, as `autonumber 1.1.1`"
-                ),
-            ));
+        match level {
+            Some(level) if level < auto.levels.len() => {
+                auto.levels[level] = auto.levels[level].saturating_add(1);
+                for lower in &mut auto.levels[level + 1..] {
+                    *lower = 1;
+                }
+                auto.next = 1;
+            }
+            // A number without levels skips one, as PlantUML counts; on
+            // the count's own level it goes on as it goes.
+            _ if auto.levels.is_empty() => auto.next = auto.next.saturating_add(1),
+            _ => {}
         }
-        auto.levels[level] = auto.levels[level].saturating_add(1);
-        for lower in &mut auto.levels[level + 1..] {
-            *lower = 1;
-        }
-        auto.next = 1;
         Ok(())
     }
 
@@ -1009,18 +1033,27 @@ impl Parser {
                 }),
             }
         }
-        // `autoactivate on`, where the message says nothing of bars itself:
-        // a call opens one on its receiver, in the color after it; a reply
-        // closes the newest on its sender.
-        if self.autoactivate && life.steps.is_empty() {
-            match (parts.dashed, from, to) {
-                (false, _, End::Participant(receiver)) => {
-                    self.activate(receiver, life.color.clone(), no);
+        // `autoactivate on`, where the message says nothing of bars itself
+        // and is not lost (`->x`): a call opens one on its receiver, in the
+        // color after it, a reply closes its sender's. Between a participant
+        // and the edge, the participant is the one, whichever way it points.
+        if self.autoactivate && life.steps.is_empty() && end_mark != Mark::Cross {
+            let lone = match (from, to) {
+                (End::Participant(_), End::Participant(_)) => None,
+                (End::Participant(p), _) | (_, End::Participant(p)) => Some(p),
+                _ => None,
+            };
+            let (opens, closes) = match (lone, from, to) {
+                (Some(p), ..) => (Some(p), Some(p)),
+                (None, End::Participant(sender), End::Participant(receiver)) => {
+                    (Some(receiver), Some(sender))
                 }
-                (true, End::Participant(sender), _)
-                    if self.activations.iter().any(|(p, _)| *p == sender) =>
-                {
-                    self.deactivate(sender, no);
+                _ => (None, None),
+            };
+            match (parts.dashed, opens, closes) {
+                (false, Some(p), _) => self.activate(p, life.color.clone(), no),
+                (true, _, Some(p)) if self.activations.iter().any(|(q, _)| *q == p) => {
+                    self.deactivate(p, no);
                 }
                 _ => {}
             }
@@ -1042,6 +1075,8 @@ impl Parser {
     /// is not a note.
     fn note(&mut self, lines: &[Line], at: usize) -> Result<Option<usize>, Declined> {
         let Line { no, text, .. } = lines[at];
+        // Where a note beside a message goes among the items.
+        let mut beside_at = None;
         let Some((shape, rest)) = [
             ("note", NoteShape::Note),
             ("hnote", NoteShape::Hexagon),
@@ -1076,12 +1111,15 @@ impl Parser {
                     (place, rest)
                 }
                 None => {
-                    if !matches!(self.diagram.items.last(), Some(Item::Message(_))) {
+                    // Right after the message, before the bars it opens
+                    // or closes: the drawer takes those after the note.
+                    let Some(message) = self.last_message_index() else {
                         return Err(Declined::at(
                             no,
                             "a note without `of` must follow a message",
                         ));
-                    }
+                    };
+                    beside_at = Some(message + 1);
                     (NotePlace::Message(side), rest)
                 }
             }
@@ -1116,15 +1154,32 @@ impl Parser {
                 format!("`{}` in a note is not supported yet", snippet(rest.trim())),
             ));
         };
-        self.diagram.items.push(Item::Note(Note {
+        let note = Item::Note(Note {
             shape,
             place,
             text,
             color,
             together: false,
             line: no,
-        }));
+        });
+        match beside_at {
+            Some(at) => self.diagram.items.insert(at, note),
+            None => self.diagram.items.push(note),
+        }
         Ok(Some(next))
+    }
+
+    /// The last item if it is a message, or the message the bars after
+    /// it belong to (`++`, `--`, `!!`, `autoactivate`).
+    fn last_message_index(&self) -> Option<usize> {
+        let items = &self.diagram.items;
+        let at = items.iter().rposition(|item| {
+            !matches!(
+                item,
+                Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. }
+            )
+        })?;
+        matches!(items[at], Item::Message(_)).then_some(at)
     }
 
     /// `ref over A, B : text`, or the text on the lines up to `end ref`.
@@ -1398,8 +1453,13 @@ fn number_with(format: &str, n: &str) -> String {
         return format!("{format}{n}");
     };
     let width = format[start..end].matches('0').count();
-    let zeros = "0".repeat(width.saturating_sub(n.len()));
-    format!("{}{zeros}{n}{}", &format[..start], &format[end..])
+    let (sign, digits) = n.strip_prefix('-').map_or(("", n), |digits| ("-", digits));
+    let zeros = "0".repeat(width.saturating_sub(digits.len()));
+    format!(
+        "{}{sign}{zeros}{digits}{}",
+        &format[..start],
+        &format[end..]
+    )
 }
 
 enum RawEnd {
@@ -2435,6 +2495,65 @@ mod tests {
     }
 
     #[test]
+    fn what_the_review_of_pages_and_participants_found() {
+        // A note beside a message whose bars autoactivate opened.
+        let d =
+            diagram("autoactivate on\nA -> B : hi\nnote right: one\nB --> A : ok\nnote left: two");
+        let notes: Vec<(usize, NotePlace)> = d
+            .items
+            .iter()
+            .enumerate()
+            .filter_map(|(at, i)| match i {
+                Item::Note(n) => Some((at, n.place)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(notes.len(), 2);
+        for (at, place) in notes {
+            assert!(matches!(d.items[at - 1], Item::Message(_)), "{at}");
+            assert!(matches!(place, NotePlace::Message(_)));
+        }
+        // Lost messages open no bar; at the edge the participant is the one.
+        let bars = |source: &str| {
+            diagram(source)
+                .items
+                .iter()
+                .filter_map(|i| match i {
+                    Item::Activate { participant, .. } => Some(format!("on {participant}")),
+                    Item::Deactivate { participant, .. } => Some(format!("off {participant}")),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        };
+        assert!(bars("autoactivate on\nA ->x B").is_empty());
+        assert_eq!(bars("autoactivate on\nA -> B\nB -->x A"), ["on 1"]);
+        assert_eq!(bars("autoactivate on\nA ->]"), ["on 0"]);
+        assert_eq!(bars("autoactivate on\nA -> B\n[--> B"), ["on 1", "off 1"]);
+        // Declared again, a participant keeps its first place and words.
+        let d = diagram("participant A\nparticipant B\nparticipant A order -5\nA -> B");
+        assert_eq!(codes(&d), ["B", "A"]);
+        let d = diagram("participant P\nparticipant Q\nparticipant P [\nX\n]\nP -> Q");
+        assert_eq!(
+            d.participants.iter().find(|p| p.code == "P").unwrap().label,
+            "P"
+        );
+        // A bracket closes where a `]` is not opened on its line.
+        let d = diagram("participant P [\nalpha [x]\nbeta]\nP -> R : msg");
+        assert_eq!(d.participants[0].label, "alpha [x]");
+        assert_eq!(messages(&d).len(), 1);
+        // A participant named `newpage`.
+        let d = diagram("A -> B : one\nnewpage -> A : hi");
+        assert!(!d.items.iter().any(|i| matches!(i, Item::NewPage { .. })));
+        // A number in levels stays bold whatever the format; a sign pads.
+        let d = diagram("autonumber 1.1.1 \"<b>[000]\"\nA -> B\nautonumber -5 \"000\"\nA -> B");
+        let numbers: Vec<&str> = messages(&d)
+            .iter()
+            .map(|m| m.number.as_deref().unwrap())
+            .collect();
+        assert_eq!(numbers, ["<b>1.1.1</b>", "-005"]);
+    }
+
+    #[test]
     fn numbers_in_levels_raise_and_reset() {
         let d = diagram(concat!(
             "autonumber 1.1.1\nA -> B\nB --> A\n",
@@ -2658,9 +2777,24 @@ mod tests {
             ("@startuml\nhide stereotype\n@enduml", 1, "hide stereotype"),
             ("@startuml\nbox A\nbox B\n@enduml", 2, "inside a box"),
             (
-                "@startuml\nautonumber\nautonumber inc A\n@enduml",
+                "@startuml\nautonumber\nautonumber inc AB\n@enduml",
                 2,
-                "levels",
+                "takes a letter",
+            ),
+            (
+                "@startuml\nparticipant P as Q [\nx\n]\n@enduml",
+                1,
+                "plain name",
+            ),
+            (
+                "@startuml\nparticipant P [\n]\n@enduml",
+                1,
+                "nothing stands",
+            ),
+            (
+                "@startuml\nparticipant A order 99999999999\n@enduml",
+                1,
+                "whole number",
             ),
             ("@startuml\nautoactivate maybe\n@enduml", 1, "`on` or `off`"),
         ] {

@@ -45,6 +45,19 @@ const DELAY_ROOM: f32 = 8.0;
 /// Between a page's feet and the next page's title or heads.
 const PAGE_GAP: f32 = 30.0;
 
+/// Where one page ends and the next begins (`newpage`), from the top down.
+#[derive(Clone, Copy)]
+struct PageBreak {
+    /// Where the lifelines stop.
+    end: f32,
+    /// Under the feet of the page that ends.
+    below: f32,
+    /// Where the next page's boxes start, under its title.
+    top: f32,
+    /// Where the lifelines start again, under the heads.
+    resume: f32,
+}
+
 /// What interrupts a lifeline.
 #[derive(Clone, Copy)]
 enum Break {
@@ -416,9 +429,8 @@ struct Drawer<'a> {
     /// over the lifelines when no room between two holds them: the dotted
     /// lifelines stop at them.
     delays: Vec<(f32, f32, Option<[f32; 4]>)>,
-    /// Between two pages (`newpage`): where the lifelines stop above and
-    /// start again below.
-    pages: Vec<(f32, f32)>,
+    /// The breaks between pages (`newpage`).
+    pages: Vec<PageBreak>,
     groups: Vec<OpenGroup>,
     dividers: Vec<(f32, Block, usize)>,
     /// The arrow height of the last message and its columns, while only
@@ -1434,11 +1446,12 @@ impl<'a> Drawer<'a> {
         self.band = heads_band.map(|rect| crate::map::Band {
             rect,
             edge: crate::map::Edge::Top,
+            // Over the first page: the next ones have heads of their own.
             over: crate::graph::Rect {
                 x: rect.x,
                 y: rect.y + rect.h,
                 w: rect.w,
-                h: (end - rect.y - rect.h).max(0.0),
+                h: (self.pages.first().map_or(end, |p| p.end) - rect.y - rect.h).max(0.0),
             },
         });
         for (column, open) in self.open_bars.iter_mut().enumerate() {
@@ -1478,35 +1491,48 @@ impl<'a> Drawer<'a> {
             }
             bottom += tallest;
         }
+        // A box on each page, from its top to under its feet; its title
+        // on a page after the first is its words again.
+        let mut pages = Vec::with_capacity(self.pages.len() + 1);
+        let mut page_top = boxes_top;
+        for p in &self.pages {
+            pages.push((page_top, p.below));
+            page_top = p.top;
+        }
+        pages.push((page_top, bottom));
         for b in &self.boxes {
             let left = self.x[b.first] - self.cols[b.first].half() - self.pad_left[b.first];
             let right = self.x[b.last] + self.cols[b.last].half() + self.pad_right[b.last];
-            let rect = (left, boxes_top, right - left, bottom + 5.0 - boxes_top);
-            canvas.rect(
-                Layer::Background,
-                rect,
-                skin.round,
-                b.look.fill,
-                Some(Stroke::new(b.look.border, b.look.thickness)),
-            );
-            if let Some(fill) = b.look.fill {
-                self.grounds.push(crate::map::Ground {
-                    rect: crate::graph::Rect {
-                        x: rect.0,
-                        y: rect.1,
-                        w: rect.2,
-                        h: rect.3,
-                    },
-                    // As the canvas paints it: gray in monochrome.
-                    fill: if skin.monochrome { fill.gray() } else { fill },
-                });
+            for (page, &(top, under)) in pages.iter().enumerate() {
+                let rect = (left, top, right - left, under + 5.0 - top);
+                canvas.rect(
+                    Layer::Background,
+                    rect,
+                    skin.round,
+                    b.look.fill,
+                    Some(Stroke::new(b.look.border, b.look.thickness)),
+                );
+                if let Some(fill) = b.look.fill {
+                    self.grounds.push(crate::map::Ground {
+                        rect: crate::graph::Rect {
+                            x: rect.0,
+                            y: rect.1,
+                            w: rect.2,
+                            h: rect.3,
+                        },
+                        // As the canvas paints it: gray in monochrome.
+                        fill: if skin.monochrome { fill.gray() } else { fill },
+                    });
+                }
+                let before = canvas.echo(page > 0);
+                canvas.text(
+                    Layer::Background,
+                    &b.title,
+                    ((left + right) / 2.0, top + 4.0),
+                    Align::Center,
+                );
+                canvas.echo(before);
             }
-            canvas.text(
-                Layer::Background,
-                &b.title,
-                ((left + right) / 2.0, boxes_top + 4.0),
-                Align::Center,
-            );
         }
         // After the boxes: both sit on the background layer, and a box is
         // a full-height fill. Later in that layer paints on top, still
@@ -1771,7 +1797,8 @@ impl<'a> Drawer<'a> {
     }
 
     /// `newpage`: this page ends, with its feet, and the next starts under
-    /// it with its title and the heads again; the bars open now go on.
+    /// it with its title, its boxes and the heads again; the bars open now
+    /// go on.
     fn new_page(&mut self, canvas: &mut Canvas, k: usize) {
         let title = match &self.measured[k] {
             Measured::Label(title) => title.clone(),
@@ -1788,8 +1815,17 @@ impl<'a> Drawer<'a> {
                 feet = feet.max(self.cols[c].height);
             }
         }
-        let mut top = end + feet + PAGE_GAP;
-        if let (false, Some(&first), Some(&last)) = (title.is_empty(), live.first(), live.last()) {
+        let below = end + feet;
+        let mut top = below + PAGE_GAP;
+        // Over the heads alive, or over all of them when none is.
+        let spanned = if live.is_empty() {
+            (0..self.cols.len()).collect()
+        } else {
+            live.clone()
+        };
+        if let (false, Some(&first), Some(&last)) =
+            (title.is_empty(), spanned.first(), spanned.last())
+        {
             let left = self.x[first] - self.cols[first].half();
             let right = self.x[last] + self.cols[last].half();
             canvas.text(
@@ -1800,12 +1836,22 @@ impl<'a> Drawer<'a> {
             );
             top += title.height + 8.0;
         }
+        let boxes_top = top;
+        if !self.boxes.is_empty() {
+            let title = self
+                .boxes
+                .iter()
+                .map(|b| b.title.height)
+                .fold(0.0, f32::max);
+            top += title + if title > 0.0 { 8.0 } else { 5.0 };
+        }
         let heads = live
             .iter()
             .map(|&c| self.cols[c].height)
             .fold(0.0, f32::max);
         for &c in &live {
-            self.head(canvas, c, top + heads - self.cols[c].height, false);
+            let head_top = top + heads - self.cols[c].height;
+            self.head_drawn_again(canvas, c, head_top, false, true);
         }
         let resume = top + heads;
         for (column, open) in self.open_bars.iter_mut().enumerate() {
@@ -1821,7 +1867,12 @@ impl<'a> Drawer<'a> {
                 *start = resume;
             }
         }
-        self.pages.push((end, resume));
+        self.pages.push(PageBreak {
+            end,
+            below,
+            top: boxes_top,
+            resume,
+        });
         self.y = resume + 3.0;
     }
 
@@ -2642,7 +2693,7 @@ impl<'a> Drawer<'a> {
                 .delays
                 .iter()
                 .map(|&(d0, d1, words)| (d0, d1, Break::Delay(words)))
-                .chain(self.pages.iter().map(|&(p0, p1)| (p0, p1, Break::Page)))
+                .chain(self.pages.iter().map(|p| (p.end, p.resume, Break::Page)))
                 .collect();
             breaks.sort_by(|a, b| a.0.total_cmp(&b.0));
             for (d0, d1, kind) in breaks {
@@ -2690,11 +2741,24 @@ impl<'a> Drawer<'a> {
         top: f32,
         bottom: bool,
     ) -> (crate::graph::Rect, Paint) {
+        self.head_drawn_again(canvas, c, top, bottom, bottom)
+    }
+
+    /// [`Self::head`]; `again` where the name is drawn a second time, at
+    /// the foot or on a page after the first.
+    fn head_drawn_again(
+        &self,
+        canvas: &mut Canvas,
+        c: usize,
+        top: f32,
+        bottom: bool,
+        again: bool,
+    ) -> (crate::graph::Rect, Paint) {
         // A participant's name is no one line's: many mention it, also
         // where a message's line creates it.
         let line = canvas.tie(None);
-        // At the foot it is the head's name again.
-        let before = canvas.echo(bottom);
+        // At the foot, or on a later page, it is the head's name again.
+        let before = canvas.echo(again);
         let mut name = (crate::graph::Rect::default(), None);
         canvas.linked(self.cols[c].link.as_ref(), &[Layer::Front], |canvas| {
             name = self.head_shape(canvas, c, top, bottom);

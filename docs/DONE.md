@@ -78,6 +78,26 @@ is open and the reasoning around it.
       the lifelines, an inner group's over an outer's. Converted to
       Mermaid, which has none, they are said to be left out. The guide: 68
       of 79.
+- [x] What the review of the pages and the participants found
+      (2026-11-22). A note beside a message (`note right:`) may follow the
+      bars it opened or closed, under `autoactivate` too: it goes in
+      right after the message. `autoactivate` opens no bar for a lost
+      message (`->x`) and, between a participant and the edge, acts on the
+      participant whichever way it points, as PlantUML does. The words in
+      `participant P [ … ]` neither decide the diagram's type nor reach
+      lint and the outline (`common::description_opens`); the block ends at
+      a line whose `]` no `[` on it opens, as in PlantUML, and takes a plain
+      name only. Declared again, a participant keeps its first `order` and
+      its words. A number in levels stays bold whatever the format; a
+      negative one pads after its sign; `autonumber inc` without a letter
+      raises the level before the count, and on a plain number skips one,
+      as PlantUML counts. Converted to Mermaid, lines of words become
+      `<br>`. A participant named `newpage` stays one. On a page after the
+      first the heads and a box's title are drawn as names again
+      (`Canvas::echo`), each box stands on each page, the page's title
+      shows even with nobody alive, and the heads held while scrolling
+      cover the first page only. Left: a bar `autoactivate` opens has no
+      `++` for the editor's recoloring to find.
 
 ## Phase 0: foundation and spikes
 

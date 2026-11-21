@@ -689,6 +689,16 @@ mod tests {
         assert!(err.reason.contains("needs a participant"), "{err:?}");
     }
 
+    /// Found in review (2026-11-22): the words of `participant P [ … ]`
+    /// stand on lines of their own, which Mermaid writes as `<br>`.
+    #[test]
+    fn a_participant_s_words_over_several_lines_convert() {
+        let code =
+            "@startuml\nparticipant P [\nfirst\nsecond\n]\nparticipant Q\nP -> Q : hi\n@enduml\n";
+        let mermaid = both(code, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(mermaid.code.contains("first<br>second"), "{}", mermaid.code);
+    }
+
     #[test]
     fn a_plantuml_scenario_reads_the_same_in_mermaid_and_back() {
         let mermaid = both(SHOP, Language::PlantUml, Language::Mermaid).unwrap();

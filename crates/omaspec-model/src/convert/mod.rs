@@ -132,7 +132,9 @@ fn is_plain(name: &str) -> bool {
 
 /// A PlantUML text (`\n` breaks lines) as Mermaid writes it (`<br>`).
 fn to_mermaid_text(text: &str) -> String {
-    text.replace("\\n", "<br>")
+    // A line break written as `\n` or as a line of its own, as the words
+    // of `participant P [ … ]` are.
+    text.replace("\\n", "<br>").replace('\n', "<br>")
 }
 
 /// A Mermaid text as PlantUML writes it.

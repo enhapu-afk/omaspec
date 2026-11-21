@@ -700,6 +700,12 @@ pub fn deciding<'a>(lines: &[Line<'a>]) -> Vec<Line<'a>> {
             }
             continue;
         }
+        // `participant P [`: the declaration decides, its words do not.
+        if description_opens(text) {
+            out.push(line);
+            until = Some(closes_description);
+            continue;
+        }
         until = block_end(text);
         if until.is_some() {
             continue;
@@ -710,6 +716,33 @@ pub fn deciding<'a>(lines: &[Line<'a>]) -> Vec<Line<'a>> {
         }
     }
     out
+}
+
+/// Whether `text` declares a participant whose words follow on the lines
+/// up to a `]` (`participant P [`); a link (`[[…]]`) is no such bracket.
+pub(crate) fn description_opens(text: &str) -> bool {
+    let t = text.trim_end();
+    t.ends_with('[')
+        && !t.ends_with("[[")
+        && [
+            "participant",
+            "actor",
+            "boundary",
+            "control",
+            "entity",
+            "database",
+            "collections",
+            "queue",
+        ]
+        .iter()
+        .any(|word| keyword(t, word).is_some())
+}
+
+/// Whether `line` closes the words of [`description_opens`]: it ends with
+/// a `]` that no `[` on it opens (`beta]` does, `alpha [x]` does not).
+pub(crate) fn closes_description(line: &str) -> bool {
+    let t = line.trim_end();
+    t.ends_with(']') && t.matches(']').count() > t.matches('[').count()
 }
 
 /// A title, header, footer, caption or main frame written on one line.
