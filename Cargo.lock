@@ -2690,6 +2690,7 @@ dependencies = [
  "omaspec-core",
  "omaspec-model",
  "omaspec-uml",
+ "regex",
  "resvg",
  "roxmltree 0.21.2",
  "serde_json",

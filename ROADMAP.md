@@ -26,6 +26,150 @@ theme's colors and in the file's own. What is done is in docs/DONE.md.
       the snapshot at 22 % (`snapshot_focus_small`) shows it whole.
       What the window shows is left to see.
 
+## PlantUML's guide, drawn natively (2026-11-21)
+
+PlantUML's *Language Reference Guide* (1.2025.0) holds 929 examples.
+PlantUML 1.2026.8 draws 897 of them (the 35 network diagrams the guide still
+opens with `@startuml` counted); Omaspec's own engines draw 451 (50 %). The
+rest decline with their line and reason and want the Java PlantUML. This
+plan closes the gaps: the three diagrams first, as the premise above says,
+then the other UML diagrams, then what every diagram shares, then the
+other kinds. It widens [0007](docs/adr/0007-behavior-specifications.md):
+in the end every kind the guide shows is drawn natively.
+
+The yardstick: `OMASPEC_GUIDE=guide.pdf cargo test --release -p
+omaspec-render --test guide -- --nocapture` cuts the examples out of a copy
+of the PDF, draws each natively and holds them to `tests/guide.tsv`; an
+example that drew may not decline, and `UPDATE_GUIDE=1` keeps what is
+gained. The counts below are its numbers on 2026-11-21. A chapter only
+reaches all of its examples with step 5, which its examples use too.
+
+Stays with the Java PlantUML: the standard library (`!include <…>`, 29
+examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
+
+### Step 0: the yardstick, and refusals that say why
+
+- [ ] A refusal names what it does not draw. A style on a line
+      (`#line:red;line.bold`) is no "cardinality needs quotes"; a `json`
+      or `map` element in another diagram is no "`json` diagrams are drawn
+      by the Java PlantUML only"; a diagram whose first line is unusual
+      (`:Actor:`, `Entity01 }|..|| Entity02`, `-class`) is typed by the
+      lines after it.
+
+### Step 1: the sequence diagram (52 of 79)
+
+- [ ] Slanted messages: `A ->(10) B`, `A (10)<- B`.
+- [ ] Numbers and pages: `autonumber 1.1.1` with `autonumber inc A` and
+      `inc B`, `autoactivate on`, `newpage` (one page under the other).
+- [ ] Participants: `order N`, a declaration over several lines in
+      brackets (`participant P [ … ]`), `sequenceParticipantFontName`.
+- [ ] A box inside a box; a group's colors (`alt#Gold #LightBlue`).
+- [ ] Skinparams: `maxMessageSize` (the words wrap),
+      `responseMessageBelowArrow`, `guillemet false`, `stereotypePosition
+      top` and `bottom`, `lifelineStrategy solid` and `nosolid`.
+- [ ] Teoz: anchors and durations (`{start} … {end}`, `{start} <-> {end}`).
+- [ ] Drawn but different: a circle head (`o`) filled, as PlantUML does.
+
+### Step 2: the state diagram (17 of 36)
+
+- [ ] Pseudo states by stereotype: `<<start>>`, `<<end>>`, `<<entryPoint>>`,
+      `<<exitPoint>>`, `<<inputPin>>`, `<<outputPin>>`, `<<expansionInput>>`,
+      `<<expansionOutput>>`, `<<sdlreceive>>`.
+- [ ] Notes: a floating note (`note "…" as N1`), a note on a link
+      (`note on link`).
+- [ ] Hidden lines (`-[hidden]->`).
+- [ ] A state's own style (`#pink;line:red;line.bold;text:red`, `##[bold]`),
+      `skinparam stateStartColor`, `StateAttributeFontColor`, a font name in
+      `<style>`.
+
+### Step 3: the activity diagram (41 of 62; the legacy syntax 0 of 13)
+
+- [ ] `switch`, `case`, `endswitch`.
+- [ ] `repeat :action;`, `backward:` in a `while`, `label` and `goto`,
+      connectors (`(A)`).
+- [ ] `end fork {or}` and `end merge`; `floating note`; a note that follows
+      no action.
+- [ ] Hidden lines (`-[hidden]->`), `skinparam ArrowHeadColor none`,
+      `conditionStyle diamond`, `!pragma useVerticalIf on`.
+- [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity
+      tree where it fits it and laid out on the graph engine where it does
+      not; two examples in other chapters use it too.
+
+### Step 4: the other UML diagrams
+
+- [ ] Use case (14 of 26): `:Actor:` on the first line, `actorStyle awesome`
+      and `hollow`, business use cases and actors (`(Use)/`, `:Actor:/`), a
+      description over several lines in quotes, a name declared as a
+      rectangle and then used as a use case, `note right of (Use)`.
+- [ ] Class (48 of 84): `set separator none` and `::`,
+      `!pragma useIntermediatePackages`, a note on the last class
+      (`note left: …`) and on a line, `{abstract}` and `{static}` inside a
+      member, association classes (`(Student, Course) . Enrollment`), lines
+      between members (`Foo::field1 --> Bar::field3`), qualified ends
+      (`Shop [customerId: long] ---> …`), `circle` and `diamond` (`<>`),
+      names with `$`, `-class`, `#--`, `page 2x2`, a spot with its letter
+      and color (`<< (S,#FF7700) Singleton >>`). Drawn but different: the
+      circled letters (C, I, A, E, @) as PlantUML draws them, and a line with
+      one dash (`<|-`) keeps its ends side by side.
+- [ ] Object (4 of 13): `map`, `diamond`.
+- [ ] Component and deployment (22 of 35, 9 of 50): ports (`port`,
+      `portin`, `portout`), long descriptions in brackets (`comp1 [ … ]`), a
+      body for every element (`queue { … }`), the elements `action`,
+      `boundary`, `control`, `entity`, `label` and `actor/`, dotted lines
+      (`~~`), `left to right direction`, `allowmixing`, a line in several
+      colors (`[#blue;#yellow;#green]`), `[thickness=n]`.
+- [ ] Timing (25 of 44): states in braces (`{A,B}`), dates and clock times,
+      `mode compact`, a manual time axis, analog ticks, `has … as`, time in
+      clock periods (`@clk*2`), `header:`. Drawn but different:
+      `scale 100 as 50 pixels` sets the ticks.
+
+### Step 5: what every diagram shares
+
+- [ ] `<style>` (30): the selectors and properties the guide uses
+      (`node { Padding }`, `legend { Margin }`, `depth(n)`, classes of
+      stereotypes `.h1`, a font name beyond `root`).
+- [ ] Skinparams (32): the names the guide uses, skinparams of stereotypes
+      (`BackgroundColor<<Foo>>`), `monochrome reverse`.
+- [ ] Creole (30): rules (`----`, `....`, `====`, `____`), `<code>`,
+      `~~wavy~~`, `<back:color>`, `<font color|size|name>`, `<U+221E>`,
+      emoji (`<:1f600:>`), `<math>` and `<latex>` in text.
+- [ ] Styles of lines (19): `#line:red;line.bold;text:red`, `[thickness=n]`,
+      `[#a;#b;#c]`, `line.dashed:blue`.
+- [ ] Gradients (16): `#red-green`, `#red/white`, `Lavender/LightBlue`.
+- [ ] `json` and `map` elements in other diagrams (18).
+- [ ] Sprites (13): hex without a size, SVG sprites, a sprite as a
+      stereotype, `listsprite`.
+- [ ] The preprocessor (18): `!foreach`, `!import`, `!theme`, `!pragma`,
+      `%splitstr`, `%splitstr_regex`, `%invoke_procedure`, `%get_all_theme`,
+      `%get_all_stdlib`, `%date`, JSON values.
+- [ ] Commands that draw a page of their own: `colors`, `skinparameters`,
+      `listopeniconic`, `stdlib`.
+
+### Step 6: the Gantt chart (18 of 95)
+
+- [ ] Days: closed days (`saturday are closed`, `2020-07-13 is closed`),
+      dates in their forms, `Print between`, week numbers,
+      `language de|ja|zh|ko`, `%date`.
+- [ ] Resources (`on {Alice}`, `hide resources names` and `footbox`),
+      `displays on same row as`, `then [T] requires 4 days`.
+- [ ] Notes (`note bottom`), `hide footbox`, gradients, `<style>`, labels
+      on the first or the last column.
+- [ ] Drawn but different: the calendar with the weekdays and the month's
+      name.
+
+### Step 7: the other kinds
+
+- [ ] Salt (24 of 40): scroll panes (`{S`, `{SI`, `{S-`), a block inside a
+      row, tabs, a menu or a tree, headings and rules, `listopeniconic`.
+- [ ] JSON and YAML (17 of 25, 4 of 9): `highlight` styles, YAML's anchors,
+      aliases and tags, the JSON forms the reader declines.
+- [ ] Network (28 of 33): a group inside another, the shapes `boundary`,
+      `control` and `label`.
+- [ ] Mind map and WBS (21 of 25, 12 of 17): `<code>`, `Padding`, a
+      footer, lines between WBS nodes, `depth(n)`.
+- [ ] Archimate (6 of 11), maths (2 of 5), information engineering (2 of 4),
+      `@startcreole`, the common commands (48 of 60).
+
 ## Architecture
 
 ```

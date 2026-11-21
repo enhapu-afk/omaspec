@@ -28,6 +28,7 @@ UPDATE_GOLDEN=1 cargo test -p omaspec-uml --test golden    # the same for the na
 UPDATE_GOLDEN=1 cargo test -p omaspec-render --test golden # the same for the Mermaid diagrams Omaspec draws
 OMASPEC_LINES=1 cargo test -p omaspec-render --test lines -- --nocapture   # how clean the lines are; UPDATE_LINES=1 after an intended change
 OMASPEC_SCALE=1 cargo test --release -p omaspec-app scale -- --nocapture  # generated projects of 100 to 2,000 diagrams, timed
+OMASPEC_GUIDE=guide.pdf cargo test --release -p omaspec-render --test guide -- --nocapture  # PlantUML's guide drawn natively, held to tests/guide.tsv; UPDATE_GUIDE=1 keeps what is gained, OMASPEC_GUIDE_CHAPTER=N lists what chapter N declines
 OMASPEC_FRAMES=1 cargo run --release -p omaspec-app -- FILE   # how smooth each dive, glide, play and fade is, on standard error
 OMASPEC_FRAMES=1 cargo test --release -p omaspec-app frames_ -- --nocapture  # the same, headless on the GPU at 2560x1440
 OMASPEC_ARRIVAL_TRACES=/tmp/a.jsonl cargo test -p omaspec-app paper::   # each pane's way through paper/arrival.puml (docs/adr/0030); then omaspec coverage on it

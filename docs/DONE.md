@@ -6,6 +6,25 @@ is open and the reasoning around it.
 
 # Omaspec roadmap
 
+## PlantUML's guide, drawn natively (2026-11-21)
+
+### Step 0: the yardstick, and refusals that say why
+
+- [x] The yardstick (`tests/guide.rs` in `omaspec-render`): a copy of
+      PlantUML's *Language Reference Guide* (`OMASPEC_GUIDE`, through
+      `pdftotext -layout`) cut into its 929 examples, each from `@start…`
+      to `@end…`, the running header and footer left out where a page
+      breaks one (a long section title wraps the header over three lines),
+      each drawn by Omaspec's own engines on as many threads as there are
+      cores (0.7 s). `tests/guide.tsv` keeps per example its printed page,
+      chapter, whether it counts and whether it drew; the guide's text
+      stays out of the repository. Whether an example counts was decided
+      once with PlantUML 1.2026.8, which drew all 929 in Omaspec's sandbox:
+      the 32 it refuses do not count, the 35 network diagrams it wants as
+      `@startnwdiag` do. An example that drew and declines now fails the
+      test; `OMASPEC_GUIDE_CHAPTER=N` lists what a chapter declines and why,
+      `OMASPEC_GUIDE_DIR` writes the examples out. First count: 451 of 897.
+
 ## Phase 0: foundation and spikes
 
 - [x] Workspace, MIT license, `AGENTS.md`, CI (fmt, clippy, test, cargo-deny)
