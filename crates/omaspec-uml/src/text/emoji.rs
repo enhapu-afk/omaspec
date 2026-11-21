@@ -24,7 +24,7 @@ pub fn emoji(text: &str) -> Vec<Range<usize>> {
     let at = |i: usize| chars.get(i).map(|&(_, c)| c);
     let mut i = 0;
     while let Some(c) = at(i) {
-        let asked = at(i + 1) == Some(PICTURE) && !c.is_whitespace() && !c.is_control();
+        let asked = at(i + 1) == Some(PICTURE) && may_ask(c);
         if !(is_picture(c) || asked) {
             i += 1;
             continue;
@@ -49,6 +49,14 @@ pub fn emoji(text: &str) -> Vec<Range<usize>> {
         found.push(start..end);
     }
     found
+}
+
+/// Whether the mark that asks for a picture makes one of `c`: a digit,
+/// `#` or `*` (a keycap's), `©`, `®`, or a sign from the punctuation on
+/// (`‼`, `™`, `↔`, `☀`, `〰`). A letter or a sign of a script before
+/// them stays a letter: a stray mark pasted after one asks for nothing.
+fn may_ask(c: char) -> bool {
+    c.is_ascii_digit() || matches!(c, '#' | '*' | '©' | '®') || u32::from(c) >= 0x2000
 }
 
 /// Whether the emoji face draws `c` as a picture of its own, without the
@@ -126,5 +134,11 @@ mod tests {
         // Letters, signs a text face draws and the mark asking for text
         // are none.
         assert!(emoji("plain \u{2192} \u{2713} \u{263A}\u{FE0E} \u{00E9}").is_empty());
+        // A stray mark after a letter asks for no picture.
+        assert!(emoji("A\u{FE0F}x \u{00E9}\u{FE0F}").is_empty());
+        assert_eq!(
+            pictures("\u{2122}\u{FE0F} #\u{FE0F}\u{20E3}"),
+            ["\u{2122}\u{FE0F}", "#\u{FE0F}\u{20E3}"]
+        );
     }
 }

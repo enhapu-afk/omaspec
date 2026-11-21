@@ -123,6 +123,9 @@ pub struct Canvas {
     echoes: Vec<crate::graph::Rect>,
     /// Shapes without words, each with the line that draws it.
     shapes: Vec<crate::map::Tied>,
+    /// Words with an emoji were drawn in monochrome: the picture defines
+    /// the filter that grays them ([`GRAY`]).
+    grayed: bool,
 }
 
 /// How far a shadow lies to the right of its shape and below it.
@@ -177,6 +180,7 @@ impl Canvas {
             echo: false,
             echoes: Vec::new(),
             shapes: Vec::new(),
+            grayed: false,
         }
     }
 
@@ -769,12 +773,27 @@ impl Canvas {
         let mut out = String::new();
         let _ = write!(
             out,
-            r#"<text font-family="{}" xml:space="preserve">"#,
+            r#"<text font-family="{}" xml:space="preserve""#,
             escape(&faces(&self.font))
         );
+        // An emoji keeps its own colors whatever the fill: in monochrome
+        // the words with one are grayed as a whole.
+        if self.monochrome
+            && block
+                .lines
+                .iter()
+                .flat_map(|line| &line.runs)
+                .any(|run| !crate::text::emoji(&run.text).is_empty())
+        {
+            let _ = write!(out, r#" filter="url(#{GRAY})""#);
+            self.grayed = true;
+        }
+        out.push('>');
         let mut top = y;
-        // Icons stand beside the words, drawn after the text element.
+        // Icons stand beside the words, drawn after the text element, and
+        // so do the lines under words with an emoji ([`Rule`]).
         let mut icons: Vec<(f32, f32, Icon, Color)> = Vec::new();
+        let mut rules: Vec<Rule> = Vec::new();
         for line in &block.lines {
             let left = match align {
                 Align::Left => x,
@@ -797,16 +816,35 @@ impl Canvas {
                             left + cell.left + TABLE_PAD,
                             cell_top + inner.ascent,
                             &mut icons,
+                            &mut rules,
                         );
                         cell_top += inner.height;
                     }
                 }
             } else {
-                self.write_line(&mut out, line, left, top + line.ascent, &mut icons);
+                self.write_line(
+                    &mut out,
+                    line,
+                    left,
+                    top + line.ascent,
+                    &mut icons,
+                    &mut rules,
+                );
             }
             top += line.height;
         }
         out.push_str("</text>");
+        for rule in rules {
+            let _ = write!(
+                out,
+                r#"<path d="M{} {}H{}" stroke="{}" stroke-width="{}"/>"#,
+                n(rule.from),
+                n(rule.y),
+                n(rule.to),
+                self.color(rule.color),
+                n(rule.width)
+            );
+        }
         for (x, baseline, icon, color) in icons {
             let _ = write!(out, r#"<g id="{ICON}">"#);
             self.icon(&mut out, &icon, (x, baseline), color);
@@ -1001,6 +1039,45 @@ impl Canvas {
         self.line(layer, (right, top), (right, bottom), stroke);
     }
 
+    /// The words of `run` in pieces, each emoji one of its own, with how
+    /// wide each is drawn (the run's width shared as they measure) and
+    /// whether it is an emoji. An emoji is set in the emoji faces: a
+    /// viewer that goes down a text's faces for each character it lacks
+    /// takes the first that has it, and DejaVu Sans, before the emoji
+    /// faces in Mermaid's list, has `😱` as an outline of its own, drawn
+    /// small and in one color (REQ-051). The pieces stand side by side,
+    /// each with its own length: resvg spreads a length given around
+    /// pieces over the letters outside them.
+    fn pieces<'a>(&self, run: &'a crate::text::Run) -> Vec<(&'a str, f32, bool)> {
+        let pictures = crate::text::emoji(&run.text);
+        if pictures.is_empty() {
+            return vec![(run.text.as_str(), run.width, false)];
+        }
+        let mut pieces = Vec::new();
+        let mut from = 0;
+        for picture in pictures {
+            if from < picture.start {
+                pieces.push((&run.text[from..picture.start], false));
+            }
+            pieces.push((&run.text[picture.clone()], true));
+            from = picture.end;
+        }
+        if from < run.text.len() {
+            pieces.push((&run.text[from..], false));
+        }
+        let measured: Vec<f32> = pieces
+            .iter()
+            .map(|(words, _)| crate::text::measure(words, &run.style, self.family))
+            .collect();
+        let total: f32 = measured.iter().sum();
+        let share = if total > 0.0 { run.width / total } else { 0.0 };
+        pieces
+            .into_iter()
+            .zip(measured)
+            .map(|((words, picture), width)| (words, width * share, picture))
+            .collect()
+    }
+
     /// One line of `out`'s `<text>`, its first run anchored at `x` and
     /// `baseline`; its icons go to `icons`, with where they stand, and the
     /// words after one start where it ends.
@@ -1011,6 +1088,7 @@ impl Canvas {
         x: f32,
         baseline: f32,
         icons: &mut Vec<(f32, f32, Icon, Color)>,
+        rules: &mut Vec<Rule>,
     ) {
         let mut at = x;
         let mut placed = false;
@@ -1031,44 +1109,89 @@ impl Canvas {
             if let Some(link) = &run.link {
                 open_link(out, link);
             }
-            out.push_str("<tspan");
-            if !placed {
-                let _ = write!(out, r#" x="{}" y="{}""#, n(at), n(baseline));
-                placed = true;
-            }
-            at += run.width;
-            let _ = write!(
-                out,
-                r#" font-size="{}" fill="{}""#,
-                n(s.size),
-                self.color(s.color)
-            );
+            let pieces = self.pieces(run);
             // The handwriting face has a regular cut only. A bold or an
             // italic ask would send usvg to a plain face for that run.
             let hand = self.font == HAND_FONT && !s.mono;
-            if s.bold && !hand {
-                out.push_str(r#" font-weight="bold""#);
-            }
-            if s.italic && !hand {
-                out.push_str(r#" font-style="italic""#);
-            }
-            if s.mono {
-                let _ = write!(out, r#" font-family="{MONO_FACES}""#);
-            }
-            match (s.underline, s.strike) {
-                (true, true) => out.push_str(r#" text-decoration="underline line-through""#),
-                (true, false) => out.push_str(r#" text-decoration="underline""#),
-                (false, true) => out.push_str(r#" text-decoration="line-through""#),
-                _ => {}
-            }
-            if run.width > 0.0 {
+            let cut = |out: &mut String| {
                 let _ = write!(
                     out,
-                    r#" textLength="{}" lengthAdjust="spacing""#,
-                    n(run.width)
+                    r#" font-size="{}" fill="{}""#,
+                    n(s.size),
+                    self.color(s.color)
                 );
+                if s.bold && !hand {
+                    out.push_str(r#" font-weight="bold""#);
+                }
+                if s.italic && !hand {
+                    out.push_str(r#" font-style="italic""#);
+                }
+            };
+            let decoration = match (s.underline, s.strike) {
+                (true, true) => Some("underline line-through"),
+                (true, false) => Some("underline"),
+                (false, true) => Some("line-through"),
+                _ => None,
+            };
+            // Words with an emoji among them are underlined or struck by
+            // lines of their own: a viewer draws a piece's decoration where
+            // its face asks, and the emoji face's steps under the emoji,
+            // even with one span around the pieces.
+            let ruled = decoration.is_some() && pieces.len() > 1;
+            if ruled {
+                let width = (s.size * 0.07).max(0.6);
+                let (from, to, color) = (at, at + run.width, s.color);
+                if s.underline {
+                    let y = baseline + s.size * 0.12;
+                    rules.push(Rule {
+                        from,
+                        to,
+                        y,
+                        width,
+                        color,
+                    });
+                }
+                if s.strike {
+                    let y = baseline - s.size * 0.28;
+                    rules.push(Rule {
+                        from,
+                        to,
+                        y,
+                        width,
+                        color,
+                    });
+                }
             }
-            let _ = write!(out, ">{}</tspan>", escape(&run.text));
+            for (words, width, picture) in pieces {
+                out.push_str("<tspan");
+                if !placed {
+                    let _ = write!(out, r#" x="{}" y="{}""#, n(at), n(baseline));
+                    placed = true;
+                }
+                if picture {
+                    // The emoji face has one cut: a bold or a slant asked
+                    // of it is a browser's own, thickened or skewed.
+                    let _ = write!(
+                        out,
+                        r#" font-size="{}" fill="{}" font-family="{EMOJI_FACES}""#,
+                        n(s.size),
+                        self.color(s.color)
+                    );
+                } else {
+                    cut(out);
+                    if s.mono {
+                        let _ = write!(out, r#" font-family="{MONO_FACES}""#);
+                    }
+                }
+                if let Some(decoration) = decoration.filter(|_| !ruled) {
+                    let _ = write!(out, r#" text-decoration="{decoration}""#);
+                }
+                if width > 0.0 {
+                    let _ = write!(out, r#" textLength="{}" lengthAdjust="spacing""#, n(width));
+                }
+                let _ = write!(out, ">{}</tspan>", escape(words));
+            }
+            at += run.width;
             if run.link.is_some() {
                 out.push_str("</a>");
             }
@@ -1139,6 +1262,12 @@ impl Canvas {
             n(width),
             n(height)
         );
+        if self.grayed {
+            let _ = write!(
+                out,
+                r#"<defs><filter id="{GRAY}" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="0"/></filter></defs>"#
+            );
+        }
         if let Some(bg) = background {
             let _ = write!(
                 out,
@@ -1585,6 +1714,22 @@ pub const SERIF_FACES: &str =
     "Times New Roman, Liberation Serif, Tinos, Times, Nimbus Roman, serif";
 /// [`faces`] for the generic monospace.
 pub const MONO_FACES: &str = "Courier New, Liberation Mono, Cousine, Nimbus Mono PS, monospace";
+/// A line under words with an emoji, or through them, from `from` to `to`
+/// at `y`.
+struct Rule {
+    from: f32,
+    to: f32,
+    y: f32,
+    width: f32,
+    color: Color,
+}
+
+/// The filter that grays words with an emoji in monochrome.
+const GRAY: &str = "omaspec-gray";
+
+/// The faces an emoji is set in, `emoji` the generic family of browsers.
+pub const EMOJI_FACES: &str =
+    "Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji, Twemoji Mozilla, emoji";
 
 pub(crate) fn escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -1987,6 +2132,75 @@ mod tests {
             svg.contains(r#"<g transform="rotate(-45 100 50)"><text"#),
             "{svg}"
         );
+    }
+
+    /// An emoji stands in a span of the emoji faces, so a viewer takes
+    /// none of a text face's outlines for it; the words around it keep the
+    /// text's face (REQ-051).
+    #[test]
+    fn an_emoji_is_set_in_the_emoji_faces() {
+        let mut c = Canvas::new("Inter, DejaVu Sans, Noto Color Emoji", false);
+        let block =
+            crate::text::block("v1 😱 & 👨‍👩‍👧 go", Font::new(12.0, Color::BLACK), c.family()).unwrap();
+        c.text(Layer::Front, &block, (0.0, 0.0), Align::Left);
+        let svg = c.finish(0.0, None);
+        let pieces: Vec<&str> = svg
+            .split("<tspan")
+            .skip(1)
+            .map(|piece| piece.split_once('>').map_or("", |(_, rest)| rest))
+            .map(|words| words.split("</tspan>").next().unwrap_or(words))
+            .collect();
+        assert_eq!(pieces, ["v1 ", "😱", " &amp; ", "👨‍👩‍👧", " go"]);
+        let face = format!(r#"font-family="{EMOJI_FACES}""#);
+        assert_eq!(svg.matches(&face).count(), 2, "{svg}");
+        // Side by side, their lengths those of the whole.
+        let lengths: f32 = svg
+            .split("textLength=\"")
+            .skip(1)
+            .filter_map(|rest| rest.split('"').next()?.parse::<f32>().ok())
+            .sum();
+        assert!(
+            (lengths - block.width).abs() < 0.1,
+            "{lengths} {}",
+            block.width
+        );
+    }
+
+    /// In monochrome an emoji, which keeps its own colors whatever the
+    /// fill, is grayed with its words; words without one are not filtered.
+    /// An emoji's piece takes no cut, and a line under words with one is
+    /// one line of its own under all of them.
+    #[test]
+    fn an_emoji_is_gray_in_monochrome_upright_and_underlined_with_its_words() {
+        let mut c = Canvas::new("sans-serif", true);
+        let font = Font::new(12.0, Color(255, 0, 0));
+        let with = crate::text::block("ship 🚀", font, c.family()).unwrap();
+        let without = crate::text::block("plain", font, c.family()).unwrap();
+        c.text(Layer::Front, &with, (0.0, 0.0), Align::Left);
+        c.text(Layer::Front, &without, (0.0, 20.0), Align::Left);
+        let svg = c.finish(0.0, None);
+        assert!(svg.contains(&format!(r#"<filter id="{GRAY}""#)), "{svg}");
+        assert_eq!(
+            svg.matches(&format!(r#"filter="url(#{GRAY})""#)).count(),
+            1,
+            "{svg}"
+        );
+        let mut plain = Canvas::new("sans-serif", false);
+        let font = Font::new(12.0, Color::BLACK).bold();
+        let block = crate::text::block("<u>go 🚀 now</u>", font, plain.family()).unwrap();
+        plain.text(Layer::Front, &block, (0.0, 0.0), Align::Left);
+        let svg = plain.finish(0.0, None);
+        assert!(!svg.contains("<filter"), "{svg}");
+        assert!(!svg.contains("text-decoration="), "{svg}");
+        let rule = format!(r#"H{}""#, n(block.width));
+        assert_eq!(svg.matches("<path d=\"M0 ").count(), 1, "{svg}");
+        assert!(svg.contains(&rule), "{svg}");
+        let emoji = svg
+            .split(&format!(r#"font-family="{EMOJI_FACES}""#))
+            .next()
+            .unwrap();
+        let piece = &emoji[emoji.rfind("<tspan").unwrap()..];
+        assert!(!piece.contains("font-weight"), "{piece}");
     }
 
     #[test]

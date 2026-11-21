@@ -2897,6 +2897,20 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-051, the gap (2026-11-21): an emoji in a git graph's tag or commit (and in any
+      words Omaspec's canvas writes) was a small outline in one color in a browser. The
+      SVG named DejaVu Sans before the emoji faces, as Mermaid's list does, and a browser
+      takes the first face of the list that has a character: DejaVu Sans has `😱` as an
+      outline of its own. Each emoji now stands in a piece of its own, set in the emoji
+      faces (`EMOJI_FACES`, `emoji` the generic family last), its words beside it in
+      pieces of their own, each with its own length: resvg spread a length given around
+      pieces over the letters outside them. PNG and PDF drew it in color before and
+      still do. An emoji's piece takes no bold and no slant (a browser's would be its own);
+      words with an emoji are underlined or struck by one line of their own under all of
+      them, as the viewers' decoration of each piece stepped at the emoji; in monochrome
+      the words with one are grayed by a filter, since an emoji keeps its colors whatever
+      the fill. A stray mark asking for a picture after a letter (`A\u{FE0F}`) asks for
+      none.
 - [x] REQ-098, a git graph's settings (2026-11-20): `mainBranchName`, `mainBranchOrder`,
       `showBranches`, `showCommitLabel` and `rotateCommitLabel`, in the front matter's
       `config.gitGraph` or an init directive, are carried out by Omaspec's drawer, so
