@@ -254,11 +254,6 @@ what is plainly missing, then the larger pieces.
       chain after a labelled line is lost: `a -->|yes| b --> c --> d` (or
       `a -- yes --> b --> c`) draws only `a` and `b`, and `c` and `d` not
       at all.
-- [ ] REQ-090 to REQ-094, `--ink`: a look to ink into (`--look`), not
-      the play's dark theme; no empty first frame; a length that follows
-      the diagram (`--duration`), and REQ-092 also for a plain play
-      (`--duration`, `--hold`); no ghost text in the cross-fade; less
-      extreme proportions.
 - [ ] REQ-037, the rest: `play --build` builds a gitGraph up as it does
       a flowchart, and `play` takes a gitGraph.
 

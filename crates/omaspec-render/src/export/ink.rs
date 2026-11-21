@@ -28,6 +28,10 @@ pub struct Ink {
     pub ink: f32,
     pub inked: f32,
     pub fade: f32,
+    /// The shares of the ink the sketch's words take to go and the clean
+    /// words to come; the lines and fills turn between.
+    pub words_go: f32,
+    pub words_come: f32,
     /// The clean picture's paper, the page's ground.
     pub paper: Color,
 }
@@ -105,6 +109,8 @@ fn data(ink: &Ink) -> Value {
         "ink": round(ink.ink),
         "inked": round(ink.inked),
         "fade": round(ink.fade),
+        "wordsGo": round(ink.words_go),
+        "wordsCome": round(ink.words_come),
         "strokes": ink.strokes.iter().map(|s| match s {
             Stroke::Drawn { start, end, share } => {
                 json!([round(*start), round(*end), (f64::from(*share) * 1000.0).round() / 1000.0])
@@ -146,6 +152,8 @@ mod tests {
             ink: 1.4,
             inked: 1.8,
             fade: 0.3,
+            words_go: 0.25,
+            words_come: 0.25,
             paper: Color::WHITE,
         };
         let source = Source {
@@ -157,6 +165,7 @@ mod tests {
         assert!(!page.contains("alert(1)"));
         assert!(page.contains(r#"id="s-lines""#) && page.contains(r#"id="c-lines""#));
         assert!(page.contains(r#""kind":"ink""#));
+        assert!(page.contains(r#""wordsGo":0.25"#) && page.contains(r#""wordsCome":0.25"#));
         assert!(page.contains(r#""strokes":[[0.0,1.0,0.5]]"#), "{page}");
         // The source is found where a reader looks: in the first picture.
         let kept = omaspec_core::embed::source_from_svg(&page).unwrap();

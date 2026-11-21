@@ -82,6 +82,10 @@ pub struct Moving {
     /// Instead of a play: the diagram drawn in the sketch look as with a
     /// pen, then inked into the clean look ([`super::ink`]).
     pub ink: bool,
+    /// The look an ink ends in; `None` the colors the play is drawn in.
+    pub look: Option<crate::look::Look>,
+    /// How long the film lasts and holds, where asked (REQ-092).
+    pub timing: super::gifs::Timing,
     /// The whole diagram in every frame, rather than a camera that follows
     /// the play where the whole is too large to read (REQ-071).
     pub whole: bool,
@@ -177,6 +181,23 @@ pub fn play(args: &Moving) -> Result<String> {
         )
     })?;
     let fps = args.fps.unwrap_or(film.usual_fps());
+    let timing = args.timing;
+    anyhow::ensure!(
+        timing
+            .duration
+            .is_none_or(|d| d.is_finite() && (0.5..=600.0).contains(&d)),
+        "--duration takes 0.5 to 600 seconds"
+    );
+    anyhow::ensure!(
+        timing
+            .hold
+            .is_none_or(|h| h.is_finite() && (0.0..=60.0).contains(&h)),
+        "--hold takes 0 to 60 seconds"
+    );
+    anyhow::ensure!(
+        film != Film::Page || args.ink || timing == super::gifs::Timing::default(),
+        "a page plays at its own pace: --duration and --hold are for a GIF, a WebP or a PNG, and for ink"
+    );
     anyhow::ensure!(
         fps >= 1 && fps <= film.most_fps(),
         "--fps takes 1 to {} for {}",
@@ -261,6 +282,13 @@ pub fn play(args: &Moving) -> Result<String> {
         stage.play(args)?
     };
 
+    super::films::timed(
+        &mut stage.frames,
+        args.timing,
+        film,
+        fps,
+        super::gifs::Rest::Last,
+    )?;
     let Some((w, h)) = stage.frames.size() else {
         bail!("no frame was drawn");
     };
@@ -1200,6 +1228,8 @@ mod tests {
                 traffic: Vec::new(),
                 themes: None,
                 ink: false,
+                look: None,
+                timing: Default::default(),
                 whole: false,
                 theme: Some("built-in".into()),
                 file_colors: false,
@@ -1226,6 +1256,64 @@ mod tests {
         // As wide as asked, though the door drawn twice would be wider.
         assert_eq!(u16::from_le_bytes([first[6], first[7]]), 200);
         let _ = std::fs::remove_dir_all(&work);
+    }
+
+    /// `--duration` and `--hold` on a plain play (REQ-092): the film lasts
+    /// as long as asked, its last state held as long as asked.
+    #[test]
+    fn a_play_lasts_and_holds_as_long_as_asked() {
+        let work = std::env::temp_dir().join(format!("omaspec-timed-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&work);
+        std::fs::create_dir_all(&work).unwrap();
+        let file = work.join("door.puml");
+        std::fs::write(
+            &file,
+            "@startuml\n[*] --> Closed\nClosed --> Open : open\nOpen --> Closed : close\n@enduml\n",
+        )
+        .unwrap();
+        let output = work.join("door.gif");
+        let args = Moving {
+            file: file.clone(),
+            text: None,
+            output: output.clone(),
+            events: vec!["open".into(), "close".into()],
+            steps: 2,
+            width: Some(240),
+            fps: Some(10),
+            folds: Vec::new(),
+            dives: Vec::new(),
+            builds: false,
+            lockstep: false,
+            history: false,
+            travel: None,
+            traffic: Vec::new(),
+            themes: None,
+            ink: false,
+            look: None,
+            timing: super::super::gifs::Timing {
+                duration: Some(9.0),
+                hold: Some(2.5),
+            },
+            whole: false,
+            theme: Some("built-in".into()),
+            file_colors: false,
+            root: None,
+            forced: None,
+            renderer: Some("tiny-skia"),
+            quality: super::super::gifs::Quality::default(),
+        };
+        play(&args).unwrap();
+        let mut decoder = gif::DecodeOptions::new()
+            .read_info(std::fs::File::open(&output).unwrap())
+            .unwrap();
+        let mut delays = Vec::new();
+        while let Some(frame) = decoder.read_next_frame().unwrap() {
+            delays.push(frame.delay);
+        }
+        let _ = std::fs::remove_dir_all(&work);
+        let total: u32 = delays.iter().map(|&d| u32::from(d)).sum();
+        assert!((total as i32 - 900).abs() <= 10, "{total}: {delays:?}");
+        assert_eq!(delays.last(), Some(&250), "{delays:?}");
     }
 
     /// The first frame kept is the play standing at its start (REQ-096),
@@ -1261,6 +1349,8 @@ mod tests {
             traffic: Vec::new(),
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1348,6 +1438,8 @@ mod tests {
             traffic: Vec::new(),
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1407,6 +1499,8 @@ mod tests {
                 traffic: Vec::new(),
                 themes: None,
                 ink: false,
+                look: None,
+                timing: Default::default(),
             whole: true,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1451,6 +1545,8 @@ mod tests {
             traffic: Vec::new(),
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1552,6 +1648,8 @@ mod tests {
             traffic: Vec::new(),
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,
@@ -1652,6 +1750,8 @@ mod tests {
             traffic: Vec::new(),
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

@@ -212,6 +212,7 @@ pub(super) fn traffic(args: &Moving, film: Film, fps: u32) -> Result<String> {
             delay,
         );
     }
+    super::films::timed(&mut frames, args.timing, film, fps, super::gifs::Rest::Last)?;
     let Some((w, h)) = frames.size() else {
         bail!("no frame was drawn");
     };
@@ -529,6 +530,8 @@ mod tests {
             traffic: traces,
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

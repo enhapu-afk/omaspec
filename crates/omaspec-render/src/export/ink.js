@@ -37,6 +37,16 @@
   };
   const inkAt = data.end + data.hold;
   const length = inkAt + data.ink + data.inked;
+  // The ink in three: the sketch's words go, its lines and fills turn into
+  // the clean picture's, and the clean words come; words of both at once
+  // stood as ghosts over each other.
+  const sketchWords = pen.filter((p) => p.el.tagName === "text");
+  const cleanWords = [...clean.querySelectorAll("text")].map((el) => ({
+    el,
+    own: Number(el.getAttribute("opacity") || 1),
+  }));
+  const go = data.wordsGo;
+  const come = data.wordsCome;
   const draw = (t) => {
     pen.forEach((p) => {
       if (p.length !== undefined) {
@@ -49,7 +59,16 @@
         p.el.style.opacity = p.own * clamp((t - p.at) / data.fade);
       }
     });
-    clean.style.opacity = smooth((t - inkAt) / data.ink);
+    const k = (t - inkAt) / data.ink;
+    const gone = smooth(k / go);
+    sketchWords.forEach((p) => {
+      p.el.style.opacity = Number(p.el.style.opacity) * (1 - gone);
+    });
+    clean.style.opacity = smooth((k - go) / (1 - go - come));
+    const came = smooth((k - (1 - come)) / come);
+    cleanWords.forEach((w) => {
+      w.el.style.opacity = w.own * came;
+    });
   };
   let begun = null;
   const tick = (time) => {

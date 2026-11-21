@@ -243,6 +243,8 @@ impl App {
             traffic: Vec::new(),
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: None,
             file_colors: !self.follow_theme,

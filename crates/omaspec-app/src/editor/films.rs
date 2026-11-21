@@ -15,6 +15,26 @@ use anyhow::{Context, Result};
 
 use super::gifs::{Frames, changed};
 
+/// `frames` timed as `timing` asks (REQ-092), one frame staying as long
+/// as `film` at `fps` has it stay, `rest` the picture it holds as it
+/// starts again.
+pub fn timed(
+    frames: &mut super::gifs::Frames,
+    timing: super::gifs::Timing,
+    film: Film,
+    fps: u32,
+    rest: super::gifs::Rest,
+) -> anyhow::Result<()> {
+    if timing == super::gifs::Timing::default() {
+        return Ok(());
+    }
+    let (frame, per_second) = match film {
+        Film::Gif => (u16::try_from((100 / fps).max(2)).unwrap_or(5), 100.0),
+        Film::Apng | Film::Webp | Film::Page => (1, fps as f32),
+    };
+    frames.retime(timing, frame, per_second, rest)
+}
+
 /// What a picture that moves is written as.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Film {

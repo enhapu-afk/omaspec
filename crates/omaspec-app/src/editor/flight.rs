@@ -271,6 +271,8 @@ mod tests {
             traffic: Vec::new(),
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

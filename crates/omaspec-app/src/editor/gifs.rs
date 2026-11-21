@@ -56,6 +56,26 @@ impl Default for Quality {
     }
 }
 
+/// How long a hold stays at least when a film is made shorter.
+const LEAST_HOLD: f32 = 0.3;
+
+/// Where a film holds the picture it starts again from: at its end (a
+/// play's last state), or at its start (a sweep's first theme, which the
+/// last sweeps back into).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Rest {
+    First,
+    Last,
+}
+
+/// How long a film lasts and how long it holds the picture it starts
+/// again from, in seconds, where asked (`--duration`, `--hold`).
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Timing {
+    pub duration: Option<f32>,
+    pub hold: Option<f32>,
+}
+
 /// The frames of a picture that moves, as they are drawn: each one unlike
 /// the one before it deflated, with how long it stays; and the colors
 /// seen, from pixels spread over them, for its table. One frame at a time
@@ -166,6 +186,123 @@ impl Frames {
             .map_err(|e| anyhow::anyhow!("a frame does not unpack: {e}"))?;
             take(&rgba, *stay)?;
         }
+        Ok(())
+    }
+
+    /// The film lasting `timing.duration` where asked, its frame at `rest`
+    /// (the picture it holds as it starts again) staying `timing.hold`
+    /// where asked (REQ-092). `frame` is how long one frame stays, in the
+    /// stays' units, of which `per_second` make a second.
+    ///
+    /// A frame that stays longer than one frame holds: it is what came
+    /// of a motion, held. The holds take what the motions leave of the
+    /// length, each as its share of what they held, at least
+    /// [`LEAST_HOLD`]; where they cannot, the motions go quicker, frames
+    /// left out evenly (a hold, the first and the last never). A film
+    /// without another hold holds its rest as long as is left, or, its
+    /// rest's hold asked, moves slower.
+    pub fn retime(
+        &mut self,
+        timing: Timing,
+        frame: u16,
+        per_second: f32,
+        rest: Rest,
+    ) -> Result<()> {
+        if self.kept.is_empty() {
+            return Ok(());
+        }
+        let of = |seconds: f32| (seconds * per_second).round().max(0.0) as u32;
+        let units = |n: u32| u16::try_from(n).unwrap_or(u16::MAX);
+        let frame = u32::from(frame.max(1));
+        let rest_at = match rest {
+            Rest::First => 0,
+            Rest::Last => self.kept.len() - 1,
+        };
+        let hold = timing.hold.map(of);
+        if let Some(hold) = hold {
+            self.kept[rest_at].1 = units(hold.max(frame));
+        }
+        let Some(total) = timing.duration.map(of) else {
+            return Ok(());
+        };
+        let stays: Vec<u32> = self.kept.iter().map(|(_, stay)| u32::from(*stay)).collect();
+        let fixed = if hold.is_some() { stays[rest_at] } else { 0 };
+        let free = |i: &usize| !(hold.is_some() && *i == rest_at);
+        let motions: Vec<usize> = (0..stays.len())
+            .filter(free)
+            .filter(|&i| stays[i] <= frame)
+            .collect();
+        let holds: Vec<(usize, u32)> = (0..stays.len())
+            .filter(free)
+            .filter(|&i| stays[i] > frame)
+            .map(|i| (i, stays[i] - frame))
+            .collect();
+        let moving = frame * (motions.len() + holds.len()) as u32;
+        let held: u32 = holds.iter().map(|(_, extra)| extra).sum();
+        let least = of(LEAST_HOLD).saturating_sub(frame);
+        let floor = least * holds.len() as u32;
+        let room = total.saturating_sub(fixed + moving);
+        if room >= floor {
+            if held > 0 {
+                let share = f64::from(room - floor) / f64::from(held);
+                for &(i, extra) in &holds {
+                    let grown = least + (f64::from(extra) * share).round() as u32;
+                    self.kept[i].1 = units(frame + grown);
+                }
+            } else if hold.is_none() || motions.is_empty() {
+                self.kept[rest_at].1 = units(stays[rest_at] + room);
+            } else {
+                // The rest holds as asked: the motions take the time left,
+                // each frame a little longer.
+                let count = motions.len() as u32;
+                for (n, &i) in motions.iter().enumerate() {
+                    let more = room / count + u32::from((n as u32) < room % count);
+                    self.kept[i].1 = units(frame + more);
+                }
+            }
+            return Ok(());
+        }
+        // The holds at their least, and the motions quicker: of their
+        // frames, as many as the time left has room for, evenly, the first
+        // and the last of all kept.
+        let holding = fixed + (frame + least) * holds.len() as u32;
+        let shortest = holding + frame * u32::from(!motions.is_empty());
+        anyhow::ensure!(
+            total >= shortest,
+            "--duration is too short for this film: its holds take {:.1} s at least",
+            shortest as f32 / per_second
+        );
+        let slots = ((total - holding) / frame).clamp(1, motions.len().max(1) as u32) as usize;
+        let mut taken = vec![false; stays.len()];
+        for (j, &i) in motions.iter().enumerate() {
+            let slot = |j: usize| j * slots / motions.len();
+            let ends = i == 0 || i + 1 == stays.len();
+            taken[i] = ends || j == 0 || slot(j) != slot(j - 1);
+        }
+        let mut kept: Vec<(std::ops::Range<usize>, u16)> = Vec::with_capacity(self.kept.len());
+        for (i, (at, stay)) in self.kept.iter().enumerate() {
+            let stay = if !free(&i) {
+                *stay
+            } else if stays[i] > frame {
+                units(frame + least)
+            } else if taken[i] {
+                units(frame)
+            } else {
+                continue;
+            };
+            // Two frames alike now side by side are one that stays longer,
+            // as when they were drawn: a picture in full color takes no
+            // frame like the one before it.
+            match kept.last_mut() {
+                Some((before, kept_stay))
+                    if self.packed[before.clone()] == self.packed[at.clone()] =>
+                {
+                    *kept_stay = kept_stay.saturating_add(stay);
+                }
+                _ => kept.push((at.clone(), stay)),
+            }
+        }
+        self.kept = kept;
         Ok(())
     }
 
@@ -368,6 +505,135 @@ mod tests {
 
     fn picture(w: usize, h: usize, color: [u8; 4]) -> Vec<u8> {
         color.repeat(w * h)
+    }
+
+    /// A play of two steps at 20 frames a second in a GIF's hundredths:
+    /// three frames of a motion, held half a second, four more, held half
+    /// a second at the end.
+    fn play() -> Frames {
+        let mut frames = Frames::default();
+        let mut shade = 0u8;
+        for (moving, held) in [(3, 10), (4, 10)] {
+            for _ in 0..moving {
+                shade += 20;
+                frames.push(1, 1, &picture(1, 1, [shade, 0, 0, 255]), 5);
+            }
+            for _ in 0..held {
+                frames.push(1, 1, &picture(1, 1, [shade, 0, 0, 255]), 5);
+            }
+        }
+        frames
+    }
+
+    fn stays(frames: &Frames) -> Vec<u16> {
+        frames.kept.iter().map(|(_, stay)| *stay).collect()
+    }
+
+    /// A film that only moves, made longer with its end held as asked:
+    /// the motions take the time, the end keeps its hold. Made much
+    /// shorter, its last frame stays, and two frames alike that come side
+    /// by side are one.
+    #[test]
+    fn a_film_without_holds_moves_slower_and_keeps_its_ends() {
+        let moving = || {
+            let mut frames = Frames::default();
+            for shade in [10u8, 20, 10, 20, 30, 40] {
+                frames.push(1, 1, &picture(1, 1, [shade, 0, 0, 255]), 5);
+            }
+            frames
+        };
+        let mut longer = moving();
+        longer
+            .retime(
+                Timing {
+                    duration: Some(1.0),
+                    hold: Some(0.1),
+                },
+                5,
+                100.0,
+                Rest::Last,
+            )
+            .unwrap();
+        let s = stays(&longer);
+        assert_eq!(s[5], 10, "{s:?}");
+        assert_eq!(s.iter().map(|&s| u32::from(s)).sum::<u32>(), 100, "{s:?}");
+        let mut shorter = moving();
+        let first = shorter.kept[0].0.clone();
+        let last = shorter.kept[5].0.clone();
+        shorter
+            .retime(
+                Timing {
+                    duration: Some(0.1),
+                    hold: None,
+                },
+                5,
+                100.0,
+                Rest::Last,
+            )
+            .unwrap();
+        assert_eq!(shorter.kept.first().map(|k| k.0.clone()), Some(first));
+        assert_eq!(shorter.kept.last().map(|k| k.0.clone()), Some(last));
+        for pair in shorter.kept.windows(2) {
+            assert_ne!(
+                shorter.packed[pair[0].0.clone()],
+                shorter.packed[pair[1].0.clone()]
+            );
+        }
+    }
+
+    /// `--hold` and `--duration` (REQ-092): the end holds as long as
+    /// asked; a longer film holds longer, a shorter one holds shorter and
+    /// then moves quicker, a hold never left out; one shorter than its
+    /// holds can be is refused.
+    #[test]
+    fn a_film_is_retimed_by_its_holds_then_its_motions() {
+        let natural = play();
+        assert_eq!(stays(&natural), [5, 5, 55, 5, 5, 5, 55]);
+        let timed = |duration: Option<f32>, hold: Option<f32>| {
+            let mut frames = play();
+            frames
+                .retime(Timing { duration, hold }, 5, 100.0, Rest::Last)
+                .map(|()| stays(&frames))
+        };
+        assert_eq!(timed(None, Some(2.0)).unwrap(), [5, 5, 55, 5, 5, 5, 200]);
+        // Longer: the holds share what the motions leave.
+        let longer = timed(Some(3.0), None).unwrap();
+        let total: u32 = longer.iter().map(|&s| u32::from(s)).sum();
+        assert!((total as i32 - 300).abs() <= 2, "{longer:?}");
+        assert_eq!(longer[2], longer[6], "{longer:?}");
+        // With the end held as asked, the rest takes what is left.
+        let held = timed(Some(3.0), Some(2.0)).unwrap();
+        assert_eq!(held[6], 200);
+        let total: u32 = held.iter().map(|&s| u32::from(s)).sum();
+        assert!((total as i32 - 300).abs() <= 2, "{held:?}");
+        // Shorter: the holds at their least, then quicker motions.
+        let shorter = timed(Some(0.8), None).unwrap();
+        let total: u32 = shorter.iter().map(|&s| u32::from(s)).sum();
+        assert!((total as i32 - 80).abs() <= 5, "{shorter:?}");
+        assert_eq!(
+            shorter.iter().filter(|&&s| s == 30).count(),
+            2,
+            "{shorter:?}"
+        );
+        assert!(shorter.len() < 7, "{shorter:?}");
+        let error = timed(Some(0.5), None).unwrap_err().to_string();
+        assert!(error.contains("0.6 s at least"), "{error}");
+        // A film that holds its first frame: the hold goes there.
+        let mut sweep = play();
+        sweep
+            .retime(
+                Timing {
+                    duration: None,
+                    hold: Some(2.0),
+                },
+                5,
+                100.0,
+                Rest::First,
+            )
+            .unwrap();
+        assert_eq!(stays(&sweep)[0], 200);
+        // Nothing asked, nothing changed.
+        assert_eq!(timed(None, None).unwrap(), stays(&natural));
     }
 
     #[test]

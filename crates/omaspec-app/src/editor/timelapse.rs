@@ -52,6 +52,13 @@ pub(super) fn timelapse(args: &Moving, film: Film, fps: u32) -> Result<String> {
     let _clock = crate::clock::Recording::start();
     let mut stage = Stage::new(args, film, fps, versions)?;
     stage.play()?;
+    super::films::timed(
+        &mut stage.frames,
+        args.timing,
+        film,
+        fps,
+        super::gifs::Rest::Last,
+    )?;
     let Some((w, h)) = stage.frames.size() else {
         bail!("no frame was drawn");
     };
@@ -770,6 +777,8 @@ mod tests {
             traffic: Vec::new(),
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

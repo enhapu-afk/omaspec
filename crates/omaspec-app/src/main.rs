@@ -537,10 +537,26 @@ enum Command {
         #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "", value_delimiter = ',', value_name = "THEME", conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from", "traffic", "theme"])]
         themes: Option<Vec<String>>,
         /// Instead of a play: the diagram drawn in the sketch look stroke
-        /// by stroke as with a pen, then inked into the clean look it is
-        /// drawn in. Drawn without a GPU.
+        /// by stroke as with a pen, then inked into the clean look
+        /// (`--look`, else the play's colors). The film starts and ends on
+        /// the clean picture, in a frame of a screen's proportions. Drawn
+        /// without a GPU.
         #[arg(long, conflicts_with_all = ["events", "steps", "fold", "dive", "build", "lockstep", "history", "from", "traffic", "themes"])]
         ink: bool,
+        /// With `--ink`: the look the sketch is inked into (plain, vivid,
+        /// omarchy, light, dark, file; auto is light in a film); without
+        /// it, the colors the play is drawn in (`--theme`).
+        #[arg(long, value_enum, requires = "ink")]
+        look: Option<crate::look::Look>,
+        /// How long the film lasts, in seconds: its holds stretched or
+        /// shortened and, where that does not do, its motions quicker.
+        /// With `--ink` the pen takes the time the rest leaves.
+        #[arg(long, value_name = "SECONDS")]
+        duration: Option<f32>,
+        /// How long the film holds the picture it starts again from, in
+        /// seconds: a play's last state, an ink's clean picture.
+        #[arg(long, value_name = "SECONDS")]
+        hold: Option<f32>,
         /// The whole diagram in every frame. Without it, a play or a fold
         /// of a diagram too large to read whole follows each step or each
         /// container, near enough to read, and ends on the whole.
@@ -964,6 +980,9 @@ fn main() -> ExitCode {
             traffic,
             themes,
             ink,
+            look,
+            duration,
+            hold,
             whole,
             theme,
             lang,
@@ -985,6 +1004,8 @@ fn main() -> ExitCode {
                     traffic,
                     themes,
                     ink,
+                    look,
+                    timing: editor::gifs::Timing { duration, hold },
                     whole,
                     theme,
                     text: None,

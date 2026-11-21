@@ -135,6 +135,7 @@ pub(super) fn build(args: &Moving, film: Film, fps: u32) -> Result<String> {
             delay,
         );
     }
+    super::films::timed(&mut frames, args.timing, film, fps, super::gifs::Rest::Last)?;
     let Some((w, h)) = frames.size() else {
         bail!("no frame was drawn");
     };
@@ -481,6 +482,8 @@ mod tests {
             traffic: Vec::new(),
             themes: None,
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: Some("built-in".into()),
             file_colors: false,

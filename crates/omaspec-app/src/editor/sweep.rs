@@ -117,6 +117,13 @@ pub(super) fn sweep(args: &Moving, names: &[String], film: Film, fps: u32) -> Re
         }
         shown = coming;
     }
+    super::films::timed(
+        &mut frames,
+        args.timing,
+        film,
+        fps,
+        super::gifs::Rest::First,
+    )?;
     let (bytes, count) = match film {
         Film::Gif => frames.encode(args.quality)?,
         Film::Apng => super::films::apng(&frames, fps)?,
@@ -425,6 +432,8 @@ mod tests {
             traffic: Vec::new(),
             themes: Some(themes),
             ink: false,
+            look: None,
+            timing: Default::default(),
             whole: false,
             theme: None,
             file_colors: false,

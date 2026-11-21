@@ -2897,6 +2897,25 @@ theme, the roadmap waits (what is open is at the top of ROADMAP.md).
       (`yes`, `no`, an arrow's label) are that line's words, the nearest
       within 14 units: lit with it in the focus, travelling with it in a
       glide.
+- [x] REQ-090 to REQ-094, `--ink`, and REQ-092 for every film (2026-11-21):
+      `--look` gives the look the sketch is inked into (plain, vivid, omarchy, light,
+      dark, file; auto is light in a film; sketch is refused, being what the pen
+      draws); without it, the play's colors, as before (REQ-090). The film starts on
+      the clean picture, held, clears to the paper and the pen draws, so its first
+      frame shows the diagram and it starts again where it ends (REQ-091). The pen
+      takes as long as the diagram asks, 2 to 10 seconds at 700 units a second; with
+      `--duration` it takes what holding, clearing and inking leave, and a length too
+      short for those is refused (REQ-092). The ink comes in three: the sketch's words
+      go, its lines and fills turn into the clean ones, the clean words come, where both
+      pictures' words stood at once as ghosts (REQ-093); the page does the same. The
+      film keeps a height between 0.3 and 1.4 of its width, as a play does, the
+      diagram amid its paper: a tall state machine was a strip of 480 by 1052, a wide one
+      1200 by 218 (REQ-094). `--duration` and `--hold` time every film (REQ-092): the
+      last frame, the state the film starts again from, holds as long as `--hold`; the
+      other holds share what the motions leave of `--duration`, each at least 0.3 s,
+      and where that is not enough the motions go quicker, frames left out evenly, a
+      hold never (`Frames::retime`). Six steps of a play were 14.4 s, seven 16.3 s.
+      A page plays at its own pace and refuses both, but for ink.
 - [x] REQ-051, the gap (2026-11-21): an emoji in a git graph's tag or commit (and in any
       words Omaspec's canvas writes) was a small outline in one color in a browser. The
       SVG named DejaVu Sans before the emoji faces, as Mermaid's list does, and a browser
