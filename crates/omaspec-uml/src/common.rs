@@ -165,6 +165,9 @@ pub struct Frame {
     pub scale: Option<Scale>,
     /// `skinparam` lines and what `<style>` blocks stand for, in order.
     pub skinparams: Vec<Skinparam>,
+    /// How many pages the diagram has (`newpage`, 0 is one): a header's
+    /// `%page%` is the first, a footer's the last, `%lastpage%` the count.
+    pub pages: usize,
     /// The elements a `<style>` block reaches in this diagram type;
     /// without them it declines.
     pub styled: Option<&'static [Element]>,
@@ -249,6 +252,25 @@ const MAX_FACTOR: f32 = 10.0;
 const MAX_SIZE: f32 = 20_000.0;
 
 impl Frame {
+    /// The header and the footer with their page numbers: a header stands
+    /// over the first page, a footer under the last.
+    pub fn numbered(&self) -> (Option<Text>, Option<Text>) {
+        let pages = self.pages.max(1);
+        let number = |text: Option<&Text>, page: usize| {
+            text.map(|t| Text {
+                value: t
+                    .value
+                    .replace("%page%", &page.to_string())
+                    .replace("%lastpage%", &pages.to_string()),
+                ..t.clone()
+            })
+        };
+        (
+            number(self.header.as_ref(), 1),
+            number(self.footer.as_ref(), pages),
+        )
+    }
+
     /// A frame for a diagram type whose elements `<style>` reaches.
     pub fn styled(elements: &'static [Element]) -> Frame {
         Frame {
@@ -308,11 +330,12 @@ impl Frame {
                 } else {
                     (rest.to_owned(), at + 1)
                 };
-                let (slot, value) = match word {
-                    "title" => (&mut self.title, value),
-                    // A diagram is one page here (`newpage` declines).
-                    "header" => (&mut self.header, one_page(&value)),
-                    _ => (&mut self.footer, one_page(&value)),
+                // Its page numbers are filled in as it is drawn
+                // ([`Frame::numbered`]): `newpage` may come after it.
+                let slot = match word {
+                    "title" => &mut self.title,
+                    "header" => &mut self.header,
+                    _ => &mut self.footer,
                 };
                 *slot = Some(Text {
                     value,
@@ -646,12 +669,6 @@ pub fn squeezed_eq(text: &str, word: &str) -> bool {
     text.split_whitespace()
         .collect::<String>()
         .eq_ignore_ascii_case(word)
-}
-
-/// A header's or footer's text with its page numbers filled in, as
-/// `Page %page% of %lastpage%` reads on the one page there is.
-fn one_page(text: &str) -> String {
-    text.replace("%page%", "1").replace("%lastpage%", "1")
 }
 
 /// The lines that may hold the elements of a diagram and tell which type
@@ -1118,16 +1135,21 @@ mod tests {
     }
 
     #[test]
-    fn a_header_and_a_footer_count_the_one_page() {
-        let f =
-            frame("header Page Header\nfooter Page %page% of %lastpage%\ntitle %page%").unwrap();
-        assert_eq!(f.header.unwrap().value, "Page Header");
-        assert_eq!(f.footer.unwrap().value, "Page 1 of 1");
+    fn a_header_and_a_footer_count_the_pages() {
+        let mut f =
+            frame("header Page %page%\nfooter Page %page% of %lastpage%\ntitle %page%").unwrap();
+        let (header, footer) = f.numbered();
+        assert_eq!(header.unwrap().value, "Page 1");
+        assert_eq!(footer.unwrap().value, "Page 1 of 1");
         assert_eq!(
-            f.title.unwrap().value,
+            f.title.as_ref().unwrap().value,
             "%page%",
             "only headers and footers count pages"
         );
+        f.pages = 3;
+        let (header, footer) = f.numbered();
+        assert_eq!(header.unwrap().value, "Page 1");
+        assert_eq!(footer.unwrap().value, "Page 3 of 3");
     }
 
     #[test]

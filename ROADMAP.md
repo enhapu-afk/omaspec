@@ -58,8 +58,6 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
 
 ### Step 1: the sequence diagram (59 of 79)
 
-- [ ] Participants: `order N`, a declaration over several lines in
-      brackets (`participant P [ … ]`), `sequenceParticipantFontName`.
 - [ ] A box inside a box; a group's colors (`alt#Gold #LightBlue`).
 - [ ] Skinparams: `maxMessageSize` (the words wrap),
       `responseMessageBelowArrow`, `guillemet false`, `stereotypePosition
@@ -125,7 +123,9 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
       (`node { Padding }`, `legend { Margin }`, `depth(n)`, classes of
       stereotypes `.h1`, a font name beyond `root`).
 - [ ] Skinparams (32): the names the guide uses, skinparams of stereotypes
-      (`BackgroundColor<<Foo>>`), `monochrome reverse`.
+      (`BackgroundColor<<Foo>>`), `monochrome reverse`, a font name for one
+      kind of element (`ParticipantFontName`, `ActorFontName`): the face
+      measured and written for its words alone.
 - [ ] Creole (30): rules (`----`, `....`, `====`, `____`), `<code>`,
       `~~wavy~~`, `<back:color>`, `<font color|size|name>`, `<U+221E>`,
       emoji (`<:1f600:>`), `<math>` and `<latex>` in text.

@@ -56,6 +56,14 @@ is open and the reasoning around it.
       bars open at the break go on, the lifelines leave the gap empty. A
       page inside a group declines. Converted to Mermaid, a page and a
       slant are said to be lost. The guide: 59 of 79 sequence diagrams.
+- [x] Participants in their order and over several lines (2026-11-21).
+      `participant A order 10` places it among the others, sorted stably,
+      those without an order counting as 0, as PlantUML does; a declaration
+      that ends with `[` takes its words from the lines up to `]` (its
+      Creole rules and headings come with step 5). A header's and a
+      footer's page numbers are filled in as the diagram is drawn: the
+      header stands over the first page, the footer under the last, and
+      `%lastpage%` counts the pages `newpage` makes.
 
 ## Phase 0: foundation and spikes
 

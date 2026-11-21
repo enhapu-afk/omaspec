@@ -301,7 +301,7 @@ fn without_java_plantuml_is_unavailable() {
     );
     assert!(err.to_string().contains("skinparam"), "{err}");
     // A kind it draws, with a line it does not: that line.
-    let sequence = "@startuml\nA -> B\nnewpage\n@enduml\n";
+    let sequence = "@startuml\nA -> B\nskin rose\n@enduml\n";
     let err = renderer.render(sequence, Language::PlantUml).unwrap_err();
     assert!(
         matches!(err, RenderError::Unavailable { line: Some(2), .. }),

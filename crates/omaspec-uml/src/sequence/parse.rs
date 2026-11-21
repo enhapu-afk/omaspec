@@ -94,6 +94,9 @@ struct Parser {
     /// The participants from left to right: declaring one again moves it
     /// to the end, as in PlantUML.
     order: Vec<usize>,
+    /// `participant A order 10`: where it stands among the others, sorted
+    /// in a stable way; those without an order count as 0.
+    places: std::collections::HashMap<usize, i64>,
 }
 
 impl Default for Parser {
@@ -120,6 +123,7 @@ impl Default for Parser {
             pending_create: None,
             after_delay: false,
             order: Vec::new(),
+            places: std::collections::HashMap::new(),
         }
     }
 }
@@ -254,6 +258,21 @@ impl Parser {
             return Ok(at + 1);
         }
         if let Some((shape, rest)) = shape_keyword(text) {
+            // `participant P [`, its words on the lines up to `]`.
+            let open = rest.trim_end();
+            if let Some(head) = open.strip_suffix('[').filter(|h| !h.ends_with('[')) {
+                let end = lines[at + 1..]
+                    .iter()
+                    .position(|l| l.text.trim() == "]")
+                    .map(|i| at + 1 + i)
+                    .ok_or_else(|| {
+                        Declined::at(no, "the participant's `[` has no `]` to end it")
+                    })?;
+                let body: Vec<&str> = lines[at + 1..end].iter().map(|l| l.text.trim()).collect();
+                let index = self.declare(shape, head, no)?;
+                self.diagram.participants[index].label = body.join("\n");
+                return Ok(end + 1);
+            }
             self.declare(shape, rest, no)?;
             return Ok(at + 1);
         }
@@ -441,7 +460,16 @@ impl Parser {
                 format!("`create {code}` needs a message to `{code}` after it"),
             ));
         }
+        self.frame.pages = 1 + self
+            .diagram
+            .items
+            .iter()
+            .filter(|i| matches!(i, Item::NewPage { .. }))
+            .count();
         self.diagram.frame = self.frame;
+        let places = &self.places;
+        self.order
+            .sort_by_key(|index| places.get(index).copied().unwrap_or(0));
         Ok(reordered(self.diagram, &self.order))
     }
 
@@ -527,8 +555,17 @@ impl Parser {
         let mut spot = None;
         let mut color = None;
         let mut link = None;
+        let mut place = None;
         let mut rest = rest.trim_start();
         while !rest.is_empty() {
+            if let Some(after) = keyword(rest, "order") {
+                let token = after.split_whitespace().next().unwrap_or("");
+                place = Some(token.parse::<i64>().map_err(|_| {
+                    Declined::at(no, "`order` takes a whole number, as `order 10`")
+                })?);
+                rest = after.trim_start()[token.len()..].trim_start();
+                continue;
+            }
             if let Some(after) = rest.strip_prefix("<<") {
                 let end = after
                     .find(">>")
@@ -615,6 +652,9 @@ impl Parser {
             if !members.contains(&index) {
                 members.push(index);
             }
+        }
+        if let Some(place) = place {
+            self.places.insert(index, place);
         }
         Ok(index)
     }
@@ -2356,6 +2396,18 @@ mod tests {
     }
 
     #[test]
+    fn an_order_places_a_participant_and_brackets_hold_its_words() {
+        let d = diagram(concat!(
+            "participant A\nparticipant B order 5\nparticipant C order -1\n",
+            "participant D\nparticipant E order 0\nA -> D",
+        ));
+        assert_eq!(codes(&d), ["C", "A", "D", "E", "B"]);
+        let d = diagram("participant P [\n  first\n  second\n]\nparticipant Q\nP -> Q");
+        assert_eq!(codes(&d), ["P", "Q"]);
+        assert_eq!(d.participants[0].label, "first\nsecond");
+    }
+
+    #[test]
     fn numbers_in_levels_raise_and_reset() {
         let d = diagram(concat!(
             "autonumber 1.1.1\nA -> B\nB --> A\n",
@@ -2569,7 +2621,12 @@ mod tests {
             ("@startuml\nscale 0\n@enduml", 1, "factor"),
             ("@startuml\nscale 2 inches\n@enduml", 1, "not understood"),
             ("@startuml\nA -[thickness=3]-> B\n@enduml", 1, "thickness"),
-            ("@startuml\nparticipant A order 10\n@enduml", 1, "order 10"),
+            (
+                "@startuml\nparticipant A order ten\n@enduml",
+                1,
+                "whole number",
+            ),
+            ("@startuml\nparticipant A [\nx\n@enduml", 1, "no `]`"),
             ("@startuml\nA -> B foo\n@enduml", 1, "foo"),
             ("@startuml\nhide stereotype\n@enduml", 1, "hide stereotype"),
             ("@startuml\nbox A\nbox B\n@enduml", 2, "inside a box"),

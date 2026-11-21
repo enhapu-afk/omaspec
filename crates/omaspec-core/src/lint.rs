@@ -971,7 +971,7 @@ mod tests {
         assert!(omaspec_uml::parse(state).is_err());
         let found = codes(state, Language::PlantUml);
         assert!(found.contains(&(4, "lone-state")), "{found:?}");
-        let sequence = "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bobb : hi\nautoactivate on\n@enduml\n";
+        let sequence = "@startuml\nparticipant Alice\nparticipant Bob\nAlice -> Bobb : hi\nskin rose\n@enduml\n";
         assert!(omaspec_uml::parse(sequence).is_err());
         let found = codes(sequence, Language::PlantUml);
         assert!(found.contains(&(3, "undeclared-participant")), "{found:?}");

@@ -58,10 +58,11 @@ impl Annotations {
             }),
             None => None,
         };
+        let (numbered_header, numbered_footer) = frame.numbered();
         Ok(Annotations {
             title: measure(frame.title.as_ref(), title)?,
-            header: measure(frame.header.as_ref(), header)?,
-            footer: measure(frame.footer.as_ref(), footer)?,
+            header: measure(numbered_header.as_ref(), header)?,
+            footer: measure(numbered_footer.as_ref(), footer)?,
             caption: measure(frame.caption.as_ref(), caption)?,
             legend,
             frame: match &frame.mainframe {
