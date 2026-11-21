@@ -192,6 +192,9 @@ pub struct Message {
     /// `&` before it: its arrow lies at the height of the message or the
     /// note before it.
     pub together: bool,
+    /// `->(10)` or `(10)<-`: how many pixels the arrow falls from its
+    /// sender to its receiver; 0 for a level one.
+    pub slant: f32,
     pub line: usize,
 }
 

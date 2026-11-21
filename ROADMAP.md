@@ -58,7 +58,6 @@ examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
 
 ### Step 1: the sequence diagram (52 of 79)
 
-- [ ] Slanted messages: `A ->(10) B`, `A (10)<- B`.
 - [ ] Numbers and pages: `autonumber 1.1.1` with `autonumber inc A` and
       `inc B`, `autoactivate on`, `newpage` (one page under the other).
 - [ ] Participants: `order N`, a declaration over several lines in

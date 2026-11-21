@@ -724,6 +724,7 @@ impl Parser {
             number,
             creates,
             together: false,
+            slant: 0.0,
             line: no,
         }));
         self.last_message = Some((End::Participant(participant), caller));
@@ -870,6 +871,7 @@ impl Parser {
             number,
             creates,
             together: false,
+            slant: raw.slant,
             line: no,
         }));
         self.last_message = Some((from, to));
@@ -923,7 +925,16 @@ impl Parser {
             .map(|rest| (Side::Left, rest))
             .or_else(|| word_then(rest, "right").map(|rest| (Side::Right, rest)));
         let (place, rest) = if let Some((side, rest)) = side {
-            match keyword(rest, "of") {
+            // `note left S1` is `note left of S1`, where S1 is there.
+            let beside = keyword(rest, "of").or_else(|| {
+                let (code, _) = name(rest.trim_start())?;
+                self.diagram
+                    .participants
+                    .iter()
+                    .any(|p| p.code == code)
+                    .then_some(rest)
+            });
+            match beside {
                 Some(rest) => {
                     let (code, rest) = name(rest)
                         .ok_or_else(|| Declined::at(no, "`note … of` needs a participant"))?;
@@ -1288,6 +1299,8 @@ struct RawMessage<'a> {
     left: RawEnd,
     arrow: ArrowParts,
     right: RawEnd,
+    /// `(10)` before or after the arrow.
+    slant: f32,
     /// After the second end: `++` and the like, `: text`.
     rest: &'a str,
 }
@@ -1317,9 +1330,27 @@ fn split_message(text: &str) -> Option<Result<RawMessage<'_>, String>> {
         return arrow(arrow_text.trim_start(), true)
             .map(|_| Err("`[` and `?` go right before the arrow, without a space".into()));
     }
-    let (arrow, rest) = match arrow(arrow_text, may_mark)? {
+    let (before, arrow_text) = match slant(arrow_text) {
+        Some((fall, rest)) => (Some(fall), rest),
+        None => (None, arrow_text),
+    };
+    let (arrow, rest) = match arrow(arrow_text, may_mark || before.is_some())? {
         Ok(found) => found,
         Err(reason) => return Some(Err(reason)),
+    };
+    let (after, rest) = match slant(rest) {
+        Some((fall, rest)) => (Some(fall), rest),
+        None => (None, rest),
+    };
+    let slant = match (before, after) {
+        (Some(_), Some(_)) => {
+            return Some(Err(
+                "a slant goes before the arrow or after it, not both".into()
+            ));
+        }
+        (Some(Err(reason)), _) | (_, Some(Err(reason))) => return Some(Err(reason)),
+        (Some(Ok(fall)), None) | (None, Some(Ok(fall))) => fall,
+        (None, None) => 0.0,
     };
     let (right, rest) = if let Some(rest) = rest.strip_prefix(']') {
         (RawEnd::Edge, rest)
@@ -1347,8 +1378,29 @@ fn split_message(text: &str) -> Option<Result<RawMessage<'_>, String>> {
         left,
         arrow,
         right,
+        slant,
         rest,
     }))
+}
+
+/// The most a slanted arrow may fall.
+const MOST_SLANT: f32 = 1000.0;
+
+/// `(10)` at the start of `text`, beside an arrow: how many pixels it
+/// falls, and the rest.
+fn slant(text: &str) -> Option<(Result<f32, String>, &str)> {
+    let inner = text.strip_prefix('(')?;
+    let close = inner.find(')')?;
+    let digits = &inner[..close];
+    if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let fall = digits
+        .parse::<f32>()
+        .ok()
+        .filter(|fall| *fall <= MOST_SLANT)
+        .ok_or_else(|| format!("a slant falls {MOST_SLANT} pixels at most"));
+    Some((fall, &inner[close + 1..]))
 }
 
 /// A participant at one end of a message: `Name` or `"Long name"`, and for
@@ -2186,6 +2238,42 @@ mod tests {
         assert!(declined("end").reason.contains("without an open group"));
         assert!(declined("else").reason.contains("outside a group"));
         assert!(declined("alt#Gold x\nend").reason.contains("group colors"));
+    }
+
+    #[test]
+    fn a_note_beside_a_participant_may_leave_out_of() {
+        let d = diagram("A -> B\nnote left: one\nnote left A: two\nnote right B : three");
+        let places: Vec<NotePlace> = d
+            .items
+            .iter()
+            .filter_map(|i| match i {
+                Item::Note(n) => Some(n.place),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            places,
+            [
+                NotePlace::Message(Side::Left),
+                NotePlace::LeftOf(0),
+                NotePlace::RightOf(1)
+            ]
+        );
+    }
+
+    #[test]
+    fn a_slant_falls_from_sender_to_receiver() {
+        let d = diagram("A ->(10) B : down\nA (20)<- B\nA -> B\nA -->(5) B");
+        let falls: Vec<f32> = messages(&d).iter().map(|m| m.slant).collect();
+        assert_eq!(falls, [10.0, 20.0, 0.0, 5.0]);
+        assert_eq!(messages(&d)[1].from, End::Participant(1));
+        for (source, reason) in [("A (10)->(20) B", "not both"), ("A ->(1001) B", "at most")] {
+            let err = declined(source);
+            assert!(err.reason.contains(reason), "{source}: {}", err.reason);
+        }
+        // Words in parentheses are no slant.
+        let d = diagram("A -> B : (10) seconds");
+        assert_eq!(messages(&d)[0].slant, 0.0);
     }
 
     #[test]

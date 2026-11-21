@@ -25,6 +25,18 @@ is open and the reasoning around it.
       test; `OMASPEC_GUIDE_CHAPTER=N` lists what a chapter declines and why,
       `OMASPEC_GUIDE_DIR` writes the examples out. First count: 451 of 897.
 
+### Step 1: the sequence diagram
+
+- [x] Slanted messages (2026-11-21): `A ->(10) B` and `A (10)<- B` fall
+      that many pixels from the sender to the receiver, whichever side of
+      the arrow the number stands on; the heads and an `o` turn along the
+      line, a bar the message opens or closes starts or ends where it
+      arrives, and its row grows by the fall. A fall of more than 1,000
+      pixels, or one on both sides, declines. Level arrows draw as they
+      did, to the byte. With them, `note left S1` is `note left of S1`
+      where S1 is a participant, as PlantUML reads it. The guide: 56 of
+      79 sequence diagrams (from 52).
+
 ## Phase 0: foundation and spikes
 
 - [x] Workspace, MIT license, `AGENTS.md`, CI (fmt, clippy, test, cargo-deny)

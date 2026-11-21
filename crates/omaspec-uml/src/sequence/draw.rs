@@ -1787,7 +1787,7 @@ impl<'a> Drawer<'a> {
         // beside that), and how far the frames around reach for it.
         let (text_left, lo, hi, reach);
         // Where activations and a destruction right after it happen.
-        let mut lifecycle_y = arrow_y;
+        let lifecycle_y;
         if let (Some(a), Some(b)) = (from, to)
             && a == b
         {
@@ -1812,6 +1812,7 @@ impl<'a> Drawer<'a> {
                 m.arrow.head,
                 m.arrow.end_mark,
                 stroke,
+                None,
             );
             if m.arrow.tail != Head::None {
                 self.arrow_end(
@@ -1821,6 +1822,7 @@ impl<'a> Drawer<'a> {
                     m.arrow.tail,
                     m.arrow.start_mark,
                     stroke,
+                    None,
                 );
             }
             points = vec![
@@ -1876,8 +1878,13 @@ impl<'a> Drawer<'a> {
             let sx = place(m.from, to, false, self);
             let tx = place(m.to, from, true, self);
             let dir = if tx >= sx { 1.0 } else { -1.0 };
-            self.arrow_line(canvas, sx, tx, arrow_y, dir, m, stroke);
-            points = vec![(sx, arrow_y), (tx, arrow_y)];
+            // A slanted arrow reaches its receiver lower down, and what
+            // happens there happens at that height.
+            let ty = arrow_y + m.slant;
+            self.arrow_line(canvas, (sx, arrow_y), (tx, ty), dir, m, stroke);
+            points = vec![(sx, arrow_y), (tx, ty)];
+            after = after.max(ty + 3.0);
+            lifecycle_y = ty;
             let (l, r) = (sx.min(tx), sx.max(tx));
             // Clear of a head at either end.
             let head_at = |left_end: bool| {
@@ -2035,32 +2042,45 @@ impl<'a> Drawer<'a> {
 
     /// The line of a message between `sx` and `tx`, with its heads and marks.
     #[allow(clippy::too_many_arguments)]
+    /// The arrow of a message from `(sx, sy)` to its tip at `(tx, ty)`,
+    /// `dir` 1 to the right, -1 to the left; one that slants (`->(10)`)
+    /// has its heads and marks turned along it.
     fn arrow_line(
         &self,
         canvas: &mut Canvas,
-        sx: f32,
-        tx: f32,
-        y: f32,
+        (sx, sy): (f32, f32),
+        (tx, ty): (f32, f32),
         dir: f32,
         m: &Message,
         stroke: Stroke,
     ) {
         let a = &m.arrow;
-        let mut start = sx;
-        let mut end = tx;
+        // Along the arrow toward its tip, and how far that turns a head
+        // drawn level.
+        let (ux, uy, turn) = if ty == sy {
+            (dir, 0.0, None)
+        } else {
+            let (dx, dy) = (tx - sx, ty - sy);
+            let length = dx.hypot(dy);
+            let (ux, uy) = (dx / length, dy / length);
+            (ux, uy, Some((ux * dir, uy * dir)))
+        };
+        let mut start = (sx, sy);
+        let mut end = (tx, ty);
+        let circle = Stroke {
+            dash: None,
+            ..stroke
+        };
         match a.end_mark {
             Mark::Circle => {
                 canvas.ellipse(
                     Layer::Front,
-                    (tx - dir * 4.0, y),
+                    (tx - ux * 4.0, ty - uy * 4.0),
                     (4.0, 4.0),
                     None,
-                    Some(Stroke {
-                        dash: None,
-                        ..stroke
-                    }),
+                    Some(circle),
                 );
-                end = tx - dir * 8.0;
+                end = (tx - ux * 8.0, ty - uy * 8.0);
             }
             Mark::Cross => {}
             Mark::None => {}
@@ -2069,31 +2089,31 @@ impl<'a> Drawer<'a> {
             Mark::Circle => {
                 canvas.ellipse(
                     Layer::Front,
-                    (sx + dir * 4.0, y),
+                    (sx + ux * 4.0, sy + uy * 4.0),
                     (4.0, 4.0),
                     None,
-                    Some(Stroke {
-                        dash: None,
-                        ..stroke
-                    }),
+                    Some(circle),
                 );
-                start = sx + dir * 8.0;
+                start = (sx + ux * 8.0, sy + uy * 8.0);
             }
-            Mark::Cross => cross(canvas, (sx, y), stroke),
+            Mark::Cross => cross(canvas, (sx, sy), stroke),
             Mark::None => {}
         }
-        canvas.line(Layer::Front, (start, y), (end, y), stroke);
+        canvas.line(Layer::Front, start, end, stroke);
         if a.end_mark == Mark::Cross {
-            cross(canvas, (tx, y), stroke);
+            cross(canvas, (tx, ty), stroke);
         } else {
-            self.arrow_end(canvas, (end, y), dir, a.head, Mark::None, stroke);
+            self.arrow_end(canvas, end, dir, a.head, Mark::None, stroke, turn);
         }
         if a.tail != Head::None {
-            self.arrow_end(canvas, (start, y), -dir, a.tail, Mark::None, stroke);
+            self.arrow_end(canvas, start, -dir, a.tail, Mark::None, stroke, turn);
         }
     }
 
-    /// A head with its tip at `tip`, pointing in `dir` (1 right, -1 left).
+    /// A head with its tip at `tip`, pointing in `dir` (1 right, -1 left),
+    /// and turned about its tip by `turn` (the cosine and sine) where its
+    /// arrow slants.
+    #[allow(clippy::too_many_arguments)]
     fn arrow_end(
         &self,
         canvas: &mut Canvas,
@@ -2102,6 +2122,7 @@ impl<'a> Drawer<'a> {
         head: Head,
         mark: Mark,
         stroke: Stroke,
+        turn: Option<(f32, f32)>,
     ) {
         if mark == Mark::Cross {
             cross(canvas, (x, y), stroke);
@@ -2112,46 +2133,53 @@ impl<'a> Drawer<'a> {
             width: stroke.width.min(1.5),
             ..stroke
         };
+        let at = |px: f32, py: f32| match turn {
+            None => (px, py),
+            Some((cos, sin)) => (
+                x + cos * (px - x) - sin * (py - y),
+                y + sin * (px - x) + cos * (py - y),
+            ),
+        };
         let back = x - dir * HEAD_LENGTH;
         let fill = Some(stroke.color);
         match head {
             Head::None => {}
             Head::Filled if self.skin.strict => canvas.polygon(
                 Layer::Front,
-                &[(back, y - HEAD_HALF), (x, y), (back, y + HEAD_HALF)],
+                &[at(back, y - HEAD_HALF), (x, y), at(back, y + HEAD_HALF)],
                 fill,
                 Some(solid),
             ),
             Head::Filled => canvas.polygon(
                 Layer::Front,
                 &[
-                    (back, y - HEAD_HALF),
+                    at(back, y - HEAD_HALF),
                     (x, y),
-                    (back, y + HEAD_HALF),
-                    (x - dir * 6.0, y),
+                    at(back, y + HEAD_HALF),
+                    at(x - dir * 6.0, y),
                 ],
                 fill,
                 Some(solid),
             ),
             Head::Open => canvas.polyline(
                 Layer::Front,
-                &[(back, y - HEAD_HALF), (x, y), (back, y + HEAD_HALF)],
+                &[at(back, y - HEAD_HALF), (x, y), at(back, y + HEAD_HALF)],
                 solid,
             ),
             Head::UpperFilled => canvas.polygon(
                 Layer::Front,
-                &[(back, y - HEAD_HALF), (x, y), (back, y)],
+                &[at(back, y - HEAD_HALF), (x, y), at(back, y)],
                 fill,
                 Some(solid),
             ),
             Head::LowerFilled => canvas.polygon(
                 Layer::Front,
-                &[(back, y + HEAD_HALF), (x, y), (back, y)],
+                &[at(back, y + HEAD_HALF), (x, y), at(back, y)],
                 fill,
                 Some(solid),
             ),
-            Head::UpperOpen => canvas.line(Layer::Front, (back, y - HEAD_HALF), (x, y), solid),
-            Head::LowerOpen => canvas.line(Layer::Front, (back, y + HEAD_HALF), (x, y), solid),
+            Head::UpperOpen => canvas.line(Layer::Front, at(back, y - HEAD_HALF), (x, y), solid),
+            Head::LowerOpen => canvas.line(Layer::Front, at(back, y + HEAD_HALF), (x, y), solid),
         }
     }
 

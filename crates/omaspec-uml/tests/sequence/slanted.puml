@@ -1,0 +1,12 @@
+@startuml
+' Slanted arrows (`->(n)` or `(n)<-`): each falls n pixels from its
+' sender to its receiver, its heads turned along it; a bar that starts
+' or ends with it does so where it arrives.
+participant Client
+participant Server
+Client ->(20) Server ++ : request
+Server -->(30) Client -- : response
+Client (15)<- Server : notice
+Client <->(20) Server : both ways
+Client -> Server : level again
+@enduml

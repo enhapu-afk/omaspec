@@ -631,6 +631,7 @@ fn message(
             number,
             creates: false,
             together: false,
+            slant: 0.0,
             line,
         },
         life,
