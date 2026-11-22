@@ -327,6 +327,34 @@ fn a_renamed_state_keeps_its_lines_and_its_place_by_hand() {
     );
 }
 
+/// `note on link` is no mention of a state called `On` or `Link`, in a
+/// block or on its line; a note beside a state called `Link` is.
+#[test]
+fn a_note_on_link_is_no_mention_of_a_state() {
+    let lamp = "@startuml\n[*] --> Off\nOff --> On : press\nnote on link : turns it on\nOn --> Off : press\nnote on link\n  On again\nend note\nOn --> Link\nnote right of Link : linked\n@enduml\n";
+    let files = vec![File {
+        path: "lamp.puml",
+        text: lamp,
+        kind: FileKind::Diagram(Language::PlantUml),
+    }];
+    let specs = specs(&files);
+    let plan = rename("On", "Lit", None, Some(Thing::State), &files, &specs).unwrap();
+    let after = plan.apply("lamp.puml", lamp);
+    assert!(after.contains("note on link : turns it on\n"), "{after}");
+    assert!(
+        after.contains("note on link\n  On again\nend note\n"),
+        "{after}"
+    );
+    assert!(
+        after.contains("Off --> Lit : press\nnote on link"),
+        "{after}"
+    );
+    let plan = rename("Link", "Chain", None, Some(Thing::State), &files, &specs).unwrap();
+    let after = plan.apply("lamp.puml", lamp);
+    assert!(after.contains("note on link : turns it on\n"), "{after}");
+    assert!(after.contains("note right of Chain : linked"), "{after}");
+}
+
 /// A note of its own is no state, but a state may not take its name.
 #[test]
 fn a_state_is_not_renamed_onto_a_note_s_name() {

@@ -223,6 +223,17 @@ is open and the reasoning around it.
       input, is a state of the machine drawn with a tab in its top left
       corner, as PlantUML draws it, its words below the tab. The guide:
       26 of 36.
+- [x] What the review of the notes on transitions found (2026-11-22): a
+      hidden arrow turned across the flow (`-right[hidden]->`) no longer
+      put its second state beside its first, as a hidden line lost its
+      level; it is now the hold of docs/adr/0021, as in a class diagram,
+      and ranks neither state. A rename of a state called `On` or `Link`
+      rewrote `note on link`; that line names no state now. The note is
+      placed once everything is laid out, after lines by hand, which left
+      it behind (`link_notes`); the words take their own size again, so a
+      click on the note leads to the note and not to the transition, and
+      both stand on the side of their room toward the line. A state's
+      note keeps off the room of a transition without words.
 
 ## Phase 0: foundation and spikes
 

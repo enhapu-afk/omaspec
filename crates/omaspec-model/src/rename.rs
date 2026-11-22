@@ -397,6 +397,11 @@ fn state(piece: &Piece, k: &str, new: &str, plan: &mut Plan) {
         {
             continue;
         }
+        // `note on link` names no state, though its words may be one's.
+        if on_link(&trimmed) {
+            in_note = !trimmed.contains(':');
+            continue;
+        }
         if trimmed.starts_with("note") && head(text) == text.len() {
             // A note of several lines, unless it is `note "…" as N`: its
             // first line names the state, the rest is its text.
@@ -405,6 +410,22 @@ fn state(piece: &Piece, k: &str, new: &str, plan: &mut Plan) {
         replace(plan, piece, line, k, new, |t| Some(0..head(t)), false);
     }
     by_hand(piece, k, new, plan);
+}
+
+/// Whether the line `trimmed`, in lower case, starts a note on the last
+/// transition: `note on link`, with a side or not.
+fn on_link(trimmed: &str) -> bool {
+    let mut words = trimmed
+        .split(|c: char| c.is_whitespace() || c == ':')
+        .filter(|w| !w.is_empty());
+    if words.next() != Some("note") {
+        return false;
+    }
+    let mut next = words.next();
+    if matches!(next, Some("left" | "right" | "top" | "bottom")) {
+        next = words.next();
+    }
+    next == Some("on") && words.next() == Some("link")
 }
 
 /// The entries of the block of lines and boxes by hand (docs/adr/0016,

@@ -48,13 +48,13 @@
 <tspan x="80.67" y="428.28" font-size="13" fill="#000000" textLength="56.71" lengthAdjust="spacing">each one</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="0" y="137.43" font-size="12" fill="#000000" textLength="25.44" lengthAdjust="spacing">start</tspan>
+<tspan x="84.85" y="137.43" font-size="12" fill="#000000" textLength="25.44" lengthAdjust="spacing">start</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="134.29" y="145" font-size="12" fill="#000000" textLength="28.63" lengthAdjust="spacing">done</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="152.45" y="260.09" font-size="12" fill="#000000" textLength="16.99" lengthAdjust="spacing">fail</tspan>
+<tspan x="215.06" y="260.09" font-size="12" fill="#000000" textLength="16.99" lengthAdjust="spacing">fail</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="6" y="162.33" font-size="13" fill="#000000" textLength="94.29" lengthAdjust="spacing">counts the jobs</tspan>

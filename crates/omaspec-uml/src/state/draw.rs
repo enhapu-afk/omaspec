@@ -89,6 +89,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     link_crossings(&diagram.root, &mut scene, &skin, family)?;
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
+    link_notes(&diagram.root, &mut scene, &skin, family)?;
     scene.offset(0.0, annotations.top());
     paint(&mut canvas, &skin, &diagram.root, &scene);
     annotations.draw(&mut canvas);
@@ -477,35 +478,72 @@ pub(super) fn edge_label(
 /// Between a transition's words and the note on it.
 const LINK_NOTE_GAP: f32 = 4.0;
 
-/// The note on the transition `arrow`, placed as `edge`, the `slot`th line
-/// of its container: at the foot of the room kept for its words
-/// ([`edge_label`]), its own words tied to their line.
-pub(super) fn link_note(
-    arrow: &Transition,
-    edge: &PlacedEdge,
-    slot: usize,
+/// The notes on the transitions of `container`, laid out as `scene`, and
+/// of every one inside, once each line and the room for its words lie
+/// where they end (after lines by hand): each note at the foot of that
+/// room ([`edge_label`]), its own words tied to their line. The words then
+/// take their own size again, so they are tied, drawn and kept apart as
+/// they are; both stand on the side of the room toward the line.
+fn link_notes(
+    container: &Container,
+    scene: &mut Scene,
     skin: &Skin,
     family: Family,
-) -> Result<Option<PlacedNote>, Declined> {
-    let Some(note) = &arrow.note else {
-        return Ok(None);
-    };
-    let text = note.measure_written(skin.note.font, family)?;
-    let (w, h) = note_size(&text);
-    let (x, y) = edge.label_at;
-    Ok(Some(PlacedNote {
-        x,
-        y: y + edge.label.height - h,
-        w,
-        h,
-        target: arrow.from,
-        side: Side::Right,
-        nth: 0,
-        text,
-        tether: None,
-        on: Some(slot),
-        line: note.line,
-    }))
+) -> Result<(), Declined> {
+    let arrows = container
+        .edges
+        .iter()
+        .chain(container.crossings.iter().map(|crossing| &crossing.arrow));
+    for (slot, arrow) in arrows.enumerate() {
+        let (Some(note), Some(edge)) = (&arrow.note, scene.edges.get_mut(slot)) else {
+            continue;
+        };
+        if edge.points.len() < 2 {
+            continue;
+        }
+        let text = note.measure_written(skin.note.font, family)?;
+        let (w, h) = note_size(&text);
+        let words = match &arrow.label {
+            Some(label) => label.measure(skin.arrow_font, family)?,
+            None => Block::empty(),
+        };
+        let (at, room) = (edge.label_at, (edge.label.width, edge.label.height));
+        let toward = line_after(&edge.points, at, room);
+        let x = |width: f32| if toward { at.0 + room.0 - width } else { at.0 };
+        edge.label_at = (x(words.width), at.1);
+        edge.label = words;
+        scene.notes.push(PlacedNote {
+            x: x(w),
+            y: at.1 + room.1 - h,
+            w,
+            h,
+            target: arrow.from,
+            side: Side::Right,
+            nth: 0,
+            text,
+            tether: None,
+            on: Some(slot),
+            line: note.line,
+        });
+    }
+    for (node, placed) in container.nodes.iter().zip(scene.nodes.iter_mut()) {
+        link_notes(&node.children, &mut placed.children, skin, family)?;
+    }
+    Ok(())
+}
+
+/// Whether the line `points` runs past the right half of the room at `at`,
+/// `room` large, at its middle's height: the room lies left of it.
+fn line_after(points: &[(f32, f32)], at: (f32, f32), room: (f32, f32)) -> bool {
+    let y = at.1 + room.1 / 2.0;
+    points
+        .windows(2)
+        .find_map(|run| {
+            let ((x0, y0), (x1, y1)) = (run[0], run[1]);
+            let (low, high) = (y0.min(y1), y0.max(y1));
+            (low <= y && y <= high && high > low).then(|| x0 + (x1 - x0) * (y - y0) / (y1 - y0))
+        })
+        .is_some_and(|x| x >= at.0 + room.0 / 2.0)
 }
 
 pub(super) fn arrow_stroke(skin: &Skin, edge: &Transition) -> Result<Stroke, Declined> {
@@ -647,7 +685,7 @@ fn clear_note(note: &mut PlacedNote, side: Side, edges: &[PlacedEdge], rects: &[
     for _ in 0..6 {
         let text = note_text_box(note);
         let Some(label) = edges.iter().find_map(|edge| {
-            if edge.label.is_empty() {
+            if !has_room(edge) {
                 return None;
             }
             let label = label_box(edge);
@@ -688,7 +726,7 @@ fn clear_lines(
             .sum();
         let labels = edges
             .iter()
-            .filter(|edge| !edge.label.is_empty() && boxes_overlap(area, label_box(edge)))
+            .filter(|edge| has_room(edge) && boxes_overlap(area, label_box(edge)))
             .count()
             + notes
                 .iter()
@@ -896,6 +934,12 @@ fn note_anchor(
         w: (x1 - x0).max(0.0),
         h: (y1 - y0).max(0.0),
     }
+}
+
+/// Whether the layout keeps room for `edge`'s words: they are there, or a
+/// note on it is ([`edge_label`]).
+pub(super) fn has_room(edge: &PlacedEdge) -> bool {
+    edge.label.width > 0.0 && edge.label.height > 0.0
 }
 
 fn label_box(edge: &PlacedEdge) -> (f32, f32, f32, f32) {
@@ -1527,13 +1571,14 @@ mod tests {
         // Its words lead to its line, not to the transition's.
         let tied = |line: usize| map.tied.iter().filter(|t| t.line == line).count();
         assert!(tied(3) >= 1 && tied(8) >= 1, "{:?}", map.tied);
-        // Under its transition's words, inside the room kept for them.
+        // Under its transition's words, which keep their own size: their
+        // tie and their place on the map hold no note, so a click on the
+        // note leads to the note.
         let label = map.wires.iter().find(|w| w.line == Some(2)).unwrap().labels[0];
+        let words = map.tied.iter().find(|t| t.line == 2).unwrap().rect;
         let note = map.tied.iter().find(|t| t.line == 3).unwrap().rect;
-        assert!(
-            note.y > label.y && note.y + note.h <= label.y + label.h + 0.5,
-            "{note:?} in {label:?}"
-        );
+        assert!(note.y >= words.y + words.h, "{note:?} under {words:?}");
+        assert!(label.h < note.y - label.y, "{label:?} holds {note:?}");
     }
 
     /// `text:` colors the name of a state without a body, not the title of
@@ -1569,6 +1614,51 @@ mod tests {
             svg[start..].split('"').next().unwrap().parse().unwrap()
         };
         assert!(y_of(&svg, "R") > y_of(&plain, "R") + 5.0, "{svg}");
+    }
+
+    /// A note on a transition follows its words where lines by hand move
+    /// them; a state's note keeps off it, words or none; words and note
+    /// stand on the side of their room toward the line.
+    #[test]
+    fn a_note_on_link_goes_where_its_words_go() {
+        let note_and_words = |source: &str| {
+            let (_, map) = crate::render_mapped(source, None).unwrap();
+            let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+            (at(2), at(3))
+        };
+        let plain = "@startuml\n[*] --> Idle\nIdle --> Busy : start\nnote on link : counts the jobs\nBusy --> Idle : done\n@enduml\n";
+        let by_hand = plain.replace(
+            "@enduml",
+            "' lines by hand (Omaspec)\n' Idle -> Busy at 1.5 0.5\n@enduml",
+        );
+        let (words, note) = note_and_words(plain);
+        let (moved, moved_note) = note_and_words(&by_hand);
+        assert!((moved.x - words.x).abs() > 5.0, "{words:?} {moved:?}");
+        assert!(
+            moved_note.y >= moved.y + moved.h,
+            "{moved_note:?} under {moved:?}"
+        );
+        assert!(
+            (moved_note.x - moved.x).abs() < (note.x - moved.x).abs(),
+            "{moved_note:?}"
+        );
+        // A state's note keeps off the room of a transition without words.
+        let source = "@startuml\nleft to right direction\n[*] --> Idle\nIdle --> Busy\nnote on link : the link's note\nnote top of Idle : a rather wide note on top of Idle\nBusy --> Done\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        let (a, b) = (at(4), at(5));
+        let apart = a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y;
+        assert!(apart, "{a:?} {b:?}");
+        // Left of its line, the words stay by it, the note under them.
+        let left = "@startuml\n[*] --> Idle\nIdle --> Busy : start\nnote on link : a much longer note than its label\n' lines by hand (Omaspec)\n' Idle -> Busy label left\n@enduml\n";
+        let (words, note) = note_and_words(left);
+        // Flush at the right with the note's sheet, whose words keep its
+        // padding and fold inside it.
+        let sheet = note.x + note.w + NOTE_PAD + 4.0;
+        assert!(
+            (words.x + words.w - sheet).abs() < 1.0,
+            "{words:?} {note:?}"
+        );
     }
 
     #[test]

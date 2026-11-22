@@ -2,8 +2,8 @@
 
 use super::super::{Container, Crossing, Dash, Direction, Kind, Split};
 use super::{
-    Item, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label, flat,
-    layout_container, link_note,
+    Item, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label, flat, has_room,
+    layout_container,
 };
 use crate::Declined;
 use crate::color::Color;
@@ -222,9 +222,6 @@ pub(super) fn link_crossings(
                 label_at: linked.label_at,
                 look: stroke,
             };
-            if let Some(note) = link_note(&crossing.arrow, edge, *slot, skin, family)? {
-                here.notes.push(note);
-            }
         }
     }
     Ok(())
@@ -500,7 +497,7 @@ fn drawn_in(scene: &Scene, drawn: &mut Drawn) {
             continue;
         }
         drawn.lines.push(edge.points.clone());
-        if !edge.label.is_empty() {
+        if has_room(edge) {
             drawn.labels.push(Rect {
                 x: edge.label_at.0,
                 y: edge.label_at.1,
