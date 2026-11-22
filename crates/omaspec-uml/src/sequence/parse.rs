@@ -64,6 +64,17 @@ const GROUPS: [(&str, GroupKind); 7] = [
     ("group", GroupKind::Group),
 ];
 
+/// The commands that are a diagram of their own, a page of what PlantUML
+/// knows, with what that page shows.
+const PAGES: [(&str, &str); 6] = [
+    ("colors", "PlantUML's named colors"),
+    ("skinparameters", "every skinparam"),
+    ("listopeniconic", "the OpenIconic icons"),
+    ("listsprite", "the sprites"),
+    ("listsprites", "the sprites"),
+    ("stdlib", "PlantUML's standard library"),
+];
+
 /// Keywords of PlantUML that Omaspec does not draw yet, with what to say.
 const NOT_YET: [&str; 3] = ["skin", "left to right direction", "top to bottom direction"];
 
@@ -430,6 +441,21 @@ impl Parser {
             Some(Err(reason)) => Err(Declined::at(no, reason)),
             // Before any participant or message, the diagram is a
             // sequence diagram only because no other type claims it.
+            // A command that draws a page of PlantUML's own.
+            None if PAGES
+                .iter()
+                .any(|(word, _)| text.eq_ignore_ascii_case(word)) =>
+            {
+                let (word, page) = PAGES
+                    .iter()
+                    .find(|(word, _)| text.eq_ignore_ascii_case(word))
+                    .copied()
+                    .unwrap_or_default();
+                Err(Declined::at(
+                    no,
+                    format!("`{word}` draws a page of {page}, which Omaspec does not draw yet"),
+                ))
+            }
             None if self.diagram.participants.is_empty() && self.diagram.items.is_empty() => {
                 Err(Declined::at(
                     no,

@@ -24,6 +24,21 @@ is open and the reasoning around it.
       `@startnwdiag` do. An example that drew and declines now fails the
       test; `OMASPEC_GUIDE_CHAPTER=N` lists what a chapter declines and why,
       `OMASPEC_GUIDE_DIR` writes the examples out. First count: 451 of 897.
+- [x] A refusal says why (2026-11-22). A diagram whose first line is
+      unusual is typed by what it is: a use case's actor alone (`:First
+      Actor:`, `actor :Name: as A`), a `usecase` whose quoted words run over
+      several lines (its `--` and `==` are rules, not a sequence's), a
+      class with its visibility before it (`-class`), a line with an end no
+      message has (`#--`, `x--`, `}--`, `+--`, `^--`, the crow's feet of
+      `}|..||`), an element whose words stand in brackets (`folder f [`), an
+      `action`; `newpage` no longer makes a diagram a sequence diagram. The
+      same `@startuml` twice opens no second diagram. What stands beside a
+      line's end names itself: a style (`#line:red`), an end the arrow does
+      not take in (`}|`, `#`), anything else that is no bare multiplicity;
+      only a bare `1` or `*` still asks for quotes. A `json` or `map` element
+      in another diagram is called that, and `colors`, `skinparameters`,
+      `listopeniconic`, `listsprite` and `stdlib` say they draw a page of
+      PlantUML's own. The guide: 473 of 897.
 
 ### Step 1: the sequence diagram
 

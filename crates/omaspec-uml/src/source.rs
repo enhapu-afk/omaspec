@@ -123,6 +123,14 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
         if text.starts_with('\'') {
             continue;
         }
+        // The same `@start…` written twice opens no second diagram; PlantUML
+        // passes over it.
+        if no == start
+            && starts_with_ci(text, "@start")
+            && text.eq_ignore_ascii_case(raw[start - 1])
+        {
+            continue;
+        }
         if text.starts_with("/'") {
             if !text.contains("'/") {
                 in_block = true;
@@ -145,6 +153,14 @@ pub fn body(source: &str) -> Result<(Kind, Vec<Line<'_>>), Declined> {
             continue;
         }
         if text.starts_with('\'') {
+            continue;
+        }
+        // The same `@start…` written twice opens no second diagram; PlantUML
+        // passes over it.
+        if no == start
+            && starts_with_ci(text, "@start")
+            && text.eq_ignore_ascii_case(raw[start - 1])
+        {
             continue;
         }
         if text.starts_with("/'") {

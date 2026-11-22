@@ -75,7 +75,6 @@ fn sequence_line(text: &str) -> bool {
         "par",
         "break",
         "critical",
-        "newpage",
         "box",
         "create",
     ]
@@ -86,6 +85,36 @@ fn sequence_line(text: &str) -> bool {
 }
 
 fn marks_structure(text: &str) -> bool {
+    // A use case's actor alone (`:First Actor:`, `:Actor: as A`), or
+    // declared with one (`actor :Last actor: as P`), and a use case
+    // whatever follows the word, a description over several lines too.
+    if let Some(end) = actor_span(text) {
+        let rest = text[end..].trim_start();
+        if rest.is_empty()
+            || keyword(rest, "as").is_some()
+            || rest.starts_with("<<")
+            || rest.starts_with('#')
+        {
+            return true;
+        }
+    }
+    if keyword(text, "actor").is_some_and(|rest| rest.starts_with(':'))
+        || keyword(text, "usecase").is_some()
+        || keyword(text, "action").is_some_and(|rest| !rest.is_empty())
+    {
+        return true;
+    }
+    // A class with its visibility before it (`-class "Private" {`).
+    if let Some(rest) = text.strip_prefix(['-', '#', '~', '+'])
+        && ["class", "abstract", "interface", "enum"]
+            .iter()
+            .any(|word| keyword(rest, word).is_some())
+    {
+        return true;
+    }
+    if relation_shaped(text) {
+        return true;
+    }
     let lead = before_label(text);
     // `actor` and `database` are sequence participants as well. They are
     // drawn here once the diagram is a structure diagram, but a line of
@@ -124,6 +153,27 @@ fn marks_structure(text: &str) -> bool {
         return true;
     }
     ends_wrapped(&lead, '[', ']') || relation_only(text) || super::hide::marks_structure(text)
+}
+
+/// A line between two names whose ends no message has: `#--`, `x--`,
+/// `}--`, `+--`, `^--` of a class diagram and an entity relationship's
+/// crow's feet (`}|..||`, `|o--o{`). The structure parser says which of
+/// them it draws.
+fn relation_shaped(text: &str) -> bool {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let [left, arrow, right, ..] = words[..] else {
+        return false;
+    };
+    let named =
+        |word: &str| word.starts_with(|c: char| c.is_alphanumeric() || c == '"' || c == '_');
+    let body = arrow.trim_matches(|c: char| "<>|o*#x}{+^".contains(c));
+    named(left)
+        && named(right)
+        && body.len() >= 2
+        && (body.chars().all(|c| c == '-') || body.chars().all(|c| c == '.'))
+        && body.len() < arrow.len()
+        && arrow.chars().any(|c| "|o#x}{+^".contains(c))
+        && !crate::sequence::reads_as_message(text)
 }
 
 /// A line between two names that no sequence diagram writes:
@@ -484,9 +534,18 @@ impl Parser {
             self.hides.push(directive);
             return Ok(at + 1);
         }
+        if crate::common::description_opens(text) {
+            return Err(Declined::at(
+                no,
+                "an element's words in brackets over several lines (`name [ … ]`) are not supported yet",
+            ));
+        }
         if let Some(word) = rejected(text) {
             let why = match word {
-                "map" | "json" => format!("`{word}` diagrams are drawn by the Java PlantUML only"),
+                "map" => "a `map` (a table of keys and values) is not drawn here yet".to_owned(),
+                "json" => {
+                    "a `json` element (JSON data in the diagram) is not drawn here yet".to_owned()
+                }
                 "together" => "`together` is not supported yet".to_owned(),
                 _ => format!("`{word}` is not supported yet"),
             };
@@ -1908,6 +1967,20 @@ fn relation(text: &str, line: usize, at: usize) -> Result<RawRel, Declined> {
     let left = lead[..start].trim();
     let arrow = &lead[start..end];
     let right = lead[end..].trim();
+    // `-class "Private" {`: a class with its visibility, not a line.
+    if let Some(rest) = text.strip_prefix(['-', '#', '~', '+'])
+        && ["class", "abstract", "interface", "enum"]
+            .iter()
+            .any(|word| keyword(rest, word).is_some())
+    {
+        return Err(Declined::at(
+            line,
+            format!(
+                "a class's visibility before it (`{}`) is not supported yet",
+                &text[..1 + rest.split_whitespace().next().unwrap_or("").len()]
+            ),
+        ));
+    }
     if left.is_empty() || right.is_empty() {
         return Err(Declined::at(line, "a line needs two elements"));
     }
@@ -1950,6 +2023,21 @@ fn side(text: &str, card_last: bool, line: usize) -> Result<(RawName, Option<Str
     if let Some(at) = circle {
         tokens.remove(at);
     }
+    // A style after the line's far end (`(bar) #line:red;line.bold`); a
+    // `#` alone is an end the arrow did not take in.
+    if let Some(style) = tokens
+        .iter()
+        .skip(1)
+        .find(|token| token.starts_with('#') && token.len() > 1)
+    {
+        return Err(Declined::at(
+            line,
+            format!(
+                "a line's own style (`{}`) is not supported yet",
+                snippet(style)
+            ),
+        ));
+    }
     let (mut name, card) = match tokens.as_slice() {
         [name] => (raw_name(name, line)?, None),
         [name, card] if card_last => (raw_name(name, line)?, Some(cardinality(card, line)?)),
@@ -1968,13 +2056,48 @@ fn side(text: &str, card_last: bool, line: usize) -> Result<(RawName, Option<Str
 }
 
 fn cardinality(token: &str, line: usize) -> Result<String, Declined> {
-    token
-        .trim()
+    let token = token.trim();
+    // What stands beside a name and is no cardinality: a style after the
+    // line's ends, or an end the arrow did not take in.
+    if token.starts_with('#') {
+        return Err(Declined::at(
+            line,
+            format!(
+                "a line's own style (`{}`) is not supported yet",
+                snippet(token)
+            ),
+        ));
+    }
+    if !token.is_empty() && token.chars().all(|c| "}{|o#x+^<>*".contains(c)) {
+        return Err(Declined::at(
+            line,
+            format!("the line end `{token}` is not drawn yet"),
+        ));
+    }
+    if let Some(quoted) = token
         .strip_prefix('"')
         .and_then(|s| s.strip_suffix('"'))
         .filter(|s| !s.is_empty())
-        .map(str::to_owned)
-        .ok_or_else(|| Declined::at(line, "a cardinality needs quotes"))
+    {
+        return Ok(quoted.to_owned());
+    }
+    // A multiplicity written bare (`1`, `*`, `0..1`) wants its quotes;
+    // anything else beside an end is a part of the line not drawn yet.
+    let multiplicity = !token.is_empty()
+        && token
+            .chars()
+            .all(|c| c.is_ascii_digit() || "*.,n".contains(c));
+    Err(Declined::at(
+        line,
+        if multiplicity {
+            "a cardinality needs quotes".to_owned()
+        } else {
+            format!(
+                "`{}` beside a line's end is not supported yet",
+                snippet(token)
+            )
+        },
+    ))
 }
 
 fn tokens_of(text: &str, line: usize) -> Result<Vec<String>, Declined> {
@@ -2962,7 +3085,16 @@ mod tests {
         let err = declined("@startuml\ncomponent C {\n  port p\n}\n@enduml\n");
         assert!(err.reason.contains("port"), "{}", err.reason);
         let err = declined("@startuml\nmap Data {\n}\n@enduml\n");
-        assert!(err.reason.contains("Java"), "{}", err.reason);
+        assert!(err.reason.contains("a `map`"), "{}", err.reason);
+        let err = declined("@startuml\nclass A\njson J {\n}\n@enduml\n");
+        assert!(err.reason.contains("a `json` element"), "{}", err.reason);
+        // What stands beside a name and is no cardinality says what it is.
+        let err = declined("@startuml\nA }|..|| B\n@enduml\n");
+        assert!(err.reason.contains("line end"), "{}", err.reason);
+        let err = declined("@startuml\nactor foo\nfoo --> (bar) #line:red;line.bold\n@enduml\n");
+        assert!(err.reason.contains("own style"), "{}", err.reason);
+        let err = declined("@startuml\n-class \"Private\" {\n}\n@enduml\n");
+        assert!(err.reason.contains("visibility"), "{}", err.reason);
     }
 
     /// REQ-060: `() "Clipboard"` is an interface a component diagram draws

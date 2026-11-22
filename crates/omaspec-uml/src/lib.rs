@@ -641,6 +641,29 @@ mod tests {
     }
 
     #[test]
+    fn an_unusual_first_line_is_typed_by_what_it_is() {
+        let of = |source: &str| uml_type(&format!("@startuml\n{source}\n@enduml\n"));
+        for (source, kind) in [
+            (":First Actor:\nactor :Last actor: as P", UmlType::Structure),
+            ("Entity01 }|..|| Entity02", UmlType::Structure),
+            ("Class21 #-- Class22", UmlType::Structure),
+            ("-class \"Private\" {\n}", UmlType::Structure),
+            ("usecase UC1 as \"many\n==\nlines\"\n", UmlType::Structure),
+            ("folder f [\n====\nwords\n]", UmlType::Structure),
+            (
+                ":a: --> (case)\nnewpage\n:b: --> (other)",
+                UmlType::Structure,
+            ),
+        ] {
+            assert_eq!(of(source), Some(kind), "{source}");
+        }
+        // The same `@startuml` twice opens no second diagram.
+        assert!(render("@startuml\n@startuml\nA -> B\n@enduml\n").is_ok());
+        let err = render("@startuml\ncolors\n@enduml\n").unwrap_err();
+        assert!(err.reason.contains("named colors"), "{}", err.reason);
+    }
+
+    #[test]
     fn the_type_without_a_picture() {
         let of = |source: &str| uml_type(&format!("@startuml\n{source}\n@enduml\n"));
         assert_eq!(of("hide empty description\nA --> B"), Some(UmlType::State));

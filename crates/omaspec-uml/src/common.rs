@@ -706,6 +706,13 @@ pub fn deciding<'a>(lines: &[Line<'a>]) -> Vec<Line<'a>> {
             until = Some(closes_description);
             continue;
         }
+        // `usecase UC1 as "words` and the lines up to the closing quote,
+        // where `--` and `==` are rules of the words.
+        if keyword(text, "usecase").is_some() && text.matches('"').count() % 2 == 1 {
+            out.push(line);
+            until = Some(|l: &str| l.matches('"').count() % 2 == 1);
+            continue;
+        }
         until = block_end(text);
         if until.is_some() {
             continue;
@@ -724,19 +731,44 @@ pub(crate) fn description_opens(text: &str) -> bool {
     let t = text.trim_end();
     t.ends_with('[')
         && !t.ends_with("[[")
-        && [
-            "participant",
-            "actor",
-            "boundary",
-            "control",
-            "entity",
-            "database",
-            "collections",
-            "queue",
-        ]
-        .iter()
-        .any(|word| keyword(t, word).is_some())
+        && DESCRIBED.iter().any(|word| keyword(t, word).is_some())
 }
+
+/// The elements whose words may stand in brackets over several lines: a
+/// sequence diagram's participants, and the boxes of the structure
+/// diagrams (`folder f [`, `node n [`).
+const DESCRIBED: [&str; 30] = [
+    "participant",
+    "actor",
+    "boundary",
+    "control",
+    "entity",
+    "database",
+    "collections",
+    "queue",
+    "action",
+    "agent",
+    "artifact",
+    "card",
+    "circle",
+    "cloud",
+    "component",
+    "file",
+    "folder",
+    "frame",
+    "hexagon",
+    "interface",
+    "label",
+    "node",
+    "package",
+    "person",
+    "process",
+    "rectangle",
+    "stack",
+    "storage",
+    "usecase",
+    "port",
+];
 
 /// Whether `line` closes the words of [`description_opens`]: it ends with
 /// a `]` that no `[` on it opens (`beta]` does, `alpha [x]` does not).

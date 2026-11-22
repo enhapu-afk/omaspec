@@ -47,15 +47,6 @@ reaches all of its examples with step 5, which its examples use too.
 Stays with the Java PlantUML: the standard library (`!include <…>`, 29
 examples), as [0005](docs/adr/0005-offline-no-telemetry.md) says.
 
-### Step 0: the yardstick, and refusals that say why
-
-- [ ] A refusal names what it does not draw. A style on a line
-      (`#line:red;line.bold`) is no "cardinality needs quotes"; a `json`
-      or `map` element in another diagram is no "`json` diagrams are drawn
-      by the Java PlantUML only"; a diagram whose first line is unusual
-      (`:Actor:`, `Entity01 }|..|| Entity02`, `-class`) is typed by the
-      lines after it.
-
 ### Step 1: the sequence diagram (71 of 79)
 
 What the chapter declines still waits on step 5 (Creole's `<font color>`,
