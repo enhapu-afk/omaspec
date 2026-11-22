@@ -106,6 +106,7 @@ impl Found {
             Shape::Note { text, .. } => ("note", words(text), false),
             Shape::Frame { title, .. } => ("partition", words(title), false),
             Shape::Label { text, .. } => ("label", words(text), false),
+            Shape::Test { text, .. } => ("test", words(text), false),
         };
         let base = if said.is_empty() {
             kind.to_owned()

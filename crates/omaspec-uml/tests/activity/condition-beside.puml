@@ -1,7 +1,8 @@
 @startuml
 ' `skinparam conditionStyle diamond`: each test beside an empty diamond,
-' above it for an `if`, a `while` and a `switch`, right of it for a
-' `repeat`; a row of `elseif`s keeps its hexagons, as PlantUML draws it.
+' above it for an `if` and a `while`, right of it for a `repeat` (whose
+' ways out then have no words); a `switch` and a row of `elseif`s keep
+' their hexagons, as PlantUML draws them.
 skinparam conditionStyle diamond
 start
 -> in;

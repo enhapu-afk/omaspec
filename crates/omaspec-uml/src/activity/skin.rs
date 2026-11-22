@@ -58,10 +58,9 @@ pub struct Skin {
     /// line, not in a diamond.
     pub merge_line: bool,
     pub arrow: Stroke,
-    /// `skinparam ArrowHeadColor none`: lines without heads.
+    /// `skinparam ArrowHeadColor none`: lines without heads, but those
+    /// written in a style of their own.
     pub heads: bool,
-    /// `skinparam ArrowHeadColor`: the heads' own color, else the line's.
-    pub head_color: Option<Color>,
     /// How far a line's corners curve; none with `linetype ortho`. Less
     /// than a state's, as an activity's runs are short.
     pub curve: f32,
@@ -110,7 +109,6 @@ impl Default for Skin {
             },
             condition: Condition::Inside,
             heads: true,
-            head_color: None,
             merge_line: false,
             arrow: Stroke::new(dark, 1.0),
             curve: CURVE,
@@ -256,13 +254,9 @@ impl Skin {
                 "roundcorner" | "activityroundcorner" => skin.round = p.corner()?,
                 "backgroundcolor" => skin.background = p.paint()?,
                 "arrowcolor" => skin.arrow.color = p.solid()?,
-                "arrowheadcolor" => {
-                    if value.eq_ignore_ascii_case("none") {
-                        skin.heads = false;
-                    } else {
-                        skin.head_color = Some(p.solid()?);
-                    }
-                }
+                // A color of the heads' own waits on the map, which hands
+                // a head the color of its line to every pane.
+                "arrowheadcolor" if value.eq_ignore_ascii_case("none") => skin.heads = false,
                 "arrowthickness" => skin.arrow.width = p.number(0.1, 20.0)?,
                 "arrowstyle" => {
                     skin.arrow.dash = match value.to_ascii_lowercase().as_str() {

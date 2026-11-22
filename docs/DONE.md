@@ -406,14 +406,17 @@ is open and the reasoning around it.
       words to their last bracket, as the engine does; a swimlane line
       that names the lane already in use no longer stops a note waiting
       for its action.
-- [x] `skinparam conditionStyle diamond` and `ArrowHeadColor` in activity
-      diagrams (2026-11-22): the test of an `if`, a `while` and a `switch`
+- [x] `skinparam conditionStyle diamond` and `ArrowHeadColor none` in
+      activity diagrams (2026-11-22): the test of an `if` and a `while`
       stands above an empty diamond, right of the line into it, that of a
-      `repeat` right of its diamond, above the line from its right corner;
-      a row of `elseif`s keeps its hexagons, as PlantUML draws them. Words
-      on the arrow into such a test stand above it. `ArrowHeadColor none`
-      draws the lines without heads, a color colors the heads alone. The
-      guide: 56 of 62.
+      `repeat` right of its diamond, above the line from its right corner,
+      with no words on its ways out; a `switch` and a row of `elseif`s keep
+      their hexagons, as PlantUML draws them. Words on the arrow into such
+      a test stand above it. `ArrowHeadColor none` draws the lines without
+      heads, but those written in a style of their own (`-[#red]->`,
+      `-[dashed]->`), as PlantUML; a color of the heads' own declines until
+      the map hands a head a color other than its line's. The guide: 56 of
+      62.
 - [x] What the review of `backward` in a `while` and of the `switch`
       fixes found (2026-11-22): the action on a `while`'s way back keeps
       clear of the `yes` and of the words on the arrow into the body. The
@@ -425,6 +428,18 @@ is open and the reasoning around it.
       through it. `switch x`, `switch (x);` and `case (y);` are refused,
       as PlantUML refuses them; the outline closes a switch at
       `endswitch` only.
+- [x] What the review of `conditionStyle diamond` and the last fixes found
+      (2026-11-22): the words on the first arrow into a branch stand above
+      the test it starts with; a `repeat`'s test keeps below its body and
+      its `backward` action right of it; the words of such a test are a
+      part of their own (a glide moves them with their test, not with the
+      line into it). A `switch` moves only the cases that share a swimlane
+      with it, its foot or each other, so a case alone in its lane stays;
+      the columns of a row of `elseif`s, which come in the order written,
+      keep clear of the words on any earlier arrow in their lane. A line
+      that turns to another lane takes no room for what stands above the
+      step it leads to; a line that turns into the top of the diamond
+      where branches meet has room for its head.
 
 ## Phase 0: foundation and spikes
 

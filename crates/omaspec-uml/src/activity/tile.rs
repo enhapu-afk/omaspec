@@ -83,6 +83,13 @@ pub enum Shape {
         align: Align,
         lane: usize,
     },
+    /// `conditionStyle diamond`: the words of a test beside its empty
+    /// diamond, from their top left; a part of their own, no line's words.
+    Test {
+        at: (f32, f32),
+        text: Block,
+        lane: usize,
+    },
 }
 
 impl Shape {
@@ -126,6 +133,7 @@ impl Shape {
                 };
                 (left, at.1, left + text.width, at.1 + text.height)
             }
+            Shape::Test { at, text, .. } => (at.0, at.1, at.0 + text.width, at.1 + text.height),
         }
     }
 
@@ -139,7 +147,8 @@ impl Shape {
             | Shape::Connector { lane, .. }
             | Shape::Note { lane, .. }
             | Shape::Frame { lane, .. }
-            | Shape::Label { lane, .. } => Some(*lane),
+            | Shape::Label { lane, .. }
+            | Shape::Test { lane, .. } => Some(*lane),
             Shape::Bar { .. } => None,
         }
     }
@@ -167,7 +176,7 @@ impl Shape {
                     s.1 += dx;
                 }
             }
-            Shape::Label { at, .. } => {
+            Shape::Label { at, .. } | Shape::Test { at, .. } => {
                 at.0 += dx;
                 at.1 += dy;
             }

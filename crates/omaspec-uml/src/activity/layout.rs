@@ -186,8 +186,12 @@ impl Layout<'_> {
                 let turns = out.lane != next.entry.lane;
                 // Words on the arrow stand above what `next` has above its
                 // entry (a test beside its diamond).
+                // A line that turns to another lane has its words at its
+                // start, clear of it all.
                 let (room, above) = if label.is_empty() {
                     (0.0, 0.0)
+                } else if turns {
+                    (label.height + 4.0, 0.0)
                 } else {
                     (label.height + 4.0, (next.entry.y - next.bounds.1).max(0.0))
                 };
@@ -411,6 +415,16 @@ impl Layout<'_> {
         Ok((w, h, text, Block::empty()))
     }
 
+    /// `conditionStyle diamond`: the words of a test above its diamond,
+    /// right of the line in at `x`.
+    pub(super) fn test_words(&self, text: Block, x: f32, lane: usize) -> Option<Shape> {
+        (!text.is_empty()).then(|| Shape::Test {
+            at: (x + 6.0, -text.height - 2.0),
+            text,
+            lane,
+        })
+    }
+
     /// A diamond with its test in it, as `conditionStyle` says; a row of
     /// `elseif`s keeps the hexagons of `inside` for `diamond` too.
     pub(super) fn diamond(&self, test: Option<&Text>) -> Result<(f32, f32, Block), Declined> {
@@ -448,9 +462,11 @@ impl Layout<'_> {
         let last = *start.last().expect("a line starts somewhere");
         let mut points = start;
         points.push(tile.entry);
-        // Just above the entry, below whatever the line starts at.
+        // Just above the entry and what the flow has above it (a test
+        // beside its diamond), below whatever the line starts at.
         let label = self.arrow_label(arrow)?;
-        let y = tile.entry.y - label.height - 2.0;
+        let above = (tile.entry.y - tile.bounds.1).max(0.0);
+        let y = tile.entry.y - above - label.height - 2.0;
         shapes.extend(self.beside(label, last.x, y, tile.entry.lane));
         Ok(Some(Edge::new(points, true, self.stroke(arrow)?)))
     }
@@ -481,8 +497,7 @@ impl Layout<'_> {
             lane,
         }];
         // `conditionStyle diamond`: the test above, right of the line in.
-        let lift = beside.height + 2.0;
-        shapes.extend(self.beside(beside, 0.0, -lift, lane));
+        shapes.extend(self.test_words(beside, 0.0, lane));
         // How far right the words beside the line into the body reach: its
         // `yes`, the words on its first arrow.
         let words = self.arrow_label(body.arrow_in.as_deref())?;
@@ -627,6 +642,12 @@ impl Layout<'_> {
         let yes = self.measure_opt(yes, font)?;
         let out = self.measure_opt(out, font)?;
         let (dw, dh, text, beside) = self.test(test)?;
+        // `conditionStyle diamond` draws no words on the ways out of a
+        // `repeat`'s test, as PlantUML draws it.
+        let (yes, out) = match beside.is_empty() {
+            true => (yes, out),
+            false => (Block::empty(), Block::empty()),
+        };
         // What the ways back join: its half width, its height, and the
         // height they meet it at, on its sides.
         let (head, half, high) = match start {
@@ -669,6 +690,12 @@ impl Layout<'_> {
         body.translate(-body.entry.x, top - body.bounds.1);
         let empty = body.empty;
         let mut test_top = if empty { top } else { body.bounds.3 + GAP };
+        // `conditionStyle diamond`: the test's words, right of the
+        // diamond above its line, keep below the body.
+        if !beside.is_empty() {
+            let above = if empty { top } else { body.bounds.3 };
+            test_top = test_top.max(above + 4.0 + beside.height + 1.0 - dh / 2.0);
+        }
         if let Some((text, incoming, outgoing)) = &back {
             // Room on the right for the action and the lines to it.
             let height = text.height + 2.0 * self.skin.padding;
@@ -704,18 +731,18 @@ impl Layout<'_> {
         });
         let cy = test_top + dh / 2.0;
         // `conditionStyle diamond`: the test right of the diamond, above
-        // the line from its right corner; a `yes` there goes below it.
-        let yes_y = if beside.is_empty() {
-            cy - yes.height - 1.0
-        } else {
-            shapes.push(Shape::Label {
+        // the line from its right corner.
+        let beside_w = match beside.is_empty() {
+            true => 0.0,
+            false => 2.0 + beside.width,
+        };
+        if !beside.is_empty() {
+            shapes.push(Shape::Test {
                 at: (dw / 2.0 + 2.0, cy - beside.height - 1.0),
                 text: beside,
-                align: Align::Left,
                 lane,
             });
-            cy + 1.0
-        };
+        }
         let plain = self.stroke(None)?;
         match back {
             None => {
@@ -743,7 +770,10 @@ impl Layout<'_> {
                 let pad = self.skin.padding;
                 let (w, h) = (text.width + 2.0 * pad, text.height + 2.0 * pad);
                 let right = if empty { 0.0 } else { body.bounds.2 };
-                let right = right.max(dw / 2.0 + yes.width + 8.0).max(half);
+                let right = right
+                    .max(dw / 2.0 + yes.width + 8.0)
+                    .max(dw / 2.0 + beside_w + 8.0)
+                    .max(half);
                 // A note left of the action on the way back takes room
                 // between it and the loop, as PlantUML gives it.
                 let left_note = match back_note.filter(|note| !note.right) {
@@ -766,7 +796,7 @@ impl Layout<'_> {
                 }
                 if !yes.is_empty() {
                     shapes.push(Shape::Label {
-                        at: (dw / 2.0 + 2.0, yes_y),
+                        at: (dw / 2.0 + 2.0, cy - yes.height - 1.0),
                         text: yes,
                         align: Align::Left,
                         lane,

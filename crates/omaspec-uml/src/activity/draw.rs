@@ -301,8 +301,9 @@ impl Painter<'_> {
             return None;
         }
         // The head sits on a straight end, not on the curve before it;
-        // `ArrowHeadColor none` draws none.
-        let headed = edge.head && self.skin.heads;
+        // `ArrowHeadColor none` draws none, but on an arrow written in a
+        // style of its own (`-[#red]->`, `-[dashed]->`), as PlantUML.
+        let headed = edge.head && (self.skin.heads || edge.stroke != self.skin.arrow);
         let arrive = if headed { HEAD_LENGTH } else { 0.0 };
         canvas.curve_arriving(Layer::Lines, &points, self.skin.curve, arrive, edge.stroke);
         let curved = crate::curve::flatten_arriving(&points, self.skin.curve, arrive);
@@ -320,7 +321,7 @@ impl Painter<'_> {
             }
             let back = (tip.0 - ux * HEAD_LENGTH, tip.1 - uy * HEAD_LENGTH);
             let side = (-uy * HEAD_HALF, ux * HEAD_HALF);
-            let color = self.skin.head_color.unwrap_or(edge.stroke.color);
+            let color = edge.stroke.color;
             let solid = Stroke {
                 dash: None,
                 width: edge.stroke.width.min(1.5),
@@ -486,6 +487,10 @@ impl Painter<'_> {
                 let at = self.at(*lane, at.0, at.1);
                 canvas.text(Layer::Front, text, at, *align);
             }
+            Shape::Test { at, text, lane } => {
+                let at = self.at(*lane, at.0, at.1);
+                canvas.text(Layer::Front, text, at, Align::Left);
+            }
             Shape::Frame {
                 rect: (x, y, w, h),
                 title,
@@ -649,25 +654,61 @@ mod tests {
         assert_eq!((bars[0].0, bars[0].2), (bars[1].0, bars[1].2), "{svg}");
     }
 
-    /// `ArrowHeadColor none` draws lines without heads; a color colors the
-    /// heads alone.
+    /// `ArrowHeadColor none` draws lines without heads, but on an arrow
+    /// written in a style of its own, as PlantUML; a color of their own
+    /// declines.
     #[test]
-    fn arrow_heads_take_their_own_color_or_none() {
+    fn arrow_heads_take_none() {
         let source = "@startuml\nstart\n:Hello world;\n:Next;\nstop\n@enduml\n";
         let heads = |svg: &str| svg.matches("<polygon").count();
         let plain = crate::render_mapped(source, None).unwrap().0;
         let none = source.replace("start\n", "skinparam ArrowHeadColor none\nstart\n");
-        let none = crate::render_mapped(&none, None).unwrap().0;
+        let svg = crate::render_mapped(&none, None).unwrap().0;
         assert_eq!(heads(&plain), 3, "{plain}");
-        assert_eq!(heads(&none), 0, "{none}");
+        assert_eq!(heads(&svg), 0, "{svg}");
         assert_eq!(
             plain.matches("<polyline").count(),
-            none.matches("<polyline").count()
+            svg.matches("<polyline").count()
         );
+        for own in ["-[#FF0000]->", "-[dashed]->", "-[bold]->"] {
+            let marked = none.replace(":Next;", &format!("{own}\n:Next;"));
+            let svg = crate::render_mapped(&marked, None).unwrap().0;
+            assert_eq!(heads(&svg), 1, "{own}: {svg}");
+        }
         let red = source.replace("start\n", "skinparam ArrowHeadColor #FF0000\nstart\n");
-        let red = crate::render_mapped(&red, None).unwrap().0;
-        assert_eq!(heads(&red), 3);
-        assert_eq!(red.matches("fill=\"#FF0000\"").count(), 3, "{red}");
+        assert!(crate::render_mapped(&red, None).is_err());
+    }
+
+    /// Under `conditionStyle diamond`, the words on the arrow into a branch
+    /// stand above the test it starts with; a `repeat`'s test keeps below
+    /// its body and its `backward` action right of the test, and its ways
+    /// out have no words, as PlantUML draws it.
+    #[test]
+    fn words_keep_clear_of_a_test_beside_its_diamond() {
+        let apart = |a: &crate::graph::Rect, b: &crate::graph::Rect| {
+            a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y
+        };
+        let tied = |source: &str, line: usize| {
+            let (_, map) = crate::render_mapped(source, None).unwrap();
+            map.tied
+                .iter()
+                .filter(|t| t.line == line)
+                .map(|t| t.rect)
+                .collect::<Vec<_>>()
+        };
+        let nested = "@startuml\nskinparam conditionStyle diamond\nstart\nif (outer test?) then (yes)\n-> some words;\nif (inner test here?) then (y)\n:a;\nendif\nelse (no)\n:b;\nendif\nstop\n@enduml\n";
+        let (words, test) = (tied(nested, 4)[0], tied(nested, 5)[0]);
+        assert!(
+            apart(&words, &test) && words.y + words.h <= test.y + 0.5,
+            "{words:?} {test:?}"
+        );
+        let tall = "@startuml\nskinparam conditionStyle diamond\nrepeat\n:wide action in the body here;\nrepeat while (line one\\nline two\\nline three?) is (yes)\n@enduml\n";
+        let (body, test) = (tied(tall, 3)[0], tied(tall, 4)[0]);
+        assert!(apart(&body, &test), "{body:?} {test:?}");
+        let back = "@startuml\nskinparam conditionStyle diamond\nrepeat\n:a;\nbackward :log;\nrepeat while (is the queue still not empty?) is (yes) not (no)\n@enduml\n";
+        let (log, test) = (tied(back, 4)[0], tied(back, 5));
+        assert_eq!(test.len(), 1, "no words on the ways out: {test:?}");
+        assert!(log.x > test[0].x + test[0].w, "{log:?} {test:?}");
     }
 
     /// `conditionStyle diamond`: the test stands above an empty diamond,
@@ -761,6 +802,12 @@ mod tests {
             let b = map.tied.iter().find(|t| t.line == 10).unwrap().rect;
             width - b.x
         };
+        // In a row of `elseif`s, whose flows come in the order written.
+        let row = "@startuml\n|A|\n|B|\n|A|\nstart\nif (a?) then (yes)\n-> a very long arrow label with many words;\n:a;\nelseif (b?) then (yes)\n|B|\n:b;\nelse\n|A|\n:c;\nendif\nstop\n@enduml\n";
+        let (_, map) = crate::render_mapped(row, None).unwrap();
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        let (words, c) = (at(6), at(13));
+        assert!(words.x + words.w < c.x + c.w / 2.0, "{words:?} {c:?}");
         let plain = lanes.replace("-> some long words on the arrow;\n", "-> on;\n");
         assert!(
             (after(lanes) - after(&plain)).abs() < 0.5,

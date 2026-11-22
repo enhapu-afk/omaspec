@@ -33,9 +33,9 @@ impl Layout<'_> {
             // The words on the arrow into the flow, right of its line,
             // keep the next column off, where it starts in the same lane.
             let words = self.arrow_label(tile.arrow_in.as_deref())?;
-            let beside = flows
-                .get(i + 1)
-                .is_some_and(|next| entry_lane(next, lane) == tile.entry.lane);
+            let beside = flows[i + 1..]
+                .iter()
+                .any(|next| entry_lane(next, lane) == tile.entry.lane);
             let reach = match words.is_empty() || !beside {
                 true => 0.0,
                 false => tile.entry.x + 6.0 + words.width + BRANCH_MARGIN,
@@ -114,7 +114,16 @@ impl Layout<'_> {
                 Ok(Some(pt(x, y, lane)))
             }
             _ => {
-                let top = lowest + GAP / 2.0 + 2.0;
+                // A branch that comes down within the diamond's width turns
+                // to its top just above it, with room for the arrowhead.
+                let near = |points: &Vec<Pt>| {
+                    let last = points.last().expect("a line starts somewhere");
+                    last.lane == lane && (0.5..HALF).contains(&(last.x - x).abs())
+                };
+                let top = match ends.iter().any(|(points, ..)| near(points)) {
+                    true => lowest + 4.0 + JOG,
+                    false => lowest + GAP / 2.0 + 2.0,
+                };
                 let cy = top + HALF;
                 shapes.push(Shape::Diamond {
                     rect: (x - HALF, top, 2.0 * HALF, 2.0 * HALF),
@@ -130,7 +139,7 @@ impl Layout<'_> {
                     // come down through it turns to its middle just above.
                     if last.lane == lane && (last.x - x).abs() < HALF {
                         if (last.x - x).abs() >= 0.5 {
-                            let jog = top - (GAP / 2.0 + 2.0) / 2.0;
+                            let jog = top - JOG;
                             points.push(pt(last.x, jog, lane));
                             points.push(pt(x, jog, lane));
                         }
@@ -190,8 +199,7 @@ impl Layout<'_> {
             lane,
         }];
         // `conditionStyle diamond`: the test above, right of the line in.
-        let lift = beside.height + 2.0;
-        shapes.extend(self.beside(beside, xd, -lift, lane));
+        shapes.extend(self.test_words(beside, xd, lane));
         let corners = (pt(xd - dw / 2.0, cy, lane), pt(xd + dw / 2.0, cy, lane));
         let [left_label, right_label] = labels;
         if !left_label.is_empty() {
@@ -240,7 +248,9 @@ impl Layout<'_> {
         lane: usize,
     ) -> Result<Tile, Declined> {
         let font = self.skin.arrow_font;
-        let (dw, dh, text, beside) = self.test(Some(test))?;
+        // A `switch` keeps its hexagon under `conditionStyle diamond`, as
+        // a row of `elseif`s does, as PlantUML draws it.
+        let (dw, dh, text) = self.diamond(Some(test))?;
         // Cases in swimlanes further left go further left.
         let mut cases: Vec<&Branch> = cases.iter().collect();
         cases.sort_by_key(|case| entry_lane(&case.flow, lane));
@@ -324,13 +334,35 @@ impl Layout<'_> {
                 .max(tiles[i].entry.x + arrows[i]);
             (tiles[i].bounds.0, reach)
         });
-        // Each side moves as a whole, so a case that runs on into another
-        // swimlane keeps clear of its neighbours there too: far enough for
-        // every case on it to clear the one at the foot, and those in the
-        // switch's lane the diamond (on the left with their words).
+        // A side moves the cases on it that share a swimlane with the
+        // switch, with the case at its foot or with another that moves, so
+        // a case that runs on into another lane keeps clear of its
+        // neighbours there and one alone in its lane stays: far enough for
+        // each to clear the case at the foot, and those in the switch's
+        // lane the diamond (on the left with their words).
+        let lanes: Vec<Vec<usize>> = tiles.iter().map(lanes_of).collect();
+        let foot_lanes = foot.map_or(Vec::new(), |i| lanes[i].clone());
+        let moves = |side: Side| {
+            let mut near: Vec<usize> = foot_lanes.iter().copied().chain([lane]).collect();
+            let mut moving = vec![false; n];
+            loop {
+                let more: Vec<usize> = (0..n)
+                    .filter(|&i| sides[i] == side && !moving[i])
+                    .filter(|&i| lanes[i].iter().any(|l| near.contains(l)))
+                    .collect();
+                if more.is_empty() {
+                    return moving;
+                }
+                for i in more {
+                    moving[i] = true;
+                    near.extend(&lanes[i]);
+                }
+            }
+        };
+        let (on_left, on_right) = (moves(Side::Left), moves(Side::Right));
         let here: Vec<bool> = tiles.iter().map(|tile| tile.entry.lane == lane).collect();
         let left = (0..n)
-            .filter(|&i| sides[i] == Side::Left)
+            .filter(|&i| on_left[i])
             .map(|i| {
                 let reach = tiles[i].bounds.2.max(tiles[i].entry.x + arrows[i]);
                 let clear = foot_left - 2.0 * BRANCH_MARGIN - reach;
@@ -343,7 +375,7 @@ impl Layout<'_> {
             })
             .fold(0.0, f32::min);
         let right = (0..n)
-            .filter(|&i| sides[i] == Side::Right)
+            .filter(|&i| on_right[i])
             .map(|i| {
                 let clear = foot_right + 2.0 * BRANCH_MARGIN - tiles[i].bounds.0;
                 match here[i] {
@@ -352,11 +384,11 @@ impl Layout<'_> {
                 }
             })
             .fold(0.0, f32::max);
-        for (tile, side) in tiles.iter_mut().zip(&sides) {
-            match side {
-                Side::Left => tile.translate(left, 0.0),
-                Side::Right => tile.translate(right, 0.0),
-                Side::Foot => {}
+        for (i, tile) in tiles.iter_mut().enumerate() {
+            if on_left[i] {
+                tile.translate(left, 0.0);
+            } else if on_right[i] {
+                tile.translate(right, 0.0);
             }
         }
         let mut shapes = vec![Shape::Diamond {
@@ -364,8 +396,6 @@ impl Layout<'_> {
             text,
             lane,
         }];
-        let lift = beside.height + 2.0;
-        shapes.extend(self.beside(beside, xd, -lift, lane));
         let corners = (pt(xd - dw / 2.0, cy, lane), pt(xd + dw / 2.0, cy, lane));
         let mut edges = Vec::new();
         let mut ways = Vec::new();
@@ -704,6 +734,29 @@ impl Layout<'_> {
         Ok(Some(pt(middle, y + bar, lane)))
     }
 }
+
+/// The swimlanes `tile` draws in.
+fn lanes_of(tile: &Tile) -> Vec<usize> {
+    let mut lanes: Vec<usize> = tile.shapes.iter().filter_map(Shape::lane).collect();
+    for shape in &tile.shapes {
+        if let Shape::Bar { spans, .. } = shape {
+            lanes.extend(spans.iter().map(|span| span.2));
+        }
+    }
+    lanes.extend(
+        tile.edges
+            .iter()
+            .flat_map(|edge| edge.points.iter().map(|p| p.lane)),
+    );
+    lanes.push(tile.entry.lane);
+    lanes.sort_unstable();
+    lanes.dedup();
+    lanes
+}
+
+/// From where a line turns to the top of the diamond below it to that
+/// top: an arrowhead's length and a little.
+const JOG: f32 = 14.0;
 
 /// Which way a case of a `switch` leaves its diamond.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
