@@ -334,7 +334,10 @@ fn names(code: &str, lang: Language, kind: DiagramKind, specs: &Specs, out: &mut
 
 /// Whether a state of this kind has a name transitions write.
 fn named(kind: Kind) -> bool {
-    matches!(kind, Kind::State | Kind::Choice | Kind::Fork | Kind::Join)
+    matches!(
+        kind,
+        Kind::State | Kind::Choice | Kind::Fork | Kind::Join | Kind::Entry | Kind::Exit
+    )
 }
 
 /// The events the diagram's own machine takes so far.

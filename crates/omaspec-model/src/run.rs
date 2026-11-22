@@ -174,7 +174,8 @@ impl Run {
                     self.done(m, from)
                 }
                 Kind::State => self.is_in(m, from),
-                Kind::Choice => self.active.contains(&from),
+                // A point waits as a choice does, where its way needs one.
+                Kind::Choice | Kind::Entry | Kind::Exit => self.active.contains(&from),
                 _ => false,
             }
         };
@@ -219,8 +220,11 @@ impl Run {
             return false;
         }
         match m.states[tr.from].kind {
-            // The one way out of a choice; with several, the writer picks.
-            Kind::Choice => m.transitions.iter().filter(|u| u.from == tr.from).count() == 1,
+            // The one way out of a choice or a point; with several, the
+            // writer picks.
+            Kind::Choice | Kind::Entry | Kind::Exit => {
+                m.transitions.iter().filter(|u| u.from == tr.from).count() == 1
+            }
             // The one way out of a state without an event; with several,
             // the writer picks too.
             Kind::State => {
@@ -263,7 +267,9 @@ impl Run {
             let from = m.transitions[t].from;
             match m.states[from].kind {
                 Kind::State if m.is_composite(from) => self.done(m, from),
-                Kind::State | Kind::Choice | Kind::Fork => self.active.contains(&from),
+                Kind::State | Kind::Choice | Kind::Fork | Kind::Entry | Kind::Exit => {
+                    self.active.contains(&from)
+                }
                 Kind::Join => self.ready.contains(&from),
                 _ => false,
             }
@@ -681,6 +687,23 @@ mod tests {
     /// REQ-076: a region without a start of its own begins in the one
     /// state in it that has one, as the machine does at its top; a play
     /// stood in the state around them and offered nothing.
+    /// A transition into an entry point goes on at once along its way
+    /// inside, not from the state's start; one into an exit point goes on
+    /// out of the state.
+    #[test]
+    fn a_point_passes_a_transition_through() {
+        let m = machine(
+            "[*] --> Idle\nstate Busy {\n  state side <<entryPoint>>\n  state done <<exitPoint>>\n  [*] --> Usual\n  side --> Special\n  Special --> done : finish\n}\nIdle --> side : urgent\nIdle --> Busy : normal\ndone --> Idle",
+        );
+        let (mut run, _) = Run::start(&m).unwrap();
+        take(&mut run, &m, "urgent");
+        assert_eq!(names(&m, run.active()), ["Special"]);
+        take(&mut run, &m, "finish");
+        assert_eq!(names(&m, run.active()), ["Idle"]);
+        take(&mut run, &m, "normal");
+        assert_eq!(names(&m, run.active()), ["Usual"]);
+    }
+
     #[test]
     fn a_region_without_a_start_begins_in_the_state_that_has_one() {
         let m = machine(

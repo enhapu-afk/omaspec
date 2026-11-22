@@ -104,6 +104,13 @@ pub enum Kind {
     History,
     /// `[H*]`: back to everything last left inside the state around it.
     DeepHistory,
+    /// Where a transition enters the state around it (`<<entryPoint>>`):
+    /// it goes on at once along the point's way inside, as a choice with
+    /// one way does.
+    Entry,
+    /// Where a transition leaves the state around it (`<<exitPoint>>`): it
+    /// goes on at once along the point's way out.
+    Exit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -219,6 +226,7 @@ impl Machine {
             Kind::Choice => shape == Shape::Choice,
             Kind::Fork | Kind::Join => shape == Shape::Bar,
             Kind::History | Kind::DeepHistory => shape == Shape::History,
+            Kind::Entry | Kind::Exit => shape == Shape::Point,
         };
         let mut taken = vec![false; map.states.len()];
         let states = self

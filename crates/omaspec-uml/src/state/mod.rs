@@ -93,6 +93,19 @@ impl Diagram {
 }
 
 impl Node {
+    /// How an entry or an exit point is drawn; `None` for anything else.
+    pub fn point(&self) -> Option<Point> {
+        if !matches!(self.kind, Kind::Entry | Kind::Exit) {
+            return None;
+        }
+        let stereotype = self.stereotype.as_deref().unwrap_or_default();
+        Some(match stereotype.to_ascii_lowercase().as_str() {
+            "inputpin" | "outputpin" => Point::Pin,
+            "expansioninput" | "expansionoutput" => Point::Expansion,
+            _ => Point::Circle,
+        })
+    }
+
     /// A state that receives a signal (`<<sdlreceive>>`, SDL's input): drawn
     /// with a tab in its top left corner, a state of the machine as any.
     pub fn receives(&self) -> bool {
@@ -309,6 +322,25 @@ pub enum Kind {
     /// A note of its own (`note "…" as N1`), laid out as a box among the
     /// states; its words are its label. No state of the machine.
     Note,
+    /// Where a transition enters the state around it (`<<entryPoint>>`,
+    /// drawn as `<<inputPin>>` and `<<expansionInput>>` draw it too): on
+    /// that state's border, its one way leading on inside.
+    Entry,
+    /// Where a transition leaves the state around it (`<<exitPoint>>`,
+    /// `<<outputPin>>`, `<<expansionOutput>>`).
+    Exit,
+}
+
+/// How an entry or an exit point is drawn, by the stereotype it was
+/// declared with.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Point {
+    /// `<<entryPoint>>` and `<<exitPoint>>`, a cross in an exit's.
+    Circle,
+    /// `<<inputPin>>` and `<<outputPin>>`.
+    Pin,
+    /// `<<expansionInput>>` and `<<expansionOutput>>`: four cells in a row.
+    Expansion,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

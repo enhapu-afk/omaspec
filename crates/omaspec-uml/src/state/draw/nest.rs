@@ -87,6 +87,8 @@ pub(super) fn layout_regions(
                 composite: true,
                 link: None,
                 receives: false,
+                point: None,
+                title_shift: 0.0,
             },
         });
     }
@@ -517,6 +519,9 @@ fn drawn_in(scene: &Scene, drawn: &mut Drawn) {
     for node in &scene.nodes {
         for (a, b) in separators(node) {
             drawn.lines.push(vec![a, b]);
+        }
+        if matches!(node.item.kind, Kind::Entry | Kind::Exit) {
+            drawn.labels.push(super::point_name(node));
         }
         drawn_in(&node.children, drawn);
     }

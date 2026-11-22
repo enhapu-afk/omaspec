@@ -49,6 +49,8 @@ fn machine_lines(m: &Machine) -> Vec<String> {
                 Kind::Choice => "choice",
                 Kind::Fork => "fork",
                 Kind::Join => "join",
+                Kind::Entry => "entry point",
+                Kind::Exit => "exit point",
                 _ => return None,
             };
             Some(format!("  {kind} {}", path(m, s)))

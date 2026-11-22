@@ -257,6 +257,12 @@ impl ToMermaid {
                     "Mermaid has no history state ([H], [H*])",
                 ));
             }
+            Kind::Entry | Kind::Exit => {
+                return Err(refused(
+                    Some(node.line),
+                    "Mermaid has no entry or exit point on a state's border",
+                ));
+            }
             _ => self.id(node)?,
         };
         if node.fill.is_some()
@@ -769,6 +775,10 @@ mod tests {
                 .any(|n| n.line == Some(2) && n.message.contains("note of its own")),
             "{out:?}"
         );
+        let pointed =
+            "@startuml\n[*] --> e\nstate S {\n  state e <<entryPoint>>\n  e --> A\n}\n@enduml\n";
+        let err = both(pointed, Language::PlantUml, Language::Mermaid).unwrap_err();
+        assert!(err.reason.contains("entry or exit point"), "{err:?}");
         let named = "@startuml\nstate s1 <<start>>\ns1 --> A\n@enduml\n";
         let err = both(named, Language::PlantUml, Language::Mermaid).unwrap_err();
         assert!(err.reason.contains("name of its own (`s1`)"), "{err:?}");

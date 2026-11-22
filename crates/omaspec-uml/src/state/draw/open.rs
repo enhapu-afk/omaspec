@@ -2,7 +2,7 @@
 //! state with concurrent regions or with a direction of its own stays a
 //! box, laid out on its own.
 
-use super::super::{Container, Dash, Direction, Kind, Side, Transition};
+use super::super::{Container, Dash, Direction, Kind, Point, Side, Transition};
 use super::{
     COMP_GAP, COMP_PAD, Measured, NOTE_GAP, Placed, Scene, Skin, arrow_stroke, edge_label,
     fill_regions, graph_direction, measure_node, note_size, place_notes,
@@ -83,7 +83,7 @@ impl<'a> Nested for States<'a> {
             matches!(
                 node.kind,
                 Kind::Choice | Kind::Start | Kind::End | Kind::History | Kind::DeepHistory
-            )
+            ) || node.point() == Some(Point::Circle)
         })
     }
 
@@ -94,6 +94,7 @@ impl<'a> Nested for States<'a> {
         let ellipse = match end.item.kind {
             Kind::Choice => false,
             Kind::Start | Kind::End | Kind::History | Kind::DeepHistory => true,
+            Kind::Entry | Kind::Exit if end.item.point == Some(Point::Circle) => true,
             _ => return,
         };
         let n = points.len();

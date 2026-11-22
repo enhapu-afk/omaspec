@@ -234,6 +234,23 @@ is open and the reasoning around it.
       click on the note leads to the note and not to the transition, and
       both stand on the side of their room toward the line. A state's
       note keeps off the room of a transition without words.
+- [x] Entry and exit points on a state's border (2026-11-22):
+      `<<entryPoint>>`, `<<inputPin>>` and `<<expansionInput>>` on the top
+      border of the state around them, `<<exitPoint>>` (a circle with a
+      cross), `<<outputPin>>` and `<<expansionOutput>>` on its bottom one,
+      drawn as PlantUML draws them, each name outside and beside it. They
+      are pseudo states of the machine of their own kinds (`Kind::Entry`,
+      `Kind::Exit`): a transition to one goes on at once along its way, as
+      out of a choice with one way, so a play enters a state there and not
+      at its start, and checks, the diff, the behavior and the oracle name
+      them. Laid out among the states, they are set on the border once all
+      is placed (`state/draw/points.rs`); the lines inside reach on to
+      them, and the lines across the border are laid anew to them while
+      they stand just outside, so they meet them from outside. A title
+      steps off the lines from its entry points, and their names are in
+      the way of lines between boxes. Outside a state with states inside,
+      or in a concurrent region, a point declines; converted to Mermaid,
+      which has none, the diagram is refused. The guide: 29 of 36.
 
 ## Phase 0: foundation and spikes
 

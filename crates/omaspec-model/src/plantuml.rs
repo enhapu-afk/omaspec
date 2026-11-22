@@ -54,6 +54,8 @@ impl Reader {
                 NodeKind::Fork => Kind::Fork,
                 NodeKind::Join => Kind::Join,
                 NodeKind::History => Kind::History,
+                NodeKind::Entry => Kind::Entry,
+                NodeKind::Exit => Kind::Exit,
                 NodeKind::DeepHistory => Kind::DeepHistory,
             };
             let id = self.machine.states.len();

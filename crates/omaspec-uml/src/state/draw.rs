@@ -24,6 +24,7 @@ use crate::text::{self, Block, Family, Font};
 mod bars;
 mod nest;
 mod open;
+mod points;
 
 pub use nest::label_by_hand;
 use nest::{arrows, fill_regions, lay_by_hand, layout_regions, link_crossings, separators, wires};
@@ -86,7 +87,9 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         family,
     )?;
     let mut scene = layout_container(&diagram.root, &skin, family)?;
+    points::onto_borders(&diagram.root, &mut scene);
     link_crossings(&diagram.root, &mut scene, &skin, family)?;
+    points::onto_border_lines(&diagram.root, &mut scene);
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
     link_notes(&diagram.root, &mut scene, &skin, family)?;
@@ -173,6 +176,7 @@ fn chart_node(
         Kind::Choice => Shape::Choice,
         Kind::Fork | Kind::Join => Shape::Bar,
         Kind::History | Kind::DeepHistory => Shape::History,
+        Kind::Entry | Kind::Exit => Shape::Point,
         Kind::Region => {
             chart(
                 &node.children,
@@ -191,6 +195,10 @@ fn chart_node(
         Shape::Start | Shape::End | Shape::History => rect.w.min(rect.h) / 2.0,
         Shape::Bar => 2.0,
         Shape::Choice => 0.0,
+        Shape::Point => match node.point() {
+            Some(super::Point::Circle) => rect.w.min(rect.h) / 2.0,
+            _ => 0.0,
+        },
     };
     map.states.push(Spot {
         name: node.key.clone(),
@@ -241,7 +249,16 @@ struct Item {
     /// A state that receives a signal: a tab in its corner
     /// ([`super::Node::receives`]), its words below it.
     receives: bool,
+    /// How an entry or an exit point is drawn.
+    point: Option<super::Point>,
+    /// How far a nested state's title stands right of its middle, off the
+    /// lines from its entry points ([`points::onto_borders`]).
+    title_shift: f32,
 }
+
+/// How large an entry or an exit point is, or a cell of an expansion's
+/// row, as PlantUML draws them.
+const POINT: f32 = 12.0;
 
 /// How high and wide the tab of a state that receives a signal is, as
 /// PlantUML draws it, and where its slant starts.
@@ -329,6 +346,8 @@ fn measure_node(
                 composite: true,
                 link: node.link.clone(),
                 receives: false,
+                point: None,
+                title_shift: 0.0,
             },
         });
     }
@@ -376,6 +395,17 @@ fn measure_node(
         }
         Kind::Start => (START, START, Block::empty(), Vec::new()),
         Kind::End => (END, END, Block::empty(), Vec::new()),
+        // Its shape alone; its name stands outside the state around it,
+        // over or under it once it is on that state's border
+        // ([`onto_borders`]).
+        Kind::Entry | Kind::Exit => {
+            let title = node.label.measure(skin.state.font, family)?;
+            let (width, height) = match node.point() {
+                Some(super::Point::Expansion) => (POINT * 4.0, POINT),
+                _ => (POINT, POINT),
+            };
+            (width, height, title, Vec::new())
+        }
         // Its words are its own line's, or its block's.
         Kind::Note => {
             let text = node.label.measure_written(skin.note.font, family)?;
@@ -403,6 +433,8 @@ fn measure_node(
             composite: false,
             link: node.link.clone(),
             receives: node.receives(),
+            point: node.point(),
+            title_shift: 0.0,
         },
     })
 }
@@ -1151,7 +1183,61 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
             let rect = (rect.x, rect.y, rect.w, rect.h);
             note_shape(canvas, skin, Layer::Frames, rect);
         }
+        Kind::Entry | Kind::Exit => paint_point(canvas, node),
         Kind::Region => {}
+    }
+}
+
+/// Where the name of an entry or an exit point stands: outside the state on
+/// whose border it is, left of it, over an entry and under an exit, so the
+/// lines that meet it from outside keep off it (lines between boxes keep
+/// off it too, [`super::nest`]).
+fn point_name(node: &Placed) -> Rect {
+    let (gap, title) = (2.0, &node.item.title);
+    let middle = node.rect.y + node.rect.h / 2.0;
+    let y = match node.item.kind {
+        Kind::Entry => middle - gap - title.height,
+        _ => middle + gap,
+    };
+    Rect {
+        x: node.rect.x - gap - title.width,
+        y,
+        w: title.width,
+        h: title.height,
+    }
+}
+
+/// An entry or an exit point, as PlantUML draws it: a circle, a cross in
+/// an exit's; a pin's square; an expansion's row of cells.
+fn paint_point(canvas: &mut Canvas, node: &Placed) {
+    let rect = node.rect;
+    let stroke = Stroke::new(node.item.border.color, 1.5);
+    let (fill, layer) = (node.item.fill, Layer::Frames);
+    match node.item.point {
+        Some(super::Point::Circle) | None => {
+            let (cx, cy, r) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0, rect.w / 2.0);
+            canvas.ellipse(layer, (cx, cy), (r, r), fill, Some(stroke));
+            if node.item.kind == Kind::Exit {
+                let d = r * std::f32::consts::FRAC_1_SQRT_2;
+                canvas.line(layer, (cx - d, cy - d), (cx + d, cy + d), stroke);
+                canvas.line(layer, (cx - d, cy + d), (cx + d, cy - d), stroke);
+            }
+        }
+        Some(point) => {
+            canvas.rect(
+                layer,
+                (rect.x, rect.y, rect.w, rect.h),
+                0.0,
+                fill,
+                Some(stroke),
+            );
+            if point == super::Point::Expansion {
+                for cell in 1..4 {
+                    let x = rect.x + rect.w * cell as f32 / 4.0;
+                    canvas.line(layer, (x, rect.y), (x, rect.y + rect.h), stroke);
+                }
+            }
+        }
     }
 }
 
@@ -1320,7 +1406,7 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
             paint_stack(
                 canvas,
                 (&node.item.title, &node.item.description, &lines),
-                node.rect.x + node.rect.w / 2.0,
+                node.rect.x + node.rect.w / 2.0 + node.item.title_shift,
                 node.rect.y + HEAD_TOP,
             );
         }
@@ -1350,6 +1436,10 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
             (node.rect.x + NOTE_PAD, node.rect.y + NOTE_PAD),
             Align::Left,
         ),
+        Kind::Entry | Kind::Exit => {
+            let at = point_name(node);
+            canvas.text(Layer::Front, &node.item.title, (at.x, at.y), Align::Left);
+        }
         Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
     }
 }
@@ -1595,6 +1685,46 @@ mod tests {
         assert_eq!(fill_of("Leaf"), "#FF0000");
         assert_eq!(fill_of("said"), "#000000");
         assert_eq!(fill_of("Comp"), "#000000");
+    }
+
+    /// An entry point stands on the top border of its state and an exit
+    /// point on the bottom one, each a place a play finds, and the lines
+    /// from outside reach them there.
+    #[test]
+    fn points_stand_on_the_border_of_their_state() {
+        let source = "@startuml\n[*] --> in1\nstate Somp {\n  state in1 <<entryPoint>>\n  state out1 <<exitPoint>>\n  state ex <<expansionInput>>\n  in1 --> Work\n  ex --> Work\n  Work --> out1\n}\nout1 --> Done\nFoo --> ex\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let spot = |name: &str| map.states.iter().find(|s| s.name == name).unwrap();
+        let somp = spot("Somp").rect;
+        for (name, y) in [("in1", somp.y), ("ex", somp.y), ("out1", somp.y + somp.h)] {
+            let point = spot(name);
+            assert_eq!(point.shape, Shape::Point, "{name}");
+            assert!(
+                (point.rect.y + point.rect.h / 2.0 - y).abs() < 0.5,
+                "{name}: {:?}",
+                point.rect
+            );
+        }
+        assert!((spot("ex").rect.w - 48.0).abs() < 0.5);
+        // The lines from outside end on them.
+        let wire = |line: usize| map.wires.iter().find(|w| w.line == Some(line)).unwrap();
+        let ends_at = |line: usize, name: &str| {
+            let r = spot(name).rect;
+            let (x, y) = *wire(line).points.last().unwrap();
+            x >= r.x - 1.0 && x <= r.x + r.w + 1.0 && (y - r.y).abs() < 6.0
+        };
+        assert!(
+            ends_at(1, "in1") && ends_at(11, "ex"),
+            "{:?}",
+            wire(11).points
+        );
+        let (x, y) = wire(10).points[0];
+        let out = spot("out1").rect;
+        assert!(
+            y >= out.y + out.h / 2.0 && x > out.x && x < out.x + out.w,
+            "{:?}",
+            wire(10).points
+        );
     }
 
     /// A state that receives a signal has a tab in its top left corner,

@@ -483,6 +483,8 @@ fn kind_name(kind: Kind) -> &'static str {
         Kind::Join => "join",
         Kind::History => "history",
         Kind::DeepHistory => "deep history",
+        Kind::Entry => "entry point",
+        Kind::Exit => "exit point",
     }
 }
 

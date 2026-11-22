@@ -181,7 +181,8 @@ impl Glow {
         match spot.shape {
             Shape::Start | Shape::End | Shape::History => Glow::Ring(r.center(), radius),
             Shape::Choice => Glow::Diamond(r),
-            Shape::State | Shape::Bar => Glow::Box(r, radius),
+            // A point's corner is its circle's, or a pin's square one.
+            Shape::State | Shape::Bar | Shape::Point => Glow::Box(r, radius),
         }
     }
 

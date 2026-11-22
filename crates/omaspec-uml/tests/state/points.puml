@@ -1,0 +1,29 @@
+@startuml
+' Entry and exit points on the border of the state around them: an entry
+' point, an input pin and an expansion's input on its top border, an exit
+' point, an output pin and an expansion's output on its bottom one. A
+' transition to a point goes on at once along the point's way.
+[*] --> Idle
+state Somp {
+  state urgent <<entryPoint>>
+  state in1 <<inputPin>>
+  state batch <<expansionInput>>
+  state done <<exitPoint>>
+  state out1 <<outputPin>>
+  state results <<expansionOutput>>
+  [*] --> Work
+  urgent --> Work
+  in1 --> Work
+  batch --> Work
+  Work --> done : finish
+  Work --> out1 : emit
+  Work --> results : collect
+}
+Idle --> Somp : start
+Idle --> urgent : hurry
+Idle --> in1 : feed
+Idle --> batch : many
+done --> Idle
+out1 --> Idle
+results --> Idle
+@enduml

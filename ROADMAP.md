@@ -57,15 +57,14 @@ of element) and step 0 (a second `@startuml` line).
       PlantUML (`#A80036`), in the lifeline's color here; in the themes'
       colors it wants a color of their own.
 
-### Step 2: the state diagram (26 of 36)
+### Step 2: the state diagram (29 of 36)
 
-- [ ] Pseudo states by stereotype: `<<entryPoint>>`, `<<exitPoint>>`,
-      `<<inputPin>>`, `<<outputPin>>`, `<<expansionInput>>`,
-      `<<expansionOutput>>` on their state's border.
-- [ ] `skinparam state { StartColor, EndColor, AttributeFont… }`, which
-      PlantUML 1.2026.8 and the guide's own pictures ignore, and with them
-      `FontName` (step 5, a font name per element); a font name in
-      `<style>`. Gradients in a state's color wait on step 5.
+- [ ] The seven left wait on step 5: `skinparam state { StartColor,
+      EndColor, AttributeFont… }`, which PlantUML 1.2026.8 and the guide's
+      own pictures ignore, and with them `FontName` (a font name per
+      element); a font name in `<style>`; gradients in a state's color
+      (`#red-green`); a style for a stereotype (`.foo { state { … } }`). A
+      `json` element among the states waits on step 7.
 
 ### Step 3: the activity diagram (41 of 62; the legacy syntax 0 of 13)
 

@@ -168,6 +168,7 @@ impl Parser {
                 arrow,
             });
         }
+        on_borders(&self.root, None)?;
         Ok(Diagram {
             root: self.root,
             frame: self.frame,
@@ -1087,6 +1088,12 @@ fn declaration(text: &str, line: usize) -> Result<Decl, Declined> {
                     return Err(Declined::at(line, "a state has more than one stereotype"));
                 }
                 match kind_of(&token.text, line)? {
+                    // A point keeps its stereotype, which says how it is
+                    // drawn ([`Node::point`]).
+                    Some(kind @ (Kind::Entry | Kind::Exit)) => {
+                        decl.kind = Some(kind);
+                        decl.stereotype = Some(token.text);
+                    }
                     Some(kind) => decl.kind = Some(kind),
                     None => decl.stereotype = Some(token.text),
                 }
@@ -1198,6 +1205,31 @@ fn tokenize(spec: &str, line: usize) -> Result<Vec<Token>, Declined> {
     Ok(out)
 }
 
+/// Declines an entry or an exit point anywhere but among the states of a
+/// state with states inside, on whose border it is drawn: at the top, or
+/// in a concurrent region. `owner` is the kind of the node `container`
+/// belongs to, none at the top.
+fn on_borders(container: &Container, owner: Option<Kind>) -> Result<(), Declined> {
+    for node in &container.nodes {
+        if matches!(node.kind, Kind::Entry | Kind::Exit) && owner != Some(Kind::State) {
+            let what = if node.kind == Kind::Entry {
+                "an entry"
+            } else {
+                "an exit"
+            };
+            let reason = match owner {
+                Some(Kind::Region) => {
+                    format!("{what} point in a concurrent region is not supported yet")
+                }
+                _ => format!("{what} point belongs inside the state on whose border it stands"),
+            };
+            return Err(Declined::at(node.line, reason));
+        }
+        on_borders(&node.children, Some(node.kind))?;
+    }
+    Ok(())
+}
+
 /// The kind a stereotype makes a state; `None` for one of the writer's own,
 /// which only picks colors.
 fn kind_of(stereo: &str, line: usize) -> Result<Option<Kind>, Declined> {
@@ -1213,14 +1245,9 @@ fn kind_of(stereo: &str, line: usize) -> Result<Option<Kind>, Declined> {
         // A state like any other, which PlantUML draws with a tab in its
         // corner ([`Node::receives`]).
         "sdlreceive" => return Ok(None),
-        // PlantUML draws these as shapes of their own.
-        "entrypoint" | "exitpoint" | "inputpin" | "outputpin" | "expansioninput"
-        | "expansionoutput" => {
-            return Err(Declined::at(
-                line,
-                format!("the stereotype `<<{stereo}>>` is not supported yet"),
-            ));
-        }
+        // On the border of the state around them, drawn by their stereotype.
+        "entrypoint" | "inputpin" | "expansioninput" => Kind::Entry,
+        "exitpoint" | "outputpin" | "expansionoutput" => Kind::Exit,
         "" => return Err(Declined::at(line, "a stereotype needs a text")),
         _ => return Ok(None),
     }))
@@ -1858,6 +1885,7 @@ fn unquoted_colon(text: &str) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::Point;
 
     fn diagram(source: &str) -> Diagram {
         let (_, lines) = crate::source::body(source).unwrap();
@@ -1968,11 +1996,11 @@ mod tests {
         assert!(init.composite);
         assert_eq!(init.stereotype.as_deref(), Some("Phase"));
         assert_eq!(node(&init.children, "X").stereotype, None);
-        // PlantUML draws these as shapes of their own, not drawn here yet.
+        // A point at the top, and what a declaration may not say.
         for (source, part) in [
             (
                 "state E <<entryPoint>>",
-                "`<<entryPoint>>` is not supported yet",
+                "an entry point belongs inside the state",
             ),
             ("state A <<a>> <<b>>", "more than one stereotype"),
             ("state \"x\" <<sub>> as P", "stereotype after the alias"),
@@ -2128,6 +2156,41 @@ mod tests {
         );
         let err = declined("@startuml\nstate s #pink;line.wavy\n@enduml\n");
         assert!(err.reason.contains("`line.wavy`"), "{}", err.reason);
+    }
+
+    /// Entry and exit points, drawn as their stereotype says, inside a
+    /// state with states only.
+    #[test]
+    fn a_point_stands_inside_the_state_on_whose_border_it_is() {
+        let d = diagram(
+            "@startuml\nstate S {\n  state a <<entryPoint>>\n  state b <<exitPoint>>\n  state c <<inputPin>>\n  state e <<expansionOutput>>\n}\n@enduml\n",
+        );
+        let s = node(&d.root, "S");
+        let seen: Vec<(Kind, Option<Point>)> = s
+            .children
+            .nodes
+            .iter()
+            .map(|n| (n.kind, n.point()))
+            .collect();
+        assert_eq!(
+            seen,
+            [
+                (Kind::Entry, Some(Point::Circle)),
+                (Kind::Exit, Some(Point::Circle)),
+                (Kind::Entry, Some(Point::Pin)),
+                (Kind::Exit, Some(Point::Expansion)),
+            ]
+        );
+        for (source, part) in [
+            ("state a <<entryPoint>>", "belongs inside the state"),
+            (
+                "state S {\n  [*] --> A\n  --\n  state b <<exitPoint>>\n}",
+                "concurrent region",
+            ),
+        ] {
+            let err = declined(&format!("@startuml\n{source}\n@enduml\n"));
+            assert!(err.reason.contains(part), "{source}: {}", err.reason);
+        }
     }
 
     /// A state that receives a signal is a state, its stereotype kept.
@@ -2628,10 +2691,10 @@ mod tests {
     }
 
     #[test]
-    fn an_unknown_stereotype_declines() {
+    fn a_point_outside_a_state_declines_at_its_line() {
         let err = declined("@startuml\nstate X <<entrypoint>>\n@enduml\n");
         assert_eq!(err.line, Some(1));
-        assert!(err.reason.contains("entrypoint"), "{}", err.reason);
+        assert!(err.reason.contains("entry point"), "{}", err.reason);
     }
 
     /// `: words` or `:Clerk:` describes no state, as PlantUML says too

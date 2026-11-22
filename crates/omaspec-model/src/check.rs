@@ -204,7 +204,10 @@ fn ambiguous(m: &Machine, out: &mut Vec<Finding>) {
     let mut seen: HashMap<(usize, Option<&str>, Option<&str>), usize> = HashMap::new();
     for (index, t) in m.transitions.iter().enumerate() {
         let from = &m.states[t.from];
-        if !matches!(from.kind, Kind::State | Kind::Choice) {
+        if !matches!(
+            from.kind,
+            Kind::State | Kind::Choice | Kind::Entry | Kind::Exit
+        ) {
             continue;
         }
         let guard = t.trigger.guard.as_deref();
@@ -235,6 +238,8 @@ fn ambiguous(m: &Machine, out: &mut Vec<Finding>) {
                 let what = match (from.kind, event) {
                     (_, Some(event)) => format!("Event {event} leads from {}", from.name),
                     (Kind::Choice, None) => format!("Choice {} leads", from.name),
+                    (Kind::Entry, None) => format!("Entry point {} leads", from.name),
+                    (Kind::Exit, None) => format!("Exit point {} leads", from.name),
                     (_, None) => format!("{} leads on without an event", from.name),
                 };
                 let choose = match guard {

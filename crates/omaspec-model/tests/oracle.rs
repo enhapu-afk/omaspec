@@ -535,6 +535,8 @@ fn state_key(path: &str, kind: Kind, name: &str) -> String {
         Kind::Join => named("join", "<<join>>"),
         Kind::History => "[H]".into(),
         Kind::DeepHistory => "[H*]".into(),
+        Kind::Entry => named("entry", "<<entry>>"),
+        Kind::Exit => named("exit", "<<exit>>"),
     };
     format!("{path}{token}")
 }
@@ -680,6 +682,9 @@ fn pseudo(id: &str, parent_id: &str, stereotype: Option<&str>) -> (Kind, String)
         Some("join") => Kind::Join,
         Some("history") => Kind::History,
         Some("deepHistory") => Kind::DeepHistory,
+        // However it is drawn.
+        Some("entryPoint" | "inputPin" | "expansionInput") => Kind::Entry,
+        Some("exitPoint" | "outputPin" | "expansionOutput") => Kind::Exit,
         _ => Kind::State,
     };
     (kind, id.to_owned())

@@ -548,7 +548,9 @@ pub(crate) fn enter(m: &Machine, state: usize, at: &mut [bool], seen: &mut [bool
     };
     let s = &m.states[state];
     match s.kind {
-        Kind::Start | Kind::Choice | Kind::Fork | Kind::Join => follow(state, at, seen),
+        Kind::Start | Kind::Choice | Kind::Fork | Kind::Join | Kind::Entry | Kind::Exit => {
+            follow(state, at, seen)
+        }
         // Back to wherever inside the state around it: one of its states,
         // or for a deep history any state at any depth.
         Kind::History | Kind::DeepHistory => {

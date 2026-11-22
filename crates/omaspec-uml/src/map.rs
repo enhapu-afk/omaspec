@@ -308,6 +308,8 @@ pub enum Shape {
     /// A fork or a join.
     Bar,
     History,
+    /// An entry or an exit point on a state's border, a circle or a pin.
+    Point,
 }
 
 /// A box of a mind map or a WBS drawn as a tile, which shows a diagram of
