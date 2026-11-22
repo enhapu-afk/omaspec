@@ -86,6 +86,7 @@ pub(super) fn layout_regions(
                 gap: 0.0,
                 composite: true,
                 link: None,
+                receives: false,
             },
         });
     }

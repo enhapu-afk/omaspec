@@ -237,7 +237,14 @@ struct Item {
     composite: bool,
     /// Followed on a click on the state and its words.
     link: Option<crate::text::Link>,
+    /// A state that receives a signal: a tab in its corner
+    /// ([`super::Node::receives`]), its words below it.
+    receives: bool,
 }
+
+/// How high and wide the tab of a state that receives a signal is, as
+/// PlantUML draws it, and where its slant starts.
+const TAB: (f32, f32, f32) = (12.0, 33.0, 26.0);
 
 impl Item {
     /// How high the title band of a nested state is, from its top border
@@ -320,6 +327,7 @@ fn measure_node(
                 gap,
                 composite: true,
                 link: node.link.clone(),
+                receives: false,
             },
         });
     }
@@ -329,7 +337,14 @@ fn measure_node(
             let title = node.label.measure(title_font(skin, node)?, family)?;
             let description = text_blocks(&node.description, desc_font(skin), family)?;
             let width = (stack_width(&title, &description) + PAD_X * 2.0).max(MIN_W);
-            let height = (stack_height(&title, &description) + PAD_Y * 2.0).max(MIN_H);
+            let mut height = (stack_height(&title, &description) + PAD_Y * 2.0).max(MIN_H);
+            // Its words keep below its tab, and the tab inside its box.
+            let width = if node.receives() {
+                height += TAB.0;
+                width.max(TAB.1 + PAD_X)
+            } else {
+                width
+            };
             (width, height, title, description)
         }
         Kind::Choice => {
@@ -386,6 +401,7 @@ fn measure_node(
             gap: 0.0,
             composite: false,
             link: node.link.clone(),
+            receives: node.receives(),
         },
     })
 }
@@ -1009,6 +1025,25 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
                 node.item.fill,
                 Some(node.item.border),
             );
+            if node.item.receives {
+                // The tab: down from the top border, a slant, and across to
+                // the left border.
+                let (high, wide, slant) = TAB;
+                let (x, y) = (rect.x, rect.y);
+                let tab = format!(
+                    "M{},{} L{},{} L{},{} L{},{}",
+                    n(x + wide),
+                    n(y),
+                    n(x + wide),
+                    n(y + high - (wide - slant)),
+                    n(x + slant),
+                    n(y + high),
+                    n(x),
+                    n(y + high)
+                );
+                let bounds = (x, y, x + wide, y + high);
+                canvas.path(Layer::Frames, &tab, bounds, None, Some(node.item.border));
+            }
         }
         Kind::Choice => {
             let points = [
@@ -1247,11 +1282,13 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
         }
         Kind::State => {
             let height = stack_height(&node.item.title, &node.item.description);
+            // Below the tab of a state that receives a signal.
+            let tab = if node.item.receives { TAB.0 } else { 0.0 };
             paint_stack(
                 canvas,
                 (&node.item.title, &node.item.description, &lines),
                 node.rect.x + node.rect.w / 2.0,
-                node.rect.y + (node.rect.h - height) / 2.0,
+                node.rect.y + tab + (node.rect.h - tab - height) / 2.0,
             );
         }
         Kind::Choice | Kind::History | Kind::DeepHistory => {
@@ -1513,6 +1550,25 @@ mod tests {
         assert_eq!(fill_of("Leaf"), "#FF0000");
         assert_eq!(fill_of("said"), "#000000");
         assert_eq!(fill_of("Comp"), "#000000");
+    }
+
+    /// A state that receives a signal has a tab in its top left corner,
+    /// and its name below it.
+    #[test]
+    fn a_receiving_state_has_a_tab_and_its_name_below_it() {
+        let source = "@startuml\nstate R <<sdlreceive>>\nstate P\n@enduml\n";
+        let (svg, _) = crate::render_mapped(source, None).unwrap();
+        let tabs = svg.matches(" L").count();
+        let plain = crate::render_mapped("@startuml\nstate R\nstate P\n@enduml\n", None)
+            .unwrap()
+            .0;
+        assert_eq!(tabs, plain.matches(" L").count() + 3, "{svg}");
+        let y_of = |svg: &str, word: &str| -> f32 {
+            let at = svg.find(&format!(">{word}</tspan>")).unwrap();
+            let start = svg[..at].rfind(" y=\"").unwrap() + 4;
+            svg[start..].split('"').next().unwrap().parse().unwrap()
+        };
+        assert!(y_of(&svg, "R") > y_of(&plain, "R") + 5.0, "{svg}");
     }
 
     #[test]

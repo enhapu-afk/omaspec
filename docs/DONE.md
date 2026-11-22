@@ -219,6 +219,10 @@ is open and the reasoning around it.
       empty; a rename onto a note's name is refused. `text:` colors the
       name of a state without a body only, as PlantUML does, and the
       orbit draws it too.
+- [x] A state that receives a signal (2026-11-22): `<<sdlreceive>>`, SDL's
+      input, is a state of the machine drawn with a tab in its top left
+      corner, as PlantUML draws it, its words below the tab. The guide:
+      26 of 36.
 
 ## Phase 0: foundation and spikes
 

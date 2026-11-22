@@ -1,0 +1,11 @@
+@startuml
+' A state that receives a signal (`<<sdlreceive>>`, SDL's input) is a
+' state of the machine, drawn with a tab in its corner.
+state "Req(Id)" as ReqId <<sdlreceive>>
+state c <<choice>>
+[*] --> Idle
+Idle --> ReqId
+ReqId --> c
+c --> Minor : [Id <= 10]
+c --> Major : [Id > 10]
+@enduml

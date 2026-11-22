@@ -1210,9 +1210,12 @@ fn kind_of(stereo: &str, line: usize) -> Result<Option<Kind>, Declined> {
         // A start or an end with a name of its own (`state s1 <<start>>`).
         "start" => Kind::Start,
         "end" => Kind::End,
+        // A state like any other, which PlantUML draws with a tab in its
+        // corner ([`Node::receives`]).
+        "sdlreceive" => return Ok(None),
         // PlantUML draws these as shapes of their own.
         "entrypoint" | "exitpoint" | "inputpin" | "outputpin" | "expansioninput"
-        | "expansionoutput" | "sdlreceive" => {
+        | "expansionoutput" => {
             return Err(Declined::at(
                 line,
                 format!("the stereotype `<<{stereo}>>` is not supported yet"),
@@ -2125,6 +2128,18 @@ mod tests {
         );
         let err = declined("@startuml\nstate s #pink;line.wavy\n@enduml\n");
         assert!(err.reason.contains("`line.wavy`"), "{}", err.reason);
+    }
+
+    /// A state that receives a signal is a state, its stereotype kept.
+    #[test]
+    fn a_receiving_state_is_a_state() {
+        let d = diagram(
+            "@startuml\nstate \"Req(Id)\" as R <<sdlreceive>>\nstate S <<SDLreceive>> {\n  state I\n}\n@enduml\n",
+        );
+        let r = node(&d.root, "R");
+        assert_eq!((r.kind, r.receives()), (Kind::State, true));
+        // One with states inside draws no tab.
+        assert!(!node(&d.root, "S").receives());
     }
 
     /// A start or an end with a name (`state s1 <<start>>`) is one of its

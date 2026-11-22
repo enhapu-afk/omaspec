@@ -92,6 +92,19 @@ impl Diagram {
     }
 }
 
+impl Node {
+    /// A state that receives a signal (`<<sdlreceive>>`, SDL's input): drawn
+    /// with a tab in its top left corner, a state of the machine as any.
+    pub fn receives(&self) -> bool {
+        self.kind == Kind::State
+            && !self.composite
+            && self
+                .stereotype
+                .as_deref()
+                .is_some_and(|s| s.eq_ignore_ascii_case("sdlreceive"))
+    }
+}
+
 impl Container {
     /// How many states and how many transitions it holds, at any depth.
     fn counts(&self) -> (usize, usize) {

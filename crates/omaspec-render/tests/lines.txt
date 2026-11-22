@@ -33,6 +33,7 @@ crates/omaspec-uml/tests/state/inline-styles.puml 5 0 0 0 0 0 4 259 0 13.3
 crates/omaspec-uml/tests/state/legend-dark.puml 3 0 0 0 0 0 0 124 0 32.1
 crates/omaspec-uml/tests/state/link-notes.puml 6 0 0 0 0 0 8 922 0 26.0
 crates/omaspec-uml/tests/state/nested.puml 23 0 0 0 0 0 23 4011 0 5.1
+crates/omaspec-uml/tests/state/receive.puml 5 0 0 0 0 0 4 319 0 12.8
 crates/omaspec-uml/tests/state/regions.puml 12 0 0 0 0 0 0 468 0 44.9
 crates/omaspec-uml/tests/state/self-loops.puml 9 0 0 0 0 0 12 840 0 20.4
 crates/omaspec-uml/tests/state/sideways.puml 4 0 0 0 0 0 0 216 0 20.6
@@ -74,4 +75,4 @@ examples/lifecycle.mmd 7 0 0 0 0 0 0 305 0 12.9
 examples/platform.mmd 17 1 0 0 4 0 33 5250 6 43.9
 examples/player.puml 8 0 0 0 0 0 14 1022 0 15.4
 examples/shop.mmd 6 0 0 0 0 0 4 595 0 16.7
-total 621 8 0 2 21 0 571 104504 21 1450.6
+total 626 8 0 2 21 0 575 104823 21 1463.4
