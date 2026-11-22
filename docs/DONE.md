@@ -362,6 +362,15 @@ is open and the reasoning around it.
       stand beside that bar, and in swimlanes beside its rightmost end, in
       that lane. `end fork {or};` is read; fmt and the outline close a
       fork at `fork end` and fmt at `end merge`.
+- [x] `switch`, `case`, `endswitch` in activity diagrams (2026-11-22):
+      one diamond above the cases side by side, as PlantUML draws it, a
+      line from its left corner to each case left of the middle, from its
+      right corner to each right of it, from its foot to the one in the
+      middle, the case's words beside its line and tied to it; a diamond
+      below where the cases meet. An empty case goes straight on, one
+      that stops ends; in swimlanes the cases go in the order of their
+      lanes. A step before the first `case`, or a `switch` without one,
+      declines and says so. The guide: 52 of 62.
 
 ## Phase 0: foundation and spikes
 

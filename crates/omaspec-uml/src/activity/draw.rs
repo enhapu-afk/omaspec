@@ -646,6 +646,26 @@ mod tests {
         assert_eq!((bars[0].0, bars[0].2), (bars[1].0, bars[1].2), "{svg}");
     }
 
+    /// Each case's words stand beside its line, tied to its line, in the
+    /// order of the cases and clear of each other and of the diamond.
+    #[test]
+    fn a_switchs_cases_stand_side_by_side() {
+        let source = "@startuml\nstart\nswitch (what kind of order is it?)\ncase (online)\n  :Ship;\ncase (in store)\ncase (by phone)\n  :Call;\ncase (fax)\n  :Read;\nendswitch\nstop\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        let test = at(2);
+        let words: Vec<_> = [3, 5, 6, 8].map(at).into_iter().collect();
+        let apart = |a: &crate::graph::Rect, b: &crate::graph::Rect| {
+            a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y
+        };
+        for (i, a) in words.iter().enumerate() {
+            assert!(apart(a, &test), "{a:?} {test:?}");
+            for b in &words[i + 1..] {
+                assert!(apart(a, b) && a.x < b.x, "{a:?} {b:?}");
+            }
+        }
+    }
+
     /// The fork bars of `svg` on the page, as the map has it: left end,
     /// top, width.
     fn bars(svg: &str) -> Vec<(f32, f32, f32)> {

@@ -280,6 +280,7 @@ impl Layout<'_> {
                 branches,
                 otherwise,
             } => self.if_row(branches, otherwise, lane)?,
+            Node::Switch { test, cases } => self.switch(test, cases, lane)?,
             Node::While {
                 test,
                 yes,

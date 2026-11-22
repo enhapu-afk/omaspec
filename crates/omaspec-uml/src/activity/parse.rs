@@ -133,13 +133,10 @@ pub fn parse(lines: &[Line]) -> Result<Diagram, Declined> {
 const MAX_DEPTH: usize = 100;
 
 /// Keywords of PlantUML that Omaspec does not draw yet.
-const NOT_YET: [&str; 19] = [
+const NOT_YET: [&str; 16] = [
     "package",
     "rectangle",
     "card",
-    "switch",
-    "case",
-    "endswitch",
     "break",
     "goto",
     "label",
@@ -189,6 +186,13 @@ enum Opened {
         /// After `else`: `current` is the `else` branch.
         otherwise: bool,
     },
+    Switch {
+        test: Text,
+        cases: Vec<Branch>,
+        current: Branch,
+        /// Whether a `case` came yet: `current` is its flow.
+        open: bool,
+    },
     While {
         test: Text,
         yes: Option<Text>,
@@ -217,6 +221,7 @@ impl Open {
     fn keyword(&self) -> &'static str {
         match self.what {
             Opened::If { .. } => "if",
+            Opened::Switch { .. } => "switch",
             Opened::While { .. } => "while",
             Opened::Repeat { .. } => "repeat",
             Opened::Parallel { split: true, .. } => "split",
@@ -231,6 +236,7 @@ impl Open {
     fn closer(&self) -> &'static str {
         match self.what {
             Opened::If { .. } => "endif",
+            Opened::Switch { .. } => "endswitch",
             Opened::While { .. } => "endwhile",
             Opened::Repeat { .. } => "repeat while",
             Opened::Parallel { split: true, .. } => "end split",
@@ -381,6 +387,29 @@ impl Parser {
         if let Some(rest) = word(text, "while") {
             return self.start_while(rest, no).map(|()| at + 1);
         }
+        if let Some(rest) = two_words(text, "end", "switch") {
+            if !rest.trim().trim_end_matches(';').is_empty() {
+                return Err(Declined::at(no, "an `endswitch` takes no words"));
+            }
+            return self.end_switch(no).map(|()| at + 1);
+        }
+        if let Some(rest) = word(text, "switch") {
+            let test = parenthesized(rest)
+                .ok_or_else(|| Declined::at(no, "a `switch` is written `switch (test)`"))?;
+            let current = Branch::default();
+            let what = Opened::Switch {
+                test: text_at(test, no),
+                cases: Vec::new(),
+                current,
+                open: false,
+            };
+            return self.open(what, no).map(|()| at + 1);
+        }
+        if let Some(rest) = word(text, "case") {
+            let words = parenthesized(rest)
+                .ok_or_else(|| Declined::at(no, "a `case` is written `case (words)`"))?;
+            return self.case(words, no).map(|()| at + 1);
+        }
         for (keyword, partition) in [("partition", true), ("group", false)] {
             if let Some(rest) = word(text, keyword) {
                 return self.start_group(rest, partition, no).map(|()| at + 1);
@@ -441,6 +470,7 @@ impl Parser {
             unclosed.push((no, open.keyword()));
             match open.keyword() {
                 "if" => self.end_if(no)?,
+                "switch" => self.end_switch(no)?,
                 "while" => self.end_while("", no)?,
                 "repeat" => self.end_repeat("", no)?,
                 "split" => self.end_parallel(Parallel::Split, no)?,
@@ -468,7 +498,7 @@ impl Parser {
     fn flow(&mut self) -> &mut Flow {
         match self.blocks.last_mut().map(|o| &mut o.what) {
             None => &mut self.root,
-            Some(Opened::If { current, .. }) => &mut current.flow,
+            Some(Opened::If { current, .. } | Opened::Switch { current, .. }) => &mut current.flow,
             Some(Opened::While { body, .. } | Opened::Repeat { body, .. }) => body,
             Some(Opened::Parallel { current, .. }) => current,
             Some(Opened::Group { flow, .. }) => flow,
@@ -966,6 +996,70 @@ impl Parser {
         Ok(())
     }
 
+    /// `case (words)`: the flow of the case before ends, this one's starts.
+    fn case(&mut self, words: &str, no: usize) -> Result<(), Declined> {
+        self.innermost("switch", no)?;
+        self.close_flow();
+        let Some(Open {
+            what:
+                Opened::Switch {
+                    cases,
+                    current,
+                    open,
+                    ..
+                },
+            ..
+        }) = self.blocks.last_mut()
+        else {
+            unreachable!("checked by innermost");
+        };
+        let branch = Branch {
+            label: Some(text_at(words, no)).filter(|t| !t.value.is_empty()),
+            ..Branch::default()
+        };
+        let before = std::mem::replace(current, branch);
+        if *open {
+            cases.push(before);
+        } else if !before.flow.steps.is_empty() {
+            return Err(Declined::at(
+                no,
+                "a step between `switch` and its first `case` is not supported",
+            ));
+        }
+        *open = true;
+        Ok(())
+    }
+
+    fn end_switch(&mut self, no: usize) -> Result<(), Declined> {
+        if let Some(Open {
+            what: Opened::Switch { open: false, .. },
+            line,
+            ..
+        }) = self.blocks.last()
+        {
+            return Err(Declined::at(*line, "a `switch` needs a `case`"));
+        }
+        self.innermost("switch", no)?;
+        self.close_flow();
+        let open = self.blocks.pop().expect("checked by innermost");
+        self.close(
+            |what| match what {
+                Opened::Switch {
+                    test,
+                    mut cases,
+                    current,
+                    ..
+                } => {
+                    cases.push(current);
+                    Node::Switch { test, cases }
+                }
+                _ => unreachable!("checked by innermost"),
+            },
+            open,
+        );
+        Ok(())
+    }
+
     fn start_while(&mut self, rest: &str, no: usize) -> Result<(), Declined> {
         let bad = || Declined::at(no, "a `while` is written `while (test) is (yes)`");
         let (test, tail) = group(rest, |tail| while_tail(tail).is_some()).ok_or_else(bad)?;
@@ -1211,6 +1305,13 @@ impl Parser {
     }
 }
 
+/// `(words)`, with `;` after it or not: the words.
+fn parenthesized(rest: &str) -> Option<&str> {
+    let rest = rest.trim();
+    let rest = rest.strip_suffix(';').unwrap_or(rest).trim_end();
+    Some(rest.strip_prefix('(')?.strip_suffix(')')?.trim())
+}
+
 /// A note before an action that never came.
 fn waits(line: usize) -> Declined {
     Declined::at(
@@ -1295,6 +1396,19 @@ mod tests {
                     Node::End => "end".into(),
                     Node::Detach => "detach".into(),
                     Node::Connector { text, .. } => format!("({})", text.value),
+                    Node::Switch { test, cases } => format!(
+                        "switch({})[{}]",
+                        test.value,
+                        cases
+                            .iter()
+                            .map(|c| format!(
+                                "{}:{}",
+                                c.label.as_ref().map_or("", |l| l.value.as_str()),
+                                outline(&c.flow)
+                            ))
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    ),
                     Node::Action { text, note, .. } => match note {
                         Some(n) => format!("A({};note {})", text.value, n.text.value),
                         None => format!("A({})", text.value),
@@ -1523,6 +1637,28 @@ mod tests {
             panic!()
         };
         assert!(note.right);
+    }
+
+    /// A `switch` holds a flow for each `case`, its words as the label;
+    /// a step before the first case, or no case at all, declines.
+    #[test]
+    fn a_switch_holds_its_cases() {
+        let d = diagram(
+            "start\nswitch (kind?)\ncase ( a )\n  :A;\ncase (b)\ncase (c)\n  :C;\n  stop\nend switch\n:after;",
+        );
+        assert_eq!(
+            outline(&d.flow),
+            "start@0 switch(kind?)[a:A(A)@0|b:|c:A(C)@0 stop@0]@0 A(after)@0"
+        );
+        for (source, part) in [
+            ("switch (x)\n:a;\ncase (y)\nendswitch", "first `case`"),
+            ("switch (x)\nendswitch", "needs a `case`"),
+            ("case (y)", "no `switch` is open"),
+            ("switch x\ncase (y)\nendswitch", "switch (test)"),
+        ] {
+            let err = declined(source);
+            assert!(err.reason.contains(part), "{source}: {}", err.reason);
+        }
     }
 
     /// A floating note is a note; one before the first action of its flow

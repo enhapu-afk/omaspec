@@ -89,6 +89,12 @@ pub enum Node {
         branches: Vec<Branch>,
         otherwise: Branch,
     },
+    /// `switch (test)` … `case (words)` … `endswitch`: one diamond, a
+    /// flow below it for each case, its words as the branch's label.
+    Switch {
+        test: Text,
+        cases: Vec<Branch>,
+    },
     /// `while (test) is (yes)` … `endwhile (no)`.
     While {
         test: Text,

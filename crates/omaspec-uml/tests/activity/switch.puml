@@ -1,0 +1,21 @@
+@startuml
+' A `switch`: one diamond above its cases, a line from either corner to
+' the cases on that side and from its foot to the one in the middle, as
+' PlantUML draws it; an empty case goes straight on, one that stops ends.
+start
+switch (What kind of order is it?)
+case (online)
+  :Ship it;
+case (in store)
+case (by phone)
+  :Call back;
+  stop
+case (fax)
+  :Read it;
+  :Type it in;
+case (post)
+  :Open it;
+endswitch
+:Done;
+stop
+@enduml

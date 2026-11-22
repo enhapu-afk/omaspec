@@ -205,6 +205,125 @@ impl Layout<'_> {
         Ok(tile)
     }
 
+    /// `switch`: one diamond above its cases, side by side, as PlantUML
+    /// draws it: a line from its left corner to each case left of its
+    /// middle, from its right corner to each right of it, from its foot to
+    /// the one in the middle; each case's words beside its line; a diamond
+    /// below where the cases meet.
+    pub(super) fn switch(
+        &self,
+        test: &super::Text,
+        cases: &[Branch],
+        lane: usize,
+    ) -> Result<Tile, Declined> {
+        let font = self.skin.arrow_font;
+        let (dw, dh, text) = self.diamond(Some(test))?;
+        // Cases in swimlanes further left go further left.
+        let mut cases: Vec<&Branch> = cases.iter().collect();
+        cases.sort_by_key(|case| entry_lane(&case.flow, lane));
+        let labels = cases
+            .iter()
+            .map(|case| self.measure_opt(case.label.as_ref(), font))
+            .collect::<Result<Vec<_>, _>>()?;
+        let room = labels
+            .iter()
+            .filter(|label| !label.is_empty())
+            .map(|label| label.height + 4.0)
+            .fold(0.0, f32::max);
+        let cy = dh / 2.0;
+        let flows: Vec<&Flow> = cases.iter().map(|case| &case.flow).collect();
+        let top = (cy + GAP).max(dh + CLEAR) + room + self.labels_above(&flows)?;
+        let mut tiles = self.columns(&flows, lane, top)?;
+        // Each case's words keep clear of the line to the next case.
+        for i in 1..tiles.len() {
+            let want = tiles[i - 1].entry.x + 6.0 + labels[i - 1].width + BRANCH_MARGIN;
+            if tiles[i].entry.lane == tiles[i - 1].entry.lane && tiles[i].entry.x < want {
+                let dx = want - tiles[i].entry.x;
+                for tile in &mut tiles[i..] {
+                    tile.translate(dx, 0.0);
+                }
+            }
+        }
+        let n = tiles.len();
+        let (half, foot) = (n / 2, n % 2 == 1);
+        let mine: Vec<f32> = tiles
+            .iter()
+            .filter(|tile| tile.entry.lane == lane)
+            .map(|tile| tile.entry.x)
+            .collect();
+        let xs = if mine.is_empty() {
+            vec![tiles[0].entry.x, tiles[n - 1].entry.x]
+        } else {
+            mine
+        };
+        let xd = (xs.iter().copied().fold(f32::INFINITY, f32::min)
+            + xs.iter().copied().fold(f32::NEG_INFINITY, f32::max))
+            / 2.0;
+        // The cases on either side clear the diamond, the words of those
+        // on its left too.
+        let left = tiles[..half]
+            .iter()
+            .zip(&labels)
+            .filter(|(tile, _)| tile.entry.lane == lane)
+            .map(|(tile, label)| xd - dw / 2.0 - CLEAR - 6.0 - label.width - tile.entry.x)
+            .fold(0.0, f32::min);
+        for tile in tiles[..half]
+            .iter_mut()
+            .filter(|tile| tile.entry.lane == lane)
+        {
+            tile.translate(left, 0.0);
+        }
+        let from = if foot { half + 1 } else { half };
+        let right = tiles[from..]
+            .iter()
+            .filter(|tile| tile.entry.lane == lane)
+            .map(|tile| xd + dw / 2.0 + CLEAR - tile.entry.x)
+            .fold(0.0, f32::max);
+        for tile in tiles[from..]
+            .iter_mut()
+            .filter(|tile| tile.entry.lane == lane)
+        {
+            tile.translate(right, 0.0);
+        }
+        let mut shapes = vec![Shape::Diamond {
+            rect: (xd - dw / 2.0, 0.0, dw, dh),
+            text,
+            lane,
+        }];
+        let corners = (pt(xd - dw / 2.0, cy, lane), pt(xd + dw / 2.0, cy, lane));
+        let mut edges = Vec::new();
+        let mut ways = Vec::new();
+        for (i, (tile, label)) in tiles.iter().zip(labels).enumerate() {
+            let at = tile.entry;
+            let (start, side) = if foot && i == half {
+                shapes.extend(self.beside(label, xd, dh + 2.0, lane));
+                let mut start = vec![pt(xd, dh, lane)];
+                if at.lane != lane || (at.x - xd).abs() > 0.5 {
+                    let jog = dh + room + 2.0;
+                    start.extend([pt(xd, jog, lane), pt(at.x, jog, at.lane)]);
+                }
+                (start, false)
+            } else {
+                let corner = if i < half { corners.0 } else { corners.1 };
+                shapes.extend(self.beside(label, at.x, cy + 2.0, at.lane));
+                (vec![corner, pt(at.x, cy, at.lane)], true)
+            };
+            if let Some(mut edge) = self.branch_line(&mut shapes, start.clone(), tile)? {
+                if side {
+                    edge.sides[0] = Some(corners);
+                }
+                edges.push(edge);
+            }
+            ways.push((tile, start));
+        }
+        let exit = self.merge(&mut shapes, &mut edges, &ways, xd, lane)?;
+        let mut tile = Tile::new(shapes, edges, pt(xd, 0.0, lane), exit);
+        for t in tiles {
+            tile.absorb(t);
+        }
+        Ok(tile)
+    }
+
     /// `if` with `elseif`s: a row of diamonds, each above its branch, the
     /// `else` on the right.
     pub(super) fn if_row(

@@ -66,9 +66,8 @@ of element) and step 0 (a second `@startuml` line).
       (`#red-green`); a style for a stereotype (`.foo { state { … } }`). A
       `json` element among the states waits on step 7.
 
-### Step 3: the activity diagram (51 of 62; the legacy syntax 0 of 13)
+### Step 3: the activity diagram (52 of 62; the legacy syntax 0 of 13)
 
-- [ ] `switch`, `case`, `endswitch`.
 - [ ] `backward:` in a `while`, `label` and `goto`.
 - [ ] `package`, `rectangle` and `card` frames around actions (as
       `partition` and `group` are); the two examples with a floating note
