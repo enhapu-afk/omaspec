@@ -633,6 +633,30 @@ fn action_shape(
 
 #[cfg(test)]
 mod tests {
+    /// A fork's bar spans a flow that ends before it, so the line on from
+    /// its middle starts on it.
+    #[test]
+    fn a_forks_bar_spans_a_flow_that_ends() {
+        let source = "@startuml\nstart\nfork\n  :B;\nfork again\n  :d;\n  detach\nend fork\n:after;\n@enduml\n";
+        let (svg, _) = crate::render_mapped(source, None).unwrap();
+        // The bar that joins the flows is as wide as the one that splits
+        // them.
+        let bars: Vec<(f32, f32)> = svg
+            .split("<rect")
+            .skip(1)
+            .filter(|r| r.contains("fill=\"#555555\""))
+            .map(|bar| {
+                let num = |key: &str| -> f32 {
+                    let at = bar.find(&format!(" {key}=\"")).unwrap() + key.len() + 3;
+                    bar[at..].split('"').next().unwrap().parse().unwrap()
+                };
+                (num("x"), num("width"))
+            })
+            .collect();
+        assert_eq!(bars.len(), 2, "{svg}");
+        assert_eq!(bars[0], bars[1], "{svg}");
+    }
+
     /// A connector is a circle with its name, a place of the map; a flow
     /// that ends at `kill` or `detach` has no arrow on.
     #[test]

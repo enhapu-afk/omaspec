@@ -90,6 +90,7 @@ pub(super) fn layout_regions(
                 point: None,
                 title_shift: 0.0,
                 sideways: false,
+                name_at: None,
             },
         });
     }
@@ -309,14 +310,16 @@ pub(super) fn link_crossings(
     Ok(())
 }
 
-/// The box at `path` in `scene`.
+/// The box at `path` in `scene`, where lines may meet it anywhere along a
+/// side (a state, a bar), not only in the middle (a circle, a diamond).
 fn scene_rect(scene: &Scene, path: &[usize]) -> Option<crate::graph::Rect> {
     let (last, holder) = path.split_last()?;
     let mut laid = scene;
     for &index in holder {
         laid = &laid.nodes.get(index)?.children;
     }
-    laid.nodes.get(*last).map(|node| node.rect)
+    let node = laid.nodes.get(*last)?;
+    flat(node.item.kind).then_some(node.rect)
 }
 
 /// Every crossing, with the path to the container that holds it and its

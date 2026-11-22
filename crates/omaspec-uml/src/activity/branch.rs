@@ -462,6 +462,15 @@ impl Layout<'_> {
         }
         if bar == 0.0 {
             spans.push((middle, middle, lane));
+        } else {
+            // A fork's bar spans the flows that end before it too, as
+            // PlantUML draws it, so the line on from its middle starts on it.
+            for (tile, _) in ways
+                .iter()
+                .filter(|(tile, _)| !tile.empty && tile.exit.is_none())
+            {
+                spans.push((tile.bounds.0, tile.bounds.2, tile.entry.lane));
+            }
         }
         shapes.push(Shape::Bar {
             y,

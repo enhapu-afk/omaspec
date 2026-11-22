@@ -306,6 +306,20 @@ is open and the reasoning around it.
       hidden arrow stay, as PlantUML draws them. Two points that the
       layout put at one spot on a border, and an expansion's row that
       reaches over an exit point beside it, are older and not yet mended.
+- [x] What the review of the connectors and of the third fixes found
+      (2026-11-22): a line no longer runs a spur back over itself where
+      it meets a point (its end run counts as toward the point on the
+      side where the point stood for it); a corridor that covers another
+      line's stand is no obstacle for that line, so no diagram declines
+      for it; a point is joined straight only to a box lines may meet
+      along a side, not to a circle or a diamond; where no stand keeps
+      clear, the line is laid to the point itself. A point's name takes
+      the first of its spots where no line, box, words or other name is
+      in its way, once every line is laid (`points::place_names`). A
+      connector is named with one letter or digit, as PlantUML takes it,
+      with `;` after it or not; the editor's color action colors it as
+      it colors an action. A fork's join bar spans a flow that ends
+      before it, so the line on from its middle starts on it.
 
 ### Step 3: the activity diagram
 

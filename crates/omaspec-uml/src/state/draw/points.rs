@@ -74,7 +74,9 @@ pub(super) fn stance(
             gap -= 2.0;
         }
     }
-    last.map(|stand| (stand, out))
+    // No room at all: the line is laid to the point itself.
+    let _ = last;
+    None
 }
 
 /// Where a point of `kind` at `rect`, in a state whose states run
@@ -111,6 +113,87 @@ fn place(
 
 /// How far past a point it stands for a line at most.
 const OFF: f32 = 14.0;
+
+/// Gives each point's name the first of its spots ([`super::point_names`])
+/// where no line, box, words or other name is in its way, once every line
+/// is laid; where none is free, the first.
+pub(super) fn place_names(root: &Container, scene: &mut Scene) {
+    let mut lines = Vec::new();
+    let mut solids = Vec::new();
+    gather(scene, &mut lines, &mut solids);
+    let mut taken: Vec<Rect> = Vec::new();
+    name(root, scene, &lines, &solids, &mut taken);
+}
+
+/// Every line drawn of `scene` and inside it into `lines`, every box, note
+/// and words into `solids`.
+fn gather(scene: &Scene, lines: &mut Vec<Vec<Point>>, solids: &mut Vec<Rect>) {
+    for edge in &scene.edges {
+        if edge.points.len() >= 2 && edge.look.width > 0.0 {
+            lines.push(edge.points.clone());
+        }
+        if super::has_room(edge) {
+            solids.push(Rect {
+                x: edge.label_at.0,
+                y: edge.label_at.1,
+                w: edge.label.width,
+                h: edge.label.height,
+            });
+        }
+    }
+    for note in &scene.notes {
+        solids.push(Rect {
+            x: note.x,
+            y: note.y,
+            w: note.w,
+            h: note.h,
+        });
+    }
+    for node in &scene.nodes {
+        solids.push(node.rect);
+        gather(&node.children, lines, solids);
+    }
+}
+
+fn name(
+    root: &Container,
+    scene: &mut Scene,
+    lines: &[Vec<Point>],
+    solids: &[Rect],
+    taken: &mut Vec<Rect>,
+) {
+    for (node, placed) in root.nodes.iter().zip(scene.nodes.iter_mut()) {
+        if matches!(node.kind, Kind::Entry | Kind::Exit) {
+            let (cx, cy) = (
+                placed.rect.x + placed.rect.w / 2.0,
+                placed.rect.y + placed.rect.h / 2.0,
+            );
+            // What holds the point, and the point, are no obstacles.
+            let holds = |r: &Rect| r.x <= cx && cx <= r.x + r.w && r.y <= cy && cy <= r.y + r.h;
+            let free = |spot: &Rect| {
+                !solids.iter().any(|r| !holds(r) && overlap(r, spot))
+                    && !taken.iter().any(|r| overlap(r, spot))
+                    && !lines.iter().any(|line| {
+                        line.windows(2).any(|run| {
+                            let (a, b) = (run[0], run[1]);
+                            let r = Rect {
+                                x: a.0.min(b.0) - 1.0,
+                                y: a.1.min(b.1) - 1.0,
+                                w: (a.0 - b.0).abs() + 2.0,
+                                h: (a.1 - b.1).abs() + 2.0,
+                            };
+                            overlap(&r, spot)
+                        })
+                    })
+            };
+            let spots = super::point_names(placed);
+            let spot = spots.iter().find(|spot| free(spot)).unwrap_or(&spots[0]);
+            placed.item.name_at = Some((spot.x, spot.y));
+            taken.push(*spot);
+        }
+        name(&node.children, &mut placed.children, lines, solids, taken);
+    }
+}
 
 /// Every box of `scene` and of those inside it, into `out`.
 fn rects(scene: &Scene, out: &mut Vec<Rect>) {
@@ -150,9 +233,10 @@ pub(super) fn meet(points: &mut Vec<Point>, start: bool, stand: Rect, rect: Rect
     let (p, q) = (points[end], points[next]);
     // The end run comes from where the point stood toward it, not back
     // over it.
+    // The end run lies on the stand's side of the point, toward it.
     let toward = match upright {
-        true => (p.0 - q.0).abs() < 0.5 && (q.1 - p.1) * (sy - cy) >= 0.0,
-        false => (p.1 - q.1).abs() < 0.5 && (q.0 - p.0) * (sx - cx) >= 0.0,
+        true => (p.0 - q.0).abs() < 0.5 && (q.1 - cy) * (sy - cy) > 0.0,
+        false => (p.1 - q.1).abs() < 0.5 && (q.0 - cx) * (sx - cx) > 0.0,
     };
     if toward {
         points[end] = match upright {

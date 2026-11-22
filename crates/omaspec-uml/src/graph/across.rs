@@ -195,7 +195,16 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
         around.obstacles.extend(
             corridors
                 .iter()
-                .filter(|(end, _)| *end != from.rect && *end != to.rect)
+                .filter(|(end, corridor)| {
+                    *end != from.rect
+                        && *end != to.rect
+                        && !link.stand.iter().flatten().any(|s| {
+                            corridor.x < s.x + s.w
+                                && s.x < corridor.x + corridor.w
+                                && corridor.y < s.y + s.h
+                                && s.y < corridor.y + corridor.h
+                        })
+                })
                 .map(|(_, corridor)| *corridor),
         );
         // A line between a state and a state inside it runs to the outer

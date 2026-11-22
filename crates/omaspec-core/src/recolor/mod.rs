@@ -608,6 +608,26 @@ mod tests {
         assert_eq!(aimed(&code.replace("stop", "st^op"), p).1, None);
     }
 
+    /// A connector takes the color before it, as an action does, and is
+    /// no action that runs on to the next one's `;`.
+    #[test]
+    fn a_connector_takes_the_color_before_it() {
+        let p = Language::PlantUml;
+        let code = "@startuml\nstart\n#blue:(B)\n:Next;\n(A)\nstop\n@enduml\n";
+        assert_eq!(
+            at_caret(&code.replace(":Next", ":Ne^xt"), p, Some("#f7768e")),
+            code.replace(":Next", "#f7768e:Next")
+        );
+        assert_eq!(
+            at_caret(&code.replace("(A)", "(^A)"), p, Some("#f7768e")),
+            code.replace("(A)", "#f7768e:(A)")
+        );
+        assert_eq!(
+            at_caret(&code.replace("#blue:(B)", "#blue:(^B)"), p, None),
+            code.replace("#blue:(B)", "(B)")
+        );
+    }
+
     #[test]
     fn a_gantt_task_takes_the_color_as_a_clause() {
         let p = Language::PlantUml;

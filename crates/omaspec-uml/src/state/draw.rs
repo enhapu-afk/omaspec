@@ -93,6 +93,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
     link_notes(&diagram.root, &mut scene, &skin, family)?;
+    points::place_names(&diagram.root, &mut scene);
     scene.offset(0.0, annotations.top());
     paint(&mut canvas, &skin, &diagram.root, &scene);
     annotations.draw(&mut canvas);
@@ -257,6 +258,9 @@ struct Item {
     /// An entry or an exit point of a state whose states run left to
     /// right: on its left or right border, not on the top or bottom one.
     sideways: bool,
+    /// Where a point's name stands, once a free spot is found for it
+    /// ([`points::place_names`]); else where [`point_name`] puts it first.
+    name_at: Option<(f32, f32)>,
 }
 
 /// How large an entry or an exit point is, or a cell of an expansion's
@@ -352,6 +356,7 @@ fn measure_node(
                 point: None,
                 title_shift: 0.0,
                 sideways: false,
+                name_at: None,
             },
         });
     }
@@ -440,6 +445,7 @@ fn measure_node(
             point: node.point(),
             title_shift: 0.0,
             sideways: direction == Direction::Right,
+            name_at: None,
         },
     })
 }
@@ -1201,24 +1207,52 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
 /// lines that meet the point and their words, which stand over them, keep
 /// clear of it. Lines between boxes keep off it too ([`super::nest`]).
 fn point_name(node: &Placed) -> Rect {
+    let title = &node.item.title;
+    if let Some((x, y)) = node.item.name_at {
+        return Rect {
+            x,
+            y,
+            w: title.width,
+            h: title.height,
+        };
+    }
+    point_names(node)[0]
+}
+
+/// The spots a point's name may stand at, the first where it stands
+/// unless something is in its way there ([`points::place_names`]): beside
+/// the point outside its state first, then beside it the other way, then
+/// inside.
+fn point_names(node: &Placed) -> Vec<Rect> {
     let (gap, title) = (2.0, &node.item.title);
     let rect = node.rect;
+    let (w, h) = (title.width, title.height);
     let middle = rect.y + rect.h / 2.0;
     let entry = node.item.kind == Kind::Entry;
-    let (x, y) = match (node.item.sideways, entry) {
-        (true, _) => (
-            rect.x + rect.w / 2.0 - title.width / 2.0,
-            rect.y + rect.h + gap,
-        ),
-        (false, true) => (rect.x - gap - title.width, middle - gap - title.height),
-        (false, false) => (rect.x - gap - title.width, middle + gap),
+    let left = rect.x - gap - w;
+    let right = rect.x + rect.w + gap;
+    let centre = rect.x + rect.w / 2.0 - w / 2.0;
+    let (over, under) = (middle - gap - h, middle + gap);
+    let spots: Vec<(f32, f32)> = match (node.item.sideways, entry) {
+        (true, true) => vec![
+            (centre, rect.y + rect.h + gap),
+            (centre, rect.y - gap - h),
+            (left, over),
+            (right, under),
+        ],
+        (true, false) => vec![
+            (centre, rect.y + rect.h + gap),
+            (centre, rect.y - gap - h),
+            (right, under),
+            (left, under),
+        ],
+        (false, true) => vec![(left, over), (right, over), (left, under), (right, under)],
+        (false, false) => vec![(left, under), (right, under), (left, over), (right, over)],
     };
-    Rect {
-        x,
-        y,
-        w: title.width,
-        h: title.height,
-    }
+    spots
+        .into_iter()
+        .map(|(x, y)| Rect { x, y, w, h })
+        .collect()
 }
 
 /// An entry or an exit point, as PlantUML draws it: a circle, a cross in
@@ -1812,6 +1846,82 @@ mod tests {
             points.iter().all(|p| (p.1 - points[0].1).abs() < 0.5),
             "{points:?}"
         );
+    }
+
+    /// Lines at points run no spur back over themselves, keep each other's
+    /// way free, meet a circle in its middle, and the points' names stand
+    /// clear of the lines.
+    #[test]
+    fn lines_and_names_at_points_keep_clear() {
+        let spur = |points: &[(f32, f32)]| {
+            points.windows(3).any(|w| {
+                let (a, b, c) = (w[0], w[1], w[2]);
+                let upright = (a.0 - b.0).abs() < 0.5 && (b.0 - c.0).abs() < 0.5;
+                let flat = (a.1 - b.1).abs() < 0.5 && (b.1 - c.1).abs() < 0.5;
+                (upright && (b.1 - a.1) * (c.1 - b.1) < 0.0)
+                    || (flat && (b.0 - a.0) * (c.0 - b.0) < 0.0)
+            })
+        };
+        let checkout = "@startuml\n[*] --> Idle\nstate Checkout {\n  state pay <<entryPoint>>\n  state paid <<exitPoint>>\n  state failed <<exitPoint>>\n  pay --> Charging\n  Charging --> paid : approved\n  Charging --> failed : declined\n}\nIdle --> pay : buy\npaid --> Shipping : ship it\nfailed --> Idle : retry\nShipping --> [*]\n@enduml\n";
+        let (_, map) = crate::render_mapped(checkout, None).unwrap();
+        for wire in &map.wires {
+            assert!(!spur(&wire.points), "{:?}", wire.points);
+        }
+        // Two strips facing each other leave each other's way free.
+        let strips = "@startuml\nstate A {\n  state out <<expansionOutput>>\n}\nstate B {\n  state in <<expansionInput>>\n  X --> Y\n}\nC --> in\nY --> C\nout --> in\n@enduml\n";
+        assert!(crate::render_mapped(strips, None).is_ok());
+        // A history circle is met in its middle.
+        let history = "@startuml\nleft to right direction\nstate h1 <<history>>\nstate S {\n  state en0 <<entryPoint>>\n  [*] --> I0\n  en0 --> I0\n}\n[*] --> O1\nO1 --> S\nh1 --> en0\n@enduml\n";
+        let (_, map) = crate::render_mapped(history, None).unwrap();
+        let h = map
+            .states
+            .iter()
+            .find(|s| s.shape == Shape::History)
+            .unwrap()
+            .rect;
+        let start = map
+            .wires
+            .iter()
+            .find(|w| w.line == Some(10))
+            .unwrap()
+            .points[0];
+        let middle = (h.x + h.w / 2.0, h.y + h.h / 2.0);
+        assert!(
+            (start.0 - middle.0).abs() < 1.0 || (start.1 - middle.1).abs() < 1.0,
+            "{start:?} {h:?}"
+        );
+        // Left to right, the names keep off the lines into the state.
+        let names = "@startuml\nleft to right direction\nstate S {\n  state entrance <<entryPoint>>\n  state leaving <<exitPoint>>\n  entrance --> A\n  A --> leaving\n  [*] --> B\n  B --> [*]\n}\nX --> S : go\nX --> entrance\nleaving --> Y\nS --> Y : done\n@enduml\n";
+        let (root, mut scene) = laid(names);
+        points::onto_borders(&root, &mut scene);
+        let (skin, canvas) = (
+            Skin::default(),
+            Canvas::new(&Skin::default().font_name, false),
+        );
+        link_crossings(&root, &mut scene, &skin, canvas.family()).unwrap();
+        points::place_names(&root, &mut scene);
+        let mut runs = Vec::new();
+        type Run = ((f32, f32), (f32, f32));
+        fn gather(scene: &Scene, runs: &mut Vec<Run>) {
+            for edge in &scene.edges {
+                runs.extend(edge.points.windows(2).map(|w| (w[0], w[1])));
+            }
+            for node in &scene.nodes {
+                gather(&node.children, runs);
+            }
+        }
+        gather(&scene, &mut runs);
+        let s = scene.nodes.iter().find(|n| n.item.name == "S").unwrap();
+        for point in s.children.nodes.iter().filter(|n| n.item.point.is_some()) {
+            let name = point_name(point);
+            for &(a, b) in &runs {
+                let crosses = a.0.min(b.0) < name.x + name.w
+                    && name.x < a.0.max(b.0)
+                    && a.1.min(b.1) < name.y + name.h
+                    && name.y < a.1.max(b.1);
+                assert!(!crosses, "{}: {name:?} by {a:?} {b:?}", point.item.name);
+            }
+        }
     }
 
     /// Where a neighbor stands just past a point, lines from the point

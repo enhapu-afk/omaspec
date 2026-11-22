@@ -172,7 +172,7 @@
 <tspan x="49.75" y="588.47" font-size="12" fill="#000000" textLength="77.75" lengthAdjust="spacing">Print the label</tspan>
 </text>
 <rect x="-101.76" y="672.26" width="380.76" height="6" rx="2" ry="2" fill="#555555"/>
-<rect x="-101.76" y="752.22" width="243.83" height="6" rx="2" ry="2" fill="#555555"/>
+<rect x="-101.76" y="752.22" width="380.76" height="6" rx="2" ry="2" fill="#555555"/>
 <rect x="-101.76" y="698.26" width="109.24" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-91.76" y="719.39" font-size="12" fill="#000000" textLength="89.24" lengthAdjust="spacing">Send the parcel</tspan>

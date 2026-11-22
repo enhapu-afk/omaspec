@@ -50,9 +50,6 @@ impl<'a> Nested for States<'a> {
     }
 
     /// The states held by hand, and the second state of a hidden arrow
-    /// turned across the flow (`-right[hidden]->`) beside its first: the
-    /// hold of docs/adr/0021, written in the source, as in a class diagram.
-    /// The states held by hand, and the second state of a hidden arrow
     /// turned across the flow beside its first ([`held_beside`]): the hold
     /// of docs/adr/0021, written in the source, as in a class diagram.
     fn holds(&self, container: &'a Container) -> Vec<graph::hold::Held> {

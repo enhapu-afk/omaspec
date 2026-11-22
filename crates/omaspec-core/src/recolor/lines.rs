@@ -180,8 +180,23 @@ fn lane(text: &str) -> Option<(Option<Range<usize>>, &str)> {
     (!name.trim().is_empty()).then_some((color, name.trim()))
 }
 
-/// The action or the swimlane of an activity on line `row`: an action on
-/// any of its lines, a lane on the line that names it first.
+/// A connector's line (`(A)`, `#blue:(A);`): the range of its color, `#`
+/// and `:` included, where it has one, and its name.
+fn connector(text: &str) -> Option<(Option<Range<usize>>, &str)> {
+    let (color, rest) = match action_start(text) {
+        Some((Some(color), rest)) => (Some(0..color.len() + 1), rest),
+        _ => (None, text),
+    };
+    let body = rest.trim();
+    let body = body.strip_suffix(';').unwrap_or(body).trim_end();
+    let name = body.strip_prefix('(')?.strip_suffix(')')?;
+    (name.chars().count() == 1 && name.chars().all(|c| c.is_alphanumeric() || c == '_'))
+        .then_some((color, name))
+}
+
+/// The action, the connector or the swimlane of an activity on line
+/// `row`: an action on any of its lines, a lane on the line that names it
+/// first.
 pub(super) fn activity_at(code: &str, row: usize) -> Option<Target> {
     let lines = element_lines(code);
     let here = lines
@@ -197,9 +212,20 @@ pub(super) fn activity_at(code: &str, row: usize) -> Option<Target> {
             label: short(name),
         });
     }
+    if let Some((_, name)) = here.and_then(connector) {
+        return Some(Target::Line {
+            line: row,
+            label: format!("({name})"),
+        });
+    }
     let mut index = 0;
     while index < lines.len() {
         let (no, text) = lines[index];
+        // A connector is one line, no action that runs on.
+        if connector(text).is_some() {
+            index += 1;
+            continue;
+        }
         let mut last = index;
         let started = action_start(text);
         if let Some((_, rest)) = started
@@ -239,6 +265,13 @@ pub(super) fn activity(
             (Some(at), Some(color)) => Some(format!("{indent}|{color}|{}", &text[at.end..])),
             (Some(at), None) => Some(format!("{indent}|{}", &text[at.end..])),
             (None, Some(color)) => Some(format!("{indent}|{color}{text}")),
+            (None, None) => None,
+        }
+    } else if let Some((old, _)) = connector(text) {
+        let rest = old.clone().map_or(text, |at| &text[at.end..]);
+        match (old, color) {
+            (_, Some(color)) => Some(format!("{indent}{color}:{rest}")),
+            (Some(_), None) => Some(format!("{indent}{rest}")),
             (None, None) => None,
         }
     } else {

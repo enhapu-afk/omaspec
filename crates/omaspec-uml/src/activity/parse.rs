@@ -304,14 +304,28 @@ impl Parser {
                 "the old activity syntax (`(*)`) is not supported yet",
             ));
         }
+        fn one<'a>(name: Result<&'a str, &str>, no: usize) -> Result<&'a str, Declined> {
+            name.map_err(|name| {
+                Declined::at(
+                    no,
+                    format!(
+                        "a connector is named with one letter or digit, as `(A)`, not `({name})`"
+                    ),
+                )
+            })
+        }
         if let Some((color, rest)) = action_start(text) {
             if let Some(name) = connector(rest) {
-                return self.connector(&lines[at], name, color).map(|()| at + 1);
+                return self
+                    .connector(&lines[at], one(name, no)?, color)
+                    .map(|()| at + 1);
             }
             return self.action(lines, at, color, rest);
         }
         if let Some(name) = connector(text) {
-            return self.connector(&lines[at], name, None).map(|()| at + 1);
+            return self
+                .connector(&lines[at], one(name, no)?, None)
+                .map(|()| at + 1);
         }
         if let Some((depth, rest)) = list_item(text) {
             if depth > 1 {
@@ -1113,9 +1127,20 @@ impl Parser {
 }
 
 /// `(A)`: a connector's name.
-fn connector(text: &str) -> Option<&str> {
-    let name = text.trim().strip_prefix('(')?.strip_suffix(')')?;
-    (!name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_')).then_some(name)
+/// The name of a connector, `(A)` or `(A);`: one letter or digit, as
+/// PlantUML takes it; `Err` with the name for one of more, which PlantUML
+/// does not take; `None` for any other line.
+fn connector(text: &str) -> Option<Result<&str, &str>> {
+    let text = text.trim();
+    let text = text.strip_suffix(';').unwrap_or(text).trim_end();
+    let name = text.strip_prefix('(')?.strip_suffix(')')?;
+    if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+        return None;
+    }
+    Some(match name.chars().count() {
+        1 => Ok(name),
+        _ => Err(name),
+    })
 }
 
 /// The SDL shape an action's last mark names.
@@ -1322,6 +1347,11 @@ mod tests {
             "@startuml\n:a //italics//\n<b>bold</b>\nicon <&star>\nsee [[link]]\n| a | b |\ndone;\n@enduml",
         );
         assert_eq!(d.flow.steps.len(), 1);
+        // One letter or digit, as PlantUML takes it, `;` after it or not.
+        let d = diagram("@startuml\n(A);\n#red:(x);\n@enduml");
+        assert_eq!(outline(&d.flow), "(A)@0 (x)@0");
+        let err = declined("@startuml\n(AB)\n@enduml");
+        assert!(err.reason.contains("one letter or digit"), "{}", err.reason);
         // A connector in a color of its own is no action.
         let d = diagram("@startuml\nstart\n#blue:(B)\n(C)\n@enduml");
         assert_eq!(outline(&d.flow), "start@0 (B)@0 (C)@0");
