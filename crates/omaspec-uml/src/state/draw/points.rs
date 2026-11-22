@@ -125,6 +125,32 @@ pub(super) fn place_names(root: &Container, scene: &mut Scene) {
     name(root, scene, None, &lines, &solids, &mut taken);
 }
 
+/// How far the names of points stand out over the top of `scene`.
+pub(super) fn rise(scene: &Scene) -> f32 {
+    fn highest(scene: &Scene) -> f32 {
+        scene
+            .nodes
+            .iter()
+            .map(|node| {
+                let own = node.item.name_at.map_or(f32::INFINITY, |(_, y)| y);
+                own.min(highest(&node.children))
+            })
+            .fold(f32::INFINITY, f32::min)
+    }
+    (-highest(scene)).max(0.0)
+}
+
+/// Moves the names of points down by `dy`, as `Scene::offset` moves the
+/// rest.
+pub(super) fn lower_names(scene: &mut Scene, dy: f32) {
+    for node in &mut scene.nodes {
+        if let Some((_, y)) = &mut node.item.name_at {
+            *y += dy;
+        }
+        lower_names(&mut node.children, dy);
+    }
+}
+
 /// The state that holds points: its border and where its title's words
 /// stand.
 #[derive(Clone, Copy)]

@@ -258,6 +258,9 @@ impl Parser {
         }) = self.blocks.last()
             && two_words(text, "repeat", "while").is_none()
             && keyword(text, "note").is_none()
+            && word(text, "floating")
+                .and_then(|rest| keyword(rest, "note"))
+                .is_none()
         {
             return Err(Declined::at(
                 no,
@@ -553,11 +556,22 @@ impl Parser {
     }
 
     /// Ends the flow the open block is adding to: a waiting arrow leaves it.
-    fn close_flow(&mut self) {
+    /// Declines where a note still waits for its action: the flow it is
+    /// in ends, or the swimlane changes, before one comes.
+    fn settled(&self) -> Result<(), Declined> {
+        match self.waiting {
+            Some((_, line)) => Err(waits(line)),
+            None => Ok(()),
+        }
+    }
+
+    fn close_flow(&mut self) -> Result<(), Declined> {
+        self.settled()?;
         let out = self.pending.take();
         if out.is_some() {
             self.flow().out = out;
         }
+        Ok(())
     }
 
     /// Takes the innermost block, which `closer` ends; its node goes to the
@@ -593,6 +607,7 @@ impl Parser {
     }
 
     fn swimlane(&mut self, text: &str, no: usize) -> Result<(), Declined> {
+        self.settled()?;
         let inner = &text[1..];
         let (color, inner) = match inner.strip_prefix('#') {
             Some(_) => {
@@ -878,7 +893,9 @@ impl Parser {
                 *slot = Some(note);
                 Ok(next)
             }
-            None if free => {
+            // Before the first action of its flow, not after a group
+            // that holds none.
+            None if free && depth == 0 => {
                 self.waiting = Some((note, no));
                 Ok(next)
             }
@@ -946,7 +963,7 @@ impl Parser {
     fn next_branch(&mut self, branch: Branch, is_else: bool, no: usize) -> Result<(), Declined> {
         let keyword = if is_else { "else" } else { "elseif" };
         self.innermost("if", no)?;
-        self.close_flow();
+        self.close_flow()?;
         let Some(Open {
             what:
                 Opened::If {
@@ -969,7 +986,7 @@ impl Parser {
 
     fn end_if(&mut self, no: usize) -> Result<(), Declined> {
         self.innermost("if", no)?;
-        self.close_flow();
+        self.close_flow()?;
         let open = self.blocks.pop().expect("checked by innermost");
         self.close(
             |what| match what {
@@ -999,7 +1016,7 @@ impl Parser {
     /// `case (words)`: the flow of the case before ends, this one's starts.
     fn case(&mut self, words: &str, no: usize) -> Result<(), Declined> {
         self.innermost("switch", no)?;
-        self.close_flow();
+        self.close_flow()?;
         let Some(Open {
             what:
                 Opened::Switch {
@@ -1040,7 +1057,7 @@ impl Parser {
             return Err(Declined::at(*line, "a `switch` needs a `case`"));
         }
         self.innermost("switch", no)?;
-        self.close_flow();
+        self.close_flow()?;
         let open = self.blocks.pop().expect("checked by innermost");
         self.close(
             |what| match what {
@@ -1086,7 +1103,7 @@ impl Parser {
             Some(text_at(inner, no))
         };
         self.innermost("while", no)?;
-        self.close_flow();
+        self.close_flow()?;
         let open = self.blocks.pop().expect("checked by innermost");
         self.close(
             |what| match what {
@@ -1125,7 +1142,7 @@ impl Parser {
             (Some(test).filter(|t| !t.trim().is_empty()), yes, out)
         };
         self.innermost("repeat", no)?;
-        self.close_flow();
+        self.close_flow()?;
         let open = self.blocks.pop().expect("checked by innermost");
         let at = |t: &str| text_at(t, no);
         self.close(
@@ -1173,7 +1190,7 @@ impl Parser {
             ));
         }
         self.innermost("repeat", no)?;
-        self.close_flow();
+        self.close_flow()?;
         let at = |l: &str| Some(text_at(l, no)).filter(|t| !t.value.is_empty());
         if let Some(Open {
             what: Opened::Repeat { backward, .. },
@@ -1242,6 +1259,7 @@ impl Parser {
             _ => "group",
         };
         self.innermost(keyword, no)?;
+        self.settled()?;
         let open = self.blocks.pop().expect("checked by innermost");
         self.close(
             |what| match what {
@@ -1257,7 +1275,7 @@ impl Parser {
 
     fn again(&mut self, split: bool, no: usize) -> Result<(), Declined> {
         self.innermost(if split { "split" } else { "fork" }, no)?;
-        self.close_flow();
+        self.close_flow()?;
         if let Some(Open {
             what: Opened::Parallel { flows, current, .. },
             ..
@@ -1287,7 +1305,7 @@ impl Parser {
             },
             no,
         )?;
-        self.close_flow();
+        self.close_flow()?;
         let open = self.blocks.pop().expect("checked by innermost");
         self.close(
             |what| match what {
@@ -1316,7 +1334,7 @@ fn parenthesized(rest: &str) -> Option<&str> {
 fn waits(line: usize) -> Declined {
     Declined::at(
         line,
-        "a note before a step that is no action is not supported yet",
+        "a note that neither follows nor comes before an action of its flow is not supported yet",
     )
 }
 
@@ -1681,12 +1699,42 @@ mod tests {
         assert_eq!(note.as_ref().unwrap().text.value, "first");
         for (source, part) in [
             ("start\nnote: before\nstop", "follow an action"),
-            ("note: before\nif (x) then\nendif", "no action"),
-            ("note: never", "no action"),
+            ("note: before\nif (x) then\nendif", "comes before an action"),
+            ("note: never", "comes before an action"),
         ] {
             let err = declined(source);
             assert!(err.reason.contains(part), "{source}: {}", err.reason);
         }
+        // A note waits for an action in its own flow only: where that ends,
+        // or the swimlane changes, first, it declines, never going to an
+        // action elsewhere.
+        for source in [
+            "start\nif (x) then\nnote right: n\nelse\n:b;\nendif",
+            "start\nif (x) then\nnote right: n\nelseif (y) then\n:b;\nendif",
+            "start\nif (x) then\nnote right: n\nendif\n:after;",
+            "start\nfork\nnote right: n\nfork again\n:b;\nend fork",
+            "start\nfork\n:a;\nfork again\nnote right: n\nend fork\n:after;",
+            "start\nwhile (x)\nnote right: n\nendwhile\n:after;",
+            "start\nrepeat\nnote right: n\nrepeat while (x)\n:after;",
+            "start\nrepeat\nnote right: n\nbackward :x;\nrepeat while (x)\n:after;",
+            "start\npartition P {\nnote right: n\n}\n:after;",
+            "start\n:a;\npartition P {\n}\nnote right: n\n:b;",
+            "start\nswitch (x)\ncase (a)\nnote right: n\ncase (b)\n:b;\nendswitch",
+            "|A|\nstart\n|B|\nnote right: n\n|A|\n:a;",
+        ] {
+            let err = declined(source);
+            assert!(err.reason.contains("an action"), "{source}: {}", err.reason);
+        }
+        // A floating note after `backward` is its action's, as a note is.
+        let d = diagram("repeat\n:a;\nbackward :b;\nfloating note right: n\nrepeat while (x)");
+        let Node::Repeat {
+            backward: Some(backward),
+            ..
+        } = &d.flow.steps[0].node
+        else {
+            panic!()
+        };
+        assert_eq!(backward.note.as_ref().unwrap().text.value, "n");
     }
 
     #[test]

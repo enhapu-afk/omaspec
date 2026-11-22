@@ -371,6 +371,18 @@ is open and the reasoning around it.
       that stops ends; in swimlanes the cases go in the order of their
       lanes. A step before the first `case`, or a `switch` without one,
       declines and says so. The guide: 52 of 62.
+- [x] What the review of the notes and of the point names found
+      (2026-11-22): a note before the first action of its flow waits
+      for that action in its own flow only; where the flow ends (`else`,
+      `case`, `fork again`, the end of a loop, a block or a group,
+      `backward`) or the swimlane changes before one comes, it declines,
+      never going to an action elsewhere; so does a note after a group
+      that holds no action. `floating note` after `backward` is read as a
+      note is. The color action does not color an action that reads only
+      `(y)`, which in a color PlantUML reads as a connector; it says so.
+      A point's name that stands out over the top of the diagram makes
+      room for itself under the title. fmt and the outline close a split
+      at `split end`.
 
 ## Phase 0: foundation and spikes
 

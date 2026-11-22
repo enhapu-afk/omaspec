@@ -93,8 +93,12 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
     link_notes(&diagram.root, &mut scene, &skin, family)?;
-    scene.offset(0.0, annotations.top());
+    // The names of points, then room above for any that stand out over
+    // the top, so none reaches the title.
     points::place_names(&diagram.root, &mut scene);
+    let down = annotations.top() + points::rise(&scene);
+    scene.offset(0.0, down);
+    points::lower_names(&mut scene, down);
     paint(&mut canvas, &skin, &diagram.root, &scene);
     annotations.draw(&mut canvas);
     let mut map = Map::default();
@@ -1869,6 +1873,11 @@ mod tests {
             (y(&titled, "pay") - y(&plain, "pay") - moved).abs() < 0.01,
             "{titled}"
         );
+        // A name over a point on the top border stays under the title.
+        let top = "@startuml\ntitle A Title Over Everything Here\nstate Outer {\n  state ein <<entryPoint>>\n  ein --> W\n}\n@enduml\n";
+        let svg = crate::render(top).unwrap();
+        let title = y(&svg, "A Title Over Everything Here");
+        assert!(y(&svg, "ein") - 14.0 > title + 2.0, "{svg}");
         // A long name keeps off its state's title and does not run across
         // its sides.
         let long = "@startuml\n[*] --> A\n[*] --> B\nA --> Somestate\nB --> Somestate\nstate Somestate {\n  state aa <<entryPoint>>\n  state pointnamelonger <<entryPoint>>\n  aa --> X\n  pointnamelonger --> X\n}\nA --> aa\nA --> pointnamelonger\n@enduml\n";

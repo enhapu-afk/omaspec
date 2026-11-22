@@ -626,6 +626,15 @@ mod tests {
             at_caret(&code.replace("#blue:(B)", "#blue:(^B)"), p, None),
             code.replace("#blue:(B)", "(B)")
         );
+        // An action that reads only `(y)` would be a connector in a color.
+        for code in [
+            "@startuml\n:(y);\n@enduml\n",
+            "@startuml\n:(y)\nmore;\n@enduml\n",
+        ] {
+            let (code, target) = aimed(&code.replacen("(y", "(^y", 1), p);
+            let err = edit(&code, p, &target.unwrap(), Some("#f7768e")).unwrap_err();
+            assert!(err.contains("connector"), "{err}");
+        }
         // A line that reads `(A)` inside an action is the action's.
         let code = "@startuml\n:first line\n(A)\nlast;\n@enduml\n";
         assert_eq!(

@@ -280,6 +280,16 @@ pub(super) fn activity(
     } else {
         let (old, rest) =
             action_start(text).ok_or("put the caret on the action or the swimlane to color")?;
+        // `:(y);` in a color is `#red:(y);`, which PlantUML reads as a
+        // connector.
+        if let Some(color) = color
+            && connector(&format!("{color}:{rest}")).is_some()
+        {
+            return Err(format!(
+                "an action that reads only `{}` would be a connector in a color",
+                rest.trim().trim_end_matches(';')
+            ));
+        }
         match (old, color) {
             (_, Some(color)) => Some(format!("{indent}{color}:{rest}")),
             (Some(_), None) => Some(format!("{indent}:{rest}")),

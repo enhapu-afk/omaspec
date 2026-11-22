@@ -469,7 +469,7 @@ fn activity_line(b: &mut Builder, row: usize, l: &str) {
             &format!("{} again", c[1].to_lowercase()),
             String::new(),
         );
-    } else if re!(r"(?i)^fork\s*end\b").is_match(l) {
+    } else if re!(r"(?i)^(?:fork|split)\s*end\b").is_match(l) {
         b.close(row);
     } else if let Some(c) = re!(r"(?i)^(fork|split)\b").captures(l) {
         b.add(row, &c[1].to_lowercase(), String::new());
@@ -811,6 +811,11 @@ mod tests {
         assert_eq!(
             folds(fork, Language::PlantUml),
             folds(&fork.replace("fork end", "end fork"), Language::PlantUml)
+        );
+        let split = fork.replace("fork", "split");
+        assert_eq!(
+            folds(&split, Language::PlantUml),
+            folds(fork, Language::PlantUml)
         );
     }
 
