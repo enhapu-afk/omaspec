@@ -125,6 +125,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         skin.strict,
     );
     map.places = nest::places(&diagram.root, &scene, &diagram.frame.held);
+    map.quiet = choices::names(&diagram.root);
     notes_inside(&scene, &mut map.inside);
     map.misses = misses;
     map.misses.extend(crate::hand::said(

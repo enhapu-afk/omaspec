@@ -17,6 +17,19 @@ pub(super) fn reach(root: &Container, scene: &mut Scene) {
     }
 }
 
+/// The names of every choice of `container` and of those inside its
+/// states, which their diamonds do not write.
+pub(super) fn names(container: &Container) -> Vec<String> {
+    let mut out = Vec::new();
+    for node in &container.nodes {
+        if node.kind == Kind::Choice {
+            out.push(node.key.clone());
+        }
+        out.extend(names(&node.children));
+    }
+    out
+}
+
 /// The middles of every choice of `container`, and of those inside its
 /// states.
 fn gather(container: &Container, scene: &Scene, out: &mut Vec<(f32, f32)>) {
@@ -30,6 +43,18 @@ fn gather(container: &Container, scene: &Scene, out: &mut Vec<(f32, f32)>) {
 }
 
 fn lengthen(scene: &mut Scene, centers: &[(f32, f32)]) {
+    // A note's dashed line to a choice ends at its box: on to the diamond.
+    let room = super::CHOICE_ROOM / 2.0;
+    for note in &mut scene.notes {
+        if let Some((from, to)) = &mut note.tether
+            && let Some(&c) = centers
+                .iter()
+                .find(|c| (to.0 - c.0).abs() <= room + 0.5 && (to.1 - c.1).abs() <= room + 0.5)
+            && let Some(end) = toward(*from, *to, c)
+        {
+            *to = end;
+        }
+    }
     for edge in &mut scene.edges {
         let n = edge.points.len();
         if n < 2 {
@@ -59,20 +84,36 @@ fn onto(from: (f32, f32), end: (f32, f32), centers: &[(f32, f32)]) -> Option<(f3
     let &c = centers
         .iter()
         .find(|&&c| (out(end, c) - room / half).abs() < 0.2)?;
+    toward(from, end, c)
+}
+
+/// Where the line from `from` to `end` meets the drawn diamond about `c`,
+/// going on the way it comes, or else toward its middle.
+fn toward(from: (f32, f32), end: (f32, f32), c: (f32, f32)) -> Option<(f32, f32)> {
+    let half = CHOICE / 2.0;
+    let room = super::CHOICE_ROOM / 2.0;
+    let out = |p: (f32, f32)| ((p.0 - c.0).abs() + (p.1 - c.1).abs()) / half;
     let (dx, dy) = (end.0 - from.0, end.1 - from.1);
     let length = (dx * dx + dy * dy).sqrt();
     if length < 0.01 {
         return None;
     }
     let (ux, uy) = (dx / length, dy / length);
-    // Toward the middle, in small steps, until on the drawn diamond.
-    let mut t = 0.0;
-    while t <= 2.0 * room {
-        let p = (end.0 + ux * t, end.1 + uy * t);
-        if out(p, c) <= 1.0 {
-            return Some(p);
+    // On, in small steps, until on the drawn diamond; where the line would
+    // pass beside it (it met the larger one off a corner), toward its
+    // middle instead.
+    let step = |(ux, uy): (f32, f32)| {
+        let mut t = 0.0;
+        while t <= 2.0 * room {
+            let p = (end.0 + ux * t, end.1 + uy * t);
+            if out(p) <= 1.0 {
+                return Some(p);
+            }
+            t += 0.25;
         }
-        t += 0.25;
-    }
-    None
+        None
+    };
+    let (mx, my) = (c.0 - end.0, c.1 - end.1);
+    let middle = (mx * mx + my * my).sqrt().max(0.01);
+    step((ux, uy)).or_else(|| step((mx / middle, my / middle)))
 }

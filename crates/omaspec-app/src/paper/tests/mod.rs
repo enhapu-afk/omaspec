@@ -405,6 +405,8 @@ end
 state \"Request (idle)\" as Request
 state Pick <<choice>>
 Request --> Pick : next track
+' Pick chooses the way
+Request --> Pick : to Pick
 @enduml
 ";
     show_source(&mut paper, state, Language::PlantUml);
@@ -420,6 +422,13 @@ Request --> Pick : next track
     let pick = paper.place_of(state, 2, at(state, 2, "Pick")).unwrap();
     let choice = paper.place_of(state, 2, at(state, 2, "choice")).unwrap();
     assert_eq!(pick, choice);
+    // A comment names nothing; a choice's name in a label is the label's.
+    assert_eq!(paper.place_of(state, 4, at(state, 4, "Pick")), None);
+    let line = state.split('\n').nth(5).unwrap();
+    let in_label = paper
+        .place_of(state, 5, line.rfind("Pick").unwrap())
+        .unwrap();
+    assert_ne!(in_label, pick);
     assert_ne!((pick.x, pick.y), (request.x, request.y));
     let track = same(&paper, state, 3, "next", "track");
     assert_ne!((track.x, track.y), (request.x, request.y));

@@ -303,17 +303,17 @@ impl Tile {
         *b = (b.0 + dx, b.1 + dy, b.2 + dx, b.3 + dy);
     }
 
-    /// Moves it so its left edge is at `x` and its top at `y`.
     /// Where the line out of the tile comes in along its bottom from the
     /// side of `x` (a `while`'s way out from its rail): that line ends
-    /// where it turns to come in, and the tile goes out from there, so a
-    /// line on toward `x` does not run back over it.
-    pub fn turn_toward(&mut self, x: f32) {
+    /// sooner, where it turns to come in, but `keep` short of `x` at most,
+    /// and the tile goes out from there, so a line on toward `x` does not
+    /// run back over it.
+    pub fn turn_toward(&mut self, x: f32, keep: f32) {
         let Some(exit) = self.exit else {
             return;
         };
         let side = x - exit.x;
-        if side.abs() < 0.5 {
+        if side.abs() <= keep + 0.5 {
             return;
         }
         let Some(edge) = self
@@ -325,12 +325,23 @@ impl Tile {
         };
         let before = edge.points[edge.points.len() - 2];
         let flat = before.lane == exit.lane && (before.y - exit.y).abs() < 0.5;
-        if flat && (before.x - exit.x) * side > 0.0 {
-            edge.points.pop();
-            self.exit = Some(before);
+        if !flat || (before.x - exit.x) * side <= 0.0 {
+            return;
         }
+        let stop = x - keep * side.signum();
+        let out = if (before.x - stop) * side.signum() > 0.0 {
+            // It came from beyond where it may end: it ends there.
+            let out = Pt { x: stop, ..exit };
+            *edge.points.last_mut().expect("three points") = out;
+            out
+        } else {
+            edge.points.pop();
+            before
+        };
+        self.exit = Some(out);
     }
 
+    /// Moves it so its left edge is at `x` and its top at `y`.
     pub fn place(&mut self, x: f32, y: f32) {
         self.translate(x - self.bounds.0, y - self.bounds.1);
     }

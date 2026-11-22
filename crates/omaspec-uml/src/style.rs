@@ -468,16 +468,14 @@ pub fn skinparams(
     let mut out = Vec::new();
     // The diagram's own element (`activityDiagram`), which reaches all of
     // it but its title, as `root` does all; none where one list of
-    // elements serves several types (`classDiagram` for a component
-    // diagram too).
-    let diagram = elements
-        .first()
-        .and_then(|e| {
-            e.names
-                .iter()
-                .find(|n| n.ends_with("Diagram") && **n != "classDiagram")
-        })
-        .copied();
+    // elements serves several types (`classDiagram` and `componentDiagram`
+    // both in a structure diagram's).
+    let mut named = elements
+        .iter()
+        .flat_map(|e| e.names.iter().copied())
+        .filter(|n| n.ends_with("Diagram"));
+    let first = named.next();
+    let diagram = first.filter(|own| named.all(|n| n.eq_ignore_ascii_case(own)));
     let whole = |d: &Declaration| {
         d.only.is_empty()
             && !d.names.is_empty()
@@ -1421,6 +1419,12 @@ mod tests {
         assert!(!draws(
             "@startuml\n<style>\nclassDiagram { FontName Courier }\n</style>\n[A] --> [B]\n@enduml"
         ));
+        assert!(!draws(
+            "@startuml\n<style>\ncomponentDiagram { FontName Courier }\n</style>\nclass A\n@enduml"
+        ));
+        assert!(!draws(&format!(
+            "@startuml\n{style}\nmainframe M\nA -> B\n@enduml"
+        )));
         let err = params("sequenceDiagram { FontName Arial }\nparticipant { FontName Courier }")
             .unwrap_err();
         assert_eq!(err.line, Some(3));

@@ -18,6 +18,9 @@ pub struct Map {
     pub wires: Vec<Wire>,
     /// The boxes a writer may hold in place ([`Place`]).
     pub places: Vec<Place>,
+    /// The names of those whose name is not drawn (a choice's diamond):
+    /// the caret's light finds them by their name in the source.
+    pub quiet: Vec<String>,
     /// The boxes of a map drawn as tiles that show other diagrams.
     pub tiles: Vec<Tile>,
     /// The lines of a table's cells that say a line of the source

@@ -4,6 +4,7 @@
 
 use std::collections::HashSet;
 
+use omaspec_uml::activity::{action_end, action_start};
 use omaspec_uml::element_lines;
 use regex::Regex;
 use serde::Serialize;
@@ -67,6 +68,9 @@ struct Builder {
     section: Option<usize>,
     folds: Vec<(usize, usize)>,
     seen: HashSet<String>,
+    /// Inside an activity's action over several lines: its words are no
+    /// lines of their own.
+    in_action: bool,
 }
 
 impl Builder {
@@ -78,6 +82,7 @@ impl Builder {
             section: None,
             folds: Vec::new(),
             seen: HashSet::new(),
+            in_action: false,
         }
     }
 
@@ -427,15 +432,22 @@ fn sequence_line(b: &mut Builder, row: usize, l: &str) {
 }
 
 fn activity_line(b: &mut Builder, row: usize, l: &str) {
+    // The words of an action over several lines, up to the line that ends
+    // it, open and close nothing.
+    if b.in_action {
+        b.in_action = action_end(l).is_none();
+        return;
+    }
+    if let Some((_, rest)) = action_start(l) {
+        b.in_action = action_end(rest).is_none();
+        return;
+    }
     if let Some(c) = re!(r"^\|(?:#[^|]*\|)?([^|]+)\|").captures(l) {
         if b.first(format!("lane:{}", c[1].trim().to_lowercase())) {
             b.add_at(row, "lane", label(&c[1]), 0);
         }
-    } else if let Some(c) = re!(r"(?i)^(partition)\s+(.+?)\s*\{?\s*$")
-        .captures(l)
-        // A package, a rectangle and a card open with their bracket; a
-        // line of an action may start with the word.
-        .or_else(|| re!(r"(?i)^(package|rectangle|card)\s+(.+?)\s*\{\s*$").captures(l))
+    } else if let Some(c) =
+        re!(r"(?i)^(partition|package|rectangle|card)\s+(.+?)\s*\{?\s*$").captures(l)
     {
         b.add(row, &c[1].to_lowercase(), label(&c[2]));
         b.open(row);
@@ -835,8 +847,19 @@ mod tests {
                 e(5, 0, "else", "no")
             ]
         );
-        // A package, a rectangle and a card are frames as a partition is;
-        // an action's line that starts with the word is none.
+        // A package, a rectangle and a card are frames as a partition is,
+        // with their bracket or without; an action's line that starts with
+        // the word is none.
+        let bare =
+            "@startuml\npartition Outer {\npackage P\n:a;\n}\nif (x?) then\n:b;\nendif\n}\n@enduml";
+        assert_eq!(
+            tags(bare, Language::PlantUml),
+            [
+                e(1, 0, "partition", "Outer"),
+                e(2, 1, "package", "P"),
+                e(5, 1, "if", "x?")
+            ]
+        );
         let words =
             "@startuml\n:Pick the\npackage up from the door;\nif (x?) then\n:b;\nendif\n@enduml";
         assert_eq!(tags(words, Language::PlantUml), [e(3, 0, "if", "x?")]);

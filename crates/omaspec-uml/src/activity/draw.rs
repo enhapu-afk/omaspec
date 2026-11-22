@@ -733,6 +733,16 @@ mod tests {
             3
         );
         assert!(frames("composite { LineStyle 7-7 }").is_err());
+        // A skinparam for partitions reaches every frame, as in PlantUML;
+        // none names `composite`.
+        let skinned = |param: &str| {
+            let source = format!(
+                "@startuml\nskinparam {param}\nstart\npartition P {{\n:a;\n}}\ngroup G\n:b;\nend group\nrectangle R {{\n:c;\n}}\nstop\n@enduml\n"
+            );
+            crate::render(&source).map(|svg| svg.matches("fill=\"#FFDAB9\"").count())
+        };
+        assert_eq!(skinned("partitionBackgroundColor PeachPuff").unwrap(), 3);
+        assert!(skinned("compositeBackgroundColor PeachPuff").is_err());
     }
 
     /// The name of a `rectangle` or a `card` stands in the middle at the

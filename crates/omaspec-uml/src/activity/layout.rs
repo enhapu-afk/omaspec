@@ -186,14 +186,17 @@ impl Layout<'_> {
         let label = self.arrow_label(arrow)?;
         let (top, bottom) = (next.bounds.1, prev.bounds.3);
         // To a lane on one side, the line leaves from that side where it
-        // can ([`Tile::turn_toward`]).
+        // can ([`Tile::turn_toward`]); the step it leads to stands under the
+        // way out all the same.
+        let under = prev.exit.map(|out| out.x);
         if let Some(out) = prev.exit
             && out.lane != next.entry.lane
         {
-            prev.turn_toward(match next.entry.lane < out.lane {
+            let toward = match next.entry.lane < out.lane {
                 true => f32::NEG_INFINITY,
                 false => f32::INFINITY,
-            });
+            };
+            prev.turn_toward(toward, 0.0);
         }
         match prev.exit {
             Some(out) => {
@@ -218,8 +221,9 @@ impl Layout<'_> {
                 };
                 let need = GAP + room + above + if turns { CLEAR } else { 0.0 };
                 let dy = (bottom + CLEAR - top).max(from + need - next.entry.y);
-                next.translate(out.x - next.entry.x, dy);
-                let entry = pt(out.x, next.entry.y, next.entry.lane);
+                let under = under.unwrap_or(out.x);
+                next.translate(under - next.entry.x, dy);
+                let entry = pt(under, next.entry.y, next.entry.lane);
                 let mut points = vec![out];
                 let mut y = from + (entry.y - above - from - label.height) / 2.0;
                 if turns {
@@ -228,7 +232,7 @@ impl Layout<'_> {
                     let gap_top = bottom.max(from + room);
                     let turn = (gap_top + next.bounds.1.min(entry.y - GAP / 2.0)) / 2.0;
                     points.push(pt(out.x, turn, out.lane));
-                    points.push(pt(out.x, turn, entry.lane));
+                    points.push(pt(entry.x, turn, entry.lane));
                     y = from + 2.0;
                 }
                 points.push(entry);

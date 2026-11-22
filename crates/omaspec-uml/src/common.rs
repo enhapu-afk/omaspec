@@ -294,9 +294,15 @@ impl Frame {
         // its parts another font than its title declines where it has one.
         if next.is_some()
             && self.fonts.apart()
-            && [&self.title, &self.header, &self.footer, &self.caption]
-                .iter()
-                .any(|text| text.is_some())
+            && [
+                &self.title,
+                &self.header,
+                &self.footer,
+                &self.caption,
+                &self.mainframe,
+            ]
+            .iter()
+            .any(|text| text.is_some())
         {
             return Err(Declined::at(
                 lines[at].no,

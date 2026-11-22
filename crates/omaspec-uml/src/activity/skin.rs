@@ -321,10 +321,36 @@ impl Skin {
                 "notebackgroundcolor" => skin.note.fill = p.paint()?,
                 "notebordercolor" => skin.note.border = p.solid()?,
                 "noteborderthickness" => skin.note.thickness = p.number(0.0, 20.0)?,
-                "partitionbackgroundcolor" => skin.partition.fill = p.paint()?,
-                "partitionbordercolor" => skin.partition.border = p.solid()?,
-                "partitionborderthickness" => skin.partition.thickness = p.number(0.0, 20.0)?,
-                "partitionroundcorner" => skin.partition_round = p.corner()?,
+                // A skinparam for partitions reaches every frame, as in
+                // PlantUML; `<style>`'s `partition` partitions alone, its
+                // `composite` every frame, which no skinparam names.
+                "partitionbackgroundcolor" => {
+                    skin.partition.fill = p.paint()?;
+                    if p.declared.is_none() {
+                        skin.frame.fill = skin.partition.fill;
+                    }
+                }
+                "partitionbordercolor" => {
+                    skin.partition.border = p.solid()?;
+                    if p.declared.is_none() {
+                        skin.frame.border = skin.partition.border;
+                    }
+                }
+                "partitionborderthickness" => {
+                    skin.partition.thickness = p.number(0.0, 20.0)?;
+                    if p.declared.is_none() {
+                        skin.frame.thickness = skin.partition.thickness;
+                    }
+                }
+                "partitionroundcorner" => {
+                    skin.partition_round = p.corner()?;
+                    if p.declared.is_none() {
+                        skin.frame_round = skin.partition_round;
+                    }
+                }
+                _ if key.starts_with("composite") && p.declared.is_none() => {
+                    return Err(p.unsupported());
+                }
                 "compositebackgroundcolor" => skin.frame.fill = p.paint()?,
                 "compositebordercolor" => skin.frame.border = p.solid()?,
                 "compositeborderthickness" => skin.frame.thickness = p.number(0.0, 20.0)?,
@@ -333,32 +359,39 @@ impl Skin {
                     let Some((element, property)) = split_font(&key) else {
                         return Err(p.unsupported());
                     };
-                    match property {
-                        "fontsize" => {
-                            let size = p.number(4.0, 100.0)?;
-                            own_size.push(element);
-                            font_of(&mut skin, element).size = size;
-                        }
-                        "fontcolor" => {
-                            let c = p.solid()?;
-                            own_color.push(element);
-                            font_of(&mut skin, element).color = c;
-                        }
-                        "fontstyle" => {
-                            let v = value.to_ascii_lowercase();
-                            let words: Vec<&str> = v.split_whitespace().collect();
-                            if words.is_empty()
-                                || words
-                                    .iter()
-                                    .any(|w| !matches!(*w, "plain" | "bold" | "italic"))
-                            {
-                                return Err(p.unsupported());
+                    // A skinparam's font for partitions is every frame's.
+                    let elements: &[&'static str] = match element {
+                        "partition" if p.declared.is_none() => &["partition", "composite"],
+                        _ => std::slice::from_ref(&element),
+                    };
+                    for &element in elements {
+                        match property {
+                            "fontsize" => {
+                                let size = p.number(4.0, 100.0)?;
+                                own_size.push(element);
+                                font_of(&mut skin, element).size = size;
                             }
-                            let font = font_of(&mut skin, element);
-                            font.bold = words.contains(&"bold");
-                            font.italic = words.contains(&"italic");
+                            "fontcolor" => {
+                                let c = p.solid()?;
+                                own_color.push(element);
+                                font_of(&mut skin, element).color = c;
+                            }
+                            "fontstyle" => {
+                                let v = value.to_ascii_lowercase();
+                                let words: Vec<&str> = v.split_whitespace().collect();
+                                if words.is_empty()
+                                    || words
+                                        .iter()
+                                        .any(|w| !matches!(*w, "plain" | "bold" | "italic"))
+                                {
+                                    return Err(p.unsupported());
+                                }
+                                let font = font_of(&mut skin, element);
+                                font.bold = words.contains(&"bold");
+                                font.italic = words.contains(&"italic");
+                            }
+                            _ => return Err(p.unsupported()),
                         }
-                        _ => return Err(p.unsupported()),
                     }
                 }
             }

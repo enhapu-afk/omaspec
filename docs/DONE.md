@@ -523,8 +523,22 @@ is open and the reasoning around it.
       an action's end through every line the engine reads (a `note` in its
       words too), keeps a block comment at its end, takes trailing spaces
       for no color, and colors no action that ends in an SDL mark, where
-      PlantUML 1.2026 reads none. The outline opens a `package`, a
-      `rectangle` or a `card` at its bracket only.
+      PlantUML 1.2026 reads none.
+- [x] What the review of the choices and of the last fixes found
+      (2026-11-22): a way out that goes on from a loop's rail stops short
+      of the diamond where branches meet, so it comes into the corner on
+      its own side; the step in another lane stands under the loop all the
+      same. A line or a note's dashed line that meets a choice beside a
+      corner is drawn on to its diamond too. The caret's light finds only
+      the shapes whose name the map says is not drawn (choices), never in
+      a comment line, and drawn words under the caret come first. A
+      skinparam for partitions colors every frame, as in PlantUML; only
+      `<style>`'s `partition` keeps to partitions, and no skinparam names
+      `composite`. The diagram's own element counts only where every
+      element is that one diagram's; a `mainframe` beside a diagram's font
+      of its own declines too. The outline reads `package P` without a
+      bracket again, and the words of an action over several lines as its
+      words, not as lines of their own.
 
 ## Phase 0: foundation and spikes
 

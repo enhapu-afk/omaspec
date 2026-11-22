@@ -375,9 +375,8 @@ impl Paper {
     /// later mention keeps the last copy.
     #[cfg(test)]
     pub(super) fn place_of(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
-        self.unwritten(source, row, col, false)
-            .or_else(|| self.written_place_of(source, row, col))
-            .or_else(|| self.unwritten(source, row, col, true))
+        self.written_place_of(source, row, col)
+            .or_else(|| self.unwritten(source, row, col))
     }
 
     #[cfg(test)]
@@ -421,11 +420,8 @@ impl Paper {
     /// The light for the label at `row`/`col`: the box around it, or the
     /// words themselves when they sit on a line.
     pub(super) fn aim_at(&self, source: &str, row: usize, col: usize) -> Option<Aim> {
-        if let Some(rect) = self.unwritten(source, row, col, false) {
-            return Some(Aim::shape(rect));
-        }
         let Some((_, seat)) = self.seat_at(source, row, col) else {
-            return self.unwritten(source, row, col, true).map(Aim::shape);
+            return self.unwritten(source, row, col).map(Aim::shape);
         };
         let (x, y, w, h) = seat.bounds();
         let rect = Rectangle::new(Point::new(x, y), Size::new(w, h));
@@ -435,41 +431,46 @@ impl Paper {
         })
     }
 
-    /// A shape of the map with no words in it (a choice's diamond): named
-    /// by the word under the caret, or, with `anywhere`, by any word on its
-    /// line. Only on the picture the map was laid for.
-    fn unwritten(&self, source: &str, row: usize, col: usize, anywhere: bool) -> Option<Rectangle> {
+    /// A shape of the map whose name the picture does not write (a
+    /// choice's diamond, [`omaspec_uml::map::Map::quiet`]), named by the
+    /// word under the caret, or in a `<<mark>>` by the name before it. A
+    /// comment line names none. Only on the picture the map was laid for.
+    fn unwritten(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
         let diagram = self.diagram.as_ref()?;
         let tree = self.shown_tree()?;
-        if !std::sync::Arc::ptr_eq(tree, &diagram.drawn.tree) {
+        if !std::sync::Arc::ptr_eq(tree, &diagram.drawn.tree) || diagram.drawn.map.quiet.is_empty()
+        {
             return None;
         }
-        let line = source.lines().nth(row)?;
-        let mut words = Vec::new();
-        let mut start = None;
-        for (at, c) in line.char_indices().chain([(line.len(), ' ')]) {
-            match (c.is_alphanumeric() || c == '_', start) {
-                (true, None) => start = Some(at),
-                (false, Some(from)) => {
-                    words.push((from..at, &line[from..at]));
-                    start = None;
-                }
-                _ => {}
-            }
+        let line = source.split('\n').nth(row)?.trim_end_matches('\r');
+        let lead = line.trim_start();
+        if lead.starts_with('\'') || lead.starts_with("%%") {
+            return None;
         }
-        let labels = pick::labels(tree);
-        words
-            .into_iter()
-            .filter(|(range, _)| anywhere || (range.start <= col && col <= range.end))
-            .find_map(|(_, word)| {
-                let place = diagram.drawn.map.places.iter().find(|p| p.name == word)?;
-                let r = place.rect;
-                let written = labels.iter().any(|(_, (x, y, w, h))| {
-                    let (cx, cy) = (x + w / 2.0, y + h / 2.0);
-                    r.x <= cx && cx <= r.x + r.w && r.y <= cy && cy <= r.y + r.h
-                });
-                (!written).then(|| Rectangle::new(Point::new(r.x, r.y), Size::new(r.w, r.h)))
-            })
+        let word_at = |at: usize| {
+            let start = line[..at]
+                .rfind(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .map_or(0, |i| i + 1);
+            let end = line[at..]
+                .find(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .map_or(line.len(), |i| at + i);
+            (start, &line[start..end])
+        };
+        let col = col.min(line.len());
+        if !line.is_char_boundary(col) {
+            return None;
+        }
+        let (start, mut word) = word_at(col);
+        if let Some(head) = line[..start].trim_end().strip_suffix("<<") {
+            let head = head.trim_end();
+            word = word_at(head.len()).1;
+        }
+        if word.is_empty() || !diagram.drawn.map.quiet.iter().any(|q| q == word) {
+            return None;
+        }
+        let place = diagram.drawn.map.places.iter().find(|p| p.name == word)?;
+        let r = place.rect;
+        Some(Rectangle::new(Point::new(r.x, r.y), Size::new(r.w, r.h)))
     }
 
     /// Moves the light to `target`, or lets it go out.

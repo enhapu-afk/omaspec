@@ -221,7 +221,7 @@ impl Layout<'_> {
         let mut edges = Vec::new();
         let mut ways = Vec::new();
         for tile in &mut tiles {
-            tile.turn_toward(xd);
+            tile.turn_toward(xd, HALF + 4.0);
         }
         for (tile, corner) in tiles.iter().zip([corners.0, corners.1]) {
             let start = vec![corner, pt(tile.entry.x, cy, tile.entry.lane)];
@@ -403,7 +403,7 @@ impl Layout<'_> {
         let mut edges = Vec::new();
         let mut ways = Vec::new();
         for tile in &mut tiles {
-            tile.turn_toward(xd);
+            tile.turn_toward(xd, HALF + 4.0);
         }
         for ((tile, label), side) in tiles.iter().zip(labels).zip(sides) {
             let at = tile.entry;
@@ -565,7 +565,7 @@ impl Layout<'_> {
             tiles[0].entry.x
         };
         for (i, _) in &ways {
-            tiles[*i].turn_toward(middle);
+            tiles[*i].turn_toward(middle, HALF + 4.0);
         }
         let ways: Vec<(&Tile, Vec<Pt>)> = ways.into_iter().map(|(i, s)| (&tiles[i], s)).collect();
         let exit = self.merge(&mut shapes, &mut edges, &ways, middle, lane)?;
@@ -624,7 +624,7 @@ impl Layout<'_> {
         let mut ways = Vec::new();
         if kind == Parallel::Merge {
             for tile in &mut tiles {
-                tile.turn_toward(middle);
+                tile.turn_toward(middle, HALF + 4.0);
             }
         }
         for tile in &tiles {
