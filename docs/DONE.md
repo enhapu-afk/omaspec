@@ -492,6 +492,13 @@ is open and the reasoning around it.
       `backward` action or without, as the guide and PlantUML 1.2026.8
       draw them; they were the other way round. A `while` that a hidden
       arrow and `detach` leave, an endless loop, has no way out drawn.
+- [x] The color action writes an action's color after its `;`
+      (2026-11-22): `:Bake; <<#f7768e>>`, as PlantUML 1.2026 wants it; it
+      refuses `#f7768e:Bake;`, which the color action wrote before. A
+      color written so is moved there, a shape in brackets (`<<input>>`)
+      stays beside it; an action that ends in an SDL mark (`|`) keeps its
+      color before it, the only place one is read there. The engine reads
+      a shape and a color in brackets one after the other.
 
 ## Phase 0: foundation and spikes
 

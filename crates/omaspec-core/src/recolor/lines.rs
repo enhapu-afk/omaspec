@@ -280,29 +280,87 @@ pub(super) fn activity(
     } else {
         let (old, rest) =
             action_start(text).ok_or("put the caret on the action or the swimlane to color")?;
-        // `:(y);` in a color is `#red:(y);`, which PlantUML reads as a
-        // connector, as the engine does with a name of any length.
-        let body = rest.trim();
-        let body = body.strip_suffix(';').unwrap_or(body).trim_end();
-        let named = body
-            .strip_prefix('(')
-            .and_then(|b| b.strip_suffix(')'))
-            .is_some_and(|name| {
-                !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_')
-            });
-        if color.is_some() && named {
-            return Err(format!(
-                "an action that reads only `{}` would be a connector in a color",
-                rest.trim().trim_end_matches(';')
-            ));
-        }
-        match (old, color) {
-            (_, Some(color)) => Some(format!("{indent}{color}:{rest}")),
-            (Some(_), None) => Some(format!("{indent}:{rest}")),
-            (None, None) => None,
-        }
+        return action_color(code, (no, range), label, color, (indent, old, rest));
     };
     changed(label, range, line, new, newline)
+}
+
+/// The color of the action that starts on line `no`, after its `;` as
+/// PlantUML 1.2026 wants it (`:text; <<#red>>`): a color written before it
+/// (`#red:text;`, which PlantUML 1.2026 refuses) and one in brackets go, a
+/// shape in brackets (`<<input>>`) stays. An action that ends in an SDL
+/// mark (`|`) keeps its color before it, the only place one is read there.
+fn action_color(
+    code: &str,
+    (no, first): (usize, Range<usize>),
+    label: &str,
+    color: Option<&str>,
+    (indent, old, rest): (&str, Option<&str>, &str),
+) -> Result<Edit, String> {
+    let last = if action_end(rest).is_some() {
+        no
+    } else {
+        element_lines(code)
+            .into_iter()
+            .find(|&(n, text)| n > no && action_end(text).is_some())
+            .map(|(n, _)| n)
+            .ok_or("the action has no end")?
+    };
+    let (last_range, last_line, newline) = line_at(code, last)?;
+    let (_, first_line, first_newline) = line_at(code, no)?;
+    let unprefixed = format!("{indent}:{rest}");
+    let ending = if last == no {
+        unprefixed.as_str()
+    } else {
+        last_line
+    };
+    let Some(ended) = colored_end(ending, color) else {
+        let new = match (old, color) {
+            (_, Some(color)) => Some(format!("{indent}{color}:{rest}")),
+            (Some(_), None) => Some(unprefixed),
+            (None, None) => None,
+        };
+        return changed(label, first, first_line, new, first_newline);
+    };
+    let new = if last == no {
+        ended
+    } else {
+        let between = &code[first.start + first_line.len()..last_range.start];
+        format!("{unprefixed}{between}{ended}")
+    };
+    let range = first.start..last_range.end;
+    let before = &code[first.start..last_range.end - newline.len()];
+    match (new == before, color) {
+        (true, None) => Err(format!("{label} has no color of its own")),
+        (true, Some(_)) => Err(format!("{label} has that color already")),
+        (false, _) => Ok((range, format!("{new}{newline}"))),
+    }
+}
+
+/// The last line of an action, `line`, with `color` in brackets after its
+/// `;` and after the shapes in brackets it keeps, in place of any color it
+/// had there; `None` for a line that ends in an SDL mark.
+fn colored_end(line: &str, color: Option<&str>) -> Option<String> {
+    let mut rest = line.trim_end();
+    let mut names = Vec::new();
+    while let Some(inner) = rest.strip_suffix(">>")
+        && let Some(open) = inner.rfind("<<")
+    {
+        names.push(inner[open + 2..].trim());
+        rest = inner[..open].trim_end();
+    }
+    if !rest.ends_with(';') {
+        return None;
+    }
+    let shapes = names.iter().rev().filter(|name| !name.starts_with('#'));
+    let mut out = rest.to_owned();
+    for name in shapes {
+        out.push_str(&format!(" <<{name}>>"));
+    }
+    if let Some(color) = color {
+        out.push_str(&format!(" <<{color}>>"));
+    }
+    Some(out)
 }
 
 /// The names in the brackets of `line`, each with its range, brackets

@@ -37,8 +37,10 @@ pub fn action_start(text: &str) -> Option<(Option<&str>, &str)> {
 pub enum ActionEnd {
     /// `;`
     Plain,
-    /// `; <<input>>`, `; <<#pink>>`: what is between the brackets.
-    Stereotype(String),
+    /// `; <<input>>`, `; <<#pink>>`, `; <<input>> <<#pink>>`: what is
+    /// between each pair of brackets, in their order. A color is written
+    /// so after the `;`, as PlantUML 1.2026 wants it.
+    Stereotypes(Vec<String>),
     /// One of PlantUML's SDL marks in place of `;`: `| < > / \ ] }`.
     Mark(char),
 }
@@ -50,14 +52,19 @@ pub fn action_end(line: &str) -> Option<(&str, ActionEnd)> {
     if let Some(text) = line.strip_suffix(';') {
         return Some((text, ActionEnd::Plain));
     }
-    if let Some(inner) = line.strip_suffix(">>")
+    let mut rest = line;
+    let mut names = Vec::new();
+    while let Some(inner) = rest.strip_suffix(">>")
         && let Some(open) = inner.rfind("<<")
-        && let Some(text) = inner[..open].trim_end().strip_suffix(';')
     {
-        return Some((
-            text,
-            ActionEnd::Stereotype(inner[open + 2..].trim().to_owned()),
-        ));
+        names.push(inner[open + 2..].trim().to_owned());
+        rest = inner[..open].trim_end();
+    }
+    if !names.is_empty()
+        && let Some(text) = rest.strip_suffix(';')
+    {
+        names.reverse();
+        return Some((text, ActionEnd::Stereotypes(names)));
     }
     let mark = line.chars().next_back()?;
     let text = &line[..line.len() - mark.len_utf8()];

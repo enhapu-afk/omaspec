@@ -302,7 +302,7 @@ source as the language writes it, as one undo step, so every other tool draws it
 | State, class, component, use case, deployment, object | a state or an element | `state Busy #f7768e`, `class Order #ffcc00`, `[Billing] #ffcc00` |
 | Sequence | a participant | `participant Bob #f7768e` |
 | Sequence | the bar on a lifeline: the caret on its `activate` line or on a message's `++`, or the right mouse button on the bar | `activate Bob #f7768e`, `Alice -> Bob ++ #f7768e : hi` |
-| Activity | an action, a swimlane | `#f7768e:Bake;`, `\|#f7768e\|Kitchen\|` |
+| Activity | an action, a swimlane | `:Bake; <<#f7768e>>`, `\|#f7768e\|Kitchen\|` |
 | Mind map, WBS | a node | `**[#f7768e] Tests` |
 | Gantt | a task | `[Design] is colored in #f7768e` |
 | Timing | a robust or concise participant | `concise "Web" as W #f7768e` |

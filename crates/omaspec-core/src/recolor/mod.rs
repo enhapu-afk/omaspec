@@ -580,19 +580,36 @@ mod tests {
     }
 
     #[test]
-    fn an_action_and_a_swimlane_take_the_color_before_them() {
+    fn an_action_takes_the_color_after_it_a_swimlane_before() {
         let p = Language::PlantUml;
         let code = "@startuml\n|Kitchen|\nstart\n:Knead\nthe dough;\n|Oven|\n  :Bake;\n|Kitchen|\n:Serve;\nstop\n@enduml\n";
+        // After its `;`, on its last line, as PlantUML 1.2026 wants it.
         let colored = at_caret(&code.replace("the dough", "the ^dough"), p, Some("#f7768e"));
-        assert_eq!(colored, code.replace(":Knead", "#f7768e:Knead"));
+        assert_eq!(
+            colored,
+            code.replace("the dough;", "the dough; <<#f7768e>>")
+        );
         assert_eq!(
             at_caret(&colored.replace("Knead", "Kn^ead"), p, Some("#00ff00")),
-            code.replace(":Knead", "#00ff00:Knead")
+            code.replace("the dough;", "the dough; <<#00ff00>>")
         );
         assert_eq!(at_caret(&colored.replace("Knead", "Kn^ead"), p, None), code);
         assert_eq!(
             at_caret(&code.replace("Bake", "^Bake"), p, Some("#f7768e")),
-            code.replace("  :Bake;", "  #f7768e:Bake;")
+            code.replace("  :Bake;", "  :Bake; <<#f7768e>>")
+        );
+        // A color written before it, which PlantUML 1.2026 refuses, moves
+        // after it; a shape in brackets stays; an action that ends in an
+        // SDL mark keeps its color before it.
+        let old = code.replace(":Serve;", "#blue:Serve; <<input>> <<#red>>");
+        assert_eq!(
+            at_caret(&old.replace("Serve", "Se^rve"), p, Some("#f7768e")),
+            code.replace(":Serve;", ":Serve; <<input>> <<#f7768e>>")
+        );
+        let sdl = code.replace(":Serve;", ":Serve|");
+        assert_eq!(
+            at_caret(&sdl.replace("Serve", "Se^rve"), p, Some("#f7768e")),
+            code.replace(":Serve;", "#f7768e:Serve|")
         );
         // A lane takes it where it is named first.
         let lane = at_caret(&code.replace("|\n:Serve", "^|\n:Serve"), p, Some("#f7768e"));
@@ -616,7 +633,7 @@ mod tests {
         let code = "@startuml\nstart\n#blue:(B)\n:Next;\n(A)\nstop\n@enduml\n";
         assert_eq!(
             at_caret(&code.replace(":Next", ":Ne^xt"), p, Some("#f7768e")),
-            code.replace(":Next", "#f7768e:Next")
+            code.replace(":Next;", ":Next; <<#f7768e>>")
         );
         assert_eq!(
             at_caret(&code.replace("(A)", "(^A)"), p, Some("#f7768e")),
@@ -626,22 +643,28 @@ mod tests {
             at_caret(&code.replace("#blue:(B)", "#blue:(^B)"), p, None),
             code.replace("#blue:(B)", "(B)")
         );
-        // An action that reads only `(y)` would be a connector in a color.
-        for code in [
-            "@startuml\n:(y);\n@enduml\n",
-            "@startuml\n:(y)\nmore;\n@enduml\n",
-            "@startuml\n:(yz);\n@enduml\n",
-            "@startuml\n:(y_2)\nmore;\n@enduml\n",
+        // An action that reads only `(y)` takes its color after it too,
+        // where PlantUML reads it as an action's.
+        for (code, want) in [
+            (
+                "@startuml\n:(y);\n@enduml\n",
+                "@startuml\n:(y); <<#f7768e>>\n@enduml\n",
+            ),
+            (
+                "@startuml\n:(y)\nmore;\n@enduml\n",
+                "@startuml\n:(y)\nmore; <<#f7768e>>\n@enduml\n",
+            ),
         ] {
-            let (code, target) = aimed(&code.replacen("(y", "(^y", 1), p);
-            let err = edit(&code, p, &target.unwrap(), Some("#f7768e")).unwrap_err();
-            assert!(err.contains("connector"), "{err}");
+            assert_eq!(
+                at_caret(&code.replacen("(y", "(^y", 1), p, Some("#f7768e")),
+                want
+            );
         }
         // A line that reads `(A)` inside an action is the action's.
         let code = "@startuml\n:first line\n(A)\nlast;\n@enduml\n";
         assert_eq!(
             at_caret(&code.replace("(A)", "(^A)"), p, Some("#f7768e")),
-            code.replace(":first", "#f7768e:first")
+            code.replace("last;", "last; <<#f7768e>>")
         );
     }
 

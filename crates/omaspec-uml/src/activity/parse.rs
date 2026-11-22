@@ -704,16 +704,26 @@ impl Parser {
         let shape = match end {
             ActionEnd::Plain => ActionShape::Plain,
             ActionEnd::Mark(mark) => shape_of_mark(mark),
-            ActionEnd::Stereotype(name) if name.starts_with('#') => {
-                color = Some(name);
-                ActionShape::Plain
+            // A color in brackets, and a shape: `; <<input>> <<#pink>>`.
+            ActionEnd::Stereotypes(names) => {
+                let mut shape = None;
+                for name in names {
+                    if name.starts_with('#') {
+                        color = Some(name);
+                        continue;
+                    }
+                    if shape.is_some() {
+                        return Err(Declined::at(no, "an action takes one shape"));
+                    }
+                    shape = Some(shape_named(&name).ok_or_else(|| {
+                        Declined::at(
+                            no,
+                            format!("the action shape `<<{name}>>` is not supported yet"),
+                        )
+                    })?);
+                }
+                shape.unwrap_or(ActionShape::Plain)
             }
-            ActionEnd::Stereotype(name) => shape_named(&name).ok_or_else(|| {
-                Declined::at(
-                    no,
-                    format!("the action shape `<<{name}>>` is not supported yet"),
-                )
-            })?,
         };
         self.add(
             Node::Action {
@@ -1621,6 +1631,24 @@ mod tests {
         assert_eq!(text.value, "call(o)\non two lines");
         let err = declined("@startuml\n:tick; <<timeEvent>>\n@enduml");
         assert!(err.reason.contains("<<timeEvent>>"), "{}", err.reason);
+        // A shape and a color in brackets one after the other, either way
+        // round, as PlantUML 1.2026 reads them; two shapes decline.
+        for source in [
+            "@startuml\n:in; <<input>> <<#yellow>>\n@enduml",
+            "@startuml\n:in; <<#yellow>> <<input>>\n@enduml",
+        ] {
+            let d = diagram(source);
+            let Node::Action { shape, color, .. } = &d.flow.steps[0].node else {
+                panic!()
+            };
+            assert_eq!(
+                (*shape, color.as_deref()),
+                (Input, Some("#yellow")),
+                "{source}"
+            );
+        }
+        let err = declined("@startuml\n:in; <<input>> <<output>>\n@enduml");
+        assert!(err.reason.contains("one shape"), "{}", err.reason);
         // Creole and HTML at the end of a line do not end an action.
         let d = diagram(
             "@startuml\n:a //italics//\n<b>bold</b>\nicon <&star>\nsee [[link]]\n| a | b |\ndone;\n@enduml",
