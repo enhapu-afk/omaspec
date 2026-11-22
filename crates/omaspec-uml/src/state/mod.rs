@@ -329,6 +329,8 @@ pub struct Transition {
     /// How much wider than an arrow it is drawn, where marks say so: a
     /// trace river's way as wide as it was taken ([`Marks::river`]).
     pub weight: Option<f32>,
+    /// A note on it (`note on link`), drawn under its words.
+    pub note: Option<Text>,
 }
 
 /// Which way a transition's arrow points on the page, as PlantUML writes

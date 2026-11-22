@@ -911,6 +911,7 @@ fn place_notes(drafts: &mut [Draft], rects: &[Rect], edges: &[PlacedEdge]) -> Ve
                 nth,
                 text: std::mem::replace(&mut note.text, Block::empty()),
                 tether: None,
+                on: None,
                 line: note.line,
             });
             nudge(placed.last_mut().expect("just pushed"), side, edges);

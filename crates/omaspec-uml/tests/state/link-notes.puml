@@ -1,0 +1,20 @@
+@startuml
+' A note on a transition (`note on link`) stands under its words, in
+' the room the layout keeps for them: in a block or on its line, and on
+' a transition into a state's inside too.
+[*] --> Idle
+Idle --> Busy : start
+note on link
+  counts the jobs
+  as they come
+end note
+Busy --> Idle : done
+note on link : back to rest
+state Busy {
+  [*] --> Working
+  Working --> Checking
+  note on link : each one
+}
+Checking --> Idle : fail
+note on link : a crossing
+@enduml

@@ -296,6 +296,7 @@ impl Diagram {
             label_before: None,
             toward: None,
             weight: None,
+            note: None,
         };
         let home = &from[..from.len() - 1];
         if to.len() == from.len() && to.starts_with(home) {

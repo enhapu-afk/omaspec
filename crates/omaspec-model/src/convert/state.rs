@@ -183,6 +183,7 @@ impl ToMermaid {
             let to = self.end(&c.nodes[edge.to], edge.line)?;
             let label = self.label(edge.label.as_ref().map(|t| t.value.as_str()), edge.line)?;
             self.look(edge);
+            self.link_note(edge);
             self.out.push(format!("{pad}{from} --> {to}{label}"));
         }
         for crossing in &c.crossings {
@@ -202,6 +203,7 @@ impl ToMermaid {
                     "Mermaid cannot write a transition between [*] and a state in another container",
                 ));
             }
+            self.link_note(&crossing.arrow);
             let label = self.label(
                 crossing.arrow.label.as_ref().map(|t| t.value.as_str()),
                 line,
@@ -326,6 +328,16 @@ impl ToMermaid {
             self.out.push(format!("{pad}{id} : {text}"));
         }
         Ok(())
+    }
+
+    /// A note on a transition, which Mermaid has none of.
+    fn link_note(&mut self, arrow: &omaspec_uml::state::Transition) {
+        if let Some(note) = &arrow.note {
+            self.notice(
+                Some(note.line),
+                "Mermaid has no note on a transition; this one is left out",
+            );
+        }
     }
 
     /// A transition's end: `[*]` or the state's id.
@@ -716,7 +728,7 @@ mod tests {
     /// a note of its own are left out and told; a start with a name is
     /// refused, as Mermaid's has none.
     #[test]
-    fn hidden_arrows_and_free_notes_are_left_out_and_named_starts_refused() {
+    fn hidden_arrows_and_notes_mermaid_lacks_are_left_out_and_named_starts_refused() {
         let hidden = "@startuml\nstate Setup {\n  [*] --> Hardware\n  Hardware -[hidden]-> Software\n}\n[*] --> Setup\nSetup --> Running\nHardware -[hidden]-> Running\n@enduml\n";
         let out = both(hidden, Language::PlantUml, Language::Mermaid).unwrap();
         let told: Vec<Option<usize>> = out
@@ -726,6 +738,15 @@ mod tests {
             .map(|n| n.line)
             .collect();
         assert_eq!(told, [Some(3), Some(7)], "{out:?}");
+        let on_link = "@startuml\n[*] --> A\nA --> B : go\nnote on link : counts\n@enduml\n";
+        let out = both(on_link, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(!out.code.contains("counts"), "{}", out.code);
+        assert!(
+            out.notices
+                .iter()
+                .any(|n| n.line == Some(3) && n.message.contains("note on a transition")),
+            "{out:?}"
+        );
         let noted = "@startuml\n[*] --> A\nnote \"on its own\" as N1\n@enduml\n";
         let out = both(noted, Language::PlantUml, Language::Mermaid).unwrap();
         assert!(!out.code.contains("N1"), "{}", out.code);

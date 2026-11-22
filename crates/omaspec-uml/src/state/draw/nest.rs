@@ -3,7 +3,7 @@
 use super::super::{Container, Crossing, Dash, Direction, Kind, Split};
 use super::{
     Item, Placed, PlacedEdge, Scene, Skin, arrow_stroke, drawn_route, edge_label, flat,
-    layout_container,
+    layout_container, link_note,
 };
 use crate::Declined;
 use crate::color::Color;
@@ -177,12 +177,13 @@ pub(super) fn link_crossings(
     let mut found = Vec::new();
     gather(root, &mut Vec::new(), &mut found);
     // The transitions laid out with the containers around them are drawn
-    // already.
-    found.retain(|(path, slot, _)| {
-        scene
-            .scene_at(path)
-            .and_then(|scene| scene.edges.get(*slot))
-            .is_some_and(|edge| edge.points.len() < 2)
+    // already; a hidden one only ranked the boxes, and is not routed.
+    found.retain(|(path, slot, crossing)| {
+        crossing.arrow.dash != Dash::Hidden
+            && scene
+                .scene_at(path)
+                .and_then(|scene| scene.edges.get(*slot))
+                .is_some_and(|edge| edge.points.len() < 2)
     });
     if found.is_empty() {
         return Ok(());
@@ -211,9 +212,8 @@ pub(super) fn link_crossings(
             ));
         };
         let stroke = arrow_stroke(skin, &crossing.arrow)?;
-        if let Some(edge) = scene
-            .scene_at(path)
-            .and_then(|scene| scene.edges.get_mut(*slot))
+        if let Some(here) = scene.scene_at(path)
+            && let Some(edge) = here.edges.get_mut(*slot)
         {
             *edge = PlacedEdge {
                 points: linked.points,
@@ -221,6 +221,9 @@ pub(super) fn link_crossings(
                 label_at: linked.label_at,
                 look: stroke,
             };
+            if let Some(note) = link_note(&crossing.arrow, edge, *slot, skin, family)? {
+                here.notes.push(note);
+            }
         }
     }
     Ok(())

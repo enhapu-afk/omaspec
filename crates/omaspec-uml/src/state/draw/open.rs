@@ -2,10 +2,10 @@
 //! state with concurrent regions or with a direction of its own stays a
 //! box, laid out on its own.
 
-use super::super::{Container, Direction, Kind, Side};
+use super::super::{Container, Dash, Direction, Kind, Side, Transition};
 use super::{
     COMP_GAP, COMP_PAD, Measured, NOTE_GAP, Placed, Scene, Skin, arrow_stroke, edge_label,
-    fill_regions, graph_direction, measure_node, note_size, place_notes,
+    fill_regions, graph_direction, link_note, measure_node, note_size, place_notes,
 };
 use crate::Declined;
 use crate::graph::open::{self, Line, Nested, Room};
@@ -143,16 +143,18 @@ impl<'a> Nested for States<'a> {
     fn lines(&self, container: &'a Container) -> Vec<Line> {
         let against =
             |toward: Option<super::super::Toward>| toward.is_some_and(|toward| toward.laid().1);
+        // A hidden arrow ranks its states and is neither routed nor drawn.
+        let hidden = |arrow: &Transition| arrow.dash == Dash::Hidden;
         let edges = container.edges.iter().map(|edge| Line {
             from: vec![edge.from],
             to: vec![edge.to],
-            hidden: false,
+            hidden: hidden(edge),
             against: against(edge.toward),
         });
         let crossings = container.crossings.iter().map(|crossing| Line {
             from: crossing.from.clone(),
             to: crossing.to.clone(),
-            hidden: false,
+            hidden: hidden(&crossing.arrow),
             against: against(crossing.arrow.toward),
         });
         edges.chain(crossings).collect()
@@ -292,6 +294,21 @@ impl<'a> Nested for States<'a> {
     fn noted(&self, container: &'a Container, scene: &mut Scene) -> Result<(), Declined> {
         let rects: Vec<Rect> = scene.nodes.iter().map(|node| node.rect).collect();
         scene.notes = place_notes(container, &rects, &scene.edges, self.skin, self.family)?;
+        // A note on a transition, under its words. A transition between
+        // boxes laid out on their own is not routed yet: its note comes
+        // with its route ([`super::nest::link_crossings`]).
+        let arrows = container
+            .edges
+            .iter()
+            .chain(container.crossings.iter().map(|crossing| &crossing.arrow));
+        for (slot, (arrow, edge)) in arrows.zip(&scene.edges).enumerate() {
+            if edge.points.len() < 2 {
+                continue;
+            }
+            if let Some(note) = link_note(arrow, edge, slot, self.skin, self.family)? {
+                scene.notes.push(note);
+            }
+        }
         Ok(())
     }
 }

@@ -433,15 +433,63 @@ pub(super) fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color),
     Ok((fill, border, mark))
 }
 
-fn edge_label(edge: &Transition, skin: &Skin, family: Family) -> Result<Block, Declined> {
+/// A transition's words, and the room the layout keeps for them: a note
+/// on it (`note on link`) stands under them ([`link_note`]), so the room
+/// grows by the note.
+pub(super) fn edge_label(
+    edge: &Transition,
+    skin: &Skin,
+    family: Family,
+) -> Result<Block, Declined> {
     // PlantUML draws no words on a hidden arrow.
     if edge.dash == Dash::Hidden {
         return Ok(Block::empty());
     }
-    match &edge.label {
-        Some(text) => text.measure(skin.arrow_font, family),
-        None => Ok(Block::empty()),
+    let mut label = match &edge.label {
+        Some(text) => text.measure(skin.arrow_font, family)?,
+        None => Block::empty(),
+    };
+    if let Some(note) = &edge.note {
+        let (w, h) = note_size(&note.measure(skin.note.font, family)?);
+        let gap = if label.is_empty() { 0.0 } else { LINK_NOTE_GAP };
+        label.width = label.width.max(w);
+        label.height += gap + h;
     }
+    Ok(label)
+}
+
+/// Between a transition's words and the note on it.
+const LINK_NOTE_GAP: f32 = 4.0;
+
+/// The note on the transition `arrow`, placed as `edge`, the `slot`th line
+/// of its container: at the foot of the room kept for its words
+/// ([`edge_label`]), its own words tied to their line.
+pub(super) fn link_note(
+    arrow: &Transition,
+    edge: &PlacedEdge,
+    slot: usize,
+    skin: &Skin,
+    family: Family,
+) -> Result<Option<PlacedNote>, Declined> {
+    let Some(note) = &arrow.note else {
+        return Ok(None);
+    };
+    let text = note.measure_written(skin.note.font, family)?;
+    let (w, h) = note_size(&text);
+    let (x, y) = edge.label_at;
+    Ok(Some(PlacedNote {
+        x,
+        y: y + edge.label.height - h,
+        w,
+        h,
+        target: arrow.from,
+        side: Side::Right,
+        nth: 0,
+        text,
+        tether: None,
+        on: Some(slot),
+        line: note.line,
+    }))
 }
 
 pub(super) fn arrow_stroke(skin: &Skin, edge: &Transition) -> Result<Stroke, Declined> {
@@ -561,6 +609,7 @@ fn place_notes(
                 nth,
                 text: std::mem::replace(&mut note.text, Block::empty()),
                 tether: None,
+                on: None,
                 line: note.line,
             });
             let last = placed.len() - 1;
@@ -1401,6 +1450,42 @@ mod tests {
         assert!(
             said.iter().any(|t| t.value == "2 states · 1 transition"),
             "{said:?}"
+        );
+    }
+
+    /// A note on a transition stands under its words, in a part of its
+    /// own named after them, its words tied to their line; one on a
+    /// transition into a state's inside as well.
+    #[test]
+    fn a_note_on_link_stands_under_the_words_of_its_transition() {
+        let source = "@startuml\n[*] --> Idle\nIdle --> Busy : start\nnote on link : counts\nstate Busy {\n  [*] --> Working\n}\nWorking --> Idle : fail\nnote on link : a crossing\n' parts (Omaspec)\n@enduml\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        // Each in a part of its own, by its transition's words: the second
+        // line of the diagram, and its first crossing after its two edges.
+        let groups = crate::part_groups(&svg);
+        for (name, words) in [
+            ("note:words::1#on0", "counts"),
+            ("note:words::2#on0", "a crossing"),
+        ] {
+            let group: String = groups
+                .iter()
+                .filter(|(n, _)| n == name)
+                .map(|(_, group)| *group)
+                .collect();
+            assert!(
+                group.contains("<path") && group.contains(words),
+                "{name}: {svg}"
+            );
+        }
+        // Its words lead to its line, not to the transition's.
+        let tied = |line: usize| map.tied.iter().filter(|t| t.line == line).count();
+        assert!(tied(3) >= 1 && tied(8) >= 1, "{:?}", map.tied);
+        // Under its transition's words, inside the room kept for them.
+        let label = map.wires.iter().find(|w| w.line == Some(2)).unwrap().labels[0];
+        let note = map.tied.iter().find(|t| t.line == 3).unwrap().rect;
+        assert!(
+            note.y > label.y && note.y + note.h <= label.y + label.h + 0.5,
+            "{note:?} in {label:?}"
         );
     }
 

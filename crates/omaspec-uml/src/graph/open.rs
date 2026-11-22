@@ -77,6 +77,10 @@ pub struct Note {
     pub text: Block,
     /// A dashed line to its box, when it stands off it.
     pub tether: Option<(Point, Point)>,
+    /// The line it is on (`note on link`), by its index among the
+    /// container's lines; it is named after that line's words then, not
+    /// after `target`.
+    pub on: Option<usize>,
     /// The zero-based line of the source that writes it: its words are
     /// that line's ([`crate::svg::Canvas::tie`]).
     pub line: usize,
@@ -280,6 +284,9 @@ impl<N, E> Scene<N, E> {
         self.notes
             .iter()
             .map(|note| {
+                if let Some(slot) = note.on {
+                    return crate::svg::note_part(&crate::svg::words_part(path, slot), "on", 0);
+                }
                 let mut at = path.to_vec();
                 at.push(note.target);
                 let of = self

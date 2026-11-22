@@ -448,6 +448,7 @@ impl Parser {
                 label_before: None,
                 toward: raw.toward,
                 weight: None,
+                note: None,
             },
         ));
         Ok(())
@@ -468,6 +469,9 @@ impl Parser {
     fn note(&mut self, lines: &[Line], at: usize) -> Result<usize, Declined> {
         let no = lines[at].no;
         if let Some(next) = self.free_note(lines, at)? {
+            return Ok(next);
+        }
+        if let Some(next) = self.link_note(lines, at)? {
             return Ok(next);
         }
         let head = note_head(lines[at].text, no)?;
@@ -578,6 +582,79 @@ impl Parser {
         node.kind = Kind::Note;
         node.label = label;
         self.push(node);
+        Ok(Some(next))
+    }
+
+    /// A note on the transition written last: `note on link : words`, or
+    /// `note on link` and its words up to `end note`; `None` when the line
+    /// is another note.
+    fn link_note(&mut self, lines: &[Line], at: usize) -> Result<Option<usize>, Declined> {
+        let Line { no, text, .. } = lines[at];
+        let rest = keyword(text, "note").unwrap_or_default();
+        // `link`, or `link:` with its words right after it.
+        fn on_link(rest: &str) -> Option<&str> {
+            let rest = keyword(rest, "on")?;
+            keyword(rest, "link").or_else(|| {
+                let (word, after) = rest.split_at_checked(4)?;
+                (word.eq_ignore_ascii_case("link") && after.starts_with(':')).then_some(after)
+            })
+        }
+        let Some(after) = on_link(rest) else {
+            let mut words = rest.split_whitespace();
+            let side = words.next().unwrap_or_default();
+            if ["left", "right", "top", "bottom"].contains(&side.to_ascii_lowercase().as_str())
+                && keyword(rest, side).and_then(on_link).is_some()
+            {
+                return Err(Declined::at(
+                    no,
+                    format!("`note {side} on link` is not supported yet; `note on link` is"),
+                ));
+            }
+            return Ok(None);
+        };
+        let (note, next) = if let Some(words) = after.strip_prefix(':') {
+            let words = words.trim();
+            if words.is_empty() {
+                return Err(Declined::at(no, "a note needs text"));
+            }
+            let col = lines[at].at + crate::source::offset_in(text, words);
+            let note = Text {
+                value: words.to_owned(),
+                line: no,
+                col: Some(col),
+            };
+            (note, at + 1)
+        } else if after.trim().is_empty() {
+            let (body, next) = block(lines, at, "note", |line| squeezed_eq(line, "endnote"))?;
+            if body.trim().is_empty() {
+                return Err(Declined::at(no, "a note needs text"));
+            }
+            let line = lines.get(at + 1).map_or(no, |line| line.no);
+            let note = Text {
+                value: body,
+                line,
+                col: None,
+            };
+            (note, next)
+        } else {
+            return Err(Declined::at(
+                no,
+                format!("`note on link {}` is not supported yet", snippet(after)),
+            ));
+        };
+        let Some((_, _, arrow)) = self.arrows.last_mut() else {
+            return Err(Declined::at(
+                no,
+                "`note on link` needs a transition before it",
+            ));
+        };
+        if arrow.dash == Dash::Hidden {
+            return Err(Declined::at(no, "a hidden arrow takes no note"));
+        }
+        if arrow.note.is_some() {
+            return Err(Declined::at(no, "a transition takes one note"));
+        }
+        arrow.note = Some(note);
         Ok(Some(next))
     }
 
@@ -1963,6 +2040,54 @@ mod tests {
             ("state A\nnote \"a\" as A", "declared already"),
             ("note \"a\" as", "one name"),
             ("note \"\" as N1", "needs text"),
+        ] {
+            let err = declined(&format!("@startuml\n{source}\n@enduml\n"));
+            assert!(err.reason.contains(part), "{source}: {}", err.reason);
+        }
+    }
+
+    /// A note on the transition written last, in a block or on its line,
+    /// and what it declines.
+    #[test]
+    fn a_note_on_link_goes_with_the_transition_before_it() {
+        let d = diagram(
+            "@startuml\n[*] --> A\nA --> B : go\nnote on link\n  counts\nend note\nB --> A\nnote on link : back\nA --> C\nnote on link: on\n@enduml\n",
+        );
+        let notes: Vec<(&str, usize, Option<usize>)> = d
+            .root
+            .edges
+            .iter()
+            .map(|e| {
+                e.note
+                    .as_ref()
+                    .map_or(("", 0, None), |n| (n.value.as_str(), n.line, n.col))
+            })
+            .collect();
+        assert_eq!(
+            notes,
+            [
+                ("", 0, None),
+                ("counts", 4, None),
+                ("back", 7, Some(15)),
+                ("on", 9, Some(14))
+            ]
+        );
+        for (source, part) in [
+            ("note on link : n", "needs a transition before it"),
+            (
+                "A -[hidden]-> B\nnote on link : n",
+                "hidden arrow takes no note",
+            ),
+            ("A --> B\nnote on link : n\nnote on link : m", "one note"),
+            (
+                "A --> B\nnote left on link : n",
+                "`note left on link` is not supported yet",
+            ),
+            (
+                "A --> B\nnote on link #red : n",
+                "`note on link #red : n` is not supported yet",
+            ),
+            ("A --> B\nnote on link :", "needs text"),
         ] {
             let err = declined(&format!("@startuml\n{source}\n@enduml\n"));
             assert!(err.reason.contains(part), "{source}: {}", err.reason);

@@ -192,6 +192,19 @@ is open and the reasoning around it.
       left out and told. A line that treats it as a state (a transition,
       `state N1`, `N1 : words`, a note on it) declines and says so. The
       guide: 23 of 36.
+- [x] A note on a transition (2026-11-22): `note on link` with its words
+      up to `end note`, or `note on link : words`, on the transition
+      written last (`Transition::note`, so a fold and a crossing carry it).
+      It stands under the transition's words, in the room the layout keeps
+      for them, which grows by it (`edge_label`), so lines and other words
+      keep off it as they keep off the words; on a transition between
+      boxes laid out on their own once that is routed. Its part is named
+      after the transition's words (`note:words:…#on0`,
+      `graph::open::Note::on`), its words tied to their line. A side
+      (`note left on link`), a color, a hidden arrow or a second note
+      decline and say so; converted to Mermaid it is left out and told.
+      Hidden arrows now reach the layout as its hidden lines, which rank
+      the boxes and are not routed. The guide: 24 of 36.
 
 ## Phase 0: foundation and spikes
 
