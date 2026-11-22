@@ -57,10 +57,14 @@ impl Layout<'_> {
                 true => w / 2.0 + CLEAR,
                 false => w / 2.0 + 2.0 + label.width + 6.0,
             });
+        // The words on the arrow out of an empty `else` stand below its
+        // own, beside the line down.
+        let rest_words = self.arrow_label(rest.arrow_out.as_deref())?;
         let downs = incoming
             .iter()
             .skip(1)
             .chain([&out])
+            .chain(rest.empty.then_some(&rest_words))
             .filter(|words| !words.is_empty())
             .map(|words| 6.0 + words.width + BRANCH_MARGIN + left);
         let widest = tests.iter().map(|(w, _, _)| w / 2.0).fold(0.0, f32::max);
@@ -77,13 +81,19 @@ impl Layout<'_> {
         let mut words_right = x;
         let (mut y, mut above, mut foot) = (0.0, 0.0, 0.0);
         for (i, ((dw, dh, text), label)) in tests.into_iter().zip(labels).enumerate() {
+            let words = self.arrow_label(tiles[i].arrow_out.as_deref())?;
             if i > 0 {
-                // Down from the test before, below its branch.
+                // Down from the test before, below its branch; an empty
+                // branch's words above its line keep below that too.
                 let room = match incoming[i].is_empty() {
                     true => 0.0,
                     false => incoming[i].height + 4.0,
                 };
-                y = (foot + GAP + room).max(above + GAP);
+                let raised = match tiles[i].empty && !words.is_empty() {
+                    true => above + 4.0 + words.height + 1.0 - dh / 2.0,
+                    false => 0.0,
+                };
+                y = (foot + GAP + room).max(above + GAP).max(raised);
                 shapes.extend(self.beside(incoming[i].clone(), 0.0, foot + 2.0, lane));
                 edges.push(Edge::new(
                     vec![pt(0.0, foot, lane), pt(0.0, y, lane)],
@@ -107,7 +117,6 @@ impl Layout<'_> {
             }
             let corner = pt(dw / 2.0, cy, lane);
             let tile = &mut tiles[i];
-            let words = self.arrow_label(tile.arrow_out.as_deref())?;
             if tile.empty {
                 // Straight on to the rail, the words of its arrow above.
                 if !words.is_empty() {
@@ -157,7 +166,7 @@ impl Layout<'_> {
             false => out.height + 4.0,
         };
         shapes.extend(self.beside(out, 0.0, foot + 2.0, lane));
-        let words = self.arrow_label(rest.arrow_out.as_deref())?;
+        let words = rest_words;
         let gone = match words.is_empty() {
             true => 0.0,
             false => words.height + 4.0,
@@ -174,6 +183,9 @@ impl Layout<'_> {
             }
             match rest.exit {
                 Some(exit) => {
+                    if !words.is_empty() {
+                        words_right = words_right.max(exit.x + 6.0 + words.width);
+                    }
                     shapes.extend(self.beside(words, exit.x, exit.y + 2.0, lane));
                     (Some(vec![exit]), rest.bounds.3 + gone)
                 }
@@ -196,55 +208,78 @@ impl Layout<'_> {
             .chain(to_rail.iter().map(|(points, _)| points[points.len() - 1].y))
             .chain([foot, else_low])
             .fold(0.0, f32::max);
-        let exit = match (to_rail.is_empty(), else_end) {
-            (true, None) => None,
-            (true, Some(points)) => points.last().copied(),
-            (false, else_end) => {
-                let top = lowest + GAP / 2.0 + 2.0;
-                let cy = top + HALF;
-                shapes.push(Shape::Diamond {
-                    rect: (-HALF, top, 2.0 * HALF, 2.0 * HALF),
-                    text: Block::empty(),
-                    lane,
-                });
-                // Each way ends on the rail; the rail runs down from the
-                // highest into the diamond, a piece from each to the next,
-                // so a line is followed from its branch to the diamond.
-                // A hidden way joins nothing.
-                let mut joins = Vec::new();
-                for (mut points, i) in to_rail {
-                    let last = *points.last().expect("a line starts somewhere");
-                    points.push(pt(rail, last.y, lane));
-                    let arrow = tiles[i].arrow_out.as_deref();
-                    let stroke = self.stroke(arrow)?;
-                    if stroke.width > 0.0 {
-                        joins.push(last.y);
-                    }
-                    edges.push(Edge::new(points, false, stroke).by(arrow));
-                }
-                joins.sort_by(f32::total_cmp);
-                joins.dedup_by(|a, b| (*a - *b).abs() < 0.5);
-                for pair in joins.windows(2) {
-                    edges.push(Edge::new(
-                        vec![pt(rail, pair[0], lane), pt(rail, pair[1], lane)],
-                        false,
-                        plain,
-                    ));
-                }
-                if let Some(&last) = joins.last() {
-                    edges.push(Edge::new(
-                        vec![pt(rail, last, lane), pt(rail, cy, lane), pt(HALF, cy, lane)],
-                        true,
-                        plain,
-                    ));
-                }
-                if let Some(mut points) = else_end {
-                    points.push(pt(0.0, top, lane));
-                    let arrow = rest.arrow_out.as_deref();
-                    edges.push(Edge::new(points, true, self.stroke(arrow)?).by(arrow));
-                }
-                Some(pt(0.0, top + 2.0 * HALF, lane))
+        // Each way ends on the rail, a hidden one joining nothing; the rail
+        // runs down from the highest join into the diamond, a piece from
+        // each join to the next, so a line is followed from its branch to
+        // the diamond. The highest way, when plain, runs on down its first
+        // piece itself, its corner round.
+        let mut ways = Vec::new();
+        let mut joins = Vec::new();
+        for (mut points, i) in to_rail {
+            let last = *points.last().expect("a line starts somewhere");
+            points.push(pt(rail, last.y, lane));
+            let arrow = tiles[i].arrow_out.as_deref();
+            let stroke = self.stroke(arrow)?;
+            if stroke.width > 0.0 {
+                joins.push(last.y);
             }
+            ways.push((points, stroke, arrow, last.y));
+        }
+        joins.sort_by(f32::total_cmp);
+        joins.dedup_by(|a, b| (*a - *b).abs() < 0.5);
+        let exit = if joins.is_empty() && else_end.is_none() {
+            None
+        } else if joins.is_empty() {
+            else_end.as_ref().and_then(|points| points.last().copied())
+        } else {
+            let top = lowest + GAP / 2.0 + 2.0;
+            let cy = top + HALF;
+            shapes.push(Shape::Diamond {
+                rect: (-HALF, top, 2.0 * HALF, 2.0 * HALF),
+                text: Block::empty(),
+                lane,
+            });
+            let mut pieces: Vec<Vec<Pt>> = joins
+                .windows(2)
+                .map(|pair| vec![pt(rail, pair[0], lane), pt(rail, pair[1], lane)])
+                .collect();
+            let last = *joins.last().expect("joins are there");
+            let mut tail = Some(vec![
+                pt(rail, last, lane),
+                pt(rail, cy, lane),
+                pt(HALF, cy, lane),
+            ]);
+            // The first way that joins the rail is the highest.
+            let mut first = true;
+            for (mut points, stroke, arrow, y) in ways {
+                let joining = stroke.width > 0.0;
+                let runs_on = first && joining && stroke == plain && joins.first() == Some(&y);
+                first &= !joining;
+                if runs_on {
+                    if pieces.is_empty() {
+                        let tail = tail.take().expect("not taken yet");
+                        points.extend(&tail[1..]);
+                        edges.push(Edge::new(points, true, stroke).by(arrow));
+                    } else {
+                        points.push(pieces.remove(0)[1]);
+                        edges.push(Edge::new(points, false, stroke).by(arrow));
+                    }
+                    continue;
+                }
+                edges.push(Edge::new(points, false, stroke).by(arrow));
+            }
+            for piece in pieces {
+                edges.push(Edge::new(piece, false, plain));
+            }
+            if let Some(tail) = tail {
+                edges.push(Edge::new(tail, true, plain));
+            }
+            if let Some(mut points) = else_end {
+                points.push(pt(0.0, top, lane));
+                let arrow = rest.arrow_out.as_deref();
+                edges.push(Edge::new(points, true, self.stroke(arrow)?).by(arrow));
+            }
+            Some(pt(0.0, top + 2.0 * HALF, lane))
         };
         let mut tile = Tile::new(shapes, edges, pt(0.0, 0.0, lane), exit);
         for t in tiles {

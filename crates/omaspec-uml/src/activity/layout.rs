@@ -197,20 +197,27 @@ impl Layout<'_> {
                 } else {
                     (label.height + 4.0, (next.entry.y - next.bounds.1).max(0.0))
                 };
+                // Words stand below what the line leaves, a frame's bottom
+                // too when it leaves a group from inside.
+                let from = if label.is_empty() {
+                    out.y
+                } else {
+                    out.y.max(bottom)
+                };
                 let need = GAP + room + above + if turns { CLEAR } else { 0.0 };
-                let dy = (bottom + CLEAR - top).max(out.y + need - next.entry.y);
+                let dy = (bottom + CLEAR - top).max(from + need - next.entry.y);
                 next.translate(out.x - next.entry.x, dy);
                 let entry = pt(out.x, next.entry.y, next.entry.lane);
                 let mut points = vec![out];
-                let mut y = out.y + (entry.y - above - out.y - label.height) / 2.0;
+                let mut y = from + (entry.y - above - from - label.height) / 2.0;
                 if turns {
                     // A line to another swimlane turns across between the
                     // two tiles, below its label.
-                    let gap_top = bottom.max(out.y + room);
+                    let gap_top = bottom.max(from + room);
                     let turn = (gap_top + next.bounds.1.min(entry.y - GAP / 2.0)) / 2.0;
                     points.push(pt(out.x, turn, out.lane));
                     points.push(pt(out.x, turn, entry.lane));
-                    y = out.y + 2.0;
+                    y = from + 2.0;
                 }
                 points.push(entry);
                 prev.edges

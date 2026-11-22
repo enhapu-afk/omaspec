@@ -104,7 +104,15 @@ impl Found {
             Shape::End { .. } => ("end", String::new(), true),
             Shape::Bar { .. } => ("bar", String::new(), true),
             Shape::Note { text, .. } => ("note", words(text), false),
-            Shape::Frame { title, .. } => ("partition", words(title), false),
+            Shape::Frame { title, kind, .. } => {
+                let kind = match kind {
+                    super::FrameKind::Tab => "partition",
+                    super::FrameKind::Package => "package",
+                    super::FrameKind::Rectangle => "rectangle",
+                    super::FrameKind::Card => "card",
+                };
+                (kind, words(title), false)
+            }
             Shape::Label { text, .. } => ("label", words(text), false),
             Shape::Test { text, .. } => ("test", words(text), false),
         };

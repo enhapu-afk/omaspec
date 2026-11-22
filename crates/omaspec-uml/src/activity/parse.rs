@@ -1261,7 +1261,7 @@ impl Parser {
         if rest.contains("<<") {
             return Err(Declined::at(
                 no,
-                "a stereotype on a partition is not supported yet",
+                format!("a stereotype on a `{keyword}` is not supported yet"),
             ));
         }
         let mut color = None;

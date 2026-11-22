@@ -57,21 +57,20 @@ of element) and step 0 (a second `@startuml` line).
       PlantUML (`#A80036`), in the lifeline's color here; in the themes'
       colors it wants a color of their own.
 
-### Step 2: the state diagram (29 of 36)
+### Step 2: the state diagram (30 of 36)
 
-- [ ] The seven left wait on step 5: `skinparam state { StartColor,
+- [ ] The six left wait on step 5: `skinparam state { StartColor,
       EndColor, AttributeFont… }`, which PlantUML 1.2026.8 and the guide's
       own pictures ignore, and with them `FontName` (a font name per
-      element); a font name in `<style>`; gradients in a state's color
+      element); gradients in a state's color
       (`#red-green`); a style for a stereotype (`.foo { state { … } }`). A
       `json` element among the states waits on step 7.
 
-### Step 3: the activity diagram (58 of 62; the legacy syntax 0 of 13)
+### Step 3: the activity diagram (59 of 62; the legacy syntax 0 of 13)
 
 - [ ] `label` and `goto`.
 - [ ] The two examples with a floating note or a note before its action
-      wait on Creole rules in a note (step 5); one on a font name in the
-      `<style>` of `activityDiagram`.
+      wait on Creole rules in a note (step 5).
 - [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity
       tree where it fits it and laid out on the graph engine where it does
       not; two examples in other chapters use it too.

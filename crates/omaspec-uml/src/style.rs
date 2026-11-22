@@ -438,6 +438,10 @@ pub fn skinparams(
     elements: &[Element],
 ) -> Result<Vec<Skinparam>, Declined> {
     let mut out = Vec::new();
+    // The diagram's own element (`activityDiagram`), which reaches all of
+    // it as `root` does; and the font name given there or to `root`.
+    let diagram = elements.first().and_then(|e| e.names.get(1)).copied();
+    let mut family: Option<String> = None;
     for d in declarations {
         let reached: Vec<&Element> = DOCUMENT
             .iter()
@@ -474,6 +478,11 @@ pub fn skinparams(
         // `root` reaches everything; for these PlantUML's own skinparams
         // say the same.
         let root = d.names.iter().all(|n| n == "root") && !varied;
+        let whole = !varied
+            && !d.names.is_empty()
+            && d.names
+                .iter()
+                .all(|n| n == "root" || diagram.is_some_and(|own| n.eq_ignore_ascii_case(own)));
         match d.prop {
             Prop::Shadowing if no_shadow(value) => continue,
             Prop::Shadowing if root => {
@@ -486,8 +495,17 @@ pub fn skinparams(
                     d.written
                 )));
             }
-            Prop::FontName if root => {
+            Prop::FontName if whole => {
+                family = Some(value.trim_matches('"').to_owned());
                 out.push(param("defaultFontName", value));
+                continue;
+            }
+            // The same name again on a part of the diagram changes nothing.
+            Prop::FontName
+                if family
+                    .as_deref()
+                    .is_some_and(|f| f.eq_ignore_ascii_case(value.trim_matches('"'))) =>
+            {
                 continue;
             }
             Prop::FontName => {
@@ -1300,13 +1318,24 @@ mod tests {
                 ("LegendBackgroundColor", "#222"),
             ])
         );
+        // The diagram's own element reaches all of it as `root` does; the
+        // same name again below it changes nothing.
+        assert_eq!(
+            params("sequenceDiagram {\n  FontName Courier\n  participant { FontName courier }\n}")
+                .unwrap(),
+            own(&[("defaultFontName", "Courier")])
+        );
+        let err = params("sequenceDiagram { FontName Arial }\nparticipant { FontName Courier }")
+            .unwrap_err();
+        assert_eq!(err.line, Some(3));
+        assert!(err.reason.contains("for `root` only"), "{}", err.reason);
         for (sheet, part) in [
             (
                 "title { BackGroundColor yellow }",
                 "`title { BackGroundColor yellow }` is not supported",
             ),
             ("participant { Padding 4 }", "`participant { Padding 4 }`"),
-            ("sequenceDiagram { FontName Courier }", "for `root` only"),
+            ("participant { FontName Courier }", "for `root` only"),
             ("participant { Shadowing 3 }", "for `root` only"),
             ("participant { .x { FontColor red } }", "stereotypes"),
         ] {

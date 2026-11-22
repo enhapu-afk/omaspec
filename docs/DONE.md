@@ -469,6 +469,24 @@ is open and the reasoning around it.
       `ArrowHeadColor none` too. The preprocessor hands on only
       `useVerticalIf` on or off; without a value it is off, as in
       PlantUML.
+- [x] A font name for the whole diagram in `<style>`, and a style for
+      partitions (2026-11-22): `FontName` on the diagram's own element
+      (`activityDiagram`, `stateDiagram`, …) reaches all of it as on
+      `root`; the same name again on a part of it changes nothing, another
+      still declines. `partition { … }` reaches the frames of an activity
+      diagram, their `RoundCorner` too. The guide: activity 59 of 62, state
+      30 of 36.
+- [x] What the review of the frames and of the stacked `elseif`s found
+      (2026-11-22): the words on the arrow out of the `else` take room
+      beside the line down, or the rail keeps clear of them; words of
+      several lines on an empty branch's arrow keep below the branch
+      above; the rail's top corner is round again where the highest line
+      into it is plain; where every way is hidden and there is no `else`,
+      no diamond waits for lines. Words on the arrow out of a group stand
+      below its frame, not on its edge, in every activity diagram. The
+      outline knows `package`, `rectangle` and `card`; a stereotype on one
+      says which; the parts of a glide name frames by their kind. The
+      test of the stacked lines reads the map's lines, which it did not.
 
 ## Phase 0: foundation and spikes
 

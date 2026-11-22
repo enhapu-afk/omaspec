@@ -431,8 +431,10 @@ fn activity_line(b: &mut Builder, row: usize, l: &str) {
         if b.first(format!("lane:{}", c[1].trim().to_lowercase())) {
             b.add_at(row, "lane", label(&c[1]), 0);
         }
-    } else if let Some(c) = re!(r"(?i)^partition\s+(.+?)\s*\{?\s*$").captures(l) {
-        b.add(row, "partition", label(&c[1]));
+    } else if let Some(c) =
+        re!(r"(?i)^(partition|package|rectangle|card)\s+(.+?)\s*\{?\s*$").captures(l)
+    {
+        b.add(row, &c[1].to_lowercase(), label(&c[2]));
         b.open(row);
     } else if let Some(c) = re!(r"(?i)^group\s+(.+)$").captures(l) {
         b.add(row, "group", label(&c[1]));
@@ -828,6 +830,16 @@ mod tests {
                 e(1, 0, "lane", "Dev"),
                 e(3, 0, "if", "tests pass?"),
                 e(5, 0, "else", "no")
+            ]
+        );
+        // A package, a rectangle and a card are frames as a partition is.
+        let code = "@startuml\npartition Outer {\npackage P {\n:a;\n}\nif (x?) then\n:b;\nendif\n}\n@enduml";
+        assert_eq!(
+            tags(code, Language::PlantUml),
+            [
+                e(1, 0, "partition", "Outer"),
+                e(2, 1, "package", "P"),
+                e(5, 1, "if", "x?")
             ]
         );
         // The words of a switch and its cases run to the last bracket, as

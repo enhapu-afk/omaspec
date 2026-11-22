@@ -78,6 +78,8 @@ pub struct Skin {
     pub note: Look,
     /// The frame of a partition or a group.
     pub partition: Look,
+    /// How round the corners of that frame are, as `round` is an action's.
+    pub partition_round: f32,
     pub title_font: Font,
     pub header_font: Font,
     pub footer_font: Font,
@@ -134,6 +136,7 @@ impl Default for Skin {
                 thickness: 1.5,
                 font: Font::new(14.0, black),
             },
+            partition_round: 0.0,
             title_font: Font::new(14.0, black).bold(),
             header_font: Font::new(10.0, gray),
             footer_font: Font::new(10.0, gray),
@@ -301,6 +304,7 @@ impl Skin {
                 "partitionbackgroundcolor" => skin.partition.fill = p.paint()?,
                 "partitionbordercolor" => skin.partition.border = p.solid()?,
                 "partitionborderthickness" => skin.partition.thickness = p.number(0.0, 20.0)?,
+                "partitionroundcorner" => skin.partition_round = p.corner()?,
                 _ => {
                     let Some((element, property)) = split_font(&key) else {
                         return Err(p.unsupported());
@@ -423,11 +427,19 @@ pub const STYLE: &[Element] = &[
         ],
     ),
     Element::new(&["element", "activityDiagram", "note"], "Note", LOOK),
-    // Partitions and groups.
+    // Partitions and groups, which PlantUML's styles name `partition`.
     Element::new(
-        &["element", "activityDiagram", "composite"],
+        &["element", "activityDiagram", "composite", "partition"],
         "Partition",
-        LOOK,
+        &[
+            Prop::BackGroundColor,
+            Prop::LineColor,
+            Prop::LineThickness,
+            Prop::FontColor,
+            Prop::FontSize,
+            Prop::FontStyle,
+            Prop::RoundCorner,
+        ],
     ),
     Element::new(&["document", "activityDiagram", "legend"], "Legend", LEGEND),
 ];

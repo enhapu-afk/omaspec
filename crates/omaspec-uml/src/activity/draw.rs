@@ -534,7 +534,8 @@ impl Painter<'_> {
                         return;
                     }
                     FrameKind::Rectangle | FrameKind::Card => {
-                        canvas.rect(Layer::Background, (x, y, w, h), 0.0, *fill, Some(stroke));
+                        let round = skin.partition_round;
+                        canvas.rect(Layer::Background, (x, y, w, h), round, *fill, Some(stroke));
                         if *kind == FrameKind::Card {
                             let band = y + title.height + 6.0;
                             canvas.line(Layer::Background, (x, band), (x + w, band), stroke);
@@ -548,7 +549,8 @@ impl Painter<'_> {
                         return;
                     }
                 }
-                canvas.rect(Layer::Background, (x, y, w, h), 0.0, *fill, Some(stroke));
+                let round = skin.partition_round;
+                canvas.rect(Layer::Background, (x, y, w, h), round, *fill, Some(stroke));
                 let (tab_w, tab_h, corner) = if title.width == 0.0 {
                     (w / 3.0, 12.0, 7.0)
                 } else {
@@ -702,6 +704,22 @@ mod tests {
         assert_eq!((bars[0].0, bars[0].2), (bars[1].0, bars[1].2), "{svg}");
     }
 
+    /// A `<style>` reaches a partition by PlantUML's name for it, its
+    /// corners too; what the diagram's own element sets reaches it first.
+    #[test]
+    fn a_style_reaches_a_partition() {
+        let source = "@startuml\n<style>\nactivityDiagram {\n  BackgroundColor #33668E\n  FontName Arial\n  partition {\n    LineColor red\n    RoundCorner 10\n    BackgroundColor PeachPuff\n  }\n}\n</style>\nstart\npartition End {\n  :end;\n}\nstop\n@enduml\n";
+        let svg = crate::render(source).unwrap();
+        let frame = svg
+            .split("<rect")
+            .find(|r| r.contains("fill=\"#FFDAB9\""))
+            .unwrap_or_else(|| panic!("{svg}"));
+        assert!(
+            frame.contains("stroke=\"#FF0000\"") && frame.contains("rx=\"5\""),
+            "{frame}"
+        );
+    }
+
     /// The name of a `rectangle` or a `card` stands in the middle at the
     /// top, but gives way to the line into its flow.
     #[test]
@@ -775,15 +793,16 @@ mod tests {
         let apart = |a: &crate::graph::Rect, b: &crate::graph::Rect| {
             a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y
         };
-        let source = "@startuml\n!pragma useVerticalIf on\nstart\nif (a?) then (yes)\n  -> only words in a;\n(a very long incoming label here) elseif (b?) then (yes)\n  -> into B;\n  :B;\n  -> out of B;\nelseif (c?) then (yes)\n  while (more?)\n    :work;\n  endwhile\nelse\n  :C;\n  -> words after C;\nendif\nstop\n@enduml\n";
+        let source = "@startuml\n' parts (Omaspec)\n!pragma useVerticalIf on\nstart\nif (a?) then (yes)\n  -> only words in a;\n(a very long incoming label here) elseif (b?) then (yes)\n  -> into B;\n  :B;\n  -> out of B;\nelseif (c?) then (yes)\n  while (more?)\n    :work;\n  endwhile\nelse\n  :C;\n  -> words after C;\nendif\nstop\n@enduml\n";
         let (svg, map) = crate::render_mapped(source, None).unwrap();
         for words in ["only words in a", "into B", "out of B", "words after C"] {
             assert!(svg.contains(words), "{words}: {svg}");
         }
         let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
-        let (incoming, b) = (at(5), at(7));
+        let (incoming, b) = (at(6), at(8));
         assert!(apart(&incoming, &b), "{incoming:?} {b:?}");
-        let words: Vec<_> = [4, 6, 8, 15].map(at).into_iter().collect();
+        assert!(!map.wires.is_empty());
+        let words: Vec<_> = [5, 7, 9, 16].map(at).into_iter().collect();
         for wire in &map.wires {
             assert!(!wire.key.to.is_empty(), "{:?}", wire.key);
             for run in wire.path.windows(2) {
@@ -841,6 +860,69 @@ mod tests {
         .unwrap()
         .0;
         assert_eq!(red.matches("stroke=\"#FF0000\"").count(), 1, "{red}");
+    }
+
+    /// No words overlap other words or lines: those on the arrow out of an
+    /// empty or a full `else` when stacked, those of several lines above an
+    /// empty branch, those on the arrow out of a group below its frame.
+    #[test]
+    fn words_keep_clear_of_words_and_lines() {
+        let stacked = "@startuml\n' parts (Omaspec)\n!pragma useVerticalIf on\nstart\nif (a?) then (yes)\n  :A;\nelseif (b?) then (yes)\n  -> first line\\nsecond line\\nthird line\\nfourth line;\nelseif (c?) then (yes)\n  :B;\n  :B2;\n  :B3;\nelse\n  -> words on the way out of an empty else that are long;\nendif\nstop\n@enduml\n";
+        let full = stacked.replace(
+            "else\n  -> words on the way out",
+            "else\n  :C;\n  -> long words on the arrow out",
+        );
+        let group = "@startuml\n' parts (Omaspec)\nstart\npartition End {\n  :end;\n}\n-> this is the end;\nstop\n@enduml\n";
+        for source in [stacked, full.as_str(), group] {
+            let (_, map) = crate::render_mapped(source, None).unwrap();
+            let rects: Vec<_> = map.tied.iter().map(|t| t.rect).collect();
+            let inside = |a: &crate::graph::Rect, b: &crate::graph::Rect| {
+                a.x + 1.0 < b.x + b.w
+                    && b.x + 1.0 < a.x + a.w
+                    && a.y + 1.0 < b.y + b.h
+                    && b.y + 1.0 < a.y + a.h
+            };
+            for (i, a) in rects.iter().enumerate() {
+                for b in &rects[i + 1..] {
+                    assert!(!inside(a, b), "{source}: {a:?} {b:?}");
+                }
+            }
+            for wire in &map.wires {
+                for run in wire.path.windows(2) {
+                    let (p, q) = (run[0], run[1]);
+                    let r = crate::graph::Rect {
+                        x: p.0.min(q.0),
+                        y: p.1.min(q.1),
+                        w: (p.0 - q.0).abs().max(0.01),
+                        h: (p.1 - q.1).abs().max(0.01),
+                    };
+                    for words in &rects {
+                        assert!(!inside(&r, words), "{source}: {words:?} by {:?}", wire.path);
+                    }
+                }
+            }
+        }
+        // The words after a group stand below its frame.
+        let (svg, map) = crate::render_mapped(group, None).unwrap();
+        let words = map.tied.iter().find(|t| t.line == 6).unwrap().rect;
+        let frame = svg.split("<rect").nth(1).unwrap();
+        let num = |key: &str| -> f32 {
+            let at = frame.find(&format!(" {key}=\"")).unwrap() + key.len() + 3;
+            frame[at..].split('"').next().unwrap().parse().unwrap()
+        };
+        let dy: f32 = svg
+            .split("translate(")
+            .nth(1)
+            .unwrap()
+            .split(',')
+            .nth(1)
+            .unwrap()
+            .split(')')
+            .next()
+            .unwrap()
+            .parse()
+            .unwrap();
+        assert!(words.y >= num("y") + num("height") + dy, "{words:?} {svg}");
     }
 
     /// `ArrowHeadColor none` draws lines without heads, but on an arrow
