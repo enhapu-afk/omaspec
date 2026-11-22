@@ -699,6 +699,75 @@ mod tests {
             "{back:?} {body:?}"
         );
         assert!(out.x + out.w <= test.x, "{out:?} {test:?}");
+        // The action keeps clear of the words beside the line into the
+        // body: its `yes`, the words on its first arrow.
+        let apart = |a: &crate::graph::Rect, b: &crate::graph::Rect| {
+            a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y
+        };
+        for (source, words, back) in [
+            (
+                "@startuml\nstart\nwhile (x?)\n-> a very long arrow label words;\n:a;\nbackward :log;\nendwhile\n:after;\n@enduml\n",
+                3,
+                5,
+            ),
+            (
+                "@startuml\nstart\nwhile (x?) is (a fairly long yes label)\n:a;\nbackward :log;\nendwhile\n:after;\n@enduml\n",
+                2,
+                4,
+            ),
+        ] {
+            let (_, map) = crate::render_mapped(source, None).unwrap();
+            let rect = |line: usize| {
+                let found = map.tied.iter().filter(|t| t.line == line);
+                found.map(|t| t.rect).collect::<Vec<_>>()
+            };
+            let back = rect(back)[0];
+            for words in rect(words) {
+                assert!(apart(&words, &back), "{source}: {words:?} {back:?}");
+            }
+        }
+    }
+
+    /// Cases of a `switch` that run on into another swimlane keep clear of
+    /// one another there; words on an arrow in one lane do not widen the
+    /// next.
+    #[test]
+    fn branches_across_swimlanes_keep_clear() {
+        let source = "@startuml\n|A|\n|B|\nstart\nswitch (x?)\ncase (1)\n  |A|\n  :a1;\n  |B|\n  :a2 wide action here;\n  :a3 wider action here too;\ncase (2)\n  |B|\n  :a very very very wide left case action;\n  :second;\n  :third wide step of the left case;\ncase (3)\n  :c;\ncase (4)\n  :d;\nendswitch\nstop\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let boxes: Vec<_> = [7, 9, 10, 13, 14, 15, 17, 19]
+            .iter()
+            .map(|&line| map.tied.iter().find(|t| t.line == line).unwrap().rect)
+            .collect();
+        for (i, a) in boxes.iter().enumerate() {
+            for b in &boxes[i + 1..] {
+                let apart =
+                    a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y;
+                assert!(apart, "{a:?} {b:?}");
+            }
+        }
+        let lanes = "@startuml\n|A|\n|B|\n|A|\nstart\nif (x?) then (yes)\n-> some long words on the arrow;\n:a;\nelse (no)\n|B|\n:b;\nendif\nstop\n@enduml\n";
+        let after = |source: &str| {
+            let (svg, map) = crate::render_mapped(source, None).unwrap();
+            let width: f32 = svg
+                .split("width=\"")
+                .nth(1)
+                .unwrap()
+                .split('"')
+                .next()
+                .unwrap()
+                .parse()
+                .unwrap();
+            let b = map.tied.iter().find(|t| t.line == 10).unwrap().rect;
+            width - b.x
+        };
+        let plain = lanes.replace("-> some long words on the arrow;\n", "-> on;\n");
+        assert!(
+            (after(lanes) - after(&plain)).abs() < 0.5,
+            "{} {}",
+            after(lanes),
+            after(&plain)
+        );
     }
 
     /// Each case's words stand beside its line, tied to its line, in the

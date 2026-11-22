@@ -48,8 +48,8 @@
 <polygon points="74,660.3 78,670.3 82,660.3 78,664.3" fill="#181818" stroke="#181818" stroke-width="1"/>
 <path d="M10,704.27 L10,712.27 C10,721.11 17.16,728.27 26,728.27 L57,728.27" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="47,732.27 57,728.27 47,724.27 51,728.27" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M78,704.27 L78,728.27 L81,728.27" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="71,732.27 81,728.27 71,724.27 75,728.27" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M78,704.27 L78,705.77 C78,708.26 75.99,710.27 73.5,710.27 L69,710.27 L69,716.27" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="65,706.27 69,716.27 73,706.27 69,710.27" fill="#181818" stroke="#181818" stroke-width="1"/>
 <path d="M102,637.5 L112,637.5 C120.84,637.5 128,644.66 128,653.5 L128,712.27 C128,721.11 120.84,728.27 112,728.27 L81,728.27" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="91,724.27 81,728.27 91,732.27 87,728.27" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="69,740.27 69,760.27" fill="none" stroke="#181818" stroke-width="1"/>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="281" height="233" viewBox="0 0 281 233">
+<g transform="translate(26.11,10)">
+<g id="lines">
+<polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="6,30 10,40 14,30 10,34" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="36.11,52 56.11,52" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="46.11,56 56.11,52 46.11,48 50.11,52" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="10,64 10,100.8" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="6,90.8 10,100.8 14,90.8 10,94.8" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M134.75,52 L171.18,52 C180.01,52 187.18,59.16 187.18,68 L187.18,100.8" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="183.18,90.8 187.18,100.8 191.18,90.8 187.18,94.8" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M10,134.77 L10,142.77 C10,151.61 17.16,158.77 26,158.77 L86.59,158.77" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="76.59,162.77 86.59,158.77 76.59,154.77 80.59,158.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M95.43,64 L95.43,139.19 C95.43,140.07 96.14,140.77 97.01,140.77 L98.59,140.77 L98.59,146.77" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="94.59,136.77 98.59,146.77 102.59,136.77 98.59,140.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M187.18,134.77 L187.18,142.77 C187.18,151.61 180.01,158.77 171.18,158.77 L110.59,158.77" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="120.59,154.77 110.59,158.77 120.59,162.77 116.59,158.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="98.59,170.77 98.59,190.77" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="94.59,180.77 98.59,190.77 102.59,180.77 98.59,184.77" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
+<polygon points="-16.11,52 -4.11,40 24.11,40 36.11,52 24.11,64 -4.11,64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="-4.11" y="55.81" font-size="11" fill="#000000" textLength="28.23" lengthAdjust="spacing">Paid?</tspan>
+</text>
+<polygon points="56.11,52 68.11,40 122.75,40 134.75,52 122.75,64 68.11,64" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="68.11" y="55.81" font-size="11" fill="#000000" textLength="54.64" lengthAdjust="spacing">Promised?</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="193.18" y="96.21" font-size="11" fill="#000000" textLength="36.08" lengthAdjust="spacing">remind</tspan>
+</text>
+<polygon points="86.59,158.77 98.59,146.77 110.59,158.77 98.59,170.77" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="-12.52" y="100.8" width="45.04" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="-2.52" y="121.94" font-size="12" fill="#000000" textLength="25.04" lengthAdjust="spacing">Ship</tspan>
+</text>
+<rect x="130.43" y="100.8" width="113.49" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="140.43" y="121.94" font-size="12" fill="#000000" textLength="93.49" lengthAdjust="spacing">Send a reminder</tspan>
+</text>
+<ellipse cx="98.59" cy="201.77" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="98.59" cy="201.77" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+</g>
+</svg>

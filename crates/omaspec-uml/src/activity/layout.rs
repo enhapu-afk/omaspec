@@ -483,6 +483,14 @@ impl Layout<'_> {
         // `conditionStyle diamond`: the test above, right of the line in.
         let lift = beside.height + 2.0;
         shapes.extend(self.beside(beside, 0.0, -lift, lane));
+        // How far right the words beside the line into the body reach: its
+        // `yes`, the words on its first arrow.
+        let words = self.arrow_label(body.arrow_in.as_deref())?;
+        let reach = [(&yes, 4.0), (&words, 6.0)]
+            .into_iter()
+            .filter(|(block, _)| !block.is_empty())
+            .map(|(block, x)| x + block.width)
+            .fold(0.0, f32::max);
         shapes.extend(self.beside(yes, -2.0, dh + 1.0, lane));
         let mut edges = Vec::new();
         let empty = body.empty;
@@ -531,15 +539,11 @@ impl Layout<'_> {
                 let (w, h) = (text.width + 2.0 * pad, text.height + 2.0 * pad);
                 // Room on the right for the action and the lines to it.
                 back_y = back_y.max(cy + h + 2.0 * GAP + incoming.height + outgoing.height);
+                // A note after it is the body's last action's, so it has
+                // none of its own.
                 let right = if empty { 0.0 } else { body.bounds.2 };
-                let right = right.max(dw / 2.0);
-                let left_note = match back.note.as_ref().filter(|note| !note.right) {
-                    Some(note) => {
-                        self.measure(&note.text, self.skin.note.font)?.width + 22.0 + NOTE_GAP
-                    }
-                    None => 0.0,
-                };
-                let x = right + RAIL + left_note + w / 2.0;
+                let right = right.max(dw / 2.0).max(reach + 4.0);
+                let x = right + RAIL + w / 2.0;
                 let y = (cy + back_y) / 2.0 - h / 2.0;
                 shapes.push(Shape::Box {
                     rect: (x - w / 2.0, y, w, h),
@@ -548,9 +552,6 @@ impl Layout<'_> {
                     shape: ActionShape::Plain,
                     lane,
                 });
-                if let Some(note) = &back.note {
-                    shapes.push(self.note_beside(note, (x - w / 2.0, y, w, h), lane)?);
-                }
                 shapes.extend(self.beside(incoming, x, y + h + 2.0, lane));
                 shapes.extend(self.beside(outgoing, x, cy + 2.0, lane));
                 if let Some(exit) = goes_back {

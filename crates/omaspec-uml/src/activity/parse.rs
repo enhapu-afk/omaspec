@@ -413,7 +413,7 @@ impl Parser {
         }
         if let Some(rest) = word(text, "switch") {
             let test = parenthesized(rest)
-                .ok_or_else(|| Declined::at(no, "a `switch` is written `switch (test)`"))?;
+                .ok_or_else(|| Declined::refused(no, "a `switch` is written `switch (test)`"))?;
             let current = Branch::default();
             let what = Opened::Switch {
                 test: text_at(test, no),
@@ -425,7 +425,7 @@ impl Parser {
         }
         if let Some(rest) = word(text, "case") {
             let words = parenthesized(rest)
-                .ok_or_else(|| Declined::at(no, "a `case` is written `case (words)`"))?;
+                .ok_or_else(|| Declined::refused(no, "a `case` is written `case (words)`"))?;
             return self.case(words, no).map(|()| at + 1);
         }
         for (keyword, partition) in [("partition", true), ("group", false)] {
@@ -1752,23 +1752,20 @@ mod tests {
                 "switch (x)\ncase (y)\nendswitch (done)",
                 "nothing goes after",
             ),
+            ("switch x\ncase (y)\nendswitch", "switch (test)"),
+            ("switch (x);\ncase (y)\nendswitch", "switch (test)"),
+            ("switch (x)\ncase (y);\nendswitch", "case (words)"),
         ] {
             let err = declined(source);
             assert!(err.reason.contains(part), "{source}: {}", err.reason);
             assert!(err.refused, "{source}");
         }
-        for (source, part) in [
-            ("switch x\ncase (y)\nendswitch", "switch (test)"),
-            ("switch (x);\ncase (y)\nendswitch", "switch (test)"),
-            ("switch (x)\ncase (y);\nendswitch", "case (words)"),
-            (
-                "switch (x)\n-> on;\ncase (y)\nendswitch",
-                "arrow before the first",
-            ),
-        ] {
-            let err = declined(source);
-            assert!(err.reason.contains(part), "{source}: {}", err.reason);
-        }
+        let err = declined("switch (x)\n-> on;\ncase (y)\nendswitch");
+        assert!(
+            err.reason.contains("arrow before the first"),
+            "{}",
+            err.reason
+        );
     }
 
     /// A floating note is a note; one before the first action of its flow

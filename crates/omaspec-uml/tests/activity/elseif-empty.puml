@@ -1,0 +1,14 @@
+@startuml
+' A branch of an `elseif` row that is empty goes down to the diamond where
+' the branches meet and into its top, turning to its middle just above it
+' rather than running through it.
+start
+if (Paid?) then
+  :Ship;
+elseif (Promised?) then
+else
+  -> remind;
+  :Send a reminder;
+endif
+stop
+@enduml

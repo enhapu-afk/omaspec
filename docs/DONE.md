@@ -414,6 +414,17 @@ is open and the reasoning around it.
       on the arrow into such a test stand above it. `ArrowHeadColor none`
       draws the lines without heads, a color colors the heads alone. The
       guide: 56 of 62.
+- [x] What the review of `backward` in a `while` and of the `switch`
+      fixes found (2026-11-22): the action on a `while`'s way back keeps
+      clear of the `yes` and of the words on the arrow into the body. The
+      sides of a `switch` move as a whole, so a case that runs on into
+      another swimlane keeps clear of its neighbours there; words on the
+      arrow into a branch keep the next column off only where it starts
+      in the same lane. A branch that comes down within the width of the
+      diamond where branches meet turns to its top just above it, not
+      through it. `switch x`, `switch (x);` and `case (y);` are refused,
+      as PlantUML refuses them; the outline closes a switch at
+      `endswitch` only.
 
 ## Phase 0: foundation and spikes
 

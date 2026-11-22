@@ -481,7 +481,7 @@ fn activity_line(b: &mut Builder, row: usize, l: &str) {
         b.open(row);
     } else if let Some(c) = re!(r"(?i)^case\s*\((.*)\)").captures(l) {
         b.branch(row, "case", label(&c[1]));
-    } else if re!(r"(?i)^end\s*switch\b").is_match(l) {
+    } else if re!(r"(?i)^endswitch\b").is_match(l) {
         b.close(row);
     }
 }
