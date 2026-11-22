@@ -702,9 +702,16 @@ fn from_sequence(d: &sequence::Diagram) -> Reading {
     // PlantUML's XMI names a lifeline with its spot's letter and its
     // stereotype in front, or after it where the stereotype stands under
     // the name (`skinparam stereotypePosition bottom`).
+    // The key as PlantUML and the engine read it (`common::normalize_key`):
+    // `_`, `.` and spaces do not count, so `stere...otypePosition` is it.
+    let key = |key: &str| -> String {
+        key.chars()
+            .filter(|c| !matches!(c, '_' | '.') && !c.is_whitespace())
+            .collect::<String>()
+            .to_ascii_lowercase()
+    };
     let below = d.frame.skinparams.iter().any(|p| {
-        p.key.eq_ignore_ascii_case("stereotypePosition")
-            && p.value.trim().eq_ignore_ascii_case("bottom")
+        key(&p.key) == "stereotypeposition" && p.value.trim().eq_ignore_ascii_case("bottom")
     });
     let things: Vec<String> = d
         .participants

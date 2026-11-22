@@ -78,6 +78,64 @@ impl fmt::Display for Color {
 /// A fill or stroke: a color or nothing.
 pub type Paint = Option<Color>;
 
+/// An element's style as PlantUML writes it in one word after `#`:
+/// `#pink;line:red;line.dashed;text:red`, the fill first or none, or
+/// `back:` anywhere; `line.dotted` and `line.bold` as well. Each color as
+/// written, read once to know it is one.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Inline {
+    pub fill: Option<String>,
+    pub line: Option<String>,
+    pub text: Option<String>,
+    pub dash: Option<InlineDash>,
+    pub bold: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InlineDash {
+    Dashed,
+    Dotted,
+}
+
+impl Inline {
+    /// Whether `word`, with its `#`, is written in this style rather than
+    /// as one color (`#pink`) or a border (`##red`).
+    pub fn written(word: &str) -> bool {
+        !word.starts_with("##")
+            && (word.contains(';')
+                || ["#line.", "#line:", "#text:", "#back:"]
+                    .iter()
+                    .any(|start| word.starts_with(start)))
+    }
+
+    /// `word`, with its `#`. An error names the part not understood.
+    pub fn read(word: &str) -> Result<Inline, String> {
+        let mut style = Inline::default();
+        let color = |value: &str| parse(value).map(|_| value.to_owned());
+        for (index, part) in word
+            .strip_prefix('#')
+            .unwrap_or(word)
+            .split(';')
+            .enumerate()
+        {
+            let part = part.trim();
+            match part.split_once(':') {
+                _ if part.is_empty() => {}
+                Some(("line", value)) => style.line = Some(color(value)?),
+                Some(("text", value)) => style.text = Some(color(value)?),
+                Some(("back", value)) => style.fill = Some(color(value)?),
+                None if part == "line.dashed" => style.dash = Some(InlineDash::Dashed),
+                None if part == "line.dotted" => style.dash = Some(InlineDash::Dotted),
+                None if part == "line.bold" => style.bold = true,
+                // A gradient says so as a color does.
+                None if index == 0 && !part.contains('.') => style.fill = Some(color(part)?),
+                _ => return Err(format!("`{part}` in a style is not supported yet")),
+            }
+        }
+        Ok(style)
+    }
+}
+
 /// `value` as a paint (`transparent` is none). An error names what is not
 /// understood; gradients (`#red/blue`) are not supported yet.
 ///
@@ -439,6 +497,41 @@ const NAMES: &[(&str, u32)] = &[
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_inline_style_names_fill_line_and_text() {
+        let style = Inline::read("#pink;line:red;line.bold;text:red").unwrap();
+        assert_eq!(
+            style,
+            Inline {
+                fill: Some("pink".into()),
+                line: Some("red".into()),
+                text: Some("red".into()),
+                dash: None,
+                bold: true,
+            }
+        );
+        let style = Inline::read("#line.dotted;line:00FFFF;back:aliceblue").unwrap();
+        assert_eq!(style.dash, Some(InlineDash::Dotted));
+        assert_eq!(style.fill.as_deref(), Some("aliceblue"));
+        assert!(Inline::written("#line.bold") && Inline::written("#pink;text:red"));
+        assert!(!Inline::written("#pink") && !Inline::written("##[dashed]blue"));
+        assert!(
+            Inline::read("#red|green;line:blue")
+                .unwrap_err()
+                .contains("gradients")
+        );
+        assert!(
+            Inline::read("#line.wavy")
+                .unwrap_err()
+                .contains("`line.wavy`")
+        );
+        assert!(
+            Inline::read("#pink;line:nocolor")
+                .unwrap_err()
+                .contains("nocolor")
+        );
+    }
 
     #[test]
     fn hex_names_and_transparent() {

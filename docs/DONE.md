@@ -175,6 +175,14 @@ is open and the reasoning around it.
       the orbit's mark, as `[*]` has, so a play finds it; declared again as
       what it is, it stays that; converted to Mermaid, which has only
       `[*]`, it refuses and says why.
+- [x] A state's style in one word (2026-11-22):
+      `#pink;line:red;line.bold;text:red`, the fill first or none, `back:`,
+      `line:`, `line.dashed`, `line.dotted`, `line.bold` and `text:`, which
+      colors the state's name and not its description, as PlantUML does;
+      `##[bold]` without a color is a bold border in the border's own. The
+      colon of the description is no longer one of the style's words. The
+      class diagrams read the same words from the same place now
+      (`color::Inline`). The guide: 22 of 36.
 
 ## Phase 0: foundation and spikes
 

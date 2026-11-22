@@ -1,0 +1,16 @@
+@startuml
+' A state's style in one word: its fill first, then its border's color
+' (`line:`), dash or weight (`line.dashed`, `line.dotted`, `line.bold`)
+' and the color of its name (`text:`); `##[bold]` is a bold border in
+' the border's own color.
+state Idle : waits
+state Failed #pink;line:red;line.bold;text:red : gave up
+state Retrying #palegreen;line:green;line.dashed;text:green : tries again
+state Paused #line.dotted;line:blue;text:blue : held
+state Done ##[bold]
+[*] --> Idle
+Idle --> Retrying : error
+Retrying --> Failed : again
+Retrying --> Paused : pause
+Paused --> Done
+@enduml

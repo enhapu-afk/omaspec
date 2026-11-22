@@ -286,7 +286,7 @@ fn measure_node(
         } else {
             layout_container(&node.children, every, family)?
         };
-        let title = node.label.measure(name_font(skin), family)?;
+        let title = node.label.measure(title_font(skin, node)?, family)?;
         let description = text_blocks(&node.description, desc_font(skin), family)?;
         let header_h = stack_height(&title, &description);
         let header_w = stack_width(&title, &description);
@@ -318,7 +318,7 @@ fn measure_node(
 
     let (width, height, title, description) = match node.kind {
         Kind::State => {
-            let title = node.label.measure(name_font(skin), family)?;
+            let title = node.label.measure(title_font(skin, node)?, family)?;
             let description = text_blocks(&node.description, desc_font(skin), family)?;
             let width = (stack_width(&title, &description) + PAD_X * 2.0).max(MIN_W);
             let height = (stack_height(&title, &description) + PAD_Y * 2.0).max(MIN_H);
@@ -837,6 +837,18 @@ fn graph_direction(direction: Direction) -> graph::Direction {
 
 fn name_font(skin: &Skin) -> Font {
     skin.state.font.bold()
+}
+
+/// The font of a state's name, in the color of its own text
+/// (`#…;text:red`) where it has one; its description keeps the skin's.
+fn title_font(skin: &Skin, node: &Node) -> Result<Font, Declined> {
+    let mut font = name_font(skin);
+    if let Some(value) = &node.text_color
+        && let Some(color) = color::parse(value).map_err(|err| Declined::at(node.line, err))?
+    {
+        font.color = color;
+    }
+    Ok(font)
 }
 
 fn desc_font(skin: &Skin) -> Font {

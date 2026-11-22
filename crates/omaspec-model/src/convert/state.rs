@@ -252,6 +252,7 @@ impl ToMermaid {
             || node.line_color.is_some()
             || node.border_dash != Dash::Solid
             || node.border_bold
+            || node.text_color.is_some()
         {
             self.notice(
                 Some(node.line),

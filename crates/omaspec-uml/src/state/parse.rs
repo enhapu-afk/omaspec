@@ -18,6 +18,7 @@ use super::{
     Transition,
 };
 use crate::Declined;
+use crate::color::{Inline, InlineDash};
 use crate::common::{Frame, block, keyword, snippet, squeezed_eq, take_link, text_at};
 use crate::graph::across::holding;
 use crate::source::Line;
@@ -107,8 +108,10 @@ struct Decl {
     stereotype: Option<String>,
     fill: Option<String>,
     line_color: Option<String>,
-    border_dash: Dash,
-    border_bold: bool,
+    /// The border's dash and weight, where the declaration says them.
+    border_dash: Option<Dash>,
+    border_bold: Option<bool>,
+    text_color: Option<String>,
     description: Option<String>,
     open: bool,
     link: Option<crate::text::Link>,
@@ -764,6 +767,7 @@ fn plain_node(key: &str, label: &str, line: usize) -> Node {
         line_color: None,
         border_dash: Dash::Solid,
         border_bold: false,
+        text_color: None,
         stereotype: None,
         composite: false,
         children: Container::default(),
@@ -782,6 +786,7 @@ fn marker_node(kind: Kind, line: usize) -> Node {
         line_color: None,
         border_dash: Dash::Solid,
         border_bold: false,
+        text_color: None,
         stereotype: None,
         composite: false,
         children: Container::default(),
@@ -819,8 +824,15 @@ fn apply(node: &mut Node, decl: &Decl) -> Result<(), Declined> {
     }
     if let Some(color) = &decl.line_color {
         node.line_color = Some(color.clone());
-        node.border_dash = decl.border_dash;
-        node.border_bold = decl.border_bold;
+    }
+    if let Some(dash) = decl.border_dash {
+        node.border_dash = dash;
+    }
+    if let Some(bold) = decl.border_bold {
+        node.border_bold = bold;
+    }
+    if let Some(color) = &decl.text_color {
+        node.text_color = Some(color.clone());
     }
     if let Some(text) = &decl.description {
         node.description.push(text_at(text, decl.line));
@@ -850,7 +862,7 @@ fn declaration(text: &str, line: usize) -> Result<Decl, Declined> {
         }
         None => (rest, false),
     };
-    let (spec, description) = match unquoted_colon(rest) {
+    let (spec, description) = match description_colon(rest) {
         Some(at) => {
             let body = rest[at + 1..].trim();
             if body.is_empty() {
@@ -868,8 +880,9 @@ fn declaration(text: &str, line: usize) -> Result<Decl, Declined> {
         stereotype: None,
         fill: None,
         line_color: None,
-        border_dash: Dash::Solid,
-        border_bold: false,
+        border_dash: None,
+        border_bold: None,
+        text_color: None,
         description,
         open,
         link,
@@ -1043,9 +1056,33 @@ fn kind_of(stereo: &str, line: usize) -> Result<Option<Kind>, Declined> {
 }
 
 fn take_color(raw: &str, line: usize, decl: &mut Decl) -> Result<(), Declined> {
+    // `#pink;line:red;line.bold;text:red`: what it says, it sets.
+    if Inline::written(raw) {
+        let style = Inline::read(raw).map_err(|err| Declined::at(line, err))?;
+        if style.fill.is_some() {
+            decl.fill = style.fill;
+        }
+        if style.line.is_some() {
+            decl.line_color = style.line;
+        }
+        if style.text.is_some() {
+            decl.text_color = style.text;
+        }
+        match style.dash {
+            Some(InlineDash::Dashed) => decl.border_dash = Some(Dash::Dashed),
+            Some(InlineDash::Dotted) => decl.border_dash = Some(Dash::Dotted),
+            None => {}
+        }
+        if style.bold {
+            decl.border_bold = Some(true);
+        }
+        return Ok(());
+    }
     if raw.contains(';') {
         return Err(Declined::at(line, "this state color is not supported yet"));
     }
+    // `##[dashed]blue` says the whole border: `##red` is a solid one, and
+    // `##[bold]` a bold one in the border's color.
     if let Some(rest) = raw.strip_prefix("##") {
         let (style, color) = if let Some(rest) = rest.strip_prefix('[') {
             let Some((style, color)) = rest.split_once(']') else {
@@ -1055,14 +1092,16 @@ fn take_color(raw: &str, line: usize, decl: &mut Decl) -> Result<(), Declined> {
         } else {
             ("", rest)
         };
-        if color.is_empty() {
+        if color.is_empty() && style.is_empty() {
             return Err(Declined::at(line, "a border color is missing"));
         }
+        decl.border_dash = Some(Dash::Solid);
+        decl.border_bold = Some(false);
         match style.to_ascii_lowercase().as_str() {
             "" | "solid" => {}
-            "dashed" => decl.border_dash = Dash::Dashed,
-            "dotted" => decl.border_dash = Dash::Dotted,
-            "bold" => decl.border_bold = true,
+            "dashed" => decl.border_dash = Some(Dash::Dashed),
+            "dotted" => decl.border_dash = Some(Dash::Dotted),
+            "bold" => decl.border_bold = Some(true),
             _ => {
                 return Err(Declined::at(
                     line,
@@ -1070,7 +1109,9 @@ fn take_color(raw: &str, line: usize, decl: &mut Decl) -> Result<(), Declined> {
                 ));
             }
         }
-        decl.line_color = Some(color.to_owned());
+        if !color.is_empty() {
+            decl.line_color = Some(color.to_owned());
+        }
     } else {
         let color = raw.strip_prefix('#').unwrap_or(raw);
         if color.is_empty() {
@@ -1599,6 +1640,35 @@ fn label_colon(text: &str) -> Option<usize> {
     None
 }
 
+/// The colon that starts a declaration's description: none in quotes,
+/// nor one of a style's words (`#pink;line:red;text:red`).
+fn description_colon(text: &str) -> Option<usize> {
+    let mut quote = false;
+    // Where the word that starts with `#` starts, inside one.
+    let mut color: Option<usize> = None;
+    let mut before = ' ';
+    for (index, ch) in text.char_indices() {
+        match ch {
+            '"' => quote = !quote,
+            _ if quote => {}
+            _ if ch.is_whitespace() => color = None,
+            '#' if before.is_whitespace() => color = Some(index),
+            ':' => {
+                let key = color.map_or("", |start| {
+                    let word = &text[start..index];
+                    word.rsplit([';', '#']).next().unwrap_or("")
+                });
+                if !["line", "text", "back"].contains(&key) {
+                    return Some(index);
+                }
+            }
+            _ => {}
+        }
+        before = ch;
+    }
+    None
+}
+
 fn unquoted_colon(text: &str) -> Option<usize> {
     let bytes = text.as_bytes();
     let mut quote = false;
@@ -1753,6 +1823,30 @@ mod tests {
             dashes,
             [Dash::Hidden, Dash::Dashed, Dash::Hidden, Dash::Hidden]
         );
+    }
+
+    /// A state's style in one word (`#pink;line:red;line.bold;text:red`),
+    /// before its description, whose colon is not one of the style's.
+    #[test]
+    fn a_state_takes_its_style_in_one_word() {
+        let d = diagram(
+            "@startuml\nstate s2 #pink;line:red;line.bold;text:red : s2 description\nstate s3 #line.dotted;line:blue\nstate s4 ##[bold]\nstate s5 #red:said\n@enduml\n",
+        );
+        let s2 = node(&d.root, "s2");
+        assert_eq!(s2.fill.as_deref(), Some("pink"));
+        assert_eq!(s2.line_color.as_deref(), Some("red"));
+        assert_eq!(s2.text_color.as_deref(), Some("red"));
+        assert!(s2.border_bold && s2.border_dash == Dash::Solid);
+        assert_eq!(s2.description[0].value, "s2 description");
+        let s3 = node(&d.root, "s3");
+        assert_eq!((s3.fill.as_deref(), s3.border_dash), (None, Dash::Dotted));
+        // A bold border in the border's own color.
+        let s4 = node(&d.root, "s4");
+        assert!(s4.border_bold && s4.line_color.is_none());
+        // A colon after a plain color starts the description.
+        assert_eq!(node(&d.root, "s5").description[0].value, "said");
+        let err = declined("@startuml\nstate s #pink;line.wavy\n@enduml\n");
+        assert!(err.reason.contains("`line.wavy`"), "{}", err.reason);
     }
 
     /// A start or an end with a name (`state s1 <<start>>`) is one of its

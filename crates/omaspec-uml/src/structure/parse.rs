@@ -10,6 +10,7 @@ use super::{
     Slot, Text,
 };
 use crate::Declined;
+use crate::color::{Inline, InlineDash};
 use crate::common::{
     Frame, block_text, brace_delta, keyword, snippet, squeezed_eq, take_link, text_at,
 };
@@ -1638,37 +1639,26 @@ fn take_colors(input: &str, line: usize) -> Result<Colors, Declined> {
                 i += 1;
             }
             let token: String = chars[start..i].iter().collect();
-            let styled = ["#line.", "#line:", "#text:", "#back:"]
-                .iter()
-                .any(|start| token.starts_with(start));
-            if token.contains(';') || styled {
+            if Inline::written(&token) {
                 // `#fill;line:color;line.dashed;text:color`, PlantUML's
-                // inline style: the fill first, or none.
-                for (index, part) in token[1..].split(';').enumerate() {
-                    let part = part.trim();
-                    let color = |value: &str| {
-                        crate::color::parse(value)
-                            .map(|_| value.to_owned())
-                            .map_err(|err| Declined::at(line, err))
-                    };
-                    match part.split_once(':') {
-                        _ if part.is_empty() => {}
-                        Some(("line", value)) => line_color = Some(color(value)?),
-                        Some(("text", value)) => more.text = Some(color(value)?),
-                        Some(("back", value)) => fill = Some(color(value)?),
-                        None if part == "line.dashed" => more.dash = Some((7.0, 5.0)),
-                        None if part == "line.dotted" => more.dash = Some((2.0, 4.0)),
-                        None if part == "line.bold" => more.thickness = Some(2.5),
-                        None if index == 0 && !part.contains(['/', '|', '.']) => {
-                            fill = Some(color(part)?);
-                        }
-                        _ => {
-                            return Err(Declined::at(
-                                line,
-                                format!("`{part}` in a style is not supported yet"),
-                            ));
-                        }
-                    }
+                // inline style.
+                let style = Inline::read(&token).map_err(|err| Declined::at(line, err))?;
+                if style.fill.is_some() {
+                    fill = style.fill;
+                }
+                if style.line.is_some() {
+                    line_color = style.line;
+                }
+                if style.text.is_some() {
+                    more.text = style.text;
+                }
+                match style.dash {
+                    Some(InlineDash::Dashed) => more.dash = Some((7.0, 5.0)),
+                    Some(InlineDash::Dotted) => more.dash = Some((2.0, 4.0)),
+                    None => {}
+                }
+                if style.bold {
+                    more.thickness = Some(2.5);
                 }
                 continue;
             }

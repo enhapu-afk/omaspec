@@ -267,6 +267,8 @@ pub struct Node {
     pub line_color: Option<String>,
     pub border_dash: Dash,
     pub border_bold: bool,
+    /// `#…;text:color` on the state, as written: the color of its name.
+    pub text_color: Option<String>,
     /// A stereotype of the writer's own (`<<phase>>`), as written. PlantUML
     /// does not show it; skinparams for it color the state.
     pub stereotype: Option<String>,

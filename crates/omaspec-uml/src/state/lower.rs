@@ -244,6 +244,7 @@ fn marker(kind: Kind, line: usize) -> Node {
         line_color: None,
         border_dash: Dash::Solid,
         border_bold: false,
+        text_color: None,
         stereotype: None,
         composite: false,
         children: Container::default(),
