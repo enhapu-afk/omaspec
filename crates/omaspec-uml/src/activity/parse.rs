@@ -400,9 +400,14 @@ impl Parser {
         if let Some(rest) = word(text, "while") {
             return self.start_while(rest, no).map(|()| at + 1);
         }
+        // `endswitch`, as one word with nothing after it, as PlantUML
+        // takes it.
         if let Some(rest) = two_words(text, "end", "switch") {
-            if !rest.trim().trim_end_matches(';').is_empty() {
-                return Err(Declined::at(no, "an `endswitch` takes no words"));
+            if !starts_with_ci(text, "endswitch") {
+                return Err(Declined::refused(no, "a `switch` ends with `endswitch`"));
+            }
+            if !rest.trim().is_empty() {
+                return Err(Declined::refused(no, "nothing goes after `endswitch`"));
             }
             return self.end_switch(no).map(|()| at + 1);
         }
@@ -617,7 +622,6 @@ impl Parser {
     }
 
     fn swimlane(&mut self, text: &str, no: usize) -> Result<(), Declined> {
-        self.settled()?;
         let inner = &text[1..];
         let (color, inner) = match inner.strip_prefix('#') {
             Some(_) => {
@@ -666,6 +670,9 @@ impl Parser {
                     open.keyword()
                 ),
             ));
+        }
+        if index != self.lane {
+            self.settled()?;
         }
         let lane = &mut self.lanes[index];
         if !title.is_empty() {
@@ -1027,6 +1034,17 @@ impl Parser {
     /// `case (words)`: the flow of the case before ends, this one's starts.
     fn case(&mut self, words: &str, no: usize) -> Result<(), Declined> {
         self.innermost("switch", no)?;
+        if let Some(Open {
+            what: Opened::Switch { open: false, .. },
+            ..
+        }) = self.blocks.last()
+            && self.pending.is_some()
+        {
+            return Err(Declined::at(
+                no,
+                "an arrow before the first `case` is not supported yet",
+            ));
+        }
         self.close_flow()?;
         let Some(Open {
             what:
@@ -1049,9 +1067,9 @@ impl Parser {
         if *open {
             cases.push(before);
         } else if !before.flow.steps.is_empty() {
-            return Err(Declined::at(
+            return Err(Declined::refused(
                 no,
-                "a step between `switch` and its first `case` is not supported",
+                "a step between `switch` and its first `case`",
             ));
         }
         *open = true;
@@ -1065,7 +1083,7 @@ impl Parser {
             ..
         }) = self.blocks.last()
         {
-            return Err(Declined::at(*line, "a `switch` needs a `case`"));
+            return Err(Declined::refused(*line, "a `switch` needs a `case`"));
         }
         self.innermost("switch", no)?;
         self.close_flow()?;
@@ -1343,11 +1361,9 @@ impl Parser {
     }
 }
 
-/// `(words)`, with `;` after it or not: the words.
+/// `(words)`: the words. PlantUML takes no `;` after them.
 fn parenthesized(rest: &str) -> Option<&str> {
-    let rest = rest.trim();
-    let rest = rest.strip_suffix(';').unwrap_or(rest).trim_end();
-    Some(rest.strip_prefix('(')?.strip_suffix(')')?.trim())
+    Some(rest.trim().strip_prefix('(')?.strip_suffix(')')?.trim())
 }
 
 /// A note before an action that never came.
@@ -1720,7 +1736,7 @@ mod tests {
     #[test]
     fn a_switch_holds_its_cases() {
         let d = diagram(
-            "start\nswitch (kind?)\ncase ( a )\n  :A;\ncase (b)\ncase (c)\n  :C;\n  stop\nend switch\n:after;",
+            "start\nswitch (kind?)\ncase ( a )\n  :A;\ncase (b)\ncase (c)\n  :C;\n  stop\nENDSWITCH\n:after;",
         );
         assert_eq!(
             outline(&d.flow),
@@ -1730,7 +1746,25 @@ mod tests {
             ("switch (x)\n:a;\ncase (y)\nendswitch", "first `case`"),
             ("switch (x)\nendswitch", "needs a `case`"),
             ("case (y)", "no `switch` is open"),
+            ("switch (x)\ncase (y)\nend switch", "ends with `endswitch`"),
+            ("switch (x)\ncase (y)\nendswitch;", "nothing goes after"),
+            (
+                "switch (x)\ncase (y)\nendswitch (done)",
+                "nothing goes after",
+            ),
+        ] {
+            let err = declined(source);
+            assert!(err.reason.contains(part), "{source}: {}", err.reason);
+            assert!(err.refused, "{source}");
+        }
+        for (source, part) in [
             ("switch x\ncase (y)\nendswitch", "switch (test)"),
+            ("switch (x);\ncase (y)\nendswitch", "switch (test)"),
+            ("switch (x)\ncase (y);\nendswitch", "case (words)"),
+            (
+                "switch (x)\n-> on;\ncase (y)\nendswitch",
+                "arrow before the first",
+            ),
         ] {
             let err = declined(source);
             assert!(err.reason.contains(part), "{source}: {}", err.reason);

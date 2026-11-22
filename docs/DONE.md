@@ -389,6 +389,23 @@ is open and the reasoning around it.
       and from the action, `(again) backward :Log; (next)`, as in a
       `repeat`. A note after it is the body's last action's, as PlantUML
       puts it. The guide: 53 of 62.
+- [x] What the review of `switch` and the note fixes found (2026-11-22):
+      the case in the middle goes straight down from the diamond's foot,
+      and the cases on either side keep clear of it and of its words; a
+      case in a swimlane left of the switch's takes the left corner, one
+      right of it the right corner, so no line crosses another, and a
+      branch from another lane is never taken for one straight above the
+      diamond where the branches meet. The columns of `if`, `fork` and
+      `switch` keep clear of the words on the arrow into each flow;
+      branches that are all empty meet below the test, not on it.
+      `end switch`, `endswitch;`, `switch (x);`, `case (y);`, a step
+      before the first `case` and a `switch` without one are refused as
+      PlantUML refuses them; an arrow before the first `case` declines.
+      The color action does not color an action that reads only a name in
+      brackets of any length; the outline reads a switch's and a case's
+      words to their last bracket, as the engine does; a swimlane line
+      that names the lane already in use no longer stops a note waiting
+      for its action.
 
 ## Phase 0: foundation and spikes
 

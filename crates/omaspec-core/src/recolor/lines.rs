@@ -281,10 +281,16 @@ pub(super) fn activity(
         let (old, rest) =
             action_start(text).ok_or("put the caret on the action or the swimlane to color")?;
         // `:(y);` in a color is `#red:(y);`, which PlantUML reads as a
-        // connector.
-        if let Some(color) = color
-            && connector(&format!("{color}:{rest}")).is_some()
-        {
+        // connector, as the engine does with a name of any length.
+        let body = rest.trim();
+        let body = body.strip_suffix(';').unwrap_or(body).trim_end();
+        let named = body
+            .strip_prefix('(')
+            .and_then(|b| b.strip_suffix(')'))
+            .is_some_and(|name| {
+                !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_')
+            });
+        if color.is_some() && named {
             return Err(format!(
                 "an action that reads only `{}` would be a connector in a color",
                 rest.trim().trim_end_matches(';')

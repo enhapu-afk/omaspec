@@ -680,6 +680,18 @@ mod tests {
                 assert!(apart(a, b) && a.x < b.x, "{a:?} {b:?}");
             }
         }
+        // The middle case goes straight down from the foot, its long words
+        // clear of the line to the case right of it; words on the arrows
+        // into the cases keep clear of the next case's line too.
+        let source = "@startuml\nstart\nswitch (x)\ncase (a)\n  -> a long arrow label here;\n  :A;\ncase (a very long middle case words here)\n  -> another long arrow label;\n  :B;\ncase (c)\n  :C;\nendswitch\nstop\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        let (a_arrow, middle, b_arrow, b, c, c_box) = (at(4), at(6), at(7), at(8), at(9), at(10));
+        assert!(a_arrow.x + a_arrow.w + 6.0 < b.x, "{a_arrow:?} {b:?}");
+        for left in [middle, b_arrow] {
+            assert!(left.x + left.w + 6.0 < c.x - 6.0, "{left:?} {c:?}");
+        }
+        assert!(c_box.x > middle.x + middle.w, "{c_box:?} {middle:?}");
     }
 
     /// The fork bars of `svg` on the page, as the map has it: left end,

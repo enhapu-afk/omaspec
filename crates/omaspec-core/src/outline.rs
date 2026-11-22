@@ -476,10 +476,10 @@ fn activity_line(b: &mut Builder, row: usize, l: &str) {
         b.open(row);
     } else if re!(r"(?i)^end\s*(fork|merge|split)\b").is_match(l) {
         b.close(row);
-    } else if let Some(c) = re!(r"(?i)^switch\s*\((.*?)\)").captures(l) {
+    } else if let Some(c) = re!(r"(?i)^switch\s*\((.*)\)").captures(l) {
         b.add(row, "switch", label(&c[1]));
         b.open(row);
-    } else if let Some(c) = re!(r"(?i)^case\s*\((.*?)\)").captures(l) {
+    } else if let Some(c) = re!(r"(?i)^case\s*\((.*)\)").captures(l) {
         b.branch(row, "case", label(&c[1]));
     } else if re!(r"(?i)^end\s*switch\b").is_match(l) {
         b.close(row);
@@ -829,6 +829,13 @@ mod tests {
                 e(3, 0, "if", "tests pass?"),
                 e(5, 0, "else", "no")
             ]
+        );
+        // The words of a switch and its cases run to the last bracket, as
+        // the engine reads them.
+        let code = "@startuml\nswitch (a (b))\ncase (c (d))\n:x;\nendswitch\n@enduml";
+        assert_eq!(
+            tags(code, Language::PlantUml),
+            [e(1, 0, "switch", "a (b)"), e(2, 0, "case", "c (d)")]
         );
     }
 

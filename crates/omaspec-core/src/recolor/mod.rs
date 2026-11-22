@@ -630,6 +630,8 @@ mod tests {
         for code in [
             "@startuml\n:(y);\n@enduml\n",
             "@startuml\n:(y)\nmore;\n@enduml\n",
+            "@startuml\n:(yz);\n@enduml\n",
+            "@startuml\n:(y_2)\nmore;\n@enduml\n",
         ] {
             let (code, target) = aimed(&code.replacen("(y", "(^y", 1), p);
             let err = edit(&code, p, &target.unwrap(), Some("#f7768e")).unwrap_err();
