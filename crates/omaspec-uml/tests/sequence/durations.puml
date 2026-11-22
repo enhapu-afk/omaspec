@@ -1,11 +1,16 @@
 @startuml
 ' Teoz's anchors and durations: `{start}` names a message's height, and
 ' `{start} <-> {end} : words` shows how long it takes between two, at the
-' middle of the first, taking no room of its own.
+' middle of the first, taking no room of its own; across a page break
+' it is drawn in a piece on each page.
 !pragma teoz true
 {call} Client -> Server : request for the order list
 Server -> Store : read
 Store --> Server : rows
 {reply} Server --> Client : list
 {call} <-> {reply} : 120 ms
+{sent} Client -> Server : upload
+newpage
+{done} Server --> Client : stored
+{sent} <-> {done} : over a page
 @enduml

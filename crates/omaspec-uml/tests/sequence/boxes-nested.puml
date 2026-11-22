@@ -1,10 +1,11 @@
 @startuml
 ' A box inside a box (Teoz): the inner one stands in the outer one's
-' padding, under its title, in a color of its own.
+' padding, under its title, in a color of its own; a title wider than
+' what it holds widens the box, inside the one around it too.
 !pragma teoz true
 box "Internal service" #LightBlue
 participant Gateway
-box "Billing team" #LightYellow
+box "Billing team, invoices and payments" #LightYellow
 participant Invoices
 participant Payments
 end box

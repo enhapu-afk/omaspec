@@ -50,6 +50,9 @@ pub struct Participant {
     pub label: String,
     pub shape: Shape,
     pub stereotype: Option<String>,
+    /// Spaces inside its `<< >>` as written (`<< Generated >>`), which
+    /// `skinparam guillemet false` shows.
+    pub stereotype_spaced: bool,
     /// `<< (C,#ADD1B2) >>`: a letter in a colored circle beside the
     /// stereotype.
     pub spot: Option<Spot>,
@@ -220,6 +223,9 @@ pub struct Message {
     pub slant: f32,
     /// Teoz's `{start} A -> B`: the name a duration finds it by.
     pub anchor: Option<String>,
+    /// Written with its head on the left (`B <- A`), which PlantUML calls
+    /// reverse defined: `responseMessageBelowArrow` puts its words under it.
+    pub written_back: bool,
     pub line: usize,
 }
 

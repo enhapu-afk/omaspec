@@ -45,6 +45,20 @@ const DELAY_ROOM: f32 = 8.0;
 /// Between a page's feet and the next page's title or heads.
 const PAGE_GAP: f32 = 30.0;
 
+/// How far the boxes around `b` (Teoz's box inside a box) keep it in on
+/// the left and on the right: their padding, where they end at the same
+/// column as it does.
+fn inset(boxes: &[BoxPlace], b: &BoxPlace, padding: f32) -> (f32, f32) {
+    let count = |same: &dyn Fn(&BoxPlace) -> bool| {
+        boxes
+            .iter()
+            .filter(|o| o.depth < b.depth && same(o))
+            .count() as f32
+            * padding
+    };
+    (count(&|o| o.first == b.first), count(&|o| o.last == b.last))
+}
+
 /// Where one page ends and the next begins (`newpage`), from the top down.
 #[derive(Clone, Copy)]
 struct PageBreak {
@@ -588,7 +602,9 @@ impl<'a> Drawer<'a> {
             }
             // `skinparam sequenceParticipant underline`: each line of it.
             let value = if skin.participant_underline {
+                // Each line, broken by a line of its own or by `\n`.
                 p.label
+                    .replace("\\n", "\n")
                     .split('\n')
                     .map(|line| format!("<u>{line}</u>"))
                     .collect::<Vec<_>>()
@@ -610,8 +626,10 @@ impl<'a> Drawer<'a> {
                     &Text {
                         value: if skin.guillemet {
                             format!("«{s}»")
-                        } else {
+                        } else if p.stereotype_spaced {
                             format!("<< {s} >>")
+                        } else {
+                            format!("<<{s}>>")
                         },
                         line: p.line,
                         col: None,
@@ -841,18 +859,22 @@ impl<'a> Drawer<'a> {
             let title = measure_opt(b.title.as_ref(), look.font, family)?;
             pad_left[first] += skin.box_padding;
             pad_right[last] += skin.box_padding;
-            if first == last {
-                let more = ((title.width + 10.0 - cols[first].width) / 2.0).max(skin.box_padding);
-                pad_left[first] = pad_left[first].max(more);
-                pad_right[first] = pad_right[first].max(more);
-            }
-            boxes.push(BoxPlace {
+            let place = BoxPlace {
                 first,
                 last,
                 title,
                 look,
                 depth: b.depth,
-            });
+            };
+            // A box of one keeps room for its title, inside those around it.
+            if first == last {
+                let more =
+                    ((place.title.width + 10.0 - cols[first].width) / 2.0).max(skin.box_padding);
+                let (left, right) = inset(&boxes, &place, skin.box_padding);
+                pad_left[first] = pad_left[first].max(more + left);
+                pad_right[first] = pad_right[first].max(more + right);
+            }
+            boxes.push(place);
         }
 
         let annotations = Annotations::new(
@@ -971,12 +993,11 @@ impl<'a> Drawer<'a> {
         let Item::Message(m) = &self.d.items[k] else {
             return false;
         };
-        let at = |end: End| match end {
-            End::Participant(p) => self.x[self.col(p)],
-            End::Edge(Side::Left) | End::Short(Side::Left) => f32::NEG_INFINITY,
-            End::Edge(Side::Right) | End::Short(Side::Right) => f32::INFINITY,
-        };
-        self.skin.response_below && at(m.to) < at(m.from)
+        // As PlantUML reads it: written with its head on the left
+        // (`B <- A`), between two participants, whichever way it points.
+        self.skin.response_below
+            && m.written_back
+            && matches!((m.from, m.to), (End::Participant(a), End::Participant(b)) if a != b)
     }
 
     /// The deepest [`Self::arrow_drop`] of the item at `k` and of those a
@@ -1057,10 +1078,12 @@ impl<'a> Drawer<'a> {
         }
         for b in &self.boxes {
             if b.first < b.last {
-                let inner = self.cols[b.first].half()
-                    + self.pad_left[b.first]
+                // Inside the boxes around it, it has less of the padding.
+                let (left, right) = inset(&self.boxes, b, self.skin.box_padding);
+                let inner = self.cols[b.first].half() + self.pad_left[b.first] - left
                     + self.cols[b.last].half()
-                    + self.pad_right[b.last];
+                    + self.pad_right[b.last]
+                    - right;
                 space.need(b.first, b.last, b.title.width + 10.0 - inner);
             }
         }
@@ -1514,22 +1537,15 @@ impl<'a> Drawer<'a> {
         }
         pages.push((page_top, bottom));
         let bands = self.box_bands();
+        let mut grounds = Vec::new();
         for b in &self.boxes {
             // Inside another, it keeps the padding of those around it that
             // end at the same column clear, and starts under their titles.
-            let around = |edge: fn(&BoxPlace) -> usize, column: usize| {
-                self.boxes
-                    .iter()
-                    .filter(|o| o.depth < b.depth && edge(o) == column)
-                    .count() as f32
-                    * skin.box_padding
-            };
-            let left = self.x[b.first]
-                - self.cols[b.first].half()
-                - (self.pad_left[b.first] - around(|o| o.first, b.first));
-            let right = self.x[b.last]
-                + self.cols[b.last].half()
-                + (self.pad_right[b.last] - around(|o| o.last, b.last));
+            let (inset_left, inset_right) = inset(&self.boxes, b, skin.box_padding);
+            let left =
+                self.x[b.first] - self.cols[b.first].half() - (self.pad_left[b.first] - inset_left);
+            let right =
+                self.x[b.last] + self.cols[b.last].half() + (self.pad_right[b.last] - inset_right);
             let offset = bands.get(b.depth).copied().unwrap_or(0.0);
             for (page, &(top, under)) in pages.iter().enumerate() {
                 let top = top + offset;
@@ -1542,16 +1558,19 @@ impl<'a> Drawer<'a> {
                     Some(Stroke::new(b.look.border, b.look.thickness)),
                 );
                 if let Some(fill) = b.look.fill {
-                    self.grounds.push(crate::map::Ground {
-                        rect: crate::graph::Rect {
-                            x: rect.0,
-                            y: rect.1,
-                            w: rect.2,
-                            h: rect.3,
+                    grounds.push((
+                        b.depth,
+                        crate::map::Ground {
+                            rect: crate::graph::Rect {
+                                x: rect.0,
+                                y: rect.1,
+                                w: rect.2,
+                                h: rect.3,
+                            },
+                            // As the canvas paints it: gray in monochrome.
+                            fill: if skin.monochrome { fill.gray() } else { fill },
                         },
-                        // As the canvas paints it: gray in monochrome.
-                        fill: if skin.monochrome { fill.gray() } else { fill },
-                    });
+                    ));
                 }
                 let before = canvas.echo(page > 0);
                 canvas.text(
@@ -1563,6 +1582,11 @@ impl<'a> Drawer<'a> {
                 canvas.echo(before);
             }
         }
+        // An inner box first: what looks for the ground under a point
+        // finds the box it stands in, not the one around that.
+        grounds.sort_by_key(|(depth, _)| std::cmp::Reverse(*depth));
+        self.grounds
+            .extend(grounds.into_iter().map(|(_, ground)| ground));
         // After the boxes: both sit on the background layer, and a box is
         // a full-height fill. Later in that layer paints on top, still
         // under the lifelines. Outer highlights were closed last, so they
@@ -1588,9 +1612,13 @@ impl<'a> Drawer<'a> {
     fn item(&mut self, canvas: &mut Canvas, k: usize) -> usize {
         let d = self.d;
         let item = &d.items[k];
+        // A duration is drawn over what came before: the row goes on.
         if !matches!(
             item,
-            Item::Activate { .. } | Item::Deactivate { .. } | Item::Destroy { .. }
+            Item::Activate { .. }
+                | Item::Deactivate { .. }
+                | Item::Destroy { .. }
+                | Item::Duration { .. }
         ) {
             self.last_arrow = None;
             if !matches!(item, Item::Message(_) | Item::Note(_)) {
@@ -1862,7 +1890,22 @@ impl<'a> Drawer<'a> {
         };
         let stroke = Stroke::new(self.skin.arrow, self.skin.arrow_thickness);
         let (top, bottom) = (y0.min(y1), y0.max(y1));
-        canvas.line(Layer::Front, (x, top), (x, bottom), stroke);
+        // A piece on each page it crosses, as Teoz draws one: the head up
+        // on the first, the head down on the last.
+        let mut pieces = Vec::new();
+        let mut from = top;
+        for p in self
+            .pages
+            .iter()
+            .filter(|p| p.end > top && p.resume < bottom)
+        {
+            pieces.push((from, p.end));
+            from = p.resume;
+        }
+        pieces.push((from, bottom));
+        for &(a, b) in &pieces {
+            canvas.line(Layer::Front, (x, a), (x, b), stroke);
+        }
         // A head drawn pointing right, turned down and up.
         for (tip, turn) in [((x, bottom), (0.0, 1.0)), ((x, top), (0.0, -1.0))] {
             self.arrow_end(
@@ -1875,10 +1918,16 @@ impl<'a> Drawer<'a> {
                 Some(turn),
             );
         }
+        // The words beside the longest piece, where they have room.
+        let (a, b) = pieces
+            .iter()
+            .copied()
+            .max_by(|p, q| (p.1 - p.0).total_cmp(&(q.1 - q.0)))
+            .unwrap_or((top, bottom));
         canvas.text(
             Layer::Front,
             &label,
-            (x + 6.0, (top + bottom - label.height) / 2.0),
+            (x + 6.0, (a + b - label.height) / 2.0),
             Align::Left,
         );
     }
@@ -2036,10 +2085,11 @@ impl<'a> Drawer<'a> {
         } else {
             top + text_h + if text_h > 0.0 { 2.0 } else { 3.0 }
         };
-        let words_top = if below { arrow_y + 3.0 } else { top };
         if let Some(c) = created {
             arrow_y = arrow_y.max(self.y + self.cols[c].height / 2.0 + 4.0);
         }
+        // Under the arrow where it ends lowest, a slant or a head made.
+        let mut words_top = if below { arrow_y + 3.0 } else { top };
         let mut after = arrow_y + 3.0;
 
         let stroke = Stroke::new(
@@ -2160,6 +2210,9 @@ impl<'a> Drawer<'a> {
             points = vec![(sx, sy), (tx, ty)];
             after = after.max(low + 3.0);
             lifecycle_y = low;
+            if below {
+                words_top = low + 3.0;
+            }
             let (l, r) = (sx.min(tx), sx.max(tx));
             // Clear of a head at either end.
             let head_at = |left_end: bool| {

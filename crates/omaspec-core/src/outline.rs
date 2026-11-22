@@ -396,6 +396,8 @@ fn sequence_line(b: &mut Builder, row: usize, l: &str) {
     } else if let Some(c) =
         re!(r"(?i)^(participant|actor|boundary|control|entity|database|collections|queue)\s+(.+)$")
             .captures(l)
+            // `Participant -> Bob` is a message from a participant so named.
+            .filter(|c| !c[2].starts_with(['-', '<']))
     {
         b.add(row, &c[1].to_lowercase(), decl_name(&c[2]));
     } else if let Some(c) = re!(r"(?i)^box\b\s*(.*)$").captures(l) {
@@ -405,11 +407,14 @@ fn sequence_line(b: &mut Builder, row: usize, l: &str) {
     } else if re!(r"(?i)^end\s*box\b").is_match(l) {
         b.close(row);
     } else if let Some(c) =
-        re!(r"(?i)^(alt|opt|loop|par|break|critical|group)\b\s*(.*)$").captures(l)
+        re!(r"(?i)^(alt|opt|loop|par|break|critical|group)(?:#\w+)?\b\s*(?:#\w+\s+)?(.*)$")
+            .captures(l)
+            .filter(|c| !c[2].starts_with(['-', '<']))
     {
+        // Without its colors (`alt#Gold #LightBlue label`).
         b.add(row, &c[1].to_lowercase(), label(&c[2]));
         b.open(row);
-    } else if let Some(c) = re!(r"(?i)^else\b\s*(.*)$").captures(l) {
+    } else if let Some(c) = re!(r"(?i)^else\b\s*(?:#\w+\s+)?(.*)$").captures(l) {
         b.branch(row, "else", label(&c[1]));
     } else if re!(r"(?i)^end\b").is_match(l) {
         b.close(row);
@@ -735,6 +740,22 @@ mod tests {
         // `alt` and its `else` end on their `end`. The empty `loop` and the
         // declarations fold nothing.
         assert_eq!(folds(code, Language::PlantUml), [(5, 10), (7, 10)]);
+    }
+
+    /// Found in review (2026-11-22): a message from a participant named
+    /// like a keyword is no declaration, and a group's colors are no part
+    /// of its label.
+    #[test]
+    fn plantuml_sequence_keyword_names_and_group_colors() {
+        let code = "@startuml\nparticipant Participant\nParticipant -> Bob\nalt#Gold #LightBlue Successful case\n  Bob -> Participant\nelse #Pink Failure\nend\n@enduml";
+        assert_eq!(
+            tags(code, Language::PlantUml),
+            [
+                e(1, 0, "participant", "Participant"),
+                e(3, 0, "alt", "Successful case"),
+                e(5, 0, "else", "Failure"),
+            ]
+        );
     }
 
     fn folds(code: &str, lang: Language) -> Vec<(usize, usize)> {

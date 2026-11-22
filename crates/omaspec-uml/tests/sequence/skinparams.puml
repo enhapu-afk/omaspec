@@ -1,7 +1,7 @@
 @startuml
 ' The sequence skinparams of PlantUML's guide: an answer's words under
-' its arrow, words wrapped at a width, stereotypes in `<<` `>>` under the
-' names, solid lifelines.
+' its arrow (one written with its head on the left), words wrapped at a
+' width, stereotypes in `<<` `>>` under the names, solid lifelines.
 skinparam responseMessageBelowArrow true
 skinparam maxMessageSize 80
 skinparam guillemet false
@@ -10,5 +10,5 @@ skinparam lifelineStrategy solid
 participant Client << browser >>
 participant Server << service >>
 Client -> Server : a question long enough to wrap
-Server --> Client : the answer, under its arrow
+Client <-- Server : the answer, written back, under its arrow
 @enduml

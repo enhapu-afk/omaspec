@@ -130,6 +130,25 @@ is open and the reasoning around it.
       named like a keyword sends messages (`Participant -> Bob`), and
       `skinparam sequenceParticipant underline` underlines every head's
       name. The guide: 71 of 79; the rest waits on Creole and font names.
+- [x] What the review of the skinparams, colors, durations and boxes
+      found (2026-11-22). `responseMessageBelowArrow` puts the words under
+      a message written with its head on the left (`B <- A`), as PlantUML
+      reads it, not under one that points left; they stand under the arrow
+      where it ends lowest, a slant or a head made. `maxMessageSize` (and
+      every wrap, `text::wrapped`) keeps a link whole and closes the
+      markup open at a break, opening it again on the next line, so a
+      wrapped `**bold words**` stays bold. Only `#` and word characters
+      are a group's color: `alt # of retries > 3` is words, as before.
+      `sequenceParticipant underline` underlines each line, also one
+      broken by `\n`; `guillemet false` keeps the spaces a stereotype was
+      written with (`<<svc>>`, `<< svc >>`). A box inside a box widens to
+      its title inside the ones around it. In a play the ground under a
+      point is the innermost box's, and the presentation veils each place
+      once. A duration lets the row after it go on (`&`, `activate`),
+      draws a piece on each page it crosses with its words by the longest,
+      and declines between an anchor and itself; the outline lists
+      neither a message from `Participant` as a declaration nor a group's
+      colors in its label.
 
 ## Phase 0: foundation and spikes
 

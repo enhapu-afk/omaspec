@@ -258,7 +258,10 @@ const LINE: f32 = 1.164;
 const ASCENT: f32 = 0.928;
 
 /// `words` broken into lines no wider than `width`, at its spaces. A
-/// word wider than that stands on a line of its own.
+/// word wider than that stands on a line of its own; a link (`[[…]]`) is
+/// one word. Markup open where a line breaks (`**bold words**`, `<b>`,
+/// `<color:red>`) is closed at the end of that line and opened again at
+/// the start of the next, so each line reads as its words do.
 pub(crate) fn wrapped(
     words: &str,
     font: Font,
@@ -267,22 +270,140 @@ pub(crate) fn wrapped(
 ) -> Result<Block, String> {
     let mut lines: Vec<String> = Vec::new();
     for paragraph in words.split('\n') {
+        // What is open where the line at hand starts, and its words.
+        let mut carried: Vec<String> = Vec::new();
         let mut line = String::new();
-        for word in paragraph.split_whitespace() {
+        for word in wrap_words(paragraph) {
             let longer = if line.is_empty() {
-                word.to_owned()
+                word.clone()
             } else {
                 format!("{line} {word}")
             };
-            if !line.is_empty() && block(&longer, font, family)?.width > width {
-                lines.push(std::mem::replace(&mut line, word.to_owned()));
+            if !line.is_empty()
+                && block(&with_markup(&carried, &longer), font, family)?.width > width
+            {
+                lines.push(with_markup(&carried, &line));
+                carried = open_after(carried, &line);
+                line = word;
             } else {
                 line = longer;
             }
         }
-        lines.push(line);
+        lines.push(with_markup(&carried, &line));
     }
     block(&lines.join("\n"), font, family)
+}
+
+/// The words of `text` at its spaces, a link (`[[…]]`) held as one.
+fn wrap_words(text: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut word = String::new();
+    let mut link = false;
+    let mut rest = text;
+    while let Some(c) = rest.chars().next() {
+        if !link && rest.starts_with("[[") {
+            link = true;
+        } else if link && rest.starts_with("]]") {
+            link = false;
+            word.push_str("]]");
+            rest = &rest[2..];
+            continue;
+        }
+        if c.is_whitespace() && !link {
+            if !word.is_empty() {
+                words.push(std::mem::take(&mut word));
+            }
+        } else {
+            word.push(c);
+        }
+        rest = &rest[c.len_utf8()..];
+    }
+    if !word.is_empty() {
+        words.push(word);
+    }
+    words
+}
+
+/// `line` with the markup `carried` from the line before opened in front
+/// of it, and what is open at its end closed after it.
+fn with_markup(carried: &[String], line: &str) -> String {
+    let mut out: String = carried.concat();
+    out.push_str(line);
+    for open in open_after(carried.to_vec(), line).iter().rev() {
+        match open.strip_prefix('<') {
+            Some(tag) => {
+                let name: String = tag
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphabetic())
+                    .collect();
+                out.push_str(&format!("</{name}>"));
+            }
+            None => out.push_str(open),
+        }
+    }
+    out
+}
+
+/// The markup open after `text`, with `open` open before it: the
+/// toggles (`**`, `//`, …) and the tags the text draws (`<b>`,
+/// `<color:red>`), in the order they opened. A link's insides and an
+/// escaped mark (`~**`) open nothing.
+fn open_after(mut open: Vec<String>, text: &str) -> Vec<String> {
+    const TAGS: [&str; 6] = ["b", "i", "u", "s", "color", "size"];
+    let mut rest = text;
+    while let Some(c) = rest.chars().next() {
+        if c == '~' {
+            rest = &rest[1..];
+            if let Some(next) = rest.chars().next() {
+                rest = &rest[next.len_utf8()..];
+            }
+            continue;
+        }
+        if rest.starts_with("[[") {
+            rest = rest.find("]]").map_or("", |end| &rest[end + 2..]);
+            continue;
+        }
+        if let Some((mark, _)) = TOGGLES.iter().find(|(mark, _)| rest.starts_with(mark)) {
+            match open.iter().rposition(|o| o == mark) {
+                Some(at) => {
+                    open.remove(at);
+                }
+                None => open.push((*mark).to_owned()),
+            }
+            rest = &rest[mark.len()..];
+            continue;
+        }
+        if c == '<'
+            && let Some(end) = rest.find('>')
+        {
+            let tag = &rest[1..end];
+            let closing = tag.strip_prefix('/');
+            let name: String = closing
+                .unwrap_or(tag)
+                .chars()
+                .take_while(|c| c.is_ascii_alphabetic())
+                .collect::<String>()
+                .to_ascii_lowercase();
+            if TAGS.contains(&name.as_str()) {
+                match closing {
+                    Some(_) => {
+                        let opened = |o: &String| {
+                            o.strip_prefix('<')
+                                .is_some_and(|t| t.to_ascii_lowercase().starts_with(&name))
+                        };
+                        if let Some(at) = open.iter().rposition(opened) {
+                            open.remove(at);
+                        }
+                    }
+                    None => open.push(rest[..=end].to_owned()),
+                }
+            }
+            rest = &rest[end + 1..];
+            continue;
+        }
+        rest = &rest[c.len_utf8()..];
+    }
+    open
 }
 
 /// `text` in `font`, measured. `\n` and real line breaks start new lines.
@@ -1040,6 +1161,56 @@ impl Toggle {
             Toggle::Strike => style.strike = on,
             Toggle::Mono => style.mono = on,
         }
+    }
+}
+
+#[cfg(test)]
+mod wrap_tests {
+    use super::*;
+
+    fn wrap(text: &str) -> Block {
+        wrapped(text, Font::new(13.0, Color::BLACK), Family::Inter, 60.0).unwrap()
+    }
+
+    /// Found in review (2026-11-22): the words were split as written, so
+    /// a line of a wrapped `**bold words**` showed its stars.
+    #[test]
+    fn markup_holds_across_the_lines_it_wraps_into() {
+        for (text, bold, italic) in [
+            ("**bold words that wrap**", true, false),
+            ("<b>bold words that wrap</b>", true, false),
+            ("//italic words that wrap//", false, true),
+        ] {
+            let b = wrap(text);
+            assert!(b.lines.len() > 1, "{text}");
+            for line in &b.lines {
+                for run in line.runs.iter().filter(|r| !r.text.trim().is_empty()) {
+                    assert!(
+                        !run.text.contains("**") && !run.text.contains("//"),
+                        "{text}: {}",
+                        run.text
+                    );
+                    assert_eq!(
+                        (run.style.bold, run.style.italic),
+                        (bold, italic),
+                        "{text}: {}",
+                        run.text
+                    );
+                }
+            }
+        }
+        // A link is one word, whatever its label holds.
+        let b = wrap("see [[http://example.com the link label here]] now");
+        let linked: Vec<&Run> = b
+            .lines
+            .iter()
+            .flat_map(|l| &l.runs)
+            .filter(|r| r.link.is_some())
+            .collect();
+        assert_eq!(linked.len(), 1, "{:?}", b.lines);
+        assert!(linked[0].text.contains("the link label here"));
+        // Words without markup break as before.
+        assert!(wrap("one two three four five six").lines.len() > 1);
     }
 }
 

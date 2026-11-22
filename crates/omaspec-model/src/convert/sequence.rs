@@ -335,7 +335,12 @@ impl Writer {
                         _ => String::new(),
                     };
                     let arrow = plantuml_arrow(&m.arrow);
-                    self.out.push(format!("{from} {arrow} {to}{text}"));
+                    let anchor = m
+                        .anchor
+                        .as_ref()
+                        .map(|a| format!("{{{a}}} "))
+                        .unwrap_or_default();
+                    self.out.push(format!("{anchor}{from} {arrow} {to}{text}"));
                 }
                 Item::Duration {
                     from, to, label, ..

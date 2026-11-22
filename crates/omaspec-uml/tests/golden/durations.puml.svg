@@ -1,9 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="322" height="211" viewBox="0 0 322 211">
+<svg xmlns="http://www.w3.org/2000/svg" width="322" height="372" viewBox="0 0 322 372">
 <g transform="translate(10,10)">
 <g>
-<line x1="26" y1="30.3" x2="26" y2="159.82" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
-<line x1="210.95" y1="30.3" x2="210.95" y2="159.82" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
-<line x1="277.13" y1="30.3" x2="277.13" y2="159.82" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="26" y1="30.3" x2="26" y2="188.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="26" y1="279.55" x2="26" y2="321.68" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="210.95" y1="30.3" x2="210.95" y2="188.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="210.95" y1="279.55" x2="210.95" y2="321.68" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="277.13" y1="30.3" x2="277.13" y2="188.96" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
+<line x1="277.13" y1="279.55" x2="277.13" y2="321.68" fill="none" stroke="#181818" stroke-width="0.5" stroke-dasharray="5,5"/>
 </g>
 <g>
 <rect x="0" y="0" width="52.01" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
@@ -44,17 +47,58 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="124.48" y="107.62" font-size="13" fill="#000000" textLength="43.33" lengthAdjust="spacing">120 ms</tspan>
 </text>
-<rect x="0" y="159.82" width="52.01" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<line x1="26" y1="175.96" x2="210.95" y2="175.96" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="200.95,171.96 210.95,175.96 200.95,179.96 204.95,175.96" fill="#181818" stroke="#181818" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="7" y="179.82" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
+<tspan x="33" y="170.89" font-size="13" fill="#000000" textLength="41.85" lengthAdjust="spacing">upload</tspan>
 </text>
-<rect x="182.09" y="159.82" width="57.71" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<rect x="0" y="188.96" width="52.01" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="189.09" y="179.82" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>
+<tspan x="7" y="208.95" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
 </text>
-<rect x="252.44" y="159.82" width="49.39" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<rect x="182.09" y="188.96" width="57.71" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="259.44" y="179.82" font-size="14" fill="#000000" textLength="35.39" lengthAdjust="spacing">Store</tspan>
+<tspan x="189.09" y="208.95" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>
+</text>
+<rect x="252.44" y="188.96" width="49.39" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="259.44" y="208.95" font-size="14" fill="#000000" textLength="35.39" lengthAdjust="spacing">Store</tspan>
+</text>
+<rect x="0" y="249.25" width="52.01" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="7" y="269.24" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
+</text>
+<rect x="182.09" y="249.25" width="57.71" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="189.09" y="269.24" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>
+</text>
+<rect x="252.44" y="249.25" width="49.39" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="259.44" y="269.24" font-size="14" fill="#000000" textLength="35.39" lengthAdjust="spacing">Store</tspan>
+</text>
+<line x1="210.95" y1="308.68" x2="26" y2="308.68" fill="none" stroke="#181818" stroke-width="1" stroke-dasharray="2,2"/>
+<polygon points="36,304.68 26,308.68 36,312.68 32,308.68" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="40" y="303.61" font-size="13" fill="#000000" textLength="39.34" lengthAdjust="spacing">stored</tspan>
+</text>
+<line x1="118.48" y1="175.96" x2="118.48" y2="188.96" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="118.48" y1="279.55" x2="118.48" y2="308.68" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="122.48,298.68 118.48,308.68 114.48,298.68 118.48,302.68" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="114.48,185.96 118.48,175.96 122.48,185.96 118.48,181.96" fill="#181818" stroke="#181818" stroke-width="1"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="124.48" y="298.61" font-size="13" fill="#000000" textLength="72.99" lengthAdjust="spacing">over a page</tspan>
+</text>
+<rect x="0" y="321.68" width="52.01" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="7" y="341.67" font-size="14" fill="#000000" textLength="38.01" lengthAdjust="spacing">Client</tspan>
+</text>
+<rect x="182.09" y="321.68" width="57.71" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="189.09" y="341.67" font-size="14" fill="#000000" textLength="43.71" lengthAdjust="spacing">Server</tspan>
+</text>
+<rect x="252.44" y="321.68" width="49.39" height="30.3" rx="2.5" ry="2.5" fill="#E2E2F0" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="259.44" y="341.67" font-size="14" fill="#000000" textLength="35.39" lengthAdjust="spacing">Store</tspan>
 </text>
 </g>
 </g>

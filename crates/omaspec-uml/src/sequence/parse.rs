@@ -556,6 +556,7 @@ impl Parser {
             label: label.unwrap_or(code).to_owned(),
             shape: Shape::Participant,
             stereotype: None,
+            stereotype_spaced: false,
             spot: None,
             color: None,
             link: None,
@@ -605,6 +606,7 @@ impl Parser {
             None => (first.clone(), first),
         };
         let mut stereotype = None;
+        let mut stereotype_spaced = false;
         let mut spot = None;
         let mut color = None;
         let mut link = None;
@@ -627,6 +629,7 @@ impl Parser {
                     return Err(Declined::at(no, "a stereotype needs a text"));
                 }
                 (spot, stereotype) = spotted(&after[..end]);
+                stereotype_spaced = after[..end].starts_with(' ') && after[..end].ends_with(' ');
                 rest = after[end + 2..].trim_start();
             } else if rest.starts_with('#') {
                 let end = rest.find(char::is_whitespace).unwrap_or(rest.len());
@@ -690,6 +693,7 @@ impl Parser {
                     label,
                     shape,
                     stereotype,
+                    stereotype_spaced,
                     spot,
                     color,
                     link,
@@ -849,6 +853,7 @@ impl Parser {
             together: false,
             slant: 0.0,
             anchor: None,
+            written_back: false,
             line: no,
         }));
         self.last_message = Some((End::Participant(participant), caller));
@@ -1047,6 +1052,7 @@ impl Parser {
             together: false,
             slant: raw.slant,
             anchor: None,
+            written_back: parts.left_head != Head::None && parts.right_head == Head::None,
             line: no,
         }));
         self.last_message = Some((from, to));
@@ -1216,6 +1222,12 @@ impl Parser {
                     "a duration goes between two anchors, as `{start} <-> {end} : words`",
                 ));
             };
+            if anchor == to {
+                return Err(Declined::at(
+                    no,
+                    format!("a duration goes between two anchors, not `{{{to}}}` twice"),
+                ));
+            }
             for name in [anchor, to] {
                 if !self.anchors.contains(name) {
                     return Err(Declined::at(
@@ -1356,10 +1368,11 @@ impl Parser {
     fn group(&mut self, text: &str, no: usize) -> Result<bool, Declined> {
         for (word, kind) in GROUPS {
             // `alt#Gold`: the tab's color, right after the word.
-            let (tab, rest) = if starts_with_ci(text, word) && text[word.len()..].starts_with('#') {
-                let after = &text[word.len()..];
-                let end = after.find(char::is_whitespace).unwrap_or(after.len());
-                (Some(after[..end].to_owned()), after[end..].trim_start())
+            let tabbed = starts_with_ci(text, word)
+                .then(|| group_color(&text[word.len()..]))
+                .flatten();
+            let (tab, rest) = if let Some((tab, rest)) = tabbed {
+                (Some(tab), rest.trim_start())
             } else if let Some(rest) = keyword(text, word) {
                 // `Loop -> Bob` is a message from a participant named Loop.
                 if rest.starts_with(['-', '<']) {
@@ -1370,8 +1383,10 @@ impl Parser {
                 continue;
             };
             // `alt #LightBlue`: the color behind its first part.
-            let (fill, rest) = leading_color(rest).map_err(|reason| Declined::at(no, reason))?;
-            let rest = rest.trim_start();
+            let (fill, rest) = match group_color(rest) {
+                Some((fill, rest)) => (Some(fill), rest.trim_start()),
+                None => (None, rest),
+            };
             let (label, secondary) = match rest.strip_suffix(']').and_then(|r| r.rsplit_once('[')) {
                 Some((label, secondary)) if kind == GroupKind::Group => {
                     (label.trim(), Some(secondary.trim()))
@@ -1393,8 +1408,10 @@ impl Parser {
             if self.groups.is_empty() {
                 return Err(Declined::refused(no, "`else` outside a group"));
             }
-            let (fill, rest) = leading_color(rest).map_err(|reason| Declined::at(no, reason))?;
-            let rest = rest.trim();
+            let (fill, rest) = match group_color(rest) {
+                Some((fill, rest)) => (Some(fill), rest.trim()),
+                None => (None, rest.trim()),
+            };
             self.diagram.items.push(Item::GroupElse {
                 label: (!rest.is_empty()).then(|| text_at(rest, no)),
                 fill,
@@ -1519,6 +1536,18 @@ fn leading_color(text: &str) -> Result<(Option<String>, &str), &'static str> {
         return Err("a color is missing after `#`");
     }
     Ok((Some(text[..end].to_owned()), &text[end..]))
+}
+
+/// A group's color at the start of `text`, as PlantUML takes it: `#`
+/// and word characters (`#Gold`, `#FF0000`); `# of retries` is words.
+fn group_color(text: &str) -> Option<(String, &str)> {
+    let after = text.strip_prefix('#')?;
+    let end = after
+        .find(|c: char| !(c.is_alphanumeric() || c == '_'))
+        .unwrap_or(after.len());
+    let rest = &after[end..];
+    (end > 0 && (rest.is_empty() || rest.starts_with(char::is_whitespace)))
+        .then(|| (text[..end + 1].to_owned(), rest))
 }
 
 /// `text` is empty or one `#color`.
@@ -2640,6 +2669,43 @@ mod tests {
                 (1, vec!["Alice", "John"])
             ]
         );
+    }
+
+    #[test]
+    fn what_the_review_of_the_skinparams_and_boxes_found() {
+        // Only `#` and word characters are a group's color.
+        let d =
+            diagram("alt # of retries > 3\nA -> B\nelse # second\nA -> B\nend\nalt#Gold ok\nend");
+        let labels: Vec<(Option<&str>, Option<&str>)> = d
+            .items
+            .iter()
+            .filter_map(|i| match i {
+                Item::GroupStart { label, fill, .. } => {
+                    Some((label.as_ref().map(|l| l.value.as_str()), fill.as_deref()))
+                }
+                Item::GroupElse { label, fill, .. } => {
+                    Some((label.as_ref().map(|l| l.value.as_str()), fill.as_deref()))
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            labels,
+            [
+                (Some("# of retries > 3"), None),
+                (Some("# second"), None),
+                (Some("ok"), None)
+            ]
+        );
+        // Written with its head on the left, whichever way it points.
+        let d = diagram("participant A\nparticipant B\nB <- A\nB --> A\nA <-> B");
+        let back: Vec<bool> = messages(&d).iter().map(|m| m.written_back).collect();
+        assert_eq!(back, [true, false, false]);
+        // A stereotype keeps the spaces it was written with.
+        let d = diagram("participant A << spaced >>\nparticipant B <<tight>>");
+        let spaced: Vec<bool> = d.participants.iter().map(|p| p.stereotype_spaced).collect();
+        assert_eq!(spaced, [true, false]);
+        assert!(declined("{a} A -> B\n{a} <-> {a}").reason.contains("twice"));
     }
 
     #[test]

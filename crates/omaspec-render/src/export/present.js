@@ -318,12 +318,18 @@ if (typeof document !== "undefined") {
       const draw = () => {
         clear();
         const edge = play.edge();
-        // A box dims toward its own fill, the rest toward the paper.
-        const grounds = data.grounds.map((ground) => ground.rect);
-        veil(box.x, box.y, box.width, box.height, edge, paper, grounds);
+        // A box dims toward its own fill, the rest toward the paper; a
+        // box inside a box is left out of the outer one's veil, so each
+        // place has one veil.
+        const rects = data.grounds.map((ground) => ground.rect);
+        const within = (a, b) =>
+          a !== b && a[0] >= b[0] && a[1] >= b[1] && a[0] + a[2] <= b[0] + b[2] && a[1] + a[3] <= b[1] + b[3];
+        const inner = (outer) =>
+          rects.filter((r) => within(r, outer) && !rects.some((m) => within(r, m) && within(m, outer)));
+        veil(box.x, box.y, box.width, box.height, edge, paper, rects.filter((r) => !rects.some((o) => within(r, o))));
         for (const ground of data.grounds) {
           const [x, y, w, h] = ground.rect;
-          veil(x, y, w, h, edge, ground.fill);
+          veil(x, y, w, h, edge, ground.fill, inner(ground.rect));
         }
         const step = play.lit();
         if (step) {
