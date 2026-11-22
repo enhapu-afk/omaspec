@@ -348,6 +348,20 @@ is open and the reasoning around it.
       puts it), one after a group its last action's. A note that waits
       for an action and finds a step that is none, or none at all,
       declines and says so.
+- [x] What the review of the point names and the fork's words found
+      (2026-11-22): a point's name is placed once the picture has moved
+      down under its title, so it stands at its point; it keeps off the
+      title of its state and runs across none of its borders but the
+      point's own, and where no spot is free it takes the one it harms
+      least (another name, a title or a border most, a box less, a line
+      least). `:(y);` is an action that reads `(y)`, as PlantUML takes
+      it; `#red:(y);` and `(y);` are connectors; a line that reads `(A)`
+      inside an action is the action's for the color action too. A fork
+      whose flows all end has its join bar all the same, and what follows
+      goes on from it, as PlantUML draws it; the words of `end fork {or}`
+      stand beside that bar, and in swimlanes beside its rightmost end, in
+      that lane. `end fork {or};` is read; fmt and the outline close a
+      fork at `fork end` and fmt at `end merge`.
 
 ## Phase 0: foundation and spikes
 

@@ -392,20 +392,23 @@ impl Layout<'_> {
             }
             ways.push((tile, start));
         }
+        let above = shapes.len();
         let exit = if kind == Parallel::Merge {
             self.merge(&mut shapes, &mut edges, &ways, middle, lane)?
         } else {
             self.bar_below(&mut shapes, &mut edges, &ways, bar, middle, lane)?
         };
-        // `end fork {and}`: its words right of the bar that joins the flows.
+        // `end fork {and}`: its words right of the bar that joins the flows,
+        // in the swimlane of its rightmost span.
         if let Some(label) = label
-            && let Some((right, y)) = shapes.iter().rev().find_map(|shape| match shape {
-                Shape::Bar { y, spans, .. } => {
-                    let right = spans.iter().map(|s| s.1).fold(f32::NEG_INFINITY, f32::max);
-                    Some((right, *y))
-                }
-                _ => None,
-            })
+            && let Some((&(_, right, beside), y)) =
+                shapes[above..].iter().find_map(|shape| match shape {
+                    Shape::Bar { y, spans, .. } => spans
+                        .iter()
+                        .max_by(|a, b| a.2.cmp(&b.2).then(a.1.total_cmp(&b.1)))
+                        .map(|span| (span, *y)),
+                    _ => None,
+                })
         {
             let text = self.measure(label, self.skin.arrow_font)?;
             let at = (right + 4.0, y + bar / 2.0 - text.height / 2.0);
@@ -413,7 +416,7 @@ impl Layout<'_> {
                 at,
                 text,
                 align: crate::svg::Align::Left,
-                lane,
+                lane: beside,
             });
         }
         let mut tile = Tile::new(shapes, edges, pt(middle, 0.0, lane), exit);
@@ -452,7 +455,10 @@ impl Layout<'_> {
                 ends.push((points, tile, label));
             }
         }
-        if ends.is_empty() {
+        // A fork whose flows all end still has the bar that joins them,
+        // and what follows goes on from it, as PlantUML draws it; a split
+        // whose flows all end has no line.
+        if ends.is_empty() && bar == 0.0 {
             return Ok(None);
         }
         let y = lowest + GAP;

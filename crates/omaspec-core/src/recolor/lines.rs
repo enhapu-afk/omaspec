@@ -183,9 +183,11 @@ fn lane(text: &str) -> Option<(Option<Range<usize>>, &str)> {
 /// A connector's line (`(A)`, `#blue:(A);`): the range of its color, `#`
 /// and `:` included, where it has one, and its name.
 fn connector(text: &str) -> Option<(Option<Range<usize>>, &str)> {
+    // `#red:(A)` and `(A)`; `:(A);` is an action that reads `(A)`.
     let (color, rest) = match action_start(text) {
         Some((Some(color), rest)) => (Some(0..color.len() + 1), rest),
-        _ => (None, text),
+        Some((None, _)) => return None,
+        None => (None, text),
     };
     let body = rest.trim();
     let body = body.strip_suffix(';').unwrap_or(body).trim_end();
@@ -212,17 +214,18 @@ pub(super) fn activity_at(code: &str, row: usize) -> Option<Target> {
             label: short(name),
         });
     }
-    if let Some((_, name)) = here.and_then(connector) {
-        return Some(Target::Line {
-            line: row,
-            label: format!("({name})"),
-        });
-    }
     let mut index = 0;
     while index < lines.len() {
         let (no, text) = lines[index];
-        // A connector is one line, no action that runs on.
-        if connector(text).is_some() {
+        // A connector is one line, no action that runs on; a line inside
+        // an action that reads `(A)` is the action's.
+        if let Some((_, name)) = connector(text) {
+            if no == row {
+                return Some(Target::Line {
+                    line: row,
+                    label: format!("({name})"),
+                });
+            }
             index += 1;
             continue;
         }

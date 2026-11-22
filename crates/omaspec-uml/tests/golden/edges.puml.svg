@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="355" height="784" viewBox="0 0 355 784">
+<svg xmlns="http://www.w3.org/2000/svg" width="355" height="810" viewBox="0 0 355 810">
 <g transform="translate(199.64,10)">
 <g id="lines">
 <polyline points="10,20 10,40" fill="none" stroke="#181818" stroke-width="1"/>
@@ -44,8 +44,10 @@
 <polygon points="-108.38,635.48 -104.38,645.48 -100.38,635.48 -104.38,639.48" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="-43.27,625.48 -43.27,645.48" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="-47.27,635.48 -43.27,645.48 -39.27,635.48 -43.27,639.48" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="10,721.45 10,741.45" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="6,731.45 10,741.45 14,731.45 10,735.45" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="-73.91,693.48 -73.91,713.48" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="-77.91,703.48 -73.91,713.48 -69.91,703.48 -73.91,707.48" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="-73.91,747.45 -73.91,767.45" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="-77.91,757.45 -73.91,767.45 -69.91,757.45 -73.91,761.45" fill="#181818" stroke="#181818" stroke-width="1"/>
 </g>
 <g>
 <ellipse cx="10" cy="10" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
@@ -112,6 +114,7 @@
 <tspan x="-97.34" y="532.68" font-size="12" fill="#000000" textLength="46.85" lengthAdjust="spacing">left note</tspan>
 </text>
 <rect x="-125.03" y="565.51" width="102.23" height="6" rx="2" ry="2" fill="#555555"/>
+<rect x="-125.03" y="687.48" width="102.23" height="6" rx="2" ry="2" fill="#555555"/>
 <rect x="-125.03" y="591.51" width="41.29" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-115.03" y="612.65" font-size="12" fill="#000000" textLength="21.29" lengthAdjust="spacing">one</tspan>
@@ -125,12 +128,12 @@
 <ellipse cx="-43.27" cy="655.48" rx="10" ry="10" fill="none" stroke="#222222" stroke-width="1.5"/>
 <line x1="-49.47" y1="649.28" x2="-37.07" y2="661.68" fill="none" stroke="#222222" stroke-width="1.5"/>
 <line x1="-49.47" y1="661.68" x2="-37.07" y2="649.28" fill="none" stroke="#222222" stroke-width="1.5"/>
-<rect x="-40.84" y="687.48" width="101.68" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="-124.76" y="713.48" width="101.68" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="-30.84" y="708.62" font-size="12" fill="#000000" textLength="81.68" lengthAdjust="spacing">after all ended</tspan>
+<tspan x="-114.76" y="734.62" font-size="12" fill="#000000" textLength="81.68" lengthAdjust="spacing">after all ended</tspan>
 </text>
-<ellipse cx="10" cy="752.45" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
-<ellipse cx="10" cy="752.45" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+<ellipse cx="-73.91" cy="778.45" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="-73.91" cy="778.45" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
 </g>
 </g>
 </svg>

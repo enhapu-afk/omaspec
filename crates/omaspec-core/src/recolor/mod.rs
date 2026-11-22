@@ -626,6 +626,12 @@ mod tests {
             at_caret(&code.replace("#blue:(B)", "#blue:(^B)"), p, None),
             code.replace("#blue:(B)", "(B)")
         );
+        // A line that reads `(A)` inside an action is the action's.
+        let code = "@startuml\n:first line\n(A)\nlast;\n@enduml\n";
+        assert_eq!(
+            at_caret(&code.replace("(A)", "(^A)"), p, Some("#f7768e")),
+            code.replace(":first", "#f7768e:first")
+        );
     }
 
     #[test]

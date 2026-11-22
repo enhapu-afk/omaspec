@@ -317,8 +317,12 @@ impl Parser {
                 )
             })
         }
+        // `#red:(A)` is a connector, `:(A);` an action that reads `(A)`, as
+        // PlantUML takes them.
         if let Some((color, rest)) = action_start(text) {
-            if let Some(name) = connector(rest) {
+            if color.is_some()
+                && let Some(name) = connector(rest)
+            {
                 return self
                     .connector(&lines[at], one(name, no)?, color)
                     .map(|()| at + 1);
@@ -386,6 +390,7 @@ impl Parser {
             two_words(text, "end", "fork").or_else(|| two_words(text, "fork", "end"))
         {
             let rest = rest.trim();
+            let rest = rest.strip_suffix(';').unwrap_or(rest).trim_end();
             if !(rest.starts_with('{') && rest.ends_with('}')) {
                 return Err(Declined::at(
                     no,
@@ -1440,6 +1445,9 @@ mod tests {
         assert_eq!(outline(&d.flow), "(A)@0 (x)@0");
         let err = declined("@startuml\n(AB)\n@enduml");
         assert!(err.reason.contains("one letter or digit"), "{}", err.reason);
+        // After a plain colon it is an action that reads so.
+        let d = diagram("@startuml\n:(y);\n:(retry);\n:(w)\nmore;\n@enduml");
+        assert_eq!(outline(&d.flow), "A((y))@0 A((retry))@0 A((w)\nmore)@0");
         // A connector in a color of its own is no action.
         let d = diagram("@startuml\nstart\n#blue:(B)\n(C)\n@enduml");
         assert_eq!(outline(&d.flow), "start@0 (B)@0 (C)@0");
@@ -1557,6 +1565,8 @@ mod tests {
         };
         // They stand after `end fork`.
         assert_eq!((label.line, label.col), (4, Some(9)));
+        let d = diagram("fork\n:a;\nfork again\n:b;\nfork end {and};");
+        assert_eq!(outline(&d.flow), "Fork[A(a)@0|A(b)@0]{and}@0");
     }
 
     #[test]

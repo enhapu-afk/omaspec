@@ -122,7 +122,91 @@ pub(super) fn place_names(root: &Container, scene: &mut Scene) {
     let mut solids = Vec::new();
     gather(scene, &mut lines, &mut solids);
     let mut taken: Vec<Rect> = Vec::new();
-    name(root, scene, &lines, &solids, &mut taken);
+    name(root, scene, None, &lines, &solids, &mut taken);
+}
+
+/// The state that holds points: its border and where its title's words
+/// stand.
+#[derive(Clone, Copy)]
+struct Holder {
+    rect: Rect,
+    title: Rect,
+}
+
+impl Holder {
+    fn of(placed: &Placed) -> Self {
+        let rect = placed.rect;
+        let w = stack_width(&placed.item.title, &placed.item.description);
+        Holder {
+            rect,
+            title: Rect {
+                x: rect.x + rect.w / 2.0 + placed.item.title_shift - w / 2.0,
+                y: rect.y + super::HEAD_TOP,
+                w,
+                h: placed.item.header_h,
+            },
+        }
+    }
+
+    /// Whether a name at `spot`, for a point whose middle is `(cx, cy)`,
+    /// runs into the title or across a border other than the point's.
+    fn blocks(&self, spot: &Rect, (cx, cy): Point) -> bool {
+        let r = self.rect;
+        let sides = [
+            (
+                (cy - r.y).abs(),
+                Rect {
+                    x: r.x,
+                    y: r.y,
+                    w: r.w,
+                    h: 0.0,
+                },
+            ),
+            (
+                (r.y + r.h - cy).abs(),
+                Rect {
+                    x: r.x,
+                    y: r.y + r.h,
+                    w: r.w,
+                    h: 0.0,
+                },
+            ),
+            (
+                (cx - r.x).abs(),
+                Rect {
+                    x: r.x,
+                    y: r.y,
+                    w: 0.0,
+                    h: r.h,
+                },
+            ),
+            (
+                (r.x + r.w - cx).abs(),
+                Rect {
+                    x: r.x + r.w,
+                    y: r.y,
+                    w: 0.0,
+                    h: r.h,
+                },
+            ),
+        ];
+        let own = sides
+            .iter()
+            .enumerate()
+            .min_by(|a, b| a.1.0.total_cmp(&b.1.0))
+            .map_or(0, |(i, _)| i);
+        let crosses = |side: &Rect| {
+            spot.x < side.x + side.w + 0.5
+                && side.x - 0.5 < spot.x + spot.w
+                && spot.y < side.y + side.h + 0.5
+                && side.y - 0.5 < spot.y + spot.h
+        };
+        overlap(&self.title, spot)
+            || sides
+                .iter()
+                .enumerate()
+                .any(|(i, (_, side))| i != own && crosses(side))
+    }
 }
 
 /// Every line drawn of `scene` and inside it into `lines`, every box, note
@@ -158,6 +242,7 @@ fn gather(scene: &Scene, lines: &mut Vec<Vec<Point>>, solids: &mut Vec<Rect>) {
 fn name(
     root: &Container,
     scene: &mut Scene,
+    holder: Option<Holder>,
     lines: &[Vec<Point>],
     solids: &[Rect],
     taken: &mut Vec<Rect>,
@@ -170,10 +255,14 @@ fn name(
             );
             // What holds the point, and the point, are no obstacles.
             let holds = |r: &Rect| r.x <= cx && cx <= r.x + r.w && r.y <= cy && cy <= r.y + r.h;
-            let free = |spot: &Rect| {
-                !solids.iter().any(|r| !holds(r) && overlap(r, spot))
-                    && !taken.iter().any(|r| overlap(r, spot))
-                    && !lines.iter().any(|line| {
+            // What a name at `spot` runs into: nothing for a free spot; a
+            // title, a border or another name weighs most, a box less, a
+            // line least, so where no spot is free the name takes the one
+            // it harms least.
+            let harm = |spot: &Rect| {
+                let crossed = lines
+                    .iter()
+                    .filter(|line| {
                         line.windows(2).any(|run| {
                             let (a, b) = (run[0], run[1]);
                             let r = Rect {
@@ -185,13 +274,32 @@ fn name(
                             overlap(&r, spot)
                         })
                     })
+                    .count();
+                let hit = solids
+                    .iter()
+                    .filter(|r| !holds(r) && overlap(r, spot))
+                    .count();
+                let names = taken.iter().filter(|r| overlap(r, spot)).count();
+                let held = usize::from(holder.is_some_and(|h| h.blocks(spot, (cx, cy))));
+                50 * (held + names) + 20 * hit + 5 * crossed
             };
             let spots = super::point_names(placed);
-            let spot = spots.iter().find(|spot| free(spot)).unwrap_or(&spots[0]);
+            let spot = spots
+                .iter()
+                .min_by_key(|spot| harm(spot))
+                .expect("a point has spots for its name");
             placed.item.name_at = Some((spot.x, spot.y));
             taken.push(*spot);
         }
-        name(&node.children, &mut placed.children, lines, solids, taken);
+        let inner = Holder::of(placed);
+        name(
+            &node.children,
+            &mut placed.children,
+            Some(inner),
+            lines,
+            solids,
+            taken,
+        );
     }
 }
 

@@ -469,6 +469,8 @@ fn activity_line(b: &mut Builder, row: usize, l: &str) {
             &format!("{} again", c[1].to_lowercase()),
             String::new(),
         );
+    } else if re!(r"(?i)^fork\s*end\b").is_match(l) {
+        b.close(row);
     } else if let Some(c) = re!(r"(?i)^(fork|split)\b").captures(l) {
         b.add(row, &c[1].to_lowercase(), String::new());
         b.open(row);
@@ -804,6 +806,12 @@ mod tests {
         assert_eq!(folds(gantt, Language::Mermaid), [(1, 2), (3, 4)]);
         let mind = "@startmindmap\n* Root\n** A\n*** A1\n** B\n@endmindmap";
         assert_eq!(folds(mind, Language::PlantUml), [(1, 4), (2, 3)]);
+        // `fork end` closes a fork; it opens none.
+        let fork = "@startuml\nfork\n:a;\nfork again\n:b;\nfork end\n:c;\n@enduml";
+        assert_eq!(
+            folds(fork, Language::PlantUml),
+            folds(&fork.replace("fork end", "end fork"), Language::PlantUml)
+        );
     }
 
     #[test]

@@ -227,8 +227,9 @@ fn plantuml_closer(t: &str) -> bool {
     re!(r"(?i)^repeat\s+while\b").is_match(t)
         || re!(r"(?i)^!end(?:if|while|for|foreach|function|procedure|definelong)?\b").is_match(t)
         || is_note_closer(t)
-        || re!(r"(?i)^end(?:if|while|switch|note|legend|box|title|header|footer|caption|ref|fork|split)\b").is_match(t)
-        || re!(r"(?i)^end\s+(?:if|while|switch|note|legend|box|title|header|footer|caption|ref|fork|split|group|alt|opt|loop|par|critical|break)\b").is_match(t)
+        || re!(r"(?i)^end(?:if|while|switch|note|legend|box|title|header|footer|caption|ref|fork|merge|split)\b").is_match(t)
+        || re!(r"(?i)^end\s+(?:if|while|switch|note|legend|box|title|header|footer|caption|ref|fork|merge|split|group|alt|opt|loop|par|critical|break)\b").is_match(t)
+        || re!(r"(?i)^fork\s*end\b").is_match(t)
         || re!(r"(?i)^end\s*$").is_match(t)
 }
 
@@ -376,6 +377,12 @@ mod tests {
         let code = "@startuml\nalt ok\nA -> B\nelse\n    loop\nB -> A\nend\nend\nnote left\ntext\nend note\n@enduml\n";
         let want = "@startuml\nalt ok\n  A -> B\nelse\n  loop\n    B -> A\n  end\nend\nnote left\n  text\nend note\n@enduml\n";
         assert_eq!(format(code, Language::PlantUml), want);
+        // A fork closes at `fork end` and `end merge` as at `end fork`.
+        for end in ["end fork {or}", "fork end", "end merge"] {
+            let code = format!("@startuml\nfork\n:a;\nfork again\n:b;\n{end}\n:c;\n@enduml\n");
+            let want = format!("@startuml\nfork\n  :a;\nfork again\n  :b;\n{end}\n:c;\n@enduml\n");
+            assert_eq!(format(&code, Language::PlantUml), want, "{end}");
+        }
     }
 
     #[test]

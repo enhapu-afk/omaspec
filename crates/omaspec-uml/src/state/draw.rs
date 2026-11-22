@@ -93,8 +93,8 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
     link_notes(&diagram.root, &mut scene, &skin, family)?;
-    points::place_names(&diagram.root, &mut scene);
     scene.offset(0.0, annotations.top());
+    points::place_names(&diagram.root, &mut scene);
     paint(&mut canvas, &skin, &diagram.root, &scene);
     annotations.draw(&mut canvas);
     let mut map = Map::default();
@@ -1846,6 +1846,66 @@ mod tests {
             points.iter().all(|p| (p.1 - points[0].1).abs() < 0.5),
             "{points:?}"
         );
+    }
+
+    /// A point's name goes along where a title moves the picture down,
+    /// keeps off its state's title and does not run across its sides.
+    #[test]
+    fn a_points_name_stays_at_it_and_off_its_states_title() {
+        // Where a title moves the picture down, the name goes along.
+        let source = "@startuml\n[*] --> Idle\nstate Checkout {\n  state pay <<entryPoint>>\n  pay --> Charging\n}\nIdle --> pay : buy\n@enduml\n";
+        let y = |svg: &str, word: &str| -> f32 {
+            let at = svg.find(&format!(">{word}</tspan>")).unwrap();
+            let start = svg[..at].rfind(" y=\"").unwrap() + 4;
+            svg[start..].split('"').next().unwrap().parse().unwrap()
+        };
+        let plain = crate::render(source).unwrap();
+        let titled =
+            crate::render(&source.replace("[*] --> Idle", "title A Title Here\n[*] --> Idle"))
+                .unwrap();
+        let moved = y(&titled, "Idle") - y(&plain, "Idle");
+        assert!(moved > 10.0, "{titled}");
+        assert!(
+            (y(&titled, "pay") - y(&plain, "pay") - moved).abs() < 0.01,
+            "{titled}"
+        );
+        // A long name keeps off its state's title and does not run across
+        // its sides.
+        let long = "@startuml\n[*] --> A\n[*] --> B\nA --> Somestate\nB --> Somestate\nstate Somestate {\n  state aa <<entryPoint>>\n  state pointnamelonger <<entryPoint>>\n  aa --> X\n  pointnamelonger --> X\n}\nA --> aa\nA --> pointnamelonger\n@enduml\n";
+        let (root, mut scene) = laid(long);
+        points::onto_borders(&root, &mut scene);
+        let (skin, canvas) = (
+            Skin::default(),
+            Canvas::new(&Skin::default().font_name, false),
+        );
+        link_crossings(&root, &mut scene, &skin, canvas.family()).unwrap();
+        points::place_names(&root, &mut scene);
+        let state = scene
+            .nodes
+            .iter()
+            .find(|n| n.item.name == "Somestate")
+            .unwrap();
+        let rect = state.rect;
+        let names: Vec<Rect> = state
+            .children
+            .nodes
+            .iter()
+            .filter(|n| n.item.point.is_some())
+            .map(point_name)
+            .collect();
+        for name in &names {
+            let inside = name.y > rect.y;
+            assert!(
+                !inside
+                    || (name.x >= rect.x
+                        && name.x + name.w <= rect.x + rect.w
+                        && name.y > rect.y + state.item.band()),
+                "{name:?} in {rect:?}"
+            );
+        }
+        let (a, b) = (names[0], names[1]);
+        let apart = a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y;
+        assert!(apart, "{a:?} {b:?}");
     }
 
     /// Lines at points run no spur back over themselves, keep each other's

@@ -641,8 +641,24 @@ mod tests {
         let (svg, _) = crate::render_mapped(source, None).unwrap();
         // The bar that joins the flows is as wide as the one that splits
         // them.
-        let bars: Vec<(f32, f32)> = svg
-            .split("<rect")
+        let bars = bars(&svg);
+        assert_eq!(bars.len(), 2, "{svg}");
+        assert_eq!((bars[0].0, bars[0].2), (bars[1].0, bars[1].2), "{svg}");
+    }
+
+    /// The fork bars of `svg` on the page, as the map has it: left end,
+    /// top, width.
+    fn bars(svg: &str) -> Vec<(f32, f32, f32)> {
+        let shift = svg
+            .split("translate(")
+            .nth(1)
+            .unwrap()
+            .split(')')
+            .next()
+            .unwrap();
+        let (dx, dy) = shift.split_once(',').unwrap();
+        let (dx, dy): (f32, f32) = (dx.parse().unwrap(), dy.parse().unwrap());
+        svg.split("<rect")
             .skip(1)
             .filter(|r| r.contains("fill=\"#555555\""))
             .map(|bar| {
@@ -650,11 +666,44 @@ mod tests {
                     let at = bar.find(&format!(" {key}=\"")).unwrap() + key.len() + 3;
                     bar[at..].split('"').next().unwrap().parse().unwrap()
                 };
-                (num("x"), num("width"))
+                (num("x") + dx, num("y") + dy, num("width"))
             })
-            .collect();
-        assert_eq!(bars.len(), 2, "{svg}");
-        assert_eq!(bars[0], bars[1], "{svg}");
+            .collect()
+    }
+
+    /// The words of `end fork {or}` stand right of the bar that joins the
+    /// flows: one drawn when every flow ends before it, as PlantUML draws
+    /// it, and in swimlanes beside its rightmost end, not on it. What
+    /// follows such a bar goes on from it.
+    #[test]
+    fn end_fork_words_stand_right_of_the_join() {
+        let ended = "@startuml\nstart\nfork\n:a;\ndetach\nfork again\n:b;\ndetach\nend fork {or}\n@enduml\n";
+        let lanes = "@startuml\n|A|\nstart\nfork\n:a;\nfork again\n|B|\n:b;\nend fork {or}\n|A|\n:after;\nstop\n@enduml\n";
+        for (source, line) in [(ended, 8), (lanes, 8)] {
+            let (svg, map) = crate::render_mapped(source, None).unwrap();
+            let words = map.tied.iter().find(|t| t.line == line).unwrap().rect;
+            let bars = bars(&svg);
+            let low = bars.iter().map(|b| b.1).fold(f32::NEG_INFINITY, f32::max);
+            assert!(bars.iter().any(|b| b.1 == low && b.1 > bars[0].1), "{svg}");
+            let right = bars
+                .iter()
+                .filter(|b| b.1 == low)
+                .map(|b| b.0 + b.2)
+                .fold(0.0, f32::max);
+            assert!(words.x >= right, "{words:?} {bars:?}");
+            assert!(
+                (words.y + words.h / 2.0 - (low + 3.0)).abs() < 4.0,
+                "{words:?} {bars:?}"
+            );
+        }
+        // Without words, the bar is there all the same; a step after it
+        // has an arrow from it.
+        let (svg, _) = crate::render_mapped(&ended.replace(" {or}", ""), None).unwrap();
+        assert_eq!(bars(&svg).len(), 2, "{svg}");
+        assert_eq!(svg.matches("<polygon").count(), 3, "{svg}");
+        let after = ended.replace("end fork {or}\n", "end fork\n:after;\n");
+        let (svg, _) = crate::render_mapped(&after, None).unwrap();
+        assert_eq!(svg.matches("<polygon").count(), 4, "{svg}");
     }
 
     /// A connector is a circle with its name, a place of the map; a flow
