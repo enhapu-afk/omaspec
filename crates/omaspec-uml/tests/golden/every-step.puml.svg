@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="505" height="1216" viewBox="0 0 505 1216">
+<svg xmlns="http://www.w3.org/2000/svg" width="505" height="1196" viewBox="0 0 505 1196">
 <g transform="translate(111.76,10)">
 <g>
-<line x1="49.22" y1="798.22" x2="128.03" y2="798.22" fill="none" stroke="#181818" stroke-width="1"/>
-<line x1="49.22" y1="872.19" x2="128.03" y2="872.19" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="49.22" y1="778.22" x2="128.03" y2="778.22" fill="none" stroke="#181818" stroke-width="1"/>
+<line x1="49.22" y1="852.19" x2="128.03" y2="852.19" fill="none" stroke="#181818" stroke-width="1"/>
 </g>
 <g id="lines">
 <polyline points="10,62.94 10,82.94" fill="none" stroke="#181818" stroke-width="1"/>
@@ -48,40 +48,38 @@
 <polygon points="80.78,688.26 84.78,698.26 88.78,688.26 84.78,692.26" fill="#181818" stroke="#181818" stroke-width="1"/>
 <polyline points="220.54,678.26 220.54,698.26" fill="none" stroke="#181818" stroke-width="1"/>
 <polygon points="216.54,688.26 220.54,698.26 224.54,688.26 220.54,692.26" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="-47.13,732.22 -47.13,772.22" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="-51.13,762.22 -47.13,772.22 -43.13,762.22 -47.13,766.22" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="84.78,732.22 84.78,772.22" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="80.78,762.22 84.78,772.22 88.78,762.22 84.78,766.22" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="220.54,732.22 220.54,752.22" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="216.54,742.22 220.54,752.22 224.54,742.22 220.54,746.22" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="88.63,778.22 88.63,798.22" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="84.63,788.22 88.63,798.22 92.63,788.22 88.63,792.22" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="49.22,798.22 49.22,818.22" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="45.22,808.22 49.22,818.22 53.22,808.22 49.22,812.22" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="128.03,798.22 128.03,818.22" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="124.03,808.22 128.03,818.22 132.03,808.22 128.03,812.22" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="49.22,852.19 49.22,872.19" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="128.03,852.19 128.03,872.19" fill="none" stroke="#181818" stroke-width="1"/>
-<polyline points="88.63,872.19 88.63,892.19" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="84.63,882.19 88.63,892.19 92.63,882.19 88.63,886.19" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="63.73,898.19 63.73,918.19" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="59.73,908.19 63.73,918.19 67.73,908.19 63.73,912.19" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="113.73,898.19 113.73,918.19" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="109.73,908.19 113.73,918.19 117.73,908.19 113.73,912.19" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M63.73,952.16 L63.73,973.27 C63.73,974.87 65.03,976.16 66.63,976.16 L76.63,976.16" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="66.63,980.16 76.63,976.16 66.63,972.16 70.63,976.16" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M113.73,952.16 L113.73,973.05 C113.73,974.77 112.34,976.16 110.63,976.16 L100.63,976.16" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="110.63,972.16 100.63,976.16 110.63,980.16 106.63,976.16" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="88.63,988.16 88.63,1008.16" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="84.63,998.16 88.63,1008.16 92.63,998.16 88.63,1002.16" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M64.63,1020.16 L52.22,1020.16 C45.6,1020.16 40.22,1025.53 40.22,1032.16 L40.22,1042.16" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="36.22,1032.16 40.22,1042.16 44.22,1032.16 40.22,1036.16" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M40.22,1076.13 L40.22,1084.13 C40.22,1092.96 47.39,1100.13 56.22,1100.13 L76.63,1100.13" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="66.63,1104.13 76.63,1100.13 66.63,1096.13 70.63,1100.13" fill="#181818" stroke="#181818" stroke-width="1"/>
-<path d="M112.63,1020.16 L112.63,1020.16 C118.15,1020.16 122.63,1024.64 122.63,1030.16 L122.63,1088.13 C122.63,1094.76 117.25,1100.13 110.63,1100.13 L100.63,1100.13" fill="none" stroke="#181818" stroke-width="1"/>
-<polygon points="110.63,1096.13 100.63,1100.13 110.63,1104.13 106.63,1100.13" fill="#181818" stroke="#181818" stroke-width="1"/>
-<polyline points="88.63,1112.13 88.63,1132.13" fill="none" stroke="#181818" stroke-width="2"/>
-<polygon points="84.63,1122.13 88.63,1132.13 92.63,1122.13 88.63,1126.13" fill="#181818" stroke="#181818" stroke-width="1.5"/>
+<polyline points="-47.13,732.22 -47.13,752.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="-51.13,742.22 -47.13,752.22 -43.13,742.22 -47.13,746.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="84.78,732.22 84.78,752.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="80.78,742.22 84.78,752.22 88.78,742.22 84.78,746.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="88.63,758.22 88.63,778.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="84.63,768.22 88.63,778.22 92.63,768.22 88.63,772.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="49.22,778.22 49.22,798.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="45.22,788.22 49.22,798.22 53.22,788.22 49.22,792.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="128.03,778.22 128.03,798.22" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="124.03,788.22 128.03,798.22 132.03,788.22 128.03,792.22" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="49.22,832.19 49.22,852.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="128.03,832.19 128.03,852.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="88.63,852.19 88.63,872.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="84.63,862.19 88.63,872.19 92.63,862.19 88.63,866.19" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="63.73,878.19 63.73,898.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="59.73,888.19 63.73,898.19 67.73,888.19 63.73,892.19" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="113.73,878.19 113.73,898.19" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="109.73,888.19 113.73,898.19 117.73,888.19 113.73,892.19" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M63.73,932.16 L63.73,953.27 C63.73,954.87 65.03,956.16 66.63,956.16 L76.63,956.16" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="66.63,960.16 76.63,956.16 66.63,952.16 70.63,956.16" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M113.73,932.16 L113.73,953.05 C113.73,954.77 112.34,956.16 110.63,956.16 L100.63,956.16" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="110.63,952.16 100.63,956.16 110.63,960.16 106.63,956.16" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="88.63,968.16 88.63,988.16" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="84.63,978.16 88.63,988.16 92.63,978.16 88.63,982.16" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M64.63,1000.16 L52.22,1000.16 C45.6,1000.16 40.22,1005.53 40.22,1012.16 L40.22,1022.16" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="36.22,1012.16 40.22,1022.16 44.22,1012.16 40.22,1016.16" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M40.22,1056.13 L40.22,1064.13 C40.22,1072.96 47.39,1080.13 56.22,1080.13 L76.63,1080.13" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="66.63,1084.13 76.63,1080.13 66.63,1076.13 70.63,1080.13" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M112.63,1000.16 L112.63,1000.16 C118.15,1000.16 122.63,1004.64 122.63,1010.16 L122.63,1068.13 C122.63,1074.76 117.25,1080.13 110.63,1080.13 L100.63,1080.13" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="110.63,1076.13 100.63,1080.13 110.63,1084.13 106.63,1080.13" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="88.63,1092.13 88.63,1112.13" fill="none" stroke="#181818" stroke-width="2"/>
+<polygon points="84.63,1102.13 88.63,1112.13 92.63,1102.13 88.63,1106.13" fill="#181818" stroke="#181818" stroke-width="1.5"/>
 </g>
 <g>
 <ellipse cx="10" cy="52.94" rx="10" ry="10" fill="#222222" stroke="#222222" stroke-width="1"/>
@@ -174,7 +172,7 @@
 <tspan x="49.75" y="588.47" font-size="12" fill="#000000" textLength="77.75" lengthAdjust="spacing">Print the label</tspan>
 </text>
 <rect x="-101.76" y="672.26" width="380.76" height="6" rx="2" ry="2" fill="#555555"/>
-<rect x="-101.76" y="772.22" width="243.83" height="6" rx="2" ry="2" fill="#555555"/>
+<rect x="-101.76" y="752.22" width="243.83" height="6" rx="2" ry="2" fill="#555555"/>
 <rect x="-101.76" y="698.26" width="109.24" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="-91.76" y="719.39" font-size="12" fill="#000000" textLength="89.24" lengthAdjust="spacing">Send the parcel</tspan>
@@ -187,38 +185,38 @@
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="172.07" y="719.39" font-size="12" fill="#000000" textLength="96.94" lengthAdjust="spacing">Update the stock</tspan>
 </text>
-<rect x="17.53" y="818.22" width="63.38" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="17.53" y="798.22" width="63.38" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="27.53" y="839.36" font-size="12" fill="#000000" textLength="43.38" lengthAdjust="spacing">Archive</tspan>
+<tspan x="27.53" y="819.36" font-size="12" fill="#000000" textLength="43.38" lengthAdjust="spacing">Archive</tspan>
 </text>
-<rect x="100.91" y="818.22" width="54.25" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="100.91" y="798.22" width="54.25" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="110.91" y="839.36" font-size="12" fill="#000000" textLength="34.25" lengthAdjust="spacing">Notify</tspan>
+<tspan x="110.91" y="819.36" font-size="12" fill="#000000" textLength="34.25" lengthAdjust="spacing">Notify</tspan>
 </text>
-<rect x="49.59" y="892.19" width="78.06" height="6" rx="2" ry="2" fill="#555555"/>
-<polygon points="76.63,976.16 88.63,964.16 100.63,976.16 88.63,988.16" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
-<rect x="49.59" y="918.19" width="28.28" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="49.59" y="872.19" width="78.06" height="6" rx="2" ry="2" fill="#555555"/>
+<polygon points="76.63,956.16 88.63,944.16 100.63,956.16 88.63,968.16" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="49.59" y="898.19" width="28.28" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="59.59" y="939.33" font-size="12" fill="#000000" textLength="8.28" lengthAdjust="spacing">A</tspan>
+<tspan x="59.59" y="919.33" font-size="12" fill="#000000" textLength="8.28" lengthAdjust="spacing">A</tspan>
 </text>
-<rect x="99.81" y="918.19" width="27.85" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="99.81" y="898.19" width="27.85" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="109.81" y="939.33" font-size="12" fill="#000000" textLength="7.85" lengthAdjust="spacing">B</tspan>
+<tspan x="109.81" y="919.33" font-size="12" fill="#000000" textLength="7.85" lengthAdjust="spacing">B</tspan>
 </text>
-<polygon points="64.63,1020.16 76.63,1008.16 100.63,1008.16 112.63,1020.16 100.63,1032.16 76.63,1032.16" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<polygon points="64.63,1000.16 76.63,988.16 100.63,988.16 112.63,1000.16 100.63,1012.16 76.63,1012.16" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="77.28" y="1023.97" font-size="11" fill="#000000" textLength="22.69" lengthAdjust="spacing">gift?</tspan>
+<tspan x="77.28" y="1003.97" font-size="11" fill="#000000" textLength="22.69" lengthAdjust="spacing">gift?</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="44.22" y="1016.56" font-size="11" fill="#000000" textLength="18.4" lengthAdjust="spacing">yes</tspan>
+<tspan x="44.22" y="996.56" font-size="11" fill="#000000" textLength="18.4" lengthAdjust="spacing">yes</tspan>
 </text>
-<polygon points="76.63,1100.13 88.63,1088.13 100.63,1100.13 88.63,1112.13" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
-<rect x="9.91" y="1042.16" width="60.62" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<polygon points="76.63,1080.13 88.63,1068.13 100.63,1080.13 88.63,1092.13" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<rect x="9.91" y="1022.16" width="60.62" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="19.91" y="1063.3" font-size="12" fill="#000000" textLength="40.62" lengthAdjust="spacing">Wrap it</tspan>
+<tspan x="19.91" y="1043.3" font-size="12" fill="#000000" textLength="40.62" lengthAdjust="spacing">Wrap it</tspan>
 </text>
-<ellipse cx="88.63" cy="1143.13" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
-<ellipse cx="88.63" cy="1143.13" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+<ellipse cx="88.63" cy="1123.13" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="88.63" cy="1123.13" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
 <tspan x="103.9" y="29.63" font-size="14" fill="#000000" font-weight="bold" textLength="72.81" lengthAdjust="spacing">Every step</tspan>
 </text>
@@ -226,10 +224,10 @@
 <tspan x="359.9" y="9.28" font-size="10" fill="#888888" textLength="22.47" lengthAdjust="spacing">draft</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="76.03" y="1175.12" font-size="14" fill="#000000" textLength="128.55" lengthAdjust="spacing">An order on its way</tspan>
+<tspan x="76.03" y="1155.12" font-size="14" fill="#000000" textLength="128.55" lengthAdjust="spacing">An order on its way</tspan>
 </text>
 <text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
-<tspan x="125.02" y="1192.7" font-size="10" fill="#888888" textLength="30.58" lengthAdjust="spacing">page 1</tspan>
+<tspan x="125.02" y="1172.7" font-size="10" fill="#888888" textLength="30.58" lengthAdjust="spacing">page 1</tspan>
 </text>
 </g>
 </g>

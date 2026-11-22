@@ -1,0 +1,13 @@
+@startuml
+' Connectors (`(A)`, `#color:(B)`): a circle with its name, which a flow
+' leads to and goes on from; `detach` ends a flow at the step before it.
+start
+:Take the call;
+(A)
+detach
+(A)
+:Write the ticket;
+#palegreen:(B)
+:Close it;
+stop
+@enduml

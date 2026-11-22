@@ -63,6 +63,12 @@ pub struct Step {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Node {
+    /// `(A)`, `#blue:(A)`: a circle with its name, which the flow leads
+    /// to and goes on from, as another of the same name may.
+    Connector {
+        text: Text,
+        color: Option<String>,
+    },
     Start,
     /// A circle with a dot: the end of everything.
     Stop,

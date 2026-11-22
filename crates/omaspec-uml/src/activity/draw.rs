@@ -403,6 +403,24 @@ impl Painter<'_> {
                     Some(Stroke::new(skin.start, 1.0)),
                 );
             }
+            Shape::Connector {
+                center,
+                radius,
+                text,
+                fill,
+                lane,
+            } => {
+                let c = self.at(*lane, center.0, center.1);
+                let look = &skin.activity;
+                let stroke = Stroke::new(look.border, look.thickness);
+                canvas.ellipse(Layer::Front, c, (*radius, *radius), *fill, Some(stroke));
+                canvas.text(
+                    Layer::Front,
+                    text,
+                    (c.0, c.1 - text.height / 2.0),
+                    Align::Center,
+                );
+            }
             Shape::Stop { center, lane } => {
                 let c = self.at(*lane, center.0, center.1);
                 canvas.ellipse(
@@ -615,6 +633,25 @@ fn action_shape(
 
 #[cfg(test)]
 mod tests {
+    /// A connector is a circle with its name, a place of the map; a flow
+    /// that ends at `kill` or `detach` has no arrow on.
+    #[test]
+    fn a_connector_is_a_circle_and_detach_ends_the_flow() {
+        let source =
+            "@startuml\nstart\n:Some activity;\n(A)\ndetach\n(A)\n:Other activity;\n@enduml\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        assert_eq!(svg.matches("<ellipse").count(), 3, "{svg}");
+        assert!(map.tied.iter().any(|t| t.line == 3), "{:?}", map.tied);
+        let arrows = |svg: &str| svg.matches("<polygon").count();
+        let ended = crate::render_mapped("@startuml\nstart\n:A;\nkill\n@enduml\n", None)
+            .unwrap()
+            .0;
+        let open = crate::render_mapped("@startuml\nstart\n:A;\n@enduml\n", None)
+            .unwrap()
+            .0;
+        assert_eq!(arrows(&ended), arrows(&open), "{ended}");
+    }
+
     /// A note left of the action on a loop's way back stands between the
     /// loop and that action, clear of both.
     #[test]

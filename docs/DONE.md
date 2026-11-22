@@ -298,6 +298,11 @@ is open and the reasoning around it.
       before one goes on by no way out, and a split or a fork whose flows
       all start with one has nothing joining them on top, as PlantUML
       draws them. The guide: 45 of 62.
+- [x] Connectors in activity diagrams (2026-11-22): `(A)`, and `#blue:(B)`
+      in a color of its own, a circle with its name, which a flow leads to
+      and goes on from, a place of the map, its name tied to where it
+      stands on its line. A flow that ends at `kill` or `detach` has no
+      arrow on into nothing, as PlantUML draws it. The guide: 49 of 62.
 
 ## Phase 0: foundation and spikes
 

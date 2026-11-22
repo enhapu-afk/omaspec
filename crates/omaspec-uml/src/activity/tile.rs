@@ -43,6 +43,14 @@ pub enum Shape {
         center: (f32, f32),
         lane: usize,
     },
+    /// A connector: a circle with its name.
+    Connector {
+        center: (f32, f32),
+        radius: f32,
+        text: Block,
+        fill: Paint,
+        lane: usize,
+    },
     End {
         center: (f32, f32),
         lane: usize,
@@ -97,6 +105,12 @@ impl Shape {
                 center.0 + 11.0,
                 center.1 + 11.0,
             ),
+            Shape::Connector { center, radius, .. } => (
+                center.0 - radius,
+                center.1 - radius,
+                center.0 + radius,
+                center.1 + radius,
+            ),
             Shape::Bar { y, height, spans } => {
                 let l = spans.iter().map(|s| s.0).fold(f32::INFINITY, f32::min);
                 let r = spans.iter().map(|s| s.1).fold(f32::NEG_INFINITY, f32::max);
@@ -122,6 +136,7 @@ impl Shape {
             | Shape::Start { lane, .. }
             | Shape::Stop { lane, .. }
             | Shape::End { lane, .. }
+            | Shape::Connector { lane, .. }
             | Shape::Note { lane, .. }
             | Shape::Frame { lane, .. }
             | Shape::Label { lane, .. } => Some(*lane),
@@ -140,7 +155,8 @@ impl Shape {
             }
             Shape::Start { center, .. }
             | Shape::Stop { center, .. }
-            | Shape::End { center, .. } => {
+            | Shape::End { center, .. }
+            | Shape::Connector { center, .. } => {
                 center.0 += dx;
                 center.1 += dy;
             }

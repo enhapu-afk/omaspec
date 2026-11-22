@@ -305,13 +305,13 @@ impl Parser {
             ));
         }
         if let Some((color, rest)) = action_start(text) {
-            if connector(rest).is_some() {
-                return Err(Declined::at(no, "connectors (`(A)`) are not supported yet"));
+            if let Some(name) = connector(rest) {
+                return self.connector(&lines[at], name, color).map(|()| at + 1);
             }
             return self.action(lines, at, color, rest);
         }
-        if connector(text).is_some() {
-            return Err(Declined::at(no, "connectors (`(A)`) are not supported yet"));
+        if let Some(name) = connector(text) {
+            return self.connector(&lines[at], name, None).map(|()| at + 1);
         }
         if let Some((depth, rest)) = list_item(text) {
             if depth > 1 {
@@ -602,6 +602,19 @@ impl Parser {
             no,
         )?;
         Ok(next)
+    }
+
+    /// `(A)`, or `#blue:(A)` in a color of its own.
+    fn connector(&mut self, line: &Line, name: &str, color: Option<&str>) -> Result<(), Declined> {
+        // Its name stands in the brackets.
+        let col = line.at + crate::source::offset_in(line.text, name);
+        let text = Text {
+            value: name.to_owned(),
+            line: line.no,
+            col: Some(col),
+        };
+        let color = color.map(|c| c.trim_end_matches(':').to_owned());
+        self.add(Node::Connector { text, color }, line.no)
     }
 
     /// `repeat :text;`, on its line or on more: a loop that starts with
@@ -1164,6 +1177,7 @@ mod tests {
                     Node::Stop => "stop".into(),
                     Node::End => "end".into(),
                     Node::Detach => "detach".into(),
+                    Node::Connector { text, .. } => format!("({})", text.value),
                     Node::Action { text, note, .. } => match note {
                         Some(n) => format!("A({};note {})", text.value, n.text.value),
                         None => format!("A({})", text.value),
@@ -1308,11 +1322,14 @@ mod tests {
             "@startuml\n:a //italics//\n<b>bold</b>\nicon <&star>\nsee [[link]]\n| a | b |\ndone;\n@enduml",
         );
         assert_eq!(d.flow.steps.len(), 1);
-        let err = declined("@startuml\nstart\n#blue:(B)\n@enduml");
-        assert_eq!(
-            (err.line, err.reason.contains("connectors")),
-            (Some(2), true)
-        );
+        // A connector in a color of its own is no action.
+        let d = diagram("@startuml\nstart\n#blue:(B)\n(C)\n@enduml");
+        assert_eq!(outline(&d.flow), "start@0 (B)@0 (C)@0");
+        let Node::Connector { text, color } = &d.flow.steps[1].node else {
+            panic!()
+        };
+        // Its name stands in the brackets.
+        assert_eq!((text.col, color.as_deref()), (Some(7), Some("#blue")));
     }
 
     /// PlantUML's lists of actions, and a long action whose first line

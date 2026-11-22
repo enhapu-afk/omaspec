@@ -27,6 +27,9 @@ pub(super) const BRANCH_MARGIN: f32 = 10.0;
 const RAIL: f32 = 15.0;
 /// Between an action and its note.
 const NOTE_GAP: f32 = 15.0;
+
+/// How wide a connector is at least, as PlantUML draws it.
+const CONNECTOR: f32 = 22.0;
 /// Height of a `fork` bar.
 pub(super) const BAR: f32 = 6.0;
 /// The least room between the bottom of a tile and the top of the next.
@@ -113,6 +116,12 @@ impl Layout<'_> {
                 None => {
                     next.arrow_in = step.arrow.clone().map(Box::new).or(next.arrow_in.take());
                     next
+                }
+                // `kill`, `detach`: the flow ends at the step before it, with
+                // no arrow on, as PlantUML draws it.
+                Some(mut prev) if matches!(step.node, Node::Detach) => {
+                    prev.exit = None;
+                    prev
                 }
                 Some(mut prev) => {
                     let arrow = step.arrow.clone().map(Box::new).or(next.arrow_in.take());
@@ -226,6 +235,22 @@ impl Layout<'_> {
                 false,
             ),
             Node::Detach => Tile::new(Vec::new(), Vec::new(), pt(0.0, 0.0, lane), None),
+            Node::Connector { text, color } => {
+                let block = self.measure(text, self.skin.activity.font)?;
+                let d = (block.width.max(block.height) + 10.0).max(CONNECTOR);
+                let fill = match color {
+                    Some(c) => color::parse(c).map_err(|e| Declined::at(text.line, e))?,
+                    None => self.skin.activity.fill,
+                };
+                let shape = Shape::Connector {
+                    center: (d / 2.0, d / 2.0),
+                    radius: d / 2.0,
+                    text: block,
+                    fill,
+                    lane,
+                };
+                circle(shape, d, true)
+            }
             Node::Action {
                 text,
                 color,

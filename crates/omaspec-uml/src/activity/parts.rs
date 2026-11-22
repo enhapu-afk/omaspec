@@ -100,6 +100,7 @@ impl Found {
             Shape::Diamond { text, .. } => ("test", words(text), true),
             Shape::Start { .. } => ("start", String::new(), true),
             Shape::Stop { .. } => ("stop", String::new(), true),
+            Shape::Connector { text, .. } => ("connector", words(text), true),
             Shape::End { .. } => ("end", String::new(), true),
             Shape::Bar { .. } => ("bar", String::new(), true),
             Shape::Note { text, .. } => ("note", words(text), false),
