@@ -136,6 +136,8 @@ pub fn lay(
             to: arrow.to.clone(),
             label: laid.label,
             shape: Some(shape),
+            stand: [None; 2],
+            sealed: [false; 2],
         });
         // Out of what the others keep clear of; back if it has no ends.
         which.push((index, *entry, std::mem::take(laid.points)));

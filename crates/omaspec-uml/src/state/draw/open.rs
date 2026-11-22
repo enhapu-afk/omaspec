@@ -53,19 +53,7 @@ impl<'a> Nested for States<'a> {
     /// turned across the flow (`-right[hidden]->`) beside its first: the
     /// hold of docs/adr/0021, written in the source, as in a class diagram.
     fn holds(&self, container: &'a Container) -> Vec<graph::hold::Held> {
-        let turned = container.edges.iter().filter_map(|edge| {
-            let after = held_beside(container, edge)?;
-            Some(graph::hold::Held {
-                line: edge.line,
-                index: edge.to,
-                beside: edge.from,
-                word: match after {
-                    true => graph::hold::Word::After,
-                    false => graph::hold::Word::Before,
-                },
-            })
-        });
-        container.held.iter().cloned().chain(turned).collect()
+        container.held.clone()
     }
 
     fn bundled(&self, container: &'a Container) -> bool {
@@ -161,10 +149,16 @@ impl<'a> Nested for States<'a> {
             |toward: Option<super::super::Toward>| toward.is_some_and(|toward| toward.laid().1);
         // A hidden arrow ranks its states and is neither routed nor drawn.
         let hidden = |arrow: &Transition| arrow.dash == Dash::Hidden;
+        // One turned across the flow (`-right[hidden]->`) is laid out as a
+        // line within the rank, which puts its second state beside its
+        // first, as PlantUML does; it is drawn no more than another hidden
+        // one ([`super::hidden`]).
+        let ranks =
+            |edge: &Transition| hidden(edge) && edge.toward.and_then(|t| t.laid().0).is_none();
         let edges = container.edges.iter().map(|edge| Line {
             from: vec![edge.from],
             to: vec![edge.to],
-            hidden: hidden(edge),
+            hidden: ranks(edge),
             against: against(edge.toward),
         });
         let crossings = container.crossings.iter().map(|crossing| Line {
@@ -181,13 +175,7 @@ impl<'a> Nested for States<'a> {
     /// that side (docs/adr/0027); one between boxes of different states
     /// is a line like any other.
     fn level(&self, container: &'a Container, index: usize) -> Option<bool> {
-        let edge = container.edges.get(index)?;
-        match edge.dash {
-            // A hidden one within the rank holds its state ([`Self::holds`])
-            // and ranks neither; where it cannot hold, it ranks them.
-            Dash::Hidden => held_beside(container, edge),
-            _ => edge.toward?.laid().0,
-        }
+        container.edges.get(index)?.toward?.laid().0
     }
 
     fn measure(
@@ -320,17 +308,4 @@ impl<'a> Nested for States<'a> {
         scene.notes = place_notes(container, &rects, &scene.edges, self.skin, self.family)?;
         Ok(())
     }
-}
-
-/// Whether the hidden arrow `edge` of `container`, turned across the flow
-/// (`-right[hidden]->`), holds its second state after its first (`true`)
-/// or before it: only between two states without states inside, which a
-/// hold keeps beside each other (docs/adr/0021); `None` for any other.
-fn held_beside(container: &Container, edge: &Transition) -> Option<bool> {
-    if edge.dash != Dash::Hidden {
-        return None;
-    }
-    let after = edge.toward?.laid().0?;
-    let leaf = |index: usize| container.nodes.get(index).is_some_and(|n| !n.composite);
-    (leaf(edge.from) && leaf(edge.to)).then_some(after)
 }

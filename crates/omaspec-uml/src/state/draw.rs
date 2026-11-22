@@ -87,16 +87,9 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
         family,
     )?;
     let mut scene = layout_container(&diagram.root, &skin, family)?;
-    // Points on their borders; the lines inside their states laid with
-    // them there, then those across a border with them outside it.
+    // Points on their borders; the lines between boxes at them laid anew.
     points::onto_borders(&diagram.root, &mut scene);
-    let root = &diagram.root;
-    link_crossings(root, &mut scene, &skin, family, &|path, c| {
-        !points::across(root, path, c)
-    })?;
-    points::step_out(root, &mut scene);
-    link_crossings(root, &mut scene, &skin, family, &|_, _| true)?;
-    points::step_in(root, &mut scene);
+    link_crossings(&diagram.root, &mut scene, &skin, family)?;
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
     link_notes(&diagram.root, &mut scene, &skin, family)?;
@@ -264,9 +257,6 @@ struct Item {
     /// An entry or an exit point of a state whose states run left to
     /// right: on its left or right border, not on the top or bottom one.
     sideways: bool,
-    /// How far a point stands off its place while lines are laid to it
-    /// from outside ([`points::step_out`]).
-    aside: (f32, f32),
 }
 
 /// How large an entry or an exit point is, or a cell of an expansion's
@@ -362,7 +352,6 @@ fn measure_node(
                 point: None,
                 title_shift: 0.0,
                 sideways: false,
-                aside: (0.0, 0.0),
             },
         });
     }
@@ -451,7 +440,6 @@ fn measure_node(
             point: node.point(),
             title_shift: 0.0,
             sideways: direction == Direction::Right,
-            aside: (0.0, 0.0),
         },
     })
 }
@@ -1205,26 +1193,24 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
     }
 }
 
-/// Where the name of an entry or an exit point stands: outside the state on
-/// whose border it is, left of it, over an entry and under an exit, so the
-/// lines that meet it from outside keep off it (lines between boxes keep
-/// off it too, [`super::nest`]).
+/// Where the name of an entry or an exit point stands. On a top or bottom
+/// border: outside the state, left of the point, over an entry and under
+/// an exit, so the lines that meet it from outside keep off it (lines
+/// between boxes keep off it too, [`super::nest`]). On a left or right
+/// border, where states stand close beside each other and their lines
+/// and words run between them: inside the state, under the point's line
+/// (the words of the lines inside stand over theirs), right of an entry
+/// and left of an exit.
 fn point_name(node: &Placed) -> Rect {
     let (gap, title) = (2.0, &node.item.title);
-    // Where it ends, though it stands off its place for now.
-    let (dx, dy) = node.item.aside;
-    let (x, y) = (node.rect.x - dx, node.rect.y - dy);
-    let middle = y + node.rect.h / 2.0;
+    let rect = node.rect;
+    let middle = rect.y + rect.h / 2.0;
     let entry = node.item.kind == Kind::Entry;
-    let y = if entry {
-        middle - gap - title.height
-    } else {
-        middle + gap
-    };
-    // On a right border the name of an exit stands right of it, outside.
-    let x = match node.item.sideways && !entry {
-        true => x + node.rect.w + gap,
-        false => x - gap - title.width,
+    let (x, y) = match (node.item.sideways, entry) {
+        (true, true) => (rect.x + rect.w + gap, middle + gap),
+        (true, false) => (rect.x - gap - title.width, middle + gap),
+        (false, true) => (rect.x - gap - title.width, middle - gap - title.height),
+        (false, false) => (rect.x - gap - title.width, middle + gap),
     };
     Rect {
         x,
@@ -1784,23 +1770,68 @@ mod tests {
         assert!(looped.iter().any(|p| p.1 < top + 30.0), "{looped:?}");
     }
 
-    /// A hidden arrow turned across the flow onto a state with states inside
-    /// ranks its states, as a hold beside such a state cannot be kept.
+    /// A line from a point out of its state keeps out of that state; one
+    /// that stays inside keeps inside; two points facing each other across
+    /// a gap are joined straight.
     #[test]
-    fn a_hidden_arrow_onto_a_state_with_states_ranks_them() {
-        let source = "@startuml\n[*] --> A\nA -right[hidden]-> B\nstate B {\n  [*] --> X\n}\nA --> C\n@enduml\n";
-        let (_, map) = crate::render_mapped(source, None).unwrap();
-        let spot = |name: &str| map.states.iter().find(|s| s.name == name).unwrap().rect;
+    fn lines_at_points_keep_to_their_side_of_the_border() {
+        let wire = |source: &str, line: usize| {
+            let (_, map) = crate::render_mapped(source, None).unwrap();
+            let points = map
+                .wires
+                .iter()
+                .find(|w| w.line == Some(line))
+                .unwrap()
+                .points
+                .clone();
+            let states = map.states.clone();
+            let rect = move |name: &str| states.iter().find(|s| s.name == name).unwrap().rect;
+            (points, rect)
+        };
+        let inside = |p: (f32, f32), r: crate::graph::Rect| {
+            p.0 > r.x + 1.0 && p.0 < r.x + r.w - 1.0 && p.1 > r.y + 1.0 && p.1 < r.y + r.h - 1.0
+        };
+        // Out of the state, round it, not through it.
+        let out = "@startuml\nleft to right direction\n[*] --> Idle\nstate Busy {\n  state done <<exitPoint>>\n  [*] --> Work\n  Work --> Special : go\n  Special --> done : finish\n}\nIdle --> Busy\ndone --> Idle\n@enduml\n";
+        let (points, rect) = wire(out, 10);
         assert!(
-            spot("B").y > spot("A").y + spot("A").h,
-            "{:?} {:?}",
-            spot("A"),
-            spot("B")
+            !points.iter().any(|&p| inside(p, rect("Busy"))),
+            "{points:?}"
+        );
+        // From an entry point to one inside: inside the outer state.
+        let nested = "@startuml\n[*] --> Idle\nstate Outer {\n  state e <<entryPoint>>\n  state Inner {\n    state p <<entryPoint>>\n    p --> Deep\n  }\n  e --> p\n  [*] --> Plain\n}\nIdle --> e : go\n@enduml\n";
+        let (points, rect) = wire(nested, 8);
+        let outer = rect("Outer");
+        let within = |p: (f32, f32)| p.0 >= outer.x && p.0 <= outer.x + outer.w;
+        assert!(points.iter().all(|&p| within(p)), "{points:?} in {outer:?}");
+        // Face to face.
+        let facing = "@startuml\nleft to right direction\n[*] --> Busy\nstate Busy {\n  state done <<exitPoint>>\n  [*] --> Work\n  Work --> done : finish\n}\nstate Other {\n  state side <<entryPoint>>\n  side --> Rest\n}\ndone --> side : on\n@enduml\n";
+        let (points, _) = wire(facing, 12);
+        assert!(
+            points.iter().all(|p| (p.1 - points[0].1).abs() < 0.5),
+            "{points:?}"
         );
     }
 
-    /// A state that receives a signal has a tab in its top left corner,
-    /// and its name below it.
+    /// A hidden arrow turned across the flow puts its second state beside
+    /// its first, a state with states inside too, as PlantUML does.
+    #[test]
+    fn a_hidden_turned_arrow_puts_a_state_beside_another() {
+        let source = "@startuml\n[*] --> A\nA -right[hidden]-> B\nstate B {\n  [*] --> X\n}\nA --> C\n@enduml\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        let spot = |name: &str| map.states.iter().find(|s| s.name == name).unwrap().rect;
+        let (a, b) = (spot("A"), spot("B"));
+        assert!(b.x > a.x + a.w && b.y < a.y + a.h, "{a:?} {b:?}");
+        // Nothing of it is drawn.
+        let plain = crate::render_mapped(&source.replace("A -right[hidden]-> B\n", ""), None)
+            .unwrap()
+            .0;
+        assert_eq!(
+            svg.matches("<polygon").count(),
+            plain.matches("<polygon").count()
+        );
+    }
+
     #[test]
     fn a_receiving_state_has_a_tab_and_its_name_below_it() {
         let source = "@startuml\nstate R <<sdlreceive>>\nstate P\n@enduml\n";
@@ -2513,14 +2544,7 @@ mod tests {
         let skin = Skin::default();
         let canvas = Canvas::new(&skin.font_name, false);
         let mut scene = layout_container(&diagram.root, &skin, canvas.family()).unwrap();
-        link_crossings(
-            &diagram.root,
-            &mut scene,
-            &skin,
-            canvas.family(),
-            &|_, _| true,
-        )
-        .unwrap();
+        link_crossings(&diagram.root, &mut scene, &skin, canvas.family()).unwrap();
         (diagram.root, scene)
     }
 

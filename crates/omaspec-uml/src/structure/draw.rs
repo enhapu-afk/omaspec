@@ -992,6 +992,8 @@ fn link_crossings(
             to: [path.as_slice(), crossing.to.as_slice()].concat(),
             label: (blocks.label.width, blocks.label.height),
             shape: None,
+            stand: [None; 2],
+            sealed: [false; 2],
         });
         labels.push(blocks);
     }

@@ -41,6 +41,13 @@ pub struct Link {
     /// The line as the writer shaped it ([`crate::hand::shape`]): not
     /// routed, only labeled.
     pub shape: Option<Vec<Point>>,
+    /// Where each end stands for this line, in place of its box: an entry
+    /// or an exit point on the border of the box around it, met from
+    /// inside or from outside ([`crate::state`]).
+    pub stand: [Option<Rect>; 2],
+    /// Whether the box around each end is closed to this line, though it
+    /// holds the end: a point it stands on the border of, met from outside.
+    pub sealed: [bool; 2],
 }
 
 /// What is drawn already, which new lines and labels keep clear of.
@@ -120,7 +127,8 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
         .collect();
     let reach = |index: usize| {
         ends[index].map_or(f32::INFINITY, |(a, b)| {
-            let (a, b) = (center(a.rect), center(b.rect));
+            let [sa, sb] = links[index].stand;
+            let (a, b) = (center(sa.unwrap_or(a.rect)), center(sb.unwrap_or(b.rect)));
             (a.0 - b.0).abs() + (a.1 - b.1).abs()
         })
     };
@@ -158,13 +166,30 @@ pub fn link(top: &[Placement], links: &[Link], drawn: &Drawn) -> Vec<Option<Link
             origin,
             ..Surroundings::default()
         };
-        obstacles(top, Some(&link.from), Some(&link.to), &mut around);
+        // A box closed to the line, though it holds an end, is one it
+        // does not lead into.
+        fn into(path: &[usize], sealed: bool) -> &[usize] {
+            match sealed {
+                true => &path[..path.len().saturating_sub(1)],
+                false => path,
+            }
+        }
+        let (from_in, to_in) = (
+            into(&link.from, link.sealed[0]),
+            into(&link.to, link.sealed[1]),
+        );
+        obstacles(top, Some(from_in), Some(to_in), &mut around);
         around.obstacles.extend(drawn.notes.iter().copied());
         // A line between a state and a state inside it runs to the outer
         // one's title from inside, or from it: the title is its end, no
         // longer in its way (REQ-072).
-        let (from_end, from_title) = end_at(from, &link.from, &link.to);
-        let (to_end, to_title) = end_at(to, &link.to, &link.from);
+        let (mut from_end, from_title) = end_at(from, &link.from, &link.to);
+        let (mut to_end, to_title) = end_at(to, &link.to, &link.from);
+        for (end, stand) in [(&mut from_end, link.stand[0]), (&mut to_end, link.stand[1])] {
+            if let Some(rect) = stand {
+                end.rect = rect;
+            }
+        }
         for (end, title) in [(from_end, from_title), (to_end, to_title)] {
             if title {
                 around.obstacles.retain(|&rect| rect != end.rect);
@@ -412,6 +437,8 @@ mod tests {
             to: vec![2],
             label: (30.0, 12.0),
             shape: Some(points),
+            stand: [None; 2],
+            sealed: [false; 2],
         };
         let straight = vec![(60.0, 15.0), (240.0, 15.0)];
         let around = vec![
@@ -467,6 +494,8 @@ mod tests {
             to: vec![1, 1],
             label: (30.0, 12.0),
             shape: None,
+            stand: [None; 2],
+            sealed: [false; 2],
         }];
         let routed = link(&top, &links, &Drawn::default());
         let linked = routed[0].as_ref().expect("routed");
@@ -510,6 +539,8 @@ mod tests {
             to: vec![3],
             label: (0.0, 0.0),
             shape: None,
+            stand: [None; 2],
+            sealed: [false; 2],
         }];
         let routed = link(&top, &links, &Drawn::default());
         let points = &routed[0].as_ref().unwrap().points;
@@ -524,6 +555,8 @@ mod tests {
             to: vec![1, 7],
             label: (0.0, 0.0),
             shape: None,
+            stand: [None; 2],
+            sealed: [false; 2],
         }];
         assert_eq!(link(&top, &links, &Drawn::default()), vec![None]);
     }

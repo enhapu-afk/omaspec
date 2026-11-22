@@ -90,7 +90,6 @@ pub(super) fn layout_regions(
                 point: None,
                 title_shift: 0.0,
                 sideways: false,
-                aside: (0.0, 0.0),
             },
         });
     }
@@ -178,16 +177,13 @@ pub(super) fn link_crossings(
     scene: &mut Scene,
     skin: &Skin,
     family: Family,
-    wanted: &dyn Fn(&[usize], &Crossing) -> bool,
 ) -> Result<(), Declined> {
     let mut found = Vec::new();
     gather(root, &mut Vec::new(), &mut found);
     // The transitions laid out with the containers around them are drawn
     // already; a hidden one only ranked the boxes, and is not routed.
-    // Those `wanted` leaves out wait for a later pass.
     found.retain(|(path, slot, crossing)| {
         crossing.arrow.dash != Dash::Hidden
-            && wanted(path, crossing)
             && scene
                 .scene_at(path)
                 .and_then(|scene| scene.edges.get(*slot))
@@ -200,11 +196,22 @@ pub(super) fn link_crossings(
     let mut links = Vec::with_capacity(found.len());
     for (path, _, crossing) in &found {
         let label = edge_label(&crossing.arrow, skin, family)?;
+        let from = [path.as_slice(), &crossing.from].concat();
+        let to = [path.as_slice(), &crossing.to].concat();
+        // An end at a point stands where it meets this line, its state
+        // closed to the line where it meets it from outside.
+        let stand = |end: &[usize], other: &[usize]| {
+            super::points::stance(root, scene, end, other)
+                .map_or((None, false), |(at, sealed)| (Some(at), sealed))
+        };
+        let ((from_at, from_sealed), (to_at, to_sealed)) = (stand(&from, &to), stand(&to, &from));
         links.push(Link {
-            from: [path.as_slice(), &crossing.from].concat(),
-            to: [path.as_slice(), &crossing.to].concat(),
+            from,
+            to,
             label: (label.width, label.height),
             shape: None,
+            stand: [from_at, to_at],
+            sealed: [from_sealed, to_sealed],
         });
         labels.push(label);
     }
@@ -212,13 +219,42 @@ pub(super) fn link_crossings(
     let mut drawn = Drawn::default();
     drawn_in(scene, &mut drawn);
     let routed = across::link(&top, &links, &drawn);
-    for (((path, slot, crossing), label), linked) in found.iter().zip(labels).zip(routed) {
-        let Some(linked) = linked else {
+    let zipped = found.iter().zip(labels).zip(routed).zip(&links);
+    for ((((path, slot, crossing), label), linked), link) in zipped {
+        let Some(mut linked) = linked else {
             return Err(Declined::at(
                 crossing.arrow.line,
                 "no way was found for this transition between the states",
             ));
         };
+        // Laid to where a point stood for it, the line now meets the point;
+        // two points that face each other across the gap between their
+        // states are joined straight.
+        let at = |end: &[usize]| super::points::rect_at(root, scene, end);
+        let facing = match (link.stand, at(&link.from), at(&link.to)) {
+            ([Some(a), Some(b)], Some(ra), Some(rb)) => super::points::facing((ra, a), (rb, b)),
+            _ => None,
+        };
+        match facing {
+            Some(straight) => linked.points = straight,
+            None => {
+                let mut met = false;
+                for (start, end, stand) in [
+                    (true, &link.from, link.stand[0]),
+                    (false, &link.to, link.stand[1]),
+                ] {
+                    if let Some(stand) = stand
+                        && let Some(rect) = at(end)
+                    {
+                        super::points::meet(&mut linked.points, start, stand, rect);
+                        met = true;
+                    }
+                }
+                if met {
+                    super::points::straighten(&mut linked.points);
+                }
+            }
+        }
         let stroke = arrow_stroke(skin, &crossing.arrow)?;
         if let Some(here) = scene.scene_at(path)
             && let Some(edge) = here.edges.get_mut(*slot)

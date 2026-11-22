@@ -594,7 +594,15 @@ impl Layout<'_> {
                 let (w, h) = (text.width + 2.0 * pad, text.height + 2.0 * pad);
                 let right = if empty { 0.0 } else { body.bounds.2 };
                 let right = right.max(dw / 2.0 + yes.width + 8.0).max(half);
-                let x = right + RAIL + w / 2.0;
+                // A note left of the action on the way back takes room
+                // between it and the loop, as PlantUML gives it.
+                let left_note = match back_note.filter(|note| !note.right) {
+                    Some(note) => {
+                        self.measure(&note.text, self.skin.note.font)?.width + 22.0 + NOTE_GAP
+                    }
+                    None => 0.0,
+                };
+                let x = right + RAIL + left_note + w / 2.0;
                 let y = (meet + cy) / 2.0 - h / 2.0;
                 shapes.push(Shape::Box {
                     rect: (x - w / 2.0, y, w, h),

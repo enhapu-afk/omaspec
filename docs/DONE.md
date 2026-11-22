@@ -267,6 +267,24 @@ is open and the reasoning around it.
       again, as no hold beside such a state can be kept. Lines inside a
       state are still routed past its border at times, by the router
       between boxes.
+- [x] What the second review of the entry and exit points found
+      (2026-11-22): the router between boxes takes, for each end of a
+      line, where it stands for that line (`across::Link::stand`) and
+      whether the box around it is closed to it (`sealed`). A point stays
+      on its border; a line that leads out of its state is laid to it just
+      outside, the state closed to it, so the line no longer cuts through
+      it; one that stays inside to it just inside, each end on its own.
+      The end is then led on to the point square (`points::meet`), not
+      along the border, a short step the line took on the way smoothed
+      out (`points::straighten`), and two points facing each other across
+      a gap are joined straight. The state's own notes keep their dashed lines.
+      Where the states run left to right, a point's name stands inside its
+      state under its line, as the words of the lines stand over theirs
+      and states stand close beside each other there. A hidden arrow
+      turned across the flow is laid out as a line within the rank, not
+      drawn, which puts its second state beside its first, one with states
+      inside too, as PlantUML does. In activity diagrams a note left of a
+      `backward` action gets its room between the loop and that action.
 
 ### Step 3: the activity diagram
 

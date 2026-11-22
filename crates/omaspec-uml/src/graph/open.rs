@@ -765,11 +765,7 @@ impl<C: Nested> Flat<C> {
                 marked: cx.marked(container, index),
                 arrival: cx.arrival(&look),
                 label_before: cx.label_before(container, index),
-                // A hidden line within the rank (`-right[hidden]->`) ranks
-                // neither box, and holds none: its drawer holds the second
-                // beside the first ([`Nested::holds`]), as a class
-                // diagram's reader does (docs/adr/0021).
-                level: cx.level(container, index).filter(|_| drawn || line.hidden),
+                level: cx.level(container, index).filter(|_| drawn),
                 tree: cx.tree(container, index).filter(|_| drawn),
             });
             level.push(Pending {

@@ -53,6 +53,8 @@ pub(super) fn link_crossings(
             to: to.clone(),
             label: (label.width, label.height),
             shape: None,
+            stand: [None; 2],
+            sealed: [false; 2],
         });
         found.push((home.to_vec(), index, label));
     }
@@ -123,6 +125,8 @@ pub(super) fn link_inward(
             to: to.clone(),
             label: (label.width, label.height),
             shape: None,
+            stand: [None; 2],
+            sealed: [false; 2],
         });
         found.push((
             index,

@@ -4,121 +4,243 @@
 //! is placed ([`onto_borders`]): on the top and bottom border where the
 //! state runs down, on the left and right one where it runs left to
 //! right, as PlantUML puts them. The lines inside the state reach on to
-//! them there. The lines between boxes at a point are laid anew in two
-//! passes of [`super::nest::link_crossings`]: those that stay inside the
-//! point's state with the point stepped just inside, then those that cross
-//! the border with the point stepped just outside ([`step_out`]), so each
-//! leaves and meets it from its side; [`step_in`] then sets the points
-//! back on the border, and those lines' ends with them.
+//! them there. A line between boxes at a point is laid anew by
+//! [`super::nest::link_crossings`] to where the point stands for it
+//! ([`stance`]): just outside its state, which is closed to the line, when
+//! the line leads out of the state; just inside (under its title) when it
+//! stays inside. [`meet`] then leads the line's end on to the point.
 
-use super::super::{Container, Crossing, Direction, Kind};
-use super::{COMP_PAD, Placed, Scene, Side, stack_width};
+use super::super::{Container, Direction, Kind};
+use super::{COMP_PAD, Placed, Rect, Scene, Side, stack_width};
 
 type Point = (f32, f32);
 
 /// Sets each point on its border, the lines inside its state and its
-/// notes with it, takes the route from every transition between boxes that
-/// ends at one, and steps it just inside its state for the first pass.
+/// notes with it, and takes the route from every transition between
+/// boxes that ends at one.
 pub(super) fn onto_borders(root: &Container, scene: &mut Scene) {
     let mut moved = Vec::new();
     lift(root, scene, &mut Vec::new(), &mut moved);
     if !moved.is_empty() {
         unroute(root, scene, &mut Vec::new(), &moved);
-        stand(root, scene, -1.0);
     }
 }
 
-/// Whether `crossing`, held by the container at `path`, ends at a point and
-/// leads out of the state on whose border it stands: such a line is laid
-/// with the point outside.
-pub(super) fn across(root: &Container, path: &[usize], crossing: &Crossing) -> bool {
-    let from = [path, &crossing.from].concat();
-    let to = [path, &crossing.to].concat();
-    let out = |point: &[usize], other: &[usize]| {
-        point_at(root, point).is_some() && !other.starts_with(&point[..point.len() - 1])
-    };
-    out(&from, &to) || out(&to, &from)
-}
-
-/// Steps each point just outside its state, so the lines across its border
-/// are laid to it from outside.
-pub(super) fn step_out(root: &Container, scene: &mut Scene) {
-    stand(root, scene, 1.0);
-}
-
-/// Sets each point back on its border, and the ends of the lines between
-/// boxes laid to it with it.
-pub(super) fn step_in(root: &Container, scene: &mut Scene) {
-    let mut steps = Vec::new();
-    steps_of(root, scene, &mut Vec::new(), &mut steps);
-    if steps.is_empty() {
-        return;
-    }
-    stand(root, scene, 0.0);
-    follow(root, root, scene, &mut Vec::new(), &steps);
-}
-
-/// Each point of `container` and inside it, laid out as `scene` at `path`,
-/// with where it stood for each pass: its step inside and its step outside.
-fn steps_of(
-    container: &Container,
-    scene: &mut Scene,
-    path: &mut Vec<usize>,
-    steps: &mut Vec<(Vec<usize>, Point, Point)>,
-) {
-    for (index, (node, placed)) in container
-        .nodes
-        .iter()
-        .zip(scene.nodes.iter_mut())
-        .enumerate()
-    {
-        path.push(index);
-        let inside = &node.children;
-        let band = placed.item.band();
-        for (at, (point, spot)) in inside.nodes.iter().zip(&placed.children.nodes).enumerate() {
-            if !matches!(point.kind, Kind::Entry | Kind::Exit) {
-                continue;
-            }
-            let size = (spot.rect.w, spot.rect.h);
-            let within = offset(point.kind, inside.direction, size, band, -1.0);
-            let out = offset(point.kind, inside.direction, size, band, 1.0);
-            steps.push(([path.as_slice(), &[at]].concat(), within, out));
-        }
-        steps_of(inside, &mut placed.children, path, steps);
-        path.pop();
-    }
-}
-
-/// Whether a point stands at `path` in `root`.
-fn point_at(root: &Container, path: &[usize]) -> Option<()> {
-    let (last, holder) = path.split_last()?;
+/// Where the end at `end` of a line to `other` stands for it, when it is
+/// a point of `root`, laid out as `scene`, and whether the point's state
+/// is closed to the line: a step outside the state for a line that leads
+/// out of it, a step inside (under the title of a state whose states run
+/// down, for an entry) for one that stays inside. `None` for an end that
+/// is no point.
+pub(super) fn stance(
+    root: &Container,
+    scene: &Scene,
+    end: &[usize],
+    other: &[usize],
+) -> Option<(Rect, bool)> {
+    let (last, holder) = end.split_last()?;
     let mut container = root;
+    let mut laid = scene;
+    let mut state = None;
     for &index in holder {
+        state = Some(laid.nodes.get(index)?);
         container = &container.nodes.get(index)?.children;
+        laid = &laid.nodes.get(index)?.children;
     }
     let node = container.nodes.get(*last)?;
-    matches!(node.kind, Kind::Entry | Kind::Exit).then_some(())
+    if !matches!(node.kind, Kind::Entry | Kind::Exit) {
+        return None;
+    }
+    let rect = laid.nodes.get(*last)?.rect;
+    let band = state.map_or(0.0, |state| state.item.band());
+    let out = !other.starts_with(holder);
+    let (dx, dy) = step(node.kind, container.direction, (rect.w, rect.h), band, out);
+    let stand = Rect {
+        x: rect.x + dx,
+        y: rect.y + dy,
+        ..rect
+    };
+    Some((stand, out))
 }
 
 /// How far a point of `kind`, `size` large, in a state whose states run
 /// `direction` and whose title band is `band` high, stands off its place
-/// on the border: a step outside (`toward` 1), a step inside (`-1`), below
-/// the title band for an entry where the states run down, or none (`0`).
-fn offset(kind: Kind, direction: Direction, (w, h): Point, band: f32, toward: f32) -> Point {
+/// on the border for a line that meets it from outside (`out`), or from
+/// inside: under the title band for an entry where the states run down.
+/// Far enough off that a line met beside it can turn onto it with room.
+fn step(kind: Kind, direction: Direction, (w, h): Point, band: f32, out: bool) -> Point {
     let sign = if kind == Kind::Entry { -1.0 } else { 1.0 };
-    let out = match direction {
-        Direction::Down => (0.0, sign * (h / 2.0 + 1.0)),
-        Direction::Right => (sign * (w / 2.0 + 1.0), 0.0),
+    let outward = match direction {
+        Direction::Down => (0.0, sign * (h / 2.0 + OFF)),
+        Direction::Right => (sign * (w / 2.0 + OFF), 0.0),
     };
-    if toward > 0.0 {
-        out
-    } else if toward == 0.0 {
-        (0.0, 0.0)
+    if out {
+        outward
     } else if direction == Direction::Down && kind == Kind::Entry {
-        (0.0, band + h / 2.0 + 1.0)
+        (0.0, band + h / 2.0 + OFF)
     } else {
-        (-out.0, -out.1)
+        (-outward.0, -outward.1)
     }
+}
+
+/// How far past a point's half size it stands off its place for a line.
+const OFF: f32 = 14.0;
+
+/// The start (or the end) of the line `points`, laid to where its point
+/// stood for it (`stand`), led on to the point at `rect`: along the line's
+/// end run where that runs toward the point; else, its end run turned
+/// onto the point, so it meets it square and not along the border.
+pub(super) fn meet(points: &mut Vec<Point>, start: bool, stand: Rect, rect: Rect) {
+    let n = points.len();
+    if n < 2 {
+        return;
+    }
+    let (end, next) = match start {
+        true => (0, 1),
+        false => (n - 1, n - 2),
+    };
+    let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
+    let (sx, sy) = (stand.x + stand.w / 2.0, stand.y + stand.h / 2.0);
+    // Off the point up or down (`true`), or to a side.
+    let upright = (sy - cy).abs() >= (sx - cx).abs();
+    // Where the line meets the point: the middle of its side toward
+    // where it stood.
+    let side = match upright {
+        true => (cx, if sy < cy { rect.y } else { rect.y + rect.h }),
+        false => (if sx < cx { rect.x } else { rect.x + rect.w }, cy),
+    };
+    let (p, q) = (points[end], points[next]);
+    let toward = match upright {
+        true => (p.0 - q.0).abs() < 0.5,
+        false => (p.1 - q.1).abs() < 0.5,
+    };
+    if toward {
+        points[end] = match upright {
+            true => (p.0, side.1),
+            false => (side.0, p.1),
+        };
+        return;
+    }
+    let turn = match upright {
+        true => (side.0, p.1),
+        false => (p.0, side.1),
+    };
+    points[end] = turn;
+    match start {
+        true => points.insert(0, side),
+        false => points.push(side),
+    }
+}
+
+/// The line `points` without a short step between two runs that lie side
+/// by side (a jog, which the line takes to meet a point where it stood
+/// for it): one of the two runs moves onto the other's line, where the
+/// run beyond it lets it, so no run turns slant and the ends stay.
+pub(super) fn straighten(points: &mut Vec<Point>) {
+    const JOG: f32 = 8.0;
+    let flat = |a: Point, b: Point| (a.1 - b.1).abs() < 0.5;
+    let upright = |a: Point, b: Point| (a.0 - b.0).abs() < 0.5;
+    let parallel = |a: Point, b: Point, c: Point, d: Point| {
+        (flat(a, b) && flat(c, d)) || (upright(a, b) && upright(c, d))
+    };
+    let mut i = 1;
+    while i + 2 < points.len() {
+        let (a, b, c, d) = (points[i - 1], points[i], points[i + 1], points[i + 2]);
+        let step = (c.0 - b.0, c.1 - b.1);
+        let short = step.0.abs().max(step.1.abs());
+        if short < 0.5 || short >= JOG || !parallel(a, b, c, d) {
+            i += 1;
+            continue;
+        }
+        let along = |p: Point, q: Point| match flat(b, c) {
+            true => flat(p, q),
+            false => upright(p, q),
+        };
+        // The run after the step moves back onto the one before it, where
+        // the run after it lies along the step; else the run before moves
+        // on, where the run before it does. Never an end.
+        if i + 3 < points.len() && along(d, points[i + 3]) {
+            points[i + 1] = (c.0 - step.0, c.1 - step.1);
+            points[i + 2] = (d.0 - step.0, d.1 - step.1);
+        } else if i >= 2 && along(points[i - 2], a) {
+            points[i - 1] = (a.0 + step.0, a.1 + step.1);
+            points[i] = (b.0 + step.0, b.1 + step.1);
+        } else {
+            i += 1;
+            continue;
+        }
+        // The step is gone: one point of the two it joined is left over,
+        // and one between two runs in a line.
+        points.dedup_by(|p, q| (p.0 - q.0).abs() < 0.5 && (p.1 - q.1).abs() < 0.5);
+        let mut k = 1;
+        while k + 1 < points.len() {
+            let (p, q, r) = (points[k - 1], points[k], points[k + 1]);
+            if (flat(p, q) && flat(q, r)) || (upright(p, q) && upright(q, r)) {
+                points.remove(k);
+            } else {
+                k += 1;
+            }
+        }
+        i = 1;
+    }
+}
+
+/// The straight line between two points, each at its place and where it
+/// stood for the line, that face each other on one line across the gap
+/// between their states: from the side of the one to the side of the
+/// other; `None` for any others.
+pub(super) fn facing((ra, sa): (Rect, Rect), (rb, sb): (Rect, Rect)) -> Option<Vec<Point>> {
+    let middle = |r: Rect| (r.x + r.w / 2.0, r.y + r.h / 2.0);
+    let ((ax, ay), (bx, by)) = (middle(ra), middle(rb));
+    let (out_a, out_b) = (
+        (middle(sa).0 - ax, middle(sa).1 - ay),
+        (middle(sb).0 - bx, middle(sb).1 - by),
+    );
+    // Side by side, each stepping out toward the other.
+    if (ay - by).abs() < 0.5
+        && out_a.1 == 0.0
+        && out_b.1 == 0.0
+        && (bx - ax) * out_a.0 > 0.0
+        && (ax - bx) * out_b.0 > 0.0
+    {
+        let (a, b) = if ax < bx {
+            (ra.x + ra.w, rb.x)
+        } else {
+            (ra.x, rb.x + rb.w)
+        };
+        return Some(vec![(a, ay), (b, by)]);
+    }
+    if (ax - bx).abs() < 0.5
+        && out_a.0 == 0.0
+        && out_b.0 == 0.0
+        && (by - ay) * out_a.1 > 0.0
+        && (ay - by) * out_b.1 > 0.0
+    {
+        let (a, b) = if ay < by {
+            (ra.y + ra.h, rb.y)
+        } else {
+            (ra.y, rb.y + rb.h)
+        };
+        return Some(vec![(ax, a), (bx, b)]);
+    }
+    None
+}
+
+/// Where the point at `path` of `root` stands in `scene`; `None` where no
+/// point is.
+pub(super) fn rect_at(root: &Container, scene: &Scene, path: &[usize]) -> Option<Rect> {
+    let (last, holder) = path.split_last()?;
+    let mut container = root;
+    let mut laid = scene;
+    for &index in holder {
+        container = &container.nodes.get(index)?.children;
+        laid = &laid.nodes.get(index)?.children;
+    }
+    let node = container.nodes.get(*last)?;
+    if !matches!(node.kind, Kind::Entry | Kind::Exit) {
+        return None;
+    }
+    laid.nodes.get(*last).map(|placed| placed.rect)
 }
 
 /// Moves the points of every state in `container`, laid out as `scene` at
@@ -203,81 +325,17 @@ fn lift(
             .iter_mut()
             .filter(|n| n.target == index && n.on.is_none())
         {
-            match note.side {
-                Side::Top => note.y -= over,
-                Side::Bottom => note.y += under,
-                Side::Left | Side::Right => {}
+            let dy = match note.side {
+                Side::Top => -over,
+                Side::Bottom => under,
+                Side::Left | Side::Right => 0.0,
+            };
+            note.y += dy;
+            // The note's end of its dashed line goes with it.
+            if let Some((from, _)) = &mut note.tether {
+                from.1 += dy;
             }
         }
-    }
-}
-
-/// Stands every point of `container` and inside it `toward` its outward
-/// step ([`outward`]) off its place on the border: one step outside, one
-/// inside (`-1`), or on it (`0`). A point keeps how far it stands off, so
-/// its name is kept clear where it ends ([`super::point_name`]).
-fn stand(container: &Container, scene: &mut Scene, toward: f32) {
-    for (node, placed) in container.nodes.iter().zip(scene.nodes.iter_mut()) {
-        let inside = &node.children;
-        let band = placed.item.band();
-        for (point, spot) in inside.nodes.iter().zip(placed.children.nodes.iter_mut()) {
-            if !matches!(point.kind, Kind::Entry | Kind::Exit) {
-                continue;
-            }
-            let size = (spot.rect.w, spot.rect.h);
-            let now = offset(point.kind, inside.direction, size, band, toward);
-            let (was_x, was_y) = spot.item.aside;
-            spot.rect.x += now.0 - was_x;
-            spot.rect.y += now.1 - was_y;
-            spot.item.aside = now;
-        }
-        stand(inside, &mut placed.children, toward);
-    }
-}
-
-/// The ends of the transitions between boxes at a point, in `container`
-/// of the diagram `root`, laid out as `scene` at `path`, and inside it,
-/// moved with the point from where they were laid to it (`steps`, by
-/// [`stand`]): from outside for a line across the point's border, else
-/// from inside.
-fn follow(
-    root: &Container,
-    container: &Container,
-    scene: &mut Scene,
-    path: &mut Vec<usize>,
-    steps: &[(Vec<usize>, Point, Point)],
-) {
-    let by = |end: &[usize], crossing: &Crossing| {
-        let at = [path.as_slice(), end].concat();
-        let (_, within, out) = steps.iter().find(|(point, _, _)| *point == at)?;
-        let (dx, dy) = if across(root, path, crossing) {
-            *out
-        } else {
-            *within
-        };
-        Some((-dx, -dy))
-    };
-    for (index, crossing) in container.crossings.iter().enumerate() {
-        let (from, to) = (by(&crossing.from, crossing), by(&crossing.to, crossing));
-        let Some(line) = scene.edges.get_mut(container.edges.len() + index) else {
-            continue;
-        };
-        if let Some(by) = from {
-            reach(&mut line.points, true, by);
-        }
-        if let Some(by) = to {
-            reach(&mut line.points, false, by);
-        }
-    }
-    for (index, (node, placed)) in container
-        .nodes
-        .iter()
-        .zip(scene.nodes.iter_mut())
-        .enumerate()
-    {
-        path.push(index);
-        follow(root, &node.children, &mut placed.children, path, steps);
-        path.pop();
     }
 }
 
@@ -318,7 +376,7 @@ const GAP: f32 = 4.0;
 
 /// The dashed line from `note` to the point `rect` it is about: from the
 /// middle of the note's side toward the point to the point's nearest side.
-fn tether(note: &super::PlacedNote, rect: super::Rect) -> (Point, Point) {
+fn tether(note: &super::PlacedNote, rect: Rect) -> (Point, Point) {
     let (cx, cy) = (rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
     let (nx, ny) = (note.x + note.w / 2.0, note.y + note.h / 2.0);
     if (nx - cx).abs() * rect.h >= (ny - cy).abs() * rect.w {
@@ -372,7 +430,7 @@ fn reach(points: &mut Vec<Point>, start: bool, (dx, dy): Point) {
 
 /// Takes the route from every transition between boxes that ends at a
 /// point in `moved`, at any depth of `container`, laid out as `scene` at
-/// `path`: both passes of [`super::nest::link_crossings`] lay them anew.
+/// `path`: [`super::nest::link_crossings`] lays them anew.
 fn unroute(container: &Container, scene: &mut Scene, path: &mut Vec<usize>, moved: &[Vec<usize>]) {
     let ends = |end: &[usize]| {
         moved

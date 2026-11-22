@@ -615,6 +615,18 @@ fn action_shape(
 
 #[cfg(test)]
 mod tests {
+    /// A note left of the action on a loop's way back stands between the
+    /// loop and that action, clear of both.
+    #[test]
+    fn a_note_left_of_backward_keeps_off_the_loop() {
+        let source = "@startuml\nrepeat :a;\n:b;\nbackward :back;\nnote left: a long note on the left of it all\nrepeat while (x?) is (yes) not (no)\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        let (body, back, note) = (at(2), at(3), at(4));
+        assert!(note.x > body.x + body.w, "{note:?} {body:?}");
+        assert!(note.x + note.w < back.x, "{note:?} {back:?}");
+    }
+
     /// A hidden arrow is no line of the picture or of the map, nor are its
     /// words; a split whose flows all start hidden has no line on top.
     #[test]
