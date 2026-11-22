@@ -70,7 +70,9 @@ of element) and step 0 (a second `@startuml` line).
 
 - [ ] `switch`, `case`, `endswitch`.
 - [ ] `backward:` in a `while`, `label` and `goto`.
-- [ ] `floating note`; a note that follows no action.
+- [ ] `package`, `rectangle` and `card` frames around actions (as
+      `partition` and `group` are); the two examples with a floating note
+      or a note before its action wait on Creole rules in a note (step 5).
 - [ ] `skinparam ArrowHeadColor none`,
       `conditionStyle diamond`, `!pragma useVerticalIf on`.
 - [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity

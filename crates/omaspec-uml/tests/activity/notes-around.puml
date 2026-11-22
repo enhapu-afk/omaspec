@@ -1,0 +1,17 @@
+@startuml
+' A floating note stands beside its action as every note does; a note
+' before the first action of its flow is that action's, one after a group
+' its last action's.
+start
+:Open the shop;
+floating note left: Every morning
+partition Counter {
+  note
+    Before anyone comes
+  end note
+  :Count the till;
+  :Unlock the door;
+}
+note right: Then it is open
+stop
+@enduml

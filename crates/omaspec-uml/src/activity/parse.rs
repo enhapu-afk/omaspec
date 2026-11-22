@@ -168,6 +168,9 @@ struct Parser {
     pending: Option<Arrow>,
     /// Whether a step came yet: swimlanes must come first.
     any_step: bool,
+    /// A note before the first action of its flow, waiting for it, with
+    /// its line.
+    waiting: Option<(Note, usize)>,
 }
 
 /// A block that is open, with what it holds so far.
@@ -345,6 +348,11 @@ impl Parser {
         if text.starts_with("->") || text.starts_with("-[") {
             return self.arrow(lines, at);
         }
+        // `floating note`: Omaspec draws every note as PlantUML draws a
+        // floating one, without a tail to its action.
+        if let Some(rest) = word(text, "floating").and_then(|rest| word(rest, "note")) {
+            return self.note(lines, at, rest);
+        }
         if let Some(rest) = word(text, "note") {
             return self.note(lines, at, rest);
         }
@@ -416,6 +424,9 @@ impl Parser {
     }
 
     fn finish(mut self) -> Result<Diagram, Declined> {
+        if let Some((_, line)) = self.waiting {
+            return Err(waits(line));
+        }
         // A block left open ends with the diagram, the innermost first, as
         // PlantUML ends it: an `if` at its `endif`, a `repeat` back to its
         // start without a test. Lint says which one is not closed.
@@ -459,7 +470,17 @@ impl Parser {
         }
     }
 
-    fn add(&mut self, node: Node, no: usize) -> Result<(), Declined> {
+    fn add(&mut self, mut node: Node, no: usize) -> Result<(), Declined> {
+        // A note that came before is the action's, as PlantUML puts it.
+        if let Some((note, line)) = self.waiting.take() {
+            let Node::Action {
+                note: slot @ None, ..
+            } = &mut node
+            else {
+                return Err(waits(line));
+            };
+            *slot = Some(note);
+        }
         let arrow = self.pending.take();
         self.push(Step {
             node,
@@ -476,6 +497,9 @@ impl Parser {
     }
 
     fn open(&mut self, what: Opened, no: usize) -> Result<(), Declined> {
+        if let Some((_, line)) = self.waiting {
+            return Err(waits(line));
+        }
         if self.blocks.len() >= MAX_DEPTH {
             return Err(Declined::at(
                 no,
@@ -784,7 +808,32 @@ impl Parser {
             backward.note = Some(note);
             return Ok(next);
         }
-        match self.flow().steps.last_mut() {
+        // The action before it, the last one in a group just closed; or,
+        // before the first action of its flow, the next one.
+        let free = self.waiting.is_none();
+        let flow = self.flow();
+        let mut depth = 0;
+        let mut seen = &flow.steps;
+        while let Some(Step {
+            node: Node::Group { flow, .. },
+            ..
+        }) = seen.last()
+        {
+            seen = &flow.steps;
+            depth += 1;
+        }
+        let mut steps = &mut flow.steps;
+        for _ in 0..depth {
+            let Some(Step {
+                node: Node::Group { flow, .. },
+                ..
+            }) = steps.last_mut()
+            else {
+                unreachable!("counted above");
+            };
+            steps = &mut flow.steps;
+        }
+        match steps.last_mut() {
             Some(Step {
                 node: Node::Action {
                     note: slot @ None, ..
@@ -792,6 +841,10 @@ impl Parser {
                 ..
             }) => {
                 *slot = Some(note);
+                Ok(next)
+            }
+            None if free => {
+                self.waiting = Some((note, no));
                 Ok(next)
             }
             _ => Err(Declined::at(
@@ -1153,6 +1206,14 @@ impl Parser {
     }
 }
 
+/// A note before an action that never came.
+fn waits(line: usize) -> Declined {
+    Declined::at(
+        line,
+        "a note before a step that is no action is not supported yet",
+    )
+}
+
 /// The name of a connector, `(A)` or `(A);`: one letter or digit, as
 /// PlantUML takes it; `Err` with the name for one of more, which PlantUML
 /// does not take; `None` for any other line.
@@ -1454,6 +1515,34 @@ mod tests {
             panic!()
         };
         assert!(note.right);
+    }
+
+    /// A floating note is a note; one before the first action of its flow
+    /// is that action's, one after a group its last action's.
+    #[test]
+    fn a_note_finds_its_action() {
+        let d = diagram(
+            "start\n:a;\nfloating note left: aside\npartition P {\n  note\n    first\n  end note\n  :b;\n  :c;\n}\nnote right: after\n",
+        );
+        assert_eq!(
+            outline(&d.flow),
+            "start@0 A(a;note aside)@0 group[P:A(b;note first)@0 A(c;note after)@0]@0"
+        );
+        let Node::Group { flow, .. } = &d.flow.steps[2].node else {
+            panic!()
+        };
+        let Node::Action { note, .. } = &flow.steps[0].node else {
+            panic!()
+        };
+        assert_eq!(note.as_ref().unwrap().text.value, "first");
+        for (source, part) in [
+            ("start\nnote: before\nstop", "follow an action"),
+            ("note: before\nif (x) then\nendif", "no action"),
+            ("note: never", "no action"),
+        ] {
+            let err = declined(source);
+            assert!(err.reason.contains(part), "{source}: {}", err.reason);
+        }
     }
 
     #[test]

@@ -341,6 +341,13 @@ is open and the reasoning around it.
 - [x] Words on `end fork` (2026-11-22): `end fork {or}`, `end fork {and}`,
       right of the bar that joins the flows, in the arrows' words, tied to
       where they stand on their line. The guide: 51 of 62.
+- [x] Notes that find their action (2026-11-22): `floating note left: …`
+      is drawn as every note is, without a tail to its action, as PlantUML
+      draws a floating one; a note before the first action of its flow is
+      that action's (in a partition before its first step, as PlantUML
+      puts it), one after a group its last action's. A note that waits
+      for an action and finds a step that is none, or none at all,
+      declines and says so.
 
 ## Phase 0: foundation and spikes
 
