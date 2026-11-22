@@ -286,7 +286,14 @@ impl Layout<'_> {
                 yes,
                 body,
                 out,
-            } => self.while_loop(test, yes.as_ref(), body, out.as_ref(), lane)?,
+                backward,
+            } => self.while_loop(
+                test,
+                [yes.as_ref(), out.as_ref()],
+                body,
+                backward.as_deref(),
+                lane,
+            )?,
             Node::Repeat {
                 start,
                 body,
@@ -432,12 +439,16 @@ impl Layout<'_> {
         Ok(Some(Edge::new(points, true, self.stroke(arrow)?)))
     }
 
+    /// `while`: the diamond, the flow below it, the way back on the left
+    /// and the way out on the right; with a `backward` action, the way back
+    /// runs on the right through it and the way out on the left, as
+    /// PlantUML draws it.
     fn while_loop(
         &self,
         test: &Text,
-        yes: Option<&Text>,
+        [yes, out]: [Option<&Text>; 2],
         body: &Flow,
-        out: Option<&Text>,
+        backward: Option<&Backward>,
         lane: usize,
     ) -> Result<Tile, Declined> {
         let font = self.skin.arrow_font;
@@ -466,44 +477,110 @@ impl Layout<'_> {
             )),
         }
         let bottom = if empty { top } else { body.bounds.3 };
-        let back_y = bottom + CLEAR;
-        if let Some(exit) = if empty {
+        let mut back_y = bottom + CLEAR;
+        let goes_back = if empty {
             Some(pt(0.0, top, lane))
         } else {
             body.exit
-        } {
-            let rail = body.bounds.0.min(-dw / 2.0) - RAIL;
-            edges.push(Edge::new(
-                vec![
-                    exit,
-                    pt(exit.x, back_y, lane),
-                    pt(rail, back_y, lane),
-                    pt(rail, cy, lane),
-                    pt(-dw / 2.0, cy, lane),
-                ],
-                true,
-                self.stroke(body.arrow_out.as_deref())?,
-            ));
-        }
+        };
+        let back_stroke = self.stroke(body.arrow_out.as_deref())?;
+        let plain = self.stroke(None)?;
+        // The side the way out takes: right, or left with a `backward`.
+        let side = match backward {
+            None => {
+                if let Some(exit) = goes_back {
+                    let rail = body.bounds.0.min(-dw / 2.0) - RAIL;
+                    edges.push(Edge::new(
+                        vec![
+                            exit,
+                            pt(exit.x, back_y, lane),
+                            pt(rail, back_y, lane),
+                            pt(rail, cy, lane),
+                            pt(-dw / 2.0, cy, lane),
+                        ],
+                        true,
+                        back_stroke,
+                    ));
+                }
+                1.0
+            }
+            Some(back) => {
+                let pad = self.skin.padding;
+                let text = self.measure(&back.text, self.skin.activity.font)?;
+                let incoming = self.measure_opt(back.incoming.as_ref(), font)?;
+                let outgoing = self.measure_opt(back.outgoing.as_ref(), font)?;
+                let (w, h) = (text.width + 2.0 * pad, text.height + 2.0 * pad);
+                // Room on the right for the action and the lines to it.
+                back_y = back_y.max(cy + h + 2.0 * GAP + incoming.height + outgoing.height);
+                let right = if empty { 0.0 } else { body.bounds.2 };
+                let right = right.max(dw / 2.0);
+                let left_note = match back.note.as_ref().filter(|note| !note.right) {
+                    Some(note) => {
+                        self.measure(&note.text, self.skin.note.font)?.width + 22.0 + NOTE_GAP
+                    }
+                    None => 0.0,
+                };
+                let x = right + RAIL + left_note + w / 2.0;
+                let y = (cy + back_y) / 2.0 - h / 2.0;
+                shapes.push(Shape::Box {
+                    rect: (x - w / 2.0, y, w, h),
+                    text,
+                    fill: self.skin.activity.fill,
+                    shape: ActionShape::Plain,
+                    lane,
+                });
+                if let Some(note) = &back.note {
+                    shapes.push(self.note_beside(note, (x - w / 2.0, y, w, h), lane)?);
+                }
+                shapes.extend(self.beside(incoming, x, y + h + 2.0, lane));
+                shapes.extend(self.beside(outgoing, x, cy + 2.0, lane));
+                if let Some(exit) = goes_back {
+                    edges.push(Edge::new(
+                        vec![
+                            exit,
+                            pt(exit.x, back_y, lane),
+                            pt(x, back_y, lane),
+                            pt(x, y + h, lane),
+                        ],
+                        true,
+                        back_stroke,
+                    ));
+                }
+                edges.push(Edge::new(
+                    vec![pt(x, y, lane), pt(x, cy, lane), pt(dw / 2.0, cy, lane)],
+                    true,
+                    plain,
+                ));
+                -1.0
+            }
+        };
+        let corner = side * dw / 2.0;
         if !out.is_empty() {
+            let (x, align) = match side > 0.0 {
+                true => (corner + 2.0, Align::Left),
+                false => (corner - 2.0, Align::Right),
+            };
             shapes.push(Shape::Label {
-                at: (dw / 2.0 + 2.0, cy - out.height - 1.0),
+                at: (x, cy - out.height - 1.0),
                 text: out.clone(),
-                align: Align::Left,
+                align,
                 lane,
             });
         }
-        let rail = body.bounds.2.max(dw / 2.0 + out.width + 8.0) + RAIL;
+        let rail = match side > 0.0 {
+            true => body.bounds.2.max(dw / 2.0 + out.width + 8.0) + RAIL,
+            false => body.bounds.0.min(-dw / 2.0 - out.width - 8.0) - RAIL,
+        };
         let exit_y = back_y + RAIL;
         edges.push(Edge::new(
             vec![
-                pt(dw / 2.0, cy, lane),
+                pt(corner, cy, lane),
                 pt(rail, cy, lane),
                 pt(rail, exit_y, lane),
                 pt(0.0, exit_y, lane),
             ],
             false,
-            self.stroke(None)?,
+            plain,
         ));
         let mut tile = Tile::new(
             shapes,
@@ -515,9 +592,6 @@ impl Layout<'_> {
         Ok(tile)
     }
 
-    /// `repeat`: a diamond the way back comes into, the flow, the test.
-    /// The way back runs on the left, or on the right through the
-    /// `backward` action, where PlantUML puts it.
     /// A loop: where it starts, a mark the ways back join (or the action
     /// it starts with, `start`), its body, its test, and the way back on
     /// the left, or on the right through its `backward` action.

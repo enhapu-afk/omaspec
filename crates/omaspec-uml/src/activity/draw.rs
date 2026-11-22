@@ -646,6 +646,22 @@ mod tests {
         assert_eq!((bars[0].0, bars[0].2), (bars[1].0, bars[1].2), "{svg}");
     }
 
+    /// With a `backward`, a `while` goes back on the right through its
+    /// action and out on the left, the words of its way out left of the
+    /// diamond, as PlantUML draws it.
+    #[test]
+    fn a_whiles_backward_stands_on_the_right() {
+        let source = "@startuml\nwhile (check filesize ?) is (not empty)\n  :read file;\n  backward:log;\nendwhile (empty)\n:close file;\n@enduml\n";
+        let (_, map) = crate::render_mapped(source, None).unwrap();
+        let at = |line: usize| map.tied.iter().find(|t| t.line == line).unwrap().rect;
+        let (test, body, back, out) = (at(1), at(2), at(3), at(4));
+        assert!(
+            back.x > body.x + body.w && back.x > test.x + test.w,
+            "{back:?} {body:?}"
+        );
+        assert!(out.x + out.w <= test.x, "{out:?} {test:?}");
+    }
+
     /// Each case's words stand beside its line, tied to its line, in the
     /// order of the cases and clear of each other and of the diamond.
     #[test]

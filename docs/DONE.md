@@ -383,6 +383,12 @@ is open and the reasoning around it.
       A point's name that stands out over the top of the diagram makes
       room for itself under the title. fmt and the outline close a split
       at `split end`.
+- [x] `backward` in a `while` (2026-11-22): the way back runs on the
+      right through the action and the way out on the left, its words
+      left of the diamond, as PlantUML draws it; words on the lines to
+      and from the action, `(again) backward :Log; (next)`, as in a
+      `repeat`. A note after it is the body's last action's, as PlantUML
+      puts it. The guide: 53 of 62.
 
 ## Phase 0: foundation and spikes
 

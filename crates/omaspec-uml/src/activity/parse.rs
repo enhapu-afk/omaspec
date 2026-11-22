@@ -197,6 +197,7 @@ enum Opened {
         test: Text,
         yes: Option<Text>,
         body: Flow,
+        backward: Option<Box<Backward>>,
     },
     Repeat {
         start: Option<Text>,
@@ -250,13 +251,22 @@ impl Parser {
     fn line(&mut self, lines: &[Line], at: usize) -> Result<usize, Declined> {
         let Line { no, text, .. } = lines[at];
         let words = squeezed(text);
-        if let Some(Open {
-            what: Opened::Repeat {
+        // After a `backward`, its note and the end of its loop.
+        let ends = match self.blocks.last().map(|open| &open.what) {
+            Some(Opened::Repeat {
                 backward: Some(_), ..
-            },
-            ..
-        }) = self.blocks.last()
-            && two_words(text, "repeat", "while").is_none()
+            }) => Some(("repeat while", two_words(text, "repeat", "while").is_some())),
+            Some(Opened::While {
+                backward: Some(_), ..
+            }) => Some((
+                "endwhile",
+                two_words(text, "end", "while")
+                    .or_else(|| two_words(text, "while", "end"))
+                    .is_some(),
+            )),
+            _ => None,
+        };
+        if let Some((end, false)) = ends
             && keyword(text, "note").is_none()
             && word(text, "floating")
                 .and_then(|rest| keyword(rest, "note"))
@@ -264,7 +274,7 @@ impl Parser {
         {
             return Err(Declined::at(
                 no,
-                "anything but a note or `repeat while` after `backward` is not supported yet",
+                format!("anything but a note or `{end}` after `backward` is not supported yet"),
             ));
         }
         if text.starts_with('|') && !text.starts_with("||") {
@@ -842,7 +852,8 @@ impl Parser {
             text: text_at(&value, no),
             color,
         };
-        // After a `backward`, the note is its action's.
+        // After a `backward` in a `repeat`, the note is its action's; in a
+        // `while`, the body's last action's, as PlantUML puts them.
         if let Some(Open {
             what:
                 Opened::Repeat {
@@ -1086,6 +1097,7 @@ impl Parser {
                 test: text_at(test, no),
                 yes: yes.map(|y| text_at(y, no)),
                 body: Flow::default(),
+                backward: None,
             },
             no,
         )
@@ -1107,11 +1119,17 @@ impl Parser {
         let open = self.blocks.pop().expect("checked by innermost");
         self.close(
             |what| match what {
-                Opened::While { test, yes, body } => Node::While {
+                Opened::While {
+                    test,
+                    yes,
+                    body,
+                    backward,
+                } => Node::While {
                     test,
                     yes,
                     body,
                     out,
+                    backward,
                 },
                 _ => unreachable!("checked by innermost"),
             },
@@ -1189,11 +1207,13 @@ impl Parser {
                 "colors on the lines of a `backward` are not supported yet",
             ));
         }
-        self.innermost("repeat", no)?;
+        if self.blocks.last().map(Open::keyword) != Some("while") {
+            self.innermost("repeat", no)?;
+        }
         self.close_flow()?;
         let at = |l: &str| Some(text_at(l, no)).filter(|t| !t.value.is_empty());
         if let Some(Open {
-            what: Opened::Repeat { backward, .. },
+            what: Opened::Repeat { backward, .. } | Opened::While { backward, .. },
             ..
         }) = self.blocks.last_mut()
         {
@@ -1461,12 +1481,16 @@ mod tests {
                         yes,
                         body,
                         out,
+                        backward,
                     } => format!(
-                        "while[{}?{}:{}:{}]",
+                        "while[{}?{}:{}:{}{}]",
                         test.value,
                         yes.as_ref().map_or("", |t| t.value.as_str()),
                         outline(body),
-                        out.as_ref().map_or("", |t| t.value.as_str())
+                        out.as_ref().map_or("", |t| t.value.as_str()),
+                        backward
+                            .as_ref()
+                            .map_or(String::new(), |b| format!(";back {}", b.text.value))
                     ),
                     Node::Repeat {
                         start,
@@ -1655,6 +1679,40 @@ mod tests {
             panic!()
         };
         assert!(note.right);
+    }
+
+    /// A `while` takes a `backward` action on its way back; a note after
+    /// it is the body's last action's, as PlantUML puts it; anything else
+    /// but `endwhile` after it declines.
+    #[test]
+    fn a_while_takes_a_backward() {
+        let d = diagram(
+            "while (x?) is (yes)\n:a;\n(again) backward :log; (next)\nnote right: n\nendwhile (no)",
+        );
+        assert_eq!(
+            outline(&d.flow),
+            "while[x??yes:A(a;note n)@0:no;back log]@0"
+        );
+        let Node::While {
+            backward: Some(back),
+            ..
+        } = &d.flow.steps[0].node
+        else {
+            panic!()
+        };
+        assert_eq!(
+            (
+                back.incoming.as_ref().unwrap().value.as_str(),
+                back.outgoing.as_ref().unwrap().value.as_str()
+            ),
+            ("again", "next")
+        );
+        let err = declined("while (x?)\n:a;\nbackward :log;\n:b;\nendwhile");
+        assert!(
+            err.reason.contains("`endwhile` after `backward`"),
+            "{}",
+            err.reason
+        );
     }
 
     /// A `switch` holds a flow for each `case`, its words as the label;

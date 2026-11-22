@@ -1,0 +1,17 @@
+@startuml
+' A `while` with a `backward` action goes back on the right through it
+' and out on the left, as PlantUML draws it; a note after `backward` is
+' the body's last action's.
+start
+while (More pages?) is (yes)
+  :Print a page;
+  :Turn it over;
+  (again) backward :Log the page; (next)
+  note right: kept for the audit
+endwhile (no)
+:Done;
+while (Printer busy?)
+  backward :Wait;
+endwhile
+stop
+@enduml

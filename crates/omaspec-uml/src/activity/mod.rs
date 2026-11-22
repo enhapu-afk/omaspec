@@ -101,6 +101,8 @@ pub enum Node {
         yes: Option<Text>,
         body: Flow,
         out: Option<Text>,
+        /// `backward :text;`: an action on the way back.
+        backward: Option<Box<Backward>>,
     },
     /// `repeat` … `repeat while (test) is (yes) not (no)`.
     Repeat {
