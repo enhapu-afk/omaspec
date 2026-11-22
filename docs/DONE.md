@@ -275,6 +275,11 @@ is open and the reasoning around it.
       of the mark the ways back join; the way back and the rail of
       `is (yes)` meet it on its sides. A note after a `backward` stands
       beside that action. The guide: 43 of 62 activity diagrams.
+- [x] Hidden arrows in activity diagrams (2026-11-22): `-[hidden]->` draws
+      no line, no head and no words, and is no line of the map; a `while`
+      before one goes on by no way out, and a split or a fork whose flows
+      all start with one has nothing joining them on top, as PlantUML
+      draws them. The guide: 45 of 62.
 
 ## Phase 0: foundation and spikes
 

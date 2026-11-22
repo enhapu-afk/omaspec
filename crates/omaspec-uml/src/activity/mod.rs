@@ -164,6 +164,8 @@ pub enum LineStyle {
     Dashed,
     Dotted,
     Bold,
+    /// `-[hidden]->`: the line is not drawn, nor its head or its words.
+    Hidden,
 }
 
 /// `note left` or `note right` of an action.

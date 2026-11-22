@@ -69,12 +69,16 @@ impl Layout<'_> {
             LineStyle::Dashed => stroke = stroke.dashed(7.0, 7.0),
             LineStyle::Dotted => stroke = stroke.dashed(1.0, 3.0),
             LineStyle::Bold => stroke.width *= 2.0,
+            // No width: the painter passes over it ([`super::draw`]).
+            LineStyle::Hidden => stroke.width = 0.0,
         }
         Ok(stroke)
     }
 
+    /// An arrow's words; a hidden arrow has none.
     pub(super) fn arrow_label(&self, arrow: Option<&Arrow>) -> Result<Block, Declined> {
-        self.measure_opt(arrow.and_then(|a| a.label.as_ref()), self.skin.arrow_font)
+        let shown = arrow.filter(|a| a.style != LineStyle::Hidden);
+        self.measure_opt(shown.and_then(|a| a.label.as_ref()), self.skin.arrow_font)
     }
 
     /// The room the labels on the arrows into `flows` take above them.
@@ -102,6 +106,7 @@ impl Layout<'_> {
 
     pub fn flow(&self, flow: &Flow, lane: usize) -> Result<Tile, Declined> {
         let mut tile: Option<Tile> = None;
+        let mut before: Option<&Node> = None;
         for step in &flow.steps {
             let mut next = self.step(step)?;
             tile = Some(match tile {
@@ -109,11 +114,25 @@ impl Layout<'_> {
                     next.arrow_in = step.arrow.clone().map(Box::new).or(next.arrow_in.take());
                     next
                 }
-                Some(prev) => {
+                Some(mut prev) => {
                     let arrow = step.arrow.clone().map(Box::new).or(next.arrow_in.take());
+                    // A `while` goes on by its own way out, which a hidden
+                    // arrow after it hides too, as PlantUML draws it.
+                    let hidden = arrow.as_ref().is_some_and(|a| a.style == LineStyle::Hidden);
+                    if hidden
+                        && matches!(before, Some(Node::While { .. }))
+                        && let Some(out) = prev.exit
+                    {
+                        for edge in &mut prev.edges {
+                            if edge.points.last() == Some(&out) {
+                                edge.stroke.width = 0.0;
+                            }
+                        }
+                    }
                     self.join(prev, next, arrow.as_deref())?
                 }
             });
+            before = Some(&step.node);
         }
         let mut tile = tile.unwrap_or_else(|| {
             let mut empty = Tile::new(

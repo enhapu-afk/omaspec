@@ -296,7 +296,8 @@ impl Painter<'_> {
         edge: &Edge,
     ) -> Option<(Vec<(f32, f32)>, Vec<(f32, f32)>, Option<Vec<(f32, f32)>>)> {
         let points = self.route(edge);
-        if points.len() < 2 {
+        // A hidden arrow is neither drawn nor a line of the map.
+        if points.len() < 2 || edge.stroke.width <= 0.0 {
             return None;
         }
         // The head sits on a straight end, not on the curve before it.
@@ -614,6 +615,26 @@ fn action_shape(
 
 #[cfg(test)]
 mod tests {
+    /// A hidden arrow is no line of the picture or of the map, nor are its
+    /// words; a split whose flows all start hidden has no line on top.
+    #[test]
+    fn a_hidden_arrow_draws_nothing() {
+        let source = "@startuml\nsplit\n-[hidden]->\n:A;\nsplit again\n-[hidden]-> quiet;\n:B;\nend split\n:D;\n@enduml\n";
+        let (svg, _) = crate::render_mapped(source, None).unwrap();
+        assert!(!svg.contains("quiet"), "{svg}");
+        let plain = source.replace("-[hidden]->", "->");
+        let (plain_svg, _) = crate::render_mapped(&plain, None).unwrap();
+        // Lines, heads and the bar on top.
+        let drawn = |svg: &str| {
+            ["<path", "<polyline", "<polygon", "<line", "<rect"]
+                .iter()
+                .map(|tag| svg.matches(tag).count())
+                .sum::<usize>()
+        };
+        // Two lines, two heads and the line on top fewer.
+        assert_eq!(drawn(&plain_svg) - drawn(&svg), 5, "{svg}");
+    }
+
     use crate::render;
 
     #[test]

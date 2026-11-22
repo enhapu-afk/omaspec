@@ -1,0 +1,23 @@
+@startuml
+' Hidden arrows (`-[hidden]->`) are not drawn, nor their heads or words; a
+' `while` before one goes on by no way out, and a split whose flows all
+' start with one has no line on top.
+split
+  -[hidden]->
+  :Read the sensor;
+split again
+  -[hidden]->
+  :Read the clock;
+end split
+:Log both;
+if (Calibrated?) then (no)
+  while (Waiting for the operator)
+    :Blink;
+  endwhile
+  -[hidden]->
+  detach
+else (yes)
+  :Measure;
+  stop
+endif
+@enduml

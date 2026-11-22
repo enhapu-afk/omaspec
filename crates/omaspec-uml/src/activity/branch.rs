@@ -4,7 +4,7 @@
 
 use super::layout::{BAR, BRANCH_MARGIN, BRANCH_MIN, CLEAR, GAP, HALF, Layout};
 use super::tile::{Edge, Pt, Shape, Tile, pt};
-use super::{Branch, Flow, Parallel};
+use super::{Branch, Flow, LineStyle, Parallel};
 use crate::Declined;
 use crate::svg::Align;
 use crate::text::Block;
@@ -366,11 +366,22 @@ impl Layout<'_> {
                 _ => (t.bounds.0, t.bounds.2, t.entry.lane),
             })
             .collect();
-        let mut shapes = vec![Shape::Bar {
-            y: 0.0,
-            height: bar,
-            spans,
-        }];
+        // Where every flow starts with a hidden arrow, nothing joins them
+        // at the top, as PlantUML draws it.
+        let hidden = |flow: &Flow| {
+            flow.steps
+                .first()
+                .and_then(|step| step.arrow.as_ref())
+                .is_some_and(|arrow| arrow.style == LineStyle::Hidden)
+        };
+        let mut shapes = Vec::new();
+        if !flows.iter().all(hidden) {
+            shapes.push(Shape::Bar {
+                y: 0.0,
+                height: bar,
+                spans,
+            });
+        }
         let mut edges = Vec::new();
         let mut ways = Vec::new();
         for tile in &tiles {

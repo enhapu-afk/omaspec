@@ -661,6 +661,7 @@ impl Parser {
                     "dotted" => LineStyle::Dotted,
                     "bold" => LineStyle::Bold,
                     "plain" => LineStyle::Plain,
+                    "hidden" => LineStyle::Hidden,
                     _ => {
                         return Err(Declined::at(
                             no,
@@ -1381,6 +1382,18 @@ mod tests {
         assert!(note.right);
     }
 
+    #[test]
+    fn a_hidden_arrow_is_an_arrow_style() {
+        let d = diagram("split\n-[hidden]->\n:A;\nsplit again\n-[hidden]-> x;\n:B;\nend split");
+        let Node::Parallel { flows, .. } = &d.flow.steps[0].node else {
+            panic!()
+        };
+        for flow in flows {
+            let arrow = flow.steps[0].arrow.as_ref().unwrap();
+            assert_eq!(arrow.style, LineStyle::Hidden);
+        }
+    }
+
     /// A loop that starts with an action, on its line or on more, and a
     /// note after its `backward`.
     #[test]
@@ -1539,7 +1552,6 @@ mod tests {
             ("repeat\nbackward :x\nrepeat while", 1, "several lines"),
             ("repeat\nbackward x;\nrepeat while", 1, "`backward :text;`"),
             ("(*) --> \"x\"", 0, "old activity syntax"),
-            ("start\n-[hidden]->\nstop", 1, "`hidden`"),
             ("fork\nend fork {and}", 1, "label on `end fork`"),
             ("start\nfoo bar", 1, "foo bar"),
             (deep.as_str(), 100, "nested"),

@@ -66,13 +66,13 @@ of element) and step 0 (a second `@startuml` line).
       (`#red-green`); a style for a stereotype (`.foo { state { … } }`). A
       `json` element among the states waits on step 7.
 
-### Step 3: the activity diagram (43 of 62; the legacy syntax 0 of 13)
+### Step 3: the activity diagram (45 of 62; the legacy syntax 0 of 13)
 
 - [ ] `switch`, `case`, `endswitch`.
 - [ ] `backward:` in a `while`, `label` and `goto`, connectors (`(A)`).
 - [ ] `end fork {or}` and `end merge`; `floating note`; a note that follows
       no action.
-- [ ] Hidden lines (`-[hidden]->`), `skinparam ArrowHeadColor none`,
+- [ ] `skinparam ArrowHeadColor none`,
       `conditionStyle diamond`, `!pragma useVerticalIf on`.
 - [ ] The legacy syntax (`(*) --> "Action"`), read into the same activity
       tree where it fits it and laid out on the graph engine where it does

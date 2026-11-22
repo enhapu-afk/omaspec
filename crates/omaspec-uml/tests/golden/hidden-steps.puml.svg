@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="301" height="290" viewBox="0 0 301 290">
+<g transform="translate(44.98,10)">
+<g>
+<line x1="66.02" y1="73.97" x2="194.02" y2="73.97" fill="none" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
+<polyline points="66.02,53.97 66.02,73.97" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="194.02,53.97 194.02,73.97" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="130.02,73.97 130.02,93.97" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="126.02,83.97 130.02,93.97 134.02,83.97 130.02,87.97" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="130.02,127.94 130.02,147.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="126.02,137.94 130.02,147.94 134.02,137.94 130.02,141.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M88.55,159.94 L66.1,159.94 C59.47,159.94 54.1,165.31 54.1,171.94 L54.1,181.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="50.1,171.94 54.1,181.94 58.1,171.94 54.1,175.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M171.5,159.94 L193.94,159.94 C200.57,159.94 205.94,165.31 205.94,171.94 L205.94,181.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="201.94,171.94 205.94,181.94 209.94,171.94 205.94,175.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="54.1,205.94 54.1,225.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="50.1,215.94 54.1,225.94 58.1,215.94 54.1,219.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+<path d="M54.1,259.9 L54.1,259.9 C54.1,265.43 49.62,269.9 44.1,269.9 L-18.98,269.9 C-27.82,269.9 -34.98,262.74 -34.98,253.9 L-34.98,198.94 C-34.98,196.17 -32.74,193.94 -29.98,193.94 L-19.98,193.94" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="-29.98,197.94 -19.98,193.94 -29.98,189.94 -25.98,193.94" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polyline points="205.94,215.9 205.94,235.9" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="201.94,225.9 205.94,235.9 209.94,225.9 205.94,229.9" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<rect x="10" y="20" width="112.04" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="20" y="41.14" font-size="12" fill="#000000" textLength="92.04" lengthAdjust="spacing">Read the sensor</tspan>
+</text>
+<rect x="142.04" y="20" width="103.96" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="152.04" y="41.14" font-size="12" fill="#000000" textLength="83.96" lengthAdjust="spacing">Read the clock</tspan>
+</text>
+<rect x="94.89" y="93.97" width="70.27" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="104.89" y="115.1" font-size="12" fill="#000000" textLength="50.27" lengthAdjust="spacing">Log both</tspan>
+</text>
+<polygon points="88.55,159.94 100.55,147.94 159.5,147.94 171.5,159.94 159.5,171.94 100.55,171.94" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="100.55" y="163.74" font-size="11" fill="#000000" textLength="58.95" lengthAdjust="spacing">Calibrated?</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="73.45" y="156.34" font-size="11" fill="#000000" textLength="13.1" lengthAdjust="spacing">no</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="173.5" y="156.34" font-size="11" fill="#000000" textLength="18.4" lengthAdjust="spacing">yes</tspan>
+</text>
+<polygon points="-19.98,193.94 -7.98,181.94 116.18,181.94 128.18,193.94 116.18,205.94 -7.98,205.94" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="-7.98" y="197.74" font-size="11" fill="#000000" textLength="124.17" lengthAdjust="spacing">Waiting for the operator</tspan>
+</text>
+<rect x="30.43" y="225.94" width="47.34" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="40.43" y="247.07" font-size="12" fill="#000000" textLength="27.34" lengthAdjust="spacing">Blink</tspan>
+</text>
+<rect x="171.18" y="181.94" width="69.51" height="33.97" rx="12.5" ry="12.5" fill="#F1F1F1" stroke="#181818" stroke-width="0.5"/>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="181.18" y="203.07" font-size="12" fill="#000000" textLength="49.51" lengthAdjust="spacing">Measure</tspan>
+</text>
+<ellipse cx="205.94" cy="246.9" rx="11" ry="11" fill="none" stroke="#222222" stroke-width="1"/>
+<ellipse cx="205.94" cy="246.9" rx="6" ry="6" fill="#222222" stroke="#222222" stroke-width="1"/>
+</g>
+</g>
+</svg>
