@@ -183,6 +183,15 @@ is open and the reasoning around it.
       colon of the description is no longer one of the style's words. The
       class diagrams read the same words from the same place now
       (`color::Inline`). The guide: 22 of 36.
+- [x] A note of its own in state diagrams (2026-11-22): `note "…" as N1`,
+      without an alias too, and `note as N1` with its words up to
+      `end note`, at the top or inside a state: a node of its own kind
+      (`Kind::Note`), laid out among the states and drawn as a note, its
+      words tied to their line. It is no state of the machine, the orbit
+      or the coverage, no place of a play, and converted to Mermaid it is
+      left out and told. A line that treats it as a state (a transition,
+      `state N1`, `N1 : words`, a note on it) declines and says so. The
+      guide: 23 of 36.
 
 ## Phase 0: foundation and spikes
 

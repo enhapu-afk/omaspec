@@ -209,7 +209,10 @@ fn mark_container(container: &mut Container, marks: &Marks) {
         mark_transition(&mut crossing.arrow, marks);
     }
     for node in &mut container.nodes {
-        let named = !matches!(node.kind, Kind::Start | Kind::End | Kind::Region);
+        let named = !matches!(
+            node.kind,
+            Kind::Start | Kind::End | Kind::Region | Kind::Note
+        );
         match marks.states.get(&node.key).filter(|_| named) {
             // Whatever border the source gives it: only the dash says
             // never taken.
@@ -362,7 +365,12 @@ impl Diagram {
 /// The path to the state called `name`, by the indices of its containers.
 fn path_of(container: &Container, name: &str) -> Option<Vec<usize>> {
     for (index, node) in container.nodes.iter().enumerate() {
-        if node.key == name && !matches!(node.kind, Kind::Start | Kind::End | Kind::Region) {
+        if node.key == name
+            && !matches!(
+                node.kind,
+                Kind::Start | Kind::End | Kind::Region | Kind::Note
+            )
+        {
             return Some(vec![index]);
         }
         if let Some(mut inner) = path_of(&node.children, name) {

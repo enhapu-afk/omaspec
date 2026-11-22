@@ -560,7 +560,7 @@ fn mark_spot(shape: Shape, (x, y): (f32, f32), node: &super::Node) -> Spot {
 /// written.
 fn ring_order(diagram: &Diagram) -> Vec<usize> {
     let root = &diagram.root;
-    let on_ring = |k: Kind| !matches!(k, Kind::Start | Kind::End | Kind::Region);
+    let on_ring = |k: Kind| !matches!(k, Kind::Start | Kind::End | Kind::Region | Kind::Note);
     let lifted = lifted_edges(diagram);
     let mut order = Vec::new();
     let mut seen = vec![false; root.nodes.len()];

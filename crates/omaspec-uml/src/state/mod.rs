@@ -293,6 +293,9 @@ pub enum Kind {
     /// One concurrent region of a state: no box and no name, only what it
     /// holds.
     Region,
+    /// A note of its own (`note "…" as N1`), laid out as a box among the
+    /// states; its words are its label. No state of the machine.
+    Note,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

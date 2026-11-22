@@ -164,6 +164,8 @@ fn chart_node(
     map: &mut Map,
 ) {
     let shape = match node.kind {
+        // Words beside the machine, no place of it.
+        Kind::Note => return,
         Kind::State => Shape::State,
         Kind::Start => Shape::Start,
         Kind::End => Shape::End,
@@ -271,7 +273,13 @@ fn measure_node(
 ) -> Result<Measured, Declined> {
     // A state of a stereotype has its own look; the states inside keep theirs.
     let skin = &*every.stereotyped(node.stereotype.as_deref());
-    let (fill, border, mark) = paints(node, skin)?;
+    let (fill, border, mark) = match node.kind {
+        Kind::Note => {
+            let border = Stroke::new(skin.note.border, skin.note.thickness);
+            (skin.note.fill, border, skin.note.border)
+        }
+        _ => paints(node, skin)?,
+    };
     if node.composite {
         // A state that holds others is a frame around them: its fill
         // steps toward the paper, so the states inside stand out on it. A
@@ -352,6 +360,12 @@ fn measure_node(
         }
         Kind::Start => (START, START, Block::empty(), Vec::new()),
         Kind::End => (END, END, Block::empty(), Vec::new()),
+        // Its words are its own line's, or its block's.
+        Kind::Note => {
+            let text = node.label.measure_written(skin.note.font, family)?;
+            let (width, height) = note_size(&text);
+            (width, height, text, Vec::new())
+        }
         // A region is laid out by its state, never as a node of its own.
         Kind::Region => (0.0, 0.0, Block::empty(), Vec::new()),
     };
@@ -995,6 +1009,10 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
                 Some(Stroke::new(node.item.mark, 1.0)),
             );
         }
+        Kind::Note => {
+            let rect = (rect.x, rect.y, rect.w, rect.h);
+            note_shape(canvas, skin, Layer::Frames, rect);
+        }
         Kind::Region => {}
     }
 }
@@ -1050,12 +1068,16 @@ fn paint_notes(canvas: &mut Canvas, skin: &Skin, scene: &Scene, path: &mut Vec<u
 }
 
 fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
-    let (x, y, w, h) = (note.x, note.y, note.w, note.h);
-    let stroke = Some(Stroke::new(skin.note.border, skin.note.thickness));
     if let Some((from, to)) = note.tether {
         let line = Stroke::new(skin.note.border, skin.note.thickness).dashed(4.0, 3.0);
         canvas.line(Layer::Front, from, to, line);
     }
+    note_shape(canvas, skin, Layer::Front, (note.x, note.y, note.w, note.h));
+}
+
+/// A note's sheet with its corner folded, in `layer`.
+fn note_shape(canvas: &mut Canvas, skin: &Skin, layer: Layer, (x, y, w, h): (f32, f32, f32, f32)) {
+    let stroke = Some(Stroke::new(skin.note.border, skin.note.thickness));
     let fold = 10.0_f32.min(w / 2.0).min(h / 2.0);
     let body = format!(
         "M{},{} L{},{} L{},{} L{},{} L{},{} Z",
@@ -1070,13 +1092,7 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
         n(x + w - fold),
         n(y)
     );
-    canvas.path(
-        Layer::Front,
-        &body,
-        (x, y, x + w, y + h),
-        skin.note.fill,
-        stroke,
-    );
+    canvas.path(layer, &body, (x, y, x + w, y + h), skin.note.fill, stroke);
     let corner = format!(
         "M{},{} L{},{} L{},{}",
         n(x + w - fold),
@@ -1086,13 +1102,7 @@ fn note_box(canvas: &mut Canvas, skin: &Skin, note: &PlacedNote) {
         n(x + w),
         n(y + fold)
     );
-    canvas.path(
-        Layer::Front,
-        &corner,
-        (x, y, x + w, y + h),
-        skin.note.fill,
-        stroke,
-    );
+    canvas.path(layer, &corner, (x, y, x + w, y + h), skin.note.fill, stroke);
 }
 
 /// Each state's words in its part, each line's and each note's in a part
@@ -1194,6 +1204,12 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
                 Align::Center,
             );
         }
+        Kind::Note => canvas.text(
+            Layer::Front,
+            &node.item.title,
+            (node.rect.x + NOTE_PAD, node.rect.y + NOTE_PAD),
+            Align::Left,
+        ),
         Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
     }
 }

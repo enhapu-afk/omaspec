@@ -240,6 +240,13 @@ impl ToMermaid {
         let pad = "    ".repeat(depth);
         let id = match node.kind {
             Kind::Start | Kind::End | Kind::Region => return Ok(()),
+            Kind::Note => {
+                self.notice(
+                    Some(node.line),
+                    "Mermaid has no note of its own, beside no state; this one is left out",
+                );
+                return Ok(());
+            }
             Kind::History | Kind::DeepHistory => {
                 return Err(refused(
                     Some(node.line),
@@ -705,11 +712,11 @@ mod tests {
         assert_eq!(err.line, Some(2), "{err:?}");
     }
 
-    /// A hidden arrow, between two states of one box or across boxes, is
-    /// left out and told; a start with a name is refused, as Mermaid's
-    /// has none.
+    /// A hidden arrow, between two states of one box or across boxes, and
+    /// a note of its own are left out and told; a start with a name is
+    /// refused, as Mermaid's has none.
     #[test]
-    fn hidden_arrows_are_left_out_and_named_starts_refused() {
+    fn hidden_arrows_and_free_notes_are_left_out_and_named_starts_refused() {
         let hidden = "@startuml\nstate Setup {\n  [*] --> Hardware\n  Hardware -[hidden]-> Software\n}\n[*] --> Setup\nSetup --> Running\nHardware -[hidden]-> Running\n@enduml\n";
         let out = both(hidden, Language::PlantUml, Language::Mermaid).unwrap();
         let told: Vec<Option<usize>> = out
@@ -719,6 +726,15 @@ mod tests {
             .map(|n| n.line)
             .collect();
         assert_eq!(told, [Some(3), Some(7)], "{out:?}");
+        let noted = "@startuml\n[*] --> A\nnote \"on its own\" as N1\n@enduml\n";
+        let out = both(noted, Language::PlantUml, Language::Mermaid).unwrap();
+        assert!(!out.code.contains("N1"), "{}", out.code);
+        assert!(
+            out.notices
+                .iter()
+                .any(|n| n.line == Some(2) && n.message.contains("note of its own")),
+            "{out:?}"
+        );
         let named = "@startuml\nstate s1 <<start>>\ns1 --> A\n@enduml\n";
         let err = both(named, Language::PlantUml, Language::Mermaid).unwrap_err();
         assert!(err.reason.contains("name of its own (`s1`)"), "{err:?}");

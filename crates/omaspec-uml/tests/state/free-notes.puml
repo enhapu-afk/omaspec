@@ -1,0 +1,16 @@
+@startuml
+' Notes of their own (`note "…" as N1`, or `note as N2` and a block)
+' are laid out among the states, at the top or inside one, and are
+' no state of the machine.
+[*] --> Idle
+Idle --> Busy : go
+Busy --> Idle : done
+note "Lives on its own,\nbeside the states" as N1
+state Busy {
+  [*] --> Working
+  note as N2
+    Inside the state,
+    in a block.
+  end note
+}
+@enduml

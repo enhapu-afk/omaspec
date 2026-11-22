@@ -45,6 +45,8 @@ impl Reader {
                     regions += 1;
                     continue;
                 }
+                // Words beside the machine, no state of it.
+                NodeKind::Note => continue,
                 NodeKind::State => Kind::State,
                 NodeKind::Start => Kind::Start,
                 NodeKind::End => Kind::End,
@@ -110,6 +112,25 @@ impl Reader {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A note of its own and a hidden arrow are no part of the machine.
+    #[test]
+    fn a_free_note_and_a_hidden_arrow_are_not_the_machines() {
+        let m = read(
+            "@startuml\n[*] --> Idle\nIdle -[hidden]-> Later\nnote \"aside\" as N1\nstate Busy {\n  note as N2\n    inside\n  end note\n  [*] --> Work\n}\n@enduml\n",
+        )
+        .unwrap();
+        let names: Vec<&str> = m.states.iter().map(|s| s.name.as_str()).collect();
+        assert!(
+            !names.contains(&"N1") && !names.contains(&"N2"),
+            "{names:?}"
+        );
+        assert!(
+            names.contains(&"Later") && names.contains(&"Work"),
+            "{names:?}"
+        );
+        assert_eq!(m.transitions.len(), 2, "{:?}", m.transitions);
+    }
 
     #[test]
     fn reads_nesting_regions_and_crossings() {

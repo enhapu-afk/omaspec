@@ -57,13 +57,13 @@ of element) and step 0 (a second `@startuml` line).
       PlantUML (`#A80036`), in the lifeline's color here; in the themes'
       colors it wants a color of their own.
 
-### Step 2: the state diagram (22 of 36)
+### Step 2: the state diagram (23 of 36)
 
 - [ ] Pseudo states by stereotype: `<<entryPoint>>`, `<<exitPoint>>`,
       `<<inputPin>>`, `<<outputPin>>`, `<<expansionInput>>`,
       `<<expansionOutput>>` on their state's border, `<<sdlreceive>>`.
-- [ ] Notes: a floating note (`note "…" as N1`), a note on a link
-      (`note on link`).
+- [ ] A note on a link (`note on link`), in `graph::open` for the class
+      diagrams too.
 - [ ] `skinparam state { StartColor, EndColor, AttributeFont… }`, which
       PlantUML 1.2026.8 and the guide's own pictures ignore, and with them
       `FontName` (step 5, a font name per element); a font name in

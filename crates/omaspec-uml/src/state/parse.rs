@@ -97,6 +97,9 @@ struct Parser {
     /// The states open around the line being read, by the names they were
     /// opened with, each with its region.
     place: Vec<(String, usize)>,
+    /// Notes of their own without an alias so far, which each get a name
+    /// no state can have (it holds a space).
+    free_notes: usize,
 }
 
 struct Decl {
@@ -207,6 +210,11 @@ impl Parser {
         self.container_mut(&here)
     }
 
+    fn node(&self, path: &[usize]) -> &Node {
+        let (last, home) = path.split_last().expect("a node has a path");
+        &self.container(home).nodes[*last]
+    }
+
     fn node_mut(&mut self, path: &[usize]) -> &mut Node {
         let (last, home) = path.split_last().expect("a node has a path");
         &mut self.container_mut(home).nodes[*last]
@@ -291,7 +299,10 @@ impl Parser {
             .push(crate::Mention::declared(&written, &decl.label, decl.line).within(&self.place));
         // A state written again, here or inside another, is the same state.
         let path = match self.find(&decl.key) {
-            Some(path) => self.settle(&decl.key, path, decl.line)?,
+            Some(path) => {
+                self.not_a_note(&path, decl.line)?;
+                self.settle(&decl.key, path, decl.line)?
+            }
             None if !decl.labeled && decl.key.contains('.') => {
                 let path = self.dotted(&decl.key, decl.line)?;
                 let last = decl.key.rsplit('.').next().unwrap_or_default().to_owned();
@@ -456,6 +467,9 @@ impl Parser {
 
     fn note(&mut self, lines: &[Line], at: usize) -> Result<usize, Declined> {
         let no = lines[at].no;
+        if let Some(next) = self.free_note(lines, at)? {
+            return Ok(next);
+        }
         let head = note_head(lines[at].text, no)?;
         let (text, next) = if head.one_line {
             let body = head.label.unwrap_or_default();
@@ -484,6 +498,7 @@ impl Parser {
         self.written
             .push(crate::Mention::used(&head.target, no).within(&self.place));
         let path = self.resolve(&head.target, no);
+        self.not_a_note(&path, no)?;
         let (target, home) = path.split_last().expect("a node has a path");
         let target = *target;
         let home = home.to_vec();
@@ -496,6 +511,91 @@ impl Parser {
         Ok(next)
     }
 
+    /// A note of its own: `note "words" as N1` on one line, or `note as N1`
+    /// and its words up to `end note`; `None` when the line is another
+    /// note.
+    fn free_note(&mut self, lines: &[Line], at: usize) -> Result<Option<usize>, Declined> {
+        let Line { no, text, .. } = lines[at];
+        let rest = keyword(text, "note").unwrap_or_default();
+        let (label, alias, next) = if let Some(quoted) = rest.strip_prefix('"') {
+            let Some(end) = quoted.find('"') else {
+                return Err(Declined::at(no, "a note has no closing `\"`"));
+            };
+            let words = &quoted[..end];
+            if words.trim().is_empty() {
+                return Err(Declined::at(no, "a note needs text"));
+            }
+            let after = quoted[end + 1..].trim();
+            let alias = match keyword(after, "as") {
+                Some(alias) => Some(alias.trim()),
+                None if after.is_empty() => None,
+                None => {
+                    return Err(Declined::at(
+                        no,
+                        format!("`note \"…\" {}` is not supported yet", snippet(after)),
+                    ));
+                }
+            };
+            // Its words stand in the quotes, before its alias.
+            let col = lines[at].at + crate::source::offset_in(text, quoted);
+            let label = Text {
+                value: words.to_owned(),
+                line: no,
+                col: Some(col),
+            };
+            (label, alias, at + 1)
+        } else if let Some(alias) = keyword(rest, "as") {
+            let (body, next) = block(lines, at, "note", |line| squeezed_eq(line, "endnote"))?;
+            if body.trim().is_empty() {
+                return Err(Declined::at(no, "a note needs text"));
+            }
+            let line = lines.get(at + 1).map_or(no, |line| line.no);
+            let label = Text {
+                value: body,
+                line,
+                col: None,
+            };
+            (label, Some(alias.trim()), next)
+        } else {
+            return Ok(None);
+        };
+        let key = match alias {
+            Some(alias) if alias.is_empty() || alias.contains(char::is_whitespace) => {
+                return Err(Declined::at(no, "a note's `as` needs one name"));
+            }
+            Some(alias) => {
+                if self.find(alias).is_some() {
+                    return Err(Declined::at(no, format!("`{alias}` is declared already")));
+                }
+                alias.to_owned()
+            }
+            None => {
+                self.free_notes += 1;
+                format!("note {}", self.free_notes)
+            }
+        };
+        let mut node = plain_node(&key, "", no);
+        node.kind = Kind::Note;
+        node.label = label;
+        self.push(node);
+        Ok(Some(next))
+    }
+
+    /// Declines a line that treats the note at `path` as a state.
+    fn not_a_note(&self, path: &[usize], line: usize) -> Result<(), Declined> {
+        let node = self.node(path);
+        if node.kind == Kind::Note {
+            return Err(Declined::at(
+                line,
+                format!(
+                    "`{}` is a note; a line to a note or its words are not supported yet",
+                    node.key
+                ),
+            ));
+        }
+        Ok(())
+    }
+
     fn describe(&mut self, name: &str, body: &str, line: usize) -> Result<(), Declined> {
         if name == "[*]" {
             return Err(Declined::at(
@@ -506,6 +606,7 @@ impl Parser {
         self.written
             .push(crate::Mention::used(name, line).within(&self.place));
         if let Some(path) = self.find(name) {
+            self.not_a_note(&path, line)?;
             self.settle(name, path, line)?;
         }
         let path = self.resolve(name, line);
@@ -623,7 +724,9 @@ impl Parser {
         if self.find(name).is_none() {
             self.implicit.insert(name.to_owned());
         }
-        Ok(self.resolve(name, line))
+        let path = self.resolve(name, line);
+        self.not_a_note(&path, line)?;
+        Ok(path)
     }
 
     /// `A.X`: the state `X` inside `A`, each made where it is missing (`A`
@@ -1823,6 +1926,47 @@ mod tests {
             dashes,
             [Dash::Hidden, Dash::Dashed, Dash::Hidden, Dash::Hidden]
         );
+    }
+
+    /// A note of its own, on one line or in a block, at the top or inside
+    /// a state, is a node of its own kind; a line that treats it as a state
+    /// declines.
+    #[test]
+    fn a_note_of_its_own_is_no_state() {
+        let d = diagram(
+            "@startuml\nstate foo\nnote \"on its own\" as N1\nstate Busy {\n  note as N2\n    inside\n  end note\n}\nnote \"no name\"\n@enduml\n",
+        );
+        let n1 = node(&d.root, "N1");
+        assert_eq!(
+            (n1.kind, n1.label.value.as_str()),
+            (Kind::Note, "on its own")
+        );
+        // Its words stand in the quotes.
+        assert_eq!((n1.label.line, n1.label.col), (2, Some(6)));
+        let n2 = node(&node(&d.root, "Busy").children, "N2");
+        assert_eq!(
+            (n2.kind, n2.label.value.as_str(), n2.label.line),
+            (Kind::Note, "inside", 5)
+        );
+        assert!(
+            d.root
+                .nodes
+                .iter()
+                .any(|n| n.kind == Kind::Note && n.label.value == "no name")
+        );
+        for (source, part) in [
+            ("note \"a\" as N1\nN1 --> A", "`N1` is a note"),
+            ("note \"a\" as N1\nA --> N1", "`N1` is a note"),
+            ("note \"a\" as N1\nstate N1 #red", "`N1` is a note"),
+            ("note \"a\" as N1\nN1 : words", "`N1` is a note"),
+            ("note \"a\" as N1\nnote right of N1 : b", "`N1` is a note"),
+            ("state A\nnote \"a\" as A", "declared already"),
+            ("note \"a\" as", "one name"),
+            ("note \"\" as N1", "needs text"),
+        ] {
+            let err = declined(&format!("@startuml\n{source}\n@enduml\n"));
+            assert!(err.reason.contains(part), "{source}: {}", err.reason);
+        }
     }
 
     /// A state's style in one word (`#pink;line:red;line.bold;text:red`),
