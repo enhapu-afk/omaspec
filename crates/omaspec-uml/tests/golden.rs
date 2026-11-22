@@ -45,6 +45,19 @@ fn diagrams_match_golden_svgs() {
         files.push(root.join(format!("../../examples/{example}.puml")));
     }
     files.sort();
+    // Each golden is named by its file alone: two files of one name in two
+    // folders would write one golden, the last one's.
+    let mut names: Vec<&std::ffi::OsStr> = files.iter().filter_map(|f| f.file_name()).collect();
+    names.sort();
+    let twice: Vec<_> = names
+        .windows(2)
+        .filter(|w| w[0] == w[1])
+        .map(|w| w[0])
+        .collect();
+    assert!(
+        twice.is_empty(),
+        "named twice, so one golden for both: {twice:?}"
+    );
 
     let mut mismatches = Vec::new();
     for file in &files {

@@ -143,6 +143,9 @@ fn chart(
         .iter()
         .chain(container.crossings.iter().map(|c| &c.arrow));
     for (arrow, edge) in arrows.zip(&scene.edges) {
+        if hidden(edge) {
+            continue;
+        }
         map.transitions.push(Route {
             line: arrow.line,
             points: drawn_route(&edge.points, curve),
@@ -406,8 +409,9 @@ pub(super) fn paints(node: &Node, skin: &Skin) -> Result<(Paint, Stroke, Color),
         skin.state.thickness
     };
     let mut border = Stroke::new(border_color, width);
+    // A state's border is never hidden; `Hidden` is a transition's.
     border.dash = match node.border_dash {
-        Dash::Solid => None,
+        Dash::Solid | Dash::Hidden => None,
         Dash::Dashed => Some((7.0, 5.0)),
         Dash::Dotted => Some((1.5, 3.0)),
     };
@@ -440,13 +444,25 @@ pub(super) fn arrow_stroke(skin: &Skin, edge: &Transition) -> Result<Stroke, Dec
         None if edge.bold => skin.arrow.width * 2.0,
         None => skin.arrow.width,
     };
+    // A hidden one has no width: what paints a line, a head or a map
+    // entry passes over it ([`hidden`]).
+    let width = if edge.dash == Dash::Hidden {
+        0.0
+    } else {
+        width
+    };
     let mut stroke = Stroke::new(color, width);
     stroke.dash = match edge.dash {
         Dash::Dashed => Some((7.0, 7.0)),
         Dash::Dotted => Some((1.0, 3.0)),
-        Dash::Solid => skin.arrow.dash,
+        Dash::Solid | Dash::Hidden => skin.arrow.dash,
     };
     Ok(stroke)
+}
+
+/// Whether a placed transition is a hidden one (`-[hidden]->`).
+fn hidden(edge: &PlacedEdge) -> bool {
+    edge.look.width <= 0.0
 }
 
 fn place_notes(
@@ -985,6 +1001,9 @@ fn paint_edges(canvas: &mut Canvas, scene: &Scene, curve: f32) {
         if edge.points.len() < 2 {
             continue;
         }
+        if hidden(edge) {
+            continue;
+        }
         canvas.curve(Layer::Lines, &shortened(&edge.points), curve, edge.look);
     }
     for node in &scene.nodes {
@@ -1181,7 +1200,7 @@ fn paint_stack(
 }
 
 fn paint_heads(canvas: &mut Canvas, skin: &Skin, scene: &Scene) {
-    for edge in &scene.edges {
+    for edge in scene.edges.iter().filter(|edge| !hidden(edge)) {
         arrow_head(canvas, skin, &edge.points, edge.look);
     }
     for node in &scene.nodes {

@@ -172,6 +172,13 @@ impl ToMermaid {
             }
         }
         for edge in &c.edges {
+            if edge.dash == Dash::Hidden {
+                self.notice(
+                    Some(edge.line),
+                    "Mermaid has no hidden arrows; this one is left out",
+                );
+                continue;
+            }
             let from = self.end(&c.nodes[edge.from], edge.line)?;
             let to = self.end(&c.nodes[edge.to], edge.line)?;
             let label = self.label(edge.label.as_ref().map(|t| t.value.as_str()), edge.line)?;

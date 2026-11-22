@@ -143,8 +143,11 @@ fn hold(plantuml: &Path, cases: Vec<(String, String)>) -> Held {
     let mut scenarios = Vec::new();
     for (name, block) in cases {
         if let Some(machine) = Machine::read(&block, Language::PlantUml) {
-            // Held against what the export keeps of each label.
-            let kept = Machine::read(&first_lines(&block), Language::PlantUml);
+            // Held against what the export keeps of each label, and of each
+            // hidden arrow (`-[hidden]->`), which PlantUML's SCXML keeps as a
+            // transition and Omaspec's machine does not.
+            let shown = block.replace("[hidden]", "");
+            let kept = Machine::read(&first_lines(&shown), Language::PlantUml);
             let ours = from_machine(kept.as_ref().unwrap_or(&machine));
             machines.push((name, block, ours));
         } else if let Ok(omaspec_uml::Diagram::Sequence(d)) = omaspec_uml::parse(&block)

@@ -156,6 +156,13 @@ is open and the reasoning around it.
       and `state e1 <<end>>` are a start and an end of their own, beside
       the container's `[*]`, which is now only the one without a name.
       The guide: 20 of 36 state diagrams (from 17).
+- [x] Hidden arrows (2026-11-22): `-[hidden]->` places its states as a
+      transition would and is not drawn, neither its line, its head nor a
+      play's step (`Dash::Hidden`, a stroke without width); the machine has
+      no such transition, the coverage's marks leave it hidden, and
+      converted to Mermaid it is said to be left out. The golden test
+      refuses two files of one name in two folders, which wrote one golden.
+      The guide: 21 of 36.
 
 ## Phase 0: foundation and spikes
 

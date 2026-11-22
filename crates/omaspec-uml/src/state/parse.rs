@@ -1268,9 +1268,7 @@ fn arrow_style(inside: &str, line: usize) -> Result<(Option<String>, Dash, bool)
             "dotted" => dash = Dash::Dotted,
             "bold" => bold = true,
             "solid" => {}
-            "hidden" => {
-                return Err(Declined::at(line, "hidden arrows are not supported yet"));
-            }
+            "hidden" => dash = Dash::Hidden,
             _ => {
                 if color.is_some()
                     || part.contains('=')
@@ -1734,6 +1732,13 @@ mod tests {
             let err = declined(&format!("@startuml\n{source}\n@enduml\n"));
             assert!(err.reason.contains(part), "{source}: {}", err.reason);
         }
+    }
+
+    #[test]
+    fn a_hidden_arrow_is_a_transition_that_only_places() {
+        let d = diagram("@startuml\nA -[hidden]-> B\nA -[#red,dashed]-> C\n@enduml\n");
+        let dashes: Vec<Dash> = d.root.edges.iter().map(|e| e.dash).collect();
+        assert_eq!(dashes, [Dash::Hidden, Dash::Dashed]);
     }
 
     /// A start or an end with a name (`state s1 <<start>>`) is one of its

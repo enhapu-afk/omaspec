@@ -1,0 +1,14 @@
+@startuml
+' Hidden arrows (`-[hidden]->`) place the states under one another, as
+' a transition would, and are not drawn; the machine has no such
+' transition.
+state Setup {
+    state Hardware
+    state Software
+    Hardware -[hidden]-> Software
+}
+[*] --> Setup
+Setup --> Running
+Running -[hidden]-> Archive
+Running --> [*]
+@enduml

@@ -236,6 +236,11 @@ fn mark_container(container: &mut Container, marks: &Marks) {
 }
 
 fn mark_transition(edge: &mut Transition, marks: &Marks) {
+    // A hidden arrow is no transition, and stays hidden whatever its line
+    // shares with one.
+    if edge.dash == Dash::Hidden {
+        return;
+    }
     match marks.transitions.get(&edge.line) {
         Some(Mark::Taken(times)) => {
             edge.color = Some(TAKEN.to_owned());

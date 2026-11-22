@@ -297,6 +297,9 @@ pub enum Dash {
     Solid,
     Dashed,
     Dotted,
+    /// `-[hidden]->`: laid out as a transition, never drawn, and no
+    /// transition of the machine.
+    Hidden,
 }
 
 /// `A --> B : label`.

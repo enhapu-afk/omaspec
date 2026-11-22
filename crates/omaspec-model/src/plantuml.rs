@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use omaspec_uml::Diagram;
-use omaspec_uml::state::{Container, Kind as NodeKind, Transition as Arrow};
+use omaspec_uml::state::{Container, Dash, Kind as NodeKind, Transition as Arrow};
 
 use crate::{Kind, Machine, State, Transition, Trigger};
 
@@ -71,12 +71,17 @@ impl Reader {
     /// Adds the transitions of `container` at `path` and of every
     /// container inside it.
     fn links(&mut self, container: &Container, path: &[usize]) {
-        for edge in &container.edges {
+        // A hidden arrow only places the states; it is no transition.
+        for edge in container.edges.iter().filter(|e| e.dash != Dash::Hidden) {
             let from = [path, &[edge.from]].concat();
             let to = [path, &[edge.to]].concat();
             self.link(&from, &to, edge);
         }
-        for crossing in &container.crossings {
+        for crossing in container
+            .crossings
+            .iter()
+            .filter(|c| c.arrow.dash != Dash::Hidden)
+        {
             let from = [path, &crossing.from].concat();
             let to = [path, &crossing.to].concat();
             self.link(&from, &to, &crossing.arrow);

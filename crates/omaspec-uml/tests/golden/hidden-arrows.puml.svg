@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="172" height="355" viewBox="0 0 172 355">
+<g transform="translate(10,10)">
+<g>
+<rect x="30.14" y="54" width="119.19" height="151.89" rx="8" ry="8" fill="#FBFBFB" stroke="#181818" stroke-width="1"/>
+<line x1="30.14" y1="89.3" x2="149.33" y2="89.3" fill="none" stroke="#181818" stroke-width="1"/>
+<rect x="42.14" y="97.3" width="95.19" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="44.47" y="161.59" width="90.52" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="89.74" cy="11" rx="11" ry="11" fill="#181818" stroke="#181818" stroke-width="1"/>
+<rect x="47.37" y="237.89" width="84.73" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<rect x="0" y="302.18" width="81.65" height="32.3" rx="8" ry="8" fill="#F1F1F1" stroke="#181818" stroke-width="1"/>
+<ellipse cx="138.65" cy="318.33" rx="13" ry="13" fill="none" stroke="#181818" stroke-width="1.5"/>
+<ellipse cx="138.65" cy="318.33" rx="5.46" ry="5.46" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g id="lines">
+<polyline points="89.74,22 89.74,44" fill="none" stroke="#181818" stroke-width="1"/>
+<polyline points="89.74,205.89 89.74,227.89" fill="none" stroke="#181818" stroke-width="1"/>
+<path d="M120.1,270.18 L120.1,272.91 C120.1,278.03 124.25,282.18 129.37,282.18 L129.37,282.18 C134.5,282.18 138.65,286.34 138.65,291.46 L138.65,295.33" fill="none" stroke="#181818" stroke-width="1"/>
+<polygon points="85.74,44 89.74,54 93.74,44 89.74,48" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="85.74,227.89 89.74,237.89 93.74,227.89 89.74,231.89" fill="#181818" stroke="#181818" stroke-width="1"/>
+<polygon points="134.65,295.33 138.65,305.33 142.65,295.33 138.65,299.33" fill="#181818" stroke="#181818" stroke-width="1"/>
+</g>
+<g>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="69.65" y="74.99" font-size="14" fill="#000000" font-weight="bold" textLength="40.18" lengthAdjust="spacing">Setup</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="56.14" y="118.29" font-size="14" fill="#000000" font-weight="bold" textLength="67.19" lengthAdjust="spacing">Hardware</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="58.47" y="182.58" font-size="14" fill="#000000" font-weight="bold" textLength="62.52" lengthAdjust="spacing">Software</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="61.37" y="258.88" font-size="14" fill="#000000" font-weight="bold" textLength="56.73" lengthAdjust="spacing">Running</tspan>
+</text>
+<text font-family="Inter, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif" xml:space="preserve">
+<tspan x="14" y="323.18" font-size="14" fill="#000000" font-weight="bold" textLength="53.65" lengthAdjust="spacing">Archive</tspan>
+</text>
+</g>
+</g>
+</svg>
