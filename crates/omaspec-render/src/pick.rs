@@ -103,6 +103,20 @@ pub fn words(tree: &Tree, text: &str) -> Vec<(f32, f32, f32, f32)> {
         .collect()
 }
 
+/// Every label's text and where its words are drawn, `(x, y, width,
+/// height)`, in the order drawn.
+pub fn labels(tree: &Tree) -> Vec<(String, (f32, f32, f32, f32))> {
+    let mut texts = Vec::new();
+    collect(tree.root(), &mut texts, &mut Vec::new());
+    texts
+        .into_iter()
+        .map(|label| {
+            let r = label.rect;
+            (label.text, (r.left(), r.top(), r.width(), r.height()))
+        })
+        .collect()
+}
+
 /// Every label's text, in the order it is drawn. Repeated names stay
 /// repeated, so the nth copy is the nth entry with that text.
 pub fn texts(tree: &Tree) -> Vec<String> {

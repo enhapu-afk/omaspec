@@ -1,73 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="316" height="555" viewBox="0 0 316 555">
-<rect x="0" y="0" width="316" height="555" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="316" height="540" viewBox="0 0 316 540">
+<rect x="0" y="0" width="316" height="540" fill="#FFFFFF"/>
 <g transform="translate(10,10)">
 <g>
-<polygon points="177.78,118.3 225.89,142.59 177.78,166.89 129.67,142.59" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="57.08" y="289.48" width="100" height="8" rx="2" ry="2" fill="#94A3B8"/>
-<rect x="57.08" y="393.78" width="100" height="8" rx="2" ry="2" fill="#94A3B8"/>
+<polygon points="177.78,123.3 189.78,135.3 177.78,147.3 165.78,135.3" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="57.08" y="274.89" width="100" height="8" rx="2" ry="2" fill="#94A3B8"/>
+<rect x="57.08" y="379.18" width="100" height="8" rx="2" ry="2" fill="#94A3B8"/>
 <ellipse cx="177.78" cy="11" rx="11" ry="11" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
 <rect x="141.99" y="54" width="71.58" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="55.88" y="225.18" width="95.94" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="207.61" y="225.18" width="88.2" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="2.16" y="329.48" width="82.92" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="129.08" y="329.48" width="70.01" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<rect x="119.96" y="433.78" width="63.76" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
-<ellipse cx="202.42" cy="521.07" rx="13" ry="13" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
-<ellipse cx="202.42" cy="521.07" rx="5.46" ry="5.46" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
+<rect x="55.88" y="210.59" width="95.94" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="207.61" y="210.59" width="88.2" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="2.16" y="314.89" width="82.92" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="129.08" y="314.89" width="70.01" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<rect x="119.96" y="419.18" width="63.76" height="32.3" rx="8" ry="8" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1"/>
+<ellipse cx="202.42" cy="506.48" rx="13" ry="13" fill="none" stroke="#94A3B8" stroke-width="1.5"/>
+<ellipse cx="202.42" cy="506.48" rx="5.46" ry="5.46" fill="#94A3B8" stroke="#94A3B8" stroke-width="1"/>
 </g>
 <g id="lines">
 <polyline points="177.78,22 177.78,44" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="177.78,86.3 177.78,108.3" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M177.78,166.89 L177.78,166.89 C177.78,179.04 167.93,188.89 155.78,188.89 L130.15,188.89 C115.63,188.89 103.85,200.66 103.85,215.18 L103.85,215.18" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M177.78,166.89 L177.78,166.89 C177.78,173.52 183.15,178.89 189.78,178.89 L215.41,178.89 C235.46,178.89 251.71,195.14 251.71,215.18 L251.71,215.18" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="103.85,257.48 103.85,279.48" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="73.08,297.48 73.08,319.48" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="141.08,297.48 141.08,319.48" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="73.08,361.78 73.08,383.78" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="141.08,361.78 141.08,383.78" fill="none" stroke="#64748B" stroke-width="1"/>
-<polyline points="131.96,401.78 131.96,423.78" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M251.71,257.48 L251.71,463.43 C251.71,477.04 240.68,488.07 227.07,488.07 L212.42,488.07 C206.9,488.07 202.42,492.55 202.42,498.07 L202.42,498.07" fill="none" stroke="#64748B" stroke-width="1"/>
-<path d="M171.72,466.07 L171.72,466.07 C171.72,472.7 177.09,478.07 183.72,478.07 L187.07,478.07 C195.55,478.07 202.42,484.95 202.42,493.43 L202.42,498.07" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="177.78,86.3 177.78,113.3" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M177.78,147.3 L177.78,147.3 C177.78,162.21 165.69,174.3 150.78,174.3 L130.15,174.3 C115.63,174.3 103.85,186.07 103.85,200.59 L103.85,200.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M177.78,147.3 L177.78,147.3 C177.78,156.68 185.39,164.3 194.78,164.3 L215.41,164.3 C235.46,164.3 251.71,180.55 251.71,200.59 L251.71,200.59" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="103.85,242.89 103.85,264.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="73.08,282.89 73.08,304.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="141.08,282.89 141.08,304.89" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="73.08,347.18 73.08,369.18" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="141.08,347.18 141.08,369.18" fill="none" stroke="#64748B" stroke-width="1"/>
+<polyline points="131.96,387.18 131.96,409.18" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M251.71,242.89 L251.71,448.84 C251.71,462.45 240.68,473.48 227.07,473.48 L212.42,473.48 C206.9,473.48 202.42,477.96 202.42,483.48 L202.42,483.48" fill="none" stroke="#64748B" stroke-width="1"/>
+<path d="M171.72,451.48 L171.72,451.48 C171.72,458.11 177.09,463.48 183.72,463.48 L187.07,463.48 C195.55,463.48 202.42,470.35 202.42,478.83 L202.42,483.48" fill="none" stroke="#64748B" stroke-width="1"/>
 <polygon points="173.78,44 177.78,54 181.78,44 177.78,48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="173.78,108.3 177.78,118.3 181.78,108.3 177.78,112.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="99.85,215.18 103.85,225.18 107.85,215.18 103.85,219.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="247.71,215.18 251.71,225.18 255.71,215.18 251.71,219.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="99.85,279.48 103.85,289.48 107.85,279.48 103.85,283.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="69.08,319.48 73.08,329.48 77.08,319.48 73.08,323.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="137.08,319.48 141.08,329.48 145.08,319.48 141.08,323.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="69.08,383.78 73.08,393.78 77.08,383.78 73.08,387.78" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="137.08,383.78 141.08,393.78 145.08,383.78 141.08,387.78" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="127.96,423.78 131.96,433.78 135.96,423.78 131.96,427.78" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="198.42,498.07 202.42,508.07 206.42,498.07 202.42,502.07" fill="#64748B" stroke="#64748B" stroke-width="1"/>
-<polygon points="198.42,498.07 202.42,508.07 206.42,498.07 202.42,502.07" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="173.78,113.3 177.78,123.3 181.78,113.3 177.78,117.3" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="99.85,200.59 103.85,210.59 107.85,200.59 103.85,204.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="247.71,200.59 251.71,210.59 255.71,200.59 251.71,204.59" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="99.85,264.89 103.85,274.89 107.85,264.89 103.85,268.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="69.08,304.89 73.08,314.89 77.08,304.89 73.08,308.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="137.08,304.89 141.08,314.89 145.08,304.89 141.08,308.89" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="69.08,369.18 73.08,379.18 77.08,369.18 73.08,373.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="137.08,369.18 141.08,379.18 145.08,369.18 141.08,373.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="127.96,409.18 131.96,419.18 135.96,409.18 131.96,413.18" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="198.42,483.48 202.42,493.48 206.42,483.48 202.42,487.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
+<polygon points="198.42,483.48 202.42,493.48 206.42,483.48 202.42,487.48" fill="#64748B" stroke="#64748B" stroke-width="1"/>
 </g>
 <g>
-<text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="157.73" y="147.44" font-size="14" fill="#0F172A" textLength="40.11" lengthAdjust="spacing">check</tspan>
-</text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
 <tspan x="155.99" y="74.99" font-size="14" fill="#0F172A" font-weight="bold" textLength="43.58" lengthAdjust="spacing">Asked</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="69.88" y="246.18" font-size="14" fill="#0F172A" font-weight="bold" textLength="67.94" lengthAdjust="spacing">Approved</tspan>
+<tspan x="69.88" y="231.58" font-size="14" fill="#0F172A" font-weight="bold" textLength="67.94" lengthAdjust="spacing">Approved</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="221.61" y="246.18" font-size="14" fill="#0F172A" font-weight="bold" textLength="60.2" lengthAdjust="spacing">Rejected</tspan>
+<tspan x="221.61" y="231.58" font-size="14" fill="#0F172A" font-weight="bold" textLength="60.2" lengthAdjust="spacing">Rejected</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="16.16" y="350.47" font-size="14" fill="#0F172A" font-weight="bold" textLength="54.92" lengthAdjust="spacing">Packing</tspan>
+<tspan x="16.16" y="335.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="54.92" lengthAdjust="spacing">Packing</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="143.08" y="350.47" font-size="14" fill="#0F172A" font-weight="bold" textLength="42.01" lengthAdjust="spacing">Billing</tspan>
+<tspan x="143.08" y="335.88" font-size="14" fill="#0F172A" font-weight="bold" textLength="42.01" lengthAdjust="spacing">Billing</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="133.96" y="454.77" font-size="14" fill="#0F172A" font-weight="bold" textLength="35.76" lengthAdjust="spacing">Done</tspan>
+<tspan x="133.96" y="440.18" font-size="14" fill="#0F172A" font-weight="bold" textLength="35.76" lengthAdjust="spacing">Done</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="69.27" y="205.88" font-size="14" fill="#0F172A" textLength="28.59" lengthAdjust="spacing">if ok</tspan>
+<tspan x="69.27" y="191.29" font-size="14" fill="#0F172A" textLength="28.59" lengthAdjust="spacing">if ok</tspan>
 </text>
 <text font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, DejaVu Sans, Liberation Sans, Arial, Liberation Sans, Arimo, Helvetica, Nimbus Sans, sans-serif, Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji" xml:space="preserve">
-<tspan x="257.71" y="205.88" font-size="14" fill="#0F172A" textLength="33.75" lengthAdjust="spacing">if not</tspan>
+<tspan x="257.71" y="191.29" font-size="14" fill="#0F172A" textLength="33.75" lengthAdjust="spacing">if not</tspan>
 </text>
 </g>
 </g>

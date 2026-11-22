@@ -22,6 +22,7 @@ use crate::text::{self, Block, Family, Font};
 
 #[cfg(test)]
 mod bars;
+mod choices;
 mod nest;
 mod open;
 mod points;
@@ -52,7 +53,12 @@ const END: f32 = 26.0;
 /// A fork or join, long side then short side. The long side crosses the flow.
 const BAR_LONG: f32 = 80.0;
 const BAR_SHORT: f32 = 8.0;
-const CHOICE_MIN: f32 = 34.0;
+/// A choice's diamond, as PlantUML draws it: its name is not written in
+/// it, a name being mostly what the source calls it by.
+const CHOICE: f32 = 24.0;
+/// The room a choice takes in the layout: that of a larger diamond, so
+/// the lines keep as clear of it as of one with words ([`choices`]).
+const CHOICE_ROOM: f32 = 34.0;
 /// Between a note and its state.
 const NOTE_GAP: f32 = 10.0;
 const NOTE_PAD: f32 = 6.0;
@@ -93,6 +99,7 @@ pub fn draw_mapped(diagram: &Diagram) -> Result<(String, Map), Declined> {
     let arrows = arrows(&diagram.root);
     let misses = lay_by_hand(&arrows, &mut scene, &diagram.frame.by_hand);
     link_notes(&diagram.root, &mut scene, &skin, family)?;
+    choices::reach(&diagram.root, &mut scene);
     // The names of points, then room above for any that stand out over
     // the top, so none reaches the title.
     points::place_names(&diagram.root, &mut scene);
@@ -380,12 +387,7 @@ fn measure_node(
             };
             (width, height, title, description)
         }
-        Kind::Choice => {
-            let title = node.label.measure(skin.state.font, family)?;
-            let width = (title.width * 2.0 + 16.0).max(CHOICE_MIN);
-            let height = (title.height * 2.0 + 16.0).max(CHOICE_MIN);
-            (width, height, title, Vec::new())
-        }
+        Kind::Choice => (CHOICE_ROOM, CHOICE_ROOM, Block::empty(), Vec::new()),
         Kind::History | Kind::DeepHistory => {
             let word = if node.kind == Kind::DeepHistory {
                 "H*"
@@ -1137,11 +1139,13 @@ fn paint_outline(canvas: &mut Canvas, skin: &Skin, node: &Placed) {
             }
         }
         Kind::Choice => {
+            // The drawn diamond in the middle of the room it takes.
+            let half = CHOICE / 2.0;
             let points = [
-                (cx, rect.y),
-                (rect.x + rect.w, cy),
-                (cx, rect.y + rect.h),
-                (rect.x, cy),
+                (cx, cy - half),
+                (cx + half, cy),
+                (cx, cy + half),
+                (cx - half, cy),
             ];
             canvas.polygon(
                 Layer::Frames,
@@ -1473,7 +1477,7 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
                 node.rect.y + tab + (node.rect.h - tab - height) / 2.0,
             );
         }
-        Kind::Choice | Kind::History | Kind::DeepHistory => {
+        Kind::History | Kind::DeepHistory => {
             let y = node.rect.y + (node.rect.h - node.item.title.height) / 2.0;
             canvas.text(
                 Layer::Front,
@@ -1492,7 +1496,7 @@ fn paint_words(canvas: &mut Canvas, node: &Placed, written: Option<&super::Node>
             let at = point_name(node);
             canvas.text(Layer::Front, &node.item.title, (at.x, at.y), Align::Left);
         }
-        Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
+        Kind::Choice | Kind::Fork | Kind::Join | Kind::Start | Kind::End | Kind::Region => {}
     }
 }
 
@@ -1850,6 +1854,28 @@ mod tests {
             points.iter().all(|p| (p.1 - points[0].1).abs() < 0.5),
             "{points:?}"
         );
+    }
+
+    /// A choice is a small diamond with no words, as PlantUML draws it; the
+    /// lines to and from it end on that diamond.
+    #[test]
+    fn a_choice_is_a_small_diamond_the_lines_meet() {
+        let source = "@startuml\n' parts (Omaspec)\nstate Pick <<choice>>\n[*] --> Idle\nIdle --> Pick : next\nPick --> A : [x]\nPick --> B : [y]\nB --> Idle\n@enduml\n";
+        let (svg, map) = crate::render_mapped(source, None).unwrap();
+        assert!(!svg.contains(">Pick<"), "{svg}");
+        let place = map.places.iter().find(|p| p.name == "Pick").unwrap().rect;
+        let (cx, cy) = (place.x + place.w / 2.0, place.y + place.h / 2.0);
+        let mut ends = 0;
+        for wire in &map.wires {
+            for &(x, y) in [wire.path.first(), wire.path.last()].into_iter().flatten() {
+                let away = ((x - cx).abs() + (y - cy).abs()) / (CHOICE / 2.0);
+                if away < 2.0 {
+                    ends += 1;
+                    assert!((away - 1.0).abs() < 0.05, "{x},{y} about {cx},{cy}: {away}");
+                }
+            }
+        }
+        assert_eq!(ends, 3);
     }
 
     /// A point's name goes along where a title moves the picture down,

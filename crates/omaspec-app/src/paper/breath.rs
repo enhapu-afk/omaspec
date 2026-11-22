@@ -375,6 +375,13 @@ impl Paper {
     /// later mention keeps the last copy.
     #[cfg(test)]
     pub(super) fn place_of(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
+        self.unwritten(source, row, col, false)
+            .or_else(|| self.written_place_of(source, row, col))
+            .or_else(|| self.unwritten(source, row, col, true))
+    }
+
+    #[cfg(test)]
+    fn written_place_of(&self, source: &str, row: usize, col: usize) -> Option<Rectangle> {
         let tree = self.shown_tree()?;
         let texts = pick::texts(tree);
         let (text, nth) = locate::aimed(source, row, col, texts.iter().map(String::as_str))?;
@@ -414,13 +421,55 @@ impl Paper {
     /// The light for the label at `row`/`col`: the box around it, or the
     /// words themselves when they sit on a line.
     pub(super) fn aim_at(&self, source: &str, row: usize, col: usize) -> Option<Aim> {
-        let (_, seat) = self.seat_at(source, row, col)?;
+        if let Some(rect) = self.unwritten(source, row, col, false) {
+            return Some(Aim::shape(rect));
+        }
+        let Some((_, seat)) = self.seat_at(source, row, col) else {
+            return self.unwritten(source, row, col, true).map(Aim::shape);
+        };
         let (x, y, w, h) = seat.bounds();
         let rect = Rectangle::new(Point::new(x, y), Size::new(w, h));
         Some(match seat {
             pick::Seat::Shape { .. } => Aim::shape(rect),
             pick::Seat::Words { ink, ground, .. } => Aim::words(rect, ink, ground),
         })
+    }
+
+    /// A shape of the map with no words in it (a choice's diamond): named
+    /// by the word under the caret, or, with `anywhere`, by any word on its
+    /// line. Only on the picture the map was laid for.
+    fn unwritten(&self, source: &str, row: usize, col: usize, anywhere: bool) -> Option<Rectangle> {
+        let diagram = self.diagram.as_ref()?;
+        let tree = self.shown_tree()?;
+        if !std::sync::Arc::ptr_eq(tree, &diagram.drawn.tree) {
+            return None;
+        }
+        let line = source.lines().nth(row)?;
+        let mut words = Vec::new();
+        let mut start = None;
+        for (at, c) in line.char_indices().chain([(line.len(), ' ')]) {
+            match (c.is_alphanumeric() || c == '_', start) {
+                (true, None) => start = Some(at),
+                (false, Some(from)) => {
+                    words.push((from..at, &line[from..at]));
+                    start = None;
+                }
+                _ => {}
+            }
+        }
+        let labels = pick::labels(tree);
+        words
+            .into_iter()
+            .filter(|(range, _)| anywhere || (range.start <= col && col <= range.end))
+            .find_map(|(_, word)| {
+                let place = diagram.drawn.map.places.iter().find(|p| p.name == word)?;
+                let r = place.rect;
+                let written = labels.iter().any(|(_, (x, y, w, h))| {
+                    let (cx, cy) = (x + w / 2.0, y + h / 2.0);
+                    r.x <= cx && cx <= r.x + r.w && r.y <= cy && cy <= r.y + r.h
+                });
+                (!written).then(|| Rectangle::new(Point::new(r.x, r.y), Size::new(r.w, r.h)))
+            })
     }
 
     /// Moves the light to `target`, or lets it go out.

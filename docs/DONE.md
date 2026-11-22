@@ -499,6 +499,14 @@ is open and the reasoning around it.
       stays beside it; an action that ends in an SDL mark (`|`) keeps its
       color before it, the only place one is read there. The engine reads
       a shape and a color in brackets one after the other.
+- [x] Choices as PlantUML draws them (2026-11-22): a diamond 24 wide and
+      high with no words in it, in both languages; its name, mostly what
+      the source calls it by, was written in it and widened it. The
+      layout gives it the room of a diamond 34 wide, which keeps the lines
+      about it as clear as they were (one crossing fewer among the
+      examples), and the lines go on to the diamond drawn. The caret's
+      light finds a shape with no words by its name in the map, a
+      choice's declaration and every line that names it.
 
 ## Phase 0: foundation and spikes
 
